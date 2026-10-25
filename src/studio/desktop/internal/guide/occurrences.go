@@ -9,12 +9,13 @@ import (
 	"sync"
 )
 
-// This file is manuscript_guide.py find_occurrences and excerpt: where a name is in the manuscript, and the text stored beside each
-// place. The sidecar searches with the regular expression \b + re.escape(name.strip()) + \b under re.IGNORECASE, so what counts as a
-// word, which letters are one letter, what strip removes and where an index falls are Python's, and Python indexes a string by code
-// point. Go would answer from its own Unicode tables and its own idea of a letter's case, which differ in a few thousand places, so
-// the host does not ask them: python-unicode.json holds the tables Python 3.12 searches by, written by test_rescan_parity.py, and
-// occurrence-parity.json pins every answer below against the sidecar's (TestFindOccurrencesMatchesTheSidecar).
+// This file is manuscript_guide.py find_occurrences and excerpt, run in the host (#2251 deleted the Python copy): where a name is in
+// the manuscript, and the text stored beside each place. The sidecar searched with the regular expression \b + re.escape(name.strip())
+// + \b under re.IGNORECASE, so what counts as a word, which letters are one letter, what strip removes and where an index falls are
+// Python's, and Python indexes a string by code point. Go would answer from its own Unicode tables and its own idea of a letter's
+// case, which differ in a few thousand places, so the host does not ask them: python-unicode.json holds the tables Python 3.12 searches by, written by the sidecar's
+// test_python_text_goldens.py, and occurrence-parity.json (frozen) pins every answer below against the sidecar's
+// (TestFindOccurrencesMatchesTheSidecar).
 
 // excerptRadius is excerpt's default radius: the code points kept on each side of a match.
 const excerptRadius = 150

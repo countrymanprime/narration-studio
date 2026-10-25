@@ -123,13 +123,7 @@ export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
               const playing = player.playing === take.path;
               return (
                 <li key={take.name} className="flex items-center gap-2 py-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`}
-                    aria-pressed={playing}
-                    onClick={() => player.toggle(take)}
-                  >
+                  <Button variant="ghost" aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`} aria-pressed={playing} onClick={() => player.toggle(take)}>
                     <FontAwesomeIcon icon={playing ? faStop : faPlay} />
                   </Button>
                   <span className="min-w-0 flex-1 truncate">{take.name}</span>
@@ -155,13 +149,7 @@ export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
               const playing = player.playing === take.path;
               return (
                 <li key={take.name} className="flex flex-wrap items-center gap-2 py-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`}
-                    aria-pressed={playing}
-                    onClick={() => player.toggle(take)}
-                  >
+                  <Button variant="ghost" aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`} aria-pressed={playing} onClick={() => player.toggle(take)}>
                     <FontAwesomeIcon icon={playing ? faStop : faPlay} />
                   </Button>
                   <span className="min-w-0 flex-1 truncate">{take.name}</span>

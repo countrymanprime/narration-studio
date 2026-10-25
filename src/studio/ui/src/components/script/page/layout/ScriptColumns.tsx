@@ -68,7 +68,7 @@ export function ScriptColumns({
         <div
           data-scrim=""
           aria-hidden="true"
-          className={`absolute inset-0 z-[var(--z-panel-scrim)] bg-[rgba(10,8,5,0.35)] ${SCRIM_FOR[drawer]}`}
+          className={`absolute inset-0 z-[var(--z-panel-scrim)] bg-[var(--panel-scrim)] ${SCRIM_FOR[drawer]}`}
           onClick={onClose}
         />
       )}

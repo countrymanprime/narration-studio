@@ -14,6 +14,7 @@ import {
   checkControlWidths,
   checkDocumentScroll,
   disambiguateLabels,
+  findMixedRowHeights,
   NON_TEXT_INPUT_TYPES,
   OVERFLOW_TOLERANCE_PX,
   resolveAxeMode,
@@ -27,6 +28,7 @@ import {
   type DocumentScrollMode,
   type EscapedAbsolute,
   type RawAxeViolation,
+  type RowControl,
 } from './validators';
 
 function watchForProblems(page: Page, problems: string[]): void {
@@ -137,6 +139,31 @@ async function measureTextControls(page: Page): Promise<ControlMeasurement[]> {
   return disambiguateLabels(measured);
 }
 
+// The one-line controls in view, for the row-height check: text boxes, selects and buttons 28 to 48 px tall (a taller one is a card or a
+// multi-line control, a shorter one an inline link or a chip), each with its parent element's number.
+async function measureRowControls(page: Page): Promise<RowControl[]> {
+  return page.evaluate((nonText) => {
+    const parents = new Map<Element, number>();
+    return Array.from(document.querySelectorAll<HTMLElement>('input, select, button'))
+      .filter((element) => !(element instanceof HTMLInputElement && nonText.includes(element.type)))
+      .filter((element) => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden')
+      .filter((element) => !element.closest('[aria-hidden="true"], [inert]') && element.parentElement)
+      .map((element) => ({ element, box: element.getBoundingClientRect() }))
+      .filter(({ box }) => box.height >= 28 && box.height <= 48 && box.bottom > 0 && box.top < innerHeight)
+      .map(({ element, box }) => {
+        const parent = element.parentElement!;
+        if (!parents.has(parent)) parents.set(parent, parents.size);
+        const name = (element.getAttribute('aria-label') ?? element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+        return {
+          name: `${element.tagName.toLowerCase()} ${name}`,
+          parent: parents.get(parent)!,
+          top: Math.round(box.top * 10) / 10,
+          height: Math.round(box.height * 10) / 10,
+        };
+      });
+  }, NON_TEXT_INPUT_TYPES);
+}
+
 // axe-core is read only when axe runs, so a project that never turns it on does not need the package.
 let axeSource: string | undefined;
 function loadAxeSource(): string {
@@ -236,6 +263,7 @@ async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, prob
   // taken and recorded, so the picture of the failure exists.
   const controls = await measureTextControls(page);
   problems.push(...checkControlWidths(controls, entry.narrowControls, viewport.name));
+  problems.push(...findMixedRowHeights(await measureRowControls(page), viewport.name));
   const axeDebt = (appDrivers as { axeDebt?: readonly AxeDebt[] }).axeDebt;
   const axeMode = resolveAxeMode(process.env.UI_AXE, axeDebt !== undefined);
   const png = await page.screenshot({

@@ -36,7 +36,7 @@ describe('boothProgress (audit BO5, mock 03)', () => {
   });
 
   it("writes it in the mock's words", () => {
-    expect(progressText({ paragraph: 38, paragraphs: 71, percent: 41, secondsLeft: 490 })).toBe('¶ 38 of 71 · 41% · ~8:10 finished left');
+    expect(progressText({ paragraph: 38, paragraphs: 71, percent: 41, secondsLeft: 490 })).toBe('¶ 38 of 71 · 41% · ~8:10 of audio left');
   });
 
   it('writes durations as m:ss, the REC badge with two minute digits, and hours when there are any', () => {

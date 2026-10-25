@@ -3,7 +3,7 @@ import { splitWords, type ReaderMark, type ReaderRow } from './readerModel';
 import type { GuideEntity, GuidePronunciation } from '../../types';
 
 /**
- * The Booth status line's progress (mock 03, audit BO5): "¶ 38 of 71 · 41% · ~8:10 finished left". The paragraph is the
+ * The Booth status line's progress (mock 03, audit BO5): "¶ 38 of 71 · 41% · ~8:10 of audio left". The paragraph is the
  * one the current word sits in, counted over the chapter's paragraph rows only (the title is not a paragraph); the share
  * is of the words; the time left is the words still to read at the app's one finished-audio pace (`estimateFinishedHours`,
  * the Home estimate's ~155 words a minute), so it is an estimate of finished audio, not of the narrator's own speed.
@@ -33,7 +33,7 @@ export function clockText(seconds: number, minuteDigits: 1 | 2 = 1): string {
 }
 
 export const progressText = ({ paragraph, paragraphs, percent, secondsLeft }: BoothProgress): string =>
-  `¶ ${paragraph.toLocaleString()} of ${paragraphs.toLocaleString()} · ${percent}% · ~${clockText(secondsLeft)} finished left`;
+  `¶ ${paragraph.toLocaleString()} of ${paragraphs.toLocaleString()} · ${percent}% · ~${clockText(secondsLeft)} of audio left`;
 
 /** One name ahead of the reading position with a pronunciation to say it by (mock 03's "Coming up", audit BO8). */
 export type ComingUpName = { key: string; text: string; entity: GuideEntity; pronunciation: GuidePronunciation };

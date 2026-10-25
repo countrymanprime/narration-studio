@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"desktop/internal/analysistools"
+	"desktop/internal/brand"
 	"desktop/internal/extraction"
 	"desktop/internal/extraction/apply"
 	"desktop/internal/extraction/store"
@@ -421,8 +422,8 @@ func TestExtractionScanRefusesWithNoProjectOrManuscript(t *testing.T) {
 	}
 }
 
-// toolsHost is a host over a fresh project whose scan sources are the real registry: the Manuscript Guide sidecar is
-// this test binary (runFakeGuideRender, which writes the arguments it was started with to the file returned and prints
+// toolsHost is a host over a fresh project with a manuscript whose scan sources are the real registry: the Manuscript Guide
+// sidecar is this test binary (runFakeGuideRender, which writes the arguments it was started with to the file returned and prints
 // no suggestion), and the analysis catalog holds a pinned GLiNER and BookNLP small row, one small file each, neither
 // installed.
 func toolsHost(t *testing.T) (*Host, *analysistools.Manager, string) {
@@ -446,6 +447,7 @@ func toolsHost(t *testing.T) (*Host, *analysistools.Manager, string) {
 	}
 	host, _, _ := scanHost(t)
 	host.extractionSources = nil
+	writeScanManuscript(t, host) // the rules row runs first in every scan and reads it
 	host.assets = newAssetRegistry(t.TempDir(), nil, nil, nil, nil)
 	host.assets.registerAnalysisTools(tools)
 	host.config.manuscriptPython = os.Args[0]
@@ -537,5 +539,44 @@ func TestExtractionRegistryRunsTheGlinerAndBookNLPAdaptersWhenInstalled(t *testi
 			argAfter(started, "--install") != tools.InstallDir(tool.asset) {
 			t.Fatalf("the %s sidecar started with %q, want suggest --source %s --install %s", tool.source, started, tool.source, tools.InstallDir(tool.asset))
 		}
+	}
+}
+
+// The rules row runs in the host: with no Manuscript Guide sidecar configured, a scan with the rules reads the project's
+// manuscript and offers what the rules find.
+func TestExtractionRegistryRunsTheRulesWithNoSidecar(t *testing.T) {
+	host, _, _ := scanHost(t)
+	host.extractionSources = nil
+	writeScanManuscript(t, host)
+	if row := sourceRows(t, host)[extractionport.Rules]; !row.Available {
+		t.Fatalf("rules with no sidecar = %+v", row)
+	}
+	if _, err := host.ExtractionScan([]string{extractionport.Rules}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitScan(t, host)
+	if job.Phase != "success" || !slices.Contains(job.Logs, "Rules offered 1 suggestion.") {
+		t.Fatalf("a scan with the rules = %+v", job)
+	}
+	if got := storedAbout(t, host, "White Rabbit"); got.Source != extractionport.Rules || got.Payload.Type != "Character" {
+		t.Fatalf("stored = %+v", got)
+	}
+}
+
+// writeScanManuscript writes extractionParagraphs as the project's canonical manuscript, which the rules row reads.
+func writeScanManuscript(t *testing.T, host *Host) {
+	t.Helper()
+	var paragraphs []map[string]any
+	for _, p := range extractionParagraphs {
+		paragraphs = append(paragraphs, map[string]any{"id": p.ID, "chapterId": p.ChapterID, "chapterTitle": "Chapter", "text": p.Text})
+	}
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "documentId": "d", "paragraphs": paragraphs,
+		"chapters": []any{map[string]any{"id": "c-0001"}, map[string]any{"id": "c-0002"}}})
+	manuscript := filepath.Join(host.config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json")
+	if err := os.MkdirAll(filepath.Dir(manuscript), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manuscript, raw, 0o600); err != nil {
+		t.Fatal(err)
 	}
 }

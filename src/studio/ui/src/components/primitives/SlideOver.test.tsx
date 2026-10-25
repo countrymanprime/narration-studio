@@ -100,6 +100,15 @@ describe('SlideOver is a real modal panel', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('dims the page behind it, like the page drawers (alignment audit cause O)', () => {
+    render(
+      <SlideOver open title="Voice data" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    expect(document.querySelector('[data-slide-over-backdrop]')!.className).toContain('bg-[var(--panel-scrim)]');
+  });
+
   it('closes when the click-away backdrop is pressed', async () => {
     const onClose = vi.fn();
     const { user } = await openPanel(onClose);

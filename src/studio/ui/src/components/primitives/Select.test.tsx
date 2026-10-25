@@ -95,7 +95,7 @@ describe('Select', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('is a fixed height, the same as TextField (both 40.8px)', () => {
+  it('is a fixed height, the same as TextField and Button (--control-height, 36px)', () => {
     render(<Controlled />);
     const select = screen.getByRole('combobox', { name: 'Chapter status' });
     expect(select.className).toContain('h-[var(--control-height)]');
