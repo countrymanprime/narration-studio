@@ -274,8 +274,9 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ### About and updates
 
-Under the rows of **App & updates**, **This version** shows which version of the app you are running and looks
-after updates.
+Under the rows of **App & updates**, the **This version** section has two rows: the version of the app you are running,
+and **Updates**, which says what the last check found in one line (the release, its size, whether it is downloaded and
+the day the app last looked), any problem right under it, and the buttons in one row with **Check now** last.
 
 ![Settings - App & updates with a newer version found](../../images/ui/settings-about-updates.webp)
 

@@ -10,9 +10,13 @@ import { brand } from '../../brand.gen';
 
 const BYTES_PER_MB = 1024 * 1024;
 
-/** The day of a check, from the host's ISO time (UTC), so the words do not change with the locale or the time zone. */
-function checkedDay(lastChecked: string): string {
-  return `${lastChecked.slice(0, 10)} UTC`;
+const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** The day of a check, from the host's ISO time, as the app writes a date elsewhere ("Sep 21, 2026"); read in UTC so the day does not change with the time zone. */
+export function checkedDay(lastChecked: string): string {
+  const day = new Date(lastChecked);
+  if (Number.isNaN(day.getTime())) return lastChecked.slice(0, 10);
+  return day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 /**
@@ -92,74 +96,65 @@ export function UpdatesPanel() {
   );
 
   const errorAlert = error && (
-    <p role="alert" style={{ color: 'var(--danger-text)' }}>
+    <p role="alert" className="m-0 text-[var(--danger-text)]">
       {error}
     </p>
   );
-  if (!status) {
-    return errorAlert ? (
-      <div className="mb-4 rounded-md p-3 text-sm" style={{ background: 'var(--review-soft)' }}>
-        {errorAlert}
-      </div>
-    ) : null;
-  }
+  if (!status) return errorAlert ? <div className="flex flex-col gap-2 text-[0.875rem]">{errorAlert}</div> : null;
 
   const available = status.available;
+  // One headline, one muted detail line (the release, whether it is downloaded, when the app last looked), then any failure right under
+  // them, then one row of buttons with the main action first and Check now last (alignment audit R3SE1-5, XSE1-6).
+  const detail = [
+    available ? `${available.candidate ? 'A release candidate' : 'A release'} · ${Math.round(available.size / BYTES_PER_MB)} MB` : '',
+    available?.replaces && status.downloaded ? 'downloaded and checked' : '',
+    status.lastChecked ? `last checked ${checkedDay(status.lastChecked)}` : '',
+  ].filter(Boolean);
   return (
-    <div className="mb-4 space-y-3 rounded-md p-3 text-sm" style={{ background: 'var(--surface-2)' }}>
-      <div className="font-medium">Updates</div>
+    <div className="flex flex-col items-start gap-2 text-[0.875rem]" data-updates>
       {status.development ? (
-        <p style={{ color: 'var(--text-muted)' }}>Update checks are for releases. A development build is never offered an update.</p>
+        <p className="m-0 text-[var(--text-muted)]">Update checks are for releases. A development build is never offered an update.</p>
       ) : !status.platform ? (
-        <p style={{ color: 'var(--text-muted)' }}>The app has no release for this kind of computer, so there is nothing to update to.</p>
+        <p className="m-0 text-[var(--text-muted)]">The app has no release for this kind of computer, so there is nothing to update to.</p>
       ) : (
         <>
           {/* One live region for the result, so a screen reader hears what a check found; it is remembered state, not an alert. */}
-          <div role="status" className="space-y-2">
+          <div role="status" className="flex flex-col gap-0.5">
             {available ? (
-              <>
-                <div className="font-medium">Version {available.version} is available</div>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  {available.candidate ? 'A release candidate' : 'A release'} · {Math.round(available.size / BYTES_PER_MB)} MB
-                </div>
-                {available.replaces && status.downloaded && <p>Version {status.downloaded.version} is downloaded and checked.</p>}
-                {available.replaces && status.downloaded && !status.canInstall && <p style={{ color: 'var(--text-muted)' }}>{status.installBlockedReason}</p>}
-                {!available.replaces && (
-                  <p style={{ color: 'var(--text-muted)' }}>
-                    This platform does not update itself. Open the release notes to download it from the release page.
-                  </p>
-                )}
-              </>
+              <b className="font-semibold">Version {available.version} is available</b>
             ) : status.failure ? null : status.lastChecked ? (
-              <p>You have the latest version.</p>
+              <b className="font-semibold">You have the latest version.</b>
             ) : (
-              <p>Not checked yet.</p>
+              <b className="font-semibold">Not checked yet.</b>
             )}
-            {status.lastChecked && (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Last checked {checkedDay(status.lastChecked)}
+            {status.failure && <p className="m-0 text-[var(--danger-text)]">{status.failure}</p>}
+            {detail.length > 0 && <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">{capitalise(detail.join(' · '))}</p>}
+            {available?.replaces && status.downloaded && !status.canInstall && (
+              <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">{status.installBlockedReason}</p>
+            )}
+            {available && !available.replaces && (
+              <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">
+                This platform does not update itself. Open the release notes to download it from the release page.
               </p>
             )}
-            {status.failure && <p style={{ color: 'var(--danger-text)' }}>{status.failure}</p>}
           </div>
-          {available && (
-            <div className="flex flex-wrap items-center gap-3">
-              {available.replaces && !status.downloaded && <Button onClick={() => setConfirming(true)}>Download update</Button>}
-              {available.replaces && status.downloaded && status.canInstall && <Button onClick={() => setConfirmingInstall(true)}>Install and restart</Button>}
-              {available.replaces && status.downloaded && !status.canInstall && <Button onClick={showDownload}>Show the downloaded file</Button>}
+          {errorAlert}
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {available?.replaces && !status.downloaded && <Button onClick={() => setConfirming(true)}>Download update</Button>}
+            {available?.replaces && status.downloaded && status.canInstall && <Button onClick={() => setConfirmingInstall(true)}>Install and restart</Button>}
+            {available?.replaces && status.downloaded && !status.canInstall && <Button onClick={showDownload}>Show the downloaded file</Button>}
+            {available && (
               <Button variant="secondary" aria-label="Release notes (opens in your browser)" onClick={openNotes}>
                 Release notes
               </Button>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center gap-3">
+            )}
             <Button ref={checkButton} variant="secondary" disabled={checking} onClick={() => void check()}>
               {checking ? 'Checking…' : 'Check now'}
             </Button>
           </div>
         </>
       )}
-      {errorAlert}
+      {(status.development || !status.platform) && errorAlert}
       {confirming && available && (
         <ConfirmDialog
           title={`Download version ${available.version}?`}
