@@ -25,6 +25,7 @@ export function Popover({
   onOpenChange,
   fitToWindow = false,
   focusPopup = false,
+  sideOffset = 12,
   children,
 }: {
   // The trigger's own element (a `Button`, an `IconButton`), the same `render` pattern as `Menu` and `TooltipTarget`.
@@ -33,6 +34,9 @@ export function Popover({
   label: string;
   side?: 'top' | 'bottom' | 'left' | 'right';
   align?: 'start' | 'center' | 'end';
+  // The gap to the trigger, 12 px (mock-measured). A trigger in a page header passes the distance to the header's rule, so the popup starts
+  // below the rule rather than across it (alignment audit XSC-33).
+  sideOffset?: number;
   // Uncontrolled by default (Base UI keeps the open state); pass both to control it (closing it once a session starts).
   open?: boolean;
   defaultOpen?: boolean;
@@ -46,6 +50,10 @@ export function Popover({
   children: ReactNode;
 }) {
   const popup = useRef<HTMLDivElement>(null);
+  // The bars fixed along the bottom of the page (the Booth's footer and its setup notice) count as the window's edge: a popup opened above them
+  // stops short of them and scrolls inside itself rather than covering Record and the timer (alignment audit XBO-8). Their height is the one the
+  // toasts keep clear of, `--toast-clear` on <html> (useToastClearance).
+  const bottomBars = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--toast-clear')) || 0;
   return (
     // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
     <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
@@ -55,8 +63,9 @@ export function Popover({
         <BasePopover.Positioner
           side={side}
           align={align}
-          sideOffset={12}
-          collisionPadding={8}
+          sideOffset={sideOffset}
+          // The page gutter (16 px) from the window's sides, so at 390 px the popup sits evenly in the page rather than 4 px from one edge (XSC-33).
+          collisionPadding={{ top: 16, right: 16, left: 16, bottom: 16 + bottomBars }}
           collisionBoundary={fitToWindow ? document.documentElement : undefined}
           sticky={fitToWindow}
           className="z-[var(--z-dialog-popover)]"
@@ -66,7 +75,7 @@ export function Popover({
             initialFocus={focusPopup ? popup : undefined}
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
-            className={`max-h-[var(--available-height)] w-max max-w-[calc(100vw-1rem)] min-w-[min(21rem,calc(100vw-1rem))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
+            className={`max-h-[var(--available-height)] w-max max-w-[min(32rem,calc(100vw-2rem))] min-w-[min(21rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
             {children}
           </BasePopover.Popup>

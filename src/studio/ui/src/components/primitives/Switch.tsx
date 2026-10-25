@@ -1,3 +1,4 @@
+import { HIT_AREA } from './hitArea';
 import { Switch as BaseSwitch } from '@base-ui/react/switch';
 import type { ReactNode } from 'react';
 
@@ -24,7 +25,8 @@ export function Switch({
         checked={checked}
         disabled={disabled}
         onCheckedChange={onChange}
-        className="inline-flex h-5 w-9 flex-none items-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] p-0.5 data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[disabled]:opacity-40 motion-ok:transition-colors"
+        // The track is drawn 36 x 20; HIT_AREA takes presses in a 24 px band around it (WCAG 2.2 target size, alignment audit R3SE1-7, R3SE2-13).
+        className={`${HIT_AREA} inline-flex h-5 w-9 flex-none items-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] p-0.5 data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[disabled]:opacity-40 motion-ok:transition-colors`}
       >
         <BaseSwitch.Thumb className="size-3.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow)] data-[checked]:translate-x-4 motion-ok:transition-transform" />
       </BaseSwitch.Root>

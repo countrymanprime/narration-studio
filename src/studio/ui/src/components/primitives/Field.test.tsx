@@ -83,4 +83,10 @@ describe('Field', () => {
     render(<Field label="Note" value="" onChange={() => undefined} textarea />);
     expect(screen.getByRole('textbox', { name: 'Note' }).className).toMatch(/(^|\s)block(\s|$)/);
   });
+
+  // R3EN2-17: a long folder path was cut at the box's edge with no sign it went on.
+  it('ends a value wider than its box in an ellipsis', () => {
+    render(<Field label="Render folder" value="C:/Projects/Alice-in-Wonderland/renders" onChange={() => undefined} />);
+    expect(screen.getByRole('textbox', { name: 'Render folder' }).className).toContain('text-ellipsis');
+  });
 });

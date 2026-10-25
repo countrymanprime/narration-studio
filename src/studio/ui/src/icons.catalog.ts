@@ -89,6 +89,7 @@ import {
   faListCheck,
   faEllipsis,
   faStar,
+  faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircleCheck as faCircleCheckRegular } from '@fortawesome/free-regular-svg-icons';
 
@@ -224,6 +225,7 @@ export const CATALOG = {
   scrollWaveBack: action(faCaretLeft, 'scroll the waveform back', 'Scroll the waveform back a window'),
   scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward a window'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
+  problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
 
   // State: outline is off, solid is on (audit rule 3).
   markDone: action(faCircleCheckRegular, 'mark done', 'Mark done'),

@@ -23,7 +23,7 @@ async function openProof(page: Page, seed?: string, rows = true, direct = false)
 // Picks one chapter in the head's chapter stepper and waits for its recording check card to have read the chapter.
 async function openChapter(page: Page, chapterTitle: string): Promise<void> {
   await page.getByRole('button', { name: /^Chapter: .*\. Change chapter$/ }).click();
-  await page.getByRole('menuitemradio', { name: new RegExp(`^${chapterTitle}( — |$)`) }).click();
+  await page.getByRole('menuitemradio', { name: new RegExp(`^${chapterTitle}(: | — |$)`) }).click();
   await page.getByText('Open notes, by chapter').waitFor({ state: 'detached' });
   await page.getByText('Recording check', { exact: true }).waitFor();
 }

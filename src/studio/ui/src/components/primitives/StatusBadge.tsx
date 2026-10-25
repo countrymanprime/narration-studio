@@ -24,14 +24,17 @@ export type BadgeShape = 'pill' | 'tag' | 'booth' | 'cell';
  * `dashed` is the soft fill with a dashed border in the line colour: a suggested or unknown speaker (`KindChip`). */
 export type BadgeLook = 'soft' | 'outline' | 'dashed';
 
-/** A badge's colours: `fill` behind the label, `text` for it (and a dot's mark), `line` for the outline look. */
-export type BadgeColors = { fill: string; text: string; line: string };
+/** A badge's colours: `fill` behind the label, `text` for it (and a dot's mark), `line` for the outline look. `softLine` is a border the soft
+ * look keeps too, for a fill that would vanish on the surface it sits on. */
+export type BadgeColors = { fill: string; text: string; line: string; softLine?: string };
 
 // Each fill is the soft token, opaque and checked against its `-text` by paletteContrast.test.ts;
 // `neutral` and `progress`/`accent` reuse pairs that were already checked (`text-muted` on `surface-2`,
 // `accent-strong-on-soft`). `experimental` has no soft token, so it keeps docs/design/colour-and-contrast.md#derived-and-status-tokens's tint.
 const TONE_STYLE: Record<StatusTone, BadgeColors> = {
-  neutral: { fill: 'var(--surface-2)', text: 'var(--text-muted)', line: 'var(--border)' },
+  // Neutral's fill is the raised surface a card's inner row or a settings card is drawn on, where the pill vanished and its label read as a
+  // stray caption set in from the text under it (alignment audit XSE2-7): its soft look keeps the --border rim, so the pill shows on any surface.
+  neutral: { fill: 'var(--surface-2)', text: 'var(--text-muted)', line: 'var(--border)', softLine: 'var(--border)' },
   info: { fill: 'var(--info-soft)', text: 'var(--info-text)', line: 'var(--info)' },
   progress: { fill: 'var(--accent-soft)', text: 'var(--accent-strong)', line: 'var(--accent)' },
   accent: { fill: 'var(--accent-soft)', text: 'var(--accent-strong)', line: 'var(--accent)' },
@@ -68,10 +71,11 @@ export function badgeClass(shape: BadgeShape = 'pill'): string {
 }
 
 /** The inline colours of a badge in `look`. */
-export function badgeStyle({ fill, text, line }: BadgeColors, look: BadgeLook = 'soft'): CSSProperties {
+export function badgeStyle(colors: BadgeColors, look: BadgeLook = 'soft'): CSSProperties {
+  const { fill, text, line } = colors;
   if (look === 'outline') return { background: 'transparent', color: text, borderColor: line };
   if (look === 'dashed') return { background: fill, color: text, borderColor: line, borderStyle: 'dashed' };
-  return { background: fill, color: text, borderColor: 'transparent' };
+  return { background: fill, color: text, borderColor: colors.softLine ?? 'transparent' };
 }
 
 type BadgeProps = {

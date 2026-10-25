@@ -611,7 +611,7 @@ function AppRoutes() {
   useCommand('companion.open', () => {
     if (!isModalOpen()) guardedNavigateRef.current('/companion');
   });
-  // The History panel says "Ctrl Z undoes the last one", so it is the one layer Ctrl+Z reaches through; any other dialog keeps it out.
+  // The History panel says Ctrl Z "undoes the newest change", so it is the one layer Ctrl+Z reaches through; any other dialog keeps it out.
   const onlyHistoryOpen = () => {
     const { dialogs } = overlay.getSnapshot();
     return dialogs.length > 0 && dialogs.every((entry) => entry.kind === 'slideOver' && entry.spec.kind === 'slideOver' && entry.spec.title === HISTORY_TITLE);

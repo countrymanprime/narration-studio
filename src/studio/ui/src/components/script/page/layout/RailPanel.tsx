@@ -37,7 +37,8 @@ export function RailPanel({ body, onClose }: { body: (tab: RailTab) => ReactNode
             </Tab>
           ))}
         </TabList>
-        <TabPanel value={tab} className="min-h-0 flex-1 overflow-y-auto p-3">
+        {/* A Panel's 16 px inset, named as `--panel-pad`, so a flush table runs to the edges with its text on the labels' x. */}
+        <TabPanel value={tab} className="min-h-0 flex-1 overflow-y-auto p-4 [--panel-pad:1rem]">
           <div id="railbody">{body(tab)}</div>
         </TabPanel>
       </Tabs>

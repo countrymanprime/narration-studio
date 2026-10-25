@@ -9,7 +9,7 @@ type ToggleGroupOption = {
 };
 
 /** `default` is a row of standalone chips, each with its own border. `segmented` is one bordered container (the Master
- * platform switch): 33 px, 1 px `--line-strong`, `--bg` fill, radius
+ * platform switch): the control height (36 px; the mock draws 33), 1 px `--line-strong`, `--bg` fill, radius
  * ≈6; the chosen segment is inset, filled `--accent`, and the rest carry no fill, in the label's own case (title case in
  * the mocks, not uppercase — ACX, iNaudio, Google Play). */
 export type ToggleGroupLook = 'default' | 'segmented';

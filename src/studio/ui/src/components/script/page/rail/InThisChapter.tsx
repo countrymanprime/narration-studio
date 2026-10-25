@@ -34,9 +34,11 @@ export function InThisChapter({ label, rows, empty }: { label: string; rows: rea
     <>
       <SectionLabel as="h3">In this chapter</SectionLabel>
       {rows.length === 0 ? (
-        <p className="m-0 text-[0.88rem] text-[var(--text-muted)]">{empty}</p>
+        <p className="m-0 text-[0.88rem] text-balance text-[var(--text-muted)]">{empty}</p>
       ) : (
-        <Table label={label}>
+        // Fixed columns, so they stay put from chapter to chapter and a two-word name keeps its line (XSC-25), and run to the rail's
+        // edges with the text on the section label's x (`flush`, the rail body's 16 px `--panel-pad`, XSC-27).
+        <Table label={label} flush columns={['42%', 'auto', '3rem']}>
           <TableBody>
             {rows.map((row) => (
               <TableRow key={row.id} selected={row.selected} onActivate={row.onActivate} data={row.data}>

@@ -1,8 +1,7 @@
-import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DeliveryProfile } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { ProgressBar } from '../../primitives/ProgressBar';
@@ -38,7 +37,9 @@ function BuildMessage({ tone, role, action, children }: { tone: 'problem' | 'not
   return (
     <div role={role} className="flex flex-col items-start gap-2 rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2">
       <p dir="auto" className="flex gap-2 text-sm text-pretty text-[var(--danger-text)]">
-        <FontAwesomeIcon icon={faTriangleExclamation} aria-hidden="true" className="mt-[0.1875rem] flex-none" />
+        <span className="mt-[0.1875rem] flex-none">
+          <Icon name="problem" />
+        </span>
         <span className="min-w-0 [overflow-wrap:anywhere]">{children}</span>
       </p>
       {action}

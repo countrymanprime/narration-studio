@@ -137,7 +137,8 @@ describe('the header (ENX-11, ENX-13)', () => {
     expect(title.className).toContain('truncate');
     expect(title.className).toContain('flex-1');
     expect(title.getAttribute('title')).toBe('Editing check: Chapter 1 — Down the Rabbit-Hole');
-    expect(title.parentElement!.className).toContain('h-[3.75rem]');
+    // 52 px since XSL-13 (the top bar's height), 60 px before.
+    expect(title.parentElement!.className).toContain('h-13');
   });
 
   it('draws its title with the overlay title token, larger than a card title', () => {
@@ -147,5 +148,15 @@ describe('the header (ENX-11, ENX-13)', () => {
       </SlideOver>,
     );
     expect(screen.getByRole('heading', { name: 'Audio engine' }).className).toContain('--font-size-overlay-title');
+  });
+
+  // XSL-13: the panel's rule stood 12 px under the top bar's.
+  it("draws its header at the top bar's 52 px, so the two rules meet", () => {
+    render(
+      <SlideOver open title="Undo history" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    expect(screen.getByRole('heading', { name: 'Undo history' }).parentElement!.className).toContain('h-13');
   });
 });
