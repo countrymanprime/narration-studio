@@ -11,7 +11,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../primit
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { AnalysisToolsSection } from '../analysis/AnalysisToolsSection';
 import { useSettingsStore } from '../data/SettingsStore';
-import { AssetRow } from '../models/AssetRow';
+import { ASSET_COLUMNS, AssetRow } from '../models/AssetRow';
 import { assetKey, useAssetsStore, type AssetView } from '../models/AssetsStore';
 import { planRemoval, settingLabel, usesOf } from '../models/assetUse';
 import { ASSET_FILTERS, assetPages, GROUP_OF_KIND, RECOMMENDED_SET, type AssetGroup } from '../registry/assets';
@@ -55,7 +55,7 @@ export function ModelsPane({ category }: { category: Category }) {
       role={notice.tone === 'alert' ? 'alert' : 'status'}
       tone={notice.tone === 'alert' ? 'danger' : 'neutral'}
       fill={notice.tone !== 'alert'}
-      className="m-0"
+      className="m-0 text-[0.875rem] text-pretty"
     >
       {notice.text}
     </InsetCard>
@@ -85,10 +85,10 @@ export function ModelsPane({ category }: { category: Category }) {
     return (
       <div className="flex flex-col gap-3">
         <Heading category={category} />
-        <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5">
+        <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
           <b>The list of models could not be read.</b>
           <span>{loadError} Your downloads are not touched.</span>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => void assets.refresh()}>
               Retry
             </Button>
@@ -160,14 +160,17 @@ export function ModelsPane({ category }: { category: Category }) {
     <div className="flex flex-col gap-3.5">
       <Heading category={category} />
       <Panel label="Disk use">
-        <div data-disk className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span>
-            <b>{catalog.totalInstalledBytes > 0 ? formatSize(catalog.totalInstalledBytes) : '0 MB'}</b> used by {installed} {installed === 1 ? 'item' : 'items'}
-          </span>
-          <span className="text-[0.8125rem] text-[var(--text-muted)]">
-            Stored in <code className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">{catalog.cacheRoot}</code>
-          </span>
-          <Button variant="secondary" size="sm" onClick={openFolder}>
+        <div data-disk className="flex items-center gap-4">
+          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4 gap-y-1">
+            <span>
+              <b>{catalog.totalInstalledBytes > 0 ? formatSize(catalog.totalInstalledBytes) : '0 MB'}</b> used by {installed}{' '}
+              {installed === 1 ? 'item' : 'items'}
+            </span>
+            <span className="min-w-0 text-[0.8125rem] text-[var(--text-muted)]">
+              Stored in <code className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">{catalog.cacheRoot}</code>
+            </span>
+          </div>
+          <Button variant="secondary" size="sm" className="flex-none" onClick={openFolder}>
             Open folder
           </Button>
         </div>
@@ -177,7 +180,7 @@ export function ModelsPane({ category }: { category: Category }) {
         <Panel label="Nothing is downloaded yet">
           <div className="flex flex-col items-start gap-2.5">
             <b>Nothing is downloaded yet</b>
-            <p className="m-0 max-w-[50ch]">
+            <p className="m-0 max-w-[62ch]">
               The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.
             </p>
             <Button pending={recommendedBusy} onClick={downloadRecommended}>
@@ -186,8 +189,19 @@ export function ModelsPane({ category }: { category: Category }) {
           </div>
         </Panel>
       )}
-      <ToggleGroup label="Show" look="segmented" value={filter} onChange={(next) => setFilter(next as Filter)} options={ASSET_FILTERS} className="self-start" />
-      <Table label="Models, voices and tools" className="@max-[1020px]:block @max-[1020px]:[&_tbody]:block @max-[1020px]:[&_thead]:sr-only">
+      <ToggleGroup
+        label="Show"
+        look="segmented"
+        value={filter}
+        onChange={(next) => setFilter(next as Filter)}
+        options={ASSET_FILTERS}
+        className="max-w-full self-start overflow-x-auto whitespace-nowrap"
+      />
+      <Table
+        label="Models, voices and tools"
+        columns={ASSET_COLUMNS}
+        className="@max-[1020px]:block @max-[1020px]:[&_tbody]:block @max-[1020px]:[&_thead]:sr-only"
+      >
         <TableHead>
           <TableRow>
             <TableHeader>Name, type and size</TableHeader>

@@ -9,12 +9,19 @@ import { formatSize } from '../../assets/AssetFacts';
 import { PAGE_LABEL, PAGE_PATH, type UsedPage } from '../registry/types';
 import type { AssetView } from './AssetsStore';
 
-/** Below the page's 1020px container a row is a card: each cell on its own line, named by its `data-label`. */
+/**
+ * Below the page's 1020px container a row is a card on the card surface: the name and its actions on the first line (the action stays beside
+ * the asset it acts on), then Status and Used by, each named by its `data-label` (alignment audit XSE2-27, XSE1-14).
+ */
 const CARD_ROW =
-  '@max-[1020px]:mb-2.5 @max-[1020px]:block @max-[1020px]:rounded-lg @max-[1020px]:border @max-[1020px]:border-[var(--border)] @max-[1020px]:py-1.5';
+  '@max-[1020px]:mb-2.5 @max-[1020px]:grid @max-[1020px]:grid-cols-[minmax(0,1fr)_auto] @max-[1020px]:rounded-lg @max-[1020px]:border @max-[1020px]:border-[var(--border)] @max-[1020px]:bg-[var(--surface)] @max-[1020px]:py-1.5';
 const CARD_CELL = '@max-[1020px]:block @max-[1020px]:h-auto @max-[1020px]:border-b-0 @max-[1020px]:py-1 @max-[1020px]:break-words';
+const CARD_WIDE = '@max-[1020px]:col-span-2';
 const CARD_LABEL =
   "@max-[1020px]:before:mr-1.5 @max-[1020px]:before:font-['Barlow_Condensed',sans-serif] @max-[1020px]:before:text-[length:var(--font-size-label)] @max-[1020px]:before:font-semibold @max-[1020px]:before:tracking-[var(--tracking-label)] @max-[1020px]:before:text-[var(--text-muted)] @max-[1020px]:before:uppercase @max-[1020px]:before:content-[attr(data-label)]";
+
+/** The table's columns (`Table columns`): the name takes what is left, the others keep one width in every state, so nothing moves between states. */
+export const ASSET_COLUMNS = ['auto', '13rem', '15rem', '6.5rem'] as const;
 
 function Cell({ label, className = '', children }: { label?: string; className?: string; children: React.ReactNode }) {
   return (
@@ -48,7 +55,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
   return (
     <TableRow data={{ 'data-asset': `${item.kind}/${item.id}`, 'data-status': status }} className={CARD_ROW}>
       {/* native-control-ok: the row header of the asset table; it becomes a card heading at narrow widths (CARD_CELL) */}
-      <th scope="row" className={`${TABLE_CELL_CLASS} text-left align-top font-normal ${CARD_CELL}`}>
+      <th scope="row" className={`${TABLE_CELL_CLASS} text-left align-top font-normal ${CARD_CELL} @max-[1020px]:row-start-1`}>
         <b className="font-semibold">{name}</b>
         <span className="block text-[0.75rem] text-[var(--text-muted)]">
           {item.kindLabel}
@@ -56,7 +63,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
         </span>
         {item.description && <span className="block text-[0.8125rem]">{item.description}</span>}
       </th>
-      <Cell label="Status">
+      <Cell label="Status" className={CARD_WIDE}>
         <StatusBadge tone={tone} label={status === 'downloading' ? `Downloading ${view.percent}%` : label} />
         {status === 'installed' && inUse.length > 0 && <span className="block text-[0.75rem] text-[var(--text-muted)]">In use: {inUse.join(', ')}</span>}
         {busy && (
@@ -69,7 +76,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
               size="thin"
               valueText={status === 'verifying' ? 'Checking' : undefined}
             />
-            <span className="text-[0.75rem] text-[var(--text-muted)]">{status === 'verifying' ? 'Checking…' : `${view.percent}%`}</span>
+            {status === 'verifying' && <span className="text-[0.75rem] text-[var(--text-muted)]">Checking…</span>}
           </span>
         )}
         {status === 'failed' && view.failure && (
@@ -80,8 +87,8 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
         {status === 'repair' && <span className="block text-[0.75rem] text-[var(--text-muted)]">A file failed its check.</span>}
         {status === 'unavailable' && <span className="block text-[0.75rem] text-[var(--text-muted)]">{item.unavailableReason}</span>}
       </Cell>
-      <Cell label="Used by">
-        <span className="inline-flex max-w-[14.375rem] flex-wrap gap-x-2.5">
+      <Cell label="Used by" className={CARD_WIDE}>
+        <span className="inline-flex flex-wrap gap-x-2.5">
           {pages.map((page) => (
             <Button
               key={page}
@@ -95,8 +102,8 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
           ))}
         </span>
       </Cell>
-      <Cell className="w-px whitespace-nowrap">
-        <span className="inline-flex gap-1">
+      <Cell className="whitespace-nowrap @max-[1020px]:col-start-2 @max-[1020px]:row-start-1">
+        <span className="flex justify-end gap-1">
           {status === 'missing' && <IconButton action="download" label={`Download ${name} (${size})`} onClick={install} />}
           {status === 'installed' && <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />}
           {busy && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={cancel} />}
