@@ -249,6 +249,10 @@ The Settings page always keeps every setting. A working page may also offer a co
 
 **Known at 390 px, outside Settings** (found by a one-off sweep of every state at that width; the collapsed-control check passes everywhere): the Proofing results header and table (#148), the Home chapter table (#149) and a three-action confirm dialog (#150) are clipped or cramped. They need layout decisions and are reachable only by zoom, since the shell's minimum window is 960 px.
 
+## The first-use download facts
+
+`AssetFacts` (`components/assets/AssetFacts.tsx`) is the one list of facts every first-use download question shows (a Whisper model, a voice, a language model, the dictionary): a definition list on a `max-content` and `minmax(0,1fr)` grid, so every value starts at one x after its label, with no colons (alignment audit XPR2-30, R3BO-4, R3SB2-16). Its rows are what it is, Version, Publisher, one **Size** ("464 MB", or "12 MB download, 15 MB on disk" only when the two differ, R3PR2-23), **Saved to**, License and **Details** (Model card · Provenance). The links are underlined with a 24 px `HIT_AREA`, and the path breaks after a `/` or `\`, never inside a folder's name; a single name longer than the line still wraps.
+
 ## Editing page dialogs
 
 The Editing page's dialogs (delete or mute words, add FX, replace audio, voice sample) open through the overlay service, which has no `actions` slot, so they draw their own action row. These lines are the app's, from the alignment audit and the owner's decision on #2251 to fix every finding:
@@ -276,6 +280,10 @@ The Schedule's milestone table departs from the Studio Next mock (`pages/Schedul
 - **Fixed columns.** `Table columns`: Measures 9 rem, Due 9.5 rem (the mock's 152 px), Status 6 rem, the buttons 12 rem, and Milestone takes the rest, so Due and Status stand at one x whatever the milestones are called (XSH-3). A name stops at two lines with the whole name on hover (R3SH-7). Below 1024 px Measures folds and its words go under the name, so Due and Status stay on screen at 390 px (R4SM-13).
 - **The Final row reads like the others.** "Whole book" is the size of the other measures (the mock's `.sub`), and the due date field has no frame or fill until it is hovered or focused, its date at the other dates' x (XSH-11, R3SH-1).
 - **A card with only the Final row says so** in a line above it: "No other milestones yet. Add one with +." (XSH-17).
+
+## Delivery page layout
+
+Delivery keeps to Master & QC's centred 96 rem column and one `minmax(0,1fr)` track at every width, so a wide window does not set a label 1,262 px from its value and no card is pushed past a 390 px window (`delivery/page/DeliveryPage.tsx`, alignment audit R3DL-1, XDL-11). Its cards are siblings in one grid: side by side, **Before you build** spans the left column's rows and ends at its list (XDL-4, XDL-12); stacked, it comes straight after **Output**, before **Profile rules** (XDL-6). The aside's rows, its summary and its loading blocks share a 32 px pitch with a hairline between rows, a long name wraps to two lines instead of being cut, and a list longer than 18 rows scrolls inside the card (`Preflight.tsx`, XDL-4, R4TB-8, R3DL-4). The profile card's rules are a label column (7 to 12 rem) and the value left-aligned after it (`RULE_ROW` in `profile/LimitRow.tsx`, XDL-3, XDL-10); a custom profile's rows are a field's height, with lowest, "to", highest and the unit in fixed columns (XDL-1). A locked profile of either kind says **Locked while it builds** and its menu is dimmed (R4DL-1), and the card's header is the 50 px of the aside's beside it (XDL-7). Departures from the Studio Next mock (`pages/Delivery.tsx`, whose `.optrow` sets label and value at the row's two ends): the label column, the capped page width and the aside's order when stacked.
 
 ## Manuscript reader
 
@@ -355,6 +363,15 @@ In the Booth's speaker picker a row with no voice sample keeps the play button's
 - The mark composer is titled **Mark “…”** with the selected words, the mock's "Mark" eyebrow folded into the title because `Dialog` draws no eyebrow (XSC-37).
 - **The reader's frame.** The text and the header both have a 24 px inset (the mock's 20 plus 4), so the header title and the card under it share a left edge (XSC-28) and a bookmark ribbon gets its 24 px press area between the panel edge and the first letter. The ribbon is a fixed 16 px glyph centred in that inset, whatever the reader's text size (the Booth's text reaches 40 px, XBO-24, R3SC-12, XSC-21). Beside the reader (above 1280 px) the rail's tab strip is the reader header's 65 px, so the two rules are one line (XSC-11). The mock's strip is shorter and its reader inset 20 px; this supersedes both. Under 640 px the header title takes two lines before it is cut (XSC-9).
 - The retail sample's bar is drawn inside the reader's inset, square between paragraphs and round only at its two ends, so it is one unbroken line (XSC-18), and its **Retail sample** tag sits 12 px above the chapter's end-of line.
+
+## Editing drawer: Effects
+
+The Effects tab (`editing/effects/`) departs from the Studio Next mock in these lines, from the alignment audit:
+
+- **The inspector is about the selection.** With words selected, the effect on them is inspected and its row in the list is the `Table` row marked selected (a press anywhere on the row picks it); a row picked after that wins until the selection changes (R3ED-7). The effect's name is one cut line in the list, with the full name as its hint, and the table scrolls sideways in a narrow drawer (XED-13).
+- **One inspector layout.** The chain is the heading and not a fact again; the facts are a label column with left-aligned values; every setting is label over control, the slider's own layout; **Show in the DAW** sits with Preview and Compare, which act on the same effect, and **Remove this effect** is alone at the right under them (XED-14).
+- **Coverage swatches have a rim** (`--accent` on both shades, `--border` on None), since `--accent-soft` alone was all but invisible on the dark surface (R3ED-17).
+- **The DAW's chains** are listed under a section label, each name then its **Favourite** at the right, 8 px apart (XED-16, R3ED-18).
 
 ## Motion
 
