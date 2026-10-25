@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
 import { useApi } from '../../../api/ApiContext';
 import { usePendingAction } from '../../../hooks/usePendingAction';
@@ -14,6 +14,24 @@ import type { PronunciationSources } from './usePronunciationSources';
 
 const OWN_SOURCES: readonly string[] = ['manual', 'user'];
 
+/** The three columns of the names grid this row fills; below a 32 rem card the row wraps as a flex line instead. */
+const NAME_CELLS = 'col-span-3 grid grid-cols-subgrid gap-y-2 @max-[32rem]:col-span-1 @max-[32rem]:flex @max-[32rem]:flex-wrap @max-[32rem]:gap-2';
+/** One cell on the name's line: as tall as the row's 36 px buttons, its text on their middle. */
+const CELL = 'flex min-h-9 items-center';
+/** A line under the row, from the pronunciation's column to the source's, so it lines up with the input above it. */
+const BELOW = 'col-span-2 col-start-2 @max-[32rem]:basis-full';
+
+/** A pronunciation breaks only between its words, never at a slash or a stress mark inside one (`/ˈælɪs/`). */
+function Unbroken({ text }: { text: string }) {
+  const words = text.split(' ');
+  return words.map((word, index) => (
+    <Fragment key={index}>
+      {index > 0 && ' '}
+      <span className="whitespace-nowrap">{word}</span>
+    </Fragment>
+  ));
+}
+
 /**
  * One name of a Story Bible entry: its say-value, read-only or an input, and the source it came from. The host writes at once
  * (each call is a sidecar run), so a press is pending while it runs and a failure is the host's sentence in a toast; there is no local draft
@@ -27,6 +45,9 @@ export function NamePronunciation({
   sources,
   reload,
   notify,
+  primary = false,
+  badge,
+  note,
 }: {
   entityId: string;
   row: NameRow;
@@ -35,6 +56,12 @@ export function NamePronunciation({
   sources: PronunciationSources;
   reload: () => Promise<void>;
   notify: Notify;
+  /** The entry's own name, drawn heavier than its aliases so the two read apart. */
+  primary?: boolean;
+  /** Drawn after the source, on the name's line (the alias's "Needs review"). */
+  badge?: ReactNode;
+  /** A line under the row, in the pronunciation's column. */
+  note?: ReactNode;
 }) {
   const api = useApi();
   const port = usePort('pronunciationSources');
@@ -117,27 +144,32 @@ export function NamePronunciation({
   const busy = mutation.isBusy;
 
   return (
-    <div className="space-y-2" data-name={name}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-[8rem] font-medium">{name}</span>
-        {editing ? (
-          <div className="min-w-[8rem] flex-1">
-            <TextField
-              label={`How I say ${name}`}
-              mono
-              placeholder="for example: kroh-KAY"
-              value={text}
-              disabled={locked || mutation.isBlockedFor(`${key}-own`)}
-              onChange={setText}
-              onBlur={() => void commit()}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') void commit();
-              }}
-            />
-          </div>
-        ) : (
-          <span className="flex-1 font-['IBM_Plex_Mono',ui-monospace,monospace]">{pronunciation.ipa || '—'}</span>
-        )}
+    // Three cells of the names grid (GuideDetail's `NAMES_GRID`): the name, how it is said, and its source. The grid is shared by
+    // every row, so a name, a pronunciation and a source button start at one x down the list whatever each row holds; the row's
+    // action buttons are the fourth cell. In a narrow card the cells wrap instead, the name on a line of its own.
+    <div className={NAME_CELLS} data-name={name}>
+      <span className={`${CELL} ${primary ? 'font-semibold' : 'font-medium'} @max-[32rem]:basis-full`}>{name}</span>
+      {editing ? (
+        <div className={`${CELL} min-w-[8rem] @max-[32rem]:flex-1`}>
+          <TextField
+            label={`How I say ${name}`}
+            mono
+            placeholder="for example: kroh-KAY"
+            value={text}
+            disabled={locked || mutation.isBlockedFor(`${key}-own`)}
+            onChange={setText}
+            onBlur={() => void commit()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') void commit();
+            }}
+          />
+        </div>
+      ) : (
+        <span className={`${CELL} min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] @max-[32rem]:flex-1`}>
+          <Unbroken text={pronunciation.ipa || '—'} />
+        </span>
+      )}
+      <div className={`${CELL} flex-wrap gap-2`}>
         {(editing || pronunciation.ipa) && (
           <PronSourceTag
             src={pronunciation.source}
@@ -149,15 +181,17 @@ export function NamePronunciation({
             disabled={locked || busy}
           />
         )}
+        {badge}
       </div>
       {sources.error && (
-        <p role="alert" className="text-xs text-[var(--danger-text)]">
+        <p role="alert" className={`${BELOW} text-xs text-[var(--danger-text)]`}>
           {sources.error}
         </p>
       )}
+      {note && <div className={BELOW}>{note}</div>}
       {editing && (
-        <Disclosure title="Look up elsewhere" open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <div className="space-y-2 pl-5">
+        <Disclosure title="Look up elsewhere" open={detailsOpen} onOpenChange={setDetailsOpen} className={BELOW}>
+          <div className="space-y-2 pt-1">
             <OnlinePronunciationLookup name={name} disabled={locked || busy} onUse={setText} />
             <CommonsAudioLookup name={name} disabled={locked || busy} />
           </div>
