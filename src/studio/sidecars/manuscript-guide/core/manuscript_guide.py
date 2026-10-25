@@ -8,7 +8,6 @@ ManuscriptGuide directory.
 from __future__ import annotations
 
 import argparse
-import copy
 import hashlib
 import itertools
 import json
@@ -243,33 +242,6 @@ def excerpt(text: str, start: int, end: int, radius: int = 150) -> str:
     return ("…" if left else "") + value + ("…" if right < len(text) else "")
 
 
-def find_occurrences(paragraphs: list[dict[str, str]], name: str) -> list[dict[str, Any]]:
-    """Literal, case-insensitive, whole-word search for exactly one known name -
-    used by rescan/create/merge, unlike rule_candidates/spacy_candidates which
-    look for brand new candidates. Returns ready-to-store evidence dicts: the
-    canonical name and each alias keep their OWN occurrence list (mirroring the
-    approved design), so this is called once per name rather than once per
-    entity with everything flattened together."""
-    escaped = re.escape(name.strip())
-    if not escaped:
-        return []
-    pattern = re.compile(r"\b" + escaped + r"\b", re.IGNORECASE)
-    found: list[dict[str, Any]] = []
-    for para_index, paragraph in enumerate(paragraphs):
-        text = paragraph["text"]
-        for match in pattern.finditer(text):
-            found.append(
-                {
-                    "chapter": paragraph["chapter"],
-                    "chapterId": paragraph["chapterId"],
-                    "paragraph": para_index,
-                    "paragraphId": paragraph["paragraphId"],
-                    "excerpt": excerpt(text, match.start(), match.end()),
-                }
-            )
-    return found
-
-
 class WordStats(NamedTuple):
     """Manuscript-wide signals used to tell names from ordinary words without a dictionary."""
 
@@ -467,7 +439,6 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
 # up, so it is not in SOURCES and the pronounce command does not offer it. A file written before docs/guides/using-the-app/story-bible.md#how-you-say-each-name says ``user``.
 MANUAL_SOURCE = "manual"
 LEGACY_MANUAL_SOURCE = "user"
-MAX_USER_PRONUNCIATION = 200
 # The fields that are the pronunciation itself; the note and the alternate are about the name and travel with it.
 _PRONUNCIATION_VALUE_FIELDS = ("ipa", "source", "confidence")
 
@@ -521,18 +492,6 @@ def set_pronunciation(prior: dict[str, Any] | None, new: dict[str, Any]) -> dict
     return value
 
 
-def user_pronunciation(ipa: str) -> dict[str, Any]:
-    """The narrator's own pronunciation, typed in; it never asks CMU or eSpeak."""
-    text = (ipa or "").strip()
-    if not text:
-        raise ValueError("Type a pronunciation first.")
-    if "\n" in text or "\r" in text:
-        raise ValueError("A pronunciation is one line.")
-    if len(text) > MAX_USER_PRONUNCIATION:
-        raise ValueError(f"A pronunciation is at most {MAX_USER_PRONUNCIATION} characters.")
-    return {"ipa": text, "source": MANUAL_SOURCE, "confidence": "narrator"}
-
-
 def pronunciation(name: str, espeak_library: str | None, default_source: str | None = None) -> dict[str, str]:
     # CMU is quick and high-quality for familiar names. It cannot cover most fantasy names.
     # Read-only/generated-only: there is no user-editable "say it as" respelling
@@ -573,9 +532,9 @@ def direct_description(name: str, occurrences: list[dict[str, str]]) -> dict[str
     """Return only an explicit appositive/copular description, never a guess."""
     names = [re.escape(name), re.escape(name.split()[-1])]
     for occurrence in occurrences:
-        # build_entities() candidates carry the full paragraph "text", but
-        # find_occurrences() (used by create/rescan/merge) only stores a
-        # truncated "excerpt" - fall back to it instead of crashing.
+        # build_entities() candidates carry the full paragraph "text", but an
+        # occurrence stored in the file (the host's create, rescan and merge
+        # write them) has only a truncated "excerpt" - fall back to it.
         source_text = occurrence.get("text", occurrence.get("excerpt", ""))
         for sentence in SENTENCES.split(source_text):
             for candidate in names:
@@ -635,19 +594,6 @@ def appearance_map(occurrences: list[dict[str, Any]], scenes: dict[str, int | No
         seen.add(key)
         appearances.append({"chapterId": item.get("chapterId", ""), "chapter": item.get("chapter", ""), "sceneIndex": scene})
     return sorted(appearances, key=lambda item: (item["chapterId"], item["sceneIndex"]))
-
-
-def merge_appearances(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    seen: set[tuple[str, int]] = set()
-    merged: list[dict[str, Any]] = []
-    for group in groups:
-        for item in group:
-            key = (item["chapterId"], item["sceneIndex"])
-            if key in seen:
-                continue
-            seen.add(key)
-            merged.append(item)
-    return sorted(merged, key=lambda item: (item["chapterId"], item["sceneIndex"]))
 
 
 def evidence_entries(items: list[dict[str, str]]) -> list[dict[str, Any]]:
@@ -993,20 +939,6 @@ def build(args: argparse.Namespace) -> None:
     print(f"BUILT|{len(entities)}|{args.out}")
 
 
-def status(args: argparse.Namespace) -> None:
-    guide = load_json(args.guide)
-    if not guide:
-        result = "STATUS|MISSING"
-    elif guide.get("source", {}).get("sha256") != document_hash(args.manuscript):
-        result = "STATUS|STALE"
-    else:
-        result = "STATUS|CURRENT"
-    if args.out:
-        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.out).write_text(result + "\n", encoding="utf-8")
-    print(result)
-
-
 def find_entity(guide: dict[str, Any], entity_id_value: str) -> dict[str, Any]:
     entity = next((value for value in guide["entities"] if value["id"] == entity_id_value), None)
     if entity is None:
@@ -1030,7 +962,6 @@ SYSTEM_CATEGORIES = {"Needs Review", "Draft"}
 # of styles.css (green --character, blue --place, violet --org, amber --lore, teal --item, rose --event). ``builtin`` is kept in the
 # file only: the extracted category a row stands for, so a rebuild files a new Character under the type it was renamed to.
 TYPE_COLOURS = ("green", "blue", "violet", "amber", "teal", "rose")
-MAX_TYPE_NAME = 40
 DEFAULT_TYPES: tuple[dict[str, Any], ...] = tuple(
     {"name": name, "colour": colour, "speaks": name == "Character", "builtin": name}
     for name, colour in zip(("Character", "Place", "Organization", "Lore", "Item", "Event"), TYPE_COLOURS, strict=True)
@@ -1062,11 +993,6 @@ def guide_types(guide: dict[str, Any]) -> list[dict[str, Any]]:
     return types
 
 
-def type_names(guide: dict[str, Any]) -> set[str]:
-    """The categories an entry can be given: the names of the types."""
-    return {row["name"] for row in guide_types(guide)}
-
-
 def speaking_types(guide: dict[str, Any]) -> set[str]:
     """The types whose entries speak: their names are the speakers dialogue cues resolve to, and only they have a speaker colour."""
     return {row["name"] for row in guide_types(guide) if row["speaks"]}
@@ -1090,231 +1016,14 @@ def file_under_types(entities: list[dict[str, Any]], types: list[dict[str, Any]]
         entity["review"] = {**(entity.get("review") or {"aliases": []}), "entry": True}
 
 
-def _type_name(value: str) -> str:
-    name = (value or "").strip()
-    if not name or len(name) > MAX_TYPE_NAME or any(char in name for char in "\r\n\0"):
-        raise ValueError(f"A type's name is one line of 1 to {MAX_TYPE_NAME} characters.")
-    if name in SYSTEM_CATEGORIES:
-        raise ValueError(f"{name} is kept for the Story Bible's own use; give the type another name.")
-    return name
-
-
-def _type_row(types: list[dict[str, Any]], name: str) -> dict[str, Any]:
-    row = next((row for row in types if row["name"] == name), None)
-    if row is None:
-        raise ValueError(f"There is no type named {name!r}.")
-    return row
-
-
-def _refuse_taken(types: list[dict[str, Any]], name: str, keep: dict[str, Any] | None = None) -> None:
-    if any(row is not keep and row["name"].casefold() == name.casefold() for row in types):
-        raise ValueError(f"There is a type named {name!r} already; give the type a new name.")
-
-
-def _edit_types(path: str, change) -> None:
-    """Applies one change to the types and writes the whole list. A Story Bible that does not exist yet is started, as ``create`` does,
-    so Settings can shape the types before the first build. A refused change writes nothing."""
-    guide = load_json(path) or empty_guide()
-    types = guide_types(guide)
-    change(guide, types)
-    guide["types"] = types
-    write_json(path, guide)
-
-
-def type_add(args: argparse.Namespace) -> None:
-    """Adds a type at the end, with the next palette colour by position, that does not speak."""
-    name = _type_name(args.name)
-
-    def change(_guide: dict[str, Any], types: list[dict[str, Any]]) -> None:
-        _refuse_taken(types, name)
-        types.append({"name": name, "colour": TYPE_COLOURS[len(types) % len(TYPE_COLOURS)], "speaks": False})
-
-    _edit_types(args.guide, change)
-    print(f"TYPE_ADDED|{name}")
-
-
-def type_rename(args: argparse.Namespace) -> None:
-    """Renames a type and moves every entry of it, a locked one too: the lock keeps the narrator's entry as they wrote it, and the
-    entry's type is the same type under its new name."""
-    to = _type_name(args.to)
-
-    def change(guide: dict[str, Any], types: list[dict[str, Any]]) -> None:
-        row = _type_row(types, args.name)
-        _refuse_taken(types, to, keep=row)
-        for entity in guide.get("entities", []):
-            if entity.get("category") == row["name"]:
-                entity["category"] = to
-        row["name"] = to
-
-    _edit_types(args.guide, change)
-    print(f"TYPE_RENAMED|{args.name}|{to}")
-
-
-def type_colour(args: argparse.Namespace) -> None:
-    """Sets a type's colour, one of TYPE_COLOURS."""
-    if args.colour not in TYPE_COLOURS:
-        raise ValueError(f"A type's colour is one of {', '.join(TYPE_COLOURS)}.")
-    _edit_types(args.guide, lambda _guide, types: _type_row(types, args.name).update(colour=args.colour))
-    print(f"TYPE_COLOUR|{args.name}|{args.colour}")
-
-
-def type_speaks(args: argparse.Namespace) -> None:
-    """Sets whether a type's entries speak (``--speaks`` 1 or 0). A speaker colour already stored on an entry is kept, unused while
-    its type is silent; the dialogue cues follow on the next build."""
-    _edit_types(args.guide, lambda _guide, types: _type_row(types, args.name).update(speaks=bool(args.speaks)))
-    print(f"TYPE_SPEAKS|{args.name}|{int(bool(args.speaks))}")
-
-
-def type_remove(args: argparse.Namespace) -> None:
-    """Removes a type no entry uses. The last type stays, so an entry always has one to be given."""
-
-    def change(guide: dict[str, Any], types: list[dict[str, Any]]) -> None:
-        row = _type_row(types, args.name)
-        if any(entity.get("category") == row["name"] for entity in guide.get("entities", [])):
-            raise ValueError(f"{row['name']} is in use; give its entries another type first.")
-        if len(types) < 2:
-            raise ValueError("The last type cannot be removed.")
-        types.remove(row)
-
-    _edit_types(args.guide, change)
-    print(f"TYPE_REMOVED|{args.name}")
-
-
 def entity_occurrence_count(entity: dict[str, Any]) -> int:
     return len(entity.get("occurrences", [])) + sum(len(alias.get("occurrences", [])) for alias in entity.get("aliases", []))
-
-
-def normalize_properties(raw: Any) -> list[dict[str, str]]:
-    """Checks an entity's properties and returns them trimmed, in the order given.
-
-    A property is a ``{"key", "value"}`` pair of strings: the labelled facts of a character block ("Codename", "Abilities", "Dossier").
-    The list is ordered, and it is a list rather than an object because the host re-marshals the file and would sort an object's keys.
-    A key is required and unique whatever its case; a value may be empty. Anything else is refused with the position of the property.
-    """
-    if not isinstance(raw, list):
-        raise ValueError("Properties must be a list of key and value pairs.")  # noqa: TRY004 - every refused input is a ValueError here
-    properties: list[dict[str, str]] = []
-    seen: set[str] = set()
-    for position, item in enumerate(raw, start=1):
-        if not isinstance(item, dict) or not isinstance(item.get("key"), str) or not isinstance(item.get("value"), str):
-            raise ValueError(f"Property {position} must have a text key and a text value.")  # noqa: TRY004 - every refused input is a ValueError here
-        key, value = item["key"].strip(), item["value"].strip()
-        if not key:
-            raise ValueError(f"Property {position} has no name.")
-        if key.casefold() in seen:
-            raise ValueError(f"There are two properties named {key!r}; give each a different name.")
-        seen.add(key.casefold())
-        properties.append({"key": key, "value": value})
-    return properties
-
-
-def parse_properties(text: str) -> list[dict[str, str]]:
-    """Reads the properties a command line carries as one JSON value. Empty text is no properties."""
-    if not text.strip():
-        return []
-    try:
-        raw = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"The properties are not valid JSON ({exc}).") from exc
-    return normalize_properties(raw)
 
 
 def entity_properties(entity: dict[str, Any]) -> list[dict[str, str]]:
     """The properties of an entity, empty for a file written before they existed."""
     properties = entity.get("properties")
     return properties if isinstance(properties, list) else []
-
-
-def apply_edit(
-    entity: dict[str, Any],
-    field: str,
-    value: str,
-    paragraphs: list[dict[str, str]] | None,
-    espeak_library: str | None,
-    default_source: str | None = None,
-    categories: set[str] | None = None,
-) -> None:
-    """Applies one field edit to ``entity`` in memory. Nothing is written here. ``categories`` are the types an entry can be given
-    (``type_names``), the default types when not given."""
-    if entity.get("locked") and field != "locked":
-        raise ValueError("This entity is locked. Unlock it before editing.")
-    if field == "locked":
-        entity["locked"] = value.strip().lower() in {"1", "true", "yes", "on"}
-    elif field == "description":
-        entity.setdefault("description", {})["text"] = value
-    elif field == "personality":
-        entity["personality_notes"] = [{"text": value, "evidence": {"chapter": "User edit", "excerpt": "User-authored note."}}] if value else []
-    elif field == "context":
-        entity["context"] = value
-    elif field == "properties":
-        entity["properties"] = parse_properties(value)
-    elif field == "category":
-        if value in SYSTEM_CATEGORIES or value not in (VALID_CATEGORIES if categories is None else categories):
-            raise ValueError(f"Unknown or reserved category: {value}")
-        entity["category"] = value
-    elif field == "canonical_name":
-        entity["canonical_name"] = value
-    elif field == "aliases":
-        requested = [item.strip() for item in value.split(";") if item.strip()]
-        existing_by_text = {alias["text"].lower(): alias for alias in entity.get("aliases", [])}
-        new_aliases = []
-        for name in requested:
-            existing = existing_by_text.get(name.lower())
-            if existing:
-                new_aliases.append(existing)
-                continue
-            new_aliases.append(
-                {
-                    "text": name,
-                    "pronunciation": pronunciation(name, espeak_library, default_source),
-                    "occurrences": find_occurrences(paragraphs, name) if paragraphs is not None else [],
-                }
-            )
-        entity["aliases"] = new_aliases
-        entity["occurrence_count"] = entity_occurrence_count(entity)
-        if "review" in entity:
-            entity["review"] = entity_review(entity)
-    else:
-        raise ValueError("Unsupported editable field.")
-
-
-def edit(args: argparse.Namespace) -> None:
-    """Edits one or more fields of an entity in a single run (``--field`` and ``--value`` repeat, in pairs).
-
-    Every field is applied in memory and the file is written once, after the last one succeeded, so a bad
-    field leaves the file exactly as it was. That is one process for a whole Save instead of one per field.
-    """
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    entity = find_entity(guide, args.entity_id)
-    fields = args.field if isinstance(args.field, list) else [args.field]
-    values = args.value if isinstance(args.value, list) else [args.value]
-    if len(fields) != len(values):
-        raise ValueError("Every --field needs a --value.")
-    # The manuscript is read only when an alias is edited, to find where the new alias occurs.
-    paragraphs = load_manuscript(args.manuscript) if "aliases" in fields and args.manuscript else None
-    for field, value in zip(fields, values, strict=True):
-        apply_edit(entity, field, value, paragraphs, args.espeak_library or None, getattr(args, "default_source", "") or None, type_names(guide))
-    entity["review_state"] = "reviewed"
-    write_json(args.guide, guide)
-    print("EDITED|" + args.entity_id)
-
-
-def rescan(args: argparse.Namespace) -> None:
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    entity = find_entity(guide, args.entity_id)
-    paragraphs = load_manuscript(args.manuscript)
-    entity["occurrences"] = find_occurrences(paragraphs, entity["canonical_name"])
-    for alias in entity.get("aliases", []):
-        alias["occurrences"] = find_occurrences(paragraphs, alias["text"])
-    entity["occurrence_count"] = entity_occurrence_count(entity)
-    if entity.get("review_state") == "needs review" and entity["occurrence_count"]:
-        entity["review_state"] = "reviewed"
-    write_json(args.guide, guide)
-    print(f"RESCANNED|{args.entity_id}|{entity['occurrence_count']}")
 
 
 def _pronunciation_holder(guide: dict[str, Any], entity_id_value: str, alias_index: int | None) -> tuple[dict[str, Any], str]:
@@ -1347,78 +1056,8 @@ def entity_review(entity: dict[str, Any]) -> dict[str, Any]:
     return {"entry": bool(stored.get("entry")), "aliases": list(dict.fromkeys(flagged))}
 
 
-def set_review(entity: dict[str, Any], entry: bool, aliases: list[str]) -> None:
-    """Stores the review flags, keeping only names the entry has, and keeps ``review_state`` (which the findings read) in step:
-    a flagged entry needs review, and one with nothing left to look at is reviewed."""
-    entity["review"] = entity_review({**entity, "review": {"entry": entry, "aliases": aliases}})
-    if entry:
-        entity["review_state"] = "needs review"
-    elif not entity["review"]["aliases"] and entity.get("review_state") == "needs review":
-        entity["review_state"] = "reviewed"
-
-
-def _review_target(guide: dict[str, Any], entity_id_value: str, alias_index: int | None) -> tuple[dict[str, Any], str | None]:
-    """The entry a review call changes and the alias text it names (None for the entry itself). Refused on a locked entry."""
-    entity = find_entity(guide, entity_id_value)
-    if entity.get("locked"):
-        raise ValueError("This entity is locked. Unlock it before editing.")
-    if alias_index is None:
-        return entity, None
-    aliases = entity.get("aliases", [])
-    if not 0 <= alias_index < len(aliases):
-        raise ValueError("Alias index out of range.")
-    return entity, aliases[alias_index]["text"]
-
-
-def mark_reviewed(args: argparse.Namespace) -> None:
-    """Mark reviewed: the entry and every name (no ``--alias-index``), or one name. The entry is reviewed when nothing is left."""
-    guide = _load_guide_for_edit(args.guide)
-    entity, alias = _review_target(guide, args.entity_id, args.alias_index)
-    review = entity_review(entity)
-    if alias is None:
-        set_review(entity, False, [])
-        entity["review_state"] = "reviewed"
-    else:
-        set_review(entity, review["entry"], [text for text in review["aliases"] if text != alias])
-    write_json(args.guide, guide)
-    print(f"REVIEWED|{args.entity_id}")
-
-
-def review_flag(args: argparse.Namespace) -> None:
-    """Flags the entry, or one name, as needing review: the undo of ``mark_reviewed`` and what an accepted automatic suggestion sets.
-    A flag that is already set changes nothing and the file is not written."""
-    guide = _load_guide_for_edit(args.guide)
-    entity, alias = _review_target(guide, args.entity_id, args.alias_index)
-    review = entity_review(entity)
-    if alias is None and not (review["entry"] and isinstance(entity.get("review"), dict)):
-        set_review(entity, True, review["aliases"])
-        write_json(args.guide, guide)
-    elif alias is not None and alias not in review["aliases"]:
-        set_review(entity, review["entry"], [*review["aliases"], alias])
-        write_json(args.guide, guide)
-    print(f"FLAGGED|{args.entity_id}")
-
-
-SPEAKER_COLORS = 7
 # The types that speak in a file without a types list: only Character. A file with one speaks as its rows say (speaking_types).
 SPEAKING_CATEGORIES = {row["name"] for row in DEFAULT_TYPES if row["speaks"]}
-
-
-def speaker_color(args: argparse.Namespace) -> None:
-    """Sets the entry's speaker colour, 1..7 (the ``--speaker-N`` hue of docs/design/colour-and-contrast.md#per-speaker-colours), which wins over the stable pick; 0 puts it back to
-    automatic. Refused on a locked entry and for an entry whose type cannot speak."""
-    if not 0 <= args.index <= SPEAKER_COLORS:
-        raise ValueError(f"A speaker colour is 1 to {SPEAKER_COLORS}, or 0 for automatic.")
-    guide = _load_guide_for_edit(args.guide)
-    entity, _ = _review_target(guide, args.entity_id, None)
-    if entity.get("category") not in speaking_types(guide):
-        raise ValueError("Only an entry whose type can speak has a speaker colour.")
-    if args.index:
-        entity["speaker_color"] = args.index
-    else:
-        entity.pop("speaker_color", None)
-    write_json(args.guide, guide)
-    print(f"SPEAKER_COLOR|{args.entity_id}|{args.index}")
 
 
 def _load_guide_for_edit(path: str) -> dict[str, Any]:
@@ -1481,33 +1120,8 @@ def lookup_pronunciations(args: argparse.Namespace) -> None:
         print(json.dumps(pronunciation(word, args.espeak_library or None, args.default_source or None), ensure_ascii=False))
 
 
-def pronounce_user(args: argparse.Namespace) -> None:
-    """Sets the narrator's own pronunciation (source ``manual``) beside the dictionary's, which is kept as the alternate."""
-    value = user_pronunciation(args.ipa)
-    guide = _load_guide_for_edit(args.guide)
-    holder, _ = _pronunciation_holder(guide, args.entity_id, args.alias_index)
-    value["chosen"] = True
-    holder["pronunciation"] = set_pronunciation(holder.get("pronunciation"), value)
-    write_json(args.guide, guide)
-    print(f"PRONOUNCED|{args.entity_id}|{MANUAL_SOURCE}")
-
-
-def pronunciation_use_alternate(args: argparse.Namespace) -> None:
-    """Puts the kept alternate back in use, and keeps the one it replaces as the new alternate: lossless both ways, no lookup."""
-    guide = _load_guide_for_edit(args.guide)
-    holder, _ = _pronunciation_holder(guide, args.entity_id, args.alias_index)
-    current = holder.get("pronunciation") or {}
-    alternate = current.get("alternate")
-    if not alternate:
-        raise ValueError("There is no other pronunciation to switch to.")
-    value = {**_pronunciation_core(alternate), "chosen": True}
-    holder["pronunciation"] = set_pronunciation(current, value)
-    write_json(args.guide, guide)
-    print(f"PRONOUNCED|{args.entity_id}|{value.get('source', '')}")
-
-
 def empty_guide() -> dict[str, Any]:
-    """A Story Bible with nothing in it yet, which status() reports as stale until a real build fills ``source``."""
+    """A Story Bible with nothing in it yet, which the host reports as stale until a real build fills ``source``."""
     return {
         "schema_version": SCHEMA_VERSION,
         "source": {},
@@ -1516,114 +1130,6 @@ def empty_guide() -> dict[str, Any]:
         "vocabulary_candidates": [],
         "absorbed_names": {},
     }
-
-
-def create(args: argparse.Namespace) -> None:
-    """Adds an entry by hand, under one of the Story Bible's types or as a Draft.
-
-    A manuscript import can seed manual character candidates before the Story Bible has ever been built, so there may be no guide
-    file yet: an empty one is started instead of requiring a prior build, and status() reports it as stale until a real build
-    fills ``source``.
-    """
-    guide = load_json(args.guide) or empty_guide()
-    category = args.category.strip() or "Draft"
-    if category != "Draft" and category not in type_names(guide):
-        raise ValueError(f"Unknown category: {category}")
-    name = args.name.strip()
-    if not name:
-        raise ValueError("Name is required.")
-    properties = parse_properties(getattr(args, "properties", "") or "")
-    new_id = entity_id(name)
-    if any(value["id"] == new_id for value in guide["entities"]):
-        raise ValueError("An entity with this name already exists.")
-    alias_names = [item.strip() for item in args.aliases.split(";") if item.strip()]
-    paragraphs = load_manuscript(args.manuscript)
-    canonical_occurrences = find_occurrences(paragraphs, name)
-    aliases = [
-        {
-            "text": alias_name,
-            "pronunciation": pronunciation(alias_name, args.espeak_library or None, getattr(args, "default_source", "") or None),
-            "occurrences": find_occurrences(paragraphs, alias_name),
-        }
-        for alias_name in alias_names
-    ]
-    entity = {
-        "id": new_id,
-        "canonical_name": name,
-        "aliases": aliases,
-        "category": category,
-        "occurrences": canonical_occurrences,
-        "pronunciation": pronunciation(name, args.espeak_library or None, getattr(args, "default_source", "") or None),
-        "description": direct_description(name, canonical_occurrences) if canonical_occurrences else {"text": "", "evidence": {}},
-        "personality_notes": [],
-        "relationships": [],
-        "properties": properties,
-        "locked": False,
-        "manual": True,
-        "review_state": "reviewed",
-        "review": {"entry": False, "aliases": []},
-        "appearances": [],
-    }
-    description = getattr(args, "description", "")
-    if description:
-        # The same as an edit of the description right after the create, without a second process for it.
-        entity["description"]["text"] = description
-    entity["occurrence_count"] = entity_occurrence_count(entity)
-    guide["entities"].append(entity)
-    write_json(args.guide, guide)
-    print(f"CREATED|{new_id}|{entity['occurrence_count']}")
-
-
-def split(args: argparse.Namespace) -> None:
-    """The inverse of `merge`: gives one of an entity's aliases its own standalone identity back.
-
-    Clears any `absorbed_names` entry for that spelling, or the very next `build` would fold the freshly
-    generated entity straight back into the parent through `merge_locked`'s redirect step."""
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    entity = find_entity(guide, args.entity_id)
-    if entity.get("locked"):
-        raise ValueError("This entity is locked. Unlock it before editing.")
-    alias_text = args.alias_text.strip()
-    aliases = entity.get("aliases", [])
-    match_index = next((index for index, alias in enumerate(aliases) if alias["text"].lower() == alias_text.lower()), None)
-    if match_index is None:
-        raise ValueError("Alias not found.")
-    review = entity_review(entity)
-    alias = aliases.pop(match_index)
-    new_id = entity_id(alias["text"])
-    if any(value["id"] == new_id for value in guide["entities"]):
-        raise ValueError("An entity with this name already exists.")
-    new_entity = {
-        "id": new_id,
-        "canonical_name": alias["text"],
-        "aliases": [],
-        "category": entity.get("category", "Needs Review"),
-        "occurrences": alias.get("occurrences", []),
-        "pronunciation": alias.get("pronunciation", {}),
-        "description": {"text": "", "evidence": {}},
-        "personality_notes": [],
-        "context": "",
-        "relationships": [],
-        "properties": [],
-        "locked": False,
-        "manual": False,
-        "review_state": "reviewed",
-        # A name that needed review gives its flag back to the entry it becomes.
-        "review": {"entry": alias["text"] in review["aliases"], "aliases": []},
-        "appearances": [],
-    }
-    if new_entity["review"]["entry"]:
-        new_entity["review_state"] = "needs review"
-    set_review(entity, review["entry"], review["aliases"])
-    new_entity["occurrence_count"] = entity_occurrence_count(new_entity)
-    entity["occurrence_count"] = entity_occurrence_count(entity)
-    guide["entities"].append(new_entity)
-    absorbed_names = guide.setdefault("absorbed_names", {})
-    absorbed_names.pop(normalize_name(alias["text"]), None)
-    write_json(args.guide, guide)
-    print(f"SPLIT|{new_id}")
 
 
 def cue_id(paragraph_id: str, start: int, quote_text: str) -> str:
@@ -1769,7 +1275,7 @@ def extract_dialogue_cues(paragraphs: list[dict[str, str]], character_index: dic
 
 
 def merge_dialogue_cues(fresh: list[dict[str, Any]], previous_cues: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """A narrator's correction (`correct_cue`) survives a rebuild the same way a locked entity does:
+    """A narrator's correction (the host's ``correctCue``) survives a rebuild the same way a locked entity does:
     matched by `cue_id`, which is itself a hash of the paragraph, the quote's position and its text, so a cue
     whose underlying text is unchanged always gets the same id back and reclaims its correction; a cue whose
     paragraph text changed gets a new id and simply does not carry a stale correction onto unrelated content."""
@@ -1787,7 +1293,7 @@ def refresh_cues(args: argparse.Namespace) -> None:
     """Writes the dialogue cues without a Story Bible build, against the entries already filed under a speaking type: the host runs it
     after a manuscript import and after a scan. With ``--chapter-id``, only those chapters' cues are recomputed and the rest are kept.
     A narrator's correction survives as it does a rebuild (``merge_dialogue_cues``). With no guide file yet, an empty one is started,
-    which status() reports as stale until a real build fills ``source``. Prints ``CUES|<cues>|<with a speaker>``."""
+    which the host reports as stale until a real build fills ``source``. Prints ``CUES|<cues>|<with a speaker>``."""
     guide = load_json(args.guide) or empty_guide()
     paragraphs = load_manuscript(args.manuscript)
     chapters = set(args.chapter_id or [])
@@ -1805,269 +1311,6 @@ def refresh_cues(args: argparse.Namespace) -> None:
     print(f"CUES|{len(cues)}|{sum(1 for cue in cues if cue.get('speaker_entity_id'))}")
 
 
-def correct_cue(args: argparse.Namespace) -> None:
-    """Records the narrator's own attribution for one cue (or clears it back to `unknown`), so the next
-    rebuild's `merge_dialogue_cues` keeps it instead of overwriting it with fresh, possibly-`unknown`,
-    extraction - the same durability `merge_locked` already gives a locked entity."""
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    cues = guide.get("dialogue_cues", [])
-    cue = next((value for value in cues if value["id"] == args.cue_id), None)
-    if cue is None:
-        raise ValueError("Cue not found.")
-    value = args.speaker_entity_id.strip()
-    cue["speaker_entity_id"] = None if value.lower() in {"", "unknown"} else value
-    cue["speaker_source"] = "correction"
-    cue["corrected"] = True
-    write_json(args.guide, guide)
-    print(f"CORRECTED|{args.cue_id}")
-
-
-def merge(args: argparse.Namespace) -> None:
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    if args.source_id == args.target_id:
-        raise ValueError("Cannot merge an entity into itself.")
-    source = find_entity(guide, args.source_id)
-    target = find_entity(guide, args.target_id)
-    if source.get("locked"):
-        raise ValueError("Cannot merge a locked entity. Unlock it first.")
-    before = _merge_snapshot(guide, source, target)
-
-    def dedupe_evidence(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        seen: set[tuple[str, int, str]] = set()
-        result = []
-        for item in evidence:
-            key = (item.get("chapter", ""), item.get("paragraph", -1), item.get("excerpt", ""))
-            if key in seen:
-                continue
-            seen.add(key)
-            result.append(item)
-        return sorted(result, key=lambda item: item.get("paragraph", 0))
-
-    # The source's own canonical name becomes a new alias on the target (carrying
-    # its pronunciation + evidence along); the source's existing aliases merge in
-    # the same way, each keeping its own occurrence list rather than one flat pool.
-    target.setdefault("aliases", [])
-    existing_by_text = {target["canonical_name"].lower(): None, **{alias["text"].lower(): alias for alias in target["aliases"]}}
-    candidates = [
-        {"text": source["canonical_name"], "pronunciation": source.get("pronunciation", {}), "occurrences": source.get("occurrences", [])},
-        *source.get("aliases", []),
-    ]
-    for candidate in candidates:
-        key = candidate["text"].lower()
-        existing = existing_by_text.get(key)
-        if existing is not None:
-            existing["occurrences"] = dedupe_evidence(existing.get("occurrences", []) + candidate.get("occurrences", []))
-        elif key not in existing_by_text:
-            new_alias = {"text": candidate["text"], "pronunciation": candidate.get("pronunciation", {}), "occurrences": candidate.get("occurrences", [])}
-            target["aliases"].append(new_alias)
-            existing_by_text[key] = new_alias
-
-    target["occurrence_count"] = entity_occurrence_count(target)
-    target["appearances"] = merge_appearances(target.get("appearances", []), source.get("appearances", []))
-
-    seen_relationships: set[tuple[str, str]] = set()
-    merged_relationships = []
-    for relationship in target.get("relationships", []) + source.get("relationships", []):
-        if relationship["id"] in {args.source_id, args.target_id}:
-            continue
-        key = (relationship["id"], relationship["label"])
-        if key in seen_relationships:
-            continue
-        seen_relationships.add(key)
-        merged_relationships.append(relationship)
-    target["relationships"] = merged_relationships
-
-    if not target.get("description", {}).get("text") and source.get("description", {}).get("text"):
-        target["description"] = source["description"]
-    if not target.get("personality_notes") and source.get("personality_notes"):
-        target["personality_notes"] = source["personality_notes"]
-    # The target's own values win; the source adds the keys the target does not have.
-    target_properties = entity_properties(target)
-    target_keys = {item["key"].casefold() for item in target_properties}
-    target["properties"] = [*target_properties, *(item for item in entity_properties(source) if item["key"].casefold() not in target_keys)]
-    # Flagged if either was, with the name flags of both that the target now has; the target's colour, else the source's.
-    target_review, source_review = entity_review(target), entity_review(source)
-    set_review(target, target_review["entry"] or source_review["entry"], [*target_review["aliases"], *source_review["aliases"]])
-    if not target.get("speaker_color") and source.get("speaker_color"):
-        target["speaker_color"] = source["speaker_color"]
-
-    for other in guide["entities"]:
-        if other["id"] in {args.source_id, args.target_id}:
-            continue
-        remapped = []
-        seen_other: set[tuple[str, str]] = set()
-        for relationship in other.get("relationships", []):
-            entity_ref = args.target_id if relationship["id"] == args.source_id else relationship["id"]
-            if entity_ref == other["id"]:
-                continue
-            name = target["canonical_name"] if entity_ref == args.target_id else relationship["name"]
-            key = (entity_ref, relationship["label"])
-            if key in seen_other:
-                continue
-            seen_other.add(key)
-            remapped.append({"id": entity_ref, "name": name, "label": relationship["label"]})
-        other["relationships"] = remapped
-
-    guide["entities"] = [value for value in guide["entities"] if value["id"] != args.source_id]
-    # Record what got absorbed so the next `build` doesn't resurrect it as a
-    # standalone entity the moment it sees the name in the text again - see
-    # merge_locked's redirect step, which reads this back.
-    absorbed_names = guide.setdefault("absorbed_names", {})
-    for absorbed_name in [source["canonical_name"], *(alias["text"] for alias in source.get("aliases", []))]:
-        key = normalize_name(absorbed_name)
-        before["absorbed_names"].setdefault(key, absorbed_names.get(key))
-        absorbed_names[key] = args.target_id
-    undo_id = _record_merge_undo(guide, before, target)
-    write_json(args.guide, guide)
-    print(f"MERGED|{args.target_id}|{undo_id}")
-
-
-# How many merges the file can take back, newest kept. A rebuild writes a new file without them.
-MAX_MERGE_UNDO = 10
-UNDO_ID = re.compile(r"^[0-9a-f]{16}$")
-
-
-def _fingerprint(value: Any) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
-
-
-def _merge_snapshot(guide: dict[str, Any], source: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
-    """What `merge` is about to change, taken before it changes anything: both entries whole, where the source sat, every other entry's
-    relationships, and whether the file had absorbed names at all. `_record_merge_undo` keeps only what the merge did change."""
-    return {
-        "source_index": guide["entities"].index(source),
-        "source": copy.deepcopy(source),
-        "target": copy.deepcopy(target),
-        "relationships": {
-            other["id"]: {"name": other.get("canonical_name", other["id"]), "before": copy.deepcopy(other.get("relationships", []))}
-            for other in guide["entities"]
-            if other is not source and other is not target
-        },
-        "had_absorbed_names": "absorbed_names" in guide,
-        # Each key the merge sets, with the value it had before (None: the key was not there).
-        "absorbed_names": {},
-    }
-
-
-def _record_merge_undo(guide: dict[str, Any], before: dict[str, Any], target: dict[str, Any]) -> str:
-    """Stores the undo of the merge just made in the file, newest last, and returns its id. Each entry the undo would overwrite is
-    stored with a fingerprint of how the merge left it, so `unmerge` can refuse once something else changed it."""
-    others = {other["id"]: other for other in guide["entities"]}
-    relationships = []
-    for other_id, saved in before["relationships"].items():
-        after = others[other_id].get("relationships", [])
-        if after != saved["before"]:
-            relationships.append({"id": other_id, "name": saved["name"], "before": saved["before"], "after": _fingerprint(after)})
-    undo_id = os.urandom(8).hex()
-    records = guide.get("merge_undo", [])
-    records.append(
-        {
-            "id": undo_id,
-            "source_index": before["source_index"],
-            "source": before["source"],
-            "target": before["target"],
-            "target_after": _fingerprint(target),
-            "relationships": relationships,
-            "had_absorbed_names": before["had_absorbed_names"],
-            "absorbed_names": before["absorbed_names"],
-        }
-    )
-    guide["merge_undo"] = records[-MAX_MERGE_UNDO:]
-    return undo_id
-
-
-def unmerge(args: argparse.Namespace) -> None:
-    """The undo of one `merge`, by the id it printed: both entries as they were, the source back in its place, every relationship the
-    merge re-pointed and every absorbed name it set. Refused, with nothing written, when the target or a re-pointed entry changed after
-    the merge, when an entry has the source's id again, or when the file no longer holds the merge (taken back already, a rebuild since,
-    or more than MAX_MERGE_UNDO newer merges)."""
-    if not UNDO_ID.match(args.undo_id):
-        raise ValueError("That is not an undo id.")
-    guide = _load_guide_for_edit(args.guide)
-    records = guide.get("merge_undo", [])
-    record = next((value for value in records if value.get("id") == args.undo_id), None)
-    if record is None:
-        raise ValueError("That merge can no longer be undone.")
-    source, saved_target = record["source"], record["target"]
-    entities = guide["entities"]
-    target_index = next((index for index, value in enumerate(entities) if value["id"] == saved_target["id"]), None)
-    if target_index is None:
-        raise ValueError(f"{saved_target['canonical_name']} is no longer in the Story Bible, so the merge cannot be undone.")
-    if _fingerprint(entities[target_index]) != record["target_after"]:
-        raise ValueError(f"{saved_target['canonical_name']} changed after the merge, so it cannot be undone.")
-    if any(value["id"] == source["id"] for value in entities):
-        raise ValueError(f"An entry named {source['canonical_name']} is in the Story Bible again, so the merge cannot be undone.")
-    by_id = {value["id"]: value for value in entities}
-    for saved in record["relationships"]:
-        other = by_id.get(saved["id"])
-        if other is None or _fingerprint(other.get("relationships", [])) != saved["after"]:
-            raise ValueError(f"{saved['name']}'s relationships changed after the merge, so it cannot be undone.")
-
-    entities[target_index] = saved_target
-    entities.insert(min(record["source_index"], len(entities)), source)
-    for saved in record["relationships"]:
-        by_id[saved["id"]]["relationships"] = saved["before"]
-    absorbed_names = guide.setdefault("absorbed_names", {})
-    for key, value in record["absorbed_names"].items():
-        if value is None:
-            absorbed_names.pop(key, None)
-        else:
-            absorbed_names[key] = value
-    if not absorbed_names and not record["had_absorbed_names"]:
-        guide.pop("absorbed_names")
-    records.remove(record)
-    if not records:
-        guide.pop("merge_undo", None)
-    write_json(args.guide, guide)
-    print(f"UNMERGED|{source['id']}|{saved_target['id']}")
-
-
-def delete(args: argparse.Namespace) -> None:
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    entity = find_entity(guide, args.entity_id)
-    if entity.get("locked"):
-        raise ValueError("Cannot delete a locked entity. Unlock it first.")
-    guide["entities"] = [value for value in guide["entities"] if value["id"] != args.entity_id]
-    for other in guide["entities"]:
-        other["relationships"] = [rel for rel in other.get("relationships", []) if rel["id"] != args.entity_id]
-    write_json(args.guide, guide)
-    print("DELETED|" + args.entity_id)
-
-
-def relate(args: argparse.Namespace) -> None:
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    if args.entity_id == args.other_id:
-        raise ValueError("An entity cannot have a relationship with itself.")
-    entity = find_entity(guide, args.entity_id)
-    other = find_entity(guide, args.other_id)
-    label = args.label.strip()
-    if not label:
-        raise ValueError("A relationship needs a label.")
-    relationships = entity.setdefault("relationships", [])
-    if not any(rel["id"] == args.other_id and rel["label"] == label for rel in relationships):
-        relationships.append({"id": args.other_id, "name": other["canonical_name"], "label": label})
-    write_json(args.guide, guide)
-    print("RELATED|" + args.entity_id)
-
-
-def unrelate(args: argparse.Namespace) -> None:
-    guide = load_json(args.guide)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    entity = find_entity(guide, args.entity_id)
-    entity["relationships"] = [rel for rel in entity.get("relationships", []) if not (rel["id"] == args.other_id and rel["label"] == args.label)]
-    write_json(args.guide, guide)
-    print("UNRELATED|" + args.entity_id)
-
-
 def _phoneme_block(ipa: str) -> str | None:
     """Piper's own inline raw-phoneme escape (``"[[ ... ]]"``, ``PiperVoice.phonemize``) skips its espeak
         text-to-phoneme step, speaking exactly the stored symbols instead of re-guessing them from the spelled name
@@ -2082,7 +1325,7 @@ def _phoneme_block(ipa: str) -> str | None:
 def spoken_form(holder: dict[str, Any] | None, name: str) -> str:
     """What a preview should hand to Piper for ``holder`` (an entity or an alias): its chosen pronunciation as
     raw phonemes when it has one and it converts cleanly, else the spelled ``name``, exactly as before this phase.
-    An auto-generated pronunciation the narrator never picked (``pronounce()``/``pronounce_user()`` mark ``chosen``)
+    An auto-generated pronunciation the narrator never picked (``pronounce()`` and the host's own pronunciation mark ``chosen``)
     must not silently change what the preview says.
     """
     pronunciation = (holder or {}).get("pronunciation") or {}
@@ -2287,23 +1530,6 @@ def main() -> None:
     build_parser.add_argument("--espeak-library", default="")
     build_parser.add_argument("--wiktextract-index", default="")
     build_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
-    status_parser = command.add_parser("status")
-    status_parser.add_argument("--manuscript", required=True)
-    status_parser.add_argument("--guide", required=True)
-    status_parser.add_argument("--out")
-    edit_parser = command.add_parser("edit")
-    edit_parser.add_argument("--guide", required=True)
-    edit_parser.add_argument("--entity-id", required=True)
-    edit_parser.add_argument("--field", required=True, action="append")
-    edit_parser.add_argument("--value", required=True, action="append")
-    edit_parser.add_argument("--manuscript", default="")
-    edit_parser.add_argument("--espeak-library", default="")
-    edit_parser.add_argument("--wiktextract-index", default="")
-    edit_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
-    rescan_parser = command.add_parser("rescan")
-    rescan_parser.add_argument("--guide", required=True)
-    rescan_parser.add_argument("--manuscript", required=True)
-    rescan_parser.add_argument("--entity-id", required=True)
     pronounce_parser = command.add_parser("pronounce")
     pronounce_parser.add_argument("--guide", required=True)
     pronounce_parser.add_argument("--entity-id", required=True)
@@ -2311,8 +1537,6 @@ def main() -> None:
     pronounce_parser.add_argument("--source", required=True, choices=sorted(PRONUNCIATION_SOURCES))
     pronounce_parser.add_argument("--espeak-library", default="")
     pronounce_parser.add_argument("--wiktextract-index", default="")
-    # The narrator's own pronunciation and the note are free text: pass them as --ipa=VALUE / --note=VALUE so one that starts with
-    # "-" is still a value, not another option (the host always does).
     candidate_parser = command.add_parser("candidate")
     candidate_parser.add_argument("--word", required=True)
     candidate_parser.add_argument("--source", required=True, choices=sorted(PRONUNCIATION_SOURCES))
@@ -2323,58 +1547,10 @@ def main() -> None:
     lookup_parser.add_argument("--espeak-library", default="")
     lookup_parser.add_argument("--wiktextract-index", default="")
     lookup_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
-    user_parser = command.add_parser("pronounce-user")
-    user_parser.add_argument("--guide", required=True)
-    user_parser.add_argument("--entity-id", required=True)
-    user_parser.add_argument("--alias-index", type=int, default=None)
-    user_parser.add_argument("--ipa", required=True)
-    alternate_parser = command.add_parser("pronunciation-use-alternate")
-    alternate_parser.add_argument("--guide", required=True)
-    alternate_parser.add_argument("--entity-id", required=True)
-    alternate_parser.add_argument("--alias-index", type=int, default=None)
-    create_parser = command.add_parser("create")
-    create_parser.add_argument("--guide", required=True)
-    create_parser.add_argument("--manuscript", required=True)
-    create_parser.add_argument("--name", required=True)
-    create_parser.add_argument("--category", default="")
-    create_parser.add_argument("--aliases", default="")
-    create_parser.add_argument("--description", default="")
-    create_parser.add_argument("--properties", default="", help='the properties as one JSON list, e.g. [{"key": "Codename", "value": "Wren"}]')
-    create_parser.add_argument("--espeak-library", default="")
-    create_parser.add_argument("--wiktextract-index", default="")
-    create_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
-    merge_parser = command.add_parser("merge")
-    merge_parser.add_argument("--guide", required=True)
-    merge_parser.add_argument("--source-id", required=True)
-    merge_parser.add_argument("--target-id", required=True)
-    unmerge_parser = command.add_parser("unmerge", help="take back one merge by the undo id it printed, or refuse with the reason")
-    unmerge_parser.add_argument("--guide", required=True)
-    unmerge_parser.add_argument("--undo-id", required=True)
-    split_parser = command.add_parser("split", help="give one of an entity's aliases its own standalone identity back (the inverse of merge)")
-    split_parser.add_argument("--guide", required=True)
-    split_parser.add_argument("--entity-id", required=True)
-    split_parser.add_argument("--alias-text", required=True)
     cues_parser = command.add_parser("cues", help="write the dialogue cues against the entries already filed, without a build")
     cues_parser.add_argument("--guide", required=True)
     cues_parser.add_argument("--manuscript", required=True)
     cues_parser.add_argument("--chapter-id", action="append", default=[], help="recompute only this chapter's cues; repeat for several")
-    correct_cue_parser = command.add_parser("correct-cue", help="record the narrator's own attribution for a dialogue cue; a rebuild never overwrites it")
-    correct_cue_parser.add_argument("--guide", required=True)
-    correct_cue_parser.add_argument("--cue-id", required=True)
-    correct_cue_parser.add_argument("--speaker-entity-id", required=True, help='an entity id, or "unknown" to clear the attribution')
-    delete_parser = command.add_parser("delete")
-    delete_parser.add_argument("--guide", required=True)
-    delete_parser.add_argument("--entity-id", required=True)
-    relate_parser = command.add_parser("relate")
-    relate_parser.add_argument("--guide", required=True)
-    relate_parser.add_argument("--entity-id", required=True)
-    relate_parser.add_argument("--other-id", required=True)
-    relate_parser.add_argument("--label", required=True)
-    unrelate_parser = command.add_parser("unrelate")
-    unrelate_parser.add_argument("--guide", required=True)
-    unrelate_parser.add_argument("--entity-id", required=True)
-    unrelate_parser.add_argument("--other-id", required=True)
-    unrelate_parser.add_argument("--label", required=True)
     audio_parser = command.add_parser("render-audio")
     audio_parser.add_argument("--guide", required=True)
     audio_parser.add_argument("--entity-id", required=True)
@@ -2382,36 +1558,6 @@ def main() -> None:
     audio_parser.add_argument("--piper-model", required=True)
     audio_parser.add_argument("--alias-index", type=int, default=None)
     audio_parser.add_argument("--output-name", default="")
-    review_parser = command.add_parser("mark-reviewed", help="the entry and every name reviewed, or one name (--alias-index)")
-    review_parser.add_argument("--guide", required=True)
-    review_parser.add_argument("--entity-id", required=True)
-    review_parser.add_argument("--alias-index", type=int, default=None)
-    flag_parser = command.add_parser("review-flag", help="flag the entry, or one name (--alias-index), as needing review")
-    flag_parser.add_argument("--guide", required=True)
-    flag_parser.add_argument("--entity-id", required=True)
-    flag_parser.add_argument("--alias-index", type=int, default=None)
-    color_parser = command.add_parser("speaker-color", help="set a character's speaker colour, 1 to 7, or 0 for automatic")
-    color_parser.add_argument("--guide", required=True)
-    color_parser.add_argument("--entity-id", required=True)
-    color_parser.add_argument("--index", type=int, required=True)
-    type_add_parser = command.add_parser("type-add", help="add a Story Bible type that does not speak")
-    type_add_parser.add_argument("--guide", required=True)
-    type_add_parser.add_argument("--name", required=True)
-    type_rename_parser = command.add_parser("type-rename", help="rename a Story Bible type and move its entries")
-    type_rename_parser.add_argument("--guide", required=True)
-    type_rename_parser.add_argument("--name", required=True)
-    type_rename_parser.add_argument("--to", required=True)
-    type_colour_parser = command.add_parser("type-colour", help="set a Story Bible type's colour")
-    type_colour_parser.add_argument("--guide", required=True)
-    type_colour_parser.add_argument("--name", required=True)
-    type_colour_parser.add_argument("--colour", required=True, choices=TYPE_COLOURS)
-    type_speaks_parser = command.add_parser("type-speaks", help="set whether a Story Bible type's entries speak")
-    type_speaks_parser.add_argument("--guide", required=True)
-    type_speaks_parser.add_argument("--name", required=True)
-    type_speaks_parser.add_argument("--speaks", type=int, required=True, choices=(0, 1))
-    type_remove_parser = command.add_parser("type-remove", help="remove a Story Bible type no entry uses")
-    type_remove_parser.add_argument("--guide", required=True)
-    type_remove_parser.add_argument("--name", required=True)
     check_parser = command.add_parser("self-check", help="prove the dictionary and the espeak-ng data this program carries load (the packaged smoke test)")
     check_parser.add_argument("--piper-model", default="", help="also load this voice and speak one word")
     check_parser.add_argument("--gliner-install", default="", help="the GLiNER download's install folder, to report its version")
@@ -2443,31 +1589,10 @@ def main() -> None:
     try:
         {
             "build": build,
-            "status": status,
-            "edit": edit,
-            "rescan": rescan,
             "pronounce": pronounce,
             "candidate": candidate,
             "pronunciation": lookup_pronunciations,
-            "pronounce-user": pronounce_user,
-            "pronunciation-use-alternate": pronunciation_use_alternate,
-            "create": create,
-            "merge": merge,
-            "unmerge": unmerge,
-            "split": split,
             "cues": refresh_cues,
-            "correct-cue": correct_cue,
-            "mark-reviewed": mark_reviewed,
-            "review-flag": review_flag,
-            "speaker-color": speaker_color,
-            "type-add": type_add,
-            "type-rename": type_rename,
-            "type-colour": type_colour,
-            "type-speaks": type_speaks,
-            "type-remove": type_remove,
-            "delete": delete,
-            "relate": relate,
-            "unrelate": unrelate,
             "render-audio": render_audio,
             "self-check": self_check,
             "capabilities": capabilities,

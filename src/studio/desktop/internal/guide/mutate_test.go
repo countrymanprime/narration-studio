@@ -57,8 +57,8 @@ func sameReason(got, want string) bool {
 	return norm(got) == norm(want)
 }
 
-// TestMutationsMatchTheSidecarCases replays every case src/studio/sidecars/manuscript-guide/tests/test_mutation_parity.py recorded from the sidecar's
-// own commands: the same file after it, no write when the sidecar wrote nothing, or the same reason with the file untouched. One
+// TestMutationsMatchTheSidecarCases replays every case testdata/mutation-parity.json recorded from the sidecar's own commands (frozen:
+// #2251 deleted the Python commands and their recorder, so nothing rewrites it): the same file after it, no write when the sidecar wrote nothing, or the same reason with the file untouched. One
 // Service runs them all, so the held document must notice every new starting file.
 func TestMutationsMatchTheSidecarCases(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("testdata", "mutation-parity.json"))
@@ -118,4 +118,71 @@ func TestMutationsNeedAStoryBible(t *testing.T) {
 			t.Errorf("%s without a file = %v", name, err)
 		}
 	}
+}
+
+// reviewEntry is a Character with the aliases texts and the given fields, for the review tests below.
+func reviewEntry(aliases []string, fields map[string]any) map[string]any {
+	list := []any{}
+	for _, text := range aliases {
+		list = append(list, map[string]any{"text": text, "pronunciation": map[string]any{}, "occurrences": []any{}})
+	}
+	entry := map[string]any{"id": "entity-wren", "canonical_name": "Wren", "category": "Character", "aliases": list, "locked": false, "review_state": "generated"}
+	for key, value := range fields {
+		entry[key] = value
+	}
+	return entry
+}
+
+// checkReview requires the entry's stored review flags and review_state.
+func checkReview(t *testing.T, s *Service, entry bool, aliases []any, state string) {
+	t.Helper()
+	want := map[string]any{"entry": entry, "aliases": aliases}
+	if got := entityField(t, s, "entity-wren", "review"); !reflect.DeepEqual(got, want) {
+		t.Fatalf("review = %v, want %v", got, want)
+	}
+	if got := entityField(t, s, "entity-wren", "review_state"); got != state {
+		t.Fatalf("review_state = %v, want %q", got, state)
+	}
+}
+
+// Ported from the sidecar's test_review_flags.py when #2251 deleted its mark-reviewed: the entry is reviewed once the last name that
+// needed a look is, even though the entry's own flag was already clear.
+func TestTheEntryIsReviewedWhenItsLastFlaggedNameIs(t *testing.T) {
+	s := serviceWithGuideFile(t, []any{reviewEntry([]string{"Sparrow"}, map[string]any{
+		"review_state": "needs review", "review": map[string]any{"entry": false, "aliases": []any{"Sparrow"}},
+	})})
+	first := 0
+	if err := s.MarkReviewed("entity-wren", &first); err != nil {
+		t.Fatal(err)
+	}
+	checkReview(t, s, false, []any{}, "reviewed")
+}
+
+// Ported from test_review_flags.py: Flag review of the entry and of a name puts back what Mark reviewed cleared.
+func TestFlagReviewIsTheUndoOfMarkReviewed(t *testing.T) {
+	s := serviceWithGuideFile(t, []any{reviewEntry([]string{"Sparrow"}, map[string]any{
+		"review_state": "needs review", "review": map[string]any{"entry": true, "aliases": []any{"Sparrow"}},
+	})})
+	first := 0
+	if err := s.MarkReviewed("entity-wren", nil); err != nil {
+		t.Fatal(err)
+	}
+	checkReview(t, s, false, []any{}, "reviewed")
+	if err := s.FlagReview("entity-wren", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.FlagReview("entity-wren", &first); err != nil {
+		t.Fatal(err)
+	}
+	checkReview(t, s, true, []any{"Sparrow"}, "needs review")
+}
+
+// Ported from test_review_flags.py: flagging one name of an entry nobody flagged leaves the entry's own flag and its review_state alone.
+func TestFlaggingANameLeavesTheEntryFlagAlone(t *testing.T) {
+	s := serviceWithGuideFile(t, []any{reviewEntry([]string{"Sparrow"}, nil)})
+	first := 0
+	if err := s.FlagReview("entity-wren", &first); err != nil {
+		t.Fatal(err)
+	}
+	checkReview(t, s, false, []any{"Sparrow"}, "generated")
 }

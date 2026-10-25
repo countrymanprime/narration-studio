@@ -1,6 +1,6 @@
 # Story Bible mutations: warm Python worker, Go, or neither
 
-**Date:** 2026-10-18. **Related:** [#1897](https://github.com/countrymanprime/narration-studio/issues/1897) (sidecar start-up instrumentation, a parallel spike), [interaction latency baseline](interaction-latency-baseline.md).
+**Date:** 2026-10-18; the Python copies were deleted on 2026-10-25 ([below](#what-to-move-first)). **Related:** [#1897](https://github.com/countrymanprime/narration-studio/issues/1897) (sidecar start-up instrumentation, a parallel spike), [interaction latency baseline](interaction-latency-baseline.md).
 
 ## Question
 
@@ -232,6 +232,8 @@ On 2026-10-18 the owner approved B and asked for step 1 (#1923).
    - **Where Go differs on purpose:** a file that is not JSON, or an object without a list of entries, is refused (the sidecar's create starts a new Story Bible over the first and crashes on the second), as the type commands refuse the first. A refused lookup (the sidecar missing or killed) refuses the create with nothing written; the sidecar's create would have exited just the same.
 
 `build`, `suggest`, `pronounce`, `candidate`, `render-audio`, `self-check` and `capabilities` stay in Python, and `create` and alias edits until step 8.
+
+**The Python copies are deleted** (2026-10-25, step 3 of [Go versus Python for the sidecars](sidecar-go-vs-python.md)). Once the host ran every step above, nothing called the sidecar's mutation commands, so they and the code only they used went: `status`, `edit`, `rescan`, `create`, `merge`, `unmerge`, `split`, `delete`, `relate`, `unrelate`, `correct-cue`, `mark-reviewed`, `review-flag`, `speaker-color`, `pronounce-user`, `pronunciation-use-alternate` and the five `type-*` commands. The sidecar is no longer a fallback or a recorder for them. The cases the `test_*_parity.py` recorders wrote are frozen: nothing rewrites `edit-parity.json`, `mutation-parity.json`, `type-parity.json`, `pronunciation-parity.json`, `merge-parity.json`, `create-parity.json`, `rescan-parity.json`, `rescan-manuscript.json` or `occurrence-parity.json`, and the Go tests above still replay every one. `python-unicode.json` and `merge-fingerprint-golden.json` pin Python behaviour that a file `build` writes still carries (ids, absorbed names, an older undo record), so `test_python_text_goldens.py` still writes them.
 
 ## Doc changes
 

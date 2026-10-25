@@ -66,18 +66,35 @@ func TestATypeNameOrColourTheSidecarWouldRefuseIsRefusedBeforeItStarts(t *testin
 	}
 }
 
-// What Types() sends the UI for the list the sidecar's own test writes after an add, a colour, a Can speak, a rename and a remove
-// (guide-types-sidecar.json): the rows without the "builtin" the file keeps for a rebuild.
-func TestContractTypesFromTheSidecarsOwnFile(t *testing.T) {
-	dir, err := contractfile.Dir()
+// The list after an add, a Can speak, a colour, a rename and a remove, as the file holds it (guide-types-sidecar.json: the sidecar wrote
+// it before the host made type edits itself, and the UI's contract tests read it by that name), and what Types() sends the UI for it:
+// the rows without the "builtin" the file keeps for a rebuild.
+func TestContractTypes(t *testing.T) {
+	service, _, path := guideFile(t, `{"schema_version": 2, "entities": [{"id": "e-wren", "canonical_name": "Wren", "category": "Character",
+		"aliases": [], "occurrences": [], "occurrence_count": 0, "pronunciation": {}, "description": {"text": "", "evidence": {}},
+		"personality_notes": [], "relationships": [], "properties": [], "locked": false, "manual": false, "review_state": "generated"}]}`)
+	for _, edit := range []func() error{
+		func() error { return service.AddType("Creature") },
+		func() error { return service.SetTypeSpeaks("Creature", true) },
+		func() error { return service.SetTypeColour("Creature", "amber") },
+		func() error { return service.RenameType("Place", "Location") },
+		func() error { return service.RemoveType("Event") },
+	} {
+		if err := edit(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bytes, err := os.ReadFile(filepath.Join(dir, "guide-types-sidecar.json"))
-	if err != nil {
-		t.Fatalf("the sidecar's types file is missing (run the Python contract test with UPDATE_CONTRACTS=1): %v", err)
+	var document struct {
+		Types []any `json:"types"`
 	}
-	service, _, _ := guideFile(t, `{"schema_version": 2, "entities": [], "types": `+string(bytes)+`}`)
+	if err := json.Unmarshal(raw, &document); err != nil {
+		t.Fatal(err)
+	}
+	contractfile.Check(t, "guide-types-sidecar", document.Types)
 	got, err := service.Types()
 	if err != nil {
 		t.Fatal(err)
