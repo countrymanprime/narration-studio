@@ -17,7 +17,7 @@ async function openProof(page: Page, width: number, height: number, seed = ''): 
 
 async function openChapter(page: Page, chapterTitle: string): Promise<void> {
   await page.getByRole('button', { name: /^Chapter: .*\. Change chapter$/ }).click();
-  await page.getByRole('menuitemradio', { name: new RegExp(`^${chapterTitle}( — |$)`) }).click();
+  await page.getByRole('menuitemradio', { name: new RegExp(`^${chapterTitle}(: |$)`) }).click();
   await page.getByText('Open notes, by chapter').waitFor({ state: 'detached' });
   await notes(page).locator('tr[data-row]').first().waitFor();
 }
