@@ -1,5 +1,3 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { Icon } from '../../primitives/Icon';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { CATEGORIES, GROUPS, PAGES_CATEGORY } from '../registry/categories';
@@ -70,11 +68,9 @@ export function CategoryNav({
       >
         <span className="text-[0.8125rem] text-[var(--text-muted)]">Category</span>
         <b className="flex-1 font-['Barlow_Condensed',sans-serif] text-base tracking-[0.06em] uppercase">{currentLabel}</b>
-        <FontAwesomeIcon
-          icon={faChevronDown}
-          aria-hidden="true"
-          className={`size-3 flex-none text-[var(--text-muted)] motion-ok:transition-transform ${open ? 'rotate-180' : ''}`}
-        />
+        <span aria-hidden="true" className={`flex-none text-[var(--text-muted)] motion-ok:transition-transform ${open ? 'rotate-180' : ''}`}>
+          <Icon name="next" />
+        </span>
       </button>
       <div id="settings-category-list" className={`${open ? 'block' : 'hidden'} @min-[761px]:block`}>
         {GROUPS.map((group) => (
