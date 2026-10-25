@@ -34,11 +34,17 @@ describe('the read-only entry', () => {
 
   it('draws the kind as a plain pill, with a menu only while the kind can change', () => {
     open('mad-hatter');
-    const kind = () => screen.getByRole('button', { name: /^Character/ });
-    expect(within(kind()).queryByRole('img', { hidden: true })).toBeNull();
-    expect(kind().querySelector('svg')).toBeNull();
+    const header = () => screen.getByRole('heading', { name: 'Hatter' }).closest('section')!;
+    // Read-only it is text, not a switched-off button (R3SB1-8), and has no chevron.
+    expect(within(header()).queryByRole('button', { name: /^Character/ })).toBeNull();
+    const pill = within(header()).getByText('Character');
+    expect(pill.querySelector('svg')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    expect(kind().querySelector('svg')).not.toBeNull();
+    expect(
+      within(header())
+        .getByRole('button', { name: /^Character/ })
+        .querySelector('svg'),
+    ).not.toBeNull();
   });
 
   it('a blank relationship row is only here until it is complete: the trash drops it without a write', () => {

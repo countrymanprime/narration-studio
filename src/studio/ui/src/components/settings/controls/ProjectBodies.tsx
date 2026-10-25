@@ -27,7 +27,8 @@ export function MarksRowBody() {
   const saveMarkTypes = useSaveMarkTypes(marks.retry);
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      {/* The pills on the left and Edit marks at the top right, beside them, not wrapped alone under the pills (alignment audit XSE2-23, XSE1-15). */}
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <MarksList
           types={marks.value ? marks.types : undefined}
           error={marks.status === 'error' ? `The mark types could not be read: ${marks.message}` : undefined}

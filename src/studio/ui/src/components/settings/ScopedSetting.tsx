@@ -122,6 +122,20 @@ function numberPlaceholder(field: ScopedSettingField, scope: Scope): string {
   return scope === 'project' && field.isSet ? 'Inherits Global' : 'Not set';
 }
 
+/** A field's label with its hint icon kept on the line of the label's last word, so the icon never wraps to a line of its own (XSE2-22). */
+function LabelWithHint({ field }: { field: ScopedSettingField }) {
+  const cut = field.label.lastIndexOf(' ');
+  return (
+    <>
+      {cut > 0 ? `${field.label.slice(0, cut)} ` : ''}
+      <span className="whitespace-nowrap">
+        {cut > 0 ? field.label.slice(cut + 1) : field.label}
+        <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+      </span>
+    </>
+  );
+}
+
 function NumberSetting({
   field,
   range,
@@ -143,18 +157,17 @@ function NumberSetting({
   return (
     <div className={ROW_CLASSES}>
       <div className="text-[0.82rem] font-medium text-[var(--text-muted)] md:pt-2">
-        {field.label}
-        <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+        <LabelWithHint field={field} />
       </div>
       <div className={CONTROLS_CLASSES}>
-        {/* The unit stays beside its box at every width (the box shrinks, never below the collapsed-control floor of .claude/rules/ui-visual-verification.md),
-            so it never wraps to a line of its own the way a separate flex item would in the narrow tablet column. */}
-        <div className={`flex items-center gap-[0.6rem] ${GROWING_CONTROL_CLASSES}`}>
+        {/* A number box is one short width, 10rem (room for its "Inherits 0.8" placeholder), with or without a unit after it, so the boxes down a panel line up (alignment audit XSE2-22);
+            the unit stays beside its box at every width. */}
+        <div className="flex min-w-0 items-center gap-[0.6rem]">
           <TextField
             label={field.label}
             mono
             inputMode="decimal"
-            className="min-w-0 flex-1"
+            className="w-40 min-w-0"
             placeholder={numberPlaceholder(field, scope)}
             value={value}
             onChange={(next) => change(next.trim())}
@@ -215,8 +228,7 @@ export function ScopedSetting({
   return (
     <div className={ROW_CLASSES}>
       <div className="text-[0.82rem] font-medium text-[var(--text-muted)] md:pt-2">
-        {field.label}
-        <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+        <LabelWithHint field={field} />
       </div>
       <div className={CONTROLS_CLASSES}>
         {isTags ? (

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { contextItemsFor } from '../../../registries/context';
 import { CHAPTERS, FilesDemo, Host, TWO_FAIL, ALL_PASS, failingTwo, passing, profile, rowsOf, waiting } from './testFiles';
 import { buildRows, openingId } from './rows';
+import type { MeasureFileResult } from '../../../types';
 
 afterEach(cleanup);
 
@@ -84,6 +85,19 @@ describe('Master & QC files', () => {
     expect(onSelected).toHaveBeenLastCalledWith(failingTwo().path);
     fireEvent.keyDown(row('Chapter 03'), { key: 'Enter' });
     expect(onSelected).toHaveBeenLastCalledWith(waiting().path);
+  });
+
+  it('says a message several rows share once, in the card, and keeps a message of its own in its row (R4MS1-6, R3MS-3)', () => {
+    const stopped = (name: string): MeasureFileResult => ({ ...waiting(name), status: 'cancelled' });
+    const broke = { ...waiting('Chapter 05.wav'), status: 'failed' as const, error: 'not a RIFF/WAVE file' };
+    mount({ files: [passing(), stopped('Chapter 02.wav'), stopped('Chapter 03.wav'), broke] });
+    const card = screen.getByRole('region', { name: 'Per-file checks' });
+    expect(within(card).getByText('2 rows marked Not measured: the check stopped before these files · not mastered.')).toBeTruthy();
+    expect(within(row('Chapter 02')).queryByText(/stopped/)).toBeNull();
+    expect(within(row('Chapter 02')).getByText('Not measured')).toBeTruthy();
+    expect(within(row('Chapter 05')).getByText('Could not be measured: not a RIFF/WAVE file · not mastered')).toBeTruthy();
+    // An error that stopped the run is not called a cancel.
+    expect(screen.queryByText(/cancelled/)).toBeNull();
   });
 
   it('no-row-for-an-unmeasured-rule: nothing is invented for a rule the host did not measure', () => {

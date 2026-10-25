@@ -83,3 +83,7 @@ docs/** text eol=lf
 # The Story Bible build's recorded cases hold manuscript and Story Bible files' exact text and the hashes of the files the sidecar's build
 # wrote, which internal/guide's build_parity_test.go compares byte for byte; a line-ending conversion would change both.
 tests/fixtures/guide-build/** -text
+
+# The Generate/Replace runs' recorded cases hold Story Bible files' exact text and bytes (CRLF ones among them) and the hashes of the
+# files the sidecar's pronounce wrote, which internal/guide's pronounce_parity_test.go compares byte for byte.
+tests/fixtures/guide-pronounce/** -text

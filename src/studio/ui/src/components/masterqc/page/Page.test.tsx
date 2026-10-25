@@ -32,6 +32,10 @@ const chart = () => screen.getByRole('img', { name: /RMS by file/ });
 /** The mock's opening and closing credits, which Delivery lists after and before the chapters. */
 const CREDITS_FILES = 2;
 
+/** How many rows of the package card fail (each says so to a screen reader: "Fails: …"). */
+const failingRows = (aside: ReturnType<typeof within>) =>
+  aside.queryAllByRole('listitem').filter((item: HTMLElement) => item.textContent?.includes('Fails: ')).length;
+
 describe('Master & QC page body', () => {
   const withChapters = (files: readonly MeasureFileResult[], props: Partial<React.ComponentProps<typeof MasterPage>> = {}) => {
     const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => CHAPTERS });
@@ -82,7 +86,10 @@ describe('Master & QC page body', () => {
     });
     expect(rows.every((tr) => within(tr as HTMLElement).getByText('Waiting'))).toBe(true);
     expect(within(rows.at(-1) as HTMLElement).getByText('Retail sample')).toBeTruthy();
-    expect(within(rows[0] as HTMLElement).getByText(/No file measured yet · not mastered/)).toBeTruthy();
+    // R4MS1-6: the fact every row shares is said once, in the card, and no row repeats it.
+    expect(within(rows[0] as HTMLElement).queryByText(/No file measured yet/)).toBeNull();
+    const card = screen.getByRole('region', { name: 'Per-file checks' });
+    expect(within(card).getAllByText(/^Nothing measured yet\. Check your rendered chapter files/)).toHaveLength(1);
   });
 
   it('a chapter with open pickups says how many it waits on, from the Pickups page list, and counts only the open ones', async () => {
@@ -213,12 +220,16 @@ describe('Master & QC page body', () => {
     mount(TWO_FAIL);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     // Behaviour change: the opening and closing credits files count as chapters, as Delivery counts them, so each is one more not ready.
-    expect(aside.getByText(`1 failing and ${1 + CREDITS_FILES} not ready.`)).toBeTruthy();
+    // Behaviour change (R4MS2-4): the caption "1 failing and 3 not ready." under Open Delivery repeated these rows and is gone; the rows count.
+    expect(failingRows(aside)).toBe(1);
     expect(aside.getByText('Chapter 04.wav fails 2 checks')).toBeTruthy();
     expect(aside.getByText(`${1 + CREDITS_FILES} chapters not ready`)).toBeTruthy();
+    expect(aside.queryByText(/failing and \d+ not ready/)).toBeNull();
     cleanup();
     mount(ALL_PASS);
-    expect(await screen.findByText(`0 failing and ${CREDITS_FILES} not ready.`)).toBeTruthy();
+    const passing = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
+    expect(await passing.findByText(`${CREDITS_FILES} chapters not ready`)).toBeTruthy();
+    expect(failingRows(passing)).toBe(0);
   });
 
   it('says-nothing-passes-when-nothing-is-measured: no tick, and the same not-ready count Delivery shows', async () => {
@@ -231,8 +242,8 @@ describe('Master & QC page body', () => {
     const notReady = chapterStates(CHAPTERS, []).filter((state) => state.kind === 'wait').length + CREDITS_FILES;
     expect(notReady).toBe(CHAPTERS.length + CREDITS_FILES);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
-    expect(await aside.findByText(`0 failing and ${notReady} not ready.`)).toBeTruthy();
-    expect(aside.getByText(`${notReady} chapters not ready`)).toBeTruthy();
+    expect(await aside.findByText(`${notReady} chapters not ready`)).toBeTruthy();
+    expect(failingRows(aside)).toBe(0);
     expect(aside.queryByText('✓')).toBeNull();
     expect(aside.queryByText(/^Passes: /)).toBeNull();
   });
@@ -252,7 +263,8 @@ describe('Master & QC page body', () => {
     const wait = states.filter((state) => state.kind === 'wait').length + CREDITS_FILES;
     expect(bad).toBeGreaterThan(0);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
-    expect(await aside.findByText(`${bad} failing and ${wait} not ready.`)).toBeTruthy();
+    expect(await aside.findByText(`${wait} chapters not ready`)).toBeTruthy();
+    expect(failingRows(aside)).toBe(bad);
   });
 
   it('the-active-profile-decides: a tighter limit flips a pass to a fail in the chart and the package list together', async () => {
@@ -337,7 +349,7 @@ function failingRms(): MeasureFileResult {
 }
 
 // The loading state of the Delivery package panel (state matrix): no count is drawn until the profile and the chapters have been read, because
-// "0 failing and 0 not ready" would read as a pass; a failed read ends it, never an endless skeleton.
+// "0 chapters not ready" would read as a pass; a failed read ends it, never an endless skeleton.
 describe('Master & QC package panel loading state', () => {
   const never = () => new Promise<never>(() => undefined);
   const region = () => screen.queryByRole('group', { name: 'Loading the delivery package checks' });
@@ -347,15 +359,16 @@ describe('Master & QC package panel loading state', () => {
     await screen.findByRole('complementary', { name: /Delivery package/ });
     expect(region()?.getAttribute('aria-busy')).toBe('true');
     expect(within(region()!).getByRole('status').textContent).toBe('Reading the profile and the chapters…');
-    expect(screen.queryByText(/failing and \d+ not ready/)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Open Delivery' })).toBeTruthy();
+    expect(screen.queryByText(/not ready/)).toBeNull();
+    // It waits with the rest: lit, it would invite a move nothing on the card has judged yet (R4MS2-9).
+    expect((screen.getByRole('button', { name: 'Open Delivery' }) as HTMLButtonElement).disabled).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 60));
     expect(region()).toBeTruthy();
   });
 
   it('shows the counts, and no region, once both have been read', async () => {
     mount(TWO_FAIL, acx, { manuscriptChapters: async () => CHAPTERS });
-    expect(await screen.findByText(/\d+ failing and \d+ not ready\./)).toBeTruthy();
+    expect(await screen.findByText(/\d+ chapters? not ready/)).toBeTruthy();
     expect(region()).toBeNull();
   });
 
