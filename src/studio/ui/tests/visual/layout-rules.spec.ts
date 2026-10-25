@@ -170,6 +170,14 @@ test('a card under a group rule (an Advanced section) is laid out by its group, 
   expect(rules).not.toContain('G5');
 });
 
+test("a heading inside an inset card is that card's title, not the outer card's", async ({ page }) => {
+  const table = '<table style="border-spacing:0;margin:0 -16px"><tr><td style="padding:0 16px">Alice</td></tr></table>';
+  const inset = '<div style="border:1px solid;padding:12px"><h3 style="margin:0">tired</h3></div>';
+  expect(await rulesOn(page, `<section class="card">${inset}<h3 style="margin:0">In this chapter</h3>${table}</section>`)).not.toContain('G2');
+  // The outer card's own title still counts: a table set off it is found with an inset card above it.
+  expect(await rulesOn(page, `<section class="card">${inset}<h3 style="margin:0;padding-left:8px">In this chapter</h3>${table}</section>`)).toContain('G2');
+});
+
 test('a control drawn small with a 24 px press target around it (primitives/hitArea.ts) has a 24 px hit area', async ({ page }) => {
   const rules = await rulesOn(
     page,

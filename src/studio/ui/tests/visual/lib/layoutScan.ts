@@ -465,8 +465,13 @@ export function scanLayout(): LayoutHit[] {
     }
   }
   // G2: a flush table's text starts where its card title starts.
+  // The card's own title: a heading inside a framed card within it (the Script rail's Word card) is that inner card's title, set in by its frame.
+  const inFrameWithin = (element: Element, card: Element) => {
+    for (let node = element.parentElement; node && node !== card; node = node.parentElement) if (parseFloat(css(node).borderLeftWidth) > 0) return true;
+    return false;
+  };
   for (const card of cards) {
-    const title = card.querySelector('h2, h3');
+    const title = Array.from(card.querySelectorAll('h2, h3')).find((heading) => !inFrameWithin(heading, card));
     const table = card.querySelector('table');
     if (!title || !table || !shown(table)) continue;
     const cardInner = card.getBoundingClientRect().left + card.clientLeft;

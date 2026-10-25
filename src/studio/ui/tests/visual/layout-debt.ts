@@ -9,14 +9,4 @@ import type { LayoutDebt } from './lib/validators';
 //
 // Kept apart from the capture machinery under lib/, and reached by the capture through `layoutDebt` in app.drivers.ts.
 
-export const LAYOUT_DEBT: LayoutDebt[] = [
-  // G2: a flush table's text does not start where its card's title starts.
-  {
-    page: 'script',
-    state: 'rail-words',
-    viewports: ['wide', 'desktop'],
-    rule: 'G2',
-    element: 'div > table[aria-label="Words in this chapter"]',
-    defect: 'desktop: table text starts at 1061, the card title at 1074; wide: table text starts at 1301, the card title at 1314',
-  },
-];
+export const LAYOUT_DEBT: LayoutDebt[] = [];
