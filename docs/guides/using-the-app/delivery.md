@@ -6,21 +6,25 @@ Delivery is the last step of finishing a book. It names the delivery profile the
 checks every chapter against it, and builds the platform's package from the files you mastered and encoded in
 [Master & QC](master-and-qc.md). It sits under **Finish**, after Master & QC, and needs an imported
 manuscript: without one the page asks you to import one.
-While the chapters are being read, **Before you build** shows grey blocks in place of the chapter checks.
+While the chapters are being read, **Before you build** shows grey rows in place of the chapter checks. On a wide
+window the page keeps to the same centred column as Master & QC; in a narrow one the cards stack, with **Before you
+build** straight after **Output**, so the list that explains the Build button is next to it.
 
 ![Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting](../../images/ui/delivery-default.webp)
 
 ## The delivery profile
 
 The first panel's header holds the page title, **Delivery**, and on the right the **Profile** label, the profile menu
-and, for a built-in profile, a **Built in** pill. The menu lists **ACX (built in)** and each custom profile.
+and, for a built-in profile, a **Built in** pill (**Locked while it builds** for either kind of profile while a
+build runs, when the menu is dimmed and does nothing). The menu lists **ACX (built in)** and each custom profile.
 Choosing one makes it the project's profile; the files already checked keep the profile they were checked
 against until you check them again in Master & QC. **Checks on every chapter** lists the profile's
 measured limits (RMS, peak, noise floor, room tone at the head and tail), and **Files** its sample rate,
-longest file, MP3 format and channels. A built-in profile is read-only, and a one-sided limit reads in words ("at most −3 dBFS").
+longest file, MP3 format and channels. Each value sits right after its name. A built-in profile is read-only, and a one-sided limit reads in words ("at most −3 dBFS").
 
 A custom profile's name, its limits (a lowest and a highest box each) and its longest file can be changed in
-place; the change is saved when you press Enter or leave the box, and a rule it turned off reads **Off**. A
+place (every lowest box, "to", highest box and unit stand in one column down the card); the change is saved when
+you press Enter or leave the box, and a rule it turned off reads **Off**. A
 blank name, a name over 80 characters or a limit that is not a number is ignored (a minus typed as "−" or "-" is
 read as one, and "-0" is 0), a sentence under the card says so
 ("A profile needs a name, so the name was left as it was.") and the box shows the saved value again. The name box
@@ -41,11 +45,12 @@ offers **Check again**.
 
 **Before you build**, on the right, counts the chapters passing and lists each chapter, named as the
 manuscript's headings name it, with the opening credits first and the closing credits last (each judged by its
-own file, "Opening credits.wav"). Each shows **Pass**, **Fails N checks**, **Not mastered**, or, for a chapter that is not mastered and has open
+own file, "Opening credits.wav"). A long chapter name wraps to a second line, and a rule separates each chapter from the next. Each shows **Pass**,
+**Fails N checks**, **Not mastered**, or, for a chapter that is not mastered and has open
 pickups, **Waiting on N pickups** (counted from the Pickups list, as Production counts them). Pressing a
 chapter opens its file in [Master & QC](master-and-qc.md); the arrow button in the panel's header opens Master & QC
 itself. A book with more than a hundred chapters lists the first hundred and a **Show the other N chapters**
-button for the rest; the count above the list is always the whole book.
+button for the rest, and a long list scrolls inside the panel; the count above the list is always the whole book.
 
 ![Delivery with the book checked: the chapters that pass counted in Before you build, and Output waiting on the rest](../../images/ui/delivery-measured.webp)
 
