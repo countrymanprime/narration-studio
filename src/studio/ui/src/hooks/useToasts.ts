@@ -1,6 +1,6 @@
 import { logUi } from '../api/uiLog';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Notify, ToastAction, ToastMessage, ToastTone } from '../components/primitives/Toast';
 
 /** How many messages are on screen at once; the oldest information message goes first, then the oldest error. */
@@ -22,6 +22,16 @@ export function pushToast(current: readonly ToastMessage[], next: ToastMessage):
   return queue;
 }
 
+const inPlaceListeners = new Set<(text: string) => void>();
+
+/**
+ * A page now shows this failure in place (a load-error panel): an error toast in the app's queue that says the same sentence goes, so the
+ * sentence is not said twice, for example Production's toast of a failed read left over Proof's card (alignment audit R3PF-4).
+ */
+export function sayInPlace(text: string): void {
+  for (const listener of inPlaceListeners) listener(text);
+}
+
 /** The app's message queue: `notify` shows a message, `dismiss` removes one. Both keep their identity for the life of the app. */
 export function useToasts(): { messages: ToastMessage[]; notify: Notify; dismiss: (id: number) => void } {
   const [messages, setMessages] = useState<ToastMessage[]>([]);
@@ -34,5 +44,13 @@ export function useToasts(): { messages: ToastMessage[]; notify: Notify; dismiss
     setMessages((current) => pushToast(current, message));
   }, []);
   const dismiss = useCallback((id: number) => setMessages((current) => current.filter((message) => message.id !== id)), []);
+  useEffect(() => {
+    const listener = (text: string) =>
+      setMessages((current) =>
+        current.some((m) => m.tone === 'error' && m.text === text) ? current.filter((m) => !(m.tone === 'error' && m.text === text)) : current,
+      );
+    inPlaceListeners.add(listener);
+    return () => void inPlaceListeners.delete(listener);
+  }, []);
   return { messages, notify, dismiss };
 }

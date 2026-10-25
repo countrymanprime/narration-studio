@@ -6,6 +6,7 @@ import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 import { useOverlay } from '../../overlay/OverlayProvider';
+import { sayInPlace } from '../../hooks/useToasts';
 
 /**
  * Retry swaps the error for the page's skeleton, so the button that was pressed unmounts and focus would fall to the document body, losing
@@ -31,9 +32,10 @@ export type LoadErrorExit = { label: string; onClick: () => void };
  */
 export function LoadErrorPanel({ message, retry, exit }: { message: string; retry: () => void; exit?: LoadErrorExit }) {
   // The panel says the sentence in place, so an error toast saying the same one (raised by the page the narrator came from, which read the
-  // same data) goes: the sentence is not said twice (alignment audit R3PF-4).
+  // same data) goes, from the app's queue and the overlay service's: the sentence is not said twice (alignment audit R3PF-4).
   const overlay = useOverlay();
   useEffect(() => {
+    sayInPlace(message);
     for (const toast of overlay.getSnapshot().toasts) if (toast.tone === 'error' && toast.text === message) overlay.dismissToast(toast.id);
   }, [overlay, message]);
   return (
