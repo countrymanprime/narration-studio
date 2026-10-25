@@ -318,13 +318,14 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'appearance',
     description:
-      'Settings, Appearance & keys: the Theme radios (Match my system, Light, Dark), the Motion radios (Follow Windows, Reduce), Reader text, Note colour and Zoom, then Shortcuts',
+      'Settings, Appearance & keys: the Theme radios (Match my system, Light, Dark), the Motion radios (Follow Windows, Reduce), the four reader rows (Reader font, Reader text size, Line spacing, Column width), Note colour and Zoom, then Shortcuts',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'reader-text',
-    description: "Settings, Appearance & keys scrolled to Reader text: the Script reader's font, size, line spacing and column width over the preview quote",
+    description:
+      'Settings, Appearance & keys scrolled to the reader rows: Reader font, Reader text size, Line spacing and Column width, each its own row, with the preview quote under Column width',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
