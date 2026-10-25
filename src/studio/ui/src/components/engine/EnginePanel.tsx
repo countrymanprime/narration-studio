@@ -221,7 +221,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
       )}
       {project && <ChapterLinksTable tracks={project.tracks} refreshKey={refresh} notify={notify} onChanged={() => setRefresh((count) => count + 1)} />}
       {tool === 'link-chapters' && project && <LinkChaptersDialog chapters={chapters} tracks={project.tracks} onClose={closeTool} />}
-      {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} />}
+      {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} onCreateRegions={() => setTool('create-regions')} />}
       {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}
       {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}
       {tool === 'cleanup-tools' && <CleanupToolsDialog onClose={closeTool} />}

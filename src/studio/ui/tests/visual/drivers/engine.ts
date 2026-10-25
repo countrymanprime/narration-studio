@@ -208,7 +208,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Embed chapter tags…');
-    await page.getByText('not rendered yet').waitFor();
+    await page.getByText('Not rendered yet', { exact: true }).waitFor();
   },
   'chapter-tags-success': async (page) => {
     await page.goto('/?mockChapterTags=ready');
