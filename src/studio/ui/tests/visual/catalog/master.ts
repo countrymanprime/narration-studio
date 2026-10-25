@@ -147,14 +147,14 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'multi-export-running',
     description:
-      'Master & QC, a multi-platform build part way through (?mockPackageMulti=running) - the first checked platform Building…, the rest waiting, Cancel, and a progress indicator',
+      'Master & QC, a multi-platform build part way through (?mockPackageMulti=running) - Building… under the checked platform, Cancel, and a progress indicator',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'master',
     state: 'multi-export-results',
     description:
-      'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - a per-profile result row for each: its name, Built, the output folder and how many files it wrote',
+      'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - under each checked platform its result: Built, the output folder and how many files it wrote',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -166,7 +166,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'package-loading',
     description:
-      'Master & QC while the chapters are still being read (?mockChapters=loading): the page as usual, and in the Delivery package panel grey blocks in place of the checks and of the "failing and not ready" count, with Open Delivery still offered and one polite "Reading the profile and the chapters…" status',
+      'Master & QC while the chapters are still being read (?mockChapters=loading): the page as usual, and in the Delivery package panel four grey blocks in place of the checks, Open Delivery off until they arrive, and one polite "Reading the profile and the chapters…" status',
   },
   {
     page: 'master',
