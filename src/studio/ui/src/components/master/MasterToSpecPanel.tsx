@@ -6,13 +6,14 @@ import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { Select } from '../primitives/Select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { TextField } from '../primitives/TextField';
+import { statusTone, type StatusId } from '../../kinds/statusTone';
 import { type ExportJobs, fileName } from './useExportJobs';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
-const OK = { color: 'var(--ok-text)' };
 
 const KIND_OPTIONS: { value: PackageItemKind; label: string }[] = [
   { value: 'chapter', label: 'Chapter' },
@@ -21,23 +22,31 @@ const KIND_OPTIONS: { value: PackageItemKind; label: string }[] = [
   { value: 'retail_sample', label: 'Retail sample' },
 ];
 
-/** A row's status label ("Waiting", "Mastering…", "Ready", "Failed: …", "Cancelled"). */
-function exportRowStatus(file: ExportJob['files'][number]): string {
-  switch (file.status) {
+/** A row's status as the page's other tables draw one, a pill (R3MS-13): its words and the registry status that colours it. */
+function exportRowStatus(file: ExportJob['files'][number] | undefined): { label: string; status: StatusId } {
+  switch (file?.status) {
+    case undefined:
+      return { label: 'Not started', status: 'not_started' };
     case 'pending':
-      return 'Waiting';
+      return { label: 'Waiting', status: 'waiting' };
     case 'mastering':
-      return 'Mastering…';
+      return { label: 'Mastering…', status: 'in_progress' };
     case 'encoding':
-      return 'Encoding…';
+      return { label: 'Encoding…', status: 'in_progress' };
     case 'done':
-      return 'Ready';
+      return { label: 'Ready', status: 'ready' };
     case 'failed':
-      return `Failed: ${file.error ?? 'unknown reason'}`;
+      return { label: 'Failed', status: 'failed' };
     case 'cancelled':
-      return 'Cancelled';
+      return { label: 'Cancelled', status: 'not_started' };
   }
 }
+
+// Fixed columns (`Table columns`): the file name takes the rest, the Role select and the Title box keep a width a control can be read at
+// (the Title box was 35 px wide at 390, XMS-1), and the status pill and Remove keep theirs, so nothing moves between picking and running
+// (XMS-8). Under the floor the table scrolls in its box.
+const COLUMNS = ['auto', '10rem', '11rem', '8rem', '6.5rem'];
+const TABLE_FLOOR = 'min-w-[44rem]';
 
 /**
  * The files "Master all to spec…" picked: each
@@ -65,10 +74,15 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
     <Panel
       title="Master to spec"
       actions={
+        // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
+        // sentence or drop under it as the window changed (R3MS-12).
         !started && (
-          <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
-            Add files…
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
+              Add files…
+            </Button>
+            {items.length > 0 && <Button onClick={() => void jobs.startExport()}>{jobs.master ? 'Master & encode' : 'Encode'}</Button>}
+          </div>
         )
       }
     >
@@ -81,9 +95,10 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
         <div
           ref={revealRef}
           tabIndex={0}
-          className={`${problem ? 'mt-2' : ''} overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset`}
+          // Run to the card's edges, so the table's text starts at the card's inset and Remove ends where Add files… does (XMS-8, R3MS-13).
+          className={`${problem ? 'mt-2' : ''} scroll-x-edges -mx-4 overflow-x-auto [--panel-pad:0px] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset`}
         >
-          <Table label="Files to export">
+          <Table label="Files to export" columns={COLUMNS} className={TABLE_FLOOR}>
             <TableHead>
               <TableRow>
                 <TableHeader>File</TableHeader>
@@ -96,9 +111,10 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
             <TableBody>
               {(started && exportJob ? exportJob.files : items).map((item) => {
                 const result = exportJob?.files.find((file) => file.path === item.path);
+                const status = exportRowStatus(result);
                 return (
                   <TableRow key={item.path}>
-                    <TableCell>{fileName(item.path)}</TableCell>
+                    <TableCell className="break-words">{fileName(item.path)}</TableCell>
                     <TableCell>
                       {started ? (
                         KIND_OPTIONS.find((option) => option.value === item.kind)?.label
@@ -111,22 +127,32 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
                         />
                       )}
                     </TableCell>
-                    <TableCell>
-                      {item.kind === 'chapter' &&
-                        (started ? (
-                          item.title
-                        ) : (
-                          <TextField
-                            label={`Title for ${fileName(item.path)}`}
-                            value={item.title}
-                            onChange={(value) => jobs.updateItem(item.path, { title: value })}
-                          />
-                        ))}
+                    <TableCell className="break-words">
+                      {item.kind !== 'chapter' ? (
+                        // Only a chapter takes a title; the others say so rather than leave a gap in the column.
+                        <span style={MUTED}>
+                          <span aria-hidden="true">—</span>
+                          <span className="sr-only">No title for this role</span>
+                        </span>
+                      ) : started ? (
+                        item.title
+                      ) : (
+                        <TextField
+                          label={`Title for ${fileName(item.path)}`}
+                          value={item.title}
+                          onChange={(value) => jobs.updateItem(item.path, { title: value })}
+                        />
+                      )}
                     </TableCell>
-                    <TableCell style={result?.status === 'failed' ? DANGER : result?.status === 'done' ? OK : MUTED}>
-                      {result ? exportRowStatus(result) : 'Not started'}
+                    <TableCell className="whitespace-nowrap">
+                      <StatusBadge tone={statusTone(status.status)} label={status.label} />
+                      {result?.status === 'failed' && (
+                        <span className="mt-1 block text-[0.75rem] whitespace-normal" style={DANGER}>
+                          {result.error ?? 'unknown reason'}
+                        </span>
+                      )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="right">
                       {!started && (
                         <Button variant="secondary" onClick={() => jobs.removeItem(item.path)}>
                           Remove
@@ -141,12 +167,11 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
         </div>
       )}
       {items.length > 0 && !started && (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
+        <div className="mt-3">
           <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
             Master before encoding{chainLabel ? ` with the ${chainLabel.charAt(0).toLowerCase()}${chainLabel.slice(1)}` : ''}, to the platform&apos;s RMS window
             and peak limit
           </Checkbox>
-          <Button onClick={() => void jobs.startExport()}>{jobs.master ? 'Master & encode' : 'Encode'}</Button>
         </div>
       )}
       {exportJob && exportRunning && (

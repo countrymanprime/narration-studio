@@ -199,6 +199,22 @@ describe('SetupChip with the project DAW choice', () => {
     expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp');
   });
 
+  it('connected to another project than the one linked here: the chip warns and says so, as the setup notice does (R4BO2-1)', async () => {
+    render(
+      <SetupChip
+        capabilities={setupCapabilities('reaper')}
+        standaloneName="Recorder"
+        otherProject
+        choice={{ ...base, state: 'connected', reachable: true, linkedFile: 'Book.rpp' }}
+      />,
+    );
+    const chip = screen.getByRole('group');
+    expect(chip.getAttribute('aria-label')).toBe('Recording setup: REAPER, other project');
+    expect(chip.textContent).toBe('REAPER · other project');
+    expect(chip.style.background).toBe('var(--warn-soft)');
+    expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp · REAPER has a different project open');
+  });
+
   it('daw-chip-starting: the app opening REAPER says so, and a bridge problem is the host sentence in the tooltip', async () => {
     const capabilities = setupCapabilities('reaper');
     const starting = { ...base, state: 'starting' as const, linkedFile: 'Book.rpp', starting: { since: '2026-10-23T09:30:00Z' } };

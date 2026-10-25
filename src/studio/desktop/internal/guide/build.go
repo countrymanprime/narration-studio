@@ -431,7 +431,7 @@ func (m sidecarModel) entities(ctx context.Context, manuscript, model, log strin
 	defer func() { _ = os.RemoveAll(dir) }()
 	wordsFile := filepath.Join(dir, "words.json")
 	args := append([]string{"entities", "--manuscript", manuscript, "--spacy-model", model, "--words-file", wordsFile}, logArgs(log)...)
-	program, fullArgs, err := m.s.command(append(args, m.s.defaultPronunciationSourceArgs()...))
+	program, fullArgs, err := m.s.command(append(args, m.s.automaticSourceArgs()...))
 	if err != nil {
 		return nil, err
 	}
@@ -587,30 +587,23 @@ func parseSpanLines(lines []string, paragraphs []ruleParagraph) ([][]entitySpan,
 // pronunciations runs `pronunciation --words-file F`: the words in a file (a book's names would not fit on a Windows command line),
 // one JSON object printed per word, in order, with the narrator's preferred source first.
 func (m sidecarModel) pronunciations(ctx context.Context, words []string, log string) ([]*pyObject, error) {
-	file, err := os.CreateTemp("", "guide-words-*.json")
+	path, remove, err := writeWordsFile(words)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = os.Remove(file.Name()) }()
-	encoded, _ := json.Marshal(words) // a list of strings cannot fail to encode
-	_, err = file.Write(encoded)
-	if closeErr := file.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return nil, err
-	}
-	out, err := m.runForBuild(ctx, m.s.wordsFileArgs(file.Name(), log)...)
+	defer remove()
+	out, err := m.runForBuild(ctx, m.s.wordsFileArgs(path, log)...)
 	if err != nil {
 		return nil, err
 	}
 	return parsePronunciationObjects(out, len(words))
 }
 
-// wordsFileArgs is the build's `pronunciation` command for the words in the file, with the narrator's preferred source when there is one.
+// wordsFileArgs is the build's `pronunciation` command for the words in the file, with the narrator's preferred source when there is one
+// and the Wiktextract index when it is installed.
 func (s *Service) wordsFileArgs(path, log string) []string {
 	args := append([]string{"pronunciation", "--words-file", path}, logArgs(log)...)
-	return append(args, s.defaultPronunciationSourceArgs()...)
+	return append(args, s.automaticSourceArgs()...)
 }
 
 // parsePronunciationObjects reads one JSON object per line, as Python wrote each, in its key order.

@@ -9,8 +9,6 @@ import type { GoTarget } from './pipelineRows';
 
 type Props = {
   inputs: NextUpInputs;
-  /** The record capability, from `DawClient.capabilities`: its own sentence sits beside Open Booth, which stays open to read and prepare. No branch on which DAW. */
-  record: { ok: boolean; reason: string };
   onGo: (target: GoTarget, chapterId?: string) => void;
   /** The stage timer. A timer is started from the item of the chapter being recorded and hidden while one runs. */
   timer: { running: boolean; starting?: string; onStart: (chapterId: string, stage: ChapterStatus) => void };
@@ -43,7 +41,7 @@ function Item({ icon, status, title, sub, children }: { icon: string; status: ke
   );
 }
 
-function Rendered({ item, record, onGo, timer }: Omit<Props, 'inputs'> & { item: NextItem }) {
+function Rendered({ item, onGo, timer }: Omit<Props, 'inputs'> & { item: NextItem }) {
   switch (item.kind) {
     case 'rec': {
       const left =
@@ -52,11 +50,11 @@ function Rendered({ item, record, onGo, timer }: Omit<Props, 'inputs'> & { item:
           : `${Math.round((item.share ?? 0) * 100)}% recorded · about ${hm(item.hoursLeft)} of finished audio left`;
       return (
         <Item icon="●" status="rec" title={`Finish recording ${item.name}`} sub={left}>
-          {/* Opening the Booth to read and prepare is navigation; only Record needs the capability (the Booth gates that itself). */}
+          {/* Opening the Booth to read and prepare is navigation; only Record needs the capability (the Booth gates that itself), and why it is
+              off is said once, under the header's Start session (alignment audit XPR2-9), not between these two buttons. */}
           <Button variant="primary" size="sm" onClick={() => onGo('booth', item.chapterId)}>
             Open Booth
           </Button>
-          {!record.ok && <span className="text-[0.8125rem] text-[var(--text-muted)]">{record.reason}</span>}
           {!timer.running && (
             <Button
               variant="secondary"
@@ -97,13 +95,13 @@ function Rendered({ item, record, onGo, timer }: Omit<Props, 'inputs'> & { item:
 }
 
 /** What to do next, ranked by risk to the due date (the mock's NextUp). */
-export function NextUp({ inputs, record, onGo, timer }: Props) {
+export function NextUp({ inputs, onGo, timer }: Props) {
   const items = rankNextUp(inputs);
   if (items.length === 0) return <p className="py-5 text-center text-[0.875rem] text-[var(--text-muted)]">Nothing needs you right now.</p>;
   return (
     <ol aria-label="Next up">
       {items.map((item) => (
-        <Rendered key={item.kind} item={item} record={record} onGo={onGo} timer={timer} />
+        <Rendered key={item.kind} item={item} onGo={onGo} timer={timer} />
       ))}
     </ol>
   );

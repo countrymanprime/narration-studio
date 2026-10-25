@@ -90,7 +90,7 @@ export const proofDrivers: Record<string, Driver> = {
   'chapter-no-recording': async (page) => {
     await openProof(page);
     await openChapter(page, 'Chapter 2');
-    await page.getByText('No recording for this chapter yet.').waitFor();
+    await page.getByText('This chapter has no recording to check.').waitFor();
   },
   'takes-lanes': async (page) => {
     await openProof(page, 'mockChapterLink=confirmed');

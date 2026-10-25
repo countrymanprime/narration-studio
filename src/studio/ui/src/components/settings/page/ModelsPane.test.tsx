@@ -120,6 +120,54 @@ describe('Settings: Models & downloads', () => {
     expect(document.querySelector('[data-disk]')!.textContent).toContain('assets');
   });
 
+  // Alignment audit, Models & downloads (XSE1-5, XSE2-25, XSE2-27, XSE1-14, R3SE2-5, XSE1-17, XSE1-18, XSE1-28).
+  it('fixes the table columns so they do not move between states, and right-aligns the actions of each row', async () => {
+    await renderModels();
+    const small = await ready('whisper/small');
+    const table = screen.getByRole('table', { name: 'Models, voices and tools' });
+    expect(table.className).toContain('table-fixed');
+    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '12rem', '18rem', '6.5rem']);
+    const actions = within(small)
+      .getByRole('button', { name: /^Remove Small/ })
+      .closest('td')!.firstElementChild!;
+    expect(actions.className).toContain('justify-end');
+    // The Used by links take their column; nothing narrower wraps them early.
+    expect(within(small).getByRole('button', { name: 'Used by Proof. Go to Proof' }).parentElement!.className).not.toMatch(/max-w-/);
+  });
+
+  it('as a card, keeps the actions on the name line and draws the card on the card surface', async () => {
+    await renderModels();
+    const small = await ready('whisper/small');
+    expect(small.className).toContain('@max-[1020px]:grid');
+    expect(small.className).toContain('@max-[1020px]:bg-[var(--surface)]');
+    const actionCell = within(small)
+      .getByRole('button', { name: /^Remove Small/ })
+      .closest('td')!;
+    expect(actionCell.className).toContain('row-start-1');
+    expect(actionCell.className).toContain('col-start-2');
+  });
+
+  it('keeps Open folder at the end of the disk bar, not wrapped under the path', async () => {
+    await renderModels();
+    const open = within(document.querySelector<HTMLElement>('[data-disk]')!).getByRole('button', { name: 'Open folder' });
+    expect(open.className).toContain('flex-none');
+    expect(open.parentElement!.getAttribute('data-disk')).not.toBeNull();
+    expect(document.querySelector('[data-disk]')!.className).not.toContain('flex-wrap');
+  });
+
+  it('draws the analysis tools in a card under their label, like the list above', async () => {
+    await renderModels();
+    await waitFor(() => expect(document.querySelector('[data-component="gliner"]')).not.toBeNull());
+    expect(document.querySelector('[data-component="gliner"]')!.closest('section[aria-label="Story Bible analysis tools"]')).toBeTruthy();
+  });
+
+  it('keeps the segmented filter on one line, scrolling sideways when the page is too narrow', async () => {
+    await renderModels();
+    const filter = within(document.getElementById('settings-pane')!).getByRole('group', { name: 'Show' });
+    expect(filter.className).toContain('whitespace-nowrap');
+    expect(filter.className).toContain('overflow-x-auto');
+  });
+
   it('keeps the analysis tools out of the table and draws them below it', async () => {
     await renderModels();
     await ready('whisper/small');

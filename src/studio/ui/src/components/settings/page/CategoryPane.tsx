@@ -74,7 +74,8 @@ export function CategoryPane({
       {extra}
       {advanced.length > 0 && (
         <Disclosure title="Advanced" summary={`(${advanced.length})`} open={advancedOpen} onOpenChange={onToggleAdvanced}>
-          <div id={`advanced-${category.id}`} className="mt-1.5 flex flex-col gap-4">
+          {/* A rule down the left keeps the opened sections under Advanced, so a section named like one above reads as its advanced part (XSE2-18). */}
+          <div id={`advanced-${category.id}`} className="mt-1.5 flex flex-col gap-4 border-l-2 border-[var(--border)] pl-4">
             {bySection(advanced).map(([title, group]) => (
               <Section key={title} title={title} rows={group} lit={lit} />
             ))}
