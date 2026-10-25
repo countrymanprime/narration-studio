@@ -526,6 +526,16 @@ func (r cutRangeRole) DeleteRange(context.Context, dawport.DeleteRangeRequest) (
 
 type replaceRangeRole struct{ role }
 
+// ImportTheirAudio answers as REAPER's import_audio_track does: a new track and item, the file 60 s long, one undo step.
+func (r replaceRangeRole) ImportTheirAudio(context.Context, string, string) (dawport.TheirAudio, error) {
+	got, err := r.result("ImportTheirAudio", "Added their audio.")
+	if err != nil {
+		return dawport.TheirAudio{}, err
+	}
+	return dawport.TheirAudio{Result: got.WithUndoSteps(1), Track: "{FA4E0000-0000-4000-8000-0000000000A1}", Item: "{FA4E0000-0000-4000-8000-0000000000A2}",
+		Length: 60}, nil
+}
+
 // ReplaceRange and RestoreReplacement answer as REAPER's replace_range and restore_replacement do: one undo step each, the new item
 // named and the later audio moved by their read's length less the words'.
 func (r replaceRangeRole) ReplaceRange(_ context.Context, request dawport.ReplaceRangeRequest) (dawport.RangeReplaced, error) {

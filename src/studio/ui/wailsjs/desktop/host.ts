@@ -903,6 +903,16 @@ export function DawRepairClick(chapterID: string, takeID: string, clicks: $model
 }
 
 /**
+ * DawReplaceRange replaces chapterID's words firstToken..lastToken with sourceStart..sourceEnd seconds of their file fileID in the DAW,
+ * at gainDB (-24 to 24) with fadeMs (0 to 500) at each seam, and records it. The host finds their item on their track as the DAW reads
+ * it now and sends the DAW its own ids and seconds, never one the page gave. The later audio moves by the difference in length. Its
+ * refusals are ReplacePlan's, then a fade or level out of range; nothing is sent on any of them.
+ */
+export function DawReplaceRange(chapterID: string, firstToken: number, lastToken: number, fileID: string, sourceStart: number, sourceEnd: number, fadeMs: number, gainDB: number): $CancellablePromise<string> {
+    return $Call.ByID(556973567, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd, fadeMs, gainDB);
+}
+
+/**
  * DawRestoreBackup puts the audio of the backup backupID back over the same window of the track it came from (the mock's
  * restoreBackup). The page sends the id DawBackups listed, nothing else. The same capability refusal first; an id the table does not
  * have is the DAW's refusal, changed false; a backup or source track that is gone is code stale. A restore is not undoable in the app
@@ -910,6 +920,15 @@ export function DawRepairClick(chapterID: string, takeID: string, clicks: $model
  */
 export function DawRestoreBackup(backupID: string): $CancellablePromise<string> {
     return $Call.ByID(4114452298, backupID);
+}
+
+/**
+ * DawRestoreReplacement puts the narrator's audio back in place of chapterID's replacement replacementID (Put my audio back), which
+ * works after a restart, and marks the record restored. A replacement that is not recorded, or already put back, is refused with
+ * nothing sent.
+ */
+export function DawRestoreReplacement(chapterID: string, replacementID: string): $CancellablePromise<string> {
+    return $Call.ByID(3637008624, chapterID, replacementID);
 }
 
 /**
@@ -1187,6 +1206,20 @@ export function EditingCutRemove(chapterID: string, id: string): $CancellablePro
  */
 export function EditingCutsList(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(1011505999, chapterID);
+}
+
+/**
+ * EditingReplacementRemove forgets a chapter's replacement: the inverse the journal calls once the app's Undo took the DAW edit back.
+ */
+export function EditingReplacementRemove(chapterID: string, id: string): $CancellablePromise<string> {
+    return $Call.ByID(1895829750, chapterID, id);
+}
+
+/**
+ * EditingReplacementsList returns a chapter's replacements, each checked against the current text: what the page shows on the words.
+ */
+export function EditingReplacementsList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(3656209467, chapterID);
 }
 
 /**
@@ -2584,6 +2617,54 @@ export function RenderConfigSuggestFolder(): $CancellablePromise<string> {
 }
 
 /**
+ * ReplaceAddFile opens this app's file dialog for a file of narratorID's and, when the narrator picks one, brings it into the DAW on a
+ * muted track of its own named for them (the replace_range capability's ImportTheirAudio) and records it. The file stays where it is:
+ * the DAW's track holds it. Cancelling changes nothing and answers the list as it is.
+ */
+export function ReplaceAddFile(narratorID: string): $CancellablePromise<string> {
+    return $Call.ByID(1846457567, narratorID);
+}
+
+/**
+ * ReplaceFilePeaks answers the waveform of their file fileID for the page's range, or why there is none: a file that is not a WAV
+ * (MP3 and the rest have no waveform yet, as on the chapter strip), or one that moved or changed.
+ */
+export function ReplaceFilePeaks(fileID: string): $CancellablePromise<string> {
+    return $Call.ByID(723577156, fileID);
+}
+
+/**
+ * ReplaceNarratorAdd names another narrator for the project (a duet partner, a stand-in, one of a cast). A name already there is not
+ * added twice.
+ */
+export function ReplaceNarratorAdd(name: string): $CancellablePromise<string> {
+    return $Call.ByID(3231529282, name);
+}
+
+/**
+ * ReplaceNarratorRemove forgets another narrator who has no files in the project.
+ */
+export function ReplaceNarratorRemove(id: string): $CancellablePromise<string> {
+    return $Call.ByID(1536772123, id);
+}
+
+/**
+ * ReplaceNarrators lists the project's other narrators and their files, each file checked against the disk.
+ */
+export function ReplaceNarrators(): $CancellablePromise<string> {
+    return $Call.ByID(3536459596);
+}
+
+/**
+ * ReplacePlan works out one replacement before anything changes: chapterID's words firstToken..lastToken (as DawDeleteRange takes
+ * them) replaced by sourceStart..sourceEnd seconds of their file fileID. It measures their stretch's loudness against the project's
+ * target (Settings > Editing) and answers the level change that gets it there. It changes nothing, in the DAW or on disk.
+ */
+export function ReplacePlan(chapterID: string, firstToken: number, lastToken: number, fileID: string, sourceStart: number, sourceEnd: number): $CancellablePromise<string> {
+    return $Call.ByID(1619504105, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd);
+}
+
+/**
  * RetakeLanesList lists, from the saved REAPER project the audio engine panel reads, every manuscript line whose retakes sit
  * on more than one fixed lane of a track, and which lane plays.
  */
@@ -2968,6 +3049,8 @@ export function TeleprompterSeek(word: number): $CancellablePromise<string> {
  * installed and reports it as asset_required, tagged with the engine so the UI
  * installs it through the right asset kind; once running, the sidecar's events
  * arrive as "teleprompter:event" and phase changes as "teleprompter:state".
+ * `coldRead: "true"` starts a cold read (#2251 item 13): the same session with no take, which keeps no reading, anchors no word and
+ * never stops itself; the state's `coldRead` says so.
  */
 export function TeleprompterStart(options: { [_ in string]?: string }): $CancellablePromise<string> {
     return $Call.ByID(2257611617, options);

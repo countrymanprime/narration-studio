@@ -70,6 +70,9 @@ var eventSpecs = map[string]eventSpec{
 	// its track, the seconds the later audio moved and the undo points (1).
 	"RANGE_REPLACED":       {required: []fieldSpec{text("run"), text("item"), text("cut"), text("left"), number("shift"), count("undoPoints")}},
 	"REPLACEMENT_RESTORED": {required: []fieldSpec{text("run"), text("item"), number("shift"), count("undoPoints")}},
+	// import_audio_track (narration_replace.lua): the new muted track holding the other narrator's file, its one item, the file's
+	// length in seconds and the undo points (1).
+	"AUDIO_TRACK_ADDED": {required: []fieldSpec{text("run"), text("track"), text("item"), number("length"), count("undoPoints")}},
 	// apply_fx_range and remove_fx_range (narration_range.lua, docs/reference/daw/capabilities.md): the piece the chain went on and its take,
 	// or the item the piece is part of after the join; the chain; and the undo points the command added (1, or 0 for a
 	// removal that found nothing to take off).

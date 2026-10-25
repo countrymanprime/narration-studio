@@ -46,6 +46,8 @@ var numberSpecs = map[string]map[string]numberSpec{
 		"tail_max_seconds": {min: bound(0), step: bound(0.1), unit: "s"},
 		// The Effects tab's coverage cap: a whole percent of the chapter, 1 to 100 (settings.wholeNumbers reads one outside as 10).
 		"fx_cap_pct": {min: bound(1), max: bound(100), step: bound(1), unit: "%"},
+		// Replace audio's loudness target: a whole LUFS, -40 to -10 (settings.wholeNumbers reads one outside as -20).
+		"replace_target_lufs": {min: bound(-40), max: bound(-10), step: bound(1), unit: "LUFS"},
 	},
 	// The Booth's page size: a whole number of words, 50 to 1000 (settings.wholeNumbers reads one outside as 250).
 	"Booth": {
