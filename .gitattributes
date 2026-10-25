@@ -33,6 +33,9 @@ src/studio/desktop/**/testdata/*.golden.* text eol=lf
 # the LF file): a CRLF checkout on a Windows runner makes the status STALE.
 src/studio/desktop/internal/guide/testdata/*.json text eol=lf
 
+# The rules' suggestion lines are a contract file the Go test compares byte for byte, as tests/fixtures/contracts.
+src/studio/desktop/internal/extractionport/rules/testdata/*.json text eol=lf
+
 # The demo's sample manuscript is Project Gutenberg's file byte for byte (CRLF line endings and all), so it can be checked
 # against the published one; aliceManuscript.ts reads either line ending.
 src/studio/ui/src/api/fixtures/alice-in-wonderland.txt -text
