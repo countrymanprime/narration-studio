@@ -3,6 +3,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { HIT_AREA } from './hitArea';
 
 export type ToastTone = 'info' | 'error';
 /** A toast's one action (for example Undo): its own label, run when pressed, which also dismisses the toast. */
@@ -60,7 +61,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       <span className="min-w-0 break-words">{message.text}</span>
       {message.action && (
         <button
-          className="flex-none font-semibold underline underline-offset-2"
+          className={`flex-none font-semibold underline underline-offset-2 ${HIT_AREA}`}
           onClick={() => {
             message.action!.onAction();
             dismiss(id);
@@ -69,11 +70,27 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
           {message.action.label}
         </button>
       )}
-      <button aria-label="Dismiss message" className="flex-none" onClick={() => dismiss(id)}>
+      <button aria-label="Dismiss message" className={`flex-none ${HIT_AREA}`} onClick={() => dismiss(id)}>
         <FontAwesomeIcon icon={faXmark} />
       </button>
     </div>
   );
+}
+
+// While a modal dialog is open the toasts move to the top of the window, clear of the dialog's action row, which they covered at the bottom
+// (alignment audit cause P). A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
+const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
+let openModals = 0;
+export function useToastsClearOfModal(active: boolean): void {
+  useEffect(() => {
+    if (!active) return;
+    openModals += 1;
+    document.documentElement.setAttribute(MODAL_OPEN_ATTRIBUTE, '');
+    return () => {
+      openModals -= 1;
+      if (openModals === 0) document.documentElement.removeAttribute(MODAL_OPEN_ATTRIBUTE);
+    };
+  }, [active]);
 }
 
 // The messages the app shows, newest last. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
@@ -85,7 +102,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
   return createPortal(
     <div
       data-toast-region
-      className="fixed right-[calc(1.25rem+var(--toast-clear-right,0px))] bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem-var(--toast-clear-right,0px)))] flex-col items-end gap-2"
+      className="fixed right-[calc(1.25rem+var(--toast-clear-right,0px))] bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:top-4 [:root[data-modal-open]_&]:bottom-auto"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
         {messages

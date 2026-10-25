@@ -458,6 +458,10 @@ export function createMockApi(
     ...createEditStacksMock(manuscriptReady, () => s.chapters),
     ...createReplaceAudioMock({
       ready: manuscriptReady,
+      available: async () => {
+        const support = (await daw.dawCapabilities()).capabilities.replace_range;
+        return support?.available ? null : refusedResult(support?.message || 'Replacing words with audio is not available here.');
+      },
       alignment: workspace.workspaceAlignment,
       paragraphText: (chapterId, paragraphId) => s.paragraphs.find((paragraph) => paragraph.id === paragraphId && paragraph.chapterId === chapterId)?.text,
     }),
@@ -915,6 +919,8 @@ function recordingUndo(
   | 'dawReduceRangeGain'
   | 'dawRepairClick'
   | 'readAloudRecordStop'
+  | 'dawReplaceRange'
+  | 'dawRestoreReplacement'
 > {
   const labels = MOCK_DAW_UNDO_LABELS;
   const record =
@@ -934,6 +940,17 @@ function recordingUndo(
     dawSplitTake: record(labels.split, api.dawSplitTake),
     dawReduceRangeGain: record(labels.reduceGain, api.dawReduceRangeGain),
     dawRepairClick: record(labels.repairClicks, api.dawRepairClick),
+    // A replacement and a put-back each leave one point (narration_replace.lua), which replace_range and restore_replacement undo.
+    dawReplaceRange: async (...args) => {
+      const answer = await api.dawReplaceRange(...args);
+      history.record(labels.replace, answer.result);
+      return answer;
+    },
+    dawRestoreReplacement: async (...args) => {
+      const answer = await api.dawRestoreReplacement(...args);
+      history.record(labels.restoreReplacement, answer.result);
+      return answer;
+    },
     // A stopped take leaves REAPER's own points (one per stop), which record_take undoes.
     readAloudRecordStop: async () => {
       const result = await api.readAloudRecordStop();

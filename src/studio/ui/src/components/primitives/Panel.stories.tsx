@@ -296,6 +296,13 @@ export const FlushTable: Story = {
     await expect(px(table.getBoundingClientRect().left)).toBe(px(frame.left + 1));
     await expect(px(table.getBoundingClientRect().right)).toBe(px(frame.right - 1));
     await expect(px(table.getBoundingClientRect().top)).toBe(px(header.getBoundingClientRect().bottom));
+    // The first column's text starts where the card title starts, and the last row draws no rule over the card's border.
+    const title = canvas.getByRole('heading', { level: 2 });
+    const firstCell = canvas.getByText('00 Opening credits');
+    const range = document.createRange();
+    range.selectNodeContents(firstCell);
+    await expect(Math.abs(range.getBoundingClientRect().left - title.getBoundingClientRect().left)).toBeLessThanOrEqual(1);
+    await expect(getComputedStyle(canvas.getByText('01 Down the Rabbit-Hole')).borderBottomWidth).toBe('0px');
   },
 };
 

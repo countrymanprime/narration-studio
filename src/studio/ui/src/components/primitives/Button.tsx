@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
 import type { ComponentProps } from 'react';
+import { HIT_AREA } from './hitArea';
 
 // `secondary` is the mocks' outlined button, filled `--surface` so it reads the same on the page background and in a card.
 // `ghost` is the same button with no fill, for the rare one on a tinted surface. `link` is the underlined text action that sits
@@ -31,8 +32,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 // button is `aria-disabled` too but keeps its own busy look (60%, `aria-busy`).
 const CHROME =
   "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55";
-const LINK =
-  'inline cursor-pointer underline disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55';
+const LINK = `${HIT_AREA} inline cursor-pointer underline disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55`;
 
 function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md') {
   return variant === 'link' ? LINK : `${CHROME} ${SIZE_CLASSES[size]} ${VARIANT_CLASSES[variant]}`;

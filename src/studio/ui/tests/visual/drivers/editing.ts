@@ -1,5 +1,5 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
@@ -210,6 +210,22 @@ export const editingDrivers: Record<string, Driver> = {
     await sampleDot(page).click();
     await page.getByRole('dialog', { name: /^Voice sample: / }).waitFor();
   },
+  'replace-dialog': async (page) => {
+    await openReplace(page);
+  },
+  'replace-mark-open': async (page) => {
+    const dialog = await openReplace(page);
+    await dialog.getByRole('button', { name: /^Replace \d+ words$/ }).click();
+    await dialog.waitFor({ state: 'hidden' });
+    const toast = page.getByRole('status').filter({ hasText: /^Replaced \d+ words with Eric Leach's audio/ });
+    await toast.getByRole('button', { name: 'Dismiss message' }).click();
+    await toast.waitFor({ state: 'hidden' });
+    // The replaced words stay selected (to play them at once); in a narrow window the selection's toolbar sits over the name, so Escape lets
+    // the selection go first, as a narrator would.
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: /^Eric Leach's audio plays for the .*Press Enter for details$/ }).click();
+    await page.getByRole('dialog', { name: "Eric Leach's audio" }).waitFor();
+  },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
     await expectPanelTextSize(page, 'Suggested take');
@@ -375,6 +391,20 @@ async function saveSample(page: Page): Promise<void> {
   const dialog = page.getByRole('dialog', { name: 'Voice sample' });
   await dialog.getByRole('button', { name: 'Save sample' }).click();
   await dialog.waitFor({ state: 'hidden' });
+}
+
+/** Replace with another narrator's audio on the selected words, the other narrator named and a file of theirs added, with the host's plan shown. */
+async function openReplace(page: Page): Promise<Locator> {
+  await openEditing(page, EDITS);
+  await selectWords(page);
+  await bar(page).getByRole('button', { name: "Replace with another narrator's audio" }).click();
+  const dialog = page.getByRole('dialog', { name: /with another narrator's audio$/ });
+  await dialog.getByRole('textbox', { name: 'Name another narrator' }).fill('Eric Leach');
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Add a file of theirs…' }).click();
+  await dialog.getByText(/target -?\d+ LUFS|could not be measured/).waitFor();
+  await dialog.getByRole('button', { name: 'Cancel' }).focus();
+  return dialog;
 }
 
 /** The dot after the last word of the range just saved. */
