@@ -95,26 +95,28 @@ export function AddEffect({
         </p>
       ) : null}
       {list ? (
-        <div className="flex flex-col gap-1" aria-label={list.source} role="group">
-          <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{list.source}</span>
-          <ul className="m-0 list-none p-0 text-[length:var(--font-size-sm)]">
+        <div className="flex flex-col gap-2" aria-label={list.source} role="group">
+          {/* A section label like Add an effect's, not a muted line that read as the note above's second line (alignment audit R3ED-18). */}
+          <SectionLabel>{list.source}</SectionLabel>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[length:var(--font-size-sm)]">
             {list.choices.map((c) => {
               const starred = favourites?.names.some((n) => n.toLowerCase() === c.name.toLowerCase()) ?? false;
               return (
-                <li key={c.id} className="flex items-center gap-1.5">
+                // The chain's name, then its action at the right, 8 px from the next row (XED-16).
+                <li key={c.id} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{c.name}</span>
                   {favourites ? (
                     <Button variant="secondary" size="sm" aria-label={`Favourite ${c.name}`} aria-pressed={starred} onClick={() => favourites.toggle(c.name)}>
                       {starred ? '★ Favourite' : 'Favourite'}
                     </Button>
                   ) : null}
-                  <span className="[overflow-wrap:anywhere]">{c.name}</span>
                 </li>
               );
             })}
           </ul>
           {favourites ? (
             <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-              Favourites are saved for every project. Settings › Set on a page › Favourite effects can also set them for one project.
+              Favourites are saved for every project. To keep them for one project only, use Favourite effects in Settings, under Set on a page.
             </p>
           ) : null}
           {favourites?.error ? (

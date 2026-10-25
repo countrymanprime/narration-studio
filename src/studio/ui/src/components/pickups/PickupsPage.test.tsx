@@ -337,7 +337,9 @@ describe('narrator-walkthrough-fixes', () => {
     const api = createMockApi({ pickupsList: () => Promise.resolve(LIST), pickupsAdd: () => Promise.resolve(LIST) });
     renderPage(api);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Add a pickup by hand' }));
+    // Add is off until the list is read (XPK-15).
+    await screen.findByRole('table', { name: 'Pickups' });
+    await user.click(screen.getByRole('button', { name: 'Add a pickup by hand' }));
     await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '01:00');
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'Again');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
@@ -364,8 +366,10 @@ describe('narrator-walkthrough-fixes-2', () => {
     expect(screen.getByText('The list could not be read, so the session is not known yet.')).toBeTruthy();
     expect(screen.queryByText(/tick a line to include it/)).toBeNull();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Add a pickup by hand' }));
-    expect(await screen.findByText(/A pickup can be added once the list has been read/)).toBeTruthy();
+    // Add is off with its reason rather than opening a form that cannot be used (XPK-15).
+    const add = screen.getByRole('button', { name: 'Add a pickup by hand' });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    await user.click(add);
     expect(screen.queryByRole('textbox', { name: 'Line to re-record' })).toBeNull();
   });
 

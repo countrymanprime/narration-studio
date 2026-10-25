@@ -2,25 +2,27 @@
 
 # Getting started
 
-Launching the app without a project folder attached shows **Choose your project** instead of the workspace: **New project** at the top,
-and the pinned and recent projects below it, each with an **Open** button.
+Launching the app without a project folder attached shows **Choose your project** instead of the workspace: **Open folder…** and
+**New project** at the top, and the pinned and recent projects below it, each with an **Open** button.
 
-![Choose your project - New project, the pinned and recent projects with Open, Pin and Remove, and Browse folders](../../images/ui/project-picker.webp)
+![Choose your project - Open folder and New project, the pinned and recent projects with Open, Pin and Remove](../../images/ui/project-picker.webp)
 
 - **Open** opens that project. The date is when you last opened it.
-- The folder button at the top of the list, **Browse folders…**, opens a folder chooser for a project that is not in the list.
-- The pin on a row keeps that project at the top of the list, under **Pinned and recent**, and keeps it on the list after ten newer
-  projects have been opened. Press it again to unpin.
+- **Open folder…**, beside **New project**, opens a folder chooser for a project that is not in the list.
+- The pin on a row moves that project under a **Pinned** heading at the top of the list, above **Recent**, and keeps it on the list
+  after ten newer projects have been opened. Press it again to unpin.
+- With no recent projects the list says so and offers **New project** in it.
 - **×** on a row takes the project off the list. Its files are kept, and a message offers **Undo** for a few seconds.
 - A project whose folder has been moved or deleted drops off the list by itself.
 
 ![A removed recent project - the row is gone and the toast offers Undo](../../images/ui/project-picker-removed.webp)
 
-When REAPER is running with a project that is linked to one of your recent projects, a bar above the list says so and offers **Open**.
+When REAPER is running with a project that is linked to one of your recent projects, a bar above the list says so and that project's
+row is marked "Open in REAPER now"; its **Open** opens it. If that project is not in the list, the bar offers **Open** itself.
 The app can tell only while it has a connection to REAPER, so the bar appears when you open the picker from **Switch project** with
 REAPER open on a different project, not when you start the app on its own.
 
-![REAPER is running with a project linked to a recent project - the bar above the list offers Open](../../images/ui/project-picker-daw-running.webp)
+![REAPER is running with a project linked to a recent project - the bar above the list, and that project's row marked](../../images/ui/project-picker-daw-running.webp)
 
 ## Where new projects go
 

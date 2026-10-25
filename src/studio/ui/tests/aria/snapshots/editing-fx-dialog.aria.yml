@@ -13,8 +13,11 @@
 - dialog "Add FX to 4 words?":
   - heading "Add FX to 4 words?" [level=2]
   - button "Close"
-  - combobox "Effect":
-    - option "Podcast Voice.RfxChain" [selected]
+  # The chain select is a value of the facts grid, under the same "Effect" label column as the facts (alignment audit XED-17).
+  - term: Effect
+  - definition:
+    - combobox "Effect":
+      - option "Podcast Voice.RfxChain" [selected]
   - group "The item as it will be split"
   - paragraph: /one undo step in REAPER/
   - button "Cancel"

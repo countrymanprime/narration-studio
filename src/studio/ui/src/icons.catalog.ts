@@ -102,6 +102,8 @@ type CatalogFields = {
   tooltip: string;
   /** Shown in parentheses after the tooltip. */
   shortcut?: string;
+  /** `rec` draws the icon in `--rec-text` inside an outlined `IconButton`, the Studio Next mock's `.ibtn.rec`: a record disc in the text colour read as a status light. */
+  tint?: 'rec';
 };
 
 type IconRow = CatalogFields & { kind: CatalogKind; icon: IconDefinition };
@@ -216,7 +218,7 @@ export const CATALOG = {
   silenceOutput: action(faVolumeXmark, 'silence output', 'Toggle silence for the output'),
   outputAudio: action(faHeadphones, 'output audio', 'Show volume and output device'),
   hear: action(faVolumeHigh, 'hear a reference', 'Hear the reference clip'),
-  record: action(faCircle, 'record', 'Record my own clip'),
+  record: { ...action(faCircle, 'record', 'Record my own clip'), tint: 'rec' },
   zoomIn: action(faMagnifyingGlassPlus, 'zoom in', 'Zoom in'),
   zoomOut: action(faMagnifyingGlassMinus, 'zoom out', 'Zoom out'),
   scrollWaveBack: action(faCaretLeft, 'scroll the waveform back', 'Scroll the waveform back a window'),
@@ -257,7 +259,7 @@ export const CATALOG = {
   incomingRelationship: action(faArrowLeft, 'incoming relationship', 'Show an incoming relationship'),
   showExample: action(faEye, 'show an example', 'Show the format example'),
   hideExample: action(faEyeSlash, 'hide an example', 'Hide the format example'),
-  recordHere: action(faCircle, 'record', 'Record from here'),
+  recordHere: { ...action(faCircle, 'record', 'Record from here'), tint: 'rec' },
   goToChapter: action(faArrowRight, 'go on', 'Go to the chapter'),
   addWord: action(faPlus, 'add', 'Add to my words'),
   addMark: action(faPlus, 'add', 'Add a mark'),

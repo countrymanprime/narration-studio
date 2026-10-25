@@ -375,6 +375,12 @@ describe('the preview', () => {
     expect(dialogText('data-fx-in')).toBe('Chapter 1 · track “Chapter 1”');
     expect(dialogText('data-fx-chain')).toBe(`${CHAINS[0]} · from “${SOURCE}”`);
     expect(dialogText('data-fx-split')).toBe(`Piece 1 · unchangedPiece 2 · ${CHAINS[0]}Piece 3 · unchanged`);
+    // XED-18: each piece's label sits under its piece, columns in the bar's own fractions.
+    expect((dialog().querySelector('[data-fx-split]') as HTMLElement).style.gridTemplateColumns).toMatch(
+      /^minmax\(0(px)?, [\d.]+fr\) minmax\(0(px)?, [\d.]+fr\) minmax\(0(px)?, [\d.]+fr\)$/,
+    );
+    // XED-17: the chain select sits in the same label column as the facts.
+    expect(within(dialog()).getByRole('combobox', { name: 'Effect' }).closest('dd')).not.toBeNull();
     expect(dialogText('data-fx-plan')).toBe(fxPlanText({ kind: 'daw', dawName: 'REAPER' }));
     expect(applied).toEqual([]);
 

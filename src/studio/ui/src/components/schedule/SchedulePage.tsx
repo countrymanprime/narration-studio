@@ -10,6 +10,7 @@ import { ProgressChart } from '../production/overview/ProgressChart';
 import { Button } from '../primitives/Button';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { ScheduleSkeleton } from './ScheduleSkeleton';
+import { SCHEDULE_GRID, SCHEDULE_SIDE } from './layout';
 import { Heading } from '../primitives/Heading';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
@@ -209,24 +210,29 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
           </Button>
         </div>
       )}
-      <div className="flex flex-wrap items-start gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Heading title="Schedule">
+      {/* The verdict stands on the due-date line it is about (XSH-13), and only when there is one to give: with no due date the line already says so (R3SH-2). */}
+      <div className="flex flex-col gap-1.5">
+        <Heading title="Schedule" />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]">
+          <span className="min-w-0 [overflow-wrap:anywhere]">
             {due && k.daysLeft !== null
               ? `Due ${fmtDY(due, day)} · ${daysText(k.daysLeft)}`
               : plan.deadline
                 ? `The plan's due date, ${plan.deadline}, is not a real date`
                 : 'No due date set'}
-          </Heading>
+          </span>
+          {(k.finished || (due && k.verdict)) && (
+            <span data-verdict className="inline-flex">
+              <VerdictPill k={k} today={day} due={due} />
+            </span>
+          )}
         </div>
-        <span className="flex-1" />
-        <VerdictPill k={k} today={day} due={due} />
       </div>
-      {/* The mock's split: the chart takes what the 360 px column leaves, and the two stack at 1280 and below. */}
-      <div className="grid items-stretch gap-4 min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]">
+      <div className={SCHEDULE_GRID}>
         <ProgressChart
           title="Recorded audio vs plan"
           clearTodayLabel
+          noteBelow
           height={280}
           fill
           k={k}
@@ -237,7 +243,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
           recordedHours={recordedHours}
           series={recordedSeries(takeLog, planStart(day))}
         />
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className={SCHEDULE_SIDE}>
           <ContractPanel
             plan={plan}
             words={k.words}

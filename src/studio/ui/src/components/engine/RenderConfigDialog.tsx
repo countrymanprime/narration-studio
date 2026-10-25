@@ -3,6 +3,7 @@ import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
 import { Field } from '../primitives/Field';
+import { ToolResult } from './ToolResult';
 import { Kbd } from '../primitives/Kbd';
 import type { RenderConfigState } from '../../types';
 
@@ -11,7 +12,8 @@ const IDLE: RenderConfigState = { phase: 'idle', message: '', folder: '', target
 /** Per-chapter render configuration: configure only. Sets the render bounds to all regions, the naming pattern to the region name, and the
  * output folder; this dialog never triggers a render itself. Reachable from the audio engine panel next to "Link
  * chapters…", not a new nav item. */
-export function RenderConfigDialog({ onClose }: { onClose: () => void }) {
+// `onCreateRegions` opens Create chapter regions in this dialog's place, for a configure that found no chapter regions (R3EN2-8).
+export function RenderConfigDialog({ onClose, onCreateRegions }: { onClose: () => void; onCreateRegions?: () => void }) {
   const api = useApi();
   const [state, setState] = useState<RenderConfigState>(IDLE);
   const [folder, setFolder] = useState('');
@@ -31,6 +33,7 @@ export function RenderConfigDialog({ onClose }: { onClose: () => void }) {
   }, [api]);
 
   const running = state.phase === 'configuring';
+  const configured = state.phase === 'success' && state.count > 0;
 
   const configure = () => {
     setRequestError('');
@@ -46,10 +49,11 @@ export function RenderConfigDialog({ onClose }: { onClose: () => void }) {
       description="Set the render bounds to every chapter region and name each file after its region. This does not render anything: you press Render in REAPER yourself."
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={running}>
+          {/* Once the render is configured, Close is the next step (ENX-28). */}
+          <Button variant={configured ? 'primary' : 'secondary'} onClick={onClose} disabled={running}>
             Close
           </Button>
-          <Button onClick={configure} disabled={!folder.trim()} pending={running}>
+          <Button variant={configured ? 'secondary' : 'primary'} onClick={configure} disabled={!folder.trim()} pending={running}>
             Configure render
           </Button>
         </>
@@ -57,40 +61,47 @@ export function RenderConfigDialog({ onClose }: { onClose: () => void }) {
     >
       <Field label="Output folder" value={folder} onChange={setFolder} disabled={running} placeholder="C:\Books\Alice\renders" />
 
-      {state.phase === 'success' && (
-        <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {state.message}
-          </p>
-          {state.targets.length > 0 && (
-            <ul
-              className="mt-2 max-h-40 list-inside list-disc space-y-0.5 overflow-y-auto font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs"
-              style={{ color: 'var(--text)' }}
-            >
-              {state.targets.map((target) => (
-                <li key={target}>{target}</li>
-              ))}
-            </ul>
-          )}
-          {state.count > 0 && (
-            <p className="mt-3 flex flex-wrap items-center gap-1.5 text-sm font-semibold">
-              <span>Render is configured — press Render in REAPER</span>
-              <Kbd keys={['Ctrl', 'Alt', 'R']} />
-              <span>or File &gt; Render to create the files.</span>
-            </p>
-          )}
+      {/* One outcome block (R3EN2-7, R3EN2-8, R3EN1-3): the files and the one instruction on success, a warning with the way forward
+          when there were no chapter regions to render, a failure in the danger tone. */}
+      {state.phase === 'success' && state.count > 0 && (
+        <div className="mt-4">
+          <ToolResult
+            tone="success"
+            message={
+              <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span>Render is configured for {state.count === 1 ? '1 chapter file' : `${state.count} chapter files`}. Press Render in REAPER</span>
+                <Kbd keys={['Ctrl', 'Alt', 'R']} />
+                <span>or File &gt; Render to create them.</span>
+              </span>
+            }
+          >
+            {state.targets.length > 0 && (
+              <ul aria-label="Files the render will create" className="mt-2 max-h-40 space-y-0.5 overflow-y-auto font-['IBM_Plex_Mono',ui-monospace,monospace]">
+                {state.targets.map((target) => (
+                  <li key={target}>{target}</li>
+                ))}
+              </ul>
+            )}
+          </ToolResult>
         </div>
       )}
-
-      {requestError && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {requestError}
-        </p>
+      {state.phase === 'success' && state.count === 0 && (
+        <div className="mt-4">
+          <ToolResult tone="warning" message="No chapter regions were found yet, so there is nothing to render. Create them, then configure the render again.">
+            {onCreateRegions && (
+              <div className="mt-2">
+                <Button variant="secondary" onClick={onCreateRegions}>
+                  Create chapter regions…
+                </Button>
+              </div>
+            )}
+          </ToolResult>
+        </div>
       )}
-      {state.phase === 'error' && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {state.message}
-        </p>
+      {(requestError || state.phase === 'error') && (
+        <div className="mt-4">
+          <ToolResult tone="danger" message={requestError || state.message} />
+        </div>
       )}
     </Dialog>
   );

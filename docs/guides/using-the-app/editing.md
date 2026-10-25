@@ -17,7 +17,7 @@ With no manuscript imported yet, the page says so and offers **Import manuscript
 The header sits inside the one bordered card that holds the script, so the title, the chapter step (the previous and
 next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
 the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
-wide or more) and the button that opens the drawer are all in it. At 1280 px and below the legend uses short labels with no counts.
+wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
@@ -100,7 +100,7 @@ the same way, a phrase at a time. Every other key does its job once, however lon
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
-and why, and the same sentence is in each button's hint. The chapter's audio is the waveform docked above the bar, always in view (see [The waveform](#the-waveform)). Right-click a word for its
+and why, the same sentence is in each button's hint, and the key hints leave out Delete and Add FX. The chapter's audio is the waveform docked above the bar, always in view (see [The waveform](#the-waveform)). Right-click a word for its
 menu: play the selection, copy, delete or mute the words, **Add FX** and **Mark as** (each opens a list beside it), remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
@@ -199,6 +199,9 @@ the nearest zero crossings), the track, and what happens to the gap: close it, s
 leave room tone of the same length so the timing does not move. You also choose the crossfade at the join, how much audio to keep at each
 edge of the cut, and whether the cut audio is kept on a muted track named Cuts. The DAW makes the cut as one undo step; the recording file is not
 touched. **Mute** keeps the audio and silences the words. The DAW names words by the script's words, so a word that was only said (in italics, not in the script) at the edge of your selection is left out: the question says so ("“um” was only said and is not in the script, so its audio stays.") and counts only the words that will be cut. A word that was only said between two script words is cut with them.
+
+Every question on this page keeps **Cancel** at the bottom left and its action at the bottom right, in view however far the
+question scrolls; when more of it is below them, a shadow over that row says so.
 
 ![Editing - Delete on four selected words: the question names the words, the cut and what the DAW will do](../../images/ui/editing-delete-dialog.webp)
 
@@ -368,7 +371,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name) next to **Remove this effect** moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed under their source, each name with a **Favourite** button at its right. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list; with words selected in the text, the effect on them is the one shown, and its row is marked. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name), beside **Preview** and **Compare**, moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the takes of the line the cursor is on, one lane each,
 on one time axis (the line's audio is the waveform above the bar). On a window 1360 px wide or more it is a strip under the text, which the header's

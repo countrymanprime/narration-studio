@@ -8,6 +8,6 @@
 - alertdialog "Delete voice sample":
   - heading "Delete voice sample" [level=2]
   - button "Close"
-  - paragraph: Delete “Tea party, quick”? Its audio is removed from this project. The recording it was copied from is not touched.
+  - paragraph: Delete “Tea party, quick” (0:06, Chapter 2)? Its audio is removed from this project. The recording it was copied from is not touched.
   - button "Cancel"
   - button "Delete"

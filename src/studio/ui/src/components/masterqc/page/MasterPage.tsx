@@ -26,7 +26,7 @@ import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
-import { Consistency } from './Consistency';
+import { Consistency, rangeOf } from './Consistency';
 import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
@@ -227,8 +227,10 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
 
   return (
     <div className="mx-auto max-w-[96rem]">
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,22.4rem)]">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,22.4rem)]">
+        {/* Below xl the page is one column: the files and their checks, then the delivery package (the answer to "can I deliver?",
+            XMS-5), then the rest. The left column's own box gives way (`contents`) so the package can sit between its parts. */}
+        <div className="flex min-w-0 flex-col gap-4 max-xl:contents">
           {/* The mock's header row lives in the table's panel: the title, the chapter bar, the profile as a pill, then the refresh icon. The
               run controls and Master to spec have no equivalent in the mock and stay as built, beside the icon. */}
           {(() => {
@@ -313,15 +315,18 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               )}
             </>
           )}
-          <Panel title="Book consistency" subtitle={profile ? `RMS by file against the ${profileName(profile)} range` : undefined}>
-            <Consistency files={run.files} profile={profile} />
-          </Panel>
-          <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />
-          <MasteringChain providers={mastering.providers} problem={mastering.problem} />
-          <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
-          <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
+          <div className="flex min-w-0 flex-col gap-4 max-xl:order-2">
+            <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
+              <Consistency files={run.files} profile={profile} />
+            </Panel>
+            <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />
+            <MasteringChain providers={mastering.providers} problem={mastering.problem} />
+            <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
+            <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
+          </div>
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
+        {/* Beside a left column ten screens long the package stays in view (XMS-4). */}
+        <div className="flex min-w-0 flex-col gap-4 max-xl:order-1 xl:sticky xl:top-0">
           <PackageChecks
             profile={profile}
             chapters={chapters}

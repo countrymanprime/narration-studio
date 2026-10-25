@@ -94,7 +94,8 @@ export const deliveryDrivers: Record<string, Driver> = {
     const quiet = page.getByRole('alert').filter({ hasText: "Can't tell how the build is going" });
     await quiet.waitFor();
     await quiet.getByRole('button', { name: 'Check again' }).click();
-    await page.getByText(/^You checked again .*: the host still did not answer\.$/).waitFor();
+    // The press answers in the alert's own sentence (alignment audit R4DL-4).
+    await quiet.getByText(/\(you checked again [^)]*\)\.$/).waitFor();
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.getByText('Cancel was sent, but the host did not confirm it, so the build may still be running.').waitFor();
     // At 1024x768 the two sentences sit under the fold, so the capture would equal host-quiet's: bring Output to the top.

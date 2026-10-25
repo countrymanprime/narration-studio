@@ -18,6 +18,8 @@ type Props = {
   busy: boolean;
   onDecide: (decision: StageDecision) => void;
   onCheckNow: () => void;
+  /** Opens the chapter's recording check. Offered while a chapter in Recording cannot be judged because nothing has checked it (XPR2-35). */
+  onCheckRecording?: () => void;
 };
 
 // `partial` is a row whose evidence moved since the suggestion: neither met nor unmet, as in the mock.
@@ -46,7 +48,7 @@ function Evidence({ row }: { row: RowView }) {
  * since, the evidence the app measured, and Confirm, Dismiss or Revert. The host reports no decision history, so no Decisions list is
  * drawn (D98: nothing without a wire).
  */
-export function ReadinessPanel({ recommendation, seen, phase, error, isPending, busy, onDecide, onCheckNow }: Props) {
+export function ReadinessPanel({ recommendation, seen, phase, error, isPending, busy, onDecide, onCheckNow, onCheckRecording }: Props) {
   if (!recommendation) {
     if (phase === 'loading') return <p role="status">Checking…</p>;
     if (phase === 'ready') return <p className="text-[var(--text-muted)]">No stage suggestion for this chapter.</p>;
@@ -76,7 +78,13 @@ export function ReadinessPanel({ recommendation, seen, phase, error, isPending, 
     model.canRevert && action('revert', 'Revert', true),
     model.verdict !== 'confirmed' && model.canDismiss && action('dismiss', 'Dismiss', true),
     model.verdict !== 'confirmed' && model.canConfirm && action('confirm', 'Confirm', true, 'primary'),
-  ].filter((node) => node !== false);
+    // "Can't tell yet" for a chapter in Recording means nothing has checked its recording: the way on is to check it.
+    model.verdict === 'notchecked' && recommendation.from === 'recording' && onCheckRecording && (
+      <Button key="check" variant="secondary" onClick={onCheckRecording}>
+        Open recording check
+      </Button>
+    ),
+  ].filter((node) => node !== false && node !== undefined);
   return (
     <div className="flex flex-col gap-3.5 text-sm">
       {/* The slide-over's title already says "Stage readiness"; the chapter is the heading here (XPR2-35). */}
