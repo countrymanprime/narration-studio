@@ -66,7 +66,7 @@ def seconds_audio(n):
     return np.repeat(np.arange(n, dtype=np.float32), compare.SAMPLE_RATE)
 
 
-def test_chunks_are_transcribed_offset_and_the_first_half_of_each_overlap_is_heard_once(tmp_path, monkeypatch, exits):
+def test_chunks_are_transcribed_offset_and_each_second_is_heard_once(tmp_path, monkeypatch, exits):
     InlineProcess.started = []
     monkeypatch.setattr(compare, "transcribe", heard)
     monkeypatch.setattr(compare.multiprocessing, "Process", InlineProcess)
@@ -77,17 +77,41 @@ def test_chunks_are_transcribed_offset_and_the_first_half_of_each_overlap_is_hea
 
     words = compare.transcribe_chunked(seconds_audio(10), "small", None, "cpu", str(progress), None, 4, 0, str(work))
 
-    # Chunks of 4 s start at 0, 4 and 8; each later one starts 2 s early and each one runs 2 s late, so neighbours share
-    # 4 s, but only the first 2 s of a chunk are checked against the one before. The words of the second half of each
-    # shared span (seconds 4-5 and 8-9) are heard twice: a defect of the reassembly, not of this test, pinned here as
-    # the code behaves until it is fixed.
-    once = [0, 1, 2, 3, 4, 5, 4, 5, 6, 7, 8, 9, 8, 9]
-    assert sorted(w[0] for w in words) == sorted(f"w{k}" for k in once)
-    assert [w[1] for w in words] == sorted(float(k) for k in once)
+    # Chunks of 4 s start at 0, 4 and 8; each later one starts 2 s early and each one runs 2 s late, so neighbours
+    # share 4 s and the cuts are at 4 and 8 s. Every second is heard by one chunk only.
+    assert [w[0] for w in words] == [f"w{k}" for k in range(10)]
+    assert [w[1] for w in words] == [float(k) for k in range(10)]
     assert len(InlineProcess.started) == 2  # chunk 0 here, chunks 1 and 2 as workers
     assert InlineProcess.started[0].args[2] == "en"  # the language chunk 0 detected
     assert not work.exists()
     assert progress.read_text(encoding="utf-8").startswith("TRANSCRIBE|90|")
+
+
+def test_a_word_cut_at_a_chunks_edge_and_one_on_the_cut_are_each_heard_once(tmp_path, monkeypatch, exits):
+    # Two chunks of an 8 s read: [0, 6) and [2, 8), cut at 4 s. The first hears "warm" cut off at its edge as "wa";
+    # "because" straddles the cut, and "the" is said twice inside the shared span.
+    first = [("the", 0.0, 0.3), ("cat", 0.4, 0.8), ("sat", 1.0, 1.4), ("on", 2.0, 2.2), ("the", 2.4, 2.6), ("mat", 3.0, 3.5),
+             ("because", 3.8, 4.4), ("it", 4.6, 4.8), ("was", 5.0, 5.3), ("wa", 5.8, 6.0)]  # fmt: skip
+    second = [("on", 0.0, 0.2), ("the", 0.4, 0.6), ("mat", 1.0, 1.5), ("because", 1.8, 2.4), ("it", 2.6, 2.8), ("was", 3.0, 3.3),
+              ("warm", 3.8, 4.2), ("today", 4.5, 5.0)]  # fmt: skip
+    calls = []
+
+    def chunk_heard(audio, *_args, return_info=False, **_kwargs):
+        calls.append(len(audio))
+        words = first if len(calls) == 1 else second
+        return (words, SimpleNamespace(language="en")) if return_info else words
+
+    monkeypatch.setattr(compare, "transcribe", chunk_heard)
+    monkeypatch.setattr(compare.multiprocessing, "Process", InlineProcess)
+    monkeypatch.setattr(compare.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(compare, "CHUNK_OVERLAP_SECONDS", 2.0)
+
+    words = compare.transcribe_chunked(seconds_audio(8), "small", "en", "cpu", None, None, 4, 0, str(tmp_path / "w"))
+
+    assert calls == [6 * compare.SAMPLE_RATE, 6 * compare.SAMPLE_RATE]
+    assert " ".join(w[0] for w in words) == "the cat sat on the mat because it was warm today"
+    assert words[6] == ("because", 3.8, 4.4)  # from the second chunk, offset by its 2 s start
+    assert words[-1] == ("today", 6.5, 7.0)
 
 
 def test_cuda_and_the_model_cap_the_workers(tmp_path, monkeypatch, exits):
