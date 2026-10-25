@@ -1,4 +1,3 @@
-import { brand } from '../../brand.gen';
 /** The development build's version: what a program built without the release stamp reports (src/studio/desktop/version.go). */
 const DEVELOPMENT_VERSION = '0.0.0-dev';
 
@@ -7,20 +6,16 @@ function isDevelopmentBuild(version: string): boolean {
   return version === '' || version === DEVELOPMENT_VERSION;
 }
 
-/** What the narrator is running: the product name and its version, from `Bootstrap`. */
+/** What the narrator is running: the version, from `Bootstrap`, and a note on a development build. The product name and the licence are the row's label. */
 export function AboutPanel({ version }: { version: string }) {
   return (
-    <div className="mb-4 space-y-3 text-sm">
-      <div className="rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
-        <div className="font-medium">{brand.name}</div>
-        <div>Version {version}</div>
-        {isDevelopmentBuild(version) && (
-          <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
-            This is a development build, not a release, so it has no version to compare with a newer one.
-          </p>
-        )}
-      </div>
-      <p style={{ color: 'var(--text-muted)' }}>The app is free software, licensed under the GNU Affero General Public License, version 3 or later.</p>
+    <div className="flex flex-col gap-0.5 text-[0.875rem]">
+      <b className="font-semibold">Version {version}</b>
+      {isDevelopmentBuild(version) && (
+        <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">
+          This is a development build, not a release, so it has no version to compare with a newer one.
+        </p>
+      )}
     </div>
   );
 }
