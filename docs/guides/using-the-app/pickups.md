@@ -5,7 +5,7 @@
 Pickups lists every line to record again, so you can gather them into one session in the [Booth](booth.md). It sits
 under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch and does not
 move the DAW's cursor. Each line opens in the Booth, where you record it.
-While the list is being read, the table shows grey blocks under the page title and the Pickup session panel shows blocks for **Lines** and **About**, not a count; if it cannot be read, the page says so with **Check again**.
+While the list is being read, the table shows grey rows shaped like its lines under the page title, **Add a pickup by hand** is off, and the Pickup session panel shows blocks for **Lines** and **About**, not a count; if it cannot be read, the page says so with **Check again**.
 
 ## Where the lines come from
 
@@ -28,8 +28,8 @@ exported on [Proof](proof.md#the-notes).
 The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it). Chapters are named as the
 manuscript heads them. The lines are grouped by chapter, each group with how many lines are open, and each line has:
 
-- a box that includes it in the next session, or leaves it out (Space on a selected line does the same);
-- its time in the recording, its type, the line to re-record, where it came from and its status (**Open** or
+- a box that includes it in the next session, or leaves it out (Space on a selected line does the same); a line left out has its time and words greyed;
+- its time in the recording, its type, the line to re-record, where it came from (a speech check's score under **Speech**) and its status (**Open** or
   **Recorded**). The type is drawn as that kind is everywhere in the app: a misread, a left-out line, extra words,
   a repeat and a long silence are red; a breath, click, noise or plosive is amber; a pronunciation is blue. **Open** is amber, a thing
   still to do, and **Recorded** is green;
@@ -37,10 +37,13 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
   stop; it is off, with the reason, for a line that has no place in the recording yet). With REAPER linked it plays through
   REAPER; when REAPER cannot play now, the app plays the line's recording and a message says why. While REAPER is recording
   nothing plays;
-- **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and **Remove from
-  pickups**.
+- **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and, set apart after a
+  rule, **Remove from pickups**.
 
-Each line is a tall row with 36 px buttons, and each chapter's group row is tinted. In a narrow window the table scrolls sideways, with a shadow on the edge that has more to see.
+Each line is a tall row with 36 px buttons on its first line of text, and each chapter's group row is tinted. The columns keep
+their places when a line is recorded or left out. In a window narrower than the tablet width each line is a block instead: its box,
+time, type, source, status and buttons on one line and the words under them (on a phone width the buttons take a line of
+their own).
 
 Select a line and, under it, **In the script** shows where it is: its paragraph with the line's words marked, and the
 paragraphs before and after it, greyed. With it are two buttons for a line that came from a note on [Proof](proof.md):
@@ -70,7 +73,8 @@ Pressing a line's button again before the first press is answered does nothing, 
 flipped twice. A refusal appears as a sentence in a message at the bottom of the window.
 
 Removing a line hides it from this list only; its note or check keeps its own record. A line you added by hand can be put
-back with **Undo** on the message that follows; a line from a check or a note cannot, and its message says so. After a removal the focus moves to the next line as the page draws it (the previous one after the last), and to the Pickups region when no line is left.
+back with **Undo** on the message that follows; a line from a check or a note cannot, and its message says so. Several such
+removals in a row are one message that counts them ("Removed 3 lines from pickups."). After a removal the focus moves to the next line as the page draws it (the previous one after the last), and to the Pickups region when no line is left.
 
 ### When the list cannot be read
 
@@ -91,7 +95,7 @@ form keeps what you typed.
 
 ![Pickups - Add a pickup by hand: the time in the recording and the line to re-record](../../images/ui/pickups-add.webp)
 
-With no lines at all, the page says **No pickups queued**, with the way to Proof; a chapter with none says **No pickups
+With no lines at all, the page says **No pickups queued**, with a **Go to Proof** button; a chapter with none says **No pickups
 for this chapter**. If a chapter you were viewing is no longer in the manuscript, the page shows every chapter.
 
 ![Pickups - no pickups queued, with the way to Proof](../../images/ui/pickups-empty.webp)

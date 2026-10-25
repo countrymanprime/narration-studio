@@ -82,7 +82,7 @@ export function VoiceSampleRow({
   );
 
   return (
-    <InsetCard as="li" tone={problem ? 'danger' : 'neutral'} className="flex items-start gap-2.5" id={voiceSampleRowId(sample.id)}>
+    <InsetCard as="li" tone={problem ? 'danger' : 'neutral'} className="@container flex items-start gap-2.5" id={voiceSampleRowId(sample.id)}>
       <SamplePlayButton
         label={name}
         durationMs={sample.durationMs}
@@ -93,13 +93,17 @@ export function VoiceSampleRow({
         onStop={onStop}
       />
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2 font-semibold">
-          {sample.primary ? (
-            <span title="Primary: plays from the Booth" className="text-[var(--accent-strong)]">
-              <Icon name="primarySample" />
-              <span className="sr-only">Primary</span>
-            </span>
-          ) : null}
+        {/* The title line is as tall as the play and menu buttons, so the three share one middle (R3SB2-10); the star has a slot in every
+            row, blank when the sample is not primary, so every title starts at one x (SBX-15). */}
+        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
+          <span className="inline-flex w-4 flex-none justify-center text-[var(--accent-strong)]">
+            {sample.primary ? (
+              <span title="Primary: plays from the Booth">
+                <Icon name="primarySample" />
+                <span className="sr-only">Primary</span>
+              </span>
+            ) : null}
+          </span>
           <span className="max-w-full min-w-0 truncate" dir="auto" title={name}>
             {name}
           </span>
@@ -112,19 +116,20 @@ export function VoiceSampleRow({
           ) : null}
           {problem ? <StatusBadge tone="danger" label={problem.badge} /> : null}
         </div>
-        <div className="text-sm text-[var(--text-muted)]">
+        <div className={`${UNDER_TITLE} text-sm text-[var(--text-muted)]`}>
           {problem ? (
             <>
               {problem.sentence}{' '}
               {markAgain ? (
                 <>
                   {editingLink('Mark again in Editing')}
-                  {canManage ? ' or delete it.' : ' or press Edit to delete it.'}
+                  {canManage ? ' or delete it.' : ' or delete it in Voice data.'}
                 </>
               ) : canManage ? (
                 'Delete it.'
               ) : (
-                'Press Edit to delete it.'
+                // Not "press Edit": a locked entry has no Edit, and Voice data deletes on any entry (R3SB2-10).
+                'Delete it in Voice data.'
               )}
             </>
           ) : (
@@ -143,12 +148,12 @@ export function VoiceSampleRow({
           )}
         </div>
         {sample.note ? (
-          <div className="mt-0.5 text-sm whitespace-pre-line" dir="auto">
+          <div className={`${UNDER_TITLE} mt-0.5 text-sm whitespace-pre-line`} dir="auto">
             {sample.note}
           </div>
         ) : null}
       </div>
-      <Menu render={<IconButton action="moreActions" label={`More about ${name}`} size="sm" />} items={items}>
+      <Menu render={<IconButton action="moreActions" label={`More about ${name}`} />} items={items}>
         {null}
       </Menu>
     </InsetCard>
@@ -156,6 +161,12 @@ export function VoiceSampleRow({
 }
 
 const WORDS_SHOWN = 80;
+
+/**
+ * The lines under the title start where the title does (after the star's slot). In a narrow card (the Voice data drawer) they run from
+ * under the play button instead, so the source does not wrap into a thin column (SBX-15).
+ */
+const UNDER_TITLE = 'pl-6 @max-[22rem]:-ml-[2.875rem] @max-[22rem]:pl-0';
 
 /** The marked words cut at a length a row can hold; the full text is the hint. */
 function truncate(text: string): string {

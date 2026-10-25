@@ -19,6 +19,8 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters
   return { api, onClose };
 }
 
+const footerButton = (name: string) => screen.getAllByRole('button', { name }).find((button) => button.closest('[data-dialog-actions]'));
+
 describe('ChapterTagsDialog', () => {
   it('says to prepare a chapter render first when none is configured', async () => {
     renderDialog();
@@ -58,7 +60,7 @@ describe('ChapterTagsDialog', () => {
 
   it('shows a not-rendered chapter and keeps the embed action disabled', async () => {
     renderDialog({}, { chapterTags: 'not-rendered' });
-    expect(await screen.findByText('not rendered yet')).toBeTruthy();
+    expect(await screen.findByText('Not rendered yet')).toBeTruthy();
     expect(screen.getByText(/Press Render in REAPER first/)).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Embed chapter tags' }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -80,5 +82,17 @@ describe('ChapterTagsDialog', () => {
     const { api } = renderDialog();
     const chapterTagsNamed = Object.keys(api).filter((name) => /chapterTags/i.test(name));
     expect(chapterTagsNamed.sort()).toEqual(['chapterTagsEmbed', 'chapterTagsPreview']);
+  });
+
+  // Alignment audit ENX-28: after the copy was written, Embed stayed the full-strength action.
+  it('makes Close the primary once the tagged copy is written', async () => {
+    const user = userEvent.setup();
+    renderDialog({}, { chapterTags: 'ready' });
+    await screen.findByText('Chapter 1');
+    await user.type(screen.getByLabelText('Combined book MP3 to add chapters to'), 'C:\\Books\\Alice\\renders\\Alice in Wonderland.mp3');
+    await user.click(screen.getByText(/I understand this writes a new file/));
+    await user.click(footerButton('Embed chapter tags')!);
+    await screen.findByText(/^Wrote /);
+    expect(footerButton('Close')?.className).toContain('bg-[var(--accent)]');
   });
 });

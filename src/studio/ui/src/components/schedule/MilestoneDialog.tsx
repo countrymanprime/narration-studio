@@ -94,15 +94,18 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
         </div>
       </div>
       <Field label="Note" textarea value={draft.note} onChange={(note) => set({ note })} autoFocus={focusNote} />
-      <Checkbox checked={draft.done} onChange={(done) => set({ done })}>
-        Done
-      </Checkbox>
       {problem && (
         <p role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
           {problem}
         </p>
       )}
-      <div className="flex justify-end gap-2">
+      {/* Done shares the button row, at its left (R3SH-9), rather than a row of its own over a half-empty one. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <span className="mr-auto">
+          <Checkbox checked={draft.done} onChange={(done) => set({ done })}>
+            Done
+          </Checkbox>
+        </span>
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>

@@ -72,7 +72,8 @@ describe('CompareRun DAW-link gating', () => {
     );
     const gated = screen.getByRole('button', { name: /Start comparison/ });
     expect(gated.getAttribute('aria-disabled')).toBe('true');
-    expect(screen.getByText('Link a REAPER project (.rpp) file to start a comparison.')).toBeTruthy();
+    // The reason is the button's description and, in sight, beside it (alignment audit XPC-15).
+    expect(screen.getAllByText('Link a REAPER project (.rpp) file to start a comparison.')).toHaveLength(2);
     fireEvent.click(gated);
     expect(transcriptStart).not.toHaveBeenCalled();
 
@@ -104,7 +105,8 @@ describe('CompareRun DAW-link gating', () => {
       </ApiProvider>,
     );
     await waitFor(() => expect(screen.getByRole('button', { name: /Start comparison/ }).getAttribute('aria-disabled')).toBe('true'));
-    expect(screen.getByText(/REAPER is not connected to this app/)).toBeTruthy();
+    // The reason is the button's description and, in sight, beside it (alignment audit XPC-15).
+    expect(screen.getAllByText(/REAPER is not connected to this app/)).toHaveLength(2);
   });
 
   it('disables marker export without a linked DAW file, and for the last comparison under review', () => {
@@ -575,7 +577,8 @@ describe('CompareRun for an Audacity project', () => {
       </ApiProvider>,
     );
     expect(await screen.findByText(/Transcribes the audio track selected in Audacity/)).toBeTruthy();
-    expect(screen.getByText(/Link the Audacity project to start a comparison/)).toBeTruthy();
+    // The reason is the button's description and, in sight, beside it (alignment audit XPC-15).
+    expect(screen.getAllByText(/Link the Audacity project to start a comparison/)).toHaveLength(2);
     expect(document.body.textContent).not.toMatch(/REAPER/);
   });
 });

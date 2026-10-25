@@ -25,7 +25,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockChapterSync=background');
     await settlePage(page);
     await openEnginePanel(page);
-    await page.getByText(/Background checks: waiting/).waitFor();
+    await page.getByText(/Waiting: REAPER is recording/).waitFor();
   },
   'rpp-picker': async (page) => {
     // Reload with the mock's two-.rpp seam (see main.tsx) - the outer
@@ -33,7 +33,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockMultipleRpp=1');
     await settlePage(page);
     await openEnginePanel(page);
-    await page.getByText('Choose a REAPER project file').waitFor();
+    await page.getByRole('list', { name: 'REAPER project files' }).waitFor();
   },
   'no-rpp': async (page) => {
     await page.goto('/?mockNoRpp=1');
@@ -43,11 +43,11 @@ export const engineDrivers: Record<string, Driver> = {
   },
   'no-daw-link': async (page) => {
     // Reload with the mock's no-linked-DAW seam (see main.tsx): the panel still reads its own .rpp discovery, but its
-    // own DAW-link control switches from "Link a different REAPER project file" to "Link a REAPER project file".
+    // own DAW-link control switches from "Change file…" to "Link file…".
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await openEnginePanel(page);
-    await page.getByRole('button', { name: 'Link a REAPER project file' }).waitFor();
+    await page.getByRole('button', { name: 'Link file…' }).waitFor();
   },
   'wrong-project': async (page) => {
     // The mock's live heartbeat whose open project disagrees with the linked file (see main.tsx): the card says when it last checked.
@@ -208,7 +208,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Embed chapter tags…');
-    await page.getByText('not rendered yet').waitFor();
+    await page.getByText('Not rendered yet', { exact: true }).waitFor();
   },
   'chapter-tags-success': async (page) => {
     await page.goto('/?mockChapterTags=ready');
