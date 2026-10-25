@@ -155,3 +155,8 @@ are seeded single calls of `normalize_word`, `words_match`, `SequenceMatcher.rat
 `.golden.jsonl` beside each holds what `script_tracker.py` answers, one line per input line, written by
 `src/studio/sidecars/manuscript-teleprompter/tests/test_tracker_parity.py` (`UPDATE_CONTRACTS=1`); `scripttrack`'s
 `parity_test.go` must agree with it.
+
+`flag-sessions.jsonl`: flag runs, each a session of `tracker-sessions.jsonl` and the heading length to flag it with
+(every session with none, those the teleprompter suite flagged with the heading it gave, and the synthetic reads with a
+three-word heading). `flag-sessions.golden.jsonl` holds what `flags.py`'s `FlaggingTracker` answers, every operation's
+position and flag events, written by the same test; `scripttrack`'s `flags_parity_test.go` must agree with it.
