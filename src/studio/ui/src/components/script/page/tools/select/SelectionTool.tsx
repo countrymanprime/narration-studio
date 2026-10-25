@@ -17,6 +17,17 @@ const RECORD_RED = 'border-0! bg-transparent! text-[color-mix(in_srgb,var(--dang
 export const ACROSS_PARAGRAPHS = 'Select within one paragraph.';
 const ABOVE = 46;
 const EDGE = 8;
+/** The gap under the selection when there is no room for the toolbar above it. */
+const BELOW = 8;
+
+/** Where the selection is now: the live range's rectangle while the browser still holds it (it moves with the text when the reader
+ * scrolls), else the rectangle taken when it was made. */
+function liveRect(fallback: DOMRect): DOMRect {
+  const selected = window.getSelection();
+  if (!selected || selected.rangeCount === 0 || selected.isCollapsed) return fallback;
+  const rect = selected.getRangeAt(0).getBoundingClientRect();
+  return rect.width || rect.height ? rect : fallback;
+}
 
 type Props = {
   /** The reader's selection; null for a caret, and the toolbar is not drawn. */
@@ -34,8 +45,9 @@ type Props = {
 
 /**
  * The small toolbar over a selection in the reader (the mock's `SelectionTool`): Mark, Story Bible and Look up, with Bookmark
- * here and Record from here as icon buttons. Across paragraphs it is one disabled button saying why. It follows the selection's
- * rectangle, and Escape or a press elsewhere dismisses it. A press on it keeps the selection.
+ * here and Record from here as icon buttons, all one 32 px size so they are evenly spaced (XSC-38). Across paragraphs it is one disabled
+ * button saying why. It follows the selection's rectangle, and Escape, a press elsewhere or an opening drawer dismisses it. A press on
+ * it keeps the selection.
  */
 export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDefineMarks, onRecordHere }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -45,16 +57,34 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
   const [, updateView] = useScriptView(() => null);
+  const [drawer] = useScriptView((state) => state.drawer);
   const present = selection !== null;
 
+  // Over the selection as it is now, re-placed on every scroll and resize, so it never floats over other lines (alignment audit
+  // XSC-5); under it when there is no room above.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el || !selection) return;
-    const width = el.getBoundingClientRect().width / zoom;
-    const { rect } = selection;
-    el.style.left = `${Math.max(EDGE, Math.min(rect.left / zoom + rect.width / zoom / 2 - width / 2, document.documentElement.clientWidth - width - EDGE))}px`;
-    el.style.top = `${Math.max(EDGE, rect.top / zoom - ABOVE)}px`;
+    const place = () => {
+      const width = el.getBoundingClientRect().width / zoom;
+      const rect = liveRect(selection.rect);
+      const top = rect.top / zoom - ABOVE;
+      el.style.left = `${Math.max(EDGE, Math.min(rect.left / zoom + rect.width / zoom / 2 - width / 2, document.documentElement.clientWidth - width - EDGE))}px`;
+      el.style.top = `${top >= EDGE ? top : rect.bottom / zoom + BELOW}px`;
+    };
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
   });
+
+  // An opening drawer covers the text the toolbar belongs to: the toolbar goes rather than sit on top of the drawer (XSC-6).
+  useEffect(() => {
+    if (drawer && present) onDismiss();
+  }, [drawer, present, onDismiss]);
 
   useEffect(() => {
     if (!present) return;
@@ -73,7 +103,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
     };
   }, [present, onDismiss]);
 
-  if (!selection) return null;
+  if (!selection || drawer) return null;
   const keep = (event: { preventDefault: () => void }) => event.preventDefault();
   const place = !('multi' in selection && selection.multi) ? (selection as ReaderSelection) : null;
 
@@ -116,6 +146,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
           <IconButton
             action="bookmark"
             label="Bookmark here"
+            size="sm"
             className={TOOL_BUTTON}
             onClick={() => {
               onDismiss();
@@ -126,6 +157,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             <IconButton
               action="recordHere"
               label="Record from here"
+              size="sm"
               className={RECORD_RED}
               onClick={() => {
                 onDismiss();
