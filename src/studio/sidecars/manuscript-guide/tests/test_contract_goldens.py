@@ -3,7 +3,8 @@
 The entities come from ``manuscript_guide.build_entities`` (the rules-only path, so no language model is needed) over a few
 paragraphs. The files the host's own edits write (guide-entities-pronunciation-sidecar.json, guide-review-*-sidecar.json,
 guide-types-sidecar.json) are pinned by the Go tests that make them (src/studio/desktop/internal/guide/contract_test.go and types_test.go). The Go host reads them back through ``guide.Service`` and pins
-what it sends to the UI, and the TypeScript contract tests validate both files against the UI's schemas.
+what it sends to the UI, and the TypeScript contract tests validate both files against the UI's schemas. The rules' ``suggest`` lines
+run in the host now, which pins them itself (internal/extractionport/rules/testdata/suggest-lines.json).
 """
 
 import importlib.util
@@ -37,41 +38,3 @@ class ContractGoldenTests(unittest.TestCase):
 
         self.assertEqual({"Captain Arelian", "Council of Ash", "Dawnspire"}, {entity["canonical_name"] for entity in entities})
         contract_files.check("guide-entities-sidecar", entities)
-
-
-class SuggestContractGoldenTests(unittest.TestCase):
-    """The rules tier's `suggest` lines (SN-X32), one of each kind it emits. They never reach the UI, so the file sits in
-    the Go rules extractor's testdata (internal/extractionport/rules), whose test parses it: the two cannot drift."""
-
-    def test_the_suggest_lines_match_the_committed_contract_file(self):
-        import sys
-
-        sys.modules.setdefault("manuscript_guide", guide)
-        rules_spec = importlib.util.spec_from_file_location("extraction_rules", MODULE_PATH.parent / "extraction_rules.py")
-        rules = importlib.util.module_from_spec(rules_spec)
-        assert rules_spec.loader is not None
-        sys.modules["extraction_rules"] = rules
-        rules_spec.loader.exec_module(rules)
-
-        paragraphs = [
-            {"chapter": "Chapter 1", "chapterId": "c-0001", "paragraphId": f"p-{index:06d}", "text": text}
-            for index, text in enumerate(
-                (
-                    "Captain Arelian said the Council of Ash would meet in Dawnspire.",
-                    "Later they saw Dawnspire burning. The road to Dawnspire was long, and Arelian rode it alone.",
-                    "“We ride at dawn,” Ada said. Everyone knew Dawnspire well.",
-                ),
-                start=1,
-            )
-        ]
-        story_bible = {
-            "entities": [
-                {"id": "entity-ada", "canonical_name": "Ada", "category": "Character", "aliases": []},
-                {"id": "entity-arelian", "canonical_name": "Arelian", "category": "Character", "aliases": []},
-            ]
-        }
-        lines = rules.suggestions(paragraphs, story_bible)
-
-        self.assertEqual({"entry", "alias", "speaker"}, {line["payload"]["kind"] for line in lines})
-        testdata = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "extractionport" / "rules" / "testdata"
-        contract_files.check("suggest-lines", lines, testdata)

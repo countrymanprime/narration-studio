@@ -333,7 +333,10 @@ required by `verify-installable.mjs`, and `<executable> --smoke` runs
 (this generic flag replaced the bespoke `--check-moonshine`; [live_asr.py](../../src/studio/sidecars/manuscript-teleprompter/core/live_asr.py)). The frozen
 sidecar runs Moonshine only from a `--model-dir` holding every file of
 `config/moonshine-assets.json` (`core/moonshine_engine.py`); it never uses the
-library's downloader. Freezing it in cost 24.1 MB (+9.4%).
+library's downloader. It loads the model with word timestamps and without
+each line's audio (`return_audio_data=false`), which the Booth never reads; a
+library that refuses that option is loaded without it, as before. Freezing it
+in cost 24.1 MB (+9.4%).
 
 ## Where listening runs
 

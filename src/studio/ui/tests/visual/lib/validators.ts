@@ -258,6 +258,39 @@ export function checkControlWidths(
   return problems;
 }
 
+// A one-line control on screen (a text box, a select, a button), measured for the row check: `parent` numbers its parent element, so
+// controls with the same number are siblings.
+export interface RowControl {
+  name: string;
+  parent: number;
+  top: number;
+  height: number;
+}
+
+// Two sibling controls whose centres are this close are on one row.
+const ROW_CENTRE_TOLERANCE_PX = 3;
+// Controls on one row differ in height by no more than this (the alignment audit's rule A6, "controls on one row have one height").
+const ROW_HEIGHT_TOLERANCE_PX = 1.5;
+
+// Sibling controls on one row whose heights differ: a 40.8 px select beside a 36 px button reads as misaligned (alignment audit cause C).
+// One problem per pair, naming both and their heights.
+export function findMixedRowHeights(controls: readonly RowControl[], viewport: string): string[] {
+  const byParent = new Map<number, RowControl[]>();
+  for (const control of controls) byParent.set(control.parent, [...(byParent.get(control.parent) ?? []), control]);
+  const problems: string[] = [];
+  for (const siblings of byParent.values())
+    siblings.forEach((a, i) =>
+      siblings.slice(i + 1).forEach((b) => {
+        const oneRow = Math.abs(a.top + a.height / 2 - (b.top + b.height / 2)) <= ROW_CENTRE_TOLERANCE_PX;
+        if (oneRow && Math.abs(a.height - b.height) > ROW_HEIGHT_TOLERANCE_PX)
+          problems.push(
+            `mixed control heights on one row at ${viewport}: "${a.name}" is ${a.height}px and "${b.name}" is ${b.height}px - give both the control height (--control-height)`,
+          );
+      }),
+    );
+  return problems;
+}
+
 // The capture whose narrowest control is the narrowest of the run (undefined when no capture had one): what the
 // threshold is calibrated against, printed once by the teardown.
 export function findNarrowestControl(records: readonly CaptureRecord[]): (CaptureRecord & { narrowestControlPx: number }) | undefined {

@@ -138,6 +138,17 @@ left, or the reason it refused. The host edits the file itself (`src/studio/desk
 [Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 3), so the file is frozen: nothing
 rewrites it. The other Story Bible commands' cases are frozen the same way in `src/studio/desktop/internal/guide/testdata/`.
 
+## guide-rules/
+
+What the manuscript-guide sidecar's `suggest --source rules` did with each case, recorded before the rules moved into the host
+(2026-10-25, [Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 3, second PR).
+`cases.jsonl` holds one case a line: the manuscript file's exact text, or `manuscriptPath`, a repository path to one (the
+`*.manuscript.json` files here are the Markdown fixtures as canonical manuscripts), or null for no file; and the Story
+Bible file's exact text, or null. `cases.golden.json` holds, for each case in the same order, the lines the command printed,
+its exit status and, when it failed, the exception's type and words. `src/studio/desktop/internal/guide/rules_parity_test.go`
+replays every case through `guide.RuleSuggestions`: the same lines byte for byte, and an error where the command exited 1, in
+its words where it refused rather than crashed. The recorder was deleted with the Python rules, so the files are frozen.
+
 ## booth-parity/
 
 `text-rules.json`: Python 3.12's own answers for the text rules the host needs to follow a read the way the Booth's

@@ -136,7 +136,11 @@ def fake_moonshine(monkeypatch, tmp_path):
     monkeypatch.setitem(
         sys.modules,
         "moonshine_voice",
-        SimpleNamespace(ModelArch=SimpleNamespace(TINY_STREAMING=1, SMALL_STREAMING=2, MEDIUM_STREAMING=3), Transcriber=FakeTranscriber),
+        SimpleNamespace(
+            ModelArch=SimpleNamespace(TINY_STREAMING=1, SMALL_STREAMING=2, MEDIUM_STREAMING=3),
+            Transcriber=FakeTranscriber,
+            MoonshineError=type("MoonshineError", (Exception,), {}),
+        ),
     )
     directory = tmp_path / "moonshine"
     directory.mkdir()

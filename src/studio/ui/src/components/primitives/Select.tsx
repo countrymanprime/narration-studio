@@ -43,9 +43,8 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
       value={showPlaceholder ? PLACEHOLDER_VALUE : value}
       onChange={(event) => event.target.value !== PLACEHOLDER_VALUE && onChange(event.target.value)}
       // A fixed height, not a minimum: a native <select> doesn't resolve `leading-[1.35]` the way an <input> or a styled
-      // div does, so pinning the height is what makes it match
-      // TextField's 40.8px instead of drifting a little taller.
-      className={`box-border h-[var(--control-height)] rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)] ${fullWidth ? 'w-full' : ''} ${className}`}
+      // div does, so pinning the height is what makes it match TextField and Button (`--control-height`, 36px).
+      className={`box-border h-[var(--control-height)] rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-0 text-[0.88rem] leading-[1.35] text-[var(--text)] ${fullWidth ? 'w-full' : ''} ${className}`}
     >
       {showPlaceholder && (
         <option value={PLACEHOLDER_VALUE} disabled hidden>
