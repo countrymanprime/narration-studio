@@ -81,7 +81,7 @@ function renderWord(row: RowWordsProps, index: number, seekable: boolean, withGa
           type="button"
           aria-label={`${seekDirection(index, local)}: "${word}"`}
           onClick={() => onSeek(position)}
-          className="cursor-pointer rounded-[0.1rem] border-0 bg-transparent p-0 hover:bg-[var(--surface-2)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none"
+          className="-mx-[0.12em] cursor-pointer rounded-[0.1rem] border-0 bg-transparent px-[0.12em] py-0 hover:bg-[var(--surface-2)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none"
           style={{ font: 'inherit', color: 'inherit', textAlign: 'inherit' }}
         >
           {wordNode}

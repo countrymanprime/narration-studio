@@ -278,6 +278,36 @@ describe('Settings: Appearance & keys', () => {
     await waitFor(() => expect(set).toHaveBeenLastCalledWith(1));
   });
 
+  // Alignment audit (XSE1-3, XSE1-4, XSE2-33).
+  it('shortcuts: the list grows with the card, no frame or scroller of its own, and Change keeps one right edge', async () => {
+    await renderPage();
+    await open('Appearance & keys');
+    const list = await within(row('keys.map')).findByRole('region', { name: 'Shortcuts' });
+    expect(list.className).not.toMatch(/overflow|max-h/);
+    expect(list.hasAttribute('tabindex')).toBe(false);
+    expect(list.parentElement!.style.borderColor).toBe('');
+    const change = (await within(list).findAllByRole('button', { name: 'Change' }))[0]!;
+    expect(change.parentElement!.className).toContain('ml-auto');
+    expect(change.parentElement!.className).toContain('justify-end');
+  });
+
+  it('shortcuts: the recorder keeps Cancel last in its one button row, not pushed apart', async () => {
+    await renderPage();
+    await open('Appearance & keys');
+    const list = await within(row('keys.map')).findByRole('region', { name: 'Shortcuts' });
+    await userEvent.click((await within(list).findAllByRole('button', { name: 'Change' }))[0]!);
+    const recorder = await within(list).findByRole('group', { name: /^Change "/ });
+    const cancel = within(recorder).getByRole('button', { name: 'Cancel' });
+    expect(cancel.className).not.toContain('ml-auto');
+    expect([...cancel.parentElement!.querySelectorAll('button')].at(-1)).toBe(cancel);
+  });
+
+  it('zoom is a short field of 8rem, not its content width', async () => {
+    await renderPage();
+    await open('Appearance & keys');
+    expect(within(row('look.zoom')).getByRole('combobox', { name: 'Zoom' }).className).toContain('w-32');
+  });
+
   it('shortcuts: a find box narrows the list, and a key can be remapped', async () => {
     const api = createMockApi();
     const save = vi.spyOn(api, 'saveSettings');

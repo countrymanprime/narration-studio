@@ -197,3 +197,13 @@ func sentence(text string) string {
 	}
 	return text
 }
+
+// wiktextractIndexPath is the installed Wiktextract index the Story Bible's lookups give the sidecar (guide.Service.SetWiktextractIndex),
+// or "" when none is installed and verifies.
+func (h *Host) wiktextractIndexPath() string {
+	path, err := h.wiktextractInstalled()
+	if err != nil {
+		return ""
+	}
+	return path
+}

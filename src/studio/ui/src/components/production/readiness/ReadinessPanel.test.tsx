@@ -23,9 +23,21 @@ const SEED: StagesSeed = { recording: { [c4]: 'met', [c5]: { unknown: 'unmapped_
 
 const api = (overrides: Partial<NarrationApi> = {}) => createMockApi(overrides, { stages: SEED });
 
-function Chip({ id, api: host, notify, onStatus }: { id: string; api: NarrationApi; notify: () => void; onStatus: () => void }) {
+function Chip({
+  id,
+  api: host,
+  notify,
+  onStatus,
+  onCheckRecording,
+}: {
+  id: string;
+  api: NarrationApi;
+  notify: () => void;
+  onStatus: () => void;
+  onCheckRecording?: () => void;
+}) {
   const rec = useRec(host, id);
-  return rec ? <ReadinessChip recommendation={rec} onOpen={() => openReadiness({ chapterId: id, notify, onStatus })} /> : null;
+  return rec ? <ReadinessChip recommendation={rec} onOpen={() => openReadiness({ chapterId: id, notify, onStatus, onCheckRecording })} /> : null;
 }
 
 function useRec(host: NarrationApi, id: string) {
@@ -34,12 +46,12 @@ function useRec(host: NarrationApi, id: string) {
   return rec;
 }
 
-async function open(id: string, host = api(), click: (chip: HTMLElement) => unknown = (chip) => fireEvent.click(chip)) {
+async function open(id: string, host = api(), click: (chip: HTMLElement) => unknown = (chip) => fireEvent.click(chip), onCheckRecording?: () => void) {
   const notify = vi.fn();
   const onStatus = vi.fn();
   render(
     <ApiProvider api={host}>
-      <Chip id={id} api={host} notify={notify} onStatus={onStatus} />
+      <Chip id={id} api={host} notify={notify} onStatus={onStatus} onCheckRecording={onCheckRecording} />
       <OverlayHost />
     </ApiProvider>,
   );
@@ -89,19 +101,34 @@ describe('panel content', () => {
     expect(within(panel).queryByText('Decisions')).toBeNull();
   });
 
-  it('an unmeasured chapter draws no evidence row and cannot be confirmed or dismissed', async () => {
+  it('an unmeasured chapter draws no evidence row and offers no Confirm or Dismiss it could not take (XPR2-35)', async () => {
     const { panel } = await open(c5);
     expect(panel.querySelectorAll('[data-item]').length).toBe(0);
-    expect((within(panel).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((within(panel).getByRole('button', { name: 'Dismiss' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(panel).queryByRole('button', { name: 'Confirm' })).toBeNull();
+    expect(within(panel).queryByRole('button', { name: 'Dismiss' })).toBeNull();
+    // The slide-over's title says "Stage readiness"; the body does not say it again.
+    expect(within(panel).getAllByText('Stage readiness')).toHaveLength(1);
+  });
+
+  it('an unmeasured chapter in Recording offers its recording check, which closes this panel first (XPR2-35)', async () => {
+    const onCheckRecording = vi.fn();
+    const { panel } = await open(c5, api(), undefined, onCheckRecording);
+    fireEvent.click(within(panel).getByRole('button', { name: 'Open recording check' }));
+    expect(onCheckRecording).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Stage readiness' })).toBeNull());
+  });
+
+  it('a chapter that is ready offers no recording check', async () => {
+    const { panel } = await open(c4, api(), undefined, vi.fn());
+    expect(within(panel).queryByRole('button', { name: 'Open recording check' })).toBeNull();
   });
 
   it('changed evidence shows was and now, and offers Revert, not Confirm', async () => {
     const { panel } = await open(c7);
     const changed = panel.querySelector('[data-changed]')!;
     expect(changed.textContent).toMatch(/Changed since/);
-    expect(changed.textContent).toContain('was Met, now Not met');
-    expect((within(panel).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(changed.textContent).toContain('was met, now not met');
+    expect(within(panel).queryByRole('button', { name: 'Confirm' })).toBeNull();
     expect((within(panel).getByRole('button', { name: 'Revert' }) as HTMLButtonElement).disabled).toBe(false);
   });
 });
@@ -152,7 +179,7 @@ describe('stale-basis-is-refused-and-nothing-changes', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith('The evidence changed while you were looking; check again.', 'error'));
     await waitFor(() => expect(panel.querySelector('[data-verdict-pill="changed"]')).toBeTruthy());
     expect(onStatus).not.toHaveBeenCalled();
-    expect((within(panel).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(panel).queryByRole('button', { name: 'Confirm' })).toBeNull();
   });
 });
 
