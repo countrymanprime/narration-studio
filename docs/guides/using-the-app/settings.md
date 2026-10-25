@@ -128,7 +128,7 @@ the last 5 seconds, and the card says whether its open project matches the linke
   REAPER and REAPER does not connect.
 - **Experimental DAW actions** (Advanced, off by default, for REAPER and Audacity alike): the DAW actions not yet verified
   stay refused while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
-- **Capabilities** (Advanced): a table of what the app can ask the recording tool to do, each with **Auto**, **On** or
+- **Capabilities** (Advanced): a table, across the row under its name, of what the app can ask the recording tool to do, each with **Auto**, **On** or
   **Off** and a **Now** column: the level (**Supported**, **Experimental**, **Not yet available** or **Unsupported**),
   the tool's own reason when it is unavailable, and a warning on any action that replaces audio that cannot be brought back.
 - **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
@@ -141,7 +141,7 @@ The Audacity backups and the favourite effects are listed under [Set on a page](
 
 **Transcription model** is the one default for comparing and checking recordings: Production's recording check,
 [Proof](proof.md), [Pickups](pickups.md) and [Editing](editing.md) all use it. It is for all projects, and a project may override it.
-Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** with **Download** in the row.
+Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** in the row, with **Download** and a link to **Models & downloads** on the line under it.
 
 **Live reading in the Booth** holds the **Live engine** (Whisper, or Moonshine on Windows) and the **Live model** (`tiny`
 or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
@@ -211,7 +211,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 
 ## Credits
 
-**Credits**, under Project, shows whether the opening and closing credits can be read as they stand, and the retail sample, with **Edit credits…**. The editor opens in place and holds the audiobook's opening and closing credits, an optional chapter announcement, and the retail sample. The templates are shared by every project; the filled-in values belong to this project.
+**Credits**, under Project, shows in three lines whether the opening and closing credits can be read as they stand and whether a retail sample is chosen, each with a badge, and **Edit credits…**. The editor opens in place and holds the audiobook's opening and closing credits, an optional chapter announcement, and the retail sample. The templates are shared by every project; the filled-in values belong to this project.
 
 - **Templates**: pick a template to edit its **Name**, **Kind** (Opening, Closing or Chapter announcement)
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
@@ -243,7 +243,7 @@ credits rows on [Production](production.md#the-credits).
 
 **Retail sample** is the stretch of the book you pick for the retailer's sample: up to 5 minutes, from
 anywhere in the book. Choose the chapter and line it **starts in** and **ends in** (the line numbers the
-[Script](script.md) reader shows) and **Save sample**. The panel says where it runs and how long it
+[Script](script.md) reader shows) and **Save sample**. The panel says where it runs ("Chapter 3, lines 1 to 3", naming a chapter once) and how long it
 is at about 155 words a minute; a range longer than 5 minutes is refused with its length, and the sample
 you had is kept. **Clear sample** removes it. The sample is a marker in the Script page's reader only: it adds
 no time to the estimate, since it is read again from the finished chapter. It is kept with the project, so
@@ -255,12 +255,12 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 - **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
 - **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
-- **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
+- **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
 - **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
 
-![Settings - Reader text: font, size, line spacing and column width over the preview quote](../../images/ui/settings-reader-text.webp)
+![Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote](../../images/ui/settings-reader-text.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
@@ -274,8 +274,9 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ### About and updates
 
-Under the rows of **App & updates**, **This version** shows which version of the app you are running and looks
-after updates.
+Under the rows of **App & updates**, the **This version** section has two rows: the version of the app you are running,
+and **Updates**, which says what the last check found in one line (the release, its size, whether it is downloaded and
+the day the app last looked), any problem right under it, and the buttons in one row with **Check now** last.
 
 ![Settings - App & updates with a newer version found](../../images/ui/settings-about-updates.webp)
 

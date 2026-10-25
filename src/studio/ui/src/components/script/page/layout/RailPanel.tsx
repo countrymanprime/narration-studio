@@ -29,7 +29,8 @@ export function RailPanel({ body, onClose }: { body: (tab: RailTab) => ReactNode
         <IconButton action="close" label="Close" size="sm" onClick={onClose} />
       </div>
       <Tabs value={tab} onChange={(next) => update({ tab: next as RailTab })} className="flex min-h-0 flex-1 flex-col">
-        <TabList label={RAIL_LABEL} activation="automatic" className="flex-none px-1">
+        {/* Beside the reader (above 1280 px) the strip is the reader header's 65 px, so the two rules are one line (XSC-11). */}
+        <TabList label={RAIL_LABEL} activation="automatic" className="flex-none px-1 min-[1281px]:min-h-[4.0625rem]">
           {RAIL_TABS.map(([key, label]) => (
             <Tab key={key} value={key}>
               <span data-tab={key}>{label}</span>
