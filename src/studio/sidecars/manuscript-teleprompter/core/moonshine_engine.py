@@ -90,6 +90,21 @@ def _resolve_model_dir(arch_name: str, model_dir: str | None, frozen: bool) -> s
     return model_dir
 
 
+def _transcriber(transcriber_class, model_path, arch, update_interval: float):
+    """The Transcriber, with word timestamps on and without each line's audio. The library otherwise returns every line of the
+    session with its samples on each pass, and the binding copies them into a Python list the Booth never reads
+    (measured in #2384). A library that refuses `return_audio_data`, as moonshine-voice refuses any option it
+    does not know, is loaded with word timestamps alone, as before; any other refusal still fails."""
+    from moonshine_voice import MoonshineError
+
+    options = {"word_timestamps": "true"}
+    try:
+        return transcriber_class(model_path, arch, update_interval=update_interval, options={**options, "return_audio_data": "false"})
+    except MoonshineError as error:
+        log(f"Moonshine refused return_audio_data ({error}); loading it with the line audio, as before.")
+    return transcriber_class(model_path, arch, update_interval=update_interval, options=options)
+
+
 def load_transcriber(
     arch_name: str,
     model_dir: str | None,
@@ -116,7 +131,7 @@ def load_transcriber(
 
         log(f"Loading Moonshine {arch_name} (developer CLI: moonshine-voice downloads it from Moonshine's servers on first run)...")
         model_path, arch = get_model_for_language("en", arch, include_word_timestamps=True)
-    transcriber = Transcriber(model_path, arch, update_interval=update_interval, options={"word_timestamps": "true"})
+    transcriber = _transcriber(Transcriber, model_path, arch, update_interval)
     terms = [term.strip() for term in keyterms.split(",") if term.strip()] if keyterms else []
     if terms:
         transcriber.set_keyterms(terms)

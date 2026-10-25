@@ -7,7 +7,7 @@ export const FIELD_LABEL_CLASSES = 'block text-[0.88rem] font-medium text-[var(-
 
 // mt-2 (8px) is the mocks' label-to-control gap.
 const CONTROL_CLASSES =
-  'mt-2 w-full rounded-[var(--control-radius)] font-medium border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)] data-[invalid]:border-[var(--danger)]';
+  'mt-2 w-full box-border rounded-[var(--control-radius)] font-medium border border-[var(--line-strong)] bg-[var(--surface)] px-3 text-[0.88rem] leading-[1.35] text-[var(--text)] data-[invalid]:border-[var(--danger)]';
 
 // A labelled text control. Base UI's Field wires the label, the hint and the error to the control (`for`, `aria-invalid`,
 // `aria-describedby`), so none of that is written by hand here. The control stays controlled: it never holds
@@ -60,7 +60,9 @@ export function Field({
       <BaseField.Control
         render={
           textarea ? (
-            <textarea className={`${compact ? 'min-h-14' : 'min-h-20'} ${labelHidden ? CONTROL_CLASSES.replace('mt-2', 'mt-0') : CONTROL_CLASSES}`} />
+            <textarea
+              className={`${compact ? 'min-h-14' : 'min-h-20'} py-[0.6rem] ${labelHidden ? CONTROL_CLASSES.replace('mt-2', 'mt-0') : CONTROL_CLASSES}`}
+            />
           ) : secret ? (
             <input
               type="password"
@@ -68,10 +70,10 @@ export function Field({
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
-              className={`min-h-[var(--control-height)] ${CONTROL_CLASSES}`}
+              className={`h-[var(--control-height)] py-0 ${CONTROL_CLASSES}`}
             />
           ) : (
-            <input className={`min-h-[var(--control-height)] ${CONTROL_CLASSES}`} />
+            <input className={`h-[var(--control-height)] py-0 ${CONTROL_CLASSES}`} />
           )
         }
         disabled={disabled}
