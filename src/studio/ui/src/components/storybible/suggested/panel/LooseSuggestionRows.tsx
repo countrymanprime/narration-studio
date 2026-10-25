@@ -33,7 +33,9 @@ export function LooseSuggestionRows({
           {/* One line like an entry row (the table counts every row as one 39 px row), the full summary as the hint; the score sits in the
               Kind cell, which takes the Hear button's 26 px column too, where a pill overflowed (SBX-17, R3SB2-7). */}
           <TableCell>
-            <span dir="auto" className="block truncate font-semibold" title={`${summaryOf(suggestion.payload)} (not in the Story Bible yet)`}>
+            {/* `relative` makes the span the screen-reader text's containing block, so that absolutely placed text is clipped with the
+                truncated summary instead of standing at the end of the full one, past the cell, and scrolling the page sideways. */}
+            <span dir="auto" className="relative block truncate font-semibold" title={`${summaryOf(suggestion.payload)} (not in the Story Bible yet)`}>
               {summaryOf(suggestion.payload)}
               <span className="sr-only"> (not in the Story Bible yet)</span>
             </span>
@@ -41,7 +43,7 @@ export function LooseSuggestionRows({
           <TableCell colSpan={2}>
             <span className="flex min-w-0 items-center gap-1.5">
               {/* As an entry row's kind, which keeps only its dot in a narrow table: the score stays, the word is still read. */}
-              <span className="truncate @max-[20rem]:sr-only">{kindLabel(suggestion.payload)}</span>
+              <span className="min-w-0 truncate @max-[20rem]:sr-only">{kindLabel(suggestion.payload)}</span>
               <span className="flex-none whitespace-nowrap">
                 <StatusBadge tone="warning" look="outline" label={suggestion.confidence === null ? 'No score' : `${pct(suggestion.confidence)}%`} />
               </span>
