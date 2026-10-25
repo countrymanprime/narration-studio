@@ -95,10 +95,10 @@ export function PageHeader({
           </div>
         )}
       </div>
-      {/* The actions wrap under the title on a narrow window instead of running off it (XPR2-2); why Start session is off is said once,
+      {/* Beside the title they keep to the right; below 860 px, where they wrap under it, to the left. The actions wrap under the title on a narrow window instead of running off it (XPR2-2); why Start session is off is said once,
           on one line under the buttons, and not before the capabilities are read (XPR2-9, XPR2-41). */}
-      <div className="flex max-w-full min-w-0 flex-col items-start gap-1.5 min-[640px]:items-end">
-        <div className="flex flex-wrap items-center gap-2 min-[640px]:justify-end">
+      <div className="flex max-w-full min-w-0 flex-col items-start gap-1.5 min-[860px]:items-end">
+        <div className="flex flex-wrap items-center gap-2 min-[860px]:justify-end">
           {timer && <TimerChip timer={timer} />}
           {timerRunning && (
             <Button variant="secondary" pending={stopping} onClick={onStopTimer}>
@@ -112,7 +112,7 @@ export function PageHeader({
           </Button>
         </div>
         {!record.ok && !loading && (
-          <p id="start-session-reason" className="text-[0.8125rem] text-[var(--text-muted)] min-[640px]:text-right">
+          <p id="start-session-reason" className="text-[0.8125rem] text-[var(--text-muted)] min-[860px]:text-right">
             {record.reason}
             {record.inSettings && onOpenSettings && (
               <>

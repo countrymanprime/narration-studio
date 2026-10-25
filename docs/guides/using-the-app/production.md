@@ -13,12 +13,11 @@ While the production log is being read, the page keeps its title and buttons and
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header](../../images/ui/production-home.webp)
 
 The header names the book's chapters, words and due date ("12 chapters · 29,189 words · delivery
-due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only a colour. The pill
-under it is the verdict for the due date (on track, tight or behind); it opens
-[Schedule](schedule.md). **Export status report** (the export icon) opens the
+due 14 Oct (18 days)"). The pill beside them is the verdict for the due date in a word and a mark
+(on track, tight or behind, or "No due date set"); it opens [Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
-being recorded, or says why it cannot when the audio engine cannot record. When recording is
-switched off, **Open DAW settings** beside the reason opens the section that turns it on.
+being recorded. When the audio engine cannot record, one line under the buttons says why, and when
+recording is switched off, **Open DAW settings** on that line opens the section that turns it on.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
@@ -60,7 +59,7 @@ from each chapter's own progress in five parts: **Delivered** (the chapters mast
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
-already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 1180 px one; **Next up** and the chart sit side by side under the pipeline.
+already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). Above 1280 px **Recording check** and **Next up** share the right-hand column, and the chart runs down to the foot of the pipeline. In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 640 px one; **Next up** and the chart sit side by side above the pipeline, so what to do next comes before the table.
 A figure with nothing honest to work from says "Not measured yet" and why, rather than 0.
 
 ## The stage timer

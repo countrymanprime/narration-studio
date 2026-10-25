@@ -482,19 +482,22 @@ export function ProductionPage({
                   timer={{ running: Boolean(overview.running), starting: timer.starting, onStart: (id, stage) => void timer.start(id, stage) }}
                 />
               </Panel>
-              <ProgressChart
-                k={k}
-                wph={WPH}
-                start={start}
-                today={today}
-                due={due}
-                recordedHours={recordedHours}
-                series={recordedSeries(log, start)}
-                onOpenSchedule={() => go('/schedule')}
-                fill
-                clearTodayLabel
-                noteBelow
-              />
+              {/* A grid cell that takes what the column has left, so the chart card (`fill`) ends with the pipeline beside it. */}
+              <div className="grid min-h-0 flex-1">
+                <ProgressChart
+                  k={k}
+                  wph={WPH}
+                  start={start}
+                  today={today}
+                  due={due}
+                  recordedHours={recordedHours}
+                  series={recordedSeries(log, start)}
+                  onOpenSchedule={() => go('/schedule')}
+                  fill
+                  clearTodayLabel
+                  noteBelow
+                />
+              </div>
             </div>
           </div>
         </>

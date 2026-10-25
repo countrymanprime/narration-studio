@@ -45,7 +45,7 @@ export function StageBar({ segments, wph }: { segments: readonly StageSegment[];
         {/* A grid by the card's own width, never one entry alone on a row: five across, else three and two, else two a row with the last
           across both (R3PR1-2). */}
         <div className="@container border-t border-[var(--border)] bg-[var(--surface-2)]">
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1 px-4 py-2.5 text-[0.8125rem] text-[var(--text-muted)] @min-[27rem]:grid-cols-3 @min-[44rem]:grid-cols-5 [&>:last-child:nth-child(odd)]:col-span-2 @min-[27rem]:[&>:last-child:nth-child(odd)]:col-span-1">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-1 px-4 py-2.5 text-[0.8125rem] text-[var(--text-muted)] @min-[27rem]:grid-cols-3 @min-[52rem]:grid-cols-5 [&>:last-child:nth-child(odd)]:col-span-2 @min-[27rem]:[&>:last-child:nth-child(odd)]:col-span-1">
             {segments.map((s) => (
               <li key={s.key} className="flex items-center gap-1.5 whitespace-nowrap">
                 <span aria-hidden="true" className="size-2.5 rounded-sm" style={{ background: FILL[s.key] }} />
