@@ -20,14 +20,12 @@ export function SkipToRail({ onOpenRail }: { onOpenRail?: () => void }) {
   return (
     // No height of its own, so the text does not move when it gains focus; its button is drawn over the top of the text.
     <div className="relative z-[var(--z-panel)] h-0">
-      <Button
-        variant="secondary"
-        size="sm" // `not-sr-only` resets padding to 0, so the button's own padding is put back (XSC-35).
-        className="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:right-6 focus:px-3! focus:py-1!"
-        onClick={skip}
-      >
-        Skip to the side panel
-      </Button>
+      {/* The wrapper is what `sr-only` hides, so `not-sr-only` resets its padding, not the button's (XSC-35). */}
+      <div className="sr-only focus-within:not-sr-only focus-within:absolute focus-within:top-1 focus-within:right-6">
+        <Button variant="secondary" size="sm" onClick={skip}>
+          Skip to the side panel
+        </Button>
+      </div>
     </div>
   );
 }
