@@ -129,3 +129,12 @@ host's take markers and recording check (`src/studio/desktop/internal/recordingc
 the equivalence list, `difflib.SequenceMatcher`, `str.split`, `str.strip`, `str.lower`, and float `repr`, `round` and `sum`.
 `compare.py` wrote it before its tokenizer was deleted (2026-10-24), so it is frozen: `compare_test.go` must agree with it, and
 `test_compare_go_parity.py` holds `narration_common`'s number merge, which the teleprompter still runs, to the same answers.
+
+## booth-parity/
+
+`text-rules.json`: Python 3.12's own answers for the text rules the host needs to follow a read the way the Booth's
+sidecar does ([Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 2). It holds a digest
+of `str.lower`, `re`'s `\w` and `str.isspace` over every code point, with `str.lower` also tried beside a capital sigma
+on both sides, and `spoken_key` over seeded text. `src/studio/libs/python/tests/test_pyunicode_tables.py` writes it
+(`UPDATE_CONTRACTS=1`) and checks that `src/studio/desktop/internal/compare/pyunicode_gen.go` is what
+`scripts/dev/gen-pyunicode.py` generates from the same Python. `internal/compare`'s `pyunicode_test.go` must agree with it.
