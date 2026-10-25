@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LoadError, LoadErrorPanel } from './LoadError';
+import { OverlayProvider } from '../../overlay/OverlayProvider';
+import { createOverlayService } from '../../overlay/overlayService';
 
 afterEach(cleanup);
 
@@ -71,5 +73,25 @@ describe('LoadError title size', () => {
   ])('draws %s at the size its loaded page does', (title, size) => {
     render(<LoadError title={title} message="It failed." retry={() => {}} />);
     expect(screen.getByRole('heading', { name: title }).className).toContain(size);
+  });
+});
+
+// Alignment audit R3PF-4: Production toasted a failed manuscript read, the narrator went to Proof, and its card said the same sentence under
+// the toast. A panel that says the sentence in place takes away the error toast that says it; any other toast stays.
+describe('LoadErrorPanel and the toasts', () => {
+  it('takes away an error toast with its sentence, and leaves the others', () => {
+    const service = createOverlayService();
+    service.toast('It failed.', { tone: 'error' });
+    service.toast('Something else failed.', { tone: 'error' });
+    service.toast('It failed.');
+    render(
+      <OverlayProvider service={service}>
+        <LoadErrorPanel message="It failed." retry={vi.fn()} />
+      </OverlayProvider>,
+    );
+    expect(service.getSnapshot().toasts.map((toast) => [toast.text, toast.tone])).toEqual([
+      ['Something else failed.', 'error'],
+      ['It failed.', 'info'],
+    ]);
   });
 });

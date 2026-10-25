@@ -1,10 +1,11 @@
-import type { MouseEvent } from 'react';
+import { useEffect, type MouseEvent } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
+import { useOverlay } from '../../overlay/OverlayProvider';
 
 /**
  * Retry swaps the error for the page's skeleton, so the button that was pressed unmounts and focus would fall to the document body, losing
@@ -26,9 +27,15 @@ export type LoadErrorExit = { label: string; onClick: () => void };
 
 /**
  * The panel of a failed read: the sentence as an alert and Retry. A page puts it under its own title (`LoadError`); a tab or section
- * inside a page that already has one uses it alone.
+ * inside a page that already has one uses it alone. It takes away an error toast that says the same sentence.
  */
 export function LoadErrorPanel({ message, retry, exit }: { message: string; retry: () => void; exit?: LoadErrorExit }) {
+  // The panel says the sentence in place, so an error toast saying the same one (raised by the page the narrator came from, which read the
+  // same data) goes: the sentence is not said twice (alignment audit R3PF-4).
+  const overlay = useOverlay();
+  useEffect(() => {
+    for (const toast of overlay.getSnapshot().toasts) if (toast.tone === 'error' && toast.text === message) overlay.dismissToast(toast.id);
+  }, [overlay, message]);
   return (
     <Panel title="This page could not be loaded" className={ARRIVE_CLASSES}>
       <p role="alert" className="text-sm" style={{ color: 'var(--text-muted)' }}>
