@@ -2175,14 +2175,18 @@ def run_self_check(
 
     The packaged-app smoke test (the program run with ``--smoke``) runs this against the frozen sidecar. The dictionary and the espeak-ng
     data are what a freeze can silently lose (PyInstaller has no hook for either), and losing them made previews fail and names lose
-    their pronunciation. The 114 MB voice is not needed for them; pass ``piper_model`` to also speak a word. Given the folder the
+    their pronunciation. ``tool-runtime`` proves the freeze carries what the optional analysis tools import (``check_freeze``). The 114
+    MB voice is not needed for them; pass ``piper_model`` to also speak a word. Given the folder the
     optional GLiNER download is installed in (the smoke test passes it), the last line reports its version, or "not installed",
     which passes (``extraction_gliner.self_check``). Given BookNLP's install folders, best first, a ``booknlp`` line does the same
     (``extraction_booknlp.self_check``).
     """
+    import extraction_booknlp
+
     checks: list[tuple[str, Any]] = [("cmudict", check_cmudict), ("espeak", lambda: check_espeak(espeak_data_dir))]
     if piper_model:
         checks.append(("synthesis", lambda: check_synthesis(piper_model)))
+    checks.append(("tool-runtime", extraction_booknlp.check_freeze))
     results: list[dict[str, Any]] = []
     for name, check in checks:
         try:

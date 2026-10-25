@@ -20,7 +20,8 @@ paragraph or falls outside the text is dropped with a log line.
 Nothing here reaches the network. The model and its Python packages are an optional download the host installs through
 the asset registry (``config/analysis-assets.json``); the host passes that install folder as ``--install``. The
 loader puts the folder's unpacked wheels on ``sys.path``, tells Hugging Face to stay offline, gives BookNLP the weight
-files by path and the folder as its model folder, and unpickles the weights as tensors only. Running the model writes the
+files by path and the folder as its model folder, builds each BERT encoder from the folder's config and vocabulary
+(``_local_encoders``), and unpickles the weights as tensors only. Running the model writes the
 book to a temporary folder and reads BookNLP's output files back from it (``read_output``). The freeze never carries
 ``booknlp`` or ``torch`` (``scripts/release/prepare-resources.py``). A missing or damaged install is a sentence for the
 narrator, never a traceback.
@@ -62,7 +63,29 @@ VARIANTS = {
         "speaker_google_bert_uncased_L-8_H-256_A-4-v1.0.1.model",
     ),
 }
+# The Google BERT encoder each model is built on, in the same order: BookNLP names it in the weight file
+# ("entities_google_bert_uncased_L-4_H-256_A-4-v1.0.model" is google/bert_uncased_L-4_H-256_A-4) and builds it with
+# ``from_pretrained`` before loading the weight file over it. The weight files hold every encoder parameter, so only each encoder's
+# config.json and the vocabulary they share are needed, never its weights: on chapter VI of Alice the small model's output is
+# byte-identical either way (2026-10-24, docs/research/studio-next-booknlp-spike.md). The registry installs them under these names.
+ENCODERS = {
+    "big": ("bert_uncased_L-6_H-768_A-12", "bert_uncased_L-12_H-768_A-12"),
+    "small": ("bert_uncased_L-4_H-256_A-4", "bert_uncased_L-2_H-256_A-4", "bert_uncased_L-8_H-256_A-4"),
+}
+VOCAB = "bert_uncased.vocab.txt"
 VARIANT_WORDS = {"big": "large", "small": "small"}
+
+
+def encoder_config(encoder: str) -> str:
+    """The install folder's name for an encoder's config.json."""
+    return f"{encoder}.config.json"
+
+
+def required_files(variant: str) -> list[str]:
+    """Every file of a variant the loader reads by name: its weights, its encoders' configs and the vocabulary."""
+    return [*VARIANTS[variant], *(encoder_config(encoder) for encoder in ENCODERS[variant]), VOCAB]
+
+
 BOOKNLP_WHEEL = "wheel-booknlp"
 WHEEL_PREFIX = "wheel-"
 
@@ -70,6 +93,42 @@ WHEEL_PREFIX = "wheel-"
 PIPELINE = "entity,quote,coref"
 
 NOT_DOWNLOADED = "BookNLP is not downloaded."
+
+# What torch, transformers and BookNLP import that the guide itself does not, so a freeze would leave it out: the standard library, and
+# submodules of packages the freeze carries in part (a frozen package wins over the install folder's copy). Found by running a BookNLP
+# scan in the frozen guide ("No module named 'pickletools'", then "'tqdm.auto'") and by listing every module a real scan imports
+# (docs/research/studio-next-booknlp-spike.md). scripts/release/prepare-resources.py freezes them in; ``check_freeze`` proves it.
+FREEZE_IMPORTS = (
+    "pickletools",
+    "filecmp",
+    "plistlib",
+    "mmap",
+    "struct",
+    "sysconfig",
+    "jinja2.meta",
+    "tqdm.asyncio",
+    "tqdm.auto",
+    "tqdm.autonotebook",
+    "tqdm.contrib",
+    "tqdm.contrib.logging",
+)
+# torch's own on Windows.
+FREEZE_IMPORTS_WINDOWS = ("ctypes.wintypes",)
+# transformers checks these packages' versions when it is imported; a freeze drops package metadata unless asked to keep it.
+FREEZE_METADATA = ("tqdm", "packaging", "numpy", "pyyaml")
+
+
+def check_freeze() -> str:
+    """The packaged smoke test's proof that the freeze carries what the optional tools import: each module imports, and each package
+    transformers checks reports its version. Raises on the first that does not."""
+    import importlib
+    import importlib.metadata
+
+    modules = FREEZE_IMPORTS + (FREEZE_IMPORTS_WINDOWS if sys.platform == "win32" else ())
+    for module in modules:
+        importlib.import_module(module)
+    versions = [f"{name} {importlib.metadata.version(name)}" for name in FREEZE_METADATA]
+    return f"{len(modules)} modules; " + ", ".join(versions)
 
 
 @dataclass(frozen=True)
@@ -199,7 +258,8 @@ def damage(install: Path | None) -> str:
         nearest = max(reversed(list(VARIANTS)), key=lambda variant: present[variant])
         missing = [name for name in VARIANTS[nearest] if not (install / name).is_file()]
     else:
-        missing = [] if (install / BOOKNLP_WHEEL).is_dir() else [BOOKNLP_WHEEL]
+        missing = [name for name in required_files(variant) if not (install / name).is_file()]
+        missing += [] if (install / BOOKNLP_WHEEL).is_dir() else [BOOKNLP_WHEEL]
     if missing:
         return f"BookNLP's download is damaged: {', '.join(missing)} is missing. Repair it in Analysis tools."
     return ""
@@ -227,6 +287,40 @@ def _tensors_only() -> Iterator[None]:
         torch.load = real
 
 
+@contextlib.contextmanager
+def _local_encoders(install: Path) -> Iterator[None]:
+    """While BookNLP loads, ``BertModel.from_pretrained`` and ``BertTokenizer.from_pretrained`` build the encoder a weight file names
+    from the install folder alone: its shape from ``<encoder>.config.json`` and the shared vocabulary, with no weights (the weight
+    file loaded over it holds them all) and no request to Hugging Face."""
+    from transformers import BertConfig, BertModel, BertTokenizer
+
+    def local(name: str) -> Path:
+        config = install / encoder_config(str(name).replace("\\", "/").split("/")[-1])
+        if not config.is_file():
+            raise OSError(f"BookNLP's download is damaged: {config.name} is missing")
+        return config
+
+    # Each class's own attribute, or none when it inherits the loader (BertModel does): that is what is put back.
+    own = {cls: cls.__dict__.get("from_pretrained") for cls in (BertModel, BertTokenizer)}
+
+    def model(cls: Any, name: str, *args: Any, **kwargs: Any) -> Any:
+        return cls(BertConfig.from_json_file(str(local(name))))
+
+    def tokenizer(cls: Any, name: str, *args: Any, **kwargs: Any) -> Any:
+        local(name)
+        return cls(vocab=str(install / VOCAB), **kwargs)
+
+    BertModel.from_pretrained, BertTokenizer.from_pretrained = classmethod(model), classmethod(tokenizer)
+    try:
+        yield
+    finally:
+        for cls, attribute in own.items():
+            if attribute is None:
+                del cls.from_pretrained
+            else:
+                cls.from_pretrained = attribute
+
+
 class BookNlpModel:
     """A loaded BookNLP and the variant of its weights."""
 
@@ -242,7 +336,9 @@ class BookNlpModel:
             # BookNLP opens the book in the locale's encoding; a character it cannot write becomes "?", one for one, so
             # the offsets it reports are offsets into ``text``.
             book.write_text(text, encoding=locale.getpreferredencoding(False), errors="replace")
-            self.nlp.process(str(book), str(folder / "out"), "book")
+            # BookNLP prints its timings; stdout carries only suggestion lines, which the host reads one by one.
+            with contextlib.redirect_stdout(sys.stderr):
+                self.nlp.process(str(book), str(folder / "out"), "book")
             return read_output(folder / "out", "book")
 
 
@@ -265,7 +361,8 @@ def load_model(install: Path, variant: str, spacy_model: str = "en_core_web_sm")
         "model_path": str(install),
         "spacy_model": spacy_model or "en_core_web_sm",
     }
-    with _tensors_only():
+    # BookNLP prints its device and parameters while it loads: stderr, not the suggestion lines on stdout.
+    with _tensors_only(), _local_encoders(install), contextlib.redirect_stdout(sys.stderr):
         from booknlp.booknlp import BookNLP
 
         return BookNlpModel(BookNLP("en", params), variant)
