@@ -136,7 +136,7 @@ describe('Retail sample', () => {
     pick('Sample ends in', chapter.id);
     pick('End line', '3');
     fireEvent.click(screen.getByRole('button', { name: 'Save sample' }));
-    expect(await screen.findByText(/Chapter 2 — The Pool of Tears, line 1 to Chapter 2 — The Pool of Tears, line 3/)).toBeTruthy();
+    expect(await screen.findByText(/Chapter 2: The Pool of Tears, line 1 to Chapter 2: The Pool of Tears, line 3/)).toBeTruthy();
     expect(screen.getByText(/adds no time to the estimate/)).toBeTruthy();
     expect((await api.creditsRetailSample()).sample).toMatchObject({ startLine: 1, endLine: 3 });
   });
@@ -164,7 +164,7 @@ describe('Retail sample', () => {
         <CreditsPanel notify={vi.fn()} />
       </ApiProvider>,
     );
-    expect(await screen.findByText(/Chapter 2 — The Pool of Tears, line 1 to Chapter 2 — The Pool of Tears, line 2/)).toBeTruthy();
+    expect(await screen.findByText(/Chapter 2: The Pool of Tears, line 1 to Chapter 2: The Pool of Tears, line 2/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Clear sample' }));
     expect(await screen.findByText(/No retail sample picked/)).toBeTruthy();
     expect((await api.creditsRetailSample()).sample).toBeNull();

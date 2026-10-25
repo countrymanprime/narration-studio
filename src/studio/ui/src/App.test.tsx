@@ -95,7 +95,7 @@ const linkChapterOne = async () => {
   const table = await within(panel).findByRole('table', { name: 'Chapter links' });
   const row = within(table)
     .getAllByRole('row')
-    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1( — |$)/ }))!;
+    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1(: |$)/ }))!;
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
   fireEvent.change(select, { target: { value: select.options[0].value } });
   fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));

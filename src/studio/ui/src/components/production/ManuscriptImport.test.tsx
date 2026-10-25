@@ -265,7 +265,7 @@ describe('the subtitle of each chapter in the review', () => {
   it('keeps the whole title and subtitle in the title attribute of the row, for a name cut short', async () => {
     const { dialog } = await openReview();
     const titled = (name: RegExp) => dialog.getByRole('switch', { name }).closest('label')!.querySelector('[title]')!.getAttribute('title');
-    expect(titled(/^Chapter One/)).toBe('Chapter One — Down the Rabbit-Hole');
+    expect(titled(/^Chapter One/)).toBe('Chapter One: Down the Rabbit-Hole');
     expect(titled(/^Chapter Three/)).toBe('Chapter Three');
   });
 

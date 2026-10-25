@@ -48,10 +48,10 @@ describe('Master & QC page body', () => {
     const user = userEvent.setup();
     withChapters(TWO_FAIL);
     // Opens on the first failing file, and the bar says so.
-    await waitFor(() => expect(bar().getAttribute('aria-label')).toContain('Chapter 4 — The Rabbit Sends in a Little Bill'));
+    await waitFor(() => expect(bar().getAttribute('aria-label')).toContain('Chapter 4: The Rabbit Sends in a Little Bill'));
     expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-4');
     await user.click(screen.getByRole('row', { name: /Chapter 2 — The Pool of Tears/ }));
-    expect(bar().getAttribute('aria-label')).toContain('Chapter 2 — The Pool of Tears');
+    expect(bar().getAttribute('aria-label')).toContain('Chapter 2: The Pool of Tears');
     expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-2');
     // The arrow keys move between files, and the bar goes with them.
     screen.getByRole('row', { name: /Chapter 2 — The Pool of Tears/ }).focus();
