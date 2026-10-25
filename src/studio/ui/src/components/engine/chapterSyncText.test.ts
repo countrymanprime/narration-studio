@@ -177,7 +177,7 @@ describe('chapterSyncSummaryFacts', () => {
     const facts = (projectFile: string, linkedFile: string | null) =>
       chapterSyncSummaryFacts({ lastSync: at, projectFile, chapters: [row('auto')], linked: 1, daw: { daw: 'Audacity', linkedFile } }, now).synced;
     expect(facts('C:/Books/Alice/Alice.rpp', 'C:/Books/Alice/Book One.aup3')).toBe('24 Sep, from Book One.aup3 in Audacity');
-    expect(facts('C:/Books/Alice/.narration-studio/audacity-snapshot.json', 'Book One.aup3')).toBe('24 Sep, from Book One.aup3 in Audacity');
+    expect(facts('C:/Books/Alice/.app/audacity-snapshot.json', 'Book One.aup3')).toBe('24 Sep, from Book One.aup3 in Audacity');
     expect(facts('C:/Books/Alice/Alice.rpp', null)).toBe('24 Sep, from the open Audacity project');
     expect(facts('', null)).toBe('24 Sep, from the open Audacity project');
     expect(
