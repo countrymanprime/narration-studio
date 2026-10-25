@@ -208,7 +208,7 @@ describe('ScopedSetting layout', () => {
     kind: 'number',
     choices: [],
     effectiveValue: '3',
-    number: { min: 0, max: 200, step: 1, ...(unit ? { unit } : {}) },
+    number: { min: 0, max: 200, step: 1, unit: unit ?? '' },
   });
 
   it('draws a number box 10rem wide whether or not a unit follows it', () => {
