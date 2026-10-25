@@ -12,7 +12,7 @@ import { marksDoc } from '../script/scriptFixtures';
 import { clock } from './clock';
 import { SelectionActionButton } from './SelectionActionButton';
 import { SelectionBar } from './SelectionBar';
-import { SelToolbar } from './SelToolbar';
+import { SelToolbar, toolbarPlace } from './SelToolbar';
 import { registerSelectionAction } from './selectionActions';
 import { playSample, stopSample } from '../../voicesamples/samplePlayerStore';
 import { AUDIO_FAILED, useScriptPlayback, type ScriptPlayback } from './useScriptPlayback';
@@ -304,6 +304,39 @@ describe('the floating toolbar', () => {
     expect(screen.getByRole('toolbar', { name: 'Selection' })).toBeTruthy();
     act(() => playback.toggle());
     expect(screen.queryByRole('toolbar', { name: 'Selection' })).toBeNull();
+  });
+});
+
+// R3ED-3, XED-23, XED-24: the toolbar goes over the first selected line, inside the text column, so it hides neither the next line nor the
+// time gutter, and the voice-sample card that opens under its dot cannot land on it.
+describe('where the floating toolbar goes', () => {
+  const host = { left: 100, top: 50, right: 900, bottom: 650, width: 800, scrollTop: 0 };
+  const size = { width: 300, height: 46 };
+  it('sits above the first selected line, starting at the first word', () => {
+    const first = { left: 400, top: 300, right: 460, bottom: 330 };
+    const last = { left: 200, top: 340, right: 260, bottom: 370 };
+    expect(toolbarPlace(first, last, host, 180, size)).toEqual({ x: 300, y: 300 - 50 - 6 - 46 });
+  });
+  it('never starts left of the text column, nor runs past the right edge', () => {
+    const word = (left: number) => ({ left, top: 300, right: left + 40, bottom: 330 });
+    expect(toolbarPlace(word(120), word(120), host, 180, size).x).toBe(80);
+    expect(toolbarPlace(word(850), word(850), host, 180, size).x).toBe(800 - 300 - 8);
+  });
+  it('goes under the last line when there is no room above, in scrolled coordinates', () => {
+    const first = { left: 400, top: 60, right: 460, bottom: 90 };
+    const last = { left: 400, top: 100, right: 460, bottom: 130 };
+    expect(toolbarPlace(first, last, { ...host, scrollTop: 500 }, 180, size)).toEqual({ x: 300, y: 130 - 50 + 6 + 500 });
+  });
+});
+
+// R3ED-9, XED-26: in a narrow bar the summary takes its own row, and the actions stay at the right of the transport row.
+describe('the bar in a narrow card', () => {
+  it('moves the summary to its own row and keeps the actions at the right', () => {
+    mount();
+    const bar = screen.getByRole('toolbar', { name: 'Playback and selection' });
+    expect(bar.className).toMatch(/@container\/bar/);
+    expect(bar.querySelector('[data-bar-summary]')!.className).toMatch(/@max-\[60rem\]\/bar:order-last @max-\[60rem\]\/bar:basis-full/);
+    expect(bar.querySelector('[data-bar-actions]')!.className).toMatch(/\bml-auto\b/);
   });
 });
 

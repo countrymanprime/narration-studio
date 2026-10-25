@@ -35,7 +35,7 @@ export function useEditingWordMenu(play?: (from: number, to?: number) => void): 
         if (!inside) dispatch({ type: 'select', anchor: key, head: key });
         const keys = inside ? selected : [key];
         const summary = summarize(doc, keys, [], (s) => s);
-        const { heading, groups } = buildWordMenu({
+        const { groups } = buildWordMenu({
           doc,
           keys,
           summary,
@@ -43,9 +43,8 @@ export function useEditingWordMenu(play?: (from: number, to?: number) => void): 
           play: (start, end) => (player.current ? player.current(start, end) : dispatch({ type: 'play', t: start })),
           notify: (text) => overlay.toast(text),
         });
-        if (groups.length === 0) return [];
-        // The primitive draws no heading or separator yet, so the heading is a disabled row and the groups run on.
-        return [{ key: 'heading', label: heading, unavailable: '', onSelect: () => {} }, ...groups.flat()];
+        // Each band's items carry its heading (`group`): the menu draws the heading, and a rule between two bands.
+        return groups.flat();
       },
     }),
     [],

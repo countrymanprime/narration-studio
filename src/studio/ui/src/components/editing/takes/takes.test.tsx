@@ -361,7 +361,9 @@ describe('menu-section-offers-the-takes', () => {
     const remove = registerTakesMenuSection({ passageOf: () => passage, show, keep, gate: () => ({ ok: true }) });
     const items = buildWordMenu(selection()).groups.flat();
     remove();
-    expect(items.map((i) => i.label)).toEqual(['Show takes of this line (T)', 'Keep T-7 (active)', 'Keep T-8', 'Keep T-9']);
+    expect(items.map((i) => i.label)).toEqual(['Show takes of this line', 'Keep T-7 (active)', 'Keep T-8', 'Keep T-9']);
+    // XED-21: its key is drawn as a key at the row's end like every other menu shortcut, not "(T)" in the label.
+    expect(items[0].shortcut).toEqual(['T']);
     items[0].onSelect();
     items[2].onSelect();
     expect(show).toHaveBeenCalledWith(passage);
