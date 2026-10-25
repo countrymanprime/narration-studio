@@ -56,7 +56,7 @@ const teleprompterPositionSchema = z.object({
   skipped: z.tuple([z.number(), z.number()]).nullable(),
 }) satisfies z.ZodType<TeleprompterPosition>;
 
-// A suspected flag (flags.py): `start`/`end` are script word indices, equal for an extra.
+// A suspected flag (internal/scripttrack): `start`/`end` are script word indices, equal for an extra.
 const teleprompterFlagSchema = z
   .object({
     type: z.literal('flag'),

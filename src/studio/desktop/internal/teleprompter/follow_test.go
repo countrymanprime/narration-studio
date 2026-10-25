@@ -172,11 +172,13 @@ func runFakeClockSidecar(mode string) bool {
 	}
 }
 
+// followedManuscript is one chapter, "Chapter One The Lamp Ada climbed the stairs." as its eight tokens.
+const followedManuscript = `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": "Chapter One", "subtitle": "The Lamp"}], "paragraphs": [` +
+	`{"id": "p1", "chapterId": "c1", "index": 0, "text": "Ada climbed the stairs."}]}`
+
 func writeFollowedManuscript(t *testing.T, project string) {
 	t.Helper()
-	text := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": "Chapter One", "subtitle": "The Lamp"}], "paragraphs": [` +
-		`{"id": "p1", "chapterId": "c1", "index": 0, "text": "Ada climbed the stairs."}]}`
-	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(text), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(followedManuscript), 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -203,8 +205,8 @@ func TestAChapterSessionIsFollowedByTheHostAndSeeksNeverReachTheSidecar(t *testi
 	}
 	waitFor(t, "the word's position", func() bool { return len(f.recorder.eventsOf("position")) >= 2 })
 	args, _ := f.recorder.firstEvent("args")["args"].([]any)
-	if !slices.Contains(args, any("--clock")) || !slices.Contains(args, any("--start-word")) {
-		t.Fatalf("args %v: the sidecar must run with --clock (and still check --start-word)", args)
+	if !slices.Contains(args, any("--clock")) || slices.Contains(args, any("--start-word")) {
+		t.Fatalf("args %v: the sidecar runs with --clock, and the start word is the host's", args)
 	}
 	f.recorder.mu.Lock()
 	first := f.recorder.events[0]
@@ -241,24 +243,32 @@ func TestAChapterSessionIsFollowedByTheHostAndSeeksNeverReachTheSidecar(t *testi
 	waitFor(t, "the stopped phase", func() bool { return phase(f.service) == "stopped" })
 }
 
-func TestAStartWordTheHostCannotReadLeavesTheSidecarToFollow(t *testing.T) {
+func TestAStartWordThatIsNotAnIndexIsRefusedBeforeAnythingStarts(t *testing.T) {
 	f := newFixture(t, "stream")
 	writeFollowedManuscript(t, f.project)
 	options := validOptions()
-	options["startWord"] = "٣" // Python's int() reads an Arabic-Indic three; the host leaves it to the sidecar
-	if err := f.service.Start(options); err != nil {
+	options["startWord"] = "٣" // the UI sends a whole number; anything else is refused, not guessed at
+	if err := f.service.Start(options); err == nil || !strings.Contains(err.Error(), "is not a word of the script") {
+		t.Fatalf("err = %v", err)
+	}
+	if phase(f.service) != "idle" {
+		t.Fatalf("phase %q: a refused start leaves the service as it was", phase(f.service))
+	}
+}
+
+// A chapter the host cannot read is one the sidecar refuses too, in its own words; were the sidecar to read it after
+// all, the session stops at its first clock line rather than run with no cursor.
+func TestASessionTheHostCannotFollowStopsAtItsFirstClockLine(t *testing.T) {
+	f := newFixture(t, "clock")
+	if err := f.service.Start(validOptions()); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, "the sidecar's position", func() bool { return f.recorder.firstEvent("position") != nil })
-	args, _ := f.recorder.firstEvent("args")["args"].([]any)
-	if slices.Contains(args, any("--clock")) {
-		t.Fatalf("args %v", args)
-	}
-	if err := f.service.Seek(2); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(controlFileContent(t, f.session), `"seek"`) {
-		t.Fatal("the sidecar following the read did not get the seek")
+	waitFor(t, "the error phase", func() bool { return phase(f.service) == "error" })
+	f.service.mu.RLock()
+	message, _ := f.service.state["message"].(string)
+	f.service.mu.RUnlock()
+	if !strings.Contains(message, "Could not follow the read: This manuscript data uses an unsupported schema version.") {
+		t.Fatalf("message %q", message)
 	}
 }
 

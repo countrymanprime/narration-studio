@@ -242,7 +242,7 @@ describe('teleprompter mock', () => {
   });
 
   // Resuming starts the tracker at the resume word, as the host's
-  // --start-word does: the first position is that word and the replay never goes back before it.
+  // follower does: the first position is that word and the replay never goes back before it.
   it('starts at the requested word and replays onward from it', async () => {
     const mock = build();
     const events: TeleprompterEvent[] = [];

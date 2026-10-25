@@ -14,8 +14,7 @@ import (
 // pauses for a microphone, audio consumed for a file). The host consumes it and never relays it.
 const clockEventType = "clock"
 
-// follower follows the read in the host, as the sidecar did before `--clock` (docs/research/sidecar-go-vs-python.md,
-// step 2): the Booth's script tracker runs on the engine events the host relays, at the sidecar's own clock, and its
+// follower follows the read in the host, as the sidecar once did (docs/research/sidecar-go-vs-python.md, step 2): the Booth's script tracker runs on the engine events the host relays, at the sidecar's own clock, and its
 // position and flag events go out right after the engine event that caused them, in the order the sidecar printed them.
 type follower struct {
 	mu sync.Mutex
@@ -127,17 +126,12 @@ func appendPositions(lines []json.RawMessage, positions []scripttrack.Position) 
 
 func compactLine(v any) json.RawMessage { return json.RawMessage(compare.DumpPy(v, false)) }
 
-// followed is the script and start word the host follows the planned session with, or false when the sidecar is to
-// follow it itself, as before: when the host cannot build the script the sidecar builds (a manuscript or credits file
-// it cannot read the same way) or read the start word as the sidecar's int() does. The sidecar then reports any problem
-// in its own words. A Script session's file must be written first.
-func (plan launch) followed() (scripttrack.ChapterScript, *int, bool) {
+// followed is the script and start word the host follows the planned session with (plan checked the start word), or
+// why it cannot read the script. A Script session's file must be written first.
+func (plan launch) followed() (scripttrack.ChapterScript, *int, error) {
 	var startWord *int
 	if plan.startWord != "" {
-		word, err := strconv.Atoi(plan.startWord)
-		if err != nil {
-			return scripttrack.ChapterScript{}, nil, false
-		}
+		word, _ := strconv.Atoi(plan.startWord)
 		startWord = &word
 	}
 	var script scripttrack.ChapterScript
@@ -147,7 +141,7 @@ func (plan launch) followed() (scripttrack.ChapterScript, *int, bool) {
 	} else {
 		script, err = scripttrack.LoadChapterScript(plan.manuscript, plan.chapter)
 	}
-	return script, startWord, err == nil
+	return script, startWord, err
 }
 
 // startFollowing makes the host follow the session about to start. Its `script` event, which the sidecar printed as it

@@ -180,3 +180,18 @@ func TestALiveMisreadOfANearMatchIsLowConfidence(t *testing.T) {
 		t.Fatalf("book heard as boot = %v, as ledger = %v", *near.Confidence, *far.Confidence)
 	}
 }
+
+// Every flag kind the Booth's tracker raises (scripttrack's FlagEvent kinds) maps to a category the findings contract
+// accepts: the sidecar's test_flags.py held flags.py's kinds to this before the tracker moved to the host.
+func TestEveryFlagKindMapsOntoAFindingsCategoryTheContractAccepts(t *testing.T) {
+	want := map[string]findings.Category{"misread": findings.CategoryTranscriptDiscrepancy, "skipped": findings.CategoryTranscriptDiscrepancy, "extra": findings.CategoryTranscriptDiscrepancy, "restart": findings.CategoryPickup}
+	for kind, category := range want {
+		f := only(t, Flag{Kind: kind, ParagraphID: "p-1", WordStart: 2, WordEnd: 3, Heard: "um"})
+		if f.Category != category {
+			t.Errorf("%s is %s, want %s", kind, f.Category, category)
+		}
+	}
+	if len(kinds) != len(want) {
+		t.Errorf("%d kinds mapped, want the tracker's %d", len(kinds), len(want))
+	}
+}
