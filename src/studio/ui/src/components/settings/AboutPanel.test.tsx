@@ -2,14 +2,13 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AboutPanel } from './AboutPanel';
-import { brand } from '../../brand.gen';
 
 afterEach(cleanup);
 
 describe('AboutPanel', () => {
-  it('names the application and shows the version the host reports', () => {
+  // The product name moved to the row's label (controls/AboutSection.tsx); SettingsPage.test.tsx checks it there.
+  it('shows the version the host reports', () => {
     render(<AboutPanel version="0.2.7" />);
-    expect(screen.getByText(`${brand.name}`)).toBeTruthy();
     expect(screen.getByText('Version 0.2.7')).toBeTruthy();
     expect(screen.queryByText(/development build/i)).toBeNull();
   });

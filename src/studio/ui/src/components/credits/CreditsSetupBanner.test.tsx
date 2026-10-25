@@ -23,6 +23,14 @@ const STATE: CreditsSetupState = {
   candidates: [],
 };
 
+function renderBannerWithContainer() {
+  return render(
+    <ApiProvider api={createMockApi()}>
+      <CreditsSetupBanner state={STATE} onDone={vi.fn()} onFillIn={vi.fn()} notify={vi.fn()} />
+    </ApiProvider>,
+  );
+}
+
 function renderBanner(state: CreditsSetupState = STATE, overrides: Partial<NarrationApi> = {}, notify = vi.fn()) {
   const api = createMockApi(overrides);
   const onDone = vi.fn();
@@ -36,6 +44,15 @@ function renderBanner(state: CreditsSetupState = STATE, overrides: Partial<Narra
 }
 
 describe('CreditsSetupBanner', () => {
+  it('puts the red dot on the first line of the sentence, not centred between two lines (XSC-15)', () => {
+    const { container } = renderBannerWithContainer();
+    const dotBox = container.querySelector('span.rounded-full')!.parentElement!;
+    // A box one text-sm line tall (h-5, 1.25rem) centres the dot on that line; the row aligns to its top, so a wrapped sentence grows down.
+    expect(dotBox.className).toContain('h-5');
+    expect(dotBox.parentElement!.className).toContain('items-start');
+    expect(dotBox.parentElement!.className).not.toContain('items-center');
+  });
+
   it('names the unresolved tokens and how they will read', () => {
     renderBanner();
     expect(screen.getByText('The credits need 3 values')).toBeTruthy();

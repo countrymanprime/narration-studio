@@ -23,7 +23,11 @@ describe('how many', () => {
   it('keeps the Milestone column readable beside a 200-character name', async () => {
     await mountSchedule({ seed: { milestones: [{ name: 'x'.repeat(200), dueDate: '2026-10-25' }] } });
     await screen.findByText('Final delivery');
-    expect(screen.getByRole('columnheader', { name: 'Milestone' }).className).toContain('min-w-[10rem]');
+    // The columns are fixed (only Milestone takes what is left, on a table with a floor), and the name stops at two lines.
+    const table = screen.getByRole('table', { name: 'Milestones' });
+    expect(table.className).toContain('table-fixed');
+    expect(table.className).toContain('min-w-[34.5rem]');
+    expect(document.querySelector('[data-name="0"]')!.className).toContain('line-clamp-2');
   });
 
   it('scrolls the table inside its own card, with a keyboard stop and the edge cue', async () => {

@@ -234,9 +234,9 @@ describe('a clip that is not as it was saved', () => {
     const row = within(rowOf(LAUGHING));
     expect(row.getByText('Audio file missing')).toBeTruthy();
     expect(row.getByText(/The audio file is missing\./)).toBeTruthy();
-    // The source is as it was marked, so Editing can mark it again; Delete is for Edit.
+    // The source is as it was marked, so Editing can mark it again; a read-only entry points to Voice data for the delete (a locked entry has no Edit).
     expect(row.getByRole('button', { name: 'Mark again in Editing' })).toBeTruthy();
-    expect(row.getByText(/or press Edit to delete it/)).toBeTruthy();
+    expect(row.getByText(/or delete it in Voice data/)).toBeTruthy();
     const play = row.getByRole('button', { name: /^Play voice sample: Laughing/ });
     expect(play.getAttribute('aria-disabled')).toBe('true');
     await user.click(play);
@@ -490,7 +490,8 @@ describe('Make primary, Rename, Move and Delete', () => {
     // The character it is with is not offered.
     expect(within(dialog).queryByRole('option', { name: 'Queen of Hearts' })).toBeNull();
     await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Move to' }), 'Hatter');
-    expect(within(dialog).getByText('1 of 20 samples')).toBeTruthy();
+    // The count names whose it is (R4SB-9).
+    expect(within(dialog).getByText('Hatter has 1 of 20 samples.')).toBeTruthy();
     await user.click(within(dialog).getByRole('button', { name: 'Move' }));
     await waitFor(() => expect(screen.queryByText('Sulking')).toBeNull());
     expect(notify).toHaveBeenCalledWith('Moved to Hatter.');
@@ -556,7 +557,8 @@ describe('Make primary, Rename, Move and Delete', () => {
     const { api, user } = setup({ canManage: true, notify });
     await screen.findByText('Sulking');
     const dialog = await openDelete(user, SULKING);
-    expect(dialog.textContent).toContain('Delete “Sulking”?');
+    // The subject is quoted with its length and chapter, since the row may be hidden under the dialog (R4SB-5).
+    expect(dialog.textContent).toMatch(/Delete “Sulking” \(0:12, [^)]+\)\?/);
     expect(dialog.textContent).toContain('The recording it was copied from is not touched.');
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(screen.queryByText('Sulking')).toBeNull());

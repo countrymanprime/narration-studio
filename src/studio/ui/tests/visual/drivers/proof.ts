@@ -176,7 +176,7 @@ export const proofDrivers: Record<string, Driver> = {
   },
   empty: async (page) => {
     await openProof(page, 'mockFindings=empty', false);
-    await page.getByText('No notes yet.').waitFor();
+    await page.getByText('A note shows here once a check finds one.').waitFor();
   },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Proof');

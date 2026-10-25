@@ -66,7 +66,8 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
     ) : field.kind === 'choice' ? (
       <Select
         label={field.label}
-        className="max-w-[14rem]"
+        // As wide as a colour row's swatch and hex box, so the controls down the dialog share a right edge (alignment audit XPC-10).
+        className="w-[10.75rem]"
         value={field.effectiveValue}
         options={field.choices.map((c) => ({ value: c, label: proofingChoiceLabel(field.key, c) }))}
         onChange={(value) => onSet(field.key, value)}

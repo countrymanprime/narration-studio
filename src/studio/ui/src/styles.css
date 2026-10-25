@@ -263,6 +263,7 @@ html[data-motion='reduce'] {
   --header-row-height: 2.25rem; /* 36, th: 13 px line plus 8 px padding each side and the rule */
   --font-size-page-title: 1.75rem; /* 28, h1 */
   --font-size-card-title: 1.3125rem; /* 21, h2 */
+  --font-size-overlay-title: 1.5rem; /* 24, .dlg .dh h2: a Dialog's and a SlideOver's title */
   --font-size-label: 0.8125rem; /* 13, .label and th */
   --tracking-label: 0.14em;
   --tracking-button: 0.09em;

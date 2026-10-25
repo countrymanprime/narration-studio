@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MeasureFileResult } from '../../../types';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
-import { chapterStates, firstFailure, firstNotReady } from './chapterStates';
+import { chapterStates, firstFailure, firstNotReady, NOTHING_MEASURED } from './chapterStates';
 
 const chapters = [1, 2, 3, 4].map((n) => ({ id: `c${n}`, title: `Chapter 0${n}`, index: n - 1 }));
 const all = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), passing('Chapter 03.wav'), passing('Chapter 04.wav')];
@@ -18,8 +18,11 @@ describe('firstNotReady', () => {
     expect(firstNotReady(chapters, all.slice(2))).toBe('Chapter 01: no measured file yet.');
   });
 
-  it('names nothing on a book nobody has measured, where the count beside Build already says so', () => {
-    expect(firstNotReady(chapters, [])).toBeUndefined();
+  // Alignment audit R4DL-2: the count beside Build ("0 failing, 14 not ready") did not say why; a book nobody has measured now says so,
+  // in the slot where the first unready chapter would be. A book with no chapters still names nothing.
+  it('says nothing is measured yet on a book nobody has measured, and names nothing for a book with no chapters', () => {
+    expect(firstNotReady(chapters, [])).toBe(NOTHING_MEASURED);
+    expect(firstNotReady([], [])).toBeUndefined();
   });
 
   it('says why a chapter whose file is there is not ready: not measured yet, unreadable, partly unmeasurable, or nothing judged', () => {
