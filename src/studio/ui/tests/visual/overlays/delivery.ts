@@ -32,9 +32,8 @@ export const deliveryCases: OverlayCase[] = [
     kind: 'tooltip',
     start: 'fresh',
     scrolled: false,
-    // Not at 320x300: there the hint opens and then does not settle (the guard reports it never became visible); the cause was not found,
-    // the same as the hints on Master & QC's icon buttons over scrolled content. Listed in the state matrix as not covered.
-    viewports: ({ height }) => height >= 500,
+    // The button keeps to the card's right edge, so narrowing the window from 390 px moves it out from under the pointer and the hint closes.
+    afterNarrowing: (page) => showHint(page, 'Open the folder'),
     open: async (page) => {
       const driver = APP_DRIVERS['delivery']?.['built'];
       if (!driver) throw new Error('no driver for delivery / built');

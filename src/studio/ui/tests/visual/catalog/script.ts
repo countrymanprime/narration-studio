@@ -109,7 +109,7 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'invalid-payload',
     description:
-      'Script, the inline error with Retry when the data it loads could not be read, beside the notice Home raised for the same data; navigation still works',
+      'Script, the inline error with Retry when the data it loads could not be read; the error toast Home raised for the same data is taken away, since the page says it; navigation still works',
   },
   {
     page: 'script',
