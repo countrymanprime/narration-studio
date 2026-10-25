@@ -138,3 +138,17 @@ of `str.lower`, `re`'s `\w` and `str.isspace` over every code point, with `str.l
 on both sides, and `spoken_key` over seeded text. `src/studio/libs/python/tests/test_pyunicode_tables.py` writes it
 (`UPDATE_CONTRACTS=1`) and checks that `src/studio/desktop/internal/compare/pyunicode_gen.go` is what
 `scripts/dev/gen-pyunicode.py` generates from the same Python. `internal/compare`'s `pyunicode_test.go` must agree with it.
+
+`tracker-sessions.jsonl` and `tracker-cases.jsonl`: the inputs the host's port of the Booth's script tracker
+(`src/studio/desktop/internal/scripttrack`) is held to. The sessions are every tracker session the teleprompter suite
+drove when they were recorded (2026-10-25, deduplicated) and eight seeded synthetic reads of the coverage manuscript's
+chapters, with restarts, skips, seeks, pauses, wobbling partials and engine times as ints, floats or missing. The cases
+are seeded single calls of `normalize_word`, `words_match`, `SequenceMatcher.ratio`, `locate` and `align`. The
+`.golden.jsonl` beside each holds what `script_tracker.py` answers, one line per input line, written by
+`src/studio/sidecars/manuscript-teleprompter/tests/test_tracker_parity.py` (`UPDATE_CONTRACTS=1`); `scripttrack`'s
+`parity_test.go` must agree with it.
+
+`flag-sessions.jsonl`: flag runs, each a session of `tracker-sessions.jsonl` and the heading length to flag it with
+(every session with none, those the teleprompter suite flagged with the heading it gave, and the synthetic reads with a
+three-word heading). `flag-sessions.golden.jsonl` holds what `flags.py`'s `FlaggingTracker` answers, every operation's
+position and flag events, written by the same test; `scripttrack`'s `flags_parity_test.go` must agree with it.
