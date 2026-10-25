@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { overlay } from '../../../../../overlay/overlayService';
 import { Button } from '../../../../primitives/Button';
+import { Icon } from '../../../../primitives/Icon';
 import { IconButton } from '../../../../primitives/IconButton';
 import { InsetCard } from '../../../../primitives/InsetCard';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
@@ -94,9 +95,11 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
       <SectionLabel as="div">Look up on the web</SectionLabel>
       <ExternalLinks word={word} open={(source, w) => void host.openLookup(source, w)} />
       {status === 'not_flagged' && selection && (
-        <div>
-          <IconButton action="add" label="Add to my words" onClick={() => void commands.flagWord(selection)} />
-        </div>
+        // A labelled button, not a lone `+` under the look-ups that reads as one of them (XSC-12).
+        <Button variant="secondary" size="sm" onClick={() => void commands.flagWord(selection)}>
+          <Icon name="add" />
+          Add to my words
+        </Button>
       )}
     </InsetCard>
   );
