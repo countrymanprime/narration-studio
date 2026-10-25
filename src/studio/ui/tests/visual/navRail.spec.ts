@@ -154,3 +154,47 @@ for (const width of [1440, 1100]) {
     expect(style.shadow.endsWith(`${style.accent} 3px 0px 0px 0px inset`)).toBe(true);
   });
 }
+
+// Alignment audit cause N: the lock took the nav icon's 20 px, and the icon rail hid every count and lock, so a locked page looked
+// available below 1360 px. The lock keeps its own 11 px at every width; in the icon rail it and the count sit on the icon's top right
+// corner (the count as a dot), and the open rail draws them at the item's end again.
+for (const width of [1440, 1100]) {
+  test(`Navigation rail / locks and counts stay on show at their own size / ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/?mockNoManuscript=1');
+    await settlePage(page);
+    await page.mouse.move(width - 2, 600);
+    const locks = await page.evaluate(
+      (rail) =>
+        [...document.querySelectorAll(`${rail} [data-nav-lock]`)].map((lock) => {
+          const box = lock.getBoundingClientRect();
+          const icon = lock.closest('button')!.querySelector('svg')!.getBoundingClientRect();
+          return { visible: getComputedStyle(lock).visibility === 'visible' && box.width > 0, height: box.height, beside: box.left >= icon.right - 1 };
+        }),
+      RAIL,
+    );
+    expect(locks.length).toBeGreaterThan(0);
+    for (const lock of locks) {
+      expect(lock.visible).toBe(true);
+      expect(lock.height).toBeLessThanOrEqual(12);
+      expect(lock.beside).toBe(true);
+    }
+  });
+}
+
+test('Navigation rail / the icon rail draws a page count as a dot on the icon / 1100', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto('/');
+  await settlePage(page);
+  await page.mouse.move(1098, 600);
+  const counts = await page.evaluate(
+    (rail) =>
+      [...document.querySelectorAll(`${rail} [data-nav-count]`)].map((count) => {
+        const box = count.getBoundingClientRect();
+        return { visible: getComputedStyle(count).visibility === 'visible', width: box.width, height: box.height };
+      }),
+    RAIL,
+  );
+  expect(counts.length).toBeGreaterThan(0);
+  for (const count of counts) expect(count).toEqual({ visible: true, width: 8, height: 8 });
+});
