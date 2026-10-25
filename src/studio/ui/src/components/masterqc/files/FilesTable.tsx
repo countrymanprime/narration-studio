@@ -228,7 +228,9 @@ export function FilesTable({
 /** `said`: the row's message is one the card already says for several rows, so the row leaves it out. */
 function FileTableRow({ row, said, selected, onSelect }: { row: FileRow; said: boolean; selected: boolean; onSelect: (id: string) => void }) {
   return (
-    <TableRow onActivate={() => onSelect(row.id)} selected={selected}>
+    // `data-no-file` marks a chapter nothing was rendered for, for the visual suite's drivers: since a shared message is said once in
+    // the card, such a row no longer carries text that tells it apart.
+    <TableRow onActivate={() => onSelect(row.id)} selected={selected} data={row.noFile ? { 'data-no-file': '' } : undefined}>
       <TableCell className="break-words">
         {/* The marker the right-click provider reads: a row's own attributes are the primitive's. */}
         <span data-file={row.id} className="contents" />

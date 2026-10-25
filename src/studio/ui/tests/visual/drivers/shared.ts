@@ -209,12 +209,9 @@ export async function measureOnMaster(page: Page, query = ''): Promise<void> {
 }
 
 // The table's rows that have a file behind them. The table draws a waiting row per chapter before anything is measured, so the grid
-// alone no longer says that files have arrived: a row that is not "No file measured yet" / "Waiting on N pickups" does.
+// alone no longer says that files have arrived: a row the table does not mark `data-no-file` does.
 export function masterFileRows(page: Page): Locator {
-  return page
-    .getByRole('grid', { name: 'Per-file checks' })
-    .locator('tbody tr')
-    .filter({ hasNotText: /No file measured yet|Waiting on \d+ pickups?/ });
+  return page.getByRole('grid', { name: 'Per-file checks' }).locator('tbody tr:not([data-no-file])');
 }
 
 // Opens Master & QC's Diagnostics section, after a reload with mock seams when given, once its
