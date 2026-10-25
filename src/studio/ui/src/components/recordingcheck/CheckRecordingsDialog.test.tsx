@@ -181,7 +181,7 @@ describe('CheckRecordingsDialog', () => {
     results.a = stored('current');
     emit({ runId: 'run-1', phase: 'complete', percent: 100 });
     await waitFor(() => expect(starts).toHaveLength(2));
-    await userEvent.click(await screen.findByRole('button', { name: 'Stop' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Stop checking' }));
     expect(cancel).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
     expect(toasts(service)).toEqual(['Stopped. 1 chapter finished and kept; the one in progress stored nothing.']);
@@ -404,7 +404,7 @@ describe('CheckRecordingsDialog', () => {
       results.a = stored('current');
       emit({ runId: 'run-1', phase: 'complete', percent: 100 });
       await waitFor(() => expect(starts).toHaveLength(3));
-      await userEvent.click(await screen.findByRole('button', { name: 'Stop' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Stop checking' }));
       await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
       expect(toasts(service)).toEqual(['Stopped. 1 chapter finished and kept; the 2 in progress stored nothing.']);
     });
