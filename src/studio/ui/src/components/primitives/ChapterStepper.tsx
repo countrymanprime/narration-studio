@@ -1,5 +1,4 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
-import type { CSSProperties } from 'react';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { IconButton } from './IconButton';
@@ -38,8 +37,6 @@ export function ChapterStepper({
   const isAll = value === ALL_CHAPTERS;
   const index = chapters.findIndex((chapter) => chapter.id === value);
   const label = isAll ? 'All chapters' : (chapters[index]?.name ?? '');
-  const labels = [...(allowAll ? ['All chapters'] : []), ...chapters.map((chapter) => chapter.name)];
-  const width = Math.max(...labels.map((text) => text.length));
   const items = [...(allowAll ? [{ id: ALL_CHAPTERS, name: 'All chapters' }] : []), ...chapters];
 
   const arrow = (direction: -1 | 1, name: string, icon: 'previousChapter' | 'nextChapter', key: string | undefined, atEnd: boolean) => {
@@ -62,13 +59,14 @@ export function ChapterStepper({
         <Button
           variant="secondary"
           aria-label={`Chapter: ${label}. Change chapter`}
-          // One width for the longest label, up to the mock's 340 px, once there is room for it; below 860 px the picker takes what is left.
-          className="max-w-full min-w-0 justify-between gap-2 min-[860px]:min-w-[min(var(--chapter-ch),21.25rem)]"
-          style={{ '--chapter-ch': `${width}ch` } as CSSProperties}
+          // The mock's fixed 340 px once there is room for it, whatever the chapters are called and while they load, so the arrows
+          // and the tools beside it never move (alignment audit cause M); below 860 px the picker takes what is left.
+          className="max-w-full min-w-0 justify-between gap-2 min-[860px]:w-[21.25rem]"
         />
       }
     >
-      <span className="min-w-0 truncate">{label}</span>
+      {/* The label takes the room and starts at the left; the caret keeps to the right edge (alignment audit XPK-7). */}
+      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
       <span aria-hidden="true">▾</span>
     </BaseMenu.Trigger>
   );
