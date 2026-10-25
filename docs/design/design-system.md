@@ -95,6 +95,8 @@ Location: `src/studio/ui/src/components/primitives/`.
 
 ### Native controls stay in the primitives
 
+A control drawn smaller than 24 px (a `HeaderChip` button, the `Tooltip` info icon, a `Checkbox` box, a `Button variant="link"`, a toast's action and close) takes presses in the 24 by 24 px square around it without looking any bigger: `HIT_AREA` (`primitives/hitArea.ts`) adds an invisible centred box at least that size (WCAG 2.2 target size; alignment audit cause G). A new small control uses it, and `hitArea.test.ts` lists the ones that do.
+
 A page builds a control from a primitive and never writes the native element. `src/studio/ui/src/rawNatives.test.ts` counts the native `button`, `select`, `input`, `textarea` and `table` parts written in JSX outside `components/primitives/`, and fails on the pasted icon-button look (`size-8` with `rounded-md`). Use `IconButton` for an icon-only button, `Button` for a text button, `TextField`, `SearchField` or `Field` for a text control, `NumberInput` for a number, `Select` for a choice, and `Table` for tabular data. Two things let a native element stand:
 
 - **A marker.** A comment `native-control-ok: <reason>` of at least 12 characters on the element's first line or the line above leaves it out of the count, whatever its tag. The reason says what the element does that no primitive can. A marker with no native element under it is stale and fails.

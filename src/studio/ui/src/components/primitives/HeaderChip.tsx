@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { HIT_AREA } from './hitArea';
 import { Dot } from './StatusBadge';
 
 /**
@@ -68,7 +69,7 @@ export function HeaderChip({
         title={title}
         aria-label={ariaLabel}
         aria-busy={ariaBusy || undefined}
-        className={`${classes} cursor-pointer hover:shadow-[inset_0_0_0_1px_var(--accent)] disabled:pointer-events-none disabled:opacity-60`}
+        className={`${classes} ${HIT_AREA} cursor-pointer hover:shadow-[inset_0_0_0_1px_var(--accent)] disabled:pointer-events-none disabled:opacity-60`}
         style={TONE[tone]}
       >
         {content}
