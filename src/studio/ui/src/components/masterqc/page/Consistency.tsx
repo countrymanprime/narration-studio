@@ -37,12 +37,13 @@ export function Consistency({ files, profile }: { files: readonly MeasureFileRes
   const spread = Math.max(...values) - Math.min(...values);
   // Where a value sits across the chart, as a share of its width, for the HTML labels under it.
   const at = (value: number) => `${(x(value) / W) * 100}%`;
+  const chartLabel = `RMS by file against ${rangeOf(profile)}`;
   return (
     <>
       {/* The chart fills the card's width at a fixed height (the strokes keep their width), so the band lines up with the caption and
           the ticks stand only a little past the band; its labels are HTML at body size under it, not SVG text that shrank to 7 px at
           390 (XMS-20, R3MS-18). */}
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block h-12 w-full" role="img" aria-label={`RMS by file against ${rangeOf(profile)}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block h-12 w-full" role="img" aria-label={chartLabel}>
         {band && (
           <rect
             x={x(band.lo)}
