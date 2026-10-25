@@ -220,6 +220,9 @@ export const editingDrivers: Record<string, Driver> = {
     const toast = page.getByRole('status').filter({ hasText: /^Replaced \d+ words with Eric Leach's audio/ });
     await toast.getByRole('button', { name: 'Dismiss message' }).click();
     await toast.waitFor({ state: 'hidden' });
+    // The replaced words stay selected (to play them at once); in a narrow window the selection's toolbar sits over the name, so Escape lets
+    // the selection go first, as a narrator would.
+    await page.keyboard.press('Escape');
     await page.getByRole('button', { name: /^Eric Leach's audio plays for the .*Press Enter for details$/ }).click();
     await page.getByRole('dialog', { name: "Eric Leach's audio" }).waitFor();
   },
