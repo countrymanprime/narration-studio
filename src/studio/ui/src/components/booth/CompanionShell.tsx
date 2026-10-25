@@ -10,6 +10,7 @@ import { Button } from '../primitives/Button';
 import { useWholeWindow } from './companion/useWholeWindow';
 import { CompactShell } from '../primitives/CompactShell';
 import { Kbd } from '../primitives/Kbd';
+import { InsetCard } from '../primitives/InsetCard';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import { ReadAlongView } from './ReadAlongView';
@@ -193,11 +194,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
                 // Named by what it draws, the key and the action ("Space Play"): an aria-label of the action alone leaves out the key
                 // the button draws, which axe's label-content-name-mismatch fails.
                 <Button aria-pressed={listening} onClick={onPlayPause} disabled={playPauseDisabled} size="sm">
-                  {/* The key cap keeps its own case inside the button's capitals, as the hotkeys list draws it (XBO-17). */}
-                  <span className="normal-case">
-                    <Kbd keys={['Space']} />
-                  </span>{' '}
-                  {playPauseLabel}
+                  <Kbd keys={['Space']} /> {playPauseLabel}
                 </Button>
               }
             />
@@ -220,11 +217,11 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           </Toolbar>
           {/* Its own scroll box, so the sections below stay in reach however long the chapter is; the cursor follows inside it. Framed, with
               a fade at its foot, so text it cuts off reads as more to scroll, not as a cropped card (XBO-16). */}
-          <div data-companion-script="" className="mt-2 rounded-md border border-[var(--border)]">
-            <div className="max-h-[12rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)] p-2">
+          <InsetCard id="companion-script" className="mt-2">
+            <div className="max-h-[12rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)]">
               <ReadAlongView session={t} follow={follow} header={header} marks={marks} onOpenMark={onOpenMark} hideKey dense />
             </div>
-          </div>
+          </InsetCard>
         </Section>
         <Section title="Pickups">
           <PickupsCompanionSummary />

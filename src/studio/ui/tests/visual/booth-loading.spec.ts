@@ -71,7 +71,7 @@ test('companion-loading: five sections, as the loaded Companion has', async ({ p
 test('companion-listening: one title, a framed script box and one hotkey per row', async ({ page }) => {
   await drive(page, 'companion-listening', COMPANION_VIEWPORT);
   const g = await page.evaluate(() => {
-    const box = document.querySelector('[data-companion-script]')!;
+    const box = document.getElementById('companion-script')!;
     const style = getComputedStyle(box);
     const keys = [...document.querySelectorAll('[data-companion] dl dt')].map((dt) => Math.round(dt.getBoundingClientRect().top));
     return { border: style.borderBottomWidth, rows: new Set(keys).size, keys: keys.length };
