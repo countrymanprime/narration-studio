@@ -82,6 +82,13 @@ function startCapability(dawFileLinked: boolean, review: CapabilityEntry, audaci
   return gate.disabled ? { ...review, available: false, message: gate.reason } : { ...review, available: true };
 }
 
+/** The run's three steps, in order (the strip in the card's header). */
+const COMPARE_STEPS = [
+  { value: 'setup', label: 'Setup' },
+  { value: 'running', label: 'Running' },
+  { value: 'results', label: 'Results' },
+] as const;
+
 /**
  * The chapter view's compare run: Transcript Compare's setup
  * (model, chunk length, workers, vocabulary hints), its live progress and the first-use Whisper download, moved here
@@ -300,48 +307,48 @@ export function CompareRun({
     };
   }, [api, showingResults, compareBaseline]);
 
+  const exportHint = !canExportMarkers
+    ? `Marker export is available only for results from this active ${dawName} session`
+    : pendingMarkers === 0
+      ? 'No new markers are ready to export'
+      : `Export ${pendingMarkers} new marker${pendingMarkers === 1 ? '' : 's'} to ${dawName}`;
+  const exportBlocked = !canExportMarkers || pendingMarkers === 0;
+  const gate = startCapability(dawFileLinked, reviewCapability, dawName === 'Audacity');
   const phase = showingResults ? 'results' : state.phase === 'need_chapter' ? 'chapter' : running ? 'running' : 'setup';
   return (
     <Panel
       title="Compare the recording with the script"
       actions={
-        // The step strip: the segmented look of ToggleGroup. It
-        // reports the phase, not a choice — the phase advances on its own, so a click of a step is a no-op (not `disabled`,
-        // which would also dim the current step's fill). This gives the strip real semantics: nothing named which step was
-        // current before (a background tint only).
-        <ToggleGroup
-          label="Comparison progress"
-          look="segmented"
-          value={phase}
-          onChange={() => {}}
-          options={[
-            { value: 'setup', label: '1 · Setup' },
-            { value: 'running', label: '2 · Running' },
-            { value: 'results', label: '3 · Results' },
-          ]}
-        />
+        // The step strip reports the phase; it is not a choice, so it is drawn as numbered steps, not as a segmented toggle a narrator
+        // would try to press (alignment audit XPC-14), 28 px so the header keeps every card's height (R3PC-3). The current step is a filled
+        // box with the button radius, not a pill: a pill reads as a status badge (badgeShapes.test.ts).
+        <ol aria-label="Comparison progress" className="m-0 flex list-none items-center gap-1 p-0">
+          {COMPARE_STEPS.map((step, index) => {
+            const current = step.value === phase || (phase === 'chapter' && step.value === 'setup');
+            return (
+              <li
+                key={step.value}
+                aria-current={current ? 'step' : undefined}
+                className={`flex h-7 items-center gap-1.5 rounded-[var(--radius-button)] px-2.5 font-['Barlow_Condensed',sans-serif] text-[0.8rem] font-semibold tracking-[var(--tracking-button)] whitespace-nowrap uppercase ${current ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text-muted)]'}`}
+              >
+                <span aria-hidden="true">{index + 1}</span>
+                {step.label}
+              </li>
+            );
+          })}
+        </ol>
       }
     >
       {phase === 'setup' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span style={{ color: 'var(--text-muted)' }}>
-              {dawName === 'Audacity'
-                ? `Transcribes the audio track selected in Audacity with Whisper and compares it with ${chapterTitle}.`
-                : `Transcribes the selected REAPER audio with Whisper and compares it with ${chapterTitle}.`}
-            </span>
-            {lastCompleted ? (
-              <Button variant="link" style={{ color: 'var(--text-muted)' }} onClick={onReviewLast}>
-                Last narrated take: {lastCompleted.trackName || (dawName === 'Audacity' ? 'Selected Audacity track' : 'Selected REAPER audio')}
-                {lastCompleted.audioItemCount ? ` · ${lastCompleted.audioItemCount} audio item${lastCompleted.audioItemCount === 1 ? '' : 's'}` : ''}
-                {lastCompleted.completedAt ? ` · ${new Date(lastCompleted.completedAt).toLocaleString()}` : ''}
-              </Button>
-            ) : (
-              <span style={{ color: 'var(--text-muted)' }}>No narrated take yet</span>
-            )}
-          </div>
-          <div className="grid gap-5 md:grid-cols-3">
-            <div>
+          <p className="text-[0.82rem]" style={{ color: 'var(--text-muted)' }}>
+            {dawName === 'Audacity'
+              ? `Transcribes the audio track selected in Audacity with Whisper and compares it with ${chapterTitle}.`
+              : `Transcribes the selected REAPER audio with Whisper and compares it with ${chapterTitle}.`}
+          </p>
+          {/* Each group as wide as its buttons, side by side while they fit, so the model row never wraps beside half-empty columns (XPC-1). */}
+          <div className="flex flex-wrap gap-x-8 gap-y-4">
+            <div className="max-w-full min-w-0">
               <span className="text-[0.82rem] font-medium text-[var(--text-muted)]">
                 Whisper model
                 <Tooltip text="Bigger models catch more misreads but run slower and use more memory per instance. Chunk length and worker count are capped automatically once you pick a model." />
@@ -354,7 +361,7 @@ export function CompareRun({
                 options={MODEL_OPTIONS.map((option) => ({ value: option.value, label: option.label, title: option.caption }))}
               />
             </div>
-            <div>
+            <div className="max-w-full min-w-0">
               <span className="text-[0.82rem] font-medium text-[var(--text-muted)]">
                 Chunk length
                 <Tooltip text={CHUNK_LENGTH_TOOLTIP} />
@@ -372,7 +379,7 @@ export function CompareRun({
                 }))}
               />
             </div>
-            <div>
+            <div className="max-w-full min-w-0">
               <span className="text-[0.82rem] font-medium text-[var(--text-muted)]">
                 Parallel workers
                 <Tooltip text="Each worker loads its own full copy of the Whisper model, so memory use multiplies with worker count. Auto picks a safe count for this machine." />
@@ -419,13 +426,39 @@ export function CompareRun({
             />
           </div>
           <ProofOptions title="Compare options" group="Proof" tool="TranscriptCompare" keys={COMPARE_OPTION_KEYS} />
-          <div className="flex items-center justify-end gap-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-            <CapabilityGate capability={startCapability(dawFileLinked, reviewCapability, dawName === 'Audacity')}>
-              <Button variant="primary" onClick={() => void start()}>
-                <FontAwesomeIcon icon={faPlay} />
-                Start comparison
-              </Button>
-            </CapabilityGate>
+          {/* One footer row, no second rule under the hints box (XPC-23): the last run to review on the left, as a button with its
+              time as a caption (XPC-16, R3PC-9, R4PC-1), and Start on the right with the reason it is off beside it (XPC-15). */}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            {lastCompleted ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                <Button variant="secondary" onClick={onReviewLast}>
+                  Review last run
+                </Button>
+                <span className="min-w-0 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {lastCompleted.trackName || (dawName === 'Audacity' ? 'Selected Audacity track' : 'Selected REAPER audio')}
+                  {lastCompleted.audioItemCount ? ` · ${lastCompleted.audioItemCount} audio item${lastCompleted.audioItemCount === 1 ? '' : 's'}` : ''}
+                  {lastCompleted.completedAt ? <span className="whitespace-nowrap">{` · ${new Date(lastCompleted.completedAt).toLocaleString()}`}</span> : ''}
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                No narrated take yet
+              </span>
+            )}
+            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1">
+              {!gate.available && gate.message ? (
+                // The reason Start is off, in sight: the gate gives it to a screen reader as the button's description already.
+                <span aria-hidden="true" className="min-w-0 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {gate.message}
+                </span>
+              ) : null}
+              <CapabilityGate capability={gate}>
+                <Button variant="primary" onClick={() => void start()}>
+                  <FontAwesomeIcon icon={faPlay} />
+                  Start comparison
+                </Button>
+              </CapabilityGate>
+            </div>
           </div>
         </div>
       )}
@@ -450,7 +483,7 @@ export function CompareRun({
           </div>
           <ProgressBar className="mt-3" label="Comparison progress" value={state.percent} running valueText={`${state.percent}% · ${seconds(state.elapsed)}`} />
           <div className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-            <div className="mb-1.5 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between">
               <SectionLabel>Live activity</SectionLabel>
               <ToggleGroup
                 label="Log detail"
@@ -460,7 +493,8 @@ export function CompareRun({
                 options={LOG_VERBOSITY_OPTIONS}
               />
             </div>
-            <div className="h-36 overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] font-['IBM_Plex_Mono',ui-monospace,monospace]">
+            {/* The field radius, and no rule under the last line, which the box's own border closes (XPC-18). */}
+            <div className="h-36 overflow-y-auto rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--surface-2)] font-['IBM_Plex_Mono',ui-monospace,monospace] [&>div:last-child]:border-b-0">
               {(logVerbosity === 'Verbose'
                 ? state.logs
                 : logVerbosity === 'Quiet'
@@ -494,20 +528,24 @@ export function CompareRun({
         <div className={`space-y-2 text-sm ${ARRIVE_CLASSES}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p>
-              {results.trackName ? `${results.trackName}: ` : ''}
+              {/* The track's name only when it says something the chapter's does not (XPC-9: "Chapter 1: 2 discrepancies in Chapter 1"). */}
+              {results.trackName && results.trackName !== chapterTitle ? `${results.trackName}: ` : ''}
               {foundHere === 0 ? `no discrepancies in ${chapterTitle}` : `${foundHere} discrepanc${foundHere === 1 ? 'y' : 'ies'} in ${chapterTitle}`}
               {results.rows.length > foundHere ? ` (${results.rows.length - foundHere} more in other chapters)` : ''}.
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <TooltipTarget
-                text={
-                  !canExportMarkers
-                    ? `Marker export is available only for results from this active ${dawName} session`
-                    : pendingMarkers === 0
-                      ? 'No new markers are ready to export'
-                      : `Export ${pendingMarkers} new marker${pendingMarkers === 1 ? '' : 's'} to ${dawName}`
-                }
-              >
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              {/* What holds Export back, beside it rather than on a row of its own (XPC-9). */}
+              {projectMayHaveChanged ? (
+                <span role="status" className="flex items-start gap-1 text-xs" style={{ color: 'var(--warn-text)' }}>
+                  <FontAwesomeIcon icon={faTriangleExclamation} aria-hidden="true" className="mt-0.5 flex-none" />
+                  <span>The REAPER project may have changed since this comparison.</span>
+                </span>
+              ) : exportBlocked ? (
+                <span aria-hidden="true" className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {exportHint}
+                </span>
+              ) : null}
+              <TooltipTarget text={exportHint}>
                 <Button
                   variant="primary"
                   disabled={!canExportMarkers || pendingMarkers === 0 || exporting}
@@ -532,12 +570,6 @@ export function CompareRun({
               </TooltipTarget>
             </div>
           </div>
-          {projectMayHaveChanged && (
-            <p role="status" className="flex items-start gap-1" style={{ color: 'var(--warn-text)' }}>
-              <FontAwesomeIcon icon={faTriangleExclamation} aria-hidden="true" className="mt-0.5 flex-none" />
-              <span>The REAPER project may have changed since this comparison.</span>
-            </p>
-          )}
           {results.markerExport.phase !== 'idle' && (
             <p
               className={`text-xs ${results.markerExport.phase === 'error' ? 'text-[var(--danger-text)]' : ''}`}

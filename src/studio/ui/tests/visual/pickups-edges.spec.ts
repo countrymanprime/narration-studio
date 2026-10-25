@@ -37,12 +37,14 @@ for (const size of SIZES) {
   });
 }
 
-// The Pickups table keeps its row actions, Remove last, inside its scroll area down to the tablet width (it was cut at its edge at 768),
-// and where it still has to scroll sideways (the 390 reflow width) it shows that there is more to the right.
+// The Pickups table keeps its row actions, Remove last, inside its scroll area down to the tablet width (it was cut at its edge at 768).
+// At the 390 reflow width it used to scroll sideways with a cue; since the alignment audit's XPK-5 its rows stack there instead (the line
+// under its time and type, the actions under the line), so nothing is out of view and nothing scrolls. The cue stays for a table that
+// still has to scroll.
 for (const size of [
   { name: 'small-desktop', width: 1024, height: 768, scrolls: false },
   { name: 'tablet', width: 768, height: 1024, scrolls: false },
-  { name: 'reflow', width: 390, height: 844, scrolls: true },
+  { name: 'reflow', width: 390, height: 844, scrolls: false },
 ]) {
   test(`Pickups / the row actions fit the scroll area or the table says it scrolls / ${size.name} ${size.width}x${size.height}`, async ({ page }) => {
     await page.setViewportSize({ width: size.width, height: size.height });

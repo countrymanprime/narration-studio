@@ -12,6 +12,15 @@ import type { SettingMeta } from '../registry/types';
 // running past the card and the window (alignment audit XSE2-1, XSE2-2); `min-w-0` lets it shrink beside its Reset button.
 const FIELD_WIDTH = 'w-full max-w-80 min-w-0';
 const PATH_WIDTH = 'w-full max-w-[26rem] min-w-0';
+// A number box is 10rem, as `ScopedSetting`'s, so the number boxes down the page line up (alignment audit XSE2-37).
+const NUMBER_WIDTH = 'w-40';
+// What goes in a text box that is empty until the narrator types (alignment audit R3SE1-17).
+const PLACEHOLDER: Record<string, string> = {
+  'daw.reaperPath': 'C:\\Program Files\\REAPER\\reaper.exe',
+  'project.narrator': 'Your name as the narrator',
+};
+// A number's range and a typing problem are notes, in the row's 13 px note size (alignment audit XSE2-37).
+const NOTE = 'text-[0.8125rem]';
 
 export type ValueControlProps = {
   row: SettingMeta;
@@ -128,7 +137,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
             disabled={disabled}
             invalid={Boolean(problem) || invalid}
             describedBy={describedBy}
-            className="w-24"
+            className={NUMBER_WIDTH}
             onSettle={(next) => {
               setTyped(next);
               if (!numberProblem(field.number!, next.trim())) onChange(next.trim());
@@ -137,11 +146,11 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
           {(row.unit ?? field.number.unit) && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.unit ?? field.number.unit}</span>}
         </span>
         {typed !== undefined && problem && (
-          <span role="alert" className="text-xs text-[var(--danger-text)]">
+          <span role="alert" className={`${NOTE} text-[var(--danger-text)]`}>
             {problem}
           </span>
         )}
-        {hint && typed === undefined && <span className="text-xs text-[var(--text-muted)]">{hint}</span>}
+        {hint && typed === undefined && <span className={`${NOTE} text-[var(--text-muted)]`}>{hint}</span>}
       </span>
     );
   }
@@ -177,7 +186,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
       disabled={disabled}
       invalid={invalid}
       describedBy={describedBy}
-      placeholder={row.id === 'daw.reaperPath' ? 'C:\\Program Files\\REAPER\\reaper.exe' : undefined}
+      placeholder={PLACEHOLDER[row.id]}
       className={row.id === 'daw.reaperPath' ? PATH_WIDTH : FIELD_WIDTH}
       onSettle={onChange}
     />

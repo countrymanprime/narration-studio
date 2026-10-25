@@ -168,4 +168,22 @@ describe('IconButton', () => {
     render(<IconButton label="Close">x</IconButton>);
     expect(screen.getByRole('button', { name: 'Close' }).className).toContain('[:where(&)]:flex-none');
   });
+
+  it("draws the record disc in the record colour on the outlined look, the mock's .ibtn.rec (SBX-24)", () => {
+    render(<IconButton action="record" />);
+    const icon = screen.getByRole('button', { name: 'Record my own clip' }).querySelector('svg');
+    expect(icon?.parentElement?.className).toContain('text-[var(--rec-text)]');
+  });
+
+  it("leaves the record disc in the variant's colour on a filled button", () => {
+    render(<IconButton action="record" variant="primary" />);
+    const icon = screen.getByRole('button', { name: 'Record my own clip' }).querySelector('svg');
+    expect(icon?.parentElement?.className).not.toContain('--rec-text');
+  });
+
+  it("leaves an untinted action in the variant's colour", () => {
+    render(<IconButton action="play" />);
+    const icon = screen.getByRole('button', { name: 'Play' }).querySelector('svg');
+    expect(icon?.parentElement?.className).not.toContain('--rec-text');
+  });
 });

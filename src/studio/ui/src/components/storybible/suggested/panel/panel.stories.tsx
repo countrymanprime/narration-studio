@@ -44,11 +44,14 @@ function Loose({ pick }: { pick?: boolean }) {
   if (!list) return null;
   return (
     <Surface>
-      <Table label="Suggestions with no entry yet">
-        <TableBody>
-          <LooseSuggestionRows suggestions={list} selectedId={pick ? (chosen ?? list[0]?.id ?? null) : chosen} onSelect={setChosen} />
-        </TableBody>
-      </Table>
+      {/* The entry table's fixed columns (Name, Kind, the Hear button) in its container, as the rows are drawn on the page. */}
+      <div className="@container">
+        <Table label="Suggestions with no entry yet" columns={['auto', '8rem', '2.75rem']}>
+          <TableBody>
+            <LooseSuggestionRows suggestions={list} selectedId={pick ? (chosen ?? list[0]?.id ?? null) : chosen} onSelect={setChosen} />
+          </TableBody>
+        </Table>
+      </div>
     </Surface>
   );
 }

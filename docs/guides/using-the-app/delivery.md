@@ -6,21 +6,25 @@ Delivery is the last step of finishing a book. It names the delivery profile the
 checks every chapter against it, and builds the platform's package from the files you mastered and encoded in
 [Master & QC](master-and-qc.md). It sits under **Finish**, after Master & QC, and needs an imported
 manuscript: without one the page asks you to import one.
-While the chapters are being read, **Before you build** shows grey blocks in place of the chapter checks.
+While the chapters are being read, **Before you build** shows grey rows in place of the chapter checks. On a wide
+window the page keeps to the same centred column as Master & QC; in a narrow one the cards stack, with **Before you
+build** straight after **Output**, so the list that explains the Build button is next to it.
 
 ![Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting](../../images/ui/delivery-default.webp)
 
 ## The delivery profile
 
 The first panel's header holds the page title, **Delivery**, and on the right the **Profile** label, the profile menu
-and, for a built-in profile, a **Built in** pill. The menu lists **ACX (built in)** and each custom profile.
+and, for a built-in profile, a **Built in** pill (**Locked while it builds** for either kind of profile while a
+build runs, when the menu is dimmed and does nothing). The menu lists **ACX (built in)** and each custom profile.
 Choosing one makes it the project's profile; the files already checked keep the profile they were checked
 against until you check them again in Master & QC. **Checks on every chapter** lists the profile's
 measured limits (RMS, peak, noise floor, room tone at the head and tail), and **Files** its sample rate,
-longest file, MP3 format and channels. A built-in profile is read-only, and a one-sided limit reads in words ("at most −3 dBFS").
+longest file, MP3 format and channels. Each value sits right after its name. A built-in profile is read-only, and a one-sided limit reads in words ("at most −3 dBFS").
 
 A custom profile's name, its limits (a lowest and a highest box each) and its longest file can be changed in
-place; the change is saved when you press Enter or leave the box, and a rule it turned off reads **Off**. A
+place (every lowest box, "to", highest box and unit stand in one column down the card); the change is saved when
+you press Enter or leave the box, and a rule it turned off reads **Off**. A
 blank name, a name over 80 characters or a limit that is not a number is ignored (a minus typed as "−" or "-" is
 read as one, and "-0" is 0), a sentence under the card says so
 ("A profile needs a name, so the name was left as it was.") and the box shows the saved value again. The name box
@@ -41,11 +45,12 @@ offers **Check again**.
 
 **Before you build**, on the right, counts the chapters passing and lists each chapter, named as the
 manuscript's headings name it, with the opening credits first and the closing credits last (each judged by its
-own file, "Opening credits.wav"). Each shows **Pass**, **Fails N checks**, **Not mastered**, or, for a chapter that is not mastered and has open
+own file, "Opening credits.wav"). A long chapter name wraps to a second line, and a rule separates each chapter from the next. Each shows **Pass**,
+**Fails N checks**, **Not mastered**, or, for a chapter that is not mastered and has open
 pickups, **Waiting on N pickups** (counted from the Pickups list, as Production counts them). Pressing a
 chapter opens its file in [Master & QC](master-and-qc.md); the arrow button in the panel's header opens Master & QC
 itself. A book with more than a hundred chapters lists the first hundred and a **Show the other N chapters**
-button for the rest; the count above the list is always the whole book.
+button for the rest, and a long list scrolls inside the panel; the count above the list is always the whole book.
 
 ![Delivery with the book checked: the chapters that pass counted in Before you build, and Output waiting on the rest](../../images/ui/delivery-measured.webp)
 
@@ -67,31 +72,34 @@ no package was built. A package cannot be saved inside the project's own <!-- br
 
 Build is on once every chapter passes, and files have been mastered and encoded in Master & QC. Until then it
 says how many chapters fail and how many are not ready, that there are no chapters, that you must master all
-to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off, a red line
+to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off, a red message
 under it names the first chapter in the way, so you do not have to open Master & QC to learn why. For a failing
 chapter it gives the rule it misses, its value and the limit ("Chapter 8: noise floor −57.8 dBFS (limit ≤ −60
 dBFS), and 1 more rule."). When no chapter fails, it names the first chapter that is not ready and why: it has no
 measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
-something is measured, the line is left off and the count beside Build says so.
+anything is measured, it says "Nothing is measured yet. Measure the files in Master & QC." with **Open Master & QC**
+under it.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
 its description. Pressing it builds nothing and announces "Nothing was built" with that reason.
 
 ![Delivery with every chapter passing and the files encoded: Build ACX package is on](../../images/ui/delivery-ready.webp)
 
-While the package builds, the button is busy, **Cancel** is offered and a bar shows the work. A cancelled or failed
+While the package builds, the button is busy, **Cancel** is offered, the line beside them says "Building the
+package…" and a bar shows the work. A cancelled or failed
 build leaves no files in the folder, so the same build can be started again; a package never overwrites a file that
 is already there and says which one is in the way.
 
 ![Delivery with a started build running: the busy Build button, Cancel and the progress bar](../../images/ui/delivery-building.webp)
 
-When the package is built, **Built** shows how many files were written and where, with a **Written** mark for each
-file. The folder button beside it (**Open the folder**) opens that folder in Explorer. The list shows only for the
+When the package is built, **Built** shows how many files were written and where, with a **Written** mark after each
+file's name. The folder button at the end of that line (**Open the folder**) opens that folder in Explorer. The list shows only for the
 profile that built it: choose another profile and it goes away until you build again.
 
 ![Delivery after Build ACX package: Built, 15 files in the folder the host chose, and each file Written](../../images/ui/delivery-built.webp)
 
-If the host refuses or the build fails, Delivery shows its words under Build and writes nothing. It does not also
+If the host refuses or the build fails, Delivery shows its words under Build, in a red box with a warning sign, and
+writes nothing; beside Build it says "The last build did not finish." It does not also
 pop up a message while you are on this page; from another page the message appears there. A file that was encoded
 empty or is gone is named and refused before anything is written ("is empty (0 bytes); encode it again"), and so
 is a chapter whose title makes a file name longer than Windows allows.
@@ -99,9 +107,9 @@ is a chapter whose title makes a file name longer than Windows allows.
 ![Delivery after the host refused the build: its reason under Build, and nothing written](../../images/ui/delivery-build-failed.webp)
 
 If the host stops answering while a build runs, Delivery says "Can't tell how the build is going", when it last
-heard and when it last asked. **Check again** reads again at once and answers your press: "You checked again just now:
-the host still did not answer." The build keeps running on the host and **Cancel** is still there. Beside Build the
-sentence read before the host went quiet ("Every chapter passes.") is left out until it answers again.
+heard and when it last asked, with **Check again** under it. **Check again** reads again at once and answers your
+press in the same sentence: "… the host did not answer (you checked again just now)." The build keeps running on the host and **Cancel** is still there. Beside Build the
+sentence about the build ("Building the package…") is left out until the host answers again.
 
 ![Delivery with a running build and a host that no longer answers: the message with Check again](../../images/ui/delivery-host-quiet.webp)
 

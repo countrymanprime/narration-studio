@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
+import { ToolResult } from './ToolResult';
 import type { CleanupToolKey, CleanupToolsState } from '../../types';
 
 const IDLE: CleanupToolsState = { phase: 'idle', message: '', tool: '', action: '' };
@@ -27,6 +28,8 @@ export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();
   const [state, setState] = useState<CleanupToolsState>(IDLE);
   const [requestError, setRequestError] = useState('');
+  // The tool the last Open was for, so a failure of the request itself shows under that tool's row too.
+  const [requested, setRequested] = useState<CleanupToolKey>();
 
   useEffect(() => {
     const unsubscribe = api.subscribeCleanupTools(setState);
@@ -38,8 +41,19 @@ export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
   }, [api]);
 
   const running = state.phase === 'launching';
+  // A launch's outcome belongs to the tool it opened (R3EN1-3): it shows under that row, not at the foot of the list. One that names no
+  // listed tool (an older run's state) shows under the list.
+  const outcomeTool: string = requestError ? (requested ?? '') : state.phase === 'launched' || state.phase === 'error' ? state.tool : '';
+  const outcome =
+    requestError || state.phase === 'error' ? (
+      <ToolResult tone="danger" message={requestError || state.message} />
+    ) : state.phase === 'launched' ? (
+      <ToolResult tone="success" message={state.message} />
+    ) : null;
+  const outcomeListed = TOOLS.some((tool) => tool.key === outcomeTool);
 
   const launch = (tool: CleanupToolKey) => {
+    setRequested(tool);
     setRequestError('');
     api.cleanupToolsLaunch(tool).catch((reason: unknown) => setRequestError(String(reason)));
   };
@@ -59,45 +73,29 @@ export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
     >
       <ul>
         {TOOLS.map((tool) => (
-          <li
-            key={tool.key}
-            className="flex flex-wrap items-center justify-between gap-3 border-t py-3 first:border-t-0"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            <div className="min-w-0 flex-1 basis-60">
-              <p className="text-sm font-semibold">{tool.label}</p>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                {tool.description}
-              </p>
+          <li key={tool.key} className="space-y-2 border-t py-3 first:border-t-0" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 flex-1 basis-60">
+                <p className="text-sm font-semibold">{tool.label}</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {tool.description}
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                aria-label={`Open ${tool.label}`}
+                onClick={() => launch(tool.key)}
+                pending={running && state.tool === tool.key}
+                disabled={running && state.tool !== tool.key}
+              >
+                Open
+              </Button>
             </div>
-            <Button
-              variant="secondary"
-              aria-label={`Open ${tool.label}`}
-              onClick={() => launch(tool.key)}
-              pending={running && state.tool === tool.key}
-              disabled={running && state.tool !== tool.key}
-            >
-              Open
-            </Button>
+            {outcomeListed && outcomeTool === tool.key && outcome}
           </li>
         ))}
       </ul>
-
-      {state.phase === 'launched' && (
-        <p className="mt-3 text-sm" role="status">
-          {state.message}
-        </p>
-      )}
-      {requestError && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {requestError}
-        </p>
-      )}
-      {state.phase === 'error' && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {state.message}
-        </p>
-      )}
+      {!outcomeListed && outcome && <div className="mt-3">{outcome}</div>}
     </Dialog>
   );
 }

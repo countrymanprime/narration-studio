@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { Button } from '../../primitives/Button';
 import { Field } from '../../primitives/Field';
+import { IconButton } from '../../primitives/IconButton';
 import { parseClock, reasonSentence } from './pickupRows';
 
 /**
@@ -48,15 +49,25 @@ export function AddPickup({
   };
 
   return (
+    /* As wide as 18 rem, never wider than the window less the popover's margins (XPK-9). */
     <form
-      className="flex min-w-[18rem] flex-col gap-2"
+      className="flex w-[min(18rem,calc(100vw-3rem))] flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <span className="text-[0.88rem] font-medium text-[var(--text-muted)]">{chapterName}</span>
+      {/* A title and a way out, then where the line goes: the chapter is the target, not a heading (XPK-9, R3PK-5). */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-[0.9375rem] font-semibold">Add a pickup</h2>
+        <IconButton action="close" label="Close" size="sm" onClick={onDone} />
+      </div>
+      <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">
+        To <span className="font-semibold text-[var(--text)]">{chapterName}</span>
+      </p>
+      {/* Focus starts in the time, as before the popover had a Close ahead of it. */}
       <Field
+        autoFocus
         label="Time in the recording"
         value={time}
         onChange={(value) => {
