@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
+import { brand } from '../../../brand.gen';
 
 afterEach(() => {
   cleanup();
@@ -158,6 +159,24 @@ describe('Settings: page frame', () => {
     const empty = document.querySelector<HTMLElement>('[data-empty-results]')!;
     expect(empty.className).not.toContain('text-center');
     expect(empty.className).not.toContain('border-dashed');
+  });
+});
+
+// Alignment audit, App & updates (XSE1-7, R3SE2-18): the version and the updates are rows under a section label, not boxes in a box.
+describe('Settings: This version', () => {
+  it('draws the version and the updates as two labelled rows under a This version section label', async () => {
+    await renderPage();
+    pick('App & updates');
+    const section = await screen.findByRole('region', { name: 'This version' });
+    expect(within(section).getByRole('heading', { level: 3, name: 'This version' })).toBeTruthy();
+    const version = section.querySelector<HTMLElement>('[data-about="version"]')!;
+    expect(version.textContent).toContain(brand.name);
+    expect(version.textContent).toContain('GNU Affero General Public License');
+    expect(version.textContent).toMatch(/Version \S+/);
+    expect(version.className).toContain('@min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
+    const updates = section.querySelector<HTMLElement>('[data-about="updates"]')!;
+    expect(within(updates).getByText('Updates')).toBeTruthy();
+    expect(section.querySelector('[style*="surface-2"]')).toBeNull();
   });
 });
 

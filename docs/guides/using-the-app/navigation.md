@@ -172,18 +172,19 @@ opens [Proof](proof.md) with this panel open over it.)
 
 The panel reads the project's REAPER project file (`.rpp`) directly, so it needs neither REAPER running
 nor an imported manuscript; its [REAPER tools](#reaper-tools) are the exception. It shows the file it read
-and, beside the heading, **Link a REAPER project file** (or **Link a different REAPER project file** once
-one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
+and, beside the heading, **Link file…** (or **Change file…** once one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
 and the same one [Settings](settings.md#daw-integration) makes. The file can be anywhere: in the project
 folder or a subfolder of it (the link then survives moving the whole project), or in a separate folder or
 drive kept for REAPER (a short note says where the file and the project are). When REAPER has a different project
-open than the linked one, the panel says so: link the open project, or switch REAPER to the linked file. The notice
-says what it is waiting for ("Waiting for REAPER to open the linked project"), when the app last checked ("Last checked 4 s
-ago") and has **Check again**, which reads the project's state from the app again at once.
+open than the linked one, a warning box in the card says so: link the open project, or switch REAPER to the linked file. It
+says what it is waiting for ("Waiting for REAPER to open the linked project") and when the app last checked ("Last checked 4 s
+ago"), and has two buttons: **Link the open project…**, which picks the file REAPER has open, and **Check again**, which reads
+the project's state from the app again at once.
 
 ![The audio engine panel when REAPER has a different project open: the notice with when it last checked, and Check again](../../images/ui/engine-panel-wrong-project.webp)
 
-If the project folder holds more than one `.rpp` file, the panel asks which one to read. Backup copies
+If the project folder holds more than one `.rpp` file, the panel asks which one to read: each file is a row with its name
+first and its folder under it, and pressing the row reads that file. Backup copies
 (`.rpp-bak`, or files inside a subfolder such as Backups) aren't offered. The choice is remembered for the
 project.
 
@@ -351,14 +352,15 @@ asks again only if you unlink and relink the project. The same question can come
 ways to link a project (this panel's link button, choosing a project here, an import, or reopening a linked
 project).
 
-Once on, the Chapter sync section says when it last synced, from which saved project file, and how
-many chapters it linked on its own and how many you linked ("On · last synced 10:42 from the saved
-Alice.rpp · 8 chapters linked automatically, 1 by you"). **Turn off** stops it (chapter links you
-already made are kept); **Turn on** asks again from a project that had it off. Its own Needs you list
+Once on, the Chapter sync section lists one fact per row: **Status** (On), **Last synced** (when, and from which
+saved project file: "10:42, from the saved Alice.rpp"), **Links** (how many chapters it linked on its own and
+how many you linked: "8 chapters linked automatically, 1 by you"), **Background checks** while they are waiting
+("Waiting: REAPER is recording."), and **Not chapters** (below). **Turn off**, beside the heading, stops it (chapter
+links you already made are kept); while it is off the same place has **Turn on**, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
 right track and press **Link**, the same link Chapter links below records. A track sync doesn't
-recognize as any chapter's is listed under "Tracks that are not chapters" so it isn't mistaken for a
+recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 

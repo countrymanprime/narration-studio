@@ -13,7 +13,7 @@
   - button "Close the engine panel"
   - region "REAPER project":
     - heading "REAPER project" [level=2]
-    - button "Link a different REAPER project file"
+    - button "Change file…"
   - region "REAPER tools":
     - heading "REAPER tools" [level=2]
     - toolbar "REAPER tools":
@@ -27,7 +27,15 @@
   - region "Chapter sync":
     - heading "Chapter sync" [level=2]
     - button "Turn off"
-    - heading "Tracks that are not chapters (1)" [level=3]
+    # Chapter sync's facts are a description list, one term per fact, the tracks that are not chapters among them.
+    - term: Status
+    - definition: "On"
+    - term: Last synced
+    - definition: /, from the saved Alice\.rpp$/
+    - term: Links
+    - definition: /chapters? linked/
+    - term: Not chapters (1)
+    - definition: Click Track
   - region "Tracks":
     - heading "Tracks" [level=2]
     - table "Tracks":
