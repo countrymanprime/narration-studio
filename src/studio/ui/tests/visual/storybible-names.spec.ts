@@ -5,7 +5,7 @@ import { settlePage } from './helpers/settle';
 // The entry's names list is one grid (alignment audit SBX-1 to SBX-4, R4SB-1, R3SB1-5, R3SB1-6): every row's name, pronunciation,
 // source and play button start at one x whatever buttons the row has, the text sits on the middle of the row's 36 px buttons, and
 // nothing (the old Rescan button) is stacked over the first row's buttons. Read view (Hatter and its alias, White Rabbit with a
-// flagged alias) and edit view (an alias row with Remove, a first row without).
+// flagged alias) and edit view (an alias row with Remove, a first row without); every row's last button ends at one x (A4).
 const SIZES = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'small-desktop', width: 1024, height: 768 },
@@ -42,6 +42,7 @@ async function rows(page: Page) {
         say: (await row.getByRole('textbox', { name: /^How I say/ }).count()) ? await box(row.getByRole('textbox', { name: /^How I say/ })) : undefined,
         source: await box(item.getByLabel(/^(Source|Pronunciation source)/).first()),
         play: await box(item.getByRole('button', { name: /^(Play|Pause)/ })),
+        last: await box(item.getByRole('button').last()),
       };
     }),
   );
@@ -74,6 +75,10 @@ for (const { state, loads, sizes } of STATES) {
       near(
         found.map((row) => row.play.x),
         'play buttons start at one x',
+      );
+      near(
+        found.map((row) => row.last.x + row.last.width),
+        'every row’s last button ends at one x',
       );
       for (const row of found) {
         const middle = row.play.y + row.play.height / 2;
