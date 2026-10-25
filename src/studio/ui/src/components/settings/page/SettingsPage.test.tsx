@@ -91,7 +91,7 @@ describe('Settings: structure', () => {
     pick('Speech to text');
     await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
     const model = row('stt.model');
-    expect(model.className).toContain('@min-[1024px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
+    expect(model.className).toContain('@min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
     expect(model.className).not.toContain('grid-cols-2');
     expect(within(model).getByRole('combobox').className).toContain('w-80');
   });

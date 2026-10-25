@@ -47,9 +47,9 @@ function UsedBy({ row }: { row: SettingMeta }) {
 }
 
 // A label column and a control column (docs/design/design-system.md#settings-rows): stacked in a narrow page, a fixed 12 rem label column
-// from 761 px of page width, `minmax(12rem,16rem)` from 1024. Two equal halves left a tall control's left half empty and pushed every
+// from 761 px of page width, `minmax(12rem,16rem)` from 860 (a width in `layoutBreakpoints.ts`). Two equal halves left a tall control's left half empty and pushed every
 // control a different distance from its label (alignment audit cause E).
-const SETTING_ROW_GRID = 'grid gap-x-8 gap-y-1.5 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[1024px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
+const SETTING_ROW_GRID = 'grid gap-x-8 gap-y-1.5 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
 const CELL = `${SETTING_ROW_GRID} border-t border-[var(--border)] px-5 py-4 first:border-t-0`;
 
 /**
