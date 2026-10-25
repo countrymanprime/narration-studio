@@ -27,6 +27,34 @@ const (
 	messageRestoreStale          = "Your audio for these words is no longer where the app left it in REAPER, so nothing changed. Use Edit > Undo in REAPER, or put it back by hand from the Cuts track."
 )
 
+// ImportTheirAudio puts the file at path on a new muted track named name, in one undo step (bridge's import_audio_track). The host
+// sends only a file the narrator chose in the app's own file dialog.
+func (r rangeReplacer) ImportTheirAudio(ctx context.Context, name, path string) (dawport.TheirAudio, error) {
+	if r.allowed != nil {
+		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapReplaceRange)); ok {
+			return dawport.TheirAudio{Result: refused}, nil
+		}
+	}
+	got, err := r.actions.ImportAudioTrack(ctx, name, path)
+	var refusal *bridge.RefusalError
+	switch {
+	case errors.Is(err, bridge.ErrBadReplacement):
+		return dawport.TheirAudio{Result: dawport.Refused(badReplacementSentence(err))}, nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.TheirAudio{Result: dawport.Refused("REAPER is recording. Stop recording first.")}, nil
+	case errors.Is(err, bridge.ErrScriptOutdated):
+		return dawport.TheirAudio{Result: dawport.Refused(messageReplaceScriptOutdated)}, nil
+	case errors.As(err, &refusal):
+		return dawport.TheirAudio{Result: dawport.Refused(refusal.Sentence)}, nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.TheirAudio{Result: dawport.Refused(err.Error())}, nil
+	case err != nil:
+		return dawport.TheirAudio{}, err
+	}
+	return dawport.TheirAudio{Result: dawport.OK(fmt.Sprintf("Added %s's audio to REAPER on a muted track of its own.", strings.TrimSpace(name)), true).
+		WithUndoSteps(got.UndoPoints), Track: got.TrackGUID, Item: got.ItemGUID, Length: got.Length}, nil
+}
+
 // ReplaceRange plays the request's stretch of their item in place of the narrator's words, in one undo step (bridge's
 // replace_range). It asks allowed itself first, so a refusal is the capability's own sentence rather than bridge's ErrExperimentalOff.
 func (r rangeReplacer) ReplaceRange(ctx context.Context, request dawport.ReplaceRangeRequest) (dawport.RangeReplaced, error) {

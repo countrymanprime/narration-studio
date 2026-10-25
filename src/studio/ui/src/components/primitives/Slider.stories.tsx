@@ -54,3 +54,16 @@ export const AtMaximum: Story = { args: { value: 48, valueText: '48 px' } };
 export const Disabled: Story = { args: { disabled: true } };
 
 // Arrow, Home, End and Page keys are proved in Slider.test.tsx: Base UI builds a KeyboardEvent that the Storybook jsdom runner's window rejects.
+
+// The track runs the full width of the row, level with the label and the value text above it (alignment audit cause F).
+export const TrackMeetsItsLabel: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const label = canvas.getByText('Text size');
+    const value = canvas.getByText('28 px');
+    const track = canvas.getByRole('slider', { name: 'Text size' }).closest<HTMLElement>('.h-1');
+    if (canvasElement.getBoundingClientRect().width === 0 || !track) return;
+    await expect(Math.abs(track.getBoundingClientRect().left - label.getBoundingClientRect().left)).toBeLessThanOrEqual(1);
+    await expect(Math.abs(track.getBoundingClientRect().right - value.getBoundingClientRect().right)).toBeLessThanOrEqual(1);
+  },
+};

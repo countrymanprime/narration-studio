@@ -150,6 +150,17 @@ func CanonicalTokens(text string) []string {
 	return tokens
 }
 
+// SpokenKey is spoken_forms.spoken_key: one string for how text is said, its
+// canonical tokens with numbers merged, joined with no separator and no
+// apostrophe, so "daisy chain" and "daisy-chain", "twenty three" and "23", or
+// "there" and "their" give the same key.
+func SpokenKey(text string) string {
+	tokens := CanonicalTokens(text)
+	identity := make([]int, len(tokens))
+	merged, _ := MergeNumberWords(tokens, identity)
+	return strings.ReplaceAll(strings.Join(merged, ""), "'", "")
+}
+
 // MergeNumberWords is spoken_forms.merge_number_words: each run of
 // spelled-out cardinal numbers collapses into one digit token ("twenty three"
 // to "23", "one hundred and five" to "105"); an "and" continues a run only

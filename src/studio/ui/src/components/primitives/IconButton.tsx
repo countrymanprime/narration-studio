@@ -14,7 +14,7 @@ const VARIANT_CLASSES: Record<IconButtonVariant, string> = {
   danger: 'border-[var(--danger)] bg-[var(--surface)] text-[var(--danger-text)] not-aria-disabled:hover:bg-[var(--review-soft)]',
 };
 
-// `md` is 32 px, `--button-height` (and what the mocks draw); `sm` is 28 px, `--button-height-sm`, beside a small Button in a dense row.
+// `md` is 36 px, `--button-height`; `sm` is 32 px, `--button-height-sm`, beside a small Button in a dense row.
 type IconButtonSize = 'md' | 'sm';
 
 const SIZE_CLASSES: Record<IconButtonSize, string> = {
@@ -77,7 +77,7 @@ export function IconButton({
       // A press does nothing while pending or gated, and it does not submit a form either (`preventDefault` stops the native submit).
       onClick={gated ? (event) => event.preventDefault() : onClick}
       // `display` has no specificity here, so a caller can hide it (`hidden max-md:inline-flex`) without a class fight.
-      className={`${SIZE_CLASSES[size]} items-center justify-center rounded-[var(--radius-button)] border disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55 [:where(&)]:inline-flex ${VARIANT_CLASSES[variant]} ${className}`}
+      className={`${SIZE_CLASSES[size]} items-center justify-center rounded-[var(--radius-button)] border disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55 [:where(&)]:inline-flex [:where(&)]:flex-none ${VARIANT_CLASSES[variant]} ${className}`}
       {...rest}
     >
       {pending ? (

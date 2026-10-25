@@ -27,6 +27,25 @@ type Story = StoryObj<typeof meta>;
 
 export const InfoIcon: Story = {};
 
+// The 15 px "i" takes a press anywhere in the 24 px square around it, and looks the same (alignment audit cause G).
+export const InfoIconHas24pxHitArea: Story = {
+  play: async ({ canvasElement }) => {
+    const icon = within(canvasElement).getByRole('button', { name: 'More information' });
+    const box = icon.getBoundingClientRect();
+    if (box.width === 0) return;
+    await expect(Math.round(box.width)).toBe(15);
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    for (const [dx, dy] of [
+      [-11.5, 0],
+      [11.5, 0],
+      [0, -11.5],
+      [0, 11.5],
+    ])
+      await expect(icon.contains(document.elementFromPoint(cx + dx, cy + dy))).toBe(true);
+  },
+};
+
 // The "i" is a real button: the keyboard reaches it, it shows its text at once on keyboard focus (hover waits 1000 ms),
 // Escape hides it, and the text is also its accessible description, so a screen reader hears it without the popup.
 export const InfoIconShowsTooltipOnKeyboardFocus: Story = {

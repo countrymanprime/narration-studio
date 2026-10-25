@@ -2,6 +2,7 @@ import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faMinus } from '@fortawesome/free-solid-svg-icons';
 import type { ReactNode } from 'react';
+import { HIT_AREA } from './hitArea';
 
 type DataProps = { [K in `data-${string}`]?: string | number | boolean | undefined };
 
@@ -17,8 +18,7 @@ export type CheckboxProps = DataProps &
     indeterminate?: boolean;
   };
 
-const BOX_CLASS =
-  'inline-flex size-4 flex-none items-center justify-center rounded-[0.25rem] border-2 border-[var(--btn-line)] bg-[var(--surface)] text-[var(--accent-contrast)] data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[indeterminate]:border-[var(--accent)] data-[indeterminate]:bg-[var(--accent)] data-[disabled]:opacity-40';
+const BOX_CLASS = `${HIT_AREA} inline-flex size-4 flex-none items-center justify-center rounded-[0.25rem] border-2 border-[var(--btn-line)] bg-[var(--surface)] text-[var(--accent-contrast)] data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[indeterminate]:border-[var(--accent)] data-[indeterminate]:bg-[var(--accent)] data-[disabled]:opacity-40`;
 
 // A checkbox: with children, a labelled row (the box, then the label content, and pressing the label toggles it); with an
 // `aria-label` instead, the bare box. Base UI's Checkbox is a styled `role="checkbox"` with a hidden native input for
