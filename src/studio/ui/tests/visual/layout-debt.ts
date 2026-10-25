@@ -20,15 +20,6 @@ export const LAYOUT_DEBT: LayoutDebt[] = [
     defect:
       'desktop: cell 2 of like rows starts at 1329, 1168.5; small-desktop: cell 2 of like rows starts at 905, 736.5; tablet: cell 2 of like rows starts at 649, 480.5',
   },
-  // G2: a flush table's text does not start where its card's title starts.
-  {
-    page: 'script',
-    state: 'rail-words',
-    viewports: ['wide', 'desktop'],
-    rule: 'G2',
-    element: 'div > table[aria-label="Words in this chapter"]',
-    defect: 'desktop: table text starts at 1061, the card title at 1074; wide: table text starts at 1301, the card title at 1314',
-  },
   // H1: a hit area under 24 px with another target within the 24 px circle (WCAG 2.5.8).
   {
     page: 'proof',
