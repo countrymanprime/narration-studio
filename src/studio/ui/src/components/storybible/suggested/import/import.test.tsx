@@ -145,7 +145,7 @@ describe('reads-a-chosen-file-with-a-size-precheck', () => {
   it('refuses a file over the host limit before reading it', async () => {
     render(wrap(<ImportDialog onClose={vi.fn()} />));
     const prompts = await api.extractionImportPrompt('json');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy the prompt for your own LLM' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy prompt' })).toBeTruthy());
     await act(async () => void (await new Promise((r) => setTimeout(r, 20))));
     const big = new File(['{}'], 'big.json');
     Object.defineProperty(big, 'size', { value: prompts.maxBytes + 1 });
@@ -203,7 +203,7 @@ describe('copies-the-prompt-and-the-example', () => {
     const csvPrompt = await api.extractionImportPrompt('csv');
     const jsonPrompt = await api.extractionImportPrompt('json');
     render(wrap(<ImportDialog onClose={vi.fn()} />));
-    const copy = screen.getByRole('button', { name: 'Copy the prompt for your own LLM' });
+    const copy = screen.getByRole('button', { name: 'Copy prompt' });
     await waitFor(async () => {
       await userEvent.click(copy);
       expect(written.length).toBeGreaterThan(0);
@@ -221,7 +221,7 @@ describe('copies-the-prompt-and-the-example', () => {
     const toast = vi.spyOn(overlay, 'toast');
     render(wrap(<ImportDialog onClose={vi.fn()} />));
     await act(async () => void (await new Promise((r) => setTimeout(r, 20))));
-    await userEvent.click(screen.getByRole('button', { name: 'Copy the prompt for your own LLM' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Copy prompt' }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Copy failed.', { tone: 'error' }));
   });
 });
@@ -234,7 +234,7 @@ describe('example-box-switches-format', () => {
     const written: string[] = [];
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: (t: string) => (written.push(t), Promise.resolve()) } });
     render(wrap(<ImportDialog onClose={vi.fn()} />));
-    await u.click(screen.getByRole('button', { name: 'Show the format example' }));
+    await u.click(screen.getByRole('button', { name: 'Show example' }));
     const box = await screen.findByLabelText('Format example');
     expect(box.getAttribute('tabindex')).toBe('0');
     await waitFor(() => expect(box.textContent).toBe(json.example));
@@ -242,7 +242,7 @@ describe('example-box-switches-format', () => {
     expect(box.textContent).toBe(csv.example);
     await u.click(screen.getByRole('button', { name: 'Copy the example' }));
     await waitFor(() => expect(written).toEqual([csv.example]));
-    expect(screen.getByRole('button', { name: 'Hide the format example' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Hide example' }).getAttribute('aria-pressed')).toBe('true');
   });
 });
 

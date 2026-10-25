@@ -85,17 +85,13 @@ function basename(path: string): string {
 
 const chapters = (count: number) => `${count} chapter${count === 1 ? '' : 's'}`;
 
-/**
- * Chapter sync's "on" line: "On · last synced 10:42 from the saved Alice.rpp · 8 chapters linked automatically, 1 by
- * you". The split comes from the host's per-chapter rows (`origin`); before it has them (the saved .rpp unreadable) the plain
- * count of links stands in.
- */
-export function chapterSyncSummaryText(
+/** Chapter sync's facts, one per row of its card: when it last synced and from which saved file, and how many chapters it and you linked. */
+export function chapterSyncSummaryFacts(
   state: { lastSync: string | null; projectFile: string; chapters: Pick<ChapterSyncChapter, 'origin'>[]; linked: number },
   now: Date = new Date(),
-): string {
-  const synced = state.lastSync ? `last synced ${chapterSyncTimeLabel(state.lastSync, now) || 'at an unknown time'}` : 'not synced yet';
-  const file = state.lastSync && state.projectFile ? ` from the saved ${basename(state.projectFile)}` : '';
+): { synced: string; links: string } {
+  const when = state.lastSync ? chapterSyncTimeLabel(state.lastSync, now) || 'At an unknown time' : 'Not synced yet';
+  const file = state.lastSync && state.projectFile ? `, from the saved ${basename(state.projectFile)}` : '';
   let links: string;
   if (state.chapters.length === 0) {
     links = `${chapters(state.linked)} linked`;
@@ -104,13 +100,13 @@ export function chapterSyncSummaryText(
     const manual = state.chapters.filter((chapter) => chapter.origin === 'manual').length;
     if (auto > 0) links = `${chapters(auto)} linked automatically${manual > 0 ? `, ${manual} by you` : ''}`;
     else if (manual > 0) links = `${chapters(manual)} linked by you`;
-    else links = 'no chapters linked';
+    else links = 'No chapters linked';
   }
-  return `On · ${synced}${file} · ${links}`;
+  return { synced: `${when}${file}`, links };
 }
 
 /**
- * Chapter sync's background-checks wait line: why a changed
+ * Chapter sync's Background checks row: why a changed
  * chapter is not being re-checked on its own right now. '' when there is nothing worth telling the narrator: checks
  * are off, another check (the narrator's own or another background pick) is already running, or nothing has
  * changed since its last check.
@@ -118,10 +114,10 @@ export function chapterSyncSummaryText(
 export function chapterSyncBackgroundWaitText(background: { enabled: boolean; wait: ChapterSyncBackgroundWait }): string {
   if (!background.enabled) return '';
   const REASONS: Partial<Record<ChapterSyncBackgroundWait, string>> = {
-    recording: 'Background checks: waiting, REAPER is recording.',
-    battery: 'Background checks: waiting for mains power.',
-    quiet: 'Background checks: waiting for things to settle down.',
-    model: 'Background checks: waiting for the Whisper model.',
+    recording: 'Waiting: REAPER is recording.',
+    battery: 'Waiting for mains power.',
+    quiet: 'Waiting for things to settle down.',
+    model: 'Waiting for the Whisper model.',
   };
   return REASONS[background.wait] ?? '';
 }

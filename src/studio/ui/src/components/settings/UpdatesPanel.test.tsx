@@ -30,7 +30,7 @@ describe('UpdatesPanel', () => {
     renderPanel(undefined);
     fireEvent.click(await screen.findByRole('button', { name: 'Check now' }));
     expect(await screen.findByText(/You have the latest version/)).toBeTruthy();
-    expect(screen.getByText(/^Last checked Sep 21, 2026$/)).toBeTruthy();
+    expect(screen.getByText(/last checked Sep 21, 2026/i)).toBeTruthy();
   });
 
   it('shows a newer release with its version, size and channel, and opens its release notes', async () => {
@@ -198,7 +198,7 @@ describe('UpdatesPanel, downloading', () => {
       expect(await screen.findByRole('dialog', { name: `Download ${brand.name} 0.2.7` })).toBeTruthy();
       await act(async () => void (await vi.advanceTimersByTimeAsync(4000)));
       fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
-      expect((await screen.findAllByText('Version 0.2.7 is downloaded and checked.')).length).toBeGreaterThan(0);
+      expect(await screen.findByText(/downloaded and checked/)).toBeTruthy();
       expect(screen.queryByRole('button', { name: 'Download update' })).toBeNull();
       expect(screen.getByRole('button', { name: 'Install and restart' })).toBeTruthy();
     } finally {
@@ -213,6 +213,34 @@ describe('UpdatesPanel, downloading', () => {
     renderPanel('available', { updateStatus: async () => ({ ...found, available: { ...available, replaces: false } }) });
     await screen.findByText(/does not update itself/);
     expect(screen.queryByRole('button', { name: 'Download update' })).toBeNull();
+  });
+});
+
+// Alignment audit, App & updates (R3SE1-5, XSE1-6, R3SE1-6).
+describe('UpdatesPanel, layout', () => {
+  it('says the release once: a headline and one detail line with the date, not a second "is downloaded" sentence', async () => {
+    renderPanel('ready');
+    await screen.findByText('Version 0.2.7 is available');
+    expect(screen.queryByText(/is downloaded and checked/)).toBeNull();
+    const detail = screen.getByText(/downloaded and checked/);
+    expect(detail.textContent).toMatch(/^A release candidate · 400 MB · downloaded and checked · last checked [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+    expect(detail.textContent).not.toContain('UTC');
+  });
+
+  it('puts every button in one row, the main action first and Check now last', async () => {
+    renderPanel('ready');
+    const install = await screen.findByRole('button', { name: 'Install and restart' });
+    const row = install.parentElement!;
+    expect([...row.querySelectorAll('button')].map((button) => button.textContent)).toEqual(['Install and restart', 'Release notes', 'Check now']);
+  });
+
+  it('shows a failure under the headline, above the buttons, whatever failed', async () => {
+    renderPanel('install-refused');
+    fireEvent.click(await screen.findByRole('button', { name: 'Install and restart' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Install and restart' }));
+    const alert = await screen.findByRole('alert');
+    const check = screen.getByRole('button', { name: 'Check now' });
+    expect(alert.compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 

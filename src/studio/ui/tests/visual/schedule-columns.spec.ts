@@ -4,7 +4,7 @@ import { settlePage } from './helpers/settle';
 
 // The milestone table keeps the Studio Next mock's column sizes, whatever the milestones are called: the Due column stays about the width
 // of a date field (the mock's 152 px) and Measures stays wide enough for "All recorded" on one line, even beside a very long milestone name
-// (the date column grew to 243 to 501 px and Measures shrank to 88 px).
+// (the date column grew to 243 to 501 px and Measures shrank to 88 px). Below 1024 px Measures folds under the name.
 for (const size of [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'small-desktop', width: 1024, height: 768 },
@@ -25,6 +25,7 @@ for (const size of [
     const table = page.getByRole('table', { name: 'Milestones' });
     const width = async (name: string) => (await table.getByRole('columnheader', { name, exact: true }).boundingBox())!.width;
     expect(await width('Due'), 'the Due column is about a date field wide').toBeLessThanOrEqual(160);
-    expect(await width('Measures'), 'Measures holds "All recorded" on one line').toBeGreaterThanOrEqual(140);
+    // Below 1024 px Measures folds under the name (alignment audit R4SM-13), so only a wider window has the column.
+    if (size.width >= 1024) expect(await width('Measures'), 'Measures holds "All recorded" on one line').toBeGreaterThanOrEqual(140);
   });
 }

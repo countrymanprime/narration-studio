@@ -4,7 +4,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { ManuscriptChapter, RetailSampleAnswer } from '../../types';
 import { formatMinutesSeconds } from '../../state';
-import { CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
+import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
@@ -106,7 +106,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
       </p>
       {chapters.length > 0 && (
         // The chapter takes the row's width and its line a short field beside it, so a chapter's name is not cut while the page has room (XSE2-5).
-        <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-3">
+        <div className={`${CREDITS_FIELDS} grid grid-cols-[minmax(0,1fr)_6rem] gap-3`}>
           <LabelledSelect
             label="Sample starts in"
             value={start.chapterId}
