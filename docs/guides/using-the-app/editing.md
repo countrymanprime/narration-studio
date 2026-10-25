@@ -36,12 +36,14 @@ spans on the waveform, the kind chip on a word's card, the rows of the drawer's 
 the take left out (as not read) and added (as extra). A cut word is struck through, and a selected or playing word keeps its own fill;
 the mark's underline stays under both.
 
-Each line starts with its time in the chapter, and a line that has takes shows how many in a round badge under the
-time. Every such line, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
+Each line starts with its time in the chapter (a chapter with nothing heard yet has no times, and its text starts at the
+card's edge). Every line that has takes, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
 the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
 first read's spot), **Duplicate read** (the take reads the line twice) or **To choose**. Tab visits one chip, the one on the
 line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
-cursor's line (and folds them again on a line with one take), and a click on the chip or the badge opens any other.
+cursor's line (and folds them again on a line with one take), and a click on a chip opens any other. The takes list
+lays every take out in the same columns: its name and state, a bar for its length, how much of the script it read as
+written, then Play and Keep.
 
 The script also shows what the Story Bible and your marks say about it, read from the [Script page](script.md)'s data. A
 quoted stretch starts with a chip naming the speaker, in the character's colour (dashed when the Story Bible only suggests

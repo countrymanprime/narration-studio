@@ -56,7 +56,6 @@ import { usePrepSteps } from '../takes/prep/usePrepSteps';
 import { dawSplitter } from '../takes/split/splitCommand';
 import { useSplitDuplicate } from '../takes/split/useSplitDuplicate';
 import { TakeChip } from '../takes/TakeChip';
-import { TakeBadge } from '../takes/TakeBadge';
 import { TakeLines } from '../takes/TakeLines';
 import { takeSourceLabel } from '../takes/takeSource';
 import { registerTakesMenuSection } from '../takes/takesMenuSection';
@@ -619,11 +618,6 @@ export function EditingBody(props: EditingBodyProps) {
             className="col-start-2 flex flex-col items-start gap-2 pt-1 text-[length:var(--font-size-sm)] leading-[1.4]"
             watch={doc}
           >
-            {line ? (
-              <InHost root={root} selector={`${rowOf(pid)} [data-gutter]`} name={`badge-${pid}`} className="contents" watch={doc}>
-                <TakeBadge count={line.takes.length} open={open} controls={`takes-${pid}`} active={pid === current} onToggle={() => setLineOpen(pid, !open)} />
-              </InHost>
-            ) : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
                 doc={doc}
