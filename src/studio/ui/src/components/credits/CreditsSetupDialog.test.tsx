@@ -110,6 +110,12 @@ describe('CreditsSetupDialog', () => {
     await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('General', 'global', { narrator_name: 'Ada Finch' }));
   });
 
+  it('"Use for all my projects" sits a step below the narrator hint, not against it (XPR1-30)', () => {
+    renderDialog(STATE);
+    const label = screen.getByRole('checkbox', { name: /^Use for all my projects/ }).closest('label')!;
+    expect(label.parentElement!.className).toContain('mt-2');
+  });
+
   it('unchecking "Use for all my projects" saves only the project value, not the global default', async () => {
     const saveSettings = vi.fn().mockResolvedValue({});
     const creditsSetupSave = vi.fn().mockResolvedValue(STATE);
