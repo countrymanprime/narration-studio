@@ -48,14 +48,15 @@ func (s *Service) pronunciations(words []string) ([]map[string]any, error) {
 	return parsePronunciations(out, len(words))
 }
 
-// lookupArgs is the `pronunciation` command for the words, with the narrator's preferred source when there is one.
+// lookupArgs is the `pronunciation` command for the words, with the narrator's preferred source when there is one and the Wiktextract
+// index when it is installed.
 func (s *Service) lookupArgs(words []string) []string {
 	args := []string{"pronunciation"}
 	for _, word := range words {
 		// --word=... and not "--word", "...": argparse takes a word that starts with a dash only in this form.
 		args = append(args, "--word="+word)
 	}
-	return append(args, s.defaultPronunciationSourceArgs()...)
+	return append(args, s.automaticSourceArgs()...)
 }
 
 // parsePronunciations reads what the `pronunciation` command printed: one JSON object per word, in order.

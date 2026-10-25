@@ -396,6 +396,27 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
     expect(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Check again' })).toHaveLength(1);
   });
+
+  it("the built-in recorder names no DAW and waits for nothing: its switch is this app's own setting (R4BO1-2)", async () => {
+    const onSettings = vi.fn();
+    mountChecked(recordRefused('experimental_off', 'Built-in'), { onSettings });
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    const dialog = screen.getByRole('dialog', { name: 'Recording in the built-in recorder is experimental' });
+    expect(dialog.textContent).not.toMatch(/DAW|Waiting for|Last checked/);
+    expect(within(dialog).queryByRole('button', { name: 'Check again' })).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Recording settings' }));
+    expect(onSettings).toHaveBeenCalledTimes(1);
+    expect(within(dialog).getByRole('button', { name: 'Turn on Record' })).toBeTruthy();
+  });
+
+  it('every button in a notice dialog is one height: none is drawn small (XBO-6)', async () => {
+    mountChecked(recordRefused('experimental_off'));
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    for (const button of within(screen.getByRole('dialog'))
+      .getAllByRole('button')
+      .filter((b) => !b.getAttribute('aria-label')))
+      expect(button.className, button.textContent ?? '').not.toMatch(/button-height-sm/);
+  });
 });
 
 describe('RecordSetup when the DAW has a different project open', () => {

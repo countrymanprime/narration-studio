@@ -370,7 +370,7 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'global-keyboard': async (page) => {
     await openShortcuts(page);
-    await page.getByText('Keys and pedals').waitFor();
+    await page.getByRole('button', { name: 'Reset all to defaults' }).waitFor();
   },
   'global-keyboard-recording': async (page) => {
     await openShortcuts(page);

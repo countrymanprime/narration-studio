@@ -106,10 +106,12 @@ type TableProps = {
   onStatus: (chapterId: string, status: ChapterStatus) => void;
   /** The chapter an action just changed: its row is highlighted once (changeHighlight.ts). */
   justChanged?: string | null;
+  /** Opens a chapter's recording check, offered by its readiness panel when nothing has checked the recording yet. */
+  onCheckRecording?: (chapterId: string) => void;
 };
 
 /** Every chapter and where it stands in each stage (the mock's PipelineTable). One format for every stage: a tick when done, the percent when under way, a dash when not started. */
-export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null }: TableProps) {
+export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null, onCheckRecording }: TableProps) {
   return (
     // The table scrolls inside its panel at a narrow width, never the page, with a shadow on the side that has more (`scroll-x-edges`);
     // the region is a tab stop so the keyboard can scroll it.
@@ -149,7 +151,12 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                         // rule or the next column (XPR2-12, XPR1-34).
                         <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1">
                           <StageCell row={row} cell={row.cells[column]} onGo={onGo} beside />
-                          <ReadinessChip recommendation={recommendation} onOpen={() => openReadiness({ chapterId: row.id, notify, onStatus })} />
+                          <ReadinessChip
+                            recommendation={recommendation}
+                            onOpen={() =>
+                              openReadiness({ chapterId: row.id, notify, onStatus, onCheckRecording: onCheckRecording && (() => onCheckRecording(row.id)) })
+                            }
+                          />
                         </span>
                       ) : (
                         <StageCell row={row} cell={row.cells[column]} onGo={onGo} />

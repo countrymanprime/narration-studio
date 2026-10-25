@@ -55,7 +55,7 @@ func (s *Service) sourcePronunciation(name, source string) (*pyObject, error) {
 		return nil, err
 	}
 	defer remove()
-	out, err := s.Run("pronunciation", "--source", source, "--words-file", path)
+	out, err := s.Run(append([]string{"pronunciation", "--source", source, "--words-file", path}, s.namedSourceArgs(source)...)...)
 	if err != nil {
 		return nil, err
 	}

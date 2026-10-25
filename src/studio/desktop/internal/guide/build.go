@@ -431,7 +431,7 @@ func (m sidecarModel) entities(ctx context.Context, manuscript, model, log strin
 	defer func() { _ = os.RemoveAll(dir) }()
 	wordsFile := filepath.Join(dir, "words.json")
 	args := append([]string{"entities", "--manuscript", manuscript, "--spacy-model", model, "--words-file", wordsFile}, logArgs(log)...)
-	program, fullArgs, err := m.s.command(append(args, m.s.defaultPronunciationSourceArgs()...))
+	program, fullArgs, err := m.s.command(append(args, m.s.automaticSourceArgs()...))
 	if err != nil {
 		return nil, err
 	}
@@ -599,10 +599,11 @@ func (m sidecarModel) pronunciations(ctx context.Context, words []string, log st
 	return parsePronunciationObjects(out, len(words))
 }
 
-// wordsFileArgs is the build's `pronunciation` command for the words in the file, with the narrator's preferred source when there is one.
+// wordsFileArgs is the build's `pronunciation` command for the words in the file, with the narrator's preferred source when there is one
+// and the Wiktextract index when it is installed.
 func (s *Service) wordsFileArgs(path, log string) []string {
 	args := append([]string{"pronunciation", "--words-file", path}, logArgs(log)...)
-	return append(args, s.defaultPronunciationSourceArgs()...)
+	return append(args, s.automaticSourceArgs()...)
 }
 
 // parsePronunciationObjects reads one JSON object per line, as Python wrote each, in its key order.
