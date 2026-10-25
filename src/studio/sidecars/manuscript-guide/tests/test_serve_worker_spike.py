@@ -19,18 +19,17 @@ def answers(lines: list[str], idle_seconds: float = 5.0) -> list[dict]:
     return [json.loads(line) for line in stdout.getvalue().splitlines()]
 
 
-def test_a_command_answers_with_its_code_and_streams_in_order(tmp_path):
-    missing = str(tmp_path / "manuscript_guide.json")
+def test_a_command_answers_with_its_code_and_streams_in_order():
     replies = answers(
         [
             json.dumps({"id": 1, "argv": ["capabilities"]}),
-            json.dumps({"id": 2, "argv": ["pronounce", "--guide", missing, "--entity-id", "x", "--source", "cmu"]}),
+            json.dumps({"id": 2, "argv": ["candidate", "--word", " ", "--source", "cmu"]}),
             "",
         ]
     )
     assert [reply["id"] for reply in replies] == [1, 2]
     assert replies[0]["code"] == 0 and json.loads(replies[0]["stdout"])["type"] == "capabilities"
-    assert replies[1]["code"] == 1 and "build it first" in replies[1]["stderr"]
+    assert replies[1]["code"] == 1 and "A word to try" in replies[1]["stderr"]
 
 
 def test_long_jobs_and_bad_lines_are_refused_without_ending_the_worker():

@@ -50,6 +50,8 @@ type Service struct {
 	// pronunciationLookup answers the pronunciations the host needs for a new entry or alias; nil asks the sidecar (pronunciations). The
 	// tests set it.
 	pronunciationLookup func(words []string) ([]map[string]any, error)
+	// sourceLookup answers Pronounce's one pronunciation from one source (sourcePronunciation); nil asks the sidecar. The tests set it.
+	sourceLookup func(name, source string) (*pyObject, error)
 	// buildModel does a build's model work (build.go); nil asks the sidecar. The tests set recorded answers.
 	buildModel buildModel
 	// clock is a build's generated_at, and resolvePath its source path (Path.resolve); nil is the real ones. The tests set them.
@@ -399,7 +401,7 @@ const RulesOnly = "rules-only"
 // (Settings > Story Bible); omitted (not passed as an explicit empty
 // value) when unset, so the build and pronunciation lookup command lines carry no extra flag.
 // It only reorders the sidecar's own build-time fallback (manuscript_guide.py's pronunciation()); it never limits the
-// entity/alias Generate-Replace control's own explicit --source choice (Pronounce, below).
+// entity/alias Generate-Replace control's own explicit --source choice (Pronounce, pronounce.go).
 func (s *Service) defaultPronunciationSourceArgs() []string {
 	value, _ := s.settings.Effective("ManuscriptGuide", "default_pronunciation_source", "")
 	if value == "" {
@@ -420,23 +422,6 @@ func (s *Service) EditFields(id string, values map[string]string) error {
 		return nil
 	}
 	return s.editInHost(id, values)
-}
-
-// Pronounce sets the pronunciation of an entity's own name (aliasIndex nil) or one of its aliases from exactly the
-// named engine ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it.
-// It is refused on a locked entity (enforced by the sidecar) and when the chosen engine has nothing for the name.
-// Pronounce asks the named pronunciation source for the entity's (or one alias's) pronunciation. A source the pronunciation port
-// cannot ask for one is refused with its *port.NotSupportedError before the sidecar starts.
-func (s *Service) Pronounce(id string, aliasIndex *int, source string) error {
-	if err := pronunciationport.CheckPronounce(source); err != nil {
-		return err
-	}
-	args := []string{"pronounce", "--guide", s.guidePath(), "--entity-id", id, "--source", source}
-	if aliasIndex != nil {
-		args = append(args, "--alias-index", fmt.Sprint(*aliasIndex))
-	}
-	_, err := s.Run(args...)
-	return err
 }
 
 // ManualSource is the source id of a pronunciation the narrator typed. A file written before it says "user"; Entities reads
