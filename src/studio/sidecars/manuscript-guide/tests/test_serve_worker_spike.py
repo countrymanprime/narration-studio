@@ -24,7 +24,7 @@ def test_a_command_answers_with_its_code_and_streams_in_order(tmp_path):
     replies = answers(
         [
             json.dumps({"id": 1, "argv": ["capabilities"]}),
-            json.dumps({"id": 2, "argv": ["edit", "--guide", missing, "--entity-id", "x", "--field", "description", "--value=y"]}),
+            json.dumps({"id": 2, "argv": ["pronounce", "--guide", missing, "--entity-id", "x", "--source", "cmu"]}),
             "",
         ]
     )

@@ -11,8 +11,8 @@ import (
 	"desktop/internal/contractfile"
 )
 
-// The type edits run in the host (guide.Service.typesInHost): the same five edits the sidecar's own test makes, through the bindings with
-// no sidecar process, leave the types the sidecar left (guide-types-sidecar.json), and GuideTypes reads that list back.
+// The type edits run in the host (guide.Service.typesInHost): the same five edits internal/guide's TestContractTypes makes, through the
+// bindings with no sidecar process, leave the list it pins (guide-types-sidecar.json), and GuideTypes reads that list back.
 func TestGuideTypesRoundTripWithoutTheSidecar(t *testing.T) {
 	service, calls, project := countingGuideIn(t)
 	writeStoryBible(t, project)
@@ -37,7 +37,7 @@ func TestGuideTypesRoundTripWithoutTheSidecar(t *testing.T) {
 	}
 	written, err := os.ReadFile(filepath.Join(dir, "guide-types-sidecar.json"))
 	if err != nil {
-		t.Fatalf("the sidecar's types file is missing (run the Python contract test with UPDATE_CONTRACTS=1): %v", err)
+		t.Fatalf("the types file is missing (run internal/guide's TestContractTypes with UPDATE_CONTRACTS=1): %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json"))
 	if err != nil {

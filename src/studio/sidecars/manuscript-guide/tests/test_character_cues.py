@@ -1,10 +1,10 @@
 """Character Continuity Review, story-bible side:
 
 - stable entity ids across a rebuild, even when the canonical spelling choice shifts
-- alias split (the inverse of the existing `merge`)
+- a rebuild after an alias split (the host splits; the inverse of its merge)
 - chapter and scene appearance maps
 - rules-based dialogue cue extraction with an `unknown` speaker and evidence
-- narrator corrections to a cue's speaker that a rebuild never overwrites (mirrors src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard)
+- narrator corrections to a cue's speaker (the host records them) that a rebuild never overwrites, as it keeps a locked entry
 
 Precision over recall applies throughout: an ambiguous cue is `unknown`, never a guess.
 """
@@ -114,122 +114,29 @@ class StableIdReconciliationTests(unittest.TestCase):
 
 
 class AliasSplitTests(unittest.TestCase):
-    """The inverse of `merge`: an alias that was wrongly folded in gets its own identity back."""
-
-    def test_split_creates_a_standalone_entity_from_an_alias(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            guide_file = Path(temporary) / "guide.json"
-            guide.write_json(
-                str(guide_file),
-                {
-                    "entities": [
-                        {
-                            "id": "entity-parent",
-                            "canonical_name": "Captain Arelian",
-                            "aliases": [
-                                {
-                                    "text": "Robert",
-                                    "pronunciation": {},
-                                    "occurrences": [{"chapter": "C1", "chapterId": "c1", "paragraph": 0, "paragraphId": "p1", "excerpt": "Robert spoke."}],
-                                }
-                            ],
-                            "category": "Character",
-                            "occurrences": [],
-                            "occurrence_count": 1,
-                            "locked": False,
-                            "manual": False,
-                        }
-                    ],
-                    "absorbed_names": {"robert": "entity-parent"},
-                },
-            )
-            guide.split(argparse.Namespace(guide=str(guide_file), entity_id="entity-parent", alias_text="Robert"))
-            data = json.loads(guide_file.read_text(encoding="utf-8"))
-            by_name = {e["canonical_name"]: e for e in data["entities"]}
-            self.assertEqual([], by_name["Captain Arelian"]["aliases"])
-            self.assertIn("Robert", by_name)
-            self.assertEqual(1, len(by_name["Robert"]["occurrences"]))
-            # The absorbed-names redirect must be cleared, or the very next rebuild would fold Robert straight back in.
-            self.assertNotIn("robert", data["absorbed_names"])
-
-    def test_split_refuses_an_alias_that_does_not_exist(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            guide_file = Path(temporary) / "guide.json"
-            guide.write_json(
-                str(guide_file),
-                {
-                    "entities": [
-                        {
-                            "id": "entity-parent",
-                            "canonical_name": "Captain Arelian",
-                            "aliases": [],
-                            "category": "Character",
-                            "occurrences": [],
-                            "occurrence_count": 0,
-                            "locked": False,
-                        }
-                    ]
-                },
-            )
-            with self.assertRaises(ValueError):
-                guide.split(argparse.Namespace(guide=str(guide_file), entity_id="entity-parent", alias_text="Nobody"))
-
-    def test_split_refuses_a_locked_parent(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            guide_file = Path(temporary) / "guide.json"
-            guide.write_json(
-                str(guide_file),
-                {
-                    "entities": [
-                        {
-                            "id": "entity-parent",
-                            "canonical_name": "Captain Arelian",
-                            "aliases": [{"text": "Robert", "pronunciation": {}, "occurrences": []}],
-                            "category": "Character",
-                            "occurrences": [],
-                            "occurrence_count": 0,
-                            "locked": True,
-                        }
-                    ]
-                },
-            )
-            with self.assertRaises(ValueError):
-                guide.split(argparse.Namespace(guide=str(guide_file), entity_id="entity-parent", alias_text="Robert"))
+    """The host splits an alias off into an entry of its own (src/studio/desktop/internal/guide/merge.go) and clears the name's
+    ``absorbed_names`` redirect; a rebuild then leaves the split entry standing alone."""
 
     def test_a_split_entity_does_not_come_back_on_the_next_rebuild(self):
-        # End-to-end: an absorbed-names entry (as `merge` would have left behind) is cleared by split,
-        # so merge_locked's redirect step - which only fires when a name is listed there - leaves the
-        # freshly generated "Robert" entity standing alone instead of folding it back into the parent.
-        with tempfile.TemporaryDirectory() as temporary:
-            guide_file = Path(temporary) / "guide.json"
-            parent_id = guide.entity_id("Captain Arelian")
-            previous = {
-                "entities": [
-                    {
-                        "id": parent_id,
-                        "canonical_name": "Captain Arelian",
-                        "aliases": [{"text": "Robert", "pronunciation": {}, "occurrences": []}],
-                        "category": "Character",
-                        "occurrences": [],
-                        "occurrence_count": 0,
-                        "locked": False,
-                        "manual": False,
-                    }
-                ],
-                "absorbed_names": {"robert": parent_id},
-            }
-            guide.write_json(str(guide_file), previous)
-            guide.split(argparse.Namespace(guide=str(guide_file), entity_id=parent_id, alias_text="Robert"))
-
-            rebuild_paragraphs = _paragraphs(("c1", "p0", "They heard Robert speak. Then Robert paused, and Robert spoke again."))
-            with patch.object(guide, "spacy_candidates", return_value=None):
-                generated = guide.build_entities(rebuild_paragraphs, "unused", None)
-            saved = json.loads(guide_file.read_text(encoding="utf-8"))
-            merged = guide.merge_locked(generated, saved)
-            names = {e["canonical_name"] for e in merged}
-            self.assertIn("Robert", names)
-            robert = next(e for e in merged if e["canonical_name"] == "Robert")
-            self.assertEqual([], robert.get("aliases", []))
+        # The file as a split of "Robert" off Captain Arelian leaves it: Robert its own entry, and no absorbed-names redirect, so
+        # merge_locked's redirect step (which only fires when a name is listed there) does not fold the freshly generated Robert back in.
+        parent_id = guide.entity_id("Captain Arelian")
+        robert = {"canonical_name": "Robert", "aliases": [], "category": "Character", "occurrences": [], "occurrence_count": 0, "locked": False}
+        saved = {
+            "entities": [
+                {**robert, "id": parent_id, "canonical_name": "Captain Arelian"},
+                {**robert, "id": guide.entity_id("Robert")},
+            ],
+            "absorbed_names": {},
+        }
+        rebuild_paragraphs = _paragraphs(("c1", "p0", "They heard Robert speak. Then Robert paused, and Robert spoke again."))
+        with patch.object(guide, "spacy_candidates", return_value=None):
+            generated = guide.build_entities(rebuild_paragraphs, "unused", None)
+        merged = guide.merge_locked(generated, saved)
+        robert_entry = next(e for e in merged if e["canonical_name"] == "Robert")
+        self.assertEqual([], robert_entry.get("aliases", []))
+        parent = next((e for e in merged if e["id"] == parent_id), None)
+        self.assertTrue(parent is None or all(alias["text"] != "Robert" for alias in parent.get("aliases", [])))
 
 
 class SceneAppearanceTests(unittest.TestCase):
@@ -386,67 +293,8 @@ class MissingAndAmbiguousCueFixtureTests(unittest.TestCase):
 
 
 class CorrectionSurvivesRebuildTests(unittest.TestCase):
-    """Corrections mirror the locked-entity guard: a rebuild must never overwrite one."""
-
-    def test_correct_cue_marks_it_corrected(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            guide_file = Path(temporary) / "guide.json"
-            guide.write_json(
-                str(guide_file),
-                {
-                    "entities": [],
-                    "dialogue_cues": [
-                        {
-                            "id": "cue-1",
-                            "speaker_entity_id": None,
-                            "speaker_source": "unknown",
-                            "chapterId": "c1",
-                            "paragraphId": "p1",
-                            "quote_text": "Hi.",
-                            "evidence": {},
-                        }
-                    ],
-                },
-            )
-            guide.correct_cue(argparse.Namespace(guide=str(guide_file), cue_id="cue-1", speaker_entity_id="entity-ada"))
-            data = json.loads(guide_file.read_text(encoding="utf-8"))
-            (cue,) = data["dialogue_cues"]
-            self.assertEqual("entity-ada", cue["speaker_entity_id"])
-            self.assertTrue(cue["corrected"])
-            self.assertEqual("correction", cue["speaker_source"])
-
-    def test_correct_cue_to_unknown_is_also_a_correction(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            guide_file = Path(temporary) / "guide.json"
-            guide.write_json(
-                str(guide_file),
-                {
-                    "entities": [],
-                    "dialogue_cues": [
-                        {
-                            "id": "cue-1",
-                            "speaker_entity_id": "entity-ada",
-                            "speaker_source": "tag",
-                            "chapterId": "c1",
-                            "paragraphId": "p1",
-                            "quote_text": "Hi.",
-                            "evidence": {},
-                        }
-                    ],
-                },
-            )
-            guide.correct_cue(argparse.Namespace(guide=str(guide_file), cue_id="cue-1", speaker_entity_id="unknown"))
-            data = json.loads(guide_file.read_text(encoding="utf-8"))
-            (cue,) = data["dialogue_cues"]
-            self.assertIsNone(cue["speaker_entity_id"])
-            self.assertTrue(cue["corrected"])
-
-    def test_correct_cue_refuses_an_unknown_cue_id(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            guide_file = Path(temporary) / "guide.json"
-            guide.write_json(str(guide_file), {"entities": [], "dialogue_cues": []})
-            with self.assertRaises(ValueError):
-                guide.correct_cue(argparse.Namespace(guide=str(guide_file), cue_id="cue-missing", speaker_entity_id="entity-ada"))
+    """Corrections mirror the locked-entity guard: a rebuild must never overwrite one. The host records them
+    (src/studio/desktop/internal/guide/mutate.go)."""
 
     def test_a_rebuild_keeps_a_corrected_cue_even_though_fresh_extraction_disagrees(self):
         paragraphs = _paragraphs(("c1", "p1", '"Wait," Someone said.'))

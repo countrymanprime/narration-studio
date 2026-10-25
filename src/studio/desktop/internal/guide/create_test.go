@@ -1,7 +1,8 @@
 package guide
 
 // State matrix of a create and an edit of the aliases in the host. Each cell names its test; a cell the sidecar's recorded cases already
-// pin says so (TestCreatesMatchTheSidecarCases replays testdata/create-parity.json, written by test_create_parity.py).
+// pin says so (TestCreatesMatchTheSidecarCases replays testdata/create-parity.json, recorded from the sidecar's create and edit before
+// #2251 deleted them; the file is frozen and nothing rewrites it).
 //
 //	empty (no file, an empty object)          the recorded cases "a file that is not there yet" and "an empty object"
 //	one and many aliases, none                the recorded cases
@@ -533,5 +534,19 @@ func TestADescriptionIsTakenFromTheFirstSentenceThatHasOne(t *testing.T) {
 	}
 	if !slices.Equal(sentences, []string{"A.", "B!", "C?", "D.E.", ""}) {
 		t.Errorf("sentences = %q", sentences)
+	}
+}
+
+// Ported from the sidecar's test_properties.py when #2251 deleted its create: a create whose properties are refused, in a project with no
+// Story Bible yet, refuses with the reason and starts no file. No pronunciation is asked for and no manuscript read.
+func TestACreateWithRefusedPropertiesStartsNoFile(t *testing.T) {
+	s := New(t.TempDir(), "", "", nil, nil)
+	s.pronunciationLookup = func([]string) ([]map[string]any, error) { t.Fatal("a pronunciation was asked for"); return nil, nil }
+	s.searchManuscript = func(string) (occurrenceSearch, error) { t.Fatal("the manuscript was read"); return nil, nil }
+	if _, err := s.CreateFull("Juno", "Character", nil, "", []Property{{Key: " ", Value: "x"}}); err == nil || err.Error() != "Property 1 has no name." {
+		t.Fatalf("create = %v, want the property refused", err)
+	}
+	if _, err := os.Stat(filepath.Dir(s.guidePath())); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("the Story Bible folder was made: %v", err)
 	}
 }
