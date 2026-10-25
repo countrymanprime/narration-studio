@@ -103,7 +103,8 @@ export function RecordingCheckReport({
           </p>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+      {/* Two tiles a row whatever the window: the panel is 20 rem at every width, so a viewport breakpoint would put four in 300 px. */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         <StatTile label="Text present" value={`${presentPercent}%`} hint={`${report.presentTokens.toLocaleString()} of ${plural(report.bodyTokens, 'word')}`} />
         <StatTile label="Paragraphs" value={`${fullyRead} of ${rows.length}`} hint="fully read" />
         <StatTile
@@ -111,7 +112,7 @@ export function RecordingCheckReport({
           value={formatAudioTime(report.playedSeconds)}
           hint={`in ${plural(report.items.length, 'item')}${mutedItems > 0 ? ` (${mutedItems} muted)` : ''}`}
         />
-        {pace !== undefined && <StatTile label="Pace" value={`about ${pace.toLocaleString()}/min`} />}
+        {pace !== undefined && <StatTile label="Pace" value={pace.toLocaleString()} unit="/min" hint="words a minute (estimate)" />}
       </div>
       {report.extraTokens > 0 && (
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -173,14 +174,14 @@ export function RecordingCheckReport({
       {report.paragraphs.length > 0 && (
         <Disclosure
           title="Paragraph detail"
-          summary={`${fullyRead} of ${report.paragraphs.length} fully recorded`}
+          summary={`${fullyRead} of ${report.paragraphs.length} fully read`}
           open={paragraphsOpen}
           onOpenChange={setParagraphsOpen}
         >
           <div className="mt-1 overflow-x-auto">
             {short.length > 0 && fullyRead > 0 && (
               <p className="mb-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                The paragraphs with missing words. The other {fullyRead} are fully recorded.
+                The paragraphs with missing words. The other {fullyRead} are fully read.
               </p>
             )}
             <Table label="Paragraphs">
