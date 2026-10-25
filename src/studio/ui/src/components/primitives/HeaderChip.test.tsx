@@ -7,14 +7,22 @@ afterEach(cleanup);
 
 describe('HeaderChip', () => {
   // jsdom lays nothing out, so the measured spec is pinned by its classes here and measured by the atlas story.
-  it('is the 22 px round chip with no border, in the label’s own case', () => {
+  // The behaviour changed: 22 px with no border (mock 01) became 24 px with a 1 px rim that only the neutral tone colours (XSL-3, XSL-12, R3SL-5).
+  it('is the 24 px round chip, its rim drawn only on the neutral tone, in the label’s own case', () => {
     render(<HeaderChip>Book 1 · Wonderland series</HeaderChip>);
     const chip = screen.getByText('Book 1 · Wonderland series');
-    expect(chip.className).toContain('h-[1.375rem]');
+    expect(chip.className).toContain('h-6');
     expect(chip.className).toContain('rounded-full');
     expect(chip.className).toContain('px-[0.625rem]');
-    expect(chip.className).not.toMatch(/\bborder\b/);
+    expect(chip.style.borderColor).toBe('var(--border)');
     expect(chip.className).not.toContain('uppercase');
+    render(<HeaderChip tone="success">REAPER linked</HeaderChip>);
+    expect(screen.getByText('REAPER linked').style.borderColor).toBe('transparent');
+  });
+
+  it('takes presses in a 32 px box when it is a button', () => {
+    render(<HeaderChip onClick={() => undefined}>REAPER linked</HeaderChip>);
+    expect(screen.getByRole('button', { name: 'REAPER linked' }).className).toContain('after:min-h-8');
   });
 
   it('fills each tone with the mock’s pair', () => {

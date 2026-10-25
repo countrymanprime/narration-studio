@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { HIT_AREA } from './hitArea';
+import { HIT_AREA_32 } from './hitArea';
 import { Dot } from './StatusBadge';
 
 /**
@@ -10,16 +10,20 @@ export type HeaderChipTone = 'neutral' | 'success' | 'warning';
 
 // The fill and text per tone, the benchmark mocks' own (mock 01's header): the timer on `--surface-2` in `--text`, "REAPER linked" on `--ok-soft` in `--ok-text`. Each pair is one the
 // palette guard already checks.
-const TONE: Record<HeaderChipTone, { background: string; color: string }> = {
-  neutral: { background: 'var(--surface-2)', color: 'var(--text)' },
-  success: { background: 'var(--ok-soft)', color: 'var(--ok-text)' },
-  warning: { background: 'var(--warn-soft)', color: 'var(--warn-text)' },
+// A neutral chip keeps a `--border` rim: its `--surface-2` fill is about 1.1:1 on the bar, where it read as a grey blob beside the tinted chips
+// (alignment audit R3SL-5).
+const TONE: Record<HeaderChipTone, { background: string; color: string; borderColor: string }> = {
+  neutral: { background: 'var(--surface-2)', color: 'var(--text)', borderColor: 'var(--border)' },
+  success: { background: 'var(--ok-soft)', color: 'var(--ok-text)', borderColor: 'transparent' },
+  warning: { background: 'var(--warn-soft)', color: 'var(--warn-text)', borderColor: 'transparent' },
 };
 
-// Measured on mock 01 at 1440 px: 22 px tall, fully rounded, no border, 10 px each side, its parts 6 px apart, Barlow
-// Condensed 600 at 11.5 px in the label's own case. Below `md` the chip's side padding shrinks with its text (see `short`).
+// Fully rounded, 10 px each side, its parts 6 px apart, Barlow Condensed 600 at 11.5 px in the label's own case (mock 01). 24 px tall, where the mock
+// measured 22: beside the 32 px Jump to field the 22 px chips read as a third size in one bar, and a chip that is a button takes presses in a
+// 32 px box around it (alignment audit XSL-3, XSL-12, R3PR2-20). A 1 px rim, transparent but on the neutral tone, keeps every tone one size.
+// Below `md` the chip's side padding shrinks with its text (see `short`).
 const CHIP =
-  "inline-flex h-[1.375rem] items-center gap-[0.375rem] rounded-full px-[0.625rem] font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.03em] whitespace-nowrap";
+  "box-border inline-flex h-6 items-center border border-solid gap-[0.375rem] rounded-full px-[0.625rem] font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.03em] whitespace-nowrap";
 
 /**
  * The header's chip: the running timer, the audio engine and the Booth's built-in recorder are one shape. A
@@ -69,7 +73,7 @@ export function HeaderChip({
         title={title}
         aria-label={ariaLabel}
         aria-busy={ariaBusy || undefined}
-        className={`${classes} ${HIT_AREA} cursor-pointer hover:shadow-[inset_0_0_0_1px_var(--accent)] disabled:pointer-events-none disabled:opacity-60`}
+        className={`${classes} ${HIT_AREA_32} cursor-pointer hover:shadow-[inset_0_0_0_1px_var(--accent)] disabled:pointer-events-none disabled:opacity-60`}
         style={TONE[tone]}
       >
         {content}

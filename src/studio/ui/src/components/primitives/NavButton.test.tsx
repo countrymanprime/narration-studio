@@ -182,4 +182,22 @@ describe('NavButton', () => {
       expect(screen.getByRole('button', { name: 'Proof' }).getAttribute('aria-disabled')).toBe('true');
     });
   });
+
+  // XSL-17, XSL-18: hover looked like the current page, the count pill like a smudge, and a lock ended 3 px left of a count.
+  it("hovers in a fill apart from the current page, draws its count on --surface-3, and keeps a lock in a count's 16 px box", () => {
+    render(
+      <>
+        <NavButton active={false} icon={faHouse} onClick={() => undefined} count={4}>
+          Proof
+        </NavButton>
+        <NavButton active={false} icon={faHouse} onClick={() => undefined} disabled disabledReason="Import a manuscript first">
+          Pickups
+        </NavButton>
+      </>,
+    );
+    const proof = screen.getByRole('button', { name: 'Proof, 4' });
+    expect(proof.className).toContain('hover:bg-[var(--row-alt)]');
+    expect(proof.querySelector('[data-nav-count]')!.className).toContain('bg-[var(--surface-3)]');
+    expect(document.querySelector('[data-nav-lock]')!.className).toContain('w-4');
+  });
 });
