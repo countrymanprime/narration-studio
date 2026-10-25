@@ -166,7 +166,7 @@ chapter's), then the credits text with the project's values filled in. A token w
 brackets, in the amber of an entry still to review, and the card lists the unresolved tokens with a **Fill in** that opens the same "Set up
 the credits" dialog Production offers — see [Production](production.md#importing-the-manuscript) for what it asks
 and when. A banner above Opening credits does the same while any token stays unresolved and setup has not been
-dismissed for the project. The credits are read-only and are not chapters: the search does not look in them. Record the
+dismissed for the project; while it shows, the Opening credits card leaves its own list out, so the values are asked for once. The credits are read-only and are not chapters: the search does not look in them. Record the
 credits as their own files, as ACX expects, not inside a chapter file: a chapter's Proof view compares a
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
 words. Each credits card has a **Record in Booth** button once it has anything to read (see below).

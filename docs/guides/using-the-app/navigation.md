@@ -172,18 +172,19 @@ opens [Proof](proof.md) with this panel open over it.)
 
 The panel reads the project's REAPER project file (`.rpp`) directly, so it needs neither REAPER running
 nor an imported manuscript; its [REAPER tools](#reaper-tools) are the exception. It shows the file it read
-and, beside the heading, **Link a REAPER project file** (or **Link a different REAPER project file** once
-one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
+and, beside the heading, **Link file…** (or **Change file…** once one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
 and the same one [Settings](settings.md#daw-integration) makes. The file can be anywhere: in the project
 folder or a subfolder of it (the link then survives moving the whole project), or in a separate folder or
 drive kept for REAPER (a short note says where the file and the project are). When REAPER has a different project
-open than the linked one, the panel says so: link the open project, or switch REAPER to the linked file. The notice
-says what it is waiting for ("Waiting for REAPER to open the linked project"), when the app last checked ("Last checked 4 s
-ago") and has **Check again**, which reads the project's state from the app again at once.
+open than the linked one, a warning box in the card says so: link the open project, or switch REAPER to the linked file. It
+says what it is waiting for ("Waiting for REAPER to open the linked project") and when the app last checked ("Last checked 4 s
+ago"), and has two buttons: **Link the open project…**, which picks the file REAPER has open, and **Check again**, which reads
+the project's state from the app again at once.
 
 ![The audio engine panel when REAPER has a different project open: the notice with when it last checked, and Check again](../../images/ui/engine-panel-wrong-project.webp)
 
-If the project folder holds more than one `.rpp` file, the panel asks which one to read. Backup copies
+If the project folder holds more than one `.rpp` file, the panel asks which one to read: each file is a row with its name
+first and its folder under it, and pressing the row reads that file. Backup copies
 (`.rpp-bak`, or files inside a subfolder such as Backups) aren't offered. The choice is remembered for the
 project.
 
@@ -215,12 +216,14 @@ REAPER starts when it opens; nothing is written until you press the dialog's act
 bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
-items that hold its recording. Choose the track for each chapter; **Items to stamp** shows how many of
-that track's items will carry it, and **Stamp N items** writes it. An item already stamped with a
+items that hold its recording. Choose the track for each chapter; **To stamp** shows how many of
+that track's items will carry it, and **Stamp N items** writes it. What the stamp did, or why it failed, shows at the top
+of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different
 chapter**, and items REAPER no longer has are listed as stale. **Read current stamps** lists what the
 project carries now, with each item's status (OK, Text changed since stamping, Manuscript re-imported
-since stamping, Chapter no longer in the manuscript, and so on). This is not the same as the
+since stamping, Chapter no longer in the manuscript, and so on); if reading fails, the reason shows there, under
+the button. This is not the same as the
 [Chapter links](#linking-chapters-to-tracks) list below: that list is kept by the app and changes
 nothing in REAPER, and the dialog starts with every chapter Not linked whatever the list says.
 
@@ -237,11 +240,13 @@ regions yet, it says so.
 **Opening credits track** and **Closing credits track** you choose in the dialog, and shows the plan
 before writing anything: each row's title, track, start, end and status (New region, Already exists,
 Moves an existing region, or Several regions share this title). A chapter or credits track with nothing
-to plan is listed under **Not planned**, with why (for example, no track is linked to that chapter).
+to plan is listed under **Not planned**, one line per reason naming its chapters (for example, "No track is linked to this
+chapter. Chapter 2, Chapter 3").
 Tick **Move an existing region that shares a chapter's title, instead of adding a second one** to move a
 same-titled region instead of adding another; left unticked, a region that would move or is ambiguous
 still gets a new one alongside it. **Create N regions** writes the plan in one step and reports what
-happened ("Sent 3: 2 created, 1 already existed, 0 moved, 0 ambiguous, 0 failed."). Creating chapter
+happened, naming only the counts that aren't zero ("Sent 3: 2 created, 1 already existed."); **Close** then becomes the
+main button. Creating chapter
 regions is an experimental REAPER action ([Settings](settings.md)), off by default: until you turn it
 on, **Create N regions** stays disabled and says why.
 
@@ -347,14 +352,15 @@ asks again only if you unlink and relink the project. The same question can come
 ways to link a project (this panel's link button, choosing a project here, an import, or reopening a linked
 project).
 
-Once on, the Chapter sync section says when it last synced, from which saved project file, and how
-many chapters it linked on its own and how many you linked ("On · last synced 10:42 from the saved
-Alice.rpp · 8 chapters linked automatically, 1 by you"). **Turn off** stops it (chapter links you
-already made are kept); **Turn on** asks again from a project that had it off. Its own Needs you list
+Once on, the Chapter sync section lists one fact per row: **Status** (On), **Last synced** (when, and from which
+saved project file: "10:42, from the saved Alice.rpp"), **Links** (how many chapters it linked on its own and
+how many you linked: "8 chapters linked automatically, 1 by you"), **Background checks** while they are waiting
+("Waiting: REAPER is recording."), and **Not chapters** (below). **Turn off**, beside the heading, stops it (chapter
+links you already made are kept); while it is off the same place has **Turn on**, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
 right track and press **Link**, the same link Chapter links below records. A track sync doesn't
-recognize as any chapter's is listed under "Tracks that are not chapters" so it isn't mistaken for a
+recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 

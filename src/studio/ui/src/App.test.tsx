@@ -627,7 +627,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
     expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
     expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Link a different REAPER project file' })).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'Change file…' })).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 

@@ -108,18 +108,26 @@ export function VoiceSamplesBody({
 
   return (
     <section aria-labelledby={`voice-samples-${characterId}`} data-voice-samples>
-      <div className="mb-1.5 flex flex-wrap items-center gap-2">
-        <h3 id={`voice-samples-${characterId}`} ref={headingRef} tabIndex={-1} className="m-0 text-[0.82rem] font-medium text-[var(--text-muted)] outline-none">
-          {heading}
-        </h3>
-        {mine.length > 0 ? (
-          <span className="text-sm text-[var(--text-muted)]" data-voice-samples-count>
-            {mine.length} · {mebibytes(bytes)}
-          </span>
-        ) : null}
-        <span className="flex-1" />
+      {/* Check again keeps the heading row's end whether or not the count shows (the count wraps instead), at the right inset of the
+          rows' menu buttons below it (SBX-15, R4SB-10). */}
+      <div className="mb-1.5 flex items-center gap-2 pr-[0.8125rem]">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+          <h3
+            id={`voice-samples-${characterId}`}
+            ref={headingRef}
+            tabIndex={-1}
+            className="m-0 text-[0.82rem] font-medium text-[var(--text-muted)] outline-none"
+          >
+            {heading}
+          </h3>
+          {mine.length > 0 ? (
+            <span className="text-sm text-[var(--text-muted)]" data-voice-samples-count>
+              {mine.length} · {mebibytes(bytes)}
+            </span>
+          ) : null}
+        </div>
         {showCheckAgain ? (
-          <Button variant="ghost" size="sm" pending={checking} onClick={() => void checkAgain()}>
+          <Button variant="ghost" size="sm" className="flex-none" pending={checking} onClick={() => void checkAgain()}>
             Check again
           </Button>
         ) : null}

@@ -202,6 +202,8 @@ function FindInManuscript({ name }: { name: string }) {
 export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; nonce: number };
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
+/** The rule over a titled section of the entry, as Properties, Relationships and Appears in draw it; an empty section draws none. */
+const SECTION_RULE = 'border-t border-[var(--border)] pt-4 empty:hidden';
 /**
  * The names list's one grid: the name, how it is said, its source and the row's buttons. Every row is a subgrid of it, so the
  * columns are shared and a row with more buttons does not move the others' (alignment audit SBX-4). Below a 32 rem card the
@@ -973,9 +975,17 @@ export function GuideDetail({
             {!isNewDraft && (
               <>
                 <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
-                <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
-                <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
-                <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
+                {/* Each titled section below the fields is set off by the same rule as Properties, Relationships and Appears in (SBX-12);
+                    a section with nothing to show draws no rule. */}
+                <div className={SECTION_RULE}>
+                  <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
+                </div>
+                <div className={SECTION_RULE}>
+                  <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
+                </div>
+                <div className={SECTION_RULE}>
+                  <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
+                </div>
               </>
             )}
           </>

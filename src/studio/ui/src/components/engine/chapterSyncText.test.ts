@@ -7,7 +7,7 @@ import {
   chapterSyncPanelNotChaptersText,
   chapterSyncPanelReasonText,
   chapterSyncReasonText,
-  chapterSyncSummaryText,
+  chapterSyncSummaryFacts,
   chapterSyncTimeLabel,
 } from './chapterSyncText';
 
@@ -134,29 +134,33 @@ describe('chapterSyncTimeLabel', () => {
   });
 });
 
-describe('chapterSyncSummaryText', () => {
+// The facts the card used to join into one run-on line ("On · last synced … · …", alignment audit R3EN2-3), now one per row.
+describe('chapterSyncSummaryFacts', () => {
   const now = new Date(2026, 8, 28, 15, 0);
   const row = (origin: '' | 'manual' | 'auto') => ({ origin });
   it('names the saved file and splits automatic links from the narrator’s', () => {
     const chapters = [...Array.from({ length: 8 }, () => row('auto')), row('manual'), row('')];
     expect(
-      chapterSyncSummaryText({ lastSync: new Date(2026, 8, 28, 10, 42).toISOString(), projectFile: 'C:\\Books\\Alice\\Alice.rpp', chapters, linked: 9 }, now),
-    ).toBe('On · last synced 10:42 from the saved Alice.rpp · 8 chapters linked automatically, 1 by you');
+      chapterSyncSummaryFacts({ lastSync: new Date(2026, 8, 28, 10, 42).toISOString(), projectFile: 'C:\\Books\\Alice\\Alice.rpp', chapters, linked: 9 }, now),
+    ).toEqual({ synced: '10:42, from the saved Alice.rpp', links: '8 chapters linked automatically, 1 by you' });
   });
 
   it('reads well with one kind of link, none, or no sync yet', () => {
     const at = new Date(2026, 8, 28, 10, 42).toISOString();
-    expect(chapterSyncSummaryText({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('auto')], linked: 1 }, now)).toBe(
-      'On · last synced 10:42 from the saved Alice.rpp · 1 chapter linked automatically',
-    );
-    expect(chapterSyncSummaryText({ lastSync: at, projectFile: '', chapters: [row('manual'), row('manual')], linked: 2 }, now)).toBe(
-      'On · last synced 10:42 · 2 chapters linked by you',
-    );
-    expect(chapterSyncSummaryText({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('')], linked: 0 }, now)).toBe(
-      'On · last synced 10:42 from the saved Alice.rpp · no chapters linked',
-    );
+    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('auto')], linked: 1 }, now)).toEqual({
+      synced: '10:42, from the saved Alice.rpp',
+      links: '1 chapter linked automatically',
+    });
+    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: '', chapters: [row('manual'), row('manual')], linked: 2 }, now)).toEqual({
+      synced: '10:42',
+      links: '2 chapters linked by you',
+    });
+    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('')], linked: 0 }, now).links).toBe('No chapters linked');
     // Before the host has its chapter rows (the saved .rpp unreadable), the plain count stands in.
-    expect(chapterSyncSummaryText({ lastSync: null, projectFile: 'Alice.rpp', chapters: [], linked: 3 }, now)).toBe('On · not synced yet · 3 chapters linked');
+    expect(chapterSyncSummaryFacts({ lastSync: null, projectFile: 'Alice.rpp', chapters: [], linked: 3 }, now)).toEqual({
+      synced: 'Not synced yet',
+      links: '3 chapters linked',
+    });
   });
 });
 
