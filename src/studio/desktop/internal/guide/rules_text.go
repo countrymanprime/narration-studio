@@ -1,8 +1,10 @@
 package guide
 
 import (
+	"maps"
 	"slices"
 	"strings"
+	"sync"
 
 	"desktop/internal/compare"
 )
@@ -239,13 +241,39 @@ func wordStatsOf(paragraphs []ruleParagraph) wordStats {
 	return stats
 }
 
-// withoutPossessive is POSSESSIVE.sub("", word): a final 's or ’s (either case) removed.
+// withoutPossessive is POSSESSIVE.sub("", word): a final 's or ’s removed, the s in either case (re.IGNORECASE, so also ſ), and where
+// the word ends with a line break, the one before it ($ matches there too).
 func withoutPossessive(word string) string {
 	runes := []rune(word)
-	if n := len(runes); n >= 2 && (runes[n-2] == '\'' || runes[n-2] == '’') && (runes[n-1] == 's' || runes[n-1] == 'S') {
-		return string(runes[:n-2])
+	end := len(runes)
+	if end > 0 && runes[end-1] == '\n' {
+		end--
+	}
+	if end >= 2 && (runes[end-2] == '\'' || runes[end-2] == '’') && possessiveS().matches(pythonUnicode(), runes[end-1]) {
+		return string(append(runes[:end-2:end-2], runes[end:]...))
 	}
 	return word
+}
+
+// possessiveS is the s of POSSESSIVE as re.IGNORECASE compiles it.
+var possessiveS = sync.OnceValue(func() literal { return compileLiterals(pythonUnicode(), []rune("s"))[0] })
+
+// leadingFillers is LEADING_FILLER's words as re.IGNORECASE compiles them.
+var leadingFillers = sync.OnceValue(func() [][]literal {
+	words := slices.Sorted(maps.Keys(leadingFillerWords))
+	out := make([][]literal, len(words))
+	for i, word := range words {
+		out[i] = compileLiterals(pythonUnicode(), []rune(word))
+	}
+	return out
+})
+
+// isLeadingFiller is whether word is one of LEADING_FILLER's words, compared as re.IGNORECASE compares them.
+func isLeadingFiller(word []rune) bool {
+	tables := pythonUnicode()
+	return slices.ContainsFunc(leadingFillers(), func(pattern []literal) bool {
+		return len(pattern) == len(word) && matchesAt(tables, pattern, word, 0)
+	})
 }
 
 // isSentenceStart is manuscript_guide.py is_sentence_start: the word at index opens a sentence or the paragraph.
@@ -283,7 +311,7 @@ func cleanEntityText(raw []rune, start int) ([]rune, int, bool) {
 		for end < len(name) && !compare.IsPySpace(name[end]) {
 			end++
 		}
-		if end == len(name) || !leadingFillerWords[strings.ToLower(string(name[:end]))] {
+		if end == len(name) || !isLeadingFiller(name[:end]) {
 			break
 		}
 		name = name[spacesFrom(name, end):]
@@ -329,11 +357,13 @@ func acceptRuleName(name string, stats wordStats, titleAliases map[string]bool) 
 	return titleAliases[key] || stats.midSentence[key] >= minMidSentenceMentions
 }
 
-// ruleCandidate is one of rule_candidates' candidates: a name and where it is.
+// ruleCandidate is one of rule_candidates' (or spacy_candidates') candidates: a name, where it is, and the spaCy label that found it
+// ("" for the rules, whose make_candidate source is "rule").
 type ruleCandidate struct {
 	name       string
 	paragraph  int
 	start, end int
+	label      string
 }
 
 // ruleCandidates is manuscript_guide.py rule_candidates: every capitalised name the rules accept, in reading order.
@@ -371,10 +401,18 @@ const (
 	categoryNeedsReview  = "Needs Review"
 )
 
-// classify is manuscript_guide.py classify for a rules candidate (no spaCy label): a word of the name, or a word just before or
-// after it, says what it is. lowered is the paragraph's text through str.lower, which the window is cut from at the candidate's own
+// classify is manuscript_guide.py classify: a spaCy label says what a name is; for a rules candidate, a word of the name, or a word just
+// before or after it, does. lowered is the paragraph's text through str.lower, which the window is cut from at the candidate's own
 // offsets even where lower-casing made the text longer.
 func classify(candidate ruleCandidate, lowered []rune) string {
+	switch candidate.label {
+	case "PERSON":
+		return categoryCharacter
+	case "GPE", "LOC", "FAC":
+		return categoryPlace
+	case "ORG":
+		return categoryOrganization
+	}
 	words := asciiWords([]rune(compare.PyLower(candidate.name)))
 	has := func(set map[string]bool, words []string) bool {
 		return slices.ContainsFunc(words, func(w string) bool { return set[w] })

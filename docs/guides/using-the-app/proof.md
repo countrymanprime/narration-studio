@@ -124,7 +124,8 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 - its time and its type. The type is a list: if the check named the wrong kind of problem, choose the right one, and your
   choice is kept with the note;
 - the arrows to step to the previous or next note on the list (a chip, the search or the In view filter can hide notes; the keys skip them);
-- what the script says and what was heard, with the difference marked;
+- what the script says and what was heard, on a shaded background (they are quotes, not boxes to type in), with the
+  difference marked: a word the reading lacks struck through on red, a word heard instead on green;
 - **In the script**: the note's paragraph with its words marked, and the paragraphs before and after it, shorter and greyed,
   so you can see where the note sits without leaving Proof. When the script no longer has that paragraph, it says so;
 - for words said twice, **Said twice** with the words said again, and **Open in Editing**, which opens the line's
@@ -153,7 +154,9 @@ it and not yet saved.
 
 A decision is always made on the evidence you are looking at. If the check ran again after the note was shown and the
 evidence changed, the decision is not saved: **The evidence changed** shows what you saw (**Before**) and what the check
-hears **Now**, and keeps your note. Press **Use the new evidence**, look again and decide.
+hears **Now**, and keeps your note; when the check heard the same words and only their timing or confidence moved, it says
+so instead of showing the same words twice. The decision buttons wait until you press **Use the new evidence**; look again
+and decide.
 
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
@@ -164,7 +167,8 @@ says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and o
 
 Under the decision, **Notes on this finding** keeps a thread of notes on the spot: questions for yourself, or a
 proofer's replies. Choose **Proofer replied** to paste in what the proofer wrote, or **My note** for your own, type it
-and press **Add note**, which sits beside the box. Each note shows who wrote it, on the left, and when, on the right; edit it with the pencil, or delete it, with **Undo** to
+and press **Add note**, which sits beside the box. Each note has a line with who wrote it, when (the date and time as
+the rest of the app writes them) and the pencil and bin, and the note under it at the full width; edit it with the pencil, or delete it, with **Undo** to
 bring it back where it was. The notes are kept with the project beside your decisions, are not a decision themselves,
 and stay with the note when a check runs again.
 
