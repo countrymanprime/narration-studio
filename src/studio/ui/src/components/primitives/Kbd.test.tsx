@@ -57,4 +57,13 @@ describe('Kbd', () => {
     expect(cap?.className).toContain('border-b-2');
     expect(cap?.className).toContain('border');
   });
+
+  it('keeps the key in its own case inside an uppercase control (XBO-17)', () => {
+    render(
+      <span className="uppercase">
+        <Kbd keys={['Space']} />
+      </span>,
+    );
+    expect(screen.getByRole('img', { name: 'Space' }).className).toContain('normal-case');
+  });
 });

@@ -15,7 +15,7 @@ the Inspector on the right for the selected note. The keys you can press are lis
 ![Proof - all chapters: the cleared ring, the chapter strip of open notes, the notes queue grouped by chapter and the Inspector on the first note](../../images/ui/proof-default.webp)
 
 Proof is always in the navigation. Until a manuscript is imported it asks you to import one. Until a check has found
-something, there is no ring, every chapter in the strip is empty and the Inspector says **No notes yet**.
+something, there is no ring, every chapter in the strip is empty and the Inspector is one line, **A note shows here once a check finds one**.
 
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
@@ -41,7 +41,8 @@ line you added) also keeps the ring from filling while it is open.
 
 Under the title, **Open notes, by chapter** draws one tile per chapter with how many of its notes are open, with **Open** and **Close** tiles
 for the opening and closing credits at the ends. Choose a chapter's tile to open that chapter; a credits tile opens that
-credits card on [Script](script.md), since Proof has no recording view for them.
+credits card on [Script](script.md), since Proof has no recording view for them. In a narrow window the tiles keep their
+size and the strip scrolls sideways, with **In** and **Out** for the credits.
 
 ### One chapter
 
@@ -68,8 +69,8 @@ A chapter shows its **Recording check** card and its recording:
 - The waveform window draws the chapter's recording with a pin at each note that has a time. Press a pin to select its
   note. It opens on a minute of the chapter; zoom in and out, or drag the window's edges, to see more or less of it. The
   window follows the selected note.
-- When the selected note's spot has more than one take, the take that plays is a band on the waveform and the others sit
-  in lanes under it.
+- When the selected note's spot has more than one take, the take that plays is a see-through band on the waveform, named
+  with whether it is kept, and the others sit in lanes under it, each named.
 
 A chapter with no recording yet says **No recording for this chapter yet** where the waveform goes.
 
@@ -119,7 +120,9 @@ part marked. Choosing one opens **Find in notes** on what you typed, clears the 
 
 ## A note and your decision
 
-Select a note in the table, or its pin on the waveform, and the Inspector shows it:
+Select a note in the table, or its pin on the waveform, and the Inspector shows it. In a window narrower than 1180 px the
+Inspector sits under the notes; clicking a note scrolls the page down to it, and stepping with the arrow keys does not.
+The Inspector shows:
 
 - its time and its type. The type is a list: if the check named the wrong kind of problem, choose the right one, and your
   choice is kept with the note;
@@ -305,14 +308,16 @@ stays usable.
 ![Proof chapter view - vocabulary hint chips: an accepted term alongside suggested (pending) candidates](../../images/ui/proof-chapter-hint-chips.webp)
 
 **Start comparison** needs a linked REAPER project and a connected REAPER; without either it is off,
-with the reason in its place. Once it's running, its progress is real, from the transcription itself,
+with the reason beside it. Once it's running, its progress is real, from the transcription itself,
 with **Cancel** to stop it.
 
 When it finishes, a summary reads "N discrepancies in \<chapter>", with how many more are in other chapters.
 **Export N markers** adds a take marker in REAPER for each discrepancy not already marked, the same
 marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepted note, so the two never
-mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
-comparison; Export markers is off while you review it.
+mark a spot twice; when it is off, the reason is beside it. **New comparison** starts over. **Review last run**, at the
+bottom of the setup beside the take's name, audio items and time, reopens the last completed comparison; Export markers is
+off while you review it. The steps across the card's header (Setup, Running, Results) show where the run is; they are not
+buttons.
 
 **With Audacity,** the comparison reads the audio track you have selected in Audacity (click its name), exports it whole to a
 WAV in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/audacity-session folder (for a long chapter that takes a while), and compares that. The
