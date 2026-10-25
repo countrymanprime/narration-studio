@@ -172,7 +172,7 @@ silently overwritten by a fresh, possibly-wrong, extraction.
 
 **Voice data**, in **More actions**, opens a panel
 for what isn't about one character: **Narration voice samples** and a reference for **plain narration**
-(useful as a baseline separate from any character), the space the project's voice samples use, **Remove voice samples…**, and
+(useful as a baseline separate from any character), any samples of a character who left the Story Bible, and at the end the space the project's voice samples use, **Remove voice samples…** and
 **Remove voice data…**, which revokes every approved reference in the project - for every character and for narration - in one
 action, after you confirm. Neither removal touches the manuscript, dialogue cues, or anything else in the Story Bible.
 
@@ -205,7 +205,7 @@ A row says what is wrong with it:
 | --- | --- | --- |
 | **Passage changed** | The words in that chapter are not the words the sample was marked on. The sample still plays. | **Open in Editing** goes to the chapter and tells you the marked words may have moved. |
 | **Chapter removed** | The chapter is no longer in the manuscript. The sample still plays. | Nothing; delete it when you no longer need it. |
-| **Audio file missing** or **Audio file changed** | The sample's audio in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples folder is gone or is not the file that was saved. It cannot play. | **Check again** reads the folder again. Then **Mark again in Editing** (offered while the words are as they were), or press **Edit** and delete it. |
+| **Audio file missing** or **Audio file changed** | The sample's audio in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples folder is gone or is not the file that was saved. It cannot play. | **Check again** reads the folder again. Then **Mark again in Editing** (offered while the words are as they were), or delete it: after **Edit** on the entry, or from **Voice data** on any entry, a locked one too. |
 | "Couldn't read the voice samples." | The host could not read the list. The last list that was read stays. | **Check again**. |
 
 An entry with none says "No voice samples yet" with **Open Editing**. **Check again** beside the heading looks at every sample's file

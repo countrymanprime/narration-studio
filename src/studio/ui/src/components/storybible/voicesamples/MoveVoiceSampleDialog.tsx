@@ -58,7 +58,6 @@ export function MoveVoiceSampleDialog({
       title="Move voice sample"
       onClose={onCancel}
       dismissOnOutsidePress={false}
-      actionsAlign="end"
       description={sample.label.trim() === '' ? undefined : `Move “${sample.label}” to another character.`}
       actions={
         <>
@@ -88,7 +87,9 @@ export function MoveVoiceSampleDialog({
             options={choices.map((choice) => ({ value: choice.id, label: choice.name }))}
           />
           <span className="text-sm text-[var(--text-muted)]">
-            {full ? `${chosen?.name ?? 'This character'} has ${limit} samples. Delete one first.` : `${count} of ${limit} samples`}
+            {full
+              ? `${chosen?.name ?? 'This character'} has ${limit} samples. Delete one first.`
+              : `${chosen?.name ?? 'This character'} has ${count} of ${limit} samples.`}
           </span>
         </div>
         {failure ? (
