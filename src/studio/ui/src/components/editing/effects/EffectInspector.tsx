@@ -47,7 +47,8 @@ export function EffectInspector({
   const showInDaw = <IconButton action="showInReaper" label={`Show in ${dawName}`} size="sm" disabledReason={show.reason ?? undefined} onClick={show.go} />;
   return (
     <section aria-label="Effect" className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
+      {/* The section's header, not a row like the Preview and Compare row under it, whose cells do not line up with its arrows (rule A3). */}
+      <header className="flex items-center gap-2">
         <h3 className="m-0 flex-1 font-['Barlow_Condensed',sans-serif] text-lg font-semibold">{fx.chainName}</h3>
         <IconButton
           action="previous"
@@ -63,7 +64,7 @@ export function EffectInspector({
           disabledReason={!step || step.at >= step.of - 1 ? 'This is the last effect.' : undefined}
           onClick={() => step?.to(1)}
         />
-      </div>
+      </header>
       {/* The chain is the heading above, so it is not a fact again. */}
       <dl className="m-0 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
         <Fact name="Words">“{fx.text}”</Fact>
