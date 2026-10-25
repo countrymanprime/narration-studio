@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BreakablePath } from '../../BreakablePath';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { Button } from '../primitives/Button';
@@ -69,6 +70,8 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
       dismissOnOutsidePress={false}
       title="New Project"
       onClose={busy ? undefined : onClose}
+      // Cancel beside Create, not at the far side of the footer from it (alignment audit XPJ-5).
+      actionsAlign="end"
       actions={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
@@ -95,8 +98,10 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
         <Field label="Name" value={name} onChange={setName} autoFocus disabled={busy} placeholder="My New Audiobook" hint={NAME_RULES} />
       </form>
       <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-        Location:{' '}
-        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] break-all">{parent ?? (defaultLocation || 'the default projects folder')}</span>
+        Location: {/* Breaks after a folder separator, never inside "NarrationStudio" (XPJ-9). */}
+        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">
+          <BreakablePath path={parent ?? (defaultLocation || 'the default projects folder')} />
+        </span>
         {parent === null && defaultLocation && ' (the default projects folder)'}
       </p>
       <Button variant="secondary" className="mt-2" onClick={changeLocation} disabled={busy}>
