@@ -20,6 +20,7 @@ from narration_common.recording import (
     WavWriter,
     dbfs,
     downmix,
+    metered,
     read_wav_header,
     synthetic_tone,
 )
@@ -177,6 +178,22 @@ def test_the_meter_takes_the_loudest_channel_and_counts_clipped_samples():
     assert meter.clipped == 100
     [silence] = meter.feed(np.zeros((100, 2), dtype=np.float32))
     assert (silence["peak"], silence["rms"]) == (FLOOR_DBFS, FLOOR_DBFS)
+
+
+def test_metered_passes_every_block_through_after_reporting_its_levels():
+    reported = []
+    blocks = [np.zeros(50, dtype=np.float32), np.full(150, 0.5, dtype=np.float32)]
+    seen = []
+
+    for block in metered(iter(blocks), LevelMeter(1000, 1), reported.append):
+        seen.append((block, list(reported)))
+
+    assert [block is original for (block, _), original in zip(seen, blocks, strict=True)] == [True, True]
+    # The first block is half a report, so nothing is reported before it reaches the engine; the second completes two.
+    assert seen[0][1] == []
+    assert [event["peak"] for event in seen[1][1]] == [-6.0, -6.0]
+    # The first report is 50 silent samples then 50 at half scale: its loudest 50 ms window is the half-scale one.
+    assert [event["rms"] for event in seen[1][1]] == [-6.0, -6.0]
 
 
 def test_a_meter_refuses_windows_that_do_not_divide_a_report():

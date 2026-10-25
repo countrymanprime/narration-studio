@@ -395,7 +395,7 @@ chosen in Settings › Booth, and a session starts with the saved one.
 
 Every session reports the microphone's level beside its words:
 `{"type": "level", "peak": -12.3, "rms": -24.1}` for every 100 ms of audio,
-in dBFS from -100 (silence) to 0 (full scale), computed by `levels.py` on the
+in dBFS from -100 (silence) to 0 (full scale), computed by `narration_common.recording.meter` on the
 same 16 kHz chunks the recognizer decodes. Before Start, the microphone
 popover runs a second, model-free child, `live_asr.py --meter --mic NAME`,
 which prints only `level` events until its stop file appears

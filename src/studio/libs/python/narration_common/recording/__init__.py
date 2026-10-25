@@ -8,7 +8,7 @@ the standard library, so it runs, and is tested, on any host.
 """
 
 from .framing import Framer, LinearResampler, downmix
-from .meter import FLOOR_DBFS, LevelMeter, dbfs
+from .meter import FLOOR_DBFS, LevelMeter, dbfs, metered
 from .recorder import Recorder, RecordingResult, Source, SyntheticSource, synthetic_tone
 from .wav import WavFullError, WavWriter, read_wav_header
 
@@ -25,6 +25,7 @@ __all__ = [
     "WavWriter",
     "dbfs",
     "downmix",
+    "metered",
     "read_wav_header",
     "synthetic_tone",
 ]
