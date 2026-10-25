@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react';
 import type { AssetInstallJob } from '../../types';
+import { BreakablePath } from '../../BreakablePath';
+import { HIT_AREA } from '../primitives/hitArea';
 
 const BYTES_PER_MB = 1024 * 1024;
 const BYTES_PER_GB = 1024 * BYTES_PER_MB;
@@ -32,10 +35,21 @@ export type AssetFactsProps = {
   installPath: string;
 };
 
+/** A link out of the dialog that looks like one: underlined, with a 24 px press target on its 16 px line. */
+const LINK = `${HIT_AREA} underline`;
+
+/** "464 MB" when the download is what it takes on disk, else both: the same figure is not said twice (alignment audit R3PR2-23). */
+export function sizeLine(downloadSize: number, diskSize: number): string {
+  const download = formatSize(downloadSize);
+  const disk = formatSize(diskSize);
+  return download === disk ? download : `${download} download, ${disk} on disk`;
+}
+
 /**
  * What the first-use question says about a download, the same for every kind of asset (the first-use rules): what it is and its exact
  * version, who publishes it, how much is downloaded and how much disk it needs, where it will be kept, and its licence and provenance
- * links. A definition list holds only term and definition groups; the links follow it.
+ * links. One definition list on a two-column grid, so every value starts at one x (alignment audit XPR2-30, R3BO-4, R3SB2-16); each group
+ * is a `contents` box, so the list holds only term and definition groups.
  */
 export function AssetFacts({
   label,
@@ -50,40 +64,40 @@ export function AssetFacts({
   diskSize,
   installPath,
 }: AssetFactsProps) {
-  const rows: Array<[string, string]> = [
+  const rows: Array<[string, ReactNode]> = [
     [label, name],
     ['Version', version],
-    ['Download', `${formatSize(downloadSize)} · ${publisher}`],
-    ['Disk needed', formatSize(diskSize)],
-    ['Saved to', installPath],
-  ];
-  return (
-    <>
-      <dl className="mt-3 space-y-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-        {rows.map(([term, definition]) => (
-          <div key={term}>
-            <dt className="inline font-medium">{term}: </dt>
-            <dd className="inline break-all">{definition}</dd>
-          </div>
-        ))}
-        <div>
-          <dt className="inline font-medium">License: </dt>
-          <dd className="inline">
-            <a className="link" href={licenseUrl} target="_blank" rel="noreferrer">
-              {license}
-            </a>
-          </dd>
-        </div>
-      </dl>
-      <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-        <a className="link" href={modelCardUrl} target="_blank" rel="noreferrer">
+    ['Publisher', publisher],
+    ['Size', sizeLine(downloadSize, diskSize)],
+    // A host that has not said where it will keep the files gets no empty row.
+    ...(installPath ? ([['Saved to', <BreakablePath key="path" path={installPath} />]] as Array<[string, ReactNode]>) : []),
+    [
+      'License',
+      <a key="license" className={LINK} href={licenseUrl} target="_blank" rel="noreferrer">
+        {license}
+      </a>,
+    ],
+    [
+      'Details',
+      <span key="details">
+        <a className={LINK} href={modelCardUrl} target="_blank" rel="noreferrer">
           Model card
         </a>
         {' · '}
-        <a className="link" href={provenanceUrl} target="_blank" rel="noreferrer">
+        <a className={LINK} href={provenanceUrl} target="_blank" rel="noreferrer">
           Provenance
         </a>
-      </p>
-    </>
+      </span>,
+    ],
+  ];
+  return (
+    <dl className="mt-3 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+      {rows.map(([term, definition]) => (
+        <div key={term} className="contents">
+          <dt className="font-medium text-[var(--text-muted)]">{term}</dt>
+          <dd className="min-w-0 [overflow-wrap:anywhere] text-[var(--text)]">{definition}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

@@ -224,6 +224,10 @@ The Settings page always keeps every setting. A working page may also offer a co
 
 **Known at 390 px, outside Settings** (found by a one-off sweep of every state at that width; the collapsed-control check passes everywhere): the Proofing results header and table (#148), the Home chapter table (#149) and a three-action confirm dialog (#150) are clipped or cramped. They need layout decisions and are reachable only by zoom, since the shell's minimum window is 960 px.
 
+## The first-use download facts
+
+`AssetFacts` (`components/assets/AssetFacts.tsx`) is the one list of facts every first-use download question shows (a Whisper model, a voice, a language model, the dictionary): a definition list on a `max-content` and `minmax(0,1fr)` grid, so every value starts at one x after its label, with no colons (alignment audit XPR2-30, R3BO-4, R3SB2-16). Its rows are what it is, Version, Publisher, one **Size** ("464 MB", or "12 MB download, 15 MB on disk" only when the two differ, R3PR2-23), **Saved to**, License and **Details** (Model card · Provenance). The links are underlined with a 24 px `HIT_AREA`, and the path breaks after a `/` or `\`, never inside a folder's name; a single name longer than the line still wraps.
+
 ## The Booth footer
 
 The Booth's footer (`BoothFooter`, the mock's `bfoot-main`) is one row from 1024 px: the controls (Record, the timer, Levels, Cold read), one sentence in the room between them, wrapping inside it, and the meter with the room tone at the right edge (the mock's `margin-left:auto`). Narrower, the meter stays on the controls' row and the sentence takes the full row under them; the footer never wraps into a lone meter row or two sentences run together (alignment audit R4BO1-1, R4BO2-7, R3BO-5, XBO-10). One sentence shows: why the text cannot follow the voice wins, and Record's own reason then stays only as Record's description (`#brec-why`, `sr-only`). Record is as wide as Stop (XBO-25). The mock draws the meter after the reason; XBO-9 asked for the meter beside Levels, which this keeps as the mock has it.
