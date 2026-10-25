@@ -130,7 +130,7 @@ Wikimedia Commons.
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
 until you agree. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
-before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
+before it adds anything. **Copy prompt** copies the prompt to give your own LLM with the manuscript, and **Show example** shows the format it answers in. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
 found on their own, though: after a manuscript import and at the end of every scan, each quoted line is matched to a
 speaker where a speech tag names an entry whose type speaks ("Ada said"). Such an entry's name within 70 characters of
 the line is suggested too, as a weaker guess. A name still in Needs Review is never a speaker. Every one of these is a
@@ -143,7 +143,7 @@ or off for a type finds them again everywhere. Your own corrections stay.
 
 A suggestion the app is sure of is accepted on its own; one it is not sure of waits for you. **Needs verification**
 in the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
-entry yet. An entry with suggestions waiting has a **Verify** count under **Show** in the **Filter** menu, its accepted facts, and a **Suggested**
+entry yet, each on one line with its kind and score; pressing one opens it as **Suggested new entry** (or the kind it is). An entry with suggestions waiting has a **Verify** count under **Show** in the **Filter** menu, its accepted facts, and a **Suggested**
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
 Script; a quote whose line the book no longer has is plain text that says so). An entry cannot be marked reviewed while it has suggestions waiting.
 
