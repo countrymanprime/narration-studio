@@ -1,7 +1,8 @@
 package guide
 
 // State matrix of a merge, an unmerge and a split in the host. Each cell names its test; a cell the sidecar's recorded cases already
-// pin says so (TestMergesMatchTheSidecarCases replays testdata/merge-parity.json, written by test_merge_parity.py).
+// pin says so (TestMergesMatchTheSidecarCases replays testdata/merge-parity.json, recorded from the sidecar's merge, unmerge and split
+// before #2251 deleted them; the file is frozen and nothing rewrites it).
 //
 //	empty (a file with no entries)            TestMergeNeedsAStoryBible
 //	one and many entries                      the recorded cases (a merge of a few entries; twelve merges of fourteen)

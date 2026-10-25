@@ -130,6 +130,14 @@ the equivalence list, `difflib.SequenceMatcher`, `str.split`, `str.strip`, `str.
 `compare.py` wrote it before its tokenizer was deleted (2026-10-24), so it is frozen: `compare_test.go` must agree with it, and
 `test_compare_go_parity.py` holds `narration_common`'s number merge, which the teleprompter still runs, to the same answers.
 
+## guide-edit/
+
+`edit-parity.json`: what the manuscript-guide sidecar's `edit` command did to a Story Bible file, case by case: the file it
+left, or the reason it refused. The host edits the file itself (`src/studio/desktop/internal/guide/edit.go`), and
+`edit_test.go` and `edit_held_test.go` replay every case. The sidecar's `edit` and its recorder were deleted (2026-10-25,
+[Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 3), so the file is frozen: nothing
+rewrites it. The other Story Bible commands' cases are frozen the same way in `src/studio/desktop/internal/guide/testdata/`.
+
 ## booth-parity/
 
 `text-rules.json`: Python 3.12's own answers for the text rules the host needs to follow a read the way the Booth's
