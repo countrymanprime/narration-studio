@@ -1,6 +1,6 @@
 """The alignment spike: `SequenceMatcher` against a word-level DP, scored on the fixtures.
 
-docs/utilities/recording-coverage.md, docs/utilities/recording-coverage.md and Q2 (answered 2026-09-23: reuse the
+docs/utilities/recording-coverage.md#how-it-works and Q2 (answered 2026-09-23: reuse the
 `SequenceMatcher` opcodes `compare.py` already computes unless the spike's fixtures fail, then move
 to a DP alignment). This module is test tooling, not product code:
 
@@ -12,8 +12,8 @@ to a DP alignment). This module is test tooling, not product code:
   programmatic drop, swap (pickup) and insert, with the labels the recording should get;
 - `benchmark()` times both aligners on a full-chapter-size input.
 
-Run it: `uv run python src/studio/sidecars/transcript-compare/tests/coverage_spike.py` prints the tables that
-`docs/research/recording-coverage-alignment-spike.md` records.
+Run it: `uv run python src/studio/sidecars/transcript-compare/tests/coverage_spike.py` prints the tables whose
+results docs/utilities/recording-coverage.md#how-it-works records.
 """
 
 from __future__ import annotations
