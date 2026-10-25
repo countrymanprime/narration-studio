@@ -178,6 +178,18 @@ function FindInManuscript({ name }: { name: string }) {
 export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; nonce: number };
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
+/**
+ * The names list's one grid: the name, how it is said, its source and the row's buttons. Every row is a subgrid of it, so the
+ * columns are shared and a row with more buttons does not move the others' (alignment audit SBX-4). Below a 32 rem card the
+ * rows wrap instead (`NamePronunciation`).
+ */
+const NAMES_GRID = {
+  // Read: the source follows the longest pronunciation, not the row's far end (SBX-2); the buttons keep the right edge.
+  read: 'grid-cols-[9rem_minmax(0,max-content)_minmax(0,1fr)_auto]',
+  // Edit: the pronunciation is a text box that takes the room.
+  edit: 'grid-cols-[9rem_minmax(0,1fr)_auto_auto]',
+  shared: 'm-0 grid list-none gap-x-2 gap-y-3 p-0 @max-[32rem]:grid-cols-[minmax(0,1fr)_auto]',
+};
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
 const VERIFY_FIRST_REASON = 'Verify or reject its suggestions first.';
 
@@ -567,12 +579,17 @@ export function GuideDetail({
   const mergeButton = (source?: GuideEntity) =>
     source?.locked ? (
       <TooltipTarget text="Locked entries cannot be merged because the source would be deleted.">
-        <Button variant="primary" disabled>
+        <Button variant="secondary" disabled>
           Merge into this entry
         </Button>
       </TooltipTarget>
     ) : (
-      <Button variant="primary" pending={mutation.isPending('merge')} disabled={!source || waiting('merge')} onClick={() => source && void mergeEntry(source)}>
+      <Button
+        variant="secondary"
+        pending={mutation.isPending('merge')}
+        disabled={!source || waiting('merge')}
+        onClick={() => source && void mergeEntry(source)}
+      >
         <FontAwesomeIcon icon={faCodeMerge} />
         Merge into this entry
       </Button>
@@ -743,24 +760,9 @@ export function GuideDetail({
           </p>
         )}
 
-        <div>
-          <div className="mb-1.5 flex items-center justify-between gap-2 text-[0.82rem] font-medium text-[var(--text-muted)]">
-            <span>Names the app links in the text, and how I say each</span>
-            {/* Rescan has no mock equivalent and stays as built. */}
-            {!isNewDraft && (
-              <TooltipTarget text="Rescan occurrences for this entry">
-                <IconButton
-                  label="Rescan occurrences"
-                  disabled={waiting('rescan')}
-                  pending={mutation.isPending('rescan')}
-                  onClick={() => void rescanOccurrences()}
-                >
-                  <FontAwesomeIcon icon={faRotate} />
-                </IconButton>
-              </TooltipTarget>
-            )}
-          </div>
-          <ul aria-label="Names" className="m-0 list-none space-y-3 p-0">
+        <div className="@container">
+          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Names the app links in the text, and how I say each</div>
+          <ul aria-label="Names" className={`${NAMES_GRID.shared} ${canEdit && editing ? NAMES_GRID.edit : NAMES_GRID.read}`}>
             {nameRows(entity).map((row) => {
               const { aliasIndex, name, pronunciation } = row;
               const key = previewKey(aliasIndex);
@@ -768,106 +770,118 @@ export function GuideDetail({
               const playReason = playing || pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON;
               const flagged = aliasIndex !== undefined && aliasFlagged(entity, name);
               return (
-                <li key={`${aliasIndex ?? 'entry'}:${name}`} className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <NamePronunciation
-                      entityId={entity.id}
-                      row={row}
-                      editing={canEdit && editing}
-                      locked={locked}
-                      sources={pronunciationSources}
-                      reload={() => reloadFor(entity.id)}
-                      notify={notify}
-                    />
-                    {flagged && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
-                    {/* A note from before pronunciation statuses were removed: kept readable, no longer edited. */}
-                    {pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
-                  </div>
-                  <TooltipTarget
-                    text={
-                      aliasIndex === undefined
-                        ? playing
-                          ? 'Pause pronunciation preview'
-                          : (playReason ?? 'Play provider-generated pronunciation')
-                        : playing
-                          ? 'Pause alias pronunciation preview'
-                          : (playReason ?? 'Play this alias pronunciation')
-                    }
-                  >
-                    <IconButton
-                      label={
+                <li key={`${aliasIndex ?? 'entry'}:${name}`} className="col-span-full grid grid-cols-subgrid items-start">
+                  <NamePronunciation
+                    entityId={entity.id}
+                    row={row}
+                    editing={canEdit && editing}
+                    locked={locked}
+                    sources={pronunciationSources}
+                    reload={() => reloadFor(entity.id)}
+                    notify={notify}
+                    primary={aliasIndex === undefined}
+                    badge={flagged && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
+                    // A note from before pronunciation statuses were removed: kept readable, no longer edited.
+                    note={pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
+                  />
+                  {/* Play first and Record second in every row, so they sit in one column; the buttons only some rows have come after. */}
+                  <div className="flex gap-2">
+                    <TooltipTarget
+                      text={
                         aliasIndex === undefined
                           ? playing
-                            ? 'Pause preview'
-                            : 'Play preview'
+                            ? 'Pause pronunciation preview'
+                            : (playReason ?? 'Play provider-generated pronunciation')
                           : playing
-                            ? 'Pause alias pronunciation'
-                            : 'Play alias pronunciation'
+                            ? 'Pause alias pronunciation preview'
+                            : (playReason ?? 'Play this alias pronunciation')
                       }
-                      disabledReason={playReason}
-                      pending={loadingPreview === key}
-                      onClick={() => void playPreview(aliasIndex)}
                     >
-                      <FontAwesomeIcon icon={playing ? faPause : faWaveSquare} />
-                    </IconButton>
-                  </TooltipTarget>
-                  {canEdit && editing && (
-                    <TooltipTarget text={`Record my own clip for ${name}`}>
-                      <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
-                    </TooltipTarget>
-                  )}
-                  {flagged && (
-                    <TooltipTarget text={`Mark ${name} reviewed`}>
                       <IconButton
-                        action="markReviewed"
-                        label={`Mark ${name} reviewed`}
-                        pending={mutation.isPending(`review:${aliasIndex}`)}
-                        disabled={waiting(`review:${aliasIndex}`)}
-                        onClick={() => void markReviewed(aliasIndex)}
-                      />
+                        label={
+                          aliasIndex === undefined
+                            ? playing
+                              ? 'Pause preview'
+                              : 'Play preview'
+                            : playing
+                              ? 'Pause alias pronunciation'
+                              : 'Play alias pronunciation'
+                        }
+                        disabledReason={playReason}
+                        pending={loadingPreview === key}
+                        onClick={() => void playPreview(aliasIndex)}
+                      >
+                        <FontAwesomeIcon icon={playing ? faPause : faWaveSquare} />
+                      </IconButton>
                     </TooltipTarget>
-                  )}
-                  {aliasIndex !== undefined && canEdit && editing && (
-                    <IconButton
-                      label={`Remove alias ${name}`}
-                      disabled={waiting(`alias:${name}`)}
-                      pending={mutation.isPending(`alias:${name}`)}
-                      onClick={() =>
-                        void setAliasTexts(
-                          entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
-                          `alias:${name}`,
-                        )
-                      }
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </IconButton>
-                  )}
+                    {canEdit && editing && (
+                      <TooltipTarget text={`Record my own clip for ${name}`}>
+                        <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
+                      </TooltipTarget>
+                    )}
+                    {flagged && (
+                      <TooltipTarget text={`Mark ${name} reviewed`}>
+                        <IconButton
+                          action="markReviewed"
+                          label={`Mark ${name} reviewed`}
+                          pending={mutation.isPending(`review:${aliasIndex}`)}
+                          disabled={waiting(`review:${aliasIndex}`)}
+                          onClick={() => void markReviewed(aliasIndex)}
+                        />
+                      </TooltipTarget>
+                    )}
+                    {aliasIndex !== undefined && canEdit && editing && (
+                      <IconButton
+                        label={`Remove alias ${name}`}
+                        disabled={waiting(`alias:${name}`)}
+                        pending={mutation.isPending(`alias:${name}`)}
+                        onClick={() =>
+                          void setAliasTexts(
+                            entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
+                            `alias:${name}`,
+                          )
+                        }
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </IconButton>
+                    )}
+                  </div>
                 </li>
               );
             })}
           </ul>
           {canEdit && editing && (
-            <div className="mt-3">
-              <TextField
-                label="Add a name"
-                disabled={waiting('alias')}
-                value={aliasQuery}
-                onChange={(value) => {
-                  setAliasQuery(value);
-                  setNameNote(undefined);
-                }}
-                onKeyDown={onAliasKeyDown}
-                placeholder="Add a name"
-              />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="w-[12.5rem] max-w-full">
+                <TextField
+                  label="Add a name"
+                  disabled={waiting('alias')}
+                  value={aliasQuery}
+                  onChange={(value) => {
+                    setAliasQuery(value);
+                    setNameNote(undefined);
+                  }}
+                  onKeyDown={onAliasKeyDown}
+                  placeholder="Add a name"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                disabled={aliasQuery.trim() === '' || waiting('alias')}
+                pending={mutation.isPending('alias')}
+                onClick={addAliasFromQuery}
+              >
+                Add name
+              </Button>
               {nameNote && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <>
                   <span role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     {nameNote.ownerId
-                      ? `“${nameNote.text}” is already a name of ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
+                      ? `“${nameNote.text}” is already a name of the entry ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
                       : `“${nameNote.text}” is already a name of this entry.`}
                   </span>
                   {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
-                </div>
+                </>
               )}
             </div>
           )}
@@ -952,7 +966,29 @@ export function GuideDetail({
           />
         </div>
 
-        <AppearsIn entity={entity} manuscript={chapters} onGo={(chapterId) => goToManuscript(chapterId)} />
+        <AppearsIn
+          entity={entity}
+          manuscript={chapters}
+          onGo={(chapterId) => goToManuscript(chapterId)}
+          action={
+            // Rescan has no mock equivalent: it re-reads where the entry's names occur, so it sits with the list it refreshes.
+            !isNewDraft && (
+              <TooltipTarget text="Rescan occurrences for this entry">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Rescan occurrences"
+                  disabled={waiting('rescan')}
+                  pending={mutation.isPending('rescan')}
+                  onClick={() => void rescanOccurrences()}
+                >
+                  <FontAwesomeIcon icon={faRotate} />
+                  Rescan
+                </Button>
+              </TooltipTarget>
+            )
+          }
+        />
         {ttsPrompt && (
           <AssetInstallPrompt
             ask={{

@@ -369,7 +369,7 @@ describe('Story Bible Appears in', () => {
     const section = screen.getByTestId('appears-in');
     const relationships = screen.getByText('Relationship');
     expect(relationships.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    await userEvent.click(within(section).getAllByRole('button')[0]);
+    await userEvent.click(within(section).getAllByRole('button', { name: /^Go to / })[0]);
     expect(goToManuscript).toHaveBeenCalledWith('chapter-1');
   });
 
