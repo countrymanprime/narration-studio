@@ -290,6 +290,7 @@ export function useManuscriptImport({
         // The Close button in the header drops the job too, so there is no separate Cancel. An alertdialog, as every confirm: Escape cancels, a press on the backdrop does nothing.
         <Dialog
           title={`Import ${importJob.preview.sourceName} · step 2 of 2`}
+          size="wide"
           variant="alert"
           bodyScroll={false}
           dismissOnOutsidePress={false}

@@ -95,6 +95,7 @@ export function DeliveryProfileEditor({
     <Dialog
       dismissOnOutsidePress={false}
       title="Edit profile"
+      size="wide"
       onClose={onCancel}
       description={`${base ? `Based on ${deliveryProfileTitle(base)}. ` : ''}Saving makes revision ${profile.revision + 1}; projects using it are judged again without measuring.`}
       actions={

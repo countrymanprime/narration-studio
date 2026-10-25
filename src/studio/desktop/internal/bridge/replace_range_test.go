@@ -208,3 +208,52 @@ func TestRestoreReplacementRefusesABadRequestAndAnswersStale(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestImportAudioTrackSendsTheNameAndPathAndReadsAUDIO_TRACK_ADDED(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"AUDIO_TRACK_ADDED", run(command), "{00000003-0000-4000-8000-000000000003}", replaceSource, "796.500000", "1"}}
+	})
+	path := "C:/Users/Kara/Downloads/Eric Leach ch1 🎙.mp3"
+	got, err := actions.ImportAudioTrack(context.Background(), "إريك Leach", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (AudioTrackAdded{TrackGUID: "{00000003-0000-4000-8000-000000000003}", ItemGUID: replaceSource, Length: 796.5, UndoPoints: 1}); got != want {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+	command := fake.commands()[0]
+	if command[1] != "import_audio_track" || command[3] != "إريك Leach" || command[4] != path || len(command) != 5 {
+		t.Fatalf("command = %v", command)
+	}
+}
+
+func TestImportAudioTrackRefusesABadNameOrPathWithoutSendingIt(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
+	for _, c := range [][2]string{{"", "/a.wav"}, {"  ", "/a.wav"}, {"A|B", "/a.wav"}, {"A\tB", "/a.wav"}, {string(make([]rune, 81)), "/a.wav"},
+		{"Eric", ""}, {"Eric", "/a|b.wav"}, {"Eric", "/a\nb.wav"}} {
+		if _, err := actions.ImportAudioTrack(context.Background(), c[0], c[1]); !errors.Is(err, ErrBadReplacement) {
+			t.Errorf("%q: got %v", c, err)
+		}
+	}
+	time.Sleep(20 * time.Millisecond)
+	if len(fake.commands()) != 0 {
+		t.Fatalf("commands were written: %v", fake.commands())
+	}
+	if !Experimental("import_audio_track") {
+		t.Error("import_audio_track must stay experimental until the verification pass")
+	}
+}
+
+func TestImportAudioTrackPassesTheScriptsRefusalOn(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ERROR", run(command), "REAPER cannot read that file as audio."}}
+	})
+	_, err := actions.ImportAudioTrack(context.Background(), "Eric Leach", "/home/k/notes.wav")
+	var refusal *RefusalError
+	if !errors.As(err, &refusal) || refusal.Sentence != "REAPER cannot read that file as audio." {
+		t.Fatalf("got %v", err)
+	}
+}

@@ -178,3 +178,41 @@ def replace_from_mp3(env: Env) -> str:
     assert mix.tone(4.1, 6.9, 440.0) < 0.01 and mix.tone(4.1, 6.9, 660.0) < 0.01, "the narrator's tones still play under their stretch"
     assert mix.pitch(7.2, 9.8) == "tone_b", "the narrator's audio after the words does not follow on"
     return f"60-63 s of the 22.05 kHz MP3 renders at rms {speech:.4f} in place of 4-6 s; the rest 1 s later"
+
+
+@scenario(
+    "replace_range",
+    "import_audio_track, replace_range",
+    "import their audio: the file goes on a new muted track in one undo step, is not heard in a render, and is the source of a replacement",
+)
+def import_then_replace(env: Env) -> str:
+    fx = env.lua(
+        """
+        local one = ci.add_track('Chapter 1')
+        ci.add_item(one, args[1], 0, 12)
+        ci.save_and_reload(ci.rpp)
+        return { item = ci.item_guid(reaper.GetTrackMediaItem(ci.track_by_name('Chapter 1'), 0)) }
+        """,
+        env.media_path("steps"),
+    )
+    added = env.ok("import_audio_track", "Eric Leach 🎙", env.media_path("tone_c"), until="AUDIO_TRACK_ADDED")
+    track_guid, item_guid, length, undo_points = added[2:6]
+    near(float(length), 30.0, 0.01, "their item's length (the file's)")
+    assert undo_points == "1", added
+    state = env.snapshot()
+    theirs = next(t for t in state["tracks"] if t["name"] == "Eric Leach 🎙")
+    assert theirs["mute"], "their track is not muted"
+    assert [(i["guid"], round(i["position"], 3), round(i["length"], 3)) for i in items_on(state, "Eric Leach 🎙")] == [(item_guid, 0.0, 30.0)]
+    assert state["undo"] == undo_label("add their audio"), state["undo"]
+    mix = env.render_mix("imported", 0.0, 10.0)
+    assert mix.tone(1.0, 3.0, 880.0) < 0.01 and mix.pitch(1.0, 3.0) == "tone_a", "their muted track is heard in the mix"
+    env.refused("import_audio_track", "Eric Leach", "//server/share/x.wav")
+    env.refused("import_audio_track", "Eric Leach", env.media_path("tone_c").replace("tone_c.wav", "gone.wav"))
+    done = env.ok("replace_range", fx["item"], "6", "7", item_guid, "2|3|10|0|r-ci-7", until="RANGE_REPLACED")
+    mix = env.render_mix("imported_replace", 0.0, 10.0)
+    assert mix.pitch(6.1, 6.9) == "tone_c", f"the replacement from the imported track plays {mix.pitch(6.1, 6.9)}"
+    undone = undo_once(env)
+    assert undone == REPLACE_LABEL, undone
+    assert undo_once(env) == undo_label("add their audio"), "the import is not its own undo step"
+    assert not any(t["name"] == "Eric Leach 🎙" for t in env.snapshot()["tracks"]), "Undo left their track"
+    return f"a 30 s WAV on a muted track {track_guid[:9]}…, silent in the mix; a replacement from it renders tone_c; {done[0]}; two Undos remove both"
