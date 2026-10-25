@@ -149,8 +149,8 @@ def _segment_kind(segment: dict, where: str) -> str:
     return kinds[0]
 
 
-def _spoken(engine: ModuleType, text: str) -> list[str]:
-    return [raw for raw in text.split() if engine.tokenize(raw)]
+def _spoken(_engine: ModuleType, text: str) -> list[str]:
+    return [raw for raw in text.split() if td.go_coverage.tokenize(raw)]
 
 
 def plan_case(engine: ModuleType, paragraphs: Sequence[str], case: Case) -> Plan:
@@ -172,7 +172,7 @@ def plan_case(engine: ModuleType, paragraphs: Sequence[str], case: Case) -> Plan
             continue
         consumed = _spoken(engine, text)
         expected = span.words[position : position + len(consumed)]
-        if [engine.tokenize(w) for w in consumed] != [list(w.tokens) for w in expected]:
+        if [td.go_coverage.tokenize(w) for w in consumed] != [list(w.tokens) for w in expected]:
             raise FixtureError(f"{where}: '{text}' is not the span's next {len(consumed)} word(s)")
         if kind != "read":
             truths.append(Truth(TRUTH_KIND[kind], kind, position, position + len(consumed) - 1, index))

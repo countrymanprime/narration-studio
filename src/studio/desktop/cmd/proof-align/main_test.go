@@ -150,3 +150,20 @@ func TestTheRepeatScanGroupsTheReadsOrAsksForAChapter(t *testing.T) {
 		t.Fatalf("replies = %q", lines)
 	}
 }
+
+// The research spike's ops (tests/coverage_spike.py): a text's tokens, and another aligner's opcodes fused as Align
+// fuses SequenceMatcher's.
+func TestTheTokensOfATextAndAnotherAlignersOpcodesFused(t *testing.T) {
+	requests := `{"op":"tokenize","text":"They're Alyce, twenty-three","equivalences":[["alice","alyce"]]}` + "\n" +
+		`{"op":"fuseHyphenSplits","doc":["superpowered"],"audio":["super","powered"],"opcodes":[["replace",0,1,0,2]]}` + "\n" +
+		`{"op":"fuseHyphenSplits","opcodes":[["replace",0,"x",0,2]]}` + "\n"
+	var out strings.Builder
+	if err := serve(strings.NewReader(requests), &out); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+	want := []string{`{"tokens":["their","alice","twenty","three"]}`, `{"opcodes":[["equal",0,1,0,2]]}`, `{"error":"opcode 0: not [tag, i1, i2, j1, j2]"}`}
+	if len(lines) != 3 || lines[0] != want[0] || lines[1] != want[1] || lines[2] != want[2] {
+		t.Fatalf("replies = %q, want %q", lines, want)
+	}
+}

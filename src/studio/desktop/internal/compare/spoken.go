@@ -41,8 +41,8 @@ func IsFiller(token string) bool { return fillerWords[token] }
 
 // homophonesCSV is spoken_forms.HOMOPHONE_GROUPS written out as CSV (a Go
 // embed cannot reach Python data);
-// src/studio/sidecars/transcript-compare/tests/test_chapter_track_parity.py
-// fails when the two drift apart.
+// src/studio/libs/python/tests/test_spoken_forms.py fails when the two drift
+// apart.
 //
 //go:embed homophones.csv
 var homophonesCSV string

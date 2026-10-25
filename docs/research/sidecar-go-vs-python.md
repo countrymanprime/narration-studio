@@ -10,7 +10,7 @@
 
 ## What Go already does
 
-The repository has moved pure logic out of the sidecars eight times. What holds each Go copy to the behaviour it replaced:
+The repository has moved pure logic out of the sidecars nine times. What holds each Go copy to the behaviour it replaced:
 
 | What | Go | Held by |
 | --- | --- | --- |
@@ -22,8 +22,9 @@ The repository has moved pure logic out of the sidecars eight times. What holds 
 | Transcript Compare's markers and diff (step 1, third part, first PR, 2026-10-24): the tail of `compare.py`'s run (`diff_and_build_markers`' markers, `build_marker_context`, `build_unit_audio_info`, `write_unified_diff` and their helpers) | `src/studio/desktop/internal/comparerun`; the sidecar matches the chapter, transcribes and writes a words report | `tests/fixtures/compare/results.golden.json`, written by the Python run before the move and reproduced by `golden_test.go`; 5,700 seeded random runs gave the same four files from both; `diff_and_build_markers` stays in Python for `--find-repeats` until the repeats move, and the chapter match stays until it joins `internal/compare` |
 | Transcript Compare's chapter match (step 1, third part, second PR, 2026-10-24): `find_chapter_by_track_name`, `find_chapter_by_exact_title` and the `NEED_CHAPTER` answer for the run | `internal/comparerun` (`Choose`) over `internal/chaptermatch`, which now applies the project's equivalence list as `label_tokens` did; the sidecar's run only transcribes | `tests/fixtures/chapter-track-match/parity-cases.json`; 25,000 seeded matches with random equivalence lists gave the same chapter and score from both; Python's matcher stays for `--find-repeats` until that mode moves |
 | The pickup and duplicate scan's grouping (step 1, third part, third PR, 2026-10-24): `find_repeated_spans`' chapter match, alignment, `group_repeated_spans`, `detect_exact_copies` and `_alignment_quality` | `internal/comparerun` (`FindRepeats`, `Choose`), run by `internal/takereview`'s `ProcessRunner`; `compare.py --find-repeats` only transcribes each read | `tests/fixtures/repeats/spans.golden.json`, written by the Python mode for the 42 cases of `repeat-cases.json` before the move and reproduced by `repeats_golden_test.go`; 6,300 seeded scans gave the same output from both |
+| Step 1's last Python copies (step 1, third part, fourth PR, 2026-10-24): compare.py's tokenizer, sentence split, chapter units, chapter matcher, `diff_and_build_markers` and its timing labels, `recording_coverage.py` (`repeat_of`) and the unused `--extract-hints` | deleted; the host's `internal/compare`, `chaptermatch`, `comparerun` and `recordingcoverage` are the only copies, and `compare.py` only decodes and transcribes | The parity files they wrote (`tests/fixtures/compare-parity/cases.json`, `chapter-track-match/parity-cases.json`, `repeat-rule/parity-cases.json`, `fixtures/coverage/markers.golden.json`) are frozen and read by Go alone, except the number merge, which `narration_common` still runs for the Booth |
 
-The cost of this pattern is two live copies held together by parity tests. The Python mutation code in `manuscript_guide.py` still exists beside the Go code that the host now runs.
+The cost of this pattern is two live copies held together by parity tests, until the Python copy is deleted, as step 1's were. The Python mutation code in `manuscript_guide.py` still exists beside the Go code that the host now runs.
 
 ## Inventory
 

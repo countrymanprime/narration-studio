@@ -19,6 +19,8 @@
 //	{"op": "compareRun", ...} a Transcript Compare run's results and diff files, as the host writes them
 //	{"op": "matchChapter", ...} the chapter title a track name matches, with the project's equivalences
 //	{"op": "findRepeats", ...} a pickup and duplicate scan's tagged output for a manifest and each read's words
+//	{"op": "tokenize", ...} the tokens of a text, with the project's equivalences
+//	{"op": "fuseHyphenSplits", ...} opcodes over doc and audio tokens with their hyphen splits fused, as Align fuses them
 //
 // A reply is {"error": "..."} when the request fails.
 package main
@@ -76,6 +78,14 @@ type request struct {
 	// matchChapter (and equivalences)
 	Titles []string `json:"titles"`
 	Track  string   `json:"track"`
+
+	// tokenize (and equivalences)
+	Text string `json:"text"`
+
+	// fuseHyphenSplits
+	Doc     []string `json:"doc"`
+	Audio   []string `json:"audio"`
+	Opcodes [][5]any `json:"opcodes"`
 
 	// findRepeats (and manuscript, manifest, track)
 	ChapterTitle   string     `json:"chapterTitle"`
@@ -182,6 +192,10 @@ func handle(req request) (any, error) {
 		return map[string]int{"markers": markers}, nil
 	case "findRepeats":
 		return findRepeats(req)
+	case "tokenize":
+		return map[string][]string{"tokens": compare.NewTokenizer(req.Equivalences).Tokenize(req.Text)}, nil
+	case "fuseHyphenSplits":
+		return fuseHyphenSplits(req)
 	default:
 		return nil, fmt.Errorf("unknown op %q", req.Op)
 	}
@@ -269,20 +283,11 @@ func measure(req request) (any, error) {
 func (a *alignedChapter) chapter() (*recordingcoverage.AlignedChapter, error) {
 	opcodes := make([]recordingcoverage.Opcode, len(a.Opcodes))
 	for k, raw := range a.Opcodes {
-		tag, ok := raw[0].(string)
-		numbers := [4]int{}
-		for n := range numbers {
-			value, isNumber := raw[n+1].(float64)
-			if !isNumber || value != float64(int(value)) {
-				ok = false
-				break
-			}
-			numbers[n] = int(value)
+		op, err := opcode(raw)
+		if err != nil {
+			return nil, fmt.Errorf("opcode %d: %w", k, err)
 		}
-		if !ok {
-			return nil, fmt.Errorf("opcode %d is not [tag, i1, i2, j1, j2]", k)
-		}
-		opcodes[k] = recordingcoverage.Opcode{Tag: tag, I1: numbers[0], I2: numbers[1], J1: numbers[2], J2: numbers[3]}
+		opcodes[k] = recordingcoverage.Opcode{Tag: op.Tag, I1: op.I1, I2: op.I2, J1: op.J1, J2: op.J2}
 	}
 	chapter := &recordingcoverage.AlignedChapter{
 		DocTokens: a.DocTokens, DocWords: a.DocWords, TokenParagraph: a.TokenParagraph,
@@ -397,4 +402,39 @@ func findRepeats(req request) (any, error) {
 		}
 	}
 	return map[string]string{"output": comparerun.FindRepeats(tokenizer, chapter, reads, heard, req.MinWords, req.MinSpanOverlap)}, nil
+}
+
+// fuseHyphenSplits fuses the hyphen splits of opcodes over doc and audio, for an aligner other than SequenceMatcher.
+func fuseHyphenSplits(req request) (any, error) {
+	opcodes := make([]compare.Opcode, len(req.Opcodes))
+	for k, raw := range req.Opcodes {
+		op, err := opcode(raw)
+		if err != nil {
+			return nil, fmt.Errorf("opcode %d: %w", k, err)
+		}
+		opcodes[k] = op
+	}
+	fused := [][5]any{}
+	for _, op := range compare.FuseHyphenSplits(opcodes, req.Doc, req.Audio) {
+		fused = append(fused, [5]any{op.Tag, op.I1, op.I2, op.J1, op.J2})
+	}
+	return map[string]any{"opcodes": fused}, nil
+}
+
+// opcode reads one [tag, i1, i2, j1, j2] opcode from JSON.
+func opcode(raw [5]any) (compare.Opcode, error) {
+	tag, ok := raw[0].(string)
+	numbers := [4]int{}
+	for n := range numbers {
+		value, isNumber := raw[n+1].(float64)
+		if !isNumber || value != float64(int(value)) {
+			ok = false
+			break
+		}
+		numbers[n] = int(value)
+	}
+	if !ok {
+		return compare.Opcode{}, errors.New("not [tag, i1, i2, j1, j2]")
+	}
+	return compare.Opcode{Tag: tag, I1: numbers[0], I2: numbers[1], J1: numbers[2], J2: numbers[3]}, nil
 }
