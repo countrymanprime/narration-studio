@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
+import { brand } from '../../../brand.gen';
 
 afterEach(() => {
   cleanup();
@@ -94,6 +95,102 @@ describe('Settings: structure', () => {
     expect(model.className).toContain('@min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
     expect(model.className).not.toContain('grid-cols-2');
     expect(within(model).getByRole('combobox').className).toContain('w-80');
+  });
+});
+
+// Alignment audit, Settings page frame (XSE1-16, XSE2-32, R4SE2-1, XSE1-19, XSE2-31, R3SE2-3, XSE2-20, XSE1-26, R4SE2-7, R3SE2-2, XSE2-36).
+describe('Settings: page frame', () => {
+  it('fills the page to its gutter instead of stopping at 1180 px', async () => {
+    await renderPage();
+    expect(screen.getByTestId('settings-page').className).not.toMatch(/max-w-\[/);
+  });
+
+  it('draws no magnifier outside the search box, and the search row spans a narrow page', async () => {
+    await renderPage();
+    const find = screen.getByRole('search');
+    expect(find.querySelector(':scope > svg')).toBeNull();
+    expect(find.className).toContain('@max-[760px]:w-full');
+    expect(within(find).getByRole('textbox', { name: 'Search settings' }).closest('[class*="flex-[1_1_180px]"]')).toBeTruthy();
+  });
+
+  it('puts Reset to defaults in the title line as a small button, not a 16 px link', async () => {
+    await renderPage();
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    const reset = await screen.findByRole('button', { name: 'Reset to defaults' });
+    expect(reset.className).toContain('min-h-[var(--button-height-sm)]');
+    expect(reset.className).not.toContain('underline');
+  });
+
+  it('the folded Category button says Search results while results show, with a drawn chevron', async () => {
+    await renderPage();
+    const toggle = await screen.findByRole('button', { name: /^Category/ });
+    expect(toggle.textContent).toContain('Recording & DAW');
+    expect(toggle.textContent).not.toMatch(/[▴▾]/);
+    expect(toggle.querySelector('svg')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'whisper' } });
+    expect(toggle.textContent).toContain('Search results');
+  });
+
+  it('spaces the category groups apart, the same for Elsewhere, and attaches each label to its group', async () => {
+    await renderPage();
+    const groups = within(nav()).getAllByRole('group');
+    expect(new Set(groups.map((group) => group.className)).size).toBe(1);
+    expect(groups[0]!.className).toContain('first:mt-0');
+    expect(new Set(groups.map((group) => (group.firstElementChild as HTMLElement).className)).size).toBe(1);
+  });
+
+  it('the current category keeps a straight accent edge (no left radius)', async () => {
+    await renderPage();
+    expect(within(nav()).getByRole('button', { name: /^Recording & DAW/ }).className).toContain('aria-[current=page]:rounded-l-none');
+  });
+
+  it('Show the whole category is a button at the end of the group header, not a link inside the label', async () => {
+    await renderPage();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'whisper' } });
+    const show = (await screen.findAllByRole('button', { name: 'Show the whole category' }))[0]!;
+    expect(show.closest('h3')).toBeNull();
+    expect(show.className).toContain('min-h-[var(--button-height-sm)]');
+  });
+
+  it('says so when nothing matches in a left-aligned card like the rest of the page', async () => {
+    await renderPage();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'zzzz' } });
+    const empty = document.querySelector<HTMLElement>('[data-empty-results]')!;
+    expect(empty.className).not.toContain('text-center');
+    expect(empty.className).not.toContain('border-dashed');
+  });
+});
+
+// Alignment audit, App & updates (XSE1-7, R3SE2-18): the version and the updates are rows under a section label, not boxes in a box.
+describe('Settings: This version', () => {
+  it('draws the version and the updates as two labelled rows under a This version section label', async () => {
+    await renderPage();
+    pick('App & updates');
+    const section = await screen.findByRole('region', { name: 'This version' });
+    expect(within(section).getByRole('heading', { level: 3, name: 'This version' })).toBeTruthy();
+    const version = section.querySelector<HTMLElement>('[data-about="version"]')!;
+    expect(version.textContent).toContain(brand.name);
+    expect(version.textContent).toContain('GNU Affero General Public License');
+    expect(version.textContent).toMatch(/Version \S+/);
+    expect(version.className).toContain('@min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
+    const updates = section.querySelector<HTMLElement>('[data-about="updates"]')!;
+    expect(within(updates).getByText('Updates')).toBeTruthy();
+    expect(section.querySelector('[style*="surface-2"]')).toBeNull();
+  });
+});
+
+// Alignment audit XSE2-1, XSE2-2: a text box takes its column's width up to its cap, so it never runs past the card in a narrow column
+// (tests/visual/settings-fields.spec.ts measures it in a browser at 1024 and 390 px).
+describe('Settings: field widths', () => {
+  it('caps the REAPER program box at 26rem of its row instead of fixing it at 26rem', async () => {
+    await renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+    const box = await within(row('daw.reaperPath')).findByRole('textbox', { name: 'REAPER program' });
+    expect(box.className).toContain('w-full');
+    expect(box.className).toContain('max-w-[26rem]');
+    expect(box.className).not.toMatch(/(^| )w-\[26rem\]/);
+    expect(box.parentElement!.className).toContain('w-full');
   });
 });
 
@@ -187,6 +284,13 @@ describe('Settings: editing', () => {
     expect(row('daw.experimental')).toBeTruthy();
   });
 
+  // Alignment audit (XSE2-18): the opened Advanced sections sit behind a rule, so a section named like one above reads as its advanced part.
+  it('draws the opened Advanced sections behind a rule', async () => {
+    await renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+    expect(document.getElementById('advanced-recording')!.className).toContain('border-l-2');
+  });
+
   it('a category shows how many are changed and resets them together', async () => {
     const api = createMockApi();
     const save = vi.spyOn(api, 'saveSettings');
@@ -194,7 +298,7 @@ describe('Settings: editing', () => {
     pick('App & updates');
     fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
     await waitFor(() => expect(within(nav()).getByLabelText('1 changed')).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Reset App & updates to defaults' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('Updates', 'global', { channel: null }));
     await waitFor(() => expect(within(nav()).queryByLabelText('1 changed')).toBeNull());
   });
@@ -228,6 +332,17 @@ describe('Settings: search and filters', () => {
     expect(backups).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+  });
+
+  // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
+  it('puts Open <page> on the line of Change it here for now', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
+    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
+    const open = within(punch).getByRole('button', { name: /^Open Booth/ });
+    const change = within(punch).getByRole('button', { name: 'Change it here for now' });
+    expect(open.parentElement).toBe(change.parentElement);
+    expect(open.className).toContain('min-w-[9.5rem]');
   });
 
   it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {
@@ -309,6 +424,17 @@ describe('Settings: states', () => {
     expect(screen.getByText('Reading your settings…')).toBeTruthy();
   });
 
+  it('loading keeps the title and blurb of the loaded page and draws section cards of label and control rows', async () => {
+    const api = createMockApi();
+    api.settingsForScope = () => new Promise(() => undefined);
+    await renderPage({ api });
+    const busy = document.querySelector<HTMLElement>('[aria-busy="true"]')!;
+    expect(within(busy).getByRole('heading', { level: 2, name: 'Recording & DAW' }).className).toContain('leading-[1.1]');
+    expect(busy.textContent).toContain('How the app records');
+    expect(busy.querySelectorAll('.rounded-\\[var\\(--radius-card\\)\\]').length).toBeGreaterThan(1);
+    expect(busy.querySelector('[class*="grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"]')).toBeTruthy();
+  });
+
   it('an unreadable settings file shows an alert, disables the controls and Retry recovers', async () => {
     const api = createMockApi();
     const read = api.settingsForScope.bind(api);
@@ -320,6 +446,9 @@ describe('Settings: states', () => {
     await renderPage({ api });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Your settings could not be read.');
+    // The banner sits above the breadcrumb, so the breadcrumb stays on its title (R4SE2-7).
+    const crumb = screen.getByLabelText('Breadcrumb');
+    expect(alert.compareDocumentPosition(crumb) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     failing = false;
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });

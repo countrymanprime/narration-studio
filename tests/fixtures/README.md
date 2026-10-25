@@ -162,7 +162,42 @@ while it found the cues itself (its SHA-256, and its text when short) and the fi
 with its exit status; the manuscript's path in a built file is `@MANUSCRIPT@` and the clock was fixed. Python wrote every file with
 LF line ends. `src/studio/desktop/internal/guide/cues_parity_test.go` replays every case through the host's refresh and checks the
 file byte for byte; it refreshes each `cut` file and checks the result is the old build's. The sidecar's `test_build_golden.py`
-checks `build` still writes each `cut` file. The recorder was deleted with the Python cue code, so the files are frozen.
+checked `build` still wrote each `cut` file until the build moved into the host; `TestEveryRecordedBuildWritesTheFileThatKeepsTheCues`
+checks the host's build writes each one now. The recorder was deleted with the Python cue code, so the files are frozen.
+
+## guide-build/
+
+What the manuscript-guide sidecar's `build` did, recorded before the build moved into the host (2026-10-25,
+[Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 3, fourth PR). `cases.jsonl` holds one build a
+line: its manuscript (`rulesCase` or `cueBuild`, a case of `guide-rules/` or `guide-cues/` whose files it reads; `manuscriptPath`; or the
+text) and the Story Bible it rebuilt (that case's, `previousRulesCase`, `previousPath`, the text, `previousBytes` in hex, or none), and
+what the model work gave it: `model.kind` is `rules-only`, `unavailable` (spaCy could not be loaded) or `spacy`, with `model.spans`,
+each paragraph's entity spans as `[start, end, label]` (real `en_core_web_sm` 3.8.0 spans for the fixture books and 2 in 5 synthetic
+ones, and seeded random spans with odd labels, filler and edges for others). The synthetic books (300, seeded) are each built once and
+rebuilt one to three times over the first build's file with up to five of a narrator's (and a damaged file's) changes: locks, hand-made
+entries, renamed and renumbered entries, aliases, pronunciation choices, notes and alternates, properties, review flags, speaker
+colours, deletions, absorbed names, renamed, removed and invalid types, odd ids and values of the wrong type. `cases.golden.jsonl` holds,
+for each case in the same order, the exit status and exception, the `BUILT|n|@OUT@` line, every progress line and info log message,
+the names asked for pronunciations in order with the stubbed answers, and the file left (its SHA-256, and its text when under 4 KiB;
+the manuscript's path is `@MANUSCRIPT@`, the clock fixed, LF line ends). Where Python's answer hung on its hash seed (the order of a
+set: the names a rebuilt entry tries for a saved id, and vocabulary ties under casefold), the case is `ambiguous` and the file is the one
+Python writes with the order the host uses. `src/studio/desktop/internal/guide/build_parity_test.go` replays every case
+(`TestBuildMatchesTheSidecar`). The recorder was deleted with the Python build, so the files are frozen.
+
+## guide-pronounce/
+
+What the manuscript-guide sidecar's `pronounce` command (a narrator's Generate/Replace from a named source) did, recorded before it
+moved into the host (2026-10-25, [Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), #2251).
+`bibles.jsonl` holds the Story Bibles the runs start from, one a line: the file's exact text, or its bytes in hex when they are not
+UTF-8 (1,500 seeded synthetic Story Bibles with entries, aliases, locks, the narrator's own and a dictionary's pronunciations with notes,
+alternates, statuses and the legacy `user` source, written indented, compact, sorted or with CRLF line ends; 111 edge files, from
+damaged files and values of the wrong type to every kind of stored pronunciation; and one entry under 30 names). `cases.jsonl` holds 4,524
+runs, one a line: its Story Bible (`bible`, a `guide-cues/` case's with `cuesCase`, 587 of them, or none), `entityId`, `aliasIndex`, `source`, and what the source was to answer: the real CMU dictionary, eSpeak NG (libespeak-ng 1.51) or
+Wiktextract (over a twelve-word index, or not installed), a recorded value, or a recorded exception. `cases.golden.jsonl` holds, for each
+run in the same order, the exit status, the reason it logged and its exception's type, the names it asked the source for and each
+answer (a line as `pronunciation --source` prints it, or the exception's text), and the file it left (its SHA-256, and its text when
+under 2,000 characters; LF line ends). `src/studio/desktop/internal/guide/pronounce_parity_test.go` replays every run through
+`guide.Service.Pronounce`, giving it the recorded answers. The recorder was deleted with the Python command, so the files are frozen.
 
 ## booth-parity/
 
@@ -195,3 +230,10 @@ manuscripts, and credits text with each line ending. A case that names `manuscri
 and `script` event), the `ChapterError` (message and candidates) or the name of any other exception, written by the
 same test; `scripttrack`'s `chapter_parity_test.go` must agree with it, and answers an input Python raised on with a
 `ChapterError` of its own.
+
+`placement-cases.jsonl`: the `locate.locate_event` and `align_word.word_time_event` calls the teleprompter suite made
+when they were recorded (2026-10-25), and seeded tails cut from `teleprompter-locate/`'s chapters and the coverage
+manuscript's: words dropped, misread, near-missed, added or re-read, another chapter's words, silence, timed words with
+pauses at punctuation, and words to time inside, between, before, after and past the end of what was heard. A seeded case
+names its script instead of holding it. `placement-cases.golden.jsonl` holds the `locate` or `word_time` event, written by
+`test_tracker_parity.py`; `scripttrack`'s `placement_parity_test.go` must agree with it.

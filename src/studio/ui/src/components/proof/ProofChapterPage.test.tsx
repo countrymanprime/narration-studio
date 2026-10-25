@@ -106,7 +106,10 @@ describe('ProofChapterPage', () => {
         </CommandRouter>
       </ApiProvider>,
     );
-    expect(await screen.findAllByText(/hasn’t been checked yet/)).not.toHaveLength(0);
+    // The title row's status says it, with Check recording beside it; the sentence is not repeated in a card under it (alignment audit XPC-13).
+    expect(await screen.findByText('Not checked yet')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Check recording' })).toBeTruthy();
+    expect(screen.queryByText(/hasn’t been checked yet/)).toBeNull();
   });
 
   it('shows a message when the chapter has no linked track', async () => {
@@ -127,7 +130,7 @@ describe('ProofChapterPage compare run', () => {
   it('reviews the last comparison with no linked DAW file, with Export off', async () => {
     const user = userEvent.setup();
     renderWorkspace({}, {}, { dawFileLinked: false });
-    await user.click(await screen.findByRole('button', { name: /Last narrated take/ }));
+    await user.click(await screen.findByRole('button', { name: 'Review last run' }));
     await waitFor(() => expect((screen.getByRole('button', { name: /Export \d+ marker/ }) as HTMLButtonElement).disabled).toBe(true));
   });
 });

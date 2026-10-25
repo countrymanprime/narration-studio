@@ -27,7 +27,7 @@ Each row has a name, a line on what it does, and under it:
 
 A change applies at once, with no Save button. The row says **Saved** beside its control. A row that differs from its
 default shows **Changed**, a bar at its edge and a reset button that puts it back; a category with changed rows shows
-how many in the list and **Reset <category> to defaults**. A change that costs something asks first: changing the
+how many in the list and a **Reset to defaults** button beside its title. A change that costs something asks first: changing the
 transcription model says earlier checks are marked out of date and run again. A value the host refuses keeps
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
@@ -38,11 +38,11 @@ says how many it holds.
 
 ## Find a setting
 
-At the top right, the search box (with its magnifier) and the **All** / **Changed** / **In this project** control sit on one line. **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
-transcription model; "breath" finds silence cleanup). Results are grouped under their category with **Show the
-whole category**, and include matches from the Advanced sections. **Changed** lists everything that differs from
+At the top right, the **Search settings** box and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
+whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
-when nothing is there. **Escape** clears the search.
+when nothing is there; on a narrow window the folded category button reads **Search results** while results show. **Escape** clears the search.
 
 ![Settings - searching for "whisper"](../../images/ui/settings-search.webp)
 
@@ -81,7 +81,7 @@ recorder the project uses (for example "Audacity's own audio device is not used 
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
 project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
-in the app's own audio, so with a DAW the row is a sentence: samples play on this computer's default output and the DAW's own audio
+in the app's own audio, so with a DAW the row is **Test sound** with a note under it: samples play on this computer's default output and the DAW's own audio
 device is not used or changed. An output that is not connected stays chosen, with a notice that samples play on the system default
 until it is back; the list is read again when the window gets focus and every few seconds while the notice shows. If the audio
 system will not list its outputs, the row says so and the choice is off. Taking and read-aloud keep using the microphone and output
@@ -95,8 +95,8 @@ you chose elsewhere, and the row does not check whether a take is recording.
 
 ### Choose REAPER
 
-Each radio says whether that program was found on this computer, or what stops it (for example
-**Experimental: switched off in Settings.**, with the switch under Advanced, below). A project folder holding a REAPER
+Each radio says whether that program was found on this computer, or what stops it. When the Experimental switch keeps
+recorders off, one line under the radios says so (**Experimental: switched off in Settings.**, with the switch under Advanced, below). A project folder holding a REAPER
 project file (`.rpp`) starts on REAPER; pick another radio to change it.
 
 ### Link your REAPER project
@@ -173,7 +173,7 @@ Which one is *used* is chosen in the category that uses it; here you only get, c
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
 
-Each row says what it is, its type and size, its **Status**, **Used by** (pages) and **In use** (the settings that choose it). The status is one of:
+Each row says what it is, its type and size, its **Status**, **Used by** (pages) and **In use** (the settings that choose it), with its buttons at the right end of the row. On a narrower window each row is a card with its buttons beside the name. The status is one of:
 
 - **Not installed**: **Download** starts the download. A bar shows the real bytes so far and **Cancel** stops it while bytes are arriving; the checks after the last byte cannot be cancelled. A download that is already running when you open the page (started by a Story Bible build, a preview or a comparison) is shown too, and leaving the page does not stop it.
 - **Downloading** and **Checking the download**: the download itself, then the check of every file against its approved size and checksum.
@@ -199,8 +199,8 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 - **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
 - **Words per page** (this project, 250 by default, 50 to 1000) is where the [Booth](booth.md) marks a page break: every that many words, counted from the start of each chapter.
 - **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
-- **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour (the swatch is the colour the entries of that type are drawn in on every page), a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has. A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
-- **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…** opens the same **Define how you mark up** dialog as the Script page.
+- **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour (the swatch is the colour the entries of that type are drawn in on every page), a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has, on one line in a wide window (in a narrow one the colour, **Can speak**, the count and the remove button take a second line under the name). A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
+- **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…**, the pencil at the right of the marks, opens the same **Define how you mark up** dialog as the Script page.
 - **Narrator name** fills the narrator's name in the credits, for all projects, and a project may override it. Under Advanced, **Room tone per credits file** (0 to 10 seconds, 0 by default) is the silence the [Production](production.md#the-credits) credits estimate adds to the opening and to the closing credits file, head and tail together (ACX asks for 1 to 5 seconds at each end of every file).
 - **Credits**: see [Credits](#credits).
 - **Clear derived data** (Advanced) removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
@@ -211,7 +211,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 
 ## Credits
 
-**Credits**, under Project, shows whether the opening and closing credits can be read as they stand, and the retail sample, with **Edit credits…**. The editor opens in place and holds the audiobook's opening and closing credits, an optional chapter announcement, and the retail sample. The templates are shared by every project; the filled-in values belong to this project.
+**Credits**, under Project, shows in three lines whether the opening and closing credits can be read as they stand and whether a retail sample is chosen, each with a badge, and **Edit credits…**. The editor opens in place and holds the audiobook's opening and closing credits, an optional chapter announcement, and the retail sample. The templates are shared by every project; the filled-in values belong to this project.
 
 - **Templates**: pick a template to edit its **Name**, **Kind** (Opening, Closing or Chapter announcement)
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
@@ -243,7 +243,7 @@ credits rows on [Production](production.md#the-credits).
 
 **Retail sample** is the stretch of the book you pick for the retailer's sample: up to 5 minutes, from
 anywhere in the book. Choose the chapter and line it **starts in** and **ends in** (the line numbers the
-[Script](script.md) reader shows) and **Save sample**. The panel says where it runs and how long it
+[Script](script.md) reader shows) and **Save sample**. The panel says where it runs ("Chapter 3, lines 1 to 3", naming a chapter once) and how long it
 is at about 155 words a minute; a range longer than 5 minutes is refused with its length, and the sample
 you had is kept. **Clear sample** removes it. The sample is a marker in the Script page's reader only: it adds
 no time to the estimate, since it is read again from the finished chapter. It is kept with the project, so
@@ -258,7 +258,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 - **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
-- **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
+- **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
 
 ![Settings - Reader text: font, size, line spacing and column width over the preview quote](../../images/ui/settings-reader-text.webp)
 
@@ -274,8 +274,9 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ### About and updates
 
-Under the rows of **App & updates**, **This version** shows which version of the app you are running and looks
-after updates.
+Under the rows of **App & updates**, the **This version** section has two rows: the version of the app you are running,
+and **Updates**, which says what the last check found in one line (the release, its size, whether it is downloaded and
+the day the app last looked), any problem right under it, and the buttons in one row with **Check now** last.
 
 ![Settings - App & updates with a newer version found](../../images/ui/settings-about-updates.webp)
 
@@ -302,7 +303,7 @@ If the app will not start after an update and the program file is missing from i
 
 ## Set on a page
 
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and an **Open** button for that page. Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes**, and leaving Settings with unsaved changes there asks whether to save or discard them. Five pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Production's **Jump to or run** has **Open Stage suggestion options** and **Open Recording check rules**, the same for the open project only; Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and, on the line of **Change it here for now**, an **Open** button for that page. Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes**, and leaving Settings with unsaved changes there asks whether to save or discard them. Five pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Production's **Jump to or run** has **Open Stage suggestion options** and **Open Recording check rules**, the same for the open project only; Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
 
 ![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 

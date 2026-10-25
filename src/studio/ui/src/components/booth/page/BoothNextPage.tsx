@@ -22,7 +22,6 @@ import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
-import { Panel } from '../../primitives/Panel';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { entryColour, speakerColour } from '../../../kinds/entityColour';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
@@ -51,7 +50,7 @@ import { useStaleToasts } from './useStaleToasts';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
-import { saveNote } from '../resume/resumeOfferModel';
+import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord, markNote } from '../side/decorations';
@@ -64,6 +63,7 @@ import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothT
 import { LoadError } from '../../layout/LoadError';
 import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
+import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
 import { creditsParagraphs, entityAtWord, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
@@ -81,10 +81,11 @@ import { cueSpeakerEntries } from '../../manuscript/dialogueCues.selectors';
 const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
 
 /**
- * In the medium layout (1280 and below, where the side panel is a drawer) the chapter picker is the mock's 190 px
- * (`.md .booth .chapbar .chapsel`), its name cut with an ellipsis, so the top bar fits a narrow window. Wider, it keeps the longest name's width.
+ * In the medium layout (1280 and below, where the side panel is a drawer) the chapter picker is as wide as its name, up to the wide
+ * layout's 340 px, and cut with an ellipsis only past that. The mock's fixed 190 px (`.md .booth .chapbar .chapsel`) cut a short name
+ * while the bar had hundreds of pixels free (alignment audit XBO-22); the bar wraps instead, its tools moving to a row of their own.
  */
-const MEDIUM_PICKER = "[&_[aria-label^='Chapter:']]:!w-[190px] [&_[aria-label^='Chapter:']]:!min-w-0";
+const MEDIUM_PICKER = "[&_[aria-label^='Chapter:']]:!w-auto [&_[aria-label^='Chapter:']]:!max-w-[21.25rem] [&_[aria-label^='Chapter:']]:!min-w-0";
 
 // In a pickup session the lines are the side panel's first section.
 registerPickupSession();
@@ -184,16 +185,16 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   if (data.error)
     return (
       <BoothExit onExit={leave}>
-        <LoadError title="Booth" message={data.error} retry={data.retry} exit={{ label: 'Leave the Booth', onClick: leave }} />
+        <BoothGutter>
+          <LoadError title="Booth" message={data.error} retry={data.retry} exit={{ label: 'Leave the Booth', onClick: leave }} />
+        </BoothGutter>
       </BoothExit>
     );
   if (data.chapters?.length === 0)
     return (
-      <div className="p-4 md:p-6">
-        <Panel title="This manuscript has no chapters to read">
-          <p className="text-sm text-[var(--text-muted)]">The Booth reads narration chapters. Import a manuscript with at least one narration chapter first.</p>
-        </Panel>
-      </div>
+      <BoothMessage title="This manuscript has no chapters to read">
+        The Booth reads narration chapters. Import a manuscript with at least one narration chapter first.
+      </BoothMessage>
     );
   if (!source) {
     // Still reading the chapters (or the credits): the page's frame, drawn as blocks. A failed read is the alert above, never this.
@@ -568,6 +569,7 @@ function BoothSession({
   const recordName = pickerChapters.find((item) => item.id === pickerValue)?.name ?? title;
   const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks');
   const setupPlan = capabilities && control.factsLoaded && !control.recording ? recordSetupFor(capabilities, control.facts) : null;
+  const noticeShown = (linkProblem && !!capabilities) || !!setupPlan;
   parts.current.recordBlocked = (block) => {
     const noticeUp =
       ((block.cause === 'no_track' || block.cause === 'several_tracks') && linkProblem) ||
@@ -632,7 +634,11 @@ function BoothSession({
                 source.kind === 'credits' ? (
                   <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
                 ) : (
-                  <ResumeOfferLine state={page.resume} saved={saveNote(control.project, page.dawName)} onChoose={page.chooseResume} />
+                  <ResumeOfferLine
+                    state={offerAwayFrom(page.resume, page.position)}
+                    saved={saveNote(control.project, page.dawName)}
+                    onChoose={page.chooseResume}
+                  />
                 )
               }
               setup={
@@ -642,6 +648,7 @@ function BoothSession({
                     standaloneName={dawShortName('none')}
                     project={control.project}
                     choice={dawChoice}
+                    otherProject={setupPlan?.kind === 'other-project'}
                     onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
@@ -657,7 +664,8 @@ function BoothSession({
           </div>
           <BoothSamplesProvider value={samples}>
             <div className="relative flex min-h-0 flex-1">
-              <div className="min-w-0 flex-1">
+              {/* The text column holds the setup notices in a row under the text, so the side panel beside it runs down to the footer. */}
+              <div className="grid min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
                 <BoothText
                   paragraphs={paragraphs}
                   position={page.position}
@@ -705,6 +713,35 @@ function BoothSession({
                     ) : undefined
                   }
                 />
+                <div>
+                  {linkProblem && capabilities ? (
+                    <ChapterLinkNotice
+                      key={recordId}
+                      chapterId={recordId}
+                      chapterName={recordName}
+                      dawName={page.dawName}
+                      several={control.gate?.cause === 'several_tracks'}
+                      create={capabilities.capabilities.track_create}
+                      asked={recordAsks}
+                      onLinked={linked}
+                      onCheckAgain={control.checkAgain}
+                    />
+                  ) : null}
+                  {capabilities && control.factsLoaded && !control.recording ? (
+                    <RecordSetup
+                      asked={recordAsks}
+                      capabilities={capabilities}
+                      facts={control.facts}
+                      factsFailed={control.factsFailed}
+                      checkedAt={control.checkedAt}
+                      readFailed={control.readFailed}
+                      onCheckAgain={control.checkAgain}
+                      say={(sentence, tone, topic) => overlay.toast(sentence, { ...(tone ? { tone } : {}), ...(topic ? { topic } : {}) })}
+                      onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
+                      onChanged={control.refresh}
+                    />
+                  ) : null}
+                </div>
               </div>
               {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
               <h2 className="sr-only">Side panel</h2>
@@ -727,38 +764,13 @@ function BoothSession({
             </div>
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
-          {linkProblem && capabilities ? (
-            <ChapterLinkNotice
-              key={recordId}
-              chapterId={recordId}
-              chapterName={recordName}
-              dawName={page.dawName}
-              several={control.gate?.cause === 'several_tracks'}
-              create={capabilities.capabilities.track_create}
-              asked={recordAsks}
-              onLinked={linked}
-              onCheckAgain={control.checkAgain}
-            />
-          ) : null}
-          {capabilities && control.factsLoaded && !control.recording ? (
-            <RecordSetup
-              asked={recordAsks}
-              capabilities={capabilities}
-              facts={control.facts}
-              factsFailed={control.factsFailed}
-              checkedAt={control.checkedAt}
-              readFailed={control.readFailed}
-              onCheckAgain={control.checkAgain}
-              say={(sentence, tone, topic) => overlay.toast(sentence, { ...(tone ? { tone } : {}), ...(topic ? { topic } : {}) })}
-              onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
-              onChanged={control.refresh}
-            />
-          ) : null}
           <BoothFooter
             record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}
+            // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time.
+            quietWhy={noticeShown}
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',

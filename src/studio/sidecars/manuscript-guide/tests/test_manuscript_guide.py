@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import importlib.util
 import io
 import json
@@ -7,8 +8,9 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
-from contextlib import redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -20,6 +22,12 @@ SPEC = importlib.util.spec_from_file_location("manuscript_guide", MODULE_PATH)
 guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
+
+
+def _write_bible(path: Path, document: dict) -> None:
+    """Writes a Story Bible as the host does: two-space indented, non-ASCII as itself, a trailing newline."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _write_manuscript(root: Path, chapter_title: str, paragraph_texts: list[str]) -> Path:
@@ -91,117 +99,6 @@ class ManuscriptGuideTests(unittest.TestCase):
             )
             self.assertEqual(["Ada arrives."], [item["text"] for item in guide.load_manuscript(str(path))])
 
-    def test_spacy_empty_result_does_not_activate_rule_fallback(self):
-        paragraphs = [{"chapter": "Chapter 1", "text": "Captain Arelian arrives."}]
-        with (
-            patch.object(guide, "spacy_candidates", return_value=[]),
-            patch.object(guide, "rule_candidates", side_effect=AssertionError("rules should not run")),
-        ):
-            self.assertEqual([], guide.build_entities(paragraphs, "unused", None))
-
-    def test_the_rules_only_choice_builds_without_spacy_and_says_it_was_chosen(self):
-        paragraphs = [{"chapter": "Chapter 1", "text": "Captain Arelian arrives."}]
-        messages: list[str] = []
-        # spaCy cannot even be imported: the choice must not try, and must not report a model that "could not be loaded".
-        with patch.dict(sys.modules, {"spacy": None}), patch.object(guide, "log", side_effect=messages.append):
-            self.assertIsNone(guide.spacy_candidates(paragraphs, guide.RULES_ONLY))
-        self.assertEqual(1, len(messages))
-        self.assertIn("rules-only", messages[0])
-        self.assertIn("chosen", messages[0])
-        self.assertNotIn("unavailable", messages[0])
-
-    def test_a_model_that_cannot_be_loaded_is_still_reported_as_unavailable(self):
-        messages: list[str] = []
-        with patch.dict(sys.modules, {"spacy": None}), patch.object(guide, "log", side_effect=messages.append):
-            self.assertIsNone(guide.spacy_candidates([{"chapter": "C", "text": "Ada arrives."}], "en_core_web_sm"))
-        self.assertIn("unavailable", messages[0])
-
-    def test_rule_fallback_strips_articles_and_keeps_names_seen_three_times(self):
-        paragraphs = [
-            {"chapter": "Chapter 1", "text": "A Black Halo appeared. About noon, it vanished."},
-            {"chapter": "Chapter 2", "text": "Black Halo appeared again."},
-            {"chapter": "Chapter 3", "text": "Black Halo appeared once more."},
-        ]
-        candidates = guide.rule_candidates(paragraphs)
-        self.assertIn("Black Halo", [candidate["name"] for candidate in candidates])
-        self.assertNotIn("About", [candidate["name"] for candidate in candidates])
-        with patch.object(guide, "spacy_candidates", return_value=None):
-            entities = guide.build_entities(paragraphs, "unused", None)
-        self.assertEqual(["Black Halo"], [entity["canonical_name"] for entity in entities])
-
-    def test_entities_found_are_recorded_at_debug_level(self):
-        paragraphs = [
-            {"chapter": "Chapter 1", "text": "Black Halo appeared. About noon, it vanished."},
-            {"chapter": "Chapter 2", "text": "Black Halo appeared again."},
-            {"chapter": "Chapter 3", "text": "Black Halo appeared once more."},
-        ]
-        os.environ["NARRATION_LOG_LEVEL"] = "debug"
-        try:
-            buffer = io.StringIO()
-            with patch.object(guide, "spacy_candidates", return_value=None), redirect_stderr(buffer):
-                guide.build_entities(paragraphs, "unused", None)
-        finally:
-            os.environ.pop("NARRATION_LOG_LEVEL", None)
-
-        records = [json.loads(line) for line in buffer.getvalue().splitlines() if line]
-        (record,) = [r for r in records if r.get("event") == "guide.entities_found"]
-        self.assertEqual(1, record["entity_count"])
-        self.assertNotIn("Black Halo", json.dumps(record))
-
-    def test_entities_merged_are_recorded_at_debug_level(self):
-        generated = [
-            {
-                "id": "entity-abc",
-                "canonical_name": "Arelian",
-                "category": "Character",
-                "pronunciation": {"say_as": "Arelian"},
-                "description": {"text": ""},
-                "personality_notes": [],
-                "locked": False,
-            }
-        ]
-        os.environ["NARRATION_LOG_LEVEL"] = "debug"
-        try:
-            buffer = io.StringIO()
-            with redirect_stderr(buffer):
-                guide.merge_locked(generated, {"entities": []})
-        finally:
-            os.environ.pop("NARRATION_LOG_LEVEL", None)
-
-        records = [json.loads(line) for line in buffer.getvalue().splitlines() if line]
-        (record,) = [r for r in records if r.get("event") == "guide.entities_merged"]
-        self.assertEqual(1, record["generated_count"])
-        self.assertEqual(1, record["merged_count"])
-        self.assertEqual(0, record["redirected_count"])
-
-    def test_locked_edit_survives_rebuild(self):
-        generated = [
-            {
-                "id": "entity-abc",
-                "canonical_name": "Arelian",
-                "category": "Character",
-                "pronunciation": {"say_as": "Arelian"},
-                "description": {"text": ""},
-                "personality_notes": [],
-                "locked": False,
-            }
-        ]
-        previous = {
-            "entities": [
-                {
-                    "id": "entity-abc",
-                    "canonical_name": "Arelian",
-                    "category": "Character",
-                    "pronunciation": {"say_as": "ah-RELL-ee-in"},
-                    "description": {"text": ""},
-                    "personality_notes": [],
-                    "locked": True,
-                }
-            ]
-        }
-        merged = guide.merge_locked(generated, previous)
-        self.assertEqual("ah-RELL-ee-in", merged[0]["pronunciation"]["say_as"])
-
     def test_importing_the_module_does_not_import_piper(self):
         # Piper costs about a quarter of a second to import and only render-audio uses it, so every other command must not pay for it.
         code = (
@@ -213,57 +110,11 @@ class ManuscriptGuideTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
         self.assertEqual("False", result.stdout.strip(), result.stderr)
 
-    def test_direct_trait_has_evidence(self):
-        occurrences = [{"chapter": "Chapter 1", "text": "Arelian was brave and wary.", "start": "0", "end": "7"}]
-        notes = guide.trait_notes("Arelian", occurrences)
-        self.assertEqual({"Described as brave.", "Described as wary."}, {note["text"] for note in notes})
-        self.assertEqual("Chapter 1", notes[0]["evidence"]["chapter"])
-
-    def test_fiction_fixture_extracts_candidates_and_source_evidence(self):
-        paragraphs = [
-            {"chapter": "Chapter 1", "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."},
-            {"chapter": "Chapter 1", "text": "Arelian was a veteran navigator, brave and wary before the council arrived."},
-        ]
-        entities = guide.build_entities(paragraphs, "model-that-is-not-installed", None)
-        by_name = {entity["canonical_name"]: entity for entity in entities}
-        self.assertIn("Captain Arelian", by_name)
-        self.assertEqual("Character", by_name["Captain Arelian"]["category"])
-        self.assertTrue(by_name["Captain Arelian"]["occurrences"][0]["excerpt"])
-        self.assertEqual("Explicitly described as veteran navigator.", by_name["Captain Arelian"]["description"]["text"])
-
-    def test_build_uses_project_owned_guide_file(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            manuscript = _write_manuscript(
-                root,
-                "Chapter 1",
-                ["Captain Arelian said the Council of Ash would meet in Dawnspire."],
-            )
-            output = root / "ManuscriptGuide" / "manuscript_guide.json"
-            guide.build(
-                argparse.Namespace(
-                    manuscript=str(manuscript),
-                    out=str(output),
-                    progress=str(root / "ManuscriptGuide" / "progress.txt"),
-                    spacy_model="en_core_web_sm",
-                    espeak_library="",
-                )
-            )
-            data = json.loads(output.read_text(encoding="utf-8"))
-            self.assertEqual(guide.document_hash(str(manuscript)), data["source"]["sha256"])
-            self.assertTrue(data["entities"])
-            expected_candidates = sorted(
-                {name for entity in data["entities"] for name in [entity["canonical_name"], *(alias["text"] for alias in entity["aliases"])]},
-                key=str.casefold,
-            )
-            self.assertEqual(expected_candidates, data["vocabulary_candidates"])
-            self.assertTrue((root / "ManuscriptGuide" / "progress.txt").read_text(encoding="utf-8").startswith("DONE|100"))
-
     def test_preview_uses_bundled_piper_api_not_a_checkout_executable(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-            guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
+            _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
             voice = MagicMock()
 
             def synthesize(_spoken, wav_file):
@@ -292,7 +143,7 @@ class ManuscriptGuideTests(unittest.TestCase):
         """Runs render_audio with a fake Piper voice against a one-entity guide and
         returns the audio directory so a test can inspect what was left behind."""
         guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-        guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": name, "aliases": []}]})
+        _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": name, "aliases": []}]})
         audio_dir = root / "ManuscriptGuide" / "audio"
         args = argparse.Namespace(
             guide=str(guide_file),
@@ -382,14 +233,14 @@ class ManuscriptGuideTests(unittest.TestCase):
         # On Windows os.replace fails while another program (antivirus, a player) holds the target open.
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            real_replace = guide.os.replace
+            real_replace = os.replace
 
             def replace(source, target):
                 if str(target).endswith("preview.wav"):
                     raise PermissionError(5, "Access is denied")
-                real_replace(source, target)  # the guide file itself is also written with os.replace
+                real_replace(source, target)
 
-            with patch.object(guide.os, "replace", side_effect=replace), self.assertRaises(ValueError) as caught:
+            with patch.object(os, "replace", side_effect=replace), self.assertRaises(ValueError) as caught:
                 self._render(root, self._speaking_voice())
             self.assertIn("could not be saved", str(caught.exception))
             self.assertIn("Access is denied", str(caught.exception))
@@ -410,7 +261,7 @@ class ManuscriptGuideTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             guide_file = root / "guide.json"
-            guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
+            _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
             args = argparse.Namespace(
                 guide=str(guide_file),
                 entity_id="entity-1",
@@ -431,7 +282,7 @@ class ManuscriptGuideTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "项目"
             guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-            guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
+            _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
             out_pipe, err_pipe = io.BytesIO(), io.BytesIO()
             legacy_out = io.TextIOWrapper(out_pipe, encoding="cp1252", write_through=True)
             legacy_err = io.TextIOWrapper(err_pipe, encoding="cp1252", write_through=True)
@@ -459,10 +310,6 @@ class ManuscriptGuideTests(unittest.TestCase):
             self.assertIn("项目", printed)
 
 
-def _paragraphs(*texts: str) -> list[dict[str, str]]:
-    return [{"chapter": "Chapter 1", "text": text} for text in texts]
-
-
 def _stub_spacy(entities: dict[str, str]):
     """Patches spacy.load with a fake pipeline. `entities` maps a literal entity
     text to its NER label; every whole-word occurrence in each paragraph is
@@ -480,191 +327,102 @@ def _stub_spacy(entities: dict[str, str]):
     return patch("spacy.load", return_value=SimpleNamespace(pipe=pipe))
 
 
-COMMON_WORD_PARAGRAPHS = _paragraphs(
-    "Abandoned ships drifted past. Nobody wanted an abandoned hull.",
-    "Adorable puppies barked. The adorable pair ran off.",
-    "Afraid to speak, she waited. She was afraid of the dark.",
-    "Active minds wander. An active mind is a happy mind.",
-    "ACCEPTABLE terms were offered. The terms were acceptable to all.",
-)
-COMMON_WORD_LABELS = {word: "PERSON" for word in ("Abandoned", "Adorable", "Afraid", "Active", "ACCEPTABLE")}
-NAME_PARAGRAPHS = _paragraphs(
-    "Captain Arelian said the Council of Ash would meet in Dawnspire.",
-    "Arelian was a veteran navigator, brave and wary before the council arrived.",
-    "Later they saw Dawnspire burning. The road to Dawnspire was long.",
-    "Everyone knew Dawnspire well.",
-)
-HOPE_PARAGRAPHS = _paragraphs("They loved Hope dearly.", "Ada stood near Hope and wept.", "Without hope there is nothing.")
+class EntitiesCommandTests(unittest.TestCase):
+    """``entities``: the language model's spans for each narrated paragraph, everything else being the host's (internal/guide/build.go)."""
 
+    def _run(self, *texts: str, model: str = "stub") -> tuple[list[dict], list[str]]:
+        messages: list[str] = []
+        with tempfile.TemporaryDirectory() as temporary:
+            manuscript = _write_manuscript(Path(temporary), "Chapter 1", list(texts))
+            out = io.StringIO()
+            with patch.object(guide, "log", side_effect=lambda message, **_: messages.append(message)), contextlib.redirect_stdout(out):
+                guide.entities(SimpleNamespace(manuscript=str(manuscript), spacy_model=model, words_file=""))
+        return [json.loads(line) for line in out.getvalue().splitlines()], messages
 
-class StrictEntityExtractionTests(unittest.TestCase):
-    """Precision over recall: see docs/architecture/story-bible-entity-accuracy.md."""
-
-    # (a) common words never become entities -------------------------------
-
-    def test_rules_only_rejects_sentence_initial_common_words(self):
-        self.assertEqual([], guide.rule_candidates(COMMON_WORD_PARAGRAPHS))
-        with patch.object(guide, "spacy_candidates", return_value=None):
-            self.assertEqual([], guide.build_entities(COMMON_WORD_PARAGRAPHS, "unused", None))
-
-    def test_spacy_path_rejects_common_words_even_when_tagged_person(self):
-        with _stub_spacy(COMMON_WORD_LABELS):
-            self.assertEqual([], guide.spacy_candidates(COMMON_WORD_PARAGRAPHS, "stub"))
-            self.assertEqual([], guide.build_entities(COMMON_WORD_PARAGRAPHS, "stub", None))
-
-    def test_rules_only_rejects_common_word_capitalized_mid_sentence_twice(self):
-        self.assertEqual([], guide.rule_candidates(HOPE_PARAGRAPHS))
-
-    def test_rules_only_rejects_adjective_suffix_words_without_spacy_support(self):
-        paragraphs = _paragraphs("They fled Blazing near Hollowed at dusk.", "Ada left Blazing near Hollowed behind.")
-        self.assertEqual([], guide.rule_candidates(paragraphs))
-
-    def test_spacy_tag_plus_two_mid_sentence_mentions_rescues_a_common_looking_word(self):
-        with _stub_spacy({"Hope": "PERSON"}):
-            self.assertEqual(["Hope", "Hope"], [c["name"] for c in guide.spacy_candidates(HOPE_PARAGRAPHS, "stub")])
-
-    def test_spacy_tag_alone_does_not_rescue_a_common_looking_word_with_one_mid_sentence_mention(self):
-        paragraphs = _paragraphs("They loved Hope dearly.", "Without hope there is nothing.")
-        with _stub_spacy({"Hope": "PERSON"}):
-            self.assertEqual([], guide.spacy_candidates(paragraphs, "stub"))
-
-    def test_spacy_tag_rescues_suffix_word_only_with_two_mid_sentence_mentions(self):
-        paragraphs = _paragraphs("They fled Blazing at dusk.", "Ada left Blazing behind.")
-        with _stub_spacy({"Blazing": "GPE"}):
-            self.assertEqual(2, len(guide.spacy_candidates(paragraphs, "stub")))
-        with _stub_spacy({"Blazing": "GPE"}):
-            self.assertEqual([], guide.spacy_candidates(paragraphs[:1], "stub"))
-
-    def test_stopword_single_word_spacy_entities_are_dropped(self):
-        with _stub_spacy({"They": "PERSON"}):
-            self.assertEqual([], guide.spacy_candidates(_paragraphs("Ada saw them. They ran. They hid."), "stub"))
-
-    # (b) filler prefixes and no default-to-Character ----------------------
-
-    def test_spacy_strips_leading_filler_from_entity_text(self):
-        text = "They talked About S-Dawn all night."
-        with _stub_spacy({"About S-Dawn": "GPE"}):
-            candidates = guide.spacy_candidates(_paragraphs(text), "stub")
-        self.assertEqual(["S-Dawn"], [c["name"] for c in candidates])
-        self.assertEqual("S-Dawn", text[int(candidates[0]["start"]) : int(candidates[0]["end"])])
-
-    def test_spacy_entity_made_only_of_filler_is_dropped(self):
-        with _stub_spacy({"The": "ORG", "of the": "ORG"}):
-            self.assertEqual([], guide.spacy_candidates(_paragraphs("The end of the road."), "stub"))
-
-    def test_rules_strip_leading_filler_and_stopwords_from_multi_word_names(self):
-        paragraphs = _paragraphs("He asked About S-Dawn twice.", "Then Ada Voss arrived. With Ada Voss came rain.")
-        names = [c["name"] for c in guide.rule_candidates(paragraphs)]
-        self.assertNotIn("About S-Dawn", names)
-        self.assertNotIn("Then Ada Voss", names)
-        self.assertNotIn("With Ada Voss", names)
-        self.assertEqual(["Ada Voss", "Ada Voss"], [name for name in names if name.startswith("Ada")])
-
-    def test_unexplained_single_word_is_never_categorized_as_character(self):
-        paragraphs = _paragraphs(
-            "S-Dawn said nothing for a long while.",
-            "They talked About S-Dawn all night.",
-            "Nobody trusted S-Dawn, and S-Dawn looked away.",
+    def test_each_paragraph_is_one_line_with_every_span_the_model_found(self):
+        with _stub_spacy({"Captain Arelian": "PERSON", "Dawnspire": "GPE", "noon": "TIME"}):
+            lines, messages = self._run("Captain Arelian met noon in Dawnspire.", "Nothing here.")
+        self.assertEqual(
+            [
+                {"available": True},
+                {"paragraphId": "p-000001", "entities": [[0, 15, "PERSON"], [20, 24, "TIME"], [28, 37, "GPE"]]},
+                {"paragraphId": "p-000002", "entities": []},
+            ],
+            lines,
         )
-        with patch.object(guide, "spacy_candidates", return_value=None):
-            entities = guide.build_entities(paragraphs, "unused", None)
-        by_name = {entity["canonical_name"]: entity for entity in entities}
-        self.assertIn("S-Dawn", by_name)
-        self.assertEqual("Needs Review", by_name["S-Dawn"]["category"])
-        self.assertEqual("needs review", by_name["S-Dawn"]["review_state"])
-        self.assertNotIn("About S-Dawn", by_name)
+        self.assertEqual([], messages)
 
-    def test_proximity_cues_only_apply_to_multi_word_names(self):
-        single = {"name": "Zyx", "source": "rule", "text": "Zyx said hello.", "start": "0", "end": "3"}
-        multi = {"name": "Zyx Qor", "source": "rule", "text": "Zyx Qor said hello.", "start": "0", "end": "7"}
-        self.assertEqual("Needs Review", guide.classify(single))
-        self.assertEqual("Character", guide.classify(multi))
+    def test_a_model_that_cannot_be_loaded_is_reported_and_answered_unavailable(self):
+        with patch.dict(sys.modules, {"spacy": None}):
+            lines, messages = self._run("Ada arrives.", model="en_core_web_sm")
+        self.assertEqual([{"available": False}], lines)
+        self.assertEqual(1, len(messages))
+        self.assertTrue(messages[0].startswith("WARNING: spaCy model unavailable ("), messages[0])
+        self.assertTrue(messages[0].endswith("); using lower-quality rules-only extraction."), messages[0])
 
-    def test_explicit_title_place_and_org_rules_still_apply(self):
-        def candidate(name):
-            return {"name": name, "source": "rule", "text": name, "start": "0", "end": str(len(name))}
+    def test_with_a_words_file_it_then_waits_for_the_names_and_answers_their_pronunciations(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manuscript = _write_manuscript(root, "Chapter 1", ["Ada met Wren."])
+            words = root / "words.json"
 
-        self.assertEqual("Character", guide.classify(candidate("Captain Arelian")))
-        self.assertEqual("Place", guide.classify(candidate("Silver River")))
-        self.assertEqual("Organization", guide.classify(candidate("Council of Ash")))
+            def host_writes_the_words():
+                time.sleep(0.2)
+                (root / "words.tmp").write_text(json.dumps(["Ada", "Wren"]), encoding="utf-8")
+                (root / "words.tmp").replace(words)
 
-    def test_needs_review_entities_need_three_occurrences(self):
-        two = _paragraphs("Ada met Zyx Qor there.", "Later Ada left Zyx Qor alone.")
-        three = [*two, *_paragraphs("Ada forgot Zyx Qor entirely.")]
-        with patch.object(guide, "spacy_candidates", return_value=None):
-            self.assertEqual([], guide.build_entities(two, "unused", None))
-            entities = guide.build_entities(three, "unused", None)
-        self.assertEqual([("Zyx Qor", "Needs Review", 3)], [(e["canonical_name"], e["category"], e["occurrence_count"]) for e in entities])
+            writer = threading.Thread(target=host_writes_the_words)
+            writer.start()
+            out = io.StringIO()
+            args = SimpleNamespace(manuscript=str(manuscript), spacy_model="stub", words_file=str(words), espeak_library="", default_source="cmu")
+            with (
+                _stub_spacy({"Ada": "PERSON"}),
+                patch.object(guide, "pronunciation", side_effect=lambda name, espeak, source: {"ipa": name.lower(), "source": source}),
+                contextlib.redirect_stdout(out),
+            ):
+                guide.entities(args)
+            writer.join()
+        lines = [json.loads(line) for line in out.getvalue().splitlines()]
+        self.assertEqual(
+            [
+                {"available": True},
+                {"paragraphId": "p-000001", "entities": [[0, 3, "PERSON"]]},
+                {"ipa": "ada", "source": "cmu"},
+                {"ipa": "wren", "source": "cmu"},
+            ],
+            lines,
+        )
 
-    # (c) real names survive ------------------------------------------------
+    def test_a_words_file_that_never_comes_ends_the_wait(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            manuscript = _write_manuscript(Path(temporary), "Chapter 1", ["Ada."])
+            args = SimpleNamespace(
+                manuscript=str(manuscript), spacy_model="stub", words_file=str(Path(temporary) / "never.json"), espeak_library="", default_source=""
+            )
+            with (
+                patch.dict(sys.modules, {"spacy": None}),
+                patch.object(guide, "WORDS_FILE_TIMEOUT", 0.05),
+                patch.object(guide, "log"),
+                contextlib.redirect_stdout(io.StringIO()),
+                self.assertRaisesRegex(ValueError, "never asked"),
+            ):
+                guide.entities(args)
 
-    def test_rules_only_keeps_real_multi_occurrence_names(self):
-        with patch.object(guide, "spacy_candidates", return_value=None):
-            entities = guide.build_entities(NAME_PARAGRAPHS, "unused", None)
-        by_name = {entity["canonical_name"]: entity for entity in entities}
-        self.assertEqual({"Captain Arelian", "Council of Ash", "Dawnspire"}, set(by_name))
-        self.assertEqual("Character", by_name["Captain Arelian"]["category"])
-        self.assertEqual(["Arelian"], [alias["text"] for alias in by_name["Captain Arelian"]["aliases"]])
-        self.assertEqual("Organization", by_name["Council of Ash"]["category"])
-        self.assertEqual(4, by_name["Dawnspire"]["occurrence_count"])
+    def test_offsets_are_code_points_as_the_host_counts_them(self):
+        with _stub_spacy({"Zoë": "PERSON"}):
+            lines, _ = self._run("😀 Zoë waved.")
+        self.assertEqual([[2, 5, "PERSON"]], lines[1]["entities"])
 
-    def test_rules_only_drops_a_single_word_seen_capitalized_mid_sentence_once(self):
-        paragraphs = _paragraphs("They sailed to Dawnspire.", "Dawnspire fell. Dawnspire burned.")
-        self.assertEqual([], guide.rule_candidates(paragraphs))
-
-    def test_spacy_path_keeps_real_names_with_their_categories(self):
-        labels = {"Captain Arelian": "PERSON", "Arelian": "PERSON", "Council of Ash": "ORG", "Dawnspire": "GPE"}
-        with _stub_spacy(labels):
-            entities = guide.build_entities(NAME_PARAGRAPHS, "stub", None)
-        categories = {entity["canonical_name"]: entity["category"] for entity in entities}
-        self.assertEqual({"Captain Arelian": "Character", "Council of Ash": "Organization", "Dawnspire": "Place"}, categories)
-
-    # (d) vocabulary candidates --------------------------------------------
-
-    def test_vocabulary_candidates_exclude_needs_review_and_low_count_singletons(self):
-        def entity(name, category, count, **extra):
-            return {"canonical_name": name, "category": category, "occurrence_count": count, "aliases": [], "locked": False, "manual": False, **extra}
-
-        entities = [
-            entity("Captain Arelian", "Character", 1, aliases=[{"text": "Arelian", "occurrences": []}]),
-            entity("Halo", "Character", 2),
-            entity("Dawnspire", "Place", 3),
-            entity("Vex", "Character", 1, locked=True),
-            entity("Nyx", "Draft", 0, manual=True),
-            entity("Black Halo", "Needs Review", 9),
-            entity("Mystery", "Needs Review", 5),
-        ]
-        self.assertEqual(["Arelian", "Captain Arelian", "Dawnspire", "Nyx", "Vex"], guide.vocabulary_candidates(entities))
-
-    # (e) locked / manual entities survive a rebuild ------------------------
-
-    def test_locked_and_manual_entities_survive_rebuild_unchanged(self):
-        with patch.object(guide, "spacy_candidates", return_value=None):
-            generated = guide.build_entities(NAME_PARAGRAPHS, "unused", None)
-        locked_dawnspire = {
-            "id": guide.entity_id("Dawnspire"),
-            "canonical_name": "Dawnspire",
-            "aliases": [],
-            "category": "Place",
-            "occurrences": [],
-            "occurrence_count": 0,
-            "pronunciation": {"ipa": "custom"},
-            "description": {"text": "Hand written.", "evidence": {}},
-            "personality_notes": [],
-            "locked": True,
-            "manual": False,
-        }
-        # Would never be extracted (single word, one mention) but is locked.
-        locked_vex = {**locked_dawnspire, "id": guide.entity_id("Vex"), "canonical_name": "Vex", "category": "Character", "occurrence_count": 1}
-        manual_nyx = {**locked_dawnspire, "id": guide.entity_id("Nyx"), "canonical_name": "Nyx", "category": "Lore", "locked": False, "manual": True}
-        previous = {"entities": [locked_dawnspire, locked_vex, manual_nyx]}
-        merged = {entity["id"]: entity for entity in guide.merge_locked(generated, previous)}
-        self.assertEqual(locked_dawnspire, merged[locked_dawnspire["id"]])
-        self.assertEqual(locked_vex, merged[locked_vex["id"]])
-        self.assertEqual(manual_nyx, merged[manual_nyx["id"]])
-        self.assertIn(guide.entity_id("Captain Arelian"), merged)
-        vocabulary = guide.vocabulary_candidates(list(merged.values()))
-        self.assertTrue({"Dawnspire", "Vex", "Nyx"} <= set(vocabulary))
+    def test_the_command_is_registered_and_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manuscript = _write_manuscript(root, "Chapter 1", ["Ada arrives."])
+            before = sorted(path.name for path in root.rglob("*"))
+            argv = ["manuscript_guide.py", "entities", "--manuscript", str(manuscript), "--spacy-model", "stub"]
+            with _stub_spacy({"Ada": "PERSON"}), patch.object(sys, "argv", argv), contextlib.redirect_stdout(io.StringIO()) as out:
+                guide.main()
+            self.assertEqual(before, sorted(path.name for path in root.rglob("*")))
+        self.assertEqual('{"available": true}', out.getvalue().splitlines()[0])
 
 
 class SelfCheckTests(unittest.TestCase):

@@ -1,6 +1,6 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -48,7 +48,7 @@ import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsInModel';
 import { addressPath } from '../../navigation/address';
-import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
+import { aliasFlagged, entryFlagged, reviewFlags, typeUnknown } from './entryList';
 import { EntryText } from './EntryText';
 import { ReadNotice } from './ReadNotice';
 import type { SamplePlayer } from '../voicesamples/useSamplePlayer';
@@ -64,6 +64,7 @@ import {
   type DraftProperty,
   type TalkDraft,
 } from './propertyDraft';
+import { HIT_AREA } from '../primitives/hitArea';
 import { IconButton } from '../primitives/IconButton';
 import { TextField } from '../primitives/TextField';
 import { PANEL_BODY_CLASS, PANEL_ENTRY_TITLE_CLASS, PANEL_FRAME_CLASS, PANEL_HEADER_CLASS, PANEL_SUBTITLE_CLASS } from '../primitives/panelStyles';
@@ -123,6 +124,23 @@ const nameOwner = (entries: readonly GuideEntity[], text: string, exceptId: stri
  * The entry's card: the panel look (panelStyles.ts) with the name as its heading, or, while the entry is edited, as a bare 26 px input in the
  * header with no label of its own (the mock's EntryEditor). Always the same elements, so turning Edit on does not rebuild the body.
  */
+/** The read view's one line for the entry's empty text parts: "Not written yet: How they talk, How they act." */
+function NotWritten({ labels }: { labels: string[] }) {
+  if (labels.length === 0) return null;
+  return (
+    <p className="m-0 text-[0.82rem] text-[var(--text-muted)]">
+      Not written yet:{' '}
+      {labels.map((label, index) => (
+        <Fragment key={label}>
+          {index > 0 && ', '}
+          <span>{label}</span>
+        </Fragment>
+      ))}
+      .
+    </p>
+  );
+}
+
 function EntryFrame({
   title,
   nameInput,
@@ -130,6 +148,7 @@ function EntryFrame({
   subtitle,
   actions,
   className,
+  busy = false,
   children,
 }: {
   title: string;
@@ -138,14 +157,18 @@ function EntryFrame({
   subtitle: ReactNode;
   actions: ReactNode;
   className: string;
+  /** A save is running: the body is `aria-busy` while the entry is written, and the header says Saving (R3SB1-11). Not dimmed: dimmed text fails contrast. */
+  busy?: boolean;
   children: ReactNode;
 }) {
   const titleId = useId();
   return (
     <section aria-labelledby={titleId} className={`${PANEL_FRAME_CLASS} flex flex-col overflow-hidden ${className}`}>
       <div className={PANEL_HEADER_CLASS}>
-        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
-          <span className="flex items-center gap-2 self-center">{leading}</span>
+        {/* PanelHeader's 12 rem basis: beside wide actions the name keeps that much and the actions wrap under it (SBX-7). The name, the
+            kind and the status sit on one centred line (SBX-6). */}
+        <div className="flex min-w-0 flex-[1_1_12rem] flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span className="flex flex-none items-center gap-2">{leading}</span>
           {/* The heading stays for assistive technology while the input stands in for it, so the sections below keep their level. */}
           <h2 id={titleId} className={nameInput ? 'sr-only' : PANEL_ENTRY_TITLE_CLASS}>
             {title}
@@ -153,9 +176,10 @@ function EntryFrame({
           {nameInput}
           <div className={PANEL_SUBTITLE_CLASS}>{subtitle}</div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        {/* The negative margin lets the 36 px buttons sit in the 50 px header without growing it, as PanelHeader does. */}
+        <div className="-my-[0.3125rem] flex flex-wrap items-center gap-2">{actions}</div>
       </div>
-      <div className={`${PANEL_BODY_CLASS} min-h-0 flex-1 overflow-y-auto`} tabIndex={0} role="group" aria-labelledby={titleId}>
+      <div className={`${PANEL_BODY_CLASS} min-h-0 flex-1 overflow-y-auto`} tabIndex={0} role="group" aria-labelledby={titleId} aria-busy={busy || undefined}>
         {children}
       </div>
     </section>
@@ -178,6 +202,20 @@ function FindInManuscript({ name }: { name: string }) {
 export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; nonce: number };
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
+/** The rule over a titled section of the entry, as Properties, Relationships and Appears in draw it; an empty section draws none. */
+const SECTION_RULE = 'border-t border-[var(--border)] pt-4 empty:hidden';
+/**
+ * The names list's one grid: the name, how it is said, its source and the row's buttons. Every row is a subgrid of it, so the
+ * columns are shared and a row with more buttons does not move the others' (alignment audit SBX-4). Below a 32 rem card the
+ * rows wrap instead (`NamePronunciation`).
+ */
+const NAMES_GRID = {
+  // Read: the source follows the longest pronunciation, not the row's far end (SBX-2); the buttons keep the right edge.
+  read: 'grid-cols-[9rem_minmax(0,max-content)_minmax(0,1fr)_auto]',
+  // Edit: the pronunciation is a text box that takes the room.
+  edit: 'grid-cols-[9rem_minmax(0,1fr)_auto_auto]',
+  shared: 'm-0 grid list-none gap-x-2 gap-y-3 p-0 @max-[32rem]:grid-cols-[minmax(0,1fr)_auto]',
+};
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
 const VERIFY_FIRST_REASON = 'Verify or reject its suggestions first.';
 
@@ -567,12 +605,17 @@ export function GuideDetail({
   const mergeButton = (source?: GuideEntity) =>
     source?.locked ? (
       <TooltipTarget text="Locked entries cannot be merged because the source would be deleted.">
-        <Button variant="primary" disabled>
+        <Button variant="secondary" disabled>
           Merge into this entry
         </Button>
       </TooltipTarget>
     ) : (
-      <Button variant="primary" pending={mutation.isPending('merge')} disabled={!source || waiting('merge')} onClick={() => source && void mergeEntry(source)}>
+      <Button
+        variant="secondary"
+        pending={mutation.isPending('merge')}
+        disabled={!source || waiting('merge')}
+        onClick={() => source && void mergeEntry(source)}
+      >
         <FontAwesomeIcon icon={faCodeMerge} />
         Merge into this entry
       </Button>
@@ -599,12 +642,17 @@ export function GuideDetail({
     if (kind === 'hear') void playPreview();
   };
 
+  const kindEditable = !locked && (editing || isNewDraft);
+  // The list's word for an entry the host could not type, so the header and the list agree (SBX-21).
+  const kindText = typeUnknown(entity) ? 'Type not set' : categoryLabel(entity.category);
+
   return (
     <EntryFrame
       title={entity.canonical_name || 'New entity'}
       nameInput={
         (canEdit && editing) || isNewDraft ? (
-          <div className="min-w-0 flex-[1_1_12rem]">
+          // As wide as the name (8 to 24 rem), so the kind stays beside it instead of drifting across the header or under it (SBX-6).
+          <div className="min-w-0 flex-[0_1_auto]">
             <TextField
               ref={nameField}
               label="Name"
@@ -614,33 +662,46 @@ export function GuideDetail({
                 setNameError(undefined);
                 setDraft({ ...draft, name });
               }}
-              className="h-auto! border-transparent! bg-transparent! px-1! font-['Barlow_Condensed',sans-serif] text-[1.625rem]! leading-[1.2]! font-semibold hover:border-[var(--line-strong)]! focus-visible:border-[var(--accent)]!"
+              className="[field-sizing:content] size-auto! max-w-[24rem] min-w-[8rem] border-[var(--border)]! bg-transparent! px-1! font-['Barlow_Condensed',sans-serif] text-[1.625rem]! leading-[1.2]! font-semibold hover:border-[var(--line-strong)]! focus-visible:border-[var(--accent)]!"
             />
           </div>
         ) : undefined
       }
       leading={<Dot color={dotOf(entity.category)} />}
       subtitle={
-        <div className="flex items-center gap-2" style={{ position: 'relative' }}>
-          <Menu
-            triggerClassName={badgeClass('pill')}
-            triggerStyle={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
-            disabled={locked || !(editing || isNewDraft) || mutation.isBusy}
-            items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
-              key: label,
-              label,
-              leading: <Dot color={dotOf(label)} />,
-              onSelect: () => {
-                if (isNewDraft) void createNewEntity(label);
-                else void save('category', { category: label }, `Category changed to ${label}.`);
-              },
-            }))}
-          >
-            {categoryLabel(entity.category)}
-            {/* The mock's read-only kind is a plain pill: the chevron promises a menu only while the kind can change. */}
-            {!locked && (editing || isNewDraft) && <FontAwesomeIcon icon={faChevronDown} />}
-          </Menu>
-          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
+        <div className="flex flex-wrap items-center gap-2" style={{ position: 'relative' }}>
+          {kindEditable ? (
+            <Menu
+              triggerClassName={`${badgeClass('pill')} ${HIT_AREA} flex-none whitespace-nowrap`}
+              triggerStyle={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
+              disabled={mutation.isBusy}
+              items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
+                key: label,
+                label,
+                leading: <Dot color={dotOf(label)} />,
+                onSelect: () => {
+                  if (isNewDraft) void createNewEntity(label);
+                  else void save('category', { category: label }, `Category changed to ${label}.`);
+                },
+              }))}
+            >
+              {kindText}
+              <FontAwesomeIcon icon={faChevronDown} />
+            </Menu>
+          ) : (
+            // The mock's read-only kind is a plain pill, not a switched-off button (R3SB1-8): the menu exists only while the kind can change.
+            <span
+              className={`${badgeClass('pill')} flex-none whitespace-nowrap`}
+              style={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
+            >
+              {kindText}
+            </span>
+          )}
+          {(entryFlagged(entity) || toVerify > 0) && (
+            <span className="flex-none whitespace-nowrap">
+              <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />
+            </span>
+          )}
         </div>
       }
       actions={
@@ -648,12 +709,12 @@ export function GuideDetail({
           {(entryFlagged(entity) || toVerify > 0) &&
             (toVerify > 0 ? (
               <TooltipTarget text={VERIFY_FIRST_REASON}>
-                <Button variant="secondary" size="sm" disabled>
+                <Button variant="secondary" disabled>
                   Mark reviewed
                 </Button>
               </TooltipTarget>
             ) : (
-              <Button variant="secondary" size="sm" pending={mutation.isPending('review')} disabled={waiting('review')} onClick={() => void markReviewed()}>
+              <Button variant="secondary" pending={mutation.isPending('review')} disabled={waiting('review')} onClick={() => void markReviewed()}>
                 Mark reviewed
               </Button>
             ))}
@@ -680,6 +741,11 @@ export function GuideDetail({
           )}
           {canEdit && editing && (
             <>
+              {mutation.isPending('save') && (
+                <span role="status" className="text-[0.8125rem] text-[var(--text-muted)]">
+                  Saving…
+                </span>
+              )}
               <TooltipTarget text="Save changes to this entry">
                 <IconButton
                   label="Save changes to this entry"
@@ -717,10 +783,11 @@ export function GuideDetail({
         </>
       }
       className="min-h-0 flex-1"
+      busy={mutation.isPending('save')}
     >
       <div className="space-y-4">
         {locked && (
-          <p className="rounded px-3 py-1.5 text-xs" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+          <p className="rounded px-3 py-1.5 text-[0.8125rem]" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
             <FontAwesomeIcon icon={faLock} className="mr-1.5" />
             Locked entries cannot be deleted or used as merge sources.
           </p>
@@ -743,24 +810,9 @@ export function GuideDetail({
           </p>
         )}
 
-        <div>
-          <div className="mb-1.5 flex items-center justify-between gap-2 text-[0.82rem] font-medium text-[var(--text-muted)]">
-            <span>Names the app links in the text, and how I say each</span>
-            {/* Rescan has no mock equivalent and stays as built. */}
-            {!isNewDraft && (
-              <TooltipTarget text="Rescan occurrences for this entry">
-                <IconButton
-                  label="Rescan occurrences"
-                  disabled={waiting('rescan')}
-                  pending={mutation.isPending('rescan')}
-                  onClick={() => void rescanOccurrences()}
-                >
-                  <FontAwesomeIcon icon={faRotate} />
-                </IconButton>
-              </TooltipTarget>
-            )}
-          </div>
-          <ul aria-label="Names" className="m-0 list-none space-y-3 p-0">
+        <div className="@container">
+          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Names the app links in the text, and how I say each</div>
+          <ul aria-label="Names" className={`${NAMES_GRID.shared} ${canEdit && editing ? NAMES_GRID.edit : NAMES_GRID.read}`}>
             {nameRows(entity).map((row) => {
               const { aliasIndex, name, pronunciation } = row;
               const key = previewKey(aliasIndex);
@@ -768,106 +820,118 @@ export function GuideDetail({
               const playReason = playing || pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON;
               const flagged = aliasIndex !== undefined && aliasFlagged(entity, name);
               return (
-                <li key={`${aliasIndex ?? 'entry'}:${name}`} className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <NamePronunciation
-                      entityId={entity.id}
-                      row={row}
-                      editing={canEdit && editing}
-                      locked={locked}
-                      sources={pronunciationSources}
-                      reload={() => reloadFor(entity.id)}
-                      notify={notify}
-                    />
-                    {flagged && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
-                    {/* A note from before pronunciation statuses were removed: kept readable, no longer edited. */}
-                    {pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
-                  </div>
-                  <TooltipTarget
-                    text={
-                      aliasIndex === undefined
-                        ? playing
-                          ? 'Pause pronunciation preview'
-                          : (playReason ?? 'Play provider-generated pronunciation')
-                        : playing
-                          ? 'Pause alias pronunciation preview'
-                          : (playReason ?? 'Play this alias pronunciation')
-                    }
-                  >
-                    <IconButton
-                      label={
+                <li key={`${aliasIndex ?? 'entry'}:${name}`} className="col-span-full grid grid-cols-subgrid items-start">
+                  <NamePronunciation
+                    entityId={entity.id}
+                    row={row}
+                    editing={canEdit && editing}
+                    locked={locked}
+                    sources={pronunciationSources}
+                    reload={() => reloadFor(entity.id)}
+                    notify={notify}
+                    primary={aliasIndex === undefined}
+                    badge={flagged && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
+                    // A note from before pronunciation statuses were removed: kept readable, no longer edited.
+                    note={pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
+                  />
+                  {/* Play first and Record second in every row, so they sit in one column; the buttons only some rows have come after. */}
+                  <div className="flex gap-2">
+                    <TooltipTarget
+                      text={
                         aliasIndex === undefined
                           ? playing
-                            ? 'Pause preview'
-                            : 'Play preview'
+                            ? 'Pause pronunciation preview'
+                            : (playReason ?? 'Play provider-generated pronunciation')
                           : playing
-                            ? 'Pause alias pronunciation'
-                            : 'Play alias pronunciation'
+                            ? 'Pause alias pronunciation preview'
+                            : (playReason ?? 'Play this alias pronunciation')
                       }
-                      disabledReason={playReason}
-                      pending={loadingPreview === key}
-                      onClick={() => void playPreview(aliasIndex)}
                     >
-                      <FontAwesomeIcon icon={playing ? faPause : faWaveSquare} />
-                    </IconButton>
-                  </TooltipTarget>
-                  {canEdit && editing && (
-                    <TooltipTarget text={`Record my own clip for ${name}`}>
-                      <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
-                    </TooltipTarget>
-                  )}
-                  {flagged && (
-                    <TooltipTarget text={`Mark ${name} reviewed`}>
                       <IconButton
-                        action="markReviewed"
-                        label={`Mark ${name} reviewed`}
-                        pending={mutation.isPending(`review:${aliasIndex}`)}
-                        disabled={waiting(`review:${aliasIndex}`)}
-                        onClick={() => void markReviewed(aliasIndex)}
-                      />
+                        label={
+                          aliasIndex === undefined
+                            ? playing
+                              ? 'Pause preview'
+                              : 'Play preview'
+                            : playing
+                              ? 'Pause alias pronunciation'
+                              : 'Play alias pronunciation'
+                        }
+                        disabledReason={playReason}
+                        pending={loadingPreview === key}
+                        onClick={() => void playPreview(aliasIndex)}
+                      >
+                        <FontAwesomeIcon icon={playing ? faPause : faWaveSquare} />
+                      </IconButton>
                     </TooltipTarget>
-                  )}
-                  {aliasIndex !== undefined && canEdit && editing && (
-                    <IconButton
-                      label={`Remove alias ${name}`}
-                      disabled={waiting(`alias:${name}`)}
-                      pending={mutation.isPending(`alias:${name}`)}
-                      onClick={() =>
-                        void setAliasTexts(
-                          entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
-                          `alias:${name}`,
-                        )
-                      }
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </IconButton>
-                  )}
+                    {canEdit && editing && (
+                      <TooltipTarget text={`Record my own clip for ${name}`}>
+                        <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
+                      </TooltipTarget>
+                    )}
+                    {flagged && (
+                      <TooltipTarget text={`Mark ${name} reviewed`}>
+                        <IconButton
+                          action="markReviewed"
+                          label={`Mark ${name} reviewed`}
+                          pending={mutation.isPending(`review:${aliasIndex}`)}
+                          disabled={waiting(`review:${aliasIndex}`)}
+                          onClick={() => void markReviewed(aliasIndex)}
+                        />
+                      </TooltipTarget>
+                    )}
+                    {aliasIndex !== undefined && canEdit && editing && (
+                      <IconButton
+                        label={`Remove alias ${name}`}
+                        disabled={waiting(`alias:${name}`)}
+                        pending={mutation.isPending(`alias:${name}`)}
+                        onClick={() =>
+                          void setAliasTexts(
+                            entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
+                            `alias:${name}`,
+                          )
+                        }
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </IconButton>
+                    )}
+                  </div>
                 </li>
               );
             })}
           </ul>
           {canEdit && editing && (
-            <div className="mt-3">
-              <TextField
-                label="Add a name"
-                disabled={waiting('alias')}
-                value={aliasQuery}
-                onChange={(value) => {
-                  setAliasQuery(value);
-                  setNameNote(undefined);
-                }}
-                onKeyDown={onAliasKeyDown}
-                placeholder="Add a name"
-              />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="w-[12.5rem] max-w-full">
+                <TextField
+                  label="Add a name"
+                  disabled={waiting('alias')}
+                  value={aliasQuery}
+                  onChange={(value) => {
+                    setAliasQuery(value);
+                    setNameNote(undefined);
+                  }}
+                  onKeyDown={onAliasKeyDown}
+                  placeholder="Add a name"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                disabled={aliasQuery.trim() === '' || waiting('alias')}
+                pending={mutation.isPending('alias')}
+                onClick={addAliasFromQuery}
+              >
+                Add name
+              </Button>
               {nameNote && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <>
                   <span role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     {nameNote.ownerId
-                      ? `“${nameNote.text}” is already a name of ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
+                      ? `“${nameNote.text}” is already a name of the entry ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
                       : `“${nameNote.text}” is already a name of this entry.`}
                   </span>
                   {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
-                </div>
+                </>
               )}
             </div>
           )}
@@ -876,7 +940,7 @@ export function GuideDetail({
         <EntryText label="Description" value={draft.description} editing={!editingDisabled} onChange={(description) => setDraft({ ...draft, description })} />
 
         {speaks &&
-          TALK_FIELDS.map(({ key, label }) => (
+          TALK_FIELDS.filter(({ key }) => !editingDisabled || draft.talk[key]).map(({ key, label }) => (
             <EntryText
               key={key}
               label={label}
@@ -885,6 +949,8 @@ export function GuideDetail({
               onChange={(value) => setDraft({ ...draft, talk: { ...draft.talk, [key]: value } })}
             />
           ))}
+        {/* Read view: the empty ones are one line, not a label and a dash each (R3SB1-9). */}
+        {speaks && editingDisabled && <NotWritten labels={TALK_FIELDS.filter(({ key }) => !draft.talk[key]).map(({ label }) => label)} />}
 
         <PropertiesSection
           saved={propertiesOf(entity, speaks).rest}
@@ -909,9 +975,17 @@ export function GuideDetail({
             {!isNewDraft && (
               <>
                 <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
-                <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
-                <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
-                <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
+                {/* Each titled section below the fields is set off by the same rule as Properties, Relationships and Appears in (SBX-12);
+                    a section with nothing to show draws no rule. */}
+                <div className={SECTION_RULE}>
+                  <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
+                </div>
+                <div className={SECTION_RULE}>
+                  <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
+                </div>
+                <div className={SECTION_RULE}>
+                  <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
+                </div>
               </>
             )}
           </>
@@ -952,7 +1026,29 @@ export function GuideDetail({
           />
         </div>
 
-        <AppearsIn entity={entity} manuscript={chapters} onGo={(chapterId) => goToManuscript(chapterId)} />
+        <AppearsIn
+          entity={entity}
+          manuscript={chapters}
+          onGo={(chapterId) => goToManuscript(chapterId)}
+          action={
+            // Rescan has no mock equivalent: it re-reads where the entry's names occur, so it sits with the list it refreshes.
+            !isNewDraft && (
+              <TooltipTarget text="Rescan occurrences for this entry">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Rescan occurrences"
+                  disabled={waiting('rescan')}
+                  pending={mutation.isPending('rescan')}
+                  onClick={() => void rescanOccurrences()}
+                >
+                  <FontAwesomeIcon icon={faRotate} />
+                  Rescan
+                </Button>
+              </TooltipTarget>
+            )
+          }
+        />
         {ttsPrompt && (
           <AssetInstallPrompt
             ask={{

@@ -3,7 +3,7 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. The page is a small table of entries on the left, about 30% of the width, and the open entry beside it as the main area (the entry under the table on a window narrower than 1024 px). The table has two columns: **Name** and **Kind** (in the kind's colour, which you set for the type in Settings; an entry whose kind the host could not tell says "Type not set"). An entry with a pronunciation has a **Hear** button at the end of its row: press it (or press Space on the row) to hear the name said, and again to stop. It plays the same preview as the entry's own play button and does not open the entry. If the voice it needs is not installed yet, the entry opens and asks to install it. When the table is narrow (under about 320 px), the Kind column shows only the colour dot. Press a header to sort by it and again to reverse it; the arrow shows the direction, and the column you sorted by before breaks ties. The sort is kept for next time. Over the table, the search box (its placeholder says how many entries it searches) finds an entry by its name or any of its other names, every word you type having to match. The letters it matched are marked, and a row found by another name shows it after the name (also “Mad Hatter”). Down in the box moves to the first row; Esc clears the box, and a second Esc leaves it. Beside the search, the **Filter** button opens a menu of three choices, each with its count: **Kind** (tick as many kinds as you like; none ticked shows every kind), **Pronunciation** (**Any**, **None yet** or **Has one**) and **Show** (**All entries**, **Needs review** or **Needs verification**, the last two offered only while some exist). The menu stays open while you choose. The button shows how many filters are on, and each filter on is a chip under the search: press a chip to remove that filter, or **Clear all**. The **Sort** button beside it orders the list by **Name** (the order it opens in, which puts near-duplicate names side by side), **Kind**, **Book order** (by the chapter each entry first appears in, the most mentioned first within a chapter: the names you will meet next in the book, in the order you will meet them) or **Most mentioned** (the main cast first); its name says the order in force, and the order is kept for next time. Press a row to open its entry. Up and Down move between rows, Home and End go to the first and last, Enter opens the row, and Space opens it when it has nothing to play; Tab leaves the table. A book of hundreds of entries draws only the rows in view. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. **Add entry** at the top right is the page's one main action. The button beside it, **More actions**, holds **Scan the manuscript**, **Import entries** and **Voice data**. While a scan runs, its progress and **Cancel scan** show under the search, so nothing else moves, and the menu has no scan item. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the search says so with **Retry**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
+with pronunciation, aliases, and narration notes. The page is a small table of entries on the left, about 30% of the width, and the open entry beside it as the main area (the entry under the table on a window narrower than 1024 px). The table has two columns: **Name** and **Kind** (in the kind's colour, which you set for the type in Settings; an entry whose kind the host could not tell says "Type not set"). An entry with a pronunciation has a **Hear** button at the end of its row: press it (or press Space on the row) to hear the name said, and again to stop. It plays the same preview as the entry's own play button and does not open the entry. If the voice it needs is not installed yet, the entry opens and asks to install it. When the table is narrow (under about 320 px), the Kind column shows only the colour dot. Press a header to sort by it and again to reverse it; the arrow shows the direction, and the column you sorted by before breaks ties. The sort is kept for next time. Over the table, the search box (its placeholder says how many entries it searches) finds an entry by its name or any of its other names, every word you type having to match. The letters it matched are marked, and a row found by another name shows it after the name (also “Mad Hatter”). Down in the box moves to the first row; Esc clears the box, and a second Esc leaves it. Beside the search, the **Filter** button opens a menu of three choices, each with its count: **Kind** (tick as many kinds as you like; none ticked shows every kind), **Pronunciation** (**Any**, **None yet** or **Has one**) and **Show** (**All entries**, **Needs review** or **Needs verification**, the last two offered only while some exist). The menu stays open while you choose. The button shows how many filters are on, and each filter on is a chip under the search: press a chip to remove that filter, or **Clear all**. When the entry open beside the table is not among the rows left, a line under the filters says so. The **Sort** button beside it orders the list by **Name** (the order it opens in, which puts near-duplicate names side by side), **Kind**, **Book order** (by the chapter each entry first appears in, the most mentioned first within a chapter: the names you will meet next in the book, in the order you will meet them) or **Most mentioned** (the main cast first); its name says the order in force, and the order is kept for next time. Press a row to open its entry. Up and Down move between rows, Home and End go to the first and last, Enter opens the row, and Space opens it when it has nothing to play; Tab leaves the table. A book of hundreds of entries draws only the rows in view. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. **Add entry** at the top right is the page's one main action. The button beside it, **More actions**, holds **Scan the manuscript**, **Import entries** and **Voice data**. While a scan runs, its progress and **Cancel scan** show under the search, so nothing else moves, and the menu has no scan item. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the search says so with **Retry**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
 While the entries are being read, the table and the detail pane show grey blocks. A book with no entries says "No entries yet" and where to start; a search or filter that finds nothing says "No entries match." with **Clear filters**; an unreadable Story Bible says so with **Retry**. This app produces one book at a time, so the page has no series view.
 
 `Ctrl+F` opens the jump menu searching this page: it lists the entries under **Entries**, each with its kind, found by its name or any of its other names. Choose one to open it; a search or filter that hides its row is cleared, so the table shows it.
@@ -19,15 +19,15 @@ While the entries are being read, the table and the detail pane show grey blocks
 Selecting an entry opens its detail panel, read-only at first: its names and how you say each, its
 description, for a type that can speak **How they talk**, **How they act** and **What they know**, its
 properties, its **Relationships** to other entries, and **Appears in**, the chapters it is in, each with a
-button that opens it in the [Script](script.md). The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
+button that opens it in the [Script](script.md). **Rescan** beside the Appears in heading looks for the entry's names in the text again. The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
 magnifier button lights the name in the Script's text. Press Edit (the pencil) to change the entry, then Save
-(or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Locked entries can't be edited until
+(or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Read-only, **How they talk**, **How they act** and **What they know** with nothing written share one "Not written yet" line, and an entry with no properties says "No properties yet." with no table. Locked entries can't be edited until
 unlocked. The scan is deliberately strict: it favors missing a name over listing ordinary
 words, so add unusual names by hand with the + button.
 
 ![Story Bible entity detail panel](../../images/ui/storybible-entity.webp)
 
-Pressing Edit switches the entry to edit mode: the name in the header turns into a plain, large input (there is no separate Name field), and Save, Cancel and a red Delete appear on the far
+Pressing Edit switches the entry to edit mode: the name in the header turns into a large input with a light border, as wide as the name (there is no separate Name field; while a save runs, "Saving…" shows beside Save), and Save, Cancel and a red Delete appear on the far
 side of the header, set apart from Save so it can't be mis-clicked. Lock only appears in the read
 view: an entry can never be locked while it is being edited, so unlocking always returns you to a
 read-only entry, never back into an edit in progress. Locked entries show only Unlock; a brand-new
@@ -50,8 +50,8 @@ An entry with suggestions still to verify shows **Mark reviewed** switched off, 
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
-In edit mode, **Add a name** is one input: type a name and press Enter to add it as an alias. If another entry
-already has that name, the line under the input says so and offers **Merge into this entry**, so a name mentioned under a
+In edit mode, **Add a name** sits under the names: type a name and press Enter, or **Add name**, to add it as an alias. If another entry
+already has that name, the line beside it says so and offers **Merge into this entry**, so a name mentioned under a
 different spelling is merged into the entry it already belongs to instead of creating a duplicate. The merge can be undone from its toast. A name the
 entry already has is refused with a line saying so.
 
@@ -60,12 +60,12 @@ entry already has is refused with a line saying so.
 ## Relationships
 
 **Relationships** lists what this entry is to another entry, one row each: the relationship (for example "serves") and the entry it is to.
-A relationship written from the other entry's side ("The gardeners serve Queen of Hearts") shows an arrow, and its hint gives the whole sentence.
+A relationship written from the other entry's side ("The gardeners serve Queen of Hearts") shows an arrow, in edit mode too, and its hint gives the whole sentence.
 In edit mode a row changes in place:
 
 - Type in the relationship box, or pick one of the suggestions (loves, hates, lives in and so on), and press Enter or leave the box. An emptied box goes back to what it was.
-- Press the entry's name to open the picker: type to search by name or alias (it lists up to 50), press Enter to take the first match or press a row. The current one is marked.
-- The trash removes the row. The **+** below the rows adds a blank row; nothing is saved until it has both a relationship and an entry, and its trash drops it.
+- Press the entry's name to open the picker, a small window titled for the relationship ("Related entry for “follows”"): type to search by name or alias (it lists up to 50), press Enter to take the first match or press a row. The current one is marked; Esc, the close button or a press outside closes it without a change.
+- The trash beside the entry removes the row. The **+** below the table adds a blank row; nothing is saved until it has both a relationship and an entry, and its trash drops it.
 
 A change is saved at once, like the other edits to names and relationships, not with Save. It is written as the new relationship and then the old one is removed.
 
@@ -90,7 +90,7 @@ again tries again; a failed run never leaves a broken recording behind.
 ## How you say each name
 
 An entry lists **the names the app links in the text, and how I say each**: its first name, then each alias, one row
-each. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
+each, the entry's own name in bold. The rows share their columns, so names, pronunciations, sources and play buttons line up down the list. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
 field, a source tag, and beside the play button **Record my own clip** (for your own recording of the name):
 
 - Type in the field and press Enter (or leave it) to use your own; the tag then reads **Entered by me**.
@@ -130,7 +130,7 @@ Wikimedia Commons.
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
 until you agree. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
-before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
+before it adds anything. **Copy prompt** copies the prompt to give your own LLM with the manuscript, and **Show example** shows the format it answers in. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
 found on their own, though: after a manuscript import and at the end of every scan, each quoted line is matched to a
 speaker where a speech tag names an entry whose type speaks ("Ada said"). Such an entry's name within 70 characters of
 the line is suggested too, as a weaker guess. A name still in Needs Review is never a speaker. Every one of these is a
@@ -143,7 +143,7 @@ or off for a type finds them again everywhere. Your own corrections stay.
 
 A suggestion the app is sure of is accepted on its own; one it is not sure of waits for you. **Needs verification**
 in the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
-entry yet. An entry with suggestions waiting has a **Verify** count under **Show** in the **Filter** menu, its accepted facts, and a **Suggested**
+entry yet, each on one line with its kind and score; pressing one opens it as **Suggested new entry** (or the kind it is). An entry with suggestions waiting has a **Verify** count under **Show** in the **Filter** menu, its accepted facts, and a **Suggested**
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
 Script; a quote whose line the book no longer has is plain text that says so). An entry cannot be marked reviewed while it has suggestions waiting.
 

@@ -162,6 +162,27 @@ describe('Voice sample output: the built-in recorder', () => {
   });
 });
 
+// Alignment audit (R4SE2-4, XSE2-8, R3SE2-16): the select is the settings' field width with its buttons on their own row, as the Microphone row.
+describe('Voice sample output: layout', () => {
+  it('draws the select at the field width and its buttons on one row under it', async () => {
+    await renderRow();
+    const select = await picker();
+    expect(select.className).toContain('w-80');
+    const refresh = within(row()).getByRole('button', { name: 'Refresh the list' });
+    expect(refresh.parentElement).not.toBe(select.parentElement);
+    expect(refresh.parentElement).toBe(within(row()).getByRole('button', { name: 'Test sound' }).parentElement);
+  });
+
+  it('with a DAW the sentence is a muted note under Test sound, not body text above it', async () => {
+    await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
+    const sentence = await within(row()).findByText(DAW_SENTENCE);
+    expect(sentence.className).toContain('text-[var(--text-muted)]');
+    expect(sentence.className).toContain('text-[0.8125rem]');
+    const test = within(row()).getByRole('button', { name: 'Test sound' });
+    expect(test.compareDocumentPosition(sentence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
 describe('Voice sample output: no project', () => {
   it('with no project open the choice is off and says to open one', async () => {
     await renderRow(createMockApi({}, { recording: { hasProject: false } }));
