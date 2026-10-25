@@ -211,7 +211,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 
 ## Credits
 
-**Credits**, under Project, shows whether the opening and closing credits can be read as they stand, and the retail sample, with **Edit credits…**. The editor opens in place and holds the audiobook's opening and closing credits, an optional chapter announcement, and the retail sample. The templates are shared by every project; the filled-in values belong to this project.
+**Credits**, under Project, shows in three lines whether the opening and closing credits can be read as they stand and whether a retail sample is chosen, each with a badge, and **Edit credits…**. The editor opens in place and holds the audiobook's opening and closing credits, an optional chapter announcement, and the retail sample. The templates are shared by every project; the filled-in values belong to this project.
 
 - **Templates**: pick a template to edit its **Name**, **Kind** (Opening, Closing or Chapter announcement)
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
@@ -243,7 +243,7 @@ credits rows on [Production](production.md#the-credits).
 
 **Retail sample** is the stretch of the book you pick for the retailer's sample: up to 5 minutes, from
 anywhere in the book. Choose the chapter and line it **starts in** and **ends in** (the line numbers the
-[Script](script.md) reader shows) and **Save sample**. The panel says where it runs and how long it
+[Script](script.md) reader shows) and **Save sample**. The panel says where it runs ("Chapter 3, lines 1 to 3", naming a chapter once) and how long it
 is at about 155 words a minute; a range longer than 5 minutes is refused with its length, and the sample
 you had is kept. **Clear sample** removes it. The sample is a marker in the Script page's reader only: it adds
 no time to the estimate, since it is read again from the finished chapter. It is kept with the project, so
