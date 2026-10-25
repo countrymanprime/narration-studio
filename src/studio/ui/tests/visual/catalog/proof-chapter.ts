@@ -9,7 +9,8 @@ export const proofChapterStates: StateEntry[] = [
   {
     page: 'proof-chapter',
     state: 'never',
-    description: 'Proof chapter view, a chapter with a confirmed track link that has never been checked - "hasn’t been checked yet" and Check recording',
+    description:
+      'Proof chapter view, a chapter with a confirmed track link that has never been checked - Not checked yet in the title row with Check recording beside it',
   },
   {
     page: 'proof-chapter',

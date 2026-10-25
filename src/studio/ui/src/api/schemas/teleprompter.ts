@@ -68,7 +68,7 @@ const teleprompterFlagSchema = z
   })
   .refine((flag) => flag.start <= flag.end, { message: 'a flag cannot end before it starts', path: ['end'] }) satisfies z.ZodType<TeleprompterFlag>;
 
-// The input level (levels.py): dBFS, from the floor of -100 up to 0.
+// The input level (narration_common.recording.meter): dBFS, from the floor of -100 up to 0.
 const dbfsSchema = z.number().min(-100).max(0);
 const teleprompterLevelSchema = z.object({ type: z.literal('level'), peak: dbfsSchema, rms: dbfsSchema }) satisfies z.ZodType<TeleprompterLevel>;
 
