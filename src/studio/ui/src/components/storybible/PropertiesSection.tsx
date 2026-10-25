@@ -35,7 +35,7 @@ export function PropertiesSection({
         // No table and no column headers over nothing (R3SB1-9): one muted line, the same in read and edit view.
         <p className="m-0 text-sm text-[var(--text-muted)]">No properties yet.</p>
       ) : (
-        <Table label="Properties" columns={editing ? [ENTRY_LABEL_COLUMN, 'auto', ACTIONS_COLUMN] : [ENTRY_LABEL_COLUMN, 'auto']}>
+        <Table label="Properties" textEdges columns={editing ? [ENTRY_LABEL_COLUMN, 'auto', ACTIONS_COLUMN] : [ENTRY_LABEL_COLUMN, 'auto']}>
           <TableHead>
             <TableRow>
               <TableHeader>Name</TableHeader>

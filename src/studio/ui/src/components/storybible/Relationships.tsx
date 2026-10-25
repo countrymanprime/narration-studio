@@ -270,7 +270,7 @@ export function Relationships({
   return (
     <div>
       <div className="mb-2 text-[0.82rem] font-medium text-[var(--text-muted)]">Relationships</div>
-      <Table label="Relationships" columns={RELATION_COLUMNS}>
+      <Table label="Relationships" textEdges columns={RELATION_COLUMNS}>
         <TableHead>
           <TableRow>
             <TableHeader>Relationship</TableHeader>
