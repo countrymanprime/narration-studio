@@ -38,7 +38,7 @@ export function CreditsSetupBanner({
     }
   };
   return (
-    <Panel tone="review" className="mb-4">
+    <Panel tone="review">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm">
           <Dot color="var(--review)" />
