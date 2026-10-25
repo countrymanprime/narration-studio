@@ -97,6 +97,20 @@ describe('Settings: structure', () => {
   });
 });
 
+// Alignment audit XSE2-1, XSE2-2: a text box takes its column's width up to its cap, so it never runs past the card in a narrow column
+// (tests/visual/settings-fields.spec.ts measures it in a browser at 1024 and 390 px).
+describe('Settings: field widths', () => {
+  it('caps the REAPER program box at 26rem of its row instead of fixing it at 26rem', async () => {
+    await renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+    const box = await within(row('daw.reaperPath')).findByRole('textbox', { name: 'REAPER program' });
+    expect(box.className).toContain('w-full');
+    expect(box.className).toContain('max-w-[26rem]');
+    expect(box.className).not.toMatch(/(^| )w-\[26rem\]/);
+    expect(box.parentElement!.className).toContain('w-full');
+  });
+});
+
 describe('Settings: editing', () => {
   it('applies at once, says Saved, marks the row Changed and offers Reset', async () => {
     const api = createMockApi();
