@@ -60,8 +60,8 @@ func WordsMatch(heard, script string) bool {
 		return false
 	}
 	key := [2]string{heard, script}
-	matches.Lock()
-	defer matches.Unlock()
+	matches.mu.Lock()
+	defer matches.mu.Unlock()
 	if match, ok := matches.seen[key]; ok {
 		return match
 	}
@@ -77,10 +77,14 @@ func WordsMatch(heard, script string) bool {
 // anchor for every heard word, so the same pairs come back on every event of a read.
 const maxCachedMatches = 65536
 
-var matches = struct {
-	sync.Mutex
+// matchCache is the fuzzy-match cache, shared by every tracker in the process.
+type matchCache struct {
+	mu sync.Mutex
+	// +checklocks:mu
 	seen map[[2]string]bool
-}{seen: map[[2]string]bool{}}
+}
+
+var matches = &matchCache{seen: map[[2]string]bool{}}
 
 // None stands for Python's None in an int field: the first matched word of an
 // alignment that matched nothing.
