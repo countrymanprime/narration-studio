@@ -14,8 +14,9 @@ import (
 // pauses for a microphone, audio consumed for a file). The host consumes it and never relays it.
 const clockEventType = "clock"
 
-// follower follows the read in the host, as the sidecar once did (docs/research/sidecar-go-vs-python.md, step 2): the Booth's script tracker runs on the engine events the host relays, at the sidecar's own clock, and its
-// position and flag events go out right after the engine event that caused them, in the order the sidecar printed them.
+// follower follows the read in the host, as the sidecar once did (docs/research/sidecar-go-vs-python.md, step 2):
+// the Booth's script tracker runs on the engine events the host relays, at the sidecar's own clock, and its position
+// and flag events go out right after the engine event that caused them, in the order the sidecar printed them.
 type follower struct {
 	mu sync.Mutex
 	// +checklocks:mu

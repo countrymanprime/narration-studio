@@ -17,9 +17,10 @@ import (
 	"desktop/internal/scripttrack"
 )
 
-// The host follows a `--clock` session as the sidecar followed it before: tests/fixtures/booth-parity/live-sessions.golden.jsonl,
-// written by the sidecar's test_clock_parity.py, holds seeded sessions run through the sidecar's real loop both ways. Relaying
-// the tracked lines as before and following the clock lines in the host must send the UI the same events.
+// The host follows a `--clock` session as the sidecar followed it before:
+// tests/fixtures/booth-parity/live-sessions.golden.jsonl, written by the sidecar's test_clock_parity.py before the
+// sidecar stopped tracking (frozen), holds seeded sessions run through the sidecar's real loop both ways. Relaying the
+// tracked lines as before and following the clock lines in the host must send the UI the same events.
 
 type liveSession struct {
 	Source struct {

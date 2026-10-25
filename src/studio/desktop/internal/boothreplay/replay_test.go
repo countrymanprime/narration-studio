@@ -13,8 +13,8 @@ import (
 	"desktop/internal/scripttrack"
 )
 
-// The reports are held to what replay.py reports (tests/fixtures/booth-parity/replay-cases.golden.jsonl, written by the
-// sidecar's test_replay_parity.py) for the 40 live sessions of live-sessions.golden.jsonl, each replayed as tracker calls
+// The reports are held to what replay.py reported (tests/fixtures/booth-parity/replay-cases.golden.jsonl, written by the
+// sidecar's test_replay_parity.py before replay.py's tracking was deleted, and frozen) for the 40 live sessions of live-sessions.golden.jsonl, each replayed as tracker calls
 // and as a printed session, and the mock recording to the committed src/studio/ui/src/api/teleprompterRecording.json.
 
 func root(t *testing.T) string {
