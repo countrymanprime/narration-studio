@@ -10,7 +10,7 @@ import { clock } from '../../bar/clock';
 import type { ReplaceAsk } from './replaceCommand';
 
 /** The fades at each seam the dialog offers, in milliseconds (the host takes 0 to 500); 10 ms is the cut's default seam. */
-export const REPLACE_FADES = [0, 5, 10, 25, 50] as const;
+const REPLACE_FADES = [0, 5, 10, 25, 50] as const;
 const DEFAULT_FADE = 10;
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
