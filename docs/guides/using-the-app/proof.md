@@ -306,14 +306,16 @@ stays usable.
 ![Proof chapter view - vocabulary hint chips: an accepted term alongside suggested (pending) candidates](../../images/ui/proof-chapter-hint-chips.webp)
 
 **Start comparison** needs a linked REAPER project and a connected REAPER; without either it is off,
-with the reason in its place. Once it's running, its progress is real, from the transcription itself,
+with the reason beside it. Once it's running, its progress is real, from the transcription itself,
 with **Cancel** to stop it.
 
 When it finishes, a summary reads "N discrepancies in \<chapter>", with how many more are in other chapters.
 **Export N markers** adds a take marker in REAPER for each discrepancy not already marked, the same
 marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepted note, so the two never
-mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
-comparison; Export markers is off while you review it.
+mark a spot twice; when it is off, the reason is beside it. **New comparison** starts over. **Review last run**, at the
+bottom of the setup beside the take's name, audio items and time, reopens the last completed comparison; Export markers is
+off while you review it. The steps across the card's header (Setup, Running, Results) show where the run is; they are not
+buttons.
 
 **With Audacity,** the comparison reads the audio track you have selected in Audacity (click its name), exports it whole to a
 WAV in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/audacity-session folder (for a long chapter that takes a while), and compares that. The
