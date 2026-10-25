@@ -135,7 +135,17 @@ export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { t
           </TableBody>
         </Table>
       </div>
-      {editingChecking && <EditingCheckPanel key={editingChecking.id} chapter={editingChecking} notify={notify} close={() => setEditingChecking(undefined)} />}
+      {editingChecking && (
+        <EditingCheckPanel
+          key={editingChecking.id}
+          chapter={editingChecking}
+          notify={notify}
+          close={() => setEditingChecking(undefined)}
+          size="wide"
+          onBack={() => setEditingChecking(undefined)}
+          backLabel="Back to the audio engine"
+        />
+      )}
     </Panel>
   );
 }
