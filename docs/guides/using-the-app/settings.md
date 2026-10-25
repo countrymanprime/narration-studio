@@ -81,7 +81,7 @@ recorder the project uses (for example "Audacity's own audio device is not used 
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
 project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
-in the app's own audio, so with a DAW the row is a sentence: samples play on this computer's default output and the DAW's own audio
+in the app's own audio, so with a DAW the row is **Test sound** with a note under it: samples play on this computer's default output and the DAW's own audio
 device is not used or changed. An output that is not connected stays chosen, with a notice that samples play on the system default
 until it is back; the list is read again when the window gets focus and every few seconds while the notice shows. If the audio
 system will not list its outputs, the row says so and the choice is off. Taking and read-aloud keep using the microphone and output
@@ -95,8 +95,8 @@ you chose elsewhere, and the row does not check whether a take is recording.
 
 ### Choose REAPER
 
-Each radio says whether that program was found on this computer, or what stops it (for example
-**Experimental: switched off in Settings.**, with the switch under Advanced, below). A project folder holding a REAPER
+Each radio says whether that program was found on this computer, or what stops it. When the Experimental switch keeps
+recorders off, one line under the radios says so (**Experimental: switched off in Settings.**, with the switch under Advanced, below). A project folder holding a REAPER
 project file (`.rpp`) starts on REAPER; pick another radio to change it.
 
 ### Link your REAPER project

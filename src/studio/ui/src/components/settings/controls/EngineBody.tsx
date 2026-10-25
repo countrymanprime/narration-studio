@@ -4,6 +4,7 @@ import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
+import { InsetCard } from '../../primitives/InsetCard';
 import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { useSecondsSince } from '../../layout/CheckLine';
@@ -27,15 +28,15 @@ function optionDescription(option: DawChoiceOption): ReactNode {
   const { record } = option;
   // The resolver's sentence for an Experimental capability switched off already says so; one that is on is marked here.
   if (record.level === 'experimental' && record.reason !== 'experimental_off') lines.push(<span key="level">Experimental. </span>);
-  if (!record.available && record.message) {
-    lines.push(
-      <span key="record">
-        {record.message}
-        {record.reason === 'experimental_off' && ' Turn on Experimental DAW actions under Advanced, below.'}
-      </span>,
-    );
-  }
+  // Switched off is the same sentence for every option, so the group says it once (experimentalOffNote), not under each radio.
+  if (!record.available && record.message && record.reason !== 'experimental_off') lines.push(<span key="record">{record.message}</span>);
   return lines.length > 0 ? <>{lines}</> : undefined;
+}
+
+/** The host's sentence for the options switched off by the Experimental setting, said once under the radios (alignment audit R4SE2-11). */
+function experimentalOffNote(choice: DawChoice): string | undefined {
+  const off = choice.options.find((option) => !option.record.available && option.record.reason === 'experimental_off' && option.record.message);
+  return off ? `${off.record.message} Turn on Experimental DAW actions under Advanced, below.` : undefined;
 }
 
 /** Whether the project records into a DAW whose project file is linked: then the built-in recorder is a last resort, behind a confirm. */
@@ -246,13 +247,14 @@ export function EngineBody() {
   });
   const notInstalled = choice.options.find((option) => option.daw === daw)?.installed === false;
   const linkable = state === 'not_linked' || linkedFile !== null;
+  const experimentalOff = experimentalOffNote(choice);
   const choose = (next: ChoosableDaw) => {
     if (next === 'Built-in' && next !== daw && dawLinked(choice)) setConfirmBuiltIn(true);
     else void act(() => dawChoice.dawChoose(next));
   };
 
   return (
-    <div className="flex max-w-[60ch] flex-col gap-3">
+    <div className="flex w-full min-w-0 flex-col gap-3">
       {!choice.hasProject && <p className="text-[0.8125rem] text-[var(--text-muted)]">Open a project to choose how it records.</p>}
       <RadioGroup<ChoosableDaw>
         label="Record with"
@@ -260,6 +262,7 @@ export function EngineBody() {
         onChange={choose}
         options={optionsFor(choice, busy || !choice.hasProject)}
       />
+      {experimentalOff && <p className="m-0 max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">{experimentalOff}</p>}
       {overridden && (
         <p className="text-[0.8125rem] text-[var(--text-muted)]">
           This window was opened from {daw}, so it records with {daw} until the app is opened another way. The choice saved for this project is {choice.chosen}.
@@ -267,24 +270,15 @@ export function EngineBody() {
       )}
       {daw === 'Audacity' && state !== 'app' && <AudacityLinkCard view={audacity} notify={notify} />}
       {daw !== 'Audacity' && status && (
-        <div
-          role="group"
-          aria-label="Connection"
-          data-daw-status={state}
-          className="flex flex-col items-start gap-2 rounded-md p-3 text-[0.8125rem]"
-          style={{ background: 'var(--surface-2)' }}
-        >
+        // The card is on the card surface with a border, so a neutral badge's own fill shows (alignment audit XSE2-7). Its buttons are one row in
+        // one order, the step that moves the project on first and Test connection last; what a test found is the line under them (XSE2-6).
+        <InsetCard role="group" aria-label="Connection" data-daw-status={state} className="flex flex-col items-start gap-2 text-[0.8125rem]">
           <StatusBadge tone={status.tone} label={status.title} />
-          <span className="text-[var(--text-muted)]">{status.detail}</span>
+          <span className="max-w-[60ch] text-[var(--text-muted)]">{status.detail}</span>
           <div className="flex flex-wrap items-center gap-2">
             {!notInstalled && state === 'not_linked' && foundFiles.length === 1 && (
               <Button variant="primary" size="sm" disabled={busy} onClick={() => void act(() => dawChoice.dawLinkFound())}>
                 Link {foundFiles[0]}
-              </Button>
-            )}
-            {!notInstalled && linkable && (
-              <Button variant="secondary" size="sm" disabled={busy} onClick={onLinkDawFile}>
-                {linkedFile ? 'Change linked file' : 'Choose a project file'}
               </Button>
             )}
             {!notInstalled && linkedFile !== null && (state === 'linked' || state === 'not_running') && (
@@ -297,19 +291,22 @@ export function EngineBody() {
                 Get REAPER
               </Button>
             )}
+            {!notInstalled && linkable && (
+              <Button variant="secondary" size="sm" disabled={busy} onClick={onLinkDawFile}>
+                {linkedFile ? 'Change linked file' : 'Choose a project file'}
+              </Button>
+            )}
             {state !== 'app' && (
               <Button variant="secondary" size="sm" disabled={test.phase === 'testing'} onClick={() => void check()}>
                 {notInstalled ? 'Check again' : 'Test connection'}
               </Button>
             )}
-            <span role="status" className="text-[var(--text-muted)]">
-              {test.phase === 'testing' || test.file === linkedFile ? test.text : ''}
-            </span>
-            {test.at !== undefined && test.phase !== 'testing' && test.file === linkedFile && (
-              <span className="text-[var(--text-muted)]">Last checked {testedFor} s ago.</span>
-            )}
           </div>
-        </div>
+          <span className="flex flex-wrap gap-x-2 text-[var(--text-muted)]">
+            <span role="status">{test.phase === 'testing' || test.file === linkedFile ? test.text : ''}</span>
+            {test.at !== undefined && test.phase !== 'testing' && test.file === linkedFile && <span>Last checked {testedFor} s ago.</span>}
+          </span>
+        </InsetCard>
       )}
       {error && (
         <p role="alert" className="text-[0.8125rem] text-[var(--danger-text)]">
