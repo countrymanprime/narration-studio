@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/guide"
 	"desktop/internal/process"
@@ -36,6 +38,29 @@ func runFakeGuideRender() int {
 	if os.Getenv(fakeGuideRenderEnv) == "fail" {
 		_, _ = os.Stderr.WriteString("ERROR: \"Dawnspire\" could not be spoken: the voice produced no audio for it.\n")
 		return 1
+	}
+	if len(os.Args) > 1 {
+		// A build's model work: no language model, and an empty pronunciation for each name.
+		switch os.Args[1] {
+		case "entities", "pronunciation":
+			if os.Args[1] == "entities" {
+				_, _ = os.Stdout.WriteString(`{"available": false}` + "\n")
+			}
+			for index, arg := range os.Args {
+				if arg == "--words-file" && index+1 < len(os.Args) {
+					for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+						if _, err := os.Stat(os.Args[index+1]); err == nil {
+							break
+						}
+					}
+					raw, _ := os.ReadFile(os.Args[index+1])
+					var words []string
+					_ = json.Unmarshal(raw, &words)
+					_, _ = os.Stdout.WriteString(strings.Repeat("{}\n", len(words)))
+				}
+			}
+			return 0
+		}
 	}
 	var dir, name string
 	for index, arg := range os.Args {
@@ -108,6 +133,14 @@ func newPreviewHost(t *testing.T, renderMode string) previewHost {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(guidePath, []byte(`{"entities":[{"id":"e1","canonical_name":"Dawnspire","aliases":[]}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// The manuscript a build reads, which the host's cue refresh after it reads too.
+	manuscript := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
+	if err := os.MkdirAll(filepath.Dir(manuscript), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manuscript, []byte(`{"schemaVersion":1,"documentId":"d","chapters":[{"id":"c1"}],"paragraphs":[{"id":"p1","chapterId":"c1","chapterTitle":"One","text":"Hello, said Captain Dawnspire."}]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	voice, _ := manager.Voice(previewVoiceID)

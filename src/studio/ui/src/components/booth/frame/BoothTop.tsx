@@ -39,8 +39,9 @@ const REC_COLORS = { fill: 'var(--rec-fill)', text: 'var(--rec-text)', line: 'va
 /**
  * The Booth's top bar (the mock's `BoothTop`): the chapter bar and the progress line, the resume offer and the recording-setup
  * chip as slots (SN-O51, SN-O23), the REC pill only while a take runs, the text popover and the side-panel toggle. There is no Ready chip and
- * no exit button: Esc Exit is a reminder in the footer. It wraps, as the mock's `.btop` does, so a narrow window puts the progress and
- * the chips on a second row instead of over the chapter picker.
+ * no exit button: Esc Exit is a reminder in the footer. It wraps, so a narrow window puts the progress and the chips on a second row
+ * instead of over the chapter picker; the status chips and the two tools are one right-aligned group that wraps as a whole. Its chips
+ * are one family, the 22 px pill of `HeaderChip`.
  */
 export function BoothTop({
   chapter,
@@ -75,33 +76,36 @@ export function BoothTop({
 }) {
   const drawer = useSidePanelDrawer();
   return (
-    <div className="flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
+    <div className="flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] py-2.5">
       {chapter}
       {pickupsOpen != null ? (
         <Badge
-          shape="booth"
+          shape="pill"
           label={`Pickups · ${pickupsOpen} open`}
           colors={{ fill: 'var(--surface-2, var(--surface))', text: 'var(--text)', line: 'var(--border)' }}
           look="outline"
+          className="whitespace-nowrap"
         />
       ) : null}
       <span id="bprog" className="min-w-0 font-mono text-sm text-[var(--text-muted)]">
         {progress}
       </span>
       {resume}
-      <span className="flex-1" />
-      {recording ? <Badge shape="booth" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
-      {coldRead && !recording ? <Badge shape="booth" label="Mic on · cold read" colors={REC_COLORS} look="dashed" /> : null}
-      {setup}
-      {text ? <TextPopover {...text} /> : null}
-      <IconButton
-        action="sidePanel"
-        id="brailbtn"
-        aria-expanded={panelOpen}
-        aria-controls={panelId}
-        data-panel={drawer ? 'drawer' : 'column'}
-        onClick={onTogglePanel}
-      />
+      {/* The bar's tools are one group kept at the right edge: when the bar wraps they move to the next row together, never under Previous. */}
+      <div data-booth-tools="" className="ml-auto flex flex-none items-center gap-2.5 whitespace-nowrap">
+        {recording ? <Badge shape="pill" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
+        {coldRead && !recording ? <Badge shape="pill" label="Mic on · cold read" colors={REC_COLORS} look="dashed" /> : null}
+        {setup}
+        {text ? <TextPopover {...text} /> : null}
+        <IconButton
+          action="sidePanel"
+          id="brailbtn"
+          aria-expanded={panelOpen}
+          aria-controls={panelId}
+          data-panel={drawer ? 'drawer' : 'column'}
+          onClick={onTogglePanel}
+        />
+      </div>
     </div>
   );
 }
