@@ -107,6 +107,17 @@ describe('LinkChaptersDialog', () => {
     expect(within(stamped).getByRole('columnheader', { name: 'Entity' })).toBeTruthy();
   });
 
+  it("keeps both tables' column headers in view while the dialog body scrolls (alignment audit ENX-23)", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const mapping = screen.getByRole('table', { name: 'Chapter to track mapping' });
+    expect(mapping.querySelector('thead')?.className).toContain('sticky');
+
+    await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
+    const stamped = await screen.findByRole('table', { name: 'Stamped lines' });
+    expect(stamped.querySelector('thead')?.className).toContain('sticky');
+  });
+
   it('reads current stamps and shows a status for every row, including drift and removed', async () => {
     const user = userEvent.setup();
     renderDialog();

@@ -103,7 +103,7 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
       {error && <ToolResult tone="danger" message={error} />}
       {state.lines.length > 0 && (
         <Table label="Stamped lines" columns={STAMPED_COLUMNS}>
-          <TableHead>
+          <TableHead sticky>
             <TableRow>
               <TableHeader>Item</TableHeader>
               <TableHeader>Entity</TableHeader>
@@ -219,7 +219,7 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
       )}
 
       <Table label="Chapter to track mapping" columns={MAPPING_COLUMNS}>
-        <TableHead>
+        <TableHead sticky>
           <TableRow>
             <TableHeader>Chapter</TableHeader>
             <TableHeader>REAPER track</TableHeader>
