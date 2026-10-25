@@ -1,6 +1,6 @@
 // The `storybible` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
 
 export const storybibleStates: StateEntry[] = [
   // Story Bible
@@ -216,3 +216,4 @@ export const storybibleStates: StateEntry[] = [
       'Story Bible while the entries are still being read (?mockHold=entities): the title, buttons, tabs, search and kind chips as usual, grey blocks in the list and the detail pane, no "No entries match" sentence, and one polite "Reading the Story Bible…" status',
   },
 ];
+storybibleStates.push(wholePage(storybibleStates, 'entity-selected'));

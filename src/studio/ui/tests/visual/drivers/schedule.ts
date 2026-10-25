@@ -61,13 +61,22 @@ export const scheduleDrivers: Record<string, Driver> = {
       await dialog.getByRole('textbox', { name: 'Note' }).fill(note);
       await dialog.getByRole('button', { name: 'Add milestone' }).click();
       await dialog.waitFor({ state: 'detached' });
+      // Each add says "Milestone added."; three of them stacked over the table hid the rows this state is about (alignment audit XSH-10).
+      const added = page.getByRole('status').getByText('Milestone added.');
+      await added.waitFor();
+      await page.getByRole('button', { name: 'Dismiss message' }).click();
+      await added.waitFor({ state: 'detached' });
     };
     await add('W'.repeat(200), 'a note');
     await add('تسليم الفصل الأول للمراجعة النهائية', 'ملاحظة');
     await add('🎙️ Final mix 🦎🍺 — 👨‍👩‍👧‍👦', '🍺');
     await page.getByText('تسليم الفصل الأول للمراجعة النهائية').waitFor();
+    // The state is about the table's long names, which sit below the chart and the side cards at every width: bring the table up.
+    await page.getByRole('heading', { name: 'Milestones', exact: true }).evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
   },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Schedule');
   },
 };
+// The whole page of on-pace (catalog/shared.ts: wholePage), driven the same way.
+scheduleDrivers['whole-page'] = scheduleDrivers['on-pace'];

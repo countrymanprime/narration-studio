@@ -182,3 +182,5 @@ export const proofDrivers: Record<string, Driver> = {
     await openWithoutManuscript(page, 'Proof');
   },
 };
+// The whole page of default (catalog/shared.ts: wholePage), driven the same way.
+proofDrivers['whole-page'] = proofDrivers['default'];

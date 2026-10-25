@@ -387,14 +387,15 @@ export async function openEditingCheck(page: Page, query: string) {
 
 /** Opens the engine panel from the header's engine chip, whatever state
  * the chip is in, and waits for the panel to have read its REAPER project. Returns the panel. */
-export async function openEnginePanel(page: Page): Promise<Locator> {
+export async function openEnginePanel(page: Page, daw: 'REAPER' | 'Audacity' = 'REAPER'): Promise<Locator> {
   await page
     .locator('header')
-    .getByRole('button', { name: /^REAPER: / })
+    .getByRole('button', { name: new RegExp(`^${daw}: `) })
     .click();
   const panel = page.getByRole('dialog', { name: 'Audio engine' });
-  await panel.getByRole('region', { name: 'REAPER project' }).waitFor();
-  await panel.getByRole('status').filter({ hasText: 'Looking for the REAPER project file…' }).waitFor({ state: 'detached' });
+  // An Audacity project's card takes the place of the REAPER project section.
+  await panel.getByRole('region', { name: `${daw} project` }).waitFor();
+  if (daw === 'REAPER') await panel.getByRole('status').filter({ hasText: 'Looking for the REAPER project file…' }).waitFor({ state: 'detached' });
   return panel;
 }
 

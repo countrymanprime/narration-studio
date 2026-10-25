@@ -1,7 +1,7 @@
 // How to reach each `engine` state in STATE_CATALOG (see app.drivers.ts): the engine panel, opened from the header's engine chip,
 // and the REAPER tools' dialogs opened from it.
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, openEditingCheckFromEngine, openEnginePanel } from './shared';
+import { type Driver, clickVisible, openAdvanced, openEditingCheckFromEngine, openEnginePanel, openSettings, showSettingsRow } from './shared';
 
 export const engineDrivers: Record<string, Driver> = {
   default: async (page) => {
@@ -26,6 +26,35 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await page.getByText(/Waiting: REAPER is recording/).waitFor();
+  },
+  // Chapter sync's "Needs you" list: undoing an automatic link in the sync activity log (Settings > Recording & DAW > Advanced) leaves that
+  // chapter for the narrator to link, and no seed starts there.
+  'sync-needs-you': async (page) => {
+    await openSettings(page, 'Recording & DAW', '?mockChapterSync=activity');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'daw.syncActivity');
+    await row
+      .getByRole('button', { name: /^Undo: Linked/ })
+      .first()
+      .click();
+    await openEnginePanel(page);
+    await page.getByRole('heading', { name: /^Needs you \(\d+\)$/ }).waitFor();
+    // The undo answers with "Link undone." over the Tracks table: the picture is the panel.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
+  },
+  // An Audacity project: its card replaces the REAPER project section.
+  'audacity-linked': async (page) => {
+    await page.goto('/?mockAudacityLink=linked');
+    await settlePage(page);
+    await openEnginePanel(page, 'Audacity');
+    await page.getByText("Audacity is open and answering, with this project's Audacity project.").waitFor();
+  },
+  'audacity-not-running': async (page) => {
+    await page.goto('/?mockAudacityLink=not-running');
+    await settlePage(page);
+    await openEnginePanel(page, 'Audacity');
+    await page.getByText('Audacity is not running. Start it here and the app connects.').waitFor();
   },
   'rpp-picker': async (page) => {
     // Reload with the mock's two-.rpp seam (see main.tsx) - the outer

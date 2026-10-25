@@ -360,3 +360,5 @@ export const productionDrivers: Record<string, Driver> = {
     await page.getByRole('table', { name: 'Chapter pipeline' }).getByRole('row').last().scrollIntoViewIfNeeded();
   },
 };
+// The whole page of on-pace (catalog/shared.ts: wholePage), driven the same way.
+productionDrivers['whole-page'] = productionDrivers['on-pace'];
