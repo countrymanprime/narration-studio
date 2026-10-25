@@ -38,7 +38,7 @@ export function Pill({
       pressed={active}
       disabled={disabled}
       onPressedChange={() => onClick?.()}
-      className={`inline-flex items-center justify-center ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} disabled:opacity-40 ${LOOK_CLASS[look](active)}`}
+      className={`inline-flex items-center justify-center whitespace-nowrap ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} disabled:opacity-40 ${LOOK_CLASS[look](active)}`}
     >
       {label}
     </Toggle>

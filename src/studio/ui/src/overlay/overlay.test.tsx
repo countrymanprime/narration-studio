@@ -343,14 +343,33 @@ describe('toast queue', () => {
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Something else.', 'REAPER is not answering.']);
   });
 
-  it('the same words as an error and as information are two messages; one with an action is never merged away', () => {
+  it('the same words as an error and as information are two messages, and so are the same words with and without an action', () => {
     service.toast('Saved.');
     service.toast('Saved.', { tone: 'error' });
     expect(service.getSnapshot().toasts.map((t) => t.tone)).toEqual(['info', 'error']);
-    const undo = () => undefined;
-    service.toast('Moved.', { action: { label: 'Undo', onAction: undo } });
-    service.toast('Moved.', { action: { label: 'Undo', onAction: undo } });
-    expect(service.getSnapshot().toasts.filter((t) => t.text === 'Moved.')).toHaveLength(2);
+    service.toast('Moved.');
+    service.toast('Moved.', { action: { label: 'Undo', onAction: () => undefined } });
+    expect(
+      service
+        .getSnapshot()
+        .toasts.filter((t) => t.text === 'Moved.')
+        .map((t) => t.action?.label),
+    ).toEqual([undefined, 'Undo']);
+  });
+
+  // Alignment audit cause P: three "Milestone added." toasts, each with its Undo, stacked over the Milestones table. The behaviour changed:
+  // the same words with the same action now replace the one on screen, whose Undo goes with it (History still holds that change).
+  it('the same words with the same action replace the one on screen, and its Undo is the newest', () => {
+    const first = vi.fn();
+    const last = vi.fn();
+    service.toast('Milestone added.', { action: { label: 'Undo', onAction: first } });
+    service.toast('Milestone added.', { action: { label: 'Undo', onAction: () => undefined } });
+    service.toast('Milestone added.', { action: { label: 'Undo', onAction: last } });
+    const toasts = service.getSnapshot().toasts;
+    expect(toasts).toHaveLength(1);
+    toasts[0].action!.onAction();
+    expect(last).toHaveBeenCalledOnce();
+    expect(first).not.toHaveBeenCalled();
   });
 
   it('a topic holds one message: the newest replaces the one before it, and dismissTopic takes it away', () => {

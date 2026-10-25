@@ -11,6 +11,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
   faFilter,
+  faRightLeft,
   faArrowDownWideShort,
   faArrowRight,
   faArrowUpRightFromSquare,
@@ -301,6 +302,8 @@ export const CATALOG = {
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),
   // The mock's wave is the Proof page's icon (audit rule 1), so the takes of a line wear the layers.
   showTakes: action(faLayerGroup, 'takes', 'Show the takes of this line', 'T'),
+  // Replace audio (#2251): the mock's two arrows, one stretch of audio out and another in.
+  replaceAudio: action(faRightLeft, 'replace audio', "Use another narrator's audio for these words"),
   // The mock's wave is the Proof page's icon (audit rule 1), so the strip wears the timeline.
   timelineStrip: action(faTimeline, 'timeline', 'Show the timeline strip', 'S'),
 

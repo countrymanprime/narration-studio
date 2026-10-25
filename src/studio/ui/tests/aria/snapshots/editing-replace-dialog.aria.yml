@@ -1,0 +1,33 @@
+# The page behind a modal is aria-hidden, so <body> holds the dialog and the live regions Base UI leaves exposed, nothing else.
+- /children: equal
+# Live regions stay in the tree on purpose (an error raised from inside a dialog is still announced): the zoom readout, the Editing
+# overlay announcer (it says what is selected) and the Editing page's bar (a live region that says what is selected), and the toast pair, which is portalled to <body> (Toast.tsx), not under <main>.
+- main:
+  - region "Script editor":
+    - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
+- status: /4 words selected, 0:\d+ to 0:\d+/
+- alert
+- status
+- alert
+- status
+- dialog "Replace 4 words with another narrator's audio":
+  - heading "Replace 4 words with another narrator's audio" [level=2]
+  - button "Close"
+  - region "Whose audio":
+    - combobox "Other narrator"
+    - combobox "Their file"
+    - button "Add a file of theirs…"
+    - textbox "Name another narrator"
+    - button "Add"
+  - region "Their stretch":
+    - img /Their file, \d+:\d+ long, with 0:\d+ to 0:\d+ chosen/
+    - textbox "From (seconds)"
+    - textbox "To (seconds)"
+  - region "Level and length":
+    - term: Loudness
+    - definition: /Theirs -\d+\.\d+ LUFS · target -\d+ LUFS/
+    - term: Length
+    - textbox "Level change (dB)"
+    - combobox "Fade at each seam"
+  - button "Cancel"
+  - button "Replace 4 words"
