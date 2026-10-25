@@ -103,38 +103,58 @@ export function BoothFooter({
   // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
+  // One sentence at a time (alignment audit R3BO-5): why the text cannot follow the voice, in the warning colour, wins; Record's own reason
+  // then stays only as its description (`aria-describedby`), not drawn beside it.
+  const shownWhy = why && !listenWhy ? why : undefined;
   return (
     <div ref={bar} className="flex flex-col">
-      <div className="flex flex-wrap items-center gap-4 border-t border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
-        {record}
-        <span id="btimer" className="font-mono text-lg text-[var(--text)]">
-          {timerText(seconds)}
-        </span>
-        <LevelsMenu {...mic} level={level} error={error} open={open} onOpenChange={setOpen} />
-        {coldRead ? (
-          <Button
-            id="bcold"
-            // Pressed, it takes the recording colour as an outline, as the microphone badge does: never Record's fill beside Record.
-            variant={coldRead.on ? 'danger' : 'secondary'}
-            aria-pressed={coldRead.on}
-            aria-disabled={coldRead.disabledReason ? true : undefined}
-            title={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
-            onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
-          >
-            Cold read
-          </Button>
-        ) : null}
-        {why ? (
-          <span id="brec-why" className="text-sm text-[var(--text-muted)]">
-            {why}
+      {/*
+        One row from 1024 px: the controls, the sentence in the room between (wrapping inside it), the meter at the right edge. Narrower,
+        the meter stays on the controls' row and the sentence takes the full row under them, so the footer is never a stack of
+        little rows with the meter alone (R4BO1-1, R4BO2-7, XBO-10).
+      */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] py-2.5">
+        <div className="flex flex-none items-center gap-4">
+          {record}
+          <span id="btimer" className="font-mono text-lg text-[var(--text)]">
+            {timerText(seconds)}
           </span>
+          <LevelsMenu {...mic} level={level} error={error} open={open} onOpenChange={setOpen} />
+          {coldRead ? (
+            <Button
+              id="bcold"
+              // Pressed, it takes the recording colour as an outline, as the microphone badge does: never Record's fill beside Record.
+              variant={coldRead.on ? 'danger' : 'secondary'}
+              aria-pressed={coldRead.on}
+              aria-disabled={coldRead.disabledReason ? true : undefined}
+              title={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
+              onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
+            >
+              Cold read
+            </Button>
+          ) : null}
+          {why && !shownWhy ? (
+            <span id="brec-why" className="sr-only">
+              {why}
+            </span>
+          ) : null}
+        </div>
+        <div className="order-2 ml-auto flex-none lg:order-3">
+          <LevelsInline level={level} roomTone={roomTone} roomToneOk={roomToneOk} roomToneHint={roomToneHint} />
+        </div>
+        {shownWhy || listenWhy ? (
+          <div className="order-3 min-w-0 basis-full text-sm lg:order-2 lg:flex-1 lg:basis-0">
+            {shownWhy ? (
+              <span id="brec-why" className="text-[var(--text-muted)]">
+                {shownWhy}
+              </span>
+            ) : (
+              <span id="blisten-why" role="status" className="text-[var(--warn-text)]">
+                {listenWhy}
+              </span>
+            )}
+          </div>
         ) : null}
-        {listenWhy ? (
-          <span id="blisten-why" role="status" className="text-sm text-[var(--warn-text)]">
-            {listenWhy}
-          </span>
-        ) : null}
-        <LevelsInline level={level} roomTone={roomTone} roomToneOk={roomToneOk} roomToneHint={roomToneHint} />
       </div>
       <KeyHints id="bkeys" hints={hints} />
     </div>

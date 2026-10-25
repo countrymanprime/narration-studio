@@ -384,11 +384,12 @@ export function LevelsInline({
   roomToneHint?: string;
 }) {
   return (
-    <div role="group" aria-label="Input" className="ml-auto flex min-w-0 items-center gap-3">
+    <div role="group" aria-label="Input" className="flex min-w-0 items-center gap-3">
       <div className="w-28">
         <LevelMeter label="Input level" peak={level?.peak ?? null} rms={level?.rms ?? null} size="compact" />
       </div>
-      <span className="whitespace-nowrap" title={roomToneHint}>
+      {/* A flex box, not an inline span: the chip is centred on the meter's line, not set on a text baseline 2 px off it (XBO-28). */}
+      <span className="inline-flex whitespace-nowrap" title={roomToneHint}>
         <Badge
           label={roomTone}
           look="outline"

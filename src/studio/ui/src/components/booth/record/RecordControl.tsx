@@ -16,7 +16,14 @@ export function RecordControl({
 }) {
   const { recording, disabled, reason, toggle } = control;
   return (
-    <Button id="brec" {...(disabled ? { 'aria-disabled': true } : {})} aria-describedby={reason ? describedBy : undefined} onClick={() => void toggle()}>
+    // As wide as "Record" in both states, so the timer and the controls beside it do not move when it becomes Stop (alignment audit XBO-25).
+    <Button
+      id="brec"
+      className="min-w-[5.75rem]"
+      {...(disabled ? { 'aria-disabled': true } : {})}
+      aria-describedby={reason ? describedBy : undefined}
+      onClick={() => void toggle()}
+    >
       <Icon name={recording ? 'stop' : 'record'} />
       {recording ? 'Stop' : 'Record'}
     </Button>

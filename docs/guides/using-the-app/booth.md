@@ -51,8 +51,10 @@ lines of this take, **Last punch**, **In this chapter** (the characters the chap
 [voice samples](#voice-samples)), **Coming up** (the next names with a pronunciation) and **This session** (how long you have recorded and
 how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first.
 
-The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), a level bar, the room tone of
-that microphone, and the keys the Booth answers, drawn from your keymap.
+The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), **Cold read**, a level bar and the
+room tone of that microphone at the right, and the keys the Booth answers, drawn from your keymap. One sentence at a time sits
+between the controls and the level bar: why the text cannot follow your voice, or else why Record cannot start. In a window
+narrower than 1024 pixels the sentence moves to its own line under **Record**; the level bar stays on Record's line.
 
 The room tone is the level of the room when nobody speaks. The app measures it whenever it listens to the microphone: during a
 take, and while the **Levels** menu is open. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,

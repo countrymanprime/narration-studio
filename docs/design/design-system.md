@@ -177,6 +177,10 @@ The Settings page always keeps every setting. A working page may also offer a co
 
 **Known at 390 px, outside Settings** (found by a one-off sweep of every state at that width; the collapsed-control check passes everywhere): the Proofing results header and table (#148), the Home chapter table (#149) and a three-action confirm dialog (#150) are clipped or cramped. They need layout decisions and are reachable only by zoom, since the shell's minimum window is 960 px.
 
+## The Booth footer
+
+The Booth's footer (`BoothFooter`, the mock's `bfoot-main`) is one row from 1024 px: the controls (Record, the timer, Levels, Cold read), one sentence in the room between them, wrapping inside it, and the meter with the room tone at the right edge (the mock's `margin-left:auto`). Narrower, the meter stays on the controls' row and the sentence takes the full row under them; the footer never wraps into a lone meter row or two sentences run together (alignment audit R4BO1-1, R4BO2-7, R3BO-5, XBO-10). One sentence shows: why the text cannot follow the voice wins, and Record's own reason then stays only as Record's description (`#brec-why`, `sr-only`). Record is as wide as Stop (XBO-25). The mock draws the meter after the reason; XBO-9 asked for the meter beside Levels, which this keeps as the mock has it.
+
 ## Manuscript reader
 
 - **One card per section.** Each chapter starts with the mock's boundary: a dashed "End of … · N words" line, then `ChapterCard` (`src/studio/ui/src/components/script/page/chapters/ChapterCard.tsx`, not a primitive) with the label, Record in Booth, the title, the facts line and My prep. The opening and closing credits are drawn the same way by `CreditsSection.tsx` beside it, as the mock lists them as chapters, with their own prep state; their unresolved tokens and Fill in sit in the card's banner row. There is no disclosure: every section's text is always shown.
