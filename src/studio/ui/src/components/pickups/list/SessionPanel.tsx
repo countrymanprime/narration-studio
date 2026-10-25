@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { Measured } from '../../../api/schemas/base';
 import { useOverlay } from '../../../overlay/OverlayProvider';
@@ -90,27 +90,34 @@ export function SessionPanel({
       });
   };
 
+  /* The count is known once the list is read; until then the button names no number (R3PK-3, XPK-15). */
+  const known = !loading && !unreadable;
   return (
     <Panel title="Pickup session" actions={<IconButton action="copy" label="Copy the pickup script" onClick={() => void copy()} />} className="min-w-0">
       <div className="flex flex-col gap-3" aria-busy={loading || undefined}>
-        <div className="flex items-center justify-between">
-          <span>Lines</span>
-          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{loading ? <Skeleton className="w-10" /> : unreadable ? 'not known' : count}</b>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>About</span>
-          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">
-            {loading ? <Skeleton className="w-14" /> : minutes.ok ? `${minutes.value} min` : NOT_MEASURED}
-          </b>
-        </div>
-        <Button
-          aria-disabled={count === 0 || undefined}
-          aria-describedby={showEmptyReason ? emptyId : undefined}
-          onClick={() => count > 0 && onOpenInBooth(picked)}
-        >
-          Open {count} in Booth
-        </Button>
-        <div>
+        <SessionRow label="Lines">{loading ? <Skeleton className="w-10" /> : unreadable ? <Said>not known</Said> : <Figure>{count}</Figure>}</SessionRow>
+        <SessionRow label="Length">
+          {loading ? (
+            <Skeleton className="w-14" />
+          ) : !known || count === 0 ? (
+            <Said>{count === 0 && known ? 'no lines' : NOT_MEASURED}</Said>
+          ) : minutes.ok ? (
+            <Figure>about {minutes.value} min</Figure>
+          ) : (
+            <Said>{NOT_MEASURED}</Said>
+          )}
+        </SessionRow>
+        {/* The Booth button and the markers button share a row (XPK-4). An empty session's Booth button is outlined, not a faded fill,
+            so its label keeps its contrast (R3PK-3). */}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <Button
+            variant={count === 0 ? 'secondary' : 'primary'}
+            aria-disabled={count === 0 || undefined}
+            aria-describedby={showEmptyReason ? emptyId : undefined}
+            onClick={() => count > 0 && onOpenInBooth(picked)}
+          >
+            {known ? `Open ${count} in Booth` : 'Open in Booth'}
+          </Button>
           <IconButton
             action="addMarker"
             label={`Add ${count} as markers in ${dawName}`}
@@ -120,17 +127,38 @@ export function SessionPanel({
             onClick={addMarkers}
           />
         </div>
+        {/* `text-pretty`: a note never ends on one word alone (R3PK-6). */}
         {showEmptyReason && (
-          <p id={emptyId} className="text-[0.8125rem] text-[var(--text-muted)]">
+          <p id={emptyId} className="text-[0.8125rem] text-pretty text-[var(--text-muted)]">
             {emptyReason}
           </p>
         )}
         {!markers.available && (
-          <p id={markersId} className="text-[0.8125rem] text-[var(--text-muted)]">
+          <p id={markersId} className="text-[0.8125rem] text-pretty text-[var(--text-muted)]">
             {markersReason}
           </p>
         )}
       </div>
     </Panel>
   );
+}
+
+/** A label and its value on one line, the value at the right. */
+function SessionRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** A number: bold mono, as the mock draws it. */
+function Figure({ children }: { children: ReactNode }) {
+  return <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{children}</b>;
+}
+
+/** A status in words ("not measured yet", "not known"): muted and regular, so it does not shout like a number (XPK-14). */
+function Said({ children }: { children: ReactNode }) {
+  return <span className="text-[var(--text-muted)]">{children}</span>;
 }
