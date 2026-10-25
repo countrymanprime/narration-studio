@@ -3,7 +3,7 @@
 `pronounce_source` gets a pronunciation from one named engine and raises when that engine has nothing for the name,
 instead of the automatic-fallback ``pronunciation()`` that quietly reports "not generated". The ``pronounce`` command
 applies it to an entity's own name or one of its aliases, refuses a locked entity, and marks the value
-``chosen`` so a rebuild (`merge_locked`) keeps it (B11) instead of overwriting it with a freshly generated one.
+``chosen`` so a rebuild (the host's ``mergeLocked``) keeps it (B11) instead of overwriting it with a freshly generated one.
 """
 
 import argparse
@@ -116,38 +116,6 @@ class PronounceCommandTests(unittest.TestCase):
             with patch("sys.argv", argv), patch("sys.stdout"):
                 guide.main()
             self.assertTrue(_entity(path)["pronunciation"]["chosen"])
-
-
-class ChosenPronunciationSurvivesRebuildTests(unittest.TestCase):
-    def _generated(self, name: str = "Wren") -> dict:
-        return {
-            "id": guide.entity_id(name),
-            "canonical_name": name,
-            "aliases": [],
-            "category": "Character",
-            "occurrences": [],
-            "occurrence_count": 0,
-            "pronunciation": {"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"},
-            "description": {"text": "", "evidence": {}},
-            "personality_notes": [],
-            "context": "",
-            "relationships": [],
-            "properties": [],
-            "locked": False,
-            "manual": False,
-            "review_state": "generated",
-        }
-
-    def test_a_chosen_pronunciation_is_kept_over_a_freshly_generated_one(self):
-        prior = {**self._generated(), "pronunciation": {"ipa": "chosen one", "source": "eSpeak NG", "confidence": "low", "chosen": True}}
-        merged = guide.merge_locked([self._generated()], {"entities": [prior]})
-        self.assertEqual(prior["pronunciation"], merged[0]["pronunciation"])
-
-    def test_an_unchosen_pronunciation_is_replaced_by_the_fresh_one_as_before(self):
-        prior = {**self._generated(), "pronunciation": {"ipa": "stale", "source": "CMU dictionary", "confidence": "medium"}}
-        fresh = self._generated()
-        merged = guide.merge_locked([fresh], {"entities": [prior]})
-        self.assertEqual(fresh["pronunciation"], merged[0]["pronunciation"])
 
 
 if __name__ == "__main__":

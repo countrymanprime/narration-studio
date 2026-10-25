@@ -2,13 +2,14 @@
 
 Phase 2 of `character-continuity-review.prd.md` (deleted) asks for a
 "labeled-quote evaluation (deleted PRD `character-continuity-review`) reported (Q4)". This is that
-evaluation, run against `extract_dialogue_cues` in
-`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`.
+evaluation, first run against the sidecar's `extract_dialogue_cues`
+(`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`) and, since the cues moved into the host (#2251, step 3),
+against `dialogueCues` in `src/studio/desktop/internal/guide/cues_text.go`, which gives the same cues byte for byte.
 
 ## Corpus and provenance
 
 31 quotes across 3 chapters and 5 scenes, in an original synthetic manuscript authored for this evaluation
-(`run_eval.py`'s `CORPUS`) - no real or copyrighted text. Written to exercise the PRD's three required
+(`cueEvalCorpus` in `src/studio/desktop/internal/guide/cues_eval_test.go`, first `run_eval.py`'s `CORPUS`) - no real or copyrighted text. Written to exercise the PRD's three required
 scenarios plus two extra edge cases:
 
 - a clean two-person alternating exchange (name tags and continuation);
@@ -35,7 +36,7 @@ speakers, or an incidental speaker who was never named as a Character entity. Th
 ## Results
 
 ```text
-uv run --project ../../../src/studio/sidecars/manuscript-guide python run_eval.py
+cd src/studio/desktop && go test ./internal/guide -run TestTheLabelledQuoteEvaluation
 ```
 
 | Metric | Value |
@@ -67,12 +68,12 @@ attribution creates false drift flags... mitigation: `unknown` on ambiguity, pre
 path, no flag without an attributed cue"). Two things already bound the damage:
 
 1. **Confidence tiering.** `speaker_source` distinguishes `"tag"` from `"continuation"` on every cue (see the
-   contract in `manuscript_guide.py`'s `extract_cues_from_text`/`extract_dialogue_cues`) precisely so a later
+   contract in `internal/guide/cues_text.go`'s `cuesFromText`/`dialogueCues`) precisely so a later
    consumer (Phase 5's candidate locator, Phase 6's review UI) can treat a continuation-sourced attribution
    with less confidence than a directly tagged one, rather than as equally certain evidence.
 2. **The correction path** (`correct_cue`, this phase) lets the narrator fix exactly this kind of case once;
-   `merge_dialogue_cues` guarantees a rebuild never overwrites that correction, the same durability `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`
-   already gives a locked Story Bible entity.
+   `mergeDialogueCues` (`internal/guide/cues.go`) keeps that correction through a rebuild (`TestACorrectionSurvivesOnlyOnItsOwnCue`), the same durability a
+   build already gives a locked Story Bible entity.
 
 No change to the continuation rule is proposed here: narrowing it further (e.g. requiring a tag within the
 last two paragraphs) would trade this one false positive for missed continuations in longer back-and-forth
@@ -83,6 +84,6 @@ common enough to matter.
 ## Reproducing
 
 ```bash
-cd docs/research/character-continuity-cue-extraction-eval
-uv run --project ../../../src/studio/sidecars/manuscript-guide python run_eval.py --rows   # per-quote detail
+cd src/studio/desktop
+go test ./internal/guide -run TestTheLabelledQuoteEvaluation -v   # per-quote detail
 ```
