@@ -322,10 +322,17 @@ export const boothDrivers: Record<string, Driver> = {
     await page.clock.runFor(2_000);
     await page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ }).waitFor();
   },
+  // The chip is not offered at the place it would take the narrator to, so once chosen it goes; a page opened again (the next
+  // viewport) returns to the remembered ¶ 14 and offers no chip at all.
   resume: async (page) => {
-    await readyToRecord(page);
-    await page.getByRole('button', { name: /^Resume at ¶/ }).click();
-    await page.getByText(/¶ 14 of 24/).waitFor();
+    await openBooth(page, RECORD_ON);
+    const chip = page.getByRole('button', { name: /^Resume at ¶/ });
+    const there = page.getByText(/¶ 14 of 24/);
+    await chip.or(there).first().waitFor();
+    if (await chip.isVisible()) await chip.click();
+    await there.waitFor();
+    await chip.waitFor({ state: 'detached' });
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'levels-menu': async (page) => {
     await readyToRecord(page);
