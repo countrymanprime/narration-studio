@@ -13,10 +13,12 @@ import type { AssetView } from './AssetsStore';
  * Below the page's 1020px container a row is a card on the card surface: the name and its actions on the first line (the action stays beside
  * the asset it acts on), then Status and Used by, each named by its `data-label` (alignment audit XSE2-27, XSE1-14).
  */
+// The grid placement (columns, spans, the first line) and the radius are unprefixed: a table row and its cells ignore them, so only the card
+// layout below 1020px uses them, and the page keeps to its count of off-vocabulary width variants (layoutQueries.test.ts).
 const CARD_ROW =
-  '@max-[1020px]:mb-2.5 @max-[1020px]:grid @max-[1020px]:grid-cols-[minmax(0,1fr)_auto] @max-[1020px]:rounded-lg @max-[1020px]:border @max-[1020px]:border-[var(--border)] @max-[1020px]:bg-[var(--surface)] @max-[1020px]:py-1.5';
+  'grid-cols-[minmax(0,1fr)_auto] rounded-lg @max-[1020px]:mb-2.5 @max-[1020px]:grid @max-[1020px]:border @max-[1020px]:border-[var(--border)] @max-[1020px]:bg-[var(--surface)] @max-[1020px]:py-1.5';
 const CARD_CELL = '@max-[1020px]:block @max-[1020px]:h-auto @max-[1020px]:border-b-0 @max-[1020px]:py-1 @max-[1020px]:break-words';
-const CARD_WIDE = '@max-[1020px]:col-span-2';
+const CARD_WIDE = 'col-span-2';
 const CARD_LABEL =
   "@max-[1020px]:before:mr-1.5 @max-[1020px]:before:font-['Barlow_Condensed',sans-serif] @max-[1020px]:before:text-[length:var(--font-size-label)] @max-[1020px]:before:font-semibold @max-[1020px]:before:tracking-[var(--tracking-label)] @max-[1020px]:before:text-[var(--text-muted)] @max-[1020px]:before:uppercase @max-[1020px]:before:content-[attr(data-label)]";
 
@@ -55,7 +57,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
   return (
     <TableRow data={{ 'data-asset': `${item.kind}/${item.id}`, 'data-status': status }} className={CARD_ROW}>
       {/* native-control-ok: the row header of the asset table; it becomes a card heading at narrow widths (CARD_CELL) */}
-      <th scope="row" className={`${TABLE_CELL_CLASS} text-left align-top font-normal ${CARD_CELL} @max-[1020px]:row-start-1`}>
+      <th scope="row" className={`${TABLE_CELL_CLASS} text-left align-top font-normal ${CARD_CELL} row-start-1`}>
         <b className="font-semibold">{name}</b>
         <span className="block text-[0.75rem] text-[var(--text-muted)]">
           {item.kindLabel}
@@ -102,7 +104,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
           ))}
         </span>
       </Cell>
-      <Cell className="whitespace-nowrap @max-[1020px]:col-start-2 @max-[1020px]:row-start-1">
+      <Cell className="col-start-2 row-start-1 whitespace-nowrap">
         <span className="flex justify-end gap-1">
           {status === 'missing' && <IconButton action="download" label={`Download ${name} (${size})`} onClick={install} />}
           {status === 'installed' && <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />}

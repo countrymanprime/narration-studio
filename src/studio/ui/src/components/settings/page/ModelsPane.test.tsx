@@ -143,8 +143,8 @@ describe('Settings: Models & downloads', () => {
     const actionCell = within(small)
       .getByRole('button', { name: /^Remove Small/ })
       .closest('td')!;
-    expect(actionCell.className).toContain('@max-[1020px]:row-start-1');
-    expect(actionCell.className).toContain('@max-[1020px]:col-start-2');
+    expect(actionCell.className).toContain('row-start-1');
+    expect(actionCell.className).toContain('col-start-2');
   });
 
   it('keeps Open folder at the end of the disk bar, not wrapped under the path', async () => {
