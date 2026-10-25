@@ -50,9 +50,11 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
     <div
       data-tone={message.tone}
       // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
-      // (daw-chapter-track-auto-sync/03).
-      className={`flex min-h-[2.8125rem] items-center gap-[0.625rem] rounded-[var(--radius-button)] bg-[var(--toast-bg)] px-4 py-2 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${sticky ? 'border-l-4 border-[var(--danger)]' : ''} ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
+      // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
+      className={`relative flex min-h-[2.8125rem] items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
+      {sticky && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {sticky ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />
       ) : (
@@ -70,7 +72,12 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
           {message.action.label}
         </button>
       )}
-      <button aria-label="Dismiss message" className={`flex-none ${HIT_AREA}`} onClick={() => dismiss(id)}>
+      {/* A 32 px square, the small IconButton's size, where the bare glyph was a 17 x 20 target (XBO-13, R3SE2-4, R3PF-4). */}
+      <button
+        aria-label="Dismiss message"
+        className="inline-flex size-[var(--button-height-sm)] flex-none items-center justify-center rounded-[var(--radius-button)] hover:opacity-75"
+        onClick={() => dismiss(id)}
+      >
         <FontAwesomeIcon icon={faXmark} />
       </button>
     </div>

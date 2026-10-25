@@ -1174,7 +1174,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const activity = await screen.findByRole('dialog', { name: 'Import manuscript' });
     expect(activity.querySelector('.progressbar')).toBeTruthy();
     expect(await screen.findByText('Writing the project-owned manuscript…')).toBeTruthy();
-    expect((await screen.findAllByText('Manuscript import complete.')).length).toBeGreaterThanOrEqual(2);
+    // Said once: the status line. The work dialog's log no longer repeats the line the status already says (alignment audit R3SE1-1, R4SB-8).
+    expect(await screen.findAllByText('Manuscript import complete.')).toHaveLength(1);
     await waitFor(() => expect(bootstrap.mock.calls.length).toBeGreaterThanOrEqual(2));
     // The empty state has become the pipeline behind the modal import dialog, which stayed open through it (useManuscriptImport).
     expect(await screen.findByRole('table', { name: 'Chapter pipeline', hidden: true })).toBeTruthy();
