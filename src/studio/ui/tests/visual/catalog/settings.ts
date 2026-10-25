@@ -1,7 +1,7 @@
 // The `settings` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: one page of eight categories and an index of what
 // moved to a page (src/studio/ui/src/components/settings), then the states of the page itself (search, a deep link, loading, unreadable, save failed).
 import type { StateEntry } from '../lib/types';
-import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK } from './shared';
+import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK, wholePage } from './shared';
 
 export const settingsStates: StateEntry[] = [
   {
@@ -531,3 +531,4 @@ export const settingsStates: StateEntry[] = [
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];
+settingsStates.push(wholePage(settingsStates, 'page-top'));

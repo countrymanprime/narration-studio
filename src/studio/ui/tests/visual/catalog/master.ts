@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -177,3 +177,4 @@ export const masterStates: StateEntry[] = [
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];
+masterStates.push(wholePage(masterStates, 'measured'));

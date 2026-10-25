@@ -78,3 +78,5 @@ export const scheduleDrivers: Record<string, Driver> = {
     await openWithoutManuscript(page, 'Schedule');
   },
 };
+// The whole page of on-pace (catalog/shared.ts: wholePage), driven the same way.
+scheduleDrivers['whole-page'] = scheduleDrivers['on-pace'];

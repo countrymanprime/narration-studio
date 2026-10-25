@@ -248,11 +248,29 @@ export function maskOptions(
 
 async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, problems: string[]): Promise<string[]> {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
-  // A long page is shown whole by growing the viewport (Playwright's fullPage would stretch fixed elements).
+  // A long page is shown whole by growing the viewport (Playwright's fullPage would stretch fixed elements). The document never scrolls
+  // (documentScroll 'locked'): the page area inside the shell does, or a pane of the page, so the window grows by what the most
+  // overflowing scroll container under <main> hides, again until nothing more is hidden (a taller window can lay the page out anew).
   if (entry.fullPage) {
-    const height = await page.evaluate(() => document.documentElement.scrollHeight);
-    if (height > 6000) problems.push(`fullPage: the page is ${height}px tall, beyond the 6000px cap - the capture would be cut off`);
-    await page.setViewportSize({ width: viewport.width, height: Math.min(height, 6000) });
+    let height = viewport.height;
+    for (let round = 0; round < 4; round += 1) {
+      const hidden = await page.evaluate(() =>
+        Math.max(
+          0,
+          ...Array.from(document.querySelectorAll<HTMLElement>('main *'))
+            .filter((element) => /(auto|scroll)/.test(getComputedStyle(element).overflowY))
+            .map((element) => element.scrollHeight - element.clientHeight),
+        ),
+      );
+      if (hidden <= 1) break;
+      height += hidden;
+      if (height > 6000) {
+        problems.push(`fullPage: the page is ${height}px tall, beyond the 6000px cap - the capture would be cut off`);
+        height = 6000;
+      }
+      await page.setViewportSize({ width: viewport.width, height });
+      if (height === 6000) break;
+    }
   }
   await settleFrames(page);
   // A pointer left over from the driver's last click paints a hover style on

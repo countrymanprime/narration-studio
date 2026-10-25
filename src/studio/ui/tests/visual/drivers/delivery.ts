@@ -107,3 +107,5 @@ export const deliveryDrivers: Record<string, Driver> = {
     await page.getByText('This project has no manuscript yet. Import one to begin.').waitFor();
   },
 };
+// The whole page of measured (catalog/shared.ts: wholePage), driven the same way.
+deliveryDrivers['whole-page'] = deliveryDrivers['measured'];
