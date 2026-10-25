@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 HERE = Path(__file__).parents[1]
 sys.path.insert(0, str(HERE))
@@ -35,7 +36,13 @@ class SourcesTest(unittest.TestCase):
             self.assertEqual(run.status, "not run")
             self.assertTrue(run.reason.endswith("."))
 
-    def test_the_rules_baseline_runs_the_sidecars_suggest_command_and_a_missing_gold_set_is_not_run(self):
+    def test_the_rules_are_not_run_with_a_sentence_where_go_is_not_installed(self):
+        with patch.object(sources.shutil, "which", return_value=None):
+            run = sources.run_rules(REPO, Path("m.json"), "test")
+        self.assertEqual(run.status, "not run")
+        self.assertIn("Go is not installed", run.reason)
+
+    def test_the_rules_baseline_runs_the_hosts_rules_and_a_missing_gold_set_is_not_run(self):
         with tempfile.TemporaryDirectory() as tmp:
             data = Path(tmp)
             folder = data / "book"

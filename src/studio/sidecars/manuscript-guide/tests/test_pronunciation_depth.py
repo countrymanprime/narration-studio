@@ -1,8 +1,8 @@
 """The narrator's own pronunciation.
 
-A pronunciation can carry a ``note`` (a stored ``status`` from before docs/guides/using-the-app/story-bible.md#how-you-say-each-name is ignored). The narrator can type their own pronunciation (source ``manual``); it never asks CMU or eSpeak, and it sits beside
-the dictionary's answer instead of replacing it: the one not in use is kept as ``alternate``, so switching back is lossless and
-never re-runs a lookup. A rebuild keeps the note and the alternate.
+A pronunciation can carry a ``note`` (a stored ``status`` from before docs/guides/using-the-app/story-bible.md#how-you-say-each-name is ignored). The narrator's own pronunciation (source ``manual``, set by the
+host) sits beside the dictionary's answer instead of replacing it: the one not in use is kept as ``alternate``, so switching back is
+lossless and never re-runs a lookup. A dictionary pronunciation set here and a rebuild keep the note and the alternate.
 """
 
 import argparse
@@ -40,109 +40,23 @@ def _entity(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))["entities"][0]
 
 
-def _user(path: Path, ipa: str, alias_index=None) -> None:
-    guide.pronounce_user(argparse.Namespace(guide=str(path), entity_id="entity-1", alias_index=alias_index, ipa=ipa))
+def _pronounce(path: Path) -> None:
+    guide.pronounce(argparse.Namespace(guide=str(path), entity_id="entity-1", alias_index=None, source="cmu", espeak_library=""))
 
 
-def _swap(path: Path, alias_index=None) -> None:
-    guide.pronunciation_use_alternate(argparse.Namespace(guide=str(path), entity_id="entity-1", alias_index=alias_index))
-
-
-class UserPronunciationTests(unittest.TestCase):
-    def test_the_narrators_own_pronunciation_never_asks_a_dictionary(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            with (
-                patch.object(guide, "pronounce_source", side_effect=AssertionError("a dictionary was asked")),
-                patch.object(guide, "pronunciation", side_effect=AssertionError("a dictionary was asked")),
-            ):
-                _user(path, "  ˈwɹɛːn  ")
-            value = _entity(path)["pronunciation"]
-            self.assertEqual(
-                {"ipa": "ˈwɹɛːn", "source": "manual", "confidence": "narrator", "chosen": True},
-                {k: value[k] for k in ("ipa", "source", "confidence", "chosen")},
-            )
-
-    def test_the_dictionary_answer_is_kept_beside_it_as_the_alternate(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            _user(path, "ˈwɹɛːn")
-            self.assertEqual({"ipa": "wɹɛn", "source": "CMU dictionary", "confidence": "medium"}, _entity(path)["pronunciation"]["alternate"])
-
-    def test_switching_back_to_the_dictionary_is_lossless_and_keeps_the_narrators_one(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            _user(path, "ˈwɹɛːn")
-            with patch.object(guide, "pronounce_source", side_effect=AssertionError("a dictionary was asked")):
-                _swap(path)
-            value = _entity(path)["pronunciation"]
-            self.assertEqual(("wɹɛn", "CMU dictionary", "medium"), (value["ipa"], value["source"], value["confidence"]))
-            self.assertTrue(value["chosen"])
-            self.assertEqual({"ipa": "ˈwɹɛːn", "source": "manual", "confidence": "narrator"}, value["alternate"])
-            _swap(path)
-            self.assertEqual("ˈwɹɛːn", _entity(path)["pronunciation"]["ipa"])
-            self.assertEqual("wɹɛn", _entity(path)["pronunciation"]["alternate"]["ipa"])
-
-    def test_replacing_the_narrators_one_keeps_the_dictionary_alternate(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            _user(path, "one")
-            _user(path, "two")
-            value = _entity(path)["pronunciation"]
-            self.assertEqual("two", value["ipa"])
-            self.assertEqual("wɹɛn", value["alternate"]["ipa"])
+class DictionaryPronunciationTests(unittest.TestCase):
+    """The host sets the narrator's own pronunciation and switches to the alternate (src/studio/desktop/internal/guide/mutate.go); a
+    dictionary's pronunciation, set here, keeps the narrator's one beside it."""
 
     def test_a_dictionary_replace_keeps_the_narrators_one_as_the_alternate(self):
         with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), canonical_name="hello")
-            _user(path, "mine")
-            guide.pronounce(argparse.Namespace(guide=str(path), entity_id="entity-1", alias_index=None, source="cmu", espeak_library=""))
+            path = _guide_file(
+                Path(temporary), canonical_name="hello", pronunciation={"ipa": "mine", "source": "manual", "confidence": "narrator", "chosen": True}
+            )
+            _pronounce(path)
             value = _entity(path)["pronunciation"]
             self.assertEqual("cmu", value["source"])
             self.assertEqual({"ipa": "mine", "source": "manual", "confidence": "narrator"}, value["alternate"])
-
-    def test_an_empty_pronunciation_leaves_no_alternate(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), pronunciation={})
-            _user(path, "mine")
-            self.assertNotIn("alternate", _entity(path)["pronunciation"])
-
-    def test_it_applies_to_an_alias_by_index(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            _user(path, "ðə ˈspæɹoʊ", alias_index=0)
-            entity = _entity(path)
-            self.assertEqual("manual", entity["aliases"][0]["pronunciation"]["source"])
-            self.assertEqual(DICTIONARY, entity["pronunciation"])
-
-    def test_blank_multi_line_or_overlong_text_is_refused_and_the_file_is_unchanged(self):
-        for bad in ("   ", "one\ntwo", "x" * (guide.MAX_USER_PRONUNCIATION + 1)):
-            with self.subTest(bad=bad[:8]), tempfile.TemporaryDirectory() as temporary:
-                path = _guide_file(Path(temporary))
-                before = path.read_text(encoding="utf-8")
-                with self.assertRaises(ValueError):
-                    _user(path, bad)
-                self.assertEqual(before, path.read_text(encoding="utf-8"))
-
-    def test_a_locked_entity_refuses(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), locked=True)
-            with self.assertRaisesRegex(ValueError, "locked"):
-                _user(path, "mine")
-
-    def test_there_is_nothing_to_switch_to_without_an_alternate(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            with self.assertRaisesRegex(ValueError, "no other pronunciation"):
-                _swap(path)
-
-    def test_the_command_line_takes_a_value_that_starts_with_a_dash(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            argv = ["manuscript_guide.py", "pronounce-user", "--guide", str(path), "--entity-id", "entity-1", "--ipa=-wɹɛn"]
-            with patch("sys.argv", argv), patch("sys.stdout"):
-                guide.main()
-            self.assertEqual("-wɹɛn", _entity(path)["pronunciation"]["ipa"])
 
     def test_user_is_not_a_dictionary_the_pronounce_command_offers(self):
         self.assertNotIn(guide.MANUAL_SOURCE, guide.PRONUNCIATION_SOURCES)
@@ -160,39 +74,16 @@ class PronunciationStatusIsGoneTests(unittest.TestCase):
     def test_a_stored_status_is_not_carried_when_the_pronunciation_changes_but_the_note_is(self):
         for status in ("author_confirmed", "query_sent"):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
-                path = _guide_file(Path(temporary), pronunciation={**DICTIONARY, "status": status, "note": "Confirmed by phone."})
-                _user(path, "ˈwɹɛːn")
+                path = _guide_file(Path(temporary), canonical_name="hello", pronunciation={**DICTIONARY, "status": status, "note": "Confirmed by phone."})
+                _pronounce(path)
                 value = _entity(path)["pronunciation"]
                 self.assertNotIn("status", value)
                 self.assertEqual("Confirmed by phone.", value["note"])
 
 
-class RebuildKeepsTheNarratorsPronunciationWorkTests(unittest.TestCase):
-    def _generated(self, aliases=None) -> dict:
-        return {
-            "id": guide.entity_id("Wren"),
-            "canonical_name": "Wren",
-            "aliases": aliases or [],
-            "category": "Character",
-            "occurrences": [],
-            "occurrence_count": 0,
-            "pronunciation": {"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"},
-            "description": {"text": "", "evidence": {}},
-            "personality_notes": [],
-            "context": "",
-            "relationships": [],
-            "properties": [],
-            "locked": False,
-            "manual": False,
-            "review_state": "generated",
-        }
-
-    def test_a_stored_status_is_not_carried_through_a_rebuild_but_the_note_is(self):
-        for status in ("query_sent", "author_confirmed"):
-            prior = {**self._generated(), "pronunciation": {"ipa": "fresh", "source": "cmu", "confidence": "medium", "status": status, "note": "Asked."}}
-            merged = guide.merge_locked([self._generated()], {"entities": [prior]})
-            self.assertNotIn("status", merged[0]["pronunciation"])
-            self.assertEqual("Asked.", merged[0]["pronunciation"]["note"])
+class LegacyNarratorSourceTests(unittest.TestCase):
+    """A file written before the narrator's own source was called ``manual``; a rebuild keeping the narrator's work is the host's
+    (internal/guide/build_test.go TestARebuildKeepsTheNarratorsPronunciationWork)."""
 
     def test_a_legacy_user_source_reads_as_manual_and_nothing_else_changes(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -228,43 +119,6 @@ class RebuildKeepsTheNarratorsPronunciationWorkTests(unittest.TestCase):
             {"ipa": "mine", "source": "manual", "confidence": "narrator"}, {"ipa": "new", "source": "user", "confidence": "narrator"}
         )
         self.assertNotIn("alternate", again)
-
-    def test_a_user_pronunciation_and_its_alternate_survive_a_rebuild(self):
-        user = {
-            "ipa": "mine",
-            "source": "manual",
-            "confidence": "narrator",
-            "chosen": True,
-            "alternate": {"ipa": "old", "source": "CMU dictionary", "confidence": "medium"},
-        }
-        prior = {**self._generated(), "pronunciation": user}
-        merged = guide.merge_locked([self._generated()], {"entities": [prior]})
-        self.assertEqual(user, merged[0]["pronunciation"])
-
-    def test_a_chosen_alias_pronunciation_survives_and_an_unchosen_ones_status_is_carried(self):
-        fresh_aliases = [
-            {"text": "the Sparrow", "pronunciation": {"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"}, "occurrences": []},
-            {"text": "Wrennie", "pronunciation": {"ipa": "fresh2", "source": "CMU dictionary", "confidence": "medium"}, "occurrences": []},
-        ]
-        prior_aliases = [
-            {"text": "The Sparrow", "pronunciation": {"ipa": "mine", "source": "manual", "confidence": "narrator", "chosen": True}, "occurrences": []},
-            {
-                "text": "Wrennie",
-                "pronunciation": {"ipa": "fresh2", "source": "CMU dictionary", "confidence": "medium", "status": "author_confirmed"},
-                "occurrences": [],
-            },
-        ]
-        merged = guide.merge_locked([self._generated(fresh_aliases)], {"entities": [{**self._generated(), "aliases": prior_aliases}]})
-        aliases = {alias["text"]: alias for alias in merged[0]["aliases"]}
-        self.assertEqual(prior_aliases[0]["pronunciation"], aliases["the Sparrow"]["pronunciation"])
-        self.assertNotIn("status", aliases["Wrennie"]["pronunciation"])
-
-    def test_an_entry_with_no_status_rebuilds_exactly_as_before(self):
-        prior = self._generated()
-        prior["pronunciation"] = {"ipa": "stale", "source": "CMU dictionary", "confidence": "medium"}
-        fresh = self._generated()
-        merged = guide.merge_locked([fresh], {"entities": [prior]})
-        self.assertEqual({"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"}, merged[0]["pronunciation"])
 
 
 if __name__ == "__main__":

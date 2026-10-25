@@ -350,7 +350,7 @@ func mergeEntities(document map[string]any, sourceID, targetID string, newUndoID
 	}
 	document["entities"] = kept
 
-	// The names absorbed are recorded, so the next build does not bring the source back as an entry of its own (merge_locked's redirect).
+	// The names absorbed are recorded, so the next build does not bring the source back as an entry of its own (mergeLocked's redirect, build_merge.go).
 	absorbed, ok := document["absorbed_names"].(map[string]any)
 	if !ok {
 		absorbed = map[string]any{}

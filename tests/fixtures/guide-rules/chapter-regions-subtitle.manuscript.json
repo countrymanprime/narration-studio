@@ -1,0 +1,44 @@
+{
+ "schemaVersion": 1,
+ "documentId": "test-document",
+ "importedAt": "2026-01-01T00:00:00+00:00",
+ "importer": {
+  "format": "markdown",
+  "version": 1
+ },
+ "source": {
+  "fileName": "fixture.md",
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "storedPath": "manuscript/sources/fixture.md"
+ },
+ "chapters": [
+  {
+   "id": "c-0001",
+   "title": "A Test Book",
+   "subtitle": null,
+   "index": 0,
+   "wordCount": 0,
+   "sections": []
+  }
+ ],
+ "paragraphs": [
+  {
+   "id": "p-000001",
+   "index": 0,
+   "chapterId": "c-0001",
+   "chapterTitle": "A Test Book",
+   "sectionId": null,
+   "text": "Alice found herself in a very strange room with mismatched furniture and an odd smell of lavender and regret.",
+   "sourceIndex": 0
+  },
+  {
+   "id": "p-000002",
+   "index": 1,
+   "chapterId": "c-0001",
+   "chapterTitle": "A Test Book",
+   "sectionId": null,
+   "text": "Bob walked into the strange room after Alice, wondering why nothing here made any sense at all.",
+   "sourceIndex": 1
+  }
+ ]
+}

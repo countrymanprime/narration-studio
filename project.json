@@ -19,7 +19,6 @@
   "implicitDependencies": [
     "audacity3-real-tests",
     "character-continuity-acoustic-trial",
-    "character-continuity-cue-eval",
     "config",
     "docs-site",
     "extraction-calibration",

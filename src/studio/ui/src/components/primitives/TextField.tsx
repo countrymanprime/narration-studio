@@ -8,9 +8,9 @@ import type { ControlNaming } from './controlNaming';
 const BASE_CLASSES =
   'box-border rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-0 leading-[1.35] text-[var(--text)]';
 // A colour swatch is a small square, not a field.
-const COLOR_CLASSES = 'size-[2.35rem] rounded-[0.35rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.2rem]';
-// The height is the mock's: 36px, or 32px for `sm`. A caller's `w-` class replaces the default `w-full`.
-const SIZE_CLASSES = { md: 'h-9', sm: 'h-8' } as const;
+const COLOR_CLASSES = 'size-[var(--control-height)] rounded-[0.35rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.2rem]';
+// The height is the shared control height (the mock's 36px, or 32px for `sm`). A caller's `w-` class replaces the default `w-full`.
+const SIZE_CLASSES = { md: 'h-[var(--control-height)]', sm: 'h-[var(--control-height-sm)]' } as const;
 const SANS_CLASSES = 'text-[0.88rem]';
 // Values that are code, not prose - a hex colour, an id, a number - read a touch larger than body text (~15px on the mocks' numeric fields).
 const MONO_CLASSES = "text-[0.9375rem] font-['IBM_Plex_Mono',ui-monospace,monospace]";

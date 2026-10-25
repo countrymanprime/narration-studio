@@ -5,7 +5,7 @@ import type { ControlNaming } from './controlNaming';
 // The text control's look at its 36 px height, in the mono face a date reads best in. `color-scheme` follows the theme (styles.css sets it on the root), so the
 // browser's calendar button and popup are drawn light or dark with the page.
 const CLASSES =
-  "box-border h-9 rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-0 text-[0.9375rem] leading-[1.35] text-[var(--text)] font-['IBM_Plex_Mono',ui-monospace,monospace]";
+  "box-border h-[var(--control-height)] rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-0 text-[0.9375rem] leading-[1.35] text-[var(--text)] font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
 type Props = Omit<ComponentPropsWithRef<'input'>, 'aria-label' | 'id' | 'value' | 'defaultValue' | 'onChange' | 'type' | 'title' | 'size'> &
   ControlNaming & {
