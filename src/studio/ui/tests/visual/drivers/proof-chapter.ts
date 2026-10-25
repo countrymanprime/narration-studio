@@ -25,8 +25,8 @@ export const proofChapterDrivers: Record<string, Driver> = {
       window.dispatchEvent(new PopStateEvent('popstate'));
     }, '/proof/chapter-1');
     await page.getByRole('button', { name: 'Retry' }).waitFor();
-    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    // The panel says the failure, so no toast says it again (#2494): the picture is the panel alone.
+    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
   never: async (page) => {
     // Chapter 7 has no recordedFraction in the fixture (mockFixtures.ts: only chapters 1-6 do), so it reads "never checked".
