@@ -128,7 +128,7 @@ the last 5 seconds, and the card says whether its open project matches the linke
   REAPER and REAPER does not connect.
 - **Experimental DAW actions** (Advanced, off by default, for REAPER and Audacity alike): the DAW actions not yet verified
   stay refused while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
-- **Capabilities** (Advanced): a table of what the app can ask the recording tool to do, each with **Auto**, **On** or
+- **Capabilities** (Advanced): a table, across the row under its name, of what the app can ask the recording tool to do, each with **Auto**, **On** or
   **Off** and a **Now** column: the level (**Supported**, **Experimental**, **Not yet available** or **Unsupported**),
   the tool's own reason when it is unavailable, and a warning on any action that replaces audio that cannot be brought back.
 - **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
@@ -141,7 +141,7 @@ The Audacity backups and the favourite effects are listed under [Set on a page](
 
 **Transcription model** is the one default for comparing and checking recordings: Production's recording check,
 [Proof](proof.md), [Pickups](pickups.md) and [Editing](editing.md) all use it. It is for all projects, and a project may override it.
-Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** with **Download** in the row.
+Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** in the row, with **Download** and a link to **Models & downloads** on the line under it.
 
 **Live reading in the Booth** holds the **Live engine** (Whisper, or Moonshine on Windows) and the **Live model** (`tiny`
 or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
