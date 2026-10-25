@@ -46,6 +46,8 @@ import type { StackLine } from '../stack/types';
 import type { ManuscriptChapter } from '../../../types';
 import { useStackRetries } from '../stack/useStackRetries';
 import { SampleMarksContext, SamplePlayerContext, useSampleMarks } from '../voicesample/sampleMarksContext';
+import { ReplacementMarksContext } from '../range/replace/replacementMarks';
+import { useReplaceAudio } from '../range/replace/useReplaceAudio';
 import { useVoiceSample } from '../voicesample/useVoiceSample';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
 import { useKeepTakes } from '../takes/keepTake';
@@ -304,6 +306,8 @@ export function EditingBody(props: EditingBodyProps) {
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
   const accept = useAcceptWords({ journal, chapterId, doc, onChange: props.onAccepted });
+  // Replace words with another narrator's audio, the name after a replaced stretch and Put my audio back (#2251).
+  const replacementMarks = useReplaceAudio({ journal, chapterId, locator });
   // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
   const voice = useVoiceSample({
     chapterId,
@@ -559,13 +563,15 @@ export function EditingBody(props: EditingBodyProps) {
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
-                  <SampleMarksContext.Provider value={sampleMarks}>
-                    <SamplePlayerContext.Provider value={samplePlayer}>
-                      <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
-                        <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
-                      </ScriptNotesProvider>
-                    </SamplePlayerContext.Provider>
-                  </SampleMarksContext.Provider>
+                  <ReplacementMarksContext.Provider value={replacementMarks}>
+                    <SampleMarksContext.Provider value={sampleMarks}>
+                      <SamplePlayerContext.Provider value={samplePlayer}>
+                        <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
+                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
+                        </ScriptNotesProvider>
+                      </SamplePlayerContext.Provider>
+                    </SampleMarksContext.Provider>
+                  </ReplacementMarksContext.Provider>
                 </FxMarkersContext.Provider>
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.

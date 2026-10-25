@@ -47,8 +47,8 @@ export type ReplaceAudioMockDeps = {
   alignment: (chapterId: string) => Promise<WorkspaceAlignmentResult>;
   /** The paragraphs' texts, for the words a replacement names. */
   paragraphText: (chapterId: string, paragraphId: string) => string | undefined;
-  /** Whether the DAW can make the edit now: false answers the capability's sentence. */
-  available?: () => DawResult | null;
+  /** The capability's refusal when the DAW cannot make the edit now (off, not connected), or null when it can. */
+  available?: () => Promise<DawResult | null>;
   /** Editing.replace_target_lufs. */
   targetLufs?: () => number;
   now?: () => string;
@@ -148,7 +148,7 @@ export function createReplaceAudioMock(deps: ReplaceAudioMockDeps): ReplaceAudio
       clamped: false,
       loudnessNote: '',
     };
-    const off = deps.available?.();
+    const off = (await deps.available?.()) ?? null;
     if (off) return { ...empty, result: off };
     const found = fileOf(fileId);
     if (!found) return { ...empty, result: refused('That file of theirs is not in this project. Add it first.') };
@@ -222,7 +222,7 @@ export function createReplaceAudioMock(deps: ReplaceAudioMockDeps): ReplaceAudio
     },
     replaceAddFile: async (narratorId): Promise<ReplaceFileAnswer> => {
       await deps.ready;
-      const off = deps.available?.();
+      const off = (await deps.available?.()) ?? null;
       if (off) return { result: off, fileId: '', narrators: list() };
       const narrator = narrators.find((candidate) => candidate.id === narratorId);
       if (!narrator) return { result: refused("That narrator is not on this project's list. Add them first."), fileId: '', narrators: list() };
@@ -280,7 +280,7 @@ export function createReplaceAudioMock(deps: ReplaceAudioMockDeps): ReplaceAudio
     },
     dawRestoreReplacement: async (chapterId, replacementId) => {
       await deps.ready;
-      const off = deps.available?.();
+      const off = (await deps.available?.()) ?? null;
       if (off) return answer(chapterId, off, replacementId);
       const stored = replacements.find((candidate) => candidate.chapterId === chapterId && candidate.id === replacementId && candidate.restoredAt === null);
       if (!stored) return answer(chapterId, refused('That replacement is not in this chapter any more, so nothing changed.'), replacementId);
