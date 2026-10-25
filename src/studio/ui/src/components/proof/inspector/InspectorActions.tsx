@@ -146,7 +146,8 @@ export function InspectorActions({
         />
         <span className="flex-1" />
         {decided && (
-          <Button variant="secondary" size="sm" disabled={inert} onClick={onReopen}>
+          // The row's icon buttons' height (alignment audit XPF-14).
+          <Button variant="secondary" disabled={inert} onClick={onReopen}>
             Reopen
           </Button>
         )}

@@ -120,7 +120,8 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 - its time and its type. The type is a list: if the check named the wrong kind of problem, choose the right one, and your
   choice is kept with the note;
 - the arrows to step to the previous or next note on the list (a chip, the search or the In view filter can hide notes; the keys skip them);
-- what the script says and what was heard, with the difference marked;
+- what the script says and what was heard, on a shaded background (they are quotes, not boxes to type in), with the
+  difference marked: a word the reading lacks struck through on red, a word heard instead on green;
 - **In the script**: the note's paragraph with its words marked, and the paragraphs before and after it, shorter and greyed,
   so you can see where the note sits without leaving Proof. When the script no longer has that paragraph, it says so;
 - for words said twice, **Said twice** with the words said again, and **Open in Editing**, which opens the line's
@@ -149,7 +150,9 @@ it and not yet saved.
 
 A decision is always made on the evidence you are looking at. If the check ran again after the note was shown and the
 evidence changed, the decision is not saved: **The evidence changed** shows what you saw (**Before**) and what the check
-hears **Now**, and keeps your note. Press **Use the new evidence**, look again and decide.
+hears **Now**, and keeps your note; when the check heard the same words and only their timing or confidence moved, it says
+so instead of showing the same words twice. The decision buttons wait until you press **Use the new evidence**; look again
+and decide.
 
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
@@ -160,7 +163,8 @@ says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and o
 
 Under the decision, **Notes on this finding** keeps a thread of notes on the spot: questions for yourself, or a
 proofer's replies. Choose **Proofer replied** to paste in what the proofer wrote, or **My note** for your own, type it
-and press **Add note**, which sits beside the box. Each note shows who wrote it, on the left, and when, on the right; edit it with the pencil, or delete it, with **Undo** to
+and press **Add note**, which sits beside the box. Each note has a line with who wrote it, when (the date and time as
+the rest of the app writes them) and the pencil and bin, and the note under it at the full width; edit it with the pencil, or delete it, with **Undo** to
 bring it back where it was. The notes are kept with the project beside your decisions, are not a decision themselves,
 and stay with the note when a check runs again.
 
@@ -239,10 +243,12 @@ linked chapter's **Open in Proof** link in the [audio engine panel](navigation.m
 Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
-While the chapter is being read, the view shows the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason and **Retry**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
+The view runs the full width of the page, like Proof, with its breadcrumb and title in the same place in every state.
+While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
-If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
-[Production](production.md#checking-a-chapters-recording) runs.
+If the chapter hasn't been checked yet, the title row says **Not checked yet** and offers **Check recording**, the same check
+[Production](production.md#checking-a-chapters-recording) runs. A chapter with no linked REAPER track says so in a line
+under the title, with the way to the audio engine panel.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)
 
@@ -254,7 +260,7 @@ model, a second look with a larger model, chunk length, parallel processes, cros
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 
-**Native takes.** With the built-in recorder, the chapter view has a Native takes panel beside the Recording check card. It lists the chapter's native takes grouped by line and lets you mark one take of a line as its keeper (a click; mark it again or choose another take to undo, and choosing one clears the others on that line). While the project records with the built-in recorder it also offers to assign a take that has no line to one of the chapter's paragraphs. A take already assigned, and its keeper mark, stays visible whichever recorder the project uses now. The panel never edits audio.
+**Native takes.** With the built-in recorder, the chapter view has a Native takes panel beside the Recording check card. It lists the chapter's native takes grouped by line, each take's buttons next to its name, and lets you mark one take of a line as its keeper (a click; mark it again or choose another take to undo, and choosing one clears the others on that line). While the project records with the built-in recorder it also offers to assign a take that has no line to one of the chapter's paragraphs. A take already assigned, and its keeper mark, stays visible whichever recorder the project uses now. The panel never edits audio.
 
 ## Comparing the recording with the script
 
@@ -349,7 +355,7 @@ do on [Production](production.md#stage-readiness); Why opens the same evidence v
 **Open this note** opens it on [Editing](editing.md), its words selected, and an unmapped chapter
 links to the [audio engine panel](navigation.md#the-audio-engine-panel).
 
-Below the suggestion, **Rendered file** shows which file the delivery checks measure and lets you change
+Beside the suggestion (under it in a narrow window), **Rendered file** shows which file the delivery checks measure, when you chose it and when it was last measured, on one line, and lets you change
 it: **Choose rendered file** (**Change** once one is chosen) opens a file picker and attests the file was made
 from the chapter as it is now; **Clear** removes the choice; **Measure** runs the same measurement job [Master & QC](master-and-qc.md)
 uses, with its real progress, and needs no second file picker. If the file changes on disk, or the

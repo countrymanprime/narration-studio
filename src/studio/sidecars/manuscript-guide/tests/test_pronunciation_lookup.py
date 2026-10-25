@@ -11,6 +11,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -26,9 +27,9 @@ SPEC.loader.exec_module(guide)
 TESTDATA = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide" / "testdata"
 
 
-def run(words, default_source="", espeak_library=""):
+def run(words, default_source="", espeak_library="", words_file=""):
     out = io.StringIO()
-    args = argparse.Namespace(word=words, default_source=default_source, espeak_library=espeak_library, wiktextract_index="")
+    args = argparse.Namespace(word=words, words_file=words_file, default_source=default_source, espeak_library=espeak_library, wiktextract_index="")
     with contextlib.redirect_stdout(out):
         guide.lookup_pronunciations(args)
     return out.getvalue().splitlines()
@@ -94,6 +95,42 @@ class PronunciationLookupTests(unittest.TestCase):
                 self.assertRaises(ValueError),
             ):
                 run(["Wren", bad])
+
+    def test_a_words_file_is_every_name_of_a_build_looked_up_as_it_is_in_one_process(self):
+        names = ["  Wren  ", "Arelian", "x" * 400, "Zoë 😀", "-dash", "Wren"]
+        stub, asked = stub_sources(KNOWN)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "words.json"
+            path.write_text(json.dumps(names), encoding="utf-8")
+            with patch.object(guide, "pronounce_source", stub), patch.object(guide.SOURCES, "fallback_order", return_value=["cmu", "espeak"]):
+                lines = run(None, words_file=str(path))
+        self.assertEqual(len(names), len(lines))
+        self.assertEqual(names, [name for name, source in asked if source == "cmu"])
+        self.assertEqual("ɹɛn", json.loads(lines[-1])["ipa"])
+
+    def test_a_words_file_that_is_not_a_list_of_names_or_both_inputs_are_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for content in ('{"a": 1}', '["Wren", 5]', '["Wren", ""]'):
+                path = Path(temporary) / "words.json"
+                path.write_text(content, encoding="utf-8")
+                with self.subTest(content=content), self.assertRaises(ValueError):
+                    run(None, words_file=str(path))
+            with self.assertRaises(ValueError):
+                run(["Wren"], words_file=str(path))
+        with self.assertRaises(ValueError):
+            run(None)
+
+    def test_the_command_takes_a_words_file_and_a_log(self):
+        with (
+            patch("sys.argv", ["g", "pronunciation", "--words-file", "w.json", "--log", "log.txt"]),
+            patch.object(guide, "lookup_pronunciations") as command,
+            patch.object(guide, "set_log_file"),
+            patch.object(Path, "open"),
+            patch.object(Path, "mkdir"),
+        ):
+            guide.main()
+        namespace = command.call_args.args[0]
+        self.assertEqual(("w.json", None, "log.txt"), (namespace.words_file, namespace.word, namespace.log))
 
     def test_it_is_the_value_the_build_would_make(self):
         with patch.object(guide, "pronunciation", return_value={"ipa": "i", "source": "cmu", "confidence": "high"}) as made:
