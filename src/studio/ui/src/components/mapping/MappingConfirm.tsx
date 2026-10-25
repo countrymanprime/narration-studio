@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../primitives/Button';
-import { plainTrackChoices } from './trackChoices';
+import { plainTrackChoices, type TrackHolder } from './trackChoices';
 import { TrackSelect } from './TrackSelect';
 import type { Track } from '../../types';
 
@@ -13,6 +13,9 @@ type Props = {
    * `linkedTrackGuid` set) to show a missing-track state, or omit both to show nothing confirmed yet. */
   linkedTrackGuid?: string;
   linkedTrackName?: string;
+  /** Every confirmed link, and this chapter's id, so a track another chapter holds says so in the picker. */
+  links?: readonly TrackHolder[];
+  chapterId?: string;
   /** True while a confirm or clear call is in flight, so the caller's own state controls the busy affordance. */
   busy?: boolean;
   onConfirm: (trackGuid: string) => void;
@@ -33,6 +36,8 @@ export function MappingConfirm({
   tracks,
   linkedTrackGuid,
   linkedTrackName,
+  links,
+  chapterId,
   busy = false,
   onConfirm,
   onClear,
@@ -41,8 +46,10 @@ export function MappingConfirm({
 }: Props) {
   const hasLink = Boolean(linkedTrackGuid);
   const [picking, setPicking] = useState(!hasLink);
-  const choices = plainTrackChoices(tracks);
-  const [chosen, setChosen] = useState(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : (choices[0]?.guid ?? ''));
+  const choices = plainTrackChoices(tracks, links, chapterId);
+  // Nothing is picked for the narrator: the select opens on "Choose a track" and Confirm waits for a pick, so one press cannot link the
+  // first track to a chapter it does not belong to (alignment audit R3EN2-1). A Change starts from the track already linked.
+  const [chosen, setChosen] = useState(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : '');
 
   // A confirm or clear call comes back through the caller's own state, as a new `linkedTrackGuid` prop, not through
   // this component's local `picking` intent: once the caller reports a link (a fresh confirm, or a Change followed
@@ -76,7 +83,7 @@ export function MappingConfirm({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <TrackSelect label={`Track for ${chapterTitle}`} choices={choices} value={chosen} onChange={setChosen} />
-      <Button onClick={() => onConfirm(chosen)} pending={busy}>
+      <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
         Confirm
       </Button>
       {hasLink && (

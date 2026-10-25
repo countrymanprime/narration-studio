@@ -22,8 +22,18 @@ export function trackChoices(match: ChapterTrackMatch, links: readonly TrackMapp
   });
 }
 
-/** The same choices for a list of tracks with no match behind it (the Tracks page's list): project order, nothing preselected. */
-export const plainTrackChoices = (tracks: readonly Track[]): TrackChoice[] => tracks.map((t) => ({ guid: t.guid, name: nameOf(t), best: false }));
+/** The part of a confirmed link that says which chapter holds a track. */
+export type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'>;
+
+/**
+ * The same choices for a list of tracks with no match behind it (the engine panel's Chapter links, the recording check): project order, nothing
+ * preselected. `links` and `chapterId` name the tracks another chapter holds, as `trackChoices` does.
+ */
+export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string): TrackChoice[] =>
+  tracks.map((t) => {
+    const holder = links.find((l) => l.trackGuid === t.guid && l.chapterId !== chapterId);
+    return { guid: t.guid, name: nameOf(t), best: false, ...(holder ? { heldBy: holder.chapterTitle } : {}) };
+  });
 
 /** The track to preselect: the matcher's best, or null. */
 export const bestChoice = (choices: readonly TrackChoice[]): string | null => choices.find((c) => c.best)?.guid ?? null;

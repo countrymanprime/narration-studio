@@ -24,6 +24,38 @@ describe('MappingConfirm', () => {
     expect(onConfirm).toHaveBeenCalledWith('guid-2');
   });
 
+  // Alignment audit R3EN2-1: a select that opened on the first track made one press of Confirm link that track to every chapter.
+  it('starts on "Choose a track" with Confirm off until a track is picked', async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    render(<MappingConfirm chapterTitle="Chapter Two" tracks={tracks} onConfirm={onConfirm} onClear={vi.fn()} />);
+
+    const select = screen.getByRole('combobox', { name: 'Track for Chapter Two' }) as HTMLSelectElement;
+    expect(select.selectedOptions[0]?.textContent).toBe('Choose a track');
+    const confirm = screen.getByRole('button', { name: 'Confirm' }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    await user.click(confirm);
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    await user.selectOptions(select, 'guid-1');
+    expect(confirm.disabled).toBe(false);
+  });
+
+  it('names a track another chapter holds in its option', () => {
+    render(
+      <MappingConfirm
+        chapterTitle="Chapter Two"
+        tracks={tracks}
+        links={[{ chapterId: 'c1', chapterTitle: 'Chapter One', trackGuid: 'guid-1' }]}
+        chapterId="c2"
+        onConfirm={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('option', { name: 'Chapter 1 (linked to Chapter One)' })).toBeTruthy();
+  });
+
   it('shows the linked track name with Change and Clear once a link is confirmed', () => {
     render(
       <MappingConfirm chapterTitle="Chapter One" tracks={tracks} linkedTrackGuid="guid-1" linkedTrackName="Chapter 1" onConfirm={vi.fn()} onClear={vi.fn()} />,
