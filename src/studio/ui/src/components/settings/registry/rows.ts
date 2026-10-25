@@ -454,7 +454,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: '250',
     unit: 'words',
     field: { tool: 'Booth', key: 'words_per_page' },
-    desc: 'The Booth marks a page break every this many words, counted from the start of each chapter. 250 is a manuscript page.',
+    desc: 'The Booth marks a page break at the end of the paragraph in which a page reaches this many words, counted from the start of each chapter. 250 is a manuscript page.',
     used: ['booth'],
     syn: 'page break pages length standard manuscript page count',
   },
