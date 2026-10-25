@@ -305,7 +305,7 @@ read.
 
 ### Editing check
 
-Each chapter's **More actions** menu in Chapter links has **Editing check…**, opening its own panel over this one: whether
+Each chapter's **More actions** menu in Chapter links has **Editing check…**, opening its own panel over this one, as wide as it, with **Back to the audio engine** at its top: whether
 empty space, clicks and breaths still need trimming out. The same panel opens from
 a chapter's [stage suggestion](production.md#stage-readiness) on Production when the editing signal
 names it as the way to resolve what's unknown.
