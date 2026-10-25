@@ -273,7 +273,7 @@ func TestTheFieldNamesOfARealEventAreListedForDiagnosticsWithoutValues(t *testin
 }
 
 // TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is src/studio/desktop/internal/daw/locate.go: an unsaved REAPER project reports an
-// empty rpp (never omitted, docs/research/reaper-spike-s6-daw-reachability.md), so the field must be allowed to be
+// empty rpp (never omitted, docs/reference/daw/reaper.md), so the field must be allowed to be
 // empty although it is required.
 func TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid(t *testing.T) {
 	if err := CheckEvent([]string{"PROJECT_STATUS", "", "", "1"}); err != nil {

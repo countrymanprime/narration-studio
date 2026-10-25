@@ -23,7 +23,7 @@ import (
 // the smoke test to name it. The tree is an in-memory copy of what the release embeds; the sidecars are not run (a fake answers) except in
 // the last test, which starts a real program.
 
-const healthySelfCheck = `{"ok": true, "checks": [{"name": "cmudict", "ok": true, "detail": "hello = HH AH0 L OW1"}, {"name": "espeak", "ok": true, "detail": "hello = həlˈoʊ"}]}`
+const healthySelfCheck = `{"ok": true, "checks": [{"name": "cmudict", "ok": true, "detail": "hello = HH AH0 L OW1"}, {"name": "espeak", "ok": true, "detail": "hello = həlˈoʊ"}, {"name": "tool-runtime", "ok": true, "detail": "12 modules; tqdm 4.70.1"}]}`
 
 // healthyCapabilities is what the frozen Teleprompter's `--capabilities --verify` prints on a healthy build (options.Moonshine
 // is true in smokeOptionsFor, so checkCapabilities asks for --verify by default).
@@ -678,14 +678,17 @@ func TestSmokeStopsWhenItsOwnContextIsOver(t *testing.T) {
 func TestSmokeHoldsTheGuideSelfCheckToItsExitCodeAndToEveryCheckItMustMake(t *testing.T) {
 	onlyCmudict := `{"ok": true, "checks": [{"name": "cmudict", "ok": true, "detail": "hello"}]}`
 	allOKButExitOne := healthySelfCheck
-	okFalseNoFailingCheck := `{"ok": false, "checks": [{"name": "cmudict", "ok": true, "detail": "a"}, {"name": "espeak", "ok": true, "detail": "b"}]}`
+	okFalseNoFailingCheck := `{"ok": false, "checks": [{"name": "cmudict", "ok": true, "detail": "a"}, {"name": "espeak", "ok": true, "detail": "b"}, {"name": "tool-runtime", "ok": true, "detail": "c"}]}`
+	noToolRuntime := `{"ok": true, "checks": [{"name": "cmudict", "ok": true, "detail": "a"}, {"name": "espeak", "ok": true, "detail": "b"}]}`
 	for name, tc := range map[string]struct {
 		run    *fakeRun
 		failed string
 	}{
 		"a check the sidecar stopped making": {&fakeRun{selfCheck: onlyCmudict}, "guide:espeak"},
-		"an exit code no check explains":     {&fakeRun{selfCheck: allOKButExitOne, selfExit: 1}, "guide:self-check"},
-		"a verdict no check explains":        {&fakeRun{selfCheck: okFalseNoFailingCheck}, "guide:self-check"},
+		// The freeze must carry what BookNLP's packages import (extraction_booknlp.FREEZE_IMPORTS); a report without the line is a failure.
+		"no proof of the optional tools' runtime": {&fakeRun{selfCheck: noToolRuntime}, "guide:tool-runtime"},
+		"an exit code no check explains":          {&fakeRun{selfCheck: allOKButExitOne, selfExit: 1}, "guide:self-check"},
+		"a verdict no check explains":             {&fakeRun{selfCheck: okFalseNoFailingCheck}, "guide:self-check"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			report := smoke(context.Background(), smokeOptionsFor(t, healthyTree(t), tc.run))

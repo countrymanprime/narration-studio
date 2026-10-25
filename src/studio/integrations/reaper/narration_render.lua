@@ -1,5 +1,5 @@
 -- Per-chapter render configuration over the bridge: configure_chapter_render (see
--- docs/research/reaper-spike-s5-render-details.md and docs/architecture/reaper-bridge.md). It configures only; the
+-- docs/reference/daw/reaper.md and docs/architecture/reaper-bridge.md). It configures only; the
 -- narrator presses Render themselves.
 --
 -- Sets the render bounds to all regions (RENDER_BOUNDSFLAG=3), the naming pattern to the region name ($region) and
@@ -9,7 +9,7 @@
 -- SAFETY (load-bearing): this file must never call reaper.Main_OnCommand, and must never read the RENDER_STATS or
 -- RENDER_STATS_SUMMARY project-info keys. The S5 spike found that passing a real, file-writing render action's ID
 -- to the RENDER_STATS getter does not just read stats - it re-invokes that render, producing a real "Files already
--- exist" dialog (docs/research/reaper-spike-s5-render-details.md, "Findings in detail" 4). Every write here is one
+-- exist" dialog (docs/reference/daw/reaper.md, the Render row). Every write here is one
 -- of the three keys the spike proved safe to set (RENDER_FILE, RENDER_PATTERN, RENDER_BOUNDSFLAG) plus a read of
 -- RENDER_TARGETS, which the spike proved is itself just a predicted-file-names getter, not a render trigger.
 

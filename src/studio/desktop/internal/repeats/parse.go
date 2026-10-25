@@ -1,17 +1,14 @@
-// Package repeats parses the additive --find-repeats output of the
-// Transcript Compare sidecar (SPAN_GROUP/SPAN_MEMBER tagged lines, see
-// src/studio/sidecars/transcript-compare/core/compare.py's find_repeated_spans) and
-// adapts it into findings.Finding records for the pickup and
-// duplicate_read categories (docs/utilities/take-review.md).
+// Package repeats parses a pickup and duplicate scan's tagged output
+// (SUMMARY and SPAN_GROUP/SPAN_MEMBER lines, written by
+// internal/comparerun's FindRepeats from the reads the Transcript Compare
+// sidecar's --find-repeats heard) and adapts it into findings.Finding
+// records for the pickup and duplicate_read categories
+// (docs/utilities/take-review.md).
 //
-// This is a Go *adapter*, not a Go re-implementation of the detector:
-// tokenization, homophones, number-word merging and the manuscript diff
-// all stay in the Python sidecar, so a Go copy cannot drift from them. This
-// package only reads the sidecar's own tagged text output and reshapes it into
-// the findings contract (src/studio/desktop/internal/findings). It intentionally does not read the
-// project model, does not choose a scan scope, does not run the sidecar,
-// does not create takes, and does not write to a findings store: the
-// internal/takereview scan service does that.
+// It only reshapes the scan's groups into the findings contract
+// (src/studio/desktop/internal/findings). It does not read the project
+// model, choose a scan scope, run the scan, create takes or write to a
+// findings store: the internal/takereview scan service does that.
 package repeats
 
 import (
@@ -46,12 +43,10 @@ type Group struct {
 	Members   []Member
 }
 
-// ParseOutput reads the tagged lines --find-repeats writes (SUMMARY plus
+// ParseOutput reads a scan's tagged lines (SUMMARY plus
 // SPAN_GROUP/SPAN_MEMBER) and returns the parsed groups, in the order
-// SPAN_GROUP lines appeared. Unrecognized tags - including NEED_CHAPTER
-// and an ordinary run's COMPARE_SEGMENT/COMPARE_WORDS lines - are ignored,
-// so this stays safe to call against any --out file the sidecar can
-// produce.
+// SPAN_GROUP lines appeared. Unrecognized tags, such as the NEED_CHAPTER
+// line of a scan whose track matched no chapter, are ignored.
 func ParseOutput(text string) ([]Group, error) {
 	byID := map[int]*Group{}
 	var order []int

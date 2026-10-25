@@ -1429,7 +1429,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       rank: 1,
       recommended: true,
     });
-    expect(tools.every((tool) => (tool.unavailableReason ?? '').length > 0)).toBe(true);
+    // BookNLP is pinned and can be installed; GLiNER and the local model each say why they cannot.
+    expect(tools.map((tool) => [tool.id, (tool.unavailableReason ?? '').length > 0])).toEqual([
+      ['gliner', true],
+      ['booknlp-small', false],
+      ['booknlp-big', false],
+      ['local-llm', true],
+    ]);
     for (const other of golden.assets.filter((asset) => asset.kind !== 'analysis')) expect(other.unavailableReason).toBeUndefined();
     // The mock lists no analysis tool, so it is the older payload: no entry carries a consent fact, and it parses.
     expectMatches(assetCatalogSchema, await createMockApi().assetsList(), 'mock asset list without consent facts');

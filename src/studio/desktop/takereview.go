@@ -49,7 +49,7 @@ func takeReviewManuscriptPath(projectFolder string) string {
 
 // takeReviewSessionDir mirrors configureLocked's teleprompterDir fallback
 // (src/studio/desktop/app.go): a launch with no REAPER session directory still
-// needs somewhere to write the sidecar's scratch --find-repeats output
+// needs somewhere to write the sidecar's scratch --find-repeats words
 // file.
 func takeReviewSessionDir(sessionDir string) string {
 	if sessionDir != "" {

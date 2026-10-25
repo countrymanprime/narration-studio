@@ -38,11 +38,11 @@ Hand-written; add a pair when a real misread is scored wrongly.
 ## heading-misreads/
 
 Small constructed manuscripts (DOCX, EPUB, Markdown and plain text, one chapter heading each) that exercise the
-importer's title/subtitle heuristic: 5 read correctly and 18 do not.
+importer's title/subtitle heuristic: 5 controls and 18 misreads, 7 of them since fixed.
 `cases.json` records each case's intended and observed title and subtitle, and `TestHeadingMisreadFixtures`
 (`src/studio/desktop/internal/importer/heading_misreads_test.go`) holds the importer to the observed values.
-[`docs/research/import-heading-misreads.md`](../../docs/research/import-heading-misreads.md) explains each failure
-mode, and the subtitle override uses these cases as its fixtures. Regenerate with the standard library only:
+[The import failure modes](../../docs/architecture/import-settings-workflow.md#failure-modes) say what each case
+shows, and the subtitle override uses these cases as its fixtures. Regenerate with the standard library only:
 
 ```powershell
 cd tests/fixtures/heading-misreads
@@ -118,14 +118,14 @@ diagnostics. See [its README](audio/librivox-alice/README.md) and `tests/fixture
 ## repeat-rule/
 
 `parity-cases.json`: the cases for "a run of extra words says the script beside it again" (issue #2251 item 30), which the
-sidecar's take markers (`src/studio/sidecars/transcript-compare/core/recording_coverage.py`, `repeat_of`), the host's recording
-check (`src/studio/desktop/internal/recordingcoverage`, `RepeatOf`) and the Editing page
-(`src/studio/ui/src/components/editing/model/duplicates.ts`, `saysScriptAgain`) all implement. `test_repeat_rule.py`,
-`coverage_test.go` and `duplicates.test.ts` read the file, so the copies of the rule cannot drift apart.
+host's take markers and recording check (`src/studio/desktop/internal/recordingcoverage`, `RepeatOf`) and the Editing page
+(`src/studio/ui/src/components/editing/model/duplicates.ts`, `saysScriptAgain`) implement. `coverage_test.go` and
+`duplicates.test.ts` read the file, so the two copies of the rule cannot drift apart.
 
 ## compare-parity/
 
 `cases.json`: Python's own answers, on a seeded set of awkward inputs, for the text rules the host's port of Transcript Compare
 (`src/studio/desktop/internal/compare`) reproduces: the tokenizer, the sentence split, the chapter units, the number-word merge,
 the equivalence list, `difflib.SequenceMatcher`, `str.split`, `str.strip`, `str.lower`, and float `repr`, `round` and `sum`.
-`test_compare_go_parity.py` writes it from Python (`UPDATE_CONTRACTS=1`) and checks it; `compare_test.go` must agree with it.
+`compare.py` wrote it before its tokenizer was deleted (2026-10-24), so it is frozen: `compare_test.go` must agree with it, and
+`test_compare_go_parity.py` holds `narration_common`'s number merge, which the teleprompter still runs, to the same answers.

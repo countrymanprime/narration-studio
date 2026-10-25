@@ -70,6 +70,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/useTeleprompterSession.ts::manuscriptParagraphs#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'An inline error.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterStart#1': row('click', 'job', 'disabled', 'host', 'ui', 'inline', 'no', 'ok', 'The state event moves the page to "starting" and disables Start; the host refuses a second session.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterStop#1': row('click', 'job', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'The state event moves the page on; an inline error otherwise.'),
+  'src/components/booth/useTeleprompterSession.ts::teleprompterStop#2': row('click', 'job', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'stopAndWait: Record ending a cold read (the button, R or the DAW starting a take); the state event (or the 9 s wait) moves the take on; an inline error otherwise.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterPause#1': row(
     'click',
     'file-io',

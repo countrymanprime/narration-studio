@@ -1,14 +1,10 @@
-import importlib.util
+import csv
 from pathlib import Path
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 from narration_common import spoken_forms
-
-COMPARE_PATH = Path(__file__).parents[5] / "src" / "studio" / "sidecars" / "transcript-compare" / "core" / "compare.py"
-SPEC = importlib.util.spec_from_file_location("transcript_compare_for_spoken_forms", COMPARE_PATH)
-compare = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-SPEC.loader.exec_module(compare)
 
 
 def test_homophones_canonicalize_to_the_first_member_of_their_group():
@@ -55,28 +51,41 @@ def test_filler_words_are_the_hesitations_transcript_compare_drops():
     assert "the" not in spoken_forms.FILLER_WORDS
 
 
-def test_transcript_compare_reads_the_shared_forms_rather_than_its_own_copy():
-    assert compare.NUMBER_WORDS is spoken_forms.NUMBER_WORDS
-    assert compare.merge_number_words is spoken_forms.merge_number_words
-    assert compare.FILLER_WORDS is spoken_forms.FILLER_WORDS
+def test_the_hosts_copy_carries_the_same_homophone_list():
+    # The host's tokenizer (src/studio/desktop/internal/compare) embeds the built-in homophone groups as a CSV (a Go
+    # embed cannot reach Python data); the teleprompter's live flags read these. This guard keeps the two the same.
+    go_copy = Path(__file__).resolve().parents[3] / "desktop" / "internal" / "compare" / "homophones.csv"
+    rows = csv.reader(line for line in go_copy.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#"))
+    go_groups = tuple(tuple(word.strip() for word in row if word.strip()) for row in rows)
+    assert go_groups == spoken_forms.HOMOPHONE_GROUPS
 
 
-def test_transcript_compare_tokenizes_exactly_as_it_did_with_its_bundled_homophone_file():
-    text = "Your sentinel’s right there, whose weight they're at-the-waist of twenty-three knights."
+NUMBER_TOKEN = st.sampled_from(sorted(spoken_forms.NUMBER_WORDS) + ["and"])
+PLAIN_TOKEN = st.text(alphabet="abcdefg", min_size=1, max_size=5)
+TOKENS = st.lists(NUMBER_TOKEN | PLAIN_TOKEN, max_size=14)
 
-    assert compare.tokenize(text) == [
-        "your",
-        "sentinels",
-        "write",
-        "their",
-        "whose",
-        "wait",
-        "their",
-        "at",
-        "the",
-        "waist",
-        "of",
-        "twenty",
-        "three",
-        "knights",
-    ]
+
+@given(TOKENS)
+def test_merging_number_words_keeps_the_index_map_aligned_and_ordinary_tokens_intact(tokens):
+    index_map = list(range(len(tokens)))
+    merged, merged_map = spoken_forms.merge_number_words(tokens, index_map)
+    assert len(merged) == len(merged_map) <= len(tokens)
+    assert merged_map == sorted(merged_map), "the map never moves backwards"
+    assert all(0 <= index < len(tokens) for index in merged_map)
+    for token, index in zip(merged, merged_map):
+        if token.isdigit():
+            assert tokens[index] in spoken_forms.NUMBER_WORDS, "a digit token points at the first number word it replaced"
+        else:
+            assert token == tokens[index], "any other token is passed through untouched"
+
+
+@given(st.lists(PLAIN_TOKEN, max_size=14))
+def test_text_with_no_number_words_is_not_changed_by_merging(tokens):
+    index_map = list(range(len(tokens)))
+    assert spoken_forms.merge_number_words(tokens, index_map) == (tokens, index_map)
+
+
+def test_spelled_out_numbers_merge_into_their_digit_value():
+    for words, digits in [("one", "1"), ("twenty three", "23"), ("one hundred and five", "105"), ("two thousand", "2000")]:
+        tokens = words.split()
+        assert spoken_forms.merge_number_words(tokens, list(range(len(tokens)))) == ([digits], [0]), words

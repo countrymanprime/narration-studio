@@ -4,7 +4,7 @@ Renders the per-take divergence cases to speech with a known onset for every wor
 
 .DESCRIPTION
 The manual, real-ASR half of the divergence evaluation
-(docs/research/take-divergence-evaluation.md). Reads the texts written by
+(docs/utilities/transcript-compare.md#alignment-and-confidence). Reads the texts written by
 `divergence_harness.py --tts-plan <plan.json>` and, for each case, speaks it with a Windows
 System.Speech voice into <OutDir>\<case>.wav (16 kHz, 16-bit, mono) and writes
 <OutDir>\<case>.json: one {"text", "char", "start"} per word the voice reported, where "char" is
