@@ -375,8 +375,8 @@ func (h *Host) cancelExtractionScan() ExtractionScanJob {
 	return state
 }
 
-// extractionRegistry is the scan's sources, in extractionport's order: the rules row runs the Manuscript Guide sidecar's
-// suggest command, the GLiNER and BookNLP rows run the same sidecar from the analysis tool the registry has installed
+// extractionRegistry is the scan's sources, in extractionport's order: the rules row runs the Story Bible's rules in the host
+// (guide.RuleSuggestions), the GLiNER and BookNLP rows run the Manuscript Guide sidecar's suggest command from the analysis tool the registry has installed
 // (and answer not downloaded until then), and the other rows are extractionport's own.
 func (h *Host) extractionRegistry() *port.Registry[extractionport.Source] {
 	if h.extractionSources != nil {
@@ -386,7 +386,7 @@ func (h *Host) extractionRegistry() *port.Registry[extractionport.Source] {
 	for _, entry := range extractionport.NewRegistry().Entries() {
 		switch entry.Name {
 		case extractionport.Rules:
-			entry = rules.Entry(rules.Source{Supervisor: h.sidecars, Command: h.rulesCommand})
+			entry = rules.Entry(rules.Source{Files: h.rulesFiles})
 		case extractionport.Gliner:
 			entry = gliner.Entry(gliner.Source{Supervisor: h.sidecars, Command: h.glinerCommand,
 				Install: func() (string, bool) { return h.analysisToolInstall(gliner.AssetID) }})
@@ -412,16 +412,13 @@ func (h *Host) analysisToolInstall(id string) (string, bool) {
 	return tools.InstallDir(id), true
 }
 
-// glinerCommand starts the Manuscript Guide sidecar as rulesCommand does.
-func (h *Host) glinerCommand() (gliner.Command, error) {
-	command, err := h.rulesCommand()
-	return gliner.Command(command), err
-}
+// glinerCommand starts the Manuscript Guide sidecar as guideSuggestCommand does.
+func (h *Host) glinerCommand() (gliner.Command, error) { return h.guideSuggestCommand() }
 
-// booknlpCommand starts the Manuscript Guide sidecar as rulesCommand does, with the spaCy model the Story Bible build
+// booknlpCommand starts the Manuscript Guide sidecar as guideSuggestCommand does, with the spaCy model the Story Bible build
 // would use when it is installed; otherwise the sidecar's default.
 func (h *Host) booknlpCommand() (booknlp.Command, error) {
-	command, err := h.rulesCommand()
+	command, err := h.guideSuggestCommand()
 	if err != nil {
 		return booknlp.Command{}, err
 	}
@@ -434,24 +431,33 @@ func (h *Host) booknlpCommand() (booknlp.Command, error) {
 	return out, nil
 }
 
-// rulesCommand is how to start the Manuscript Guide sidecar for the open project, as internal/guide starts it: the
-// frozen sidecar alone, or Python and the backend script in development.
-func (h *Host) rulesCommand() (rules.Command, error) {
+// rulesFiles are the open project's manuscript and Story Bible, which the rules read.
+func (h *Host) rulesFiles() (rules.Files, error) {
 	config := h.services().config
 	if config.projectFolder == "" {
-		return rules.Command{}, errNoProject
+		return rules.Files{}, errNoProject
 	}
-	command := rules.Command{
-		Program:    config.manuscriptPython,
+	return rules.Files{
 		Manuscript: filepath.Join(config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json"),
 		Guide:      filepath.Join(config.projectFolder, "ManuscriptGuide", "manuscript_guide.json"),
+	}, nil
+}
+
+// guideSuggestCommand is how to start the Manuscript Guide sidecar's suggest command for the open project, as internal/guide
+// starts the sidecar: the frozen sidecar alone, or Python and the backend script in development.
+func (h *Host) guideSuggestCommand() (gliner.Command, error) {
+	files, err := h.rulesFiles()
+	if err != nil {
+		return gliner.Command{}, err
 	}
+	config := h.services().config
+	command := gliner.Command{Program: config.manuscriptPython, Manuscript: files.Manuscript, Guide: files.Guide}
 	if _, err := os.Stat(command.Program); err != nil {
-		return rules.Command{}, errors.New("configure the Manuscript Guide executable before continuing")
+		return gliner.Command{}, errors.New("configure the Manuscript Guide executable before continuing")
 	}
 	if config.manuscriptBackend != "" {
 		if _, err := os.Stat(config.manuscriptBackend); err != nil {
-			return rules.Command{}, errors.New("configure the Manuscript Guide backend before continuing")
+			return gliner.Command{}, errors.New("configure the Manuscript Guide backend before continuing")
 		}
 		command.Args = []string{config.manuscriptBackend}
 	}

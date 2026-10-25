@@ -57,6 +57,13 @@ func Check(t testing.TB, name string, value any) {
 	checkIn(t, dir, name, value)
 }
 
+// CheckIn is Check against dir/<name>.json, for a payload pinned beside the Go that reads it (a package's testdata) rather than in
+// the shared folder.
+func CheckIn(t testing.TB, dir, name string, value any) {
+	t.Helper()
+	checkIn(t, dir, name, value)
+}
+
 func checkIn(t testing.TB, dir, name string, value any) {
 	t.Helper()
 	// Not HTML-escaped: the Python helper writes the same characters raw, and a payload with < or & must read the same in both.

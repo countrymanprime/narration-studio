@@ -5,13 +5,15 @@ Scores each extraction source against a hand-checked gold set and writes the con
 [studio-next-extraction-calibration-protocol.md](../../../docs/research/studio-next-extraction-calibration-protocol.md); the
 result is [studio-next-extraction-calibration.md](../../../docs/research/studio-next-extraction-calibration.md).
 
-The harness runs the sidecar's own read-only `suggest` command (`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py suggest`),
-so what is scored is what the app would be offered. It never invents a figure: a source that is not installed, a book that is
-not fetched and a book with no gold set are each `not run` with a sentence.
+The harness runs each source as the app does, so what is scored is what the app would be offered: the rules through the host's
+own Go code (`go run ./cmd/guide-rules` in `src/studio/desktop`, which prints the lines `guide.RuleSuggestions` gives, so it
+needs Go), and GLiNER and BookNLP through the sidecar's read-only `suggest` command
+(`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py suggest --source gliner|booknlp`). It never invents a figure: a
+source that is not installed, a book that is not fetched and a book with no gold set are each `not run` with a sentence.
 
 ## Commands
 
-Run from the repository root with `python` (the standard library only).
+Run from the repository root with `python` (the standard library only; the rules source also needs Go).
 
 | Command | What it does |
 | --- | --- |

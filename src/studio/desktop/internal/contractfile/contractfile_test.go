@@ -151,3 +151,11 @@ func TestCheckReportsAMissingContractFolder(t *testing.T) {
 	}()
 	Check(fake, "anything", map[string]any{})
 }
+
+func TestCheckInComparesAgainstTheFolderItIsGiven(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "beside.json"), []byte("{\n  \"a\": 1\n}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	CheckIn(t, dir, "beside", map[string]int{"a": 1})
+}
