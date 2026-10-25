@@ -269,6 +269,10 @@ The Booth fills the window with no app shell, so it brings the shell's page gutt
 
 **Same property, two widths.** Tailwind emits the named-scale media blocks (`xl:`) as a later group than the arbitrary ones (`min-[1281px]:`) whatever their pixel value, so a named variant overrides a narrower arbitrary one at wide widths. Two variants that set the same property at different widths must both be arbitrary or both be named; pages write widths as arbitrary `min-[Npx]` variants for this reason.
 
+## The Editing page's overlays
+
+The selection toolbar sits over the first selected line, from the first selected word but never left of the text column, and goes under the last line only when there is no room above (`toolbarPlace` in `editing/bar/SelToolbar.tsx`); under the selection it hid the next line and the time gutter, and the voice-sample card that opens under its dot landed on it (alignment audit R3ED-3, XED-23, XED-24). The mock floats it under the words; this departs from that. Below 60 rem of bar the selection summary takes its own row and the actions stay at the right of the transport row (R3ED-9, XED-26). The word menu falls into labelled bands by section order: the word count over Play, then Edit, Mark, Takes, and an unheaded run for copy (`wordMenuRegistry.ts`), and a row's key is a `shortcut` keycap, never "(T)" in its label (R3ED-5, XED-21). Add FX from the bar opens its list from the button's top edge, so the context menu flips up over the script rather than over the bar and the key hints, and "Manage in REAPER…" says one short line (R3ED-4, XED-22).
+
 ## The Booth's popovers
 
 In the Booth's speaker picker a row with no voice sample keeps the play button's room, so "no sample" and "1 sample" end at one x, and the search box carries the placeholder "Search speakers" (alignment audit XBO-8). The Levels popover's sections (Input, Microphone, Levels, Punch) each start with the same capitals label, 6 px above their controls and 16 px apart; a slider's own label (Input level, Monitor level) is the sentence-case control label under its section (XBO-21).

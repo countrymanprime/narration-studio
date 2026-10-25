@@ -2,6 +2,7 @@ import type { VoiceSample } from '../../../api/contracts/voiceSamples';
 import { NARRATION_CHARACTER_ID } from '../../../api/contracts/character';
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
+import { HIT_AREA } from '../../primitives/hitArea';
 import { Popover } from '../../primitives/Popover';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { clipProblem, passageBadge, sampleLength, sampleName } from '../../storybible/voicesamples/voiceSampleModel';
@@ -40,7 +41,7 @@ export function SampleMark({ samples }: { samples: readonly VoiceSample[] }) {
           data-sample-mark
           data-state={state}
           aria-label={`${name}. Press Enter for ${many ? 'the list' : 'details'}`}
-          className="mx-[0.1em] inline-grid h-5 min-w-5 cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0 align-[0.1em] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+          className={`${HIT_AREA} mx-[0.1em] inline-grid h-5 min-w-5 cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0 align-[0.1em] focus-visible:outline-2 focus-visible:outline-[var(--focus)]`}
         >
           <span
             aria-hidden="true"
