@@ -57,7 +57,32 @@ func newSpacyFixture(t *testing.T) spacyFixture {
 	fixture.host.installJobs = map[string]*installJob{}
 	args := filepath.Join(t.TempDir(), "args.txt")
 	t.Setenv("SHELL_FAKE_GUIDE_ARGS", args)
+	// A started build goes on writing the Story Bible, its cues and the progress file after the sidecar exits. Cleanups run last first,
+	// so this wait comes before the temporary folders above are removed.
+	t.Cleanup(func() { waitForGuideBuild(t, fixture.host) })
 	return spacyFixture{previewHost: fixture, manager: manager, args: args}
+}
+
+// waitForGuideBuild waits until the host's Story Bible build, if one was started, is no longer running.
+func waitForGuideBuild(t *testing.T, h *Host) {
+	t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		h.mu.Lock()
+		job := h.guideJob
+		h.mu.Unlock()
+		if job == nil {
+			return
+		}
+		job.mu.RLock()
+		running := job.phase == "running"
+		job.mu.RUnlock()
+		if !running {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Error("the Story Bible build was still running at the end of the test")
 }
 
 func (f spacyFixture) sidecarArgs(t *testing.T) string {
