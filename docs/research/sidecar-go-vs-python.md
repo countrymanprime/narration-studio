@@ -10,7 +10,7 @@
 
 ## What Go already does
 
-The repository has moved pure logic out of the sidecars eleven times. What holds each Go copy to the behaviour it replaced:
+The repository has moved pure logic out of the sidecars twelve times. What holds each Go copy to the behaviour it replaced:
 
 | What | Go | Held by |
 | --- | --- | --- |
@@ -25,6 +25,7 @@ The repository has moved pure logic out of the sidecars eleven times. What holds
 | Step 1's last Python copies (step 1, third part, fourth PR, 2026-10-24): compare.py's tokenizer, sentence split, chapter units, chapter matcher, `diff_and_build_markers` and its timing labels, `recording_coverage.py` (`repeat_of`) and the unused `--extract-hints` | deleted; the host's `internal/compare`, `chaptermatch`, `comparerun` and `recordingcoverage` are the only copies, and `compare.py` only decodes and transcribes | The parity files they wrote (`tests/fixtures/compare-parity/cases.json`, `chapter-track-match/parity-cases.json`, `repeat-rule/parity-cases.json`, `fixtures/coverage/markers.golden.json`) are frozen and read by Go alone, except the number merge, which `narration_common` still runs for the Booth |
 | Python 3.12's text rules for the Booth's follower (step 2, first PR, 2026-10-25): `str.lower`, `re`'s `\w`, `str.isspace` and `spoken_key` | `internal/compare` (`PyLower`, `IsPyWord`, `IsPySpace`, `SpokenKey`) over tables `scripts/dev/gen-pyunicode.py` generates from Python's own Unicode 15 database; nothing calls `IsPyWord` or `SpokenKey` yet | `tests/fixtures/booth-parity/text-rules.json` (a digest over every code point, and seeded `spoken_key` cases), written by `test_pyunicode_tables.py`, which also checks the generated tables against the running Python |
 | The Booth's script tracker (step 2, second PR, 2026-10-25): `script_tracker.py` (`normalize_word`, `words_match`, `advance`, `align`, `locate`, `ScriptTracker`) | `internal/scripttrack`, fenced by depguard to the standard library and `internal/compare`; nothing runs it yet, the sidecar still follows the read | `tests/fixtures/booth-parity/tracker-sessions.golden.jsonl` and `tracker-cases.golden.jsonl`, written by `test_tracker_parity.py` from 329 recorded and synthetic sessions and 4,280 single calls; about 12 µs per engine event |
+| The Booth's flags (step 2, third PR, 2026-10-25): `flags.py` (`segment_flags`, `FlaggingTracker` and its heading filter) | `internal/scripttrack` (`SegmentFlags`, `FlaggingTracker`); nothing runs it yet | `tests/fixtures/booth-parity/flag-sessions.golden.jsonl`, 345 flag runs with 344 flags of all four kinds, written by `test_tracker_parity.py` |
 
 The cost of this pattern is two live copies held together by parity tests, until the Python copy is deleted, as step 1's were. The Python mutation code in `manuscript_guide.py` still exists beside the Go code that the host now runs.
 
