@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Finding } from '../../types';
-import { candidateClass } from './editingCheckText';
+import { candidateClass, keepUnits, sentenceStart } from './editingCheckText';
 
 function finding(overrides: Partial<Finding> = {}): Finding {
   return {
@@ -29,5 +29,23 @@ describe('candidateClass', () => {
     expect(candidateClass(finding({ evidence: { class: 'unknown-thing' } }))).toBeUndefined();
     expect(candidateClass(finding({ evidence: {} }))).toBeUndefined();
     expect(candidateClass(finding({ evidence: undefined }))).toBeUndefined();
+  });
+});
+
+describe('keepUnits', () => {
+  it('joins a number to its unit with a no-break space', () => {
+    expect(keepUnits('1 empty-space candidate: 1.80 s between two phrases.')).toBe('1 empty-space candidate: 1.80\u00a0s between two phrases.');
+    expect(keepUnits('differ from -20 dBFS RMS by more than 2 dB.')).toBe('differ from -20\u00a0dBFS RMS by more than 2\u00a0dB.');
+  });
+
+  it('leaves a number before a word alone', () => {
+    expect(keepUnits('1 item on 3 tracks')).toBe('1 item on 3 tracks');
+  });
+});
+
+describe('sentenceStart', () => {
+  it('capitalises the first letter only', () => {
+    expect(sentenceStart('link this chapter to the REAPER track')).toBe('Link this chapter to the REAPER track');
+    expect(sentenceStart('')).toBe('');
   });
 });

@@ -340,6 +340,57 @@ describe('Recording & DAW: REAPER program', () => {
   });
 });
 
+// Alignment audit (R3SE1-4, XSE2-8): the Microphone select is the settings' field width with Refresh under it, not beside it.
+describe('Recording & DAW: Microphone layout', () => {
+  it('draws the select at the field width and Refresh on its own line under it', async () => {
+    await renderPage({ category: 'Recording & DAW' });
+    const select = await within(row('daw.mic')).findByRole('combobox', { name: 'Microphone' });
+    expect(select.className).toContain('w-80');
+    const refresh = within(row('daw.mic')).getByRole('button', { name: 'Refresh the list' });
+    expect(refresh.parentElement).not.toBe(select.parentElement);
+  });
+});
+
+// Alignment audit (R3SE2-19): with the settings unreadable the Microphone row keeps a control, off like the rest, not an empty column.
+describe('Recording & DAW: Microphone, settings unreadable', () => {
+  it('draws the picker switched off', async () => {
+    const api = createMockApi();
+    api.settingsForScope = async () => {
+      throw new Error('the settings file is damaged');
+    };
+    await renderPage({ api, category: 'Recording & DAW' });
+    await screen.findByRole('alert');
+    const select = await within(row('daw.mic')).findByRole('combobox', { name: 'Microphone' });
+    expect((select as HTMLSelectElement).disabled).toBe(true);
+  });
+});
+
+// Alignment audit (XSE2-4, XSE2-6, XSE2-7, R4SE2-11, R3SE2-14).
+describe('Recording & DAW: layout', () => {
+  it('fixes the Capabilities columns and does not repeat the row description under the table', async () => {
+    await renderPage({ category: 'Recording & DAW', advanced: true });
+    const table = await within(row('daw.capabilities')).findByRole('table', { name: 'What the recording tool can do' });
+    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '6.5rem', '8.5rem']);
+    expect(row('daw.capabilities').textContent).not.toContain('Auto follows what the recording tool reports.');
+  });
+
+  it('says the Experimental switch is off once, under the radios, not under each option', async () => {
+    await renderPage({ api: createMockApi({}, foundSeed), category: 'Recording & DAW' });
+    await screen.findByRole('group', { name: 'Connection' });
+    expect(screen.getAllByText(/Turn on Experimental DAW actions under Advanced, below\./)).toHaveLength(1);
+  });
+
+  it('draws the connection card on the card surface with its buttons in one row, Test connection last', async () => {
+    await renderPage({ category: 'Recording & DAW' });
+    const card = await screen.findByRole('group', { name: 'Connection' });
+    expect(card.style.background).toBe('var(--surface)');
+    const test = within(card).getByRole('button', { name: 'Test connection' });
+    const buttons = [...test.parentElement!.querySelectorAll('button')];
+    expect(buttons.at(-1)).toBe(test);
+    expect(buttons.length).toBeGreaterThan(1);
+  });
+});
+
 describe('Recording & DAW: Capabilities', () => {
   it('lists every capability with its setting and what the tool reports now, in the host’s words', async () => {
     const api = createMockApi({}, { daw: { connected: false } });

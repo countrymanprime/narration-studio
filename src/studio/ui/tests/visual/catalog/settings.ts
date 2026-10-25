@@ -295,7 +295,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'project-credits-retail-sample',
     description:
-      'Settings, Project, Credits editor scrolled to Retail sample (?mockCredits=extras): the saved sample "Chapter 3, line 1 to Chapter 3, line 3" with its words and length, the start and end pickers, Save sample and Clear sample',
+      'Settings, Project, Credits editor scrolled to Retail sample (?mockCredits=extras): the saved sample "Chapter 3, lines 1 to 3" with its words and length, the start and end pickers, Save sample and Clear sample',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

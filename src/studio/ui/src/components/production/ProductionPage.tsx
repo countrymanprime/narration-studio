@@ -447,6 +447,7 @@ export function ProductionPage({
                     recommendations={recommendations}
                     onGo={(target, chapterId) => onGo(target, chapterId)}
                     notify={notify}
+                    onCheckRecording={tools.openRecordingCheck}
                     justChanged={changedRow.changed}
                     onStatus={(chapterId) => {
                       changedRow.mark(chapterId);
