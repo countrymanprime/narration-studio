@@ -128,3 +128,19 @@ describe('AddPickup', () => {
     answer();
   });
 });
+
+// Alignment audit (#2251): the popover had no title, no way out, and its chapter read as a heading (XPK-9, R3PK-5).
+describe('add-pickup-alignment', () => {
+  it('has a title, a Close, and names the chapter the line goes to', async () => {
+    const onDone = vi.fn();
+    render(
+      <OverlayProvider service={createOverlayService()}>
+        <AddPickup chapterId="c1" chapterName="Chapter 1" onAdd={vi.fn()} onDone={onDone} />
+      </OverlayProvider>,
+    );
+    expect(screen.getByRole('heading', { name: 'Add a pickup' })).toBeTruthy();
+    expect(screen.getByText('Chapter 1').closest('p')?.textContent).toBe('To Chapter 1');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Close' }));
+    expect(onDone).toHaveBeenCalled();
+  });
+});
