@@ -203,7 +203,7 @@ def main() -> None:
             [shared_python, sidecars_root / "transcript-compare" / "core"],
             ("faster_whisper",),
         ),
-        # live_asr.py imports script_tracker, flags, chapter_script, control_channel, levels, moonshine_engine,
+        # live_asr.py imports script_tracker, flags, chapter_script, control_channel, moonshine_engine,
         # locate and align_word (siblings) inside functions; PyInstaller finds them because their directory is on --paths,
         # and flags' narration_common.spoken_forms through the shared one.
         # The Moonshine engine (moonshine_voice, Windows only in pyproject.toml) loads its native
