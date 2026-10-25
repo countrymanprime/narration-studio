@@ -80,6 +80,20 @@ describe('CreateChapterRegionsDialog', () => {
     expect(await screen.findByText(/^Sent 1: 1 created/)).toBeTruthy();
   });
 
+  it("keeps the plan's column headers in view while the dialog body scrolls (alignment audit ENX-23)", async () => {
+    renderDialog({}, CONFIRMED_CHAPTER_1);
+    const table = await screen.findByRole('table', { name: 'Chapter regions' });
+    expect(table.querySelector('thead')?.className).toContain('sticky');
+  });
+
+  it('draws the Experimental badge ahead of the primary, so the primary ends the action row (alignment audit R3EN1-8)', async () => {
+    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { toggles: { regions: 'on' } } });
+    const button = await screen.findByRole('button', { name: 'Create 1 region' });
+    const gate = button.parentElement as HTMLElement;
+    expect(within(gate).getByText('Experimental')).toBeTruthy();
+    expect(gate.className).toContain('flex-row-reverse');
+  });
+
   it('shows a REAPER error state and creates nothing', async () => {
     const user = userEvent.setup();
     renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { toggles: { regions: 'on' } }, regionsCreateAlwaysErrors: true });
