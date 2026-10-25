@@ -193,7 +193,7 @@ The Production page follows the Studio Next mock's `phead`, `kpis`, `pstats` and
 - **The verdict on the figures line.** The verdict pill sits on the line of chapters, words and due date, not on a row of its own, and the due date is told there by its colour and days only, the pill carrying the word and mark (XPR2-44, XPR1-13). With no due date the line says nothing about it and the pill says "No due date set" (R3PR1-7).
 - **Why Start session is off is said once.** It is one line under the header's buttons (with Open DAW settings when Settings fixes it), not in Next up beside Open Booth as the mock draws it, and not while the capabilities are still being read (XPR2-9, XPR2-41). Open Booth stays enabled.
 - **The stage bar's legend is a grid** of five, three, or two columns by the card's width, so no entry sits alone on a row (R3PR1-2); a stage with no hours draws no segment (R3PR2-13); the lighter tones are mixed toward white, not toward the surface, so their order is the same in both themes (XPR2-45).
-- **The chart's "not measured" note is a caption** under the plot on Production, and the "today" label takes the side clear of the lines as on the Schedule page (R4TA-2, R4SM-1).
+- **The chart's "not measured" note is a caption** under the plot on Production and the Schedule (on the Schedule it sat on the 2h gridline against its label, XSH-8, R3SH-8), and the "today" label takes the side clear of the lines as on the Schedule page (R4TA-2, R4SM-1). With no due date the caption also says "Set a due date to see the plan line." (XSH-18). The plot's gridlines run to the top of its scale, it starts 6 px under the card's body padding, and its axis labels sit about as far in from the left as the plot ends before the right (XSH-16).
 
 ## Settings rows
 
