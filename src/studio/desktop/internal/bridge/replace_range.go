@@ -7,6 +7,9 @@ import (
 	"math"
 	"regexp"
 	"strconv"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Replace words with another narrator's audio, and put the narrator's audio back (docs/reference/daw/capabilities.md#replace_range;
@@ -137,4 +140,61 @@ func replacementRefusal(err error) error {
 		return fmt.Errorf("%w: %s", ErrBadReplacement, refusal.Sentence)
 	}
 	return err
+}
+
+// AudioTrackAdded is what import_audio_track did: the new muted track holding the other narrator's file, its one item, the item's
+// length in seconds (the file's) and the undo points the command added (1).
+type AudioTrackAdded struct {
+	TrackGUID  string
+	ItemGUID   string
+	Length     float64
+	UndoPoints int
+}
+
+// MaxNarratorName is the longest other narrator's name import_audio_track takes, in characters.
+const MaxNarratorName = 80
+
+var badImport = map[string]bool{
+	"Their name must be 1 to 80 characters with no bar or control character.": true,
+	"Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).":    true,
+}
+
+// ImportAudioTrack puts the file at path on a new muted track named name, one item from 0 for the file's length, in one undo block
+// (import_audio_track). It is the one command that adds a path the host sent to the project, so the host sends only a file the
+// narrator chose in this app's own file dialog. A name or path the script would refuse is ErrBadReplacement, and nothing is sent; a
+// missing or unreadable file is a *RefusalError in the script's words.
+func (a *Actions) ImportAudioTrack(ctx context.Context, name, path string) (AudioTrackAdded, error) {
+	if !validNarratorName(name) {
+		return AudioTrackAdded{}, fmt.Errorf("%w: their name", ErrBadReplacement)
+	}
+	if path == "" || strings.ContainsAny(path, "|\r\n\x00") {
+		return AudioTrackAdded{}, fmt.Errorf("%w: the file's path", ErrBadReplacement)
+	}
+	events, err := a.request(ctx, "import_audio_track", []string{"AUDIO_TRACK_ADDED"}, name, path)
+	var refusal *RefusalError
+	if errors.As(err, &refusal) && badImport[refusal.Sentence] {
+		return AudioTrackAdded{}, fmt.Errorf("%w: %s", ErrBadReplacement, refusal.Sentence)
+	}
+	if err != nil {
+		return AudioTrackAdded{}, err
+	}
+	event := events[len(events)-1]
+	got := AudioTrackAdded{TrackGUID: event.Fields[2], ItemGUID: event.Fields[3], Length: numberAt(event.Fields, 4), UndoPoints: int(numberAt(event.Fields, 5))}
+	if normalizeGUID(got.TrackGUID) == "" || normalizeGUID(got.ItemGUID) == "" || !(got.Length > 0) {
+		return AudioTrackAdded{}, fmt.Errorf("REAPER answered import_audio_track without a track, an item or a length")
+	}
+	return got, nil
+}
+
+// validNarratorName is import_audio_track's rule: 1 to MaxNarratorName characters, not all space, no bar or control character.
+func validNarratorName(name string) bool {
+	if strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > MaxNarratorName || !utf8.ValidString(name) {
+		return false
+	}
+	for _, r := range name {
+		if r == '|' || unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
 }

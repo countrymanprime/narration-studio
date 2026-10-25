@@ -156,6 +156,7 @@ var commandCapability = map[string]dawport.Capability{
 	"daw_meters":          dawport.CapDawMeters,
 	"replace_range":       dawport.CapReplaceRange,
 	"restore_replacement": dawport.CapReplaceRange,
+	"import_audio_track":  dawport.CapReplaceRange,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil

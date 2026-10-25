@@ -1,0 +1,20 @@
+{
+  "clamped": false,
+  "end": 14,
+  "gainDb": 6,
+  "loudnessNote": "",
+  "measuredLufs": -26,
+  "narrator": "Eric Leach",
+  "result": {
+    "changed": false,
+    "message": "",
+    "ok": true,
+    "undoSteps": 0
+  },
+  "shift": 1,
+  "sourceEnd": 53,
+  "sourceStart": 50,
+  "start": 12,
+  "targetLufs": -20,
+  "words": 3
+}

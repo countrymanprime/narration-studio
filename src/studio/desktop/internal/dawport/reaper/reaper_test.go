@@ -125,6 +125,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"delete_range":        dawport.CapCutRange,
 	"replace_range":       dawport.CapReplaceRange,
 	"restore_replacement": dawport.CapReplaceRange,
+	"import_audio_track":  dawport.CapReplaceRange,
 	"apply_fx_range":      dawport.CapFXRange,
 	"remove_fx_range":     dawport.CapFXRange,
 	"stack_takes":         dawport.CapStackTakes,
