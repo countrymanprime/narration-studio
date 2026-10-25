@@ -232,8 +232,9 @@ The lines to record again have their own page, [Pickups](pickups.md); a proofer'
 **Prepare chapter render…** sets REAPER's render to every chapter region, names each file after its
 region, and saves into the **Output folder** (a `renders` folder in the project to start with). Press
 **Configure render** and it lists the files the render will create. It never renders anything itself:
-press Render in REAPER (Ctrl+Alt+R or File > Render) to create the files. If the project has no chapter
-regions yet, it says so.
+press Render in REAPER (Ctrl+Alt+R or File > Render) to create the files. Once it is configured, **Close** is the main
+button. If the project has no chapter regions yet, it warns you and offers **Create chapter regions…**, which opens
+that tool in its place.
 
 **Create chapter regions…** plans one REAPER region per chapter with a confirmed track link, plus an
 **Opening credits track** and **Closing credits track** you choose in the dialog, and shows the plan
@@ -260,12 +261,14 @@ in REAPER first, then press **Open** beside the tool. **Repair Pops/Clicks** is 
 (REAPER 7.80 or later); **Magnolius DeClick** is a free third-party script for mouth clicks, and works only
 if you installed it in REAPER yourself (ReaPack, or Actions > Load ReaScript). The app never
 installs it. Opening a tool changes nothing: you apply or cancel the repair in its own window, and REAPER's
-Undo takes it back. If nothing is selected, the tool is missing, or your REAPER is too old, the dialog says so.
+Undo takes it back. What happened shows under the tool you opened; if nothing is selected, the tool is missing, or
+your REAPER is too old, it says so there.
 
 **Retakes on lanes…** is for retakes recorded into REAPER's fixed item lanes. It lists every line of
 the manuscript (linked with **Link chapters…**) that has retakes on more than one lane of a track, with
 each retake's lane, its item name and whether that lane plays in the saved project. Press **Play this
-lane** beside the retake you want: that lane becomes the only one playing on its track. A lane plays
+lane** beside the retake you want: that lane becomes the only one playing on its track. The lane that already plays is
+highlighted, marked **Plays**, and its button is off. A lane plays
 across the whole track, so every other lane of that track goes silent, not only for this line.
 Nothing else changes, and one Undo in REAPER puts the previous lanes back. The app never turns
 lanes on, converts takes to lanes or builds a comp: if a track is not in fixed-lane mode, or the retake
