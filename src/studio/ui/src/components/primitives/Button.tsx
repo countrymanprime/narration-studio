@@ -7,7 +7,9 @@ import { HIT_AREA } from './hitArea';
 // `ghost` is the same button with no fill, for the rare one on a tinted surface. `link` is the underlined text action that sits
 // inside a sentence: it takes the sentence's font, size and colour and draws none of the button chrome. `inverse` is for a button on an
 // ink-coloured surface (the Script selection toolbar): no border or fill, the surface's own text colour and a white wash on hover.
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'link';
+// `danger-solid` is the filled red of an action that destroys data, the confirm of a `ConfirmDialog` that deletes; `danger` is its outlined form for
+// a destructive action that sits among others on a page.
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-solid' | 'inverse' | 'link';
 // `lg` is 40 px (`--button-height-lg`), the Inspector's decision buttons. `md` is the mocks' 32 px button (`--button-height`); `sm` is 28 px (`--button-height-sm`), for the companion and dense rows.
 type ButtonSize = 'lg' | 'md' | 'sm';
 
@@ -16,6 +18,7 @@ const VARIANT_CLASSES: Record<Exclude<ButtonVariant, 'link'>, string> = {
   secondary: 'border-[var(--btn-line)] bg-[var(--surface)] text-[var(--text)] not-aria-disabled:hover:bg-[var(--surface-2)]',
   ghost: 'border-[var(--line-strong)] bg-transparent text-[var(--text)] not-aria-disabled:hover:bg-[var(--surface-2)]',
   danger: 'border-[var(--danger)] bg-transparent text-[var(--danger-text)] not-aria-disabled:hover:bg-[var(--review-soft)]',
+  'danger-solid': 'border-[var(--danger)] bg-[var(--danger)] text-[var(--danger-contrast)] not-aria-disabled:hover:brightness-110',
   inverse: 'border-transparent bg-transparent text-inherit not-aria-disabled:hover:bg-white/15',
 };
 
@@ -27,15 +30,21 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 
 // The measured spec: the height includes the 1 px border, 12 px each side, the label Barlow Condensed
 // at `--font-size-sm`, 600, uppercase, tracked `--tracking-button`, on one line (`leading-none`, centred by the flex box). A label
-// that wraps grows the button rather than spilling out of it. Disabled is drawn at 55%, native `disabled` and `aria-disabled` alike (an
-// `aria-disabled` button stays focusable so it can say why, and must not look live), with a not-allowed cursor and no hover change. A pending
-// button is `aria-disabled` too but keeps its own busy look (60%, `aria-busy`).
+// that wraps grows the button rather than spilling out of it. Disabled, native `disabled` and `aria-disabled` alike (an `aria-disabled` button
+// stays focusable so it can say why, and must not look live), is one look for every outlined or filled variant: `--surface-2` fill and
+// `--text-muted` label (4.5:1), its edge kept (controlLines.test.ts), so a disabled destructive button still shows its red rim, with a
+// not-allowed cursor and no hover change. A dimmed copy of each variant measured 2.4:1 for a primary's label, faded a destructive and a
+// secondary button into two washed-out families, and in dark left a ghost looking live (alignment audit R3EN2-14, R3MS-5, R4SE2-10, R3SB2-17); the mock's `.btn[disabled]` is `opacity: .5`. `inverse`, on an ink surface, keeps the 55% dim.
+// A pending button is `aria-disabled` too but keeps its own busy look (60%, `aria-busy`).
 const CHROME =
-  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55";
+  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed";
+const DISABLED_LOOK =
+  'disabled:bg-[var(--surface-2)] disabled:text-[var(--text-muted)] not-aria-busy:aria-disabled:bg-[var(--surface-2)] not-aria-busy:aria-disabled:text-[var(--text-muted)]';
+const DISABLED_DIM = 'disabled:opacity-55 not-aria-busy:aria-disabled:opacity-55';
 const LINK = `${HIT_AREA} inline cursor-pointer underline disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55`;
 
 function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md') {
-  return variant === 'link' ? LINK : `${CHROME} ${SIZE_CLASSES[size]} ${VARIANT_CLASSES[variant]}`;
+  return variant === 'link' ? LINK : `${CHROME} ${SIZE_CLASSES[size]} ${VARIANT_CLASSES[variant]} ${variant === 'inverse' ? DISABLED_DIM : DISABLED_LOOK}`;
 }
 
 // `ComponentProps` carries `ref` (React 19 passes it as a prop), for the caller that has to put focus back on a button it disabled.
