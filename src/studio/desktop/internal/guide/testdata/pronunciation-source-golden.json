@@ -1,0 +1,19 @@
+{
+  "lines": [
+    "{\"ipa\": \"ɹɛn\", \"source\": \"cmu\", \"confidence\": \"medium\"}",
+    "{\"ipa\": \"zoʊ\", \"source\": \"cmu\", \"confidence\": \"medium\"}",
+    "{\"miss\": \"The CMU dictionary has no entry for \\\"Zzyzxqq\\\".\"}",
+    "{\"miss\": \"KeyError\"}",
+    "{\"miss\": \"espeak not installed on your system\"}",
+    "{\"ipa\": \"ə \\\"b\\\"\", \"source\": \"cmu\", \"confidence\": \"medium\"}"
+  ],
+  "source": "cmu",
+  "words": [
+    "Wren",
+    "Zoë 😀",
+    "Zzyzxqq",
+    "",
+    "espeak",
+    "a b"
+  ]
+}

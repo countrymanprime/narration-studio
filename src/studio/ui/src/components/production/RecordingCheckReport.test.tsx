@@ -75,7 +75,8 @@ describe('RecordingCheckReport', () => {
   it('shows the pace only when the audio played long enough to compute one', () => {
     renderReport();
     expect(screen.getByText('Pace')).toBeTruthy();
-    expect(screen.getByText('about 84/min')).toBeTruthy();
+    expect(screen.getByText('84')).toBeTruthy();
+    expect(screen.getByText('/min')).toBeTruthy();
   });
 
   it('omits the pace tile when nothing was played', () => {

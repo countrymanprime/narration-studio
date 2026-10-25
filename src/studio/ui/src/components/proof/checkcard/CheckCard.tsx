@@ -46,6 +46,9 @@ const STATE_TONE: Record<'none' | 'checking' | 'current' | 'stale', StatusTone> 
   current: statusTone('done'),
   stale: statusTone('stale'),
 };
+/** A stat's caption, the same as a chip group's. */
+const STAT_LABEL = 'text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase';
+
 const FILTERS: ReadonlyArray<{ key: ReviewStatus; label: string }> = [
   { key: 'todo', label: 'To decide' },
   { key: 'accepted', label: 'Accepted' },
@@ -183,7 +186,7 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
 
   const group = (label: string, entries: ReadonlyArray<{ key: CountKey; label: string }>) => (
     <div className={`flex flex-col gap-1.5 ${dim ? 'text-[var(--text-muted)]' : ''}`}>
-      <span className="text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">{label}</span>
+      <span className={STAT_LABEL}>{label}</span>
       <ul className="flex flex-wrap gap-2">
         {entries.map((entry) => (
           <li
@@ -216,8 +219,9 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
           </IconButton>
         )}
         {state === 'checking' ? (
+          // The dialog's verb for the same action (alignment audit R3PF-8).
           <Button variant="secondary" onClick={() => void coverage.coverageCancel()}>
-            Cancel
+            Stop checking
           </Button>
         ) : (
           <Button
@@ -247,37 +251,42 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
           ) : null}
         </p>
       )}
-      <div className={`grid gap-4 sm:grid-cols-[auto_auto_1fr] ${dim ? 'text-[var(--text-muted)]' : ''}`}>
+      {/* Three captioned stats on one row, the third the last check's result, its first line level with the figures beside it (alignment
+          audit R3PF-3); at a narrow width the two figures share a row and the result goes under them (XPF-17). */}
+      <div className={`grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-[auto_auto_1fr] ${dim ? 'text-[var(--text-muted)]' : ''}`}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Recorded</span>
+          <span className={STAT_LABEL}>Recorded</span>
           <b className="font-mono text-xl" data-cc-recorded>
             {recordedLabel(chapter.recordedSeconds)}
           </b>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Script estimate</span>
+          <span className={STAT_LABEL}>Script estimate</span>
           <b className="font-mono text-xl" data-cc-estimate title="Estimated from the word count at the standard rate">
             {estimateLabel(chapter.wordCount)}
           </b>
         </div>
-        <div className="flex min-w-0 flex-col gap-1 text-sm">
-          {state === 'none' && <span>Not checked yet</span>}
-          {state === 'checking' && run && (
-            <>
-              <span>Checking the recording against the script…</span>
-              <div className="flex items-center gap-2.5">
-                <ProgressBar className="flex-1" label="Checking" value={run.percent} running />
-                <span className="font-mono text-[var(--text-muted)]">{Math.round(run.percent)}%</span>
-              </div>
-            </>
-          )}
-          {differences !== undefined && <span data-cc-sentence>{checkSentence(differences)}</span>}
-          {unfinished && <span data-cc-unfinished>{unfinished}</span>}
-          {asOf && (
-            <span className="text-[var(--text-muted)]" data-cc-asof>
-              {asOf}
-            </span>
-          )}
+        <div className="col-span-2 flex min-w-0 flex-col gap-0.5 text-sm sm:col-span-1">
+          <span className={STAT_LABEL}>Last check</span>
+          <div className="flex min-w-0 flex-col gap-1 sm:min-h-7 sm:justify-center">
+            {state === 'none' && <span>Not checked yet</span>}
+            {state === 'checking' && run && (
+              <>
+                <span>Checking the recording against the script…</span>
+                <div className="flex items-center gap-2.5">
+                  <ProgressBar className="flex-1" label="Checking" value={run.percent} running />
+                  <span className="font-mono text-[var(--text-muted)]">{Math.round(run.percent)}%</span>
+                </div>
+              </>
+            )}
+            {differences !== undefined && <span data-cc-sentence>{checkSentence(differences)}</span>}
+            {unfinished && <span data-cc-unfinished>{unfinished}</span>}
+            {asOf && (
+              <span className="text-[var(--text-muted)]" data-cc-asof>
+                {asOf}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       {stale && (
@@ -294,8 +303,11 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
           {error}
         </p>
       )}
-      {group('Against the script', SPEECH_COUNTS)}
-      {group('In the audio', AUDIO_COUNTS)}
+      {/* Side by side when they fit, so the card has no half-empty right side (alignment audit XPF-16). */}
+      <div className="flex flex-wrap gap-x-8 gap-y-3">
+        {group('Against the script', SPEECH_COUNTS)}
+        {group('In the audio', AUDIO_COUNTS)}
+      </div>
       {listed && open && (
         <div className="flex flex-col gap-2" data-findings>
           <div className="flex flex-wrap items-center gap-2">

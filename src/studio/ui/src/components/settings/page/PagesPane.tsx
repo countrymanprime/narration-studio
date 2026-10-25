@@ -19,30 +19,31 @@ export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
     <Panel flush>
       {items.map((item) => (
         <div key={item.id} className="border-t border-[var(--border)] px-5 py-4 first:border-t-0" data-page-setting={item.id}>
-          <div className="grid gap-x-8 gap-y-1.5 @min-[761px]:grid-cols-2">
-            <div className="flex min-w-0 flex-col gap-[3px]">
-              <b className="text-[0.9375rem] font-semibold">{item.label}</b>
-              <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">{item.why}</span>
-              <span className="mt-1.5 text-[0.78rem] text-[var(--text-muted)]">
-                Belongs on {PAGE_LABEL[item.page]} › {item.where}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-start gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                aria-label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} belongs`}
-                onClick={() => go(PAGE_PATH[item.page])}
-              >
-                Open {PAGE_LABEL[item.page]}
-              </Button>
-            </div>
+          <div className="flex min-w-0 flex-col gap-[3px]">
+            <b className="text-[0.9375rem] font-semibold">{item.label}</b>
+            <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">{item.why}</span>
+            <span className="mt-1.5 text-[0.78rem] text-[var(--text-muted)]">
+              Belongs on {PAGE_LABEL[item.page]} › {item.where}
+            </span>
           </div>
+          {/* The two things to do with the setting share one line: change it here, or Open the page it belongs on, the button at the right
+              and one width for every page (alignment audit XSE2-21). */}
           <Disclosure
             title="Change it here for now"
             open={Boolean(open[item.id])}
             onOpenChange={(next) => setOpen((current) => ({ ...current, [item.id]: next }))}
             className="mt-2"
+            aside={
+              <Button
+                variant="secondary"
+                size="sm"
+                className="min-w-[9.5rem] flex-none"
+                aria-label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} belongs`}
+                onClick={() => go(PAGE_PATH[item.page])}
+              >
+                Open {PAGE_LABEL[item.page]}
+              </Button>
+            }
           >
             <div className="pt-2">
               <PageSettingPanel panel={item.panel} />

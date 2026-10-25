@@ -68,7 +68,7 @@ export const engineDrivers: Record<string, Driver> = {
     // The first body row, by position: filtering by "has a combobox" would stop matching this same row the
     // instant Confirm turns it into the linked view (no combobox), so `waitFor` below would wait forever.
     const firstRow = table.locator('tbody tr').first();
-    await firstRow.getByRole('combobox').selectOption({ index: 0 });
+    await firstRow.getByRole('combobox').selectOption({ index: 1 });
     await firstRow.getByRole('button', { name: 'Confirm' }).click();
     await firstRow.getByRole('button', { name: 'Change' }).waitFor();
   },

@@ -42,7 +42,9 @@ export function MappingConfirm({
   const hasLink = Boolean(linkedTrackGuid);
   const [picking, setPicking] = useState(!hasLink);
   const choices = plainTrackChoices(tracks);
-  const [chosen, setChosen] = useState(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : (choices[0]?.guid ?? ''));
+  // Nothing is picked for the narrator: the select opens on "Choose a track" and Confirm waits for a pick, so one press cannot link the
+  // first track to a chapter it does not belong to (alignment audit R3EN2-1). A Change starts from the track already linked.
+  const [chosen, setChosen] = useState(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : '');
 
   // A confirm or clear call comes back through the caller's own state, as a new `linkedTrackGuid` prop, not through
   // this component's local `picking` intent: once the caller reports a link (a fresh confirm, or a Change followed
@@ -76,7 +78,7 @@ export function MappingConfirm({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <TrackSelect label={`Track for ${chapterTitle}`} choices={choices} value={chosen} onChange={setChosen} />
-      <Button onClick={() => onConfirm(chosen)} pending={busy}>
+      <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
         Confirm
       </Button>
       {hasLink && (
