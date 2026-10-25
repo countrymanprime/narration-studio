@@ -49,10 +49,10 @@ describe('panel-lists-only-measured-evidence', () => {
     ]);
   });
 
-  it('names the unmet signals in the not-ready sentence', () => {
+  it('counts the unmet signals in the not-ready sentence and leaves naming them to the evidence rows (R3PR2-8)', () => {
     const model = readinessOf(recommendation({ verdict: 'not_ready', signals: [signal('proofing.pickups', 'not_met')] }));
     expect(model.headline).toBe('Not ready to move to Editing');
-    expect(model.sub).toBe('No pickups are left to clear up not met');
+    expect(model.sub).toBe('One check not met; see the evidence below.');
   });
 });
 

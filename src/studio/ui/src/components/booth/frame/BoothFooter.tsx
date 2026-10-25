@@ -71,6 +71,7 @@ export function BoothFooter({
   seconds,
   recording,
   why,
+  quietWhy = false,
   listenWhy,
   mic,
   roomTone,
@@ -84,6 +85,11 @@ export function BoothFooter({
   seconds: number;
   recording: boolean;
   why?: string;
+  /**
+   * A setup notice above says why already: the sentence stays for Record's description (`aria-describedby`) but is not drawn, so the
+   * screen does not say it three times (alignment audit XBO-5).
+   */
+  quietWhy?: boolean;
   /** Why the text cannot follow the voice (no microphone, the session's error); the take itself is not affected. */
   listenWhy?: string;
   mic: Mic;
@@ -104,8 +110,8 @@ export function BoothFooter({
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
   // One sentence at a time (alignment audit R3BO-5): why the text cannot follow the voice, in the warning colour, wins; Record's own reason
-  // then stays only as its description (`aria-describedby`), not drawn beside it.
-  const shownWhy = why && !listenWhy ? why : undefined;
+  // then stays only as its description (`aria-describedby`), not drawn beside it; so does a sentence a setup notice above already says (`quietWhy`).
+  const shownWhy = why && !listenWhy && !quietWhy ? why : undefined;
   return (
     <div ref={bar} className="flex flex-col">
       {/*

@@ -233,7 +233,8 @@ function LevelSliders({ levels, dawName, reachable }: { levels: NonNullable<Leve
   const inputMeter = reading ? meterFor(state, 'input', dawName) : null;
   const outputMeter = reading ? meterFor(state, 'output', dawName) : null;
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-1.5">
+      <span className={SECTION_LABEL}>Levels</span>
       <div className="flex flex-col gap-1">
         <LevelRow label="Input level" value={0} shown="—" disabled note={input?.message ?? 'The input level cannot be set from here.'} />
         {inputMeter ? <DawMeter caption={`${dawName} input`} label={`${dawName} input level`} db={inputMeter.db} why={inputMeter.why} /> : null}
@@ -255,6 +256,10 @@ function LevelSliders({ levels, dawName, reachable }: { levels: NonNullable<Leve
     </div>
   );
 }
+
+// The popover's sections (Input, Microphone, Levels, Punch) share one label style and one rhythm: 16 px between sections, 6 px from a
+// label to its controls; a control's own label (Input level, Monitor level) is the sentence-case label under it (alignment audit XBO-21).
+const SECTION_LABEL = 'text-xs font-semibold text-[var(--text-muted)] uppercase';
 
 /** How far before a word "Punch from here" starts: a computer-wide number, set here because only punching reads it. Offered with a DAW that has no pre-roll of its own. */
 function AppPrerollRow() {
@@ -319,7 +324,7 @@ function PunchPrerollRow({ dawName, support }: { dawName: string; support: DawCa
   const own = support && support.level !== 'unsupported' && support.level !== 'not_yet_available';
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Punch</span>
+      <span className={SECTION_LABEL}>Punch</span>
       {own && support.available ? <DawPrerollRow dawName={dawName} /> : null}
       {own && !support.available ? <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{support.message}</span> : null}
       {own ? null : <AppPrerollRow />}
@@ -339,13 +344,13 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
       onOpenChange={onOpenChange}
       trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
     >
-      <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-3">
+      <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Input</span>
+          <span className={SECTION_LABEL}>Input</span>
           <LevelMeter label="Input level" peak={off ? null : (level?.peak ?? null)} rms={off ? null : (level?.rms ?? null)} size="regular" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Microphone</span>
+          <span className={SECTION_LABEL}>Microphone</span>
           {engine === 'builtin' ? (
             <Devices device={device} onDevice={onDevice} />
           ) : (

@@ -25,8 +25,8 @@ the column on the right holds the [delivery package](#the-delivery-package) and
 
 Press **Check files…** and pick one or more rendered chapter files. Only WAV files are measured for now;
 a file in another format, or one that cannot be read, is listed with the reason and does not stop the
-others. The bar shows how much of the audio has been read so far, with the file being measured, and
-**Cancel** stops the check: files already measured keep their results. You can leave the page while it
+others. The bar, in the table's card under the button, shows how much of the audio has been read so far,
+with the file being measured (its row reads **Measuring**), and **Cancel** stops the check: files already measured keep their results. You can leave the page while it
 runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
 the page says **Can't tell how the measurement is going, last heard N s ago** with a **Check again** button, and keeps
 trying every couple of seconds; the check itself keeps running. Once files are checked the button reads
@@ -36,9 +36,13 @@ picks others.
 ![A check in progress, with its real progress and Cancel](../../images/ui/master-running.webp)
 
 The files table has a row per chapter, then one for the opening and closing credits and one for the retail
-sample, whether or not each has a file, so it is never empty. A row with no file says what it waits on in
-place of its values and shows a neutral **Waiting** pill: **Waiting on 3 pickups · not mastered** when the
+sample, whether or not each has a file, so it is never empty. A row with no file shows a neutral **Waiting**
+pill and says what it waits on in place of its values: **Waiting on 3 pickups · not mastered** when the
 chapter has open pickups (the number the Pickups page lists), else **No file measured yet · not mastered**.
+What several rows have in common is said once, above the table, not on each row: **Nothing measured yet**
+before any check, then lines such as **12 rows marked Waiting: no file measured yet · not mastered.** or,
+after a check that stopped, **2 rows marked Not measured: the check stopped before these files**. A row
+whose reason is its own (its pickups, a file that could not be read) keeps it in the row.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
 tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
 profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
@@ -48,7 +52,9 @@ profile's rule is red with a cross; a value the app could not measure (a silent 
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
 measurement stopped unexpectedly on that file, and the technical error goes to the app's run log, not
-the screen. The table opens on the first file that fails; the arrow keys move between files and Enter
+the screen. A long reason wraps inside its own columns: the columns stay where they are whatever the rows say.
+If the chapters or the delivery profile cannot be read, the card says so above the table with **Retry** at its
+right edge. The table opens on the first file that fails; the arrow keys move between files and Enter
 selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
@@ -89,7 +95,10 @@ file each, every file under the profile's longest length, the channels, sample r
 fail and how many checks each fails, and how many chapters are not ready (the same count Delivery's **Before you
 build** gives: the opening and closing credits files count like a chapter). A retail sample that is measured is checked against the profile's range and named with it, as **Retail sample 4:40 (1 to 5 min)**; a profile that gives only a maximum reads **(up to 5 min)**. A rule the profile lacks or
 has turned off has no row. The MP3 format cannot be judged from a WAV render, so that row waits (with "the MP3
-format is checked on the MP3 you upload") instead of showing a tick. **Open Delivery** goes on to build the package.
+format is checked on the MP3 you upload") instead of showing a tick. A check not judged yet has a hollow circle (**○**)
+where a tick or a cross will go. **Open Delivery** goes on to build the package; it waits while the profile and the
+chapters are still being read. The card stays in view at the top of the right column as you scroll the page; in a
+narrower window, where the page is one column, it comes straight after the files and their checks.
 
 A link from another page can name a file. If that file is not in the check (or nothing is measured yet), the page
 says so in a **Link not found** note with **Show the first file instead**, and a link followed while the page is open
@@ -120,7 +129,7 @@ why. Every stage writes a new file next to the app's own output: your renders ar
 
 ## Building packages for several platforms at once
 
-If you deliver to more than one platform, **Multi-platform export** (below the delivery package) lets you build
+If you deliver to more than one platform, **Multi-platform export** (under the delivery package) lets you build
 all of them from the one source you already mastered and encoded, without re-encoding unless a platform
 needs a different file format. Under **Build packages for**, check the box for each profile you want a
 package for, then **Build N packages**; it stays off until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
@@ -137,8 +146,9 @@ left waiting.
 
 ![Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/master-multi-export-results.webp)
 
-Once it finishes, each platform gets its own row: built, with its folder and how many files it wrote, or why
-it could not be built (such as a required file being missing for that platform).
+While it builds, and once it finishes, each platform says how it went under its own checkbox: **Building…**,
+**Built** with its folder and how many files it wrote, or why it could not be built (such as a required file being
+missing for that platform).
 
 ## Diagnostics
 

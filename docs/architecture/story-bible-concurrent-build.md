@@ -24,7 +24,6 @@ it. The notes below are what the chained build taught; the host still runs the b
   only from reading the saved file, once the language model and the pronunciations are done, to writing the file and its cues: a Save
   made while the model runs waits at most for that merge and write, and the build merges it rather than writing over it
   (`TestAnEditDuringTheModelRunIsMerged`). A create or an alias edit asks the sidecar for the pronunciation of its new names while
-  holding the lock (one short process), so a Save made then waits for the answer. `Service.Run`, which starts the sidecar's `pronounce`
-  (a pronunciation from one named source, the one sidecar command that still writes the file), does not take it, so an edit made while
-  it runs can be overwritten by it. The host sees that write on its next edit, because it compares the file's bytes with the ones it
-  holds.
+  holding the lock (one short process), so a Save made then waits for the answer. A Generate/Replace from a named source
+  (`Service.Pronounce`, `pronounce.go`) does the same: it holds the lock from reading the file, through the sidecar's
+  `pronunciation --source`, to writing it (`TestAnEditDuringTheLookupWaitsAndIsKept`). No sidecar command writes the file.
