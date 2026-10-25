@@ -385,7 +385,7 @@ function BoothSession({
     goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
-  // A page break every Booth.words_per_page words of the chapter; the credits are not a chapter and have none.
+  // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits are not a chapter and have none.
   const wordsPerPage = useWordsPerPage();
   const breaks = useMemo(() => (chapter ? pageBreaks(paragraphs, units, wordsPerPage) : []), [chapter, paragraphs, units, wordsPerPage]);
 

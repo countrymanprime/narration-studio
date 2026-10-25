@@ -273,7 +273,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'page-break-stop',
     description:
-      'Booth (as setup) with the reading stepped down to the first page break (250 words): a dashed hairline across the text and a vertical "Page 2" in the right margin; right-clicking it and choosing Read to here puts the chapter\'s stopping place there, a chequered-flag ribbon, and the toast says "Stopping place marked." with Undo',
+      'Booth (as setup) with the reading stepped down to the first page break (the end of the paragraph that holds the 250th word): a dashed hairline across the text between two paragraphs and a vertical "Page 2" in the right margin; right-clicking it and choosing Read to here puts the chapter\'s stopping place there, a chequered-flag ribbon, and the toast says "Stopping place marked." with Undo',
     ...REFLOW,
   },
   {
