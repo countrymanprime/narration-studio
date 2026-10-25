@@ -67,4 +67,19 @@ describe('SearchField', () => {
     expect(box.getAttribute('aria-activedescendant')).toBe('list-option-a');
     expect(box.getAttribute('aria-expanded')).toBe('true');
   });
+
+  // R4SE2-2, XPF-21: the clear button was a bordered 36 px square drawn 4 px inside the field's border.
+  it('clears with a quiet 28 px button that draws no border of its own', () => {
+    render(<SearchField label="Search settings" value="zoom" onChange={() => undefined} />);
+    const clear = screen.getByRole('button', { name: 'Clear search' });
+    expect(clear.className).toContain('size-7');
+    expect(clear.className).toContain('border-transparent');
+  });
+
+  // XSE1-19: the magnifier floated outside the box.
+  it('draws a magnifier inside the box when asked, and leaves room for it', () => {
+    const { container } = render(<SearchField label="Search settings" value="" onChange={() => undefined} leadingIcon />);
+    expect(container.querySelector('[data-search-icon] svg')).not.toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Search settings' }).style.paddingLeft).toBe('2.25rem');
+  });
 });

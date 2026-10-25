@@ -5,21 +5,24 @@ import { nameFor, tooltipFor, CATALOG, type CatalogRow, type IconName } from '..
 import { Icon } from './Icon';
 import { TooltipTarget } from './Tooltip';
 
-type IconButtonVariant = 'default' | 'primary' | 'danger';
+// `ghost` has no border or fill until hovered: a quiet control inside another control's box (the clear button inside a SearchField).
+type IconButtonVariant = 'default' | 'primary' | 'danger' | 'ghost';
 
 const VARIANT_CLASSES: Record<IconButtonVariant, string> = {
   default:
     'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)] not-aria-disabled:hover:border-[var(--accent)] not-aria-disabled:hover:text-[var(--accent)] aria-expanded:border-[var(--accent)] aria-expanded:bg-[var(--accent-soft)] aria-pressed:border-[var(--accent)] aria-pressed:bg-[var(--accent-soft)]',
   primary: 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] not-aria-disabled:hover:bg-[var(--accent-strong)]',
   danger: 'border-[var(--danger)] bg-[var(--surface)] text-[var(--danger-text)] not-aria-disabled:hover:bg-[var(--review-soft)]',
+  ghost: 'border-transparent bg-transparent text-[var(--text-muted)] not-aria-disabled:hover:bg-[var(--surface-2)] not-aria-disabled:hover:text-[var(--text)]',
 };
 
-// `md` is 36 px, `--button-height`; `sm` is 32 px, `--button-height-sm`, beside a small Button in a dense row.
-type IconButtonSize = 'md' | 'sm';
+// `md` is 36 px, `--button-height`; `sm` is 32 px, `--button-height-sm`, beside a small Button in a dense row; `xs` is 28 px, inside a 36 px field.
+type IconButtonSize = 'md' | 'sm' | 'xs';
 
 const SIZE_CLASSES: Record<IconButtonSize, string> = {
   md: 'size-[var(--button-height)]',
   sm: 'size-[var(--button-height-sm)]',
+  xs: 'size-7',
 };
 
 type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {

@@ -16,6 +16,12 @@ type Props = Omit<ComponentPropsWithRef<'select'>, 'aria-label' | 'id' | 'value'
   };
 
 // The placeholder option's own value: a string no caller's option can have, so `onChange` can never report it.
+// The closed select is drawn by us, not the operating system: its own caret (two gradients in --text-muted, so it follows the theme) in 2 rem
+// kept clear at the right, so it looks like the app's other pickers beside it (the Booth's chapter picker, alignment audit XBO-20) and a long
+// label stops before the caret (R3MS-19). The list it opens stays the native one.
+const SELECT_CLASSES =
+  'box-border h-[var(--control-height)] appearance-none rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] bg-no-repeat py-0 pr-8 pl-3 text-[0.88rem] leading-[1.35] text-[var(--text)] [background-image:linear-gradient(45deg,transparent_50%,var(--text-muted)_50%),linear-gradient(135deg,var(--text-muted)_50%,transparent_50%)] [background-position:calc(100%-1rem)_50%,calc(100%-0.6875rem)_50%] [background-size:0.3125rem_0.3125rem,0.3125rem_0.3125rem]';
+
 const PLACEHOLDER_VALUE = '\u0000placeholder';
 
 const SelectOptionRow = ({ option }: { option: SelectOption }) => <option value={option.value}>{option.label}</option>;
@@ -44,7 +50,7 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
       onChange={(event) => event.target.value !== PLACEHOLDER_VALUE && onChange(event.target.value)}
       // A fixed height, not a minimum: a native <select> doesn't resolve `leading-[1.35]` the way an <input> or a styled
       // div does, so pinning the height is what makes it match TextField and Button (`--control-height`, 36px).
-      className={`box-border h-[var(--control-height)] rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-0 text-[0.88rem] leading-[1.35] text-[var(--text)] ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`${SELECT_CLASSES} ${fullWidth ? 'w-full' : ''} ${className}`}
     >
       {showPlaceholder && (
         <option value={PLACEHOLDER_VALUE} disabled hidden>
