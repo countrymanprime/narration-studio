@@ -28,7 +28,7 @@ export function ReplacementMark({ wordKey }: { wordKey: string }) {
           data-stale={r.stale ? '' : undefined}
           aria-label={`${r.narratorName}'s audio plays for the ${r.words.length === 1 ? 'word' : `${r.words.length} words`} before. Press Enter for details`}
           className={`mx-[0.15em] inline-flex cursor-pointer items-center rounded-full border px-1.5 align-[0.15em] font-mono text-[11px] leading-[1.4] focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${
-            r.stale ? 'border-dashed border-[var(--warn)] text-[var(--warn)]' : 'border-[var(--info)] bg-[var(--info-soft)] text-[var(--text)]'
+            r.stale ? 'border-dashed border-[var(--warn)] text-[var(--warn-text)]' : 'border-[var(--info)] bg-[var(--info-soft)] text-[var(--text)]'
           }`}
         >
           {r.narratorName}
@@ -43,7 +43,7 @@ export function ReplacementMark({ wordKey }: { wordKey: string }) {
           Theirs {clock(r.sourceStart)} to {clock(r.sourceEnd)} · {sec(r.sourceEnd - r.sourceStart)} · {db(r.gainDb)}
           {r.measuredLufs !== null ? ` (from ${r.measuredLufs.toFixed(1)} to ${r.targetLufs.toFixed(0)} LUFS)` : ''}
         </p>
-        {r.stale ? <p className="m-0 text-[var(--warn)]">The words changed since their audio was put here.</p> : null}
+        {r.stale ? <p className="m-0 text-[var(--warn-text)]">The words changed since their audio was put here.</p> : null}
         <div>
           <Button type="button" variant="secondary" onClick={() => void restore(r)}>
             Put my audio back

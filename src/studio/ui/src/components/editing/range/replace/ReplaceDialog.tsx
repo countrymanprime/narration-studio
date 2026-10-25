@@ -388,7 +388,7 @@ function StretchWave({
       aria-label={`Their file, ${clock(length)} long, with ${clock(from)} to ${clock(to)} chosen`}
       viewBox="0 0 1000 60"
       preserveAspectRatio="none"
-      className="h-16 w-full cursor-crosshair touch-none rounded-md border border-[var(--border)] bg-[var(--surface-sunken)]"
+      className="h-16 w-full cursor-crosshair touch-none rounded-[var(--control-radius)] border border-[var(--border)] bg-[var(--surface-2)]"
       data-replace-wave
       onPointerDown={(event) => {
         event.currentTarget.setPointerCapture(event.pointerId);
