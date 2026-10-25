@@ -129,3 +129,15 @@ describe('ProfileCard', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(sentence);
   });
 });
+
+// Alignment audit (#2251), R4DL-1: a built-in profile's menu was locked during a build with nothing to say so.
+describe('profile-card-alignment', () => {
+  it('a built-in profile says it is locked while it builds, and its menu is dimmed', async () => {
+    mount({}, MOCK_ACX, { locked: true });
+    expect(await screen.findByText('Locked while it builds')).toBeTruthy();
+    expect(screen.queryByText('Built in')).toBeNull();
+    const menu = screen.getByRole('combobox', { name: /^Delivery profile/ });
+    expect(menu.hasAttribute('disabled')).toBe(true);
+    expect(menu.className).toContain('disabled:opacity-55');
+  });
+});

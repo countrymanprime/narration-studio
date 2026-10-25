@@ -28,7 +28,7 @@ import { useDawPlayPosition } from '../follow/useDawPlayPosition';
 import { useFollowScroll } from '../follow/useFollowScroll';
 import { Legend } from '../flags/Legend';
 import { useAcceptWords } from '../flags/useAcceptWords';
-import { EDITING_FOOTER_SPEC, editingKeyHints, enterHintLabel } from '../keys/editingKeyHints';
+import { EDITING_FOOTER_SPEC, editOffHints, editingKeyHints, enterHintLabel } from '../keys/editingKeyHints';
 import { useEditingKeys } from '../keys/useEditingKeys';
 import { useMarkMenuSections } from '../menu/marks/useMarkMenuSections';
 import { useEditingWordMenu } from '../menu/useEditingWordMenu';
@@ -485,7 +485,7 @@ export function EditingBody(props: EditingBodyProps) {
   const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
   const hints = editingKeyHints(
     keymap,
-    EDITING_FOOTER_SPEC.map((h) => {
+    editOffHints(EDITING_FOOTER_SPEC, cut.plan?.kind === 'refused').map((h) => {
       if (h.id === 'editing.strip' && !stripFits) return { ...h, label: 'Timeline drawer' };
       if (h.id === 'editing.keep') return { ...h, label: enterHintLabel({ takesOpen: lineTakes.onTake !== null, onFlag: cursorOnFlag }) };
       return h;
@@ -535,18 +535,12 @@ export function EditingBody(props: EditingBodyProps) {
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {chapterLink.dialog}
-      <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
+      <div className="min-h-0 flex-1 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} onClose={closeDrawer} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
-            <NoAudioBanner
-              audio={read.audio}
-              chapterName={chapterName}
-              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
-              onReread={props.onReread}
-            />
             <EditingHeader
               stepper={props.stepper}
-              legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
+              legend={<Legend doc={doc} noAudio={read.audio.kind !== 'ready'} />}
               status={
                 <>
                   {props.dawIndicator}
@@ -558,6 +552,13 @@ export function EditingBody(props: EditingBodyProps) {
               drawerOpen={drawerOpen}
               onDrawer={panels.drawer.toggle}
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+            />
+            {/* Under the header, so the title stays where it is on every state (XED-7). */}
+            <NoAudioBanner
+              audio={read.audio}
+              chapterName={chapterName}
+              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
+              onReread={props.onReread}
             />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (

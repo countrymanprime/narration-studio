@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import type { Notify } from '../../primitives/Toast';
 import { EditVoiceSampleDialog } from './EditVoiceSampleDialog';
 import { MoveVoiceSampleDialog, type MoveChoice } from './MoveVoiceSampleDialog';
-import { sampleName } from './voiceSampleModel';
+import { sampleLength, sampleName } from './voiceSampleModel';
 
 export type SampleActions = {
   rename: (sample: VoiceSample) => void;
@@ -126,7 +126,8 @@ export function useVoiceSampleActions({
     dialogs = (
       <ConfirmDialog
         title="Delete voice sample"
-        body={`Delete “${name}”? Its audio is removed from this project. The recording it was copied from is not touched.`}
+        // The subject is quoted in full (its length and chapter), since the row may be hidden under the dialog (R4SB-5).
+        body={`Delete “${name}” (${[sampleLength(sample.durationMs), sample.source.chapterTitle].filter(Boolean).join(', ')})? Its audio is removed from this project. The recording it was copied from is not touched.`}
         confirmLabel="Delete"
         confirmVariant="danger"
         pending={mutation.isPending(`delete:${sample.id}`)}

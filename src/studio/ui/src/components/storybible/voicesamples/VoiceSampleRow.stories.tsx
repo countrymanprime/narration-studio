@@ -94,13 +94,13 @@ export const ChapterRemoved: Story = {
   },
 };
 
-// The clip file is missing: it cannot play, the card is red, and a read-only entry sends the narrator to Edit to delete it.
+// The clip file is missing: it cannot play, the card is red, and a read-only entry sends the narrator to Voice data to delete it (a locked entry has no Edit).
 export const AudioFileMissing: Story = {
   args: { sample: { ...SAMPLE, primary: false, label: 'Laughing', note: '', clipState: 'missing' } },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Audio file missing')).toBeInTheDocument();
-    await expect(canvas.getByText(/or press Edit to delete it/)).toBeInTheDocument();
+    await expect(canvas.getByText(/or delete it in Voice data/)).toBeInTheDocument();
     await userEvent.click(canvas.getByRole('button', { name: /^Play voice sample: Laughing/ }));
     await expect(args.onPlay).not.toHaveBeenCalled();
   },

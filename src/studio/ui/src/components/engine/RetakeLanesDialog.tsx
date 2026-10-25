@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
+import { SectionLabel } from '../primitives/SectionLabel';
+import { StatusBadge } from '../primitives/StatusBadge';
+import { ToolResult } from './ToolResult';
 import type { RetakeLane, RetakeLaneLine, RetakeLanesList, RetakeLanesState } from '../../types';
 import { brand } from '../../brand.gen';
 
@@ -34,22 +37,26 @@ function RetakeRow({
   const picking = state.phase === 'picking';
   const lane = retake.lane + 1;
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 border-t py-2 first:border-t-0" style={{ borderColor: 'var(--border)' }}>
+    // The playing lane is the highlighted row, its status a badge in a fixed slot, and its button off: it already plays (ENX-27).
+    <li
+      className="flex flex-wrap items-center justify-between gap-3 border-t p-2 first:border-t-0"
+      style={{ borderColor: 'var(--border)', background: plays ? 'var(--row-selected)' : undefined }}
+    >
       <div className="min-w-0 flex-1 basis-48">
-        <p className="text-sm font-semibold">Lane {lane}</p>
+        <p className="text-sm font-medium">Lane {lane}</p>
         <p className="text-sm break-all" style={{ color: 'var(--text-muted)' }}>
           {retake.name || 'Untitled item'} · {retake.length.toFixed(1)} s
         </p>
       </div>
-      <span className="text-sm" style={{ color: plays ? 'var(--text)' : 'var(--text-muted)' }}>
-        {plays ? 'Plays' : 'Silent'}
+      <span className="w-[4.5rem] flex-none">
+        <StatusBadge tone={plays ? 'success' : 'neutral'} label={plays ? 'Plays' : 'Silent'} />
       </span>
       <Button
         variant="secondary"
         aria-label={`Play this lane: lane ${lane} for ${line.lineId} on ${line.trackName}`}
         onClick={onPick}
         pending={picking && state.itemGuid === retake.itemGuid}
-        disabled={picking && state.itemGuid !== retake.itemGuid}
+        disabled={plays || (picking && state.itemGuid !== retake.itemGuid)}
       >
         Play this lane
       </Button>
@@ -105,25 +112,17 @@ export function RetakeLanesDialog({ onClose }: { onClose: () => void }) {
     api.retakeLanesPick(line.lineId, retake.itemGuid).catch((reason: unknown) => setRequestError(String(reason)));
   };
 
-  const feedback = (
-    <>
-      {state.phase === 'picked' && !requestError && (
-        <p className="mt-2 text-sm" role="status">
-          {state.message}
-        </p>
-      )}
-      {requestError && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {requestError}
-        </p>
-      )}
-      {state.phase === 'error' && !requestError && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {state.message}
-        </p>
-      )}
-    </>
-  );
+  // A pick's outcome is one result block (R3EN2-13): a success, or the failure of the request or of REAPER.
+  const failure = requestError || (state.phase === 'error' ? state.message : '');
+  const feedback = failure ? (
+    <div className="mt-2">
+      <ToolResult tone="danger" message={failure} />
+    </div>
+  ) : state.phase === 'picked' ? (
+    <div className="mt-2">
+      <ToolResult tone="success" message={state.message} />
+    </div>
+  ) : null;
 
   return (
     <Dialog
@@ -138,19 +137,16 @@ export function RetakeLanesDialog({ onClose }: { onClose: () => void }) {
         </Button>
       }
     >
-      {listError && (
-        <p role="alert" className="mt-3 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {listError}
-        </p>
-      )}
+      {listError && <ToolResult tone="danger" message={listError} />}
       {list && list.lines.length === 0 && <EmptyList list={list} />}
       {list && list.lines.length > 0 && (
         <div className="mt-3 space-y-4">
           {list.lines.map((line) => (
             <section key={`${line.trackGuid}/${line.lineId}`} aria-label={`${line.lineId} on ${line.trackName}`}>
-              <h3 className="text-sm font-semibold break-all">
+              {/* The group's heading is a section label, so it reads apart from the lanes under it (R3EN2-6). */}
+              <SectionLabel as="h3" className="mb-1 block break-all">
                 {line.trackName} · {line.lineId} · {formatPosition(line.retakes[0]?.position ?? 0)}
-              </h3>
+              </SectionLabel>
               <ul>
                 {line.retakes.map((retake) => (
                   <RetakeRow
