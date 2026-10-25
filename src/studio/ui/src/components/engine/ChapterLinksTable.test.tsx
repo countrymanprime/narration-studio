@@ -76,6 +76,15 @@ describe('ChapterLinksTable', () => {
     expect(within(table).getByRole('columnheader', { name: 'Track' })).toBeTruthy();
   });
 
+  // ENX-4: the status was coloured text that wrapped ("Not / linked") in an auto-width column.
+  it('shows each status as a badge in a cell that does not wrap', async () => {
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const status = within(chapterRow(table, chapterName(WIRE_CHAPTERS[1]))).getByText('Not linked');
+    expect(status.closest('td')?.className).toContain('whitespace-nowrap');
+    expect(status.closest('td')?.getAttribute('style') ?? '').not.toContain('color');
+  });
+
   it('names a track another chapter holds, so it is not linked twice by mistake', async () => {
     const api = createMockApi();
     await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);

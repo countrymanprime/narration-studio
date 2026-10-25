@@ -23,7 +23,7 @@ export function trackChoices(match: ChapterTrackMatch, links: readonly TrackMapp
 }
 
 /** The part of a confirmed link that says which chapter holds a track. */
-export type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'>;
+type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'>;
 
 /**
  * The same choices for a list of tracks with no match behind it (the engine panel's Chapter links, the recording check): project order, nothing
