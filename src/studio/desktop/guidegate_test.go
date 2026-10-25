@@ -138,8 +138,9 @@ func TestABuildWithTheRulesOnlyChoiceRunsWithoutTheModelAndSaysSo(t *testing.T) 
 	if answer["status"] != "started" {
 		t.Fatalf("answer = %#v", answer)
 	}
-	if args := f.sidecarArgs(t); !strings.Contains(args, "rules-only") {
-		t.Fatalf("sidecar args = %q, want the rules-only choice", args)
+	// The host runs the rules itself: the sidecar is asked only for the pronunciations of the names they found, never for the model.
+	if args := f.sidecarArgs(t); !strings.HasPrefix(args, "pronunciation\n--words-file\n") {
+		t.Fatalf("sidecar args = %q, want only the pronunciation lookup", args)
 	}
 	event := nextJobEnd(t, events)
 	if event.Outcome != jobOutcomeSuccess || !strings.Contains(event.Message, "rules-only") || !strings.Contains(event.Message, "lower quality") {

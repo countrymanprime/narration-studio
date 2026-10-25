@@ -231,3 +231,68 @@ func caseIgnorable(r rune) bool {
 	}
 	return false
 }
+
+// pyDumps is Python's json.dumps(value, ensure_ascii=False, indent=2) of a value pyLoads read (or one built of the same types, with
+// Go ints for Python ints): keys in the order the object holds them, ", " never used (the item separator is "," at a line end), non-ASCII
+// text as itself, NaN and ±Infinity as Python writes them. manuscript_guide.py write_json wrote the Story Bible this way.
+func pyDumps(value any) string {
+	var out strings.Builder
+	writePyIndented(&out, value, 0)
+	return out.String()
+}
+
+func writePyIndented(out *strings.Builder, value any, level int) {
+	switch v := value.(type) {
+	case nil:
+		out.WriteString("null")
+	case bool:
+		out.WriteString(strconv.FormatBool(v))
+	case string:
+		writePythonString(out, v)
+	case int:
+		out.WriteString(strconv.Itoa(v))
+	case pyInt:
+		out.WriteString(v.value.String())
+	case pyFloat:
+		out.WriteString(pythonFloat(float64(v)))
+	case []any:
+		if len(v) == 0 {
+			out.WriteString("[]")
+			return
+		}
+		out.WriteByte('[')
+		for index, item := range v {
+			if index > 0 {
+				out.WriteByte(',')
+			}
+			pyNewline(out, level+1)
+			writePyIndented(out, item, level+1)
+		}
+		pyNewline(out, level)
+		out.WriteByte(']')
+	case *pyObject:
+		if len(v.keys) == 0 {
+			out.WriteString("{}")
+			return
+		}
+		out.WriteByte('{')
+		for index, key := range v.keys {
+			if index > 0 {
+				out.WriteByte(',')
+			}
+			pyNewline(out, level+1)
+			writePythonString(out, key)
+			out.WriteString(": ")
+			writePyIndented(out, v.values[key], level+1)
+		}
+		pyNewline(out, level)
+		out.WriteByte('}')
+	default:
+		panic(fmt.Sprintf("pyDumps: %T is not a value pyLoads makes", value))
+	}
+}
+
+func pyNewline(out *strings.Builder, level int) {
+	out.WriteByte('\n')
+	out.WriteString(strings.Repeat("  ", level))
+}

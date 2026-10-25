@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -33,6 +34,17 @@ func runFakeTeleprompterAlign() bool {
 		}
 	}
 	from, _ := strconv.ParseFloat(fakeArg("--tail-start"), 64)
+	if slices.Contains(os.Args, "--words-only") {
+		// The host times the word itself: hear the words around it, the word one second into the stretch, or (a miss)
+		// two words that fit nowhere.
+		if os.Getenv(fakeAlignMissEnv) != "" {
+			fmt.Println(`{"type": "heard", "words": [["zebra", 0.1, 0.3], ["quokka", 0.4, 0.6]]}`)
+			return true
+		}
+		word, _ := strconv.Atoi(os.Args[2])
+		printFakeHeard(fakeArg("--manuscript"), fakeArg("--chapter"), word-3, word+10, word)
+		return true
+	}
 	if os.Getenv(fakeAlignMissEnv) != "" {
 		fmt.Printf(`{"type":"word_time","word":%s,"time":null,"exact":false,"matched":2,"heard":9,"tokens":2196}`+"\n", os.Args[2])
 		return true

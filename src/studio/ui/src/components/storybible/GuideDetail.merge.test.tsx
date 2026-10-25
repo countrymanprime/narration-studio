@@ -109,14 +109,14 @@ describe('merging an entry into this one', () => {
     await open('Cheshire Cat');
     // Matches ignoring case, and the copy is refused: nothing is added, the offer names the entry that has the name.
     offerFor('white rabbit');
-    expect(screen.getByRole('status').textContent).toBe('“white rabbit” is already a name of White Rabbit.');
+    expect(screen.getByRole('status').textContent).toBe('“white rabbit” is already a name of the entry White Rabbit.');
     expect(edit).not.toHaveBeenCalled();
     expect(merge).not.toHaveBeenCalled();
     // An alias of another entry counts as its name too, and the offer follows the text.
     fireEvent.change(box(), { target: { value: 'garden' } });
     expect(screen.queryByRole('button', { name: 'Merge into this entry' })).toBeNull();
     fireEvent.keyDown(box(), { key: 'Enter' });
-    expect(screen.getByRole('status').textContent).toBe('“garden” is already a name of Queen’s garden.');
+    expect(screen.getByRole('status').textContent).toBe('“garden” is already a name of the entry Queen’s garden.');
     expect(screen.getByRole('button', { name: 'Merge into this entry' })).toBeTruthy();
     // Typing on removes the offer; so does choosing another entry, with the typed text.
     fireEvent.change(box(), { target: { value: 'garden party' } });
@@ -147,7 +147,7 @@ describe('merging an entry into this one', () => {
     fireEvent.change(box(), { target: { value: 'queen of hearts' } });
     fireEvent.keyDown(box(), { key: 'Enter' });
     // Queen of Hearts is locked: the merge would delete it.
-    expect(screen.getByRole('status').textContent).toBe('“queen of hearts” is already a name of Queen of Hearts.');
+    expect(screen.getByRole('status').textContent).toBe('“queen of hearts” is already a name of the entry Queen of Hearts.');
     const offer = screen.getByRole('button', { name: 'Merge into this entry' });
     expect((offer as HTMLButtonElement).disabled || offer.getAttribute('aria-disabled') === 'true').toBe(true);
   });
