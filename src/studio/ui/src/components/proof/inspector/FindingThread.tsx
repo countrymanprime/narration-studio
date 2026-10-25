@@ -9,17 +9,15 @@ import { Field } from '../../primitives/Field';
 import { IconButton } from '../../primitives/IconButton';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
+import { formatDecidedAt } from '../findingFormat';
 
 /** The one host call the thread makes. */
 export type FindingThreadApi = Pick<NarrationApi, 'findingsThread'>;
 
 const WHO_LABEL: Record<FindingThreadAuthor, string> = { you: 'You', proofer: 'Proofer' };
 
-/** When a note was written, as the narrator reads it: the day and the time in their own locale. */
-function when(at: string): string {
-  const date = new Date(at);
-  return Number.isNaN(date.getTime()) ? at : date.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-}
+/** When a note was written, as the narrator reads it: the same stamp as a decision's and the check card's "as of" (R3PF-14). */
+const when = (at: string): string => formatDecidedAt(at) ?? at;
 
 function Message({
   message,
@@ -48,22 +46,21 @@ function Message({
       </div>
     );
   return (
+    // A header line (who, when, edit and delete) over the message at the card's full width (alignment audit XPF-5).
     <div
       data-message={message.id}
-      className={`grid grid-cols-[68px_minmax(0,1fr)_auto] gap-2 rounded-[var(--radius-card)] border px-2 py-1.5 text-sm ${message.who === 'proofer' ? 'border-transparent bg-[var(--info-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}
+      className={`flex flex-col gap-1 rounded-[var(--radius-card)] border px-2.5 py-1.5 text-sm ${message.who === 'proofer' ? 'border-transparent bg-[var(--info-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}
     >
-      <span className="text-xs font-semibold tracking-widest text-[var(--text-muted)] uppercase">{WHO_LABEL[message.who]}</span>
-      <span className="[overflow-wrap:anywhere] whitespace-pre-wrap">{message.text}</span>
-      <span className="flex flex-col items-end gap-1 text-xs text-[var(--text-muted)]">
-        <span>
+      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+        <span className="font-semibold tracking-widest uppercase">{WHO_LABEL[message.who]}</span>
+        <span className="min-w-0 flex-1 truncate">
           {when(message.at)}
           {message.edited_at ? ' · edited' : ''}
         </span>
-        <span className="flex gap-0.5">
-          <IconButton action="edit" label="Edit this note" size="sm" disabled={disabled} onClick={() => setDraft(message.text)} />
-          <IconButton action="delete" label="Delete note" size="sm" disabled={disabled} onClick={onDelete} />
-        </span>
-      </span>
+        <IconButton action="edit" label="Edit this note" size="sm" disabled={disabled} onClick={() => setDraft(message.text)} />
+        <IconButton action="delete" label="Delete note" size="sm" disabled={disabled} onClick={onDelete} />
+      </div>
+      <p className="[overflow-wrap:anywhere] whitespace-pre-wrap">{message.text}</p>
     </div>
   );
 }
@@ -138,8 +135,10 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
           { value: 'you', label: 'My note' },
         ]}
       />
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
+      {/* Add note sits on the box's bottom line, next to where the typing ends (alignment audit XPF-6). The textarea is inline, so it
+          sits on a text baseline with a descender's gap under it: `align-bottom` closes that gap. */}
+      <div className="flex items-end gap-2">
+        <div className="min-w-0 flex-1 [&_textarea]:align-bottom">
           <Field
             label="Add a note"
             labelHidden
