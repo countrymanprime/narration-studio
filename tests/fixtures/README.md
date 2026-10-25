@@ -149,6 +149,21 @@ its exit status and, when it failed, the exception's type and words. `src/studio
 replays every case through `guide.RuleSuggestions`: the same lines byte for byte, and an error where the command exited 1, in
 its words where it refused rather than crashed. The recorder was deleted with the Python rules, so the files are frozen.
 
+## guide-cues/
+
+What the manuscript-guide sidecar's `cues` command and `build` did with the dialogue cues, recorded before the cues moved into
+the host (2026-10-25, [Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 3, third PR).
+`cases.jsonl` holds one run of `cues` a line: `rulesCase`, the name of a `guide-rules/` case whose manuscript and Story Bible it
+reads, or the manuscript's exact text or `manuscriptPath` and the Story Bible's exact text, `guidePath` (`alice-corrected.guide.json`
+here) or null; and the `--chapter-id` values. `cases.golden.json` holds, for each case in the same order, the `CUES|n|m` line, the
+exit status, the exception's type and words when it failed, and the Story Bible file afterwards: its text when under 4 KiB, and its
+SHA-256. `builds.jsonl` holds a manuscript and the Story Bible a build rebuilt; `builds.golden.json` holds the file the build wrote
+while it found the cues itself (its SHA-256, and its text when short) and the file it writes now, keeping the old cues (`cut`), each
+with its exit status; the manuscript's path in a built file is `@MANUSCRIPT@` and the clock was fixed. Python wrote every file with
+LF line ends. `src/studio/desktop/internal/guide/cues_parity_test.go` replays every case through the host's refresh and checks the
+file byte for byte; it refreshes each `cut` file and checks the result is the old build's. The sidecar's `test_build_golden.py`
+checks `build` still writes each `cut` file. The recorder was deleted with the Python cue code, so the files are frozen.
+
 ## booth-parity/
 
 `text-rules.json`: Python 3.12's own answers for the text rules the host needs to follow a read the way the Booth's

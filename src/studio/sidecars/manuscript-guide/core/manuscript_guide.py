@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import itertools
 import json
 import os
 import re
@@ -133,9 +132,10 @@ TITLE_WORDS = {
 # A paragraph made only of this punctuation (***, - - -, # # #, a bullet or dash) is a scene break: it starts a
 # new scene and is not itself part of any scene.
 SCENE_BREAK = re.compile(r"^[*#\-–—•·\s]+$")
-# Verbs that mark a name next to a quotation as its speaker. Deliberately narrower than PERSON_WORDS above
-# (which also accepts "smiled"/"walked"/"looked"/"thought" as a proximity signal for classifying an entity's
-# category) - a cue's attribution is precision-first: only an unambiguous speech verb counts.
+# Verbs that mark a name next to a quotation as its speaker, and how far from it a tag may be: BookNLP's speaker check
+# (extraction_booknlp.py) uses both, as the host's dialogue cues do (src/studio/desktop/internal/guide/rules_text.go). Deliberately
+# narrower than PERSON_WORDS above (which also accepts "smiled"/"walked"/"looked"/"thought" as a proximity signal for classifying an
+# entity's category): only an unambiguous speech verb counts.
 SPEECH_VERBS = {
     "said",
     "asked",
@@ -160,13 +160,6 @@ SPEECH_VERBS = {
     "snapped",
     "yelled",
 }
-# A double-quoted span (straight or curly quotes; either character may open or close, so this doesn't try to
-# track directional pairing). Bounded length avoids a runaway match across an unrelated later quote mark.
-QUOTE_PATTERN = re.compile(r'[“"]([^”"]{1,400}?)[”"]')
-# Up to three capitalized words, for the name beside a speech verb.
-NAME_TOKEN = r"[A-Z][A-Za-z'’\-]*(?:\s+[A-Z][A-Za-z'’\-]*){0,2}"
-AFTER_QUOTE_TAG = re.compile(r"^[,.\s]*(" + NAME_TOKEN + r")\s+([A-Za-z]+)")
-BEFORE_QUOTE_TAG = re.compile(r"(" + NAME_TOKEN + r")\s+([A-Za-z]+)[,:]?\s*$")
 TAG_WINDOW = 60
 
 TRAITS = {
@@ -939,14 +932,14 @@ def build(args: argparse.Namespace) -> None:
     write_progress(args.progress, "MERGE", 85, "Preserving locked edits...")
     log("Merging generated entries with locked and manual edits")
     entities = merge_locked(entities, previous)
-    fresh_cues = guide_dialogue_cues(paragraphs, entities, speaking_types(previous or {}))
-    dialogue_cues = merge_dialogue_cues(fresh_cues, (previous or {}).get("dialogue_cues", []))
     guide = {
         "schema_version": SCHEMA_VERSION,
         "source": {"path": str(Path(args.manuscript).resolve()), "sha256": source_hash},
         "generated_at": datetime.now(UTC).isoformat(),
         "entities": entities,
-        "dialogue_cues": dialogue_cues,
+        # The host finds the dialogue cues against these entries as soon as the build ends (internal/guide Service.Build); until then the
+        # file keeps the ones it had, in their place, so the file it leaves is the one this build wrote while it found them itself.
+        "dialogue_cues": (previous or {}).get("dialogue_cues", []),
         "vocabulary_candidates": vocabulary_candidates(entities),
         "absorbed_names": (previous or {}).get("absorbed_names", {}),
     }
@@ -1012,11 +1005,6 @@ def guide_types(guide: dict[str, Any]) -> list[dict[str, Any]]:
     return types
 
 
-def speaking_types(guide: dict[str, Any]) -> set[str]:
-    """The types whose entries speak: their names are the speakers dialogue cues resolve to, and only they have a speaker colour."""
-    return {row["name"] for row in guide_types(guide) if row["speaks"]}
-
-
 def file_under_types(entities: list[dict[str, Any]], types: list[dict[str, Any]]) -> None:
     """Files freshly extracted entries under the narrator's types: a category whose type was renamed takes the new name, and one whose
     type was removed becomes Needs Review for the narrator to classify, so a rebuild never brings back a type they took away."""
@@ -1073,10 +1061,6 @@ def entity_review(entity: dict[str, Any]) -> dict[str, Any]:
     names = {alias["text"] for alias in entity.get("aliases", []) if isinstance(alias, dict)}
     flagged = [text for text in stored.get("aliases") or [] if isinstance(text, str) and text in names]
     return {"entry": bool(stored.get("entry")), "aliases": list(dict.fromkeys(flagged))}
-
-
-# The types that speak in a file without a types list: only Character. A file with one speaks as its rows say (speaking_types).
-SPEAKING_CATEGORIES = {row["name"] for row in DEFAULT_TYPES if row["speaks"]}
 
 
 def _load_guide_for_edit(path: str) -> dict[str, Any]:
@@ -1137,197 +1121,6 @@ def lookup_pronunciations(args: argparse.Namespace) -> None:
         raise ValueError("A word to look up is not blank.")
     for word in words:
         print(json.dumps(pronunciation(word, args.espeak_library or None, args.default_source or None), ensure_ascii=False))
-
-
-def empty_guide() -> dict[str, Any]:
-    """A Story Bible with nothing in it yet, which the host reports as stale until a real build fills ``source``."""
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "source": {},
-        "generated_at": None,
-        "entities": [],
-        "vocabulary_candidates": [],
-        "absorbed_names": {},
-    }
-
-
-def cue_id(paragraph_id: str, start: int, quote_text: str) -> str:
-    digest = hashlib.sha1(f"{paragraph_id}:{start}:{quote_text}".encode()).hexdigest()[:12]
-    return "cue-" + digest
-
-
-def character_name_index(entities: list[dict[str, Any]], speaking: set[str] | None = None) -> dict[str, str]:
-    """Maps every normalized name and alias of an entry that speaks to its entity id: an entry whose type is in ``speaking``
-    (``speaking_types``; Character when not given), never an unresolved Needs Review candidate."""
-    speaking = SPEAKING_CATEGORIES if speaking is None else speaking
-    index: dict[str, str] = {}
-    for entity in entities:
-        if entity.get("category") not in speaking:
-            continue
-        for key in entity_name_keys(entity):
-            index.setdefault(key, entity["id"])
-    return index
-
-
-def find_speech_tag(text: str, quote_start: int, quote_end: int, character_index: dict[str, str]) -> tuple[str | None, str, str]:
-    """Looks for a speech-verb tag naming a known character right after or right before the quote
-    ('"..." Ada said.' / 'Ada said, "..."'). Anything else, including a tag naming someone who never became
-    a real Character entity, is left `unknown` rather than guessed at."""
-    after = text[quote_end : quote_end + TAG_WINDOW]
-    match = AFTER_QUOTE_TAG.match(after)
-    if match and match.group(2).lower() in SPEECH_VERBS:
-        entity_id_value = character_index.get(normalize_name(match.group(1)))
-        if entity_id_value:
-            return entity_id_value, "tag", (text[quote_start:quote_end] + " " + match.group(0)).strip()
-    before = text[max(0, quote_start - TAG_WINDOW) : quote_start]
-    match = BEFORE_QUOTE_TAG.search(before)
-    if match and match.group(2).lower() in SPEECH_VERBS:
-        entity_id_value = character_index.get(normalize_name(match.group(1)))
-        if entity_id_value:
-            return entity_id_value, "tag", (match.group(0) + " " + text[quote_start:quote_end]).strip()
-    return None, "unknown", ""
-
-
-def extract_cues_from_text(text: str, character_index: dict[str, str], chapter_id: str = "", paragraph_id: str = "") -> list[dict[str, Any]]:
-    """One dialogue cue per double-quoted span in `text`, each with its own tag lookup and evidence.
-    Per-scene continuation (an untagged quote alternating between exactly two known speakers) is
-    `extract_dialogue_cues`'s job, since it needs the paragraphs around this one."""
-    cues: list[dict[str, Any]] = []
-    for match in QUOTE_PATTERN.finditer(text):
-        start, end = match.start(), match.end()
-        quote_text = match.group(1)
-        speaker_entity_id, source, tag_evidence = find_speech_tag(text, start, end, character_index)
-        cues.append(
-            {
-                "id": cue_id(paragraph_id, start, quote_text),
-                "chapterId": chapter_id,
-                "paragraphId": paragraph_id,
-                "quote_start": start,
-                "quote_end": end,
-                "quote_text": quote_text,
-                "speaker_entity_id": speaker_entity_id,
-                "speaker_source": source,
-                "evidence": {"chapterId": chapter_id, "paragraphId": paragraph_id, "excerpt": excerpt(text, start, end), "tag": tag_evidence},
-                "corrected": False,
-            }
-        )
-    return cues
-
-
-# How far either side of a quote a name counts as near it (the Studio Next mock's rule, a lower-confidence suggestion than a tag).
-PROXIMITY_WINDOW = 70
-CAPITALIZED_WORD = re.compile(r"[A-Z][A-Za-z'’\-]*")
-
-
-def _names_in(text: str, index: dict[str, str]) -> list[tuple[int, str]]:
-    """Each name of ``index`` in ``text`` as one to three capitalized words, longest first at each word, with where it starts."""
-    words = list(CAPITALIZED_WORD.finditer(text))
-    found: list[tuple[int, str]] = []
-    for i, word in enumerate(words):
-        for n in (3, 2, 1):
-            span = words[i : i + n]
-            if len(span) < n or any(text[a.end() : b.start()].strip() for a, b in itertools.pairwise(span)):
-                continue
-            entity = index.get(normalize_name(text[word.start() : span[-1].end()]))
-            if entity:
-                found.append((word.start(), entity))
-                break
-    return found
-
-
-def nearby_speaker(text: str, after: tuple[int, int], before: tuple[int, int], index: dict[str, str]) -> str | None:
-    """The first name within PROXIMITY_WINDOW characters after the quote (up to the next quote), else the last one before it (back to the
-    previous quote): the mock's rule, any speaking name near the line."""
-    start, end = after
-    following = _names_in(text[start : min(end, start + PROXIMITY_WINDOW)], index)
-    if following:
-        return following[0][1]
-    start, end = before
-    preceding = _names_in(text[max(start, end - PROXIMITY_WINDOW) : end], index)
-    return preceding[-1][1] if preceding else None
-
-
-def guide_dialogue_cues(paragraphs: list[dict[str, str]], entities: list[dict[str, Any]], speaking: set[str]) -> list[dict[str, Any]]:
-    """The cues a build and ``cues`` write: a tag naming a speaking entry, continuation, then a speaking entry's name near the quote. Only
-    the Story Bible's speaking entries are ever a speaker; a Needs Review name is not one until the narrator files it."""
-    return extract_dialogue_cues(paragraphs, character_name_index(entities, speaking), nearby=True)
-
-
-def extract_dialogue_cues(paragraphs: list[dict[str, str]], character_index: dict[str, str], nearby: bool = False) -> list[dict[str, Any]]:
-    """Rules-based cue extraction (precision-first): quote spans, adjacent speech-verb tags resolved
-    against known Character names/aliases, and per-scene continuation for exactly two active speakers.
-    A scene-break paragraph resets who is "active" - continuation never crosses one. Three or more active
-    speakers in a scene, or only one so far, leaves an untagged quote `unknown` rather than guessing which
-    of several people it might be."""
-    cues: list[dict[str, Any]] = []
-    scene_speakers: dict[tuple[str, int], list[str]] = defaultdict(list)
-    last_speaker: dict[tuple[str, int], str] = {}
-    for paragraph, scene in zip(paragraphs, assign_scene_indices(paragraphs), strict=True):
-        if scene is None:
-            continue
-        chapter_id = paragraph.get("chapterId", "")
-        paragraph_id = paragraph.get("paragraphId", "")
-        scene_key = (chapter_id, scene)
-        text = paragraph.get("text", "")
-        own = extract_cues_from_text(text, character_index, chapter_id, paragraph_id)
-        for index, cue in enumerate(own):
-            if cue["speaker_entity_id"] is None:
-                active = scene_speakers[scene_key]
-                if len(active) == 2 and scene_key in last_speaker:
-                    other = next((speaker_id for speaker_id in active if speaker_id != last_speaker[scene_key]), None)
-                    if other:
-                        cue["speaker_entity_id"] = other
-                        cue["speaker_source"] = "continuation"
-            if cue["speaker_entity_id"] is None and nearby:
-                after_end = own[index + 1]["quote_start"] if index + 1 < len(own) else len(text)
-                before_start = own[index - 1]["quote_end"] if index else 0
-                near = nearby_speaker(text, (cue["quote_end"], after_end), (before_start, cue["quote_start"]), character_index)
-                if near:
-                    cue["speaker_entity_id"], cue["speaker_source"] = near, "proximity"
-            speaker_id = cue["speaker_entity_id"]
-            if speaker_id and cue["speaker_source"] != "proximity":  # a guess from proximity never starts a continuation
-                if speaker_id not in scene_speakers[scene_key]:
-                    scene_speakers[scene_key].append(speaker_id)
-                last_speaker[scene_key] = speaker_id
-            cues.append(cue)
-    return cues
-
-
-def merge_dialogue_cues(fresh: list[dict[str, Any]], previous_cues: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """A narrator's correction (the host's ``correctCue``) survives a rebuild the same way a locked entity does:
-    matched by `cue_id`, which is itself a hash of the paragraph, the quote's position and its text, so a cue
-    whose underlying text is unchanged always gets the same id back and reclaims its correction; a cue whose
-    paragraph text changed gets a new id and simply does not carry a stale correction onto unrelated content."""
-    previous_by_id = {cue["id"]: cue for cue in previous_cues}
-    merged = []
-    for cue in fresh:
-        prior = previous_by_id.get(cue["id"])
-        if prior and prior.get("corrected"):
-            cue = {**cue, "speaker_entity_id": prior.get("speaker_entity_id"), "speaker_source": prior.get("speaker_source", "correction"), "corrected": True}
-        merged.append(cue)
-    return merged
-
-
-def refresh_cues(args: argparse.Namespace) -> None:
-    """Writes the dialogue cues without a Story Bible build, against the entries already filed under a speaking type: the host runs it
-    after a manuscript import and after a scan. With ``--chapter-id``, only those chapters' cues are recomputed and the rest are kept.
-    A narrator's correction survives as it does a rebuild (``merge_dialogue_cues``). With no guide file yet, an empty one is started,
-    which the host reports as stale until a real build fills ``source``. Prints ``CUES|<cues>|<with a speaker>``."""
-    guide = load_json(args.guide) or empty_guide()
-    paragraphs = load_manuscript(args.manuscript)
-    chapters = set(args.chapter_id or [])
-    previous = guide.get("dialogue_cues", [])
-    scope = [paragraph for paragraph in paragraphs if not chapters or paragraph["chapterId"] in chapters]
-    cues = merge_dialogue_cues(guide_dialogue_cues(scope, guide.get("entities", []), speaking_types(guide)), previous)
-    if chapters:
-        order: dict[str, int] = {}
-        for paragraph in paragraphs:
-            order.setdefault(paragraph["chapterId"], len(order))
-        kept = [cue for cue in previous if cue.get("chapterId") not in chapters]
-        cues = sorted([*kept, *cues], key=lambda cue: order.get(cue.get("chapterId", ""), len(order)))
-    guide["dialogue_cues"] = cues
-    write_json(args.guide, guide)
-    print(f"CUES|{len(cues)}|{sum(1 for cue in cues if cue.get('speaker_entity_id'))}")
 
 
 def _phoneme_block(ipa: str) -> str | None:
@@ -1561,10 +1354,6 @@ def main() -> None:
     lookup_parser.add_argument("--espeak-library", default="")
     lookup_parser.add_argument("--wiktextract-index", default="")
     lookup_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
-    cues_parser = command.add_parser("cues", help="write the dialogue cues against the entries already filed, without a build")
-    cues_parser.add_argument("--guide", required=True)
-    cues_parser.add_argument("--manuscript", required=True)
-    cues_parser.add_argument("--chapter-id", action="append", default=[], help="recompute only this chapter's cues; repeat for several")
     audio_parser = command.add_parser("render-audio")
     audio_parser.add_argument("--guide", required=True)
     audio_parser.add_argument("--entity-id", required=True)
@@ -1606,7 +1395,6 @@ def main() -> None:
             "pronounce": pronounce,
             "candidate": candidate,
             "pronunciation": lookup_pronunciations,
-            "cues": refresh_cues,
             "render-audio": render_audio,
             "self-check": self_check,
             "capabilities": capabilities,

@@ -274,7 +274,7 @@ func readPronunciation(value map[string]any) {
 }
 
 // DialogueCue is one entry of the guide file's dialogue_cues
-// (written by manuscript_guide.py extract_dialogue_cues/merge_dialogue_cues): a quoted span with its
+// (written by RefreshCues, cues.go): a quoted span with its
 // resolved (or unknown) speaker. It is a document-level list, a sibling of
 // "entities", not per-entity data.
 type DialogueCue struct {
@@ -329,8 +329,8 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 
 // CorrectCue records the narrator's own attribution for one dialogue cue
 // (speakerEntityID "unknown" or "" clears it back to unknown), so the next
-// rebuild's merge_dialogue_cues keeps it instead of overwriting it with
-// fresh, possibly-unknown, extraction - the same durability src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock
+// refresh's mergeDialogueCues (cues.go) keeps it instead of overwriting it with
+// fresh, possibly-unknown, extraction - the same durability a build's lock
 // guard already gives a locked entity, applied to a cue instead.
 func (s *Service) CorrectCue(cueID, speakerEntityID string) error {
 	return s.mutateInHost(func(document map[string]any) (bool, error) { return correctCue(document, cueID, speakerEntityID) })
@@ -391,12 +391,18 @@ func (s *Service) command(args []string) (string, []string, error) {
 const RulesOnly = "rules-only"
 
 // Build runs the Story Bible build. model is what the sidecar gives spaCy: the folder of an installed model, a model name, or RulesOnly.
+// The sidecar's build keeps the file's dialogue cues as they were; the host then finds them against the new entries (RefreshCues), which
+// leaves the file the sidecar's build wrote while it found the cues itself, byte for byte (TestBuildThenRefreshIsTodaysBuild). A refresh
+// that fails fails the build, as the cues failing in the sidecar did, though the new entries are written by then.
 func (s *Service) Build(progress, log, model string) (string, error) {
 	if e := os.MkdirAll(filepath.Dir(s.guidePath()), 0755); e != nil {
 		return "", e
 	}
 	out, err := s.Run(s.buildArgs(progress, log, model)...)
 	if err != nil {
+		return out, err
+	}
+	if _, err := s.RefreshCues(context.Background()); err != nil {
 		return out, err
 	}
 	_ = s.SaveFindings() // best-effort; a problem here never fails a build that already succeeded (see SaveFindings)
