@@ -21,6 +21,10 @@
     top: 1.875rem;
     border-top: 1px solid var(--border);
   }
+}
+/* The icon rail is drawn from 860 px; below it the rail is display: none and the navigation drawer takes over, where an absolute mark would
+   have no offset parent (the visual suite's escaped-block guard). */
+@media (min-width: 860px) and (max-width: 1359px) {
   /* In the icon rail a page's count and its lock stay on show, at the icon's top right corner: the count as an 8 px accent dot (its
      number is in the item's name), the lock at its own 11 px, so a locked page does not look available (alignment audit cause N).
      The open rail draws them at the item's end as the wide rail does. */
