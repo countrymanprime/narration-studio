@@ -216,12 +216,14 @@ REAPER starts when it opens; nothing is written until you press the dialog's act
 bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
-items that hold its recording. Choose the track for each chapter; **Items to stamp** shows how many of
-that track's items will carry it, and **Stamp N items** writes it. An item already stamped with a
+items that hold its recording. Choose the track for each chapter; **To stamp** shows how many of
+that track's items will carry it, and **Stamp N items** writes it. What the stamp did, or why it failed, shows at the top
+of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different
 chapter**, and items REAPER no longer has are listed as stale. **Read current stamps** lists what the
 project carries now, with each item's status (OK, Text changed since stamping, Manuscript re-imported
-since stamping, Chapter no longer in the manuscript, and so on). This is not the same as the
+since stamping, Chapter no longer in the manuscript, and so on); if reading fails, the reason shows there, under
+the button. This is not the same as the
 [Chapter links](#linking-chapters-to-tracks) list below: that list is kept by the app and changes
 nothing in REAPER, and the dialog starts with every chapter Not linked whatever the list says.
 
@@ -231,18 +233,21 @@ The lines to record again have their own page, [Pickups](pickups.md); a proofer'
 **Prepare chapter render…** sets REAPER's render to every chapter region, names each file after its
 region, and saves into the **Output folder** (a `renders` folder in the project to start with). Press
 **Configure render** and it lists the files the render will create. It never renders anything itself:
-press Render in REAPER (Ctrl+Alt+R or File > Render) to create the files. If the project has no chapter
-regions yet, it says so.
+press Render in REAPER (Ctrl+Alt+R or File > Render) to create the files. Once it is configured, **Close** is the main
+button. If the project has no chapter regions yet, it warns you and offers **Create chapter regions…**, which opens
+that tool in its place.
 
 **Create chapter regions…** plans one REAPER region per chapter with a confirmed track link, plus an
 **Opening credits track** and **Closing credits track** you choose in the dialog, and shows the plan
 before writing anything: each row's title, track, start, end and status (New region, Already exists,
 Moves an existing region, or Several regions share this title). A chapter or credits track with nothing
-to plan is listed under **Not planned**, with why (for example, no track is linked to that chapter).
+to plan is listed under **Not planned**, one line per reason naming its chapters (for example, "No track is linked to this
+chapter. Chapter 2, Chapter 3").
 Tick **Move an existing region that shares a chapter's title, instead of adding a second one** to move a
 same-titled region instead of adding another; left unticked, a region that would move or is ambiguous
 still gets a new one alongside it. **Create N regions** writes the plan in one step and reports what
-happened ("Sent 3: 2 created, 1 already existed, 0 moved, 0 ambiguous, 0 failed."). Creating chapter
+happened, naming only the counts that aren't zero ("Sent 3: 2 created, 1 already existed."); **Close** then becomes the
+main button. Creating chapter
 regions is an experimental REAPER action ([Settings](settings.md)), off by default: until you turn it
 on, **Create N regions** stays disabled and says why.
 
@@ -257,12 +262,14 @@ in REAPER first, then press **Open** beside the tool. **Repair Pops/Clicks** is 
 (REAPER 7.80 or later); **Magnolius DeClick** is a free third-party script for mouth clicks, and works only
 if you installed it in REAPER yourself (ReaPack, or Actions > Load ReaScript). The app never
 installs it. Opening a tool changes nothing: you apply or cancel the repair in its own window, and REAPER's
-Undo takes it back. If nothing is selected, the tool is missing, or your REAPER is too old, the dialog says so.
+Undo takes it back. What happened shows under the tool you opened; if nothing is selected, the tool is missing, or
+your REAPER is too old, it says so there.
 
 **Retakes on lanes…** is for retakes recorded into REAPER's fixed item lanes. It lists every line of
 the manuscript (linked with **Link chapters…**) that has retakes on more than one lane of a track, with
 each retake's lane, its item name and whether that lane plays in the saved project. Press **Play this
-lane** beside the retake you want: that lane becomes the only one playing on its track. A lane plays
+lane** beside the retake you want: that lane becomes the only one playing on its track. The lane that already plays is
+highlighted, marked **Plays**, and its button is off. A lane plays
 across the whole track, so every other lane of that track goes silent, not only for this line.
 Nothing else changes, and one Undo in REAPER puts the previous lanes back. The app never turns
 lanes on, converts takes to lanes or builds a comp: if a track is not in fixed-lane mode, or the retake

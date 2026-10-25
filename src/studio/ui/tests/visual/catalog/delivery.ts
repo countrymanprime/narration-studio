@@ -77,7 +77,7 @@ export const deliveryStates: StateEntry[] = [
     page: 'delivery',
     state: 'host-quiet-cancelled',
     description:
-      'Delivery with the host not answering (?mockDelivery=quiet), after Check again and then Cancel - "You checked again just now: the host still did not answer." and "Cancel was sent, but the host did not confirm it, so the build may still be running." with the quiet notice and Cancel still up',
+      'Delivery with the host not answering (?mockDelivery=quiet), after Check again and then Cancel - the quiet notice ending "(you checked again just now)." and "Cancel was sent, but the host did not confirm it, so the build may still be running." with the quiet notice and Cancel still up',
   },
   {
     page: 'delivery',

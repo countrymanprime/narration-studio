@@ -103,26 +103,13 @@ function VoiceDataContent({
   const sections = { source, player: player ?? own, notify, choices };
   return (
     <>
-      <div className="space-y-4">
+      <div className="@container space-y-4">
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Narration's voice samples and approved references are here - a character's own live on its entry. Remove voice data clears every approved reference in
           the project; Remove voice samples deletes every sample and its audio. Nothing else about the Story Bible changes.
         </p>
         <VoiceSamplesSection {...sections} characterId={NARRATION_CHARACTER_ID} characterName="Narration" heading="Narration voice samples" canManage />
         <VoiceReferencesSection key={refreshKey} characterId={NARRATION_CHARACTER_ID} characterLabel="Narration" notify={notify} />
-        {list ? (
-          <p className="m-0 text-sm text-[var(--text-muted)]" data-voice-samples-total>
-            Voice samples use {mebibytes(list.totals.bytes)} of {mebibytes(list.limits.projectBytes)}.
-          </p>
-        ) : null}
-        <div className="flex flex-wrap gap-2 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-          <Button variant="danger" disabled={!list || list.totals.count === 0} onClick={() => setConfirming('samples')}>
-            Remove voice samples…
-          </Button>
-          <Button variant="danger" onClick={() => setConfirming('references')}>
-            Remove voice data…
-          </Button>
-        </div>
         <VoiceSamplesSection
           {...sections}
           characterId="removed"
@@ -133,6 +120,23 @@ function VoiceDataContent({
           checkAgain={false}
           canManage
         />
+        {/* The project-wide footer comes last, under everything it removes (the removed character's samples too), with the space used above
+            the two remove buttons, which stand at one width (R3SB2-9). */}
+        <div className="space-y-3 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+          {list ? (
+            <p className="m-0 text-sm text-[var(--text-muted)]" data-voice-samples-total>
+              Voice samples use {mebibytes(list.totals.bytes)} of {mebibytes(list.limits.projectBytes)}.
+            </p>
+          ) : null}
+          <div className="grid grid-cols-1 gap-2 @min-[24rem]:grid-cols-2">
+            <Button variant="danger" disabled={!list || list.totals.count === 0} onClick={() => setConfirming('samples')}>
+              Remove voice samples…
+            </Button>
+            <Button variant="danger" onClick={() => setConfirming('references')}>
+              Remove voice data…
+            </Button>
+          </div>
+        </div>
       </div>
       {confirming === 'references' && (
         <ConfirmDialog
@@ -148,7 +152,7 @@ function VoiceDataContent({
       {confirming === 'samples' && (
         <ConfirmDialog
           title="Remove voice samples"
-          body="Delete every voice sample in this project, for every character and for Narration, with their audio? This cannot be undone; the recordings they were copied from are not touched."
+          body={`Delete every voice sample in this project${list ? ` (${list.totals.count === 1 ? 'one sample' : `${list.totals.count} samples`}, ${mebibytes(list.totals.bytes)})` : ''}, for every character and for Narration, with their audio? This cannot be undone; the recordings they were copied from are not touched.`}
           confirmLabel="Remove voice samples"
           confirmVariant="danger"
           pending={mutation.isPending('remove-samples')}

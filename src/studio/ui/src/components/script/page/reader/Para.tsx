@@ -126,7 +126,8 @@ export const Para = memo(function Para({
       data-just-changed={flash ? '' : undefined}
       className={`relative py-1.5 ${flash ? `flash ${CHANGE_HIGHLIGHT_CLASSES}` : ''}`}
     >
-      <div data-gutter="" className="absolute inset-y-0 left-[-19px] w-4">
+      {/* Centred in the text's 24 px inset: a ribbon's glyph keeps 6 px from the panel edge and from the first letter (XSC-21). */}
+      <div data-gutter="" className="absolute inset-y-0 left-[-20px] w-4">
         {renderGutter?.(paragraph)}
       </div>
       <p data-pid={paragraph.id} className="m-0 whitespace-pre-wrap">

@@ -47,8 +47,25 @@ describe('the report export', () => {
     expect(screen.queryByText(/Check some files first/)).toBeNull();
   });
 
-  it('stays off while a job runs', () => {
+  it('stays off while a job runs, and says why beside it', () => {
     mount({ busy: true, measured: true });
-    expect(screen.getByRole('button', { name: 'Export report' })).toHaveProperty('disabled', true);
+    const button = screen.getByRole('button', { name: 'Export report' });
+    expect(button).toHaveProperty('disabled', true);
+    expect(button.getAttribute('aria-describedby') && document.getElementById(button.getAttribute('aria-describedby')!)?.textContent).toBe(
+      'Wait for the running check to end.',
+    );
+  });
+
+  // R4TB-4, R4MS1-11, R4MS2-3: the button, its reason and its option sit together at the foot of the card, not the button alone in the header.
+  it('keeps the button with its reason and its option, the option off with it', () => {
+    mount({ measured: false });
+    const button = screen.getByRole('button', { name: 'Export report' });
+    const reason = screen.getByText(/^Check some files first/);
+    expect(button.parentElement).toBe(reason.parentElement);
+    expect(button.getAttribute('aria-describedby')).toBe(reason.id);
+    expect(button.closest('[class*="border-b"]')).toBeNull();
+    expect(screen.getByRole('checkbox', { name: /Include each file/ }).hasAttribute('data-disabled')).toBe(true);
+    // R4MS2-2: the folder is one unbroken name.
+    expect(screen.getByText(`${brand.identity.projectFolder}/delivery`).className).toContain('whitespace-nowrap');
   });
 });

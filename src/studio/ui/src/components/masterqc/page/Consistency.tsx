@@ -3,8 +3,13 @@ import { formatLevel } from '../../master/deliveryFormat';
 import { isSample, profileName } from './packageItems';
 
 const W = 520;
-const H = 70;
-const PAD = 12;
+const H = 48;
+// Room at each end for a tick on the scale's edge.
+const PAD = 3;
+// The band, and how far a tick stands past it above and below.
+const BAND_TOP = 10;
+const BAND_HEIGHT = 28;
+const TICK_OVER = 5;
 
 /**
  * Book consistency (the Studio Next mock's `Consistency`): each measured file's RMS as a tick against the profile's RMS range, red when
@@ -23,40 +28,43 @@ export function Consistency({ files, profile }: { files: readonly MeasureFileRes
 
   const values = rows.map((row) => row.rms);
   const band = rule && rule.min !== null && rule.max !== null ? { lo: rule.min, hi: rule.max } : undefined;
-  const lo = Math.min(...values, band?.lo ?? Infinity) - (band ? 1 : 1);
-  const hi = Math.max(...values, band?.hi ?? -Infinity) + 1;
+  // The scale runs from the band's ends (or the furthest file outside them), so the band fills the card's width and starts where the
+  // caption does (XMS-20); with no band, a dB of room either side of the files.
+  const margin = band ? 0 : 1;
+  const lo = Math.min(...values, band?.lo ?? Infinity) - margin;
+  const hi = Math.max(...values, band?.hi ?? -Infinity) + margin;
   const x = (value: number) => PAD + ((value - lo) / (hi - lo)) * (W - 2 * PAD);
   const spread = Math.max(...values) - Math.min(...values);
-  const label = { fontSize: 11, fill: 'var(--text-muted)', fontFamily: 'IBM Plex Mono,monospace' };
+  // Where a value sits across the chart, as a share of its width, for the HTML labels under it.
+  const at = (value: number) => `${(x(value) / W) * 100}%`;
+  const chartLabel = `RMS by file against ${rangeOf(profile)}`;
   return (
     <>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="block h-auto w-full"
-        role="img"
-        aria-label={`RMS by file against the ${profile ? profileName(profile) : 'profile'} range`}
-      >
+      {/* The chart fills the card's width at a fixed height (the strokes keep their width), so the band lines up with the caption and
+          the ticks stand only a little past the band; its labels are HTML at body size under it, not SVG text that shrank to 7 px at
+          390 (XMS-20, R3MS-18). */}
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block h-12 w-full" role="img" aria-label={chartLabel}>
         {band && (
-          <>
-            <rect x={x(band.lo)} y={22} width={x(band.hi) - x(band.lo)} height={26} rx={4} fill="var(--ok-soft)" stroke="var(--ok)" />
-            <text x={x(band.lo)} y={H - 6} {...label}>
-              {formatLevel(band.lo)}
-            </text>
-            <text x={x(band.hi)} y={H - 6} textAnchor="end" {...label}>
-              {formatLevel(band.hi)}
-            </text>
-          </>
+          <rect
+            x={x(band.lo)}
+            y={BAND_TOP}
+            width={x(band.hi) - x(band.lo)}
+            height={BAND_HEIGHT}
+            fill="var(--ok-soft)"
+            stroke="var(--ok)"
+            vectorEffect="non-scaling-stroke"
+          />
         )}
         {rows.map(({ file, rms, missed }) => (
           <line
             key={file.path}
             x1={x(rms)}
             x2={x(rms)}
-            y1={16}
-            y2={54}
+            y1={BAND_TOP - TICK_OVER}
+            y2={BAND_TOP + BAND_HEIGHT + TICK_OVER}
             stroke={missed ? 'var(--danger-text)' : 'var(--text)'}
             strokeWidth={3}
-            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
           >
             <title>
               {file.name}: {formatLevel(rms)} dB{missed ? ' (not met)' : ''}
@@ -64,9 +72,28 @@ export function Consistency({ files, profile }: { files: readonly MeasureFileRes
           </line>
         ))}
       </svg>
-      <p className="text-sm text-[var(--text-muted)]">
+      {band && (
+        <div aria-hidden="true" className="relative mt-1.5 h-5 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] text-[var(--text-muted)]">
+          <span className="absolute" style={{ left: at(band.lo) }}>
+            {formatLevel(band.lo)}
+          </span>
+          <span className="absolute -translate-x-full" style={{ left: at(band.hi) }}>
+            {formatLevel(band.hi)}
+          </span>
+        </div>
+      )}
+      <p className="mt-1 text-sm text-[var(--text-muted)]">
         Spread {spread.toFixed(1)} dB across {rows.length} {rows.length === 1 ? 'file' : 'files'}.
       </p>
     </>
   );
+}
+
+/**
+ * "the ACX range", or for a custom profile its own name in quotes ("the range of “My ACX, tighter peak”"), so a name with a comma or a
+ * capital does not read as part of the sentence (R4MS2-7).
+ */
+export function rangeOf(profile: DeliveryProfile | undefined): string {
+  if (!profile) return 'the profile range';
+  return profile.builtIn ? `the ${profileName(profile)} range` : `the range of “${profileName(profile)}”`;
 }

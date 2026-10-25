@@ -47,21 +47,21 @@ export const NotScored: Story = {
 export const LegendWide: Story = {
   render: () => (
     <div className="bg-[var(--surface)] p-3">
-      <Legend doc={doc} compact={false} />
+      <Legend doc={doc} />
     </div>
   ),
 };
 export const LegendNarrow: Story = {
   render: () => (
-    <div className="bg-[var(--surface)] p-3">
-      <Legend doc={doc} compact />
+    <div className="w-[16rem] bg-[var(--surface)] p-3">
+      <Legend doc={doc} />
     </div>
   ),
 };
 export const LegendNotTranscribed: Story = {
   render: () => (
     <div className="bg-[var(--surface)] p-3">
-      <Legend doc={{ ...doc, aligned: false }} compact={false} />
+      <Legend doc={{ ...doc, aligned: false }} />
     </div>
   ),
 };
