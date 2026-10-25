@@ -5,6 +5,7 @@ import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity, GuideReview, GuideType } from '../../types';
 import type { SwatchColour } from '../primitives/Swatch';
 import { entryColour } from '../../kinds/entityColour';
+import { categoryLabel } from '../../state';
 import { verifyOf } from './suggested/row/selectors';
 
 /** The names the app links in the text for an entry, as the detail lists them: its own name and each alias (the mock's "1 name"). */
@@ -12,6 +13,10 @@ export const nameCount = (entry: GuideEntity): number => 1 + entry.aliases.lengt
 
 /** The host could not tell what type the entry is (`Needs Review` is a state, never a type): the row says so and still asks for review. */
 export const typeUnknown = (entry: GuideEntity): boolean => entry.category === 'Needs Review';
+
+/** An entry's kind in words, the same in the list and in the relationship picker: "Type not set" when the host could not tell. */
+export const kindLabel = (entry: GuideEntity): string =>
+  entry.category === 'Draft' ? categoryLabel(entry.category) : typeUnknown(entry) ? 'Type not set' : entry.category;
 
 /** How many chapters the entry appears in: from `appearances`, or from its evidence on a file written before appearances existed. */
 export function chapterCount(entry: GuideEntity): number {
