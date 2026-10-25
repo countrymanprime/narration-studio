@@ -70,7 +70,7 @@ export interface CaptureRecord {
   // What axe reported for this capture, grouped by rule; undefined when axe did not run (it is off unless the project
   // declares axeDebt or a run sets UI_AXE=1), an empty list when it ran and found nothing.
   axe?: AxeFinding[];
-  // What the alignment rules found (lib/layoutScan.ts), gated or not; undefined in a record written before they ran.
+  // What the alignment rules found (lib/layoutScan.ts), declared in layout-debt.ts or not; undefined in a record written before they ran.
   layout?: LayoutHit[];
 }
 
