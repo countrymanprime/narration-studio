@@ -95,4 +95,13 @@ describe('ToggleGroup', () => {
     await userEvent.setup().click(within(group).getByRole('button', { name: 'Kobo' }));
     expect(onChange).toHaveBeenCalledWith('kobo');
   });
+  // Alignment audit cause L: the default group was a plain flex row, so chips squeezed their labels or ran out of the panel
+  // unless each caller remembered `flex-wrap gap-1.5`.
+  it('wraps its chips with a 6 px gap by default and never breaks a chip label', () => {
+    render(<Controlled />);
+    const group = screen.getByRole('group', { name: 'Log detail' });
+    expect(group.className).toContain('[:where(&)]:flex-wrap');
+    expect(group.className).toContain('[:where(&)]:gap-1.5');
+    for (const chip of screen.getAllByRole('button')) expect(chip.className).toContain('whitespace-nowrap');
+  });
 });
