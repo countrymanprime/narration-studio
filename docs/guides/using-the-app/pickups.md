@@ -25,8 +25,8 @@ exported on [Proof](proof.md#the-notes).
 
 ![Pickups - all chapters: the chapter stepper, Check recordings and Add a pickup by hand in the head, the lines grouped by chapter, and the Pickup session panel](../../images/ui/pickups-list.webp)
 
-The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it). Chapters are named as the
-manuscript heads them. The lines are grouped by chapter, each group with how many lines are open, and each line has:
+The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it). Chapters are named by number and
+title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by chapter, each group with how many lines are open, and each line has:
 
 - a box that includes it in the next session, or leaves it out (Space on a selected line does the same); a line left out has its time and words greyed;
 - its time in the recording, its type, the line to re-record, where it came from (a speech check's score under **Speech**) and its status (**Open** or

@@ -130,7 +130,7 @@ Press **B** to bookmark the line you are on (or use **Bookmark here** on the sel
 
 A stopping place you set in the [Booth](booth.md#pages-and-your-stopping-place) with **Read to here** shows here too, as a chequered-flag ribbon, and in the jump menu as **Read to here: …**. Press it to give it a label and note, like any bookmark.
 
-![Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added toast with Undo](../../images/ui/script-bookmark.webp)
+![Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added message](../../images/ui/script-bookmark.webp)
 
 ## First-use tips
 

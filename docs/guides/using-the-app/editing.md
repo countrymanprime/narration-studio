@@ -415,7 +415,7 @@ opens so a DAW that connects on its own never shows it; the X closes it, and the
 opens it again. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
 read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
-![Editing - the dialog when the DAW is not connected, with Start REAPER and Check again](../../images/ui/editing-daw-off.webp)
+![Editing - the dialog when the DAW (here Audacity) is not connected, with Start Audacity and Check again](../../images/ui/editing-daw-off.webp)
 
 ![Editing - the mark that reopens the dialog once it is closed](../../images/ui/editing-daw-off-closed.webp)
 
