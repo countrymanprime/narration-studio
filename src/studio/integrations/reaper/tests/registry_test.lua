@@ -55,6 +55,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'fx_range_set_param',
     'go_to',
     'hide_takes',
+    'import_audio_track',
     'import_pickups',
     'inspect_compare_results',
     'jump_to_compare_marker',

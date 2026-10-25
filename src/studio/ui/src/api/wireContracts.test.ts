@@ -47,6 +47,16 @@ import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
+import {
+  narratorsChangeSchema,
+  narratorsSchema,
+  replaceAnswerSchema,
+  replaceFileAnswerSchema,
+  replaceFilePeaksSchema,
+  replacePlanSchema,
+  replacementsChangeSchema,
+  replacementsSchema,
+} from './schemas/replace';
 import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
 import type { EditStackRecordRequest } from './contracts/editStacks';
 import { passageStackSchema, retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
@@ -4297,6 +4307,16 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingStackRemove',
       'editingRetryModeGet',
       'editingRetryModeSet',
+      'replaceNarrators',
+      'replaceNarratorAdd',
+      'replaceNarratorRemove',
+      'replaceAddFile',
+      'replacePlan',
+      'dawReplaceRange',
+      'dawRestoreReplacement',
+      'editingReplacementsList',
+      'editingReplacementRemove',
+      'replaceFilePeaks',
       'marksList',
       'marksAdd',
       'marksRemove',
@@ -6086,5 +6106,94 @@ describe('the script prep bindings', () => {
     expect(scriptWordFlagSchema.safeParse({ ...flag, staleReason: 'moved' }).success).toBe(false);
     expect(scriptWordFlagSchema.safeParse({ ...flag, start: 9, end: 2 }).success).toBe(false);
     expect(scriptPrepSchema.safeParse({ ...list, extra: [] }).success).toBe(false);
+  });
+});
+
+describe('Replace audio (bindings_replace.go): the mock answers through the schemas the host goldens pass', () => {
+  async function linkedMock() {
+    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
+    const link = {
+      trackGuid: linkedTrack.guid,
+      chapterId: measured.id,
+      chapterTitle: measured.title,
+      confirmedAt: '2026-09-24T09:00:00Z',
+      origin: 'manual' as const,
+      match: null,
+    };
+    const api = createMockApi({}, { chapterTrackMappings: [link] });
+    const alignment = await api.workspaceAlignment(measured.id);
+    const heard = alignment.tokens.filter((token) => token.item !== undefined && token.p);
+    const first = heard[0];
+    if (!first) throw new Error('the linked mock chapter has heard words');
+    return { api, chapterId: measured.id, first: first.i, last: first.i + 2 };
+  }
+
+  it('names a narrator once, adds their file, plans, replaces, lists, puts back and forgets', async () => {
+    const { api, chapterId, first, last } = await linkedMock();
+    expectMatches(narratorsSchema, await api.replaceNarrators(), 'mock narrators (none)');
+    const added = await api.replaceNarratorAdd('  Eric Leach ');
+    expectMatches(narratorsChangeSchema, added, 'mock narrator add');
+    expect(added.changed).toEqual(['n-1']);
+    expect((await api.replaceNarratorAdd('eric leach')).changed).toEqual([]);
+    const file = await api.replaceAddFile('n-1');
+    expectMatches(replaceFileAnswerSchema, file, 'mock add file');
+    expect(file.fileId).toBe('f-1');
+    const again = await api.replaceAddFile('n-1');
+    expectMatches(replaceFileAnswerSchema, again, 'mock add the same file again');
+    expect(again.result.refused).toContain('already in the project');
+    expectMatches(replaceFilePeaksSchema, await api.replaceFilePeaks('f-1'), 'mock peaks');
+
+    const plan = await api.replacePlan(chapterId, first, last, 'f-1', 164.2, 167.2);
+    expectMatches(replacePlanSchema, plan, 'mock plan');
+    expect(plan).toMatchObject({ narrator: 'Eric Leach', words: 3, measuredLufs: -23.4, targetLufs: -20, gainDb: 3.4, clamped: false });
+    expect(plan.shift).toBeCloseTo(3 - (plan.end - plan.start), 6);
+
+    const replaced = await api.dawReplaceRange(chapterId, first, last, 'f-1', 164.2, 167.2, 10, plan.gainDb);
+    expectMatches(replaceAnswerSchema, replaced, 'mock replace');
+    expect(replaced.result.ok).toBe(true);
+    expect(replaced.result.message).toBe("Replaced 3 words with Eric Leach's audio in REAPER.");
+    expect(replaced.replacements.replacements[0]).toMatchObject({ id: replaced.replacementId, narratorName: 'Eric Leach', active: true, stale: false });
+    const twice = await api.dawReplaceRange(chapterId, first, last, 'f-1', 164.2, 167.2, 10, 0);
+    expect(twice.result.refused).toBe('Some of these words are already replaced. Put your audio back first.');
+    await expect(api.replaceNarratorRemove('n-1')).rejects.toThrow("Eric Leach's audio is in the project");
+
+    expectMatches(replacementsSchema, await api.editingReplacementsList(chapterId), 'mock replacements list');
+    const restored = await api.dawRestoreReplacement(chapterId, replaced.replacementId);
+    expectMatches(replaceAnswerSchema, restored, 'mock put back');
+    expect(restored.replacements.replacements[0]?.active).toBe(false);
+    expect((await api.dawRestoreReplacement(chapterId, replaced.replacementId)).result.refused).toBe(
+      'That replacement is not in this chapter any more, so nothing changed.',
+    );
+    const removed = await api.editingReplacementRemove(chapterId, replaced.replacementId);
+    expectMatches(replacementsChangeSchema, removed, 'mock forget');
+    expect(removed.changed).toEqual([replaced.replacementId]);
+  });
+
+  it('refuses what the host refuses, in its words, and changes nothing', async () => {
+    const { api, chapterId, first, last } = await linkedMock();
+    await expect(api.replaceNarratorAdd('Eric | Leach')).rejects.toThrow('no bar or control character');
+    await expect(api.replaceNarratorAdd('   ')).rejects.toThrow('1 to 80 characters');
+    expect((await api.replaceAddFile('n-9')).result.refused).toBe("That narrator is not on this project's list. Add them first.");
+    expect((await api.replacePlan(chapterId, first, last, 'f-9', 1, 2)).result.refused).toBe('That file of theirs is not in this project. Add it first.');
+    await api.replaceNarratorAdd('Eric Leach');
+    await api.replaceAddFile('n-1');
+    for (const [start, end] of [
+      [2, 1],
+      [0, 0.01],
+      [0, 301],
+      [796, 800],
+      [Number.NaN, 2],
+    ]) {
+      const plan = await api.replacePlan(chapterId, first, last, 'f-1', start, end);
+      expectMatches(replacePlanSchema, plan, `mock plan ${start}-${end}`);
+      expect(plan.result.refused).toBe('Choose a stretch of their audio inside their file, from 0.05 to 300 seconds long.');
+    }
+    expect((await api.dawReplaceRange(chapterId, first, last, 'f-1', 1, 2, 501, 0)).result.refused).toBe(
+      'The fade must be a whole number of milliseconds from 0 to 500.',
+    );
+    expect((await api.dawReplaceRange(chapterId, first, last, 'f-1', 1, 2, 10, 24.5)).result.refused).toBe('The level change must be from -24 to 24 dB.');
+    expect((await api.editingReplacementsList(chapterId)).replacements).toEqual([]);
   });
 });

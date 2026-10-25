@@ -43,6 +43,7 @@ import { createMarksMock } from './marksMock';
 import { createScriptPrepMock } from './scriptPrepMock';
 import { createExtractionMock } from './extractionMock';
 import { createEditCutsMock } from './editCutsMock';
+import { createReplaceAudioMock } from './replaceAudioMock';
 import { createWordFxMock } from './wordFxMock';
 import { createEditStacksMock } from './editStacksMock';
 import { createMockState, type MockApiSeed } from './mockHost/state';
@@ -455,6 +456,11 @@ export function createMockApi(
       () => s.paragraphs,
     ),
     ...createEditStacksMock(manuscriptReady, () => s.chapters),
+    ...createReplaceAudioMock({
+      ready: manuscriptReady,
+      alignment: workspace.workspaceAlignment,
+      paragraphText: (chapterId, paragraphId) => s.paragraphs.find((paragraph) => paragraph.id === paragraphId && paragraph.chapterId === chapterId)?.text,
+    }),
     ...createPassageMapMock(
       manuscriptReady,
       () => s.chapters,

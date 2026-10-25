@@ -162,3 +162,40 @@ func TestRestoreReplacementRefusals(t *testing.T) {
 		}
 	}
 }
+
+func TestImportTheirAudioAddsATrackInOneUndoStep(t *testing.T) {
+	var sent []string
+	replacer := rangeReplacerAnswering(t, func(command []string) [][]string {
+		sent = command
+		return [][]string{{"AUDIO_TRACK_ADDED", command[1], "{00000003-0000-4000-8000-000000000003}", replaceSource, "796.500000", "1"}}
+	})
+	got, err := replacer.ImportTheirAudio(t.Context(), "Eric Leach", "/home/kara/Eric Leach.mp3")
+	want := dawport.TheirAudio{Result: dawport.OK("Added Eric Leach's audio to REAPER on a muted track of its own.", true).WithUndoSteps(1),
+		Track: "{00000003-0000-4000-8000-000000000003}", Item: replaceSource, Length: 796.5}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("ImportTheirAudio = %+v, %v; want %+v", got, err, want)
+	}
+	if want := []string{"import_audio_track", "Eric Leach", "/home/kara/Eric Leach.mp3"}; !reflect.DeepEqual(append([]string{sent[0]}, sent[2:]...), want) {
+		t.Errorf("command = %v, want %v after the run", sent, want)
+	}
+}
+
+func TestImportTheirAudioRefusals(t *testing.T) {
+	for _, tc := range []struct {
+		answer []string
+		want   string
+	}{
+		{[]string{"ERROR", "That file is no longer there. Choose it again."}, "That file is no longer there. Choose it again."},
+		{[]string{"ERROR", "Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF)."}, "Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF)."},
+		{[]string{"ERROR", "REAPER is recording. Stop recording first."}, "REAPER is recording. Stop recording first."},
+		{[]string{"ERROR", "Unsupported workspace command"}, messageReplaceScriptOutdated},
+	} {
+		replacer := rangeReplacerAnswering(t, func(command []string) [][]string {
+			return [][]string{append([]string{tc.answer[0], command[1]}, tc.answer[1:]...)}
+		})
+		got, err := replacer.ImportTheirAudio(t.Context(), "Eric Leach", "/home/kara/x.mp3")
+		if err != nil || !reflect.DeepEqual(got, dawport.TheirAudio{Result: dawport.Refused(tc.want)}) {
+			t.Errorf("%v: ImportTheirAudio = %+v, %v", tc.answer, got, err)
+		}
+	}
+}
