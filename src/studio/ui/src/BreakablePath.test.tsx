@@ -16,7 +16,7 @@ describe('BreakablePath', () => {
   });
 
   it('keeps a path with no separator whole, still allowed to wrap when longer than the line', () => {
-    const { container } = render(<BreakablePath path="NarrationStudio" />);
+    const { container } = render(<BreakablePath path="Recordings" />);
     expect(container.firstElementChild!.className).toContain('[overflow-wrap:anywhere]');
     expect(container.querySelectorAll('wbr')).toHaveLength(1);
   });
