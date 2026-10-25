@@ -6,7 +6,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi, TeleprompterLocateResult, TeleprompterResumePlace, TeleprompterResumeVerdict, TeleprompterSpan } from '../../../types';
 import { ResumeOffer } from './ResumeOffer';
-import { resumeOfferFor, paragraphAt, saveNote } from './resumeOfferModel';
+import { offerAwayFrom, resumeOfferFor, paragraphAt, saveNote } from './resumeOfferModel';
 
 afterEach(cleanup);
 
@@ -154,6 +154,22 @@ describe('ResumeOffer', () => {
     const { teleprompterLocate } = show(Promise.reject(new Error('x')) as never);
     await waitFor(() => expect(teleprompterLocate).toHaveBeenCalled());
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+describe('offerAwayFrom', () => {
+  const state = resumeOfferFor({ spans, recording: false, kept: { paragraphId: 'p2', word: 4 } });
+  it('offers nothing while the reading position already is the offered place (R4BO1-3, R4BO2-10)', () => {
+    expect(offerAwayFrom(state, { paragraphId: 'p2', word: 4 })).toEqual({ kind: 'none' });
+  });
+  it('keeps the offer elsewhere, a word away in the same paragraph included, and with no position yet', () => {
+    expect(offerAwayFrom(state, { paragraphId: 'p2', word: 0 })).toBe(state);
+    expect(offerAwayFrom(state, { paragraphId: 'p1', word: 4 })).toBe(state);
+    expect(offerAwayFrom(state, undefined)).toBe(state);
+  });
+  it('keeps a note that explains why there is no offer', () => {
+    const none = { kind: 'none' as const, note: 'Model missing.' };
+    expect(offerAwayFrom(none, { paragraphId: 'p2', word: 4 })).toBe(none);
   });
 });
 

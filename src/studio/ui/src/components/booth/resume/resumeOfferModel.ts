@@ -71,6 +71,16 @@ export function resumeOfferFor(args: {
   return NONE;
 }
 
+/**
+ * The offer as the top bar shows it: nothing while the reading position already is the offered place, since choosing it would move
+ * nothing and the progress line beside it already says that paragraph (alignment audit R4BO1-3, R4BO2-10).
+ */
+export function offerAwayFrom(state: ResumeOfferState, position: ResumeTarget | null | undefined): ResumeOfferState {
+  if (state.kind !== 'offer' || !position) return state;
+  const { offer } = state;
+  return offer.paragraphId === position.paragraphId && offer.word === position.word ? NONE : state;
+}
+
 const SOURCE_TEXT: Record<ResumeSource, string> = {
   live: 'from the live project',
   saved: 'from the saved project',
