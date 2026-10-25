@@ -25,8 +25,8 @@ the column on the right holds the [delivery package](#the-delivery-package) and
 
 Press **Check files…** and pick one or more rendered chapter files. Only WAV files are measured for now;
 a file in another format, or one that cannot be read, is listed with the reason and does not stop the
-others. The bar shows how much of the audio has been read so far, with the file being measured, and
-**Cancel** stops the check: files already measured keep their results. You can leave the page while it
+others. The bar, in the table's card under the button, shows how much of the audio has been read so far,
+with the file being measured (its row reads **Measuring**), and **Cancel** stops the check: files already measured keep their results. You can leave the page while it
 runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
 the page says **Can't tell how the measurement is going, last heard N s ago** with a **Check again** button, and keeps
 trying every couple of seconds; the check itself keeps running. Once files are checked the button reads
@@ -36,9 +36,13 @@ picks others.
 ![A check in progress, with its real progress and Cancel](../../images/ui/master-running.webp)
 
 The files table has a row per chapter, then one for the opening and closing credits and one for the retail
-sample, whether or not each has a file, so it is never empty. A row with no file says what it waits on in
-place of its values and shows a neutral **Waiting** pill: **Waiting on 3 pickups · not mastered** when the
+sample, whether or not each has a file, so it is never empty. A row with no file shows a neutral **Waiting**
+pill and says what it waits on in place of its values: **Waiting on 3 pickups · not mastered** when the
 chapter has open pickups (the number the Pickups page lists), else **No file measured yet · not mastered**.
+What several rows have in common is said once, above the table, not on each row: **Nothing measured yet**
+before any check, then lines such as **12 rows marked Waiting: no file measured yet · not mastered.** or,
+after a check that stopped, **2 rows marked Not measured: the check stopped before these files**. A row
+whose reason is its own (its pickups, a file that could not be read) keeps it in the row.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
 tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
 profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
@@ -48,7 +52,9 @@ profile's rule is red with a cross; a value the app could not measure (a silent 
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
 measurement stopped unexpectedly on that file, and the technical error goes to the app's run log, not
-the screen. The table opens on the first file that fails; the arrow keys move between files and Enter
+the screen. A long reason wraps inside its own columns: the columns stay where they are whatever the rows say.
+If the chapters or the delivery profile cannot be read, the card says so above the table with **Retry** at its
+right edge. The table opens on the first file that fails; the arrow keys move between files and Enter
 selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
