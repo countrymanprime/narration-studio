@@ -6,10 +6,11 @@ import { TooltipTarget } from './Tooltip';
 
 // The nav item with the values taken from the Studio Next mock's `.nav` (the frozen reference, `docs/design/design-system.md#which-mocks-are-the-spec`): 40 px tall on a 42 px pitch (the rail's group puts 2 px between items),
 // radius 8 (6 on the right for the current page), the label Barlow Condensed 600 at 15 px tracked 0.12em in capitals, a 20 px icon in a fixed 22 px box (`!`: FontAwesome's `fa-fw` sets 1.25em), 10 px from the label.
+// Only the item's own icon (`>svg`) takes that size: the lock keeps its own 11 px (alignment audit cause N, where it inherited 20 px).
 // The current page is the mock's default "bar" highlight (`html[data-hl="bar"] .nav[aria-current="page"]`): `--surface-2` (the mock's `--raised`)
 // with the label in `--text` and a 3 px `--accent` bar down its left edge, square on the left and 6 px round on the right. The icon-only rail (`medium-rail`) keeps its 40 px square items and 16 px icons.
 const ITEM =
-  "relative flex h-10 w-full items-center gap-[0.625rem] border-0 pr-3 pl-[0.625rem] text-left font-['Barlow_Condensed',sans-serif] text-[0.9375rem] font-semibold tracking-[0.12em] uppercase [&_svg]:w-[1.375rem]! [&_svg]:flex-none [&_svg]:text-[1.25rem] [.medium-rail_&]:h-10 [.medium-rail_&]:justify-center [.medium-rail_&]:p-0 [.medium-rail_&_svg]:text-base";
+  "relative flex h-10 w-full items-center gap-[0.625rem] border-0 pr-3 pl-[0.625rem] text-left font-['Barlow_Condensed',sans-serif] text-[0.9375rem] font-semibold tracking-[0.12em] uppercase [&>svg]:w-[1.375rem]! [&>svg]:flex-none [&>svg]:text-[1.25rem] [.medium-rail_&]:h-10 [.medium-rail_&]:justify-center [.medium-rail_&]:p-0 [.medium-rail_&>svg]:text-base";
 
 const ROUND = 'rounded-lg';
 const CURRENT = 'rounded-[0_6px_6px_0] bg-[var(--surface-2)] text-[var(--text)] shadow-[inset_3px_0_0_var(--accent)]';
@@ -62,6 +63,7 @@ export function NavButton({
       {showCount && (
         <span
           aria-hidden="true"
+          data-nav-count
           className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--surface-2)] px-[0.3125rem] text-[length:var(--font-size-label)] tracking-normal text-[var(--text-muted)]"
         >
           {count}

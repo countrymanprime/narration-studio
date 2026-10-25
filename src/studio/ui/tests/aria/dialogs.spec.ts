@@ -107,6 +107,11 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'editing-voice-sample-dialog.aria.yml',
   },
   {
+    name: "Editing: replacing words with another narrator's audio is a modal dialog with whose audio, their stretch, the level and length, the plan and both actions",
+    state: ['editing', 'replace-dialog'],
+    snapshot: 'editing-replace-dialog.aria.yml',
+  },
+  {
     name: 'Story Bible: renaming a voice sample is a modal dialog with the label, the note and both actions',
     state: ['storybible', 'voice-sample-rename'],
     snapshot: 'story-bible-rename-voice-sample.aria.yml',
