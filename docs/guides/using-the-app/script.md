@@ -73,7 +73,8 @@ Select words in the reader and a dark toolbar appears over them:
 
 - **Mark** puts one of your marks on them, with a note (a question for the author is a note you can reply to), marks a word for its
   pronunciation (**Pronunciation (a word)**), or opens **Define marks…**, where you name your marks and choose each
-  one's colour and line.
+  one's colour, its line and whether it **Asks** (tracks a reply), and **Add a mark** adds one. The note dialog is titled
+  **Mark** and the words you selected.
 - **Story Bible** makes a new entry of the kind you choose from the words; the kinds are the Story Bible's own types,
   including any you added there.
 - **Bookmark here** (the bookmark button).

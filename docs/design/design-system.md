@@ -287,6 +287,11 @@ The Booth fills the window with no app shell, so it brings the shell's page gutt
 
 In the Booth's speaker picker a row with no voice sample keeps the play button's room, so "no sample" and "1 sample" end at one x, and the search box carries the placeholder "Search speakers" (alignment audit XBO-8). The Levels popover's sections (Input, Microphone, Levels, Punch) each start with the same capitals label, 6 px above their controls and 16 px apart; a slider's own label (Input level, Monitor level) is the sentence-case control label under its section (XBO-21).
 
+## The Script page
+
+- **Define how you mark up** is one grid: the column heads Name, Colour, Line and Asks over subgrid rows, every control `--control-height`, and a labelled **Add a mark** button rather than a bare `+` (alignment audit XSC-3, R3SE1-3). Below 640 px a mark takes two lines, swatch, name and remove on the first and colour, line and Asks under the name, so the remove button never sits on a line of its own (XSE1-11, XSC-2). The mock has no column heads and an icon-only add button (`pages/script/dialogs.tsx`); this supersedes those two lines.
+- The mark composer is titled **Mark “…”** with the selected words, the mock's "Mark" eyebrow folded into the title because `Dialog` draws no eyebrow (XSC-37).
+
 ## Motion
 
 See [`motion-and-animation.md`](motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by a `--motion-*` and `--ease-*` token in `styles.css`; `motion-ok:` stops under Windows reduced motion and under `<html data-motion="reduce">`, which the Settings **Motion** row sets, and `src/studio/ui/src/motion.test.ts` fails on anything else. `components.css` declares none (`src/studio/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. Popovers and menus share one enter and exit (`primitives/overlayMotion.ts`); dialogs appear at once. What an action changed fades from `--accent-soft` once, and a failure arriving fades in once (`primitives/changeHighlight.ts`). The named keyframes are `work-progress-slide`, `tooltip-in`, `toast-in`, `change-highlight`, `arrive` and `settings-saved`, the per-row "Saved" fade on the Settings page, which leaves the word readable without motion.
