@@ -101,11 +101,16 @@ func checkWritten(t *testing.T, name, path string, text, sum *string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := strings.ReplaceAll(string(raw), pyLineEnd, "\n")
 	if sum == nil {
 		t.Errorf("%s: wrote a Story Bible where the sidecar left none", name)
 		return
 	}
+	// A file nothing rewrote (a refusal) holds the bytes the case wrote, CRLF or not; a written one has Python's write_text line ends,
+	// which on Windows are CRLF.
+	if digest := sha256.Sum256(raw); hex.EncodeToString(digest[:]) == *sum {
+		return
+	}
+	got := strings.ReplaceAll(string(raw), pyLineEnd, "\n")
 	digest := sha256.Sum256([]byte(got))
 	if hex.EncodeToString(digest[:]) == *sum {
 		return
