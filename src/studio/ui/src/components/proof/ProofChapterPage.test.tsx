@@ -127,7 +127,7 @@ describe('ProofChapterPage compare run', () => {
   it('reviews the last comparison with no linked DAW file, with Export off', async () => {
     const user = userEvent.setup();
     renderWorkspace({}, {}, { dawFileLinked: false });
-    await user.click(await screen.findByRole('button', { name: /Last narrated take/ }));
+    await user.click(await screen.findByRole('button', { name: 'Review last run' }));
     await waitFor(() => expect((screen.getByRole('button', { name: /Export \d+ marker/ }) as HTMLButtonElement).disabled).toBe(true));
   });
 });
