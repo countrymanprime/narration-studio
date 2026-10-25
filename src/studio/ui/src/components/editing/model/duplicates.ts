@@ -64,7 +64,7 @@ export function duplicateRead(script: string, heard: readonly HeardWord[]): Dupl
 }
 
 /** The fewest script words a run of extra words must say again to be a second read, unless they are the whole line: fewer can be a
- * stutter or an echo. The recording check's sidecar uses the same rule (`recording_coverage.repeat_of`). */
+ * stutter or an echo. The host's take markers and recording check use the same rule (`internal/recordingcoverage`, `RepeatOf`). */
 const REPEAT_MIN_WORDS = 3;
 
 /**

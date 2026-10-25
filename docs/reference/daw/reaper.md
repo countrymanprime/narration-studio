@@ -1,6 +1,6 @@
 # REAPER: what the app relies on
 
-Engine facts the REAPER adapter depends on, as of 2026-10-12. The last version a scripted run was made on is REAPER 7.80 ([spike S6](../../research/reaper-spike-s6-daw-reachability.md)). Each fact names where it was found. A fact with no run behind it says so.
+Engine facts the REAPER adapter depends on, as of 2026-10-12. Scripted runs were made on REAPER 7.80 on Windows ([What REAPER was seen to do](#what-reaper-was-seen-to-do)) and REAPER 7.82 on Linux ([below](#what-reaper-782-on-linux-was-seen-to-do)). Each fact names where it was found. A fact with no run behind it says so.
 
 `<app name>`, `<launcher folder>`, `<launcher script>` and `<prefix>` stand for values in `config/brand.json` ([Product and technical names](../../architecture/codebase-map.md#product-and-technical-names)).
 
@@ -10,7 +10,7 @@ Engine facts the REAPER adapter depends on, as of 2026-10-12. The last version a
 - **The app installs the bridge, and REAPER starts it.** The app writes the bridge's Lua into `<REAPER resource path>/Scripts/<launcher folder>/` and adds one marked block to `Scripts/__startup.lua` that runs `<launcher folder>_Startup.lua` ([reaperinstall](../../../src/studio/desktop/internal/reaperinstall/install.go), [threat model row 5s](../../architecture/threat-model.md)). At every REAPER start that script runs the bridge loop without opening the app, and adds `<launcher script>` to the action list with `AddRemoveReaScript`. The app finds the bridge by its heartbeat. The launcher, run from the action list, opens the app on the running bridge's session instead of starting a second loop. Both write sessions under `<REAPER resource path>/<launcher folder>/sessions`.
 - **The Lua can be older or newer than the app.** The app updates the installed copy, but a narrator can run an older copy they loaded by hand, so a request the older script cannot serve comes back to the narrator as the host's `script_outdated` refusal, and `ping` reports whether the script knows the navigation commands ([going to and looping a finding](../../architecture/reaper-navigation.md)).
 - **The saved project needs no running REAPER.** The Go `tracks` package parses the `.rpp` directly ([Tracks](../../utilities/tracks.md)).
-- **The app can find and start REAPER.** It reads the Windows Uninstall registry key and falls back to the `.rpp` file association. REAPER 6.80 and later run a script given as a startup argument with the project already open, confirmed on REAPER 7.80 ([locate.go](../../../src/studio/desktop/internal/daw/locate.go)). The app starts REAPER itself, once per opened project that records with REAPER and has its file linked, when REAPER is not running ([reaperbridge.go](../../../src/studio/desktop/reaperbridge.go)).
+- **The app can find and start REAPER.** It reads the Windows Uninstall registry key (`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall` and its `WOW6432Node` view): an entry whose `DisplayName` is exactly `REAPER` or `REAPER (<arch>)`, whose `InstallLocation` holds `reaper.exe`. It falls back to the `.rpp` file association, `HKCR\Reaper.Project\shell\open64\command`, whose value on REAPER 7.80 is `"C:\Program Files\REAPER (x64)\reaper.exe" -project "%1"` (`locate_test.go` pins it). A standard install has no `App Paths\reaper.exe` key. Opening a `.rpp` through the shell association was not run. REAPER 6.80 and later run a script given as a startup argument with the project already open, confirmed on REAPER 7.80 ([locate.go](../../../src/studio/desktop/internal/daw/locate.go)). The app starts REAPER itself, once per opened project that records with REAPER and has its file linked, when REAPER is not running ([reaperbridge.go](../../../src/studio/desktop/reaperbridge.go)).
 
 ## Behaviour that a fake cannot prove
 
@@ -19,13 +19,13 @@ The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([The DA
 | Fact | Where it was found |
 | --- | --- |
 | Item extension data written under a namespaced key survives save and reload; what it does on split and copy is recorded there | [Spike S0](../../research/reaper-spike-s0-item-extension-data.md) |
-| Render settings keys, the predicted render targets, and what a render needs to run | [Spike S5](../../research/reaper-spike-s5-render-details.md) |
-| Which launch paths reach a running REAPER, and the heartbeat mechanism | [Spike S6](../../research/reaper-spike-s6-daw-reachability.md) |
+| Render settings keys, the predicted render targets, and what a render needs to run | S5, the Render row below |
+| Which launch paths reach a running REAPER, and the heartbeat mechanism | S6, the Active project and Startup rows below |
 | Fixed-lane semantics: which lane plays, and the exclusive, with-others and silent modes | [Spike S7](../../research/reaper-spike-s7-fixed-lanes.md) |
 
 ## What REAPER was seen to do
 
-Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated resource directory; another version may differ. The source note holds the method and the fixture. The harness's fake must agree with these rows: `src/studio/integrations/reaper/tests/fake_fidelity_test.lua` pins them, and a run that shows the fake is wrong corrects that test first.
+Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated resource directory; another version may differ. The source note holds the method and the fixture. S5 and S6 are the runs of `src/studio/integrations/reaper/spikes/spike_s5_render.lua` and `spikes/reachability.lua` on 2026-09-22, each driven by `spikes/run-reaper.ps1` on a scratch project ([the spikes README](../../../src/studio/integrations/reaper/spikes/README.md) has the rules for a rerun). The harness's fake must agree with these rows: `src/studio/integrations/reaper/tests/fake_fidelity_test.lua` pins them, and a run that shows the fake is wrong corrects that test first.
 
 | Area | What REAPER does | Source |
 | --- | --- | --- |
@@ -37,10 +37,32 @@ Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated r
 | Markers and regions | Numbered separately. `EnumProjectMarkers3` is enumerated by time and returns index plus one as its first value. A region is two `MARKER` lines in the file. | S0, `fake_fidelity_test.lua` |
 | Fixed lanes | `I_FREEMODE=2` turns lanes on, but the API alone leaves the track half set up; a new item lands in lane 0; `I_FIXEDLANE=N` grows the track to N+1 lanes and it never shrinks. `C_LANEPLAYS:N` is 0 silent, 1 plays exclusively, 2 plays with others. `I_FREEMODE=0` puts every retake in one lane and plays them all at once. | S7 |
 | Lanes and line ids | Converting takes to lanes and adding comp areas copy the item's `P_EXT` onto new items, so a line id no longer names one item on a lane track. The app never sets `I_FREEMODE` or converts takes and lanes ([Tracks](../../utilities/tracks.md)). | S7 |
-| Render | `$region` in `RENDER_PATTERN` with "all regions" bounds names one file per region, and `RENDER_TARGETS` read before rendering predicts the same paths. `Render_Execute` and `Render_EnumerateOutputMode` do not exist (`APIExists` is false). The `RENDER_STATS` getter is not safe to poke with an arbitrary action ID. Fifteen cited action IDs resolved (1013, 1016, 40044, 42230, 42437 and others; the table is in S5). | [S5](../../research/reaper-spike-s5-render-details.md) |
+| Render | `$region` in `RENDER_PATTERN` with "all regions" bounds names one file per region, and `RENDER_TARGETS` read before rendering predicts the same paths. `Render_Execute` and `Render_EnumerateOutputMode` do not exist (`APIExists` is false). `RENDER_PATTERN` reads back as written (`$region`, not resolved). `RENDER_FORMAT` is an opaque base64 blob of the sink settings (`ZXZhdxgAAQ==`, decoding to `evaw` for WAV), which the bridge reads and never writes. `GetSetProjectInfo_String(0, 'RENDER_STATS', <action id>, false)` is not a pure read: given a file-writing render action (42230) it renders again and REAPER shows "Files already exist"; given the dry-run action 42437 with no item selected it writes nothing and returns an empty string, so no headless stats read is proven. `ResolveWildcards` exists but needs a fourth argument whose meaning was not found. `RenderFileSection`, `SetRegionRenderMatrix` and `EnumRegionRenderMatrix` exist and were not exercised. The action IDs the bridge and the docs cite are [listed below](#action-ids-checked-in-reaper-780). | S5 |
 | Transport | `GetPlayState()` is a bit field: 1 playing, 2 paused, 4 recording, read with arithmetic (`math.floor(state / 4) % 2`) since the Lua subset has no bit operators. `GetPlayPosition()` moves while recording and answers 0 just after Stop. A `defer` loop ticks about 30 times a second. Desk research, not a REAPER run. | [transport timing](../../research/reaper-transport-timing.md) |
-| Active project | `EnumProjects(-1, '')` returns the active tab's `.rpp`, and the exact empty string for an unsaved project. | [S6](../../research/reaper-spike-s6-daw-reachability.md) |
+| Active project | `EnumProjects(-1, '')` returns the active tab's `.rpp`, and the exact empty string (never `nil`) for an unsaved project. REAPER always has an active tab. A project with more than one tab was not run. | S6 |
 | Startup | `reaper.exe -cfgfile <cfg> "<project.rpp>" "<script.lua>"` runs the script at startup with the project already open. | S6 |
+
+### Action IDs checked in REAPER 7.80
+
+`kbd_getTextFromCmd` in the Main section (S5) gave each ID this name. Recheck them after a major version change. The real-REAPER CI launcher (`spikes/ci_real_reaper_launcher.lua`) checks 42230's name before it runs it.
+
+| ID | REAPER 7.80's name |
+| --- | --- |
+| 1013 | Transport: Record |
+| 1016 | Transport: Stop |
+| 40044 | Transport: Play/stop |
+| 40252 | Record: Set record mode to normal |
+| 40076 | Record: Set record mode to time selection auto-punch |
+| 40253 | Record: Set record mode to selected item auto-punch |
+| 40364 | Options: Toggle metronome |
+| 40363 | Options: Show metronome/pre-roll settings |
+| 41818 | Pre-roll: Toggle pre-roll on play |
+| 41819 | Pre-roll: Toggle pre-roll on record |
+| 40012 | Item: Split items at edit or play cursor (select right) |
+| 42230 | File: Render project, using the most recent render settings, auto-close render dialog |
+| 41823 | File: Add project to render queue, using the most recent render settings |
+| 40209 | Item: Apply track/take FX to items |
+| 42437 | Calculate loudness of selected items, including take and track FX and settings, via dry run render |
 
 ## What REAPER 7.82 on Linux was seen to do
 
@@ -72,6 +94,7 @@ These rows were observed on 2026-10-23 in REAPER 7.82 on Linux, scripted under X
 | Undo of a take | A stopped recording is one undo point labelled "Recorded media", there when `record_stop` reads it in the same call, and the change count rises by one; arming and putting the arms back add none. One `Undo_DoUndo2` removes the take, and rejoins an item the take split; the change count rises on the Undo too. A take with a roll leaves one point per stop. Seen 2026-10-23 and 2026-10-24 ([note](../../research/reaper-recording-undo-2026-10-23.md)). |
 | Pre-roll | `preroll` (bit 1 on play, bit 2 on record, the bit action 41819 toggles) and `prerollmeas` (measures, `2.00000000000000` by default) are configuration variables `get_config_var_string` reads. With pre-roll on record, playback starts at the bar line at or before the cursor minus that length and the take is recorded from the cursor. Toggling 41819 adds no undo point. Seen 2026-10-24 ([note](../../research/reaper-preroll-2026-10-24.md)). |
 | FX dialog | Action 40638 ("Item: Show FX chain for item take") on a selected take with no FX opens REAPER's "Add FX to Item" browser and does not wait for it; on a take with FX it shows the chain window. The plug-in the narrator adds goes on the take the browser opened for, even with the selection changed straight after, under REAPER's own "Add FX: …" undo point; Cancel adds nothing. `TakeFX_Show(take, 0, 1)` shows a chain window with no undo point; closing it with `TakeFX_Show(take, 0, 0)` writes "Close FX chain: …". A split gives each piece a copy of the take's FX under the same FX GUID. `SelectAllMediaItems(0, false)` that unselects anything outside an undo block writes "Unselect all items"; `SetMediaItemSelected` writes none. Observed 2026-10-24 under Xvfb with the audio device closed ([the FX dialog note](../../research/reaper-item-fx-dialog-2026-10-24.md)). |
+| Replacement | A new item on the narrator's track whose take opens the file another track's item plays (`PCM_Source_CreateFromFile` on the path read from that take) plays from the `D_STARTOFFS` set, at the take `D_VOL` set (-6.0 dB set, -6.0 dB in the render); a 22.05 kHz MP3 taken this way renders in a 44.1 kHz project. The replacement's item `P_EXT` survives a save and reopen. One `Undo_DoUndo2` reverses a `replace_range` block whole. A track added muted with an item on a file not yet in the project (`import_audio_track`) is not heard in a render, and its own block is one more Undo; a track name with an emoji is kept. Seen 2026-10-24 ([run record](../../operations/reaper-verification-pass.md#real-reaper-ci-run-linux), C21). |
 | Audio device | With `jackd -d dummy` running, REAPER opens it by itself (`GetAudioDeviceInfo('MODE')` is `JACK`, 2 in, 2 out), plays, records silence and stops. Its "Files recorded" prompt blocks every stop until `promptendrec=0` is in `reaper.ini`. |
 
 ## Documentation and research, not run in REAPER
@@ -116,6 +139,14 @@ What the bridge does with these: `narration_track_state.lua` reads `GetMediaSour
 - **The Cuts track.** Found by the track key `P_EXT:<prefix>cuts` (`GetSetMediaTrackInfo_String`), else by the name Cuts, else added after the last track with `InsertTrackAtIndex` and named with `P_NAME`. `B_MUTE` is set to 1 whenever it reads otherwise. The calls are the ReaScript reference's ([Ultraschall's copy](https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/blob/master/ultraschall_api/Documentation/Reaper_Api_Documentation.html); not run).
 - **Undo.** One block, `<app name>: delete words`, around the splits, the track, the move and the close-up; the answer reports 1.
 - **Checked:** REAPER 7.82 on Linux, 2026-10-19 ([the real-REAPER CI run](../../operations/reaper-verification-pass.md#real-reaper-ci-run-linux)), row C3. The splits, the move to the Cuts track and the close-up are one undo step, and one Undo gives back one whole item and removes the Cuts track; the seam fades are the 10 ms asked for; `gap` renders silence and moves nothing; a pad cuts less at each end; room tone fills the gap with the marked stretch and one Undo removes the fill with the cut; the cut piece on the muted Cuts track is silent. Not run: that the Cuts track's `P_EXT` key survives save and reload (the track is found by name otherwise).
+
+## Replacing words with another narrator's audio
+
+- **What it does.** `replace_range` (`narration_replace.lua`) makes `delete_range`'s close-up cut and lays another narrator's stretch in the gap, in one undo block, `<app name>: replace audio`: the narrator's item is split at both ends and the middle piece moved to the Cuts track; a new item (`AddMediaItemToTrack`, `D_POSITION`, `D_LENGTH`) gets a take (`AddTakeToMediaItem`, `SetMediaItemTake_Source`) on a source opened before the block with `PCM_Source_CreateFromFile` from the file their item's active take plays, a path read from the project; `D_STARTOFFS` is their take's offset plus the stretch's distance into their item at their `D_PLAYRATE`; `D_VOL` is the level change. Every later item on the narrator's track moves by the new item's length less the words'. The seam fade goes on the left piece's fade-out, both ends of the new item and the right piece's fade-in.
+- **Their file.** `import_audio_track` adds a track after the last (`InsertTrackAtIndex`), named for the other narrator with `P_NAME`, keyed `P_EXT:<prefix>co_narrator` and muted (`B_MUTE`), with one item (`AddMediaItemToTrack`) at 0 for `GetMediaSourceLength` of a source opened with `PCM_Source_CreateFromFile` on the path the host sent, in one undo block, `<app name>: add their audio`.
+- **The record.** The new item's `P_EXT:<prefix>replacement` is the host's id, `replacement_cut` the parked piece's GUID and `replacement_seams` the left and right pieces' GUIDs; the parked piece's `replaced_by` is the id. `restore_replacement` reads them, so **Put my audio back** works after a save and reopen.
+- **Put back.** `restore_replacement` deletes the new item with `DeleteTrackMediaItem` (the item the command added; the file it plays is not touched), moves the parked piece back with `MoveMediaItemToTrack` to where the new item is now, moves the later items by the difference, and sets to 0 the fades where it meets the pieces it was split from. One block, `<app name>: put audio back`.
+- **Checked:** REAPER 7.82 on Linux, 2026-10-24 ([the real-REAPER CI run](../../operations/reaper-verification-pass.md#real-reaper-ci-run-linux)), row C21. Not run: Windows; two real voices at a seam (the owner's ear test); whether regions and markers after a close-up move.
 
 ## Chain on a range
 

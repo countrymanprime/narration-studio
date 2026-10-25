@@ -3,7 +3,7 @@ package importer
 // The narrator's answer to "is this heading's second line its subtitle?" The
 // importer's guess is always yes: every line after a heading's first, and the second line of a two-line plain-text heading, becomes
 // the subtitle (headingParts, classifyTxtHeading). A no means one of two things, which the preview says per section in
-// DraftSection.SubtitleOff so the review can show the result before the commit (docs/research/import-heading-misreads.md):
+// DraftSection.SubtitleOff so the review can show the result before the commit (docs/architecture/import-settings-workflow.md#failure-modes):
 //
 //   - SubtitleOffJoinsTitle: the line was part of the heading, a title the author wrapped by hand (F1). It joins the title.
 //   - SubtitleOffReturnsToBody: the line was plain text under a plain-text heading, an epigraph say (F3). It becomes the chapter's

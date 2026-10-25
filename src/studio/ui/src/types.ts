@@ -45,6 +45,7 @@ export * from './api/contracts/extraction';
 export * from './api/contracts/editCuts';
 export * from './api/contracts/wordFx';
 export * from './api/contracts/editStacks';
+export * from './api/contracts/replace';
 export * from './api/contracts/workspace';
 export * from './api/contracts/preview';
 export * from './api/contracts/daw';
@@ -102,6 +103,7 @@ import type { ExtractionApi } from './api/contracts/extraction';
 import type { EditCutsApi } from './api/contracts/editCuts';
 import type { EditWordFxApi } from './api/contracts/wordFx';
 import type { EditStacksApi } from './api/contracts/editStacks';
+import type { ReplaceAudioApi } from './api/contracts/replace';
 import type { WorkspaceApi } from './api/contracts/workspace';
 import type { PreviewApi } from './api/contracts/preview';
 import type { DawCapabilitiesApi } from './api/contracts/daw';
@@ -181,6 +183,7 @@ export interface NarrationApi
     EditCutsApi,
     EditWordFxApi,
     EditStacksApi,
+    ReplaceAudioApi,
     WorkspaceApi,
     PreviewApi,
     DawCapabilitiesApi,

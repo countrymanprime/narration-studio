@@ -134,7 +134,7 @@ func New(config Config, sidecars *process.Supervisor, emit func(json.RawMessage)
 }
 
 func idleState() map[string]any {
-	return map[string]any{"phase": "idle", "message": "Choose a chapter to start the teleprompter.", "engine": nil, "chapter": nil, "paused": false}
+	return map[string]any{"phase": "idle", "message": "Choose a chapter to start the teleprompter.", "engine": nil, "chapter": nil, "paused": false, "coldRead": false}
 }
 
 func active(phase string) bool {
@@ -159,6 +159,12 @@ func (s *Service) snapshotLocked() map[string]any {
 	}
 	result["script"], result["position"] = decodeOrNil(s.script), decodeOrNil(s.position)
 	return result
+}
+
+// coldReadLocked reports whether the current (or last) session is a cold read. The caller holds s.mu.
+func (s *Service) coldReadLocked() bool {
+	cold, _ := s.state["coldRead"].(bool)
+	return cold
 }
 
 // Snapshot is the current state, including the last script description and
@@ -188,7 +194,7 @@ func (s *Service) CurrentWord() (chapterID string, word int, ok bool) {
 	defer s.mu.RUnlock()
 	phase, _ := s.state["phase"].(string)
 	paused, _ := s.state["paused"].(bool)
-	if phase != "running" || paused || s.scriptFile != "" {
+	if phase != "running" || paused || s.scriptFile != "" || s.coldReadLocked() {
 		return "", 0, false
 	}
 	chapter, _ := s.state["chapter"].(string)
@@ -250,6 +256,9 @@ type launch struct {
 	device string
 	// scriptFile and scriptText are set only for a Script session: the file Start writes scriptText to.
 	scriptFile, scriptText string
+	// coldRead is a session with no take (#2251 item 13): it follows the narrator only, so it keeps no reading, anchors no word and
+	// never stops itself. The sidecar runs exactly as for a take.
+	coldRead bool
 }
 
 // source is what a session reads: a manuscript chapter, or a Script.
@@ -309,7 +318,7 @@ func (s *Service) planSession(options map[string]string, src source) (launch, er
 	stamp := time.Now().UnixNano()
 	stopFile := filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.stop", stamp))
 	controlFile := filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.control", stamp))
-	planned := launch{engine: engine, chapter: src.chapter, stopFile: stopFile, controlFile: controlFile}
+	planned := launch{engine: engine, chapter: src.chapter, stopFile: stopFile, controlFile: controlFile, coldRead: option(options, "coldRead", "") == "true"}
 	args := []string{"--engine", engine, "--model", option(options, "model", DefaultModel)}
 	if src.script != nil {
 		planned.scriptFile = filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.script.txt", stamp))
@@ -417,7 +426,7 @@ func (s *Service) begin(plan launch) error {
 		s.mu.Unlock()
 		return errors.New("a teleprompter session is already running")
 	}
-	s.state = map[string]any{"phase": "starting", "message": "Starting the teleprompter…", "engine": plan.engine, "chapter": plan.chapter, "paused": false}
+	s.state = map[string]any{"phase": "starting", "message": "Starting the teleprompter…", "engine": plan.engine, "chapter": plan.chapter, "paused": false, "coldRead": plan.coldRead}
 	s.script, s.position, s.stopping, s.stopFile, s.controlFile, s.scriptFile = nil, nil, false, plan.stopFile, plan.controlFile, plan.scriptFile
 	s.device = plan.device
 	s.cancelAutoStopLocked()
@@ -648,7 +657,12 @@ func (s *Service) recordReading() {
 	s.mu.RLock()
 	chapter, _ := s.state["chapter"].(string)
 	credits, script, position, project, report := s.scriptFile != "", s.script, s.position, s.config.Project, s.report
+	cold := s.coldReadLocked()
 	s.mu.RUnlock()
+	// A cold read's place is the ghost's, never where the next take starts.
+	if cold {
+		return
+	}
 	read, tokens, status, ok := endedReading(chapter, credits, script, position)
 	if !ok {
 		return

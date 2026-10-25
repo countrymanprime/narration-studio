@@ -49,6 +49,7 @@ export function BoothTop({
   setup,
   recording,
   paused = false,
+  coldRead = false,
   panelOpen,
   onTogglePanel,
   panelId,
@@ -61,6 +62,8 @@ export function BoothTop({
   setup?: ReactNode;
   recording: boolean;
   paused?: boolean;
+  /** A cold read listens: the microphone is in use, as in a take, though nothing records (the REC tone, dashed). */
+  coldRead?: boolean;
   panelOpen: boolean;
   onTogglePanel: () => void;
   /** The id of the side panel this button opens; absent while no panel is mounted, so the button names nothing it does not control. */
@@ -88,6 +91,7 @@ export function BoothTop({
       {resume}
       <span className="flex-1" />
       {recording ? <Badge shape="booth" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
+      {coldRead && !recording ? <Badge shape="booth" label="Mic on · cold read" colors={REC_COLORS} look="dashed" /> : null}
       {setup}
       {text ? <TextPopover {...text} /> : null}
       <IconButton

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { INDEX, SOURCE, STATUSES, buildRows, checkIndex, parseIndex, parseSliceIds, parseSource, renderIndex } from './studio-next-rulings.mjs';
@@ -121,6 +121,13 @@ test('the table round-trips, including a pipe and a pointer', () => {
 test('parseSliceIds reads only the Slices table', () => {
   const md = '### Slices\n\n| Slice | Scope |\n| --- | --- |\n| SNC-1 | a |\n| SNC-2 | b |\n\n## Other\n\n| SNC-9 | c |\n';
   assert.deepEqual(parseSliceIds(md), ['SNC-1', 'SNC-2']);
+});
+
+test('--write leaves a current index untouched, so a reader beside it never sees it emptied', () => {
+  const before = statSync(INDEX).mtimeMs;
+  const out = execFileSync('node', ['scripts/ci/studio-next-rulings.mjs', '--write'], { encoding: 'utf8' });
+  assert.match(out, /is current \(\d+ rows\)/);
+  assert.equal(statSync(INDEX).mtimeMs, before);
 });
 
 test('the real index is complete and current, and --write is idempotent', () => {

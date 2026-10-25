@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { DialogSize } from '../components/primitives/Dialog';
 import type { ToastAction, ToastMessage, ToastTone } from '../components/primitives/Toast';
 
 /** What a toast's Undo runs. Structurally the journal's `Result`, so the caller passes `entry.undo` without this folder importing the journal. */
@@ -21,6 +22,8 @@ type DialogSpec =
       title: string;
       /** A dialog without a header row; the title still names it for assistive technology. */
       headerless?: boolean;
+      /** The width from Dialog's scale; `form` when absent. */
+      size?: DialogSize;
       /** Whether a press outside the dialog closes it (issue 1706): true for a reference view or a picker with nothing to lose, false for a form or a confirm. */
       dismissOnOutsidePress: boolean;
       /** Where focus goes on close when the element that had it is gone (a menu item closes as it runs); absent, the page's <main>. */

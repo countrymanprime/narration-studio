@@ -40,6 +40,8 @@ const MODEL_KEY = 'model';
 const ENGINE_KEY = 'engine';
 export const ACTIVE_PHASES: TeleprompterPhase[] = ['starting', 'running', 'stopping'];
 const IDLE_STATE: TeleprompterState = { phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null };
+/** How long a stop that waits gives the host: its grace before it kills the sidecar (service.go `defaultGrace`, 8 s) and a second more. */
+const STOP_WAIT_MS = 9_000;
 
 function sessionReducer(session: Session, action: SessionAction): Session {
   switch (action.kind) {
@@ -151,13 +153,32 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   });
 
   const active = ACTIVE_PHASES.includes(host.phase);
-  const cursor = usePacedCursor(session.cursor);
+  // Each session starts over: its cursor is the word it was started at until it reports one (`startedAt`, set by this hook's own
+  // Start, else the top), and the paced cursor lands there instead of walking from where the last session was (`epoch`).
+  const startedAt = useRef(0);
+  const [epoch, setEpoch] = useState({ count: 0, at: 0 });
+  const cursor = usePacedCursor(session.position ? session.cursor : epoch.at, epoch.count);
+  // A cold read (#2251 item 13): the running session, or the last one, follows the narrator with no take.
+  const coldRead = Boolean(host.coldRead);
+  // Its flags are never a take's: no reader (the suspected lines, the Companion's findings) is given them.
+  const shown = useMemo(() => (coldRead && session.flags.length > 0 ? { ...session, flags: [] } : session), [coldRead, session]);
+  // Stops that wait for the host to say the session has ended (`stopAndWait`).
+  const stopWaiters = useRef(new Set<() => void>());
+  const hostPhase = useRef(host.phase);
+  hostPhase.current = host.phase;
 
   useEffect(() => {
     const stopEvents = api.subscribeTeleprompterEvent((event) => dispatch({ kind: 'event', event }));
     const stopState = api.subscribeTeleprompterState((next) => {
       setHost(next);
-      if (next.phase === 'starting') dispatch({ kind: 'reset' });
+      if (next.phase === 'starting') {
+        dispatch({ kind: 'reset' });
+        setEpoch((last) => ({ count: last.count + 1, at: startedAt.current }));
+      }
+      if (!ACTIVE_PHASES.includes(next.phase)) {
+        stopWaiters.current.forEach((done) => done());
+        stopWaiters.current.clear();
+      }
     });
     void api
       .teleprompterState()
@@ -252,13 +273,25 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     return session.script ? buildRows(session.script, chapter, paragraphs) : previewRows(chapter, paragraphs);
   }, [creditsKind, creditsText, chapter, paragraphs, session.script]);
 
-  /** Starts listening. The host answers once the session is listening, or fails when it could not start; `ok` says which, `reason` is why not. */
-  const start = async (): Promise<{ ok: boolean; reason: string }> => {
+  /**
+   * Starts listening. The host answers once the session is listening, or fails when it could not start; `ok` says which, `reason` is why not.
+   * `coldRead` starts a cold read; `startWord`, when given, is where it begins instead of the one `setStartWord` chose (null is the top).
+   */
+  const start = async (options: { coldRead?: boolean; startWord?: number | null } = {}): Promise<{ ok: boolean; reason: string }> => {
     setError('');
     setModelMissing(false);
+    const from = options.startWord === undefined ? startWord : options.startWord;
+    startedAt.current = from ?? 0;
     try {
       const source = creditsKind ? { credits: creditsKind } : { chapter: chapterId };
-      const result = await api.teleprompterStart({ ...source, device: device.trim(), engine, model, ...(startWord === null ? {} : { startWord }) });
+      const result = await api.teleprompterStart({
+        ...source,
+        device: device.trim(),
+        engine,
+        model,
+        ...(from === null ? {} : { startWord: from }),
+        ...(options.coldRead ? { coldRead: true } : {}),
+      });
       if (result.status === 'asset_required') {
         setModelMissing(true);
         modelInstall.reset();
@@ -270,9 +303,32 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
       const text = errorText(reason);
       setError(text);
       return { ok: false, reason: text };
+    } finally {
+      // The host has said `starting` by now if it started: a session someone else starts begins at the top as before.
+      startedAt.current = 0;
     }
   };
   const stop = () => void api.teleprompterStop().catch((reason) => setError(errorText(reason)));
+  /**
+   * Stops the session and answers once the host says it has ended (a new session can start then), or after STOP_WAIT_MS when the host
+   * never says, so a take is never held behind it. Answers at once when nothing runs.
+   */
+  const stopAndWait = useCallback((): Promise<void> => {
+    if (!ACTIVE_PHASES.includes(hostPhase.current)) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(done, STOP_WAIT_MS);
+      function done() {
+        clearTimeout(timer);
+        stopWaiters.current.delete(done);
+        resolve();
+      }
+      stopWaiters.current.add(done);
+      void api.teleprompterStop().catch((reason) => {
+        setError(errorText(reason));
+        done();
+      });
+    });
+  }, [api]);
   // Pause (true) or resume (false) a running session's listening without ending it: the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
   // `host.paused` changes. Flags are kept on Stop only (docs/architecture/findings-contract.md unchanged).
   const pause = (paused: boolean) => void api.teleprompterPause(paused).catch((reason) => setError(errorText(reason)));
@@ -379,7 +435,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     host,
     paused: Boolean(host.paused),
     pause,
-    session,
+    session: shown,
+    coldRead,
     device,
     settingsLoaded,
     devices,
@@ -402,6 +459,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     modelInstall,
     start,
     stop,
+    stopAndWait,
     seek,
     changeDevice,
     closeModelPrompt,

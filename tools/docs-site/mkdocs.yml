@@ -13,6 +13,7 @@ exclude_docs: |
   research/mockups/voice-samples/
   research/mockups/story-bible-entry-list/
   research/mockups/replace-audio/
+  research/mockups/booth-cold-read/
 site_dir: build/site
 strict: true
 

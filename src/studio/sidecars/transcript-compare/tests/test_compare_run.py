@@ -65,8 +65,6 @@ def run_args(tmp_path, **overrides):
         "progress": str(tmp_path / "progress.txt"),
         "manuscript": str(project(tmp_path)),
         "manifest": str(manifest),
-        "chapter_title": None,
-        "track_name": "Chapter One",
         "chunk_seconds": 0,
         "parallel_workers": 0,
         "model": "small",
@@ -74,7 +72,6 @@ def run_args(tmp_path, **overrides):
         "device": "cpu",
         "model_dir": None,
         "out": str(tmp_path / "words.txt"),
-        "min_words": 1,
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -111,16 +108,6 @@ def test_the_run_writes_the_segments_and_the_words_it_heard(tmp_path, fake_audio
     assert not Path(args.out + ".tmp").exists()
 
 
-def test_the_run_matches_no_chapter_so_any_track_name_decodes(tmp_path, fake_audio):
-    """The host chooses the chapter before it starts the run (comparerun.Choose); a name that matches no heading is no
-    longer the sidecar's NEED_CHAPTER."""
-    args = run_args(tmp_path, track_name="Appendix")
-
-    compare.run(args)
-
-    assert Path(args.out).read_text(encoding="utf-8").startswith("COMPARE_SEGMENT|")
-
-
 def test_an_empty_manifest_is_refused(tmp_path):
     args = run_args(tmp_path)
     Path(args.manifest).write_text("", encoding="utf-8")
@@ -129,19 +116,21 @@ def test_an_empty_manifest_is_refused(tmp_path):
         compare.run(args)
 
 
-def test_the_cli_needs_no_track_name_for_the_run_but_does_for_find_repeats(tmp_path):
-    run_cli = [sys.executable, str(COMPARE_PATH), "--manifest", "m.txt", "--manuscript", "m.json", "--out", "o.txt"]
+def test_neither_the_run_nor_find_repeats_needs_a_track_name(tmp_path):
+    run_cli = [sys.executable, str(COMPARE_PATH), "--manifest", "m.txt", "--manuscript", "m.json", "--out", "o.txt", "--progress", str(tmp_path / "p.txt")]
 
-    repeats = subprocess.run([*run_cli, "--find-repeats"], capture_output=True, text=True, timeout=60, check=False)
-    run = subprocess.run([*run_cli, "--progress", str(tmp_path / "p.txt")], capture_output=True, text=True, timeout=60, check=False)
+    for args in (run_cli, [*run_cli, "--find-repeats"]):
+        completed = subprocess.run(args, capture_output=True, text=True, timeout=60, check=False)
+        assert completed.returncode == 1  # it gets as far as the missing manifest
+        assert "No such file" in Path(tmp_path / "p.txt").read_text(encoding="utf-8")
 
-    assert repeats.returncode == 2 and "--track-name required" in repeats.stderr
-    assert run.returncode == 1 and "--track-name" not in run.stderr  # it gets as far as the missing manifest
 
-
-def test_the_cli_no_longer_takes_a_diff_path_the_host_writes(tmp_path):
+@pytest.mark.parametrize(
+    "flag", [["--diff-out", "d.diff"], ["--track-name", "t"], ["--chapter-title", "t"], ["--min-span-overlap", "0.5"], ["--min-words", "1"]]
+)
+def test_the_cli_no_longer_takes_what_the_host_decides(flag):
     completed = subprocess.run(
-        [sys.executable, str(COMPARE_PATH), "--manifest", "m.txt", "--manuscript", "m.json", "--track-name", "t", "--out", "o.txt", "--diff-out", "d.diff"],
+        [sys.executable, str(COMPARE_PATH), "--manifest", "m.txt", "--manuscript", "m.json", "--out", "o.txt", "--find-repeats", *flag],
         capture_output=True,
         text=True,
         timeout=60,
@@ -149,4 +138,4 @@ def test_the_cli_no_longer_takes_a_diff_path_the_host_writes(tmp_path):
     )
 
     assert completed.returncode == 2
-    assert "unrecognized arguments: --diff-out" in completed.stderr
+    assert f"unrecognized arguments: {flag[0]}" in completed.stderr

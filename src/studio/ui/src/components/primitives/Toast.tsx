@@ -3,6 +3,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { HIT_AREA } from './hitArea';
 
 export type ToastTone = 'info' | 'error';
 /** A toast's one action (for example Undo): its own label, run when pressed, which also dismisses the toast. */
@@ -60,7 +61,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       <span className="min-w-0 break-words">{message.text}</span>
       {message.action && (
         <button
-          className="flex-none font-semibold underline underline-offset-2"
+          className={`flex-none font-semibold underline underline-offset-2 ${HIT_AREA}`}
           onClick={() => {
             message.action!.onAction();
             dismiss(id);
@@ -69,7 +70,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
           {message.action.label}
         </button>
       )}
-      <button aria-label="Dismiss message" className="flex-none" onClick={() => dismiss(id)}>
+      <button aria-label="Dismiss message" className={`flex-none ${HIT_AREA}`} onClick={() => dismiss(id)}>
         <FontAwesomeIcon icon={faXmark} />
       </button>
     </div>

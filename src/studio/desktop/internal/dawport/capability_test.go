@@ -136,6 +136,7 @@ func TestEditRequestsCarryNoPath(t *testing.T) {
 	for _, typ := range []reflect.Type{
 		reflect.TypeFor[RangeRequest](), reflect.TypeFor[DeleteRangeRequest](), reflect.TypeFor[FXRangeRequest](),
 		reflect.TypeFor[StackRequest](), reflect.TypeFor[StackGroup](), reflect.TypeFor[StackMove](), reflect.TypeFor[BackupRequest](),
+		reflect.TypeFor[ReplaceRangeRequest](), reflect.TypeFor[RestoreRequest](),
 	} {
 		for i := range typ.NumField() {
 			name := typ.Field(i).Name

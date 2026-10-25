@@ -17,7 +17,7 @@ As of 2026-09-28 (the date of the research) Audacity 4 has no scripting interfac
 | Does `macro_render` work? | No: its scripting pipe and Macro Manager are both on the not-available list |
 | What does the app do on an Audacity 4 install? | The adapter reports not reachable; the narrator is told that Audacity 4.0 has no scripting pipe |
 | What would change this? | A published 4.x scripting interface. It would be a new `Transport` for the same client, and possibly a new command dialect ([The DAW port](../../architecture/daw-integration.md#the-daw-port)) |
-| Can the launcher still start Audacity? | The Start Menu entry starts the app with `--daw Audacity`; nothing Audacity loads can start a program ([Audacity boundary](../../architecture/daw-integration.md#audacity-boundary), [launcher feasibility](../../research/audacity-launcher-feasibility.md)) |
+| Can the launcher still start Audacity? | The Start Menu entry starts the app with `--daw Audacity`; nothing Audacity loads can start a program ([Audacity boundary](../../architecture/daw-integration.md#audacity-boundary)) |
 
 ## Not verified
 
