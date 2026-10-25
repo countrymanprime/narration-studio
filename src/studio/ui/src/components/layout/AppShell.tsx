@@ -285,7 +285,7 @@ export function AppShell({
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
             markup, hidden by size, so every item keeps its name. */}
         <aside className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[860px]:flex min-[1360px]:w-54" aria-label="Primary navigation">
-          <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] max-[1360px]:hover:w-59 max-[1360px]:hover:shadow-[var(--shadow-lg)] max-[1360px]:has-[:focus-visible]:w-59 max-[1360px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[860px]:max-[1360px]:absolute min-[860px]:max-[1360px]:inset-y-0 min-[860px]:max-[1360px]:left-0 min-[1360px]:static min-[1360px]:w-54 motion-ok:transition-[width,box-shadow] motion-ok:duration-(--motion-fast) max-[1360px]:[&_.brand-name]:invisible max-[1360px]:hover:[&_.brand-name]:visible max-[1360px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1360px]:[&_.section-label]:text-transparent max-[1360px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:[&_button]:pl-[0.78125rem] max-[1360px]:[&_button]:text-[0px] max-[1360px]:hover:[&_button]:text-[0.9375rem] max-[1360px]:has-[:focus-visible]:[&_button]:text-[0.9375rem] max-[1360px]:[&_button>span]:invisible max-[1360px]:hover:[&_button>span]:visible max-[1360px]:has-[:focus-visible]:[&_button>span]:visible">
+          <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] max-[1360px]:hover:w-59 max-[1360px]:hover:shadow-[var(--shadow-lg)] max-[1360px]:has-[:focus-visible]:w-59 max-[1360px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[860px]:max-[1360px]:absolute min-[860px]:max-[1360px]:inset-y-0 min-[860px]:max-[1360px]:left-0 min-[1360px]:static min-[1360px]:w-54 motion-ok:transition-[width,box-shadow] motion-ok:duration-(--motion-fast) max-[1360px]:[&_.brand-name]:invisible max-[1360px]:hover:[&_.brand-name]:visible max-[1360px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1360px]:[&_.section-label]:text-transparent max-[1360px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:[&_button]:pl-[0.78125rem] max-[1360px]:[&_button]:text-[0px] max-[1360px]:hover:[&_button]:text-[0.9375rem] max-[1360px]:has-[:focus-visible]:[&_button]:text-[0.9375rem]">
             {navigation}
           </div>
         </aside>
@@ -294,7 +294,7 @@ export function AppShell({
         </NavDrawer>
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main id="main-content" ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
-          <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm max-md:gap-2 md:px-5">
+          <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] text-sm max-md:gap-2">
             <IconButton label="Open navigation" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
@@ -355,7 +355,11 @@ export function AppShell({
             />
           </header>
           <PageFooterProvider value={footer}>
-            <ContextMenuHost className="scroll-chrome-hidden relative flex-1 overflow-y-auto p-4" fallback={contextMenu?.fallback} tail={contextMenu?.tail}>
+            <ContextMenuHost
+              className="scroll-chrome-hidden relative flex-1 overflow-y-auto p-[var(--page-gutter)]"
+              fallback={contextMenu?.fallback}
+              tail={contextMenu?.tail}
+            >
               {children}
             </ContextMenuHost>
           </PageFooterProvider>

@@ -472,10 +472,10 @@ export interface DawRepairClickApi {
  * `dawUndoLast` undoes. `cut_range` is a cut made with `dawDeleteRange`; `record_take` is the take the Booth recorded last (the points
  * its stop reported as `undoPoints`). The host and the DAW map a kind to the DAW's own mark for it; the page never names one. A closed
  * union: a later kind is added on both sides. */
-export type DawActionKind = 'cut_range' | 'record_take';
+export type DawActionKind = 'cut_range' | 'record_take' | 'replace_range' | 'restore_replacement';
 
 /** The action kinds this build knows, in the order of DawActionKind. */
-export const DAW_ACTION_KINDS = ['cut_range', 'record_take'] as const satisfies readonly DawActionKind[];
+export const DAW_ACTION_KINDS = ['cut_range', 'record_take', 'replace_range', 'restore_replacement'] as const satisfies readonly DawActionKind[];
 
 /** What `dawLastAction` answers of the DAW's next undo point for a kind (dawport.LastAction): `this` when it is that kind's, `other`
  * when it is anything else or there is none, `unknown` when the DAW cannot tell (the `undo_last` capability refused, the DAW not

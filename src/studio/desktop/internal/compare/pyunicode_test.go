@@ -20,7 +20,10 @@ type textRules struct {
 	Lower     string      `json:"lower"`
 	Word      string      `json:"word"`
 	Space     string      `json:"space"`
+	Casefold  string      `json:"casefold"`
+	Printable string      `json:"printable"`
 	SpokenKey [][2]string `json:"spokenKey"`
+	Repr      [][2]string `json:"repr"`
 }
 
 func readTextRules(t *testing.T) textRules {
@@ -78,6 +81,24 @@ func TestLowercasingWordAndSpaceArePython312sForEveryCodePoint(t *testing.T) {
 	}
 	if codePointDigest(func(r rune) []string { return bit(IsPySpace(r)) }) != rules.Space {
 		t.Error("IsPySpace differs from str.isspace over the code points")
+	}
+	if codePointDigest(func(r rune) []string { return []string{PyCasefold(string(r))} }) != rules.Casefold {
+		t.Error("PyCasefold differs from str.casefold over the code points")
+	}
+	if codePointDigest(func(r rune) []string { return bit(IsPyPrintable(r)) }) != rules.Printable {
+		t.Error("IsPyPrintable differs from str.isprintable over the code points")
+	}
+}
+
+func TestReprQuotesAndEscapesAsPythonDoes(t *testing.T) {
+	rules := readTextRules(t)
+	if len(rules.Repr) < 200 {
+		t.Fatalf("%d cases", len(rules.Repr))
+	}
+	for _, c := range rules.Repr {
+		if got := PyRepr(c[0]); got != c[1] {
+			t.Errorf("PyRepr(%q) = %s, want %s", c[0], got, c[1])
+		}
 	}
 }
 
