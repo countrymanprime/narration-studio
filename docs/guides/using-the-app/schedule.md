@@ -6,16 +6,16 @@ Schedule answers one question: will the book be done by its due date. It holds t
 recorded audio against the plan, the work left and how it is worked out, and the book's milestones. It sits after
 [Production](production.md) in the navigation. With no manuscript it asks you to import one first. Every change is one
 step you can undo from the toast that follows it or from the undo history.
-While the plan is being read, the page shows its title and grey blocks where the chart, the contract and the milestones will be; if the plan cannot be read, it says so with **Retry**.
+While the plan is being read, the page shows its title and empty cards where the chart, the contract, the worked-out sums and the milestones will be; if the plan cannot be read, it says so with **Retry**.
 
 ![Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones](../../images/ui/schedule-on-pace.webp)
 
 ## The verdict
 
-The pill at the top right says **On track**, **Tight** or **Behind**, with when the work would finish at the pace ("at current pace done Oct 4", the 1.5 hours a day under **How this is worked out**) and, when you
+The pill on the line under the title, after the due date, says **On track**, **Tight** or **Behind**, with when the work would finish at the pace ("at current pace done Oct 4", the 1.5 hours a day under **How this is worked out**) and, when you
 are behind, the daily pace the due date needs. The days left to the due date set it: with three days to spare or more it is
 on track, with less than three it is tight, and once the work needs more days than are left it is behind. A book whose chapters
-are all delivered reads **Finished**, whatever the date.
+are all delivered reads **Finished**, whatever the date. With no due date there is no pill: the line says **No due date set**.
 
 The line under the title reads the days plainly: **8 days left**, **1 day left**, **today** (after the date), **2 days overdue**. Once the due
 date is today or past, no daily pace can reach it, so the pill says how late instead of a pace.
@@ -25,19 +25,19 @@ date is today or past, no daily pace can reach it, so the pill says how late ins
 ## How it is worked out
 
 **How this is worked out** lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**.
-The numbers behind it are fixed, not measured from your sessions, so the page labels **Your pace** and **At your
+With no due date, **Pace needed for the due date** says **Set a due date**; once the date is today or past, it says **Due today** or **Past the due date**. The numbers behind it are fixed, not measured from your sessions, so the page labels **Your pace** and **At your
 pace, done** as estimates and says what they assume: finished audio is words ÷ 9,300 per hour, recording takes 3×
 the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours (3.6 minutes), and your pace is 1.5 hours a day. **At your
 pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
-the app can read them (otherwise it says why it cannot), today (its label sits beside the dot, on the side away from the plan, estimate and due lines), and the
-estimated finish as a dotted line.
+the app can read them (otherwise a line under the chart says why it cannot), today (its label sits beside the dot, on the side away from the plan, estimate and due lines), and the
+estimated finish as a dotted line. With no due date there is no plan or due line, and the line under the chart says **Set a due date to see the plan line.**
 
 ## Contract
 
 **Paid** is how the book pays: per finished hour, a royalty share, or none or unspecified. Only a rate per finished hour carries
-an amount. Type it in the **Amount** box and press Enter or leave the box; **Value at this rate** is the rate times the book's finished
+an amount (the box has no unit of its own: the **Paid** choice above it is the unit). Type it in the **Amount** box and press Enter or leave the box; **Value at this rate** is the rate times the book's finished
 hours. An empty box clears the amount. An amount is digits with an optional decimal part, and thousands commas only in groups
 of three (`1,250.50`), up to 1,000,000,000,000. Anything else, such as `-5`, `1e3`, `1,5` (which could mean 15) or a rate larger than that, is
 refused with a message and the box goes back to the stored amount. A refusal's message goes away when a later change is saved. Choosing a royalty share or none clears the amount.
@@ -54,7 +54,7 @@ The table lists your milestones by date, with the **Final delivery** row, the bo
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
 
 **Add milestone**, at the top of the table, opens a dialog for the name, due date (a date field: type the parts or open its calendar), what it measures, a note
-and Done. The 15-minute checkpoint is offered only when the project's delivery profile asks for it. A book can have at most 100
+and Done (beside Cancel, on the button row). The 15-minute checkpoint is offered only when the project's delivery profile asks for it. A book can have at most 100
 milestones, a name is at most 200 characters and a note 2,000; when a save is refused the dialog says why and nothing changes.
 
 ## The due date

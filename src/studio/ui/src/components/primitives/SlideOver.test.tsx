@@ -125,3 +125,27 @@ describe('SlideOver is a real modal panel', () => {
     }
   });
 });
+
+describe('the header (ENX-11, ENX-13)', () => {
+  it('is one height whatever the title, which keeps to one line and names itself in full on hover', () => {
+    render(
+      <SlideOver open title="Editing check: Chapter 1 — Down the Rabbit-Hole" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    const title = screen.getByRole('heading', { name: 'Editing check: Chapter 1 — Down the Rabbit-Hole' });
+    expect(title.className).toContain('truncate');
+    expect(title.className).toContain('flex-1');
+    expect(title.getAttribute('title')).toBe('Editing check: Chapter 1 — Down the Rabbit-Hole');
+    expect(title.parentElement!.className).toContain('h-[3.75rem]');
+  });
+
+  it('draws its title with the overlay title token, larger than a card title', () => {
+    render(
+      <SlideOver open title="Audio engine" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    expect(screen.getByRole('heading', { name: 'Audio engine' }).className).toContain('--font-size-overlay-title');
+  });
+});

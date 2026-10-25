@@ -5,8 +5,11 @@ import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Dialog } from '../primitives/Dialog';
+import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
+import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
+import { ToolResult } from './ToolResult';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, ManuscriptChapter, Track } from '../../types';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
@@ -18,14 +21,19 @@ const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   unknown: 'No manuscript loaded to compare against',
 };
 
-const STATUS_COLOR: Record<LineIdentityRowStatus, string> = {
-  ok: 'var(--text)',
-  drift: 'var(--warn-text)',
-  'stale-source': 'var(--warn-text)',
-  removed: 'var(--danger-text)',
-  unrecognized: 'var(--text-muted)',
-  unknown: 'var(--text-muted)',
+const STATUS_TONE: Record<LineIdentityRowStatus, StatusTone> = {
+  ok: 'success',
+  drift: 'warning',
+  'stale-source': 'warning',
+  removed: 'danger',
+  unrecognized: 'neutral',
+  unknown: 'neutral',
 };
+
+// Fixed columns (alignment audit ENX-17, ENX-18): the track picker sits beside its chapter at one x, and a stamped line's GUID and
+// entity keep to one line (a GUID cut short keeps the whole one as its title) while the text column takes what is left.
+const MAPPING_COLUMNS = ['auto', '13rem', '6rem'] as const;
+const STAMPED_COLUMNS = ['15rem', '5.5rem', '13rem', 'auto'] as const;
 
 /** One chapter mapped to a track: every one of the track's items will be stamped with this chapter's identity
  * (chapter-level granularity). The narrator picks each track by hand here; no automatic chapter-to-track matcher feeds it. */
@@ -57,9 +65,17 @@ function rowsFor(
 function LineStatusRow({ line }: { line: LineIdentityLine }) {
   return (
     <TableRow>
-      <TableCell>{line.itemGuid}</TableCell>
-      <TableCell>{line.entityId || line.lineId}</TableCell>
-      <TableCell style={{ color: STATUS_COLOR[line.status] }}>{STATUS_LABEL[line.status]}</TableCell>
+      <TableCell className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs whitespace-nowrap">
+        <span className="block truncate" title={line.itemGuid}>
+          {line.itemGuid}
+        </span>
+      </TableCell>
+      <TableCell className="whitespace-nowrap">
+        <span className="block truncate">{line.entityId || line.lineId}</span>
+      </TableCell>
+      <TableCell>
+        <StatusBadge tone={STATUS_TONE[line.status]} label={STATUS_LABEL[line.status]} />
+      </TableCell>
       <TableCell>{line.status === 'drift' ? (line.currentText ?? '') : line.text}</TableCell>
     </TableRow>
   );
@@ -67,31 +83,30 @@ function LineStatusRow({ line }: { line: LineIdentityLine }) {
 
 /** Reads current stamped identity from REAPER and shows every row's status (ok, drift, stale-source, removed, unrecognized,
  * unknown), so a narrator can see what "Link chapters" would change before running it again. */
-function CurrentStamps({ state, onRead, pending }: { state: LineIdentityState; onRead: () => void; pending: boolean }) {
+function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityState; error: string; onRead: () => void; pending: boolean }) {
   return (
-    <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">Currently stamped in REAPER</h3>
+    <section aria-labelledby="current-stamps-heading" className="mt-4 space-y-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+      {/* The heading and its button wrap as a pair at a narrow width rather than squeezing the button's label (R3EN2-17). */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SectionLabel as="h3" id="current-stamps-heading">
+          Currently stamped in REAPER
+        </SectionLabel>
         <Button variant="secondary" onClick={onRead} pending={pending}>
           Read current stamps
         </Button>
       </div>
       {(state.phase === 'reading' || (state.phase === 'success' && state.linesRead > 0)) && (
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           {state.message}
         </p>
       )}
-      {state.phase === 'error' && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {state.message}
-        </p>
-      )}
+      {error && <ToolResult tone="danger" message={error} />}
       {state.lines.length > 0 && (
-        <Table label="Stamped lines" className="mt-2">
+        <Table label="Stamped lines" columns={STAMPED_COLUMNS}>
           <TableHead>
             <TableRow>
               <TableHeader>Item</TableHeader>
-              <TableHeader>Manuscript entity</TableHeader>
+              <TableHeader>Entity</TableHeader>
               <TableHeader>Status</TableHeader>
               <TableHeader>Text</TableHeader>
             </TableRow>
@@ -104,11 +119,11 @@ function CurrentStamps({ state, onRead, pending }: { state: LineIdentityState; o
         </Table>
       )}
       {state.phase === 'success' && state.lines.length === 0 && (
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Nothing is stamped yet.
         </p>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -124,6 +139,9 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
     linesRead: 0,
   });
   const [requestError, setRequestError] = useState('');
+  // Which button the narrator pressed last, so a failure is shown once, beside that action (ENX-22): Stamp's result opens the body,
+  // Read's sits under "Currently stamped". A failure with no press behind it (a run already in flight when the dialog opened) is Stamp's.
+  const [lastAction, setLastAction] = useState<'stamp' | 'read'>('stamp');
 
   useEffect(() => {
     const unsubscribe = api.subscribeLineIdentity(setState);
@@ -135,11 +153,16 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
     return unsubscribe;
   }, [api]);
 
+  const failure = requestError || (state.phase === 'error' ? state.message : '');
+  const stampError = lastAction === 'stamp' ? failure : '';
+  const readError = lastAction === 'read' ? failure : '';
+
   const preview = useMemo(() => rowsFor(chapters, tracks, mapping), [chapters, tracks, mapping]);
   const running = state.phase === 'stamping';
   const trackOptions = [{ value: '', label: 'Not linked' }, ...tracks.map((track) => ({ value: track.guid, label: track.name || `Track ${track.index + 1}` }))];
 
   const approve = () => {
+    setLastAction('stamp');
     setRequestError('');
     api
       .lineIdentityStamp(
@@ -149,6 +172,7 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
       .catch((reason: unknown) => setRequestError(String(reason)));
   };
   const read = () => {
+    setLastAction('read');
     setRequestError('');
     api.lineIdentityRead().catch((reason: unknown) => setRequestError(String(reason)));
   };
@@ -172,12 +196,36 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
         </>
       }
     >
-      <Table label="Chapter to track mapping">
+      {/* The outcome of Stamp opens the body, where it is seen without scrolling past the chapters (R3EN2-13). */}
+      {stampError && (
+        <div className="mb-3">
+          <ToolResult tone="danger" message={stampError} />
+        </div>
+      )}
+      {state.phase === 'stamping' && (
+        <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+          {state.message}
+        </p>
+      )}
+      {state.phase === 'success' && (state.stamp.applied > 0 || state.stamp.missingCount > 0 || state.stamp.conflictsCount > 0) && (
+        <div className="mb-3">
+          <ToolResult tone={state.stamp.missing.length > 0 || state.stamp.conflicts.length > 0 ? 'warning' : 'success'} message={state.message}>
+            {state.stamp.missing.length > 0 && <p className="mt-1">Stale items (their GUID no longer resolves in REAPER): {state.stamp.missing.join(', ')}</p>}
+            {state.stamp.conflicts.length > 0 && (
+              <p className="mt-1">Already stamped with a different chapter, not overwritten: {state.stamp.conflicts.join(', ')}</p>
+            )}
+          </ToolResult>
+        </div>
+      )}
+
+      <Table label="Chapter to track mapping" columns={MAPPING_COLUMNS}>
         <TableHead>
           <TableRow>
             <TableHeader>Chapter</TableHeader>
             <TableHeader>REAPER track</TableHeader>
-            <TableHeader align="right">Items to stamp</TableHeader>
+            <TableHeader align="right" className="whitespace-nowrap">
+              To stamp
+            </TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -193,6 +241,7 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
                     value={trackGuid}
                     onChange={(value) => setMapping((current) => ({ ...current, [chapter.id]: value }))}
                     options={trackOptions}
+                    fullWidth
                   />
                 </TableCell>
                 <TableCell numeric>{track ? track.items.length : '–'}</TableCell>
@@ -208,34 +257,7 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
         </Checkbox>
       </div>
 
-      {requestError && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {requestError}
-        </p>
-      )}
-      {state.phase === 'error' && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {state.message}
-        </p>
-      )}
-      {state.phase === 'stamping' && (
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {state.message}
-        </p>
-      )}
-      {state.phase === 'success' && (state.stamp.applied > 0 || state.stamp.missingCount > 0 || state.stamp.conflictsCount > 0) && (
-        <div className="mt-2 text-sm">
-          <p>{state.message}</p>
-          {state.stamp.missing.length > 0 && (
-            <p style={{ color: 'var(--warn-text)' }}>Stale items (their GUID no longer resolves in REAPER): {state.stamp.missing.join(', ')}</p>
-          )}
-          {state.stamp.conflicts.length > 0 && (
-            <p style={{ color: 'var(--warn-text)' }}>Already stamped with a different chapter, not overwritten: {state.stamp.conflicts.join(', ')}</p>
-          )}
-        </div>
-      )}
-
-      <CurrentStamps state={state} onRead={read} pending={state.phase === 'reading'} />
+      <CurrentStamps state={state} error={readError} onRead={read} pending={state.phase === 'reading'} />
     </Dialog>
   );
 }

@@ -106,4 +106,13 @@ describe('RetakeLanesDialog', () => {
     await waitFor(() => expect((screen.getByRole('button', { name: 'Close' }) as HTMLButtonElement).disabled).toBe(true));
     expect((screen.getByRole('button', { name: 'Play this lane: lane 1 for line-000013 on Chapter 1' }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  // Alignment audit ENX-27: the lane that already plays still offered "Play this lane".
+  it('turns off Play this lane on the lane that already plays', async () => {
+    renderDialog();
+    await screen.findByRole('region', { name: 'line-000012 on Chapter 1' });
+    expect(statusOf('line-000012', 1)).toContain('Plays');
+    expect((screen.getByRole('button', { name: 'Play this lane: lane 1 for line-000012 on Chapter 1' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Play this lane: lane 2 for line-000012 on Chapter 1' }) as HTMLButtonElement).disabled).toBe(false);
+  });
 });
