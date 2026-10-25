@@ -47,6 +47,16 @@ const cases: { rule: LayoutRule; bad: string; good: string }[] = [
     good: '<ul><li style="display:block">One</li><li style="display:block">Two</li></ul>',
   },
   {
+    rule: 'A2',
+    bad: '<div style="width:400px"><div style="display:block;border:1px solid">One</div><div style="display:block;border:1px solid;margin-right:12px">Two</div></div>',
+    good: '<div style="width:400px"><div style="display:block;border:1px solid">One</div><div style="display:block;border:1px solid">Two</div></div>',
+  },
+  {
+    rule: 'G3',
+    bad: '<div role="toolbar" aria-label="2 selected" style="width:300px">Remove</div><table style="width:600px"><tr><td>a</td></tr></table>',
+    good: '<div role="toolbar" aria-label="2 selected" style="width:600px">Remove</div><table style="width:600px"><tr><td>a</td></tr></table>',
+  },
+  {
     rule: 'A3',
     bad: '<div><div class="row"><span>a</span><span>b</span></div><div class="row"><span>aaaa</span><span>b</span></div></div>',
     good: '<div><div class="row" style="display:grid;grid-template-columns:100px 100px"><span>a</span><span>b</span></div><div class="row" style="display:grid;grid-template-columns:100px 100px"><span>aaaa</span><span>b</span></div></div>',
@@ -116,4 +126,55 @@ test('what is under an open modal is not judged', async ({ page }) => {
 test('a collapsed rail that fades its labels out is not a cut label', async ({ page }) => {
   const rules = await rulesOn(page, '<nav style="width:40px;overflow:hidden;white-space:nowrap"><span style="opacity:0">Production and more</span></nav>');
   expect(rules).not.toContain('W3');
+});
+
+test('a collapsed rail that draws its group labels in a transparent colour is not a cut label', async ({ page }) => {
+  const rules = await rulesOn(page, '<nav style="width:40px;overflow:hidden;white-space:nowrap;color:transparent">Production and more</nav>');
+  expect(rules).not.toContain('W3');
+});
+
+test('a window onto long content (a teleprompter) is not a box cut short', async ({ page }) => {
+  const rules = await rulesOn(page, `<div style="height:60px;overflow:hidden">${'<p>A line of the script that goes on.</p>'.repeat(20)}</div>`);
+  expect(rules).not.toContain('W3');
+});
+
+test('words under an opaque panel opened over them are covered, not overlapped', async ({ page }) => {
+  const rules = await rulesOn(
+    page,
+    '<p>Production figures for the week</p><nav style="position:absolute;top:0;left:0;width:200px;height:60px;background:#fff"><span>Schedule</span></nav>',
+  );
+  expect(rules).not.toContain('W4');
+});
+
+test('right-aligned values line up on their right edge', async ({ page }) => {
+  const rules = await rulesOn(
+    page,
+    '<dl style="width:300px"><div class="row" style="justify-content:space-between"><dt>Length</dt><dd style="margin:0">4 h</dd></div><div class="row" style="justify-content:space-between"><dt>Length</dt><dd style="margin:0">12 h 30 min</dd></div></dl>',
+  );
+  expect(rules).not.toContain('A3');
+});
+
+test('a divider that sets the last action apart is a separation, not uneven spacing', async ({ page }) => {
+  const rules = await rulesOn(
+    page,
+    '<div class="row" style="gap:4px"><button>a</button><button>b</button><button style="margin-left:13px;position:relative">c<i style="position:absolute;left:-9px;top:0;width:1px;height:32px;background:#888"></i></button></div>',
+  );
+  expect(rules).not.toContain('G4');
+});
+
+test('a card under a group rule (an Advanced section) is laid out by its group, not the page gutter', async ({ page }) => {
+  const rules = await rulesOn(
+    page,
+    '<section class="card">One</section><div style="border-left:1px solid;padding-left:16px"><section class="card">Two</section></div>',
+  );
+  expect(rules).not.toContain('G5');
+});
+
+test('a control drawn small with a 24 px press target around it (primitives/hitArea.ts) has a 24 px hit area', async ({ page }) => {
+  const rules = await rulesOn(
+    page,
+    `<style>.hit { position: relative } .hit::after { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; min-width: 24px; min-height: 24px; transform: translate(-50%, -50%) }</style>
+     <div class="row" style="gap:6px"><button class="hit" style="height:18px;width:30px;padding:0">x</button><button class="hit" style="height:18px;width:30px;padding:0">y</button></div>`,
+  );
+  expect(rules).not.toContain('H1');
 });

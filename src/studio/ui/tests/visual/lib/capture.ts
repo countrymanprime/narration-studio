@@ -14,6 +14,7 @@ import {
   checkAxeFindings,
   checkControlWidths,
   checkDocumentScroll,
+  checkLayoutHits,
   disambiguateLabels,
   findMixedRowHeights,
   NON_TEXT_INPUT_TYPES,
@@ -28,6 +29,7 @@ import {
   type ControlMeasurement,
   type DocumentScrollMode,
   type EscapedAbsolute,
+  type LayoutDebt,
   type RawAxeViolation,
   type RowControl,
 } from './validators';
@@ -265,9 +267,10 @@ async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, prob
   const controls = await measureTextControls(page);
   problems.push(...checkControlWidths(controls, entry.narrowControls, viewport.name));
   problems.push(...findMixedRowHeights(await measureRowControls(page), viewport.name));
-  const t0 = Date.now();
-  const layout = process.env.UI_LAYOUT_SCAN ? await page.evaluate(scanLayout) : undefined;
-  const layoutMs = Date.now() - t0;
+  // The alignment audit's DOM rules: a hit fails the capture unless the project's layoutDebt declares it.
+  const layout = await page.evaluate(scanLayout);
+  const layoutDebt = (appDrivers as { layoutDebt?: readonly LayoutDebt[] }).layoutDebt ?? [];
+  problems.push(...checkLayoutHits(layout, layoutDebt, entry.page, entry.state, viewport.name));
   const axeDebt = (appDrivers as { axeDebt?: readonly AxeDebt[] }).axeDebt;
   const axeMode = resolveAxeMode(process.env.UI_AXE, axeDebt !== undefined);
   const png = await page.screenshot({
@@ -294,8 +297,8 @@ async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, prob
     escapedAbsolutes,
     narrowestControlPx: controls.length > 0 ? Math.min(...controls.map((control) => control.width)) : null,
     ...(axe ? { axe } : {}),
-    ...(layout ? { layout, layoutMs } : {}),
-  } as CaptureRecord);
+    layout,
+  });
 
   const failures = problems.splice(0).map((problem) => `${viewport.name}: ${problem}`);
   if (overflowPx > OVERFLOW_TOLERANCE_PX) failures.push(`${viewport.name}: page scrolls sideways by ${overflowPx}px`);

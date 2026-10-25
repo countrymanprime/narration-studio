@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import * as appDrivers from '../tests/visual/app.drivers';
 import { APP_DRIVERS } from '../tests/visual/app.drivers';
 import { AXE_DEBT } from '../tests/visual/axe-debt';
+import { LAYOUT_DEBT } from '../tests/visual/layout-debt';
 import { STATE_CATALOG } from '../tests/visual/state-catalog';
 import { REFLOW_VIEWPORT, VIEWPORTS } from '../tests/visual/viewports';
 import {
@@ -9,6 +10,7 @@ import {
   checkAxeModeForCi,
   checkControlWidths,
   checkDocumentScroll,
+  checkLayoutHits,
   disambiguateLabels,
   findBlankCaptures,
   findCollapsedControls,
@@ -576,5 +578,61 @@ describe('axe debt', () => {
 
   test('every entry says where the fix is tracked', () => {
     for (const entry of AXE_DEBT) expect(entry.reason, `${key(entry.page, entry.state)} axe debt`).toMatch(/#\d+/);
+  });
+});
+
+describe('checkLayoutHits', () => {
+  const chip = { rule: 'H1' as const, where: 'header > span > button[aria-label="REAPER: Linked"]', detail: '"REAPER" is 67x22px beside another target' };
+  const label = { rule: 'W1' as const, where: 'main > button', detail: '"Start the session" wraps its label' };
+  const debt = [
+    { page: 'a', state: 's', viewports: ['tablet'], rule: 'H1' as const, element: 'button[aria-label="REAPER: Linked"]', defect: 'the chip is 22 px' },
+  ];
+
+  test('fails a capture on a hit no entry declares, naming the rule, the viewport and the place', () => {
+    expect(checkLayoutHits([label, chip], debt, 'a', 's', 'tablet')).toEqual([
+      'alignment rule W1 at tablet: main > button: "Start the session" wraps its label - fix the page (docs/research/alignment-audit.md#alignment-rules), or declare it in tests/visual/layout-debt.ts',
+    ]);
+  });
+
+  test('passes a hit its entry declares, for that state and width only', () => {
+    expect(checkLayoutHits([chip], debt, 'a', 's', 'tablet')).toEqual([]);
+    expect(checkLayoutHits([chip], debt, 'a', 's', 'desktop')).toHaveLength(1);
+    expect(checkLayoutHits([chip], debt, 'a', 'other', 'tablet')).toHaveLength(1);
+  });
+
+  test('fails an entry that nothing hits any more, so the list only shrinks', () => {
+    expect(checkLayoutHits([], debt, 'a', 's', 'tablet')).toEqual([
+      'layoutDebt no longer holds at tablet: H1 on button[aria-label="REAPER: Linked"] is not found any more - remove the entry from layout-debt.ts',
+    ]);
+  });
+});
+
+describe('layout debt', () => {
+  // The (state, rule, element) entries the app states are allowed to break. It may only shrink: lower it when an entry goes, and a
+  // higher number needs a maintainer's decision, not just a green run.
+  const MAX_LAYOUT_DEBT_ENTRIES = LAYOUT_DEBT.length;
+
+  test('the drivers declare the list the capture reads', () => {
+    expect((appDrivers as { layoutDebt?: unknown }).layoutDebt).toBe(LAYOUT_DEBT);
+  });
+
+  test('does not grow', () => {
+    expect(LAYOUT_DEBT.length).toBeLessThanOrEqual(MAX_LAYOUT_DEBT_ENTRIES);
+  });
+
+  test('names each state, rule and element once', () => {
+    const keys = LAYOUT_DEBT.map((entry) => `${entry.page}/${entry.state} ${entry.rule} ${entry.element}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test('every entry belongs to a catalog row, at widths the row is captured at, and says what is wrong', () => {
+    for (const entry of LAYOUT_DEBT) {
+      const where = key(entry.page, entry.state);
+      const row = STATE_CATALOG.find((candidate) => key(candidate.page, candidate.state) === where);
+      expect(row, `${where} is not a catalog row`).toBeDefined();
+      const captured = [...VIEWPORTS, ...(row?.extraViewports ?? [])].map((viewport) => viewport.name);
+      for (const viewport of entry.viewports) expect(captured, `${where} is not captured at ${viewport}`).toContain(viewport);
+      expect(entry.defect.length, `${where} ${entry.rule} says nothing about the defect`).toBeGreaterThan(20);
+    }
   });
 });

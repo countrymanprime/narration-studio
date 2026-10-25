@@ -1,8 +1,8 @@
 // The alignment audit's DOM rules (docs/research/alignment-audit.md#alignment-rules), measured on the page as it is drawn. `scanLayout`
 // runs in the browser (page.evaluate), so it is self-contained: no imports, no helpers outside its body.
+// W5 (nothing under a scrollbar) is not measured: Playwright's headless Chromium draws no scrollbars, so it could never fail here.
 
-export type LayoutRule =
-  'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A7' | 'A9' | 'W1' | 'W2' | 'W3' | 'W4' | 'W5' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'H1' | 'H2' | 'B1';
+export type LayoutRule = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A7' | 'A9' | 'W1' | 'W2' | 'W3' | 'W4' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'H1' | 'H2' | 'B1';
 
 export interface LayoutHit {
   rule: LayoutRule;
@@ -24,7 +24,8 @@ export function scanLayout(): LayoutHit[] {
     let node: Element | null = element;
     for (let depth = 0; node && node !== document.body && depth < 5; depth += 1) {
       let part = node.tagName.toLowerCase();
-      if (node.id) {
+      // An id a library generates (Base UI's `base-ui-_r_1j_`) changes from load to load, so it does not name a place.
+      if (node.id && !/^base-ui-|_r_/.test(node.id)) {
         parts.unshift(`${part}#${node.id}`);
         break;
       }
@@ -105,6 +106,11 @@ export function scanLayout(): LayoutHit[] {
     }
     return clip;
   };
+  // Text drawn in a transparent colour or at no size is not seen (the collapsed rail hides its group labels that way).
+  const inkless = (element: Element) => {
+    const style = css(element);
+    return parseFloat(style.fontSize) === 0 || /rgba\([^)]*,\s*0\)$/.test(style.color) || style.color === 'transparent';
+  };
   // Elements laid out as blocks (a row, a card), not words in a line of text.
   const blockish = (element: Element) => /^(block|flex|grid|list-item|table|table-row|flow-root)$/.test(css(element).display);
 
@@ -157,13 +163,15 @@ export function scanLayout(): LayoutHit[] {
     const overX = clipsX ? element.scrollWidth - element.clientWidth : 0;
     const overY = clipsY ? element.scrollHeight - element.clientHeight : 0;
     if (overX <= TOL && overY <= TOL) continue;
+    // A box that hides more than it shows is a window onto long content (the Booth's teleprompter), not a box cut short.
+    if (overY > element.clientHeight || overX > element.clientWidth) continue;
     // Content wholly hidden (a collapsed rail's labels) is not seen; a line of text cut through at the edge is.
     const box = element.getBoundingClientRect();
     const inner = { left: box.left + element.clientLeft, top: box.top + element.clientTop };
     const edge = { right: inner.left + element.clientWidth, bottom: inner.top + element.clientHeight };
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
-      if (!(node.textContent ?? '').trim() || !node.parentElement || !shown(node.parentElement)) continue;
+      if (!(node.textContent ?? '').trim() || !node.parentElement || !shown(node.parentElement) || inkless(node.parentElement)) continue;
       const range = document.createRange();
       range.selectNodeContents(node);
       const cut = Array.from(range.getClientRects()).find(
@@ -201,7 +209,7 @@ export function scanLayout(): LayoutHit[] {
     for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
       if (!(node.textContent ?? '').trim()) continue;
       const owner = node.parentElement;
-      if (!owner || !shown(owner)) continue;
+      if (!owner || !shown(owner) || inkless(owner)) continue;
       const range = document.createRange();
       range.selectNodeContents(node);
       const clip = clipOf(owner);
@@ -243,22 +251,19 @@ export function scanLayout(): LayoutHit[] {
             if (!crossing && right - left > 2 && bottom - top > 2) crossing = { x: (left + right) / 2, y: (top + bottom) / 2 };
           }
         if (!crossing) continue;
-        const there = document.elementFromPoint(crossing.x, crossing.y);
-        if (!there || !(a.owner.contains(there) || b.owner.contains(there) || there.contains(a.owner) || there.contains(b.owner))) continue;
+        // Both runs must be drawn there: nothing with a background of its own may lie between them in the paint order (the rail opened
+        // over the page covers the page's words, it does not overlap them).
+        const stack = document.elementsFromPoint(crossing.x, crossing.y);
+        const at = (owner: Element) => stack.findIndex((element) => element === owner || owner.contains(element));
+        const [upper, lower] = [at(a.owner), at(b.owner)].sort((x, y) => x - y);
+        if (upper < 0 || lower < 0) continue;
+        const lowerOwner = at(a.owner) === lower ? a.owner : b.owner;
+        const covered = stack
+          .slice(upper, lower)
+          .some((element) => !element.contains(lowerOwner) && !/rgba\([^)]*,\s*0\)$|transparent/.test(css(element).backgroundColor));
+        if (covered) continue;
         hit('W4', a.owner, `"${(a.node.textContent ?? '').trim().slice(0, 30)}" overlaps "${(b.node.textContent ?? '').trim().slice(0, 30)}"`);
       }
-
-  // ---- W5: nothing sits under a scrollbar: a box with a classic scrollbar whose content reaches into it.
-  for (const element of all) {
-    const style = css(element);
-    if (!/(auto|scroll)/.test(style.overflowY)) continue;
-    const bar = element.offsetWidth - element.clientWidth - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);
-    if (bar <= 0) continue;
-    const edge = element.getBoundingClientRect().left + element.clientLeft + element.clientWidth;
-    for (const child of Array.from(element.children))
-      if (shown(child) && child.getBoundingClientRect().right > edge + TOL)
-        hit('W5', child, `reaches ${r1(child.getBoundingClientRect().right - edge)}px under the scrollbar`);
-  }
 
   // ---- H1: a hit area is at least 24 px (WCAG 2.5.8), unless it is a link in a run of text or a 24 px circle on it meets no other target.
   const TARGET =
@@ -266,7 +271,14 @@ export function scanLayout(): LayoutHit[] {
   const targets = all.filter((element) => element.matches(TARGET) && !element.closest('label')?.matches(':not(:has(input:only-child))'));
   const boxOfTarget = (element: Element): DOMRect => {
     const label = (element as HTMLInputElement).labels?.[0];
-    return label && shown(label) && label.contains(element) ? label.getBoundingClientRect() : element.getBoundingClientRect();
+    const box = label && shown(label) && label.contains(element) ? label.getBoundingClientRect() : element.getBoundingClientRect();
+    // A control drawn small can carry a larger invisible press target: an absolutely placed ::after centred on it (primitives/hitArea.ts).
+    // It takes the presses, so it is the hit area.
+    const after = getComputedStyle(element, '::after');
+    if (after.position !== 'absolute' || after.content === 'none') return box;
+    const width = Math.max(box.width, parseFloat(after.width) || 0);
+    const height = Math.max(box.height, parseFloat(after.height) || 0);
+    return new DOMRect(box.left + box.width / 2 - width / 2, box.top + box.height / 2 - height / 2, width, height);
   };
   const inRunOfText = (element: Element): boolean => {
     const parent = element.parentElement;
@@ -331,13 +343,26 @@ export function scanLayout(): LayoutHit[] {
       const oneColumn =
         columns === 1 && !(css(parent).display.includes('flex') && css(parent).flexWrap !== 'nowrap' && !css(parent).flexDirection.startsWith('column'));
       if (oneColumn && Math.max(...lefts) - Math.min(...lefts) > TOL) hit('A1', parent, `like rows start at ${[...new Set(lefts.map(r1))].join(', ')}`);
-      if (oneColumn && Math.max(...rights) - Math.min(...rights) > TOL) hit('A2', parent, `like rows end at ${[...new Set(rights.map(r1))].join(', ')}`);
+      const inner = parent.clientWidth - parseFloat(css(parent).paddingLeft) - parseFloat(css(parent).paddingRight);
+      const spanning = rects.every((rect) => rect.width >= inner * 0.75);
+      if (oneColumn && spanning && Math.max(...rights) - Math.min(...rights) > TOL)
+        hit('A2', parent, `like rows end at ${[...new Set(rights.map(r1))].join(', ')}`);
       // A3: rows with the same number of cells put each cell at the same x.
-      const cells = rows.map((row) => visibleKids(row));
-      if (cells[0].length > 1 && cells.every((row) => row.length === cells[0].length)) {
+      // Cells laid out as blocks; words in a line of text are not columns.
+      const cells = rows.map((row) =>
+        visibleKids(row).filter(
+          (cell) => !css(cell).display.startsWith('inline') || css(cell).display === 'inline-flex' || css(cell).display === 'inline-grid',
+        ),
+      );
+      // A row that wraps its items (a run of words, chips) is a flow, not a grid.
+      const flows = rows.some((row) => css(row).flexWrap === 'wrap');
+      if (!flows && cells[0].length > 1 && cells.every((row) => row.length === cells[0].length)) {
         for (let index = 0; index < cells[0].length; index += 1) {
-          const xs = cells.map((row) => row[index].getBoundingClientRect().left);
-          if (Math.max(...xs) - Math.min(...xs) > TOL) {
+          const boxes = cells.map((row) => row[index].getBoundingClientRect());
+          const xs = boxes.map((box) => box.left);
+          const spread = (values: number[]) => Math.max(...values) - Math.min(...values);
+          // A column lines up on its left edge, its right edge (right-aligned values) or its centre.
+          if (spread(xs) > TOL && spread(boxes.map((box) => box.right)) > TOL && spread(boxes.map((box) => box.left + box.width / 2)) > TOL) {
             hit('A3', parent, `cell ${index + 1} of like rows starts at ${[...new Set(xs.map(r1))].join(', ')}`);
             break;
           }
@@ -396,7 +421,11 @@ export function scanLayout(): LayoutHit[] {
   }
 
   // ---- Cards (G1, G2, G5, B1): the Panel frame and other bordered sections.
-  const cards = all.filter((element) => element.matches('section, article, [role="region"]') && framed(element) && parseFloat(css(element).borderTopWidth) > 0);
+  // Cards of the page itself: an overlay (a toast, a popover) is not laid out with them.
+  // Measured whether or not something is drawn over them: a panel covering part of a card does not move it.
+  const cards = Array.from(scope.querySelectorAll<HTMLElement>('section, article, [role="region"]')).filter(
+    (element) => shown(element) && framed(element) && parseFloat(css(element).borderTopWidth) > 0 && layerOf(element) === null,
+  );
   // G1: sibling cards on one row have one height and one header height.
   const cardRows = new Map<Element, Element[]>();
   for (const card of cards) if (card.parentElement) cardRows.set(card.parentElement, [...(cardRows.get(card.parentElement) ?? []), card]);
@@ -432,13 +461,8 @@ export function scanLayout(): LayoutHit[] {
     if (Math.abs(table.getBoundingClientRect().left - cardInner) > TOL) continue;
     const cell = table.querySelector('tr > :first-child');
     if (!cell) continue;
-    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
-    let node = walker.nextNode();
-    while (node && !(node.textContent ?? '').trim()) node = walker.nextNode();
-    if (!node) continue;
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    const textLeft = range.getBoundingClientRect().left;
+    // Where the cell's content starts (its padding box), so a right-aligned figure column is judged by its inset, not its text.
+    const textLeft = cell.getBoundingClientRect().left + cell.clientLeft + parseFloat(css(cell).paddingLeft);
     const titleRange = document.createRange();
     titleRange.selectNodeContents(title);
     const titleLeft = titleRange.getBoundingClientRect().left;
@@ -447,7 +471,12 @@ export function scanLayout(): LayoutHit[] {
   // G5: top-level cards share the page gutter: every card in <main> that is the first of its row starts at one x.
   const main = scope.querySelector('main') ?? (scope.matches('main') ? scope : null);
   if (main) {
-    const topCards = cards.filter((card) => main.contains(card) && !cards.some((other) => other !== card && other.contains(card)));
+    // A card inside a frame or under a group's rule (Settings' Advanced) is laid out by that container, not by the page gutter.
+    const nested = (card: Element) => {
+      for (let node = card.parentElement; node && node !== main; node = node.parentElement) if (parseFloat(css(node).borderLeftWidth) > 0) return true;
+      return false;
+    };
+    const topCards = cards.filter((card) => main.contains(card) && !nested(card));
     const firsts = topCards.filter((card) => {
       const box = card.getBoundingClientRect();
       return !topCards.some((other) => {
@@ -482,7 +511,19 @@ export function scanLayout(): LayoutHit[] {
       const horizontal = rects.every((rect) => Math.abs(rect.top - rects[0].top) <= TOL);
       const vertical = rects.every((rect) => Math.abs(rect.left - rects[0].left) <= TOL);
       if (!horizontal && !vertical) continue;
-      const gaps = rects.slice(1).map((rect, index) => (horizontal ? rect.left - rects[index].right : rect.top - rects[index].bottom));
+      // A gap with something drawn in it (a divider setting the last action apart) is a separation, not uneven spacing.
+      const plain = (a: DOMRect, b: DOMRect) => {
+        const x = horizontal ? (a.right + b.left) / 2 : a.left + a.width / 2;
+        const y = horizontal ? a.top + a.height / 2 : (a.bottom + b.top) / 2;
+        const there = document.elementFromPoint(x, y);
+        return !there || there === parent || there.contains(parent);
+      };
+      const gaps = rects
+        .slice(1)
+        .map((rect, index) => ({ gap: horizontal ? rect.left - rects[index].right : rect.top - rects[index].bottom, plain: plain(rects[index], rect) }))
+        .filter((entry) => entry.plain)
+        .map((entry) => entry.gap);
+      if (gaps.length < 2) continue;
       if (Math.max(...gaps) - Math.min(...gaps) > TOL) hit('G4', parent, `gaps between like items are ${[...new Set(gaps.map(r1))].join(', ')}px`);
     }
   }
