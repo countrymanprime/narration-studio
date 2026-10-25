@@ -428,3 +428,13 @@ def test_the_real_decode_times_words_where_the_reference_heard_them(tmp_path):
     assert len(errors) >= 0.9 * len(sample)
     assert float(np.median(errors)) <= DECODED_TOLERANCE_SECONDS / 2
     assert sorted(errors)[int(0.9 * len(errors)) - 1] <= DECODED_TOLERANCE_SECONDS
+
+
+def test_words_only_prints_the_stretchs_decoded_words_in_its_own_seconds(tmp_path, monkeypatch, capsys):
+    wav = tmp_path / "take.wav"
+    _write_steps_wav(wav, 4)
+    decoder = lambda args, vad_filter=False: lambda audio: [("alice", 0.5, 0.9)]
+    argv = ["--align-word", "3", "--words-only", "--model-dir", "d", "--manuscript", str(_manuscript(tmp_path)), "--chapter", "c1", "--wav", str(wav)]
+    _main(monkeypatch, [*argv, "--tail-start", "1", "--tail-end", "3"], decoder)
+
+    assert json.loads(capsys.readouterr().out) == {"type": "heard", "words": [["alice", 0.5, 0.9]]}
