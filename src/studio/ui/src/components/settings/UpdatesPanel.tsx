@@ -7,13 +7,9 @@ import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { UpdateDownloadDialog } from './UpdateDownloadDialog';
 import { brand } from '../../brand.gen';
+import { calendarDay } from '../../calendarDay';
 
 const BYTES_PER_MB = 1024 * 1024;
-
-/** The day of a check, from the host's ISO time (UTC), so the words do not change with the locale or the time zone. */
-function checkedDay(lastChecked: string): string {
-  return `${lastChecked.slice(0, 10)} UTC`;
-}
 
 /**
  * What the app knows about newer releases: the newest one on the narrator's channel if it is newer than this build, when the app last
@@ -137,7 +133,7 @@ export function UpdatesPanel() {
             )}
             {status.lastChecked && (
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Last checked {checkedDay(status.lastChecked)}
+                Last checked {calendarDay(status.lastChecked)}
               </p>
             )}
             {status.failure && <p style={{ color: 'var(--danger-text)' }}>{status.failure}</p>}

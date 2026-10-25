@@ -1,12 +1,12 @@
+import { calendarDay } from '../../calendarDay';
 import type { Bootstrap } from '../../types';
 import { Panel } from '../primitives/Panel';
 import { useManuscriptImport } from '../production/ManuscriptImport';
 import type { Notify } from '../primitives/Toast';
 
-/** The mock's "Imported Sep 12 · 29,222 words": the import's day, short, and the words a narrator reads. */
+/** The mock's "Imported Sep 12 · 29,222 words", with the year (`calendarDay`): the import's day and the words a narrator reads. */
 function importedLine(manuscript: NonNullable<Bootstrap['manuscript']>): string {
-  const day = new Date(manuscript.importedAt);
-  const when = Number.isNaN(day.getTime()) ? manuscript.importedAt : day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const when = calendarDay(manuscript.importedAt);
   return `Imported ${when} · ${manuscript.narratableWordCount.toLocaleString('en-US')} words`;
 }
 

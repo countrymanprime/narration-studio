@@ -30,7 +30,7 @@ describe('UpdatesPanel', () => {
     renderPanel(undefined);
     fireEvent.click(await screen.findByRole('button', { name: 'Check now' }));
     expect(await screen.findByText(/You have the latest version/)).toBeTruthy();
-    expect(screen.getByText(/Last checked 2026-09-21/)).toBeTruthy();
+    expect(screen.getByText(/^Last checked Sep 21, 2026$/)).toBeTruthy();
   });
 
   it('shows a newer release with its version, size and channel, and opens its release notes', async () => {

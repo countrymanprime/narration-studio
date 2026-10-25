@@ -19,6 +19,7 @@ import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { passing, profile as acxProfile } from './components/masterqc/files/testFiles';
 import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
+import { claimAttachRefusal } from './components/connection/attachRefusal';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -415,6 +416,24 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(systemNotify).toHaveBeenCalledWith('story_bible', 'Task finished', 'Story Bible rebuild complete.'), { timeout: 10_000 });
 
     hasFocus.mockRestore();
+  });
+
+  it('toasts why a launched project was turned away, unless a dialog that already says it claims the reason (R4BO2-4)', async () => {
+    let attach: ((state: { attached: boolean; reason?: string }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const release = claimAttachRefusal();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(screen.queryByText(/The app is busy/)).toBeNull();
+    release();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(within(appToasts('alert')).getByText(/The app is busy/)).toBeTruthy();
   });
 
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
