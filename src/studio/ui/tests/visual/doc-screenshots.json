@@ -1177,6 +1177,13 @@
   },
   {
     "page": "booth",
+    "state": "cold-read",
+    "viewport": "desktop",
+    "docName": "booth-cold-read",
+    "caption": "Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar"
+  },
+  {
+    "page": "booth",
     "state": "listening-no-mic",
     "viewport": "desktop",
     "docName": "booth-no-mic",

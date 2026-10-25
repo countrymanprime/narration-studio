@@ -80,6 +80,7 @@
     "capability.input_level": "auto",
     "capability.punch_preroll": "auto",
     "capability.daw_meters": "auto",
+    "capability.replace_range": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"
   },
@@ -145,7 +146,8 @@
     "click_above_silence_db": "30"
   },
   "Editing": {
-    "fx_cap_pct": "10"
+    "fx_cap_pct": "10",
+    "replace_target_lufs": "-20"
   },
   "Booth": {
     "words_per_page": "250"

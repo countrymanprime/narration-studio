@@ -120,7 +120,7 @@ describe('the script carries the Story Bible and the narrator’s marks', () => 
     expect(document.querySelector('[data-spk="c1"]')?.getAttribute('data-state')).toBe('unknown');
     expect(document.querySelector('[data-spk="c1"]')?.textContent).toBe('?');
   });
-  it('follows the chip rule Script and the Booth draw by: dashed until confirmed, nobody for a place', () => {
+  it('follows the chip rule Script and the Booth draw by: dashed until confirmed, nobody for a place or a Needs Review name', () => {
     const state = (source: GuideDialogueCue['speaker_source'], speaker: string) => {
       show([cue(source, speaker)]);
       const chip = document.querySelector('[data-spk="c1"]');
@@ -129,8 +129,8 @@ describe('the script carries the Story Bible and the narrator’s marks', () => 
       return found;
     };
     expect(state('proximity', 'e1')).toEqual(['suggested', 'Alice']);
-    expect(state('tag', 'e3')).toEqual(['suggested', 'Wren']);
-    expect(state('correction', 'e3')).toEqual(['confirmed', 'Wren']);
+    expect(state('correction', 'e1')).toEqual(['confirmed', 'Alice']);
+    expect(state('tag', 'e3')).toEqual(['unknown', '?']);
     expect(state('tag', 'e2')).toEqual(['unknown', '?']);
   });
   it('marks the words of a Story Bible name with the entry’s colour and not the words around them', () => {

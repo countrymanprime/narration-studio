@@ -5,7 +5,8 @@ import { brand } from '../../brand.gen';
 
 export type MockAnalysisTool = Omit<AssetItem, 'kind' | 'kindLabel' | 'path' | 'installState' | 'installedAt' | 'verifiedAt' | 'activeJobId'>;
 
-/** GLiNER, both BookNLP sizes and the local language model, each unavailable with the host's sentence (config/analysis-assets.json pins no tool's every file yet). */
+/** GLiNER, both BookNLP sizes and the local language model. Both BookNLP sizes can be installed; GLiNER and the local model are
+ * unavailable with the host's sentence (config/analysis-assets.json pins every BookNLP file and not yet every GLiNER one). */
 export const MOCK_ANALYSIS_TOOLS: readonly MockAnalysisTool[] = [
   {
     id: 'gliner',
@@ -42,15 +43,14 @@ export const MOCK_ANALYSIS_TOOLS: readonly MockAnalysisTool[] = [
     provenanceUrl: 'https://people.ischool.berkeley.edu/~dbamman/booknlp_models/',
     attribution:
       'The program is under the MIT licence. Its authors give no licence statement for the model files; they are used here only to find character names. BookNLP by David Bamman; torch is BSD-3-Clause.',
-    downloadSize: 286934059,
-    diskSize: 644689865,
-    downloadHost: 'people.ischool.berkeley.edu, files.pythonhosted.org',
+    downloadSize: 313889421,
+    diskSize: 747768291,
+    downloadHost: 'people.ischool.berkeley.edu, huggingface.co, files.pythonhosted.org',
     ramGB: 1.6,
     minutesPerBook: 3,
     source: 'booknlp',
     rank: 1,
     recommended: true,
-    unavailableReason: 'BookNLP (small) is not yet available: its download is still being checked, and it will be offered once every file is pinned.',
   },
   {
     id: 'booknlp-big',
@@ -64,15 +64,14 @@ export const MOCK_ANALYSIS_TOOLS: readonly MockAnalysisTool[] = [
     provenanceUrl: 'https://people.ischool.berkeley.edu/~dbamman/booknlp_models/',
     attribution:
       'The program is under the MIT licence. Its authors give no licence statement for the model files; they are used here only to find character names. BookNLP by David Bamman; torch is BSD-3-Clause.',
-    downloadSize: 1322773627,
-    diskSize: 1680529433,
-    downloadHost: 'people.ischool.berkeley.edu, files.pythonhosted.org',
+    downloadSize: 1349728609,
+    diskSize: 1783607479,
+    downloadHost: 'people.ischool.berkeley.edu, huggingface.co, files.pythonhosted.org',
     ramGB: 3.1,
     minutesPerBook: 10,
     source: 'booknlp',
     rank: 2,
     recommended: false,
-    unavailableReason: 'BookNLP (large) is not yet available: its download is still being checked, and it will be offered once every file is pinned.',
   },
   {
     id: 'local-llm',

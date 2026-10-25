@@ -93,7 +93,8 @@ export type DawCapabilityKey =
   | 'monitor_level'
   | 'input_level'
   | 'punch_preroll'
-  | 'daw_meters';
+  | 'daw_meters'
+  | 'replace_range';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -146,6 +147,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'input_level', label: 'Set the input level' },
   { key: 'punch_preroll', label: 'Punch pre-roll' },
   { key: 'daw_meters', label: 'Show the input and output levels' },
+  { key: 'replace_range', label: "Replace words with another narrator's audio" },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, docs/architecture/reaper-bridge.md;

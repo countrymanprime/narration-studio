@@ -3,6 +3,7 @@ import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
+import { Button } from '../../primitives/Button';
 import { KeyHints } from '../../primitives/KeyHints';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
@@ -55,6 +56,9 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
   return { label: roomToneLabel(answer, current?.failed ?? false), ok: answer.ok, ...(hint ? { hint } : {}) };
 }
 
+/** The Cold read toggle (#2251 item 13): pressed while a cold read runs; `disabledReason` while it cannot start (a take records). */
+export type ColdReadToggle = { on: boolean; toggle: () => void; disabledReason?: string };
+
 type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels'>;
 
 /**
@@ -74,6 +78,7 @@ export function BoothFooter({
   roomToneHint,
   keymap,
   pickupSession = false,
+  coldRead,
 }: {
   record: ReactNode;
   seconds: number;
@@ -88,6 +93,8 @@ export function BoothFooter({
   roomToneHint?: string;
   keymap: Keymap;
   pickupSession?: boolean;
+  /** Beside the microphone's Levels; absent, the footer has no Cold read. */
+  coldRead?: ColdReadToggle;
 }) {
   const [open, setOpen] = useState(false);
   // One reading for the menu and the inline meter; the capture runs only while the menu is open or a take runs.
@@ -104,6 +111,19 @@ export function BoothFooter({
           {timerText(seconds)}
         </span>
         <LevelsMenu {...mic} level={level} error={error} open={open} onOpenChange={setOpen} />
+        {coldRead ? (
+          <Button
+            id="bcold"
+            // Pressed, it takes the recording colour as an outline, as the microphone badge does: never Record's fill beside Record.
+            variant={coldRead.on ? 'danger' : 'secondary'}
+            aria-pressed={coldRead.on}
+            aria-disabled={coldRead.disabledReason ? true : undefined}
+            title={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
+            onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
+          >
+            Cold read
+          </Button>
+        ) : null}
         {why ? (
           <span id="brec-why" className="text-sm text-[var(--text-muted)]">
             {why}

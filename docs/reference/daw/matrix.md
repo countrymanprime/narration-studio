@@ -45,3 +45,4 @@ What each engine declares for each capability today. The levels are the adapters
 | `input_level` | `InputLeveler` | Engine answering | Unsupported | Unsupported | Not reachable | Unsupported |
 | `punch_preroll` | `PrerollReader` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
 | `daw_meters` | `MeterReader` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `replace_range` | `RangeReplacer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |

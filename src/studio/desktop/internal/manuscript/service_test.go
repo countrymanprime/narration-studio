@@ -1210,3 +1210,46 @@ func TestAReplaceKeepsVoiceSamplesAndClearRemovesThem(t *testing.T) {
 		t.Fatalf("Clear project data left the voice samples behind: %v", err)
 	}
 }
+
+// Replacements name words of the manuscript, so a confirmed replace and Clear project data remove editing/replacements.json;
+// the project's other narrators are named for the project and their audio stays in the DAW, so editing/narrators.json stays.
+func TestReplaceAndClearRemoveTheReplacementsButKeepTheNarrators(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := service.Commit(job.ID, confirmedReset, Choices{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write := func(path string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(`{"schemaVersion":1}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	importAlice(false)
+	write(editlog.ReplacementsFile(project))
+	write(editlog.NarratorsFile(project))
+	importAlice(true)
+	if _, err := os.Stat(editlog.ReplacementsFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the replacements behind: %v", err)
+	}
+	if _, err := os.Stat(editlog.NarratorsFile(project)); err != nil {
+		t.Fatalf("a confirmed replace removed the other narrators: %v", err)
+	}
+	write(editlog.ReplacementsFile(project))
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.ReplacementsFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the replacements behind: %v", err)
+	}
+}

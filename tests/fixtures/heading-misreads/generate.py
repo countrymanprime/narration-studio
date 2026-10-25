@@ -1,4 +1,4 @@
-"""Writes the constructed heading-misread fixtures (see docs/research/import-heading-misreads.md).
+"""Writes the constructed heading-misread fixtures (see docs/architecture/import-settings-workflow.md#failure-modes).
 
 Each case is one small manuscript whose single chapter heading exercises one way the importer's
 title/subtitle heuristic (``headingParts``/``splitGluedHeading`` in
@@ -6,7 +6,7 @@ title/subtitle heuristic (``headingParts``/``splitGluedHeading`` in
 heading. ``cases.json`` beside this script records, per case, what the author meant and what the
 importer actually produces; ``TestHeadingMisreadFixtures`` in
 ``src/studio/desktop/internal/importer/heading_misreads_test.go`` holds the importer to the recorded
-output, and ``docs/research/import-heading-misreads.md`` explains each failure mode.
+output, and ``docs/architecture/import-settings-workflow.md#failure-modes`` explains each failure mode.
 
 Standard library only (DOCX and EPUB are written as minimal zip archives), so it runs without the
 ``python-docx``/``fpdf2`` tools ``generate_alice.py`` needs:
