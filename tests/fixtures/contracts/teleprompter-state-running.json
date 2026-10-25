@@ -1,5 +1,6 @@
 {
   "chapter": "c1",
+  "coldRead": false,
   "engine": "whisper",
   "message": "Reached the end of the chapter. Stopping in 5 seconds unless you keep reading.",
   "paused": false,
