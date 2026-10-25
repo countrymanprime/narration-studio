@@ -568,6 +568,7 @@ function BoothSession({
   const recordName = pickerChapters.find((item) => item.id === pickerValue)?.name ?? title;
   const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks');
   const setupPlan = capabilities && control.factsLoaded && !control.recording ? recordSetupFor(capabilities, control.facts) : null;
+  const noticeShown = (linkProblem && !!capabilities) || !!setupPlan;
   parts.current.recordBlocked = (block) => {
     const noticeUp =
       ((block.cause === 'no_track' || block.cause === 'several_tracks') && linkProblem) ||
@@ -642,6 +643,7 @@ function BoothSession({
                     standaloneName={dawShortName('none')}
                     project={control.project}
                     choice={dawChoice}
+                    otherProject={setupPlan?.kind === 'other-project'}
                     onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
@@ -657,7 +659,8 @@ function BoothSession({
           </div>
           <BoothSamplesProvider value={samples}>
             <div className="relative flex min-h-0 flex-1">
-              <div className="min-w-0 flex-1">
+              {/* The text column holds the setup notices in a row under the text, so the side panel beside it runs down to the footer. */}
+              <div className="grid min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
                 <BoothText
                   paragraphs={paragraphs}
                   position={page.position}
@@ -705,6 +708,35 @@ function BoothSession({
                     ) : undefined
                   }
                 />
+                <div>
+                  {linkProblem && capabilities ? (
+                    <ChapterLinkNotice
+                      key={recordId}
+                      chapterId={recordId}
+                      chapterName={recordName}
+                      dawName={page.dawName}
+                      several={control.gate?.cause === 'several_tracks'}
+                      create={capabilities.capabilities.track_create}
+                      asked={recordAsks}
+                      onLinked={linked}
+                      onCheckAgain={control.checkAgain}
+                    />
+                  ) : null}
+                  {capabilities && control.factsLoaded && !control.recording ? (
+                    <RecordSetup
+                      asked={recordAsks}
+                      capabilities={capabilities}
+                      facts={control.facts}
+                      factsFailed={control.factsFailed}
+                      checkedAt={control.checkedAt}
+                      readFailed={control.readFailed}
+                      onCheckAgain={control.checkAgain}
+                      say={(sentence, tone, topic) => overlay.toast(sentence, { ...(tone ? { tone } : {}), ...(topic ? { topic } : {}) })}
+                      onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
+                      onChanged={control.refresh}
+                    />
+                  ) : null}
+                </div>
               </div>
               {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
               <h2 className="sr-only">Side panel</h2>
@@ -727,38 +759,13 @@ function BoothSession({
             </div>
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
-          {linkProblem && capabilities ? (
-            <ChapterLinkNotice
-              key={recordId}
-              chapterId={recordId}
-              chapterName={recordName}
-              dawName={page.dawName}
-              several={control.gate?.cause === 'several_tracks'}
-              create={capabilities.capabilities.track_create}
-              asked={recordAsks}
-              onLinked={linked}
-              onCheckAgain={control.checkAgain}
-            />
-          ) : null}
-          {capabilities && control.factsLoaded && !control.recording ? (
-            <RecordSetup
-              asked={recordAsks}
-              capabilities={capabilities}
-              facts={control.facts}
-              factsFailed={control.factsFailed}
-              checkedAt={control.checkedAt}
-              readFailed={control.readFailed}
-              onCheckAgain={control.checkAgain}
-              say={(sentence, tone, topic) => overlay.toast(sentence, { ...(tone ? { tone } : {}), ...(topic ? { topic } : {}) })}
-              onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
-              onChanged={control.refresh}
-            />
-          ) : null}
           <BoothFooter
             record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}
+            // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time.
+            quietWhy={noticeShown}
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
