@@ -25,12 +25,8 @@ export const shellStates: StateEntry[] = [
   {
     page: 'shell',
     state: 'engine-mismatch',
-    description: 'Header engine chip reading REAPER with its warning dot and the different-project tooltip: a live heartbeat disagrees with the linked file',
-    sameAs: {
-      of: 'production/no-data',
-      reason:
-        'The chip draws a name and a warning dot for both a REAPER that is not running and a different open project; only the tooltip and the accessible name differ, and neither is on screen.',
-    },
+    description:
+      'Header engine chip reading "REAPER: Other project" with its warning dot, and the different-project tooltip: a live heartbeat disagrees with the linked file',
     ...REFLOW,
   },
   // The zoom chip: the default states show no chip (zoom is 100%), so a non-100% level gets its own row, and the chip's press its own. Reflow
