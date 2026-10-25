@@ -1,6 +1,9 @@
 package compare
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // inRanges reports whether r is in one of the sorted, inclusive ranges rs.
 func inRanges(r rune, rs [][2]rune) bool {
@@ -134,4 +137,61 @@ func finalSigma(runes []rune, i int) bool {
 		k++
 	}
 	return k == len(runes) || !inRanges(runes[k], pyCasedRanges)
+}
+
+// PyCasefold is Python 3.12's str.casefold: its full case folding (pyCasefoldMap, so "ß" becomes "ss"), from Python's
+// own tables. Unlike str.lower it has no final-sigma rule.
+func PyCasefold(s string) string {
+	var out strings.Builder
+	out.Grow(len(s))
+	for _, r := range s {
+		if folded, ok := pyCasefoldMap[r]; ok {
+			out.WriteString(folded)
+		} else {
+			out.WriteRune(r)
+		}
+	}
+	return out.String()
+}
+
+// IsPyPrintable is Python 3.12's str.isprintable for one code point: what repr leaves unescaped.
+func IsPyPrintable(r rune) bool {
+	if r < 0x80 {
+		return r >= ' ' && r < 0x7f
+	}
+	return inRanges(r, pyPrintableRanges)
+}
+
+// PyRepr is Python's repr of a str: single quotes unless the text holds a single quote and no double one, a
+// backslash before the quote and the backslash, \t \n \r, and \xhh, \uhhhh or \Uhhhhhhhh for what is not printable.
+func PyRepr(s string) string {
+	quote := '\''
+	if strings.ContainsRune(s, '\'') && !strings.ContainsRune(s, '"') {
+		quote = '"'
+	}
+	var out strings.Builder
+	out.WriteRune(quote)
+	for _, r := range s {
+		switch {
+		case r == quote || r == '\\':
+			out.WriteByte('\\')
+			out.WriteRune(r)
+		case r == '\t':
+			out.WriteString(`\t`)
+		case r == '\n':
+			out.WriteString(`\n`)
+		case r == '\r':
+			out.WriteString(`\r`)
+		case IsPyPrintable(r):
+			out.WriteRune(r)
+		case r <= 0xff:
+			fmt.Fprintf(&out, `\x%02x`, r)
+		case r <= 0xffff:
+			fmt.Fprintf(&out, `\u%04x`, r)
+		default:
+			fmt.Fprintf(&out, `\U%08x`, r)
+		}
+	}
+	out.WriteRune(quote)
+	return out.String()
 }
