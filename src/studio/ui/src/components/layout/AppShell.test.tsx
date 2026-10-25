@@ -235,6 +235,19 @@ describe('AppShell grouped navigation', () => {
     });
   });
 
+  // Alignment audit XSL-21, R3PR1-12, R3PR2-27, R3MS-8: in dark the solid sun read as a second gear over Settings.
+  it('draws the Light theme item as a half-filled circle, not a rayed sun beside the Settings gear, and the Dark theme item with the moon', () => {
+    const { container, unmount } = renderShell({ theme: { dark: true, toggle: () => {} } });
+    const foot = container.querySelector('aside .rail-foot')!;
+    const svgOf = (name: string) => [...foot.querySelectorAll('button')].find((b) => b.textContent === name)!.querySelector('svg')!;
+    expect(svgOf('Light theme').getAttribute('data-icon')).toBe('circle-half-stroke');
+    expect(svgOf('Settings').getAttribute('data-icon')).toBe('gear');
+    unmount();
+    const light = renderShell({ theme: { dark: false, toggle: () => {} } });
+    const moon = [...light.container.querySelectorAll('aside .rail-foot button')].find((b) => b.textContent === 'Dark theme')!.querySelector('svg')!;
+    expect(moon.getAttribute('data-icon')).toBe('moon');
+  });
+
   // The Production home replaced Home at `/`, as the Production group's one item, active on `/` and nowhere else.
   it("has Production, not Home, as the Production group's item, active at /", () => {
     renderShell({ pathname: '/' });
@@ -386,6 +399,34 @@ describe('AppShell header', () => {
     for (let i = 1; i < order.length; i += 1) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
+  });
+});
+
+// The bar's two ends share one height and one field look, and a long name truncates before it pushes anything off (alignment audit XSL-3, XSL-10).
+describe('AppShell header: one control recipe', () => {
+  it("draws the hamburger at the 32 px small size in the jump button's field look, never shrunk", () => {
+    renderShell();
+    const header = screen.getByRole('banner');
+    const menu = within(header).getByRole('button', { name: 'Open navigation' });
+    const jump = within(header).getByRole('button', { name: /Jump to or run/ });
+    expect(menu.className).toContain('size-[var(--button-height-sm)]');
+    expect(menu.className).toContain('flex-none');
+    for (const part of ['border-[var(--border)]!', 'bg-[var(--bg)]!']) {
+      expect(menu.className).toContain(part);
+      expect(jump.className).toContain(part);
+    }
+  });
+
+  it('lets the project name shrink: its hint wrapper is min-w-0', () => {
+    renderShell();
+    const project = within(screen.getByRole('banner')).getByRole('button', { name: /, switch project$/ });
+    expect(project.parentElement?.className).toContain('min-w-0');
+  });
+
+  it("draws the zoom level in the chip's own face, not a monospace one", () => {
+    renderShell({ zoom: { percent: 125, announcement: '' } });
+    const chip = screen.getByRole('button', { name: /^Zoom 125%/ });
+    expect(chip.innerHTML).not.toContain('Mono');
   });
 });
 

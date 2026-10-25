@@ -119,6 +119,11 @@ describe('chip-under-a-line-with-more-than-one-take', () => {
     expect(chip().getAttribute('aria-expanded')).toBe('true');
     expect(document.querySelectorAll('[data-takes] [data-take]')).toHaveLength(3);
   });
+  // R3ED-12, XED-2: the chip may shrink inside a narrow script column instead of running past the card.
+  it('never grows wider than its column', () => {
+    mount();
+    expect(chip().className).toContain('max-w-full');
+  });
   it('a line with one take has a chip too, in the singular, so its takes can be reached', () => {
     mount(singleTakePassage());
     expect(chip().textContent).toContain('1 take');
@@ -162,6 +167,17 @@ describe('each-take-is-a-sub-line-with-its-evidence', () => {
     );
     expect(row.querySelector('del')!.textContent).toBe('won’t');
     expect(row.querySelector('ins')!.textContent).toBe('don’t');
+  });
+  // XED-9, R3ED-12: every take's name, length bar, share and buttons sit in the same grid columns, and the rows, the note and the suggestion
+  // share the chip's left edge (no second indent under a rule).
+  it('lays every take out on one grid, at the chip’s left edge', () => {
+    mount();
+    fireEvent.click(chip());
+    const grids = [...document.querySelectorAll<HTMLElement>('[data-take] [data-take-grid]')];
+    expect(grids.length).toBeGreaterThan(1);
+    for (const grid of grids) expect(grid.className).toContain('grid-cols-[minmax(0,13rem)_minmax(2rem,1fr)_2.75rem_4.25rem]');
+    const group = document.querySelector<HTMLElement>('[data-takes]')!;
+    expect(group.className).not.toMatch(/border-l|pl-3/);
   });
   it('a figure that is a reason reads as the reason, and a take with none says why', () => {
     mount(partlyMeasuredPassage());
@@ -345,7 +361,9 @@ describe('menu-section-offers-the-takes', () => {
     const remove = registerTakesMenuSection({ passageOf: () => passage, show, keep, gate: () => ({ ok: true }) });
     const items = buildWordMenu(selection()).groups.flat();
     remove();
-    expect(items.map((i) => i.label)).toEqual(['Show takes of this line (T)', 'Keep T-7 (active)', 'Keep T-8', 'Keep T-9']);
+    expect(items.map((i) => i.label)).toEqual(['Show takes of this line', 'Keep T-7 (active)', 'Keep T-8', 'Keep T-9']);
+    // XED-21: its key is drawn as a key at the row's end like every other menu shortcut, not "(T)" in the label.
+    expect(items[0].shortcut).toEqual(['T']);
     items[0].onSelect();
     items[2].onSelect();
     expect(show).toHaveBeenCalledWith(passage);
@@ -415,6 +433,14 @@ describe('compare-the-takes-of-a-line', () => {
     mount(passage);
     fireEvent.click(chip());
   };
+
+  // R3ED-14: the compare row's selects are --control-height, so its buttons are too, not the 32 px small size beside a 36 px select.
+  it('draws its buttons at the selects’ height', () => {
+    openTakes();
+    const row = document.querySelector<HTMLElement>('[data-compare]')!;
+    expect(row.querySelector('[data-abplay]')!.className).toContain('min-h-[var(--button-height)]');
+    expect(row.querySelector('[data-tall]')!.className).not.toContain('button-height-sm');
+  });
 
   it('plays every take in order, and the two takes the narrator picks A then B', async () => {
     openTakes();

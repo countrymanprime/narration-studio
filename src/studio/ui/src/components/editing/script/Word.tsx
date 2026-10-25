@@ -29,6 +29,15 @@ function describeNote(note: WordNote): string {
   return parts.join(', ');
 }
 
+/** Punctuation at the edges of a word's text ("(Alice", "Alice;"): a name's or mark's box is drawn on the letters only (alignment audit
+ * R4TA-9, R3ED-15). A flag's mark keeps the whole token, since what was heard is the whole token. */
+const EDGES = /^([\p{P}\p{S}]*)(.*?)([\p{P}\p{S}]*)$/su;
+
+function splitEdges(text: string): [string, string, string] {
+  const [, lead = '', core = '', trail = ''] = EDGES.exec(text) ?? [];
+  return core ? [lead, core, trail] : ['', text, ''];
+}
+
 const pct = (it: DocItem): string => `${Math.round(it.conf * 100)}%`;
 /** ", 17%" after a word's description, or nothing when nothing scored it (a stand-in score of 1 read as "100%", #2251 item 27). */
 const score = (it: DocItem): string => (it.unscored ? '' : `, ${pct(it)}`);
@@ -134,8 +143,10 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
     .join(' ');
   const style = wordStyle(mark, sel, fx, (cur && !sel) || flag, now, wordNote);
   const gap = it.kind === 'x' ? ' ' : it.gap;
+  const [lead, core, trail] = !mark && wordNote ? splitEdges(it.text) : ['', it.text, ''];
   return (
     <Fragment>
+      {lead}
       <span
         className={cls}
         style={style}
@@ -152,8 +163,9 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
         aria-description={note}
         aria-current={cur ? 'true' : undefined}
       >
-        {it.text}
+        {core}
       </span>
+      {trail}
       {fxEnd ? <FxEnd id={it.fx[0]} /> : null}
       {samples ? <SampleMark samples={samples} /> : null}
       {replacedEnd ? <ReplacementMark wordKey={it.key} /> : null}
