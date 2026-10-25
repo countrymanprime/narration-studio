@@ -84,6 +84,17 @@ describe('Settings: structure', () => {
     fireEvent.click(within(model).getByRole('button', { name: 'Used by Proof. Go to Proof' }));
     expect(go).toHaveBeenCalledWith('/proof');
   });
+
+  // Alignment audit cause E: rows were two equal halves, and selects and text boxes came in different widths.
+  it('lays every row out as a label column and a control column, and gives a select and a text box one width', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
+    const model = row('stt.model');
+    expect(model.className).toContain('@min-[1024px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
+    expect(model.className).not.toContain('grid-cols-2');
+    expect(within(model).getByRole('combobox').className).toContain('w-80');
+  });
 });
 
 describe('Settings: editing', () => {
