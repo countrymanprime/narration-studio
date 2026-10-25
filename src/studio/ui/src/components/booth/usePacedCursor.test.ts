@@ -86,3 +86,17 @@ describe('usePacedCursor', () => {
     expect(result.current).toBe(30);
   });
 });
+
+describe('a new session', () => {
+  it('lands in place when a new session starts, whatever the last one showed', () => {
+    const { result, rerender } = renderHook(({ target, session }) => usePacedCursor(target, session), { initialProps: { target: 20, session: 1 } });
+    rerender({ target: 27, session: 2 });
+    expect(result.current).toBe(27);
+  });
+
+  it('still walks within one session', () => {
+    const { result, rerender } = renderHook(({ target, session }) => usePacedCursor(target, session), { initialProps: { target: 20, session: 1 } });
+    rerender({ target: 27, session: 1 });
+    expect(result.current).toBeLessThan(27);
+  });
+});

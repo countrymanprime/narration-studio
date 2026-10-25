@@ -142,6 +142,14 @@ export const boothStates: StateEntry[] = [
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },
+  {
+    page: 'booth',
+    state: 'cold-read',
+    description:
+      'Booth, thirty seconds into a cold read (#2251 item 13; Cold read pressed, the page clock run on, then held): the ghost - a dashed outline and muted wash with a dashed tick - on the word the mock teleprompter has reached, and the view resting on it; the real cursor still on the first word, the progress line still at ¶ 1, no REC and no timer running; the dashed REC-tone "Mic on · cold read" badge in the top bar and Cold read pressed in the footer beside Levels',
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
   // Voice samples (phase 5 of docs/prds/character-voice-samples.prd.md), seeded by `?mockVoiceSamples=bible`: a Queen of Hearts with four samples and the Hatter
   // with one. A listening session paused by a sample has Vitest and no row: a session runs only during a take, and a sample is refused during one.
   {

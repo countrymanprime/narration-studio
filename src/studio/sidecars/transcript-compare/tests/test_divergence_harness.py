@@ -1,4 +1,4 @@
-"""The per-take divergence evaluation (docs/research/take-divergence-evaluation.md) as a gate: every constructed
+"""The per-take divergence evaluation (docs/utilities/transcript-compare.md#alignment-and-confidence) as a gate: every constructed
 flub, restart, skip and substitution in fixtures/divergence/cases.json is localized to its span
 words and its time, and nothing else is reported, with exact word times and with ASR-like jitter.
 The harness's own planning, timing and scoring are tested here too."""

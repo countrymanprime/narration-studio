@@ -118,12 +118,18 @@ flowchart LR
   (`words-report.txt` in the run folder): one `COVERAGE_WORDS` line per playing item saying whether its words were
   `reused` or `transcribed`, then any `COVERAGE_UNSURE` and `COVERAGE_RECHECKED` lines. The host then aligns the chapter
   to the words and writes the results (`src/studio/desktop/internal/recordingcoverage`, a port of what the sidecar's
-  `recording_coverage.py` and `coverage_mode.py` did, held byte for byte to the lines they wrote; see
+  `recording_coverage.py` and `coverage_mode.py` did before they were deleted, held byte for byte to the lines they wrote; see
   [Go versus Python for the sidecars](../research/sidecar-go-vs-python.md), step 1).
 - **The alignment is the take markers' own.** The host aligns with Transcript Compare's tokenizing and `SequenceMatcher`
   opcodes (`src/studio/desktop/internal/compare`, a port of `compare.py`'s), so coverage and the markers cannot disagree;
-  `tests/fixtures/compare-parity/cases.json` holds the port to Python's answers. The alignment spike kept
-  `SequenceMatcher` over a word-level DP ([the spike](../research/recording-coverage-alignment-spike.md)).
+  `tests/fixtures/compare-parity/cases.json` holds the port to Python's answers. `SequenceMatcher` was kept over a
+  word-level LCS DP (Q2), measured by `coverage_spike.py` on 2026-09-23 at the values `SPIKE_PARAMS` and
+  `SPIKE_THRESHOLDS` keep: neither gives a false verdict on the 16 fixture cases or on 104 generated stress cases, but
+  the DP agrees on fewer paragraph labels (40/41 tuning, 451/461 stress, against 41/41 and 455/461) and region kinds
+  (47/53 against 50/53 on stress), and on a 6,020-token chapter against a 5,705-token transcript it took 118 ms and a
+  66 MiB score matrix where `SequenceMatcher` (`autojunk=False`) took 62 ms. Every `SequenceMatcher` miss is a long
+  pickup, a paragraph read again at the end that is longer than the text after its place: the verdict is right but the
+  region names the wrong paragraph, and no in-order aligner can do better.
 - **The host measures, then judges on read.** The results are counts only: `COVERAGE`, `COVERAGE_ITEM`,
   `COVERAGE_PARAGRAPH` and `COVERAGE_REGION` lines, each with a JSON payload. A region names its kind, paragraphs,
   word count and first and last words, and three points in the audio, each `{itemIndex, itemGuid, sourceTime}` in
@@ -183,7 +189,10 @@ flowchart LR
 - **Present.** An `equal` block of at least `min_anchor_run` tokens is read text. A shorter block counts only at either
   end of the alignment or next to another `equal` block. Elsewhere it is a chance match and joins the gap around it.
   In a gap of up to `max_misread_run` body tokens, up to as many tokens as were said count as present. That is a
-  misread, and misreads count as read.
+  misread, and misreads count as read, so a paragraph that short replaced by other speech counts as present. The rule
+  is applied per gap between anchors, not per opcode, because `SequenceMatcher` splits unrelated speech around a shared
+  "the" or "of" into small blocks that would each pass as a misread; the `unrelated_speech` and `misread` stress cases
+  of `coverage_spike.py` test it.
 - **Missing** is everything else, including an unread head and tail (which the take markers ignore). The regions are
   `head`, `tail`, `skip` (not said, or said again as a retake), `short_read` (fewer words said than written) and
   `different_text` (a larger gap of other speech).
@@ -388,9 +397,10 @@ This table is the key to the labels that code comments, tests and the text above
   words files, words report and manuscript, and the run), and `golden_test.go`, which holds the results for every fixture
   case to `fixtures/coverage/results.golden.json` from the words in `fixtures/coverage-words.golden.json`.
   `src/studio/desktop/internal/compare`'s `compare_test.go` holds the tokenizer, `SequenceMatcher` and Python's string and
-  float rules to `tests/fixtures/compare-parity/cases.json`.
+  float rules to `tests/fixtures/compare-parity/cases.json`, and `internal/comparerun`'s `markers_golden_test.go` holds the
+  take markers for every fixture case to `fixtures/coverage/markers.golden.json` (markers unchanged by coverage).
 - `src/studio/sidecars/transcript-compare/tests/`: `test_coverage_mode.py` (the sidecar mode with a fake transcriber, each
-  run's words aligned by the host's code), `test_coverage_alignment.py`, `test_marker_golden.py` (markers unchanged),
+  run's words aligned by the host's code), `test_coverage_alignment.py`,
   `coverage_harness.py` and [the fixture set](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md),
   `coverage_spike.py` and `coverage_calibration.py`, each pinned by its own test file. They reach the host's aligner through
   `go_coverage.py`, which builds and runs `src/studio/desktop/cmd/proof-align` (so they need Go).

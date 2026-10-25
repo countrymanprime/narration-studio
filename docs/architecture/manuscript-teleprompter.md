@@ -421,6 +421,12 @@ needs the recognizer silent before it makes a sound (a voice sample played throu
 starts the sound after one chunk, and resumes after one chunk's grace once the sound ends. The page that paused is the one that resumes, and only a
 pause it made: a session the narrator paused stays paused.
 
+A **cold read** ([#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 13) is the same session started with
+`coldRead: "true"`: the sidecar runs exactly as for a take, with the engine and model chosen in Settings, but the host keeps no
+`.reading.json` when it ends, gives the punch-anchor poll no word (`CurrentWord`), and arms no auto-stop at the end of the chapter, so
+only the narrator ends it. The state carries `coldRead` while it runs and after it stops, until the next session starts, and the UI's
+session hook hands no reader the flags a cold read raised (`useTeleprompterSession`).
+
 ## The Booth page
 
 The Booth (`/booth`, `src/studio/ui/src/components/booth/`) is the one read-along page

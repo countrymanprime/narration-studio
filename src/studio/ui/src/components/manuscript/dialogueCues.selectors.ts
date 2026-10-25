@@ -13,9 +13,9 @@ export const cueIsConfirmed = (cue: Pick<GuideDialogueCue, 'corrected' | 'speake
 export const cueSpeakerState = (cue: Pick<GuideDialogueCue, 'corrected' | 'speaker_source'>, speaker: unknown): CueSpeakerState =>
   !speaker ? 'unknown' : cueIsConfirmed(cue) ? 'confirmed' : 'suggested';
 
-/** The entries a line's chip can name: those whose type speaks (`canSpeak`), and Needs Review names, which the rules suggest from a
- * speech tag or a name near the line. A line given to any other entry has no speaker. */
+/** The entries a line's chip can name: the Story Bible's entries whose type speaks (`canSpeak`), the same list the speaker picker
+ * offers. A line given to any other entry (a place, a Needs Review name) has no speaker. */
 export function cueSpeakerEntries<E extends Pick<GuideEntity, 'category'>>(entries: readonly E[], types: readonly GuideType[]): E[] {
   const speaking = new Set(types.filter((type) => type.speaks).map((type) => type.name));
-  return entries.filter((entry) => entry.category === 'Needs Review' || speaking.has(entry.category));
+  return entries.filter((entry) => speaking.has(entry.category));
 }

@@ -500,6 +500,52 @@ type RangeCutter interface {
 	DeleteRange(ctx context.Context, request DeleteRangeRequest) (Result, error)
 }
 
+// MaxReplaceGainDB is the largest level change ReplaceRange puts on their stretch, either way.
+const MaxReplaceGainDB = bridge.MaxReplaceGainDB
+
+// ReplaceRangeRequest replaces a range's words with a stretch of another narrator's audio already in the project: RangeRequest is
+// the narrator's words; SourceItemGUID is the item on the other narrator's own track and SourceStart..SourceEnd the stretch of it,
+// in project seconds. FadeMs (0 to MaxCutFadeMs) is the fade at each seam, GainDB (-MaxReplaceGainDB to MaxReplaceGainDB) the level
+// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message.
+type ReplaceRangeRequest struct {
+	RangeRequest
+	SourceItemGUID string
+	SourceStart    float64
+	SourceEnd      float64
+	FadeMs         int
+	GainDB         float64
+	ID             string
+	Narrator       string
+}
+
+// RangeReplaced is what ReplaceRange did. Result is the call's answer; ReplacementItem is the engine's id of the new audio, what
+// RestoreReplacement is given back, and CutItem the narrator's piece set aside; Shift is the seconds the audio after the words moved
+// (their read's length less the words'). All empty or 0 on a refusal.
+type RangeReplaced struct {
+	Result          Result  `json:"result"`
+	ReplacementItem string  `json:"replacementItem"`
+	CutItem         string  `json:"cutItem"`
+	Shift           float64 `json:"shift"`
+}
+
+// RestoreRequest puts the narrator's audio back in place of a replacement: ReplacementItem and ID as ReplaceRange made and recorded
+// them; Words is how many words it held, for the message.
+type RestoreRequest struct {
+	ReplacementItem string
+	ID              string
+	Words           int
+}
+
+// RangeReplacer replaces words with another narrator's audio and puts the narrator's audio back. ReplaceRange sets the narrator's
+// piece aside where it is not heard and never deletes it, plays their stretch in its place, and moves the later audio so the gap
+// closes or opens by the difference in length; one undo point. RestoreReplacement is the way back that does not need the engine's
+// undo history (after a save and reopen): it removes only the engine item ReplaceRange added and returns the narrator's piece; one
+// undo point. A request whose items are gone or changed is RefusedStale.
+type RangeReplacer interface {
+	ReplaceRange(ctx context.Context, request ReplaceRangeRequest) (RangeReplaced, error)
+	RestoreReplacement(ctx context.Context, request RestoreRequest) (Result, error)
+}
+
 // RangeFXApplier puts one of the engine's own saved chains on the middle piece of a range, and takes it off again (the piece is
 // joined back). The same refusals and undo rule as RangeCutter.
 type RangeFXApplier interface {
@@ -700,8 +746,17 @@ const ActionCutRange ActionKind = "cut_range"
 // engine): the undo points the engine made for it, RecordStopped's UndoPoints.
 const ActionRecordTake ActionKind = "record_take"
 
+// ActionReplaceRange is a replacement of words with another narrator's audio (RangeReplacer's ReplaceRange), and
+// ActionRestoreReplacement the narrator's audio put back (RestoreReplacement).
+const (
+	ActionReplaceRange       ActionKind = "replace_range"
+	ActionRestoreReplacement ActionKind = "restore_replacement"
+)
+
 // Valid is whether k is a kind this build knows.
-func (k ActionKind) Valid() bool { return k == ActionCutRange || k == ActionRecordTake }
+func (k ActionKind) Valid() bool {
+	return k == ActionCutRange || k == ActionRecordTake || k == ActionReplaceRange || k == ActionRestoreReplacement
+}
 
 // ErrActionKind is an ActionKind this build does not know: nothing is read or undone.
 var ErrActionKind = errors.New("that is not a kind of action the app can read or undo in the DAW")
