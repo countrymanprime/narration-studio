@@ -108,7 +108,7 @@ describe('TextField', () => {
     expect(box.className).toContain('cursor-default');
   });
 
-  it('is 36px high by default and 32px for size sm; a w- class sets the width', () => {
+  it('is the control height (36px) by default and the small one (32px) for size sm; a w- class sets the width', () => {
     render(
       <>
         <TextField label="a" value="" onChange={() => undefined} />
@@ -117,11 +117,10 @@ describe('TextField', () => {
     );
     const a = screen.getByLabelText('a').className;
     const b = screen.getByLabelText('b').className;
-    expect(a).toContain('h-9');
-    expect(a).not.toContain('h-8');
+    expect(a).toContain('h-[var(--control-height)]');
+    expect(a).not.toContain('--control-height-sm');
     expect(a).toContain('w-full');
-    expect(b).toContain('h-8');
-    expect(b).not.toContain('h-9');
+    expect(b).toContain('h-[var(--control-height-sm)]');
     expect(b).not.toContain('w-full');
     expect(b).toContain('w-40');
   });

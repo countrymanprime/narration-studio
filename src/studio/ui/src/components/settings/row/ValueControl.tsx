@@ -7,6 +7,9 @@ import { describeNumberRange, numberProblem } from '../numberSetting';
 import { choiceLabel } from '../data/values';
 import type { SettingMeta } from '../registry/types';
 
+// One width for a setting's select and text box, so the controls down the page line up (alignment audit cause E); a program path is wider.
+const FIELD_WIDTH = 'w-80 max-w-full';
+
 export type ValueControlProps = {
   row: SettingMeta;
   field: ScopedSettingField;
@@ -101,7 +104,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
         options={options}
         disabled={disabled}
         aria-describedby={describedBy}
-        className="w-[16.5rem] max-w-full"
+        className={FIELD_WIDTH}
         onChange={onChange}
       />
     );
@@ -172,7 +175,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
       invalid={invalid}
       describedBy={describedBy}
       placeholder={row.id === 'daw.reaperPath' ? 'C:\\Program Files\\REAPER\\reaper.exe' : undefined}
-      className={row.id === 'daw.reaperPath' ? 'w-[26rem] max-w-full' : 'w-80 max-w-full'}
+      className={row.id === 'daw.reaperPath' ? 'w-[26rem] max-w-full' : FIELD_WIDTH}
       onSettle={onChange}
     />
   );

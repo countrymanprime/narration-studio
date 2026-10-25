@@ -48,6 +48,7 @@ function frame(width: number, tab: DrawerTab, backups: boolean, strip: TimelineS
             <Cursor />
             <DrawerLayout
               open
+              onClose={() => undefined}
               drawer={
                 <Drawer
                   doc={doc}

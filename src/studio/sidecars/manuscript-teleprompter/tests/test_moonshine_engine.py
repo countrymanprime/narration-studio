@@ -20,10 +20,20 @@ CATALOG = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
 CREATED = []
 
 
+class FakeMoonshineError(Exception):
+    """Stands in for moonshine_voice.MoonshineError, which the library raises when it refuses to load."""
+
+
+# Option names the fake library refuses, as moonshine-voice 0.1.5 refuses one it does not know ("Failed to load transcriber").
+REFUSED_OPTIONS = set()
+
+
 class FakeTranscriber:
     """Records how moonshine_voice.Transcriber was constructed and configured."""
 
     def __init__(self, model_path, arch, update_interval, options):
+        if REFUSED_OPTIONS & set(options):
+            raise FakeMoonshineError("Failed to load transcriber: Unknown error")
         self.model_path, self.arch, self.update_interval, self.options = model_path, arch, update_interval, options
         self.keyterms = None
         self.context = None
@@ -41,6 +51,7 @@ def fake_moonshine(monkeypatch):
     """Stand in for the moonshine_voice package (Windows only, and a real load needs model files): the tests below are about
     which directory is loaded and whether the library's own downloader is ever reached, not about Moonshine itself."""
     CREATED.clear()
+    REFUSED_OPTIONS.clear()
     downloads = []
 
     def get_model_for_language(language, arch, include_word_timestamps=False):
@@ -48,7 +59,9 @@ def fake_moonshine(monkeypatch):
         return "downloaded-dir", arch
 
     monkeypatch.setitem(
-        sys.modules, "moonshine_voice", SimpleNamespace(ModelArch=SimpleNamespace(TINY_STREAMING=1, SMALL_STREAMING=2), Transcriber=FakeTranscriber)
+        sys.modules,
+        "moonshine_voice",
+        SimpleNamespace(ModelArch=SimpleNamespace(TINY_STREAMING=1, SMALL_STREAMING=2), Transcriber=FakeTranscriber, MoonshineError=FakeMoonshineError),
     )
     monkeypatch.setitem(sys.modules, "moonshine_voice.download", SimpleNamespace(get_model_for_language=get_model_for_language))
     return downloads
@@ -94,7 +107,7 @@ def test_a_subdirectory_named_like_a_model_file_does_not_count_as_the_file(tmp_p
     assert moonshine_engine.missing_model_files(directory) == ["encoder.ort"]
 
 
-def test_a_model_directory_is_loaded_as_is_with_word_timestamps_and_never_downloads(tmp_path, fake_moonshine):
+def test_a_model_directory_is_loaded_as_is_with_word_timestamps_and_no_line_audio_and_never_downloads(tmp_path, fake_moonshine):
     directory = _model_dir(tmp_path)
 
     transcriber = moonshine_engine.load_transcriber("SMALL_STREAMING", str(directory), 0.5, "Ishmael, Queequeg", "Call me Ishmael.", frozen=True)
@@ -104,10 +117,31 @@ def test_a_model_directory_is_loaded_as_is_with_word_timestamps_and_never_downlo
         str(directory),
         2,
         0.5,
-        {"word_timestamps": "true"},
+        {"word_timestamps": "true", "return_audio_data": "false"},
     )
     assert transcriber.keyterms == ["Ishmael", "Queequeg"]
     assert transcriber.context == "Call me Ishmael."
+
+
+def test_a_library_that_refuses_the_line_audio_option_is_loaded_without_it(tmp_path, fake_moonshine, capsys):
+    """moonshine-voice refuses to load with an option it does not know. Leaving the line audio out only saves a copy the Booth
+    never reads, so a build that does not know return_audio_data is loaded as before instead of failing the session."""
+    REFUSED_OPTIONS.add("return_audio_data")
+
+    transcriber = moonshine_engine.load_transcriber("TINY_STREAMING", str(_model_dir(tmp_path)), 0.5, "Ishmael", "Call me Ishmael.")
+
+    assert transcriber.options == {"word_timestamps": "true"}
+    assert (transcriber.keyterms, transcriber.context) == (["Ishmael"], "Call me Ishmael.")
+    assert "return_audio_data" in capsys.readouterr().err
+
+
+def test_a_load_the_library_refuses_for_another_reason_still_fails(tmp_path, fake_moonshine):
+    REFUSED_OPTIONS.add("word_timestamps")
+
+    with pytest.raises(FakeMoonshineError):
+        moonshine_engine.load_transcriber("TINY_STREAMING", str(_model_dir(tmp_path)), 0.5, None, None)
+
+    assert CREATED == []
 
 
 def test_blank_key_terms_are_dropped_and_no_context_is_set_without_one(tmp_path, fake_moonshine):
