@@ -77,9 +77,15 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   const { ready, text } = known ? readiness(states) : { ready: false, text: "Can't tell which chapters pass yet." };
   const measuring = job?.phase === 'running' ? job : undefined;
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem]">
-      <div className="flex min-w-0 flex-col gap-4">
+    /* Master & QC's centred 96 rem column, so a wide window does not set a label 1,262 px from its value (R3DL-1); one `minmax(0,1fr)`
+       track at every width, so a long row never pushes a card past the window (XDL-11). The cards are siblings in one grid: side by side
+       the aside spans the left column's rows and ends where its list ends (XDL-4, XDL-12); in one column it comes straight after Output,
+       next to the Build button its counts explain, before Profile rules (XDL-6). */
+    <div className="mx-auto grid max-w-[96rem] grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:grid-rows-[auto_auto_1fr]">
+      <div className="min-w-0 lg:col-start-1">
         <ProfileCard onChange={onChange} onProfile={onProfile} locked={build.running || build.starting} />
+      </div>
+      <div className="min-w-0 empty:hidden lg:col-start-1">
         {profile && (
           <OutputPanel
             profile={profile}
@@ -91,21 +97,27 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
             onOpenMaster={onOpenMaster}
           />
         )}
-        {profile && <DeliveryProfilePanel profile={profile} />}
       </div>
-      <Preflight
-        states={states}
-        known={known}
-        measuring={measuring}
-        problem={checks.jobError ?? checks.chaptersError ?? (credits.failure && `The credits could not be read: ${credits.failure}`)}
-        lastHeard={checks.lastHeard}
-        onCheckAgain={() => {
-          setCreditsRead((count) => count + 1);
-          checks.checkAgain();
-        }}
-        onOpen={onOpenInMaster}
-        onOpenMaster={onOpenMaster}
-      />
+      <div className="min-w-0 lg:col-start-2 lg:row-span-3 lg:row-start-1">
+        <Preflight
+          states={states}
+          known={known}
+          measuring={measuring}
+          problem={checks.jobError ?? checks.chaptersError ?? (credits.failure && `The credits could not be read: ${credits.failure}`)}
+          lastHeard={checks.lastHeard}
+          onCheckAgain={() => {
+            setCreditsRead((count) => count + 1);
+            checks.checkAgain();
+          }}
+          onOpen={onOpenInMaster}
+          onOpenMaster={onOpenMaster}
+        />
+      </div>
+      {profile && (
+        <div className="min-w-0 lg:col-start-1">
+          <DeliveryProfilePanel profile={profile} />
+        </div>
+      )}
     </div>
   );
 }
