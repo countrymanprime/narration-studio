@@ -23,11 +23,15 @@ type DialogProps = {
   // false: Escape is ignored even though there is an `onClose`. For a dialog whose close would abort work in flight (a
   // running download): the header button and Cancel are the deliberate ways out, a stray key is not.
   escapeCloses?: boolean;
-  // 'default': capped at 70vw wide and 80dvh tall, sized to its content. 'full': fills the viewport with a
-  // fixed 1rem margin on every side and scrolls its body, for a surface that needs the whole window (the teleprompter
-  // reading modal). Modality (focus trap, Escape, initial focus,
-  // hidden siblings) is unchanged by size: both variants are the one shell docs/design/design-system.md#base-ui-wrappers describes.
-  size?: 'default' | 'full';
+  // The width, from one scale (DIALOG_WIDTHS), never wider than the window less 1rem a side, and at most 80dvh tall: 'confirm' (a question
+  // and its answers, the default for an alert), 'form' (a few fields, the default otherwise), 'palette' (the jump menu), 'wide' (a table
+  // or a list of rows with controls). 'full' fills the viewport with a fixed 1rem margin on every side and scrolls its body, for a surface
+  // that needs the whole window (the teleprompter reading modal). Modality (focus trap, Escape, initial focus, hidden siblings) is
+  // unchanged by size: every size is the one shell docs/design/design-system.md#base-ui-wrappers describes.
+  size?: DialogSize;
+  // 'top': the popup hangs 12vh from the top of the window instead of centring, so a list that grows or shrinks as the narrator types
+  // (the jump menu) does not move its own field. The default for `palette`.
+  placement?: 'center' | 'top';
   // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
   // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.
   headerless?: boolean;
@@ -41,8 +45,8 @@ type DialogProps = {
   dismissOnOutsidePress: boolean;
   // null when there is nothing to press (a running job that cannot be cancelled): no empty action row is drawn.
   actions: ReactNode;
-  // WorkDialog only ever shows one action at a time - 'between' would strand
-  // it on the left, so it opts into 'end' instead.
+  // 'between': the first action at the left (a Cancel or a secondary way out), the rest at the right; a lone action sits at the right
+  // either way. 'end': every action at the right.
   actionsAlign?: 'between' | 'end';
   // A region between the body and `actions` that never scrolls with it: the read-aloud dialog's
   // control bar, kept visible in every scroll position. Absent, most dialogs draw nothing here. Unlike `actions` it has no padding or alignment opinion of its own - a toolbar lays out its own row.
@@ -59,6 +63,20 @@ type DialogProps = {
   // `aria-describedby` points at, so an alert without a description is refused at the type level.
   | { variant: 'alert'; description: ReactNode }
 );
+
+export type DialogSize = 'confirm' | 'form' | 'palette' | 'wide' | 'full';
+
+// The width scale (alignment audit cause B: every dialog was 70vw, so a one-line confirm was 1,006 px wide at 1440 and 271 px at 390).
+// The popup is `w-full` inside a viewport padded 1rem a side, so a width also never exceeds the window less 2rem.
+export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
+  confirm: 'max-w-[28rem]',
+  form: 'max-w-[36rem]',
+  palette: 'max-w-[40rem]',
+  wide: 'max-w-[56rem]',
+};
+
+// The one horizontal inset of the header, the body and the action row.
+const INSET = 'px-[var(--space-6)]';
 
 // An empty description (a job message that has not arrived yet) would leave `aria-describedby` pointing at nothing, and an
 // empty `actions` would draw a padded blank row under the body.
@@ -82,7 +100,8 @@ export function Dialog({
   escapeCloses = true,
   description,
   variant = 'dialog',
-  size = 'default',
+  size,
+  placement,
   headerless = false,
   bodyScroll = true,
   dismissOnOutsidePress,
@@ -100,6 +119,8 @@ export function Dialog({
   // What had focus when the dialog mounted: the button that opened it.
   const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
+  const width = size ?? (variant === 'alert' ? 'confirm' : 'form');
+  const top = (placement ?? (width === 'palette' ? 'top' : 'center')) === 'top';
 
   const initialFocus = () => {
     const focused = document.activeElement;
@@ -144,17 +165,19 @@ export function Dialog({
         {/* forceRender: Base UI leaves out the backdrop of a dialog opened inside another dialog or a SlideOver (a Drawer), which
             left the page undimmed behind a confirm opened from a panel (chapter-track-link-control/06 draws it dimmed). */}
         <Parts.Backdrop data-dialog-backdrop forceRender className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)]" />
-        <Parts.Viewport className="fixed inset-0 z-[var(--z-dialog)] flex items-center justify-center p-4">
+        <Parts.Viewport
+          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 ${top && width !== 'full' ? 'items-start pt-[12vh]' : 'items-center'}`}
+        >
           <Parts.Popup
             ref={popupRef}
             initialFocus={initialFocus}
             finalFocus={finalFocus}
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
-              size === 'full' ? 'max-w-[calc(100vw-2rem)]' : 'max-w-[70vw]'
+              width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]
             }`}
             style={{
-              height: size === 'full' ? 'calc(100dvh - 2rem)' : undefined,
-              maxHeight: size === 'full' ? 'calc(100dvh - 2rem)' : '80dvh',
+              height: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
+              maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : '80dvh',
               background: 'var(--surface)',
               borderColor: 'var(--line-strong)',
               boxShadow: 'var(--shadow-lg)',
@@ -164,7 +187,7 @@ export function Dialog({
             {headerless ? (
               <Parts.Title className="sr-only">{title}</Parts.Title>
             ) : (
-              <div className="flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-[0.85rem]">
+              <div className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} py-[0.85rem]`}>
                 <Parts.Title className="font-semibold">{title}</Parts.Title>
                 {onClose && (
                   <IconButton label="Close" onClick={onClose}>
@@ -177,10 +200,10 @@ export function Dialog({
             <div
               ref={bodyRef}
               tabIndex={bodyScroll ? 0 : undefined}
-              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : 'p-[1.1rem]'} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : `${INSET} py-[var(--space-6)]`} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {hasContent(description) && (
-                <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="text-sm text-[var(--text-muted)]">
+                <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
                   {description}
                 </Parts.Description>
               )}
@@ -195,8 +218,9 @@ export function Dialog({
               <div
                 data-dialog-actions
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
-                // so the row keeps the mocks' height and centres the buttons in the 38 px band.
-                className={`flex min-h-[4.1875rem] flex-none items-center gap-2 border-t px-4 pt-3 pb-4 ${actionsAlign === 'between' ? 'justify-between' : 'justify-end'}`}
+                // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
+                // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} pt-3 pb-4 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}

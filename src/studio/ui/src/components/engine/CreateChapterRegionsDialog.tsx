@@ -76,6 +76,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
     <Dialog
       dismissOnOutsidePress={false}
       title="Create chapter regions"
+      size="wide"
       onClose={creating ? undefined : onClose}
       escapeCloses={!creating}
       description="Plan one REAPER region per chapter with a confirmed track link, plus the opening and closing credits tracks you choose below. Nothing is written until you create them."

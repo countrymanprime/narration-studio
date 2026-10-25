@@ -157,6 +157,7 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
     <Dialog
       dismissOnOutsidePress={false}
       title="Link chapters to REAPER"
+      size="wide"
       onClose={running ? undefined : onClose}
       escapeCloses={!running}
       description="Choose which REAPER track holds each chapter's recording. Every item on a linked track will be stamped with that chapter's identity; nothing is written until you approve."

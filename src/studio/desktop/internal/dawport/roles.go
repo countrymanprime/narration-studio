@@ -536,12 +536,23 @@ type RestoreRequest struct {
 	Words           int
 }
 
-// RangeReplacer replaces words with another narrator's audio and puts the narrator's audio back. ReplaceRange sets the narrator's
-// piece aside where it is not heard and never deletes it, plays their stretch in its place, and moves the later audio so the gap
-// closes or opens by the difference in length; one undo point. RestoreReplacement is the way back that does not need the engine's
-// undo history (after a save and reopen): it removes only the engine item ReplaceRange added and returns the narrator's piece; one
-// undo point. A request whose items are gone or changed is RefusedStale.
+// TheirAudio is what ImportTheirAudio did. Result is the call's answer; Track and Item are the engine's ids of the new track and of the
+// one item playing the file from its start, and Length the file's length in seconds. All empty or 0 on a refusal.
+type TheirAudio struct {
+	Result Result  `json:"result"`
+	Track  string  `json:"track"`
+	Item   string  `json:"item"`
+	Length float64 `json:"length"`
+}
+
+// RangeReplacer replaces words with another narrator's audio and puts the narrator's audio back. ImportTheirAudio puts a file the
+// narrator chose on a new track of the project named for the other narrator, muted so the whole file never plays, one item from 0;
+// one undo point. ReplaceRange sets the narrator's piece aside where it is not heard and never deletes it, plays their stretch in
+// its place, and moves the later audio so the gap closes or opens by the difference in length; one undo point. RestoreReplacement
+// is the way back that does not need the engine's undo history (after a save and reopen): it removes only the engine item
+// ReplaceRange added and returns the narrator's piece; one undo point. A request whose items are gone or changed is RefusedStale.
 type RangeReplacer interface {
+	ImportTheirAudio(ctx context.Context, name, path string) (TheirAudio, error)
 	ReplaceRange(ctx context.Context, request ReplaceRangeRequest) (RangeReplaced, error)
 	RestoreReplacement(ctx context.Context, request RestoreRequest) (Result, error)
 }

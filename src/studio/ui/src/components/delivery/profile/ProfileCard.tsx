@@ -179,7 +179,7 @@ function ProfilePanel({ actions, children }: { actions?: ReactNode; children: Re
     <Panel label="Delivery profile" flush>
       <div className={PANEL_HEADER_CLASS}>
         <Heading title="Delivery" />
-        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <div className="-my-[0.3125rem] ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
           <SectionLabel>Profile</SectionLabel>
           {actions}
         </div>
