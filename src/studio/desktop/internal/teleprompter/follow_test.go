@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"desktop/internal/brand"
 	"desktop/internal/layout"
 	"desktop/internal/scripttrack"
 )
@@ -169,15 +168,6 @@ func runFakeClockSidecar(mode string) bool {
 		}
 		fmt.Printf("{\"type\": \"clock\", \"t\": %g}\n", t)
 		time.Sleep(20 * time.Millisecond)
-	}
-}
-
-func writeFollowedManuscript(t *testing.T, project string) {
-	t.Helper()
-	text := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": "Chapter One", "subtitle": "The Lamp"}], "paragraphs": [` +
-		`{"id": "p1", "chapterId": "c1", "index": 0, "text": "Ada climbed the stairs."}]}`
-	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(text), 0o600); err != nil {
-		t.Fatal(err)
 	}
 }
 

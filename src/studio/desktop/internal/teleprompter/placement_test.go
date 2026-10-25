@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"testing"
+
+	"desktop/internal/brand"
 )
 
 // runFakePlacer is a `--words-only` run: the words it heard in the stretch, and the arguments it was given.
@@ -15,6 +18,16 @@ func runFakePlacer(mode string) bool {
 	}
 	fmt.Println(`{"type": "heard", "words": [["Ada", 0.5, 0.8], ["climbed", 0.9, 1.3], ["um", 1.4, 1.5], ["the", 1.6, 1.7], ["stairs", 1.8, 2.2]]}`)
 	return true
+}
+
+// writeFollowedManuscript writes the one-paragraph chapter c1 the host builds the script from: "Ada climbed the stairs."
+func writeFollowedManuscript(t *testing.T, project string) {
+	t.Helper()
+	text := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": "Chapter One", "subtitle": "The Lamp"}], "paragraphs": [` +
+		`{"id": "p1", "chapterId": "c1", "index": 0, "text": "Ada climbed the stairs."}]}`
+	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(text), 0o600); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestLocatePlacesTheDecodedWordsInTheHost(t *testing.T) {

@@ -91,7 +91,7 @@ turns them into these three event types:
         exits (see align_word.py for every field)
     {"type": "level", "peak": -12.3, "rms": -24.1}
         the input level in dBFS every 100 ms of audio, in every session (see
-        levels.py). With --meter --mic NAME it is the only event: no model,
+        narration_common.recording.meter). With --meter --mic NAME it is the only event: no model,
         no script, until the stop file appears, so the narrator can check the
         microphone before Start; with --capture NAME it meters through that
         capture row (wasapi: the built-in recorder's device, before Record)
@@ -774,7 +774,7 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
     cause; with --clock, a clock line per chunk instead) to stdout until the
     input ends or Ctrl+C."""
     from control_channel import ControlChannel, pause_state, seek_word
-    from levels import LevelMeter, metered
+    from narration_common.recording import LevelMeter, metered
 
     capture_started = None
     last_logged_commit = None
@@ -820,7 +820,7 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
         if tracker and args.start_word is not None:
             for position in tracker.reset_to(args.start_word, clock.now()):
                 _emit(track(position))
-        chunks = metered(stoppable(chunks, args.stop_file), LevelMeter(), _emit)
+        chunks = metered(stoppable(chunks, args.stop_file), LevelMeter(SAMPLE_RATE), _emit)
         if tracker or args.clock:
             control = ControlChannel(args.control_file)
 
@@ -860,9 +860,9 @@ _SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_w
 
 
 def _run_meter(ap: argparse.ArgumentParser, args) -> None:
-    """--meter: report the microphone's level (levels.py) until the stop file appears. No model loads and no script is
+    """--meter: report the microphone's level (narration_common.recording.meter) until the stop file appears. No model loads and no script is
     read, so it starts in about the time the device takes to open."""
-    from levels import LevelMeter, metered
+    from narration_common.recording import LevelMeter, metered
 
     if not args.mic:
         ap.error("--meter needs --mic")
@@ -873,7 +873,7 @@ def _run_meter(ap: argparse.ArgumentParser, args) -> None:
     try:
         # --capture meters through that row (the built-in recorder's wasapi); dshow otherwise.
         chunks = _capture_row(ap, args.capture).chunks(args.mic) if args.capture else iter_microphone_chunks(args.mic)
-        for _chunk in metered(stoppable(chunks, args.stop_file), LevelMeter(), _emit):
+        for _chunk in metered(stoppable(chunks, args.stop_file), LevelMeter(SAMPLE_RATE), _emit):
             pass
     except KeyboardInterrupt:
         log("Stopped.")

@@ -459,3 +459,15 @@ describe('no text colour ships without a declared pair', () => {
     for (const [file, use] of Object.entries(NON_TEXT_USES)) expect(use.what.length, file).toBeGreaterThan(10);
   });
 });
+
+// Alignment audit cause K: the dark skeleton was --surface-2 on --surface, about 1.1:1, so a loading page looked blank. A loading block is
+// not text and has no WCAG minimum; the light theme's is the one the audit found plainly visible, so the dark one must stand out at least as
+// much, the block and its sweep band each, over the card and the page.
+describe('the loading skeleton shows in the dark theme', () => {
+  for (const token of ['skeleton', 'skeleton-sweep'])
+    for (const over of ['surface', 'bg'])
+      it(`--${token} over --${over} stands out at least as much in dark as in light`, () => {
+        const ratio = (theme: Theme) => resolveContrast(THEMES[theme], { fg: `var(--${token})`, over });
+        expect(ratio('dark')).toBeGreaterThanOrEqual(ratio('light'));
+      });
+});
