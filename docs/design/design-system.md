@@ -126,6 +126,7 @@ The custom-CSS system (`.btn`, `.panel-head`/`.panel-body`, `.progressbar`, etc.
 
 ## Conventions
 
+- **A mark placed on a track by time** (Proof's waveform pins, the window's handles) is a 24 px press target centred on its time with the dot drawn inside it, so dots of different sizes share one centre line, and its position is `clamp(half, x%, 100% - half)` so a mark at the start or end stays inside the card's text edges (`WaveformWindow.tsx`, alignment audit XPF-15, R3PF-6).
 - **Read-only quoted text is a filled box, not a field.** Proof's Inspector draws what the script says and what was heard as the Studio Next mock's `.quote`: `--surface-2` fill, no border, the card radius (`quoteClass` in `components/proof/inspector/quoteStyle.ts`; on a tinted banner, the card's `--surface`), with the mock's `.diff` marks, a word struck on `--danger-soft` and a word heard instead on `--ok-soft` without an underline (alignment audit R4TB-5). A bordered box on `--surface` is a text field.
 - **Numeric table columns are right-aligned** (`align="right"` on the `TableHeader`, `numeric` on its `TableCell`s) — see `DiagnosticsTables.tsx` (Delivery's diagnostics) for a reference implementation.
 - **A page's side column stays in view and comes early in one column.** Master & QC's aside (the delivery package and Multi-platform export) is `xl:sticky xl:top-0` beside a left column many screens long; below `xl` the left column's box gives way (`max-xl:contents`) and `order` puts the aside straight after the files card, before the lower panels (alignment audit XMS-4, XMS-5).
