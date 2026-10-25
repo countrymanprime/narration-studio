@@ -320,7 +320,8 @@ export function CompareRun({
       title="Compare the recording with the script"
       actions={
         // The step strip reports the phase; it is not a choice, so it is drawn as numbered steps, not as a segmented toggle a narrator
-        // would try to press (alignment audit XPC-14), 28 px so the header keeps every card's height (R3PC-3).
+        // would try to press (alignment audit XPC-14), 28 px so the header keeps every card's height (R3PC-3). The current step is a filled
+        // box with the button radius, not a pill: a pill reads as a status badge (badgeShapes.test.ts).
         <ol aria-label="Comparison progress" className="m-0 flex list-none items-center gap-1 p-0">
           {COMPARE_STEPS.map((step, index) => {
             const current = step.value === phase || (phase === 'chapter' && step.value === 'setup');
@@ -328,7 +329,7 @@ export function CompareRun({
               <li
                 key={step.value}
                 aria-current={current ? 'step' : undefined}
-                className={`flex h-7 items-center gap-1.5 rounded-full px-2.5 font-['Barlow_Condensed',sans-serif] text-[0.8rem] font-semibold tracking-[var(--tracking-button)] whitespace-nowrap uppercase ${current ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text-muted)]'}`}
+                className={`flex h-7 items-center gap-1.5 rounded-[var(--radius-button)] px-2.5 font-['Barlow_Condensed',sans-serif] text-[0.8rem] font-semibold tracking-[var(--tracking-button)] whitespace-nowrap uppercase ${current ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text-muted)]'}`}
               >
                 <span aria-hidden="true">{index + 1}</span>
                 {step.label}
