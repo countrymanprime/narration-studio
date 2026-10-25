@@ -9,9 +9,9 @@ import (
 	"desktop/internal/scripttrack"
 )
 
-// clockEventType is the line a `--clock` sidecar prints before its first chunk and as each chunk arrives: the stream time
-// the script tracker reads (wall time less pauses for a microphone, audio consumed for a file). The host consumes it and
-// never relays it.
+// clockEventType is the line a `--clock` sidecar prints before its first chunk, as each chunk arrives, and (with
+// "event": true) just before each engine event: the stream time the script tracker reads at that moment (wall time less
+// pauses for a microphone, audio consumed for a file). The host consumes it and never relays it.
 const clockEventType = "clock"
 
 // follower follows the read in the host, as the sidecar did before `--clock` (docs/research/sidecar-go-vs-python.md,
@@ -25,16 +25,38 @@ type follower struct {
 	startWord *int
 	// +checklocks:mu
 	started bool
-	// now is the newest clock line's time, the one the sidecar's tracker read for an engine event.
+	// now is the newest clock line's time: an engine event's own, the one the sidecar's tracker read for it.
 	// +checklocks:mu
 	now float64
+	// script is the `script` event, sent once (takeScript) before anything else the session sends.
+	// +checklocks:mu
+	script json.RawMessage
 	// seeks are the words Seek asked for since the last chunk, applied at the next one as the sidecar read its control file.
 	// +checklocks:mu
 	seeks []int
 }
 
 func newFollower(script scripttrack.ChapterScript, startWord *int) *follower {
-	return &follower{tracker: scripttrack.NewFlagging(script.Tokens, script.Heading), startWord: startWord}
+	return &follower{
+		tracker: scripttrack.NewFlagging(script.Tokens, script.Heading), startWord: startWord,
+		script: compactLine(scripttrack.ScriptEvent(script)),
+	}
+}
+
+// takeScript is the `script` event the first time it is asked for, then nil.
+func (f *follower) takeScript() json.RawMessage {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	script := f.script
+	f.script = nil
+	return script
+}
+
+// eventClock is a clock line printed just before an engine event: the time that event is followed at.
+func (f *follower) eventClock(t float64) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.now = t
 }
 
 // seek moves the tracker to a script word at the next chunk.
@@ -128,12 +150,18 @@ func (plan launch) followed() (scripttrack.ChapterScript, *int, bool) {
 	return script, startWord, err == nil
 }
 
-// startFollowing makes the host follow the session about to start, and sends the `script` event the sidecar sent
-// before.
+// startFollowing makes the host follow the session about to start. Its `script` event, which the sidecar printed as it
+// started, goes out once the session runs (sendScript), or before the sidecar's first line if that comes sooner.
 func (s *Service) startFollowing(script scripttrack.ChapterScript, startWord *int) {
 	follow := newFollower(script, startWord)
 	s.mu.Lock()
 	s.follow = follow
 	s.mu.Unlock()
-	s.relay("script", compactLine(scripttrack.ScriptEvent(script)))
+}
+
+// sendScript sends the followed session's `script` event if it has not gone out yet.
+func (s *Service) sendScript(follow *follower) {
+	if script := follow.takeScript(); script != nil {
+		s.relay("script", script)
+	}
 }

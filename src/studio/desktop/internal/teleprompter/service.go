@@ -463,6 +463,9 @@ func (s *Service) begin(plan launch) error {
 		args = append(slices.Clone(args), "--clock")
 		s.startFollowing(script, startWord)
 	}
+	s.mu.RLock()
+	follow := s.follow
+	s.mu.RUnlock()
 	ctx, cancel := context.WithCancel(context.Background())
 	child, err := s.sidecars.StartStream(ctx, s.onLine, s.config.Python, args...)
 	if err != nil {
@@ -470,6 +473,9 @@ func (s *Service) begin(plan launch) error {
 		if plan.scriptFile != "" {
 			_ = os.Remove(plan.scriptFile)
 		}
+		s.mu.Lock()
+		s.follow = nil
+		s.mu.Unlock()
 		s.fail(err.Error())
 		return err
 	}
@@ -482,6 +488,9 @@ func (s *Service) begin(plan launch) error {
 	}
 	s.mu.Unlock()
 	s.notify()
+	if follow != nil {
+		s.sendScript(follow)
+	}
 	go s.watch(child, cancel, finished)
 	return nil
 }
@@ -553,13 +562,18 @@ func (s *Service) onLine(line string) {
 	s.mu.RLock()
 	follow := s.follow
 	s.mu.RUnlock()
+	if follow != nil {
+		s.sendScript(follow)
+	}
 	if kind == clockEventType {
-		s.markReady()
 		var clock struct {
-			T json.RawMessage `json:"t"`
+			T     json.RawMessage `json:"t"`
+			Event bool            `json:"event"`
 		}
 		if follow != nil && json.Unmarshal(raw, &clock) == nil {
-			if t, isNumber := scripttrack.ParseNum(clock.T); isNumber {
+			if t, isNumber := scripttrack.ParseNum(clock.T); isNumber && clock.Event {
+				follow.eventClock(t.Value())
+			} else if isNumber {
 				s.relayAll(follow.clock(t.Value()))
 			}
 		}

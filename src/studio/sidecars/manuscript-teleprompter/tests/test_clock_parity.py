@@ -7,7 +7,8 @@ be "waiting", seek, pause and resume, and some start at a word.
 
 `tests/fixtures/booth-parity/live-sessions.golden.jsonl` pins both outputs line for line, with the seeks the host is
 given and the clock line each one comes before. The host's `teleprompter` test relays the tracked lines as today and
-follows the clock lines itself, and the two streams it sends the UI must be the same. Regenerate with
+follows the clock lines itself, and the two streams it sends the UI must be the same. The clock is a microphone's (wall time less pauses, moving on while the
+engine decodes), so an engine event is followed at its own time, not its chunk's. Regenerate with
 `UPDATE_CONTRACTS=1` only when the stream changes on purpose, and say why in the PR.
 """
 
@@ -41,6 +42,7 @@ CREDITS = [
     "You have been listening to Alice, written by Lewis Carroll,\nnarrated by Ada Finch.\n\nThe End.",
     "Opening credits.\r\nThe Lighthouse, by Ada Finch, read by the author.",
 ]
+DECODE_SECONDS = 0.07  # how long after its chunk's arrival each event of the chunk leaves the engine, in turn (at most 4)
 FILLERS = ["um", "uh", "chairs", "so", "the", "lighthouse"]
 
 
@@ -106,28 +108,41 @@ def _plan(rng, words):
 
 
 def _run(argv, plan, control):
-    """One `_run` of the planned session, as `main` runs it: its stdout lines."""
+    """One `_run` of the planned session, as `main` runs it: its stdout lines. The stream clock runs as a microphone's
+    does, on a wall clock that moves on while the engine decodes: chunk k arrives at (k + 1) chunk lengths and its j-th
+    event a little later, so an event is followed at a later time than its chunk's, as it is live."""
     ap = live_asr.build_parser()
     args = ap.parse_args(argv)
     live_asr._check_engine_args(ap, args)
     tracker, script_message, _text = live_asr._session_script(ap, args)
     control.write_text("", encoding="utf-8")
 
+    wall = {"t": 0.0}
+
     def chunks():
         for index, chunk in enumerate(plan):
             with control.open("a", encoding="utf-8") as fh:
                 fh.writelines(json.dumps(command) + "\n" for command in chunk["control"])
+            wall["t"] = (index + 1) * live_asr.CHUNK_SECONDS
             yield np.full(CHUNK, (index + 1) * STEP, dtype=np.float32)
 
     def stream(audio):
         for chunk in audio:
-            yield from plan[round(float(chunk[0]) / STEP) - 1]["events"]
+            index = round(float(chunk[0]) / STEP) - 1
+            for number, event in enumerate(plan[index]["events"]):
+                wall["t"] = (index + 1) * live_asr.CHUNK_SECONDS + DECODE_SECONDS * min(number + 1, 4)
+                yield event
 
     out = io.StringIO()
-    with redirect_stdout(out):
-        if script_message:
-            live_asr._emit(script_message)
-        live_asr._run(args, stream, chunks(), tracker)
+    stream_clock = live_asr.StreamClock
+    live_asr.StreamClock = lambda capture_started=None: stream_clock(0.0, lambda: wall["t"])
+    try:
+        with redirect_stdout(out):
+            if script_message:
+                live_asr._emit(script_message)
+            live_asr._run(args, stream, chunks(), tracker)
+    finally:
+        live_asr.StreamClock = stream_clock
     return out.getvalue().split("\n")[:-1]
 
 

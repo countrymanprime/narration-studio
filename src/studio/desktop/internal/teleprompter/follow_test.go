@@ -100,7 +100,7 @@ func TestTheHostFollowsAClockSessionAsTheSidecarFollowedIt(t *testing.T) {
 		after.startFollowing(sessionScript(t, root, session), session.StartWord)
 		clocks := 0
 		for _, printed := range session.Clock {
-			if strings.Contains(printed, `"type": "clock"`) {
+			if strings.Contains(printed, `"type": "clock"`) && !strings.Contains(printed, `"event": true`) {
 				for _, seek := range session.Seeks {
 					if seek[0] == clocks {
 						after.follow.seek(seek[1])
@@ -122,7 +122,7 @@ func TestTheHostFollowsAClockSessionAsTheSidecarFollowedIt(t *testing.T) {
 		if !reflect.DeepEqual(before.Snapshot(), after.Snapshot()) {
 			t.Fatalf("session %d: the state differs:\nwant %v\n got %v", k, before.Snapshot(), after.Snapshot())
 		}
-		generated += len(got) - (len(session.Clock) - clocks)
+		generated += len(got) - (len(session.Clock) - strings.Count(strings.Join(session.Clock, "\n"), `"type": "clock"`))
 	}
 	if generated < 800 {
 		t.Errorf("only %d events made by the host's follower", generated)
@@ -297,4 +297,52 @@ func BenchmarkFollowAnEngineEvent(b *testing.B) {
 	micros := func(d time.Duration) float64 { return float64(d.Nanoseconds()) / 1000 }
 	b.ReportMetric(micros(times[len(times)/2]), "p50-µs/event")
 	b.ReportMetric(micros(times[len(times)*99/100]), "p99-µs/event")
+}
+
+// The clock lines a sidecar could send out of turn: an engine event before any clock line, a clock repeated or going
+// back, an event clock with no event after it. The host follows on, never leaves the script, and sends no clock line.
+func TestClockLinesOutOfTurnNeverStopTheFollowing(t *testing.T) {
+	service, lines := recordingService()
+	tokens := strings.Fields("one two three four five six seven eight")
+	service.startFollowing(scripttrack.ChapterScript{ChapterID: "c", Tokens: tokens, Spans: []scripttrack.ScriptSpan{}}, nil)
+	for _, line := range []string{
+		`{"type": "word", "segment": 0, "word": "one", "start": 0.0, "end": 0.2}`,
+		`{"type": "clock", "t": 0.0}`, `{"type": "clock", "t": 0.0}`, `{"type": "clock", "t": 5.0}`, `{"type": "clock", "t": 1.0}`,
+		`{"type": "clock", "t": 6.0, "event": true}`, `{"type": "clock", "t": 0.5, "event": true}`,
+		`{"type": "word", "segment": 0, "word": "two", "start": 0.3, "end": 0.5}`,
+		`{"type": "clock", "t": -3, "event": true}`, `{"type": "word", "segment": 0, "word": "three"}`,
+		`{"type": "segment_end", "segment": 0}`, `{"type": "clock", "t": 99}`,
+	} {
+		service.onLine(line)
+	}
+	reads := []float64{}
+	for _, event := range sent(t, *lines) {
+		fields, _ := event.(map[string]any)
+		if fields["type"] == clockEventType {
+			t.Fatal("a clock line reached the UI")
+		}
+		if fields["type"] == positionEventType {
+			read, _ := fields["read"].(json.Number).Float64()
+			if read < 0 || read > float64(len(tokens)) {
+				t.Fatalf("a position outside the script: %v", fields)
+			}
+			reads = append(reads, read)
+		}
+	}
+	if len(reads) == 0 || reads[len(reads)-1] != 3 {
+		t.Fatalf("positions %v, want the tracker to reach word 3", reads)
+	}
+}
+
+// A sidecar that dies before its first line: the followed session still sent its script once, and ends in error.
+func TestAFollowedSessionWhoseSidecarDiesAtOnceSendsItsScriptOnceAndFails(t *testing.T) {
+	f := newFixture(t, "early-crash")
+	writeFollowedManuscript(t, f.project)
+	if err := f.service.Start(validOptions()); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "the error phase", func() bool { return phase(f.service) == "error" })
+	if scripts := f.recorder.eventsOf("script"); len(scripts) != 1 {
+		t.Fatalf("%d script events", len(scripts))
+	}
 }

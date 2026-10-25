@@ -159,15 +159,16 @@ fuzzy matching against the script is the ordinary open-source pattern.
    time, not engine timestamps. Karaoke-style word animation should pace
    itself instead of trusting per-word times.
 
-   **Who follows the read.** Since 2026-10-25 the host does
+   **Who follows the read.** The host does
    ([Go versus Python for the sidecars](../research/sidecar-go-vs-python.md), step 2): a session's sidecar runs with
    `--clock`, still reading the chapter as the engine's context and still acting on pause and resume, but printing no
    `script`, `position` or `flag` events. Instead it prints `{"type": "clock", "t": seconds}` before its first chunk
-   and as each chunk arrives: the stream time the tracker reads (wall time less pauses for a microphone, audio
-   consumed for a file). The host builds the same script (`internal/scripttrack`, a port held byte for byte to
-   `chapter_script.py`, `script_tracker.py` and `flags.py`), sends its `script` event, places a start word at the
+   and as each chunk arrives, and `{"type": "clock", "t": seconds, "event": true}` just before each engine event: the
+   stream time the tracker reads at that moment (wall time less pauses for a microphone, audio consumed for a file). The host builds the same script (`internal/scripttrack`, a port held byte for byte to
+   `chapter_script.py`, `script_tracker.py` and `flags.py`), sends its `script` event once the session runs, places a start word at the
    first clock line, applies each Seek at the next one (where the sidecar read it from the control file), and runs
-   the tracker on every engine event it relays, sending the position and flag events right after it. A clock line
+   the tracker on every engine event it relays at that event's own time, sending the position and flag events right
+   after it. A clock line
    is never relayed. When the host cannot build the script or read the start word as the sidecar would, the
    sidecar follows the read itself, as before, and reports any problem in its own words. The sidecar's own tracker
    stays for the replay tools until they move too.

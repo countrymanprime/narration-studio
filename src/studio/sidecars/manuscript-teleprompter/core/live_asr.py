@@ -825,6 +825,8 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
 
             chunks = gated(ticking(chunks, clock, on_tick), lambda: clock.paused)
         for event in stream(chunks):
+            if args.clock:
+                _emit({"type": "clock", "t": clock.now(), "event": True})
             _emit(event)
             if tracker:
                 for tracked in tracker.feed(event, clock.now()):
@@ -1008,8 +1010,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--clock",
         action="store_true",
         help='Leave following the read to the host: print {"type": "clock", "t": seconds} (the stream time the tracker would '
-        "read) before the first chunk and as each chunk arrives, and no script, position or flag events; pause and resume "
-        "still act, a seek is the host's",
+        'read) before the first chunk and as each chunk arrives, and {"type": "clock", "t": seconds, "event": true} before '
+        "each engine event, and no script, position or flag events; pause and resume still act, a seek is the host's",
     )
     ap.add_argument(
         "--control-file",
