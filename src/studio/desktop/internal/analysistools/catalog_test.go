@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -91,14 +92,15 @@ func TestEveryWheelInTheProductionCatalogIsPinnedBySHA256(t *testing.T) {
 	}
 }
 
-// Until the owner pins the files the spikes could not reach, no row of the production catalog can be installed, and each says why in
-// the narrator's words. When a row is pinned this test fails on purpose: update it with the row.
-func TestNoProductionToolIsInstallableYetAndEachSaysWhy(t *testing.T) {
+// The BookNLP rows are pinned (docs/research/studio-next-booknlp-spike.md, Pins); every other row of the production catalog cannot be
+// installed yet, and each says why in the narrator's words. When a row is pinned this test fails on purpose: update it with the row.
+func TestOnlyThePinnedToolsAreInstallableAndEachOtherSaysWhy(t *testing.T) {
+	pinned := []string{"booknlp-small", "booknlp-big"}
 	for _, tool := range productionManager(t).Tools() {
-		if tool.Available() {
-			t.Errorf("%s reads as installable: pin it, then update this test", tool.ID)
+		if want := slices.Contains(pinned, tool.ID); tool.Available() != want {
+			t.Errorf("%s installable = %v, want %v: pin it, then update this test", tool.ID, tool.Available(), want)
 		}
-		if tool.UnavailableReason() == "" {
+		if !tool.Available() && tool.UnavailableReason() == "" {
 			t.Errorf("%s gives no reason", tool.ID)
 		}
 	}
@@ -137,8 +139,8 @@ func TestTheConsentFactsFollowTheMock(t *testing.T) {
 		hosts       string
 	}{
 		"gliner":        {"gliner", 1, true, "huggingface.co, files.pythonhosted.org"},
-		"booknlp-small": {"booknlp", 1, true, "people.ischool.berkeley.edu, files.pythonhosted.org"},
-		"booknlp-big":   {"booknlp", 2, false, "people.ischool.berkeley.edu, files.pythonhosted.org"},
+		"booknlp-small": {"booknlp", 1, true, "people.ischool.berkeley.edu, huggingface.co, files.pythonhosted.org"},
+		"booknlp-big":   {"booknlp", 2, false, "people.ischool.berkeley.edu, huggingface.co, files.pythonhosted.org"},
 	} {
 		tool, _ := manager.Tool(id)
 		if tool.Source == nil || *tool.Source != want.source || tool.Rank != want.rank || tool.Recommended != want.recommended {

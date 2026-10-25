@@ -66,7 +66,7 @@ func TestPickFromUninstallEntriesReportsNotFoundWhenNoEntryMatches(t *testing.T)
 }
 
 func TestParseAssociationCommandExtractsTheQuotedExecutable(t *testing.T) {
-	// The real value read from HKCR\Reaper.Project\shell\open64\command in the REAPER reachability spike, 2026-09-22 (docs/research/reaper-spike-s6-daw-reachability.md).
+	// The real value read from HKCR\Reaper.Project\shell\open64\command in the REAPER reachability spike, 2026-09-22 (docs/reference/daw/reaper.md).
 	command := `"C:\Program Files\REAPER (x64)\reaper.exe" -project "%1"`
 
 	got, ok := parseAssociationCommand(command)

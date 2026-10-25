@@ -268,15 +268,24 @@ function gitGrepFinds(name) {
 
 function main(argv) {
   const lines = parseSource(readFileSync(join(ROOT, SOURCE), 'utf8'));
+  let text = null;
   let existing = [];
   try {
-    existing = parseIndex(readFileSync(join(ROOT, INDEX), 'utf8'));
+    text = readFileSync(join(ROOT, INDEX), 'utf8');
+    existing = parseIndex(text);
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
   if (argv.includes('--write')) {
     const rows = buildRows(lines, existing);
-    writeFileSync(join(ROOT, INDEX), renderIndex(rows));
+    const rendered = renderIndex(rows);
+    // An index that is already current is not rewritten: a rewrite truncates the file first, and a reader running beside
+    // it (the gate runs the test files in parallel) would see an empty index.
+    if (rendered === text) {
+      console.log(`${INDEX} is current (${rows.length} rows)`);
+      return 0;
+    }
+    writeFileSync(join(ROOT, INDEX), rendered);
     console.log(`wrote ${rows.length} rows to ${INDEX}`);
     return 0;
   }

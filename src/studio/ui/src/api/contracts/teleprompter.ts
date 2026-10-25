@@ -113,6 +113,11 @@ export type TeleprompterState = {
    * its level stay live, the tracker holds its word. Absent from a host before host API 55, which reads as not paused.
    */
   paused?: boolean;
+  /**
+   * The session (running, or the last one) is a cold read (#2251 item 13): it follows the narrator with no take, keeps no reading and
+   * anchors no word, and its flags are not a take's. Absent from a host before it, which reads as a session for a take.
+   */
+  coldRead?: boolean;
   script: TeleprompterScript | null;
   position: TeleprompterPosition | null;
 };
@@ -142,6 +147,8 @@ export type TeleprompterStartOptions = (
   language?: string;
   /** Start the tracker already at this script word index (the same space as `TeleprompterPosition.read`). */
   startWord?: number;
+  /** A cold read: listen and follow with no take (the host's state then says `coldRead`). Left out, a session for a take. */
+  coldRead?: boolean;
 };
 
 /** The first-use gate's answer for a tail-audio locate (Whisper only): the model it needs is not installed yet. */

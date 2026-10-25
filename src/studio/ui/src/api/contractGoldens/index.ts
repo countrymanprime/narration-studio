@@ -41,6 +41,7 @@ import { editCutsGoldens } from './editCuts';
 import { voiceSamplesGoldens } from './voiceSamples';
 import { wordFxGoldens } from './wordFx';
 import { editStacksGoldens } from './editStacks';
+import { replaceGoldens } from './replace';
 import { productionGoldens } from './production';
 import { pronunciationOnlineGoldens } from './pronunciationOnline';
 import { pronunciationSourcesGoldens } from './pronunciationSources';
@@ -85,6 +86,7 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   editCutsGoldens,
   wordFxGoldens,
   editStacksGoldens,
+  replaceGoldens,
   productionGoldens,
   pronunciationOnlineGoldens,
   pronunciationSourcesGoldens,

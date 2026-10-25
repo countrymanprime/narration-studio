@@ -58,6 +58,24 @@ describe('Panel', () => {
     expect(used).toBe(1);
   });
 
+  // Alignment audit cause A: a zero-basis title folded one letter per line beside wide actions, a button grew the header
+  // (59 px against a sibling's 50 px) and a flush table's square rows poked out of the rounded corners.
+  it('gives the title a basis, keeps the header height with actions and clips the frame', () => {
+    render(
+      <Panel title="Mock Turtle" actions={<Button>Rescan</Button>}>
+        Body
+      </Panel>,
+    );
+    const region = screen.getByRole('region', { name: 'Mock Turtle' });
+    const title = within(region).getByRole('heading', { level: 2 });
+    expect(title.parentElement!.className).toContain('flex-[1_1_12rem]');
+    expect(title.className).toContain('[overflow-wrap:break-word]');
+    expect(title.className).not.toContain('anywhere');
+    expect(within(region).getByRole('button', { name: 'Rescan' }).parentElement!.className).toContain('-my-[0.3125rem]');
+    expect(region.className).toContain('overflow-clip');
+    expect(region.className).not.toContain('overflow-hidden');
+  });
+
   it('keeps the surface look whether or not it has a title', () => {
     const { container, rerender } = render(<Panel>Body</Panel>);
     const bare = container.querySelector('section')!.className;

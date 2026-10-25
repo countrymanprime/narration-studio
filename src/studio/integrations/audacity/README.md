@@ -6,4 +6,4 @@ The Audacity integration lives in the desktop host, not here. The adapter is `sr
 
 This folder holds no code. Unlike REAPER, Audacity loads no script of ours: the host drives it over `mod-script-pipe`, which only Audacity 3.x has.
 
-There is no Audacity-side launcher. Nothing Audacity loads can start a program ([feasibility note](../../../../docs/research/audacity-launcher-feasibility.md)), so the installer adds a Start Menu entry, `<app name> for Audacity`, that starts the app with `--daw Audacity` ([Audacity boundary](../../../../docs/architecture/daw-integration.md#audacity-boundary)).
+There is no Audacity-side launcher. Nothing Audacity loads can start a program, so the installer adds a Start Menu entry, `<app name> for Audacity`, that starts the app with `--daw Audacity` ([Audacity boundary](../../../../docs/architecture/daw-integration.md#audacity-boundary)).

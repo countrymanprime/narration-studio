@@ -59,6 +59,35 @@ export const LongTitleWraps: Story = {
   ),
 };
 
+// A title beside more actions than fit: the title keeps at least 12 rem and the actions wrap under it, rather than the title
+// folding one letter per line (alignment audit cause A, the Story Bible entry at 390 px).
+export const TitleKeepsItsWidthBesideWideActions: Story = {
+  render: () => (
+    <div className="max-w-[22rem] space-y-4">
+      <Heading title="Story Bible" />
+      <Panel
+        title="Mock Turtle"
+        actions={
+          <>
+            <Button variant="secondary">Rescan</Button>
+            <Button variant="secondary">Merge</Button>
+            <Button variant="danger">Delete entry</Button>
+          </>
+        }
+      >
+        <p className="text-sm">The actions wrap under the title.</p>
+      </Panel>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const title = within(canvasElement).getByRole('heading', { level: 2, name: 'Mock Turtle' });
+    if (!(await laidOut(canvasElement))) return;
+    // One line: the title is not squeezed below its own width.
+    await expect(title.getBoundingClientRect().height).toBeLessThan(30);
+    await expect(title.parentElement!.getBoundingClientRect().width).toBeGreaterThanOrEqual(12 * 16 - 1);
+  },
+};
+
 const onUseFile = fn();
 
 // The title is an <h2> beneath the page's <h1>; a Panel titled with an <h2> and no <h1> above it would trip axe's
@@ -193,8 +222,9 @@ export const MatchesTheMock: Story = {
   },
 };
 
-// Mock 05's "Why it fails": buttons in the header make it 55 px (11 px above and below a 32 px button, and the divider).
-// Button is 38 px tall until the Button phase, so this measures the 11 px rather than the total.
+// Mock 05's "Why it fails" with its header buttons. The mock lets a button grow the header (55 px); the app keeps it 50 px
+// with or without one, so sibling cards' dividers line up (alignment audit cause A): a 36 px button sits centred, 6.5 px above
+// and below it.
 export const HeaderWithActions: Story = {
   render: () => (
     <div className="space-y-4">
@@ -220,8 +250,10 @@ export const HeaderWithActions: Story = {
     const box = header.getBoundingClientRect();
     const narrow = box.width < 400;
     if (narrow) return;
-    await expect(px(button.getBoundingClientRect().top - box.top)).toBe(11);
-    await expect(px(box.bottom - 1 - button.getBoundingClientRect().bottom)).toBe(11);
+    await expect(px(box.height)).toBe(50);
+    // 6.5 px each side; the box edges fall on fractions.
+    await expect(Math.abs(button.getBoundingClientRect().top - box.top - 6.5)).toBeLessThanOrEqual(1);
+    await expect(Math.abs(box.bottom - 1 - button.getBoundingClientRect().bottom - 6.5)).toBeLessThanOrEqual(1);
     // The border and 16 px, to a pixel: the box edges fall on fractions.
     await expect(Math.abs(box.right + 1 - button.getBoundingClientRect().right - 17)).toBeLessThanOrEqual(1);
   },
@@ -264,6 +296,13 @@ export const FlushTable: Story = {
     await expect(px(table.getBoundingClientRect().left)).toBe(px(frame.left + 1));
     await expect(px(table.getBoundingClientRect().right)).toBe(px(frame.right - 1));
     await expect(px(table.getBoundingClientRect().top)).toBe(px(header.getBoundingClientRect().bottom));
+    // The first column's text starts where the card title starts, and the last row draws no rule over the card's border.
+    const title = canvas.getByRole('heading', { level: 2 });
+    const firstCell = canvas.getByText('00 Opening credits');
+    const range = document.createRange();
+    range.selectNodeContents(firstCell);
+    await expect(Math.abs(range.getBoundingClientRect().left - title.getBoundingClientRect().left)).toBeLessThanOrEqual(1);
+    await expect(getComputedStyle(canvas.getByText('01 Down the Rabbit-Hole')).borderBottomWidth).toBe('0px');
   },
 };
 

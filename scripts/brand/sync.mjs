@@ -1,5 +1,5 @@
 // Writes every generated brand module from config/brand.json, and the brand regions of the tracked Markdown and HTML files
-// (docs/research/app-name-injection.md). Idempotent: a second run changes nothing.
+// (docs/architecture/codebase-map.md#product-and-technical-names). Idempotent: a second run changes nothing.
 //
 //   node scripts/brand/sync.mjs            write what is out of date (pnpm run brand:sync)
 //   node scripts/brand/sync.mjs --check    list what is out of date and fail; sync.test.mjs runs it in the repo-scripts check

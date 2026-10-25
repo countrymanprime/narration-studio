@@ -15,7 +15,7 @@ Every check names the pull request (or open issue) that asked for it. Nothing he
 
 Tick a box only after you have seen the result. Report a failure on the control issue [#992](https://github.com/countrymanprime/narration-studio/issues/992) with the check's number.
 
-Related: [the REAPER verification pass](reaper-verification-pass.md) for the bridge commands, [the Booth acceptance matrix](booth-acceptance.md) for the rows these checks close, and [the Audacity verification pass](audacity-verification-pass.md).
+Related: [the narrator hand check](narrator-hand-check.md) (the short first sitting), [the REAPER verification pass](reaper-verification-pass.md) for the bridge commands, [the Booth acceptance matrix](booth-acceptance.md) for the rows these checks close, and [the Audacity verification pass](audacity-verification-pass.md).
 
 ## 1. Recording in the Booth
 

@@ -1,0 +1,12 @@
+{
+  "fileId": "f-1",
+  "length": 0.04,
+  "peaks": {
+    "buckets": 2,
+    "bucketsPerSecond": 50,
+    "channels": 1,
+    "minMax": "gX/wEA==",
+    "sampleRate": 22050,
+    "startSeconds": 0
+  }
+}
