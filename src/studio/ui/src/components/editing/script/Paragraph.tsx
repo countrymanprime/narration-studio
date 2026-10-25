@@ -20,11 +20,13 @@ export interface ParagraphProps {
   active: boolean;
   /** The line is on screen in the bottom waveform while it is scrolled by hand. */
   inView?: boolean;
+  /** The time gutter: off when nothing was heard (no times, no takes), so the text starts at the column's edge (R3ED-15). */
+  gutter?: boolean;
   onRender?: (pid: string) => void;
 }
 
 /** One row of the script: the time the line begins and its words. Memoised, so a cursor move draws the paragraph it left and the one it entered. */
-export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag, active, inView = false, onRender }: ParagraphProps) {
+export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag, active, inView = false, gutter = true, onRender }: ParagraphProps) {
   useEffect(() => {
     onRender?.(dp.p.id);
   });
@@ -39,10 +41,10 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       data-active={active ? '' : undefined}
       data-in-view={inView ? '' : undefined}
       data-unrecorded={dp.recorded ? undefined : ''}
-      className={`mb-2 grid grid-cols-[76px_minmax(0,1000px)] gap-x-1.5 border-l-[3px] py-1 ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
+      className={`mb-2 grid gap-x-1.5 border-l-[3px] py-1 ${gutter ? 'grid-cols-[76px_minmax(0,1000px)] @max-[30rem]/script:grid-cols-[2.75rem_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1000px)]'} ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 4.5rem' }}
     >
-      <div data-gutter className="flex flex-col items-end gap-1 pt-[0.7em] pr-2">
+      <div data-gutter className={`flex flex-col items-end gap-1 pt-[0.7em] pr-2 ${gutter ? '' : 'invisible overflow-hidden'}`}>
         <span className="font-mono text-xs text-[var(--text-muted)]">{dp.start != null ? clockText(dp.start) : ''}</span>
       </div>
       <p className={`m-0 min-w-0 ${dp.recorded ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>

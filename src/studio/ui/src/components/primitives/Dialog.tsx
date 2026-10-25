@@ -79,7 +79,7 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
 };
 
 // The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`).
-export const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
+const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
 
 // The one horizontal inset of the header, the body and the action row.
 const INSET = 'px-[var(--space-6)]';

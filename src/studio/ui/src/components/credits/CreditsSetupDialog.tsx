@@ -140,10 +140,13 @@ export function CreditsSetupDialog({
                 Not set yet: nothing in the manuscript names the narrator.
               </p>
             ) : null}
+            {/* The option sits a step below the hint it follows, not against it (XPR1-30). */}
             {field.field === 'narrator' && (
-              <Checkbox checked={useForAllProjects} disabled={busy} onChange={setUseForAllProjects}>
-                Use for all my projects (saved as your default in Settings &gt; General)
-              </Checkbox>
+              <div className="mt-2">
+                <Checkbox checked={useForAllProjects} disabled={busy} onChange={setUseForAllProjects}>
+                  Use for all my projects (saved as your default in Settings &gt; General)
+                </Checkbox>
+              </div>
             )}
           </div>
         ))}
