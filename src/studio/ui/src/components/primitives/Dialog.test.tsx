@@ -556,4 +556,27 @@ describe("the shell's layout (ENX-13, ENX-16, ENX-23)", () => {
     expect(content.className).toContain('py-[var(--space-6)]');
     expect(content.parentElement!.className).not.toContain('py-');
   });
+
+  describe("the shell's edges (XSC-36, XSL-16, R3GL-3)", () => {
+    it("gives the header and the action row the scroll body's gutter, so their right edges meet the body's", () => {
+      render(
+        <Dialog dismissOnOutsidePress={false} title="Define marks" onClose={() => undefined} actions={<Button>Done</Button>}>
+          <p>Body</p>
+        </Dialog>,
+      );
+      const dialog = screen.getByRole('dialog', { name: 'Define marks' });
+      expect(screen.getByRole('heading', { name: 'Define marks' }).parentElement!.className).toContain('[scrollbar-gutter:stable]');
+      expect(dialog.querySelector('[data-dialog-actions]')!.className).toContain('[scrollbar-gutter:stable]');
+      expect(dialog.querySelector('[data-dialog-content]')!.parentElement!.className).toContain('scroll-y-edges');
+    });
+
+    it('keeps 8 px under the last row of a headerless body', () => {
+      render(
+        <Dialog dismissOnOutsidePress title="Jump menu" headerless onClose={() => undefined} actions={null}>
+          <p>List</p>
+        </Dialog>,
+      );
+      expect(screen.getByText('List').closest('[data-dialog-content]')!.className).toContain('pb-2');
+    });
+  });
 });

@@ -53,8 +53,10 @@ describe('toolbar-is-absent-without-a-selection', () => {
   it('follows the rectangle, divided by the zoom factor', () => {
     const m = mount({ zoom: 2 });
     m.rerender(inside(0, 5));
-    // 100px down at zoom 2 is 50, less the 46px the bar sits above, clamped to the 8px edge; left is centred on the rectangle.
-    expect(tool().style.top).toBe(`${Math.max(8, RECT.top / 2 - 46)}px`);
+    // 100px down at zoom 2 is 50, and 46px above it is past the 8px edge, so the bar goes 8px under the rectangle instead of covering
+    // it (alignment audit XSC-5); left is centred on the rectangle.
+    expect(RECT.top / 2 - 46).toBeLessThan(8);
+    expect(tool().style.top).toBe(`${RECT.bottom / 2 + 8}px`);
     expect(tool().style.left).not.toBe('');
   });
 

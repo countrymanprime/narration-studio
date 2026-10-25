@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { KeyHints } from './KeyHints';
+import { KeyHints, PageFooterProvider } from './KeyHints';
 
 afterEach(cleanup);
 
@@ -43,5 +43,24 @@ describe('KeyHints', () => {
       </KeyHints>,
     );
     expect(screen.getByText('extra')).toBeTruthy();
+  });
+
+  // XED-25: a toast covered the right end of the shell's key-hint footer.
+  it("in the shell's page footer, makes the toasts keep clear of it; drawn where it stands, leaves that to its own footer", () => {
+    document.documentElement.style.removeProperty('--toast-clear');
+    render(<KeyHints hints={[{ keys: ['Space'], label: 'Play' }]} />);
+    expect(document.documentElement.style.getPropertyValue('--toast-clear')).toBe('');
+    cleanup();
+    const footer = document.createElement('footer');
+    document.body.append(footer);
+    const view = render(
+      <PageFooterProvider value={footer}>
+        <KeyHints hints={[{ keys: ['Space'], label: 'Play' }]} />
+      </PageFooterProvider>,
+    );
+    expect(document.documentElement.style.getPropertyValue('--toast-clear')).not.toBe('');
+    view.unmount();
+    expect(document.documentElement.style.getPropertyValue('--toast-clear')).toBe('');
+    footer.remove();
   });
 });
