@@ -62,6 +62,7 @@ var (
 
 // ruleParagraph is one of load_manuscript's paragraphs, its text by code point.
 type ruleParagraph struct {
+	chapter                any // chapterTitle, as the file holds it
 	chapterID, paragraphID string
 	text                   []rune
 	lowered                []rune // str.lower of text, made when classify first needs it
@@ -99,11 +100,26 @@ func RuleSuggestions(ctx context.Context, manuscriptPath, guidePath string) ([]s
 // object, a narrated chapter with no id or a list for one, a narrated paragraph with no chapterTitle). narration does the same for
 // the host's other Story Bible commands with encoding/json, which differs from this only on those crashes and NaN.
 func ruleManuscript(path string) ([]ruleParagraph, error) {
+	paragraphs, _, err := readRuleManuscript(path)
+	return paragraphs, err
+}
+
+// readRuleManuscript is ruleManuscript, also giving the bytes it read.
+func readRuleManuscript(path string) ([]ruleParagraph, []byte, error) {
 	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
-		return nil, errNoManuscript
+		return nil, nil, errNoManuscript
 	}
 	raw, err := os.ReadFile(path)
-	if err != nil || !utf8.Valid(raw) {
+	if err != nil {
+		return nil, nil, errManuscriptRead
+	}
+	paragraphs, err := parseRuleManuscript(raw)
+	return paragraphs, raw, err
+}
+
+// parseRuleManuscript is load_manuscript over the manuscript file's bytes.
+func parseRuleManuscript(raw []byte) ([]ruleParagraph, error) {
+	if !utf8.Valid(raw) {
 		return nil, errManuscriptRead
 	}
 	data, err := pyLoads(universalNewlines(string(raw)))
@@ -175,10 +191,11 @@ func ruleManuscript(path string) ([]ruleParagraph, error) {
 		if !narrated[chapterID] {
 			continue
 		}
-		if _, has := paragraph.get("chapterTitle"); !has {
+		title, has := paragraph.get("chapterTitle")
+		if !has {
 			return nil, errManuscriptItems // item["chapterTitle"]
 		}
-		paragraphs = append(paragraphs, ruleParagraph{chapterID: chapterID, paragraphID: paragraph.values["id"].(string), text: []rune(paragraph.values["text"].(string))})
+		paragraphs = append(paragraphs, ruleParagraph{chapter: title, chapterID: chapterID, paragraphID: paragraph.values["id"].(string), text: []rune(paragraph.values["text"].(string))})
 	}
 	if len(paragraphs) == 0 {
 		return nil, errNoNarration
@@ -661,20 +678,10 @@ func cueID(paragraphID string, start int, quote string) string {
 	return "cue-" + hex.EncodeToString(sum[:])[:12]
 }
 
-// speakerOf is manuscript_guide.py find_speech_tag's speaker: the id a speech tag right after the quote, else right before it,
-// names, when its verb is a speech verb and its name a speaking entry's.
+// speakerOf is the speaker findSpeechTag gives a quote.
 func speakerOf(text []rune, start, end int, index map[string]any) any {
-	if tag, ok := tagAfter(pySlice(text, end, end+tagWindow)); ok && speechVerbs[strings.ToLower(tag.verb)] {
-		if id := index[normalizeName(tag.name)]; pyTruthy(id) {
-			return id
-		}
-	}
-	if tag, ok := tagBefore(pySlice(text, start-tagWindow, start)); ok && speechVerbs[strings.ToLower(tag.verb)] {
-		if id := index[normalizeName(tag.name)]; pyTruthy(id) {
-			return id
-		}
-	}
-	return nil
+	speaker, _ := findSpeechTag(text, start, end, index)
+	return speaker
 }
 
 // taggedSpan is extraction_rules.py _tagged_span: the quote with the speech tag that names speaker beside it, as a slice of text.
