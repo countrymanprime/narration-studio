@@ -30,11 +30,12 @@ export function WorkedOut({ k }: { k: Calc }) {
         </div>
         <div className="flex justify-between gap-3">
           <dt>Pace needed for the due date</dt>
-          <dd className="font-mono">{Number.isFinite(k.reqPace) ? `${k.reqPace.toFixed(1)} h/day` : '—'}</dd>
+          <dd className={Number.isFinite(k.reqPace) ? 'font-mono' : 'text-[var(--text-muted)]'}>{requiredPace(k)}</dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt>At your pace, done (estimate)</dt>
-          <dd className="font-semibold">{fmtD(k.finish)}</dd>
+          {/* The column's mono face, as every other figure in it (XSH-14). */}
+          <dd className="font-mono font-semibold">{fmtD(k.finish)}</dd>
         </div>
       </dl>
       <p className="mt-3 text-[0.8125rem] text-[var(--text-muted)]">
@@ -43,4 +44,11 @@ export function WorkedOut({ k }: { k: Calc }) {
       </p>
     </Panel>
   );
+}
+
+/** The pace the due date needs, or in words why there is none (R3SH-4: a bare dash read as a missing number). */
+function requiredPace(k: Calc): string {
+  if (Number.isFinite(k.reqPace)) return `${k.reqPace.toFixed(1)} h/day`;
+  if (k.daysLeft === null) return 'Set a due date';
+  return k.daysLeft < 0 ? 'Past the due date' : 'Due today';
 }
