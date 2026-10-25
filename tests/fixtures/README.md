@@ -162,7 +162,27 @@ while it found the cues itself (its SHA-256, and its text when short) and the fi
 with its exit status; the manuscript's path in a built file is `@MANUSCRIPT@` and the clock was fixed. Python wrote every file with
 LF line ends. `src/studio/desktop/internal/guide/cues_parity_test.go` replays every case through the host's refresh and checks the
 file byte for byte; it refreshes each `cut` file and checks the result is the old build's. The sidecar's `test_build_golden.py`
-checks `build` still writes each `cut` file. The recorder was deleted with the Python cue code, so the files are frozen.
+checked `build` still wrote each `cut` file until the build moved into the host; `TestEveryRecordedBuildWritesTheFileThatKeepsTheCues`
+checks the host's build writes each one now. The recorder was deleted with the Python cue code, so the files are frozen.
+
+## guide-build/
+
+What the manuscript-guide sidecar's `build` did, recorded before the build moved into the host (2026-10-25,
+[Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 3, fourth PR). `cases.jsonl` holds one build a
+line: its manuscript (`rulesCase` or `cueBuild`, a case of `guide-rules/` or `guide-cues/` whose files it reads; `manuscriptPath`; or the
+text) and the Story Bible it rebuilt (that case's, `previousRulesCase`, `previousPath`, the text, `previousBytes` in hex, or none), and
+what the model work gave it: `model.kind` is `rules-only`, `unavailable` (spaCy could not be loaded) or `spacy`, with `model.spans`,
+each paragraph's entity spans as `[start, end, label]` (real `en_core_web_sm` 3.8.0 spans for the fixture books and 2 in 5 synthetic
+ones, and seeded random spans with odd labels, filler and edges for others). The synthetic books (300, seeded) are each built once and
+rebuilt one to three times over the first build's file with up to five of a narrator's (and a damaged file's) changes: locks, hand-made
+entries, renamed and renumbered entries, aliases, pronunciation choices, notes and alternates, properties, review flags, speaker
+colours, deletions, absorbed names, renamed, removed and invalid types, odd ids and values of the wrong type. `cases.golden.jsonl` holds,
+for each case in the same order, the exit status and exception, the `BUILT|n|@OUT@` line, every progress line and info log message,
+the names asked for pronunciations in order with the stubbed answers, and the file left (its SHA-256, and its text when under 4 KiB;
+the manuscript's path is `@MANUSCRIPT@`, the clock fixed, LF line ends). Where Python's answer hung on its hash seed (the order of a
+set: the names a rebuilt entry tries for a saved id, and vocabulary ties under casefold), the case is `ambiguous` and the file is the one
+Python writes with the order the host uses. `src/studio/desktop/internal/guide/build_parity_test.go` replays every case
+(`TestBuildMatchesTheSidecar`). The recorder was deleted with the Python build, so the files are frozen.
 
 ## booth-parity/
 

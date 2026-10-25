@@ -207,9 +207,9 @@ type buildResult struct {
 	Cut     *string `json:"cut"`
 }
 
-// TestBuildThenRefreshIsTodaysBuild pins the cut Build makes: the sidecar's build now keeps the old cues and the host refreshes them
-// at once, which must leave the file the build alone wrote while it found the cues itself, byte for byte. test_build_golden.py holds the
-// sidecar's half (the build writes cut). Where the old build failed on the old cues (they are the narrator's file, and it crashed on a
+// TestBuildThenRefreshIsTodaysBuild pins the cut Build makes: the build keeps the old cues and the host refreshes them at once, which
+// must leave the file the sidecar's build alone wrote while it found the cues itself, byte for byte. The build's half (it writes cut) is
+// TestEveryRecordedBuildWritesTheFileThatKeepsTheCues. Where the old build failed on the old cues (they are the narrator's file, and it crashed on a
 // value of the wrong type), the refresh fails on them too; the build has written its entries by then, which the old one had not.
 func TestBuildThenRefreshIsTodaysBuild(t *testing.T) {
 	root := repoRoot(t)

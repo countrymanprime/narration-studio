@@ -50,6 +50,11 @@ type Service struct {
 	// pronunciationLookup answers the pronunciations the host needs for a new entry or alias; nil asks the sidecar (pronunciations). The
 	// tests set it.
 	pronunciationLookup func(words []string) ([]map[string]any, error)
+	// buildModel does a build's model work (build.go); nil asks the sidecar. The tests set recorded answers.
+	buildModel buildModel
+	// clock is a build's generated_at, and resolvePath its source path (Path.resolve); nil is the real ones. The tests set them.
+	clock       func() time.Time
+	resolvePath func(path string) string
 	// undoIDs makes the id a merge is stored under; nil in the app (a random one), set by the tests that need a known one.
 	undoIDs func() string
 	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
@@ -389,29 +394,6 @@ func (s *Service) command(args []string) (string, []string, error) {
 
 // RulesOnly is the model argument that builds without a language model: the rules-only extraction, lower quality, chosen for one build.
 const RulesOnly = "rules-only"
-
-// Build runs the Story Bible build. model is what the sidecar gives spaCy: the folder of an installed model, a model name, or RulesOnly.
-// The sidecar's build keeps the file's dialogue cues as they were; the host then finds them against the new entries (RefreshCues), which
-// leaves the file the sidecar's build wrote while it found the cues itself, byte for byte (TestBuildThenRefreshIsTodaysBuild). A refresh
-// that fails fails the build, as the cues failing in the sidecar did, though the new entries are written by then.
-func (s *Service) Build(progress, log, model string) (string, error) {
-	if e := os.MkdirAll(filepath.Dir(s.guidePath()), 0755); e != nil {
-		return "", e
-	}
-	out, err := s.Run(s.buildArgs(progress, log, model)...)
-	if err != nil {
-		return out, err
-	}
-	if _, err := s.RefreshCues(context.Background()); err != nil {
-		return out, err
-	}
-	_ = s.SaveFindings() // best-effort; a problem here never fails a build that already succeeded (see SaveFindings)
-	return out, nil
-}
-func (s *Service) buildArgs(progress, log, model string) []string {
-	args := []string{"build", "--manuscript", s.manuscript(), "--out", s.guidePath(), "--progress", progress, "--log", log, "--spacy-model", model}
-	return append(args, s.defaultPronunciationSourceArgs()...)
-}
 
 // defaultPronunciationSourceArgs is --default-source <value> when the narrator set a preferred pronunciation source
 // (Settings > Story Bible); omitted (not passed as an explicit empty

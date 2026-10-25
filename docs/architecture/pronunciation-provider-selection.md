@@ -32,7 +32,7 @@ starts (`Pronounce`'s `CheckPronounce`).
   independently for each alias: a `Menu` offering "From the CMU dictionary" / "From eSpeak NG" next to the
   Play button, calling `Host.GuidePronounce` (which asks `pronounce_source()` for exactly the named source and raises
   when it has nothing for the name, unlike the automatic fallback) and marking the result `chosen: true` so a rebuild
-  never silently replaces it (`merge_locked`). The narrator's own typed pronunciation
+  never silently replaces it (the host's rebuild merge, `mergeLocked` in `src/studio/desktop/internal/guide/build_merge.go`). The narrator's own typed pronunciation
   ([Manuscript Guide](../utilities/manuscript-guide.md))
   and the kept alternate work the same way for an alias as for the entity — `GuidePronounce`,
   `GuidePronounceUser`, `GuidePronunciationUseAlternate` and `GuidePronunciationSetStatus` each take an
@@ -40,7 +40,7 @@ starts (`Pronounce`'s `CheckPronounce`).
 - **Spoken by the preview:** Choosing and previewing a pronunciation
   changed `render_audio` to speak a **chosen** pronunciation as a Piper raw-phoneme block (`"[[ipa]]"`) instead of the
   spelled name; an unchosen (freshly auto-generated) pronunciation never changes what the preview says, since
-  `merge_locked` keeps regenerating a guess on every rebuild and the preview must not flip on its own. The Go preview
+  the rebuild merge keeps regenerating a guess on every rebuild and the preview must not flip on its own. The Go preview
   cache key folds in the chosen pronunciation's IPA, so choosing or changing one invalidates a stale cached render.
 
 ## The default source setting
@@ -50,8 +50,8 @@ added `ManuscriptGuide.default_pronunciation_source` (Settings > Voice & pronunc
 original CMU-then-Wiktionary-then-eSpeak order) or one of the three source names. It only **reorders** the automatic
 fallback to try the narrator's preferred source first — the rest of the chain still runs if that source has nothing
 for a name — and never limits the entity/alias Generate/Replace control's own explicit per-name choice.
-`src/studio/desktop/internal/guide/service.go` passes it to the sidecar's `build`, `create`, and an `edit` that adds an
-alias; it is left off the command line entirely while unset, so an untouched project's command line is unchanged.
+`src/studio/desktop/internal/guide` passes it to the sidecar's pronunciation lookups: a build's (`entities --words-file`, or
+`pronunciation --words-file` for a rules-only build, `build.go`) and those of a create and of an edit that adds an alias; it is left off the command line entirely while unset, so an untouched project's command line is unchanged.
 
 ## Open, owner-only item
 

@@ -1,6 +1,7 @@
 package guide
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,11 +44,8 @@ func runFakeSidecar(mode string) int {
 			_ = file.Close()
 		}
 	}
-	if mode == "build" {
-		// The sidecar's build: new entries, the file's dialogue cues kept as they were.
-		_ = os.WriteFile(flagValue(os.Args[1:], "--out"), []byte(`{"schema_version": 2, "entities": [{"id": "entity-ada", "canonical_name": "Ada", "category": "Character"}], "dialogue_cues": [], "absorbed_names": {}}`), 0o600)
-		fmt.Println("BUILT|1|out")
-		return 0
+	if strings.HasPrefix(mode, "build") {
+		return fakeBuildSidecar(mode, os.Args[1:])
 	}
 	if mode == "candidate" {
 		fmt.Println(`{"ok":true,"say":"wɹɛn"}`)
@@ -379,4 +377,63 @@ func TestPreviewNamesTheHelperWhenItCannotStart(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "Manuscript Guide executable") {
 		t.Fatalf("error = %v, want the configure-the-executable message", err)
 	}
+}
+
+// fakeBuildSidecar answers the two commands a build asks for. build: no language model ({"available": false}, after the warning the
+// sidecar logs); build-spacy: every "Ada" in the manuscript as a PERSON; build-fail: the model run fails, as a spaCy error does. Each
+// word of a --words-file is pronounced "ipa:<word>".
+func fakeBuildSidecar(mode string, args []string) int {
+	logLine := func(message string) {
+		if path := flagValue(args, "--log"); path != "" {
+			if file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600); err == nil {
+				_, _ = fmt.Fprintf(file, "{\"level\": \"info\", \"msg\": %q, \"ts\": \"2026-10-25T12:00:00.000Z\"}\n", message)
+				_ = file.Close()
+			}
+		}
+	}
+	switch args[0] {
+	case "entities":
+		switch mode {
+		case "build-fail":
+			logLine("ERROR: [E088] Text of length 1000001 exceeds maximum of 1000000.")
+			fmt.Fprintln(os.Stderr, `{"level": "info", "msg": "ERROR: [E088] Text of length 1000001 exceeds maximum of 1000000.", "ts": "2026-10-25T12:00:00.000Z"}`)
+			return 1
+		case "build-spacy":
+			raw, _ := os.ReadFile(flagValue(args, "--manuscript"))
+			var manuscript struct {
+				Paragraphs []struct{ ID, Text string } `json:"paragraphs"`
+			}
+			_ = json.Unmarshal(raw, &manuscript)
+			fmt.Println(`{"available": true}`)
+			for _, paragraph := range manuscript.Paragraphs {
+				text := []rune(paragraph.Text)
+				spans := []string{}
+				for at := 0; at+3 <= len(text); at++ {
+					if string(text[at:at+3]) == "Ada" {
+						spans = append(spans, fmt.Sprintf("[%d, %d, \"PERSON\"]", at, at+3))
+					}
+				}
+				fmt.Printf("{\"paragraphId\": %q, \"entities\": [%s]}\n", paragraph.ID, strings.Join(spans, ", "))
+			}
+		default:
+			logLine("WARNING: spaCy model unavailable (no model); using lower-quality rules-only extraction.")
+			fmt.Println(`{"available": false}`)
+		}
+		// Then, as the sidecar does, wait for the host's words and answer them from the same process.
+		for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+			if _, err := os.Stat(flagValue(args, "--words-file")); err == nil {
+				break
+			}
+		}
+		fallthrough
+	case "pronunciation":
+		raw, _ := os.ReadFile(flagValue(args, "--words-file"))
+		var words []string
+		_ = json.Unmarshal(raw, &words)
+		for _, word := range words {
+			encoded, _ := json.Marshal(map[string]string{"ipa": "ipa:" + word})
+			fmt.Printf("{\"ipa\": %s, \"source\": \"cmu\", \"confidence\": \"medium\"}\n", encoded[7:len(encoded)-1])
+		}
+	}
+	return 0
 }
