@@ -488,6 +488,14 @@ describe('EditingPage', () => {
       await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('tabindex')).toBeNull());
     });
 
+    // R4TA-7: the take count was drawn twice per line, a ring in the time gutter and the chip under the text; the chip is the one way in.
+    it('draws the take count once, on the chip, with nothing in the time gutter', async () => {
+      mount({ chapterId: 'c1' });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')).not.toBeNull());
+      expect(document.querySelector('[data-pid="p1"] [data-gutter] button')).toBeNull();
+    });
+
     it('shows no banner with REAPER linked or the built-in recorder, whose takes can be kept', async () => {
       mount({ setup: 'reaper' });
       await script();
