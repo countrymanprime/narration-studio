@@ -6122,7 +6122,7 @@ describe('Replace audio (bindings_replace.go): the mock answers through the sche
       origin: 'manual' as const,
       match: null,
     };
-    const api = createMockApi({}, { chapterTrackMappings: [link] });
+    const api = createMockApi({}, { chapterTrackMappings: [link], daw: { experimentalOn: true } });
     const alignment = await api.workspaceAlignment(measured.id);
     const heard = alignment.tokens.filter((token) => token.item !== undefined && token.p);
     const first = heard[0];
@@ -6175,6 +6175,8 @@ describe('Replace audio (bindings_replace.go): the mock answers through the sche
     const { api, chapterId, first, last } = await linkedMock();
     await expect(api.replaceNarratorAdd('Eric | Leach')).rejects.toThrow('no bar or control character');
     await expect(api.replaceNarratorAdd('   ')).rejects.toThrow('1 to 80 characters');
+    const off = createMockApi();
+    expect((await off.replaceAddFile('n-1')).result.refused).toBe('Experimental: switched off in Settings.');
     expect((await api.replaceAddFile('n-9')).result.refused).toBe("That narrator is not on this project's list. Add them first.");
     expect((await api.replacePlan(chapterId, first, last, 'f-9', 1, 2)).result.refused).toBe('That file of theirs is not in this project. Add it first.');
     await api.replaceNarratorAdd('Eric Leach');
