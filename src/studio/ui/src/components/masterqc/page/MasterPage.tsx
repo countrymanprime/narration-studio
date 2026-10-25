@@ -1,5 +1,5 @@
 import { headingName } from '../../../chapterHeading';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
@@ -27,7 +27,7 @@ import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
 import { Consistency, rangeOf } from './Consistency';
-import { MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
+import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
@@ -69,6 +69,26 @@ type BodyProps = {
   focusFile?: string;
   fileActions?: Pick<FileActions, 'onPlayQuietest' | 'onOpenInDaw'>;
 };
+
+/**
+ * A line of the files card: its text, and the one button it offers at the card's right edge. `alert` is a read that failed (red, announced);
+ * otherwise it is a muted status line named by `label`.
+ */
+function Notice({ alert = false, label, children: [text, action] }: { alert?: boolean; label?: string; children: [ReactNode, ReactNode] }) {
+  return (
+    <div role={alert ? undefined : 'status'} aria-label={label} className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+      <p role={alert ? 'alert' : undefined} className="min-w-0 flex-[1_1_20rem]" style={alert ? DANGER : MUTED}>
+        {text}
+      </p>
+      {action}
+    </div>
+  );
+}
+
+/** `prefix` and the reason, without saying the same thing twice when the reason is already a whole sentence about it (R4MS2-12). */
+function sayOnce(prefix: string, reason: string): string {
+  return /delivery profiles? could not be read/i.test(reason) ? reason : `${prefix}: ${reason}`;
+}
 
 const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
 
@@ -234,6 +254,39 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                 <MeasureControls run={run} />
               </>
             );
+            // What the card says under its controls, at its own inset: what could not be read with Retry at the card's right edge, a
+            // link that names nothing here, and the run's progress and outcome, under the button that started it (R3MS-1, XMS-10, XMS-19).
+            const notices = [
+              profileProblem && (
+                <Notice key="profile" alert>
+                  {sayOnce('The delivery profile could not be read', profileProblem)}
+                  {profileReadFailed && (
+                    <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the delivery profile" onClick={retryProfile}>
+                      Retry
+                    </Button>
+                  )}
+                </Notice>
+              ),
+              chaptersProblem && (
+                <Notice key="chapters" alert>
+                  {`The chapters could not be read, so the files keep their file names: ${chaptersProblem}`}
+                  <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the chapters" onClick={retryChapters}>
+                    Retry
+                  </Button>
+                </Notice>
+              ),
+              staleLink !== undefined && (
+                <Notice key="stale" label="Link not found">
+                  {run.files.length === 0
+                    ? `The link names ${staleLink}, but no files are measured yet. Check files to measure them.`
+                    : `The link names ${staleLink}, which this check does not include. It may have been renamed, moved or not measured yet.`}
+                  <Button variant="secondary" size="sm" onClick={() => setPicked(undefined)}>
+                    Show the first file instead
+                  </Button>
+                </Notice>
+              ),
+              hasMeasureProgress(run) && <MeasureProgress key="run" run={run} />,
+            ];
             // One element either way, so the header's buttons survive the profile and the chapters arriving.
             return (
               <FilesTable
@@ -243,47 +296,13 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                 openPickups={openPickups}
                 heading={heading}
                 controls={controls}
+                notices={notices}
                 selected={selected}
                 onSelect={select}
                 actions={actions}
               />
             );
           })()}
-          {profileProblem && (
-            <div className="flex flex-wrap items-center gap-2">
-              <p role="alert" className="text-sm" style={DANGER}>
-                The delivery profile could not be read: {profileProblem}
-              </p>
-              {profileReadFailed && (
-                <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the delivery profile" onClick={retryProfile}>
-                  Retry
-                </Button>
-              )}
-            </div>
-          )}
-          {chaptersProblem && (
-            <div className="flex flex-wrap items-center gap-2">
-              <p role="alert" className="text-sm" style={DANGER}>
-                The chapters could not be read, so the files keep their file names: {chaptersProblem}
-              </p>
-              <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the chapters" onClick={retryChapters}>
-                Retry
-              </Button>
-            </div>
-          )}
-          {staleLink !== undefined && (
-            <div role="status" aria-label="Link not found" className="flex flex-wrap items-center gap-2 text-sm" style={MUTED}>
-              <span>
-                {run.files.length === 0
-                  ? `The link names ${staleLink}, but no files are measured yet. Check files to measure them.`
-                  : `The link names ${staleLink}, which this check does not include. It may have been renamed, moved or not measured yet.`}
-              </span>
-              <Button variant="secondary" size="sm" onClick={() => setPicked(undefined)}>
-                Show the first file instead
-              </Button>
-            </div>
-          )}
-          <MeasureProgress run={run} />
           {profile && chaptersRead && (
             <>
               {staleLink === undefined && (current || run.files.length > 0) && (
@@ -293,11 +312,6 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                 <FileRulesPanel file={currentFile} profile={profile} onClose={() => setRulesClosed(currentFile.path)} />
               )}
             </>
-          )}
-          {run.files.length === 0 && !run.running && (
-            <p className="text-sm" style={MUTED}>
-              Nothing measured yet. Check your rendered chapter files (WAV) to see them here.
-            </p>
           )}
           <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
             <Consistency files={run.files} profile={profile} />
