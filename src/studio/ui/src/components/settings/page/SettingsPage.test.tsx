@@ -180,6 +180,20 @@ describe('Settings: This version', () => {
   });
 });
 
+// Alignment audit XSE2-1, XSE2-2: a text box takes its column's width up to its cap, so it never runs past the card in a narrow column
+// (tests/visual/settings-fields.spec.ts measures it in a browser at 1024 and 390 px).
+describe('Settings: field widths', () => {
+  it('caps the REAPER program box at 26rem of its row instead of fixing it at 26rem', async () => {
+    await renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+    const box = await within(row('daw.reaperPath')).findByRole('textbox', { name: 'REAPER program' });
+    expect(box.className).toContain('w-full');
+    expect(box.className).toContain('max-w-[26rem]');
+    expect(box.className).not.toMatch(/(^| )w-\[26rem\]/);
+    expect(box.parentElement!.className).toContain('w-full');
+  });
+});
+
 describe('Settings: editing', () => {
   it('applies at once, says Saved, marks the row Changed and offers Reset', async () => {
     const api = createMockApi();
@@ -270,6 +284,13 @@ describe('Settings: editing', () => {
     expect(row('daw.experimental')).toBeTruthy();
   });
 
+  // Alignment audit (XSE2-18): the opened Advanced sections sit behind a rule, so a section named like one above reads as its advanced part.
+  it('draws the opened Advanced sections behind a rule', async () => {
+    await renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+    expect(document.getElementById('advanced-recording')!.className).toContain('border-l-2');
+  });
+
   it('a category shows how many are changed and resets them together', async () => {
     const api = createMockApi();
     const save = vi.spyOn(api, 'saveSettings');
@@ -311,6 +332,17 @@ describe('Settings: search and filters', () => {
     expect(backups).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+  });
+
+  // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
+  it('puts Open <page> on the line of Change it here for now', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
+    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
+    const open = within(punch).getByRole('button', { name: /^Open Booth/ });
+    const change = within(punch).getByRole('button', { name: 'Change it here for now' });
+    expect(open.parentElement).toBe(change.parentElement);
+    expect(open.className).toContain('min-w-[9.5rem]');
   });
 
   it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {

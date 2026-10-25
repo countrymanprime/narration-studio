@@ -12,14 +12,13 @@ import {
 } from 'react';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import { useCommand } from '../../input/useCommand';
-import { categoryLabel } from '../../state';
 import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
 import { Highlight } from '../primitives/Highlight';
 import { IconButton } from '../primitives/IconButton';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
-import { kindSwatch, typeUnknown } from './entryList';
+import { kindLabel, kindSwatch } from './entryList';
 import { COLUMNS, hasPronunciation, markedParts, matchedAlias, sortAria, type ColumnKey, type EntrySort } from './entryTable';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 
@@ -285,7 +284,7 @@ function EntryRow({
   hear?: { playing: boolean; loading: boolean; onPress: () => void };
 }) {
   const alias = matchedAlias(entry, words);
-  const kind = entry.category === 'Draft' ? categoryLabel(entry.category) : typeUnknown(entry) ? 'Type not set' : entry.category;
+  const kind = kindLabel(entry);
   return (
     <TableRow
       data={{ 'data-entry-id': entry.id, ...(changed ? { 'data-just-changed': '' } : {}) }}

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { InsetCard } from '../primitives/InsetCard';
+import { HIT_AREA } from '../primitives/hitArea';
+import { PICKUP_SOURCE_ROW } from './pickupSourceRow';
 
 /**
  * RS5 B (D22): the proofer's REAPER pickup list, shown project-wide rather
@@ -12,13 +13,13 @@ import { InsetCard } from '../primitives/InsetCard';
  */
 export function PickupListCount({ available, remaining }: { available: boolean; remaining?: number }) {
   return (
-    <InsetCard dashed className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+    <div className={PICKUP_SOURCE_ROW}>
       <span>Pickup list: {available ? `${remaining ?? 0} open (project-wide)` : 'open REAPER to count'}</span>
       {available && (
-        <Link to="/pickups" className="font-semibold underline">
+        <Link to="/pickups" className={`flex-none font-semibold underline ${HIT_AREA}`}>
           Open pickups
         </Link>
       )}
-    </InsetCard>
+    </div>
   );
 }
