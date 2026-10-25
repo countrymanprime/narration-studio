@@ -137,6 +137,9 @@ export function Dialog({
     if (focused instanceof HTMLElement && focused !== popupRef.current && popupRef.current?.contains(focused)) return focused;
     return bodyRef.current;
   };
+  // A scrolling body keeps a stable gutter for its bar (styles.css), so its content ends that much short of the header's and the action row's;
+  // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36).
+  const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
   const finalFocus = () => {
     if (opener?.isConnected && opener !== document.body) return opener;
     if (stayOnBody && (!opener || opener === document.body)) return false;
@@ -197,7 +200,9 @@ export function Dialog({
             {headerless ? (
               <Parts.Title className="sr-only">{title}</Parts.Title>
             ) : (
-              <div className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} py-[0.85rem]`}>
+              <div
+                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem]`}
+              >
                 <Parts.Title className={`flex-1 ${OVERLAY_TITLE_CLASS}`}>{title}</Parts.Title>
                 {onClose && (
                   <IconButton label="Close" onClick={onClose}>
@@ -210,11 +215,13 @@ export function Dialog({
             <div
               ref={bodyRef}
               tabIndex={bodyScroll ? 0 : undefined}
-              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {/* The vertical padding is on this wrapper, not the scroll box, so a sticky table head (`TableHead sticky`) sticks at the body's
-                  top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). */}
-              <div data-dialog-content className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? '' : 'py-[var(--space-6)]'}`}>
+                  top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). A headerless body (the jump menu)
+                  keeps 8 px under its last row, which touched the edge (XSL-16, R3SL-7). The scroll box shades the edge that has more beyond it
+                  (`scroll-y-edges`), so a row cut by the action row reads as more to scroll (R3GL-3, R3EN2-13). */}
+              <div data-dialog-content className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)]'}`}>
                 {hasContent(description) && (
                   <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
                     {description}
@@ -234,7 +241,7 @@ export function Dialog({
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
                 // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
-                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} pt-3 pb-4 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} ${edgeGutter} pt-3 pb-4 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}
