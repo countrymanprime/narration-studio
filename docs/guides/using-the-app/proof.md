@@ -329,8 +329,10 @@ Below the compare run, the Preview panel suggests up to three five-minute excerp
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or
 sharing. Each candidate lists its chapter, paragraph range, estimated length and word count, alongside
 the reasons it was chosen (a mix of narration and dialogue, the Story Bible characters it touches, hard
-words, starting and ending on a paragraph boundary). A candidate that falls short of the target length
-even using the whole chapter says so, in words and an icon rather than colour alone. Open a candidate
+words, starting and ending on a paragraph boundary); a reason every candidate shares is said once under the table.
+A candidate that falls short of the target length even using the whole chapter says so on its own line under it, in
+words and an icon rather than colour alone. While the suggestions are computed the panel shows grey rows; with no
+manuscript it offers **Open Production** to import one, and a failed read offers **Retry**. Open a candidate
 in the manuscript reader, or copy its range and length to paste elsewhere; neither changes anything — a
 suggestion is recomputed fresh every time you visit the page, never applied, exported or stored.
 
