@@ -123,7 +123,7 @@ describe('four states', () => {
     await waitFor(() => expect(card().getAttribute('data-check-state')).toBe('checking'));
     expect(screen.getByRole('progressbar', { name: 'Checking' }).getAttribute('aria-valuenow')).toBe('37');
     expect(screen.getByText('37%')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Stop checking' })).toBeTruthy();
   });
   it('ignores a run of another chapter', async () => {
     mount({ state: { phase: 'running', chapterId: 'other', percent: 37, message: '' } });
@@ -262,7 +262,7 @@ describe('the Check recordings button', () => {
   });
   it('is replaced by Cancel while checking, and Cancel calls coverageCancel', async () => {
     const { calls } = mount({ state: { phase: 'running', chapterId: 'c1', percent: 5, message: '' } });
-    await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Stop checking' }));
     expect(calls.cancel).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Check recordings' })).toBeNull();
   });
