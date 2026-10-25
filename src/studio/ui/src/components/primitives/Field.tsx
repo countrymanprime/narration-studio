@@ -74,7 +74,9 @@ export function Field({
               className={`h-[var(--control-height)] py-0 ${CONTROL_CLASSES}`}
             />
           ) : (
-            <input className={`h-[var(--control-height)] py-0 ${CONTROL_CLASSES}`} />
+            // A value wider than the box (a folder path in a narrow dialog) ends in an ellipsis while the box is not being edited, rather than being
+            // cut with nothing to say it goes on (alignment audit R3EN2-17). No `title`: it would be read as the box's description, the value twice.
+            <input className={`h-[var(--control-height)] py-0 text-ellipsis ${CONTROL_CLASSES}`} />
           )
         }
         disabled={disabled}
