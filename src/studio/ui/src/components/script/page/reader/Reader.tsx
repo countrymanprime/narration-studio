@@ -120,9 +120,13 @@ function StickyHeader({
   const section = current.chapterId ? names?.get(current.chapterId) : undefined;
   const chapter = chapters.find((c) => c.id === current.chapterId) ?? chapters[0];
   return (
-    <div className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2">
+    // The text's own 24 px inset (`px-6` below), so the title and the card under it share a left edge (alignment audit XSC-28). Under
+    // 640 px the title takes two lines before it is cut, as the tools leave it little width (XSC-9).
+    <div className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2">
       <div className="min-w-0">
-        <b className="block truncate font-['Barlow_Condensed',sans-serif] text-xl font-semibold">{section ?? (chapter ? headingName(chapter) : '—')}</b>
+        <b className="block truncate font-['Barlow_Condensed',sans-serif] text-xl leading-7 font-semibold max-[639px]:line-clamp-2 max-[639px]:whitespace-normal">
+          {section ?? (chapter ? headingName(chapter) : '—')}
+        </b>
         <div aria-live="off" className="text-sm text-[var(--text-muted)]">
           {current.para}
         </div>
@@ -488,7 +492,8 @@ export function Reader(props: ReaderProps) {
       >
         <div
           data-reader=""
-          className="mx-auto px-5 pt-2 pb-20"
+          // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12).
+          className="mx-auto px-6 pt-2 pb-20"
           style={{
             maxWidth: 'calc(var(--rw, 64) * 1ch)',
             fontFamily: 'var(--rf, Georgia, serif)',
