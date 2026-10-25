@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ContextMenu } from './ContextMenu';
+import { ContextMenu, textBoxAt } from './ContextMenu';
 
 afterEach(cleanup);
 
@@ -184,5 +184,43 @@ describe('ContextMenu', () => {
     fireEvent.click(rows[1]);
     expect(pick).toHaveBeenCalledOnce();
     await waitFor(() => expect(screen.queryAllByRole('menuitem')).toHaveLength(0));
+  });
+});
+
+// Alignment audit R3SC-2: the menu opened on top of the word that was clicked. Opened on text, it is placed against the text's box at the
+// pointer's x, so it starts below the line (or above it), never on it. jsdom has no layout, so the browser's answers are stood in for.
+describe('textBoxAt', () => {
+  const line = new DOMRect(10, 100, 300, 20);
+  const stubCaret = (box: DOMRect | null) => {
+    Object.defineProperty(document, 'caretRangeFromPoint', {
+      configurable: true,
+      value: () => (box ? { getClientRects: () => [box], getBoundingClientRect: () => box } : null),
+    });
+  };
+  afterEach(() => {
+    Reflect.deleteProperty(document, 'caretRangeFromPoint');
+    vi.restoreAllMocks();
+  });
+
+  it("is the line under the pointer, at the pointer's x", () => {
+    stubCaret(line);
+    expect(textBoxAt(42, 110)).toEqual(new DOMRect(42, 100, 0, 20));
+  });
+
+  it('is the whole selection when the pointer is inside it, over every line it runs on', () => {
+    stubCaret(line);
+    const range = {
+      getClientRects: () => [new DOMRect(40, 100, 200, 20), new DOMRect(10, 120, 120, 20)],
+      getBoundingClientRect: () => new DOMRect(10, 100, 230, 40),
+    };
+    vi.spyOn(window, 'getSelection').mockReturnValue({ isCollapsed: false, rangeCount: 1, getRangeAt: () => range } as unknown as Selection);
+    expect(textBoxAt(60, 130)).toEqual(new DOMRect(60, 100, 0, 40));
+  });
+
+  it('is nothing off text: no caret, or a caret on a line away from the pointer', () => {
+    stubCaret(null);
+    expect(textBoxAt(42, 110)).toBeUndefined();
+    stubCaret(line);
+    expect(textBoxAt(42, 400)).toBeUndefined();
   });
 });
