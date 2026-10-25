@@ -49,7 +49,9 @@ Clicking a Story Bible name, a marked word or a note shows it in the side panel'
 mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has the suspected
 lines of this take, **Last punch**, **In this chapter** (the characters the chapter names or gives lines to, in the order they first appear, with their voice notes and their
 [voice samples](#voice-samples)), **Coming up** (the next names with a pronunciation) and **This session** (how long you have recorded and
-how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first.
+how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first. Where the panel is a drawer, the text
+behind it is dimmed while it is open, and a click on the dimmed text closes it; in a window under 480 pixels wide the drawer
+takes the whole width.
 
 The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), a level bar, the room tone of
 that microphone, and the keys the Booth answers, drawn from your keymap.
@@ -351,7 +353,8 @@ To mark where you mean to stop, right-click a word, or a page's label, and choos
 
 **Open N in Booth** on [Pickups](pickups.md#pickup-session) opens the Booth on the chosen lines, at the first line's chapter. A
 **Pickups · N open** chip on the top bar counts the lines still open, and the side panel lists them first, each with its chapter
-and time on a card of its own: a chip says **Open** or **Recorded**, and the line you are on is framed. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
+and time on a card of its own: a chip says **Open** or **Recorded**, and the line you are on is framed. In the text, each pickup
+line has a bar down its left side and starts a little further in. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
 chapter when needed (not during a take). A line the recording check found is tagged **Automatic**; dismissing it removes it from
 [Pickups](pickups.md) as well.
 
