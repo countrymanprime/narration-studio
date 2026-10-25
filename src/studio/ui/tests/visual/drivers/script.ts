@@ -88,10 +88,8 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.keyboard.press('Escape');
     // Focus returns to the ribbon, whose tooltip would be portalled outside the landmarks.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await page
-      .locator('[role="tooltip"]')
-      .waitFor({ state: 'detached' })
-      .catch(() => undefined);
+    // Bounded, and not swallowed: a tooltip that stays fails here and says so, instead of using up the test's time.
+    await page.locator('[role="tooltip"]').waitFor({ state: 'detached', timeout: 5_000 });
   },
   // The jump menu on the Script: the page's own groups first, under "On this page".
   'jump-menu': async (page) => {

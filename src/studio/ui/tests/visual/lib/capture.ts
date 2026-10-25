@@ -314,6 +314,8 @@ function failOn(failures: string[]): void {
 // One {state, viewport} capture: boot the app fresh, drive to the state, screenshot it, and fail on anything that makes the
 // picture untrustworthy (a page error, a failed request, horizontal overflow). For a row with `reloadPerViewport`.
 export async function captureState(page: Page, entry: StateEntry, viewport: Viewport, driver: Driver): Promise<void> {
+  // The time a capture is given, as captureAcrossViewports gives each of its viewports.
+  test.setTimeout(test.info().timeout * (entry.timeoutFactor ?? 1));
   const problems: string[] = [];
   await boot(page, viewport, driver, problems);
   failOn(await captureAt(page, entry, viewport, problems));

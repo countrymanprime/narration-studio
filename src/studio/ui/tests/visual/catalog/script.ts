@@ -48,6 +48,9 @@ export const scriptStates: StateEntry[] = [
     state: 'bookmark-added',
     description: 'Script, B pressed in the reader: the "Bookmark added." toast with Undo, and the bookmark ribbon beside its line',
     ...TOAST_FADES_OUT,
+    // Each width loads the Script with its manuscript, drives the bookmark and its editor, and runs axe in one test: 15 to 20 s under
+    // UI_CPU_THROTTLE=6 on a fast runner, past the 30 s default on a slower one (4 of 15 runs).
+    timeoutFactor: 2,
   },
   {
     page: 'script',
