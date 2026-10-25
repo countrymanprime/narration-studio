@@ -172,7 +172,7 @@ export async function openProofChapter(page: Page, chapterTitle = 'Chapter 1'): 
     window.history.pushState(null, '', path);
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, `/proof/chapter-${number}`);
-  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
+  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}(: | — |$)`) }).waitFor();
 }
 
 // The chapter view's compare run (the retired Proofing page's setup, run and results), scrolled into view for the picture.
@@ -345,8 +345,8 @@ export async function openTrackPanel(page: Page, chapter: string, seed: string) 
   await settlePage(page);
   await productionLoaded(page);
   await rowMenu(page, chapter, 'Chapter track…');
-  // The slide-over's name carries the chapter's subtitle after " — ".
-  const dialog = page.getByRole('dialog', { name: new RegExp(`^Track: ${chapter}( — |$)`) });
+  // The slide-over's name carries the chapter's subtitle after " — " or ": ".
+  const dialog = page.getByRole('dialog', { name: new RegExp(`^Track: ${chapter}(: | — |$)`) });
   await dialog.getByText('Reading the saved project…').waitFor({ state: 'detached' });
   return dialog;
 }
@@ -506,9 +506,9 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   const table = page.getByRole('table', { name: 'Chapter links' });
   await table.scrollIntoViewIfNeeded();
   // An anchored-name cell match, not `hasText` (a substring): "Chapter 1" is also a substring of "Chapter 10"-"Chapter 12".
-  // The cell's full name may carry the chapter's subtitle after " — ", so
+  // The cell's full name may carry the chapter's subtitle after " — " or ": ", so
   // the match allows that suffix rather than requiring an exact "Chapter 1".
-  const row = table.locator('tbody tr').filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapterTitle}( — |$)`) }) });
+  const row = table.locator('tbody tr').filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapterTitle}(: | — |$)`) }) });
   // Chapter 1 boots linked (an unset ?mockChapterLink is `confirmed`), so it has no track to choose; any other chapter is linked here.
   await row
     .getByRole('combobox')
@@ -524,7 +524,7 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   // Open in Proof is in the row's More actions menu.
   await row.getByRole('button', { name: /^More actions for / }).click();
   await page.getByRole('menuitem', { name: 'Open in Proof' }).click();
-  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
+  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}(: | — |$)`) }).waitFor();
 }
 
 // Some states have no known/safe driver yet (e.g. forcing

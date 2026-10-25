@@ -40,7 +40,7 @@ export const PartlyWaiting: Story = {
 export const ChapterBar: Story = {
   parameters: { files: TWO_FAIL, chapters: true },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByRole('button', { name: /^Chapter: Chapter 4 — The Rabbit Sends/ })).toBeTruthy();
+    await expect(await within(canvasElement).findByRole('button', { name: /^Chapter: Chapter 4: The Rabbit Sends/ })).toBeTruthy();
   },
 };
 

@@ -10,6 +10,7 @@ import { TextField } from '../../primitives/TextField';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { stopSample } from '../../voicesamples/samplePlayerStore';
 import type { CharacterChoice } from './voiceSampleCharacters';
+import { DialogFooter } from '../range/common/DialogFooter';
 
 /** The part of the words the narrator can hear before saving: a stretch of one item's source file. */
 export type Audition = {
@@ -236,14 +237,14 @@ export function VoiceSampleDialog({
           {failure}
         </p>
       ) : null}
-      <div className="flex justify-end gap-2">
+      <DialogFooter>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
         <Button type="submit" variant="primary" pending={saving} disabled={blocked}>
           Save sample
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 }

@@ -50,6 +50,8 @@ describe('ReportDialog', () => {
     expect(preview).toHaveBeenCalledWith(DEFAULTS);
     expect(frame.getAttribute('sandbox')).toBe('');
     expect(frame.getAttribute('srcdoc')).toContain('<h1>Status</h1>');
+    // The frame paints nothing itself, so the report page's own light or dark background shows, not a white slab in dark (XPR2-46).
+    expect(frame.className).not.toMatch(/\bbg-/);
     expect(screen.getByText('Dune · as of 21 Sep 2026')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'JSON' }));
     expect(document.querySelector('pre')?.textContent).toBe('{}\n');

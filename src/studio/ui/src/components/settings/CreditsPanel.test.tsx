@@ -137,7 +137,7 @@ describe('Retail sample', () => {
     pick('End line', '3');
     fireEvent.click(screen.getByRole('button', { name: 'Save sample' }));
     // One chapter is named once (alignment audit R3SE2-7).
-    expect(await screen.findByText(/^Chapter 2 — The Pool of Tears, lines 1 to 3 \(\d[\d,]* words, about /)).toBeTruthy();
+    expect(await screen.findByText(/^Chapter 2: The Pool of Tears, lines 1 to 3 \(\d[\d,]* words, about /)).toBeTruthy();
     expect(screen.getByText(/adds no time to the estimate/)).toBeTruthy();
     expect((await api.creditsRetailSample()).sample).toMatchObject({ startLine: 1, endLine: 3 });
   });
@@ -165,7 +165,7 @@ describe('Retail sample', () => {
         <CreditsPanel notify={vi.fn()} />
       </ApiProvider>,
     );
-    expect(await screen.findByText(/^Chapter 2 — The Pool of Tears, lines 1 to 2 \(/)).toBeTruthy();
+    expect(await screen.findByText(/^Chapter 2: The Pool of Tears, lines 1 to 2 \(/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Clear sample' }));
     expect(await screen.findByText(/No retail sample picked/)).toBeTruthy();
     expect((await api.creditsRetailSample()).sample).toBeNull();

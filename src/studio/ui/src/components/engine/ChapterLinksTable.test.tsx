@@ -7,7 +7,7 @@ import { ChapterLinksTable } from './ChapterLinksTable';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 
 afterEach(cleanup);
 
@@ -48,7 +48,7 @@ describe('ChapterLinksTable', () => {
     renderTable();
 
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     expect(within(firstRow).getByText('Not linked')).toBeTruthy();
   });
 
@@ -57,7 +57,7 @@ describe('ChapterLinksTable', () => {
     const user = userEvent.setup();
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const secondRow = chapterRow(table, chapterName(WIRE_CHAPTERS[1]));
+    const secondRow = chapterRow(table, headingName(WIRE_CHAPTERS[1]));
     const select = within(secondRow).getByRole('combobox') as HTMLSelectElement;
     expect(select.selectedOptions[0]?.textContent).toBe('Choose a track');
     const confirm = within(secondRow).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement;
@@ -80,7 +80,7 @@ describe('ChapterLinksTable', () => {
   it('shows each status as a badge in a cell that does not wrap', async () => {
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const status = within(chapterRow(table, chapterName(WIRE_CHAPTERS[1]))).getByText('Not linked');
+    const status = within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByText('Not linked');
     expect(status.closest('td')?.className).toContain('whitespace-nowrap');
     expect(status.closest('td')?.getAttribute('style') ?? '').not.toContain('color');
   });
@@ -96,7 +96,7 @@ describe('ChapterLinksTable', () => {
       </ApiProvider>,
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const secondRow = chapterRow(table, chapterName(WIRE_CHAPTERS[1]));
+    const secondRow = chapterRow(table, headingName(WIRE_CHAPTERS[1]));
     await waitFor(() =>
       expect(within(secondRow).getByRole('option', { name: new RegExp(`^${WIRE_TRACKS_PROJECT.tracks[0].name} \\(linked to `) })).toBeTruthy(),
     );
@@ -106,7 +106,7 @@ describe('ChapterLinksTable', () => {
     const user = userEvent.setup();
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
@@ -117,12 +117,26 @@ describe('ChapterLinksTable', () => {
     expect(screen.getByRole('status', { name: 'Location' }).textContent).toBe(`/proof/${encodeURIComponent(WIRE_CHAPTERS[0].id)}`);
   });
 
+  // ENX-10: the editing check opened from here covers the wide engine panel whole and offers Back, rather than a 20 rem panel cutting it.
+  it('opens the editing check as wide as the engine panel, with Back to it', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await user.click(within(firstRow).getByRole('button', { name: /^More actions for / }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Editing check…' }));
+    const check = await screen.findByRole('dialog', { name: /^Editing check: / });
+    expect(check.className).toMatch(/44rem/);
+    await user.click(within(check).getByRole('button', { name: 'Back to the audio engine' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Editing check: / })).toBeNull());
+  });
+
   it('tells the panel when a link changes, so the Tracks card re-reads it', async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();
     renderTable(onChanged);
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
 
@@ -133,7 +147,7 @@ describe('ChapterLinksTable', () => {
     const user = userEvent.setup();
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
 
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
@@ -146,7 +160,7 @@ describe('ChapterLinksTable', () => {
     const user = userEvent.setup();
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
@@ -160,7 +174,7 @@ describe('ChapterLinksTable', () => {
     const user = userEvent.setup();
     const api = renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
@@ -189,7 +203,7 @@ describe('ChapterLinksTable', () => {
       </ApiProvider>,
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: 'Clear' }));
@@ -211,7 +225,7 @@ describe('ChapterLinksTable', () => {
     );
 
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await waitFor(() => expect(within(firstRow).getByText('Track missing')).toBeTruthy());
     expect(within(firstRow).getByText('Linked track is missing from this project')).toBeTruthy();
   });

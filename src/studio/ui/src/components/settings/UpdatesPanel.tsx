@@ -7,17 +7,11 @@ import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { UpdateDownloadDialog } from './UpdateDownloadDialog';
 import { brand } from '../../brand.gen';
+import { calendarDay } from '../../calendarDay';
 
 const BYTES_PER_MB = 1024 * 1024;
 
 const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
-
-/** The day of a check, from the host's ISO time, as the app writes a date elsewhere ("Sep 21, 2026"); read in UTC so the day does not change with the time zone. */
-function checkedDay(lastChecked: string): string {
-  const day = new Date(lastChecked);
-  if (Number.isNaN(day.getTime())) return lastChecked.slice(0, 10);
-  return day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-}
 
 /**
  * What the app knows about newer releases: the newest one on the narrator's channel if it is newer than this build, when the app last
@@ -108,7 +102,7 @@ export function UpdatesPanel() {
   const detail = [
     available ? `${available.candidate ? 'A release candidate' : 'A release'} · ${Math.round(available.size / BYTES_PER_MB)} MB` : '',
     available?.replaces && status.downloaded ? 'downloaded and checked' : '',
-    status.lastChecked ? `last checked ${checkedDay(status.lastChecked)}` : '',
+    status.lastChecked ? `last checked ${calendarDay(status.lastChecked)}` : '',
   ].filter(Boolean);
   return (
     <div className="flex flex-col items-start gap-2 text-[0.875rem]" data-updates>

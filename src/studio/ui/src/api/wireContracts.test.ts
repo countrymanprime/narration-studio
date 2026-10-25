@@ -4798,6 +4798,8 @@ describe('the production tracking mock', () => {
     expectMatches(productionReportPreviewSchema, left, 'mock production status report preview, default');
     expect(left).toMatchObject({ folder: pinned.folder, contractedAmountIncluded: false, include: pinned.include });
     expect(left.html).not.toMatch(/<script/i);
+    // Styled like the host's page, in both themes, not browser defaults (XPR2-46).
+    expect(left.html).toMatch(/<style>[^<]*prefers-color-scheme: dark/);
     expect(left.json).toContain('Not available');
     expect(left.json).not.toContain('Contracted amount');
     const included = await api.productionStatusReportPreview({ ...pinned.include, money: true, stages: false });

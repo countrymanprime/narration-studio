@@ -56,6 +56,7 @@ const PAIRS: PairSpec[] = [
   text('selection-toolbar', 'the selection toolbar: surface colour on the text colour', 'var(--surface)', ['surface'], 'var(--text)'),
   text('on-accent', 'primary button and logo: accent-contrast on accent', 'var(--accent-contrast)', ['surface'], 'var(--accent)'),
   text('on-accent-strong', 'primary button hover: accent-contrast on accent-strong', 'var(--accent-contrast)', ['surface'], 'var(--accent-strong)'),
+  text('on-danger', 'filled danger button: danger-contrast on danger', 'var(--danger-contrast)', ['surface'], 'var(--danger)'),
   text('accent-link', 'the Reset link and other accent text on the page', 'var(--accent)', ['surface']),
   text('accent-strong', 'active sort header, alias text, table header on the page', 'var(--accent-strong)', SURFACES),
   text('accent-strong-on-soft', 'notice and chip text: accent-strong on accent-soft', 'var(--accent-strong)', ['surface'], 'var(--accent-soft)'),

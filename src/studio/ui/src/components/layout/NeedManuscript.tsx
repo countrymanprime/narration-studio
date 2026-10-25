@@ -21,13 +21,18 @@ export function NeedManuscript({
 }) {
   return (
     <>
-      <Panel label={title}>
-        <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-          <Heading title={title} />
-          <p className="m-0 text-[var(--text-muted)]">This project has no manuscript yet. Import one to begin.</p>
-          {importButton ?? (onImport && <Button onClick={onImport}>Import manuscript</Button>)}
-        </div>
-      </Panel>
+      {/* The frame a failed read draws (`LoadError`): the page's title at the gutter, where every other state of the page has it, then the card in
+          a 48 rem column, its sentence and button left-aligned. The mock centres them in a card the width of the page, 1,670 px wide around
+          a 400 px message at 1920, with the title inside it (alignment audit XPF-26, R3PF-16, R3MS-6, XMS-22). */}
+      <div className="max-w-3xl space-y-4">
+        <Heading title={title} />
+        <Panel label={title}>
+          <div className="flex flex-col items-start gap-3">
+            <p className="m-0 text-[var(--text-muted)]">This project has no manuscript yet. Import one to begin.</p>
+            {importButton ?? (onImport && <Button onClick={onImport}>Import manuscript</Button>)}
+          </div>
+        </Panel>
+      </div>
       {children}
     </>
   );

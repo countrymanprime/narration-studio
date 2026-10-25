@@ -136,7 +136,8 @@ const narratable = (chapter: ManuscriptChapter) => chapter.contentKind !== 'open
 /** The shipped thresholds, which the mock judges by. */
 const MOCK_THRESHOLDS = { minParagraphPresent: 0.8, maxMissingRun: 3 };
 
-const plural = (count: number, noun: string) => (count === 1 ? `1 ${noun}` : `${count} ${noun}s`);
+// Counts with thousands separators, as the host writes them (`grouped` in desktop/internal/coverage/signal.go, alignment audit R3PR2-7).
+const plural = (count: number, noun: string) => (count === 1 ? `1 ${noun}` : `${count.toLocaleString('en-US')} ${noun}s`);
 
 /** A report of a chapter read with `fraction` of its words present; what is missing is its tail. */
 function reportFor(chapter: ManuscriptChapter, fraction: number, textOf?: TextOf): CoverageReport {
@@ -323,7 +324,7 @@ export function judgeMock(report: CoverageReport, thresholds = MOCK_THRESHOLDS):
     share(paragraph) >= thresholds.minParagraphPresent && paragraph.longestMissingRun <= thresholds.maxMissingRun;
   const judged = (state: CoverageJudgement['state'], reason: string): CoverageJudgement => ({ state, reason, thresholds: { ...thresholds } });
   if (report.longestMissingRun <= thresholds.maxMissingRun && report.paragraphs.every(passes)) {
-    return judged('met', `Text present: ${report.presentTokens} of ${plural(report.bodyTokens, 'word')}; every paragraph passes.`);
+    return judged('met', `Text present: ${report.presentTokens.toLocaleString('en-US')} of ${plural(report.bodyTokens, 'word')}; every paragraph passes.`);
   }
   const region = report.regions
     .filter((candidate) => candidate.tokenCount > thresholds.maxMissingRun)
@@ -394,7 +395,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
         phase: 'running',
         percent: 42,
         stage: 'TRANSCRIBE',
-        message: 'Transcribing item 2/3... 0:41 / 1:30',
+        message: 'Transcribing item 2/3… 0:41 / 1:30',
         startedAt: '2026-09-24T10:00:00Z',
         background: true,
         pass: 'pipeline',
@@ -467,7 +468,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
     measured.set(chapter.id, fraction);
     stale.delete(chapter.id);
     const report = reportOf(chapter, fraction);
-    const message = `Text present: ${report.presentTokens} of ${report.bodyTokens} words.`;
+    const message = `Text present: ${report.presentTokens.toLocaleString('en-US')} of ${plural(report.bodyTokens, 'word')}.`;
     state = {
       ...state,
       phase: 'complete',
@@ -548,7 +549,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
         phase: 'running',
         percent: 0,
         stage: 'START',
-        message: 'Starting the recording check...',
+        message: 'Starting the recording check…',
         startedAt: new Date(startedAt).toISOString(),
       };
       publish();

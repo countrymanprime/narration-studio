@@ -47,7 +47,13 @@ export function ShortcutSheet({ onClose, onShowAll, catalog }: { onClose: () => 
         title="Keyboard shortcuts"
         onClose={onClose}
         actionsAlign="end"
-        actions={<Button onClick={onShowAll}>Show all shortcuts</Button>}
+        actions={
+          // Focus opens on the sheet's one action, not on the scrolling list, whose inset focus ring framed the list as if it were selected
+          // (alignment audit XGL-2). The list is still a tab stop, and scrolls with the keys there.
+          <Button autoFocus onClick={onShowAll}>
+            Show all shortcuts
+          </Button>
+        }
       >
         <div className="flex flex-col gap-4">
           {SCOPE_ORDER.filter((scope) => groups[scope]?.length).map((scope) => (

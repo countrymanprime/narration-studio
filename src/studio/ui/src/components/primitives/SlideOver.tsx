@@ -66,10 +66,10 @@ export function SlideOver({
           >
             {/* Content: a mouse drag inside the panel selects text instead of starting a swipe-to-dismiss (touch still swipes). */}
             <Drawer.Content className="flex min-h-0 flex-1 flex-col">
-              {/* 59 px and a 1 px divider, the same header as Dialog's (chapter-track-link-control/02), at that height whatever the title: a long title
-                  ("Editing check: Chapter 1 — Down the Rabbit-Hole") keeps to one line with an ellipsis and names itself in full on hover, rather than
-                  growing the header to two lines beside its one-line siblings (alignment audit ENX-11). */}
-              <div className="flex h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] px-[1.1rem]">
+              {/* 52 px with its divider, the app's top bar (AppShell's h-13), so the panel's rule meets the bar's where they touch (alignment audit
+                  XSL-13, R4SM-19), at that height whatever the title: a long title ("Editing check: Chapter 1 — Down the Rabbit-Hole") keeps to
+                  one line with an ellipsis and names itself in full on hover, rather than growing the header (ENX-11). */}
+              <div className="flex h-13 flex-none items-center justify-between gap-3 border-b border-[var(--border)] px-[1.1rem]">
                 <Drawer.Title
                   render={headingLevel === 2 ? <h2 /> : <h3 />}
                   title={typeof title === 'string' ? title : undefined}

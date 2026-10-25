@@ -631,3 +631,12 @@ describe('output-panel-alignment', () => {
     expect(screen.getAllByText('Written')[0]!.closest('ul')?.className).toContain('grid-cols-[minmax(0,max-content)_auto]');
   });
 });
+
+// Alignment audit XDL-3: before a build the folder line is words, not a path, so it is not drawn in the mono face.
+it('the folder line before a build is sans, a built folder is mono (XDL-3)', async () => {
+  mount();
+  expect((await screen.findByText('Chosen when you build')).className).not.toContain('font-mono');
+  cleanup();
+  mount({ packageState: async () => BUILT });
+  expect((await screen.findByText('C:/Deliver/ACX', { selector: 'p' })).className).toContain('font-mono');
+});

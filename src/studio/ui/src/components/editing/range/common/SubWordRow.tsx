@@ -1,6 +1,6 @@
 import type { DocItem } from '../../model';
 import type { Span } from '../../ribbon/rangeMath';
-import { SectionLabel } from '../../../primitives/SectionLabel';
+import { Fact } from './Facts';
 import { appliedSpan, subWordNote } from './spanRequest';
 
 /**
@@ -11,13 +11,8 @@ export function SubWordRow({ span, items, attr }: { span?: Span; items: readonly
   const note = span ? subWordNote(span, appliedSpan(items)) : '';
   if (!note) return null;
   return (
-    <>
-      <dt className="pt-0.5">
-        <SectionLabel>Your range</SectionLabel>
-      </dt>
-      <dd className="m-0" {...{ [attr]: '' }}>
-        {note}
-      </dd>
-    </>
+    <Fact label="Your range" {...{ [attr]: '' }}>
+      {note}
+    </Fact>
   );
 }

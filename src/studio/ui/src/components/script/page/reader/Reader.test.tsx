@@ -86,7 +86,7 @@ describe('continuous scroll with the spy', () => {
   it('names the chapter in full in the sticky header, title and subtitle', () => {
     const named = [{ ...chapters[0]!, subtitle: 'Down the Rabbit-Hole' }, ...chapters.slice(1)];
     render(<Reader {...props({ chapters: named })} />);
-    expect(document.querySelector('b')?.textContent).toBe('Chapter 1 — Down the Rabbit-Hole');
+    expect(document.querySelector('b')?.textContent).toBe('Chapter 1: Down the Rabbit-Hole');
   });
 
   it('says the chapter and the paragraph through the live region when a request jumps to a chapter, so no earlier line stays as the last thing said', () => {
