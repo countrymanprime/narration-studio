@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronRight, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
@@ -311,7 +311,9 @@ function RppPicker({ discovery, onSelect }: { discovery: TracksDiscovery; onSele
                   {folderOf(path)}
                 </span>
               </span>
-              <FontAwesomeIcon icon={faChevronRight} className="flex-none" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+              <span aria-hidden="true" className="flex-none text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+                Use
+              </span>
             </button>
           </li>
         ))}
