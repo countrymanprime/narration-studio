@@ -91,7 +91,7 @@ var eventSpecs = map[string]eventSpec{
 	// appends it periodically with an empty run (Fields[1] == ""), so events.go's existing fan-out (a run-less event
 	// reaches every subscriber, Subscription.wants) delivers it as a broadcast with no dedicated route needed. rpp is
 	// EnumProjects(-1, '')'s second return value verbatim (the empty string for an unsaved project, never omitted -
-	// docs/research/reaper-spike-s6-daw-reachability.md confirmed REAPER never returns nil there), and unsaved is "1"
+	// docs/reference/daw/reaper.md confirmed REAPER never returns nil there), and unsaved is "1"
 	// exactly when rpp is empty. changeCount (GetProjectStateChangeCount(0)) was appended later: optional, so an older
 	// script's three-field heartbeat still passes, and empty on a REAPER without the call. playState (GetPlayState's
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later

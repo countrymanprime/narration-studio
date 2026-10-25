@@ -1,4 +1,4 @@
-// The rename rehearsal (docs/research/app-name-injection.md#the-rename): renames a throwaway copy of the repository to a
+// The rename rehearsal (docs/operations/renaming-the-app.md): renames a throwaway copy of the repository to a
 // made-up name with `rename-app`, then runs the checks a rename must pass with no second edit: the brand sync, both name guards
 // and the tests that read the name. A test or file that spells the current name instead of reading it fails here, before a real
 // rename needs it.

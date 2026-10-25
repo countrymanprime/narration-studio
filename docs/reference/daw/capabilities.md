@@ -71,7 +71,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Result:** `RENDER_CONFIGURED` with the folder, the count of targets and their names. The command never invokes a render.
 - **REAPER:** `configure_chapter_render`. The harness asserts it never calls `Main_OnCommand` or reads render stats.
 - **Audacity:** none (take management).
-- **Checked:** REAPER, harness (`render_test.lua`); render keys are in [spike S5](../../research/reaper-spike-s5-render-details.md).
+- **Checked:** REAPER, harness (`render_test.lua`); render keys are in [What REAPER was seen to do](reaper.md#what-reaper-was-seen-to-do).
 
 ### `cleanup_tools`
 

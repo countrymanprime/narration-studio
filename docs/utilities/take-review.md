@@ -79,7 +79,7 @@ falls back to the default rather than failing a scan):
 - Add as take, with provenance in take `P_EXT`: [narration_take_review.lua](../../src/studio/integrations/reaper/narration_take_review.lua).
 - Go to and Loop per read: [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md).
 - Take metrics are evidence per category, with no composite score: [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go).
-- Divergence is localized by the markers' diff and Whisper word timestamps: [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go), [evaluation](../research/take-divergence-evaluation.md).
+- Divergence is localized by the markers' diff and Whisper word timestamps: [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go), [why that is precise enough](transcript-compare.md#alignment-and-confidence).
 - Words said before a span that starts the chapter are its heading, not an extra; before a later span they are an extra before it: [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go).
 - A take comparison is one finding per group and is never ranked: [Codebase map](../architecture/codebase-map.md).
 - Take review never makes a take active; the workspace Takes panel does: [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel).

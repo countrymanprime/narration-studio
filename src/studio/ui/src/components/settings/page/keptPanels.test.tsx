@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
+import type { Notify } from '../../primitives/Toast';
 import { ProjectDataPanel } from './ProjectDataPanel';
 import { ScopedFieldsPanel } from './ScopedFieldsPanel';
 import { SettingsFormsProvider } from '../data/settingsForms';
@@ -50,7 +51,11 @@ describe('ScopedFieldsPanel save', () => {
       if (calls === 1) throw new Error('The settings file is read-only.');
       return real(...args);
     };
-    const notify = vi.fn();
+    // Each toast settles the wait set up before the action that shows it. A polled waitFor gives up after a second of wall
+    // time, which a starved CI worker can spend before its next check, though the toast is only a microtask away.
+    const waiting: Array<() => void> = [];
+    const notify = vi.fn<Notify>(() => waiting.shift()?.());
+    const nextToast = () => new Promise<void>((resolve) => waiting.push(resolve));
     render(
       <ApiProvider api={api}>
         <SettingsFormsProvider notify={notify} onDirtyChange={vi.fn()} registerActions={vi.fn()}>
@@ -60,13 +65,18 @@ describe('ScopedFieldsPanel save', () => {
     );
     const field = (await screen.findAllByRole('textbox'))[0] ?? (await screen.findAllByRole('spinbutton'))[0];
     fireEvent.change(field!, { target: { value: '7' } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(notify).toHaveBeenCalled());
+    const save = await screen.findByRole('button', { name: 'Save' });
+    const failed = nextToast();
+    fireEvent.click(save);
+    await failed;
+    expect(notify).toHaveBeenCalledTimes(1);
     const [, tone, action] = notify.mock.calls[0]!;
     expect(tone).toBe('error');
     expect(action?.label).toBe('Retry');
-    action.onAction();
-    await waitFor(() => expect(calls).toBe(2));
-    await waitFor(() => expect(notify).toHaveBeenLastCalledWith('Global settings saved.'));
+    const saved = nextToast();
+    action!.onAction();
+    await saved;
+    expect(calls).toBe(2);
+    expect(notify).toHaveBeenLastCalledWith('Global settings saved.');
   });
 });

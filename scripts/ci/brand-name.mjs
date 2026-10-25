@@ -1,4 +1,4 @@
-// The guard that keeps the product's current name in one place (#2251 item 41, docs/research/app-name-injection.md). It fails on
+// The guard that keeps the product's current name in one place (#2251 item 41, docs/operations/renaming-the-app.md). It fails on
 // the name in config/brand.json, in any spelling ("<Name> <Words>", "<name>-<words>", "<name>_<words>", "<NameWords>",
 // "<NAME>_<WORDS>"), in a tracked file's path or text, outside:
 //   - the brand file and the files `pnpm run brand:sync` writes from it (scripts/brand/sync.mjs TARGETS);

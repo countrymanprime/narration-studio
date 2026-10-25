@@ -1,6 +1,6 @@
 # Recording coverage fixtures
 
-The synthetic labeled chapters the recording check is scored against ([Recording Check (recording coverage)](../../../../../../../docs/utilities/recording-coverage.md), [the recording check](../../../../../../../docs/utilities/recording-coverage.md)). Why the set is synthetic, the stub baseline and its limits are in [the fixture set research note](../../../../../../../docs/research/recording-coverage-fixtures.md).
+The synthetic labeled chapters the recording check is scored against ([Recording Check (recording coverage)](../../../../../../../docs/utilities/recording-coverage.md); why synthetic is its Q15). The stub analyzer's baseline is in `presence_stub`'s docstring. Limits: the words are synthetic, so Whisper's error rate is not measured here; one speaking rate (`WORD_SECONDS`) and no timing jitter; 16 cases are too few for a rate, so report counts.
 
 ## What is here
 

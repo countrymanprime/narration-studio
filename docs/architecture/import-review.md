@@ -41,7 +41,7 @@ What the narrator sees and does in the dialog (the summary lines, the groups, th
 
 ## Correcting a subtitle
 
-The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([the heading misreads note](../research/import-heading-misreads.md), cases F1 and F3). The narrator corrects it before anything is written:
+The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([failure modes](import-settings-workflow.md#failure-modes) F1 and F3). The narrator corrects it before anything is written:
 
 - **Subtitles** is on (the importer's guess). Turned off, every chapter's subtitle is off.
 - **Each row with a subtitle** has a checkbox named for its line ("Subtitle — Down the Rabbit-Hole"), starting from the default.
