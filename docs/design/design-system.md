@@ -273,6 +273,14 @@ The Booth fills the window with no app shell, so it brings the shell's page gutt
 
 In the Booth's speaker picker a row with no voice sample keeps the play button's room, so "no sample" and "1 sample" end at one x, and the search box carries the placeholder "Search speakers" (alignment audit XBO-8). The Levels popover's sections (Input, Microphone, Levels, Punch) each start with the same capitals label, 6 px above their controls and 16 px apart; a slider's own label (Input level, Monitor level) is the sentence-case control label under its section (XBO-21).
 
+## Editing drawer
+
+The drawer (`editing/drawer/`) departs from the Studio Next mock's drawer in these lines, from the alignment audit:
+
+- **One padding owner.** The drawer's section pads 12 px; a tab's own blocks do not pad again, and a block with a rule under it bleeds the rule to the section's edges (`-mx-3`), so headings, lists and controls share one left edge (XED-10). The last section draws no rule under it (XED-15). The drawer's header is padded 12 px at the top, as the page card's header beside it (XED-34).
+- **Clean up.** The five kinds are a grid of three equal columns, not a wrapping row (XED-12). The chosen kind's heading ("Gaps · 0 to fix") sits above its findings, so "No finding passes these thresholds." reads under it. **Preview** and **Apply** are a footer that sticks to the drawer's foot (`sticky bottom-0`) while the strength and advanced settings scroll above it (XED-11, R3ED-8).
+- **Timeline lanes** name the take over its Active or Muted badge in a 7.5 rem column, the name cut with its full text as a hint, in the strip as in the drawer; side by side in 96 px a long name ran under its lane (XED-8).
+
 ## Motion
 
 See [`motion-and-animation.md`](motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by a `--motion-*` and `--ease-*` token in `styles.css`; `motion-ok:` stops under Windows reduced motion and under `<html data-motion="reduce">`, which the Settings **Motion** row sets, and `src/studio/ui/src/motion.test.ts` fails on anything else. `components.css` declares none (`src/studio/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. Popovers and menus share one enter and exit (`primitives/overlayMotion.ts`); dialogs appear at once. What an action changed fades from `--accent-soft` once, and a failure arriving fades in once (`primitives/changeHighlight.ts`). The named keyframes are `work-progress-slide`, `tooltip-in`, `toast-in`, `change-highlight`, `arrive` and `settings-saved`, the per-row "Saved" fade on the Settings page, which leaves the word readable without motion.

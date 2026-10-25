@@ -205,7 +205,34 @@ describe('the Clean up tab', () => {
 
   it('says so when no finding passes the thresholds', async () => {
     mount({ findings: [] });
-    expect(await screen.findByText('No finding passes these thresholds.')).toBeTruthy();
+    const empty = await screen.findByText('No finding passes these thresholds.');
+    // Alignment audit XED-12: the sentence sits under its kind's heading, not between the chips and the heading.
+    const heading = screen.getByRole('heading', { name: 'Gaps', level: 3 });
+    expect(heading.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  // Alignment audit XED-12: the five chips wrapped 3 + 2 at their own widths.
+  it('lays the five kinds out in a grid of three equal columns', async () => {
+    mount();
+    const group = await screen.findByRole('group', { name: 'Kind of finding' });
+    expect(group.parentElement!.className).toContain('[&>[role=group]]:grid-cols-3');
+  });
+
+  // Alignment audit XED-10: the tab padded itself again inside the drawer section's own padding.
+  it('pads nothing again inside the drawer section', async () => {
+    mount();
+    const group = await screen.findByRole('group', { name: 'Kind of finding' });
+    expect(group.parentElement!.parentElement!.className).toContain('-mx-3');
+  });
+
+  // Alignment audit XED-11, R3ED-8: Preview and Apply were the last items in the scroller, cut by the drawer's foot.
+  it('keeps Preview and Apply in a footer that sticks to the bottom of the drawer', async () => {
+    mount();
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    const footer = screen.getByRole('button', { name: 'Preview' }).parentElement!;
+    expect(footer.className).toMatch(/(^|\s)sticky(\s|$)/);
+    expect(footer.className).toContain('bottom-0');
+    expect(within(footer).getByRole('button', { name: /^Apply to/ })).toBeTruthy();
   });
 
   it('preview-before-apply: Preview lists the pieces, the length, the Cuts track and the undo sentence, and calls nothing', async () => {
