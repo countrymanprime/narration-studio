@@ -201,6 +201,9 @@ html[data-motion='reduce'] {
   --speaker-7: var(--event);
   --speaker-7-text: var(--event-text);
   --backdrop: rgba(20, 17, 12, 0.42);
+  /* The lighter dim behind a page's own drawer (the Script and Editing drawers over the text) and a slide-over: the page stays readable
+     around it, but a line cut by the drawer reads as behind it, not beside it. */
+  --panel-scrim: rgba(10, 8, 5, 0.35);
   --shadow: 0 1px 2px rgba(30, 26, 16, 0.06), 0 1px 1px rgba(30, 26, 16, 0.04);
   --shadow-lg: 0 1px 2px rgba(36, 33, 28, 0.08), 0 10px 28px rgba(36, 33, 28, 0.14);
   --control-radius: 0.45rem;
