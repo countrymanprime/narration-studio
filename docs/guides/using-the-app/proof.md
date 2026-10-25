@@ -247,10 +247,12 @@ linked chapter's **Open in Proof** link in the [audio engine panel](navigation.m
 Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
-While the chapter is being read, the view shows the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason and **Retry**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
+The view runs the full width of the page, like Proof, with its breadcrumb and title in the same place in every state.
+While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
-If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
-[Production](production.md#checking-a-chapters-recording) runs.
+If the chapter hasn't been checked yet, the title row says **Not checked yet** and offers **Check recording**, the same check
+[Production](production.md#checking-a-chapters-recording) runs. A chapter with no linked REAPER track says so in a line
+under the title, with the way to the audio engine panel.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)
 
@@ -262,7 +264,7 @@ model, a second look with a larger model, chunk length, parallel processes, cros
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 
-**Native takes.** With the built-in recorder, the chapter view has a Native takes panel beside the Recording check card. It lists the chapter's native takes grouped by line and lets you mark one take of a line as its keeper (a click; mark it again or choose another take to undo, and choosing one clears the others on that line). While the project records with the built-in recorder it also offers to assign a take that has no line to one of the chapter's paragraphs. A take already assigned, and its keeper mark, stays visible whichever recorder the project uses now. The panel never edits audio.
+**Native takes.** With the built-in recorder, the chapter view has a Native takes panel beside the Recording check card. It lists the chapter's native takes grouped by line, each take's buttons next to its name, and lets you mark one take of a line as its keeper (a click; mark it again or choose another take to undo, and choosing one clears the others on that line). While the project records with the built-in recorder it also offers to assign a take that has no line to one of the chapter's paragraphs. A take already assigned, and its keeper mark, stays visible whichever recorder the project uses now. The panel never edits audio.
 
 ## Comparing the recording with the script
 
@@ -355,7 +357,7 @@ do on [Production](production.md#stage-readiness); Why opens the same evidence v
 **Open this note** opens it on [Editing](editing.md), its words selected, and an unmapped chapter
 links to the [audio engine panel](navigation.md#the-audio-engine-panel).
 
-Below the suggestion, **Rendered file** shows which file the delivery checks measure and lets you change
+Beside the suggestion (under it in a narrow window), **Rendered file** shows which file the delivery checks measure, when you chose it and when it was last measured, on one line, and lets you change
 it: **Choose rendered file** (**Change** once one is chosen) opens a file picker and attests the file was made
 from the chapter as it is now; **Clear** removes the choice; **Measure** runs the same measurement job [Master & QC](master-and-qc.md)
 uses, with its real progress, and needs no second file picker. If the file changes on disk, or the

@@ -12,11 +12,15 @@ The inputs are in tests/fixtures/booth-parity:
   manuscript or text file each read, and seeded synthetic ones: titles with a line-break subtitle, separators, Unicode
   case and space, every kind of paragraph index, broken manuscripts, and credits text with each line ending. A case
   that names `manuscriptPath` (the coverage manuscript, 4.6 MB) is answered with a digest.
+- `placement-cases.jsonl` holds the `locate.locate_event` and `align_word.word_time_event` calls this suite made when it
+  was recorded (2026-10-25) and seeded tails of the locate fixtures' chapters and the coverage manuscript's: words
+  dropped, misread, added or re-read, another chapter's words, silence, timed words with pauses, and words to time
+  inside, before, after and past the end of what was heard. A seeded case names its script instead of holding it.
 
 The answers are in the `.golden.jsonl` beside them, one line per input line: for a session, each operation's position
 events and the segment it closed; for a flag run, each operation's position and flag events; for a chapter script, the
 script (tokens, heading, text and `script` event), the ChapterError (message and candidates) or the name of any other
-exception it raised. `scripttrack`'s parity test must agree with them. Regenerate with `UPDATE_CONTRACTS=1`
+exception it raised; for a placement, the `locate` or `word_time` event. `scripttrack`'s parity test must agree with them. Regenerate with `UPDATE_CONTRACTS=1`
 only when the tracker changes on purpose, and say why in the PR.
 """
 
@@ -38,8 +42,10 @@ assert SPEC and SPEC.loader
 sys.modules[SPEC.name] = st
 SPEC.loader.exec_module(st)
 sys.modules.setdefault("script_tracker", st)
+import align_word
 import chapter_script
 import flags
+import locate
 
 ROOT = Path(__file__).resolve().parents[5]
 FIXTURES = ROOT / "tests" / "fixtures" / "booth-parity"
@@ -180,3 +186,26 @@ def script_answer(case):
 def test_every_chapter_script_gives_the_pinned_script_or_error():
     cases = check("chapter-scripts", script_answer)
     assert {case["k"] for case in cases} == {"chapter", "text", "textfile"}
+
+
+def _placement_script(case):
+    """The tokens and paragraph breaks a placement case places its words in, as `locate.load_script` reads them."""
+    if "tokens" in case:
+        return case["tokens"], set(case.get("breaks", []))
+    script = case["script"]
+    if "text" in script:
+        return st.script_words((ROOT / script["text"]).read_text(encoding="utf-8")), set()
+    chapter = chapter_script.load_chapter_script(ROOT / script["manuscriptPath"], script["chapter"])
+    return chapter.tokens, {span.start for span in chapter.spans}
+
+
+def placement_answer(case):
+    tokens, breaks = _placement_script(case)
+    if case["k"] == "locate":
+        return locate.locate_event(case["heard"], tokens, breaks)
+    return align_word.word_time_event([tuple(timed) for timed in case["timed"]], tokens, case["word"], case["offset"])
+
+
+def test_every_placement_gives_the_pinned_locate_or_word_time():
+    cases = check("placement-cases", placement_answer)
+    assert {case["k"] for case in cases} == {"locate", "align"}
