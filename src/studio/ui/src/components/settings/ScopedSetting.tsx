@@ -160,14 +160,14 @@ function NumberSetting({
         <LabelWithHint field={field} />
       </div>
       <div className={CONTROLS_CLASSES}>
-        {/* A number box is one short width, 8rem, with or without a unit after it, so the boxes down a panel line up (alignment audit XSE2-22);
+        {/* A number box is one short width, 10rem (room for its "Inherits 0.8" placeholder), with or without a unit after it, so the boxes down a panel line up (alignment audit XSE2-22);
             the unit stays beside its box at every width. */}
         <div className="flex min-w-0 items-center gap-[0.6rem]">
           <TextField
             label={field.label}
             mono
             inputMode="decimal"
-            className="w-32 min-w-0"
+            className="w-40 min-w-0"
             placeholder={numberPlaceholder(field, scope)}
             value={value}
             onChange={(next) => change(next.trim())}

@@ -211,11 +211,11 @@ describe('ScopedSetting layout', () => {
     number: { min: 0, max: 200, step: 1, ...(unit ? { unit } : {}) },
   });
 
-  it('draws a number box 8rem wide whether or not a unit follows it', () => {
+  it('draws a number box 10rem wide whether or not a unit follows it', () => {
     renderSetting(number('words'));
     renderSetting(number());
     const boxes = screen.getAllByRole('textbox');
-    for (const box of boxes) expect(box.closest('[class*="w-32"]')).toBeTruthy();
+    for (const box of boxes) expect(box.closest('[class*="w-40"]')).toBeTruthy();
     for (const box of boxes) expect(box.closest('[class*="flex-[1_1_10rem]"]')).toBeNull();
   });
 
