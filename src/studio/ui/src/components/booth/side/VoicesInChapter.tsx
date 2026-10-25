@@ -90,15 +90,17 @@ function VoiceRow({ voice, samples }: { voice: ChapterVoice; samples: BoothSampl
         )}
       </div>
       {mine.length > 0 ? (
+        // As wide as the sample rows it opens, with a caret that says it opens them (alignment audit XBO-26).
         <Button
           variant="ghost"
           size="sm"
-          className="self-start"
+          className="w-full justify-between"
           aria-expanded={open}
           aria-controls={`voice-samples-${voice.id}`}
           onClick={() => setOpen((now) => !now)}
         >
           {plural(mine.length)}
+          <span aria-hidden="true">{open ? '▴' : '▾'}</span>
         </Button>
       ) : null}
       {playing && primary && samples ? (

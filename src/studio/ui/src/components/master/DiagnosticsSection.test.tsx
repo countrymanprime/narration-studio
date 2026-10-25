@@ -185,6 +185,19 @@ describe('Master & QC, Diagnostics', () => {
     expect(await screen.findByText('Diagnostics cancelled. 0 of 3 files were checked.')).toBeTruthy();
   });
 
+  it('says a reason several files share once, never calls a broken check cancelled, and gives severity a pill (R3MS-3, R3MS-15)', async () => {
+    await openDiagnostics({ overrides: { diagnosticsState: async () => contract('diagnostics-cancelled.json') } });
+    const table = await screen.findByRole('table', { name: 'Checked files' });
+    expect(within(table).queryByText(/cancelled/)).toBeNull();
+    cleanup();
+    await openDiagnostics({ overrides: { diagnosticsState: async () => contract('diagnostics-success.json') } });
+    const findings = await screen.findByRole('table', { name: 'Findings' });
+    const row = within(findings).getAllByRole('row')[1]!;
+    // Every cell of a finding starts at the top of its row, so their first lines are level.
+    expect([...row.querySelectorAll('td')].every((td) => td.className.includes('align-top'))).toBe(true);
+    expect(within(row).getByText('Warning').className).toContain('rounded-full');
+  });
+
   it('says so when the check broke, and shows the host’s refusal to start', async () => {
     await openDiagnostics({ overrides: { diagnosticsState: async () => contract('diagnostics-error.json') } });
     expect(await screen.findByText(/The diagnostics stopped unexpectedly\. Choose the files again/)).toBeTruthy();
