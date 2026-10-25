@@ -67,6 +67,11 @@ const pageNameFor = (pathname: string) => ALL_PAGES.find((page) => isActivePath(
 const SKIP_LINK_CLASS =
   'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[var(--z-popover)] focus:rounded-[var(--radius-button)] focus:bg-[var(--surface)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--text)] focus:shadow-[var(--shadow-lg)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]';
 
+// The top bar's field look (the mock's `.search`): the jump button and the hamburger share it. `!` because IconButton's own variant sets
+// a border and fill, and two utilities of one property apply in stylesheet order, not class order.
+const BAR_FIELD =
+  'border-[var(--border)]! bg-[var(--bg)]! text-[var(--text-muted)]! hover:border-[var(--border)]! hover:bg-[var(--surface-2)]! hover:text-[var(--text-muted)]!';
+
 // A dialog that closes (the jump menu after a pick) gives focus back to the control that opened it a moment after the page changed, which
 // would undo the move into <main>. So focus <main> a tick later, and with a dialog still on screen after the last one leaves, unless focus
 // already sits in the page. Gives up waiting after a second so a dialog the new page opens itself is left alone. Returns the cleanup.
@@ -300,13 +305,21 @@ export function AppShell({
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main id="main-content" ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] text-sm max-md:gap-2">
-            <IconButton label="Open navigation" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
+            {/* 32 px and the jump button's grey field and border, so the bar's two ends match (alignment audit XSL-3); never squeezed by a long name (XSL-10). */}
+            <IconButton
+              label="Open navigation"
+              size="sm"
+              aria-expanded={drawerOpen}
+              onClick={() => setDrawerOpen(true)}
+              className={`${BAR_FIELD} flex-none min-[860px]:hidden`}
+            >
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
             {/* The Studio Next mock's top bar and nothing else: the crumb, the project name (a button), the jump menu, a zoom chip off 100% and the engine chip.
                 Back, Forward, Undo, History and the zoom steps live in the jump menu, on their keys. */}
             <span className="section-label max-md:hidden">Project</span>
-            <TooltipTarget text="Switch project">
+            {/* min-w-0: the name truncates rather than pushing the engine chip off a narrow bar (XSL-10). */}
+            <TooltipTarget text="Switch project" className="min-w-0">
               {/* native-control-ok: the project name is a text-shaped button (the mock's `.proj`); Button's padded uppercase chrome would turn the name into an action label. */}
               <button
                 type="button"
@@ -324,7 +337,8 @@ export function AppShell({
             {zoom.percent !== 100 && (
               <TooltipTarget text="Zoom (change it in the jump menu)">
                 <HeaderChip onClick={onOpenZoomMenu} aria-label={`Zoom ${zoom.percent}%: change in the jump menu`}>
-                  <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] font-medium tracking-normal">{zoom.percent}%</span>
+                  {/* The chip's own face, as the engine chip beside it (R3SL-5); tabular figures so the width holds from step to step. */}
+                  <span className="tabular-nums">{zoom.percent}%</span>
                 </HeaderChip>
               </TooltipTarget>
             )}
@@ -335,7 +349,7 @@ export function AppShell({
                 // The name says the key the chord draws: axe fails a name that leaves out text the button draws.
                 aria-label="Jump to or run…, Ctrl K"
                 aria-keyshortcuts="Control+K"
-                className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-lg:size-8 max-lg:justify-center max-lg:px-0"
+                className={`${BAR_FIELD} flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border px-2.5 text-[length:var(--font-size-sm)] max-lg:size-8 max-lg:justify-center max-lg:px-0`}
               >
                 <FontAwesomeIcon icon={iconFor('jumpTo')} />
                 <span className="max-lg:hidden">Jump to or run…</span>

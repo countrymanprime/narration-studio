@@ -402,6 +402,34 @@ describe('AppShell header', () => {
   });
 });
 
+// The bar's two ends share one height and one field look, and a long name truncates before it pushes anything off (alignment audit XSL-3, XSL-10).
+describe('AppShell header: one control recipe', () => {
+  it("draws the hamburger at the 32 px small size in the jump button's field look, never shrunk", () => {
+    renderShell();
+    const header = screen.getByRole('banner');
+    const menu = within(header).getByRole('button', { name: 'Open navigation' });
+    const jump = within(header).getByRole('button', { name: /Jump to or run/ });
+    expect(menu.className).toContain('size-[var(--button-height-sm)]');
+    expect(menu.className).toContain('flex-none');
+    for (const part of ['border-[var(--border)]!', 'bg-[var(--bg)]!']) {
+      expect(menu.className).toContain(part);
+      expect(jump.className).toContain(part);
+    }
+  });
+
+  it('lets the project name shrink: its hint wrapper is min-w-0', () => {
+    renderShell();
+    const project = within(screen.getByRole('banner')).getByRole('button', { name: /, switch project$/ });
+    expect(project.parentElement?.className).toContain('min-w-0');
+  });
+
+  it("draws the zoom level in the chip's own face, not a monospace one", () => {
+    renderShell({ zoom: { percent: 125, announcement: '' } });
+    const chip = screen.getByRole('button', { name: /^Zoom 125%/ });
+    expect(chip.innerHTML).not.toContain('Mono');
+  });
+});
+
 // The mock's `zoomchip`: drawn only while zoom is not 100%, and it opens the jump menu at the zoom commands.
 describe('AppShell zoom chip', () => {
   it('is not drawn at exactly 100%', () => {
