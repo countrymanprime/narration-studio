@@ -23,7 +23,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol
 
-import extraction_rules
 import manuscript_guide as guide
 from narration_common.logging_utils import log
 from narration_common.ports.extraction import AVAILABLE, BUILT_IN, GLINER, Availability, Book, RawSuggestion
@@ -144,7 +143,7 @@ class GlinerExtractor:
                 best[key] = {
                     "payload": {"kind": "entry", "name": name, "type": LABELS[item["label"]], "aliases": [], "description": "", "appearsIn": []},
                     "confidence": score,
-                    "quotes": [{"paragraphId": paragraph["id"], "text": extraction_rules.sentence_around(paragraph["text"], start, end)}],
+                    "quotes": [{"paragraphId": paragraph["id"], "text": guide.sentence_around(paragraph["text"], start, end)}],
                     "chapterId": paragraph.get("chapterId", ""),
                 }
         return list(best.values())

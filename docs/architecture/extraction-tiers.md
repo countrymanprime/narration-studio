@@ -6,7 +6,7 @@ Story Bible extraction turns a manuscript into suggestions: new entries, aliases
 
 | Tier | Source (`internal/extractionport`) | Runs in | Download | State on this branch |
 | --- | --- | --- | --- | --- |
-| Rules baseline | `Rules` (`rules`) | Manuscript Guide sidecar, `suggest --source rules` (`src/studio/sidecars/manuscript-guide/core/extraction_rules.py`) | none | Built. Emits `entry`, `alias` and `speaker` only; properties, relationships and claims need a language model. Always part of a scan. |
+| Rules baseline | `Rules` (`rules`) | Go host, `guide.RuleSuggestions` (`src/studio/desktop/internal/guide/rules.go`) | none | Built. Emits `entry`, `alias` and `speaker` only; properties, relationships and claims need a language model. Always part of a scan. |
 | Optional download: names | `Gliner` (`gliner`) | Same sidecar, `suggest --source gliner --install <folder>` (`core/extraction_gliner.py`) | asset `gliner` | Adapter built. Row not installable: its `pending` note in `config/analysis-assets.json` lists files without a pinned hash. Emits `entry` only. |
 | Optional download: characters | `BookNLP` (`booknlp`) | Same sidecar, `suggest --source booknlp --install <folder>` (`core/extraction_booknlp.py`) | assets `booknlp-small`, `booknlp-big` | Adapter built. Rows not installable, same reason. Emits `entry`, `alias` (flagged `duplicate`), `speaker` and a `Gender` `property`. |
 | Local language model | `LocalModel` (`local-model`) | nowhere | none in the registry; catalogue row `local-llm` | Not built. The registry row has no extractor and the reason `No local model is installed.`; the catalogue row has no files and an `unavailable` sentence. |
@@ -84,13 +84,14 @@ The Wails bindings that expose both are in `src/studio/desktop/bindings_extracti
 
 | Work | Process | Code |
 | --- | --- | --- |
-| Rules, GLiNER and BookNLP inference | Manuscript Guide sidecar (Python), the `suggest` command; prints one JSON line per suggestion and writes nothing | `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` (`suggest`), `extraction_*.py` |
-| Starting the sidecar, checking its output (byte caps per output, line and field; exact fields; allowed kinds), cancelling it | Go host | `internal/extractionport/{rules,gliner,booknlp}` through the process supervisor |
+| Rules | Go host; one JSON line per suggestion, writes nothing | `internal/guide/rules.go`, `rules_text.go` |
+| GLiNER and BookNLP inference | Manuscript Guide sidecar (Python), the `suggest` command; prints one JSON line per suggestion and writes nothing | `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` (`suggest`), `extraction_gliner.py`, `extraction_booknlp.py` |
+| Starting the sidecar, checking its output (byte caps per output, line and field; exact fields; allowed kinds), cancelling it | Go host | `internal/extractionport/{gliner,booknlp}` through the process supervisor; `internal/extractionport/rules` checks the rules' lines the same way |
 | Evidence check, offsets, fingerprint, status | Go host | `internal/extraction` |
 | Store, apply, import | Go host | `internal/extraction/{store,apply,importer}` |
 | Install state of a tool | Go host | `Host.analysisToolInstall` reads the asset registry; a tool counts only when installed, verified and pinned |
 
-The sidecar's Python wheels and weights are loaded only from the registry's install folder, passed as `--install`; the freeze never carries `gliner`, `transformers`, `torch` or `booknlp` ([CI and releases](../operations/ci-and-releases.md), Proposed). The adapters set Hugging Face offline and a missing or damaged install is a sentence for the narrator. The packaged smoke test reports each install's version through `run_self_check` (`gliner_install`, `booknlp_installs`). The sidecar tests are `src/studio/sidecars/manuscript-guide/tests/test_extraction_rules.py`, `test_extraction_gliner.py` and `test_extraction_booknlp.py`; the rules adapter's line format is pinned by `internal/extractionport/rules/testdata/suggest-lines.json`.
+The sidecar's Python wheels and weights are loaded only from the registry's install folder, passed as `--install`; the freeze never carries `gliner`, `transformers`, `torch` or `booknlp` ([CI and releases](../operations/ci-and-releases.md), Proposed). The adapters set Hugging Face offline and a missing or damaged install is a sentence for the narrator. The packaged smoke test reports each install's version through `run_self_check` (`gliner_install`, `booknlp_installs`). The sidecar tests are `src/studio/sidecars/manuscript-guide/tests/test_extraction_gliner.py` and `test_extraction_booknlp.py`. The rules are tested in the host (`internal/guide/rules_test.go`, and `rules_parity_test.go` against the sidecar's recorded cases in `tests/fixtures/guide-rules`); their line format is pinned by `internal/extractionport/rules/testdata/suggest-lines.json`.
 
 ## Consent for each download
 
