@@ -13,6 +13,7 @@ import { RunOptions } from '../recordingcheck/RunOptions';
 import { findProblem, startOptions } from '../recordingcheck/runChoices';
 import { useRunChoices } from '../recordingcheck/useRunChoices';
 import { Button } from '../primitives/Button';
+import { Disclosure } from '../primitives/Disclosure';
 import { InsetCard } from '../primitives/InsetCard';
 import { SlideOver } from '../primitives/SlideOver';
 import { type Notify, retryAction } from '../primitives/Toast';
@@ -98,6 +99,7 @@ export function RecordingCheck({
   // The run this dialog shows progress for: one it started, or the chapter's own run already going when it opened.
   const [watching, setWatching] = useState(coverage.phase === 'running' && coverage.chapterId === chapter.id ? coverage.runId : undefined);
   const options = useRunChoices();
+  const [optionsOpen, setOptionsOpen] = useState(false);
   // The state the start answered with, until the first live event of that run arrives.
   const [startedState, setStartedState] = useState<CoverageState>();
   const [logs, setLogs] = useState<string[]>([]);
@@ -236,7 +238,7 @@ export function RecordingCheck({
       <AssetInstallPrompt
         ask={{
           title: 'Download the re-check model?',
-          body: `The ${recheckRequired.model.displayName} Whisper model re-checks anything the fast first pass reports missing. It is not bundled with the app and will be stored in your per-user asset cache.`,
+          body: `The ${recheckRequired.model.displayName} Whisper model re-checks anything the fast first pass (the tiny model) reports missing. It is not bundled with the app and will be stored in your per-user asset cache.`,
           confirmLabel: 'Download model',
           alternative: {
             label: 'Check with tiny only',
@@ -319,19 +321,6 @@ export function RecordingCheck({
             or raise Chapters at once under Check options.
           </p>
         )}
-        {options.engines && options.choices && (
-          <details className="rounded-[var(--radius-card)] border border-[var(--border)] px-3 py-2">
-            <summary className="cursor-pointer font-semibold">Check options</summary>
-            <div className="pt-3">
-              <RunOptions engines={options.engines} choices={options.choices} onChange={options.change} showInstallProblems={false} />
-            </div>
-          </details>
-        )}
-        {options.error && (
-          <p role="status" style={{ color: 'var(--text-muted)' }}>
-            The check options could not be read ({options.error}); the check runs your settings.
-          </p>
-        )}
         <ResultBody
           chapter={chapter}
           result={result}
@@ -342,6 +331,20 @@ export function RecordingCheck({
           checkButton={checkButton}
           openWorkspace={openWorkspace}
         />
+        {/* The options come after the result and the button that uses them: the panel opens on what the check found, and the choices
+            are folded the way the report folds its paragraph detail. */}
+        {options.engines && options.choices && (
+          <Disclosure title="Check options" open={optionsOpen} onOpenChange={setOptionsOpen} className="border-t border-[var(--border)] pt-2">
+            <div className="pt-2">
+              <RunOptions engines={options.engines} choices={options.choices} onChange={options.change} showInstallProblems={false} />
+            </div>
+          </Disclosure>
+        )}
+        {options.error && (
+          <p role="status" style={{ color: 'var(--text-muted)' }}>
+            The check options could not be read ({options.error}); the check runs your settings.
+          </p>
+        )}
       </div>
     </SlideOver>
   );
@@ -462,7 +465,9 @@ function ReasonBlock({
           <li key={reason}>{COVERAGE_REASON_TEXT[reason] ?? reason}</li>
         ))}
       </ul>
-      {detail && (
+      {/* A refusal that only wants the track link says so in the bullet and asks for it right under it; the host's own sentence
+          would say it a second time, so it is shown only when some other reason needs its detail (a file, an item). */}
+      {detail && !unique.every((reason) => LINK_REASONS.has(reason)) && (
         <p className="text-xs break-words" style={{ color: 'var(--text-muted)' }}>
           Details: {detail}
         </p>

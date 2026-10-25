@@ -250,7 +250,7 @@ export function BoothText({
         if (!(event.target as Element).closest('[data-unit],[data-note],button')) onBackground?.();
       }}
       data-booth-text
-      className="relative h-full overflow-hidden px-7 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-[2] before:h-[90px] before:bg-gradient-to-b before:from-[var(--bg)] before:to-transparent before:content-[''] after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[2] after:h-[90px] after:bg-gradient-to-t after:from-[var(--bg)] after:to-transparent after:content-['']"
+      className="relative h-full overflow-hidden pr-[calc(var(--page-gutter)+1.75rem)] pl-[var(--page-gutter)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-[2] before:h-[90px] before:bg-gradient-to-b before:from-[var(--bg)] before:to-transparent before:content-[''] after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[2] after:h-[90px] after:bg-gradient-to-t after:from-[var(--bg)] after:to-transparent after:content-['']"
     >
       <div
         ref={text}
@@ -269,7 +269,7 @@ export function BoothText({
               // full, since its caret and glow reach past the paragraph's box, which a skipped paragraph would clip.
               style={{ '--est': `${estimatedEm(paragraph.text)}em` } as CSSProperties}
               data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
-              className={`indent-[1.5em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
+              className={`indent-[1.5em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `border-l-4 pl-3 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
               {unitsOf[paragraphIndex].map((unit) => {
                 index++;

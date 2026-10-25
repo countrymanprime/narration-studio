@@ -52,18 +52,24 @@ export function ProofingStagePanel({
 
   return (
     <Panel title="Proofing readiness">
-      <StageSuggestion
-        title={chapter.title}
-        recommendation={recommendation}
-        phase={stages.state.phase}
-        isPending={(decision) => stages.isPending(decision, chapter.id)}
-        busy={stages.busy}
-        onDecide={(decision) => {
-          if (recommendation) void stages.decide(decision, recommendation);
-        }}
-        onWhy={() => setWhy(true)}
-      />
-      <RenderAssociationSection chapterId={chapter.id} notify={notify} />
+      {/* The readiness and the rendered file it is judged on, side by side from 1024 px rather than two sections down the left of a
+          full-width card (alignment audit XPC-7). */}
+      <div className="grid gap-x-8 lg:grid-cols-2">
+        <div className="min-w-0">
+          <StageSuggestion
+            title={chapter.title}
+            recommendation={recommendation}
+            phase={stages.state.phase}
+            isPending={(decision) => stages.isPending(decision, chapter.id)}
+            busy={stages.busy}
+            onDecide={(decision) => {
+              if (recommendation) void stages.decide(decision, recommendation);
+            }}
+            onWhy={() => setWhy(true)}
+          />
+        </div>
+        <RenderAssociationSection chapterId={chapter.id} notify={notify} />
+      </div>
       {why && (
         <StageEvidence
           open={why}
