@@ -89,19 +89,21 @@ describe('panel content', () => {
     expect(within(panel).queryByText('Decisions')).toBeNull();
   });
 
-  it('an unmeasured chapter draws no evidence row and cannot be confirmed or dismissed', async () => {
+  it('an unmeasured chapter draws no evidence row and offers no Confirm or Dismiss it could not take (XPR2-35)', async () => {
     const { panel } = await open(c5);
     expect(panel.querySelectorAll('[data-item]').length).toBe(0);
-    expect((within(panel).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((within(panel).getByRole('button', { name: 'Dismiss' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(panel).queryByRole('button', { name: 'Confirm' })).toBeNull();
+    expect(within(panel).queryByRole('button', { name: 'Dismiss' })).toBeNull();
+    // The slide-over's title says "Stage readiness"; the body does not say it again.
+    expect(within(panel).getAllByText('Stage readiness')).toHaveLength(1);
   });
 
   it('changed evidence shows was and now, and offers Revert, not Confirm', async () => {
     const { panel } = await open(c7);
     const changed = panel.querySelector('[data-changed]')!;
     expect(changed.textContent).toMatch(/Changed since/);
-    expect(changed.textContent).toContain('was Met, now Not met');
-    expect((within(panel).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(changed.textContent).toContain('was met, now not met');
+    expect(within(panel).queryByRole('button', { name: 'Confirm' })).toBeNull();
     expect((within(panel).getByRole('button', { name: 'Revert' }) as HTMLButtonElement).disabled).toBe(false);
   });
 });
@@ -152,7 +154,7 @@ describe('stale-basis-is-refused-and-nothing-changes', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith('The evidence changed while you were looking; check again.', 'error'));
     await waitFor(() => expect(panel.querySelector('[data-verdict-pill="changed"]')).toBeTruthy());
     expect(onStatus).not.toHaveBeenCalled();
-    expect((within(panel).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(panel).queryByRole('button', { name: 'Confirm' })).toBeNull();
   });
 });
 

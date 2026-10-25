@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { GuideEntity, GuideType } from '../../types';
 import { entryColour } from '../../kinds/entityColour';
-import { categoryLabel } from '../../state';
 import { Icon } from '../primitives/Icon';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Listbox, listboxOptionId } from '../primitives/Listbox';
-import { Popover } from '../primitives/Popover';
+import { Dialog } from '../primitives/Dialog';
 import { Dot } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { TextField } from '../primitives/TextField';
 import { TooltipTarget } from '../primitives/Tooltip';
+import { kindLabel } from './entryList';
 
 /** Suggestions offered while typing how two entries relate (the mock's `REL_SUGGESTIONS`). */
 const REL_SUGGESTIONS = ['is married to', 'hates', 'loves', 'lives in', 'serves', 'rules', 'is afraid of', 'is a friend of', 'works for', 'owns', 'finds'];
@@ -95,7 +95,7 @@ function EntryPicker({
         options={matches.map((match) => ({
           id: match.id,
           label: match.canonical_name,
-          description: categoryLabel(match.category),
+          description: kindLabel(match),
           leading: <Dot color={`var(${entryColour(types, match.category).line})`} />,
         }))}
         activeIndex={0}
@@ -107,45 +107,63 @@ function EntryPicker({
   );
 }
 
-/** The "To" cell while editing: the other entry's name on a button that opens the picker. */
+/**
+ * The "To" cell while editing: the other entry's name on a button that opens the picker. The picker is a dialog over a dimmed page that
+ * names the relationship it is choosing for, so it never floats over the form detached from its row (alignment audit R4SB-2).
+ */
 function PickButton({
   name,
+  relationship,
   entries,
   types,
   current,
   onPick,
 }: {
   name?: string;
+  /** The row's relationship text, for the dialog's title ("" while a new row has none yet). */
+  relationship: string;
   entries: readonly GuideEntity[];
   types: readonly GuideType[];
   current?: string;
   onPick: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
   return (
-    <Popover
-      label="Choose an entry"
-      align="start"
-      fitToWindow
-      open={open}
-      onOpenChange={setOpen}
-      trigger={
-        <Button variant="secondary" aria-label={name ? `To: ${name}` : 'To: choose an entry'} className="w-full justify-between">
-          <span className={`truncate ${name ? '' : 'text-[var(--text-muted)]'}`}>{name ?? 'Choose an entry'}</span>
-          <span aria-hidden="true">▾</span>
-        </Button>
-      }
-    >
-      <EntryPicker
-        entries={entries}
-        types={types}
-        current={current}
-        onPick={(id) => {
-          setOpen(false);
-          onPick(id);
-        }}
-      />
-    </Popover>
+    <>
+      <Button
+        ref={opener}
+        variant="secondary"
+        aria-label={name ? `To: ${name}` : 'To: choose an entry'}
+        aria-haspopup="dialog"
+        className="w-full min-w-0 justify-between"
+        onClick={() => setOpen(true)}
+      >
+        <span className={`min-w-0 flex-1 truncate text-left normal-case ${name ? '' : 'text-[var(--text-muted)]'}`}>{name ?? 'Choose an entry'}</span>
+        <Icon name="openMenu" />
+      </Button>
+      {open && (
+        <Dialog
+          title={relationship ? `Related entry for “${relationship}”` : 'Choose the related entry'}
+          size="confirm"
+          placement="top"
+          dismissOnOutsidePress
+          onClose={() => setOpen(false)}
+          returnFocus={() => opener.current}
+          actions={null}
+        >
+          <EntryPicker
+            entries={entries}
+            types={types}
+            current={current}
+            onPick={(id) => {
+              setOpen(false);
+              onPick(id);
+            }}
+          />
+        </Dialog>
+      )}
+    </>
   );
 }
 
@@ -174,6 +192,40 @@ function LabelInput({ value, disabled, onCommit }: { value: string; disabled?: b
 }
 
 type Draft = { key: number; label: string; otherId: string };
+
+/**
+ * The first column of the entry's two tables, the same in read and edit view so nothing moves on Edit (SBX-5, SBX-10): a relationship's
+ * other entry and a property's value start at one x, and the column holds a relationship typed in full ("is afraid of").
+ */
+export const ENTRY_LABEL_COLUMN = '15rem';
+const RELATION_COLUMNS = [ENTRY_LABEL_COLUMN, 'auto'];
+
+/**
+ * The relationship text with a fixed slot before it for the incoming arrow, blank on a row written from this entry, so every row's text
+ * starts at one x and the arrow says which rows are the other entry's, in edit view too (R3SB1-1).
+ */
+function RelationText({ incoming, sentence, children }: { incoming: boolean; sentence?: string; children: ReactNode }) {
+  const slot = (
+    <span className="inline-flex w-[1.125rem] flex-none justify-center text-[var(--text-muted)]">
+      {incoming && (
+        <span role="img" aria-label="Incoming">
+          <Icon name="incomingRelationship" />
+        </span>
+      )}
+    </span>
+  );
+  return (
+    <span className="flex min-w-0 items-center gap-1">
+      {incoming && sentence ? <TooltipTarget text={sentence}>{slot}</TooltipTarget> : slot}
+      <span className="min-w-0 flex-1 break-words">{children}</span>
+    </span>
+  );
+}
+
+/** The other entry's picker and the row's Remove right after it, the picker at most 14 rem wide. */
+function OtherCell({ children }: { children: ReactNode }) {
+  return <div className="flex items-center gap-2 [&>:first-child]:max-w-[14rem] [&>:first-child]:min-w-0 [&>:first-child]:flex-1">{children}</div>;
+}
 
 /**
  * The relationships of the entry being viewed: what it is to another entry, so each row is the relationship and the other entry. Editing
@@ -218,82 +270,76 @@ export function Relationships({
   return (
     <div>
       <div className="mb-2 text-[0.82rem] font-medium text-[var(--text-muted)]">Relationships</div>
-      <Table label="Relationships">
+      <Table label="Relationships" columns={RELATION_COLUMNS}>
         <TableHead>
           <TableRow>
             <TableHeader>Relationship</TableHeader>
             <TableHeader>To</TableHeader>
-            {editing && <TableHeader hiddenLabel="Remove" />}
           </TableRow>
         </TableHead>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.key}>
               <TableCell>
-                {editing ? (
-                  <LabelInput value={row.label} disabled={isBlocked(`rerelate:${row.key}`)} onCommit={(label) => onChange(row, { label })} />
-                ) : row.incoming ? (
-                  <TooltipTarget text={`${row.otherName} ${row.label} ${entity.canonical_name}`}>
-                    <span className="inline-flex items-center gap-1.5">
-                      <span role="img" aria-label="Incoming" className="text-[var(--text-muted)]">
-                        <Icon name="incomingRelationship" />
-                      </span>
-                      {row.label || '—'}
-                    </span>
-                  </TooltipTarget>
-                ) : (
-                  row.label || '—'
-                )}
+                <RelationText incoming={row.incoming} sentence={`${row.otherName} ${row.label} ${entity.canonical_name}`}>
+                  {editing ? (
+                    <LabelInput value={row.label} disabled={isBlocked(`rerelate:${row.key}`)} onCommit={(label) => onChange(row, { label })} />
+                  ) : (
+                    row.label || '—'
+                  )}
+                </RelationText>
               </TableCell>
               <TableCell>
                 {editing ? (
-                  <PickButton
-                    name={row.otherName}
-                    entries={others}
-                    types={types}
-                    current={row.otherId}
-                    onPick={(otherId) => otherId !== row.otherId && onChange(row, { otherId })}
-                  />
+                  <OtherCell>
+                    <PickButton
+                      name={row.otherName}
+                      relationship={row.label}
+                      entries={others}
+                      types={types}
+                      current={row.otherId}
+                      onPick={(otherId) => otherId !== row.otherId && onChange(row, { otherId })}
+                    />
+                    <TooltipTarget text="Remove this relationship">
+                      <IconButton
+                        action="remove"
+                        label="Remove relationship"
+                        variant="danger"
+                        disabled={isBlocked(`unrelate:${row.key}`)}
+                        pending={isPending(`unrelate:${row.key}`) || isPending(`rerelate:${row.key}`)}
+                        onClick={() => onRemove(row)}
+                      ></IconButton>
+                    </TooltipTarget>
+                  </OtherCell>
                 ) : (
                   row.otherName
                 )}
               </TableCell>
-              {editing && (
-                <TableCell align="right">
-                  <TooltipTarget text="Remove this relationship">
-                    <IconButton
-                      action="remove"
-                      label="Remove relationship"
-                      variant="danger"
-                      disabled={isBlocked(`unrelate:${row.key}`)}
-                      pending={isPending(`unrelate:${row.key}`) || isPending(`rerelate:${row.key}`)}
-                      onClick={() => onRemove(row)}
-                    ></IconButton>
-                  </TooltipTarget>
-                </TableCell>
-              )}
             </TableRow>
           ))}
           {showing.map((draft) => (
             <TableRow key={`draft:${draft.key}`}>
               <TableCell>
-                <LabelInput value={draft.label} disabled={isBlocked('relate')} onCommit={(label) => update(draft, { label })} />
+                <RelationText incoming={false}>
+                  <LabelInput value={draft.label} disabled={isBlocked('relate')} onCommit={(label) => update(draft, { label })} />
+                </RelationText>
               </TableCell>
               <TableCell>
-                <PickButton
-                  name={others.find((row) => row.id === draft.otherId)?.canonical_name}
-                  entries={others}
-                  types={types}
-                  onPick={(otherId) => update(draft, { otherId })}
-                />
-              </TableCell>
-              <TableCell align="right">
-                <IconButton
-                  action="remove"
-                  label="Remove relationship"
-                  variant="danger"
-                  onClick={() => setDrafts((all) => all.filter((row) => row.key !== draft.key))}
-                ></IconButton>
+                <OtherCell>
+                  <PickButton
+                    name={others.find((row) => row.id === draft.otherId)?.canonical_name}
+                    relationship={draft.label}
+                    entries={others}
+                    types={types}
+                    onPick={(otherId) => update(draft, { otherId })}
+                  />
+                  <IconButton
+                    action="remove"
+                    label="Remove relationship"
+                    variant="danger"
+                    onClick={() => setDrafts((all) => all.filter((row) => row.key !== draft.key))}
+                  ></IconButton>
+                </OtherCell>
               </TableCell>
             </TableRow>
           ))}
@@ -304,26 +350,25 @@ export function Relationships({
               </TableCell>
             </TableRow>
           )}
-          {editing && (
-            <TableRow>
-              <TableCell colSpan={3}>
-                <TooltipTarget text="Add a relationship">
-                  <IconButton
-                    action="addRelationship"
-                    label="Add a relationship"
-                    disabled={isBlocked('relate')}
-                    pending={isPending('relate')}
-                    onClick={() => {
-                      setDrafts((all) => [...all, { key: nextKey, label: '', otherId: '' }]);
-                      setNextKey((key) => key + 1);
-                    }}
-                  ></IconButton>
-                </TooltipTarget>
-              </TableCell>
-            </TableRow>
-          )}
         </TableBody>
       </Table>
+      {/* Add sits under the table, where Properties' Add sits (SBX-13). */}
+      {editing && (
+        <div className="mt-3">
+          <TooltipTarget text="Add a relationship">
+            <IconButton
+              action="addRelationship"
+              label="Add a relationship"
+              disabled={isBlocked('relate')}
+              pending={isPending('relate')}
+              onClick={() => {
+                setDrafts((all) => [...all, { key: nextKey, label: '', otherId: '' }]);
+                setNextKey((key) => key + 1);
+              }}
+            ></IconButton>
+          </TooltipTarget>
+        </div>
+      )}
       <datalist id={SUGGESTIONS_ID}>
         {REL_SUGGESTIONS.map((suggestion) => (
           <option key={suggestion} value={suggestion} />

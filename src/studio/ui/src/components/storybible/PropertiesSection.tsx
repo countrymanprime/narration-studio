@@ -5,11 +5,15 @@ import { IconButton } from '../primitives/IconButton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { TextField } from '../primitives/TextField';
 import { TooltipTarget } from '../primitives/Tooltip';
+import { ENTRY_LABEL_COLUMN } from './Relationships';
 import { addDraftRow, moveDraftRow, removeDraftRow, updateDraftRow, type DraftProperty } from './propertyDraft';
 
 // The narrator's labelled facts about an entry ("Codename", "Abilities", "Dossier"), in the order they keep. Read view: the saved list as
 // text. Edit mode: a row of two fields per property with move and remove buttons, and Add at the foot. The rows are the parent's draft
 // (they are saved and cancelled with the rest of the form), so this holds no state of its own.
+// Move up, Move down and Remove, 36 px each 4 px apart, and the cell's 10 px each side: the value takes the rest (SBX-9).
+const ACTIONS_COLUMN = 'calc(3 * 2.25rem + 2 * 0.25rem + 1.25rem)';
+
 export function PropertiesSection({
   saved,
   rows,
@@ -27,32 +31,30 @@ export function PropertiesSection({
   return (
     <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
       <div className="mb-2 text-[0.82rem] font-medium text-[var(--text-muted)]">Properties</div>
-      <Table label="Properties">
-        <TableHead>
-          <TableRow>
-            <TableHeader style={{ width: '32%' }}>Name</TableHeader>
-            <TableHeader>Value</TableHeader>
-            {editing && <TableHeader hiddenLabel="Actions" />}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {editing
-            ? rows.map((row, index) => <EditRow key={row.id} row={row} index={index} count={rows.length} rows={rows} onChange={onChange} />)
-            : saved.map((property) => (
-                <TableRow key={property.key}>
-                  <TableCell className="font-medium break-words">{property.key}</TableCell>
-                  <TableCell className="break-words whitespace-pre-wrap">{property.value}</TableCell>
-                </TableRow>
-              ))}
-          {shown.length === 0 && (
+      {shown.length === 0 ? (
+        // No table and no column headers over nothing (R3SB1-9): one muted line, the same in read and edit view.
+        <p className="m-0 text-sm text-[var(--text-muted)]">No properties yet.</p>
+      ) : (
+        <Table label="Properties" columns={editing ? [ENTRY_LABEL_COLUMN, 'auto', ACTIONS_COLUMN] : [ENTRY_LABEL_COLUMN, 'auto']}>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={editing ? 3 : 2} style={{ color: 'var(--text-muted)' }}>
-                No properties yet.
-              </TableCell>
+              <TableHeader>Name</TableHeader>
+              <TableHeader>Value</TableHeader>
+              {editing && <TableHeader hiddenLabel="Actions" />}
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {editing
+              ? rows.map((row, index) => <EditRow key={row.id} row={row} index={index} count={rows.length} rows={rows} onChange={onChange} />)
+              : saved.map((property) => (
+                  <TableRow key={property.key}>
+                    <TableCell className="font-medium break-words">{property.key}</TableCell>
+                    <TableCell className="break-words whitespace-pre-wrap">{property.value}</TableCell>
+                  </TableRow>
+                ))}
+          </TableBody>
+        </Table>
+      )}
       {editing && (
         <>
           {error && (

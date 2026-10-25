@@ -274,7 +274,7 @@ function chapterDisplayTitle(chapter: ManuscriptChapter): string {
     .join(': ');
 }
 
-// A level as `levels.py` sends it: the peak sits about 9 dB over the RMS (a sine is 3 dB; speech is peakier), both in [-100, 0].
+// A level as the sidecar's meter sends it: the peak sits about 9 dB over the RMS (a sine is 3 dB; speech is peakier), both in [-100, 0].
 function mockLevelEvent(rms: number): TeleprompterEvent {
   const clamp = (value: number) => Math.round(Math.min(0, Math.max(-100, value)) * 10) / 10;
   return { type: 'level', peak: clamp(rms + 9), rms: clamp(rms) };
