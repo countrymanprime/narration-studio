@@ -185,6 +185,26 @@ describe('layout-by-width', () => {
   });
 });
 
+describe('the drawer frame', () => {
+  // Alignment audit XED-15: the last section's rule floated in the empty half of the panel.
+  it('draws no rule under the last section', async () => {
+    const off = registerDrawerSection({ tab: 'cleanup', order: 99, label: 'Probe', render: () => <p>probe</p> });
+    mount(1440);
+    await open();
+    expect(screen.getByRole('region', { name: 'Probe' }).className).toContain('last:border-b-0');
+    off();
+  });
+
+  // Alignment audit XED-34: the drawer's header sat 4 px above the page card's header beside it.
+  it('pads its header 12 px at the top, as the page card does', async () => {
+    mount(1440);
+    await open();
+    const head = document.querySelector('#drawer h2')!.parentElement!;
+    expect(head.className).toContain('pt-3');
+    expect(head.className).not.toContain('py-2');
+  });
+});
+
 describe('timeline-tab-hosts-the-strip-below-1360', () => {
   it('is a tab below 1360 and renders the strip', async () => {
     mount(STRIP_MIN_WIDTH - 1);

@@ -364,8 +364,9 @@ from the text once nothing is selected or from the drawer itself, and leaves foc
 with the kind's sample mark and **Review** to step through them) and, under **In the audio**, the clean-up findings by kind: gaps,
 breaths, clicks, plosives and noise. The tab's count adds the words found to the findings that pass the thresholds, and the
 Backups tab counts this chapter's backups.
-Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
-the findings you selected. A gap reads **Fixed** once the chapter's cuts hold its trim (from here or from **Trim the gap**
+The kinds sit in three equal columns; under them, the chosen kind's heading says how many are left to fix, then its
+findings. Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
+the findings you selected. **Preview** and **Apply** stay at the foot of the drawer while the settings above them scroll. A gap reads **Fixed** once the chapter's cuts hold its trim (from here or from **Trim the gap**
 on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** or **Fix in edit** on Proof is still to be fixed, so it stays in the list. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
 
@@ -377,7 +378,8 @@ experimental stay off until you turn them on in [Settings](settings.md).
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the takes of the line the cursor is on, one lane each,
 on one time axis (the line's audio is the waveform above the bar). On a window 1360 px wide or more it is a strip under the text, which the header's
-timeline button (S) shows and hides; on a narrower window it is a tab of the drawer.
+timeline button (S) shows and hides; on a narrower window it is a tab of the drawer. Each lane names its take with
+the take's state (**Active** or **Muted**) under the name.
 
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
 

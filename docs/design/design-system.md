@@ -359,6 +359,14 @@ The Editing card starts at the shell's `--page-gutter`, like the top bar's first
 
 In the Booth's speaker picker a row with no voice sample keeps the play button's room, so "no sample" and "1 sample" end at one x, and the search box carries the placeholder "Search speakers" (alignment audit XBO-8). The Levels popover's sections (Input, Microphone, Levels, Punch) each start with the same capitals label, 6 px above their controls and 16 px apart; a slider's own label (Input level, Monitor level) is the sentence-case control label under its section (XBO-21).
 
+## Editing drawer
+
+The drawer (`editing/drawer/`) departs from the Studio Next mock's drawer in these lines, from the alignment audit:
+
+- **One padding owner.** The drawer's section pads 12 px; a tab's own blocks do not pad again, and a block with a rule under it bleeds the rule to the section's edges (`-mx-3`), so headings, lists and controls share one left edge (XED-10). The last section draws no rule under it (XED-15). The drawer's header is padded 12 px at the top, as the page card's header beside it (XED-34).
+- **Clean up.** The five kinds are a grid of three equal columns, not a wrapping row (XED-12). The chosen kind's heading ("Gaps · 0 to fix") sits above its findings, so "No finding passes these thresholds." reads under it. **Preview** and **Apply** are a footer that sticks to the drawer's foot (`sticky bottom-0`) while the strength and advanced settings scroll above it (XED-11, R3ED-8).
+- **Timeline lanes** name the take over its Active or Muted badge in a 7.5 rem column, the name cut with its full text as a hint, in the strip as in the drawer; side by side in 96 px a long name ran under its lane (XED-8).
+
 ## The Script page
 
 - **Define how you mark up** is one grid: the column heads Name, Colour, Line and Asks over subgrid rows, every control `--control-height`, and a labelled **Add a mark** button rather than a bare `+` (alignment audit XSC-3, R3SE1-3). Below 640 px a mark takes two lines, swatch, name and remove on the first and colour, line and Asks under the name, so the remove button never sits on a line of its own (XSE1-11, XSC-2). The mock has no column heads and an icon-only add button (`pages/script/dialogs.tsx`); this supersedes those two lines.

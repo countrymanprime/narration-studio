@@ -17,7 +17,7 @@ const params = initialParams();
 
 const shell = (children: React.ReactNode, width = 420, over: Partial<typeof api> = {}) => (
   <ApiProvider api={{ ...api, ...over } as ReturnType<typeof createMockApi>}>
-    <div style={{ width }} className="bg-[var(--surface)] text-[var(--text)]">
+    <div style={{ width }} className="bg-[var(--surface)] p-3 text-[var(--text)]">
       {children}
     </div>
   </ApiProvider>
