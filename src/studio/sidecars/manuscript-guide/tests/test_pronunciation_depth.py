@@ -81,32 +81,9 @@ class PronunciationStatusIsGoneTests(unittest.TestCase):
                 self.assertEqual("Confirmed by phone.", value["note"])
 
 
-class RebuildKeepsTheNarratorsPronunciationWorkTests(unittest.TestCase):
-    def _generated(self, aliases=None) -> dict:
-        return {
-            "id": guide.entity_id("Wren"),
-            "canonical_name": "Wren",
-            "aliases": aliases or [],
-            "category": "Character",
-            "occurrences": [],
-            "occurrence_count": 0,
-            "pronunciation": {"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"},
-            "description": {"text": "", "evidence": {}},
-            "personality_notes": [],
-            "context": "",
-            "relationships": [],
-            "properties": [],
-            "locked": False,
-            "manual": False,
-            "review_state": "generated",
-        }
-
-    def test_a_stored_status_is_not_carried_through_a_rebuild_but_the_note_is(self):
-        for status in ("query_sent", "author_confirmed"):
-            prior = {**self._generated(), "pronunciation": {"ipa": "fresh", "source": "cmu", "confidence": "medium", "status": status, "note": "Asked."}}
-            merged = guide.merge_locked([self._generated()], {"entities": [prior]})
-            self.assertNotIn("status", merged[0]["pronunciation"])
-            self.assertEqual("Asked.", merged[0]["pronunciation"]["note"])
+class LegacyNarratorSourceTests(unittest.TestCase):
+    """A file written before the narrator's own source was called ``manual``; a rebuild keeping the narrator's work is the host's
+    (internal/guide/build_test.go TestARebuildKeepsTheNarratorsPronunciationWork)."""
 
     def test_a_legacy_user_source_reads_as_manual_and_nothing_else_changes(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -142,43 +119,6 @@ class RebuildKeepsTheNarratorsPronunciationWorkTests(unittest.TestCase):
             {"ipa": "mine", "source": "manual", "confidence": "narrator"}, {"ipa": "new", "source": "user", "confidence": "narrator"}
         )
         self.assertNotIn("alternate", again)
-
-    def test_a_user_pronunciation_and_its_alternate_survive_a_rebuild(self):
-        user = {
-            "ipa": "mine",
-            "source": "manual",
-            "confidence": "narrator",
-            "chosen": True,
-            "alternate": {"ipa": "old", "source": "CMU dictionary", "confidence": "medium"},
-        }
-        prior = {**self._generated(), "pronunciation": user}
-        merged = guide.merge_locked([self._generated()], {"entities": [prior]})
-        self.assertEqual(user, merged[0]["pronunciation"])
-
-    def test_a_chosen_alias_pronunciation_survives_and_an_unchosen_ones_status_is_carried(self):
-        fresh_aliases = [
-            {"text": "the Sparrow", "pronunciation": {"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"}, "occurrences": []},
-            {"text": "Wrennie", "pronunciation": {"ipa": "fresh2", "source": "CMU dictionary", "confidence": "medium"}, "occurrences": []},
-        ]
-        prior_aliases = [
-            {"text": "The Sparrow", "pronunciation": {"ipa": "mine", "source": "manual", "confidence": "narrator", "chosen": True}, "occurrences": []},
-            {
-                "text": "Wrennie",
-                "pronunciation": {"ipa": "fresh2", "source": "CMU dictionary", "confidence": "medium", "status": "author_confirmed"},
-                "occurrences": [],
-            },
-        ]
-        merged = guide.merge_locked([self._generated(fresh_aliases)], {"entities": [{**self._generated(), "aliases": prior_aliases}]})
-        aliases = {alias["text"]: alias for alias in merged[0]["aliases"]}
-        self.assertEqual(prior_aliases[0]["pronunciation"], aliases["the Sparrow"]["pronunciation"])
-        self.assertNotIn("status", aliases["Wrennie"]["pronunciation"])
-
-    def test_an_entry_with_no_status_rebuilds_exactly_as_before(self):
-        prior = self._generated()
-        prior["pronunciation"] = {"ipa": "stale", "source": "CMU dictionary", "confidence": "medium"}
-        fresh = self._generated()
-        merged = guide.merge_locked([fresh], {"entities": [prior]})
-        self.assertEqual({"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"}, merged[0]["pronunciation"])
 
 
 if __name__ == "__main__":

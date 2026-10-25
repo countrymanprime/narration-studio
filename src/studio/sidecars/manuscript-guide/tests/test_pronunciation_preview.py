@@ -123,9 +123,9 @@ class RenderAudioSpeaksThePronunciationTests(unittest.TestCase):
 
 
 class ChosenPronunciationRoundTripTests(unittest.TestCase):
-    """pronounce() -> a rebuild's merge_locked -> render_audio, so a chosen pronunciation survives a rebuild and is still spoken."""
+    """pronounce() -> render_audio: a chosen pronunciation is spoken (a rebuild keeps it: the host's TestARebuildKeepsTheNarratorsPronunciationWork)."""
 
-    def test_a_pronunciation_chosen_then_rebuilt_is_still_spoken_by_render_audio(self):
+    def test_a_chosen_pronunciation_is_spoken_by_render_audio(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
@@ -138,17 +138,7 @@ class ChosenPronunciationRoundTripTests(unittest.TestCase):
             chosen = json.loads(guide_file.read_text(encoding="utf-8"))["entities"][0]
             self.assertTrue(chosen["pronunciation"]["chosen"])
 
-            # A rebuild re-extracts the entity fresh (a new pronunciation guess, not yet chosen) and merge_locked
-            # must keep the narrator's chosen one instead (already covered by test_pronounce.py; exercised again
-            # here so the round trip through render_audio is proven end to end).
-            fresh = {
-                "id": "entity-1",
-                "canonical_name": "Dawnspire",
-                "aliases": [],
-                "pronunciation": {"ipa": "wrong", "source": "CMU dictionary", "confidence": "medium"},
-            }
-            rebuilt = guide.merge_locked([fresh], {"entities": [chosen]})
-            guide.write_json(str(guide_file), {"entities": rebuilt})
+            # A rebuild keeps a chosen pronunciation (the host's merge, internal/guide/build_test.go); the file is as it left it.
 
             args = argparse.Namespace(
                 guide=str(guide_file),
