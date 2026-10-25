@@ -225,3 +225,39 @@ export const MatchesTheMock: Story = {
     await expect(getComputedStyle(canvas.getByRole('row', { name: /05 Advice/ })).fontWeight).toBe('600');
   },
 };
+
+// `columns` fixes the widths: the long chapter name wraps inside its column and the time column stays the same width in
+// every row, whatever the content (alignment audit cause D).
+export const FixedColumns: Story = {
+  render: () => (
+    <Panel title="Chapters" flush>
+      <Table label="Chapters" columns={['auto', '7rem']}>
+        <TableHead>
+          <TableRow>
+            <TableHeader>Chapter</TableHeader>
+            <TableHeader align="right">Length</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          <TableRow>
+            <TableCell>Down the Rabbit-Hole</TableCell>
+            <TableCell numeric>11:48</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>A Caucus-Race and a Long Tale, told at length by the Mouse to a very wet and attentive audience</TableCell>
+            <TableCell numeric>1:02:07</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </Panel>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const lengths = [canvas.getByText('11:48'), canvas.getByText('1:02:07')];
+    if (canvasElement.getBoundingClientRect().width === 0) return;
+    const [a, b] = lengths.map((cell) => cell.getBoundingClientRect());
+    await expect(Math.round(a.width)).toBe(112);
+    await expect(Math.round(b.width)).toBe(112);
+    await expect(Math.round(a.right)).toBe(Math.round(b.right));
+  },
+};

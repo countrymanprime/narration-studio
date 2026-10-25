@@ -33,7 +33,8 @@ dependencies = [
 lua = ["lupa==2.8", "ruff==0.17.1"]
 # The public docs site (tools/docs-site): MkDocs and the Material theme, exact versions. Both are build-time tools, imported by nothing in the app
 # or the sidecars. pytest and ruff are here so the docs CI job installs this group alone; keep their pins equal to [project] above.
-# Material pins mkdocs<2 (MkDocs 2.0 will not run it); do not raise either pin without re-running the spike (docs/research/docs-site-generator-spike.md).
+# Material pins mkdocs<2 (MkDocs 2.0 will not run it); a raised pin must still pass `nx run docs-site:build-site` and the docs-site tests
+# (docs/operations/ci-and-releases.md#the-public-docs-site).
 docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.7", "pytest==9.1.1", "ruff==0.17.1"]
 
 [tool.uv]

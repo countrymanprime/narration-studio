@@ -612,6 +612,8 @@ func (h *Host) TranscriptStart(options map[string]string) (string, error) {
 // installed and reports it as asset_required, tagged with the engine so the UI
 // installs it through the right asset kind; once running, the sidecar's events
 // arrive as "teleprompter:event" and phase changes as "teleprompter:state".
+// `coldRead: "true"` starts a cold read (#2251 item 13): the same session with no take, which keeps no reading, anchors no word and
+// never stops itself; the state's `coldRead` says so.
 func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 	svc := h.services()
 	if svc.teleprompter == nil {
@@ -641,7 +643,7 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 	// What the session was started with: the engine and model, where it listens (the device's own name or a file) and the chapter or
 	// credits it reads. Device names are hardware names, never a path or manuscript text.
 	h.runLog.App().Event(slog.LevelInfo, "teleprompter.start", "a read-aloud session was started",
-		"engine", engine, "model", modelID, "device", options["device"], "from_file", options["wav"] != "", "credits", options["credits"], "chapter", options["chapter"], "eval_args", evalArgsForLog())
+		"engine", engine, "model", modelID, "device", options["device"], "from_file", options["wav"] != "", "credits", options["credits"], "chapter", options["chapter"], "cold_read", options["coldRead"] == "true", "eval_args", evalArgsForLog())
 	// `credits` ("opening" or "closing") reads the credits instead of a chapter: the host renders the text itself, so the UI names only which credits, never the text.
 	if kind := strings.TrimSpace(options["credits"]); kind != "" {
 		script, err := h.creditsScript(kind)

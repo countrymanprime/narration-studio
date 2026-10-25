@@ -50,17 +50,17 @@ func (t Tokenizer) Align(chapter ChapterUnits, transcript []Word) Alignment {
 			unitIdx[k] = chapter.UnitIdx[original]
 		}
 	}
-	opcodes := fuseHyphenSplitOpcodes(NewSequenceMatcher(doc, filtered, false).Opcodes(), doc, filtered)
+	opcodes := FuseHyphenSplits(NewSequenceMatcher(doc, filtered, false).Opcodes(), doc, filtered)
 	return Alignment{
 		Opcodes: opcodes, DocTokens: doc, AudioTokens: filtered, UnitIdx: unitIdx,
 		IndexMap: indexMap, ChapterIndexMap: chapterIndexMap, ChapterRawWords: chapter.RawWords,
 	}
 }
 
-// fuseHyphenSplitOpcodes is compare.py's _fuse_hyphen_split_opcodes: a
-// replace whose one side, joined with no separator, is the other side's one
-// token ("superpowered" against "super-powered") is equal.
-func fuseHyphenSplitOpcodes(opcodes []Opcode, doc, audio []string) []Opcode {
+// FuseHyphenSplits is compare.py's _fuse_hyphen_split_opcodes: a replace
+// whose one side, joined with no separator, is the other side's one token
+// ("superpowered" against "super-powered") is equal.
+func FuseHyphenSplits(opcodes []Opcode, doc, audio []string) []Opcode {
 	fixed := make([]Opcode, 0, len(opcodes))
 	for _, op := range opcodes {
 		if op.Tag == "replace" {

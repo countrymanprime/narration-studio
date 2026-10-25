@@ -427,3 +427,27 @@ H.test('record_take: a different label on top is other even when the change coun
   H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '0' } })
   H.eq(undos(s), 0)
 end)
+
+-- 9. a replacement and a put-back are kinds of their own --------------------------------------------------------
+
+H.test('a replacement is the replace_range kind, never the cut kind, and one undo_last takes it back; a put-back is its own kind', function()
+  local s, p = project()
+  local theirs = s.fake:add_item(s.fake:add_track('Eric Leach'), { position = 0, length = 60, source = 'leach_01.mp3' })
+  s:send('replace_range', 'r1', p.item.guid, '14', '16', theirs.guid, '20|23|10|0|r-0001')
+  local replaced = s:events()[1]
+  H.eq(replaced[1], 'RANGE_REPLACED')
+  s:send('last_action', 'l1', 'cut_range')
+  s:send('last_action', 'l2', 'replace_range')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'cut_range', 'other' }, { 'LAST_ACTION', 'l2', 'replace_range', 'this' } })
+  s:send('undo_last', 'u1', 'cut_range', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'cut_range', '1', '0' } }, 'the cut kind never undoes a replacement')
+  s:send('restore_replacement', 'p1', replaced[3], 'r-0001')
+  H.eq(s:events()[1][1], 'REPLACEMENT_RESTORED')
+  s:send('last_action', 'l3', 'restore_replacement')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l3', 'restore_replacement', 'this' } })
+  s:send('undo_last', 'u2', 'restore_replacement', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u2', 'restore_replacement', '1', '1' } })
+  s:send('undo_last', 'u3', 'replace_range', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u3', 'replace_range', '1', '1' } })
+  H.eq(undos(s), 2)
+end)

@@ -171,6 +171,16 @@ import {
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema } from './schemas/wordFx';
 import { retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
+import {
+  narratorsChangeSchema,
+  narratorsSchema,
+  replaceAnswerSchema,
+  replaceFileAnswerSchema,
+  replaceFilePeaksSchema,
+  replacePlanSchema,
+  replacementsChangeSchema,
+  replacementsSchema,
+} from './schemas/replace';
 import { levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
@@ -292,10 +302,10 @@ async function decode<S extends StandardSchemaV1>(schema: S, payload: string, re
 }
 
 /** `TeleprompterStart` goes to the host as `Record<string, string>` (options.go-style flat map); `startWord` is the one non-string field. */
-function toStartOptions({ startWord, ...rest }: TeleprompterStartOptions): Record<string, string> {
+function toStartOptions({ startWord, coldRead, ...rest }: TeleprompterStartOptions): Record<string, string> {
   // Either `chapter` or `credits` is set; the other is absent, so dropping undefined keeps the map flat strings.
   const flat = Object.fromEntries(Object.entries(rest).filter((entry): entry is [string, string] => entry[1] !== undefined));
-  return startWord === undefined ? flat : { ...flat, startWord: String(startWord) };
+  return { ...flat, ...(startWord === undefined ? {} : { startWord: String(startWord) }), ...(coldRead ? { coldRead: 'true' } : {}) };
 }
 
 /** Ready and Bootstrap are the two bindings that return an object, not JSON text. */
@@ -484,6 +494,19 @@ export const wailsClient: NarrationApi = {
   editingWordFxRecord: (chapterId, fx) => decode(wordFxChangeSchema, 'EditingWordFxRecord', host.EditingWordFxRecord(chapterId, fx)),
   editingWordFxRemove: (chapterId, id) => decode(wordFxChangeSchema, 'EditingWordFxRemove', host.EditingWordFxRemove(chapterId, id)),
   editingWordFxBypass: (chapterId, id, bypassed) => decode(wordFxChangeSchema, 'EditingWordFxBypass', host.EditingWordFxBypass(chapterId, id, bypassed)),
+  replaceNarrators: () => decode(narratorsSchema, 'ReplaceNarrators', host.ReplaceNarrators()),
+  replaceNarratorAdd: (name) => decode(narratorsChangeSchema, 'ReplaceNarratorAdd', host.ReplaceNarratorAdd(name)),
+  replaceNarratorRemove: (id) => decode(narratorsChangeSchema, 'ReplaceNarratorRemove', host.ReplaceNarratorRemove(id)),
+  replaceAddFile: (narratorId) => decode(replaceFileAnswerSchema, 'ReplaceAddFile', host.ReplaceAddFile(narratorId)),
+  replacePlan: (chapterId, firstToken, lastToken, fileId, sourceStart, sourceEnd) =>
+    decode(replacePlanSchema, 'ReplacePlan', host.ReplacePlan(chapterId, firstToken, lastToken, fileId, sourceStart, sourceEnd)),
+  dawReplaceRange: (chapterId, firstToken, lastToken, fileId, sourceStart, sourceEnd, fadeMs, gainDb) =>
+    decode(replaceAnswerSchema, 'DawReplaceRange', host.DawReplaceRange(chapterId, firstToken, lastToken, fileId, sourceStart, sourceEnd, fadeMs, gainDb)),
+  dawRestoreReplacement: (chapterId, replacementId) =>
+    decode(replaceAnswerSchema, 'DawRestoreReplacement', host.DawRestoreReplacement(chapterId, replacementId)),
+  editingReplacementsList: (chapterId) => decode(replacementsSchema, 'EditingReplacementsList', host.EditingReplacementsList(chapterId)),
+  editingReplacementRemove: (chapterId, id) => decode(replacementsChangeSchema, 'EditingReplacementRemove', host.EditingReplacementRemove(chapterId, id)),
+  replaceFilePeaks: (fileId) => decode(replaceFilePeaksSchema, 'ReplaceFilePeaks', host.ReplaceFilePeaks(fileId)),
   editingStacksList: (chapterId) => decode(stackListSchema, 'EditingStacksList', host.EditingStacksList(chapterId)),
   editingStackRecord: (chapterId, stack) => decode(stackChangeSchema, 'EditingStackRecord', host.EditingStackRecord(chapterId, stack)),
   editingStackRemove: (chapterId, passageId, takeIds) =>

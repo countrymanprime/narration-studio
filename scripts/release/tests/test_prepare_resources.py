@@ -281,3 +281,22 @@ def test_without_reuse_a_cached_freeze_is_frozen_again(script, monkeypatch):
     script.main()  # argv is `--clean` only
 
     assert {call["name"] for call in fake.calls} == SIDECARS
+
+
+def test_the_guide_freeze_carries_what_the_optional_tools_import_that_the_guide_does_not(script, monkeypatch):
+    # torch, transformers and BookNLP load from the install folder, but the standard library they import comes from the freeze, which
+    # carries only what the guide itself imports: a frozen BookNLP scan failed with "No module named 'pickletools'", then 'tqdm.auto'
+    # (2026-10-24).
+    fake = FakePyInstaller()
+    install(monkeypatch, script, fake)
+
+    script.main()
+
+    guide = next(call for call in fake.calls if call["name"] == "manuscript-guide")
+    assert set(script.OPTIONAL_TOOL_IMPORTS) <= set(flag_values(guide, "--hidden-import"))
+    assert {"pickletools", "filecmp", "plistlib", "mmap", "sysconfig", "tqdm.auto"} <= set(script.OPTIONAL_TOOL_IMPORTS)
+    assert ("ctypes.wintypes" in script.OPTIONAL_TOOL_IMPORTS) == (sys.platform == "win32")
+    # transformers checks these versions on import, and the freeze strips package metadata ("No package metadata was found").
+    assert {"tqdm", "packaging", "numpy", "pyyaml"} <= set(flag_values(guide, "--copy-metadata"))
+    for other in (call for call in fake.calls if call["name"] != "manuscript-guide"):
+        assert not flag_values(other, "--hidden-import"), "only the guide loads the optional tools"

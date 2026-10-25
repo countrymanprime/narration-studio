@@ -53,8 +53,9 @@ func (s *Service) trackAutoStopLocked(done bool) bool {
 	}
 	// The phase, not s.child, says a session is live: the sidecar can print before StartStream has returned the child.
 	// A paused session is not armed: Pause(false) arms it if the last position is still done.
+	// A cold read ends only when the narrator ends it (the toggle, a take, leaving the Booth).
 	paused, _ := s.state["paused"].(bool)
-	if phase, _ := s.state["phase"].(string); s.autoStop != nil || s.stopping || paused || (phase != "starting" && phase != "running") {
+	if phase, _ := s.state["phase"].(string); s.autoStop != nil || s.stopping || paused || s.coldReadLocked() || (phase != "starting" && phase != "running") {
 		return false
 	}
 	s.autoStopRound++

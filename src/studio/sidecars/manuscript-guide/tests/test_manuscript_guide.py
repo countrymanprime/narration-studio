@@ -857,7 +857,7 @@ class SelfCheckTests(unittest.TestCase):
 
     def test_passes_when_the_dictionary_and_the_espeak_data_load(self):
         results = guide.run_self_check()
-        self.assertEqual([entry["name"] for entry in results], ["cmudict", "espeak"])
+        self.assertEqual([entry["name"] for entry in results], ["cmudict", "espeak", "tool-runtime"])
         self.assertTrue(all(entry["ok"] for entry in results), results)
         self.assertIn("HH", results[0]["detail"])  # "hello" from the CMU dictionary, in ARPAbet
         self.assertTrue(results[1]["detail"])  # the phonemes espeak-ng made of "hello"
@@ -889,7 +889,7 @@ class SelfCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary, patch.object(guide, "load_voice", return_value=voice) as load:
             results = guide.run_self_check(piper_model=str(Path(temporary) / "voice.onnx"))
             self.assertEqual(load.call_count, 1)
-        self.assertEqual([entry["name"] for entry in results], ["cmudict", "espeak", "synthesis"])
+        self.assertEqual([entry["name"] for entry in results], ["cmudict", "espeak", "synthesis", "tool-runtime"])
         self.assertTrue(results[2]["ok"], results[2])
         self.assertIn("200", results[2]["detail"])  # frames written
 
@@ -907,7 +907,7 @@ class SelfCheckTests(unittest.TestCase):
             guide.main()  # returns: exit code 0
         report = json.loads(out.getvalue())
         self.assertTrue(report["ok"])
-        self.assertEqual([entry["name"] for entry in report["checks"]], ["cmudict", "espeak"])
+        self.assertEqual([entry["name"] for entry in report["checks"]], ["cmudict", "espeak", "tool-runtime"])
 
     def test_the_command_exits_one_and_still_prints_the_report_when_a_check_fails(self):
         out = io.StringIO()

@@ -71,7 +71,9 @@ Developer docs write the identity values as placeholders; the values are in `con
 | `<label track>` | `identity.audacityLabelTrack` | The Audacity label track, and the start of the take and backup track names |
 | `<env prefix>` | `identity.envPrefix` | The start of the environment variables (`<env prefix>FFMPEG`) |
 
-The product's earlier name was retired before the first public release, with no migration, and `scripts/ci/old-name.test.mjs` fails if it appears in any tracked file or in the built site.
+The generated files are the `TARGETS` of `scripts/brand/sync.mjs`: Go constants in `src/studio/desktop/internal/brand/brand_gen.go` (constants, not `-ldflags`, so every build and test has them with no build step), `src/studio/ui/src/brand.gen.ts` (a file, not a Vite `define`, so Vitest, Storybook and the type checker read the same value), `narration_common/brand.py`, the bridge's `narration_brand.lua`, the installer's `brand.nsh`, `wails.json` and the docs site's `mkdocs.yml`. The name's other spellings (slug, snake case, Pascal case, constant) come from `nameForms` in `scripts/brand/brand.mjs` and are not stored. `pnpm run brand:check` fails when a generated file is out of date. A golden file that would hold the name holds `{{brand.name}}`, which `brand.Golden` (`internal/brand/golden.go`) puts back in Go tests before comparing. Workflows read the repository's name from `github.event.repository.name`.
+
+The product's earlier name was retired before the first public release, with no migration. `scripts/ci/old-name.mjs` fails if it appears in any tracked file, and `pages.yml`, `site-preview.yml` and `scripts/release/assets.mjs` run it over the built site and the release assets. A rename is [Renaming the app](../operations/renaming-the-app.md).
 
 ## Stable boundaries
 
@@ -238,7 +240,8 @@ text and numbers moves into the host, so a sidecar is a thin model or device run
 ([Go versus Python for the sidecars](../research/sidecar-go-vs-python.md#recommendation)): the recording check's alignment is
 `internal/recordingcoverage` over `internal/compare`, and `compare.py --coverage` only transcribes; the take comparison's
 alignment is `internal/takedivergence`, and `compare.py --take-divergence` only transcribes; Transcript Compare's
-chapter choice, markers and diff are `internal/comparerun`, and `compare.py`'s main run only transcribes.
+chapter choice, markers and diff are `internal/comparerun`, and `compare.py`'s main run only transcribes; the pickup and
+duplicate scan's grouping is `internal/comparerun`'s `FindRepeats`, and `compare.py --find-repeats` only transcribes each read.
 
 A sidecar reaches an engine (Whisper, Moonshine, Piper, CMU, eSpeak, dshow and WASAPI capture) only through an adapter module in its
 `core/` (`asr_adapters.py`, `capture_dshow.py`, `capture_wasapi.py`, `asr_batch.py`, `providers.py`) registered in the `narration_common.ports`

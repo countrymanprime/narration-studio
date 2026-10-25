@@ -3,6 +3,7 @@ import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
 import { isValidElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { HINT_POPUP_ATTRIBUTE, HINT_POPUP_CLASSES } from './hintLayer';
 import { lastInputWasKeyboard } from './inputModality';
+import { HIT_AREA } from './hitArea';
 
 // A hint waits for the pointer to rest for a second (keyboard focus shows it at once). It stays while it is hovered or
 // focused, does not move when the pointer travels onto it, and Escape dismisses it, which is what WCAG 1.4.13 asks of
@@ -112,7 +113,7 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
           openedByFocus.current = false;
           setOpen(false);
         }}
-        className="ml-1 inline-flex size-[15px] cursor-help items-center justify-center rounded-full border border-[var(--non-text)] font-['IBM_Plex_Mono',monospace] text-[0.68rem] text-[var(--text-muted)] [text-transform:inherit] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        className={`ml-1 inline-flex size-[15px] cursor-help items-center justify-center rounded-full border border-[var(--non-text)] font-['IBM_Plex_Mono',monospace] text-[0.68rem] text-[var(--text-muted)] [text-transform:inherit] hover:border-[var(--accent)] hover:text-[var(--accent)] ${HIT_AREA}`}
       >
         {icon}
       </Popover.Trigger>

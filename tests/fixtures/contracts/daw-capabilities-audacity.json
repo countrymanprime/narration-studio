@@ -179,6 +179,12 @@
       "message": "Mastering with the project's FX is not available with Audacity yet.",
       "reason": "not_yet"
     },
+    "replace_range": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Replace words with another narrator's audio is not available with Audacity yet.",
+      "reason": "not_yet"
+    },
     "retake_lanes": {
       "available": false,
       "level": "not_yet_available",

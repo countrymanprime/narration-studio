@@ -123,6 +123,9 @@ var experimentalCapability = map[string]dawport.Capability{
 	"punch_to":            dawport.CapPunch,
 	"master_chain_read":   dawport.CapMasterChainRead,
 	"delete_range":        dawport.CapCutRange,
+	"replace_range":       dawport.CapReplaceRange,
+	"restore_replacement": dawport.CapReplaceRange,
+	"import_audio_track":  dawport.CapReplaceRange,
 	"apply_fx_range":      dawport.CapFXRange,
 	"remove_fx_range":     dawport.CapFXRange,
 	"stack_takes":         dawport.CapStackTakes,
@@ -864,7 +867,7 @@ func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
 func TestPunchCutRangeFXRangeAndStackTakesAreNativeAndNotDestructive(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
 	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true, dawport.CapFXRange: true, dawport.CapStackTakes: true,
-		dawport.CapRangeGain: true, dawport.CapClickRepair: true}
+		dawport.CapRangeGain: true, dawport.CapClickRepair: true, dawport.CapReplaceRange: true}
 	for name, d := range map[string]dawport.Describer{"adapter": adapter, "declaration": Declaration().(dawport.Describer)} {
 		for c := range native {
 			if got := d.Depth(c); got != (dawport.Depth{Mode: dawport.ModeNative}) {
