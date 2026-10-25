@@ -25,7 +25,7 @@ export const EDITING_CLASSES: readonly EditingCandidateClass[] = ['silence', 'cl
 
 /** The label on every editing result (Architecture Notes, "Processed-audio caveat"), read from a signal's own
  * evidence when one is available; this exact sentence is the fallback so the caveat is never missing. */
-export const PROCESSED_AUDIO_CAVEAT = 'Analysis of source audio; take FX, item gain and fades are not applied.';
+const PROCESSED_AUDIO_CAVEAT = 'Analysis of source audio; take FX, item gain and fades are not applied.';
 
 function isString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
@@ -35,4 +35,21 @@ function isString(value: unknown): value is string {
 export function candidateClass(finding: Finding): EditingCandidateClass | undefined {
   const value = finding.evidence?.class;
   return isString(value) && EDITING_CLASSES.includes(value as EditingCandidateClass) ? (value as EditingCandidateClass) : undefined;
+}
+
+/** The muted line under the source choice: what the chosen source does and does not include. Items are the source
+ * audio (the processed-audio caveat); the render already carries FX and edits. */
+export const SOURCE_NOTE: Record<'items' | 'render', string> = {
+  items: PROCESSED_AUDIO_CAVEAT,
+  render: 'Analysis of the rendered file; FX and edits are included.',
+};
+
+/** Keeps a number on the same line as its unit ("1.80 s", "2 dB", "-20 dBFS"), so a wrap never leaves the unit alone. */
+export function keepUnits(text: string): string {
+  return text.replace(/(\d) (s|ms|dB|dBFS|LUFS|%)(?=$|[\s.,;:)])/g, '$1\u00a0$2');
+}
+
+/** A host sentence shown on its own line, starting with a capital ("link this chapter…" reads as a continuation otherwise). */
+export function sentenceStart(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

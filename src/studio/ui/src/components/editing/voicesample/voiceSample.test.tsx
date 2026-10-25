@@ -235,6 +235,8 @@ describe('marking a voice sample', () => {
     mount();
     await select('p-1:0', 'p-1:1');
     await openDialog();
+    // XED-19: the same action row as the other Editing dialogs.
+    expect([...dialog().querySelectorAll('[data-dialog-footer] button')].map((b) => b.textContent)).toEqual(['Cancel', 'Save sample']);
     expect(dialog().querySelector('[data-voice-sample-words]')?.textContent).toBe('Alice was');
     // The first word is in the Queen's quote, so she is the one chosen.
     expect(characterSelect().value).toBe('e-queen');

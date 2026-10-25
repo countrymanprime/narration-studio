@@ -263,7 +263,7 @@ describe('actions another slice supplies', () => {
 
 describe('the legend', () => {
   it('names and counts each kind at 1440 and wider, and names the engine', () => {
-    render(<Legend doc={doc} compact={false} />);
+    render(<Legend doc={doc} />);
     const group = screen.getByRole('group');
     expect(group.getAttribute('aria-label')).toMatch(/Flagged by Whisper small/);
     expect(screen.getByText(/Not in the script · 1/)).toBeTruthy();
@@ -272,24 +272,27 @@ describe('the legend', () => {
     expect(screen.getByText(/Low confidence · 1/)).toBeTruthy();
   });
 
-  it('uses short labels with no counts at 1280 and below', () => {
-    render(<Legend doc={doc} compact />);
-    const text = screen.getByRole('group').textContent ?? '';
-    expect(text).toMatch(/Extra/);
-    expect(text).toMatch(/Not read/);
-    expect(text).toMatch(/Low/);
-    expect(text).not.toMatch(/·\s*\d/);
+  // XED-5, R4TA-10: narrow headers used to clip the first entry mid-word and shorten the rest to "Extra" and "Low". Entries now keep their
+  // full labels, wrap whole onto a hidden line, and the kinds with something marked come first so the empty ones are the ones dropped.
+  it('lists the marked kinds first and wraps whole entries rather than clipping one', () => {
+    const d = marksDoc({ accepted: [firstOf(doc, 'extra').key, firstOf(doc, 'mis').key] });
+    render(<Legend doc={d} />);
+    const group = screen.getByRole('group');
+    const labels = [...group.querySelectorAll('[data-legend-label]')].map((node) => node.textContent);
+    expect(labels).toEqual(['In the script, not read · 1', 'Low confidence · 1', 'Not in the script · 0', 'Misread · 0']);
+    expect(group.className).toMatch(/flex-wrap/);
+    expect(group.className).not.toMatch(/flex-nowrap/);
   });
 
   it('shows Not transcribed yet when nothing is aligned', () => {
     const none = { ...doc, aligned: false } as ChapterDoc;
-    render(<Legend doc={none} compact={false} />);
+    render(<Legend doc={none} />);
     expect(screen.getByText('Not transcribed yet')).toBeTruthy();
   });
 
   it('does not count accepted or cut words', () => {
     const d = marksDoc({ accepted: [firstOf(doc, 'mis').key] });
-    render(<Legend doc={d} compact={false} />);
+    render(<Legend doc={d} />);
     expect(screen.getByText(/Misread · 0/)).toBeTruthy();
   });
 });

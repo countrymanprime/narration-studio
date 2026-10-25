@@ -5,6 +5,7 @@ import { useToastClearance } from '../../../hooks/useToastClearance';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { CheckLine } from '../../layout/CheckLine';
+import { claimAttachRefusal } from '../../connection/attachRefusal';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
@@ -297,6 +298,8 @@ function Connect({
   const dialog = useOpenOnce(`reaper-off:${name}`, settling && !turnedAway);
   const reopen = dialog.reopen;
   useReopenOnAsk(asked, reopen);
+  // This dialog says why in its own alert, so App does not toast the same sentence over the script (R4BO2-4).
+  useEffect(() => claimAttachRefusal(), []);
   useEffect(
     () =>
       system.subscribeProjectAttach((state) => {

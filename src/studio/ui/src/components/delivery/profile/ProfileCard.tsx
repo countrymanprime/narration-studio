@@ -113,10 +113,11 @@ export function ProfileCard({
       actions={
         <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <ProfileMenu profiles={state.profiles} current={profile} disabled={busy || locked} selectRef={menu} onSelect={(next) => void choose(next)} />
-          {profile.builtIn ? (
-            <StatusBadge tone="neutral" label="Built in" />
-          ) : locked ? (
+          {/* Either kind of profile says why its menu does nothing while a build runs (R4DL-1). */}
+          {locked ? (
             <StatusBadge tone="neutral" label="Locked while it builds" />
+          ) : profile.builtIn ? (
+            <StatusBadge tone="neutral" label="Built in" />
           ) : (
             <CommitBox
               label="Profile name"
@@ -178,7 +179,11 @@ function ProfilePanel({ actions, children }: { actions?: ReactNode; children: Re
   return (
     <Panel label="Delivery profile" flush>
       <div className={PANEL_HEADER_CLASS}>
-        <Heading title="Delivery" />
+        {/* The page title's 29 px line would make this header 52 px; 1 px of the padding above and below keeps it the 50 px of the
+            "Before you build" header beside it, so their rules line up (alignment audit XDL-7). */}
+        <div className="-my-px">
+          <Heading title="Delivery" />
+        </div>
         <div className="-my-[0.3125rem] ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
           <SectionLabel>Profile</SectionLabel>
           {actions}

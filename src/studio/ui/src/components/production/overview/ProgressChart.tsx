@@ -8,7 +8,9 @@ import { NOT_MEASURED } from '../measured/measured.selectors';
 
 const MIN_WIDTH = 280;
 const DAY = 86_400_000;
-const PAD = { left: 40, right: 12, top: 14, bottom: 28 };
+// The axis labels ("3h", right-aligned 6 px before the plot) start about as far in from the card's content edge as the plot ends before its
+// right edge, and the plot starts 6 px under the card's body padding, so no empty band sits under the header (alignment audit XSH-16).
+const PAD = { left: 28, right: 12, top: 6, bottom: 28 };
 const MONO = 'IBM Plex Mono, monospace';
 /** The least room, in px, between two date labels on the axis. */
 const TICK_GAP = 72;
@@ -95,7 +97,9 @@ export function ProgressChart({
   const dueGap = due ? x(due) - x(today) : Infinity;
   const todayLeft = !todayBelow || (dueGap > -6 && dueGap < 46 && x(today) >= PAD.left + 40);
   const todayY = Math.min(y(recordedHours) + (todayBelow ? 18 : -14), height - PAD.bottom - 6);
-  const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
+  // Gridlines up to the top of the scale (at most five), so the plot's top is a labelled line, not an empty band over the last one (XSH-16).
+  const rowStep = Math.max(1, Math.ceil(yMax / 4));
+  const rows = Array.from({ length: Math.floor(yMax / rowStep) + 1 }, (_, i) => i * rowStep);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
@@ -197,7 +201,12 @@ export function ProgressChart({
             >{`done ${fmtD(k.finish)} (est.)`}</text>
           </svg>
         </div>
-        {!series.ok && noteBelow && <p className="mt-1 flex-none text-[0.75rem] text-[var(--text-muted)]">{`Recorded days ${NOT_MEASURED}`}</p>}
+        {((!series.ok && noteBelow) || !due) && (
+          <p className="mt-1 flex-none text-[0.75rem] text-[var(--text-muted)]" data-chart-note>
+            {/* With no due date there is no plan line and the projection alone looks like a glitch: say what draws the plan (XSH-18). */}
+            {[!due && 'Set a due date to see the plan line.', !series.ok && noteBelow && `Recorded days ${NOT_MEASURED}`].filter(Boolean).join(' ')}
+          </p>
+        )}
       </div>
       <p id={describedBy} className="sr-only">
         {summary}

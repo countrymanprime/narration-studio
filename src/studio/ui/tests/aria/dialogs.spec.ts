@@ -8,7 +8,7 @@ import { DESKTOP, openApp } from './helpers';
 // not fail the suite but a lost role, name, heading or button does.
 const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
   {
-    name: 'the Script mark composer is a modal dialog named for the selected words, with the mark type, the note and Save',
+    name: 'the Script mark composer is a modal dialog named Mark and the selected words, with the mark type, the note and Save',
     state: ['script', 'mark-composer'],
     snapshot: 'dialog-mark-composer.aria.yml',
   },

@@ -1,6 +1,6 @@
 import type { DeliveryRule } from '../../../types';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { LimitRow } from './LimitRow';
+import { EDIT_ROW, LimitRow, RULE_ROW } from './LimitRow';
 import { limitText } from './limitText';
 
 /**
@@ -24,9 +24,9 @@ export function FormatRows({
       <SectionLabel>Files</SectionLabel>
       {rules.map((rule) =>
         rule.oneOf.length > 0 || (rule.min === null && rule.max === null) || rule.boundText ? (
-          <div key={rule.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <div key={rule.id} className={`${RULE_ROW} ${readOnly ? '' : EDIT_ROW}`}>
             <span>{rule.label}</span>
-            <span className="font-mono">{limitText(rule)}</span>
+            <span className="font-mono [overflow-wrap:anywhere]">{limitText(rule)}</span>
           </div>
         ) : (
           <LimitRow key={rule.id} rule={rule} readOnly={readOnly} onEdit={(side, value) => onEdit(rule.id, side, value)} onDeclined={onDeclined} />

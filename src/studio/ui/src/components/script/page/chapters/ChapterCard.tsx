@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
 import { IconButton } from '../../../primitives/IconButton';
 import { InsetCard } from '../../../primitives/InsetCard';
@@ -8,6 +9,30 @@ import { cardLabel, chapterHeading, endedName, headingName } from '../../../../c
 import { PrepSegment } from './PrepSegment';
 
 const words = (n: number): string => n.toLocaleString('en-US');
+
+/**
+ * A card's facts line ("2,140 words · about 14 min finished audio · 0 notes · …"): it wraps between facts, never inside one, so
+ * a count stays on the line of its label (alignment audit XSC-10). The dot is held to the fact before it.
+ */
+export function CardFacts({ facts }: { facts: readonly string[] }) {
+  return (
+    <p className="m-0 text-sm text-[var(--text-muted)]">
+      {facts.map((fact, i) => (
+        <Fragment key={i}>
+          {i > 0 && '\u00a0· '}
+          <span className="whitespace-nowrap">{fact}</span>
+        </Fragment>
+      ))}
+    </p>
+  );
+}
+
+/** The facts of a card with `words` words, then the chapter's own (`useChapterFacts`, one string joined by " · "). */
+export const cardFacts = (wordCount: number, chapterFacts: string): string[] => [
+  `${words(wordCount)} words`,
+  `about ${Math.round((wordCount / WPH) * 60)} min finished audio`,
+  ...chapterFacts.split(' · '),
+];
 
 /** What the boundary above a card names: the chapter (or the credits) before it and its words. */
 export type Ended = { name: string; words: number };
@@ -55,9 +80,7 @@ export function ChapterCard({
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
         </div>
         <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] leading-[1.45] font-semibold">{title}</h2>
-        <p className="m-0 text-sm text-[var(--text-muted)]">
-          {words(chapter.wordCount)} words · about {Math.round((chapter.wordCount / WPH) * 60)} min finished audio · {facts(chapter.id)}
-        </p>
+        <CardFacts facts={cardFacts(chapter.wordCount, facts(chapter.id))} />
         <div className="flex flex-wrap items-center gap-3">
           <SectionLabel>My prep</SectionLabel>
           <PrepSegment chapter={chapter} />

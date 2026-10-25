@@ -4,7 +4,7 @@
     "state": "picker-empty",
     "viewport": "desktop",
     "docName": "project-picker",
-    "caption": "Choose your project - New project, the pinned and recent projects with Open, Pin and Remove, and Browse folders"
+    "caption": "Choose your project - Open folder and New project, the pinned and recent projects with Open, Pin and Remove"
   },
   {
     "page": "project",
@@ -18,7 +18,7 @@
     "state": "picker-daw-running",
     "viewport": "desktop",
     "docName": "project-picker-daw-running",
-    "caption": "REAPER is running with a project linked to a recent project - the bar above the list offers Open"
+    "caption": "REAPER is running with a project linked to a recent project - the bar above the list, and that project's row marked"
   },
   {
     "page": "production",
@@ -571,7 +571,7 @@
     "state": "reader-text",
     "viewport": "desktop",
     "docName": "settings-reader-text",
-    "caption": "Settings - Reader text: font, size, line spacing and column width over the preview quote"
+    "caption": "Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote"
   },
   {
     "page": "settings",

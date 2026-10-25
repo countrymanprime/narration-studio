@@ -26,7 +26,7 @@ import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
-import { Consistency } from './Consistency';
+import { Consistency, rangeOf } from './Consistency';
 import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
@@ -316,7 +316,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             </>
           )}
           <div className="flex min-w-0 flex-col gap-4 max-xl:order-2">
-            <Panel title="Book consistency" subtitle={profile ? `RMS by file against the ${profileName(profile)} range` : undefined}>
+            <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
               <Consistency files={run.files} profile={profile} />
             </Panel>
             <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />

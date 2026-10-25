@@ -8,6 +8,7 @@ import { Button } from '../primitives/Button';
 import { CapabilityGate } from '../primitives/CapabilityGate';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import type { Notify } from '../primitives/Toast';
+import { keepUnits } from './editingCheckText';
 
 /**
  * Item gain: the editing check's row for `bridge.LevelMatchClient` (src/studio/desktop/internal/bridge/levelnormalize.go). It previews the items
@@ -65,6 +66,12 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
           Match levels…
         </Button>
       </CapabilityGate>
+      {/* The gate's reason, in view rather than only in the hint (alignment audit R3PR1-23). */}
+      {!capability.available && capability.message && (
+        <p className="basis-full text-xs" style={{ color: 'var(--text-muted)' }}>
+          {capability.message}
+        </p>
+      )}
       {preview && (
         <ConfirmDialog
           title="Match levels"
@@ -73,13 +80,14 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
           cancel={() => setPreview(undefined)}
           pending={action.isPending('gain-apply')}
           body={
-            <>
+            <div className="space-y-2">
               <p>
-                {pluralize(preview.candidates.length, 'item')} on this chapter's linked track differ from {LEVEL_MATCH_TARGET_DB} dBFS RMS by more than{' '}
-                {LEVEL_MATCH_TOLERANCE_DB} dB.
+                {keepUnits(
+                  `${pluralize(preview.candidates.length, 'item')} on this chapter's linked track ${preview.candidates.length === 1 ? 'differs' : 'differ'} from ${LEVEL_MATCH_TARGET_DB} dBFS RMS by more than ${LEVEL_MATCH_TOLERANCE_DB} dB.`,
+                )}
               </p>
               <p>Matching changes each item's volume in REAPER to bring it onto target, in one undo step.</p>
-            </>
+            </div>
           }
         />
       )}

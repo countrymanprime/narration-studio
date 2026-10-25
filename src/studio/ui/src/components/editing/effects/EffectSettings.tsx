@@ -50,7 +50,7 @@ const Off = ({ id, dawName, children }: { id: string; dawName: string; children:
 );
 
 /** Settings, Bypass, Preview and Compare drawn off, with the DAW's own sentence under them when it gave one. */
-export function OffControls({ dawName, why = '' }: { dawName: string; why?: string }) {
+export function OffControls({ dawName, why = '', listen }: { dawName: string; why?: string; listen?: ReactNode }) {
   return (
     <>
       <Off id="fx-off-settings" dawName={dawName}>
@@ -70,6 +70,7 @@ export function OffControls({ dawName, why = '' }: { dawName: string; why?: stri
         <Button variant="secondary" size="sm" disabled aria-describedby="fx-off-preview">
           Compare
         </Button>
+        {listen}
       </Off>
       {why ? (
         <p data-why className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
@@ -178,7 +179,8 @@ function SettingField({ setting, disabled, onCommit }: { setting: DawFxSetting; 
   };
   if (setting.step > 0) {
     return (
-      <div className="flex items-center justify-between gap-2">
+      // Label over the field, the slider's own layout, so the settings list has one row shape (alignment audit XED-14).
+      <div data-setting-row="" className="flex flex-col items-start gap-1">
         <span aria-hidden className="text-sm text-[var(--text-muted)]">
           {setting.name}
         </span>
@@ -220,7 +222,22 @@ function SettingField({ setting, disabled, onCommit }: { setting: DawFxSetting; 
  * change is one DAW call and one history entry. A DAW that cannot read or change the effect keeps the controls off with its own sentence; turning
  * a bypassed effect back on over the coverage cap asks first.
  */
-export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx; cuts: readonly CutSpan[]; total: number; dawName: string; host: EffectHost }) {
+export function EffectSettings({
+  fx,
+  cuts,
+  total,
+  dawName,
+  host,
+  listen,
+}: {
+  fx: WordFx;
+  cuts: readonly CutSpan[];
+  total: number;
+  dawName: string;
+  host: EffectHost;
+  /** Drawn after Preview and Compare in their row: the inspector's Show in the DAW, which acts on the same effect. */
+  listen?: ReactNode;
+}) {
   const daw = usePort('daw');
   const log = usePort('editWordFx');
   const fxCap = useFxCap();
@@ -313,7 +330,7 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
 
   const preview = () => host.play(Math.max(0, span.start - PREVIEW_PAD), span.end + PREVIEW_PAD);
 
-  if (read.kind === 'off') return <OffControls dawName={dawName} why={read.why} />;
+  if (read.kind === 'off') return <OffControls dawName={dawName} why={read.why} listen={listen} />;
   const ready = read.kind === 'ready';
   const settings = ready ? read.settings : [];
   const several = new Set(settings.map((s) => s.fx)).size > 1;
@@ -366,6 +383,7 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
             Stop comparing
           </Button>
         )}
+        {listen}
         {phase !== 'idle' ? (
           <span role="status" className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
             {phase === 'without' ? 'Without the effect' : 'With the effect'}
