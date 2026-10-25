@@ -63,7 +63,9 @@ export function Slider({
         disabled={disabled}
         thumbAlignment="center"
         onValueChange={(next) => onValueChange(Array.isArray(next) ? next[0] : next)}
-        className="w-full"
+        // The control keeps 9 px each side for the centred thumb at either end and is pulled out by the same, so the track
+        // starts under the label and ends under the value (the inset left it short of both; alignment audit cause F).
+        className="-mx-[9px] w-[calc(100%+18px)]"
       >
         <BaseSlider.Control className="box-border flex h-[22px] w-full touch-none items-center px-[9px] select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50">
           <BaseSlider.Track className="relative h-1 w-full rounded-full bg-[var(--line-strong)]">

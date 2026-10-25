@@ -242,7 +242,7 @@ function Fake:remove_api(name)
   self.missing_api[name] = true
 end
 
--- Mirrors what the S5 spike observed in a real REAPER (docs/research/reaper-spike-s5-render-details.md): reading
+-- Mirrors what the S5 spike observed in a real REAPER (docs/reference/daw/reaper.md): reading
 -- RENDER_TARGETS predicts one file per region, named `<folder>/<region name>.wav`, only when RENDER_PATTERN is
 -- literally "$region" and RENDER_BOUNDSFLAG is 3 ("all regions"); any other configuration predicts nothing.
 --

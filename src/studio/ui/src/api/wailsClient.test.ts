@@ -781,9 +781,21 @@ describe('wailsClient', () => {
       engine: null,
       chapter: null,
       paused: false,
+      coldRead: false,
       script: null,
       position: null,
     });
+  });
+
+  it('sends a cold read as the string the host reads, and leaves it out for a take', async () => {
+    const start = vi.fn().mockResolvedValue(JSON.stringify({ status: 'started' }));
+    standInHost({ TeleprompterStart: start });
+
+    await wailsClient.teleprompterStart({ chapter: 'c1', device: 'Mic', coldRead: true });
+    await wailsClient.teleprompterStart({ chapter: 'c1', device: 'Mic', coldRead: false });
+
+    expect(start).toHaveBeenNthCalledWith(1, { chapter: 'c1', device: 'Mic', coldRead: 'true' });
+    expect(start).toHaveBeenNthCalledWith(2, { chapter: 'c1', device: 'Mic' });
   });
 
   it('sends the credits kind, not a chapter, to TeleprompterStart for the credits', async () => {
@@ -919,7 +931,16 @@ describe('live events (docs/architecture/wire-contracts.md: dropped and counted,
     emit({ phase: 'running' });
     emit({ phase: 'paused' });
     expect(onState).toHaveBeenCalledTimes(1);
-    expect(onState).toHaveBeenCalledWith({ phase: 'running', message: '', engine: null, chapter: null, paused: false, script: null, position: null });
+    expect(onState).toHaveBeenCalledWith({
+      phase: 'running',
+      message: '',
+      engine: null,
+      chapter: null,
+      paused: false,
+      coldRead: false,
+      script: null,
+      position: null,
+    });
   });
 
   it('drops a project-attach event with the wrong shape', async () => {

@@ -72,12 +72,12 @@
     },
     "booknlp/booknlp-small": {
       "commercialUse": "Program MIT. The weights carry no stated licence (owner ruling SNX-Q3: not a blocker, because the tool only identifies character entries for the narrator to review)",
-      "status": "In the catalog as an optional analysis tool, not yet available: the transformers version and the BERT encoders' config.json and vocab.txt are not pinned; consent required",
-      "note": "Three PyTorch pickles totalling 160,398,571 bytes from people.ischool.berkeley.edu/~dbamman/booknlp_models/, pinned by size and the SHA-256 this project computed on 2026-10-11 (the host publishes none), with the booknlp 1.0.8 and torch 2.14.1 wheels from PyPI. Program licence read 2026-10-11 from the repository LICENSE (MIT, Copyright (c) 2021 David Bamman). The README names no licence for the weights; the entity model's training data includes about 500 non-public contemporary books. The Google BERT encoders it fetches at first load are Apache-2.0. Use is narrow: character names, clusters and speaker guesses shown for review (docs/research/studio-next-booknlp-spike.md)."
+      "status": "In the catalog as an optional analysis tool (every file pinned 2026-10-24); consent required",
+      "note": "Three PyTorch pickles totalling 160,398,571 bytes from people.ischool.berkeley.edu/~dbamman/booknlp_models/, pinned by size and the SHA-256 this project computed on 2026-10-11 (the host publishes none), with the booknlp 1.0.8 and torch 2.14.1 wheels from PyPI. Program licence read 2026-10-11 from the repository LICENSE (MIT, Copyright (c) 2021 David Bamman). The README names no licence for the weights; the entity model's training data includes about 500 non-public contemporary books. The Google BERT encoders are Apache-2.0: only their config.json and vocab.txt are downloaded, from huggingface.co pinned by revision and SHA-256, since the weight files hold every encoder parameter. The Python wheels BookNLP needs that the freeze does not carry are pinned from PyPI: transformers, huggingface-hub, tokenizers and safetensors (Apache-2.0), regex (Apache-2.0 AND CNRI-Python), filelock and setuptools (MIT), fsspec, sympy, mpmath and networkx (BSD). Use is narrow: character names, clusters and speaker guesses shown for review (docs/research/studio-next-booknlp-spike.md)."
     },
     "booknlp/booknlp-big": {
       "commercialUse": "As booknlp/booknlp-small: program MIT, the weights carry no stated licence (owner ruling SNX-Q3)",
-      "status": "In the catalog as an optional analysis tool, not yet available: as booknlp/booknlp-small; consent required",
+      "status": "In the catalog as an optional analysis tool (every file pinned 2026-10-24): as booknlp/booknlp-small; consent required",
       "note": "As booknlp/booknlp-small; three pickles totalling 1,196,238,139 bytes."
     },
     "local-llm/local-llm": {

@@ -1,5 +1,5 @@
 {
-  "about": "Cases for the rule that a run of extra words says the script beside it again (issue #2251 item 30). The sidecar (recording_coverage.repeat_of) and the Editing page (duplicates.ts saysScriptAgain) must both answer `repeat` for each. `script` is one line; `prev` and `next` are the indexes of the script words heard just before and just after the run, null at either end. Words are plain lower case: each side's own normalisation is tested beside it.",
+  "about": "Cases for the rule that a run of extra words says the script beside it again (issue #2251 item 30). The host (internal/recordingcoverage RepeatOf) and the Editing page (duplicates.ts saysScriptAgain) must both answer `repeat` for each. `script` is one line; `prev` and `next` are the indexes of the script words heard just before and just after the run, null at either end. Words are plain lower case: each side's own normalisation is tested beside it.",
   "cases": [
     { "name": "a retake of the last three words", "run": "get very tired", "script": "alice was beginning to get very tired", "prev": 6, "next": null, "repeat": true },
     { "name": "a retake after an aside", "run": "sorry to get very", "script": "alice was beginning to get very tired", "prev": 5, "next": null, "repeat": true },

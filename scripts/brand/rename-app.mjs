@@ -1,4 +1,4 @@
-// Renames the product (docs/research/app-name-injection.md#the-rename): writes the new display name to config/brand.json, retires
+// Renames the product (docs/operations/renaming-the-app.md): writes the new display name to config/brand.json, retires
 // the outgoing one in scripts/ci/retired-names.json (so the old-name guard keeps it out from now on), and runs the brand sync. It
 // prints what it cannot do. The identity values stay as they are (scripts/brand/brand.mjs IDENTITY_KEYS).
 //

@@ -334,4 +334,5 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapInputLevel:      check[dawport.InputLeveler](),
 	dawport.CapPunchPreroll:    check[dawport.PrerollReader](),
 	dawport.CapDawMeters:       check[dawport.MeterReader](),
+	dawport.CapReplaceRange:    check[dawport.RangeReplacer](),
 }

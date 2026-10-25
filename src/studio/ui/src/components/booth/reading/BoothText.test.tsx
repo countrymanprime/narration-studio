@@ -326,3 +326,53 @@ describe('paragraph spacing and search marks', () => {
     expect(text.style.transform).toBe(before);
   });
 });
+
+describe('a cold read draws a ghost and the view follows it', () => {
+  // jsdom has no layout: each sentence sits 100 px below the one before it.
+  function laidOut() {
+    sized();
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return Number(this.closest<HTMLElement>('[data-unit]')?.dataset.unit ?? 0) * 100;
+    });
+  }
+
+  it('marks the word it hears apart from the real cursor, by shape and tone, and says what it is', () => {
+    setup({ ghost: { paragraphId: 'p3', word: 2 } });
+    const ghosts = document.querySelectorAll<HTMLElement>('[data-ghost]');
+    expect(ghosts).toHaveLength(1);
+    expect(ghosts[0].hasAttribute('data-current')).toBe(false);
+    expect(ghosts[0].className).toContain('outline-dashed');
+    expect(ghosts[0].className).toContain('after:border-dashed');
+    expect(ghosts[0].className).not.toContain('bg-[var(--accent)]');
+    expect(ghosts[0].getAttribute('aria-description')).toBe('Cold read: heard here');
+    expect(ghosts[0].getAttribute('aria-current')).toBeNull();
+    // The real cursor is still drawn where it was, and only it dims what was read.
+    expect(document.querySelectorAll('[data-current]')).toHaveLength(1);
+    expect(document.querySelector('[data-state="cur"] [data-current]')).toBeTruthy();
+  });
+
+  it('draws no ghost when none is given', () => {
+    setup();
+    expect(document.querySelector('[data-ghost]')).toBeNull();
+  });
+
+  it('keeps the ghost word drawn in full, however far it is from the real cursor', () => {
+    const { container } = setup({ position: { paragraphId: 'p1', word: 0 }, ghost: { paragraphId: 'p3', word: 2 } });
+    const paragraph = container.querySelector<HTMLElement>('[data-paragraph="p3"]')!;
+    expect(paragraph.className).toContain('[content-visibility:visible]');
+  });
+
+  it('rests the ghost, not the real cursor, 40% down the box, and comes back to the real cursor when it goes', () => {
+    laidOut();
+    const real = { paragraphId: 'p1', word: 0 };
+    const { text, rerender, props } = setup({ position: real });
+    const atReal = translate(text);
+    rerender(<BoothText {...props} position={real} ghost={{ paragraphId: 'p3', word: 2 }} />);
+    const atGhost = translate(text);
+    expect(atGhost).toBeLessThan(atReal);
+    rerender(<BoothText {...props} position={real} ghost={undefined} />);
+    expect(translate(text)).toBe(atReal);
+    // The way back is eased: the move keeps the text's own transition.
+    expect(text.style.transition).toBe('');
+  });
+});

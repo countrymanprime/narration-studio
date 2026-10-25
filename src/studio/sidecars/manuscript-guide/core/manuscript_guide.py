@@ -1694,19 +1694,6 @@ PROXIMITY_WINDOW = 70
 CAPITALIZED_WORD = re.compile(r"[A-Z][A-Za-z'’\-]*")
 
 
-def review_name_index(entities: list[dict[str, Any]], character_index: dict[str, str]) -> dict[str, str]:
-    """Maps the names of entries filed under Needs Review to their ids, minus any name a speaking entry already answers to: a tag naming
-    one suggests it as the speaker, which the narrator confirms or not."""
-    index: dict[str, str] = {}
-    for entity in entities:
-        if entity.get("category") != "Needs Review":
-            continue
-        for key in entity_name_keys(entity):
-            if key not in character_index:
-                index.setdefault(key, entity["id"])
-    return index
-
-
 def _names_in(text: str, index: dict[str, str]) -> list[tuple[int, str]]:
     """Each name of ``index`` in ``text`` as one to three capitalized words, longest first at each word, with where it starts."""
     words = list(CAPITALIZED_WORD.finditer(text))
@@ -1736,14 +1723,12 @@ def nearby_speaker(text: str, after: tuple[int, int], before: tuple[int, int], i
 
 
 def guide_dialogue_cues(paragraphs: list[dict[str, str]], entities: list[dict[str, Any]], speaking: set[str]) -> list[dict[str, Any]]:
-    """The cues a build and ``cues`` write: tags naming a speaking entry or a Needs Review name, continuation, then a name near the quote."""
-    characters = character_name_index(entities, speaking)
-    return extract_dialogue_cues(paragraphs, characters, review_name_index(entities, characters), nearby=True)
+    """The cues a build and ``cues`` write: a tag naming a speaking entry, continuation, then a speaking entry's name near the quote. Only
+    the Story Bible's speaking entries are ever a speaker; a Needs Review name is not one until the narrator files it."""
+    return extract_dialogue_cues(paragraphs, character_name_index(entities, speaking), nearby=True)
 
 
-def extract_dialogue_cues(
-    paragraphs: list[dict[str, str]], character_index: dict[str, str], review_index: dict[str, str] | None = None, nearby: bool = False
-) -> list[dict[str, Any]]:
+def extract_dialogue_cues(paragraphs: list[dict[str, str]], character_index: dict[str, str], nearby: bool = False) -> list[dict[str, Any]]:
     """Rules-based cue extraction (precision-first): quote spans, adjacent speech-verb tags resolved
     against known Character names/aliases, and per-scene continuation for exactly two active speakers.
     A scene-break paragraph resets who is "active" - continuation never crosses one. Three or more active
@@ -1761,10 +1746,6 @@ def extract_dialogue_cues(
         text = paragraph.get("text", "")
         own = extract_cues_from_text(text, character_index, chapter_id, paragraph_id)
         for index, cue in enumerate(own):
-            if cue["speaker_entity_id"] is None and review_index:
-                cue["speaker_entity_id"], cue["speaker_source"], cue["evidence"]["tag"] = find_speech_tag(
-                    text, cue["quote_start"], cue["quote_end"], review_index
-                )
             if cue["speaker_entity_id"] is None:
                 active = scene_speakers[scene_key]
                 if len(active) == 2 and scene_key in last_speaker:
@@ -1775,7 +1756,7 @@ def extract_dialogue_cues(
             if cue["speaker_entity_id"] is None and nearby:
                 after_end = own[index + 1]["quote_start"] if index + 1 < len(own) else len(text)
                 before_start = own[index - 1]["quote_end"] if index else 0
-                near = nearby_speaker(text, (cue["quote_end"], after_end), (before_start, cue["quote_start"]), {**(review_index or {}), **character_index})
+                near = nearby_speaker(text, (cue["quote_end"], after_end), (before_start, cue["quote_start"]), character_index)
                 if near:
                     cue["speaker_entity_id"], cue["speaker_source"] = near, "proximity"
             speaker_id = cue["speaker_entity_id"]
@@ -2194,14 +2175,18 @@ def run_self_check(
 
     The packaged-app smoke test (the program run with ``--smoke``) runs this against the frozen sidecar. The dictionary and the espeak-ng
     data are what a freeze can silently lose (PyInstaller has no hook for either), and losing them made previews fail and names lose
-    their pronunciation. The 114 MB voice is not needed for them; pass ``piper_model`` to also speak a word. Given the folder the
+    their pronunciation. ``tool-runtime`` proves the freeze carries what the optional analysis tools import (``check_freeze``). The 114
+    MB voice is not needed for them; pass ``piper_model`` to also speak a word. Given the folder the
     optional GLiNER download is installed in (the smoke test passes it), the last line reports its version, or "not installed",
     which passes (``extraction_gliner.self_check``). Given BookNLP's install folders, best first, a ``booknlp`` line does the same
     (``extraction_booknlp.self_check``).
     """
+    import extraction_booknlp
+
     checks: list[tuple[str, Any]] = [("cmudict", check_cmudict), ("espeak", lambda: check_espeak(espeak_data_dir))]
     if piper_model:
         checks.append(("synthesis", lambda: check_synthesis(piper_model)))
+    checks.append(("tool-runtime", extraction_booknlp.check_freeze))
     results: list[dict[str, Any]] = []
     for name, check in checks:
         try:

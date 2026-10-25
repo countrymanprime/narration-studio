@@ -603,8 +603,8 @@ def transcript_errors(scripted: harness.Case, result: SidecarResult, words_dir: 
     for item in result.items:
         words = coverage_mode.read_words_file(words_dir / f"{item['index']:03d}-{item['itemGuid']}.json")
         heard += [word[0] for word in (words.words if words else ())]
-    said = engine.tokenize(" ".join(word.text for item in scripted.items for word in item.words))
-    got = engine.tokenize(" ".join(heard))
+    said = spike.cov.tokenize(" ".join(word.text for item in scripted.items for word in item.words))
+    got = spike.cov.tokenize(" ".join(heard))
     counts = {"said": len(said), "dropped": 0, "swapped": 0, "added": 0}
     for tag, i1, i2, j1, j2 in spike.sequence_matcher_opcodes(said, got):
         if tag == "delete":

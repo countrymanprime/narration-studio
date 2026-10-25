@@ -1,0 +1,6 @@
+# Pickup and duplicate scan fixtures
+
+| File | What it holds |
+| --- | --- |
+| `repeat-cases.json` | The scans: each case's manuscript (inline, or `manuscriptFile` under `tests/fixtures/`), its equivalence list, the track name and chapter title it scans for, its overlap and word thresholds, and its reads (manifest fields and the words heard). The cases are the 20 seeded chapters and takes of `../compare/random-cases.json` and the recording check's corpus (`../coverage-words.golden.json` over `../coverage/manuscript.json`), each split into whole reads, restarts, pickups, reads of nothing in the chapter, empty reads and exact copies, and a hand-made chapter picked by track name, by title, by a credits track, by no match and by an unknown title. |
+| `spans.golden.json` | Each case's output by id: the `SUMMARY`, `SPAN_GROUP` and `SPAN_MEMBER` lines, a `NEED_CHAPTER` line, or `ERROR\|` and the sentence. Written by `compare.py --find-repeats` (`find_repeated_spans`, with transcription faked) before its grouping moved to the host (2026-10-24), and reproduced unchanged by `src/studio/desktop/internal/comparerun/repeats_golden_test.go`. The Python grouping is deleted, so the file is regenerated only from Go (`UPDATE_CONTRACTS=1` after an intended change). |
