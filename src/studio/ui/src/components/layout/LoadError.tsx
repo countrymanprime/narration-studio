@@ -18,6 +18,9 @@ function retryAndKeepFocus(retry: () => void) {
   };
 }
 
+// The pages whose loaded title is `Heading size="hero"` (Heading: only Production draws it).
+const HERO_TITLES: ReadonlySet<string> = new Set(['Production']);
+
 /** A way off a failed page, for a page with no navigation around it (the Booth fills the window): its label and what it does. */
 export type LoadErrorExit = { label: string; onClick: () => void };
 
@@ -53,9 +56,10 @@ export function LoadErrorPanel({ message, retry, exit }: { message: string; retr
  */
 export function LoadError({ title, message, retry, exit }: { title: string; message: string; retry: () => void; exit?: LoadErrorExit }) {
   return (
-    // At the page gutter like the loaded page, so the title does not jump between the loading, failed and loaded frames (alignment audit cause J).
+    // At the page gutter like the loaded page, so the title does not jump between the loading, failed and loaded frames (alignment audit cause J),
+    // and at the loaded page's size: Production's title is the hero one (XPR2-42).
     <div className="max-w-3xl space-y-4">
-      <Heading title={title} />
+      <Heading title={title} size={HERO_TITLES.has(title) ? 'hero' : 'page'} />
       <LoadErrorPanel message={message} retry={retry} exit={exit} />
     </div>
   );

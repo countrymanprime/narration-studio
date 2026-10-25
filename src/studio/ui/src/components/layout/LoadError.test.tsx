@@ -62,3 +62,14 @@ describe('LoadError placement', () => {
     expect(frame.className).not.toMatch(/\bmx-auto\b|\bp-6\b/);
   });
 });
+
+// Alignment audit XPR2-42: the failed frame keeps the loaded page's title size, so Production's hero title does not shrink when it fails.
+describe('LoadError title size', () => {
+  it.each([
+    ['Production', '2.125rem'],
+    ['Proof', 'font-size-page-title'],
+  ])('draws %s at the size its loaded page does', (title, size) => {
+    render(<LoadError title={title} message="It failed." retry={() => {}} />);
+    expect(screen.getByRole('heading', { name: title }).className).toContain(size);
+  });
+});

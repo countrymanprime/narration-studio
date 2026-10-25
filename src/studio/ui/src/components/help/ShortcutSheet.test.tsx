@@ -45,6 +45,13 @@ describe('ShortcutSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  // Alignment audit XGL-2: focus on the scrolling list drew a ring round it that read as a selection.
+  it('opens with focus on Show all shortcuts, not on the scrolling list', async () => {
+    renderSheet();
+    const button = screen.getByRole('button', { name: 'Show all shortcuts' });
+    await waitFor(() => expect(document.activeElement).toBe(button));
+  });
+
   it('is a modal dialog named "Keyboard shortcuts"', () => {
     renderSheet();
     expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
