@@ -49,7 +49,7 @@ describe('HistoryPanel', () => {
     // The DAW entry is not last, so it is refused; the other two are undoable (SNR-Q4).
     expect(within(items[1]!).getByText('REAPER')).toBeTruthy();
     expect(within(items[0]!).getByRole('button', { name: 'Undo' }).hasAttribute('disabled')).toBe(false);
-    expect(within(dialog).getByText('Ctrl Z undoes the last one')).toBeTruthy();
+    expect(within(dialog).getByText('undoes the newest change')).toBeTruthy();
   });
 
   it('refusal-sentence-shows-and-undo-is-off', async () => {
@@ -72,6 +72,20 @@ describe('HistoryPanel', () => {
     await waitFor(() => expect(within(dialog).queryAllByRole('listitem')).toHaveLength(0));
     expect(service.getSnapshot().announcement).toBe('Undid Added a bookmark');
     expect(within(dialog).getByText('Nothing to undo yet.')).toBeTruthy();
+  });
+
+  // Alignment audit R4SM-19, XSL-13: the empty sentence comes first, the key hint after it, in key caps.
+  it('says it is empty before the key hint, which draws Ctrl Z as key caps', async () => {
+    const { dialog } = await mount();
+    const empty = await within(dialog).findByText('Nothing to undo yet.');
+    const hint = within(dialog).getByText('undoes the newest change');
+    expect(empty.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      within(hint)
+        .getAllByRole('img')
+        .map((cap) => cap.getAttribute('aria-label') ?? cap.textContent),
+    ).toEqual(['Ctrl', 'Z']);
+    expect(hint.querySelectorAll('kbd')).toHaveLength(2);
   });
 
   it('undo-runs-the-entry-and-reports: a refusal shows as a toast and the list is unchanged', async () => {

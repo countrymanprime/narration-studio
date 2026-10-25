@@ -1,4 +1,4 @@
-# The undo history: a modal slide-over that says so when the journal is empty. The live regions behind it are the page's and the overlay host's.
+# The undo history: a modal slide-over that says so when the journal is empty, then the key that undoes, as caps. The live regions behind it are the page's and the overlay host's.
 - main
 - status
 - alert
@@ -8,5 +8,8 @@
 - dialog "Undo history":
   - heading "Undo history" [level=3]
   - button "Close"
-  - paragraph: Ctrl Z undoes the last one
   - paragraph: Nothing to undo yet.
+  - paragraph:
+    - img "Ctrl"
+    - img "Z"
+    - text: undoes the newest change
