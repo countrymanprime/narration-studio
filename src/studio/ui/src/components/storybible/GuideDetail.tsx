@@ -834,8 +834,35 @@ export function GuideDetail({
                     // A note from before pronunciation statuses were removed: kept readable, no longer edited.
                     note={pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
                   />
-                  {/* Play first and Record second in every row, so they sit in one column; the buttons only some rows have come after. */}
-                  <div className="flex gap-2">
+                  {/* The buttons only some rows have (Mark reviewed, an alias's Remove) come first, then Play and Record, so Play and
+                      Record stand in one column and every row's last button ends at the list's right edge (alignment audit A4). */}
+                  <div className="flex justify-end gap-2">
+                    {flagged && (
+                      <TooltipTarget text={`Mark ${name} reviewed`}>
+                        <IconButton
+                          action="markReviewed"
+                          label={`Mark ${name} reviewed`}
+                          pending={mutation.isPending(`review:${aliasIndex}`)}
+                          disabled={waiting(`review:${aliasIndex}`)}
+                          onClick={() => void markReviewed(aliasIndex)}
+                        />
+                      </TooltipTarget>
+                    )}
+                    {aliasIndex !== undefined && canEdit && editing && (
+                      <IconButton
+                        label={`Remove alias ${name}`}
+                        disabled={waiting(`alias:${name}`)}
+                        pending={mutation.isPending(`alias:${name}`)}
+                        onClick={() =>
+                          void setAliasTexts(
+                            entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
+                            `alias:${name}`,
+                          )
+                        }
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </IconButton>
+                    )}
                     <TooltipTarget
                       text={
                         aliasIndex === undefined
@@ -868,32 +895,6 @@ export function GuideDetail({
                       <TooltipTarget text={`Record my own clip for ${name}`}>
                         <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
                       </TooltipTarget>
-                    )}
-                    {flagged && (
-                      <TooltipTarget text={`Mark ${name} reviewed`}>
-                        <IconButton
-                          action="markReviewed"
-                          label={`Mark ${name} reviewed`}
-                          pending={mutation.isPending(`review:${aliasIndex}`)}
-                          disabled={waiting(`review:${aliasIndex}`)}
-                          onClick={() => void markReviewed(aliasIndex)}
-                        />
-                      </TooltipTarget>
-                    )}
-                    {aliasIndex !== undefined && canEdit && editing && (
-                      <IconButton
-                        label={`Remove alias ${name}`}
-                        disabled={waiting(`alias:${name}`)}
-                        pending={mutation.isPending(`alias:${name}`)}
-                        onClick={() =>
-                          void setAliasTexts(
-                            entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
-                            `alias:${name}`,
-                          )
-                        }
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </IconButton>
                     )}
                   </div>
                 </li>

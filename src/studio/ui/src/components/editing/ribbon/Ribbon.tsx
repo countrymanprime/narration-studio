@@ -20,10 +20,12 @@ import { useScrollGestures } from './useScrollGestures';
 /** The waveform's own height (CSS pixels): the lane, not the peaks in it. */
 const HEIGHT = 56;
 /**
- * The whole waveform's height when it is a place to choose (the bottom of the Editing page): the row above, the lane and two lines of notes
- * under it (three when a range's notes need them). Fixed, so a range, a note or a line without audio never moves what is around it (#2251, item 29).
+ * The whole waveform's height when it is a place to choose (the bottom of the Editing page): the row above (32 px), the lane (66 px with its
+ * border and padding) and three 16 px lines of notes under it, which a range's notes take at 768 px (a range, its partly covered words and
+ * the sub-word preview). At 140 px the third line was cut by the dock's edge (alignment audit W3). Fixed, so a range, a note or a line
+ * without audio never moves what is around it (#2251, item 29).
  */
-const DOCK_HEIGHT = 140;
+const DOCK_HEIGHT = 146;
 /** Width used where nothing can measure the canvas (a test environment without ResizeObserver). */
 const FALLBACK_WIDTH = 640;
 

@@ -5,6 +5,7 @@ import { kindMarkStyle } from '../../../../kinds/markStyle';
 import { composeLayers, type Layer, type PhraseLayer } from './layers';
 import { markStyle } from './markStyles';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../../primitives/changeHighlight';
+import { HIT_AREA } from '../../../primitives/hitArea';
 
 export type FindRange = { start: number; end: number };
 
@@ -50,7 +51,8 @@ function Chip({ phrase, onPick }: { phrase: PhraseLayer; onPick?: ParaProps['onP
       data-label={phrase.label}
       aria-label={`Speaker: ${name}. Change speaker`}
       onClick={click}
-      className="mr-1 inline-block cursor-pointer rounded-sm border px-1 align-baseline text-[0.7em] leading-[1.5] font-semibold select-none before:content-[attr(data-label)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+      // The chip is drawn 23 px tall in the 0.7 em line; presses land in a 24 px box around it (alignment audit R3SC-8).
+      className={`${HIT_AREA} mr-1 inline-block cursor-pointer rounded-sm border px-1 align-baseline text-[0.7em] leading-[1.5] font-semibold select-none before:content-[attr(data-label)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]`}
       style={{
         background: colours.fill,
         color: colours.text,

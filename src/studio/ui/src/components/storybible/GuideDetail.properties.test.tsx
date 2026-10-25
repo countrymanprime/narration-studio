@@ -46,6 +46,13 @@ describe('Story Bible entry properties', () => {
     expect(screen.queryByRole('button', { name: 'Add property' })).toBeNull();
   });
 
+  it("starts its first column at the card's text edge, level with the labels above it, in both views (alignment audit SBX-13)", () => {
+    renderDetail();
+    expect(properties().className).toContain('[&_tr>:first-child]:pl-0');
+    startEditing();
+    expect(properties().className).toContain('[&_tr>:first-child]:pl-0');
+  });
+
   it('says there are none when an entry has none', () => {
     renderDetail(caterpillar);
     // One line, with no table or column headers over nothing.

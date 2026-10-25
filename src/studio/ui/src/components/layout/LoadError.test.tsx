@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LoadError, LoadErrorPanel } from './LoadError';
+import { OverlayProvider } from '../../overlay/OverlayProvider';
+import { createOverlayService } from '../../overlay/overlayService';
+import { useToasts } from '../../hooks/useToasts';
 
 afterEach(cleanup);
 
@@ -71,5 +74,53 @@ describe('LoadError title size', () => {
   ])('draws %s at the size its loaded page does', (title, size) => {
     render(<LoadError title={title} message="It failed." retry={() => {}} />);
     expect(screen.getByRole('heading', { name: title }).className).toContain(size);
+  });
+});
+
+// Alignment audit R3PF-4: Production toasted a failed manuscript read, the narrator went to Proof, and its card said the same sentence under
+// the toast. A panel that says the sentence in place takes away the error toast that says it; any other toast stays.
+describe('LoadErrorPanel and the toasts', () => {
+  it('takes away an error toast with its sentence, and leaves the others', () => {
+    const service = createOverlayService();
+    service.toast('It failed.', { tone: 'error' });
+    service.toast('Something else failed.', { tone: 'error' });
+    service.toast('It failed.');
+    render(
+      <OverlayProvider service={service}>
+        <LoadErrorPanel message="It failed." retry={vi.fn()} />
+      </OverlayProvider>,
+    );
+    expect(service.getSnapshot().toasts.map((toast) => [toast.text, toast.tone])).toEqual([
+      ['Something else failed.', 'error'],
+      ['It failed.', 'info'],
+    ]);
+  });
+});
+
+// The toast that was left over Proof's card came from the app's own queue (`useToasts`, App's `notify`), not the overlay service's.
+describe('LoadErrorPanel and the app queue', () => {
+  function Shell({ failed }: { failed: boolean }) {
+    const { messages, notify } = useToasts();
+    return (
+      <>
+        <button onClick={() => notify('It failed.', 'error')}>raise</button>
+        <button onClick={() => notify('It failed.')}>inform</button>
+        <ul>
+          {messages.map((m) => (
+            <li key={m.id}>{`${m.tone}: ${m.text}`}</li>
+          ))}
+        </ul>
+        {failed && <LoadErrorPanel message="It failed." retry={vi.fn()} />}
+      </>
+    );
+  }
+
+  it("takes away the app queue's error toast with its sentence, and leaves an information one", async () => {
+    const view = render(<Shell failed={false} />);
+    await userEvent.click(screen.getByRole('button', { name: 'raise' }));
+    await userEvent.click(screen.getByRole('button', { name: 'inform' }));
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['error: It failed.', 'info: It failed.']);
+    view.rerender(<Shell failed />);
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['info: It failed.']);
   });
 });

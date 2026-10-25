@@ -120,7 +120,7 @@ export function DeliveryProfileEditor({
         >
           {/* Every cell in a row is centred on the row, so a rule's name, its limits and the platform's value share a line (alignment audit XSE1-8). */}
           <Table label="Rules of this profile">
-            <TableHead>
+            <TableHead sticky>
               <TableRow>
                 <TableHeader>On</TableHeader>
                 <TableHeader>Rule</TableHeader>

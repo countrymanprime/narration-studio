@@ -60,7 +60,7 @@ async function measureVerticalOverflow(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight);
 }
 
-// Absolutely positioned elements under #root whose containing block escaped the shell: rendered, position: absolute, and
+// Absolutely positioned elements under #root whose containing block escaped the shell: rendered (it draws a box), position: absolute, and
 // offsetParent is <body> or null (no positioned ancestor caught it). Structural, so it finds a zoom-only escape that no
 // captured viewport happens to overflow at.
 async function findEscapedAbsolutes(page: Page): Promise<EscapedAbsolute[]> {
@@ -92,6 +92,8 @@ async function findEscapedAbsolutes(page: Page): Promise<EscapedAbsolute[]> {
     for (const element of root.querySelectorAll<HTMLElement>('*')) {
       const style = getComputedStyle(element);
       if (style.position !== 'absolute' || style.display === 'none' || style.visibility === 'hidden') continue;
+      // Inside a `display: none` ancestor (a footer not drawn at this width) it has no box, so it lays out against nothing.
+      if (element.getClientRects().length === 0) continue;
       const offsetParent = element.offsetParent;
       if (offsetParent === document.body || offsetParent === null) {
         found.push({ selector: selectorOf(element), bottom: Math.round(element.getBoundingClientRect().bottom) });

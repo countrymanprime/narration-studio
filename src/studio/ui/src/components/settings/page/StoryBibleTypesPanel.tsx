@@ -64,7 +64,8 @@ function TypeRow({
   const blocked = count === undefined ? 'Reading the entries…' : count > 0 ? `${type.name} is in use` : last ? 'The last type stays' : undefined;
   return (
     // From 512 px of the list's own width a type is one line. Narrower, the name takes the first line and the rest the second, indented to
-    // start under the name box, with less room inside a type than between two (alignment audit R3SE1-2, XSE2-10, XSE1-15).
+    // start under the name box, with less room inside a type than between two (alignment audit R3SE1-2, XSE2-10, XSE1-15). Under a 24 rem list
+    // (the 390 px window) the indent goes: indented, the line was 16 px wider than the type and Remove hung past the name box (A4).
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 @lg:flex-nowrap">
       <span className="flex min-w-0 basis-full items-center gap-3 @lg:flex-1 @lg:basis-auto">
         <Swatch colour={kindSwatch([type], type.name)} />
@@ -80,7 +81,7 @@ function TypeRow({
           }}
         />
       </span>
-      <span className="flex w-full items-center gap-2 pl-6 @lg:w-auto @lg:gap-3 @lg:pl-0">
+      <span className="flex w-full items-center gap-2 pl-6 @max-sm:pl-0 @lg:w-auto @lg:gap-3 @lg:pl-0">
         <Select
           label={`Colour for ${type.name}`}
           className="w-[100px] @lg:w-[130px]"

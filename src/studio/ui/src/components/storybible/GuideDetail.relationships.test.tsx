@@ -35,6 +35,11 @@ const table = () => screen.getByRole('table', { name: 'Relationships' });
 const rowOf = (label: string) => within(table()).getByText(label).closest('tr')!;
 
 describe('the Relationships table', () => {
+  it("starts its first column at the card's text edge, level with Properties and the labels above it (alignment audit SBX-13)", async () => {
+    await renderAlice();
+    expect(table().className).toContain('[&_tr>:first-child]:pl-0');
+  });
+
   it('marks the incoming rows in edit view too, so editing one is not mistaken for the other direction (R3SB1-1)', async () => {
     await renderAlice();
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
