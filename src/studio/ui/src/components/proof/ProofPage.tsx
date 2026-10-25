@@ -49,6 +49,7 @@ import { useChapterTimeline } from './useChapterTimeline';
 import { useProofKeys } from './useProofKeys';
 import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
+import { hasRecording } from './checkcard/cardSelectors';
 import { addressPath } from '../../navigation/address';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
 
@@ -443,7 +444,9 @@ export function ProofPage({
     <CommandScope kind="page">
       <div className="flex min-h-full flex-col">
         <div
-          className="grid flex-1 gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[auto_minmax(0,1fr)]"
+          // `content-start`: in one column the cards keep their own heights and 16 px gaps instead of sharing out the window's spare
+          // height (XPF-8); side by side, the notes card fills its row down to the Inspector's end (XPF-7).
+          className="grid flex-1 content-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[auto_minmax(0,1fr)]"
           // A right click on a row selects it first, so the menu acts on the row under the pointer.
           onContextMenuCapture={(event) => {
             const row = (event.target as Element).closest<HTMLElement>('section[aria-label="Notes"] tr[data-row]');
@@ -483,14 +486,17 @@ export function ProofPage({
                     />
                     <TakeLanes spot={spot} winStart={win.start + shift} winLen={Math.min(win.len, total)} />
                   </>
-                ) : (
-                  <p className="text-sm text-[var(--text-muted)]">{timeline ? 'No recording for this chapter yet.' : 'Reading the recording…'}</p>
-                )}
+                ) : !timeline ? (
+                  <p className="text-sm text-[var(--text-muted)]">Reading the recording…</p>
+                ) : hasRecording(chapter.recordedSeconds) ? (
+                  <p className="text-sm text-[var(--text-muted)]">No recording for this chapter yet.</p>
+                ) : // The check card above already says there is no recording to check (alignment audit XPF-16).
+                null}
               </>
             )}
           </section>
           <div
-            className="min-h-0 min-w-0 min-[1180px]:row-start-2"
+            className="flex min-h-0 min-w-0 flex-col min-[1180px]:row-start-2"
             // A row pressed (a click or Enter), not stepped to with the keys, opens its chapter from All chapters, as in the mock.
             onClickCapture={(event) => {
               if (!selectingForMenu.current && (event.target as Element).closest('tr[data-row]')) opening.current = true;

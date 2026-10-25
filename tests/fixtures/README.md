@@ -184,6 +184,21 @@ set: the names a rebuilt entry tries for a saved id, and vocabulary ties under c
 Python writes with the order the host uses. `src/studio/desktop/internal/guide/build_parity_test.go` replays every case
 (`TestBuildMatchesTheSidecar`). The recorder was deleted with the Python build, so the files are frozen.
 
+## guide-pronounce/
+
+What the manuscript-guide sidecar's `pronounce` command (a narrator's Generate/Replace from a named source) did, recorded before it
+moved into the host (2026-10-25, [Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), #2251).
+`bibles.jsonl` holds the Story Bibles the runs start from, one a line: the file's exact text, or its bytes in hex when they are not
+UTF-8 (1,500 seeded synthetic Story Bibles with entries, aliases, locks, the narrator's own and a dictionary's pronunciations with notes,
+alternates, statuses and the legacy `user` source, written indented, compact, sorted or with CRLF line ends; 111 edge files, from
+damaged files and values of the wrong type to every kind of stored pronunciation; and one entry under 30 names). `cases.jsonl` holds 4,524
+runs, one a line: its Story Bible (`bible`, a `guide-cues/` case's with `cuesCase`, 587 of them, or none), `entityId`, `aliasIndex`, `source`, and what the source was to answer: the real CMU dictionary, eSpeak NG (libespeak-ng 1.51) or
+Wiktextract (over a twelve-word index, or not installed), a recorded value, or a recorded exception. `cases.golden.jsonl` holds, for each
+run in the same order, the exit status, the reason it logged and its exception's type, the names it asked the source for and each
+answer (a line as `pronunciation --source` prints it, or the exception's text), and the file it left (its SHA-256, and its text when
+under 2,000 characters; LF line ends). `src/studio/desktop/internal/guide/pronounce_parity_test.go` replays every run through
+`guide.Service.Pronounce`, giving it the recorded answers. The recorder was deleted with the Python command, so the files are frozen.
+
 ## booth-parity/
 
 `text-rules.json`: Python 3.12's own answers for the text rules the host needs to follow a read the way the Booth's

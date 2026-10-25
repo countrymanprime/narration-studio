@@ -4,7 +4,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 export function TakesBadge({ count }: { count: number }) {
   if (count < 2) return null;
   return (
-    <span role="img" aria-label={`${count} takes at this spot`} className="ml-1.5 inline-flex align-middle">
+    <span role="img" aria-label={`${count} takes at this spot`} className="inline-flex flex-none">
       <StatusBadge tone="neutral" shape="tag" label={`${count} takes`} />
     </span>
   );
