@@ -98,6 +98,19 @@ describe('Settings: Project', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  // Alignment audit (XSE2-23, XSE2-24): Edit marks sits beside the pills, and the manuscript line is above its button at every width.
+  it('keeps Edit marks at the top right beside the pills, and the manuscript line above its button', async () => {
+    await renderPage();
+    await open('Project');
+    const marks = row('project.marks');
+    const edit = await within(marks).findByRole('button', { name: 'Edit marks…' });
+    const grid = within(marks).getByRole('list').parentElement!;
+    expect(grid.className).toContain('grid-cols-[minmax(0,1fr)_auto]');
+    expect(grid.contains(edit)).toBe(true);
+    const manuscript = row('project.manuscript');
+    expect(within(manuscript).getByText(/^Imported /).parentElement!.className).toContain('flex-col');
+  });
+
   it('clearing derived data asks first, and clears only after the confirm', async () => {
     const api = createMockApi();
     const clear = vi.spyOn(api, 'clearProjectData');
@@ -150,6 +163,22 @@ describe('Settings: Project', () => {
       await within(types()).findByRole('textbox', { name: 'Type name: Character' });
       return api;
     }
+
+    // Alignment audit (R3SE1-2, XSE2-10, XSE1-15): the list measures its own width, a type's two lines sit closer than two types, the second
+    // line starts under the name box, the count keeps one width so the Remove buttons line up, and New type is as wide as a name box.
+    it('lays the types out as one list with one grid: counts one width, second line under the name, New type like a name box', async () => {
+      await openTypes();
+      const list = types().querySelector('ul')!;
+      expect(list.parentElement!.className).toContain('@container');
+      expect(list.parentElement!.className).toContain('w-full');
+      expect(list.className).toContain('gap-5');
+      const count = types().querySelector<HTMLElement>('[data-type-count="Place"]')!;
+      expect(count.className).toMatch(/(^| )min-w-\[70px\]/);
+      expect(count.className).toContain('text-right');
+      expect(count.parentElement!.className).toContain('pl-6');
+      expect(within(types()).getByRole('textbox', { name: 'New type' }).closest('[class*="max-w-[16rem]"]')).toBeTruthy();
+      expect(nameField('Place').closest('[class*="max-w-[16rem]"]')).toBeTruthy();
+    });
 
     it('lists each type with its entry count', async () => {
       await openTypes();

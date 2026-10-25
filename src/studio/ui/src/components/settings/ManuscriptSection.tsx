@@ -28,7 +28,8 @@ export function ManuscriptBody({ data, go, notify, refreshBootstrap }: Manuscrip
   const manuscript = data.manuscript;
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* The line above its button at every width, not side by side at one width and stacked at the next (alignment audit XSE2-24). */}
+      <div className="flex flex-col items-start gap-2">
         <span className="text-sm text-[var(--text-muted)]">{manuscript ? importedLine(manuscript) : 'No manuscript yet'}</span>
         {chooseButton}
       </div>
