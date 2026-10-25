@@ -263,10 +263,10 @@ MAX_WORKERS_BY_MODEL = {
     "large-v3": 1,
 }
 
-# Consecutive chunks overlap by this many seconds so a word/sentence cut
-# exactly at a chunk boundary has a decent chance of appearing whole in at
-# least one of its two neighboring chunks; _dedupe_overlap below then
-# drops the duplicate.
+# Each chunk after the first starts this many seconds early and each one
+# before the last runs this many seconds late, so a word cut at a chunk's
+# edge is heard whole by its neighbour; reassembly keeps each word from one
+# chunk only.
 CHUNK_OVERLAP_SECONDS = 1.5
 
 
@@ -336,7 +336,7 @@ def transcribe_chunked(full_audio, model_size, language, device, progress_path, 
     full_audio into chunk_seconds-length, slightly overlapping windows,
     transcribes each independently (in parallel worker processes beyond
     the first, which runs synchronously in this process), then reassembles
-    one chunk-offset-adjusted, overlap-deduplicated transcript_words list -
+    one chunk-offset-adjusted transcript_words list, each word from one chunk -
     the same shape transcribe() itself returns, so run() writes the same
     words report either way.
     """
@@ -440,39 +440,21 @@ def transcribe_chunked(full_audio, model_size, language, device, progress_path, 
         write_progress(progress_path, "TRANSCRIBE", aggregate_percent(), f"Transcribing... {done_count}/{n_chunks} chunk(s) done")
         time.sleep(0.5)
 
-    # Reassembly: read every chunk's words back in index order, add each
-    # chunk's own start-time offset (workers wrote chunk-local timestamps
-    # only), and drop this chunk's words that duplicate one already kept
-    # from the previous chunk within their shared overlap span.
-    all_words = []
+    # Reassembly: read every chunk's words back, add each chunk's own start-time offset (workers wrote chunk-local
+    # timestamps only), and keep each word from the chunk its midpoint falls in, the cut between two neighbours being
+    # the middle of the span they share - the recording check's own rule (coverage_chunks.merge_chunks).
+    import coverage_chunks  # a sibling module: compare.py's own directory is on sys.path, frozen or not
+
+    heard = []
     for c in chunks:
         _, _, chunk_out_path = chunk_paths(c["index"])
         with open(chunk_out_path, "r", encoding="utf-8") as f:
             raw_words = json.load(f)
         offset = c["offset_seconds"]
-        words = [(w[0], w[1] + offset, w[2] + offset) for w in raw_words]
-
-        if c["index"] > 0:
-            overlap_boundary = offset + CHUNK_OVERLAP_SECONDS
-            prior_tail = [w for w in all_words if w[1] >= offset]
-            consumed = [False] * len(prior_tail)
-            deduped = []
-            for w in words:
-                if w[1] < overlap_boundary:
-                    matched = False
-                    for i, pw in enumerate(prior_tail):
-                        if not consumed[i] and pw[0].lower() == w[0].lower():
-                            consumed[i] = True
-                            matched = True
-                            break
-                    if matched:
-                        continue
-                deduped.append(w)
-            words = deduped
-
-        all_words.extend(words)
-
-    all_words.sort(key=lambda w: w[1])
+        words = tuple((w[0], w[1] + offset, w[2] + offset) for w in raw_words)
+        span = coverage_chunks.Chunk(offset, c["end_sample"] / SAMPLE_RATE)
+        heard.append(coverage_chunks.ChunkWords(span, words, (None,) * len(words)))
+    all_words = list(coverage_chunks.merge_chunks(heard)[0])
 
     for c in chunks:
         for p in chunk_paths(c["index"]):
