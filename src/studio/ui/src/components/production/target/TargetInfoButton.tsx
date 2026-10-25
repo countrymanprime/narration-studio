@@ -107,7 +107,11 @@ export function TargetInfoButton() {
             if (!closing.current && event.currentTarget.matches(':focus-visible')) show(false);
           }}
         >
-          <span aria-hidden="true" className="font-serif text-sm leading-none font-bold italic">
+          {/* The app's one info mark (Tooltip's 15 px ring with a mono "i"), not a serif italic glyph of its own (alignment audit XPR2-43). */}
+          <span
+            aria-hidden="true"
+            className="inline-flex size-[15px] items-center justify-center rounded-full border border-[var(--non-text)] font-['IBM_Plex_Mono',monospace] text-[0.68rem] leading-none text-[var(--text-muted)]"
+          >
             i
           </span>
         </IconButton>

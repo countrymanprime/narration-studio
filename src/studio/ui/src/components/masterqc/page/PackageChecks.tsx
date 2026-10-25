@@ -9,11 +9,15 @@ import { packageCounts, packageItems, profileName, type PackageItem } from './pa
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
+// A check not judged yet is a hollow circle, not the mock's "…", which read as a list still loading (R4MS1-5, R4TB-3).
 const BADGE = {
   ok: { status: 'pass', icon: '✓', word: 'Passes' },
   bad: { status: 'fail', icon: '✕', word: 'Fails' },
-  wait: { status: 'waiting', icon: '…', word: 'Waiting' },
+  wait: { status: 'waiting', icon: '○', word: 'Not checked yet' },
 } as const satisfies Record<string, { status: StatusId; icon: string; word: string }>;
+
+/** The loaded card's rows: the three profile checks and the count, so the card does not jump when they arrive (R4MS2-9, XMS-16). */
+const SKELETON_ROWS = 4;
 
 /**
  * The aside "Delivery package · <profile>" (the Studio Next mock's Master page): the profile's package checks, the files that fail,
@@ -47,29 +51,29 @@ export function PackageChecks({
       <Panel title={`Delivery package · ${profile ? profileName(profile) : '…'}`}>
         {loading ? (
           <LoadingRegion label="Loading the delivery package checks" status="Reading the profile and the chapters…" className="flex flex-col gap-2">
-            {[0, 1, 2].map((row) => (
+            {Array.from({ length: SKELETON_ROWS }, (_, row) => (
               <Skeleton key={row} />
             ))}
           </LoadingRegion>
         ) : (
           <ul className="flex flex-col gap-2 text-sm">
             {items.map((item, index) => (
-              <li key={index} className="flex items-center gap-2">
-                <StatusBadge tone={statusTone(BADGE[item.state].status)} label={BADGE[item.state].icon} />
+              // One badge width whatever its glyph, beside the first line of a row that wraps (XMS-16).
+              <li key={index} className="flex items-start gap-2">
+                <span className="flex w-7 flex-none justify-center">
+                  <StatusBadge tone={statusTone(BADGE[item.state].status)} label={BADGE[item.state].icon} />
+                </span>
                 <span className="sr-only">{BADGE[item.state].word}: </span>
                 <span>{item.text}</span>
               </li>
             ))}
           </ul>
         )}
-        <div className="mt-4 flex flex-col gap-2">
-          <Button onClick={onOpenDelivery}>Open Delivery</Button>
-          {!loading && (
-            <span className="text-sm text-[var(--text-muted)]">
-              {failing.length} failing and {notReady} not ready.
-            </span>
-          )}
-        </div>
+        {/* The button keeps its own width (a full-width bar was the loudest thing on the stacked page, R4MS1-13) and waits for what it
+            summarises. The mock's caption under it ("0 failing and 14 not ready.") only repeated the rows above, so it is gone (R4MS2-4). */}
+        <Button className="mt-4" onClick={onOpenDelivery} disabled={loading}>
+          Open Delivery
+        </Button>
       </Panel>
     </aside>
   );

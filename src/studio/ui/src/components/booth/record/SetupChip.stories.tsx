@@ -56,3 +56,11 @@ export const NotRunning: Story = { args: { capabilities: setupCapabilities('reap
 export const RecordsInTheApp: Story = {
   args: { capabilities: setupCapabilities('builtin'), choice: choice({ daw: 'Built-in', source: 'default', state: 'app', linkedFile: null, foundFiles: [] }) },
 };
+
+// Connected, but to another project than the one linked here: the chip warns and says so, as the setup notice does (alignment audit R4BO2-1).
+export const OtherProjectOpen: Story = {
+  args: { otherProject: true },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, other project' })).toHaveTextContent('REAPER · other project');
+  },
+};

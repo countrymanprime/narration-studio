@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { DeliveryProfile, DeliveryRuleStatus, MultiPackagePhase, MultiPackageResult } from '../../types';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { SectionLabel } from '../primitives/SectionLabel';
+import { deliveryProfileKey } from './deliveryProfile';
 import { ResultIcon } from './RuleBadges';
 import type { ExportJobs } from './useExportJobs';
 
@@ -17,6 +18,9 @@ const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
  * project's own single delivery-profile choice is Delivery's profile card; this list is a separate, multi-select export-platform picker). */
 const platformNameFor = (profile: DeliveryProfile) => (profile.builtIn ? profile.platform : profile.name);
 
+/** The host names a result's profile by its key (`deliveryProfileKey`); an id alone is matched too. */
+const resultIsFor = (result: MultiPackageResult, profile: DeliveryProfile) => result.profile === deliveryProfileKey(profile) || result.profile === profile.id;
+
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
 /** A multi-platform result's own status, in the same icon language as a package checklist row (RuleBadges.tsx). */
@@ -27,35 +31,49 @@ const RESULT_STATUS: Record<MultiPackagePhase, { icon: DeliveryRuleStatus; word:
   error: { icon: 'not_met', word: "Couldn't build" },
 };
 
-function ResultRow({ result }: { result: MultiPackageResult }) {
+/** A folder path that may break after each separator and nowhere else, so "…\\Wonderland\\ACX" never splits as "A / CX" (XMS-18). */
+function BreakablePath({ path }: { path: string }) {
+  const parts = path.split(/(?<=[\\/])/);
+  return (
+    <>
+      {parts.map((part, index) => (
+        <Fragment key={index}>
+          {part}
+          {index < parts.length - 1 && <wbr />}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
+ * A platform's result, under its own checkbox and level with the checkbox's label (R4MS2-8, R3MS-14): the status in words with its icon,
+ * then the folder and the file count, or what went wrong.
+ */
+function ResultLine({ result }: { result: MultiPackageResult }) {
   const { icon, word } = RESULT_STATUS[result.phase];
   return (
-    <li className="flex items-start gap-1 py-2 text-sm">
-      <span className="mt-0.5 flex">
+    <div className="pb-1 pl-6 text-[0.8rem]">
+      <span className="flex items-center" style={result.phase === 'error' ? DANGER : MUTED}>
         <ResultIcon status={icon} />
+        {word}
       </span>
-      <span className="min-w-0">
-        <span className="block font-medium">
-          {result.platform}
-          <span className="sr-only">: {word}</span>
-        </span>
-        {result.phase === 'success' && (
-          <>
-            <span className={`${MONO} block text-[0.8rem] [overflow-wrap:anywhere]`} style={MUTED}>
-              {result.outputDir}
-            </span>
-            <span className="block text-[0.8rem]" style={MUTED}>
-              {plural(result.files.length, 'file')}
-            </span>
-          </>
-        )}
-        {result.phase === 'error' && (
-          <span className="block text-[0.8rem]" style={DANGER}>
-            {result.error || result.message}
+      {result.phase === 'success' && (
+        <>
+          <span className={`${MONO} block break-words`} style={MUTED}>
+            <BreakablePath path={result.outputDir} />
           </span>
-        )}
-      </span>
-    </li>
+          <span className="block" style={MUTED}>
+            {plural(result.files.length, 'file')}
+          </span>
+        </>
+      )}
+      {result.phase === 'error' && (
+        <span className="block" style={DANGER}>
+          {result.error || result.message}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -93,21 +111,29 @@ export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: Deliver
           <SectionLabel as="legend" className="mb-1">
             Build packages for
           </SectionLabel>
-          {profiles.map((profile) => (
-            <Checkbox key={profile.id} checked={selected.has(profile.id)} onChange={(checked) => toggle(profile.id, checked)} disabled={multiPackageRunning}>
-              {platformNameFor(profile)}
-            </Checkbox>
-          ))}
+          {profiles.map((profile) => {
+            const result = results.find((candidate) => resultIsFor(candidate, profile));
+            return (
+              <div key={profile.id}>
+                <Checkbox checked={selected.has(profile.id)} onChange={(checked) => toggle(profile.id, checked)} disabled={multiPackageRunning}>
+                  {platformNameFor(profile)}
+                </Checkbox>
+                {result && <ResultLine result={result} />}
+              </div>
+            );
+          })}
         </fieldset>
       )}
-      {results.length > 0 && (
-        <ul aria-label="Multi-platform export results" className="mt-3 divide-y divide-[var(--border)]">
-          {results.map((result) => (
-            <ResultRow key={result.profile} result={result} />
-          ))}
-        </ul>
-      )}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      {/* A result for a profile the list no longer holds (it was deleted while the build ran) still says how it went. */}
+      {results
+        .filter((result) => !profiles.some((profile) => resultIsFor(result, profile)))
+        .map((result) => (
+          <div key={result.profile} className="mt-2 text-sm">
+            <span className="font-medium">{result.platform}</span>
+            <ResultLine result={result} />
+          </div>
+        ))}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Button onClick={() => void jobs.startMultiPackage(chosen)} disabled={!canBuild} pending={multiPackageRunning}>
           Build {plural(chosen.length, 'package')}
         </Button>
@@ -117,7 +143,7 @@ export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: Deliver
           </Button>
         )}
       </div>
-      {multiPackageRunning && <ProgressBar label="Building packages" value={null} running className="mt-2" />}
+      {multiPackageRunning && <ProgressBar label="Building packages" value={null} running className="mt-3" />}
       {multiPackageProblem && (
         <p role="alert" className="mt-2 text-sm" style={DANGER}>
           {multiPackageProblem}

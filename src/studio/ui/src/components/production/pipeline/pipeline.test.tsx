@@ -118,11 +118,10 @@ describe('PipelineTable', () => {
 });
 
 describe('NextUp', () => {
-  const record = { ok: true, reason: '' };
   const timer = { running: false, onStart: vi.fn() };
 
   it('next-up-ranks-by-risk-then-group-then-stage: each item has its title, sub line and one action', () => {
-    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
+    view(<NextUp inputs={NEXT_UP_BUSY} onGo={noop} timer={timer} />);
     const items = within(screen.getByRole('list', { name: 'Next up' })).getAllByRole('listitem');
     expect(items.map((li) => li.textContent)).toEqual([
       expect.stringContaining('Finish recording Chapter 4'),
@@ -135,14 +134,14 @@ describe('NextUp', () => {
   });
 
   it("tints each item's disc by its status: recording in progress, an open pickup session a warning, a failed check danger (kinds/statusTone.ts)", () => {
-    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
+    view(<NextUp inputs={NEXT_UP_BUSY} onGo={noop} timer={timer} />);
     const items = within(screen.getByRole('list', { name: 'Next up' })).getAllByRole('listitem');
     expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['info', 'warning', 'danger']);
   });
 
   // The mock's `.next .ico` (app.css:125): a 30 px rounded square, not a 24 px circle.
   it('draws each disc as a 30 px square on an 8 px radius', () => {
-    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
+    view(<NextUp inputs={NEXT_UP_BUSY} onGo={noop} timer={timer} />);
     const disc = within(screen.getByRole('list', { name: 'Next up' }))
       .getAllByRole('listitem')[0]!
       .querySelector('[data-tone]') as HTMLElement;
@@ -152,23 +151,24 @@ describe('NextUp', () => {
   });
 
   it('says "Nothing needs you right now." when empty', () => {
-    view(<NextUp inputs={NEXT_UP_EMPTY} record={record} onGo={noop} timer={timer} />);
+    view(<NextUp inputs={NEXT_UP_EMPTY} onGo={noop} timer={timer} />);
     expect(screen.getByText('Nothing needs you right now.')).toBeTruthy();
   });
 
-  it('open-booth-is-navigation: it stays enabled when recording is off, and the capability sentence is a note beside it (#1721)', async () => {
+  it('open-booth-is-navigation: it stays enabled when recording is off (#1721), with Start timer beside it and no sentence between them', async () => {
     const onGo = vi.fn();
-    view(<NextUp inputs={NEXT_UP_BUSY} record={{ ok: false, reason: 'Recording needs a connected recorder.' }} onGo={onGo} timer={timer} />);
+    view(<NextUp inputs={NEXT_UP_BUSY} onGo={onGo} timer={timer} />);
     const open = screen.getByRole('button', { name: 'Open Booth' }) as HTMLButtonElement;
     expect(open.disabled).toBe(false);
-    expect(screen.getByText('Recording needs a connected recorder.')).toBeTruthy();
+    // Why recording is off is the header's sentence under Start session, said once on the page (alignment audit XPR2-9).
+    expect(open.nextElementSibling).toBe(screen.getByRole('button', { name: /^Start timer on/ }));
     await userEvent.click(open);
     expect(onGo).toHaveBeenCalledWith('booth', 'c4');
   });
 
   it('goes to the Booth, Pickups and Master', async () => {
     const onGo = vi.fn();
-    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={onGo} timer={timer} />);
+    view(<NextUp inputs={NEXT_UP_BUSY} onGo={onGo} timer={timer} />);
     await userEvent.click(screen.getByRole('button', { name: 'Open Booth' }));
     await userEvent.click(screen.getByRole('button', { name: 'Review pickups' }));
     await userEvent.click(screen.getByRole('button', { name: 'Inspect failed check' }));
@@ -177,12 +177,12 @@ describe('NextUp', () => {
 
   it('timer-stays-as-built: Start timer is on the recording item and hidden while a timer runs', async () => {
     const onStart = vi.fn();
-    const { rerender } = view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={{ running: false, onStart }} />);
+    const { rerender } = view(<NextUp inputs={NEXT_UP_BUSY} onGo={noop} timer={{ running: false, onStart }} />);
     await userEvent.click(screen.getByRole('button', { name: 'Start timer on Chapter 4' }));
     expect(onStart).toHaveBeenCalledWith('c4', 'recording');
     rerender(
       <TooltipProvider>
-        <NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={{ running: true, onStart }} />
+        <NextUp inputs={NEXT_UP_BUSY} onGo={noop} timer={{ running: true, onStart }} />
       </TooltipProvider>,
     );
     expect(screen.queryByRole('button', { name: /Start timer/ })).toBeNull();
@@ -258,15 +258,25 @@ describe('PageHeader', () => {
     expect(screen.getByRole('button', { name: 'Start session' })).toBeTruthy();
   });
 
-  it('says "0 chapters" and "no delivery date set" once a read that found nothing has ended', () => {
+  it('says "0 chapters" once a read that found nothing has ended, and that no due date is set once, in the pill (alignment audit R3PR1-7)', () => {
     header({ loading: false, chapters: 0, words: 0, due: null });
-    expect(screen.getByText(/0 chapters · 0 words · no delivery date set/)).toBeTruthy();
+    expect(screen.getByText('0 chapters · 0 words')).toBeTruthy();
+    expect(screen.getAllByText(/no (delivery|due) date set/i)).toHaveLength(1);
     expect(screen.getByText('No due date set')).toBeTruthy();
   });
 
-  it('says the tone in a word and a shape when the due date is close', () => {
+  it('says the tone in a word and a shape when the due date is close, once, in the verdict pill beside the date (XPR1-13, XPR2-44)', () => {
     header({ due: new Date(2026, 9, 5), k: calcFor(MID_BOOK, new Date(2026, 9, 5)) });
-    expect(screen.getByText(/due soon|overdue or behind/)).toBeTruthy();
+    const pill = screen.getByRole('button', { name: /(Tight|Behind)/ });
+    expect(pill.textContent).toMatch(/[!✕]/);
+    expect(screen.queryByText(/due soon|overdue or behind/)).toBeNull();
+    // The pill sits on the line of figures it is the verdict of, not on a row of its own.
+    expect(screen.getByText(/delivery due/).parentElement).toBe(pill.closest('div'));
+  });
+
+  it('says why Start session is off once, and not before the capabilities are read (XPR2-9, XPR2-41)', () => {
+    header({ loading: true, record: { ok: false, reason: 'No recorder is connected.' } });
+    expect(screen.queryByText('No recorder is connected.')).toBeNull();
   });
 
   it('disables Start session with the record capability reason', () => {
@@ -296,7 +306,8 @@ describe('PageHeader', () => {
 
   it('says so with no delivery date', () => {
     header({ due: null, k: calcFor(MID_BOOK, null) });
-    expect(screen.getByText(/no delivery date set/)).toBeTruthy();
+    expect(screen.getByText('No due date set')).toBeTruthy();
+    expect(screen.queryByText(/no delivery date set/)).toBeNull();
   });
 });
 

@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import type { ChapterStatus } from '../../types';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { Button } from '../primitives/Button';
+import { HIT_AREA } from '../primitives/hitArea';
+import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
 import { SlideOver } from '../primitives/SlideOver';
 import { formatLength } from './productionFormat';
@@ -56,29 +58,41 @@ export function CreditsRowPanel({
     <SlideOver open={open} title={label} onClose={onClose}>
       <div className="space-y-4 text-sm">
         <p>
-          <span className="font-semibold">{row.template?.name}</span> · {(row.words ?? 0).toLocaleString()} words · about{' '}
-          {creditsLength(row.estimatedSeconds ?? 0)}
+          <span className="font-semibold">{row.template?.name}</span> · {(row.words ?? 0).toLocaleString()} words ·{' '}
+          {/* "about 3s" stays on one line (XPR1-25). */}
+          <span className="whitespace-nowrap">about {creditsLength(row.estimatedSeconds ?? 0)}</span>
         </p>
         {warning && (
+          // The values are filled in on Settings' Credits section, so the warning says where (R3PR1-10).
           <p role="alert" style={{ color: 'var(--danger-text)' }}>
-            {warning}
+            {warning}.{' '}
+            <Link className={`font-semibold underline ${HIT_AREA}`} to={addressPath({ page: 'settings', anchor: 'credits' })}>
+              Fill in under Settings &gt; Credits
+            </Link>
           </p>
         )}
-        <Link className="font-semibold underline" to={addressPath({ page: 'script', credits: row.kind })}>
-          Open in Script
-        </Link>
-        <Select
-          label={`${label} status`}
-          value={row.status}
-          options={STATUS_ORDER.map((status) => ({ value: status, label: STATUS_LABELS[status] }))}
-          onChange={(value) => onStatus(value as ChapterStatus)}
-        />
+        <div className="space-y-1.5">
+          <SectionLabel as="div">Status</SectionLabel>
+          <Select
+            label={`${label} status`}
+            value={row.status}
+            options={STATUS_ORDER.map((status) => ({ value: status, label: STATUS_LABELS[status] }))}
+            onChange={(value) => onStatus(value as ChapterStatus)}
+          />
+        </div>
         <p style={MUTED}>
           Recorded: {row.recordedSeconds === undefined ? UNRECORDED_TEXT[row.recordedUnavailable ?? 'unlinked'] : formatLength(row.recordedSeconds)}
         </p>
-        <Button variant="secondary" onClick={onCheck}>
-          Recording check
-        </Button>
+        {/* The two ways on, on one row and apart: a link beside the status select touched it (XPR1-25). The check stays offered with no
+            track linked, because its refusal is where the row is linked to one. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Button variant="secondary" onClick={onCheck}>
+            Recording check
+          </Button>
+          <Link className={`font-semibold underline ${HIT_AREA}`} to={addressPath({ page: 'script', credits: row.kind })}>
+            Open in Script
+          </Link>
+        </div>
       </div>
     </SlideOver>
   );
