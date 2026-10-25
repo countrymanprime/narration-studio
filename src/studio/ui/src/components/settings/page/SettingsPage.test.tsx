@@ -105,10 +105,12 @@ describe('Settings: page frame', () => {
     expect(screen.getByTestId('settings-page').className).not.toMatch(/max-w-\[/);
   });
 
-  it('draws no magnifier outside the search box, and the search row spans a narrow page', async () => {
+  it('draws the magnifier inside the search box, none outside it, and the search row spans a narrow page', async () => {
     await renderPage();
     const find = screen.getByRole('search');
     expect(find.querySelector(':scope > svg')).toBeNull();
+    // The magnifier sits inside the box, at its left (SearchField leadingIcon).
+    expect(find.querySelector('[data-search-icon] svg')).toBeTruthy();
     expect(find.className).toContain('@max-[760px]:w-full');
     expect(within(find).getByRole('textbox', { name: 'Search settings' }).closest('[class*="flex-[1_1_180px]"]')).toBeTruthy();
   });
