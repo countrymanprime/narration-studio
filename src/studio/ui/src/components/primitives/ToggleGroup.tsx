@@ -16,7 +16,7 @@ export type ToggleGroupLook = 'default' | 'segmented';
 
 // A group of chips of which one is chosen (the Whisper model, the text size, the theme). The group has a name a screen
 // reader says before its chips ("Chunk length, group"). Each chip is a `Pill`, a toggle that reports `aria-pressed`; pressing the chosen one again reports it too and the
-// caller decides. Every chip stays a tab stop. `className` is the group's layout (`gap-1.5 flex-wrap`).
+// caller decides. Every chip stays a tab stop. The default row wraps with 6 px gaps; `className` is the group's placement.
 export function ToggleGroup({
   label,
   value,
@@ -35,7 +35,9 @@ export function ToggleGroup({
   const containerClass =
     look === 'segmented'
       ? 'inline-flex h-[2.0625rem] gap-0.5 rounded-[var(--radius-button)] border border-[var(--line-strong)] bg-[var(--bg)] p-[0.1875rem]'
-      : 'flex';
+      : // The chips wrap onto another line rather than squeeze, 6 px apart (alignment audit cause L); at no specificity, so a
+        // caller's own gap or nowrap still wins.
+        'flex [:where(&)]:flex-wrap [:where(&)]:gap-1.5';
   return (
     <div role="group" aria-label={label} className={`${containerClass} ${className}`}>
       {options.map((option) => (

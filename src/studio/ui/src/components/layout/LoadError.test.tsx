@@ -52,3 +52,13 @@ describe.each([
     expect(retry).toHaveBeenCalledTimes(1);
   });
 });
+
+// Alignment audit cause J: the failed frame centred itself 768 px wide with its own 24 px padding, so the page title jumped between the
+// loading, failed and loaded frames.
+describe('LoadError placement', () => {
+  it('starts at the page gutter like the loaded page, not centred with padding of its own', () => {
+    render(<LoadError title="Proof" message="It failed." retry={() => undefined} />);
+    const frame = screen.getByRole('heading', { name: 'Proof' }).closest('.space-y-4')!;
+    expect(frame.className).not.toMatch(/\bmx-auto\b|\bp-6\b/);
+  });
+});

@@ -3,10 +3,12 @@
 // src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py: it
 // consumes `partial`, `word` and `segment_end` events and reports `position`
 // events when the cursor, the committed position or the status change
-// (docs/architecture/manuscript-teleprompter.md).
+// (docs/architecture/manuscript-teleprompter.md). It also builds the script it
+// follows from a chapter or the credits text, as chapter_script.py does.
 //
 // It is a port held byte for byte to the Python by
-// tests/fixtures/booth-parity (tracker-sessions and tracker-cases), so it
+// tests/fixtures/booth-parity (tracker-sessions, tracker-cases, flag-sessions
+// and chapter-scripts), so it
 // lowercases and matches words with Python 3.12's rules (internal/compare's
 // PyLower and IsPyWord), never Go's newer Unicode tables.
 package scripttrack
