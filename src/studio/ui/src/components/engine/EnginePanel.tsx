@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { faChevronRight, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
+import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
-import { SectionLabel } from '../primitives/SectionLabel';
 import { SlideOver } from '../primitives/SlideOver';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
@@ -26,6 +26,12 @@ import type { ManuscriptChapter, Track, TrackMapping, TracksDiscovery, TracksPro
 
 function basename(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+}
+
+// The folder a file is in, as the path writes it (no trailing separator).
+function folderOf(path: string): string {
+  const cut = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  return cut > 0 ? path.slice(0, cut) : '';
 }
 
 type Tool = 'link-chapters' | 'render-config' | 'create-regions' | 'chapter-tags' | 'cleanup-tools' | 'retake-lanes';
@@ -163,7 +169,8 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   const closeTool = () => setTool(undefined);
 
   return (
-    <div className="space-y-4">
+    // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
+    <div className="space-y-[1.1rem]">
       {forAudacity ? (
         <Panel title="Audacity project">
           <AudacityLinkCard view={audacity} notify={notify} />
@@ -183,16 +190,17 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
       )}
       {hasTracks && !forAudacity && (
         <Panel title="REAPER tools">
-          <Toolbar label="REAPER tools" className="flex-wrap">
-            {chapters.length > 0 && (
-              <ToolbarButton render={<Button variant="secondary" onClick={() => setTool('link-chapters')} />}>Link chapters…</ToolbarButton>
-            )}
-            <ToolbarButton render={<Button variant="secondary" onClick={() => setTool('render-config')} />}>Prepare chapter render…</ToolbarButton>
-            <ToolbarButton render={<Button variant="secondary" onClick={() => setTool('create-regions')} />}>Create chapter regions…</ToolbarButton>
-            <ToolbarButton render={<Button variant="secondary" onClick={() => setTool('chapter-tags')} />}>Embed chapter tags…</ToolbarButton>
-            <ToolbarButton render={<Button variant="secondary" onClick={() => setTool('cleanup-tools')} />}>Cleanup tools…</ToolbarButton>
-            <ToolbarButton render={<Button variant="secondary" onClick={() => setTool('retake-lanes')} />}>Retakes on lanes…</ToolbarButton>
-          </Toolbar>
+          {/* Equal cells on a grid, three across, two below 36rem and one below 26rem, so the buttons share their edges whatever their labels (ENX-9). */}
+          <div className="@container">
+            <Toolbar label="REAPER tools" className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
+              {chapters.length > 0 && <ToolButton onClick={() => setTool('link-chapters')}>Link chapters…</ToolButton>}
+              <ToolButton onClick={() => setTool('render-config')}>Prepare chapter render…</ToolButton>
+              <ToolButton onClick={() => setTool('create-regions')}>Create chapter regions…</ToolButton>
+              <ToolButton onClick={() => setTool('chapter-tags')}>Embed chapter tags…</ToolButton>
+              <ToolButton onClick={() => setTool('cleanup-tools')}>Cleanup tools…</ToolButton>
+              <ToolButton onClick={() => setTool('retake-lanes')}>Retakes on lanes…</ToolButton>
+            </Toolbar>
+          </div>
         </Panel>
       )}
       <ChapterSyncPanel notify={notify} onChanged={() => setRefresh((count) => count + 1)} />
@@ -227,16 +235,21 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
 // action beside it, not a gate (one binding, three call sites: here, Settings' DAW category, an import).
 function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDiscovery; link: EngineLinkState; onSelectRpp: (path: string) => void }) {
   const mismatch = link.dawFileLinked && link.dawReachable && !link.dawProjectMatches;
+  // While the picker asks which of several files to read, the list is the choice: a second "link a file" route above it is left out (R3EN2-5).
+  const picking = !!discovery && !discovery.selected && discovery.candidates.length > 1;
   return (
     <Panel
       title="REAPER project"
       actions={
-        <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-          {link.dawFileLinked ? 'Link a different REAPER project file' : 'Link a REAPER project file'}
-        </Button>
+        picking ? undefined : (
+          // A short label of one width either way (ENX-25); the card's title already says it is the REAPER project file.
+          <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
+            {link.dawFileLinked ? 'Change file…' : 'Link file…'}
+          </Button>
+        )
       }
     >
-      <div className="space-y-2 text-sm">
+      <div className="space-y-3 text-sm">
         {discovery?.selected && (
           <div className="min-w-0">
             <div className="font-medium [overflow-wrap:anywhere]">{basename(discovery.selected)}</div>
@@ -246,17 +259,23 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
           </div>
         )}
         {mismatch && (
-          <>
-            <p role="status" style={{ color: 'var(--warn-text)' }}>
-              REAPER has a different project open than the one linked here. Link the open project, or switch REAPER to the linked file.
+          // A problem, so a callout with its two ways out beside it, not coloured body text (R3EN2-4, ENX-25). Link the open project is the
+          // shared link action, as the Booth's same notice names it.
+          <InsetCard tone="warn" fill className="space-y-2">
+            <p role="status" className="flex items-start gap-2" style={{ color: 'var(--warn-text)' }}>
+              <FontAwesomeIcon icon={faTriangleExclamation} className="mt-[0.2rem] flex-none" aria-hidden="true" />
+              <span>REAPER has a different project open than the one linked here. Link the open project, or switch REAPER to the linked file.</span>
             </p>
-            <CheckLine
-              waiting="Waiting for REAPER to open the linked project"
-              unknown="REAPER has the linked project open"
-              checkedAt={link.checkedAt}
-              onCheckAgain={link.onCheckAgain}
-            />
-          </>
+            <CheckLine waiting="Waiting for REAPER to open the linked project" unknown="REAPER has the linked project open" checkedAt={link.checkedAt} />
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
+                Link the open project…
+              </Button>
+              <Button variant="secondary" onClick={link.onCheckAgain}>
+                Check again
+              </Button>
+            </div>
+          </InsetCard>
         )}
         {!discovery && <p role="status">Looking for the REAPER project file…</p>}
         {discovery && discovery.candidates.length === 0 && (
@@ -267,34 +286,43 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
             This project folder doesn&rsquo;t contain a .rpp file. Save your REAPER project into the folder, then open this panel again.
           </p>
         )}
-        {discovery && !discovery.selected && discovery.candidates.length > 1 && <RppPicker discovery={discovery} onSelect={onSelectRpp} />}
+        {picking && <RppPicker discovery={discovery} onSelect={onSelectRpp} />}
       </div>
     </Panel>
   );
 }
 
+// Each file is a row to press: its name first, in bold, where the files differ, and its folder under it (R3EN2-5).
 function RppPicker({ discovery, onSelect }: { discovery: TracksDiscovery; onSelect: (path: string) => void }) {
   return (
     <div>
-      <SectionLabel as="h3">Choose a REAPER project file</SectionLabel>
-      <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
-        More than one .rpp file was found in this project folder. Choose which one to read tracks from.
-      </p>
-      <ul className="mt-2 space-y-1.5">
+      <p style={{ color: 'var(--text-muted)' }}>More than one .rpp file was found in this project folder. Choose which one to read tracks from.</p>
+      <ul aria-label="REAPER project files" className="mt-2 space-y-1.5">
         {discovery.candidates.map((path) => (
           <li key={path}>
             <button
               type="button"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-left font-['IBM_Plex_Mono',ui-monospace,monospace] text-sm [overflow-wrap:anywhere] hover:border-[var(--accent)]"
+              className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-left hover:border-[var(--accent)] hover:bg-[var(--surface-2)]"
               onClick={() => onSelect(path)}
             >
-              {path}
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold [overflow-wrap:anywhere]">{basename(path)}</span>
+                <span className="block font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs [overflow-wrap:anywhere]" style={{ color: 'var(--text-muted)' }}>
+                  {folderOf(path)}
+                </span>
+              </span>
+              <FontAwesomeIcon icon={faChevronRight} className="flex-none" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
             </button>
           </li>
         ))}
       </ul>
     </div>
   );
+}
+
+// The tools' buttons: each fills its grid cell, so the two rows share their edges.
+function ToolButton({ onClick, children }: { onClick: () => void; children: string }) {
+  return <ToolbarButton render={<Button variant="secondary" className="w-full" onClick={onClick} />}>{children}</ToolbarButton>;
 }
 
 // The project's tracks with the chapter each one is linked to. Read-only: a link is
