@@ -16,7 +16,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'running',
     description:
-      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read, what it is reading, Cancel, and each file waiting in the table',
+      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read, what it is reading and Cancel in the table card under Check files, the file being read marked Measuring and the rest Waiting',
   },
   {
     page: 'master',
@@ -45,7 +45,7 @@ export const masterStates: StateEntry[] = [
   {
     page: 'master',
     state: 'cancelled',
-    description: 'Master & QC, a running check cancelled - every file not yet read says it was not measured',
+    description: 'Master & QC, a running check cancelled - every file not yet read marked Not measured, and the reason said once in the card',
   },
   {
     page: 'master',
@@ -167,13 +167,13 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'chapters-load-failed',
     description:
-      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and, under the file table, "The chapters could not be read, so the files keep their file names" with the reason as an alert and a Retry button that reads the chapters again',
+      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and, in the file table card under its controls, "The chapters could not be read, so the files keep their file names" with the reason as an alert and a Retry button that reads the chapters again',
   },
   {
     page: 'master',
     state: 'profile-load-failed',
     description:
-      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, under the file table, "The delivery profile could not be read" with the reason as an alert and a Retry button that reads the profile again (scrolled to the alert)',
+      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, in the file table card under its controls, the reason ("The delivery profiles could not be read from this project.", said once) as an alert and a Retry button that reads the profile again (scrolled to the alert)',
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];

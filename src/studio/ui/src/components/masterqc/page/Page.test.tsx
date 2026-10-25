@@ -86,7 +86,10 @@ describe('Master & QC page body', () => {
     });
     expect(rows.every((tr) => within(tr as HTMLElement).getByText('Waiting'))).toBe(true);
     expect(within(rows.at(-1) as HTMLElement).getByText('Retail sample')).toBeTruthy();
-    expect(within(rows[0] as HTMLElement).getByText(/No file measured yet · not mastered/)).toBeTruthy();
+    // R4MS1-6: the fact every row shares is said once, in the card, and no row repeats it.
+    expect(within(rows[0] as HTMLElement).queryByText(/No file measured yet/)).toBeNull();
+    const card = screen.getByRole('region', { name: 'Per-file checks' });
+    expect(within(card).getAllByText(/^Nothing measured yet\. Check your rendered chapter files/)).toHaveLength(1);
   });
 
   it('a chapter with open pickups says how many it waits on, from the Pickups page list, and counts only the open ones', async () => {
