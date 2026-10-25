@@ -20,6 +20,14 @@ export const EDITING_FOOTER_SPEC: readonly HintSpec[] = [
   { id: 'editing.escape', label: 'Clear' },
 ];
 
+/** The commands the edit-off notice says are off (Delete, Mute and Add FX); Mute has no hint. */
+const EDIT_OFF: ReadonlySet<CommandId> = new Set<CommandId>(['editing.delete', 'editing.fx']);
+
+/** The footer without the hints of commands that are off, so the hints never offer what the notice above them says is off (R4TA-8). */
+export function editOffHints(spec: readonly HintSpec[], off: boolean): HintSpec[] {
+  return off ? spec.filter((hint) => !EDIT_OFF.has(hint.id)) : [...spec];
+}
+
 /**
  * What Enter does now, for its hint: it keeps the take the keys are on once T has opened the takes, opens the card on a flagged word, and
  * otherwise keeps the line's active take, so the hint points at T for choosing.
