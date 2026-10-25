@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faCircleHalfStroke, faFileLines, faGear, faHouse, faMoon, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faFileLines, faGear, faHouse, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
 import { iconFor } from '../../icons.catalog';
 import { ContextMenuHost } from './ContextMenuHost';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
@@ -261,7 +261,7 @@ export function AppShell({
         {theme && (
           // Light theme is a half-filled circle: the mock's sun (solid or outline) has short rays that read as a second gear over Settings
           // at 20 px in dark (alignment audit XSL-21, R3PR1-12, R3PR2-27, R3MS-8).
-          <NavButton active={false} icon={theme.dark ? faCircleHalfStroke : faMoon} onClick={theme.toggle}>
+          <NavButton active={false} icon={iconFor(theme.dark ? 'appearance' : 'themeDark')} onClick={theme.toggle}>
             {theme.dark ? 'Light theme' : 'Dark theme'}
           </NavButton>
         )}

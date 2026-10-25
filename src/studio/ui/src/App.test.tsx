@@ -1750,7 +1750,7 @@ describe('App shell mounts', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.keyDown(document.body, { code: 'KeyH', key: 'h', ctrlKey: true, shiftKey: true });
     const dialog = await screen.findByRole('dialog', { name: 'Undo history' });
-    expect(within(dialog).getByText('Ctrl Z undoes the last one')).toBeTruthy();
+    expect(within(dialog).getByText('undoes the newest change')).toBeTruthy();
     fireEvent.keyDown(dialog, { code: 'KeyZ', key: 'z', ctrlKey: true });
     await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
