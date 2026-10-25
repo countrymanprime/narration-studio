@@ -31,7 +31,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
   never: async (page) => {
     // Chapter 7 has no recordedFraction in the fixture (mockFixtures.ts: only chapters 1-6 do), so it reads "never checked".
     await openLinkedProofChapter(page, 'Chapter 7');
-    await page.getByText(/hasn.t been checked yet/).waitFor();
+    await page.getByRole('button', { name: 'Check recording', exact: true }).waitFor();
   },
   stale: async (page) => {
     // ?mockCoverage=stale marks Chapter 4's check stale (main.tsx).
@@ -205,10 +205,10 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await openPanel(page, '/', page.getByText('Proofing readiness'), 'Chapter 9');
     await clickVisible(page, 'button', 'Choose rendered file');
     await clickVisible(page, 'button', 'Measure');
-    // Scoped to the section itself: a page-wide /Measured/ also matches a delivery check's own
+    // Scoped to the section itself: a page-wide /measured/ also matches a delivery check's own
     // "Measured <timestamp>" evidence line elsewhere on this same chapter's page.
     const renderedFileSection = page.getByRole('heading', { name: 'Rendered file' }).locator('xpath=..');
-    const measured = renderedFileSection.getByText(/Measured/);
+    const measured = renderedFileSection.getByText(/· measured/);
     await measured.waitFor();
     await measured.scrollIntoViewIfNeeded();
   },
