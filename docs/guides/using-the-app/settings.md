@@ -38,7 +38,7 @@ says how many it holds.
 
 ## Find a setting
 
-At the top right, the **Search settings** box and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
 whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
@@ -287,7 +287,8 @@ the day the app last looked), any problem right under it, and the buttons in one
 - **Update channel** (a row above): *Candidates and stable* (the default; every release so far is a release candidate) or *Stable only*.
 - **Download update** asks first, then downloads the new version with a progress bar showing the megabytes received, and
   checks it against the release's checksum. You can cancel while it downloads; the checks and unpacking after it cannot be
-  cancelled, and the dialog says so.
+  cancelled, and the dialog says so. If the download fails, the dialog says why and offers **Retry** beside **Close**,
+  which starts the download again.
 - **Install and restart** asks again, then closes the app and starts it again on the new version with the same
   project. It will not install while an import, a Story Bible build, a download, a comparison or a teleprompter session is
   running: finish or stop it and try again. If the new version does not start, the previous one comes back by itself.

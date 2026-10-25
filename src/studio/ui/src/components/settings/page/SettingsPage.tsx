@@ -262,6 +262,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
           <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
             <div className="w-[260px] min-w-0 flex-[1_1_180px]">
               <SearchField
+                leadingIcon
                 label="Search settings"
                 placeholder="Search settings"
                 value={query}
