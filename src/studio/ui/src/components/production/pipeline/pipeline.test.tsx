@@ -52,7 +52,9 @@ describe('PipelineTable', () => {
     const grid = screen.getByRole('table', { name: 'Chapter pipeline' });
     expect(within(grid).getAllByRole('row')).toHaveLength(MID_BOOK.length + 1);
     const widths = Array.from(grid.querySelectorAll('col')).map((col) => col.style.width);
-    expect(widths.slice(2)).toEqual(Array(7).fill('5rem'));
+    // Every stage column holds its cell and 4 px either side; the last also holds the card's 16 px edge (alignment audit XPR2-10).
+    expect(widths.slice(2, 8)).toEqual(Array(6).fill('3.75rem'));
+    expect(widths[8]).toBe('4.5rem');
     expect(widths[1]).toBe('4rem');
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
       expect.arrayContaining(['Chapter', 'Prep', 'Record', 'Edit', 'Proof', 'Pickups', 'Master', 'QC']),
@@ -100,6 +102,18 @@ describe('PipelineTable', () => {
     const region = screen.getByRole('group', { name: 'Chapter pipeline scroll area' });
     expect(region.tabIndex).toBe(0);
     expect(region.className).toContain('overflow-x-auto');
+    // It says it scrolls: a shadow on the side with more (R4TA-1), and the names stay pinned while the stages move.
+    expect(region.className).toContain('scroll-x-edges');
+    expect(screen.getByRole('columnheader', { name: 'Chapter' }).className).toContain('sticky');
+  });
+
+  it('readiness-chip-inside-its-cell: the chip shares the stage cell instead of hanging off its corner, and the cell gives it room', () => {
+    table();
+    const chip = document.querySelector<HTMLElement>('[data-rchip="c4"]')!;
+    const cell = screen.getByRole('button', { name: /^Chapter 4: Record 50% recorded$/ });
+    expect(chip.closest('.absolute')).toBeNull();
+    expect(chip.parentElement!.parentElement).toBe(cell.parentElement!.parentElement);
+    expect(cell.className).toContain('min-w-0!');
   });
 });
 

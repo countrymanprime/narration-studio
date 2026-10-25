@@ -86,7 +86,7 @@ measured file fails the delivery check, with each failed check, its value and it
 
 ## Chapter pipeline
 
-The pipeline has one row per narration chapter. **Fin.** is the chapter's estimated finished
+The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Fin.** is the chapter's estimated finished
 length; its Record cell's tip has the measured one. **Record**, **Edit** and **Proof** show a check
 mark (✓) for a stage done, a half circle for the stage under way and a dash for one not started.
 **Prep** is the chapter's prep state from [Script](script.md): a check mark when prepped, a half
@@ -97,7 +97,7 @@ read says "Not measured yet". A cell's colour is the colour of its status everyw
 amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
 check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
 
-The chip on the chapter's current-stage cell is its [readiness](#stage-readiness).
+The round chip inside the chapter's current-stage cell, beside the stage, is its [readiness](#stage-readiness).
 
 Right-click a row (or press the Menu key or Shift+F10 on one of its cells) for the chapter's menu:
 **Open prep in Script**, **Open in Booth**, **Open Proof**, **Open Master & QC**, **Go to this
