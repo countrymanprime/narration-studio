@@ -46,6 +46,22 @@ describe('KeyHints', () => {
   });
 
   // XED-25: a toast covered the right end of the shell's key-hint footer.
+  it('in the shell footer, is not drawn below 860 px, a touch width (R3PF-17); drawn where it stands, it stays', () => {
+    render(<KeyHints hints={[{ keys: ['Space'], label: 'Play' }]} />);
+    expect(screen.getByRole('note').className).not.toContain('max-[860px]:hidden');
+    cleanup();
+    const footer = document.createElement('footer');
+    document.body.append(footer);
+    render(
+      <PageFooterProvider value={footer}>
+        <KeyHints hints={[{ keys: ['Space'], label: 'Play' }]} />
+      </PageFooterProvider>,
+    );
+    expect(footer.querySelector('[role="note"]')?.className).toContain('max-[860px]:hidden');
+    cleanup();
+    footer.remove();
+  });
+
   it("in the shell's page footer, makes the toasts keep clear of it; drawn where it stands, leaves that to its own footer", () => {
     document.documentElement.style.removeProperty('--toast-clear');
     render(<KeyHints hints={[{ keys: ['Space'], label: 'Play' }]} />);
