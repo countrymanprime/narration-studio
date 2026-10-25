@@ -13,7 +13,7 @@ const MaxUndoLastSteps = 12
 // UndoKinds are the action kinds last_action and undo_last name: the keys of narration_bridge_core.lua's undo label table, which
 // the script maps to the label its command closes its undo block with, and record_take, the points REAPER made for the take the
 // app recorded last (narration_transport.lua keeps them). The host never sends a label.
-var UndoKinds = map[string]bool{"cut_range": true, "record_take": true}
+var UndoKinds = map[string]bool{"cut_range": true, "replace_range": true, "restore_replacement": true, "record_take": true}
 
 // ErrUndoKind is a kind not in UndoKinds: nothing was sent.
 var ErrUndoKind = errors.New("that is not an action kind this app can read or undo in REAPER")

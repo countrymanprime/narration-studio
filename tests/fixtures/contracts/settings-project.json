@@ -717,6 +717,20 @@
       "kind": "choice",
       "label": "Show the input and output levels",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.replace_range",
+      "kind": "choice",
+      "label": "Replace words with another narrator's audio",
+      "value": ""
     }
   ],
   "Editing": [
