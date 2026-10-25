@@ -43,7 +43,7 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
 Each line is a tall row with 36 px buttons on its first line of text, and each chapter's group row is tinted. The columns keep
 their places when a line is recorded or left out. In a window narrower than the tablet width each line is a block instead: its box,
 time, type, source, status and buttons on one line and the words under them (on a phone width the buttons take a line of
-their own).
+their own). The blocks still share their columns, so every line's source and status start at one place.
 
 Select a line and, under it, **In the script** shows where it is: its paragraph with the line's words marked, and the
 paragraphs before and after it, greyed. With it are two buttons for a line that came from a note on [Proof](proof.md):

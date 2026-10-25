@@ -86,3 +86,22 @@ test('Pickups / at the reflow width a row stacks with nothing cut off / reflow',
   expect(fits.lineUnderTime, 'the line is under its time').toBe(true);
   expect(fits.lineWidth, 'the line has the width of the card').toBeGreaterThan(250);
 });
+
+// Stacked, the rows share their columns: a short chip ("Noise") does not pull its row's source and status left of the others (alignment
+// audit A3, marked-recorded at 768 and 390 px).
+for (const size of [
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'reflow', width: 390, height: 844 },
+]) {
+  test(`Pickups / stacked rows share their columns / ${size.name}`, async ({ page }) => {
+    await open(page, 'marked-recorded', size.width, size.height);
+    const lefts = await card(page)
+      .locator('tr[data-pk]')
+      .evaluateAll((rows) => rows.map((row) => [...row.children].slice(0, 6).map((cell) => Math.round(cell.getBoundingClientRect().left))));
+    expect(lefts.length, 'the chapter has several pickups').toBeGreaterThanOrEqual(3);
+    for (const column of [1, 2, 4, 5]) {
+      const xs = lefts.map((row) => row[column]!);
+      expect(Math.max(...xs) - Math.min(...xs), `column ${column + 1} starts at one x (${xs.join(', ')})`).toBeLessThanOrEqual(1);
+    }
+  });
+}
