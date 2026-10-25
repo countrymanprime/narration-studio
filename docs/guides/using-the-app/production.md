@@ -191,8 +191,8 @@ and is kept until you move the slider. A chapter's own **Check options** keeps t
 processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
 
-The dialog scrolls when the window is short, but **Audio to check** (the recorded time of the ticked chapters, or **Not measured**) and the buttons stay in view
-under it. It gives no estimate of how long the check will take. The line by the buttons says what a check adds: skipped, changed or unclear lines become pickups.
+The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** stay in view
+under them. It gives no estimate of how long the check will take. While it runs, each chapter has its bar under its name, and **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card has the same **Stop checking**.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 
