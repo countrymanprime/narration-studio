@@ -197,11 +197,14 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByTitle('Preview of the report').waitFor();
     await dialog.getByRole('checkbox', { name: 'Contracted amount and effective rate' }).waitFor();
   },
-  // The options a chapter's own panel shares with the Check recordings dialog, opened from the closed "Check options" line.
+  // The options a chapter's own panel shares with the Check recordings dialog, opened from the closed "Check options" line at the panel's
+  // foot, then scrolled to the top of the panel so the shot shows them, not the result above them.
   'recording-check-options': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 4');
-    await dialog.getByText('Check options').click();
+    const toggle = dialog.getByRole('button', { name: /^Check options/ });
+    await toggle.click();
     await dialog.getByRole('combobox', { name: 'Chapters at once' }).waitFor();
+    await toggle.evaluate((node) => node.scrollIntoView({ block: 'start' }));
   },
   // The rules the check judges by, opened from the jump menu on Production: the last of them, the background switch, is in the picture.
   'recording-check-rules': async (page) => {
