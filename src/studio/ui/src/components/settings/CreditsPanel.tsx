@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
-import { CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
+import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
 import { Button } from '../primitives/Button';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
@@ -246,44 +246,47 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         <h3 id="credits-templates-heading" className={CREDITS_HEADING}>
           Templates
         </h3>
-        <div className="flex flex-wrap items-end gap-2">
-          <Select
-            label="Template"
-            value={selectedId}
-            onChange={setSelectedId}
-            fullWidth
-            options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}
-          />
-          <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={newTemplate}>
-            New
-          </Button>
-          <Button variant="secondary" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void duplicateTemplate()}>
-            Duplicate
-          </Button>
-          <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void deleteTemplate()}>
-            Delete
-          </Button>
-        </div>
-        <Field
-          label="Name"
-          value={draftName}
-          onChange={(value) => {
-            setDraftName(value);
-            setTemplateDirty(true);
-          }}
-        />
-        <div className="text-[0.82rem] font-medium text-[var(--text-muted)]">
-          Kind
-          <Select
-            label="Kind"
-            value={draftKind}
+        {/* The template's short fields keep a field's width, not the row's, now the editor spans the row (XSE2-11). */}
+        <div className={`${CREDITS_FIELDS} flex flex-col gap-3`} data-credits-fields>
+          <div className="flex flex-wrap items-end gap-2">
+            <Select
+              label="Template"
+              value={selectedId}
+              onChange={setSelectedId}
+              fullWidth
+              options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}
+            />
+            <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={newTemplate}>
+              New
+            </Button>
+            <Button variant="secondary" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void duplicateTemplate()}>
+              Duplicate
+            </Button>
+            <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void deleteTemplate()}>
+              Delete
+            </Button>
+          </div>
+          <Field
+            label="Name"
+            value={draftName}
             onChange={(value) => {
-              setDraftKind(value);
+              setDraftName(value);
               setTemplateDirty(true);
             }}
-            options={KIND_OPTIONS}
-            fullWidth
           />
+          <div className="text-[0.82rem] font-medium text-[var(--text-muted)]">
+            Kind
+            <Select
+              label="Kind"
+              value={draftKind}
+              onChange={(value) => {
+                setDraftKind(value);
+                setTemplateDirty(true);
+              }}
+              options={KIND_OPTIONS}
+              fullWidth
+            />
+          </div>
         </div>
         <Field
           label="Body"

@@ -177,9 +177,9 @@ describe('Para', () => {
       expect(container.querySelector('[data-gutter]')?.textContent).toBe('ribbon');
     });
 
-    it('hangs the gutter outside the text, so the text starts at the paragraph edge, with 6 px above and below', () => {
+    it('hangs the gutter outside the text, centred in its 24 px inset, so the text starts at the paragraph edge, with 6 px above and below', () => {
       const { container } = render(<Para paragraph={para} layers={[]} />);
-      expect(container.querySelector('[data-gutter]')?.className).toContain('left-[-19px]');
+      expect(container.querySelector('[data-gutter]')?.className).toContain('left-[-20px]');
       const box = container.querySelector('[data-para]')!.className;
       expect(box).toContain('py-1.5');
       expect(box).not.toMatch(/\bpl-/);

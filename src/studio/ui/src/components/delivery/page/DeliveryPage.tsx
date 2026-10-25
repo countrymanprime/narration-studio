@@ -94,6 +94,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
             failure={measuring ? undefined : failure}
             build={{ ...build, build: start }}
             showBuilt={built}
+            onOpenMaster={onOpenMaster}
           />
         )}
       </div>

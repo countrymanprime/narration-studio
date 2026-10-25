@@ -571,7 +571,7 @@
     "state": "reader-text",
     "viewport": "desktop",
     "docName": "settings-reader-text",
-    "caption": "Settings - Reader text: font, size, line spacing and column width over the preview quote"
+    "caption": "Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote"
   },
   {
     "page": "settings",

@@ -411,7 +411,7 @@ function ScriptWorkspace({
       return (
         <>
           {sample?.chapterIds.has(chapter.id) && (
-            <span className="mb-1 inline-flex w-fit items-center rounded-[var(--radius-tag)] border border-[var(--accent)] px-1.5 py-0.5 font-sans text-xs font-semibold text-[var(--accent-strong)]">
+            <span className="mb-3 inline-flex w-fit items-center rounded-[var(--radius-tag)] border border-[var(--accent)] px-1.5 py-0.5 font-sans text-xs font-semibold text-[var(--accent-strong)]">
               Retail sample
             </span>
           )}
