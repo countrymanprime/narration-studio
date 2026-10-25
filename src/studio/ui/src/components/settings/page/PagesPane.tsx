@@ -6,6 +6,7 @@ import { PAGE_SETTINGS, type PageSetting } from '../registry/pageSettings';
 import { PAGE_LABEL, PAGE_PATH } from '../registry/types';
 import { useSettingsNav } from '../row/SettingsNav';
 import { PageSettingPanel } from './PageSettingPanel';
+import { PaneTitle } from './PaneTitle';
 
 /**
  * Settings that only change what one page does. Each belongs on that page, next to what it changes, but Settings always keeps its
@@ -57,15 +58,10 @@ export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
 export function PagesPane({ lit: _lit }: { lit?: string | null }) {
   return (
     <>
-      <div>
-        <h2 id="settings-heading" tabIndex={-1} className="font-['Barlow_Condensed',sans-serif] text-[1.875rem] leading-[1.1] font-semibold outline-none">
-          Set on a page
-        </h2>
-        <p className="m-0 max-w-[62ch] text-[0.8125rem] text-[var(--text-muted)]">
-          Each of these only changes what one page does, so it belongs on that page, next to what it changes. Settings keeps every one of them: you can change
-          it here, and a page may offer a shortcut to the same setting. Search finds them too.
-        </p>
-      </div>
+      <PaneTitle
+        title="Set on a page"
+        blurb="Each of these only changes what one page does, so it belongs on that page, next to what it changes. Settings keeps every one of them: you can change it here, and a page may offer a shortcut to the same setting. Search finds them too."
+      />
       <PageSettingList items={PAGE_SETTINGS} />
     </>
   );

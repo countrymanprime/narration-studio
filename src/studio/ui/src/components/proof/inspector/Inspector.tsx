@@ -7,6 +7,7 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 import { categoryLabel, noteTime, repeatOf } from '../findingFormat';
 import { fixKindOf, savedMessage } from '../resolution';
 import { DecisionButtons } from './DecisionButtons';
+import { DIFF_CLASS, quoteClass } from './quoteStyle';
 import { EvidenceChangedBanner } from './EvidenceChangedBanner';
 import { FindingThread, type FindingThreadApi } from './FindingThread';
 import { evidenceQuotes, parseMarkup, type MarkupNode } from './evidenceQuotes';
@@ -26,21 +27,19 @@ function Markup({ nodes }: { nodes: MarkupNode[] }) {
     if (typeof node === 'string') return node;
     const Tag = node.tag;
     return (
-      <Tag key={index} className={node.tag === 'b' || node.tag === 'del' || node.tag === 'ins' ? 'font-semibold' : undefined}>
+      <Tag key={index} className={node.tag === 'b' ? 'font-semibold' : node.tag in DIFF_CLASS ? DIFF_CLASS[node.tag as keyof typeof DIFF_CLASS] : undefined}>
         <Markup nodes={node.children} />
       </Tag>
     );
   });
 }
 
+/** What the script says and what was heard: read-only text on the card's raised fill, never a field's border (alignment audit R4TB-5). */
 function Quote({ label, markup, which }: { label: string; markup: string; which: 'script' | 'heard' }) {
   return (
     <>
       <SectionLabel>{label}</SectionLabel>
-      <p
-        data-quote={which}
-        className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-sm [overflow-wrap:anywhere]"
-      >
+      <p data-quote={which} className={quoteClass('raised')}>
         {markup === '' ? (
           <span className="text-[var(--text-muted)]">{which === 'heard' ? 'Nothing heard' : 'Nothing in the script'}</span>
         ) : (
