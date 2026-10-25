@@ -1,4 +1,9 @@
-"""The Story Bible ``build`` writes for the Alice fixture, pinned by its hash, and the ``suggest`` sources the sidecar still runs.
+"""The Story Bible ``build`` writes for the Alice fixture, pinned by its hash, the file it writes for every recorded build of
+tests/fixtures/guide-cues, and the ``suggest`` sources the sidecar still runs.
+
+The dialogue cues moved into the host (src/studio/desktop/internal/guide/cues.go, #2251 step 3): a build keeps the file's cues as they
+were, and the host finds them against the new entries as soon as it ends. ``BuildKeepsTheCuesTests`` pins this half byte for byte; the
+host's TestBuildThenRefreshIsTodaysBuild pins that the refresh then leaves the file the build wrote while it found the cues itself.
 
 The rules source moved into the host (src/studio/desktop/internal/guide/rules.go, #2251 step 3), so ``suggest`` takes
 ``--source gliner`` or ``--source booknlp`` only; the host's TestRuleSuggestionsWriteNothing and the frozen cases in
@@ -15,6 +20,7 @@ import re
 import sys
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -78,8 +84,10 @@ def _alice_chapters() -> list[tuple[str, list[str]]]:
 # The SHA-256 of the Story Bible `build` writes for the Alice fixture (rules only, pronunciation stubbed, the
 # timestamp and the absolute manuscript path left out), taken on main before the rules' suggest command (SN-X32) and again when the
 # product name in the fixture manuscript changed (it moves `source.sha256` only), and again when the build's cues began suggesting
-# nearby speakers (it moves `dialogue_cues` only). Moving the rules' suggest command into the host left it as it was.
-ALICE_BUILD_SHA256 = "d0cae357cdc9a01683f384e9545a5013c42bcefc2d655626d61faae68062765b"
+# nearby speakers (it moves `dialogue_cues` only). Moving the rules' suggest command into the host left it as it was. Moving the cues
+# into the host moved it once more: the build now writes the file's old cues (none, for a first build), and the host's refresh writes
+# the ones the build wrote before (TestBuildThenRefreshIsTodaysBuild, which pins it on Alice too).
+ALICE_BUILD_SHA256 = "d3d875c914434f57201f04559fef776e3113ceac67d1f6028c47364bb5f32731"
 
 
 class BuildIsUnchangedTests(unittest.TestCase):
@@ -101,6 +109,62 @@ class BuildIsUnchangedTests(unittest.TestCase):
             digest = hashlib.sha256(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")).hexdigest()
             self.assertEqual(ALICE_BUILD_SHA256, digest)
             self.assertTrue(re.match(r"\d{4}-", json.loads(written)["generated_at"]))
+
+
+class _FixedClock(datetime):
+    """The clock the builds of tests/fixtures/guide-cues were recorded at."""
+
+    @classmethod
+    def now(cls, tz=None):
+        return datetime(2026, 10, 25, 12, 0, 0, 123456, tzinfo=UTC)
+
+
+class BuildKeepsTheCuesTests(unittest.TestCase):
+    def test_every_recorded_build_writes_the_recorded_file(self):
+        folder = REPO / "tests" / "fixtures" / "guide-cues"
+        cases = [json.loads(line) for line in (folder / "builds.jsonl").read_text(encoding="utf-8").split("\n") if line]
+        results = json.loads((folder / "builds.golden.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(cases), len(results))
+        self.assertGreater(len(cases), 140)
+        for case, want in zip(cases, results, strict=True):
+            with self.subTest(case["name"]), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                manuscript = root / "manuscript.json"
+                text = (REPO / case["manuscriptPath"]).read_text(encoding="utf-8") if "manuscriptPath" in case else case["manuscript"]
+                manuscript.write_bytes(text.encode("utf-8"))
+                out = root / "ManuscriptGuide" / "manuscript_guide.json"
+                previous = (REPO / case["previousPath"]).read_text(encoding="utf-8") if "previousPath" in case else case["previous"]
+                if previous is not None:
+                    out.parent.mkdir(parents=True)
+                    out.write_bytes(previous.encode("utf-8"))
+                args = argparse.Namespace(
+                    manuscript=str(manuscript), out=str(out), progress=None, spacy_model=guide.RULES_ONLY, espeak_library="", default_source=""
+                )
+                with (
+                    patch.object(guide, "pronunciation", return_value={}),
+                    patch.object(guide, "datetime", _FixedClock),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    if want["cutExit"]:
+                        with self.assertRaises(Exception):  # noqa: B017 - the build failed before the cues, now as then
+                            guide.build(args)
+                        continue
+                    guide.build(args)
+                written = out.read_text(encoding="utf-8").replace(json.dumps(str(manuscript.resolve()))[1:-1], "@MANUSCRIPT@")
+                self.assertEqual(_untied(want["cut"]), _untied(written))
+
+
+def _untied(text: str) -> str:
+    """The file, with vocabulary_candidates in code point order when two of them fold to the same case: vocabulary_candidates sorts a
+    set by str.casefold, so the order of "Ada" and "ADA" is the set's, which changes with the process's hash seed. Every other file is
+    compared byte for byte."""
+    data = json.loads(text)
+    words = data.get("vocabulary_candidates", [])
+    if len({word.casefold() for word in words}) == len(words):
+        return text
+    data["vocabulary_candidates"] = sorted(words)
+    return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
 
 
 class SuggestSourcesTests(unittest.TestCase):

@@ -43,13 +43,10 @@ func runFakeSidecar(mode string) int {
 			_ = file.Close()
 		}
 	}
-	switch mode {
-	case "cues":
-		_ = os.WriteFile(flagValue(os.Args[1:], "--guide"), []byte(`{"entities":[],"dialogue_cues":[{"id":"cue-new","chapterId":"c1","paragraphId":"p1","quote_start":0,"quote_end":7,"quote_text":"Hello","speaker_entity_id":null,"speaker_source":"unknown","evidence":{},"corrected":false}]}`), 0o600)
-		fmt.Println("CUES|1|0")
-		return 0
-	case "cues-garbled":
-		fmt.Println("CUES|two|1")
+	if mode == "build" {
+		// The sidecar's build: new entries, the file's dialogue cues kept as they were.
+		_ = os.WriteFile(flagValue(os.Args[1:], "--out"), []byte(`{"schema_version": 2, "entities": [{"id": "entity-ada", "canonical_name": "Ada", "category": "Character"}], "dialogue_cues": [], "absorbed_names": {}}`), 0o600)
+		fmt.Println("BUILT|1|out")
 		return 0
 	}
 	if mode == "candidate" {
