@@ -10,16 +10,6 @@ import type { LayoutDebt } from './lib/validators';
 // Kept apart from the capture machinery under lib/, and reached by the capture through `layoutDebt` in app.drivers.ts.
 
 export const LAYOUT_DEBT: LayoutDebt[] = [
-  // A3: cells of like rows share no column (left, right or centre).
-  {
-    page: 'editing',
-    state: 'drawer-effects-inspector',
-    viewports: ['desktop', 'small-desktop', 'tablet'],
-    rule: 'A3',
-    element: 'div > section[aria-label="Effect"]',
-    defect:
-      'desktop: cell 2 of like rows starts at 1329, 1168.5; small-desktop: cell 2 of like rows starts at 905, 736.5; tablet: cell 2 of like rows starts at 649, 480.5',
-  },
   // G2: a flush table's text does not start where its card's title starts.
   {
     page: 'script',
