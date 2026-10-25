@@ -100,18 +100,30 @@ func (c Chapter) Heading() string {
 	return strings.Join(parts, " ")
 }
 
-// LoadManuscriptChapters is compare.py's load_manuscript_chapters: the
-// canonical manuscript at path, validated the way
-// narration_common.manuscript.load_file validates it, as its narration
-// chapters that have paragraphs, in file order. The errors are the sidecar's
-// own sentences.
-func LoadManuscriptChapters(path string) ([]Chapter, error) {
+// Manuscript is the canonical manuscript as narration_common.manuscript.load_file returns it once validated: each
+// chapter record as written, and each paragraph.
+type Manuscript struct {
+	Chapters   []json.RawMessage
+	Paragraphs []Paragraph
+}
+
+// Paragraph is one validated paragraph record; Index is its "index" as written (nil when it has none).
+type Paragraph struct {
+	ID        string          `json:"id"`
+	ChapterID string          `json:"chapterId"`
+	Text      string          `json:"text"`
+	Index     json.RawMessage `json:"index"`
+}
+
+// LoadManuscript is narration_common.manuscript.load_file: the canonical manuscript at path, validated, with the
+// module's own sentences as errors.
+func LoadManuscript(path string) (Manuscript, error) {
 	raw, err := ReadBounded(path)
 	if err != nil {
 		if info, statErr := os.Stat(path); statErr != nil || !info.Mode().IsRegular() {
-			return nil, sentence("Import a manuscript first.")
+			return Manuscript{}, sentence("Import a manuscript first.")
 		}
-		return nil, sentence("The canonical manuscript data could not be read.")
+		return Manuscript{}, sentence("The canonical manuscript data could not be read.")
 	}
 	var data struct {
 		SchemaVersion json.RawMessage   `json:"schemaVersion"`
@@ -120,34 +132,24 @@ func LoadManuscriptChapters(path string) ([]Chapter, error) {
 		Paragraphs    []json.RawMessage `json:"paragraphs"`
 	}
 	if !utf8.Valid(raw) || json.Unmarshal(raw, &data) != nil {
-		return nil, sentence("The canonical manuscript data could not be read.")
+		return Manuscript{}, sentence("The canonical manuscript data could not be read.")
 	}
 	if !IsVersionOne(data.SchemaVersion) {
-		return nil, sentence("This manuscript data uses an unsupported schema version.")
+		return Manuscript{}, sentence("This manuscript data uses an unsupported schema version.")
 	}
 	if _, ok := JSONString(data.DocumentID); !ok || data.Chapters == nil || data.Paragraphs == nil {
-		return nil, sentence("The canonical manuscript data is invalid.")
-	}
-	type chapterRecord struct {
-		ID          *string         `json:"id"`
-		Title       json.RawMessage `json:"title"`
-		Subtitle    json.RawMessage `json:"subtitle"`
-		ContentKind json.RawMessage `json:"contentKind"`
+		return Manuscript{}, sentence("The canonical manuscript data is invalid.")
 	}
 	chapterIDs := map[string]bool{}
-	records := make([]chapterRecord, len(data.Chapters))
-	for k, rawChapter := range data.Chapters {
-		if json.Unmarshal(rawChapter, &records[k]) == nil && records[k].ID != nil {
-			chapterIDs[*records[k].ID] = true
+	for _, rawChapter := range data.Chapters {
+		var record struct {
+			ID *string `json:"id"`
+		}
+		if json.Unmarshal(rawChapter, &record) == nil && record.ID != nil {
+			chapterIDs[*record.ID] = true
 		}
 	}
-	type paragraphRecord struct {
-		ID        string          `json:"id"`
-		ChapterID string          `json:"chapterId"`
-		Text      string          `json:"text"`
-		Index     json.RawMessage `json:"index"`
-	}
-	paragraphs := make([]paragraphRecord, len(data.Paragraphs))
+	paragraphs := make([]Paragraph, len(data.Paragraphs))
 	seen := map[string]bool{}
 	for k, rawParagraph := range data.Paragraphs {
 		var fields map[string]json.RawMessage
@@ -163,10 +165,34 @@ func LoadManuscriptChapters(path string) ([]Chapter, error) {
 			invalid = seen[paragraphs[k].ID] || !chapterIDs[paragraphs[k].ChapterID]
 		}
 		if invalid {
-			return nil, sentence("The canonical manuscript has invalid paragraph records.")
+			return Manuscript{}, sentence("The canonical manuscript has invalid paragraph records.")
 		}
 		seen[paragraphs[k].ID] = true
 	}
+	return Manuscript{Chapters: data.Chapters, Paragraphs: paragraphs}, nil
+}
+
+// LoadManuscriptChapters is compare.py's load_manuscript_chapters: the
+// canonical manuscript at path, validated the way
+// narration_common.manuscript.load_file validates it, as its narration
+// chapters that have paragraphs, in file order. The errors are the sidecar's
+// own sentences.
+func LoadManuscriptChapters(path string) ([]Chapter, error) {
+	data, err := LoadManuscript(path)
+	if err != nil {
+		return nil, err
+	}
+	type chapterRecord struct {
+		ID          *string         `json:"id"`
+		Title       json.RawMessage `json:"title"`
+		Subtitle    json.RawMessage `json:"subtitle"`
+		ContentKind json.RawMessage `json:"contentKind"`
+	}
+	records := make([]chapterRecord, len(data.Chapters))
+	for k, rawChapter := range data.Chapters {
+		_ = json.Unmarshal(rawChapter, &records[k])
+	}
+	paragraphs := data.Paragraphs
 
 	narration := map[string]*Chapter{}
 	order := []string{}

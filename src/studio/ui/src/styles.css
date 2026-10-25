@@ -208,6 +208,9 @@ html[data-motion='reduce'] {
      --surface-2 on --surface was all but invisible (alignment audit cause K). */
   --skeleton: var(--surface-2);
   --skeleton-sweep: var(--border);
+  /* The page gutter: the top bar's content and the page's content start this far in from the main column's edges, so the bar's first
+     item sits over the page title (alignment audit cause J). */
+  --page-gutter: 1rem;
   /* Every one-line control (text box, select, date, button) shares one height, so neighbours on a row line up. */
   --control-height: var(--button-height); /* 36 */
   --control-height-sm: var(--button-height-sm); /* 32 */
