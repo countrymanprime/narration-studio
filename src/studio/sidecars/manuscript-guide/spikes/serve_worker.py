@@ -1,8 +1,8 @@
 """Spike, not shipped: a warm stdio worker for ``manuscript_guide.py`` (docs/research/story-bible-mutation-path.md).
 
 It runs the sidecar's own command line in one long-lived process instead of one process per command, so a Story Bible mutation
-pays the interpreter start and the module import once. Nothing in the app starts it; the Go spike in
-``src/studio/desktop/internal/spike/guidemutation`` drives it under the ``spike`` build tag to measure it.
+pays the interpreter start and the module import once. Nothing in the app starts it. The Go spike that drove it to measure it
+(``src/studio/desktop/internal/spike/guidemutation``) was deleted once the edits moved into the host; it is at commit ``ccd695354``.
 
 The protocol is NDJSON over stdin and stdout, one request and one response per line, answered in order:
 
