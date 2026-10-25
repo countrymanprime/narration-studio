@@ -171,6 +171,15 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
     [manuscriptChapter],
   );
 
+  // The chapter's recording check, for the readiness panel of a chapter whose recording nothing has checked yet.
+  const openRecordingCheck = useCallback(
+    (chapterId: string) => {
+      const chapter = manuscriptChapter(chapterId);
+      if (chapter) setOpen({ kind: 'recording', chapter });
+    },
+    [manuscriptChapter],
+  );
+
   // The items close over the latest state, read when the menu opens.
   const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack });
   latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack };
@@ -302,5 +311,5 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
 
   const openCredits = useCallback((kind: CreditsKind) => setOpen({ kind: 'credits', credits: kind }), []);
 
-  return { panels, trackLinks, reload, openEditingCheck, openCredits };
+  return { panels, trackLinks, reload, openEditingCheck, openRecordingCheck, openCredits };
 }
