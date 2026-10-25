@@ -119,6 +119,17 @@ describe('the Effects tab favourites', () => {
     expect(toggle).toHaveBeenCalledWith('Air.RfxChain');
   });
 
+  // Alignment audit XED-16, R3ED-18: the list's source is a section label, each row is the name then its Favourite, 8 px apart.
+  it('labels the list like a section and puts each chain’s name before its Favourite', () => {
+    render(<AddEffect hasSelection reason="" impact={null} cap={10} list={LIST} onAdd={vi.fn()} favourites={{ names: [], toggle: vi.fn(), error: '' }} />);
+    const group = screen.getByRole('group', { name: LIST.source });
+    const items = within(group).getAllByRole('listitem');
+    for (const item of items) expect(item.lastElementChild!.tagName).toBe('BUTTON');
+    expect(items[0].parentElement!.className).toContain('gap-2');
+    expect(within(group).getByText(LIST.source).className).toMatch(/uppercase/);
+    expect(screen.queryByText(/›/)).toBeNull();
+  });
+
   it('writes the settings problem under the list', () => {
     render(
       <AddEffect
