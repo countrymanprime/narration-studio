@@ -1,6 +1,7 @@
-import { Fragment, memo, useEffect } from 'react';
+import { Fragment, memo, useContext, useEffect } from 'react';
 import { clockText } from '../../booth/boothProgress';
 import { useSampleMarksValue } from '../voicesample/sampleMarksContext';
+import { ReplacementMarksContext } from '../range/replace/replacementMarks';
 import type { DocPara } from './types';
 import { useParagraphNotes } from './paragraphNotes';
 import { SpeakerChip } from './SpeakerChip';
@@ -29,6 +30,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
   });
   const notes = useParagraphNotes(dp.p.id, dp.p.text);
   const sampleMarks = useSampleMarksValue()?.marks.at;
+  const replaced = useContext(ReplacementMarksContext)?.at;
   const nowIdx = nowKey ? dp.items.findIndex((i) => i.key === nowKey) : -1;
   const index = new Map(dp.items.map((i, k) => [i.key, k]));
   return (
@@ -65,6 +67,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
                   note={it.tok ? notes.at(it.tok.s, it.tok.s + it.tok.text.length) : undefined}
                   fxEnd={it.fx.length > 0 && !it.cut && !(next && !next.cut && next.fx.includes(it.fx[0]))}
                   samples={sampleMarks?.get(it.key)}
+                  replacedEnd={replaced?.has(it.key)}
                 />
               );
             })}

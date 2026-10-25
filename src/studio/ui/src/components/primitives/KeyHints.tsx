@@ -15,8 +15,9 @@ export interface KeyHintItem {
   id?: string;
 }
 
-// The standard footer of key reminders (rule 3): one centred row of small hints along the bottom of the page, in the shell's page
-// footer, outside the content, so the page itself stays quiet. It has a tone of its own, a touch raised from the page, and a line
+// The standard footer of key reminders (rule 3): a row of small hints along the bottom of the page, in the shell's page
+// footer, outside the content, so the page itself stays quiet. It starts at the left like the page's own text, so a hint that wraps
+// starts the next line there too rather than leaving a centred orphan (alignment audit cause M). It has a tone of its own, a touch raised from the page, and a line
 // above it. The list is data only: the page decides what to remind, `KeyChord` decides how a key is drawn.
 export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: string; children?: ReactNode }) {
   const footer = useContext(PageFooterContext);
@@ -25,7 +26,7 @@ export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: s
       id={id}
       role="note"
       aria-label="Keyboard shortcuts"
-      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--text)_5%,var(--bg))] px-4 py-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif] text-xs leading-snug text-[var(--text-muted)]"
+      className="flex flex-wrap items-center justify-start gap-x-4 gap-y-1 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--text)_5%,var(--bg))] px-4 py-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif] text-xs leading-snug text-[var(--text-muted)]"
     >
       {hints.map((hint) => (
         <span key={hint.label} id={hint.id} className="inline-flex items-center gap-1 whitespace-nowrap">

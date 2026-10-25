@@ -204,6 +204,13 @@ html[data-motion='reduce'] {
   --shadow: 0 1px 2px rgba(30, 26, 16, 0.06), 0 1px 1px rgba(30, 26, 16, 0.04);
   --shadow-lg: 0 1px 2px rgba(36, 33, 28, 0.08), 0 10px 28px rgba(36, 33, 28, 0.14);
   --control-radius: 0.45rem;
+  /* A loading block and the band that sweeps across it (`Skeleton`). The dark theme draws them a step lighter than its surfaces, where
+     --surface-2 on --surface was all but invisible (alignment audit cause K). */
+  --skeleton: var(--surface-2);
+  --skeleton-sweep: var(--border);
+  /* The page gutter: the top bar's content and the page's content start this far in from the main column's edges, so the bar's first
+     item sits over the page title (alignment audit cause J). */
+  --page-gutter: 1rem;
   --control-height: 2.55rem;
   /* The one layer scale, lowest first (layers.test.ts pins the order). A page panel and its scrim (a Script drawer) sit under the navigation rail,
      so the rail stays clickable with one open and a press on it dismisses the panel. A takeover is a full-window surface (the booth's companion).
@@ -269,6 +276,8 @@ html[data-motion='reduce'] {
   --surface: #1d1a15;
   --surface-2: #26221c;
   --surface-3: #363023;
+  --skeleton: var(--surface-3);
+  --skeleton-sweep: #4a4334;
   --border: #38332a;
   --line-strong: #6d6659; /* the mock's #51493C is 1.96:1 on --surface; 3:1 needed */
   --btn-line: #7a7060;

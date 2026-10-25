@@ -168,7 +168,30 @@ checks `build` still writes each `cut` file. The recorder was deleted with the P
 
 `text-rules.json`: Python 3.12's own answers for the text rules the host needs to follow a read the way the Booth's
 sidecar does ([Go versus Python for the sidecars](../../docs/research/sidecar-go-vs-python.md), step 2). It holds a digest
-of `str.lower`, `re`'s `\w` and `str.isspace` over every code point, with `str.lower` also tried beside a capital sigma
-on both sides, and `spoken_key` over seeded text. `src/studio/libs/python/tests/test_pyunicode_tables.py` writes it
+of `str.lower`, `str.casefold`, `re`'s `\w`, `str.isspace` and `str.isprintable` over every code point, with
+`str.lower` also tried beside a capital sigma on both sides, and `spoken_key` and `repr` over seeded text. `src/studio/libs/python/tests/test_pyunicode_tables.py` writes it
 (`UPDATE_CONTRACTS=1`) and checks that `src/studio/desktop/internal/compare/pyunicode_gen.go` is what
 `scripts/dev/gen-pyunicode.py` generates from the same Python. `internal/compare`'s `pyunicode_test.go` must agree with it.
+
+`tracker-sessions.jsonl` and `tracker-cases.jsonl`: the inputs the host's port of the Booth's script tracker
+(`src/studio/desktop/internal/scripttrack`) is held to. The sessions are every tracker session the teleprompter suite
+drove when they were recorded (2026-10-25, deduplicated) and eight seeded synthetic reads of the coverage manuscript's
+chapters, with restarts, skips, seeks, pauses, wobbling partials and engine times as ints, floats or missing. The cases
+are seeded single calls of `normalize_word`, `words_match`, `SequenceMatcher.ratio`, `locate` and `align`. The
+`.golden.jsonl` beside each holds what `script_tracker.py` answers, one line per input line, written by
+`src/studio/sidecars/manuscript-teleprompter/tests/test_tracker_parity.py` (`UPDATE_CONTRACTS=1`); `scripttrack`'s
+`parity_test.go` must agree with it.
+
+`flag-sessions.jsonl`: flag runs, each a session of `tracker-sessions.jsonl` and the heading length to flag it with
+(every session with none, those the teleprompter suite flagged with the heading it gave, and the synthetic reads with a
+three-word heading). `flag-sessions.golden.jsonl` holds what `flags.py`'s `FlaggingTracker` answers, every operation's
+position and flag events, written by the same test; `scripttrack`'s `flags_parity_test.go` must agree with it.
+
+`chapter-scripts.jsonl`: the calls of `chapter_script.py` the teleprompter suite made when they were recorded
+(2026-10-25, deduplicated), each with the manuscript or text file it read, and seeded synthetic ones: titles holding a
+subtitle after a line break, trailing separators, Unicode case and space, every kind of paragraph index, broken
+manuscripts, and credits text with each line ending. A case that names `manuscriptPath` reads the coverage manuscript
+(4.6 MB) in place and is answered with a digest. `chapter-scripts.golden.jsonl` holds the script (tokens, heading, text
+and `script` event), the `ChapterError` (message and candidates) or the name of any other exception, written by the
+same test; `scripttrack`'s `chapter_parity_test.go` must agree with it, and answers an input Python raised on with a
+`ChapterError` of its own.
