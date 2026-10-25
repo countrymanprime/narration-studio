@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
+import { CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
 import { Button } from '../primitives/Button';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
@@ -13,10 +14,12 @@ import type { Notify } from '../primitives/Toast';
 
 const KIND_LABEL: Record<string, string> = { opening: 'Opening', closing: 'Closing', chapter_announcement: 'Chapter announcement' };
 
-/** The picker's label: the name with its kind, unless the name already says it ("ACX minimum (opening)"). */
+/** The picker's label: the name with its kind, unless the name already says it ("ACX minimum (opening)") or is the kind. */
 function templateLabel(template: { name: string; kind: string }): string {
   const kind = KIND_LABEL[template.kind] ?? template.kind;
-  return template.name.toLowerCase().includes(`(${kind.toLowerCase()})`) ? template.name : `${template.name} (${kind})`;
+  const name = template.name.toLowerCase();
+  // A name that is the kind ("Chapter announcement") or already says it is not followed by the kind again (alignment audit R3SE2-6).
+  return name === kind.toLowerCase() || name.includes(`(${kind.toLowerCase()})`) ? template.name : `${template.name} (${kind})`;
 }
 const KIND_OPTIONS = [
   { value: 'opening', label: 'Opening' },
@@ -232,15 +235,15 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const parts = useMemo(() => (preview ? previewParts(preview) : []), [preview]);
 
   return (
-    <div className="space-y-5 text-sm">
+    <div className="@container flex flex-col gap-4 text-sm">
       {loadError && (
         <div className="rounded-md p-3 text-sm" role="alert" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>
           Credits could not be loaded: {loadError}.
         </div>
       )}
 
-      <section aria-labelledby="credits-templates-heading" className="space-y-3">
-        <h3 id="credits-templates-heading" className="font-medium">
+      <section aria-labelledby="credits-templates-heading" className={CREDITS_SECTION}>
+        <h3 id="credits-templates-heading" className={CREDITS_HEADING}>
           Templates
         </h3>
         <div className="flex flex-wrap items-end gap-2">
@@ -251,13 +254,13 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             fullWidth
             options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}
           />
-          <Button variant="secondary" type="button" disabled={busy} onClick={newTemplate}>
+          <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={newTemplate}>
             New
           </Button>
-          <Button variant="secondary" type="button" disabled={!selected || busy} pending={busy} onClick={() => void duplicateTemplate()}>
+          <Button variant="secondary" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void duplicateTemplate()}>
             Duplicate
           </Button>
-          <Button variant="danger" type="button" disabled={!selected || busy} pending={busy} onClick={() => void deleteTemplate()}>
+          <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void deleteTemplate()}>
             Delete
           </Button>
         </div>
@@ -292,18 +295,18 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           }}
           hint={BODY_HINT[draftKind] ?? DEFAULT_BODY_HINT}
         />
-        <Button variant="primary" type="button" disabled={!templateDirty || busy} pending={busy} onClick={() => void saveTemplate()}>
+        <Button variant="primary" type="button" className="self-start" disabled={!templateDirty || busy} pending={busy} onClick={() => void saveTemplate()}>
           Save template
         </Button>
       </section>
 
-      <section aria-labelledby="credits-preview-heading" className="space-y-2 rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
-        <h3 id="credits-preview-heading" className="font-medium">
+      <section aria-labelledby="credits-preview-heading" className={CREDITS_SECTION}>
+        <h3 id="credits-preview-heading" className={CREDITS_HEADING}>
           Preview
         </h3>
         {preview ? (
           <>
-            <p className="whitespace-pre-wrap">
+            <p className="m-0 rounded-md bg-[var(--surface)] p-3 whitespace-pre-wrap">
               {parts.map((part, index) =>
                 typeof part === 'string' ? (
                   <span key={index}>{part}</span>
@@ -326,35 +329,39 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         )}
       </section>
 
-      <section aria-labelledby="credits-values-heading" className="space-y-3">
-        <h3 id="credits-values-heading" className="font-medium">
+      <section aria-labelledby="credits-values-heading" className={CREDITS_SECTION}>
+        <h3 id="credits-values-heading" className={CREDITS_HEADING}>
           Project values
         </h3>
         <p style={{ color: 'var(--text-muted)' }}>
           The global narrator default is {narratorGlobal ? <strong>{narratorGlobal}</strong> : 'not set (see Settings > General)'}; a narrator override here
           applies only to this project.
         </p>
-        {VALUE_FIELDS.map(({ key, label }) => {
-          const candidate = detected.find((item) => item.token === detectedToken(key));
-          const currentValue = values[key] ?? '';
-          return (
-            <div key={key}>
-              <Field label={label} value={currentValue} disabled={savingKey === key} onChange={(value) => void saveValue(key, value)} />
-              {candidate && !currentValue && (
-                <p className="mt-1 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                  <span>
-                    Detected from {candidate.source}: “{candidate.value}”{candidate.confidence === 'low' ? ' (check this)' : ''}.
-                  </span>
-                  <Button size="sm" variant="secondary" type="button" onClick={() => acceptDetected(key, candidate)}>
-                    Use suggestion
-                  </Button>
-                </p>
-              )}
-            </div>
-          );
-        })}
+        {/* Two short fields to a line once the editor has room for them (XSE2-11). */}
+        <div className="grid gap-3 @lg:grid-cols-2">
+          {VALUE_FIELDS.map(({ key, label }) => {
+            const candidate = detected.find((item) => item.token === detectedToken(key));
+            const currentValue = values[key] ?? '';
+            return (
+              <div key={key}>
+                <Field label={label} value={currentValue} disabled={savingKey === key} onChange={(value) => void saveValue(key, value)} />
+                {candidate && !currentValue && (
+                  <p className="mt-1 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span>
+                      Detected from {candidate.source}: “{candidate.value}”{candidate.confidence === 'low' ? ' (check this)' : ''}.
+                    </span>
+                    <Button size="sm" variant="secondary" type="button" className="flex-none whitespace-nowrap" onClick={() => acceptDetected(key, candidate)}>
+                      Use suggestion
+                    </Button>
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
         <Button
           variant="danger"
+          className="self-start"
           type="button"
           disabled={!VALUE_FIELDS.some(({ key }) => values[key]) || savingKey !== undefined}
           onClick={() => setConfirmingClear(true)}

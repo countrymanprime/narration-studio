@@ -304,34 +304,37 @@ names it as the way to resolve what's unknown.
 
 The panel never starts a check on its own: opening it only reads what the last check already
 found. **Check editing** (**Check again** once one has run) runs the scan with real progress and
-**Cancel**; items already checked are cached, so re-checking after a small edit is fast. Every
-result carries the caveat "Analysis of source audio; take FX, item gain and fades are not
-applied", since REAPER's own processing isn't part of what's analyzed.
+**Cancel** on the same line as the progress; items already checked are cached, so re-checking after a small edit is
+fast. A cancelled check says how far it got ("Stopped after 1 of 3 items"), and while a check runs the results under it
+are headed **Previous result**. A line under the source choice says what the analysis includes: for items, "Analysis
+of source audio; take FX, item gain and fades are not applied", since REAPER's own processing isn't part of what's
+analyzed.
 
 ![Production - the editing check with empty space not met and its open candidates](../../images/ui/production-editing-check.webp)
 
-A chapter's analysis source is your choice: **Items on this chapter's track** (the default) or
-**The rendered file**, a toggle near the top of the panel. Editing happens on items, so items stay
-the default; choosing the render is an explicit second check — its own evidence line always says
-which source was analyzed, and the render check needs a rendered file already chosen for the
+A chapter's analysis source is your choice: **Track items** (the default) or **Rendered file**, a
+toggle at the top of the panel. Editing happens on items, so items stay the default; choosing the
+render is an explicit second check, and the render check needs a rendered file already chosen for the
 chapter (see [Proof](proof.md#delivery-checks) for choosing one). If the render changes, or
 becomes older than a later edit to the chapter's items, the render's own check reads "Can't tell
 yet" until you check it again.
 
-Each of the three classes — Empty space, Click, Breath — has its own state: **Met** (checked, no
+The results list one row per class — Empty space, Click, Breath — each with a badge for its state: **Met** (checked, no
 open candidate remains), **Not met** (one or more open candidates), or **Can't tell yet** with why
 (not checked yet, changed since the last check, no track linked, a maximum gap not set in
 [Settings](settings.md), an item this build can't analyze, or the check running). Click and
-breath read "Not yet validated on the corpus" until their detectors are validated on a labeled
-corpus — a class this build cannot vouch for is never shown as done.
+breath share one row reading "Not yet validated on the corpus" until their detectors are validated on a labeled
+corpus — a class this build cannot vouch for is never shown as done. Once a check has run, one line under the list
+says which saved REAPER project it was based on.
 
 Outside the Editing stage a class shows how many candidates the last check found instead of a state. The candidates
-themselves are heard and worked on the [Editing](editing.md#cleaning-up) page's Clean up tab: **Clean up in Editing**
-opens the chapter there with the drawer on Clean up. **Match levels…** stays in the panel: it previews the linked
-track's items that are off the level target and, after you confirm, changes their volume in REAPER in one undo step.
+themselves are heard and worked on the [Editing](editing.md#cleaning-up) page's Clean up tab: **Clean up in Editing**,
+in the Empty space row whenever it has candidates, opens the chapter there with the drawer on Clean up. **Match
+levels…** stays in the panel: it previews the linked track's items that are off the level target and, after you
+confirm, changes their volume in REAPER in one undo step. While it is off, the reason shows under the button.
 
-If the chapter isn't linked to a track yet, the panel offers the same track picker the recording
-check does, right in place.
+If the chapter isn't linked to a track yet, the panel shows only the same track picker the recording
+check does, right in place; the check and its results come back once the chapter is linked.
 
 ### Chapter sync
 
