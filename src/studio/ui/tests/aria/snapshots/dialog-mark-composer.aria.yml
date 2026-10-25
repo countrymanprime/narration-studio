@@ -1,4 +1,4 @@
-# The Script page's mark composer: a modal form dialog (role dialog, not alertdialog) named for the selected words, with the mark
+# The Script page's mark composer: a modal form dialog (role dialog, not alertdialog) named Mark and the selected words, with the mark
 # type and the note labelled. The page behind it is aria-hidden.
 - /children: equal
 # The live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised from inside a
@@ -10,8 +10,8 @@
 - status
 - alert
 - status
-- dialog "Rabbit":
-  - heading "Rabbit" [level=2]
+- dialog "Mark “Rabbit”":
+  - heading "Mark “Rabbit”" [level=2]
   - button "Close"
   - text: Type
   - combobox "Type":

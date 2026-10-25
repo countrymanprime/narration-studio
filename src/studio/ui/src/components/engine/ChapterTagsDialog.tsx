@@ -3,7 +3,10 @@ import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Dialog } from '../primitives/Dialog';
+import { SectionLabel } from '../primitives/SectionLabel';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { Field } from '../primitives/Field';
+import { ToolResult } from './ToolResult';
 import type { ChapterTagsPreview } from '../../types';
 
 const IDLE: ChapterTagsPreview = { chapters: [], ready: false };
@@ -61,46 +64,39 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       description="Add ID3 chapter markers to a copy of an already-rendered MP3, using the chapter names and lengths from your last chapter render. The file you choose below is never changed; a new, tagged copy is written beside it."
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={embedding}>
+          {/* Once the tagged copy is written, Close is the next step (ENX-28). */}
+          <Button variant={outputPath ? 'primary' : 'secondary'} onClick={onClose} disabled={embedding}>
             Close
           </Button>
-          <Button onClick={embed} disabled={!canEmbed} pending={embedding}>
+          <Button variant={outputPath ? 'secondary' : 'primary'} onClick={embed} disabled={!canEmbed} pending={embedding}>
             Embed chapter tags
           </Button>
         </>
       }
     >
-      {previewError && (
-        <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-          {previewError}
-        </p>
-      )}
+      {previewError && <ToolResult tone="danger" message={previewError} />}
       {!previewError && preview.chapters.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; first.
         </p>
       )}
       {preview.chapters.length > 0 && (
-        <div>
-          <p className="text-sm font-semibold">Chapters from your last chapter render</p>
-          <ul className="mt-1 max-h-32 space-y-0.5 overflow-y-auto text-sm">
+        <section aria-labelledby="chapter-tags-chapters" className="space-y-2">
+          <SectionLabel as="h3" id="chapter-tags-chapters">
+            Chapters from your last chapter render
+          </SectionLabel>
+          <ul className="max-h-32 space-y-0.5 overflow-y-auto text-sm">
             {preview.chapters.map((chapter) => (
-              <li key={chapter.path} className="flex items-center justify-between gap-2">
-                <span>{chapter.title}</span>
-                {!chapter.rendered && (
-                  <span className="text-xs" style={{ color: 'var(--danger-text)' }}>
-                    not rendered yet
-                  </span>
-                )}
+              <li key={chapter.path} className="flex items-center gap-2">
+                <span className="min-w-0">{chapter.title}</span>
+                {!chapter.rendered && <StatusBadge tone="danger" label="Not rendered yet" />}
               </li>
             ))}
           </ul>
           {!preview.ready && (
-            <p className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-              Press Render in REAPER first: every chapter file must exist before chapter tags can be timed from them.
-            </p>
+            <ToolResult tone="warning" message="Press Render in REAPER first: every chapter file must exist before chapter tags can be timed from them." />
           )}
-        </div>
+        </section>
       )}
 
       <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
@@ -119,14 +115,14 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       </div>
 
       {outputPath && (
-        <p className="mt-3 text-sm font-semibold" style={{ color: 'var(--text)' }}>
-          Wrote {outputPath}
-        </p>
+        <div className="mt-4">
+          <ToolResult tone="success" message={`Wrote ${outputPath}`} />
+        </div>
       )}
       {embedError && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {embedError}
-        </p>
+        <div className="mt-4">
+          <ToolResult tone="danger" message={embedError} />
+        </div>
       )}
     </Dialog>
   );

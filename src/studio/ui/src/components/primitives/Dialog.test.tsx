@@ -59,7 +59,7 @@ describe('Dialog is a real modal', () => {
 
   it('puts focus on the body region so a screen reader reads the message first', async () => {
     const { dialog } = await openDialog();
-    const body = within(dialog).getByText('Body text').parentElement;
+    const body = within(dialog).getByText('Body text').closest('[data-dialog-content]')!.parentElement;
     // Base UI applies the initial focus a frame after the dialog mounts.
     await waitFor(() => expect(document.activeElement).toBe(body));
   });
@@ -306,7 +306,7 @@ describe('Dialog is a real modal', () => {
 // `size="full"` fills the viewport with a margin and scrolls its
 // body, with no change to the modal contract that every other size shares.
 describe('Dialog size="full"', () => {
-  it('defaults to the form width, capped at 80dvh tall', async () => {
+  it('defaults to the form width, capped at 80dvh tall and 4.75rem above the bottom edge', async () => {
     render(
       <Dialog dismissOnOutsidePress={false} title="Add note" onClose={() => undefined} actions={<Button variant="primary">Save</Button>}>
         <p>Body</p>
@@ -315,7 +315,7 @@ describe('Dialog size="full"', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Add note' });
     expect(dialog.className).toContain(DIALOG_WIDTHS.form);
     expect(dialog.className).not.toContain('70vw');
-    expect(dialog.style.maxHeight).toBe('80dvh');
+    expect(dialog.style.maxHeight).toMatch(/^min\(80dvh, (calc\()?92dvh - 4.75rem\)?\)$/);
     expect(dialog.style.height).toBe('');
   });
 
@@ -329,7 +329,7 @@ describe('Dialog size="full"', () => {
     expect(dialog.className).toContain('max-w-[calc(100vw-2rem)]');
     expect(dialog.style.height).toBe('calc(100dvh - 2rem)');
     expect(dialog.style.maxHeight).toBe('calc(100dvh - 2rem)');
-    const body = within(dialog).getByText('Body').parentElement as HTMLElement;
+    const body = within(dialog).getByText('Body').closest('[data-dialog-content]')!.parentElement as HTMLElement;
     expect(body.className).toContain('overflow-y-auto');
   });
 
@@ -424,7 +424,7 @@ describe('Dialog headerless', () => {
 });
 
 describe('Dialog body scrolling', () => {
-  const bodyOf = () => screen.getByText('Body text').parentElement!;
+  const bodyOf = () => screen.getByText('Body text').closest('[data-dialog-content]')!.parentElement!;
 
   it('scrolls its body, as a focusable region, by default', () => {
     render(
@@ -469,7 +469,8 @@ describe('Dialog widths and action row', () => {
     expect(Object.values(DIALOG_WIDTHS)).toEqual(['max-w-[28rem]', 'max-w-[36rem]', 'max-w-[40rem]', 'max-w-[56rem]']);
   });
 
-  it('hangs a palette from the top and centres every other size', async () => {
+  // Every dialog now hangs from the top, as the mock's `.scrim` does (ENX-16): a palette 12vh down, every other size 8vh down, `placement="center"` centres.
+  it('hangs a palette 12vh from the top, every other size 8vh, and centres on request', async () => {
     render(
       <Dialog dismissOnOutsidePress title="Jump menu" headerless size="palette" onClose={() => undefined} actions={null}>
         <p>List</p>
@@ -477,10 +478,17 @@ describe('Dialog widths and action row', () => {
     );
     const dialog = await screen.findByRole('dialog', { name: 'Jump menu' });
     expect(dialog.className).toContain(DIALOG_WIDTHS.palette);
-    expect(dialog.parentElement!.className).toContain('items-start');
+    expect(dialog.parentElement!.className).toContain('pt-[12vh]');
     cleanup();
     render(
       <Dialog dismissOnOutsidePress={false} title="Add note" actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    expect((await screen.findByRole('dialog', { name: 'Add note' })).parentElement!.className).toContain('pt-[8vh]');
+    cleanup();
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Add note" placement="center" actions={null}>
         <p>Body</p>
       </Dialog>,
     );
@@ -501,7 +509,7 @@ describe('Dialog widths and action row', () => {
     // 'between' moves only the first of several actions to the left.
     expect(row.className).toContain('[&>:first-child:not(:only-child)]:mr-auto');
     const header = within(dialog).getByText('Options').parentElement!;
-    const body = within(dialog).getByText('Body').parentElement!;
+    const body = within(dialog).getByText('Body').closest('[data-dialog-content]')!.parentElement!;
     for (const part of [row, header, body]) expect(part.className).toContain('px-[var(--space-6)]');
   });
 
@@ -513,5 +521,39 @@ describe('Dialog widths and action row', () => {
     );
     const dialog = await screen.findByRole('dialog', { name: 'Sync' });
     expect(within(dialog).getByText('Chapters become tracks.').className).toContain('mb-3');
+  });
+});
+
+describe("the shell's layout (ENX-13, ENX-16, ENX-23)", () => {
+  it('draws its title with the overlay title token, the one a SlideOver uses', () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Link chapters" onClose={() => undefined} actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    expect(screen.getByRole('heading', { name: 'Link chapters' }).className).toContain('--font-size-overlay-title');
+  });
+
+  it('hangs from the top of the window, so its title does not move as the content changes height', () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Create regions" onClose={() => undefined} actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    const viewport = screen.getByRole('dialog', { name: 'Create regions' }).parentElement!;
+    expect(viewport.className).toContain('items-start');
+    expect(viewport.className).toContain('pt-[8vh]');
+  });
+
+  it('pads its content inside the scroll box, so a sticky table head sticks under the header', () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Link chapters" onClose={() => undefined} actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    const content = screen.getByText('Body').parentElement!;
+    expect(content.hasAttribute('data-dialog-content')).toBe(true);
+    expect(content.className).toContain('py-[var(--space-6)]');
+    expect(content.parentElement!.className).not.toContain('py-');
   });
 });

@@ -39,7 +39,7 @@ import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
 import { AcceptedClaims } from './suggested/row/AcceptedClaims';
 import { SuggestionList } from './suggested/row/SuggestionList';
-import { reviewable, summaryOf, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
+import { kindLabel as suggestionKind, reviewable, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
 import { useStartScan } from './suggested/scan/useStartScan';
 import { GuideDetail, type EntryCommand } from './GuideDetail';
 import { ReadNotice } from './ReadNotice';
@@ -481,7 +481,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
             {!entriesRead ? (
               <GuideDetailSkeleton />
             ) : looseChosen ? (
-              <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
+              // Titled by the kind of suggestion, not its sentence, which the card below says once; the entry's header size, so the card
+              // does not change shape between an entry and a suggestion (R3SB1-4, SBX-22).
+              <Panel title={`Suggested ${suggestionKind(looseChosen.payload).toLowerCase()}`} titleStyle="entry" scroll className="min-h-0 flex-1">
                 <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
               </Panel>
             ) : (
