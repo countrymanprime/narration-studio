@@ -219,7 +219,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
         </p>
       )}
-      {project && <ChapterLinksTable tracks={project.tracks} refreshKey={refresh} notify={notify} />}
+      {project && <ChapterLinksTable tracks={project.tracks} refreshKey={refresh} notify={notify} onChanged={() => setRefresh((count) => count + 1)} />}
       {tool === 'link-chapters' && project && <LinkChaptersDialog chapters={chapters} tracks={project.tracks} onClose={closeTool} />}
       {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} />}
       {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}

@@ -272,8 +272,9 @@ has changed since you last saved, the dialog says so and changes nothing.
 
 Below the track list, Chapter links shows every narration chapter with the track it's confirmed
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
-below, an evidence view) don't guess by name. A chapter starts **Not linked**; choose a track and press Confirm to
-link it. A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
+below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
+starts **Not linked** with its track list on **Choose a track**: pick a track, then press Confirm, which stays off until you
+have picked one. A track another chapter already has is marked in the list with the chapter that has it. A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
@@ -282,9 +283,12 @@ change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
 
-A linked chapter's row also has **Open in Editing**, which opens the chapter on [Editing](editing.md) to hear it against
-its script and edit it, and **Open in Proof**, into the chapter's [Proof view](proof.md#the-chapter-view), where its
-recording is compared with the manuscript.
+The **More actions** button (**⋯**) at the end of each row holds the rest. For a linked chapter it has **Open in Editing**, which opens
+the chapter on [Editing](editing.md) to hear it against its script and edit it, and **Open in Proof**, into the chapter's
+[Proof view](proof.md#the-chapter-view), where its recording is compared with the manuscript. Every row's menu has
+**Editing check…** ([below](#editing-check)).
+
+In a narrow window each row takes two lines: the chapter and its status, then the track and the actions.
 
 When one or more chapters have a [Production](production.md#stage-readiness) stage suggestion that can't be
 computed because its track link is missing or not yet confirmed, a line above Chapter links says so
@@ -294,7 +298,7 @@ read.
 
 ### Editing check
 
-Each chapter's row also has **Editing check…**, opening its own panel over this one: whether
+Each chapter's **More actions** menu in Chapter links has **Editing check…**, opening its own panel over this one: whether
 empty space, clicks and breaths still need trimming out. The same panel opens from
 a chapter's [stage suggestion](production.md#stage-readiness) on Production when the editing signal
 names it as the way to resolve what's unknown.

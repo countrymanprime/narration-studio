@@ -64,6 +64,23 @@ describe('EnginePanel', () => {
     expect(chapterCell(2)).toBe('Not linked');
   });
 
+  // Alignment audit R3EN1-7: a link made in Chapter links left the Tracks card above it saying "Not linked".
+  it('re-reads the Tracks card when a link is confirmed in Chapter links', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    const tracks = await trackTable();
+    const links = await screen.findByRole('table', { name: 'Chapter links' });
+    const secondRow = within(links)
+      .getAllByRole('row')
+      .find((row) => within(row).queryByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` }));
+    if (!secondRow) throw new Error('no Chapter links row with a picker for the second chapter');
+    await user.selectOptions(within(secondRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
+    await user.click(within(secondRow).getByRole('button', { name: 'Confirm' }));
+
+    const trackRow = () => within(tracks).getAllByRole('row')[2];
+    await waitFor(() => expect(within(trackRow()).getAllByRole('cell')[1].textContent).toContain(WIRE_CHAPTERS[1].title));
+  });
+
   it('flags every track that has a missing or unsupported item', async () => {
     renderPanel();
     await trackTable();

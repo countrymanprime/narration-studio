@@ -48,7 +48,9 @@ describe('Story Bible entry properties', () => {
 
   it('says there are none when an entry has none', () => {
     renderDetail(caterpillar);
-    expect(within(properties()).getByText('No properties yet.')).toBeTruthy();
+    // One line, with no table or column headers over nothing.
+    expect(screen.getByText('No properties yet.')).toBeTruthy();
+    expect(screen.queryByRole('table', { name: 'Properties' })).toBeNull();
   });
 
   it("shows a locked entry's properties but offers nothing to change them", () => {

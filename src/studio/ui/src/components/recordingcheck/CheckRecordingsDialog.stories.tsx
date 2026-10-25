@@ -87,7 +87,7 @@ export const RunningTwoChapters: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     (await canvas.findByRole('button', { name: 'Check 2 chapters' })).click();
-    await expect(await canvas.findByRole('button', { name: 'Stop' })).toBeTruthy();
+    await expect(await canvas.findByRole('button', { name: 'Stop checking' })).toBeTruthy();
     await expect(canvas.getAllByRole('progressbar')).toHaveLength(2);
   },
 };

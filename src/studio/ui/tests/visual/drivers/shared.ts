@@ -405,8 +405,10 @@ export async function openEnginePanel(page: Page): Promise<Locator> {
 export async function openEditingCheckFromEngine(page: Page, query: string) {
   await page.goto(`/?${query}`);
   await settlePage(page);
-  await openEnginePanel(page);
-  await clickVisible(page, 'button', 'Editing check…');
+  const engine = await openEnginePanel(page);
+  // Editing check is in each Chapter links row's More actions menu.
+  await engine.getByRole('button', { name: 'More actions for Chapter 1', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Editing check…' }).click();
   const panel = page.getByRole('dialog', { name: /^Editing check: Chapter 1\b/ });
   await panel.getByRole('button', { name: /^Check editing|Check again$/ }).waitFor();
   return panel;
@@ -500,7 +502,7 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
 }
 
 /** Links a chapter to its first available track from the engine panel's Chapter links table (the same real-UI path
- * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" link to `/proof/:chapterId` and waits for the chapter
+ * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" menu item to `/proof/:chapterId` and waits for the chapter
  * view to render: only Chapter 1 starts linked by default in the mock. */
 export async function openLinkedProofChapter(page: Page, chapterTitle: string): Promise<void> {
   await openEnginePanel(page);
@@ -513,14 +515,18 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   // Chapter 1 boots linked (an unset ?mockChapterLink is `confirmed`), so it has no track to choose; any other chapter is linked here.
   await row
     .getByRole('combobox')
-    .or(row.getByRole('link', { name: 'Open in Proof' }))
+    .or(row.getByRole('button', { name: 'Change' }))
     .first()
     .waitFor();
   if (await row.getByRole('combobox').count()) {
-    await row.getByRole('combobox').selectOption({ index: 0 });
+    // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
+    await row.getByRole('combobox').selectOption({ index: 1 });
     await row.getByRole('button', { name: 'Confirm' }).click();
+    await row.getByRole('button', { name: 'Change' }).waitFor();
   }
-  await row.getByRole('link', { name: 'Open in Proof' }).click();
+  // Open in Proof is in the row's More actions menu.
+  await row.getByRole('button', { name: /^More actions for / }).click();
+  await page.getByRole('menuitem', { name: 'Open in Proof' }).click();
   await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
 }
 
