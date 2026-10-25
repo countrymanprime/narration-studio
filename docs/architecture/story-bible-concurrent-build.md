@@ -16,12 +16,15 @@ it. The notes below are what the chained build taught; the host still runs the b
   79,000-word manuscript: 14.7s build, 16.8s import-then-build; rules-only, no language model: 1.2s). The chained
   `WorkDialog`'s "Continue in background" makes this acceptable even on a long book. Not measured: the frozen release
   sidecar, or a manuscript longer than about 80,000 words.
-- **Sequenced, never overlapped.** Character seeding (the host's write, under `editMu`) and the build (a sidecar process with no
-  lock) both rewrite `manuscript_guide.json`, so seeding always finishes before a build starts.
-- **The host's edits are locked against each other only.** The edits the host applies itself (`editInHost`, `mutateInHost`
-  in `src/studio/desktop/internal/guide`) take `guide.Service`'s `editMu`, so two of them never overlap. `Service.Run`, which
-  starts the sidecar for a build or a pronunciation from one named source, does not take it: holding it for a
-  sidecar run would block every Save for the length of a build. A create or an alias edit asks the sidecar for the pronunciation
-  of its new names while holding the lock (one short process), so a Save made then waits for the answer. An edit made while a sidecar command is running can
-  therefore be overwritten by that command, as two sidecar commands could overwrite each other before edits moved to the
-  host. The host sees the sidecar's write on its next edit, because it compares the file's bytes with the ones it holds.
+- **Sequenced, never overlapped.** Character seeding (the host's write, under `editMu`) and the build both rewrite
+  `manuscript_guide.json`, so seeding always finishes before a build starts. Since 2026-10-25 the build is the host's too
+  (`guide.Service.Build`, `src/studio/desktop/internal/guide/build.go`), so the two could no longer overwrite each other in any order.
+- **The host's writes are locked against each other.** The edits the host applies itself (`editInHost`, `mutateInHost`
+  in `src/studio/desktop/internal/guide`) and the build take `guide.Service`'s `editMu`, so no two of them overlap. A build holds it
+  only from reading the saved file, once the language model and the pronunciations are done, to writing the file and its cues: a Save
+  made while the model runs waits at most for that merge and write, and the build merges it rather than writing over it
+  (`TestAnEditDuringTheModelRunIsMerged`). A create or an alias edit asks the sidecar for the pronunciation of its new names while
+  holding the lock (one short process), so a Save made then waits for the answer. `Service.Run`, which starts the sidecar's `pronounce`
+  (a pronunciation from one named source, the one sidecar command that still writes the file), does not take it, so an edit made while
+  it runs can be overwritten by it. The host sees that write on its next edit, because it compares the file's bytes with the ones it
+  holds.
