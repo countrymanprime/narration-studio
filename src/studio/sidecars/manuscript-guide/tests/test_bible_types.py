@@ -2,7 +2,7 @@
 
 A file with no ``types`` list reads as the defaults, which are the fixed categories of before with their colours and only Character
 speaking, so an old file reads exactly as it did. The host edits the list itself (src/studio/desktop/internal/guide/types.go); a build keeps it. A type's
-``speaks`` flag decides which names the dialogue cues resolve to.
+``speaks`` flag decides which names the dialogue cues resolve to (the host's internal/guide cues.go, with its tests).
 """
 
 import argparse
@@ -83,7 +83,7 @@ class BibleTypesTests(unittest.TestCase):
         self.assertEqual(DEFAULTS, self.types())
         self.assertNotIn("types", self.document(), "reading an old file writes nothing")
         self.assertEqual(DEFAULTS, rows(guide.guide_types({})))
-        self.assertEqual({"Character"}, guide.speaking_types({}))
+        self.assertEqual(["Character"], [row["name"] for row in guide.guide_types({}) if row["speaks"]])
         self.assertEqual(set(guide.VALID_CATEGORIES), {row["name"] for row in DEFAULTS})
         # The host's guide.DefaultTypes reads this file, so the two lists cannot drift.
         contract_files.check("guide-types-default-sidecar", rows(guide.guide_types({})))
@@ -123,20 +123,6 @@ class BibleTypesTests(unittest.TestCase):
         guide.file_under_types(generated, types)
         self.assertEqual("Person", generated[0]["category"])
         self.assertEqual(("Needs Review", "needs review", True), (generated[1]["category"], generated[1]["review_state"], generated[1]["review"]["entry"]))
-
-    # 4
-    def test_dialogue_cues_follow_the_can_speak_flag(self):
-        types = [{**row, "builtin": row["name"]} for row in DEFAULTS]
-        types[0]["speaks"], types[1]["speaks"] = False, True
-        self.write(entity("e-wren", "Wren", "Character"), entity("e-town", "Dawnspire", "Place"), types=types)
-
-        entities = self.document()["entities"]
-        speaking = guide.speaking_types(self.document())
-        self.assertEqual({"Place"}, speaking)
-        self.assertEqual({"dawnspire": "e-town"}, guide.character_name_index(entities, speaking))
-        self.assertEqual({"wren": "e-wren"}, guide.character_name_index(entities), "without a list, Character speaks as before")
-        cues = guide.extract_cues_from_text('"Come in," Dawnspire said. "No," Wren said.', guide.character_name_index(entities, speaking))
-        self.assertEqual(["e-town", None], [cue["speaker_entity_id"] for cue in cues])
 
 
 if __name__ == "__main__":

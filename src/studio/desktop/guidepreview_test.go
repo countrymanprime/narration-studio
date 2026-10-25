@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -108,6 +109,14 @@ func newPreviewHost(t *testing.T, renderMode string) previewHost {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(guidePath, []byte(`{"entities":[{"id":"e1","canonical_name":"Dawnspire","aliases":[]}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// The manuscript a build reads, which the host's cue refresh after it reads too.
+	manuscript := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
+	if err := os.MkdirAll(filepath.Dir(manuscript), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manuscript, []byte(`{"schemaVersion":1,"documentId":"d","chapters":[{"id":"c1"}],"paragraphs":[{"id":"p1","chapterId":"c1","chapterTitle":"One","text":"Hello."}]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	voice, _ := manager.Voice(previewVoiceID)
