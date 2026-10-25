@@ -38,7 +38,7 @@ func flagValue(args []string, name string) string {
 }
 
 func runFakeSidecar(mode string) {
-	if runFakeMeter(mode) || runFakeDeviceLister(mode) || runFakeLocator(mode) || runFakeAligner(mode) {
+	if runFakeMeter(mode) || runFakeDeviceLister(mode) || runFakeLocator(mode) || runFakeAligner(mode) || runFakeClockSidecar(mode) {
 		return
 	}
 	if mode == "early-crash" { // dies before saying anything, as a sidecar that cannot start does
