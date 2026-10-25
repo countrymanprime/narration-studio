@@ -610,7 +610,7 @@ describe('checkLayoutHits', () => {
 describe('layout debt', () => {
   // The (state, rule, element) entries the app states are allowed to break. It may only shrink: lower it when an entry goes, and a
   // higher number needs a maintainer's decision, not just a green run.
-  const MAX_LAYOUT_DEBT_ENTRIES = 12;
+  const MAX_LAYOUT_DEBT_ENTRIES = 0;
 
   test('the drivers declare the list the capture reads', () => {
     expect((appDrivers as { layoutDebt?: unknown }).layoutDebt).toBe(LAYOUT_DEBT);
