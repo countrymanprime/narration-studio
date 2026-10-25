@@ -38,7 +38,19 @@ export function MicBody() {
 
   const controlId = `set-${row.id}`;
   const choose = (next: string) => void store.write(row, 'global', next === row.def ? null : next);
-  if (!global) return null;
+  // Settings that cannot be read leave the row its control, off like the rest of the page, not an empty row (alignment audit R3SE2-19).
+  if (!global)
+    return (
+      <Select
+        label="Microphone"
+        id={controlId}
+        className={FIELD_WIDTH}
+        value=""
+        disabled
+        onChange={() => undefined}
+        options={[{ value: '', label: 'System default' }]}
+      />
+    );
 
   // While the list is read the picker is already there with the current choice (a deep link focuses it at once).
   const devices = listing.phase === 'ready' ? listing.devices : [];

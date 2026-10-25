@@ -351,6 +351,20 @@ describe('Recording & DAW: Microphone layout', () => {
   });
 });
 
+// Alignment audit (R3SE2-19): with the settings unreadable the Microphone row keeps a control, off like the rest, not an empty column.
+describe('Recording & DAW: Microphone, settings unreadable', () => {
+  it('draws the picker switched off', async () => {
+    const api = createMockApi();
+    api.settingsForScope = async () => {
+      throw new Error('the settings file is damaged');
+    };
+    await renderPage({ api, category: 'Recording & DAW' });
+    await screen.findByRole('alert');
+    const select = await within(row('daw.mic')).findByRole('combobox', { name: 'Microphone' });
+    expect((select as HTMLSelectElement).disabled).toBe(true);
+  });
+});
+
 // Alignment audit (XSE2-4, XSE2-6, XSE2-7, R4SE2-11, R3SE2-14).
 describe('Recording & DAW: layout', () => {
   it('fixes the Capabilities columns and does not repeat the row description under the table', async () => {
