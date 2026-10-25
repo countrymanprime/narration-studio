@@ -1,3 +1,4 @@
+import { HIT_AREA } from '../../primitives/hitArea';
 import { toneColors } from '../../primitives/StatusBadge';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { StageChapterRecommendation } from '../../../types';
@@ -22,8 +23,9 @@ export function ReadinessChip({ recommendation, onOpen }: { recommendation: Stag
         data-verdict={verdict}
         aria-label={`Stage readiness: ${label}, ${stage}`}
         aria-haspopup="dialog"
-        // The mock's round 20 px mark, in the tone's soft fill and text colour (the pairs the palette guard already checks).
-        className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full border border-solid p-0 text-[0.7rem] leading-none font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        // The mock's round 20 px mark, in the tone's soft fill and text colour (the pairs the palette guard already checks), pressed in a
+        // 24 px square (R3PR1-17).
+        className={`${HIT_AREA} inline-flex size-5 flex-none cursor-pointer items-center justify-center rounded-full border border-solid p-0 text-[0.7rem] leading-none font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]`}
         style={{ background: colors.fill, color: colors.text, borderColor: colors.line }}
         onClick={onOpen}
       >

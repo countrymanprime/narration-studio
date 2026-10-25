@@ -49,6 +49,7 @@ import { useChapterTimeline } from './useChapterTimeline';
 import { useProofKeys } from './useProofKeys';
 import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
+import { hasRecording } from './checkcard/cardSelectors';
 import { addressPath } from '../../navigation/address';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
 
@@ -483,9 +484,12 @@ export function ProofPage({
                     />
                     <TakeLanes spot={spot} winStart={win.start + shift} winLen={Math.min(win.len, total)} />
                   </>
-                ) : (
-                  <p className="text-sm text-[var(--text-muted)]">{timeline ? 'No recording for this chapter yet.' : 'Reading the recording…'}</p>
-                )}
+                ) : !timeline ? (
+                  <p className="text-sm text-[var(--text-muted)]">Reading the recording…</p>
+                ) : hasRecording(chapter.recordedSeconds) ? (
+                  <p className="text-sm text-[var(--text-muted)]">No recording for this chapter yet.</p>
+                ) : // The check card above already says there is no recording to check (alignment audit XPF-16).
+                null}
               </>
             )}
           </section>
