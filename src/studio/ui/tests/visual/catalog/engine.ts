@@ -33,6 +33,24 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'sync-needs-you',
+    description:
+      'The engine panel after an automatic link was undone in Settings > Recording & DAW > Sync activity (?mockChapterSync=activity): Chapter sync\'s "Needs you" list with that chapter, its track picker and Link',
+  },
+  {
+    page: 'engine',
+    state: 'audacity-linked',
+    description:
+      "The engine panel for an Audacity project (?mockAudacityLink=linked): the Audacity card in place of the REAPER project section, answering with this project's Book One.aup3, and no REAPER tools",
+  },
+  {
+    page: 'engine',
+    state: 'audacity-not-running',
+    description:
+      'The engine panel for an Audacity project with Audacity closed (?mockAudacityLink=not-running): the card says Audacity is not running and offers to start it, and when it last answered',
+  },
+  {
+    page: 'engine',
     state: 'rpp-picker',
     description: 'The engine panel, more than one .rpp file found - choose-a-project-file prompt (reached via the ?mockMultipleRpp=1 mock seam)',
   },
