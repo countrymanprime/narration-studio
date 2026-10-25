@@ -141,6 +141,14 @@ describe('NavButton', () => {
       expect(screen.getByRole('dialog', { name: 'Proof is unavailable' }).textContent).toContain(REASON);
     });
 
+    it('opens the note as wide as its sentence, with no 21 rem floor (XSL-22)', () => {
+      renderOff();
+      fireEvent.click(screen.getByRole('button', { name: 'Proof' }));
+      const note = screen.getByRole('dialog', { name: 'Proof is unavailable' });
+      expect(note.className).not.toMatch(/min-w-/);
+      expect(note.className).toContain('max-w-[min(20rem');
+    });
+
     it('opens the same note from the keyboard', () => {
       renderOff();
       const button = screen.getByRole('button', { name: 'Proof' });
