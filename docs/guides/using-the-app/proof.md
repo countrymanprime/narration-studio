@@ -84,13 +84,14 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 - chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count;
-- **In view**, on one chapter while the waveform window shows only part of it. It starts on, so the list keeps to the
-  notes in the window; press it to list the whole chapter;
+- **In view**, on one chapter while the waveform window shows only part of it, set apart after the chips because it works
+  with any of them. It starts on, so the list keeps to the notes in the window; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
 - **Check recordings…**, the same check the card runs, starting with the chapter in view;
 - **Find in notes**, which keeps only the notes whose text matches what you type; Esc closes it;
-- **Import proofer sheet** and **Export for proofer**: the proofer's CSV sheet. Import adds each row as a pickup marker in
+- **Import proofer sheet** and **Export for proofer** (the sort, Check recordings, Find and these two sit at the right of the
+  panel; the sort and Find are left out while there are no notes): the proofer's CSV sheet. Import adds each row as a pickup marker in
   the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
   it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote; a pickup on the Pickups page with no
   marker in the DAW yet is not in the sheet, and the message says how many are missing and to add them as markers there first. Both need the
@@ -100,8 +101,11 @@ Under them, **Sources** names the checks the notes came from, with a count for e
 the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
 review**, **Needs pickup**, **Fix in edit**, **Fine as read** or **Defer**) for every note. Script vs heard is the note's headline
 sentence with the words in question marked in the note's own colour and form, for example “are” read as “our”; a note whose
-spot has more than one take also has a takes badge. With All chapters the table groups the notes by chapter, each group a
-tinted row with the chapter's open count.
+spot has more than one take also has a takes badge at the right of that column. A note still to review shows its Resolution
+as an outline; a decision is filled. The columns keep their widths in every chapter and filter, and Script vs heard takes
+the rest of the row. With All chapters the table groups the notes by chapter, each group a tinted row with the chapter's
+open count; with no notes it says **No notes yet**, and in one chapter **No notes for this chapter**. Beside the
+Inspector, the notes panel runs down to where the Inspector ends.
 
 ![Proof - the To review chip: "Notes · 3 of 4", the note marked fine as read left out](../../images/ui/proof-notes-filtered.webp)
 
@@ -325,8 +329,10 @@ Below the compare run, the Preview panel suggests up to three five-minute excerp
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or
 sharing. Each candidate lists its chapter, paragraph range, estimated length and word count, alongside
 the reasons it was chosen (a mix of narration and dialogue, the Story Bible characters it touches, hard
-words, starting and ending on a paragraph boundary). A candidate that falls short of the target length
-even using the whole chapter says so, in words and an icon rather than colour alone. Open a candidate
+words, starting and ending on a paragraph boundary); a reason every candidate shares is said once under the table.
+A candidate that falls short of the target length even using the whole chapter says so on its own line under it, in
+words and an icon rather than colour alone. While the suggestions are computed the panel shows grey rows; with no
+manuscript it offers **Open Production** to import one, and a failed read offers **Retry**. Open a candidate
 in the manuscript reader, or copy its range and length to paste elsewhere; neither changes anything — a
 suggestion is recomputed fresh every time you visit the page, never applied, exported or stored.
 

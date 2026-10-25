@@ -100,7 +100,7 @@ describe('chips-filter-and-count', () => {
     await userEvent.click(within(group).getByRole('button', { name: /^Decided/ }));
     expect(dataRows()).toHaveLength(4);
   });
-  it('shows No notes match with Clear filters, and No notes for this chapter when empty', async () => {
+  it('shows No notes match with Clear filters; when empty, No notes yet in all chapters and No notes for this chapter in one, with no sort or find', async () => {
     render(<Harness findings={notesFixture().filter((f) => f.id === 'a')} />);
     await userEvent.click(screen.getByRole('button', { name: /^Pickups/ }));
     expect(screen.getByRole('heading', { name: 'No notes match' })).toBeTruthy();
@@ -108,6 +108,11 @@ describe('chips-filter-and-count', () => {
     expect(dataRows()).toHaveLength(1);
     cleanup();
     render(<Harness findings={[]} />);
+    expect(screen.getByRole('heading', { name: 'No notes yet' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'Sort notes' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Find in notes' })).toBeNull();
+    cleanup();
+    render(<Harness findings={[]} all={false} />);
     expect(screen.getByRole('heading', { name: 'No notes for this chapter' })).toBeTruthy();
   });
 });
@@ -214,7 +219,7 @@ describe('type-and-resolution-chips-are-words-and-shapes', () => {
   });
   it('shows the confidence, or the reason on hover when there is none', () => {
     render(<Harness />);
-    expect(screen.getByText('Local AI compare · 0.90')).toBeTruthy();
+    expect(screen.getAllByRole('cell').some((cell) => cell.textContent === 'Local AI compare · 0.90')).toBe(true);
     expect(screen.getByText('Delivery measurement')).toBeTruthy();
   });
 });

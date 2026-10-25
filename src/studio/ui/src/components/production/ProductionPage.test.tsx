@@ -82,15 +82,17 @@ describe('production-route-draws-the-mock-page', () => {
   });
 
   // The mock's `.pstats` (1.5fr 1fr 1fr) and `.pgrid` (the pipeline beside a 360 px Next up), app.css:110-112.
-  it('lays the stats row out 1.5 : 1 : 1 and gives Next up 360 px', async () => {
+  it('lays the stats row out 1.5 : 1 : 360 px over the pipeline and its 360 px Next up column, so the right-hand cards share their edges', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
     const stats = (await screen.findByRole('heading', { name: 'Where the book stands' })).closest('.grid') as HTMLElement;
-    // The mock's widths: three columns above 1280, two from 1180 with the stage card across both, one below.
-    expect(stats.className).toContain('min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
-    expect(stats.className).toContain('min-[1180px]:grid-cols-2');
-    expect(stats.className).toContain('min-[1180px]:max-[1281px]:[&>:first-child]:col-span-2');
+    // Three columns above 1280, the last as wide as Next up below it (alignment audit XPR2-5); two from 640 with the stage card across
+    // both, so This week and Recording check are never two full-width bars (XPR2-13); one below.
+    expect(stats.className).toContain('min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem]');
+    expect(stats.className).toContain('min-[640px]:grid-cols-2');
+    expect(stats.className).toContain('min-[640px]:max-[1281px]:[&>:first-child]:col-span-2');
     const board = screen.getByRole('heading', { name: 'Chapter pipeline' }).closest('.grid') as HTMLElement;
     expect(board.className).toContain('min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]');
+    expect(board.className).toContain('items-stretch');
   });
 
   it('is the import when there is no manuscript', async () => {

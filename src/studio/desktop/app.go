@@ -709,6 +709,8 @@ func (h *Host) configureLocked(next config) {
 	h.guide = guide.New(h.config.projectFolder, h.config.manuscriptPython, h.config.manuscriptBackend, h.settings, h.sidecars)
 	h.guide.SetPersist(h.persist)
 	h.guide.SetFindings(h.findings)
+	// Asked when a lookup starts, not now: h.mu is held here, and an install made after the project opens counts.
+	h.guide.SetWiktextractIndex(h.wiktextractIndexPath)
 	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
 	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
 	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.

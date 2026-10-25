@@ -27,7 +27,8 @@ type RowView = Omit<EvidenceRow, 'state'> & { state: keyof typeof MARK };
 
 function Evidence({ row }: { row: RowView }) {
   return (
-    <li data-item={row.id} className="flex items-start gap-2 border-b border-[var(--border)] py-2 last:border-b-0">
+    // The label's first line, the mark and the value share a baseline (XPR2-36).
+    <li data-item={row.id} className="flex items-baseline gap-2 border-b border-[var(--border)] py-2 last:border-b-0">
       <span aria-hidden="true" className="w-4 flex-none text-center" style={{ color: MARK_COLOR[row.state] }}>
         {MARK[row.state]}
       </span>
@@ -71,12 +72,15 @@ export function ReadinessPanel({ recommendation, seen, phase, error, isPending, 
       {label}
     </Button>
   );
+  const actions = [
+    model.canRevert && action('revert', 'Revert', true),
+    model.verdict !== 'confirmed' && model.canDismiss && action('dismiss', 'Dismiss', true),
+    model.verdict !== 'confirmed' && model.canConfirm && action('confirm', 'Confirm', true, 'primary'),
+  ].filter((node) => node !== false);
   return (
-    <div className="flex min-h-full flex-col gap-3.5 text-sm">
-      <div className="min-w-0">
-        <SectionLabel as="div">Stage readiness</SectionLabel>
-        <h4 className="m-0 text-xl font-semibold">{chapterName(recommendation, 'short')}</h4>
-      </div>
+    <div className="flex flex-col gap-3.5 text-sm">
+      {/* The slide-over's title already says "Stage readiness"; the chapter is the heading here (XPR2-35). */}
+      <h4 className="m-0 min-w-0 text-xl font-semibold">{chapterName(recommendation, 'short')}</h4>
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2">
           <SectionLabel>Stage</SectionLabel>
@@ -97,7 +101,7 @@ export function ReadinessPanel({ recommendation, seen, phase, error, isPending, 
           <ul className="m-0 list-none p-0">
             {model.changes.map((change) => (
               <li key={change.id}>
-                {change.label}: was {change.was}, now {change.now}
+                {change.label}: was {change.was.toLowerCase()}, now {change.now.toLowerCase()}
               </li>
             ))}
           </ul>
@@ -119,18 +123,8 @@ export function ReadinessPanel({ recommendation, seen, phase, error, isPending, 
           </ul>
         </>
       )}
-      <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-        {model.verdict === 'confirmed' ? (
-          action('revert', 'Revert', model.canRevert)
-        ) : (
-          <>
-            {model.canRevert && action('revert', 'Revert', true)}
-            <span className="flex-1" />
-            {action('dismiss', 'Dismiss', model.canDismiss)}
-            {action('confirm', 'Confirm', model.canConfirm, 'primary')}
-          </>
-        )}
-      </div>
+      {/* Only what can be pressed is drawn, under the evidence it decides, not at the foot of an empty panel (XPR2-35). */}
+      {actions.length > 0 && <div className="flex flex-wrap items-center justify-end gap-2 pt-2">{actions}</div>}
     </div>
   );
 }
