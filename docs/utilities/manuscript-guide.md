@@ -113,6 +113,16 @@ which picks the large install over the small one and checks the line format pinn
 `booknlp/testdata/suggest-lines.json`. `self-check --booknlp-install DIR` (repeatable, best first) adds a `booknlp`
 line: the version and weights of the first folder that is there, or "not installed", which passes.
 
+BookNLP builds each model on a Google BERT encoder named in its weight file. The weight files hold every encoder parameter, so the
+adapter builds each encoder from the install folder's `<encoder>.config.json` and the shared `bert_uncased.vocab.txt` alone
+(`_local_encoders`) and never asks the hub for the encoder weights. On chapter VI of Alice the output is byte-identical either way.
+What BookNLP prints while it loads and runs goes to stderr: stdout carries only suggestion lines. The install folder holds, besides the
+weights and encoder files, the unpacked wheels the freeze does not carry: `booknlp`, `torch`, `transformers`, `huggingface-hub`,
+`tokenizers`, `safetensors`, `regex`, `filelock`, `fsspec`, `sympy`, `mpmath`, `networkx`, and `setuptools` 80 for the
+`pkg_resources` BookNLP imports. The guide's freeze carries the standard library and the submodules those packages import that the
+guide does not (`FREEZE_IMPORTS`, `FREEZE_METADATA`, read by `scripts/release/prepare-resources.py`), and every `self-check` has
+a `tool-runtime` line that imports them, which the packaged smoke test requires.
+
 ## Workflow
 
 Run the guide after manuscript selection; review uncertain candidates; lock narrator-authored pronunciation and notes; consult the entries during recording.
