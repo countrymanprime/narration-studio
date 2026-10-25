@@ -137,11 +137,16 @@ describe('ChapterStepper', () => {
     expect(onStep.mock.calls).toEqual([[-1], [1]]);
   });
 
-  it("keeps one picker width for the longest label, up to the mock's 340 px, from a width where it fits", () => {
+  // Alignment audit cause M: sized from the labels, the picker was 123 px while chapters loaded and 253 px once they had, so the
+  // arrows and the tools beside it jumped.
+  it("is the mock's fixed 340 px from a width where it fits, whatever the labels", () => {
     setup({ allowAll: true });
     const picker = screen.getByRole('button', { name: /Change chapter/ });
-    expect(picker.style.getPropertyValue('--chapter-ch')).toBe(`${'The long road north'.length}ch`);
-    expect(picker.className).toContain('min-[860px]:min-w-[min(var(--chapter-ch),21.25rem)]');
+    expect(picker.className).toContain('min-[860px]:w-[21.25rem]');
+    expect(picker.getAttribute('style') ?? '').not.toContain('--chapter-ch');
+    // The name starts at the left and the caret keeps to the right, not both centred in the box.
+    expect(picker.firstElementChild!.className).toContain('flex-1');
+    expect(picker.firstElementChild!.className).toContain('text-left');
   });
 
   // Issue 1718: at 390 px a picker sized to the longest chapter name pushed the Booth's top bar over its own contents.

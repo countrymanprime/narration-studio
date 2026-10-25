@@ -208,6 +208,9 @@ html[data-motion='reduce'] {
      --surface-2 on --surface was all but invisible (alignment audit cause K). */
   --skeleton: var(--surface-2);
   --skeleton-sweep: var(--border);
+  /* The page gutter: the top bar's content and the page's content start this far in from the main column's edges, so the bar's first
+     item sits over the page title (alignment audit cause J). */
+  --page-gutter: 1rem;
   --control-height: 2.55rem;
   /* The one layer scale, lowest first (layers.test.ts pins the order). A page panel and its scrim (a Script drawer) sit under the navigation rail,
      so the rail stays clickable with one open and a press on it dismisses the panel. A takeover is a full-window surface (the booth's companion).

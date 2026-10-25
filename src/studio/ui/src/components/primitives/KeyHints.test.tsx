@@ -31,7 +31,9 @@ describe('KeyHints', () => {
     const cls = screen.getByRole('note').className;
     expect(cls).toContain('border-t');
     expect(cls).toMatch(/bg-\[color-mix\(in_srgb,var\(--text\)_5%,var\(--bg\)\)\]/);
-    expect(cls).toContain('justify-center');
+    // Left-aligned: a wrapped second line starts under the first, not as a centred orphan.
+    expect(cls).toContain('justify-start');
+    expect(cls).not.toContain('justify-center');
   });
 
   it('renders extra children after the hints', () => {
