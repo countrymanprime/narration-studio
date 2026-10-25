@@ -90,7 +90,7 @@ again tries again; a failed run never leaves a broken recording behind.
 ## How you say each name
 
 An entry lists **the names the app links in the text, and how I say each**: its first name, then each alias, one row
-each, the entry's own name in bold. The rows share their columns, so names, pronunciations, sources and play buttons line up down the list. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
+each, the entry's own name in bold. The rows share their columns, so names, pronunciations, sources and play buttons line up down the list, and every row's buttons end at the right edge: an alias's **Remove** and a flagged name's **Mark reviewed** come before its play button. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
 field, a source tag, and beside the play button **Record my own clip** (for your own recording of the name):
 
 - Type in the field and press Enter (or leave it) to use your own; the tag then reads **Entered by me**.

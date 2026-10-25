@@ -114,30 +114,34 @@ function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCa
       : `${gestureLabel(captured)} captured. No other command uses it ${SCOPE_ACTIVE[scope]}.`;
 
   return (
-    <InsetCard role="group" aria-label={`Change "${command.label}"`} tone="accent" fill className="mt-3">
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-medium">
-        <span>Change "{command.label}"</span>
-        <span style={{ color: 'var(--text-muted)' }}>now</span>
-        <GestureChips gestures={currentGestures} />
-      </div>
-      <InsetCard dashed className="text-center">
-        <SectionLabel as="div">Captured</SectionLabel>
-        <div className="my-2 flex justify-center">{captured ? <Kbd keys={gestureKeys(captured)} /> : <span aria-hidden="true">—</span>}</div>
-        <p className="text-[0.75rem]" style={{ color: 'var(--text-muted)' }}>
-          Press another key or pedal to try again. Esc cancels.
-        </p>
-      </InsetCard>
-      <p role="status" aria-live="polite" className="mt-2 text-sm">
-        {status}
-      </p>
-      {conflict && conflictCommand && (
-        <InsetCard as="p" tone="warn" role="alert" className="mt-1 text-[0.82rem]">
-          <span style={{ color: 'var(--warn-text)' }}>
-            Replace takes it from "{conflictCommand.label}", which is then left with no key; you can give it another one afterwards.
-          </span>
+    <div role="group" aria-label={`Change "${command.label}"`} className="mt-3">
+      <InsetCard tone="accent" fill>
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-medium">
+          <span>Change "{command.label}"</span>
+          <span style={{ color: 'var(--text-muted)' }}>now</span>
+          <GestureChips gestures={currentGestures} />
+        </div>
+        <InsetCard dashed className="text-center">
+          <SectionLabel as="div">Captured</SectionLabel>
+          <div className="my-2 flex justify-center">{captured ? <Kbd keys={gestureKeys(captured)} /> : <span aria-hidden="true">—</span>}</div>
+          <p className="text-[0.75rem]" style={{ color: 'var(--text-muted)' }}>
+            Press another key or pedal to try again. Esc cancels.
+          </p>
         </InsetCard>
-      )}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <p role="status" aria-live="polite" className="mt-2 text-sm">
+          {status}
+        </p>
+        {conflict && conflictCommand && (
+          <InsetCard as="p" tone="warn" role="alert" className="mt-1 text-[0.82rem]">
+            <span style={{ color: 'var(--warn-text)' }}>
+              Replace takes it from "{conflictCommand.label}", which is then left with no key; you can give it another one afterwards.
+            </span>
+          </InsetCard>
+        )}
+      </InsetCard>
+      {/* The buttons sit under the card, right-aligned with Cancel last as a dialog's action row, so Cancel ends at the list's right edge
+          under the Change it answers (alignment audit A4). */}
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
         <Button disabled={!captured || busy} onClick={() => captured && onReplace(captured, conflict ? conflictCommand?.id : undefined)}>
           Replace
         </Button>
@@ -163,7 +167,7 @@ function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCa
           Cancel
         </Button>
       </div>
-    </InsetCard>
+    </div>
   );
 }
 
