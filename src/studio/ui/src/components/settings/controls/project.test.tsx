@@ -132,6 +132,19 @@ describe('Settings: Project', () => {
       expect(await within(credits).findByText('Opening credits')).toBeTruthy();
     });
 
+    // Alignment audit (XSE2-12, XSE1-23): the summary is one small table, its labels the row's text size, every line with a badge.
+    it('lays the summary out as label, badge and detail columns, the labels no bigger than the row title', async () => {
+      await renderPage();
+      await open('Project');
+      const credits = row('project.credits');
+      const label = await within(credits).findByText('Opening credits');
+      expect(label.className).toContain('text-[0.875rem]');
+      const summary = credits.querySelector<HTMLElement>('[data-credits-summary]')!;
+      expect(summary.className).toContain('grid-cols-[minmax(0,9rem)_minmax(0,auto)_minmax(0,1fr)]');
+      for (const line of summary.querySelectorAll<HTMLElement>('[data-credits]')) expect(line.className).toContain('grid-cols-subgrid');
+      expect(within(summary.querySelector<HTMLElement>('[data-credits="Retail sample"]')!).getByText(/Chosen|Not chosen/)).toBeTruthy();
+    });
+
     it('a /settings#credits link lands on the row', async () => {
       await renderPage({ initialCategory: 'Credits' });
       await screen.findByRole('heading', { level: 2, name: 'Project' });
