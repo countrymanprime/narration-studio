@@ -151,6 +151,8 @@ The Production chapter pipeline is the board's wide table: its stage columns are
 
 A table that scrolls sideways inside its panel says so: give its scroll box `scroll-x-edges` (`styles.css`), a soft shadow on each edge that has more beyond it, hidden at the end of the scroll. The box stays focusable and labelled so the keyboard can scroll it. Pickups' table uses it; keep the table's minimum width no wider than the box at the tablet width (768 px), so a row's actions are not cut off there.
 
+**A page's notice belongs to the column it is about.** The Booth's setup notices (the chip that reopens a fix-it dialog, `NoticeChip`) are drawn in the text column under the text, at the page gutter, not in a full-width row under the text and the side panel, so the side panel runs down to the footer (alignment audit XBO-4, XBO-27). A sentence the notice already says is not drawn again: while a notice is up the footer keeps the reason only as Record's description (`sr-only`, still `aria-describedby`), and the top bar's setup chip takes its warning tone from the same plan (XBO-5, R4BO2-1). In a notice dialog every button is one size, and a caption sits on the line of the action it describes (XBO-6, R4BO2-3).
+
 ## Layout rules
 
 Four widths and the rail decide the layout, as the Studio Next mock lays it out:
