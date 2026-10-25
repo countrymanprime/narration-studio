@@ -32,6 +32,15 @@ export const globalDrivers: Record<string, Driver> = {
     await rail.getByRole('button', { name: /^Pickups/ }).hover();
     await page.waitForFunction(() => (document.querySelector('aside[aria-label="Primary navigation"] > div')?.getBoundingClientRect().width ?? 0) > 200);
   },
+  // Below 860 CSS px the top bar's Open navigation button opens the navigation drawer; from 860 px there is a rail and no button.
+  'nav-drawer-open': async (page) => {
+    if ((page.viewportSize()?.width ?? 0) >= 860) return;
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await page
+      .getByRole('dialog', { name: 'Navigation' })
+      .getByRole('button', { name: /^Pickups/ })
+      .waitFor();
+  },
   toast: async (page) => {
     await openProofChapter(page);
     // Scrolled as proof-chapter/compare-toast scrolls it (its openCompare), so the two pictures stay the same.
