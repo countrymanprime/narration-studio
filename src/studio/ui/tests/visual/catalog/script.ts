@@ -33,7 +33,7 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'reader-context-menu',
     description:
-      'Script, the right-click menu on a selected word: Mark as, Add to the Story Bible as, then Look up, Find, Copy, Bookmark here and Record from here, each group under its heading',
+      'Script, the right-click menu on a selected word, opened under the word: Mark as and Add to the Story Bible as as submenus, then Look up, Find, Copy, Bookmark here and Record from here',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {

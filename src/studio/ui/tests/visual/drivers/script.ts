@@ -71,7 +71,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.keyboard.press('Escape');
     await page.getByRole('toolbar', { name: 'Selection tools' }).waitFor({ state: 'detached' });
     await page.mouse.click(at.x, at.y, { button: 'right' });
-    await page.getByRole('group', { name: 'Mark as' }).waitFor();
+    await page.getByRole('menuitem', { name: 'Mark as' }).waitFor();
   },
   'skip-to-side-panel': async (page) => {
     await goToPage(page, 'Script');

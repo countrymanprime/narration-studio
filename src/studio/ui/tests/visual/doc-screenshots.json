@@ -102,7 +102,7 @@
     "state": "reader-context-menu",
     "viewport": "desktop",
     "docName": "script-context-menu",
-    "caption": "Script - the right-click menu on a selected word, in labelled groups"
+    "caption": "Script - the right-click menu on a selected word, opened under it, with Mark as and Add to the Story Bible as as submenus"
   },
   {
     "page": "script",

@@ -1,4 +1,4 @@
-// The Script's selection toolbar (#2251, alignment audit docs/research/alignment-audit/findings/script.md XSC-5, XSC-6, XSC-38): it sits
+// The Script's selection toolbar and right-click menu (#2251, alignment audit docs/research/alignment-audit/findings/script.md XSC-5, XSC-6, XSC-38, XSC-19, R3SC-2): it sits
 // on the selected words (just above them, or under them with no room above) at every width, goes when a drawer opens over the text, and
 // its buttons are one size, evenly spaced.
 import { expect, test, type Page } from '@playwright/test';
@@ -36,6 +36,34 @@ for (const size of [
     expect.soft(near(g.above) || near(g.below), `next to the selected words (${g.above} px above, ${g.below} px below)`).toBe(true);
     expect.soft(new Set(g.sizes).size, `one button size (${g.sizes.join(', ')})`).toBe(1);
     expect.soft(new Set(g.gaps).size, `one gap (${g.gaps.join(', ')})`).toBe(1);
+  });
+}
+
+// XSC-19, R3SC-2: the right-click menu on a word is a handful of rows (its choices in submenus), opened just under the word or just above
+// it, never on it.
+for (const size of [
+  { width: 1920, height: 1080 },
+  { width: 1440, height: 900 },
+  { width: 1024, height: 768 },
+  { width: 768, height: 1024 },
+]) {
+  test(`reader-context-menu at ${size.width}: a short menu beside the word, not on it`, async ({ page }) => {
+    await drive(page, 'reader-context-menu', size);
+    const menu = page.getByRole('menu').filter({ has: page.getByRole('menuitem', { name: 'Mark as' }) });
+    const g = await menu.evaluate((popup) => {
+      const words = window.getSelection()!.getRangeAt(0).getBoundingClientRect();
+      const box = popup.getBoundingClientRect();
+      return {
+        rows: popup.querySelectorAll('[role="menuitem"]').length,
+        above: Math.round(words.top - box.bottom),
+        below: Math.round(box.top - words.bottom),
+        overlaps: box.left < words.right && box.right > words.left && box.top < words.bottom && box.bottom > words.top,
+      };
+    });
+    expect.soft(g.overlaps, 'the menu covers the selected word').toBe(false);
+    const near = (gap: number) => gap >= 0 && gap <= 16;
+    expect.soft(near(g.above) || near(g.below), `next to the word (${g.above} px above, ${g.below} px below)`).toBe(true);
+    expect.soft(g.rows, 'rows in the menu').toBeLessThanOrEqual(10);
   });
 }
 

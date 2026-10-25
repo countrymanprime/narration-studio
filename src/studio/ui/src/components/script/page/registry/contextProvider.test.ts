@@ -27,8 +27,11 @@ const mark = (id: string, type: string, status?: 'open' | 'resolved'): Mark =>
 const entry = { id: 'e1', canonical_name: 'Alice', category: 'Character', aliases: [] } as unknown as GuideEntity;
 const selection: ReaderSelection = { chapterId: 'c1', paragraphId: 'p1', start: 0, end: 6, quote: 'Hatter' };
 const onEntry: ReaderSelection = { ...selection, end: 5, quote: 'Alice' };
-/** The labels as the menu draws them: a group's heading then the item's own name. */
-const named = (items: { label: string; group?: string }[]) => items.map((i) => (i.group ? `${i.group}: ${i.label}` : i.label));
+type Row = { key: string; label: string; unavailable?: string; submenu?: Row[]; onSelect: () => void };
+/** The labels as the menu reaches them: a submenu's row then the item's own name. */
+const named = (items: Row[]) => items.flatMap((i) => (i.submenu ? i.submenu.map((c) => `${i.label}: ${c.label}`) : [i.label]));
+/** Every row, a submenu's included. */
+const rows = (items: Row[]): Row[] => items.flatMap((i) => [i, ...rows(i.submenu ?? [])]);
 
 afterEach(() => void (document.body.innerHTML = ''));
 
@@ -92,26 +95,34 @@ describe('context-provider-matches-the-targets', () => {
     ]);
   });
 
-  it('groups the Mark as, Story Bible and My prep choices under a heading each', () => {
+  it('puts the Mark as, Story Bible and My prep choices in a submenu each, so the menu is a handful of rows (alignment audit XSC-19)', () => {
     const { provider } = build({ selectionAt: () => selection });
-    const groups = provider.items(dom('<p data-pid="p1"><span data-t>Hatter</span></p>')).map((i) => i.group);
-    expect(groups).toEqual(['Mark as', 'Mark as', 'Mark as', 'Add to the Story Bible as', 'Add to the Story Bible as', undefined, undefined, undefined]);
+    const top = provider.items(dom('<p data-pid="p1"><span data-t>Hatter</span></p>'));
+    expect(top.map((i) => i.label)).toEqual(['Mark as', 'Add to the Story Bible as', 'Look up “Hatter”', 'Find “Hatter” in the manuscript', 'Copy']);
+    expect(top.filter((i) => i.submenu).map((i) => i.submenu!.length)).toEqual([3, 2]);
     const chapter = build({ recordChapter: vi.fn() }).provider.items(dom('<div data-jump="c1"><b data-t>One</b></div>'));
-    expect(chapter.map((i) => i.group)).toEqual([undefined, undefined, 'My prep', 'My prep', 'My prep']);
+    expect(chapter.map((i) => i.label)).toEqual(['Go to this chapter', 'Record in Booth', 'My prep']);
+    const marked = build({}, [mark('m1', 'query', 'open')]).provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'));
+    expect(marked.map((i) => i.label)).toEqual(['Open the thread', 'Mark resolved', 'Change type', 'Delete mark']);
+  });
+
+  it('leaves out Add to the Story Bible as when it would have nothing in it', () => {
+    const { provider } = build({ selectionAt: () => onEntry });
+    expect(provider.items(dom('<p data-pid="p1"><span data-t>Alice</span></p>')).map((i) => i.key)).not.toContain('bible-as');
   });
 
   it('does not offer to add a name the Story Bible already has, by its name or one of its aliases', () => {
     const own = build({ selectionAt: () => onEntry });
-    expect(own.provider.items(dom('<p data-pid="p1"><span data-t>Alice</span></p>')).map((i) => i.key)).not.toContain('bible-as-Place');
+    expect(rows(own.provider.items(dom('<p data-pid="p1"><span data-t>Alice</span></p>'))).map((i) => i.key)).not.toContain('bible-as-Place');
     const aliased = build({ selectionAt: () => ({ ...selection, quote: ' ali ' }) }, [], [{ ...entry, aliases: [{ text: 'Ali' }] } as unknown as GuideEntity]);
-    expect(aliased.provider.items(dom('<p data-pid="p1"><span data-t>Ali</span></p>')).map((i) => i.key)).not.toContain('bible-as-Place');
+    expect(rows(aliased.provider.items(dom('<p data-pid="p1"><span data-t>Ali</span></p>'))).map((i) => i.key)).not.toContain('bible-as-Place');
   });
 
   it('a mark gets its thread, status, type and delete items; a note has no status item', () => {
     const asked = build({}, [mark('m1', 'query', 'open')]);
     const items = asked.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'));
     expect(named(items)).toEqual(['Open the thread', 'Mark resolved', 'Change type: Tone', 'Change type: Query', 'Delete mark']);
-    expect(items.find((i) => i.key === 'mark-type-query')?.unavailable).toBeTruthy();
+    expect(rows(items).find((i) => i.key === 'mark-type-query')?.unavailable).toBeTruthy();
     const note = build({}, [mark('m1', 'tone')]);
     expect(named(note.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>')))).toEqual([
       'Edit the note',
@@ -156,8 +167,8 @@ describe('context-provider-matches-the-targets', () => {
     const { provider } = build({ recordChapter: vi.fn() });
     const items = provider.items(dom('<div data-jump="c1"><b data-t>One</b></div>'));
     expect(named(items)).toEqual(['Go to this chapter', 'Record in Booth', 'My prep: Not started', 'My prep: In progress', 'My prep: Prepped']);
-    expect(items.find((i) => i.key === 'prep-progress')?.unavailable).toBeTruthy();
-    expect(provider.items(dom('<section data-bound="" data-ch="c1"><b data-t>One</b></section>'))).toHaveLength(5);
+    expect(rows(items).find((i) => i.key === 'prep-progress')?.unavailable).toBeTruthy();
+    expect(named(provider.items(dom('<section data-bound="" data-ch="c1"><b data-t>One</b></section>')))).toHaveLength(5);
   });
 
   it('a word of the side panel gets Show and Remove', () => {
@@ -175,7 +186,10 @@ describe('menu-items-run-the-hooks-commands', () => {
   it('each item calls a command or a handler with the target’s ids', () => {
     const mine = build({ selectionAt: () => selection }, [mark('m1', 'query', 'open')]);
     const items = mine.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'));
-    const run = (key: string) => items.find((i) => i.key === key)!.onSelect();
+    const run = (key: string) =>
+      rows(items)
+        .find((i) => i.key === key)!
+        .onSelect();
     run('mark-open');
     run('mark-status');
     run('mark-type-tone');
