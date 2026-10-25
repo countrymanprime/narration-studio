@@ -468,8 +468,9 @@ keep going").
   takes included (`resumelive.go`,
   Resume: where REAPER is and where the prompter was).
   Otherwise it is the end of the recorded audio in the saved `.rpp`. The 30 s
-  before that time are transcribed and placed in the chapter by the sidecar
-.
+  before that time are transcribed by the sidecar (`--locate --words-only`) and placed in the chapter by the host
+  (`internal/scripttrack` `LocateEvent`, held byte for byte to `core/locate.py`); a chapter the host cannot read as
+  the sidecar does is left to the sidecar to place, as before.
   While REAPER records onto the track, nothing is located (`recording`).
 - **Where the prompter was.** The last word the tracker read, kept per chapter in
   `<project>/<app>/teleprompter/<chapter>.reading.json` when a session
@@ -509,8 +510,9 @@ Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-rol
 - **`alignment`**: when no anchor brackets the word, the word is timed from the chapter's recording
   (`teleprompterpunchalign.go`): the resume prompt's track, REAPER's live items or the saved `.rpp`, the item holding
   the anchors' pace estimate (else the item that ends last), at most 120 s of it, and one run of the sidecar's
-  `--align-word` mode (`core/align_word.py`: the locate's decode and placement, then a matching-blocks pass that maps
-  each heard word to a script word). The answer is mapped back through the item's offset and rate. Nothing runs while
+  `--align-word --words-only` mode, which decodes the stretch; the host places the words (`internal/scripttrack`
+  `WordTimeEvent`, held byte for byte to `core/align_word.py`: the locate's placement, then a matching-blocks pass that
+  maps each heard word to a script word). The answer is mapped back through the item's offset and rate. Nothing runs while
   REAPER records onto the track, and nothing is downloaded
 .
 - **`estimate`**: the anchors' pace, only when the recording cannot answer.
