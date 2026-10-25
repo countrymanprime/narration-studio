@@ -200,6 +200,9 @@ leave room tone of the same length so the timing does not move. You also choose 
 edge of the cut, and whether the cut audio is kept on a muted track named Cuts. The DAW makes the cut as one undo step; the recording file is not
 touched. **Mute** keeps the audio and silences the words. The DAW names words by the script's words, so a word that was only said (in italics, not in the script) at the edge of your selection is left out: the question says so ("“um” was only said and is not in the script, so its audio stays.") and counts only the words that will be cut. A word that was only said between two script words is cut with them.
 
+Every question on this page keeps **Cancel** at the bottom left and its action at the bottom right, in view however far the
+question scrolls; when more of it is below them, a shadow over that row says so.
+
 ![Editing - Delete on four selected words: the question names the words, the cut and what the DAW will do](../../images/ui/editing-delete-dialog.webp)
 
 ## Effects on words
