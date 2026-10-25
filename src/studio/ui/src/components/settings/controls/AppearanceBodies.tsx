@@ -79,8 +79,10 @@ export function ZoomRowBody() {
   const levels = ZOOM_LEVELS.includes(level) ? ZOOM_LEVELS : [...ZOOM_LEVELS, level].sort((a, b) => a - b);
   return (
     <div className="flex flex-nowrap items-center gap-1.5">
+      {/* A short value gets the settings' short field width, 8rem, not its 85 px content width (alignment audit XSE2-9, XSE2-33). */}
       <Select
         label="Zoom"
+        className="w-32"
         value={String(level)}
         options={levels.map((value) => ({ value: String(value), label: percent(value) }))}
         onChange={(value) => choose(Number(value))}

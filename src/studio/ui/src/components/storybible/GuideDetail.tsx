@@ -48,7 +48,7 @@ import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsInModel';
 import { addressPath } from '../../navigation/address';
-import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
+import { aliasFlagged, entryFlagged, reviewFlags, typeUnknown } from './entryList';
 import { EntryText } from './EntryText';
 import { ReadNotice } from './ReadNotice';
 import type { SamplePlayer } from '../voicesamples/useSamplePlayer';
@@ -64,6 +64,7 @@ import {
   type DraftProperty,
   type TalkDraft,
 } from './propertyDraft';
+import { HIT_AREA } from '../primitives/hitArea';
 import { IconButton } from '../primitives/IconButton';
 import { TextField } from '../primitives/TextField';
 import { PANEL_BODY_CLASS, PANEL_ENTRY_TITLE_CLASS, PANEL_FRAME_CLASS, PANEL_HEADER_CLASS, PANEL_SUBTITLE_CLASS } from '../primitives/panelStyles';
@@ -147,6 +148,7 @@ function EntryFrame({
   subtitle,
   actions,
   className,
+  busy = false,
   children,
 }: {
   title: string;
@@ -155,14 +157,18 @@ function EntryFrame({
   subtitle: ReactNode;
   actions: ReactNode;
   className: string;
+  /** A save is running: the body is `aria-busy` while the entry is written, and the header says Saving (R3SB1-11). Not dimmed: dimmed text fails contrast. */
+  busy?: boolean;
   children: ReactNode;
 }) {
   const titleId = useId();
   return (
     <section aria-labelledby={titleId} className={`${PANEL_FRAME_CLASS} flex flex-col overflow-hidden ${className}`}>
       <div className={PANEL_HEADER_CLASS}>
-        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
-          <span className="flex items-center gap-2 self-center">{leading}</span>
+        {/* PanelHeader's 12 rem basis: beside wide actions the name keeps that much and the actions wrap under it (SBX-7). The name, the
+            kind and the status sit on one centred line (SBX-6). */}
+        <div className="flex min-w-0 flex-[1_1_12rem] flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span className="flex flex-none items-center gap-2">{leading}</span>
           {/* The heading stays for assistive technology while the input stands in for it, so the sections below keep their level. */}
           <h2 id={titleId} className={nameInput ? 'sr-only' : PANEL_ENTRY_TITLE_CLASS}>
             {title}
@@ -170,9 +176,10 @@ function EntryFrame({
           {nameInput}
           <div className={PANEL_SUBTITLE_CLASS}>{subtitle}</div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        {/* The negative margin lets the 36 px buttons sit in the 50 px header without growing it, as PanelHeader does. */}
+        <div className="-my-[0.3125rem] flex flex-wrap items-center gap-2">{actions}</div>
       </div>
-      <div className={`${PANEL_BODY_CLASS} min-h-0 flex-1 overflow-y-auto`} tabIndex={0} role="group" aria-labelledby={titleId}>
+      <div className={`${PANEL_BODY_CLASS} min-h-0 flex-1 overflow-y-auto`} tabIndex={0} role="group" aria-labelledby={titleId} aria-busy={busy || undefined}>
         {children}
       </div>
     </section>
@@ -633,12 +640,17 @@ export function GuideDetail({
     if (kind === 'hear') void playPreview();
   };
 
+  const kindEditable = !locked && (editing || isNewDraft);
+  // The list's word for an entry the host could not type, so the header and the list agree (SBX-21).
+  const kindText = typeUnknown(entity) ? 'Type not set' : categoryLabel(entity.category);
+
   return (
     <EntryFrame
       title={entity.canonical_name || 'New entity'}
       nameInput={
         (canEdit && editing) || isNewDraft ? (
-          <div className="min-w-0 flex-[1_1_12rem]">
+          // As wide as the name (8 to 24 rem), so the kind stays beside it instead of drifting across the header or under it (SBX-6).
+          <div className="min-w-0 flex-[0_1_auto]">
             <TextField
               ref={nameField}
               label="Name"
@@ -648,33 +660,46 @@ export function GuideDetail({
                 setNameError(undefined);
                 setDraft({ ...draft, name });
               }}
-              className="h-auto! border-transparent! bg-transparent! px-1! font-['Barlow_Condensed',sans-serif] text-[1.625rem]! leading-[1.2]! font-semibold hover:border-[var(--line-strong)]! focus-visible:border-[var(--accent)]!"
+              className="[field-sizing:content] size-auto! max-w-[24rem] min-w-[8rem] border-[var(--border)]! bg-transparent! px-1! font-['Barlow_Condensed',sans-serif] text-[1.625rem]! leading-[1.2]! font-semibold hover:border-[var(--line-strong)]! focus-visible:border-[var(--accent)]!"
             />
           </div>
         ) : undefined
       }
       leading={<Dot color={dotOf(entity.category)} />}
       subtitle={
-        <div className="flex items-center gap-2" style={{ position: 'relative' }}>
-          <Menu
-            triggerClassName={badgeClass('pill')}
-            triggerStyle={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
-            disabled={locked || !(editing || isNewDraft) || mutation.isBusy}
-            items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
-              key: label,
-              label,
-              leading: <Dot color={dotOf(label)} />,
-              onSelect: () => {
-                if (isNewDraft) void createNewEntity(label);
-                else void save('category', { category: label }, `Category changed to ${label}.`);
-              },
-            }))}
-          >
-            {categoryLabel(entity.category)}
-            {/* The mock's read-only kind is a plain pill: the chevron promises a menu only while the kind can change. */}
-            {!locked && (editing || isNewDraft) && <FontAwesomeIcon icon={faChevronDown} />}
-          </Menu>
-          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
+        <div className="flex flex-wrap items-center gap-2" style={{ position: 'relative' }}>
+          {kindEditable ? (
+            <Menu
+              triggerClassName={`${badgeClass('pill')} ${HIT_AREA} flex-none whitespace-nowrap`}
+              triggerStyle={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
+              disabled={mutation.isBusy}
+              items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
+                key: label,
+                label,
+                leading: <Dot color={dotOf(label)} />,
+                onSelect: () => {
+                  if (isNewDraft) void createNewEntity(label);
+                  else void save('category', { category: label }, `Category changed to ${label}.`);
+                },
+              }))}
+            >
+              {kindText}
+              <FontAwesomeIcon icon={faChevronDown} />
+            </Menu>
+          ) : (
+            // The mock's read-only kind is a plain pill, not a switched-off button (R3SB1-8): the menu exists only while the kind can change.
+            <span
+              className={`${badgeClass('pill')} flex-none whitespace-nowrap`}
+              style={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
+            >
+              {kindText}
+            </span>
+          )}
+          {(entryFlagged(entity) || toVerify > 0) && (
+            <span className="flex-none whitespace-nowrap">
+              <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />
+            </span>
+          )}
         </div>
       }
       actions={
@@ -682,12 +707,12 @@ export function GuideDetail({
           {(entryFlagged(entity) || toVerify > 0) &&
             (toVerify > 0 ? (
               <TooltipTarget text={VERIFY_FIRST_REASON}>
-                <Button variant="secondary" size="sm" disabled>
+                <Button variant="secondary" disabled>
                   Mark reviewed
                 </Button>
               </TooltipTarget>
             ) : (
-              <Button variant="secondary" size="sm" pending={mutation.isPending('review')} disabled={waiting('review')} onClick={() => void markReviewed()}>
+              <Button variant="secondary" pending={mutation.isPending('review')} disabled={waiting('review')} onClick={() => void markReviewed()}>
                 Mark reviewed
               </Button>
             ))}
@@ -714,6 +739,11 @@ export function GuideDetail({
           )}
           {canEdit && editing && (
             <>
+              {mutation.isPending('save') && (
+                <span role="status" className="text-[0.8125rem] text-[var(--text-muted)]">
+                  Saving…
+                </span>
+              )}
               <TooltipTarget text="Save changes to this entry">
                 <IconButton
                   label="Save changes to this entry"
@@ -751,10 +781,11 @@ export function GuideDetail({
         </>
       }
       className="min-h-0 flex-1"
+      busy={mutation.isPending('save')}
     >
       <div className="space-y-4">
         {locked && (
-          <p className="rounded px-3 py-1.5 text-xs" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+          <p className="rounded px-3 py-1.5 text-[0.8125rem]" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
             <FontAwesomeIcon icon={faLock} className="mr-1.5" />
             Locked entries cannot be deleted or used as merge sources.
           </p>
