@@ -20,6 +20,10 @@ src/studio/integrations/reaper/** text eol=lf
 # Golden payloads written by the Go and Python tests are compared byte for byte: a CRLF checkout would fail every one.
 tests/fixtures/contracts/** text eol=lf
 
+# The Booth's parity fixtures (tests/fixtures/booth-parity) are read line by line and compared byte for byte, and hold
+# raw U+2028, information separators and other control characters: a CRLF checkout fails every one, so none is converted.
+tests/fixtures/booth-parity/** -text
+
 # The real-Audacity 3 golden replies are the exact bytes Audacity wrote on Linux (LF) and are compared byte for byte by
 # internal/audacitybridge; a CRLF checkout on a Windows runner (autocrlf=true) fails every one. Keep them out of conversion.
 src/studio/tests/audacity3/real/foundation/golden/*.bin -text

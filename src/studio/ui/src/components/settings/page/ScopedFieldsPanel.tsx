@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../../types';
@@ -65,12 +65,19 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
   // `filter` is a module-level function, so the list keeps its identity between reads.
   const fields = useMemo(() => (read ?? []).filter((field) => !filter || filter(field)), [read, filter]);
   const [values, setValues] = useState<Record<string, string>>({});
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirtyState] = useState(false);
+  // The flag as of now, not as of the last render: an edit typed before this panel copied a fresh read into the form
+  // runs ahead of that render's effect, which must then leave the edit alone.
+  const editing = useRef(false);
+  const setDirty = useCallback((next: boolean) => {
+    editing.current = next;
+    setDirtyState(next);
+  }, []);
   const [pendingScope, setPendingScope] = useState<Scope>();
 
   // A clean form follows what was last read; an edited one keeps the narrator's values until saved or discarded.
   useEffect(() => {
-    if (!dirty) setValues(Object.fromEntries((read ?? []).map((field) => [field.key, field.value])));
+    if (!editing.current) setValues(Object.fromEntries((read ?? []).map((field) => [field.key, field.value])));
   }, [read, dirty]);
 
   const save = useCallback(async () => {
@@ -92,11 +99,11 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
         retryAction(() => void save()),
       );
     }
-  }, [system, notify, read, reload, scope, tool, values]);
+  }, [system, notify, read, reload, scope, tool, values, setDirty]);
   const discard = useCallback(async () => {
     setDirty(false);
     await reload();
-  }, [reload]);
+  }, [reload, setDirty]);
   useEffect(() => {
     register(id, { dirty, save, discard });
   }, [id, dirty, save, discard, register]);
