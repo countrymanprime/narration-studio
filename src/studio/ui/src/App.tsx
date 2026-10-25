@@ -1078,6 +1078,7 @@ function AppRoutes() {
             {chapterSync?.ask && (
               <ChapterSyncConsentDialog
                 projectFile={chapterSync.projectFile}
+                daw={audacityLink.link?.chosen ? { daw: 'Audacity', linkedFile: audacityLink.link.linkedFile } : { daw: 'REAPER' }}
                 preview={syncPreview}
                 busy={syncBusy}
                 onSync={() => {

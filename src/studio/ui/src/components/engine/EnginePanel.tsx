@@ -203,7 +203,11 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
           </div>
         </Panel>
       )}
-      <ChapterSyncPanel notify={notify} onChanged={() => setRefresh((count) => count + 1)} />
+      <ChapterSyncPanel
+        notify={notify}
+        onChanged={() => setRefresh((count) => count + 1)}
+        daw={forAudacity ? { daw: 'Audacity', linkedFile: audacity.link?.linkedFile ?? null } : { daw: 'REAPER' }}
+      />
       {project && project.tracks.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           {forAudacity
