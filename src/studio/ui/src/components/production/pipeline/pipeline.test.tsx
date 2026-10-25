@@ -52,10 +52,10 @@ describe('PipelineTable', () => {
     const grid = screen.getByRole('table', { name: 'Chapter pipeline' });
     expect(within(grid).getAllByRole('row')).toHaveLength(MID_BOOK.length + 1);
     const widths = Array.from(grid.querySelectorAll('col')).map((col) => col.style.width);
-    // Every stage column holds its cell and 6 px either side; the last also holds the card's 16 px edge (alignment audit XPR2-10).
-    expect(widths.slice(2, 8)).toEqual(Array(6).fill('4.5rem'));
-    expect(widths[8]).toBe('5rem');
-    expect(widths[1]).toBe('3.5rem');
+    // Every stage column holds its cell and 4 px either side; the last also holds the card's 16 px edge (alignment audit XPR2-10).
+    expect(widths.slice(2, 8)).toEqual(Array(6).fill('3.75rem'));
+    expect(widths[8]).toBe('4.5rem');
+    expect(widths[1]).toBe('4rem');
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
       expect.arrayContaining(['Chapter', 'Prep', 'Record', 'Edit', 'Proof', 'Pickups', 'Master', 'QC']),
     );

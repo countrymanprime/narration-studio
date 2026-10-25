@@ -33,6 +33,21 @@ for (const size of [
     // XPR1-5, R4SM-3: the name column was 65 to 130 px, so names broke one word, or half a word, a line.
     const name = (await table.getByRole('columnheader', { name: 'Chapter' }).boundingBox())!;
     expect(name.width, 'the Chapter column holds a name').toBeGreaterThanOrEqual(158);
-    if (size.width >= 1440) expect(name.width, 'the names are not squeezed beside eight wide stage columns (XPR2-10)').toBeGreaterThanOrEqual(225);
+    // The Fin. header and its info mark stay on one line.
+    const fin = (await table.getByRole('columnheader', { name: /Fin\./ }).boundingBox())!;
+    expect(fin.height).toBeLessThan(40);
+    if (size.width >= 1440) expect(name.width, 'the names are not squeezed beside eight wide stage columns (XPR2-10)').toBeGreaterThanOrEqual(300);
   });
 }
+
+test('Production / a stage cell beside its readiness chip still shows its whole label / desktop 1440x900', async ({ page }) => {
+  // The cell gives up its minimum for the chip; what is left must still hold "50%" (it was clipped to "50" in 15 px).
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await settlePage(page);
+  await productionDrivers['on-pace'](page);
+  const cell = page.getByRole('button', { name: /^Chapter 4.*: Record 50% recorded$/ });
+  const sizes = await cell.evaluate((node) => ({ scroll: node.scrollWidth, client: node.clientWidth, width: node.getBoundingClientRect().width }));
+  expect(sizes.scroll, 'the label is not clipped').toBeLessThanOrEqual(sizes.client);
+  expect(sizes.width).toBeGreaterThanOrEqual(24);
+});

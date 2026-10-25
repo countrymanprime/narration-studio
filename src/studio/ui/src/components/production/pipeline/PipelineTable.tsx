@@ -26,15 +26,16 @@ const cellStatus = (cell: PipelineCell): StatusId => {
   return cell.kind === 'open' ? (cell.column === 'pickups' ? 'open_pickup' : 'fail') : byKind[cell.kind];
 };
 /**
- * The columns (Table `columns`): every stage column holds a 52 px cell and 6 px either side, the last also the card's 16 px edge, and Fin.
- * holds "0:14" (the mock's 80 px and 64 px left 28 px of air around each cell and squeezed the chapter names to two to five lines, alignment
- * audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that it scrolls inside its card with the
+ * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge, and Fin.
+ * holds "0:14" and its info mark on one line (the mock's 80 px stage columns left 28 px of air around each cell and squeezed the chapter
+ * names to two to five lines, alignment audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that it scrolls inside its card with the
  * names pinned at the left (R4TA-1).
  */
-const STAGE_WIDTH = '4.5rem';
-const COLUMNS = ['auto', '3.5rem', ...Array<string>(6).fill(STAGE_WIDTH), '5rem'];
+const STAGE_WIDTH = '3.75rem';
+const COLUMNS = ['auto', '4rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
 const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'proof', 'pickups', 'master', 'qc'];
-const STAGE_CELL = 'px-1.5';
+// Important: the cell's own 10 px padding is the same specificity and comes later in the stylesheet. The last column keeps its 16 px card edge.
+const STAGE_CELL = 'px-1! last:pr-4!';
 /** The names stay in view while the stages scroll under them, on the card's own colour. */
 const STICKY_NAME = 'sticky left-0 z-[1] bg-[var(--surface)]';
 
@@ -66,10 +67,10 @@ function StageCell({
   // The mock fills an empty cell (`.cell`, --raised) rather than outlining it.
   const look = 'soft';
   // The mock's `.cell` is `width: 100%` of its column; the shape itself is only a minimum.
-  const classes = `${badgeClass('cell')} w-full ${beside ? 'min-w-0!' : ''}`;
+  const classes = `${badgeClass('cell')} w-full ${beside ? 'min-w-0! px-0!' : ''}`;
   if (!cell.go) {
     return (
-      <TooltipTarget text={cell.tip} className={beside ? 'min-w-0 flex-1' : 'w-full'}>
+      <TooltipTarget text={cell.tip} className={beside ? 'min-w-0' : 'w-full'}>
         <span className={classes} style={badgeStyle(colors, look)} aria-label={cellName(row.name, cell)} role="img">
           {textOf(cell)}
         </span>
@@ -77,7 +78,7 @@ function StageCell({
     );
   }
   return (
-    <TooltipTarget text={cell.tip} className={beside ? 'min-w-0 flex-1' : 'w-full'}>
+    <TooltipTarget text={cell.tip} className={beside ? 'min-w-0' : 'w-full'}>
       {/* native-control-ok: a flat cell-shaped badge that is a button; Button's padded uppercase chrome and IconButton's square do not draw the mock's cell. */}
       <button
         type="button"
@@ -113,7 +114,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
     // The table scrolls inside its panel at a narrow width, never the page, with a shadow on the side that has more (`scroll-x-edges`);
     // the region is a tab stop so the keyboard can scroll it.
     <div className="scroll-x-edges overflow-x-auto" tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
-      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[45.5rem]">
+      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[41rem]">
         <TableHead>
           <TableRow>
             <TableHeader className={STICKY_NAME}>Chapter</TableHeader>
@@ -146,7 +147,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                       {chip ? (
                         // The verdict chip sits inside the cell for the stage the chapter is in, at its right end, so it never covers a row
                         // rule or the next column (XPR2-12, XPR1-34).
-                        <span className="flex items-center gap-1">
+                        <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1">
                           <StageCell row={row} cell={row.cells[column]} onGo={onGo} beside />
                           <ReadinessChip recommendation={recommendation} onOpen={() => openReadiness({ chapterId: row.id, notify, onStatus })} />
                         </span>
