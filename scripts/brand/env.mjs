@@ -1,4 +1,4 @@
-// The brand's values for a workflow step (docs/research/app-name-injection.md): a step reads the one value it needs,
+// The brand's values for a workflow step (docs/architecture/codebase-map.md#product-and-technical-names): a step reads the one value it needs,
 // `exe="$(node scripts/brand/env.mjs BRAND_EXECUTABLE)"`, so no workflow spells the product's name or an identity value. Nothing is
 // written to $GITHUB_ENV: a write there reaches every later step of the job (zizmor's github-env audit).
 //
