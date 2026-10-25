@@ -66,6 +66,16 @@ The Go host exposes it as `GuidePronounce(id, aliasIndex *int, source string)` /
 spelled and ignores the IPA, so this is a UI policy, not a technical limit); in edit mode each name's source tag asks the
 chosen source for a candidate and then calls `GuidePronounce` with that source (SN-B22).
 
+The Wiktextract source reads the index the narrator installed in Settings from the path given as `--wiktextract-index`; without
+the flag it answers "Wiktionary pronunciations are not installed yet." The host passes the flag only while the index is installed
+and verifies (`wiktextract.Manager.Installed`, asked through the resolver `app.go` gives the service with
+`guide.Service.SetWiktextractIndex`, each time a lookup starts): to `pronunciation --source wiktextract` and
+`candidate --source wiktextract`, and to every lookup that tries the sources in turn (a build's `entities` or
+`pronunciation --words-file`, and the `pronunciation --word=` of a create or an alias edit). A named source other than Wiktextract
+never gets it. The host never passes `--espeak-library`: no build ships a `libespeak-ng` for it to name, so `phonemizer` looks for the
+system's own ([CI and releases](../operations/ci-and-releases.md), "Known gap"). Pinned by
+`src/studio/desktop/internal/guide/wiktextract_index_test.go` and `src/studio/desktop/guidepronounce_test.go`.
+
 `candidate --word=<text> --source cmu|espeak|wiktextract` prints one JSON line, `{"ok":true,"say":...}` or `{"ok":false,"reason":...}`, and changes nothing; a word over 80 characters, or with a newline or NUL, is refused. The host calls it through `guide.Service.Candidate`.
 
 `pronunciation --word=<text> [--word=<text> ...] [--default-source cmu|espeak|wiktextract]` prints one JSON line per word, in order, and changes nothing: the whole value of `pronunciation()`, the preferred source first and then the rest in their usual order, as `{"ipa": ..., "source": ..., "confidence": ...}`, or `{"ipa": "", "source": "not generated", "confidence": "unknown"}` for a word nothing knows. A blank word, or one with a NUL, is refused; there is no length limit. The host calls it through `guide.Service.pronunciations` when it creates an entry or adds an alias, with the names the entry did not have. With `--source`, each word is asked of that source alone, as above, and a words file may hold an empty name.

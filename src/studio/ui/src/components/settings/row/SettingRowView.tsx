@@ -120,7 +120,8 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
           children
         ) : global ? (
           <>
-            <div className="flex flex-nowrap items-center gap-1.5">
+            {/* The row of the control and its Reset takes the column's width, so the control's own `w-full` has a width to resolve against. */}
+            <div className="flex w-full min-w-0 flex-nowrap items-center gap-1.5">
               <ValueControl
                 row={row}
                 field={global}

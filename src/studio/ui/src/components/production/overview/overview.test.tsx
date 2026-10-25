@@ -137,10 +137,12 @@ describe('StageBar', () => {
     const bar = screen.getByRole('img', { name: 'Book progress by stage' });
     const widths = [...bar.querySelectorAll('i')].map((i) => parseFloat(i.style.width));
     expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
-    expect([...bar.querySelectorAll('i')].map((i) => i.title.split(':')[0])).toEqual(['Delivered', 'Proofed', 'Edited', 'Recorded', 'Not recorded yet']);
+    // A stage with nothing in it draws no segment (a zero-width one painted a sliver, alignment audit R3PR2-13); the legend still names it.
+    expect([...bar.querySelectorAll('i')].map((i) => i.title.split(':')[0])).toEqual(['Delivered', 'Edited', 'Recorded', 'Not recorded yet']);
+    expect(screen.getByText('Proofed')).toBeTruthy();
     // Chapter 1 is mastered, chapter 2 is in proof (edited), chapter 3 in edit (recorded), chapter 4 half recorded, chapter 5 untouched; a chapter is an hour.
     expect(bar.querySelector('i[title="Delivered: 1:00"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Proofed: 0:00"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Proofed: 0:00"]')).toBeNull();
     expect(bar.querySelector('i[title="Edited: 1:00"]')).toBeTruthy();
     expect(bar.querySelector('i[title="Recorded: 1:30"]')).toBeTruthy();
     expect(bar.querySelector('i[title="Not recorded yet: 1:30"]')).toBeTruthy();
@@ -154,9 +156,10 @@ describe('StageBar', () => {
     expect(screen.queryByText(/Estimated from each chapter's words and status/)).toBeNull();
   });
 
-  it('draws an empty bar for a book with no words', () => {
+  it('draws an empty bar for a book with no words, and still lists the five stages', () => {
     view(<StageBar segments={overviewFor([]).segments} wph={9300} />);
-    expect(screen.getByRole('img', { name: 'Book progress by stage' }).querySelectorAll('i')).toHaveLength(5);
+    expect(screen.getByRole('img', { name: 'Book progress by stage' }).querySelectorAll('i')).toHaveLength(0);
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
   });
 });
 

@@ -87,3 +87,24 @@ describe('ChapterTrackPanel playback and Select in REAPER', () => {
     );
   });
 });
+
+describe('ChapterTrackPanel states (alignment audit)', () => {
+  it('a missing track offers no playback or Select in REAPER and labels its figures as last known (R3PR1-1)', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    renderPanel(api, { ...link, warnings: [...link.warnings, 'confirmed-track-missing'] }, track);
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Select in REAPER' })).toBeNull();
+    expect(screen.getByRole('heading', { name: /^Last known, as of save/ })).toBeTruthy();
+  });
+
+  it('two links to choose between offer the Keep this one rows and no second Link picker (R3PR1-6)', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const second = { ...link.links[0], trackGuid: `${link.links[0].trackGuid}-2` };
+    renderPanel(api, { ...link, status: 'ambiguous', links: [link.links[0], second] }, track);
+    expect(await screen.findAllByRole('button', { name: 'Keep this one' })).toHaveLength(2);
+    expect(screen.queryByRole('heading', { name: 'Link' })).toBeNull();
+  });
+});

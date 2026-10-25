@@ -60,6 +60,17 @@ describe('the-filter-menu-narrows-the-list', () => {
     expect(screen.getByRole('button', { name: 'Filter, 1 on' })).toBeTruthy();
   });
 
+  it('says when the open entry is not among the rows the filters leave (R3SB1-2)', async () => {
+    await renderGuide();
+    expect(screen.queryByText('Alice is open but not in this list.')).toBeNull();
+    await openFilter();
+    await userEvent.click(await screen.findByRole('menuitemcheckbox', { name: /^Place/ }));
+    await closeFilter();
+    expect(screen.getByText('Alice is open but not in this list.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove filter Place' }));
+    expect(screen.queryByText('Alice is open but not in this list.')).toBeNull();
+  });
+
   it('keeps the entries with no pronunciation yet, or only those with one', async () => {
     const api = await renderGuide();
     const entries = (await api.guideEntities()).filter((e) => e.category !== 'Draft');

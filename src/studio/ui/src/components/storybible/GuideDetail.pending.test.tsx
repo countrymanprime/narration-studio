@@ -46,6 +46,9 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     acknowledged();
     expect(guideEdit).toHaveBeenCalledTimes(1);
     expect(busy('Save changes to this entry')).toBe(true);
+    // The rest of the entry says so too, not only the button (R3SB1-11): a Saving caption, and the body dimmed and busy.
+    expect(screen.getByText('Saving…')).toBeTruthy();
+    expect(screen.getByRole('group', { name: entity.canonical_name }).getAttribute('aria-busy')).toBe('true');
   });
 
   it('Lock', () => {
