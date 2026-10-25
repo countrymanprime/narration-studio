@@ -253,6 +253,42 @@ is an Experimental REAPER action: turn on Experimental DAW actions in [Settings]
 
 ![Editing - an FX chain chosen for four words: how the item is split around the words](../../images/ui/editing-fx-dialog.webp)
 
+## Replacing words with another narrator's audio
+
+In a duet, or where a stand-in read a line, you can play another narrator's audio in place of some of your words. Select the
+words and choose **Replace with another narrator's audio** on the toolbar, or **Replace with another narrator's audio…** in the
+word menu. This is an Experimental REAPER action: turn on Experimental DAW actions in [Settings](settings.md) to use it.
+
+The first time in a project, the dialog asks for the other narrator's name. You name each one once for the project; their name
+is what the script shows on the words their audio replaces. **Add a file of theirs…** opens a file dialog for their recording
+(WAV, FLAC, MP3, OGG or AIFF). REAPER puts it on a muted track of its own, named for them, and plays it from where it is: the
+file is not copied into the project folder, so keep it where it was. A file that was moved or changed since is marked in the
+list, and Replace stays off until you put it back or add it again.
+
+Under **Their stretch**, drag across their waveform to choose the part of their file that replaces your words, or type **From**
+and **To** in seconds. A file that is not a WAV shows a ruler instead of a waveform. The stretch can be 50 ms to 5 minutes long.
+
+The app then measures their stretch and shows its loudness against the project's target (**Loudness another narrator's audio is
+set to**, in Settings > Editing, -20 LUFS unless you change it), with the level change that brings it there. You can change the
+level, up to 24 dB either way. When their level cannot be measured, for an MP3 without the audio encoder or a stretch too short
+or too quiet, the dialog says why and their stretch keeps its own level unless you set one. **Length** compares your words with
+their stretch: when they differ, the later audio on the track moves earlier or later by the difference. **Fade at each seam** is
+10 ms unless you choose another.
+
+**Replace** moves your audio for those words to the muted Cuts track and plays theirs in its place, in one undo step in REAPER.
+Your recording and their file are not changed. Words that are cut, already replaced, or were only said and are not in the script
+cannot be replaced, and the toolbar says which.
+
+![Editing - Replace with another narrator's audio on four selected words: the other narrator, their file, their stretch, and the loudness and length](../../images/ui/editing-replace-dialog.webp)
+
+After the last replaced word the script shows the other narrator's name. Click it, or reach it with **Tab** and press
+**Enter**, for their stretch, the level change and **Put my audio back**. A dashed name says the words changed since their
+audio was put there. **Undo** takes a replacement back while it is still REAPER's last action; after that, and after a restart,
+**Put my audio back** (on the name, the toolbar or the word menu for the replaced words) puts your audio back where it was.
+A replaced stretch is not a take: it does not appear in the line's takes.
+
+![Editing - the other narrator's name after four replaced words, opened: their stretch, the level change and Put my audio back](../../images/ui/editing-replace-mark.webp)
+
 ## Marking a voice sample
 
 Select the words where a character's voice came out right and press **V** (or **Voice sample** on the toolbar, or **Mark as

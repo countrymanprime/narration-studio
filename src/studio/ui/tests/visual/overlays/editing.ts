@@ -3,7 +3,7 @@ import { clickCase, fromState, type OverlayCase } from '../helpers/overlayGuardF
 
 const stepper = (page: Page) => page.getByRole('button', { name: /^Chapter: .*Change chapter$/ });
 
-// Editing's overlays: the chapter stepper's menu, the Add FX menu and its dialog, the Voice sample dialog and the popover of a voice-sample dot, the delete and take-step confirms, the context
+// Editing's overlays: the chapter stepper's menu, the Add FX menu and its dialog, the Voice sample dialog and the popover of a voice-sample dot, the Replace audio dialog and the popover of a narrator's name, the delete and take-step confirms, the context
 // menu on a word and the docked waveform's own menu, and the clean-up and effects drawer, which the catalog reaches (tests/visual/drivers/editing.ts).
 export const editingCases: OverlayCase[] = [
   // Not at 320x300: the sticky key-hint bar at the foot of the page covers the stepper in a 300 px window, so the click never lands (a page
@@ -26,6 +26,8 @@ export const editingCases: OverlayCase[] = [
   fromState('editing', 'fx-dialog'),
   fromState('editing', 'voice-sample-dialog'),
   fromState('editing', 'voice-sample-mark-open', 'popover'),
+  fromState('editing', 'replace-dialog'),
+  fromState('editing', 'replace-mark-open', 'popover'),
   fromState('editing', 'delete-dialog'),
   fromState('editing', 'suggestion-step'),
   fromState('editing', 'drawer-cleanup', 'slide-over', { root: (page) => page.locator('#drawer') }),
