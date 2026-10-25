@@ -2,9 +2,9 @@
 
 The host's ports of the sidecars' text rules (internal/compare) must lowercase, split and match `\\w` exactly as
 CPython 3.12 does, and Go's unicode package is a newer Unicode version (docs/research/sidecar-go-vs-python.md, the
-traps). The tables are generated, never edited: `re`'s `\\w` for str patterns, `str.isspace`, `str.lower`'s mapping, and
-the Cased and Case_Ignorable sets of its final-sigma rule, which CPython does not expose and which are probed through
-`str.lower` itself.
+traps). The tables are generated, never edited: `re`'s `\\w` for str patterns, `str.isspace`, `str.isprintable`,
+`str.lower`'s and `str.casefold`'s mappings, and the Cased and Case_Ignorable sets of the final-sigma rule, which
+CPython does not expose and which are probed through `str.lower` itself.
 
     uv run python scripts/dev/gen-pyunicode.py          # rewrite the file
     uv run python scripts/dev/gen-pyunicode.py --check  # exit 1 if the file is not what this Python writes
@@ -71,6 +71,7 @@ def render():
         ("pySpaceRanges", "the code points str.isspace counts as space", lambda ch: ch.isspace()),
         ("pyCasedRanges", "the code points the final-sigma rule counts as cased", cased),
         ("pyIgnorableRanges", "the code points the final-sigma rule skips as case-ignorable", ignorable),
+        ("pyPrintableRanges", "the code points str.isprintable counts as printable (what repr leaves unescaped)", lambda ch: ch.isprintable()),
     ]:
         lines.append(f"// {name} are {about}, as inclusive ranges in order.")
         lines.append(f"var {name} = [][2]rune{{")
@@ -82,6 +83,14 @@ def render():
         low = ch.lower()
         if low != ch:
             escaped = "".join(f"\\U{ord(x):08X}" for x in low)
+            lines.append(f'\t0x{c:05X}: "{escaped}",')
+    lines += ["}", ""]
+    lines.append("// pyCasefoldMap is str.casefold for every code point it changes.")
+    lines.append("var pyCasefoldMap = map[rune]string{")
+    for c, ch in chars():
+        folded = ch.casefold()
+        if folded != ch:
+            escaped = "".join(f"\\U{ord(x):08X}" for x in folded)
             lines.append(f'\t0x{c:05X}: "{escaped}",')
     lines += ["}", ""]
     return "\n".join(lines)
