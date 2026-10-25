@@ -116,8 +116,9 @@ the [audio engine panel](navigation.md#the-audio-engine-panel).
 recorded length, how the link was found and when, and whether you or chapter sync made it), and
 **Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
 A suggested track says it is not linked yet; a chapter two tracks look like says so and lists
-them; a linked track no longer in the saved project says it may have been deleted or the project
-saved elsewhere.
+them; a chapter linked to two tracks offers **Keep this one** on each and nothing else; a linked
+track no longer in the saved project says it may have been deleted or the project saved elsewhere,
+shows its figures as last known and offers no playback.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings the track into
@@ -140,9 +141,9 @@ after the last chapter. They are not chapters, but the first opening and first c
 [Settings, Credits](settings.md#credits), each with its own status; a manuscript that brings its own opening-credits chapter
 lists that chapter in the opening row's place. Prep is a tick once no token is left to fill in, Record,
 Edit and Proof follow the row's status, and a stage nothing measures yet is a dash. Right-click a credits row for **Credits…**, which shows the template's name, words and estimated length (including
-room tone), a warning for an unresolved token (`[Author]` never filled in), **Open in Script**, its
-Recorded length (once its own track is linked - never an estimate), its status and a **Recording
-check** button. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
+room tone), a warning for an unresolved token (`[Author]` never filled in) with **Fill in under
+Settings > Credits**, its status, its Recorded length (once its own track is linked - never an
+estimate), and **Recording check** beside **Open in Script**. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
 Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
 below, against the credits template's rendered text rather than a manuscript chapter.
 
@@ -246,7 +247,7 @@ counts as done: a chapter nobody has checked reads as not checked, not ready.
 
 The chip on a chapter's current-stage cell says the verdict; it opens the chapter's readiness at the
 side of the page: the verdict in a sentence, each check with its state and reason, and the saved
-REAPER project it was read from. **Confirm** moves the chapter to the next stage and records what
+REAPER project it was read from. Only the decisions that can be taken are shown, under the evidence. **Confirm** moves the chapter to the next stage and records what
 the evidence was, with **Revert** to move it back; **Dismiss** hides the suggestion until the
 evidence changes. **Check now** reads the evidence again; it never starts a check. The readiness is
 read again when the page opens, after an import, when a recording check ends, after you change a

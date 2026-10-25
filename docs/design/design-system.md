@@ -212,6 +212,13 @@ The Settings page always keeps every setting. A working page may also offer a co
 
 **Known at 390 px, outside Settings** (found by a one-off sweep of every state at that width; the collapsed-control check passes everywhere): the Proofing results header and table (#148), the Home chapter table (#149) and a three-action confirm dialog (#150) are clipped or cramped. They need layout decisions and are reachable only by zoom, since the shell's minimum window is 960 px.
 
+## Production panels
+
+The Production slide-overs depart from the Studio Next mock in these lines, from the alignment audit and the owner's decision on #2251 to fix every finding:
+
+- **Stage readiness draws only the decisions that can be taken.** Dismiss, Confirm and Revert appear when they are possible, under the evidence they decide; the mock (`StageReadiness.tsx`) draws all of them disabled at the panel's foot, which left two dead buttons 400 px under a "can't tell" sentence (XPR2-35). The body does not repeat the slide-over's "Stage readiness" title, and a not-ready box counts the unmet checks rather than repeating them (R3PR2-8).
+- **A missing track is not drawn as a healthy one.** The chapter-track panel drops playback and Select in REAPER when the linked track is gone, labels its figures "Last known", and draws the track dot hollow; with two links to choose between it offers only the Keep this one rows, not a second picker (R3PR1-1, R3PR1-6).
+
 ## Manuscript reader
 
 - **One card per section.** Each chapter starts with the mock's boundary: a dashed "End of … · N words" line, then `ChapterCard` (`src/studio/ui/src/components/script/page/chapters/ChapterCard.tsx`, not a primitive) with the label, Record in Booth, the title, the facts line and My prep. The opening and closing credits are drawn the same way by `CreditsSection.tsx` beside it, as the mock lists them as chapters, with their own prep state; their unresolved tokens and Fill in sit in the card's banner row. There is no disclosure: every section's text is always shown.
