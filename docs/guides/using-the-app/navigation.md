@@ -213,7 +213,7 @@ all (such as a MIDI item). To hear a chapter, open it on [Editing](editing.md).
 
 ### REAPER tools
 
-When the project has tracks, the REAPER tools sit in a row under the project. **Link chapters…** and
+When the project has tracks, the REAPER tools sit in their own card under the project. **Link chapters…** and
 **Prepare chapter render…** change the project open in REAPER, through the app's bridge
 REAPER starts when it opens; nothing is written until you press the dialog's action button. The app puts the
 bridge in REAPER and connects to it without you running anything in REAPER.
