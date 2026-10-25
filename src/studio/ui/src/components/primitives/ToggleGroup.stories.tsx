@@ -89,7 +89,9 @@ export const SegmentedMeasuredShapes: Story = {
     // classes are what ToggleGroup.test.tsx pins.
     const height = group.getBoundingClientRect().height;
     if (height === 0) return;
-    await expect(height).toBeCloseTo(33, 0);
+    // The control height (36 px), so it lines up with a search box or select beside it; the mock's 33 px left it short of them (alignment audit
+    // XSE1-19, #2472).
+    await expect(height).toBeCloseTo(36, 0);
     await expect(getComputedStyle(chosen).textTransform).not.toBe('uppercase');
     await expect(getComputedStyle(chosen).backgroundColor).not.toBe(getComputedStyle(rest).backgroundColor);
   },
