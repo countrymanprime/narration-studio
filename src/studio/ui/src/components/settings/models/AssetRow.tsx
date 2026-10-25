@@ -21,7 +21,7 @@ const CARD_LABEL =
   "@max-[1020px]:before:mr-1.5 @max-[1020px]:before:font-['Barlow_Condensed',sans-serif] @max-[1020px]:before:text-[length:var(--font-size-label)] @max-[1020px]:before:font-semibold @max-[1020px]:before:tracking-[var(--tracking-label)] @max-[1020px]:before:text-[var(--text-muted)] @max-[1020px]:before:uppercase @max-[1020px]:before:content-[attr(data-label)]";
 
 /** The table's columns (`Table columns`): the name takes what is left, the others keep one width in every state, so nothing moves between states. */
-export const ASSET_COLUMNS = ['auto', '13rem', '15rem', '6.5rem'] as const;
+export const ASSET_COLUMNS = ['auto', '12rem', '18rem', '6.5rem'] as const;
 
 function Cell({ label, className = '', children }: { label?: string; className?: string; children: React.ReactNode }) {
   return (

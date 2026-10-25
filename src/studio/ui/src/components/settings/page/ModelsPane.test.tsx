@@ -126,7 +126,7 @@ describe('Settings: Models & downloads', () => {
     const small = await ready('whisper/small');
     const table = screen.getByRole('table', { name: 'Models, voices and tools' });
     expect(table.className).toContain('table-fixed');
-    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '13rem', '15rem', '6.5rem']);
+    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '12rem', '18rem', '6.5rem']);
     const actions = within(small)
       .getByRole('button', { name: /^Remove Small/ })
       .closest('td')!.firstElementChild!;
