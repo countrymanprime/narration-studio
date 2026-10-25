@@ -39,7 +39,7 @@ export const shellDrivers: Record<string, Driver> = {
     await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
     await productionLoaded(page);
-    await page.getByRole('button', { name: /^REAPER: A different project is open/ }).waitFor();
+    await page.getByRole('button', { name: /^REAPER: Other project\. A different project is open/ }).waitFor();
   },
   // The zoom chip at a non-100% level (?mockZoom=125): it is drawn only off 100%, so it needs the flag to be seen without driving Ctrl+wheel first.
   'zoom-level': async (page) => {
