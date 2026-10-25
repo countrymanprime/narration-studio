@@ -18,11 +18,11 @@ export const scriptDrivers: Record<string, Driver> = {
     await settlePage(page);
     // The page's own content never loads here, so goToPage (which waits for it) is not used: the inline error is the proof.
     await clickNav(page, 'Script');
-    // The words are on screen twice: Home's audiobook estimate read the same chapters first and raised a notice that stays, and
-    // the page then shows its own inline error. Wait for each by what it is, so neither the state nor a strict-mode locator depends on
-    // which of the two rendered first.
+    // The page shows its own inline error with Retry, and the toast that said the same is cleared by it (#2494), so the words are on
+    // screen once.
     await page.getByRole('button', { name: 'Retry' }).waitFor();
-    await page.locator('[data-tone="error"]').getByText('The app received data it could not read.').waitFor();
+    await page.getByText('The app received data it could not read.').waitFor();
+    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
   reader: async (page) => {
     await goToPage(page, 'Script');
