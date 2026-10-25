@@ -461,10 +461,10 @@ func TestSpeakerChaptersAreWhereTheEntrysNamesAppear(t *testing.T) {
 	}
 }
 
-// A build writes the new entries and keeps the old cues; Build then finds the cues against them, and fails when they cannot be found.
+// A build writes the new entries and keeps the old cues; Build then finds the cues against them, and fails when the manuscript is gone.
 func TestBuildFindsTheCuesAgainstTheNewEntries(t *testing.T) {
 	rig := newPreviewRig(t, "build")
-	manuscript := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1"}], "paragraphs": [{"id": "p1", "chapterId": "c1", "chapterTitle": "One", "text": "\"Hello,\" Ada said."}]}`
+	manuscript := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1"}], "paragraphs": [{"id": "p1", "chapterId": "c1", "chapterTitle": "One", "text": "\"Hello,\" Captain Ada said."}]}`
 	if err := os.MkdirAll(filepath.Dir(rig.service.manuscript()), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -475,13 +475,13 @@ func TestBuildFindsTheCuesAgainstTheNewEntries(t *testing.T) {
 		t.Fatal(err)
 	}
 	cues, err := rig.service.DialogueCues()
-	if err != nil || len(cues) != 1 || cues[0].SpeakerEntityID == nil || *cues[0].SpeakerEntityID != "entity-ada" {
+	if err != nil || len(cues) != 1 || cues[0].SpeakerEntityID == nil || *cues[0].SpeakerEntityID != entityID("Captain Ada") {
 		t.Fatalf("cues %+v, %v", cues, err)
 	}
 	if err := os.Remove(rig.service.manuscript()); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := rig.service.Build(filepath.Join(t.TempDir(), "progress"), filepath.Join(t.TempDir(), "log"), RulesOnly); !errors.Is(err, errNoManuscript) {
-		t.Fatalf("a build whose cues could not be found: %v", err)
+		t.Fatalf("a build with no manuscript: %v", err)
 	}
 }
