@@ -30,7 +30,7 @@ func Judge(report Report, thresholds Thresholds) Judgement {
 	judgement := Judgement{Thresholds: ThresholdsView(thresholds)}
 	if report.TextComplete(thresholds) {
 		judgement.State = stages.SignalMet
-		judgement.Reason = fmt.Sprintf("Text present: %d of %s; every paragraph passes.", report.Summary.PresentTokens, words(report.Summary.BodyTokens))
+		judgement.Reason = fmt.Sprintf("Text present: %s of %s; every paragraph passes.", grouped(report.Summary.PresentTokens), words(report.Summary.BodyTokens))
 		return judgement
 	}
 	judgement.State = stages.SignalNotMet

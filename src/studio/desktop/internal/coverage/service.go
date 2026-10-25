@@ -323,7 +323,7 @@ func (s *Service) cancelWhere(match func(*job) bool) []*job {
 		if running.state.Phase != PhaseRunning || !match(running) {
 			continue
 		}
-		running.state.Message = "Cancelling..."
+		running.state.Message = "Cancelling…"
 		s.state = running.state
 		cancelled = append(cancelled, running)
 		states = append(states, running.state)
