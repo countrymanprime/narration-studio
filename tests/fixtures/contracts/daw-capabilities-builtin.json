@@ -175,6 +175,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "replace_range": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "retake_lanes": {
       "available": false,
       "level": "unsupported",

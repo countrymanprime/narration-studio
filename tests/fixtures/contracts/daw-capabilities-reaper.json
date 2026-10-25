@@ -177,6 +177,13 @@
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
     },
+    "replace_range": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "native",
+      "reason": "experimental_off"
+    },
     "retake_lanes": {
       "available": false,
       "level": "supported",

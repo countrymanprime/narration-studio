@@ -12,7 +12,7 @@ import (
 )
 
 // parity is tests/fixtures/compare-parity/cases.json: Python's own answers,
-// written by src/studio/sidecars/transcript-compare/tests/test_compare_go_parity.py.
+// which compare.py wrote before its tokenizer was deleted; the file is frozen.
 type parity struct {
 	Texts           []string             `json:"texts"`
 	Tokenize        [][]string           `json:"tokenize"`

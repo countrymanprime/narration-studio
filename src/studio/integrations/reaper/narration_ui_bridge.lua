@@ -8,7 +8,7 @@
 -- narration_render.lua, narration_project_state.lua, narration_retake_lanes.lua, narration_take_review.lua, narration_navigation.lua,
 -- narration_track_state.lua, narration_transport.lua, narration_workspace.lua, narration_regions.lua,
 -- narration_punch.lua, narration_track_select.lua, narration_track_create.lua, narration_master_render.lua, narration_takes.lua,
--- narration_roll.lua, narration_range.lua, narration_media_file.lua, narration_undo.lua, narration_levels.lua,
+-- narration_roll.lua, narration_range.lua, narration_replace.lua, narration_media_file.lua, narration_undo.lua, narration_levels.lua,
 -- narration_meters.lua).
 -- To add a command, put it in a new narration_<feature>.lua that returns
 -- `function(registry)` and calls `registry.register(name, function(ctx, args) ... end)`,
@@ -41,6 +41,7 @@ M.FEATURE_FILES = {
   'narration_takes.lua',
   'narration_roll.lua',
   'narration_range.lua',
+  'narration_replace.lua',
   'narration_media_file.lua',
   'narration_levels.lua',
   'narration_meters.lua',
@@ -147,7 +148,7 @@ function M.run(session_dir, registry)
     end
     last_heartbeat_at, last_play_state = now, play_state
     -- EnumProjects(-1, '') returns the active tab's path for a saved project and the exact empty string (never
-    -- nil) for an unsaved one (spike S6, docs/research/reaper-spike-s6-daw-reachability.md); the run field
+    -- nil) for an unsaved one (spike S6, docs/reference/daw/reaper.md); the run field
     -- (second argument to ctx.event) is deliberately empty, the broadcast shape events.go's fan-out already
     -- delivers to every subscriber regardless of which run they own (Subscription.wants).
     local _, rpp = reaper.EnumProjects(-1, '')

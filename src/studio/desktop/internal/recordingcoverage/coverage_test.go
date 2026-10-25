@@ -472,6 +472,14 @@ func TestTheRepeatRuleAnswersTheSharedParityCases(t *testing.T) {
 	}
 }
 
+func TestARetakeEndsWithTheWordsBeforeAndARestartBeginsWithTheWordsAfter(t *testing.T) {
+	doc := []string{"a", "b", "c", "d", "e", "f"}
+	lines := []int{0, 0, 0, 1, 1, 1}
+	// Before is "c" (index 2), after is "d" (index 3): "a b c" ends with the words up to before.
+	eq(t, RepeatOf([]string{"a", "b", "c"}, doc, lines, intp(2), intp(3)), &Repeat{Start: 0, End: 3, First: 0, Last: 3})
+	eq(t, RepeatOf([]string{"d", "e", "f", "x"}, doc, lines, intp(2), intp(3)), &Repeat{Start: 3, End: 6, First: 0, Last: 3})
+}
+
 func TestTwoWordsAcrossALineBreakAreNotAWholeLineSaidAgain(t *testing.T) {
 	doc := []string{"alpha", "golf", "hotel", "india"}
 	lines := []int{0, 0, 1, 1}

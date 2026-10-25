@@ -1,4 +1,4 @@
-// The product's name and the values derived from it, read from config/brand.json (docs/research/app-name-injection.md). Every
+// The product's name and the values derived from it, read from config/brand.json (docs/architecture/codebase-map.md#product-and-technical-names). Every
 // generated brand module (sync.mjs), the rename script (rename-app.mjs) and the name guard (scripts/ci/old-name.mjs) read the
 // brand through loadBrand, so the file's shape is checked in one place.
 

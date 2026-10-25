@@ -64,6 +64,15 @@ var eventSpecs = map[string]eventSpec{
 	// piece moved to the Cuts track, and the undo points the command added (1). A pad or room tone (SN-E97) leaves the answer
 	// as it is: the room-tone pieces are not named.
 	"RANGE_CUT": {required: []fieldSpec{text("run"), text("left"), text("cut"), count("undoPoints")}},
+	// replace_range and restore_replacement (narration_replace.lua, docs/reference/daw/capabilities.md#replace_range): the new item
+	// playing their stretch, the narrator's piece moved to the Cuts track, the left piece (empty when the words began at the item's
+	// start), the seconds the later audio moved, and the undo points the command added (1); for a put-back, the narrator's piece back on
+	// its track, the seconds the later audio moved and the undo points (1).
+	"RANGE_REPLACED":       {required: []fieldSpec{text("run"), text("item"), text("cut"), text("left"), number("shift"), count("undoPoints")}},
+	"REPLACEMENT_RESTORED": {required: []fieldSpec{text("run"), text("item"), number("shift"), count("undoPoints")}},
+	// import_audio_track (narration_replace.lua): the new muted track holding the other narrator's file, its one item, the file's
+	// length in seconds and the undo points (1).
+	"AUDIO_TRACK_ADDED": {required: []fieldSpec{text("run"), text("track"), text("item"), number("length"), count("undoPoints")}},
 	// apply_fx_range and remove_fx_range (narration_range.lua, docs/reference/daw/capabilities.md): the piece the chain went on and its take,
 	// or the item the piece is part of after the join; the chain; and the undo points the command added (1, or 0 for a
 	// removal that found nothing to take off).
@@ -91,7 +100,7 @@ var eventSpecs = map[string]eventSpec{
 	// appends it periodically with an empty run (Fields[1] == ""), so events.go's existing fan-out (a run-less event
 	// reaches every subscriber, Subscription.wants) delivers it as a broadcast with no dedicated route needed. rpp is
 	// EnumProjects(-1, '')'s second return value verbatim (the empty string for an unsaved project, never omitted -
-	// docs/research/reaper-spike-s6-daw-reachability.md confirmed REAPER never returns nil there), and unsaved is "1"
+	// docs/reference/daw/reaper.md confirmed REAPER never returns nil there), and unsaved is "1"
 	// exactly when rpp is empty. changeCount (GetProjectStateChangeCount(0)) was appended later: optional, so an older
 	// script's three-field heartbeat still passes, and empty on a REAPER without the call. playState (GetPlayState's
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later

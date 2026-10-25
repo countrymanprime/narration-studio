@@ -114,6 +114,7 @@ export const teleprompterStateSchema = z.object({
   engine: z.string().nullable().default(null),
   chapter: z.string().nullable().default(null),
   paused: z.boolean().default(false),
+  coldRead: z.boolean().default(false),
   script: teleprompterScriptSchema.nullable().default(null),
   position: teleprompterPositionSchema.nullable().default(null),
 }) satisfies z.ZodType<TeleprompterState>;

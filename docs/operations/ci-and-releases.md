@@ -351,7 +351,7 @@ and exits: `0` when every check passed, `1` when one failed, `2` for a bad comma
 | `guide:capabilities`            | the frozen Story Bible sidecar's `capabilities` subcommand names every TTS and pronunciation row this build declares                                                                                                                                                                                                                                                                                                                    |
 | `compare:capabilities`          | the frozen Transcript Compare sidecar's `--capabilities` report names every batch ASR row this build declares                                                                                                                                                                                                                                                                                                                           |
 | `catalogs`                      | the four approved asset catalogs load and name assets                                                                                                                                                                                                                                                                                                                                                                                   |
-| `reaper`                        | the launcher (`<launcher script>`), the startup script REAPER runs from `__startup.lua` (`<launcher folder>_Startup.lua`) and their scripts are present and the launcher points at this executable (the shipped list is `scripts/release/reaper-files.mjs`, which names `narration_undo.lua`, `narration_levels.lua`, `narration_preroll.lua` and `narration_meters.lua` among the feature files, and the generated `narration_brand.lua`)                                                                                                              |
+| `reaper`                        | the launcher (`<launcher script>`), the startup script REAPER runs from `__startup.lua` (`<launcher folder>_Startup.lua`) and their scripts are present and the launcher points at this executable (the shipped list is `scripts/release/reaper-files.mjs`, which names `narration_undo.lua`, `narration_levels.lua`, `narration_preroll.lua`, `narration_meters.lua` and `narration_replace.lua` among the feature files, and the generated `narration_brand.lua`)                                                                                                              |
 
 CI runs it in the `Smoke test the packaged app` step of `.github/actions/build-native`, on `windows-x64` only, after the Wails
 build and before the release asset is packaged, so both `Build (Windows)` in `ci.yml` and the Windows release build of
@@ -541,10 +541,14 @@ on 2026-10-21. The MkDocs site of `tools/docs-site` ([below](#the-public-docs-si
 ## The public docs site
 
 This MkDocs build of the repository's own `docs/` folder is **not published** (Pages serves `src/web`, [above](#the-pages-workflow)); it is kept as a strict, link-checked reading view of `docs/`. It is built by MkDocs 1.6.1 with the
-Material 9.7.7 theme (
-the [spike](../research/docs-site-generator-spike.md) behind it). `tools/docs-site` holds configuration only and no page or picture: a test
+Material 9.7.7 theme. `tools/docs-site` holds configuration only and no page or picture: a test
 fails if it gains one, or if `docs_dir` stops being `docs/`.
 
+- **Why MkDocs.** It reads `docs/` as GitHub-flavoured Markdown with no change: `README.md` is a folder's index, its heading slugs
+  match GitHub's (which `docsGuide.test.ts` uses too), and `--strict` reported exactly the dead, folder and outside-`docs/` links a
+  hand count found, on 2026-09-21. VitePress 1.6 compiled the Markdown as a Vue template (9 of 187 files failed on a bare `<title>`
+  or `{{` in prose), served `README.md` as `/README`, and its heading slugs did not match GitHub's. MkDocs is 29 wheels with
+  no install script in the locked uv environment, against VitePress's 126 npm packages.
 - **What is published** is `tools/docs-site/include.txt`, one path or glob per line (`dir/`, `file.md`, `*` inside a folder, `**` across
   folders): the guide, the roadmap, the component atlas, the tool pages, nine architecture pages, the design system, every ADR and the
   screenshots they embed. `docs/research/`, `docs/prds/`, `docs/operations/` and `docs/workflows/` stay out until someone lists them, so
@@ -571,7 +575,8 @@ fails if it gains one, or if `docs_dir` stops being `docs/`.
   `docs/ui/atlas/index.md` is generated and not edited).
 - **Dependencies** are the `docs` group of `pyproject.toml` (`mkdocs`, `mkdocs-material`, and `pytest`/`ruff` so the docs job installs that
   group alone), exact versions, locked with hashes in `uv.lock`, Dependabot's `uv` entry and its 3-day cooldown apply, and nothing of it is
-  in the app. Do not raise the pins without re-running the spike: Material requires `mkdocs<2`.
+  in the app. Material pins `mkdocs<2`: MkDocs 2.0 has no plugin system and a rewritten theme system, and the Material team names
+  Zensical as its successor. A raised pin must still pass `nx run docs-site:build-site` and the `docs-site` tests.
 - **Not proven until the owner enables Pages:** that the deployed address serves this build.
 
 ## Nx projects and the quality gate

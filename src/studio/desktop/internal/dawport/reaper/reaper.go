@@ -102,6 +102,8 @@ var declares = map[dawport.Capability]dawport.Level{
 	// linked, with no switch. The real-REAPER scenarios punch_preroll and daw_meters keep the evidence.
 	dawport.CapPunchPreroll: dawport.Supported,
 	dawport.CapDawMeters:    dawport.Supported,
+	// replace_range is replace_range's and restore_replacement's (narration_replace.lua). Experimental until the owner's pass.
+	dawport.CapReplaceRange: dawport.Experimental,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
@@ -152,6 +154,9 @@ var commandCapability = map[string]dawport.Capability{
 	"monitor_level":       dawport.CapMonitorLevel,
 	"punch_preroll":       dawport.CapPunchPreroll,
 	"daw_meters":          dawport.CapDawMeters,
+	"replace_range":       dawport.CapReplaceRange,
+	"restore_replacement": dawport.CapReplaceRange,
+	"import_audio_track":  dawport.CapReplaceRange,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -272,6 +277,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapMonitorLevel:    monitorLeveler{actions, allowed},
 			dawport.CapPunchPreroll:    prerollReader{actions, allowed},
 			dawport.CapDawMeters:       meterReader{actions, allowed},
+			dawport.CapReplaceRange:    rangeReplacer{actions, allowed},
 		},
 	}, nil
 }
@@ -299,10 +305,12 @@ func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) 
 // was recorded and comes off again (point 3), so neither is fx_range. A stack makes later reads takes of the first read's item
 // in one undo block and moves their items to the Cuts track, deleting nothing (point 4), so stack_takes is native and not
 // destructive. Lowering stretches puts points on the take's volume envelope in one undo block and leaves the recorded audio as it
-// was, so range_gain is native and not destructive; so is click_repair, a short dip on the same envelope.
+// was, so range_gain is native and not destructive; so is click_repair, a short dip on the same envelope. A replacement moves the
+// narrator's piece to the Cuts track as a cut does and adds an item playing their file, in one undo block, so replace_range is native
+// and not destructive.
 func depthOf(c dawport.Capability) dawport.Depth {
 	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange || c == dawport.CapStackTakes || c == dawport.CapRangeGain ||
-		c == dawport.CapClickRepair {
+		c == dawport.CapClickRepair || c == dawport.CapReplaceRange {
 		return dawport.Depth{Mode: dawport.ModeNative}
 	}
 	return dawport.Depth{}
