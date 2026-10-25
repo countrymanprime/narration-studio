@@ -60,8 +60,8 @@ const addDays = (isoDate: string, days: number) => new Date(Date.parse(`${isoDat
 // The host's report stylesheet in miniature (desktop/internal/productionreport/report.html.tmpl): its type, a label column and both
 // themes, so the preview in the report dialog is a page, not browser defaults, and follows the app's theme (alignment audit XPR2-46).
 const REPORT_STYLE = [
-  ':root { color-scheme: light dark; --text: #1d1d1f; --muted: #5c5c66; --line: #d6d6de; --bg: #ffffff; }',
-  '@media (prefers-color-scheme: dark) { :root { --text: #ececf1; --muted: #a8a8b3; --line: #3a3a44; --bg: #16161a; } }',
+  ':root { color-scheme: light dark; --text: #1d1d1f; --muted: #5c5c66; --bg: #ffffff; }',
+  '@media (prefers-color-scheme: dark) { :root { --text: #ececf1; --muted: #a8a8b3; --bg: #16161a; } }',
   'body { margin: 0 auto; max-width: 60rem; padding: 1.5rem 1rem 3rem; font: 15px/1.5 system-ui, "Segoe UI", sans-serif; color: var(--text); background: var(--bg); }',
   'h1 { font-size: 1.6rem; margin: 0 0 1rem; }',
   'dl { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1.5rem; margin: 0; }',
