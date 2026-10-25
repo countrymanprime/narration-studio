@@ -173,7 +173,7 @@ Which one is *used* is chosen in the category that uses it; here you only get, c
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
 
-Each row says what it is, its type and size, its **Status**, **Used by** (pages) and **In use** (the settings that choose it). The status is one of:
+Each row says what it is, its type and size, its **Status**, **Used by** (pages) and **In use** (the settings that choose it), with its buttons at the right end of the row. On a narrower window each row is a card with its buttons beside the name. The status is one of:
 
 - **Not installed**: **Download** starts the download. A bar shows the real bytes so far and **Cancel** stops it while bytes are arriving; the checks after the last byte cannot be cancelled. A download that is already running when you open the page (started by a Story Bible build, a preview or a comparison) is shown too, and leaving the page does not stop it.
 - **Downloading** and **Checking the download**: the download itself, then the check of every file against its approved size and checksum.
