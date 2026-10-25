@@ -136,7 +136,15 @@ def fingerprint_golden() -> dict:
     for text in VALUE_TEXTS:
         dumped = json.dumps(json.loads(text), sort_keys=True, ensure_ascii=False)
         values.append({"json": text, "python_json": dumped, "fingerprint": hashlib.sha256(dumped.encode("utf-8")).hexdigest()})
-    names = [{"text": name, "lower": name.lower(), "normalized": guide.normalize_name(name), "entity_id": guide.entity_id(name)} for name in NAMES]
+    names = [
+        {
+            "text": name,
+            "lower": name.lower(),
+            "normalized": guide.normalize_name(name),
+            "entity_id": "entity-" + hashlib.sha1(guide.normalize_name(name).encode("utf-8")).hexdigest()[:12],
+        }
+        for name in NAMES
+    ]
     return {"values": values, "names": names}
 
 
