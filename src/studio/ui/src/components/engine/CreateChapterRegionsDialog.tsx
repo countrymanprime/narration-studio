@@ -5,9 +5,12 @@ import { Button } from '../primitives/Button';
 import { CapabilityGate } from '../primitives/CapabilityGate';
 import { Checkbox } from '../primitives/Checkbox';
 import { Dialog } from '../primitives/Dialog';
+import { FIELD_LABEL_CLASSES } from '../primitives/Field';
+import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { formatDuration } from '../proof/format';
+import { ToolResult } from './ToolResult';
 import type { ChapterRegionPlan, ChapterRegionState, ChapterRegionsCreated, Track } from '../../types';
 
 const REGION_STATE_LABEL: Record<ChapterRegionState, string> = {
@@ -16,6 +19,50 @@ const REGION_STATE_LABEL: Record<ChapterRegionState, string> = {
   moves: 'Moves an existing region',
   ambiguous: 'Several regions share this title',
 };
+
+const REGION_COLUMNS = ['auto', '10rem', '5rem', '5rem', '11rem'] as const;
+
+/** "Sent 2: 2 created." The counts that are not zero, so four zeros no longer pad the sentence (R3EN1-3). */
+export function createdText(created: ChapterRegionsCreated): string {
+  const parts = [
+    [created.created, 'created'],
+    [created.existing, 'already existed'],
+    [created.updated, 'moved'],
+    [created.ambiguous, 'ambiguous'],
+    [created.invalid, 'invalid'],
+    [created.failed, 'failed'],
+  ] as const;
+  const said = parts.filter(([count]) => count > 0).map(([count, what]) => `${count} ${what}`);
+  return `Sent ${created.sent}${said.length > 0 ? `: ${said.join(', ')}` : ''}.`;
+}
+
+/** The chapters left out of the plan, one entry per reason in the order they first appear. */
+function skippedByReason(skipped: ChapterRegionPlan['skipped']): { reason: string; titles: string[] }[] {
+  const groups = new Map<string, string[]>();
+  for (const skip of skipped) groups.set(skip.reason, [...(groups.get(skip.reason) ?? []), skip.title]);
+  return [...groups].map(([reason, titles]) => ({ reason, titles }));
+}
+
+function CreditsPicker({
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  disabled: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className={FIELD_LABEL_CLASSES}>{label}</span>
+      <Select label={label} value={value} onChange={onChange} options={options} disabled={disabled} fullWidth className="mt-2" />
+    </label>
+  );
+}
 
 /** Chapter regions. Plans one REAPER region per chapter with a confirmed track link (the "Link chapters…" flow), plus the opening/closing credits tracks chosen below, and writes them to the saved
  * project in one undo step (`ChapterRegionsCreate`, already wired to `dawport.RegionWriter` via the DAW port
@@ -82,26 +129,28 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
       description="Plan one REAPER region per chapter with a confirmed track link, plus the opening and closing credits tracks you choose below. Nothing is written until you create them."
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={creating}>
+          <Button variant={created ? 'primary' : 'secondary'} onClick={onClose} disabled={creating}>
             {created ? 'Close' : 'Cancel'}
           </Button>
           <CapabilityGate capability={regionsCapability}>
-            <Button onClick={create} disabled={!canCreate} pending={creating}>
+            {/* After a run Close is the next step, so the primary goes quiet until the plan changes (ENX-28). */}
+            <Button variant={created ? 'secondary' : 'primary'} onClick={create} disabled={!canCreate} pending={creating}>
               {`Create ${rows.length} region${rows.length === 1 ? '' : 's'}`}
             </Button>
           </CapabilityGate>
         </>
       }
     >
+      {/* Each credits track picker says which it is above it (ENX-19). */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Select label="Opening credits track" value={openingTrackGuid} onChange={setOpeningTrackGuid} options={trackOptions} disabled={creating} fullWidth />
-        <Select label="Closing credits track" value={closingTrackGuid} onChange={setClosingTrackGuid} options={trackOptions} disabled={creating} fullWidth />
+        <CreditsPicker label="Opening credits track" value={openingTrackGuid} onChange={setOpeningTrackGuid} options={trackOptions} disabled={creating} />
+        <CreditsPicker label="Closing credits track" value={closingTrackGuid} onChange={setClosingTrackGuid} options={trackOptions} disabled={creating} />
       </div>
 
       {previewError && (
-        <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {previewError}
-        </p>
+        <div className="mt-3">
+          <ToolResult tone="danger" message={previewError} />
+        </div>
       )}
 
       {plan && plan.project !== 'ready' && !previewError && (
@@ -112,7 +161,14 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
 
       {plan && plan.project === 'ready' && (
         <>
-          <Table label="Chapter regions" className="mt-3">
+          {/* The option that changes what gets written sits above the table, never below the fold (R3EN1-2). */}
+          <div className="mt-3">
+            <Checkbox checked={update} onChange={setUpdate} disabled={creating}>
+              Move an existing region that shares a chapter&rsquo;s title, instead of adding a second one
+            </Checkbox>
+          </div>
+
+          <Table label="Chapter regions" className="mt-3" columns={REGION_COLUMNS}>
             <TableHead>
               <TableRow>
                 <TableHeader>Region</TableHeader>
@@ -143,36 +199,33 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
           </Table>
 
           {plan.skipped.length > 0 && (
-            <div className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-              <p className="font-semibold">Not planned</p>
-              <ul className="mt-1 list-inside list-disc space-y-0.5">
-                {plan.skipped.map((skip) => (
-                  <li key={`${skip.kind}-${skip.chapterId}`}>
-                    {skip.title}: {skip.reason}
+            <section aria-labelledby="not-planned-heading" className="mt-4 space-y-1 border-t pt-3 text-sm" style={{ borderColor: 'var(--border)' }}>
+              <SectionLabel as="h3" id="not-planned-heading">
+                Not planned ({plan.skipped.length})
+              </SectionLabel>
+              {/* One line per reason, naming its chapters, instead of the same sentence once per chapter. */}
+              <ul className="space-y-1">
+                {skippedByReason(plan.skipped).map((group) => (
+                  <li key={group.reason}>
+                    <span style={{ color: 'var(--text-muted)' }}>{group.reason}</span> {group.titles.join(', ')}
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           )}
-
-          <div className="mt-3">
-            <Checkbox checked={update} onChange={setUpdate} disabled={creating}>
-              Move an existing region that shares a chapter&rsquo;s title, instead of adding a second one
-            </Checkbox>
-          </div>
         </>
       )}
 
       {createError && (
-        <p role="alert" className="mt-3 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {createError}
-        </p>
+        <div className="mt-3">
+          <ToolResult tone="danger" message={createError} />
+        </div>
       )}
 
       {created && (
-        <p className="mt-3 text-sm font-semibold">
-          {`Sent ${created.sent}: ${created.created} created, ${created.existing} already existed, ${created.updated} moved, ${created.ambiguous} ambiguous, ${created.failed} failed.`}
-        </p>
+        <div className="mt-3">
+          <ToolResult tone={created.failed > 0 || created.ambiguous > 0 || created.invalid > 0 ? 'warning' : 'success'} message={createdText(created)} />
+        </div>
       )}
     </Dialog>
   );
