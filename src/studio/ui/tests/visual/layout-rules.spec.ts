@@ -178,3 +178,19 @@ test('a control drawn small with a 24 px press target around it (primitives/hitA
   );
   expect(rules).not.toContain('H1');
 });
+
+test('an action inside an inset card in its row ends where the card ends', async ({ page }) => {
+  const rules = await rulesOn(
+    page,
+    '<div style="width:500px"><div class="row"><span style="flex:1">One</span><button>Edit</button></div><div class="row"><span style="flex:1">Two</span><div style="border:1px solid;padding:12px"><button>Cancel</button></div></div></div>',
+  );
+  expect(rules).not.toContain('A4');
+});
+
+test('a select drawn at the field width is not a row action', async ({ page }) => {
+  const rules = await rulesOn(
+    page,
+    '<div style="width:500px"><div class="row"><span style="flex:1">One</span><button>Edit</button></div><div class="row"><span style="flex:1">Two</span><select style="width:200px;margin-right:60px"><option>System default</option></select></div></div>',
+  );
+  expect(rules).not.toContain('A4');
+});

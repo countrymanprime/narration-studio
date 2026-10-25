@@ -78,7 +78,10 @@ export function scanLayout(): LayoutHit[] {
     return !!top && (top === element || element.contains(top) || top.contains(element));
   };
 
-  const all = Array.from(scope.querySelectorAll<HTMLElement>('*')).filter((element) => shown(element) && onTop(element));
+  // A chart's own marks and labels (inside an <svg>) are drawn to its data, not laid out as rows; the chart box itself is measured.
+  const all = Array.from(scope.querySelectorAll<HTMLElement>('*')).filter(
+    (element) => !element.parentElement?.closest('svg') && shown(element) && onTop(element),
+  );
   const styleOf = new Map<Element, CSSStyleDeclaration>();
   const css = (element: Element) => {
     let style = styleOf.get(element);
@@ -369,10 +372,19 @@ export function scanLayout(): LayoutHit[] {
         }
       }
       // A4: each row's last control ends at one x.
-      const lastControls = rows.map((row) => Array.from(row.querySelectorAll(TARGET)).filter(shown).at(-1)).filter((control): control is Element => !!control);
-      const endsInAction = lastControls.every((control, i) => rects[i].right - control.getBoundingClientRect().right <= 48);
+      // Actions only: a select or text box is drawn at the field width (design-system.md, Settings rows), not to the row's end.
+      const ACTION = 'button, [role="button"], a[href]';
+      const lastControls = rows.map((row) => Array.from(row.querySelectorAll(ACTION)).filter(shown).at(-1)).filter((control): control is Element => !!control);
+      // A control inside an inset card in the row ends where that card ends: the card's own padding is not a misalignment.
+      const endOf = (control: Element, row: Element) => {
+        let end = control.getBoundingClientRect().right;
+        for (let node = control.parentElement; node && node !== row; node = node.parentElement)
+          if (parseFloat(css(node).borderRightWidth) > 0) end = node.getBoundingClientRect().right;
+        return end;
+      };
+      const ends = lastControls.map((control, i) => endOf(control, rows[i]));
+      const endsInAction = ends.every((end, i) => rects[i].right - end <= 48);
       if (lastControls.length === rows.length && endsInAction) {
-        const ends = lastControls.map((control) => control.getBoundingClientRect().right);
         if (Math.max(...ends) - Math.min(...ends) > TOL) hit('A4', parent, `row actions end at ${[...new Set(ends.map(r1))].join(', ')}`);
       }
       // A5: rows built alike, each line of text on one line, are one height.
