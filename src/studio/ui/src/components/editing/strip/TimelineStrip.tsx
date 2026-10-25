@@ -39,8 +39,6 @@ export interface TimelineStripProps {
   playingId: string | null;
   /** Plays the take's own source range through the playback hook; called again for the take that plays, it stops. */
   onPlay: (take: LineTake) => void;
-  /** Drawn in the drawer's Timeline tab, which is offered only where the strip does not fit: shown at every width, not only from 1360 px. */
-  inDrawer?: boolean;
 }
 
 /**
@@ -48,7 +46,7 @@ export interface TimelineStripProps {
  * active take, and a lane plays its take. The line's audio is not drawn here: the page has one waveform, docked above the transport (#2251,
  * item 29).
  */
-export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay, inDrawer = false }: TimelineStripProps) {
+export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay }: TimelineStripProps) {
   const { doc, state, selected: cursorOrSel } = useEditingPage();
   // The cursor's own word is not a selection: no band until a run is selected.
   const selected = useMemo(() => (state.sel ? cursorOrSel : []), [state.sel, cursorOrSel]);
@@ -69,8 +67,8 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
       {layout?.band ? <StatusBadge tone="info" label={`${layout.band.length.toFixed(1)} s`} shape="tag" /> : null}
     </div>
   );
-  // The drawer stacks a take's name over its badge, so the column is as wide as the longest name ("Retake on lane 2") on one line.
-  const labelWidth = inDrawer ? 'w-[7.5rem]' : 'w-24';
+  // A take's name sits over its badge, in a column as wide as the longest name ("Retake on lane 2") on one line, in the strip as in the
+  // drawer: side by side in 96 px, a long name ran under the lane and painted over its badge (alignment audit XED-8).
   const region = `border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
   if (!layout) {
     return (
@@ -87,8 +85,10 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
       {head}
       {layout.lanes.map(({ take, start, length }) => (
         <div key={take.id} className="flex items-center gap-2 px-3 py-0.5" data-lane={take.id}>
-          <div className={`flex ${labelWidth} flex-none text-xs ${inDrawer ? 'flex-col items-start gap-0.5' : 'items-center gap-1.5'}`}>
-            <span className={`${mono} font-medium whitespace-nowrap`}>{take.label}</span>
+          <div data-lane-label="" className="flex w-[7.5rem] flex-none flex-col items-start gap-0.5 text-xs">
+            <span className={`${mono} max-w-full truncate font-medium whitespace-nowrap`} title={take.label}>
+              {take.label}
+            </span>
             <StatusBadge tone={take.active ? 'info' : 'neutral'} label={take.active ? 'Active' : 'Muted'} shape="tag" />
           </div>
           {/* native-control-ok: the whole lane is the button, a bar the take is drawn in; Button's padded uppercase chrome cannot draw it. */}
@@ -116,10 +116,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
           </button>
         </div>
       ))}
-      <div
-        className={`${mono} ${inDrawer ? 'ml-[8.5rem]' : 'ml-[6.5rem]'} flex justify-between px-3 pb-1.5 text-xs text-[var(--text-muted)]`}
-        aria-hidden="true"
-      >
+      <div className={`${mono} ml-[8.5rem] flex justify-between px-3 pb-1.5 text-xs text-[var(--text-muted)]`} aria-hidden="true">
         <span>{clock(t0)}</span>
         <span>{clock((t0 + t1) / 2)}</span>
         <span>{clock(t1)}</span>

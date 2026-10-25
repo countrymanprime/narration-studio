@@ -355,9 +355,21 @@ The Editing card starts at the shell's `--page-gutter`, like the top bar's first
 
 **Same property, two widths.** Tailwind emits the named-scale media blocks (`xl:`) as a later group than the arbitrary ones (`min-[1281px]:`) whatever their pixel value, so a named variant overrides a narrower arbitrary one at wide widths. Two variants that set the same property at different widths must both be arbitrary or both be named; pages write widths as arbitrary `min-[Npx]` variants for this reason.
 
+## The Editing page's overlays
+
+The selection toolbar sits over the first selected line, from the first selected word but never left of the text column, and goes under the last line only when there is no room above (`toolbarPlace` in `editing/bar/SelToolbar.tsx`); under the selection it hid the next line and the time gutter, and the voice-sample card that opens under its dot landed on it (alignment audit R3ED-3, XED-23, XED-24). The mock floats it under the words; this departs from that. Below 60 rem of bar the selection summary takes its own row and the actions stay at the right of the transport row (R3ED-9, XED-26). The word menu falls into labelled bands by section order: the word count over Play, then Edit, Mark, Takes, and an unheaded run for copy (`wordMenuRegistry.ts`), and a row's key is a `shortcut` keycap, never "(T)" in its label (R3ED-5, XED-21). Add FX from the bar opens its list from the button's top edge, so the context menu flips up over the script rather than over the bar and the key hints, and "Manage in REAPER…" says one short line (R3ED-4, XED-22).
+
 ## The Booth's popovers
 
 In the Booth's speaker picker a row with no voice sample keeps the play button's room, so "no sample" and "1 sample" end at one x, and the search box carries the placeholder "Search speakers" (alignment audit XBO-8). The Levels popover's sections (Input, Microphone, Levels, Punch) each start with the same capitals label, 6 px above their controls and 16 px apart; a slider's own label (Input level, Monitor level) is the sentence-case control label under its section (XBO-21).
+
+## Editing drawer
+
+The drawer (`editing/drawer/`) departs from the Studio Next mock's drawer in these lines, from the alignment audit:
+
+- **One padding owner.** The drawer's section pads 12 px; a tab's own blocks do not pad again, and a block with a rule under it bleeds the rule to the section's edges (`-mx-3`), so headings, lists and controls share one left edge (XED-10). The last section draws no rule under it (XED-15). The drawer's header is padded 12 px at the top, as the page card's header beside it (XED-34).
+- **Clean up.** The five kinds are a grid of three equal columns, not a wrapping row (XED-12). The chosen kind's heading ("Gaps · 0 to fix") sits above its findings, so "No finding passes these thresholds." reads under it. **Preview** and **Apply** are a footer that sticks to the drawer's foot (`sticky bottom-0`) while the strength and advanced settings scroll above it (XED-11, R3ED-8).
+- **Timeline lanes** name the take over its Active or Muted badge in a 7.5 rem column, the name cut with its full text as a hint, in the strip as in the drawer; side by side in 96 px a long name ran under its lane (XED-8).
 
 ## The Script page
 
