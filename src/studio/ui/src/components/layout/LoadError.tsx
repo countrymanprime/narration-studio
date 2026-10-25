@@ -53,7 +53,8 @@ export function LoadErrorPanel({ message, retry, exit }: { message: string; retr
  */
 export function LoadError({ title, message, retry, exit }: { title: string; message: string; retry: () => void; exit?: LoadErrorExit }) {
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
+    // At the page gutter like the loaded page, so the title does not jump between the loading, failed and loaded frames (alignment audit cause J).
+    <div className="max-w-3xl space-y-4">
       <Heading title={title} />
       <LoadErrorPanel message={message} retry={retry} exit={exit} />
     </div>
