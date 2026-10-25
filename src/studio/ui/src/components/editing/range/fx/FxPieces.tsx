@@ -67,10 +67,17 @@ export function FxPieces({ items, keys, start, end, chain }: FxPiecesProps) {
         <span className="bg-[var(--accent-soft)]" style={{ width: `${b - a}%` }} />
         <span className="bg-[var(--surface-2)]" style={{ width: `${100 - b}%` }} />
       </div>
-      <p className="m-0 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-[var(--text-muted)]" data-fx-split>
-        <span>Piece 1 · unchanged</span>
-        <span className="font-semibold text-[var(--text)]">Piece 2 · {chain}</span>
-        <span>Piece 3 · unchanged</span>
+      {/* Each label under its own piece: the same fractions as the bar above (alignment audit XED-18). */}
+      <p
+        className="m-0 grid gap-x-1 text-center text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]"
+        style={{ gridTemplateColumns: [a, b - a, 100 - b].map((share) => `minmax(0, ${share.toFixed(2)}fr)`).join(' ') }}
+        data-fx-split
+      >
+        <span data-fx-piece="1">Piece 1 · unchanged</span>
+        <span className="font-semibold text-[var(--text)]" data-fx-piece="2">
+          Piece 2 · {chain}
+        </span>
+        <span data-fx-piece="3">Piece 3 · unchanged</span>
       </p>
     </div>
   );

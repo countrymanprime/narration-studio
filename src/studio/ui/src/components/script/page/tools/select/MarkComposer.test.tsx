@@ -56,17 +56,17 @@ async function open(type: string) {
 }
 
 describe('composer-creates-a-note-with-its-text', () => {
-  it('is titled with the selected words, shortened at 60', () => {
-    expect(composerTitle('Alice')).toBe('Alice');
-    expect(composerTitle('a'.repeat(60))).toBe('a'.repeat(60));
-    expect(composerTitle('a'.repeat(61))).toBe(`${'a'.repeat(60)}…`);
+  it('is titled Mark and the selected words, shortened at 60', () => {
+    expect(composerTitle('Alice')).toBe('Mark “Alice”');
+    expect(composerTitle('a'.repeat(60))).toBe(`Mark “${'a'.repeat(60)}”`);
+    expect(composerTitle('a'.repeat(61))).toBe(`Mark “${'a'.repeat(60)}…”`);
   });
 
   it('saves the note once with its text, opens the Notes tab on it and closes', async () => {
     const add = vi.spyOn(api, 'marksAdd');
     const { onClose, dialog } = await open('stress');
     expect(dialog.getAttribute('aria-labelledby')).toBeTruthy();
-    expect(within(dialog).getByRole('heading', { name: 'Alice' })).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Mark “Alice”' })).toBeTruthy();
     await userEvent.type(within(dialog).getByLabelText('Note (optional)'), 'lean on this');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
@@ -104,7 +104,7 @@ describe('a-query-needs-its-question', () => {
 describe('focus-and-aria (composer)', () => {
   it('is a named dialog and gives focus back to its opener on Cancel', async () => {
     const { onClose } = await open('stress');
-    expect(screen.getByRole('dialog', { name: 'Alice' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Mark “Alice”' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalled();
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Mark it' })));

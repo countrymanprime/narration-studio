@@ -55,7 +55,13 @@ export function BookmarkGutter({ paragraph }: { paragraph: ManuscriptParagraph }
   return (
     <div ref={box} className="relative h-full">
       {inSample && (
-        <span data-retail-sample="" data-paragraph={paragraph.index} className="absolute inset-y-0 -left-1 w-[3px] rounded-full bg-[var(--accent)] opacity-60">
+        // Inside the gutter, so the panel's edge never clips it (it was at -4 px, outside the text's inset, XSC-18), and square between
+        // paragraphs, so the bar is one line from the first to the last; only its two ends are round.
+        <span
+          data-retail-sample=""
+          data-paragraph={paragraph.index}
+          className={`absolute inset-y-0 left-px w-[3px] bg-[var(--accent)] opacity-60 ${paragraph.index === sample.start ? 'rounded-t-full' : ''} ${paragraph.index === sample.end ? 'rounded-b-full' : ''}`}
+        >
           {label && <span className="sr-only">{label}</span>}
         </span>
       )}

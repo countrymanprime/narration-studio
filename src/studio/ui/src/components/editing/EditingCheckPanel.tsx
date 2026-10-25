@@ -5,18 +5,39 @@ import { chapterName, context } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
-import type { EditingRefusalReason, EditingSourceChoice, EditingState, Finding, ManuscriptChapter, StageSignal, StageSignalState, Track } from '../../types';
+import type {
+  EditingRefusalReason,
+  EditingSourceChoice,
+  EditingState,
+  Finding,
+  ManuscriptChapter,
+  StageSignal,
+  StageSignalState,
+  StageUnknownCause,
+  Track,
+} from '../../types';
 import { Button } from '../primitives/Button';
+import { HIT_AREA } from '../primitives/hitArea';
 import { InsetCard } from '../primitives/InsetCard';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { SlideOver } from '../primitives/SlideOver';
+import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { type Notify, retryAction } from '../primitives/Toast';
 import { MappingConfirm } from '../mapping/MappingConfirm';
 import { formatWhen } from '../production/recordingCheckText';
 import { formatAge, SIGNAL_STATE_LABEL } from '../stages/stageText';
 import { CleanupAction } from './CleanupAction';
-import { EDITING_CLASSES, EDITING_CLASS_LABEL, EDITING_SIGNAL_ID, PROCESSED_AUDIO_CAVEAT, candidateClass } from './editingCheckText';
+import {
+  EDITING_CLASSES,
+  EDITING_CLASS_LABEL,
+  EDITING_SIGNAL_ID,
+  SOURCE_NOTE,
+  candidateClass,
+  keepUnits,
+  sentenceStart,
+  type EditingCandidateClass,
+} from './editingCheckText';
 import { addressPath } from '../../navigation/address';
 
 /** The host's own refusal sentences (src/studio/desktop/internal/editing/service.go), for a reason the mapping prompt
@@ -34,8 +55,8 @@ const POLL_MS = 500;
 
 /** The two analysis sources a narrator can pick per chapter. */
 const SOURCE_CHOICE_OPTIONS = [
-  { value: 'items', label: "Items on this chapter's track" },
-  { value: 'render', label: 'The rendered file' },
+  { value: 'items', label: 'Track items' },
+  { value: 'render', label: 'Rendered file' },
 ] as const satisfies readonly { value: EditingSourceChoice; label: string }[];
 
 /** The chapter-track link, confirmed right here: the same prompt the
@@ -83,52 +104,102 @@ function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinke
   );
 }
 
-function stateBadgeColor(state: StageSignalState): string | undefined {
-  return state === 'not_met' ? 'var(--danger-text)' : undefined;
-}
+const STATE_TONE: Record<StageSignalState, StatusTone> = { met: 'success', not_met: 'danger', unknown: 'neutral' };
+
+/** The causes that say a check never ran on this chapter's current audio, so the saved-project basis means nothing yet. */
+const NO_BASIS_CAUSES = new Set<StageUnknownCause>(['never_analyzed', 'unmapped_track', 'unconfirmed_mapping', 'multiple_tracks']);
+
+/** One row of the results list: one class, or several classes that say the same thing (click and breath, both unvalidated). */
+type ResultRow = { classes: EditingCandidateClass[]; signal: StageSignal | undefined; text: string; count: number };
 
 /**
- * One editing class's summary (the host's signal, when it is available: only while
- * the chapter is in the Editing stage, src/studio/desktop/internal/stages): state, reason, and the saved-project
- * basis with its age. Outside the Editing stage the signal is not evaluated at all, so the summary falls back to a
- * plain candidate count from the last scan - never a state, since a state this build did not compute is not one it
- * can vouch for. The candidates themselves are worked on the Editing page's Clean up tab.
+ * The results, one row per editing class (the host's signal, when it is available: only while the chapter is in the Editing stage,
+ * src/studio/desktop/internal/stages). Outside the Editing stage the signal is not evaluated at all, so a row falls back to a plain
+ * candidate count from the last scan - never a state, since a state this build did not compute is not one it can vouch for. Classes
+ * whose rows would read the same (no candidates, the same state and reason) share one row, so the unvalidated click and breath
+ * detectors say "not yet validated" once (alignment audit XPR1-27).
  */
-function ClassSummary({
-  cls,
-  signal,
+function resultRows(signals: StageSignal[] | undefined, candidates: Finding[]): ResultRow[] {
+  const rows: ResultRow[] = [];
+  for (const cls of EDITING_CLASSES) {
+    const signal = signals?.find((entry) => entry.id === EDITING_SIGNAL_ID[cls]);
+    const count = candidates.filter((finding) => candidateClass(finding) === cls).length;
+    const text = signal
+      ? keepUnits(signal.reason)
+      : count > 0
+        ? `${count} candidate${count === 1 ? '' : 's'} from the last scan.`
+        : 'No candidates from the last scan.';
+    const same = rows.find((row) => row.count === 0 && count === 0 && row.text === text && row.signal?.state === signal?.state);
+    if (same) same.classes.push(cls);
+    else rows.push({ classes: [cls], signal, text, count });
+  }
+  return rows;
+}
+
+function rowLabel(classes: EditingCandidateClass[]): string {
+  const labels = classes.map((cls, index) => (index === 0 ? EDITING_CLASS_LABEL[cls] : EDITING_CLASS_LABEL[cls].toLowerCase()));
+  return labels.length === 1 ? labels[0]! : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
+}
+
+/** The results list: one card, one row per class with its verdict badge, the Clean up link on the row that has candidates to hear,
+ * and the saved-project basis once under it, only when a check has run (R3PR1-4, R3PR1-5, XPR1-27). */
+function Results({
+  chapterId,
+  signals,
   candidates,
   now,
+  running,
+  close,
 }: {
-  cls: (typeof EDITING_CLASSES)[number];
-  signal: StageSignal | undefined;
+  chapterId: string;
+  signals: StageSignal[] | undefined;
   candidates: Finding[];
   now: number;
+  running: boolean;
+  close: () => void;
 }) {
-  const count = candidates.length;
+  const rows = resultRows(signals, candidates);
+  const basisSignal = signals?.find((signal) => signal.id === EDITING_SIGNAL_ID.silence);
+  const showBasis = basisSignal && !(basisSignal.cause && NO_BASIS_CAUSES.has(basisSignal.cause));
+  const age = basisSignal ? formatAge(basisSignal.basis.projectFileModTime, now) : '';
   return (
-    <InsetCard as="section" className="space-y-2">
-      <p className="font-semibold">{EDITING_CLASS_LABEL[cls]}</p>
-      {signal ? (
-        <>
-          <p>
-            <span className="font-semibold" style={{ color: stateBadgeColor(signal.state) }}>
-              {SIGNAL_STATE_LABEL[signal.state]}.
-            </span>{' '}
-            {signal.reason}
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Based on the saved REAPER project, file modified {formatWhen(signal.basis.projectFileModTime)}
-            {formatAge(signal.basis.projectFileModTime, now) && ` (${formatAge(signal.basis.projectFileModTime, now)})`}.
-          </p>
-        </>
-      ) : (
-        <p style={{ color: 'var(--text-muted)' }}>
-          {count > 0 ? `${count} candidate${count === 1 ? '' : 's'} from the last scan.` : 'No candidates from the last scan.'} A met or not-met status shows
-          only while this chapter is in Editing.
+    <section aria-labelledby="editing-check-results" className="space-y-2">
+      <h4 id="editing-check-results" className="text-xs font-semibold tracking-[0.06em] uppercase" style={{ color: 'var(--text-muted)' }}>
+        {running ? 'Previous result' : 'Results'}
+      </h4>
+      <InsetCard>
+        <ul className="divide-y divide-[var(--border)]">
+          {rows.map((row) => (
+            <li key={row.classes.join('-')} className="space-y-1 py-2.5 first:pt-0 last:pb-0">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold">{rowLabel(row.classes)}</span>
+                {row.signal && <StatusBadge tone={STATE_TONE[row.signal.state]} label={SIGNAL_STATE_LABEL[row.signal.state]} />}
+              </div>
+              <p>{row.text}</p>
+              {row.classes.includes('silence') && row.count > 0 && (
+                <p>
+                  <Link
+                    className={`font-semibold underline ${HIT_AREA}`}
+                    to={addressPath({ page: 'editing', chapter: chapterId, drawer: 'cleanup' })}
+                    onClick={close}
+                  >
+                    Clean up in Editing
+                  </Link>{' '}
+                  <span style={{ color: 'var(--text-muted)' }}>to hear each candidate and trim, keep or skip it.</span>
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </InsetCard>
+      {rows.every((row) => !row.signal) && <p style={{ color: 'var(--text-muted)' }}>A met or not-met status shows only while this chapter is in Editing.</p>}
+      {showBasis && (
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          Based on the saved REAPER project, file modified {formatWhen(basisSignal.basis.projectFileModTime)}
+          {age && ` (${age})`}.
         </p>
       )}
-    </InsetCard>
+    </section>
   );
 }
 
@@ -142,7 +213,24 @@ function ClassSummary({
  * There is no live event for the scan job (unlike the recording check's `coverage:state`): the panel polls `editingState()` itself while
  * a run for this chapter is going, so the panel stays open with the last scan's counts under the progress bar.
  */
-export function EditingCheckPanel({ chapter, notify, close }: { chapter: ManuscriptChapter; notify: Notify; close: () => void }) {
+export function EditingCheckPanel({
+  chapter,
+  notify,
+  close,
+  size = 'default',
+  onBack,
+  backLabel = 'Back',
+}: {
+  chapter: ManuscriptChapter;
+  notify: Notify;
+  close: () => void;
+  /** `wide` when the panel is opened from another wide slide-over (the audio engine panel), so it covers that panel whole instead of
+   * cutting its cards in half (alignment audit ENX-10). */
+  size?: 'default' | 'wide';
+  /** With a parent panel under it: a Back button at the top that closes this panel and shows the parent again. */
+  onBack?: () => void;
+  backLabel?: string;
+}) {
   const api = useApi();
   const action = usePendingAction();
   const [job, setJob] = useState<EditingState>();
@@ -258,25 +346,28 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
 
   const mappingRefusal = refusal && MAPPING_REFUSALS.has(refusal.reason);
   const checked = job?.phase === 'complete' || job?.phase === 'cancelled' || job?.phase === 'failed';
-  const sourceEvidenceLabel = signals?.flatMap((signal) => signal.evidence).find((entry) => entry.kind === 'source')?.value;
+  const stopped = job?.phase === 'cancelled' && job.chapterId === chapter.id;
 
   return (
-    <SlideOver open title={chapterName(chapter, context('Editing check'))} onClose={close}>
+    <SlideOver open title={chapterName(chapter, context('Editing check'))} size={size} onClose={close}>
       <div className="space-y-4 text-sm">
-        <p style={{ color: 'var(--text-muted)' }}>{PROCESSED_AUDIO_CAVEAT}</p>
+        {onBack && (
+          <Button variant="secondary" size="sm" onClick={onBack}>
+            {backLabel}
+          </Button>
+        )}
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           <ToggleGroup
             label="Analysis source"
+            look="segmented"
             value={sourceChoice}
             onChange={(value) => switchSource(value as EditingSourceChoice)}
             options={SOURCE_CHOICE_OPTIONS.map((option) => ({ ...option, disabled: action.isPending('source') }))}
           />
-          {sourceEvidenceLabel && (
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Source analyzed: {sourceEvidenceLabel}
-            </p>
-          )}
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            {SOURCE_NOTE[sourceChoice]}
+          </p>
           {sourceChoiceError && (
             <p role="alert" style={{ color: 'var(--danger-text)' }}>
               The source choice could not be saved: {sourceChoiceError}
@@ -294,7 +385,7 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
             <p className="font-semibold" style={{ color: 'var(--danger-text)' }}>
               This chapter can&rsquo;t be checked yet
             </p>
-            <p>{refusal.message}</p>
+            <p>{sentenceStart(refusal.message)}</p>
             {refusal.reason === 'multiple_tracks' ? (
               <EnginePanelLink />
             ) : (
@@ -308,55 +399,52 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
             )}
           </InsetCard>
         )}
-        {otherRunning && (
-          <p role="status" style={{ color: 'var(--text-muted)' }}>
-            Another chapter is being checked. Check this one when it finishes.
-          </p>
+        {/* An unlinked chapter shows only the link step: no Check editing that cannot run, no results it cannot have (R3EN1-6). */}
+        {!mappingRefusal && (
+          <>
+            {otherRunning && (
+              <p role="status" style={{ color: 'var(--text-muted)' }}>
+                Another chapter is being checked. Check this one when it finishes.
+              </p>
+            )}
+
+            {thisChapterRunning && job && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <p role="status" className="min-w-0 flex-1">
+                    {job.message}
+                  </p>
+                  <Button variant="secondary" size="sm" onClick={cancel} pending={action.isPending('cancel')}>
+                    Cancel
+                  </Button>
+                </div>
+                <ProgressBar label="Editing check progress" size="thin" value={job.percent} running valueText={`${job.itemsDone} of ${job.itemsTotal} items`} />
+              </div>
+            )}
+
+            {!thisChapterRunning && (
+              <Button onClick={() => void start()} pending={action.isPending('start')} disabled={otherRunning}>
+                {checked ? 'Check again' : 'Check editing'}
+              </Button>
+            )}
+            {stopped && job && (
+              <p role="status" style={{ color: 'var(--text-muted)' }}>
+                Stopped after {job.itemsDone} of {job.itemsTotal} items. The items already checked are kept for the next check.
+              </p>
+            )}
+
+            {candidatesError && (
+              <p role="alert" style={{ color: 'var(--danger-text)' }}>
+                The last check could not be read: {candidatesError}
+              </p>
+            )}
+
+            <Results chapterId={chapter.id} signals={signals} candidates={candidates} now={now} running={thisChapterRunning} close={close} />
+
+            {/* Item gain: its own row, below the results. */}
+            <CleanupAction chapterId={chapter.id} notify={notify} />
+          </>
         )}
-
-        {thisChapterRunning && job && (
-          <div className="space-y-2">
-            <p role="status">{job.message}</p>
-            <ProgressBar label="Editing check progress" value={job.percent} running valueText={`${job.itemsDone} of ${job.itemsTotal} items`} />
-            <Button variant="secondary" onClick={cancel} pending={action.isPending('cancel')}>
-              Cancel
-            </Button>
-          </div>
-        )}
-
-        {!thisChapterRunning && (
-          <Button onClick={() => void start()} pending={action.isPending('start')} disabled={otherRunning}>
-            {checked ? 'Check again' : 'Check editing'}
-          </Button>
-        )}
-
-        {candidatesError && (
-          <p role="alert" style={{ color: 'var(--danger-text)' }}>
-            The last check could not be read: {candidatesError}
-          </p>
-        )}
-
-        <div className="space-y-3">
-          {EDITING_CLASSES.map((cls) => (
-            <ClassSummary
-              key={cls}
-              cls={cls}
-              signal={signals?.find((signal) => signal.id === EDITING_SIGNAL_ID[cls])}
-              candidates={candidates.filter((finding) => candidateClass(finding) === cls)}
-              now={now}
-            />
-          ))}
-        </div>
-
-        <p>
-          <Link className="font-semibold underline" to={addressPath({ page: 'editing', chapter: chapter.id, drawer: 'cleanup' })} onClick={close}>
-            Clean up in Editing
-          </Link>{' '}
-          <span style={{ color: 'var(--text-muted)' }}>to hear each candidate and trim, keep or skip it.</span>
-        </p>
-
-        {/* Item gain: its own row, below the summaries. */}
-        <CleanupAction chapterId={chapter.id} notify={notify} />
       </div>
     </SlideOver>
   );

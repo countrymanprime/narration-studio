@@ -1,4 +1,4 @@
-import { CUSTOM } from '../controls/registry';
+import { CUSTOM, WIDE_BODIES } from '../controls/registry';
 import { SettingRowView } from '../row/SettingRowView';
 import type { SettingMeta } from '../registry/types';
 
@@ -6,7 +6,7 @@ import type { SettingMeta } from '../registry/types';
 export function RowOf({ row, flash }: { row: SettingMeta; flash?: boolean }) {
   const Body = CUSTOM[row.id];
   return Body ? (
-    <SettingRowView row={row} flash={flash}>
+    <SettingRowView row={row} flash={flash} wide={WIDE_BODIES.has(row.id)}>
       <Body />
     </SettingRowView>
   ) : (

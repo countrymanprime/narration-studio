@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faFileLines, faGear, faHouse, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faCircleHalfStroke, faFileLines, faGear, faHouse, faMoon, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
 import { iconFor } from '../../icons.catalog';
 import { ContextMenuHost } from './ContextMenuHost';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
@@ -66,6 +66,11 @@ const pageNameFor = (pathname: string) => ALL_PAGES.find((page) => isActivePath(
 // The skip link: hidden until it takes focus, then drawn over the top of the window. It is the first tab stop on every page.
 const SKIP_LINK_CLASS =
   'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[var(--z-popover)] focus:rounded-[var(--radius-button)] focus:bg-[var(--surface)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--text)] focus:shadow-[var(--shadow-lg)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]';
+
+// The top bar's field look (the mock's `.search`): the jump button and the hamburger share it. `!` because IconButton's own variant sets
+// a border and fill, and two utilities of one property apply in stylesheet order, not class order.
+const BAR_FIELD =
+  'border-[var(--border)]! bg-[var(--bg)]! text-[var(--text-muted)]! hover:border-[var(--border)]! hover:bg-[var(--surface-2)]! hover:text-[var(--text-muted)]!';
 
 // A dialog that closes (the jump menu after a pick) gives focus back to the control that opened it a moment after the page changed, which
 // would undo the move into <main>. So focus <main> a tick later, and with a dialog still on screen after the last one leaves, unless focus
@@ -210,8 +215,10 @@ export function AppShell({
   const groupHeadingId = (label: string) => `nav-group-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const navigation = (
     <>
-      {/* The brand block as the Studio Next mock's `.brand` draws it: 50 px (4 px above and 10 px below its content), no rule, 12 px below the rail's top; `Brand` is the mark and name. */}
-      <div className="mt-3 flex h-[3.125rem] flex-none items-center gap-[0.625rem] px-4 pt-1 pb-2.5">
+      {/* The brand block as the Studio Next mock's `.brand` draws it: 50 px (4 px above and 10 px below its content), no rule, 12 px below the rail's top; `Brand` is the mark and name.
+          The mark starts 18 px in, where the group names and the nav icons' boxes start (alignment audit XSL-8, R3SL-1); in the icon rail it is
+          centred over the icons instead (16 px), and stays there when the rail opens. */}
+      <div className="mt-3 flex h-[3.125rem] flex-none items-center gap-[0.625rem] pt-1 pr-4 pb-2.5 pl-[1.125rem] min-[860px]:max-[1360px]:pl-4">
         <Brand />
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 px-2 pt-0.5 pb-2">
@@ -252,7 +259,9 @@ export function AppShell({
       {/* The foot: Theme and Settings on the rail's own inset, 12 px above its bottom edge, with no rule above them (the mock draws none). */}
       <div className="rail-foot flex flex-none flex-col gap-0.5 px-2 pt-2 pb-3">
         {theme && (
-          <NavButton active={false} icon={iconFor(theme.dark ? 'themeLight' : 'themeDark')} onClick={theme.toggle}>
+          // Light theme is a half-filled circle: the mock's sun (solid or outline) has short rays that read as a second gear over Settings
+          // at 20 px in dark (alignment audit XSL-21, R3PR1-12, R3PR2-27, R3MS-8).
+          <NavButton active={false} icon={theme.dark ? faCircleHalfStroke : faMoon} onClick={theme.toggle}>
             {theme.dark ? 'Light theme' : 'Dark theme'}
           </NavButton>
         )}
@@ -283,9 +292,10 @@ export function AppShell({
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* One rail from 860 px (the mock's `.rail`; below it the mock's tab bar is the hamburger and drawer here): 216 px from 1360 CSS px, 64 px of icons below it. Below 1360 the panel inside
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
-            markup, hidden by size, so every item keeps its name. */}
+            markup, hidden by size, so every item keeps its name. The icons keep their centred inset when it opens, so the group names take
+            the same inset and start where the icons do (XSL-8). */}
         <aside className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[860px]:flex min-[1360px]:w-54" aria-label="Primary navigation">
-          <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] max-[1360px]:hover:w-59 max-[1360px]:hover:shadow-[var(--shadow-lg)] max-[1360px]:has-[:focus-visible]:w-59 max-[1360px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[860px]:max-[1360px]:absolute min-[860px]:max-[1360px]:inset-y-0 min-[860px]:max-[1360px]:left-0 min-[1360px]:static min-[1360px]:w-54 motion-ok:transition-[width,box-shadow] motion-ok:duration-(--motion-fast) max-[1360px]:[&_.brand-name]:invisible max-[1360px]:hover:[&_.brand-name]:visible max-[1360px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1360px]:[&_.section-label]:text-transparent max-[1360px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:[&_button]:pl-[0.78125rem] max-[1360px]:[&_button]:text-[0px] max-[1360px]:hover:[&_button]:text-[0.9375rem] max-[1360px]:has-[:focus-visible]:[&_button]:text-[0.9375rem]">
+          <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] max-[1360px]:hover:w-59 max-[1360px]:hover:shadow-[var(--shadow-lg)] max-[1360px]:has-[:focus-visible]:w-59 max-[1360px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[860px]:max-[1360px]:absolute min-[860px]:max-[1360px]:inset-y-0 min-[860px]:max-[1360px]:left-0 min-[1360px]:static min-[1360px]:w-54 motion-ok:transition-[width,box-shadow] motion-ok:duration-(--motion-fast) max-[1360px]:[&_.brand-name]:invisible max-[1360px]:hover:[&_.brand-name]:visible max-[1360px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1360px]:[&_.section-label]:pl-[0.78125rem] max-[1360px]:[&_.section-label]:text-transparent max-[1360px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:[&_button]:pl-[0.78125rem] max-[1360px]:[&_button]:text-[0px] max-[1360px]:hover:[&_button]:text-[0.9375rem] max-[1360px]:has-[:focus-visible]:[&_button]:text-[0.9375rem]">
             {navigation}
           </div>
         </aside>
@@ -295,13 +305,21 @@ export function AppShell({
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main id="main-content" ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] text-sm max-md:gap-2">
-            <IconButton label="Open navigation" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
+            {/* 32 px and the jump button's grey field and border, so the bar's two ends match (alignment audit XSL-3); never squeezed by a long name (XSL-10). */}
+            <IconButton
+              label="Open navigation"
+              size="sm"
+              aria-expanded={drawerOpen}
+              onClick={() => setDrawerOpen(true)}
+              className={`${BAR_FIELD} flex-none min-[860px]:hidden`}
+            >
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
             {/* The Studio Next mock's top bar and nothing else: the crumb, the project name (a button), the jump menu, a zoom chip off 100% and the engine chip.
                 Back, Forward, Undo, History and the zoom steps live in the jump menu, on their keys. */}
             <span className="section-label max-md:hidden">Project</span>
-            <TooltipTarget text="Switch project">
+            {/* min-w-0: the name truncates rather than pushing the engine chip off a narrow bar (XSL-10). */}
+            <TooltipTarget text="Switch project" className="min-w-0">
               {/* native-control-ok: the project name is a text-shaped button (the mock's `.proj`); Button's padded uppercase chrome would turn the name into an action label. */}
               <button
                 type="button"
@@ -319,7 +337,8 @@ export function AppShell({
             {zoom.percent !== 100 && (
               <TooltipTarget text="Zoom (change it in the jump menu)">
                 <HeaderChip onClick={onOpenZoomMenu} aria-label={`Zoom ${zoom.percent}%: change in the jump menu`}>
-                  <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] font-medium tracking-normal">{zoom.percent}%</span>
+                  {/* The chip's own face, as the engine chip beside it (R3SL-5); tabular figures so the width holds from step to step. */}
+                  <span className="tabular-nums">{zoom.percent}%</span>
                 </HeaderChip>
               </TooltipTarget>
             )}
@@ -330,7 +349,7 @@ export function AppShell({
                 // The name says the key the chord draws: axe fails a name that leaves out text the button draws.
                 aria-label="Jump to or run…, Ctrl K"
                 aria-keyshortcuts="Control+K"
-                className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-lg:size-8 max-lg:justify-center max-lg:px-0"
+                className={`${BAR_FIELD} flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border px-2.5 text-[length:var(--font-size-sm)] max-lg:size-8 max-lg:justify-center max-lg:px-0`}
               >
                 <FontAwesomeIcon icon={iconFor('jumpTo')} />
                 <span className="max-lg:hidden">Jump to or run…</span>

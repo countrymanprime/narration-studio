@@ -23,11 +23,12 @@ const RESULT: Record<DeliveryRuleStatus, { status: StatusId; icon: IconDefinitio
   off: { status: 'off', icon: faCircleMinus, label: 'Off' },
 };
 
-export function ResultMark({ status }: { status: DeliveryRuleStatus }) {
+/** `short` drops "by the app" from "Not checked by the app", for a narrow column whose heading already says the app checked it. */
+export function ResultMark({ status, short = false }: { status: DeliveryRuleStatus; short?: boolean }) {
   const { status: id, icon, label } = RESULT[status];
   return (
     <Mark status={id} icon={icon}>
-      {label}
+      {short && status === 'not_checked' ? 'Not checked' : label}
     </Mark>
   );
 }

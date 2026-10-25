@@ -117,6 +117,20 @@ describe('ChapterLinksTable', () => {
     expect(screen.getByRole('status', { name: 'Location' }).textContent).toBe(`/proof/${encodeURIComponent(WIRE_CHAPTERS[0].id)}`);
   });
 
+  // ENX-10: the editing check opened from here covers the wide engine panel whole and offers Back, rather than a 20 rem panel cutting it.
+  it('opens the editing check as wide as the engine panel, with Back to it', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, chapterName(WIRE_CHAPTERS[0]));
+    await user.click(within(firstRow).getByRole('button', { name: /^More actions for / }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Editing check…' }));
+    const check = await screen.findByRole('dialog', { name: /^Editing check: / });
+    expect(check.className).toMatch(/44rem/);
+    await user.click(within(check).getByRole('button', { name: 'Back to the audio engine' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Editing check: / })).toBeNull());
+  });
+
   it('tells the panel when a link changes, so the Tracks card re-reads it', async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();

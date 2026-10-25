@@ -11,7 +11,13 @@ import { PrepDot } from './PrepDot';
 import { PrepLegend } from './PrepLegend';
 import { CREDITS_STOP, chapterListStops } from '../../../credits/creditsRows';
 
-const ROW_CLASS = 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm';
+// A row is a grid: the eyebrow over the title in the second column, the prep dot in the first on the title's first line (not
+// between the two lines), and the title balanced over its lines so a long one never leaves one word alone (XSC-44, R3SC-1).
+const ROW_CLASS = 'grid w-full grid-cols-[0.75rem_minmax(0,1fr)] gap-x-2 rounded-lg px-2.5 py-2 text-left text-sm';
+const EYEBROW_CLASS = "col-start-2 font-['Barlow_Condensed',sans-serif] text-[0.6875rem] font-semibold tracking-[0.12em] text-[var(--text-muted)] uppercase";
+/** The dot sits on the middle of the title's first 20 px line. */
+const DOT_CELL = 'col-start-1 row-start-2 flex h-5 items-center';
+const TITLE_CELL = 'col-start-2 row-start-2 min-w-0 [text-wrap:balance]';
 const CURRENT_CLASS = (current: boolean) =>
   current ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]';
 
@@ -96,15 +102,11 @@ export function ChapterList({
                 }}
                 className={`${ROW_CLASS} ${CURRENT_CLASS(current)}`}
               >
-                <PrepDot state={prep.prepOf(chapter.id)} />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  {label && (
-                    <span className="font-['Barlow_Condensed',sans-serif] text-[0.6875rem] font-semibold tracking-[0.12em] text-[var(--text-muted)] uppercase">
-                      {label}
-                    </span>
-                  )}
-                  <span>{title}</span>
+                <span className={DOT_CELL}>
+                  <PrepDot state={prep.prepOf(chapter.id)} />
                 </span>
+                {label && <span className={`${EYEBROW_CLASS} row-start-1`}>{label}</span>}
+                <span className={TITLE_CELL}>{title}</span>
               </button>
             </li>
           );
@@ -157,8 +159,14 @@ function CreditsItem({
         }}
         className={`${ROW_CLASS} ${CURRENT_CLASS(current)}`}
       >
-        <PrepDot state={row.state} />
-        <span className="min-w-0 flex-1">{CREDITS_LABEL[kind]}</span>
+        <span className={DOT_CELL}>
+          <PrepDot state={row.state} />
+        </span>
+        {/* The card's own eyebrow, so a credits row is a chapter row's height; the name already says credits. */}
+        <span aria-hidden="true" className={`${EYEBROW_CLASS} row-start-1`}>
+          Credits
+        </span>
+        <span className={TITLE_CELL}>{CREDITS_LABEL[kind]}</span>
       </button>
     </li>
   );

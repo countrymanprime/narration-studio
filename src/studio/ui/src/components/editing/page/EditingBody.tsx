@@ -28,7 +28,7 @@ import { useDawPlayPosition } from '../follow/useDawPlayPosition';
 import { useFollowScroll } from '../follow/useFollowScroll';
 import { Legend } from '../flags/Legend';
 import { useAcceptWords } from '../flags/useAcceptWords';
-import { EDITING_FOOTER_SPEC, editingKeyHints, enterHintLabel } from '../keys/editingKeyHints';
+import { EDITING_FOOTER_SPEC, editOffHints, editingKeyHints, enterHintLabel } from '../keys/editingKeyHints';
 import { useEditingKeys } from '../keys/useEditingKeys';
 import { useMarkMenuSections } from '../menu/marks/useMarkMenuSections';
 import { useEditingWordMenu } from '../menu/useEditingWordMenu';
@@ -56,7 +56,6 @@ import { usePrepSteps } from '../takes/prep/usePrepSteps';
 import { dawSplitter } from '../takes/split/splitCommand';
 import { useSplitDuplicate } from '../takes/split/useSplitDuplicate';
 import { TakeChip } from '../takes/TakeChip';
-import { TakeBadge } from '../takes/TakeBadge';
 import { TakeLines } from '../takes/TakeLines';
 import { takeSourceLabel } from '../takes/takeSource';
 import { registerTakesMenuSection } from '../takes/takesMenuSection';
@@ -486,7 +485,7 @@ export function EditingBody(props: EditingBodyProps) {
   const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
   const hints = editingKeyHints(
     keymap,
-    EDITING_FOOTER_SPEC.map((h) => {
+    editOffHints(EDITING_FOOTER_SPEC, cut.plan?.kind === 'refused').map((h) => {
       if (h.id === 'editing.strip' && !stripFits) return { ...h, label: 'Timeline drawer' };
       if (h.id === 'editing.keep') return { ...h, label: enterHintLabel({ takesOpen: lineTakes.onTake !== null, onFlag: cursorOnFlag }) };
       return h;
@@ -536,18 +535,12 @@ export function EditingBody(props: EditingBodyProps) {
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {chapterLink.dialog}
-      <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
+      <div className="min-h-0 flex-1 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} onClose={closeDrawer} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
-            <NoAudioBanner
-              audio={read.audio}
-              chapterName={chapterName}
-              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
-              onReread={props.onReread}
-            />
             <EditingHeader
               stepper={props.stepper}
-              legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
+              legend={<Legend doc={doc} noAudio={read.audio.kind !== 'ready'} />}
               status={
                 <>
                   {props.dawIndicator}
@@ -559,6 +552,13 @@ export function EditingBody(props: EditingBodyProps) {
               drawerOpen={drawerOpen}
               onDrawer={panels.drawer.toggle}
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+            />
+            {/* Under the header, so the title stays where it is on every state (XED-7). */}
+            <NoAudioBanner
+              audio={read.audio}
+              chapterName={chapterName}
+              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
+              onReread={props.onReread}
             />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
@@ -619,11 +619,6 @@ export function EditingBody(props: EditingBodyProps) {
             className="col-start-2 flex flex-col items-start gap-2 pt-1 text-[length:var(--font-size-sm)] leading-[1.4]"
             watch={doc}
           >
-            {line ? (
-              <InHost root={root} selector={`${rowOf(pid)} [data-gutter]`} name={`badge-${pid}`} className="contents" watch={doc}>
-                <TakeBadge count={line.takes.length} open={open} controls={`takes-${pid}`} active={pid === current} onToggle={() => setLineOpen(pid, !open)} />
-              </InHost>
-            ) : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
                 doc={doc}

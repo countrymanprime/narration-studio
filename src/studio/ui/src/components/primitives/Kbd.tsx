@@ -13,7 +13,12 @@ export const KBD_SIZE_CLASSES: Record<KbdSize, string> = {
 export function Kbd({ keys, label, size = 'sm' }: { keys: string[]; label?: string; size?: KbdSize }) {
   const name = label ?? keys.join(' + ');
   return (
-    <span role="img" aria-label={name} className="inline-flex items-center gap-1 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] leading-none">
+    // `normal-case`: a cap inside an uppercase `Button` (the Companion's Play) would otherwise draw "SPACE" beside a "Space" elsewhere (XBO-17).
+    <span
+      role="img"
+      aria-label={name}
+      className="inline-flex items-center gap-1 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] leading-none normal-case"
+    >
       {keys.map((key, index) => (
         <span key={index} className="inline-flex items-center gap-1">
           {index > 0 && <span className="text-[var(--text-muted)]">+</span>}

@@ -431,6 +431,11 @@ describe('EditingPage', () => {
       const notice = await waitFor(() => document.querySelector<HTMLElement>('#editoff')!);
       expect(notice.textContent).toContain('Delete, Mute and Add FX are off.');
       expect(notice.textContent).toContain(DAW_SETUPS['reaper-off'].capabilities['cut_range'].message!);
+      // R4TA-8: the key hints under it do not offer what it says is off.
+      const hints = document.querySelector<HTMLElement>('#keyhints')!.textContent!;
+      expect(hints).not.toContain('Delete words and audio');
+      expect(hints).not.toContain('Add FX');
+      expect(hints).toContain('Play from here');
     });
 
     it('has no such notice while the edits are on', async () => {
@@ -438,6 +443,7 @@ describe('EditingPage', () => {
       await script();
       await act(async () => {});
       expect(document.querySelector('#editoff')).toBeNull();
+      expect(document.querySelector('#keyhints')!.textContent).toContain('Delete words and audio');
     });
 
     it('keeps the setting out of the dialog: a quiet DAW is "not answering", and the switched-off edits are the notice’s to say', async () => {
@@ -480,6 +486,14 @@ describe('EditingPage', () => {
       await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('tabindex')).toBe('-1'));
       fireEvent.mouseDown(word('p1:1'), { button: 0, detail: 1 });
       await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('tabindex')).toBeNull());
+    });
+
+    // R4TA-7: the take count was drawn twice per line, a ring in the time gutter and the chip under the text; the chip is the one way in.
+    it('draws the take count once, on the chip, with nothing in the time gutter', async () => {
+      mount({ chapterId: 'c1' });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')).not.toBeNull());
+      expect(document.querySelector('[data-pid="p1"] [data-gutter] button')).toBeNull();
     });
 
     it('shows no banner with REAPER linked or the built-in recorder, whose takes can be kept', async () => {
@@ -1105,6 +1119,16 @@ describe('EditingPage loading state', () => {
     mount({ api: { manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) } });
     expect(await screen.findByText('The manuscript could not be read.')).toBeTruthy();
     expect(region('Loading the editor')).toBeNull();
+    // XED-30, R3ED-11: the failure keeps the page's card and header (title, header buttons), so the title does not move.
+    expect(screen.getByRole('heading', { level: 1, name: 'Editing' }).closest('header')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Clean up and effects' })).toBeTruthy();
+  });
+
+  it('draws the skeleton in the script’s own columns, with the bar’s band under it', async () => {
+    mount({ api: { manuscriptChapters: never } });
+    const busy = await screen.findByRole('group', { name: 'Loading the editor' });
+    expect([...busy.querySelectorAll('div')].some((node) => node.className.includes('grid-cols-[76px_minmax(0,1000px)]'))).toBe(true);
+    expect([...busy.children].some((node) => node.className.includes('border-t'))).toBe(true);
   });
 
   // A failed read of the chapters (the page), or of one chapter's lines (the chapter under its stepper), offers Retry that reads again.

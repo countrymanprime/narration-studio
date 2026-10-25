@@ -70,7 +70,7 @@ export const ExampleOpen: Story = {
   render: (args) => <Surface args={args} />,
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await userEvent.click(view.getByRole('button', { name: 'Show the format example' }));
+    await userEvent.click(view.getByRole('button', { name: 'Show example' }));
     await userEvent.click(view.getByRole('button', { name: 'CSV' }));
     const box = await view.findByLabelText('Format example');
     await waitFor(() => expect(box.textContent).toContain('record,name'));

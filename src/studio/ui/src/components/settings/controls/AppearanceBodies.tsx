@@ -7,8 +7,10 @@ import { useMotionPreference, type MotionPreference } from '../../../motion';
 import { IconButton } from '../../primitives/IconButton';
 import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
-import { ReaderTextBody } from '../page/ReaderTextPanel';
-import { useTextPrefs } from '../../script/page/tools/text/useTextPrefs';
+import { InsetCard } from '../../primitives/InsetCard';
+import { Slider } from '../../primitives/Slider';
+import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
+import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -34,10 +36,81 @@ export function MotionRowBody() {
   return <RadioGroup label="Motion" value={preference} onChange={setPreference} options={MOTION_OPTIONS} />;
 }
 
-/** Reader text: the Script reader's font, size, line spacing and width (the same saved choices as the Script's text settings) and a quote drawn in them. */
-export function ReaderTextRowBody() {
-  const [prefs, change] = useTextPrefs();
-  return <ReaderTextBody prefs={prefs} onChange={change} />;
+// Reader text is four rows (alignment audit XSE2-13): each row's title names its control, so the controls carry no labels of their own, and
+// each is a settings field wide. The preview quote, drawn in all four choices, sits under the last.
+const READER_FIELD = 'w-full max-w-80';
+const FONT_OPTIONS = READER_FONTS.map(([name]) => ({ value: name, label: name }));
+const PREVIEW = '“Off with her head!” the Queen shouted at the top of her voice. Nobody moved.';
+
+/** Reader font: the typeface of the manuscript in the Script reader and the Booth. */
+export function ReaderFontBody() {
+  const prefs = useReaderText();
+  return <Select label="Reader font" value={prefs.font} onChange={(font) => changeReaderText({ font })} options={FONT_OPTIONS} className={READER_FIELD} />;
+}
+
+/** Reader text size: one of the reader's sizes, read out in px. */
+export function ReaderSizeBody() {
+  const prefs = useReaderText();
+  return (
+    <Slider
+      aria-label="Reader text size"
+      valueText={`${prefs.size} px`}
+      min={0}
+      max={READER_SIZES.length - 1}
+      step={1}
+      value={Math.max(0, READER_SIZES.indexOf(prefs.size))}
+      onValueChange={(index) => changeReaderText({ size: READER_SIZES[index] })}
+      className={READER_FIELD}
+    />
+  );
+}
+
+/** Line spacing of the manuscript in the reader. */
+export function ReaderSpacingBody() {
+  const prefs = useReaderText();
+  return (
+    <Slider
+      aria-label="Line spacing"
+      valueText={prefs.spacing.toFixed(1)}
+      min={READER_SPACING.min}
+      max={READER_SPACING.max}
+      step={READER_SPACING.step}
+      value={prefs.spacing}
+      onValueChange={(spacing) => changeReaderText({ spacing: +spacing.toFixed(1) })}
+      className={READER_FIELD}
+    />
+  );
+}
+
+/** Column width of the reader, then the preview quote drawn in all four choices. */
+export function ReaderWidthBody() {
+  const prefs = useReaderText();
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <Slider
+        aria-label="Column width"
+        valueText={widthName(prefs.width)}
+        min={0}
+        max={READER_WIDTHS.length - 1}
+        step={1}
+        value={Math.max(
+          0,
+          READER_WIDTHS.findIndex(([, percent]) => percent === prefs.width),
+        )}
+        onValueChange={(index) => changeReaderText({ width: READER_WIDTHS[index]?.[1] })}
+        className={READER_FIELD}
+      />
+      <InsetCard>
+        <blockquote
+          data-testid="reader-text-preview"
+          className="m-0 text-[var(--text)]"
+          style={{ fontFamily: fontStack(prefs.font), fontSize: `${prefs.size}px`, lineHeight: prefs.spacing }}
+        >
+          {PREVIEW}
+        </blockquote>
+      </InsetCard>
+    </div>
+  );
 }
 
 // The levels the host snaps to (src/studio/desktop/bindings_window.go's zoomSteps, as hooks/useZoom.ts lists them): 100% is the smallest
@@ -79,8 +152,10 @@ export function ZoomRowBody() {
   const levels = ZOOM_LEVELS.includes(level) ? ZOOM_LEVELS : [...ZOOM_LEVELS, level].sort((a, b) => a - b);
   return (
     <div className="flex flex-nowrap items-center gap-1.5">
+      {/* A short value gets the settings' short field width, 8rem, not its 85 px content width (alignment audit XSE2-9, XSE2-33). */}
       <Select
         label="Zoom"
+        className="w-32"
         value={String(level)}
         options={levels.map((value) => ({ value: String(value), label: percent(value) }))}
         onChange={(value) => choose(Number(value))}

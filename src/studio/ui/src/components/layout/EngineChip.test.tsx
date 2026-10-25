@@ -33,6 +33,40 @@ describe('EngineChip label', () => {
   });
 });
 
+// A state that needs the narrator says so in words, not by the dot's colour alone, and a word stays below `md` where the DAW's
+// name hides (alignment audit R3SL-2, R3PR1-9, XSL-12).
+describe('EngineChip state words', () => {
+  it.each([
+    ['linked', 'REAPER', { dawReachable: true, dawProjectMatches: true }],
+    ['not linked', 'REAPER: Not linked', { dawFileLinked: false }],
+    ['not running', 'REAPER: Not running', { dawReachable: false }],
+    ['a different project open', 'REAPER: Other project', { dawReachable: true, dawProjectMatches: false }],
+  ] as const)('draws the %s state as "%s"', (_state, text, props) => {
+    renderChip(props);
+    expect(screen.getByRole('button').textContent).toBe(text);
+  });
+
+  it('keeps the state word on show below md, hiding only the DAW name before it', () => {
+    renderChip({ dawReachable: true, dawProjectMatches: false });
+    const button = screen.getByRole('button');
+    expect(button.querySelector('.max-md\\:hidden')?.textContent).toBe('REAPER: ');
+    expect(button.getAttribute('aria-label')).toMatch(/^REAPER: Other project\. /);
+  });
+
+  it('hides nothing of a linked chip or the built-in one below md', () => {
+    renderChip({ dawReachable: true, dawProjectMatches: true });
+    expect(screen.getByRole('button').querySelector('.max-md\\:hidden')).toBeNull();
+    cleanup();
+    renderChip({ daw: 'none' });
+    expect(screen.getByRole('group').querySelector('.max-md\\:hidden')).toBeNull();
+  });
+
+  it('says a state that is also the tooltip once in the name', () => {
+    renderChip({ dawReachable: false });
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('REAPER: Not running');
+  });
+});
+
 describe('EngineChip tooltips', () => {
   it('says "Linked" for a reachable DAW whose open project is the linked one', () => {
     renderChip({ dawReachable: true, dawProjectMatches: true });

@@ -29,7 +29,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Note: Story = {
   play: async ({ canvasElement }) => {
-    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'tired' });
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'Mark “tired”' });
     await expect(within(dialog).getByLabelText('Note (optional)')).toBeVisible();
   },
 };
@@ -37,7 +37,7 @@ export const Note: Story = {
 export const Query: Story = {
   args: { type: 'ask' },
   play: async ({ canvasElement }) => {
-    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'tired' });
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'Mark “tired”' });
     // The types arrive from the host after the first paint; only then does the field ask for a query.
     await within(dialog).findByLabelText('Your question');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
@@ -48,6 +48,6 @@ export const Query: Story = {
 export const LongSelectionIsShortened: Story = {
   args: { selection: { ...SELECTION, quote: 'It was the best of times, it was the worst of times, it was the age of wisdom' } },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: /…$/ })).toBeVisible();
+    await expect(await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: /…”$/ })).toBeVisible();
   },
 };

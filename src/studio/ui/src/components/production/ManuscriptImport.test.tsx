@@ -515,7 +515,8 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
 
   it('says it replaces the manuscript when there is one', async () => {
     const { dialog } = await openStep1(true);
-    expect(within(dialog).getByText(/^Replaces the manuscript imported /)).toBeTruthy();
+    // The day as the Manuscript row behind the dialog writes it ("Jan 1, 2026", `calendarDay`), not a locale date such as 1/1/2026.
+    expect(within(dialog).getByText(/^Replaces the manuscript imported [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/)).toBeTruthy();
   });
 
   it('a dropped file with a path starts the same preview as Choose a file', async () => {

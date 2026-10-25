@@ -76,4 +76,13 @@ describe('CleanupToolsDialog', () => {
     await waitFor(() => expect((screen.getByRole('button', { name: 'Close' }) as HTMLButtonElement).disabled).toBe(true));
     expect((screen.getByRole('button', { name: 'Open Magnolius DeClick' }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  // Alignment audit R3EN1-3: the launch's outcome sat under the whole list in plain text, under neither tool.
+  it('shows a launch’s outcome inside the row of the tool it opened', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: 'Open Magnolius DeClick' }));
+    const status = await screen.findByRole('status');
+    expect(status.closest('li')?.contains(screen.getByRole('button', { name: 'Open Magnolius DeClick' }))).toBe(true);
+  });
 });

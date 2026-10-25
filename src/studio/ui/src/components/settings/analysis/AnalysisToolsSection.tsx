@@ -15,7 +15,7 @@ import { useAnalysisTools, useComponentsPort } from './useAnalysisTools';
 /**
  * Settings > Story Bible analysis, the mock's panel of that name after Story Bible types: the optional tools that make the Story Bible scan better, from the asset registry. Nothing downloads until the
  * narrator agrees in the consent; several start one after another. Below them, whether a scan offers them first
- * (`ManuscriptGuide.analysis_prompt`). `bare` draws it under a heading, with no panel, below the Models & downloads list.
+ * (`ManuscriptGuide.analysis_prompt`). `bare` draws it under a section label, in an untitled card, below the Models & downloads list.
  */
 export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
   const tools = useAnalysisTools(useComponentsPort());
@@ -45,7 +45,7 @@ export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
   };
 
   return (
-    <div id="settings-analysis" className="scroll-mt-4">
+    <div id="settings-analysis" className={`scroll-mt-4 ${bare ? 'mt-2' : ''}`}>
       {bare && (
         <SectionLabel as="h3" className="mb-1.5">
           Story Bible analysis tools
@@ -121,7 +121,7 @@ export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
   );
 }
 
-/** The tools in the panel the page of their own draws, or bare under a heading of the Models & downloads list. */
+/** The tools in the panel the page of their own draws, or an untitled card under a section label of the Models & downloads list. */
 function Wrap({ bare, children }: { bare: boolean; children: React.ReactNode }) {
-  return bare ? <>{children}</> : <Panel title="Story Bible analysis">{children}</Panel>;
+  return bare ? <Panel label="Story Bible analysis tools">{children}</Panel> : <Panel title="Story Bible analysis">{children}</Panel>;
 }
