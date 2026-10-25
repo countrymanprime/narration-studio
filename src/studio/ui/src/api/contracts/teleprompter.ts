@@ -83,7 +83,7 @@ export type TeleprompterFlagFinding = {
 export type HeardWord = { word: string; start: number; end: number };
 
 /**
- * The microphone's input level (`levels.py`): every 100 ms of audio, the peak sample and the
+ * The microphone's input level (`narration_common.recording.meter`): every 100 ms of audio, the peak sample and the
  * loudest 50 ms RMS, in dBFS from -100 (silence) to 0 (full scale). A session sends it beside its words; the meter
  * (`teleprompterMeterStart`) sends only this. It is for a meter, never for the session model.
  */

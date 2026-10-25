@@ -91,4 +91,10 @@ describe('Slider', () => {
     expect(container.textContent).toBe('');
     expect(screen.getByRole('slider', { name: 'Gap' }).getAttribute('aria-valuetext')).toBeNull();
   });
+  it('pulls the control out by its thumb inset, so the track lines up with the label', () => {
+    render(<Slider label="Gain" value={0} min={-12} max={12} onValueChange={() => undefined} />);
+    const control = screen.getByRole('slider', { name: 'Gain' }).closest('.h-1')!.parentElement!;
+    expect(control.className).toContain('px-[9px]');
+    expect(control.parentElement!.className).toContain('-mx-[9px]');
+  });
 });

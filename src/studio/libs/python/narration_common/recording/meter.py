@@ -1,9 +1,11 @@
 """Input level metering at any sample rate.
 
-The same event the Booth's Read Aloud meter already reads (``src/studio/sidecars/manuscript-teleprompter/core/levels.py``), measured
-on the recorder's own native-rate frames instead of the recognizer's 16 kHz chunks:
+The Booth's Read Aloud meter and the built-in recorder both report
 
     {"type": "level", "peak": -12.3, "rms": -24.1}
+
+the meter on the recognizer's own 16 kHz mono chunks (``live_asr.py``, through ``metered``), the recorder on its
+native-rate frames,
 
 one per ``report_ms`` of audio (100 ms by default). ``peak`` is the largest absolute sample in the report across every
 channel, and ``rms`` the loudest channel's loudest ``window_ms`` window (50 ms), both in dBFS rounded to 0.1 dB, clamped
@@ -13,6 +15,7 @@ since the meter was made, which the recorder reports with the take.
 """
 
 import math
+from collections.abc import Callable, Iterable, Iterator
 
 import numpy as np
 
@@ -56,3 +59,11 @@ class LevelMeter:
             rms = float(np.sqrt(np.mean(windows * windows, axis=1)).max())
             events.append({"type": "level", "peak": dbfs(float(np.abs(report).max())), "rms": dbfs(rms)})
         return events
+
+
+def metered(chunks: Iterable[np.ndarray], meter: LevelMeter, report: Callable[[dict], None]) -> Iterator[np.ndarray]:
+    """Pass chunks through, reporting each one's levels as it arrives, before the engine sees it."""
+    for chunk in chunks:
+        for event in meter.feed(chunk):
+            report(event)
+        yield chunk

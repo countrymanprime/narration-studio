@@ -13,3 +13,11 @@ export const TABLE_CELL_CLASS = 'h-[var(--row-height)] border-b border-[var(--bo
 
 // The body text: IBM Plex Sans (the page's own face) at 14 px.
 export const TABLE_TEXT_CLASS = 'text-[0.875rem]';
+
+// The outer cells of a table at a card's edge. `--panel-pad` is the padding of the Panel body around the table: in a padded body the
+// table is already 16 px in, so its outer cells keep their 10 px; in a `Panel flush` (pad 0) they take 16 px, and the last row's rule
+// goes, since the card's border is the line there. Outside any panel the fallback (1rem) gives the ordinary cell.
+export const TABLE_EDGES =
+  '[&_tr>:first-child]:pl-[max(0.625rem,calc(1rem-var(--panel-pad,1rem)))] [&_tr>:last-child]:pr-[max(0.625rem,calc(1rem-var(--panel-pad,1rem)))] [&>tbody>tr:last-child>*]:border-b-[min(1px,var(--panel-pad,1rem))]';
+// A `Table flush` spans the body's padding, so it is always at the card's edges.
+export const TABLE_FLUSH_EDGES = '[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-4 [&>tbody>tr:last-child>*]:border-b-0';

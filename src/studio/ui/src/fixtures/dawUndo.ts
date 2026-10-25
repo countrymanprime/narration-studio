@@ -30,17 +30,27 @@ export const MOCK_DAW_UNDO_LABELS = {
   importPickups: `${brand.name}: import pickups`,
   resolvePickup: `${brand.name}: resolve pickup`,
   reopenPickup: `${brand.name}: reopen pickup`,
+  /** narration_replace.lua (narration_bridge_core.lua's replace_range and restore_replacement). */
+  replace: `${brand.name}: replace audio`,
+  restoreReplacement: `${brand.name}: put audio back`,
   /** REAPER's own point for a stopped recording (REAPER 7.82, docs/research/reaper-recording-undo-2026-10-23.md), which record_take undoes. */
   recordedMedia: 'Recorded media',
 } as const;
 
 /** The one label each action kind may undo (narration_bridge_core.lua's table; for record_take, the label REAPER gives a stopped recording). */
-const KIND_LABELS: Readonly<Record<DawActionKind, string>> = { cut_range: MOCK_DAW_UNDO_LABELS.cut, record_take: MOCK_DAW_UNDO_LABELS.recordedMedia };
+const KIND_LABELS: Readonly<Record<DawActionKind, string>> = {
+  cut_range: MOCK_DAW_UNDO_LABELS.cut,
+  record_take: MOCK_DAW_UNDO_LABELS.recordedMedia,
+  replace_range: MOCK_DAW_UNDO_LABELS.replace,
+  restore_replacement: MOCK_DAW_UNDO_LABELS.restoreReplacement,
+};
 
 /** Each kind worded for the answers, one and several (dawport/reaper's actionNouns). */
 const KIND_NOUNS: Readonly<Record<DawActionKind, readonly [string, string]>> = {
   cut_range: ['cut', 'cuts'],
   record_take: ['take', 'recorded passes of the take'],
+  replace_range: ['replacement', 'replacements'],
+  restore_replacement: ['put-back', 'put-backs'],
 };
 
 /** dawport/reaper's answer when the DAW's next undo point is not the kind's: nothing was undone. */

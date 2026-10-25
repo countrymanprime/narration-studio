@@ -232,6 +232,51 @@ describe('Table', () => {
   });
 });
 
+// Alignment audit cause D: tables sized their columns by content, so columns moved between states, and a table at a card's
+// edge started its text 6 to 10 px inside the card title, its last rule doubling the card's border.
+describe('Table columns and edges', () => {
+  const twoColumns = (props: { flush?: boolean; columns?: readonly string[] }) =>
+    render(
+      <Table label="Chapters" {...props}>
+        <TableBody>
+          <TableRow>
+            <TableCell>Down the Rabbit-Hole</TableCell>
+            <TableCell numeric>11:48</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+
+  it('fixes the column widths from `columns`, one col each, `auto` taking the rest', () => {
+    twoColumns({ columns: ['auto', '6rem'] });
+    const table = screen.getByRole('table', { name: 'Chapters' });
+    expect(table.className).toContain('table-fixed');
+    const cols = [...table.querySelectorAll('colgroup > col')] as HTMLElement[];
+    expect(cols.map((col) => col.style.width)).toEqual(['', '6rem']);
+  });
+
+  it('lays out from the content and draws no colgroup without `columns`', () => {
+    twoColumns({});
+    const table = screen.getByRole('table', { name: 'Chapters' });
+    expect(table.className).not.toContain('table-fixed');
+    expect(table.querySelector('colgroup')).toBeNull();
+  });
+
+  it('insets the outer cells to the card edge and drops the last rule in a flush table', () => {
+    twoColumns({ flush: true });
+    const flush = screen.getByRole('table', { name: 'Chapters' }).className;
+    expect(flush).toContain('[&_tr>:first-child]:pl-4');
+    expect(flush).toContain('[&_tr>:last-child]:pr-4');
+    expect(flush).toContain('[&>tbody>tr:last-child>*]:border-b-0');
+    cleanup();
+    // Any other table follows the panel body's padding: 16 px in a `Panel flush`, the ordinary 10 px in a padded body.
+    twoColumns({});
+    const plain = screen.getByRole('table', { name: 'Chapters' }).className;
+    expect(plain).toContain('[&_tr>:first-child]:pl-[max(0.625rem,calc(1rem-var(--panel-pad,1rem)))]');
+    expect(plain).toContain('[&>tbody>tr:last-child>*]:border-b-[min(1px,var(--panel-pad,1rem))]');
+  });
+});
+
 describe('a table that moves focus between its rows', () => {
   function renderNavigable(onKeyDown?: () => void) {
     render(

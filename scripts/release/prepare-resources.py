@@ -203,7 +203,7 @@ def main() -> None:
             [shared_python, sidecars_root / "transcript-compare" / "core"],
             ("faster_whisper",),
         ),
-        # live_asr.py imports chapter_script, control_channel, levels, moonshine_engine, locate and align_word
+        # live_asr.py imports chapter_script, control_channel, moonshine_engine, locate and align_word
         # (siblings) inside functions; PyInstaller finds them because their directory is on --paths, and chapter_script's
         # narration_common modules through the shared one. The Booth's tracker and flags are the host's (internal/scripttrack).
         # The Moonshine engine (moonshine_voice, Windows only in pyproject.toml) loads its native

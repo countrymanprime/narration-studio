@@ -140,7 +140,7 @@ Tests: `components/help/ShortcutSheet.test.tsx` (the sheet lists exactly `comman
 | --- | --- |
 | `overlay.confirm(spec)` | Promise of the narrator's answer, drawn as `ConfirmDialog` |
 | `overlay.open({ kind: 'dialog' \| 'slideOver', ... })` | Function that closes it, drawn as `Dialog` or `SlideOver`; a dialog sets `dismissOnOutsidePress` |
-| `overlay.toast(text, { tone?, action?, topic? })` | A toast; a newer toast on the same `topic`, or with the same text and tone, replaces the older one; at most 4 show, information toasts drop first |
+| `overlay.toast(text, { tone?, action?, topic? })` | A toast; a newer toast on the same `topic`, or with the same text, tone and action (or none), replaces the older one; at most 4 show, information toasts drop first |
 | `overlay.toastUndo(text, undo)` | A toast whose Undo calls `undo()` and toasts the journal's refusal sentence if it refuses |
 | `overlay.announce(text)` | Writes the one polite live region |
 | `overlay.dismissToast(id)`, `overlay.dismissTopic(topic)` | Remove a toast, or a message that stopped being true |
