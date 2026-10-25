@@ -2,7 +2,8 @@
 # has no Check button of its own; the summary lives here), with the host's judgement as a heading, an
 # unfinished chapter's "recorded to" line, the chapter's stat grid, its actions (Check again, kept beside the figures
 # it refreshes, and Open in Editing, which opens the chapter on the Editing page), its own interior gaps as a named Pickups
-# region (a paragraph when there are none), and the paragraph detail as a folded disclosure (never auto-expanded).
+# region (a paragraph when there are none) with the two other pickup sources as ruled rows, the paragraph detail as a folded
+# disclosure (never auto-expanded), and Check options folded after it.
 # The page behind it is aria-hidden.
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
@@ -19,7 +20,7 @@
   - paragraph: /Checked Sep \d+, \d+, \d+:\d+ AM with the small Whisper model\./
   - 'heading /Not complete: paragraphs \d+ to \d+: \d+ words not read\./ [level=3]'
   - paragraph: /Recorded to paragraph \d+ of \d+ \(\d+ words left\)\./
-  - text: /Text present \d+% \d+,\d+ of \d+,\d+ words Paragraphs \d+ of \d+ fully read Audio checked \d+:\d+ in 1 item Pace about \d+\/min/
+  - text: /Text present \d+% \d+,\d+ of \d+,\d+ words Paragraphs \d+ of \d+ fully read Audio checked \d+:\d+ in 1 item Pace \d+\/min words a minute/
   - button "Check again"
   - button "Open in Editing"
   - region "Pickups (0)":
@@ -28,4 +29,8 @@
     - text: "Repeated reads (Proof): none waiting"
     - link "Open Proof":
       - /url: /proof
-  - button /Paragraph detail \d+ of \d+ fully recorded/
+    - text: "Pickup list: 3 open (project-wide)"
+    - link "Open pickups":
+      - /url: /pickups
+  - button /Paragraph detail \d+ of \d+ fully read/
+  - button "Check options"

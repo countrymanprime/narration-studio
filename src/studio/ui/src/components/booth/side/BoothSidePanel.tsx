@@ -8,8 +8,8 @@ import { boothSections, type BoothSideData } from './sections';
 const KEEP_OPEN = '[data-booth-side-keep],[role="dialog"],[role="menu"],[role="tooltip"]';
 
 /**
- * Whether the side panel is open. Above 1280 CSS px it is inline and starts open; at 1280 and below it is a drawer over the text and
- * starts closed, and it closes when the window shrinks into that layout so it never covers the text uninvited.
+ * Whether the side panel is open. Above 1280 CSS px it is inline and starts open; at 1280 and below it is a drawer over the text, which
+ * it dims (`--panel-scrim`), the full width of a window under 480 px, and starts closed, and it closes when the window shrinks into that layout so it never covers the text uninvited.
  */
 export function useBoothSideOpen(): { open: boolean; setOpen: (open: boolean) => void; toggle: () => void; drawer: boolean } {
   const drawer = useLayoutClass().medium;
@@ -72,18 +72,25 @@ export function BoothSidePanel({
   }, [drawer, open, onOpenChange]);
 
   return (
-    <aside
-      ref={ref}
-      id="booth-side"
-      aria-label="Side panel"
-      // A tab stop of its own, so the panel scrolls from the keyboard when it is taller than the window and holds nothing focusable.
-      tabIndex={0}
-      hidden={!open}
-      className={`flex w-80 max-w-full flex-col gap-[18px] overflow-y-auto border-l border-[var(--border)] bg-[var(--surface)] p-4 text-[13px] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${drawer ? 'absolute inset-y-0 right-0 z-10 shadow-lg' : ''}`}
-    >
-      {boothSections().map(({ id, component: Section }) => (
-        <Section key={id} data={data} />
-      ))}
-    </aside>
+    <>
+      {/* As a drawer it dims the text it covers, as the Script and Editing drawers do, so a word cut at its edge reads as behind it
+          (alignment audit XBO-19). A press on the dim closes it, as any press outside does. */}
+      {drawer && open ? (
+        <div data-booth-side-scrim="" aria-hidden="true" className="absolute inset-0 z-[var(--z-panel-scrim)] bg-[var(--panel-scrim)]" />
+      ) : null}
+      <aside
+        ref={ref}
+        id="booth-side"
+        aria-label="Side panel"
+        // A tab stop of its own, so the panel scrolls from the keyboard when it is taller than the window and holds nothing focusable.
+        tabIndex={0}
+        hidden={!open}
+        className={`flex w-80 max-w-full flex-col gap-[18px] overflow-y-auto border-l border-[var(--border)] bg-[var(--surface)] p-4 text-[13px] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${drawer ? 'absolute inset-y-0 right-0 z-[var(--z-panel)] shadow-lg max-[30rem]:w-full' : ''}`}
+      >
+        {boothSections().map(({ id, component: Section }) => (
+          <Section key={id} data={data} />
+        ))}
+      </aside>
+    </>
   );
 }

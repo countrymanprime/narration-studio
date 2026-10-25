@@ -108,7 +108,7 @@ describe('the Proof chapter view’s readiness panel', () => {
     expect(screen.getByRole('button', { name: 'Clear' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Measure' }));
-    await waitFor(() => expect(screen.getByText(/Measured/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/· measured/)).toBeTruthy());
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('error'), 'error');
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
