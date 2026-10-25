@@ -81,8 +81,11 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
   };
 
   return (
-    <div className="flex w-[min(62rem,100%)] flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-4">
+    // At most the dialog's own cap (Dialog's 80dvh, less its 1 px border): the title and the action row stay put and only the form and preview between them scroll, so Export is never
+    // below the first screen at 390 px or on the bottom edge of a short window (alignment audit XPR2-24, R3PR2-2). It spans the dialog's width
+    // (XPR2-23).
+    <div className="flex max-h-[calc(80dvh-2px)] w-full flex-col">
+      <div className="flex flex-none items-start justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-4">
         <div>
           <h2 className="text-[26px] leading-tight font-semibold">Export status report</h2>
           <p className="text-sm" style={MUTED}>
@@ -91,7 +94,7 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
         </div>
         <IconButton action="close" label="Close" onClick={onClose} />
       </div>
-      <div className="grid min-h-0 gap-4 p-[1.1rem] md:grid-cols-[17rem_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-[1.1rem] md:grid-cols-[17rem_minmax(0,1fr)]">
         <div className="flex flex-col gap-3.5">
           <fieldset className="flex flex-col gap-2.5">
             <legend className="mb-2 text-xs font-semibold tracking-wide uppercase" style={MUTED}>
@@ -157,7 +160,7 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
           )}
         </div>
       </div>
-      <div className="flex justify-end gap-2 border-t border-[var(--border)] px-4 pt-3 pb-4">
+      <div data-report-actions="" className="flex flex-none flex-wrap justify-end gap-2 border-t border-[var(--border)] px-[1.1rem] pt-3 pb-4">
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>

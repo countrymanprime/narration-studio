@@ -148,10 +148,6 @@
         - mark: Alice
         - text: had got so much into the way of expecting nothing but out-of-the-way things to happen, that it seemed quite dull and stupid for life to go on in the common way.
       - paragraph: So she set to work, and very soon finished off the cake.
-  - region "Note at playhead":
-    - heading "Note at playhead" [level=2]
-    - text: Coming soon
-    - paragraph: The proofer's note at REAPER's playhead, with Resolve and Fine as read, will show here.
   - region "Pickups":
     - heading "Pickups" [level=2]
     - paragraph: /\d+ pickups? remaining of \d+/
@@ -171,3 +167,7 @@
     - list:
       - listitem: /Recorded \d+:\d+/
       - listitem: Finalized
+  - region "Note at playhead":
+    - heading "Note at playhead" [level=2]
+    - text: Coming soon
+    - paragraph: The proofer's note at REAPER's playhead, with Resolve and Fine as read, will show here.

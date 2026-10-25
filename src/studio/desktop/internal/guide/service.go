@@ -39,6 +39,8 @@ type Service struct {
 	// existing caller, including every test in this package, leaves it nil
 	// and SaveFindings is then a no-op.
 	findingsStore atomic.Pointer[findings.Store]
+	// wiktextractIndex answers the installed Wiktextract index's path, or "" (SetWiktextractIndex); nil until app.go sets it.
+	wiktextractIndex atomic.Pointer[func() string]
 	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
 	editMu sync.Mutex
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
@@ -75,6 +77,43 @@ func (s *Service) manuscript() string {
 
 // SetPersist says where to report a Story Bible file that cannot be read.
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
+
+// SetWiktextractIndex says where the installed Wiktextract index is: index answers its path once the source is installed and verifies,
+// and "" otherwise. It is asked each time a lookup that can reach Wiktextract starts the sidecar, so an install or a removal made while
+// the project is open counts. Never set, no lookup is given an index and the sidecar's Wiktextract source answers "not installed yet".
+func (s *Service) SetWiktextractIndex(index func() string) { s.wiktextractIndex.Store(&index) }
+
+// wiktextractIndexArgs is --wiktextract-index <path> when the index is installed, and nothing otherwise.
+func (s *Service) wiktextractIndexArgs() []string {
+	index := s.wiktextractIndex.Load()
+	if index == nil {
+		return nil
+	}
+	path := (*index)()
+	if path == "" {
+		return nil
+	}
+	return []string{"--wiktextract-index", path}
+}
+
+// automaticSourceArgs are the arguments of a lookup that tries every source in turn (a build's, a create's, an alias edit's): the
+// narrator's default source and the Wiktextract index.
+func (s *Service) automaticSourceArgs() []string {
+	return append(s.defaultPronunciationSourceArgs(), s.wiktextractIndexArgs()...)
+}
+
+// namedSourceArgs are the arguments of a lookup from exactly one source (Pronounce, Candidate): the Wiktextract index, for a source the
+// registry says reads a local dictionary, since no other reads it.
+func (s *Service) namedSourceArgs(source string) []string {
+	entry, err := pronunciationport.Sources.Lookup(source)
+	if err != nil {
+		return nil
+	}
+	if described, ok := entry.New().(pronunciationport.Described); !ok || !described.NeedsLocalDictionary() {
+		return nil
+	}
+	return s.wiktextractIndexArgs()
+}
 
 // SetFindings opts this service into producing findings.Finding records for
 // entities that still need review. store persists them. Called once at service
@@ -444,7 +483,7 @@ func (s *Service) Candidate(word, source string) (Candidate, error) {
 	if err := pronunciationport.CheckPronounce(source); err != nil {
 		return Candidate{}, err
 	}
-	out, err := s.Run("candidate", "--word="+strings.TrimSpace(word), "--source", source)
+	out, err := s.Run(append([]string{"candidate", "--word=" + strings.TrimSpace(word), "--source", source}, s.namedSourceArgs(source)...)...)
 	if err != nil {
 		return Candidate{}, err
 	}

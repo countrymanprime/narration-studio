@@ -71,6 +71,7 @@ export function BoothFooter({
   seconds,
   recording,
   why,
+  quietWhy = false,
   listenWhy,
   mic,
   roomTone,
@@ -84,6 +85,11 @@ export function BoothFooter({
   seconds: number;
   recording: boolean;
   why?: string;
+  /**
+   * A setup notice above says why already: the sentence stays for Record's description (`aria-describedby`) but is not drawn, so the
+   * screen does not say it three times (alignment audit XBO-5).
+   */
+  quietWhy?: boolean;
   /** Why the text cannot follow the voice (no microphone, the session's error); the take itself is not affected. */
   listenWhy?: string;
   mic: Mic;
@@ -125,7 +131,7 @@ export function BoothFooter({
           </Button>
         ) : null}
         {why ? (
-          <span id="brec-why" className="text-sm text-[var(--text-muted)]">
+          <span id="brec-why" className={quietWhy ? 'sr-only' : 'text-sm text-[var(--text-muted)]'}>
             {why}
           </span>
         ) : null}

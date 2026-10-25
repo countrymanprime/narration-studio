@@ -107,3 +107,48 @@ for (const c of [
     expect(topmost, 'nothing is drawn over the notice at its corners').toBe(true);
   });
 }
+
+// Alignment audit XBO-4, XBO-27, XBO-5, R4BO2-1: the notice is drawn in the text column at the page gutter, so the side panel beside it
+// runs down to the footer; the footer does not draw the reason a third time; the top bar's setup chip warns as the notice does.
+for (const c of [
+  { width: 1440, height: 900, column: true },
+  { width: 1024, height: 768, column: false },
+  { width: 768, height: 1024, column: false },
+]) {
+  test(`the notice sits in the text column and is said once: ${c.width}x${c.height}`, async ({ page }) => {
+    await page.setViewportSize(c);
+    await page.goto('/?mockDawMismatch=1&mockRecordCapabilityOn=1');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    const dialog = page.getByRole('dialog', { name: 'REAPER has a different project open' });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await expect(page.locator('#brec-setup')).toBeVisible();
+    const g = await page.evaluate(() => {
+      const r = (e: Element | null) => (e ? e.getBoundingClientRect() : null);
+      const notice = r(document.querySelector('#brec-setup'));
+      const panel = r(document.getElementById('booth-side'));
+      const footer = r(document.getElementById('btimer')?.parentElement ?? null);
+      const why = document.getElementById('brec-why');
+      return {
+        notice: notice && { left: notice.left, right: notice.right },
+        panel: panel && { left: panel.left, bottom: panel.bottom, width: panel.width },
+        footerTop: footer?.top ?? null,
+        whyDrawn: why ? why.getBoundingClientRect().width > 1 : false,
+        whyText: why?.textContent ?? '',
+        recordDescribedBy: document.querySelector('[aria-describedby="brec-why"]') !== null,
+      };
+    });
+    expect.soft(g.notice!.left, 'the notice starts at the page gutter, as the bars do').toBe(16);
+    if (c.column) {
+      expect.soft(g.panel && g.footerTop, 'the side panel and the footer are drawn').toBeTruthy();
+      expect.soft(Math.abs(g.panel!.bottom - g.footerTop!), 'the side panel runs down to the footer').toBeLessThanOrEqual(1);
+      expect.soft(g.notice!.right, 'the notice stays in the text column').toBeLessThanOrEqual(g.panel!.left + 1);
+    }
+    expect.soft(g.whyDrawn, 'the footer does not draw the reason the notice already gives').toBe(false);
+    expect.soft(g.whyText, 'Record keeps its description').toContain('different project open');
+    expect.soft(g.recordDescribedBy).toBe(true);
+    await expect.soft(page.getByRole('button', { name: /^Recording setup: REAPER, other project/ })).toBeVisible();
+  });
+}
