@@ -288,19 +288,29 @@ describe('Settings: Appearance & keys', () => {
     expect(document.documentElement.dataset.motion).toBeUndefined();
   });
 
-  it('reader text changes the saved preferences and the preview quote', async () => {
+  // Alignment audit XSE2-13: Reader text is four settings rows, each titled once, not a sub-form with its own labels inside one row.
+  it('reader text is four rows that change one set of saved choices, shown in the preview under Column width', async () => {
     await renderPage();
     await open('Appearance & keys');
-    const reader = row('look.reader');
-    const preview = within(reader).getByTestId('reader-text-preview');
+    const font = row('look.reader');
+    const size = row('look.readerSize');
+    const spacing = row('look.readerSpacing');
+    const width = row('look.readerWidth');
+    expect(within(font).getByText('Reader font')).toBeTruthy();
+    expect(within(size).getByText('Reader text size')).toBeTruthy();
+    expect(within(spacing).getByText('Line spacing')).toBeTruthy();
+    expect(within(width).getByText('Column width')).toBeTruthy();
+    expect(within(font).getByRole('combobox', { name: 'Reader font' }).className).toContain('max-w-80');
+    // No second label style in the body: the row's title names the control.
+    for (const name of ['Font', 'Size']) expect(within(font.parentElement!).queryByText(name, { exact: true })).toBeNull();
+    const preview = within(width).getByTestId('reader-text-preview');
     expect(preview.textContent).toContain('Off with her head!');
     expect(preview.style.fontSize).toBe('20px');
-    fireEvent.change(within(reader).getByRole('slider', { name: 'Size' }), { target: { value: '5' } });
-    fireEvent.change(within(reader).getByRole('slider', { name: 'Line spacing' }), { target: { value: '2.2' } });
-    expect(within(reader).getByTestId('reader-text-preview').style.fontSize).toBe('24px');
-    expect(within(reader).getByTestId('reader-text-preview').style.lineHeight).toBe('2.2');
+    fireEvent.change(within(size).getByRole('slider', { name: 'Reader text size' }), { target: { value: '5' } });
+    fireEvent.change(within(spacing).getByRole('slider', { name: 'Line spacing' }), { target: { value: '2.2' } });
+    expect(within(width).getByTestId('reader-text-preview').style.fontSize).toBe('24px');
+    expect(within(width).getByTestId('reader-text-preview').style.lineHeight).toBe('2.2');
     expect(JSON.parse(localStorage.getItem(TEXT_PREFS_STORAGE_KEY)!)).toMatchObject({ size: 24, spacing: 2.2 });
-    expect(within(reader).getByRole('combobox', { name: 'Font' })).toBeTruthy();
   });
 
   it('zoom sets the window zoom, saves it, and resets', async () => {

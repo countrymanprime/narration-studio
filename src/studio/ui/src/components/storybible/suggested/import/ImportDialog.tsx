@@ -4,6 +4,7 @@ import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { useJournal } from '../../../../studio/StudioProvider';
 import { Button } from '../../../primitives/Button';
+import { Icon } from '../../../primitives/Icon';
 import { Heading } from '../../../primitives/Heading';
 import { IconButton } from '../../../primitives/IconButton';
 import { SectionLabel } from '../../../primitives/SectionLabel';
@@ -267,8 +268,15 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
             </span>
           )}
           <span className="flex-1" />
-          <IconButton action="copyPrompt" onClick={copyPrompt} />
-          <IconButton action={showExample ? 'hideExample' : 'showExample'} aria-pressed={showExample} onClick={() => setShowExample(!showExample)} />
+          {/* Words, not two bare icons at the row's end (R3SB1-13): what each does is on the button. */}
+          <Button variant="secondary" onClick={copyPrompt}>
+            <Icon name="copyPrompt" />
+            Copy prompt
+          </Button>
+          <Button variant="secondary" aria-pressed={showExample} onClick={() => setShowExample(!showExample)}>
+            <Icon name={showExample ? 'hideExample' : 'showExample'} />
+            {showExample ? 'Hide example' : 'Show example'}
+          </Button>
         </div>
         {fileProblem && (
           <p role="alert" className="text-sm" style={DANGER}>

@@ -4,6 +4,7 @@ import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
 import { Field } from './Field';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';
 import { insidePortal, screen } from './portalScreen';
 
 const meta = {
@@ -96,6 +97,40 @@ export const LongScrollingContent: Story = {
   },
 };
 
+// A long table in the body keeps its column heads in view: `TableHead sticky` sticks at the body's top edge, right under the header's divider, with no
+// row showing above it (alignment audit ENX-23).
+export const StickyTableHead: Story = {
+  args: {
+    title: 'Link chapters to REAPER',
+    size: 'wide',
+    children: (
+      <Table label="Chapter links">
+        <TableHead sticky>
+          <TableRow>
+            <TableHeader>Chapter</TableHeader>
+            <TableHeader>Track</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {Array.from({ length: 40 }, (_, index) => (
+            <TableRow key={index}>
+              <TableCell>Chapter {index + 1}</TableCell>
+              <TableCell>Track {index + 1}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    ),
+  },
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: 'Link chapters to REAPER' });
+    const head = within(dialog).getByRole('columnheader', { name: 'Chapter' });
+    const body = head.closest<HTMLElement>('[tabindex="0"]')!;
+    body.scrollTop = body.scrollHeight;
+    await waitFor(() => expect(Math.round(head.getBoundingClientRect().top)).toBe(Math.round(body.getBoundingClientRect().top)));
+  },
+};
+
 // The dialog is a labelled modal (named by its visible title) and its close button reports back exactly once.
 export const CloseButtonInvokesOnClose: Story = {
   play: async ({ args }) => {
@@ -117,7 +152,7 @@ export const HidesThePageBehindIt: Story = {
 export const FocusStartsOnTheBody: Story = {
   play: async () => {
     await screen.findByRole('dialog', { name: 'Add note' });
-    const body = screen.getByText(/Note for:/).parentElement as HTMLElement;
+    const body = screen.getByText(/Note for:/).closest('[data-dialog-content]')!.parentElement as HTMLElement;
     await waitFor(() => expect(document.activeElement).toBe(body));
   },
 };

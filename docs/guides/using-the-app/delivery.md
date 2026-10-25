@@ -67,31 +67,34 @@ no package was built. A package cannot be saved inside the project's own <!-- br
 
 Build is on once every chapter passes, and files have been mastered and encoded in Master & QC. Until then it
 says how many chapters fail and how many are not ready, that there are no chapters, that you must master all
-to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off, a red line
+to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off, a red message
 under it names the first chapter in the way, so you do not have to open Master & QC to learn why. For a failing
 chapter it gives the rule it misses, its value and the limit ("Chapter 8: noise floor −57.8 dBFS (limit ≤ −60
 dBFS), and 1 more rule."). When no chapter fails, it names the first chapter that is not ready and why: it has no
 measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
-something is measured, the line is left off and the count beside Build says so.
+anything is measured, it says "Nothing is measured yet. Measure the files in Master & QC." with **Open Master & QC**
+under it.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
 its description. Pressing it builds nothing and announces "Nothing was built" with that reason.
 
 ![Delivery with every chapter passing and the files encoded: Build ACX package is on](../../images/ui/delivery-ready.webp)
 
-While the package builds, the button is busy, **Cancel** is offered and a bar shows the work. A cancelled or failed
+While the package builds, the button is busy, **Cancel** is offered, the line beside them says "Building the
+package…" and a bar shows the work. A cancelled or failed
 build leaves no files in the folder, so the same build can be started again; a package never overwrites a file that
 is already there and says which one is in the way.
 
 ![Delivery with a started build running: the busy Build button, Cancel and the progress bar](../../images/ui/delivery-building.webp)
 
-When the package is built, **Built** shows how many files were written and where, with a **Written** mark for each
-file. The folder button beside it (**Open the folder**) opens that folder in Explorer. The list shows only for the
+When the package is built, **Built** shows how many files were written and where, with a **Written** mark after each
+file's name. The folder button at the end of that line (**Open the folder**) opens that folder in Explorer. The list shows only for the
 profile that built it: choose another profile and it goes away until you build again.
 
 ![Delivery after Build ACX package: Built, 15 files in the folder the host chose, and each file Written](../../images/ui/delivery-built.webp)
 
-If the host refuses or the build fails, Delivery shows its words under Build and writes nothing. It does not also
+If the host refuses or the build fails, Delivery shows its words under Build, in a red box with a warning sign, and
+writes nothing; beside Build it says "The last build did not finish." It does not also
 pop up a message while you are on this page; from another page the message appears there. A file that was encoded
 empty or is gone is named and refused before anything is written ("is empty (0 bytes); encode it again"), and so
 is a chapter whose title makes a file name longer than Windows allows.
@@ -99,9 +102,9 @@ is a chapter whose title makes a file name longer than Windows allows.
 ![Delivery after the host refused the build: its reason under Build, and nothing written](../../images/ui/delivery-build-failed.webp)
 
 If the host stops answering while a build runs, Delivery says "Can't tell how the build is going", when it last
-heard and when it last asked. **Check again** reads again at once and answers your press: "You checked again just now:
-the host still did not answer." The build keeps running on the host and **Cancel** is still there. Beside Build the
-sentence read before the host went quiet ("Every chapter passes.") is left out until it answers again.
+heard and when it last asked, with **Check again** under it. **Check again** reads again at once and answers your
+press in the same sentence: "… the host did not answer (you checked again just now)." The build keeps running on the host and **Cancel** is still there. Beside Build the
+sentence about the build ("Building the package…") is left out until the host answers again.
 
 ![Delivery with a running build and a host that no longer answers: the message with Check again](../../images/ui/delivery-host-quiet.webp)
 

@@ -65,7 +65,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'loading',
     description:
-      'Pickups while the list is still being read (?mockPickupList=loading): the page title, chapter stepper and header buttons, and grey blocks where the table rows will be, with one polite "Reading the pickup list…" status; the Pickup session panel beside it shows blocks for Lines and About, and no "no pickups yet" line',
+      'Pickups while the list is still being read (?mockPickupList=loading): the page title, chapter stepper and header buttons, and grey blocks where the table rows will be, with one polite "Reading the pickup list…" status; the Pickup session panel beside it shows blocks for Lines and Length, and no "no pickups yet" line',
     ...REFLOW,
   },
 ];

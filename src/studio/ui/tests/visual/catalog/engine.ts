@@ -12,7 +12,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'default',
     description:
-      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Link a different REAPER project file", the six REAPER tools, Chapter sync (its "Tracks that are not chapters" line across the full width), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
+      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Change file…", the six REAPER tools on a three-column grid, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
   },
   {
     page: 'engine',
@@ -29,7 +29,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'sync-background-wait',
     description:
-      'The engine panel, Chapter sync with background recording checks on but waiting (?mockChapterSync=background): "Background checks: waiting, REAPER is recording."',
+      'The engine panel, Chapter sync with background recording checks on but waiting (?mockChapterSync=background): a "Background checks" row reading "Waiting: REAPER is recording."',
   },
   {
     page: 'engine',
@@ -45,13 +45,13 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'no-daw-link',
     description:
-      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link a REAPER project file" instead of "Link a different REAPER project file" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
+      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link file…" instead of "Change file…" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
   },
   {
     page: 'engine',
     state: 'wrong-project',
     description:
-      'The engine panel with REAPER answering on a different project than the linked one (?mockDawMismatch=1): the REAPER project card says so, then "Waiting for REAPER to open the linked project.", "Last checked N s ago." and a Check again',
+      'The engine panel with REAPER answering on a different project than the linked one (?mockDawMismatch=1): the REAPER project card’s warning callout says so, then "Waiting for REAPER to open the linked project.", "Last checked N s ago.", Link the open project… and Check again',
   },
   {
     page: 'engine',
@@ -168,7 +168,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'chapter-tags-not-rendered',
     description:
-      'The engine panel, "Embed chapter tags" dialog with a chapter configured but not yet rendered - "not rendered yet" and the press-Render-first message, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
+      'The engine panel, "Embed chapter tags" dialog with a chapter configured but not yet rendered - a "Not rendered yet" badge and the press-Render-first warning, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

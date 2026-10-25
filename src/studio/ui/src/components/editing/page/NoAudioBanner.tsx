@@ -18,9 +18,9 @@ export function NoAudioBanner({ audio, chapterName, daw, onReread }: { audio: Ch
     <div
       id="noaudio"
       role="status"
-      className="mx-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-card)] border border-[var(--review)] bg-[var(--review-soft)] px-4 py-2.5 text-[0.875rem]"
+      className="mx-4 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-card)] border border-[var(--review)] bg-[var(--review-soft)] px-4 py-2.5 text-[0.875rem]"
     >
-      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+      <span className="min-w-0 flex-[1_1_18rem] [overflow-wrap:anywhere]">
         <b>{text.headline}</b> {text.next}
       </span>
       <Button variant="secondary" size="sm" onClick={onReread}>
