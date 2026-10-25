@@ -136,3 +136,54 @@ describe('WorkDialog live activity', () => {
     expect(box.scrollTop).toBe(900);
   });
 });
+
+describe('WorkDialog says each thing once (R4SB-8, R3SE1-1, R3SB2-15, R3PR2-22)', () => {
+  it('draws no log while the log only repeats the status line', () => {
+    render(<WorkDialog title="Download voice" job={job({ message: 'Downloading the voice...', logs: ['Downloading the voice...'] })} cancel={vi.fn()} />);
+    expect(screen.getByRole('status').textContent).toBe('Downloading the voice…');
+    expect(screen.queryByText('Live activity')).toBeNull();
+  });
+
+  it('keeps the earlier lines in the log and leaves out the one the status line says', () => {
+    render(
+      <WorkDialog
+        title="Import manuscript"
+        job={job({ message: 'Parsing chapter 4 of 12', logs: ['Reading the file', 'Parsing chapter 4 of 12'] })}
+        cancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Live activity')).toBeTruthy();
+    expect(screen.getByText('Reading the file')).toBeTruthy();
+    expect(screen.getAllByText('Parsing chapter 4 of 12')).toHaveLength(1);
+  });
+
+  it('writes one ellipsis, the character, whatever the host sent', () => {
+    render(
+      <WorkDialog title="Recording check" job={job({ message: 'Transcribing item 2 of 2...', logs: ['Starting the recording check...'] })} cancel={vi.fn()} />,
+    );
+    expect(screen.getByText('Starting the recording check…')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Transcribing item 2 of 2…');
+  });
+
+  it('says the elapsed time under the bar, as a phrase', () => {
+    render(<WorkDialog title="Import manuscript" job={job({ elapsed: 12.6 })} cancel={vi.fn()} />);
+    expect(screen.getByText('12 s').parentElement!.textContent).toBe('12 s elapsed');
+  });
+
+  it('offers Retry beside Close when the caller can start the job again, and draws the bar in the failure colour', () => {
+    const retry = vi.fn();
+    render(<WorkDialog title="Download voice" job={job({ phase: 'error', error: 'The download failed.' })} close={vi.fn()} retry={retry} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(retry).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
+    expect(document.querySelector('.bg-\\[var\\(--danger\\)\\]')).not.toBeNull();
+  });
+
+  it('offers no Retry while the job runs, nor after a failure the caller cannot repeat', () => {
+    render(<WorkDialog title="Download voice" job={job({ phase: 'running' })} cancel={vi.fn()} retry={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    cleanup();
+    render(<WorkDialog title="Download voice" job={job({ phase: 'error', error: 'The download failed.' })} close={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+});
