@@ -1,29 +1,29 @@
-// Package rules is the extraction port's rules source (SN-X32): it starts the Manuscript Guide sidecar's `suggest`
-// command through the process supervisor and turns the JSON lines it prints into raw suggestions. The sidecar's output
-// is checked as untrusted: the whole output, each line and each field have a byte cap, a line must have exactly the
-// fields of the format and a kind the rules emit, and each quote must be found in the paragraph it names
-// (extraction.VerifyEvidence) or its suggestion is dropped with a log line. Cancelling the context kills the sidecar.
+// Package rules is the extraction port's rules source (SN-X32): the Story Bible's own rules, run in the host by
+// guide.RuleSuggestions, which gives the JSON lines the Manuscript Guide sidecar's `suggest` printed before #2251 step 3 moved
+// it here. The lines are read as they were: the whole output, each line and each field have a byte cap, a line must have
+// exactly the fields of the format and a kind the rules emit, and each quote must be found in the paragraph it names
+// (extraction.VerifyEvidence) or its suggestion is dropped with a log line. Cancelling the context stops the run.
 //
-// The line format is pinned by testdata/suggest-lines.json, which the sidecar's own contract test writes.
+// The line format is pinned by testdata/suggest-lines.json, which TestTheSuggestLinesMatchTheContractFile writes.
 package rules
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"slices"
 	"strings"
-	"sync"
 
 	"desktop/internal/extraction"
 	"desktop/internal/extractionport"
+	"desktop/internal/guide"
 	"desktop/internal/port"
-	"desktop/internal/process"
 )
 
-// The caps on what the sidecar may print. A run over one is stopped and refused.
+// The caps on what the rules may give. A run over one is refused.
 const (
 	MaxOutputBytes = 8 << 20
 	MaxLineBytes   = 64 << 10
@@ -33,21 +33,19 @@ const (
 // Kinds are the payload kinds the rules emit; properties, relationships and claims need a language model.
 var Kinds = []extraction.Kind{extraction.KindEntry, extraction.KindAlias, extraction.KindSpeaker}
 
-// Command is how to start the sidecar and what it reads. Args go before the subcommand: the backend script in
-// development, none for the frozen sidecar.
-type Command struct {
-	Program    string
-	Args       []string
+// Files are what the rules read: the project's canonical manuscript and its Story Bible.
+type Files struct {
 	Manuscript string
 	Guide      string
 }
 
-// Source is the rules row. Command is asked for on each run, so a project opened later is the one read. Log receives the
-// line for each dropped suggestion; nil logs a warning through slog.
+// Source is the rules row. Files is asked for on each run, so a project opened later is the one read. Suggest gives the lines
+// for those files; nil is guide.RuleSuggestions. Log receives the line for each dropped suggestion; nil logs a warning
+// through slog.
 type Source struct {
-	Supervisor *process.Supervisor
-	Command    func() (Command, error)
-	Log        func(string)
+	Files   func() (Files, error)
+	Suggest func(ctx context.Context, manuscript, guide string) ([]string, error)
+	Log     func(string)
 }
 
 var _ extractionport.Source = Source{}
@@ -76,10 +74,10 @@ func (Source) Assets() []string { return nil }
 // Scored is true: a rule with a measured precision gives it.
 func (Source) Scored() bool { return true }
 
-// Available is ok once the source has a supervisor and a command.
+// Available is ok once the source knows where its files are. The rules run in the host, so nothing else can be missing.
 func (s Source) Available() extractionport.Availability {
-	if s.Supervisor == nil || s.Command == nil {
-		return extractionport.Availability{Reason: "The Story Bible sidecar is not set up."}
+	if s.Files == nil {
+		return extractionport.Availability{Reason: "The rules have no project to read."}
 	}
 	return extractionport.Availability{OK: true}
 }
@@ -95,16 +93,16 @@ func (s Source) Extractor() (extractionport.Extractor, error) {
 	return s, nil
 }
 
-// Extract runs `suggest` and returns its suggestions whose quotes are in in.Paragraphs. It writes nothing.
+// Extract runs the rules and returns their suggestions whose quotes are in in.Paragraphs. It writes nothing.
 func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	command, err := s.Command()
+	files, err := s.Files()
 	if err != nil {
 		return nil, err
 	}
-	lines, err := s.run(ctx, command)
+	lines, err := s.run(ctx, files)
 	if err != nil {
 		return nil, err
 	}
@@ -131,55 +129,44 @@ func (s Source) log(message string) {
 	slog.Warn(message)
 }
 
-// run starts the sidecar and collects its stdout lines, stopping it at the first line or byte over a cap.
-func (s Source) run(ctx context.Context, command Command) ([]string, error) {
-	runCtx, stop := context.WithCancel(ctx)
-	defer stop()
-	var mu sync.Mutex
-	var lines []string
-	var refused error
-	total := 0
-	onLine := func(line string) {
-		mu.Lock()
-		defer mu.Unlock()
-		if refused != nil {
-			return
+// run gives the rules' lines for files, refusing the run at the first line or byte over a cap.
+func (s Source) run(ctx context.Context, files Files) ([]string, error) {
+	suggest := s.Suggest
+	if suggest == nil {
+		suggest = guide.RuleSuggestions
+	}
+	lines, err := suggest(ctx, files.Manuscript, files.Guide)
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
 		}
+		return nil, refusedError{err}
+	}
+	total := 0
+	for _, line := range lines {
 		total += len(line) + 1
 		switch {
 		case total > MaxOutputBytes:
-			refused = fmt.Errorf("the rules printed more than %d MB of suggestions", MaxOutputBytes>>20)
+			return nil, fmt.Errorf("the rules gave more than %d MB of suggestions", MaxOutputBytes>>20)
 		case len(line) > MaxLineBytes:
-			refused = fmt.Errorf("the rules printed a line over %d KB", MaxLineBytes>>10)
-		default:
-			lines = append(lines, line)
-			return
+			return nil, fmt.Errorf("the rules gave a line over %d KB", MaxLineBytes>>10)
 		}
-		stop()
-	}
-	args := append(slices.Clone(command.Args), "suggest", "--manuscript", command.Manuscript, "--guide", command.Guide)
-	child, err := s.Supervisor.StartStream(runCtx, onLine, command.Program, args...)
-	if err != nil {
-		return nil, err
-	}
-	<-child.Done()
-	mu.Lock()
-	defer mu.Unlock()
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	if refused != nil {
-		return nil, refused
-	}
-	if code, _ := child.ExitCode(); code != 0 {
-		message := strings.TrimSpace(child.StderrTail())
-		if i := strings.LastIndex(message, "\n"); i >= 0 {
-			message = message[i+1:]
-		}
-		return nil, fmt.Errorf("the rules could not look for suggestions (exit %d): %s", code, message)
 	}
 	return lines, nil
 }
+
+// refusedError is the rules' refusal (a manuscript to import, a Story Bible that cannot be read) as the scan reports it: its
+// sentence after "the rules could not look for suggestions:", without the full stop the scan's own message adds.
+type refusedError struct{ err error }
+
+func (e refusedError) Error() string {
+	return "the rules could not look for suggestions: " + strings.TrimSuffix(e.err.Error(), ".")
+}
+
+func (e refusedError) Unwrap() error { return e.err }
 
 type wireQuote struct {
 	ParagraphID string `json:"paragraphId"`
