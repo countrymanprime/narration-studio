@@ -238,6 +238,13 @@ The Settings page always keeps every setting. A working page may also offer a co
 
 **Known at 390 px, outside Settings** (found by a one-off sweep of every state at that width; the collapsed-control check passes everywhere): the Proofing results header and table (#148), the Home chapter table (#149) and a three-action confirm dialog (#150) are clipped or cramped. They need layout decisions and are reachable only by zoom, since the shell's minimum window is 960 px.
 
+## Editing page dialogs
+
+The Editing page's dialogs (delete or mute words, add FX, replace audio, voice sample) open through the overlay service, which has no `actions` slot, so they draw their own action row. These lines are the app's, from the alignment audit and the owner's decision on #2251 to fix every finding:
+
+- **One action row, laid out like `Dialog`'s own** (`editing/range/common/DialogFooter.tsx`): a rule, Cancel at the left and the action at the right (`actionsAlign="between"`, as every `ConfirmDialog`, so the takes' Normalise question reads the same), sticky at the foot of the scrolling body. While more of the body is below it, a shadow over its top edge says so (XED-19, R3ED-10, XED-20). It replaces the mock's right-aligned pair (`CutDialog`, `FxDialog`).
+- **One facts grid per dialog** (`editing/range/common/Facts.tsx`): every label, the words and the add-FX chain included, sits in one 7.5 rem column on its value's first baseline, a time range is mono a step smaller, and below a 30 rem dialog each label stacks over its value. The cut dialog's two selects are one width. The add-FX pieces' labels sit under their own pieces, in the bar's fractions (XED-17, XED-18). The disabled, checked "Keep the cut audio" box keeps the disabled look on purpose: the cut always keeps it.
+
 ## The Booth footer
 
 The Booth's footer (`BoothFooter`, the mock's `bfoot-main`) is one row from 1024 px: the controls (Record, the timer, Levels, Cold read), one sentence in the room between them, wrapping inside it, and the meter with the room tone at the right edge (the mock's `margin-left:auto`). Narrower, the meter stays on the controls' row and the sentence takes the full row under them; the footer never wraps into a lone meter row or two sentences run together (alignment audit R4BO1-1, R4BO2-7, R3BO-5, XBO-10). One sentence shows: why the text cannot follow the voice wins, and Record's own reason then stays only as Record's description (`#brec-why`, `sr-only`). Record is as wide as Stop (XBO-25). The mock draws the meter after the reason; XBO-9 asked for the meter beside Levels, which this keeps as the mock has it.

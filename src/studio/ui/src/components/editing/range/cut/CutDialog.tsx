@@ -11,6 +11,8 @@ import { snapText } from '../common/locate';
 import { cutPlanText, type RangePlan } from '../common/rangePlan';
 import { Strips } from '../common/Strips';
 import { SubWordRow } from '../common/SubWordRow';
+import { DialogFooter } from '../common/DialogFooter';
+import { FACTS, Fact, FACT_VALUE_MONO } from '../common/Facts';
 import type { Span } from '../../ribbon/rangeMath';
 import { DEFAULT_CUT, FADE_CHOICES, PAD_CHOICES, type CutOptions } from './cutCommand';
 
@@ -84,49 +86,35 @@ export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName
   const later = r && mode === 'close' ? laterAudio(doc, sum.ranges[sum.ranges.length - 1]) : null;
   const lowN = sum.audible.filter(isLow).length;
   const lowWords = sum.audible.filter(isLow).map((i) => `“${i.text}”`);
-  const facts = 'm-0 grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-1.5';
   const option = (ms: number) => ({ value: String(ms), label: ms ? `${ms} ms` : 'None' });
   return (
-    <div className="flex flex-col gap-3" data-cut-dialog>
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <SectionLabel>{sum.allExtra ? 'Words not in the script' : 'Words'}</SectionLabel>
-        <div className="inline-block max-w-full rounded bg-[var(--info-soft)] px-2 py-0.5 font-serif text-lg" data-cut-words>
-          {sum.words}
-        </div>
-      </div>
+    <div className="@container flex flex-col gap-3" data-cut-dialog>
+      <dl className={FACTS}>
+        <Fact label={sum.allExtra ? 'Not in the script' : 'Words'}>
+          <span className="inline-block max-w-full rounded bg-[var(--info-soft)] px-2 py-0.5 font-serif text-lg" data-cut-words>
+            {sum.words}
+          </span>
+        </Fact>
+      </dl>
       {r ? <Strips items={doc.items.filter((i) => i.pid === r.pid)} start={r.start} end={r.end} keys={r.keys} closeGap={mode === 'close'} /> : null}
-      <dl className={facts}>
-        <dt className="pt-0.5">
-          <SectionLabel>Cut range</SectionLabel>
-        </dt>
-        <dd className="m-0 font-mono" data-cut-range>
+      <dl className={FACTS}>
+        <Fact label="Cut range" className={FACT_VALUE_MONO} data-cut-range>
           {r ? `${clock(sum.start)} to ${clock(sum.end)} · ${sec(sum.len)}` : '—'}
-        </dd>
+        </Fact>
         <SubWordRow span={span} items={sum.audible} attr="data-cut-subword" />
         {ends ? (
-          <>
-            <dt className="pt-0.5">
-              <SectionLabel>Ends</SectionLabel>
-            </dt>
-            <dd className="m-0" data-cut-snap>
-              {ends}
-            </dd>
-          </>
+          <Fact label="Ends" data-cut-snap>
+            {ends}
+          </Fact>
         ) : null}
-        <dt className="pt-0.5">
-          <SectionLabel>In</SectionLabel>
-        </dt>
-        <dd className="m-0" data-cut-in>
+        <Fact label="In" data-cut-in>
           {chapterName}
           {r ? ` · ${r.takeId ? `take ${r.takeId} · ` : ''}${locator.place(r)}` : ''}
           {sum.ranges.length > 1 ? ` · spans ${sum.ranges.length} items` : ''}
-        </dd>
-        <dt className="pt-0.5">
-          <SectionLabel>Later audio</SectionLabel>
-        </dt>
-        <dd className="m-0" data-cut-later>
+        </Fact>
+        <Fact label="Later audio" data-cut-later>
           {laterText(mode, sum.len, later)}
-        </dd>
+        </Fact>
       </dl>
       {stays.length ? (
         <p className="m-0 rounded-lg bg-[var(--info-soft)] px-3 py-2.5 text-sm" data-cut-stays>
@@ -153,9 +141,15 @@ export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName
         )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <SectionLabel>Crossfade</SectionLabel>
-          <Select label="Crossfade at the join" value={String(fade)} onChange={(v) => setFade(Number(v))} options={FADE_CHOICES.map(option)} />
+          <Select label="Crossfade at the join" className="w-28" value={String(fade)} onChange={(v) => setFade(Number(v))} options={FADE_CHOICES.map(option)} />
           <SectionLabel>Keep audio at each edge</SectionLabel>
-          <Select label="Keep audio at each edge of the cut" value={String(pad)} onChange={(v) => setPad(Number(v))} options={PAD_CHOICES.map(option)} />
+          <Select
+            label="Keep audio at each edge of the cut"
+            className="w-28"
+            value={String(pad)}
+            onChange={(v) => setPad(Number(v))}
+            options={PAD_CHOICES.map(option)}
+          />
         </div>
         <Checkbox checked disabled onChange={() => {}}>
           {KEEP[plan.kind]}
@@ -164,8 +158,7 @@ export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName
       <p className="m-0 rounded-lg bg-[var(--info-soft)] px-3 py-2.5 text-sm" data-cut-plan>
         {cutPlanText(plan, mute)}
       </p>
-      {/* The footer stays in view, so Cancel taking the focus never scrolls the question away. */}
-      <div className="sticky bottom-[-1.1rem] mx-[-1.1rem] mb-[-1.1rem] flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--surface)] px-[1.1rem] py-3">
+      <DialogFooter>
         <Button type="button" variant="secondary" autoFocus onClick={onCancel}>
           Cancel
         </Button>
@@ -177,7 +170,7 @@ export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName
         >
           {mute ? `Mute ${plural(n, 'word', 'words')}` : `Delete ${plural(n, 'word', 'words')} and audio`}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   );
 }
