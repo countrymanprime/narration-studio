@@ -551,6 +551,7 @@ function BoothSession({
     pickups: { active: pickups.active, lines: pickups.lines.length, step: pickups.step },
     keymap,
     search: find.items,
+    coldRead: page.coldRead,
   });
 
   const words = paragraphs.reduce((sum, paragraph) => sum + wordCount(paragraph.text), 0);
@@ -647,6 +648,7 @@ function BoothSession({
               }
               recording={control.recording}
               paused={page.paused}
+              coldRead={page.coldRead.on}
               panelOpen={side.open}
               onTogglePanel={side.toggle}
               panelId="booth-side"
@@ -659,6 +661,7 @@ function BoothSession({
                 <BoothText
                   paragraphs={paragraphs}
                   position={page.position}
+                  ghost={page.ghost}
                   browse={page.browse}
                   onBrowse={page.setBrowse}
                   onSeek={(paragraphId, word) => {
@@ -780,6 +783,7 @@ function BoothSession({
             roomToneHint={roomTone.hint}
             keymap={keymap}
             pickupSession={pickups.active}
+            coldRead={page.coldRead}
           />
         </div>
         <ListeningModelPrompt session={session} />

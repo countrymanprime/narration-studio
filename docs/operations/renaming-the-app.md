@@ -1,7 +1,7 @@
 # Renaming the app
 
 The product's display name is `name` in `config/brand.json`. Everything that shows it reads it from there, through the files
-`pnpm run brand:sync` generates ([App name injection](../research/app-name-injection.md)). A rename is one command and a short
+`pnpm run brand:sync` generates ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)). A rename is one command and a short
 list of follow-ups.
 
 ## Rename
@@ -38,7 +38,11 @@ An installed copy keeps its old Start Menu and desktop shortcuts until it is rei
 - `scripts/ci/brand-name.mjs` fails on the current name anywhere but the brand file, its generated files, brand regions,
   identity file names, the repository's own addresses and a short allowlist of history (dated research, ADRs, the changelog,
   recorded output and fixtures).
+- `scripts/ci/retired-names.json` keeps each retired name as its words. A name `rename-app` retires gets `"history": true`,
+  so the brand file, the generated files, identity file names, the repository's addresses and the history allowlist may
+  keep it; the first name has `"history": false` and no exception.
 - The `rename rehearsal` job (`scripts/brand/rehearse-rename.mjs`) renames a throwaway worktree of each pull request's commit
-  to a made-up name and runs the sync, both guards and the tests that read the name, so anything that spells the name fails
+  to a made-up name (`REHEARSAL_NAME`, built from its words; a test that needs a made-up brand uses another name or builds
+  it from its words too, so no literal matches it) and runs the sync, both guards and the tests that read the name, so anything that spells the name fails
   before a real rename needs it. main-health runs it with `--full`. It never writes to the checkout, so it runs locally as is:
   `node scripts/brand/rehearse-rename.mjs` (it rehearses `HEAD`, so commit first).

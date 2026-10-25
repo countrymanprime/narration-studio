@@ -33,6 +33,9 @@ const (
 var actionNouns = map[dawport.ActionKind][2]string{
 	dawport.ActionCutRange:   {"cut", "cuts"},
 	dawport.ActionRecordTake: {"take", "recorded passes of the take"},
+	// A replacement or a put-back is one undo point, so the plural only reaches a run of them.
+	dawport.ActionReplaceRange:       {"replacement", "replacements"},
+	dawport.ActionRestoreReplacement: {"put-back", "put-backs"},
 }
 
 // LastAction reads whether REAPER's next undo point is kind's. Anything that keeps it from telling (the capability refused, REAPER

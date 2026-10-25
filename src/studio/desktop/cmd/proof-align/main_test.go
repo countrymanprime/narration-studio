@@ -125,3 +125,45 @@ func TestTheCompareRunWritesTheResultsAndTheDiff(t *testing.T) {
 		t.Fatalf("diff = %q, %v", diff, err)
 	}
 }
+
+// The pickup and duplicate scan's op (the parity tooling): the scan's output for a manifest and the words each read was
+// heard to say, a NEED_CHAPTER line when the track matches no chapter, and an error for a count of reads that differs.
+func TestTheRepeatScanGroupsTheReadsOrAsksForAChapter(t *testing.T) {
+	dir := t.TempDir()
+	manuscript := filepath.Join(dir, "m.json")
+	_ = os.WriteFile(manuscript, []byte(`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "One"}],
+		"paragraphs": [{"id": "p-1", "chapterId": "c", "text": "Alpha bravo. Charlie delta.", "index": 0}]}`), 0o600)
+	manifest := filepath.Join(dir, "manifest.txt")
+	_ = os.WriteFile(manifest, []byte("0|a.wav|0|2|{I}|{T-1}\n1|a.wav|0|2|{I}|{T-2}\n"), 0o600)
+	heard := `[[["alpha",0,0.3],["bravo",0.4,0.7]],[["alpha",0,0.3],["bravo",0.4,0.7]]]`
+	request := func(track, heard string) string {
+		return `{"op":"findRepeats","manuscript":` + quote(manuscript) + `,"manifest":` + quote(manifest) + `,"track":` + quote(track) + `,"heard":` + heard + `,"minWords":1,"minSpanOverlap":0.5}`
+	}
+	var out strings.Builder
+	if err := serve(strings.NewReader(request("One", heard)+"\n"+request("Appendix", heard)+"\n"+request("One", "[]")+"\n"), &out); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+	want := `{"output":"SUMMARY|Found 1 repeated-span group(s) across 2 segment(s)\nSPAN_GROUP|0|0|0|2\n` +
+		`SPAN_MEMBER|0|0|{I}|{T-1}|a.wav|0.000|2.000|0|0|1.000|0.400|EC0\nSPAN_MEMBER|0|1|{I}|{T-2}|a.wav|0.000|2.000|0|0|1.000|0.400|EC0\n"}`
+	if len(lines) != 3 || lines[0] != want || lines[1] != `{"output":"NEED_CHAPTER|One\n"}` || lines[2] != `{"error":"0 reads heard of 2"}` {
+		t.Fatalf("replies = %q", lines)
+	}
+}
+
+// The research spike's ops (tests/coverage_spike.py): a text's tokens, and another aligner's opcodes fused as Align
+// fuses SequenceMatcher's.
+func TestTheTokensOfATextAndAnotherAlignersOpcodesFused(t *testing.T) {
+	requests := `{"op":"tokenize","text":"They're Alyce, twenty-three","equivalences":[["alice","alyce"]]}` + "\n" +
+		`{"op":"fuseHyphenSplits","doc":["superpowered"],"audio":["super","powered"],"opcodes":[["replace",0,1,0,2]]}` + "\n" +
+		`{"op":"fuseHyphenSplits","opcodes":[["replace",0,"x",0,2]]}` + "\n"
+	var out strings.Builder
+	if err := serve(strings.NewReader(requests), &out); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+	want := []string{`{"tokens":["their","alice","twenty","three"]}`, `{"opcodes":[["equal",0,1,0,2]]}`, `{"error":"opcode 0: not [tag, i1, i2, j1, j2]"}`}
+	if len(lines) != 3 || lines[0] != want[0] || lines[1] != want[1] || lines[2] != want[2] {
+		t.Fatalf("replies = %q, want %q", lines, want)
+	}
+}

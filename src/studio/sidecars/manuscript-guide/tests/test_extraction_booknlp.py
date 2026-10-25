@@ -9,6 +9,7 @@ It reads nothing but the install folder the host names, and a missing or damaged
 
 import argparse
 import contextlib
+import importlib.metadata
 import importlib.util
 import io
 import json
@@ -20,6 +21,7 @@ import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 CORE = Path(__file__).parents[1] / "core"
 REPO = Path(__file__).parents[5]
@@ -137,15 +139,26 @@ class FakeModel:
 
 WHEEL_BOOKNLP = textwrap.dedent(
     """
+    import os
+
     import torch
 
+    from transformers import BertModel, BertTokenizer
+
     LOADED = []
+    ENCODERS = []
 
     class BookNLP:
         def __init__(self, language, params):
+            print("using device cpu")  # BookNLP 1.0.8 prints to stdout while it loads
+            # As BookNLP 1.0.8 does: the encoder named in each weight file, then the weights over it.
+            for path in (params["entity_model_path"], params["coref_model_path"], params["quote_attribution_model_path"]):
+                name = os.path.basename(path).split("_", 1)[1].replace("google_bert", "google/bert").rsplit("-v", 1)[0]
+                ENCODERS.append((BertModel.from_pretrained(name), BertTokenizer.from_pretrained(name, do_lower_case=False, do_basic_tokenize=False)))
             LOADED.append((language, params, torch.load(params["entity_model_path"], map_location="cpu")))
 
         def process(self, input_file, output_folder, idd):
+            print("--- TOTAL (excl. startup): 1.0 seconds ---")
             raise AssertionError("the loader must not run the model")
     """
 )
@@ -161,9 +174,48 @@ WHEEL_TORCH = textwrap.dedent(
 )
 
 
+WHEEL_TRANSFORMERS = textwrap.dedent(
+    """
+    import json
+
+    class BertConfig:
+        def __init__(self, values):
+            self.values = values
+
+        @classmethod
+        def from_json_file(cls, path):
+            with open(path, encoding="utf-8") as handle:
+                return cls(json.load(handle))
+
+    class PreTrainedModel:
+        # As in transformers: BertModel inherits from_pretrained, it does not define its own.
+        @classmethod
+        def from_pretrained(cls, name, *args, **kwargs):
+            raise AssertionError("the hub was asked for " + name)
+
+    class BertModel(PreTrainedModel):
+        def __init__(self, config):
+            self.config = config
+
+    class BertTokenizer:
+        def __init__(self, vocab=None, **kwargs):
+            with open(vocab, encoding="utf-8") as handle:
+                self.vocab = handle.read().split()
+            self.kwargs = kwargs
+
+        @classmethod
+        def from_pretrained(cls, name, *args, **kwargs):
+            raise AssertionError("the hub was asked for " + name)
+    """
+)
+
+
 def _complete_install(root: Path, variant: str = "small", *, wheels: bool = True) -> Path:
-    """An install folder with the weights of ``variant``, and fake ``booknlp`` and ``torch`` packages in their wheel folders."""
+    """An install folder with the weights and encoder files of ``variant``, and fake ``booknlp``, ``torch`` and ``transformers``
+    packages in their wheel folders."""
     root.mkdir(parents=True, exist_ok=True)
+    for name in booknlp.required_files(variant):
+        (root / name).write_text('{"hidden_size": 256}' if name.endswith(".json") else "[PAD] [UNK] alice", encoding="utf-8")
     for name in booknlp.VARIANTS[variant]:
         (root / name).write_text("weights", encoding="utf-8")
     if not wheels:
@@ -178,6 +230,9 @@ def _complete_install(root: Path, variant: str = "small", *, wheels: bool = True
     torch = root / "wheel-torch" / "torch"
     torch.mkdir(parents=True)
     (torch / "__init__.py").write_text(WHEEL_TORCH, encoding="utf-8")
+    transformers = root / "wheel-transformers" / "transformers"
+    transformers.mkdir(parents=True)
+    (transformers / "__init__.py").write_text(WHEEL_TRANSFORMERS, encoding="utf-8")
     return root
 
 
@@ -190,7 +245,7 @@ def _forget_booknlp():
     finally:
         sys.path[:] = path
         for name in set(sys.modules) - modules:
-            if name.split(".")[0] in ("booknlp", "torch"):
+            if name.split(".")[0] in ("booknlp", "torch", "transformers"):
                 del sys.modules[name]
 
 
@@ -595,6 +650,48 @@ class NoNetworkAtRunTimeTests(unittest.TestCase):
         self.assertEqual("load", restored.__name__)
         self.assertEqual("torch", restored.__module__, "torch.load is put back once the model is loaded")
 
+    def test_each_encoder_is_built_from_the_install_folders_config_and_vocabulary_never_the_hub(self):
+        install = _complete_install(Path(tempfile.mkdtemp()))
+        with _forget_booknlp():
+            booknlp.load_model(install, "small")
+            encoders = sys.modules["booknlp.booknlp"].ENCODERS
+            restored = sys.modules["transformers"].BertModel.from_pretrained
+        self.assertEqual(3, len(encoders))
+        for model, tokenizer in encoders:
+            self.assertEqual({"hidden_size": 256}, model.config.values)
+            self.assertEqual(["[PAD]", "[UNK]", "alice"], tokenizer.vocab)
+            self.assertEqual({"do_lower_case": False, "do_basic_tokenize": False}, tokenizer.kwargs)
+        self.assertEqual("from_pretrained", restored.__name__)
+        with self.assertRaises(AssertionError):
+            restored("google/bert_uncased_L-4_H-256_A-4")  # the hub loader is put back once the model is loaded
+
+    def test_the_variants_need_their_own_encoders(self):
+        self.assertEqual(["bert_uncased_L-4_H-256_A-4", "bert_uncased_L-2_H-256_A-4", "bert_uncased_L-8_H-256_A-4"], list(booknlp.ENCODERS["small"]))
+        self.assertEqual(["bert_uncased_L-6_H-768_A-12", "bert_uncased_L-12_H-768_A-12"], list(booknlp.ENCODERS["big"]))
+        for variant in booknlp.VARIANTS:
+            files = booknlp.required_files(variant)
+            self.assertIn(booknlp.VOCAB, files)
+            for weights in booknlp.VARIANTS[variant]:
+                self.assertIn(weights, files)
+
+    def test_an_install_without_an_encoder_file_is_damaged(self):
+        install = _complete_install(Path(tempfile.mkdtemp()))
+        (install / "bert_uncased_L-8_H-256_A-4.config.json").unlink()
+        self.assertIn("bert_uncased_L-8_H-256_A-4.config.json", booknlp.BookNlpSource(install).available().reason)
+        (install / booknlp.VOCAB).unlink()
+        self.assertIn(booknlp.VOCAB, booknlp.BookNlpSource(install).available().reason)
+
+    def test_what_booknlp_prints_goes_to_stderr_never_among_the_suggestion_lines(self):
+        # The host reads every stdout line as a suggestion and refuses the scan on one that is not.
+        out, err = io.StringIO(), io.StringIO()
+        with _forget_booknlp(), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            model = booknlp.load_model(_complete_install(Path(tempfile.mkdtemp())), "small")
+            with self.assertRaises(AssertionError):
+                model.analyse("Alice said hello.")
+        self.assertEqual("", out.getvalue())
+        self.assertIn("using device cpu", err.getvalue())
+        self.assertIn("TOTAL", err.getvalue())
+
     def test_the_loader_asks_huggingface_to_stay_offline(self):
         with _forget_booknlp():
             booknlp.load_model(_complete_install(Path(tempfile.mkdtemp())), "small")
@@ -723,3 +820,23 @@ class DispatchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FreezeCheckTests(unittest.TestCase):
+    """``check_freeze``: the packaged smoke test's proof that the freeze carries what the optional tools import."""
+
+    def test_it_passes_where_every_module_imports_and_names_the_versions(self):
+        detail = booknlp.check_freeze()
+        self.assertIn("modules;", detail)
+        for name in booknlp.FREEZE_METADATA:
+            self.assertIn(name, detail)
+
+    def test_a_module_the_freeze_left_out_fails_and_is_named(self):
+        left_out = (*booknlp.FREEZE_IMPORTS, "no_such_module_left_out")
+        with patch.object(booknlp, "FREEZE_IMPORTS", left_out), self.assertRaises(ImportError) as failed:
+            booknlp.check_freeze()
+        self.assertIn("no_such_module_left_out", str(failed.exception))
+
+    def test_a_package_without_its_metadata_fails(self):
+        with patch.object(booknlp, "FREEZE_METADATA", ("no-such-distribution",)), self.assertRaises(importlib.metadata.PackageNotFoundError):
+            booknlp.check_freeze()

@@ -94,14 +94,17 @@ export function PanelHeader({
 }) {
   return (
     <div className={PANEL_HEADER_CLASS}>
-      <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
+      {/* A 12 rem basis: beside wide actions the title keeps that much and the actions wrap under it, instead of the title
+          squeezing to nothing. */}
+      <div className="flex min-w-0 flex-[1_1_12rem] flex-wrap items-baseline gap-x-2.5 gap-y-1">
         {leading && <span className="flex items-center gap-2 self-center">{leading}</span>}
         <h2 id={titleId} className={TITLE_CLASS[titleStyle]}>
           {title}
         </h2>
         {subtitle && <div className={PANEL_SUBTITLE_CLASS}>{subtitle}</div>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {/* The negative margin lets a 36 px button sit in the 50 px header without growing it (PANEL_HEADER_CLASS). */}
+      {actions && <div className="-my-[0.3125rem] flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

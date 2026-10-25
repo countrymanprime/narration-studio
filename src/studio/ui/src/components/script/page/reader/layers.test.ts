@@ -150,9 +150,13 @@ describe('who a phrase chip can name', () => {
       para,
     ).find((l) => l.kind === 'phrase');
 
-  it('a Needs Review name the rules suggest is a dashed suggestion, and solid once confirmed', () => {
-    expect(chip('e3', 'tag')).toMatchObject({ state: 'suggested', label: 'Wren' });
-    expect(chip('e3', 'correction')).toMatchObject({ state: 'confirmed', label: 'Wren' });
+  it('a character is a dashed suggestion until confirmed, then solid', () => {
+    expect(chip('e1', 'tag')).toMatchObject({ state: 'suggested', label: 'Mina' });
+    expect(chip('e1', 'correction')).toMatchObject({ state: 'confirmed', label: 'Mina' });
+  });
+
+  it('a Needs Review name is nobody: speakers come from the Story Bible characters', () => {
+    expect(chip('e3', 'tag')).toMatchObject({ state: 'unknown', label: '?' });
   });
 
   it('a speaker found near the line is a suggestion', () => {

@@ -276,6 +276,7 @@ export function openJumpMenu({ service = overlay, ...props }: JumpMenuOptions): 
     kind: 'dialog',
     title: 'Jump menu',
     headerless: true,
+    size: 'palette',
     dismissOnOutsidePress: true,
     render: ({ close }) => <JumpMenu {...props} close={close} />,
   });
