@@ -75,10 +75,11 @@ func DefinitionSources() []string {
 // wholeNumbers are the settings whose stored value must be a whole number in an inclusive range: one outside it, or not a
 // whole number, is skipped like an unknown choice, so the setting reads as the layer below. Editing.fx_cap_pct is the share of a
 // chapter, in percent, effects may cover before the Effects tab warns (effectsMath.ts's FX_CAP_PCT is its default). Booth.words_per_page
-// is how many words the Booth counts to a page.
+// is how many words the Booth counts to a page. Editing.replace_target_lufs is the loudness Replace audio sets another narrator's
+// stretch to.
 var wholeNumbers = map[string]map[string][2]int{
 	"Booth":   {"words_per_page": {50, 1000}},
-	"Editing": {"fx_cap_pct": {1, 100}},
+	"Editing": {"fx_cap_pct": {1, 100}, "replace_target_lufs": {-40, -10}},
 }
 
 func known(tool, key, value string) bool {
@@ -143,7 +144,7 @@ var builtinDefaults = map[string]Values{
 		"capability.stack_takes": "auto", "capability.backups": "auto",
 		"capability.file_preview": "auto", "capability.file_reveal": "auto", "capability.range_gain": "auto",
 		"capability.click_repair": "auto", "capability.undo_last": "auto",
-		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.punch_preroll": "auto", "capability.daw_meters": "auto", "capability.follow_position": "auto", "capability.transport_sync": "auto",
+		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.punch_preroll": "auto", "capability.daw_meters": "auto", "capability.replace_range": "auto", "capability.follow_position": "auto", "capability.transport_sync": "auto",
 		"capability.track_create": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
 	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md).
@@ -214,8 +215,9 @@ var builtinDefaults = map[string]Values{
 		"click_above_silence_db": "30",
 	},
 	// Editing.fx_cap_pct defaults to 10: effects may cover a tenth of a chapter before the Effects tab warns. The tool's other three
-	// values stay unset by default (app.go's fieldSchemas says why).
-	"Editing": {"fx_cap_pct": "10"},
+	// values stay unset by default (app.go's fieldSchemas says why). Editing.replace_target_lufs defaults to -20 LUFS, the middle of
+	// ACX's -23 to -18 dB RMS window for speech; the narrator sets their own.
+	"Editing": {"fx_cap_pct": "10", "replace_target_lufs": "-20"},
 	// Booth.words_per_page defaults to 250, the manuscript page most narrators and publishers quote.
 	"Booth": {"words_per_page": "250"},
 }

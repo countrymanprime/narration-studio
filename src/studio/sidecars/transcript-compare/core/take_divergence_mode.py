@@ -221,7 +221,7 @@ def main(ap, args, engine: ModuleType, transcriber: Transcriber | None = None) -
     missing = [name for name, value in [("--manifest", args.manifest), ("--out", args.out)] if not value]
     if missing:
         ap.error(", ".join(missing) + " required with --take-divergence")
-    for flag, given in [("--find-repeats", args.find_repeats), ("--chunk-seconds", args.chunk_seconds), ("--extract-hints", args.extract_hints)]:
+    for flag, given in [("--find-repeats", args.find_repeats), ("--chunk-seconds", args.chunk_seconds)]:
         if given:
             ap.error(f"{flag} cannot be used with --take-divergence")
     try:

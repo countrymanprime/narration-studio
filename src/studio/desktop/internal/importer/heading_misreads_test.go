@@ -11,7 +11,7 @@ import (
 
 // headingMisreadCase is one entry of tests/fixtures/heading-misreads/cases.json: a constructed manuscript whose chapter heading
 // exercises the title/subtitle heuristic, what the author meant, and what the importer produced when the case was written
-// (see docs/research/import-heading-misreads.md).
+// (see docs/architecture/import-settings-workflow.md#failure-modes).
 type headingMisreadCase struct {
 	ID       string `json:"id"`
 	File     string `json:"file"`

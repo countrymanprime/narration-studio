@@ -65,6 +65,9 @@ const (
 	// CapUndoLast reads whether the engine's next undo point is one an app action of a given kind made, and undoes such points
 	// from the top of the engine's own history (#1711): the app's Undo of a cut.
 	CapUndoLast Capability = "undo_last"
+	// CapReplaceRange replaces words with a stretch of another narrator's audio that is in the project, and puts the narrator's audio
+	// back (#2251, docs/research/replace-audio.md).
+	CapReplaceRange Capability = "replace_range"
 	// CapMonitorLevel reads and sets the level the narrator hears the project at, a 0 to 100 whole number the engine maps to its own
 	// monitoring output. It is not the level of the delivered audio.
 	CapMonitorLevel Capability = "monitor_level"
@@ -145,6 +148,7 @@ var specs = []Spec{
 	{CapInputLevel, "Set the input level", NeedsRunning, reflect.TypeFor[InputLeveler](), nil},
 	{CapPunchPreroll, "Punch pre-roll", NeedsRunning, reflect.TypeFor[PrerollReader](), nil},
 	{CapDawMeters, "Show the input and output levels", NeedsRunning, reflect.TypeFor[MeterReader](), nil},
+	{CapReplaceRange, "Replace words with another narrator's audio", NeedsRunning, reflect.TypeFor[RangeReplacer](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.

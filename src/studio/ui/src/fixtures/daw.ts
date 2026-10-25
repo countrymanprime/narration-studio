@@ -75,6 +75,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   input_level: 'unsupported',
   punch_preroll: 'supported',
   daw_meters: 'supported',
+  replace_range: 'experimental',
 };
 
 type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;
@@ -105,7 +106,8 @@ const REAPER_NOT_YET: Rows = Object.fromEntries(
 
 /** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take, a cut moves the audio to the muted Cuts track, a
  * chain on a range is take FX on a split piece that come off again, and a stack makes later reads takes and moves their items to the
- * Cuts track, so punch, cut_range, fx_range and stack_takes are native and not destructive. */
+ * Cuts track, so punch, cut_range, fx_range and stack_takes are native and not destructive; so is replace_range, which parks the
+ * narrator's piece on the Cuts track as a cut does. */
 const REAPER_DEPTH: Rows = {
   punch: { level: 'experimental', available: true, mode: 'native' },
   cut_range: { level: 'experimental', available: true, mode: 'native' },
@@ -113,6 +115,7 @@ const REAPER_DEPTH: Rows = {
   stack_takes: { level: 'experimental', available: true, mode: 'native' },
   range_gain: { level: 'experimental', available: true, mode: 'native' },
   click_repair: { level: 'experimental', available: true, mode: 'native' },
+  replace_range: { level: 'experimental', available: true, mode: 'native' },
 };
 
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
@@ -136,6 +139,7 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
     stack_takes: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     range_gain: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     click_repair: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
+    replace_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
   },
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };

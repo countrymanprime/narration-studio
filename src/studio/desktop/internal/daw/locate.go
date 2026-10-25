@@ -1,7 +1,7 @@
 // Package daw locates the REAPER executable on the host machine
 // so the launch action (Host.DawLaunch) never needs the narrator to type a
 // path by hand. The evidence behind the two auto-detect sources this package tries is
-// recorded in docs/research/reaper-spike-s6-daw-reachability.md and
+// recorded in docs/reference/daw/reaper.md and
 // src/studio/desktop/internal/daw/locate.go.
 //
 // Auto-detect is preferred over asking the narrator, and a Settings override
@@ -115,7 +115,7 @@ func looksLikeAudacity(displayName string) bool {
 // parseAssociationCommand extracts the executable from a Windows file-association
 // command string such as `"C:\Program Files\REAPER (x64)\reaper.exe" -project "%1"`
 // (the real value read from HKCR\Reaper.Project\shell\open64\command in the
-// REAPER reachability spike, docs/research/reaper-spike-s6-daw-reachability.md). It returns false when the string does not start with a
+// REAPER reachability spike, docs/reference/daw/reaper.md). It returns false when the string does not start with a
 // quoted path.
 func parseAssociationCommand(command string) (string, bool) {
 	command = strings.TrimSpace(command)

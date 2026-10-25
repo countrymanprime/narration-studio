@@ -54,7 +54,7 @@ The track list, playback and the chapter links list are read-only: they never ed
 
 ## Tests
 
-Covered by `src/studio/desktop/internal/tracks`, `chaptermatch` (with `src/studio/sidecars/transcript-compare/tests/test_chapter_track_parity.py` on the Python side), `lineidentity`, `pickups`, `renderconfig`, `cleanuptools`, `retakelanes` and `chaptertags`, and `src/studio/desktop/media_test.go` (Go); the bridge harness in `src/studio/integrations/reaper/tests` for the Lua commands (`line_identity_test.lua`, `pickups_test.lua`, `render_test.lua`, `cleanup_test.lua`, `retake_lanes_test.lua`); the tests beside each component in `src/studio/ui/src/components/engine/` and `App.test.tsx` (UI); and the `engine` states in the Playwright visual suite:
+Covered by `src/studio/desktop/internal/tracks`, `chaptermatch` (held to the frozen `tests/fixtures/chapter-track-match/parity-cases.json`), `lineidentity`, `pickups`, `renderconfig`, `cleanuptools`, `retakelanes` and `chaptertags`, and `src/studio/desktop/media_test.go` (Go); the bridge harness in `src/studio/integrations/reaper/tests` for the Lua commands (`line_identity_test.lua`, `pickups_test.lua`, `render_test.lua`, `cleanup_test.lua`, `retake_lanes_test.lua`); the tests beside each component in `src/studio/ui/src/components/engine/` and `App.test.tsx` (UI); and the `engine` states in the Playwright visual suite:
 
 - the panel: default, from-tracks-link, rpp-picker, no-rpp, no-daw-link;
 - chapter sync: sync-off (its Sync activity log is the Settings state recording-sync-activity);

@@ -208,7 +208,7 @@ def _tagged_span(text: str, start: int, end: int, speaker_id: str, characters: d
 
 def speaker_suggestions(paragraphs: list[dict[str, str]], story_bible: dict[str, Any]) -> list[dict[str, Any]]:
     """Speaker suggestions for cues a speech tag resolves to an entry of a speaking type, that the Story Bible does not already attribute
-    that way. A Needs Review name is never one: the cues suggest it on the page, and only the narrator files it."""
+    that way. A Needs Review name is never one: only the Story Bible's speaking entries are speakers."""
     entities = story_bible.get("entities") or []
     names = {entity.get("id"): entity.get("canonical_name", "") for entity in entities}
     characters = guide.character_name_index(entities, guide.speaking_types(story_bible))

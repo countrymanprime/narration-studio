@@ -88,6 +88,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapInputLevel:      inputLevelRole{r(dawport.CapInputLevel)},
 		dawport.CapPunchPreroll:    prerollRole{r(dawport.CapPunchPreroll)},
 		dawport.CapDawMeters:       meterRole{r(dawport.CapDawMeters)},
+		dawport.CapReplaceRange:    replaceRangeRole{r(dawport.CapReplaceRange)},
 	}
 	return f
 }
@@ -517,6 +518,37 @@ type cutRangeRole struct{ role }
 // DeleteRange answers as REAPER's delete_range does: one undo step.
 func (r cutRangeRole) DeleteRange(context.Context, dawport.DeleteRangeRequest) (dawport.Result, error) {
 	got, err := r.result("DeleteRange", "Deleted the words and their audio.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
+}
+
+type replaceRangeRole struct{ role }
+
+// ImportTheirAudio answers as REAPER's import_audio_track does: a new track and item, the file 60 s long, one undo step.
+func (r replaceRangeRole) ImportTheirAudio(context.Context, string, string) (dawport.TheirAudio, error) {
+	got, err := r.result("ImportTheirAudio", "Added their audio.")
+	if err != nil {
+		return dawport.TheirAudio{}, err
+	}
+	return dawport.TheirAudio{Result: got.WithUndoSteps(1), Track: "{FA4E0000-0000-4000-8000-0000000000A1}", Item: "{FA4E0000-0000-4000-8000-0000000000A2}",
+		Length: 60}, nil
+}
+
+// ReplaceRange and RestoreReplacement answer as REAPER's replace_range and restore_replacement do: one undo step each, the new item
+// named and the later audio moved by their read's length less the words'.
+func (r replaceRangeRole) ReplaceRange(_ context.Context, request dawport.ReplaceRangeRequest) (dawport.RangeReplaced, error) {
+	got, err := r.result("ReplaceRange", "Replaced the words with their audio.")
+	if err != nil {
+		return dawport.RangeReplaced{}, err
+	}
+	shift := (request.SourceEnd - request.SourceStart) - (request.End - request.Start)
+	return dawport.RangeReplaced{Result: got.WithUndoSteps(1), ReplacementItem: "{FA4E0000-0000-4000-8000-000000000001}",
+		CutItem: request.ItemGUID, Shift: shift}, nil
+}
+func (r replaceRangeRole) RestoreReplacement(context.Context, dawport.RestoreRequest) (dawport.Result, error) {
+	got, err := r.result("RestoreReplacement", "Put your audio back.")
 	if err != nil {
 		return got, err
 	}

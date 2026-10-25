@@ -182,7 +182,7 @@ Each row says what it is, its type and size, its **Status**, **Used by** (pages)
 - **Download failed**: the reason (no connection, not enough disk space) is in the row, with **Retry** and **Dismiss**.
 - **Not available yet**: the app lists the asset but does not offer it in this version. The row says why and has no buttons.
 
-With nothing downloaded, the page offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large, and a local language model), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. None is offered in this version; once one is, **Download** asks first.
+With nothing downloaded, the page offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large, and a local language model), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. BookNLP, small and large, can be downloaded: **Download** asks first, and a Story Bible scan then uses the one you have, the large first. GLiNER and the local language model are not offered yet and say why.
 
 ## Delivery
 
