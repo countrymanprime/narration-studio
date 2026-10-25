@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { HIT_AREA, HIT_AREA_32 } from './hitArea';
+import { HIT_AREA, HIT_AREA_32, HIT_AREA_PLACED } from './hitArea';
 
 // The controls drawn under 24 px carry the shared hit area (alignment audit cause G). The atlas measures it for real
 // (Tooltip's InfoIconHas24pxHitArea).
@@ -17,6 +17,17 @@ describe('small controls get a 24 px hit area', () => {
     test(`${file} uses it`, () => {
       expect(readFileSync(join(__dirname, file), 'utf8')).toMatch(/\$\{HIT_AREA(_32)?\}/);
     });
+  test('the placed box is the 24 px one without its own position', () => {
+    expect(HIT_AREA_PLACED.split(' ')).not.toContain('relative');
+    expect(HIT_AREA_PLACED).toBe(
+      HIT_AREA.split(' ')
+        .filter((part) => part !== 'relative')
+        .join(' '),
+    );
+  });
+  test('the waveform window handles use it', () => {
+    expect(readFileSync(join(__dirname, '../proof/frame/WaveformWindow.tsx'), 'utf8')).toMatch(/\$\{HIT_AREA_PLACED\}/);
+  });
   test('the 32 px box is the 24 px one at 32 px', () => {
     expect(HIT_AREA_32.split(' ')).toContain('after:min-h-8');
     expect(HIT_AREA_32.split(' ')).toContain('after:min-w-8');

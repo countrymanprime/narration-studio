@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { HIT_AREA_PLACED } from '../../primitives/hitArea';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { PeaksCanvas } from './PeaksCanvas';
@@ -165,7 +166,8 @@ export function WaveformWindow({
         aria-valuenow={Math.round(here)}
         aria-valuetext={clock(here)}
         data-edge={which}
-        className="absolute top-0 h-full w-3 -translate-x-1/2 cursor-ew-resize touch-none rounded bg-[var(--accent)] opacity-60 hover:opacity-100 focus-visible:opacity-100"
+        // Drawn 12 px wide; HIT_AREA_PLACED takes presses in a 24 px band around it, so a pointer need not land on the bar (WCAG 2.2 target size).
+        className={`absolute top-0 h-full w-3 -translate-x-1/2 cursor-ew-resize touch-none rounded bg-[var(--accent)] opacity-60 hover:opacity-100 focus-visible:opacity-100 ${HIT_AREA_PLACED}`}
         // Kept inside the track: at the chapter's start or end a centred handle hung half outside the card's text edge (XPF-15).
         style={{ left: inTrack((here / total) * 100, '0.375rem') }}
         onPointerDown={(event) => {

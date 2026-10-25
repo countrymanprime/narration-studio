@@ -8,3 +8,7 @@ export const HIT_AREA =
 // The same box at least 32 px each way, for a control that sits beside 32 px controls in a bar (the header's chips beside Jump to; alignment
 // audit XSL-3, XSL-12, R3PR2-20, R3PF-7).
 export const HIT_AREA_32 = HIT_AREA.replace('after:min-h-6', 'after:min-h-8').replace('after:min-w-6', 'after:min-w-8');
+
+// The same 24 px box for a control that is already placed (`absolute`), which is the box's containing block itself: adding `relative`
+// would fight its own position (the Proof waveform's window handles, drawn 12 px wide).
+export const HIT_AREA_PLACED = HIT_AREA.replace('relative ', '');
