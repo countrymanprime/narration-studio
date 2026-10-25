@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
 import type { ComponentPropsWithRef } from 'react';
-import { nameFor, tooltipFor, CATALOG, type IconName } from '../../icons.catalog';
+import { nameFor, tooltipFor, CATALOG, type CatalogRow, type IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
 import { TooltipTarget } from './Tooltip';
 
@@ -83,7 +83,13 @@ export function IconButton({
       {pending ? (
         <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />
       ) : (
-        (children ?? (action === undefined ? null : <Icon name={action} />))
+        (children ??
+        (action === undefined ? null : (
+          // A tinted action (record) keeps its colour only on the outlined look; on a filled variant the variant's own text colour wins.
+          <span className={variant === 'default' && (CATALOG[action] as CatalogRow).tint === 'rec' ? 'contents text-[var(--rec-text)]' : 'contents'}>
+            <Icon name={action} />
+          </span>
+        )))
       )}
     </button>
   );

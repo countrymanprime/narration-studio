@@ -247,7 +247,7 @@ counts as done: a chapter nobody has checked reads as not checked, not ready.
 
 The chip on a chapter's current-stage cell says the verdict; it opens the chapter's readiness at the
 side of the page: the verdict in a sentence, each check with its state and reason, and the saved
-REAPER project it was read from. Only the decisions that can be taken are shown, under the evidence. **Confirm** moves the chapter to the next stage and records what
+REAPER project it was read from. Only the decisions that can be taken are shown, under the evidence. A chapter in Recording that nothing has checked yet reads as not checked and offers **Open recording check**, which opens that chapter's [recording check](#checking-a-chapters-recording). **Confirm** moves the chapter to the next stage and records what
 the evidence was, with **Revert** to move it back; **Dismiss** hides the suggestion until the
 evidence changes. **Check now** reads the evidence again; it never starts a check. The readiness is
 read again when the page opens, after an import, when a recording check ends, after you change a

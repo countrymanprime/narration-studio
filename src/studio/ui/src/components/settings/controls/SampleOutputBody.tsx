@@ -11,11 +11,15 @@ import { onEngineChanged } from '../data/engineSignal';
 import { useSettingsStore } from '../data/SettingsStore';
 import { useProjectDaw } from '../data/useProjectDaw';
 import { rowOf } from '../registry/rows';
+import { FIELD_WIDTH } from './MicBody';
 
 type Listing = { phase: 'loading' } | ({ phase: 'ready'; checkedAt: number } & OutputListing);
 
 /** How often the list is read again while the saved output is missing, so a speaker plugged back in is found without the narrator pressing anything. */
 const RECHECK_MS = 5000;
+
+/** A note under the control: muted 13 px, one width with the row's description. */
+const NOTE_CLASS = 'max-w-[60ch] text-[0.8125rem] break-words text-[var(--text-muted)]';
 
 /** The words under the control: what it changes and what it does not. */
 const NOTE = 'Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.';
@@ -98,51 +102,47 @@ export function SampleOutputBody() {
     </Button>
   );
 
+  // With a DAW the row is the Test sound button and, under it, the muted note of where samples play, like every other note in the card (R3SE2-16).
   if (engine === 'daw' && hasProject) {
     return (
-      <div className="flex max-w-full min-w-0 flex-col items-start gap-2">
-        <p className="m-0 max-w-full text-sm break-words sm:max-w-[52ch]">{dawSentence(daw)}</p>
-        <div className="flex items-center gap-2">
-          {testButton}
-          <span className="text-[0.8125rem] text-[var(--text-muted)]">Plays on the default output</span>
-        </div>
+      <div className="flex w-full min-w-0 flex-col items-start gap-2">
+        {testButton}
+        <span className={NOTE_CLASS}>{dawSentence(daw)}</span>
       </div>
     );
   }
 
   const unavailable = listing.phase === 'ready' && listing.status === 'unavailable' ? listing.message : undefined;
+  // The select at the settings' field width, its buttons on one row under it (the Microphone row's arrangement), then the notes.
   return (
-    <div className="flex max-w-full min-w-0 flex-col items-start gap-2">
+    <div className="flex w-full min-w-0 flex-col items-start gap-2">
       {unavailable && (
         <p
           role="alert"
-          className="m-0 max-w-full rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2 text-sm break-words text-[var(--danger-text)] sm:max-w-[52ch]"
+          className="m-0 max-w-[60ch] rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2 text-sm break-words text-[var(--danger-text)]"
         >
           {unavailable}
         </p>
       )}
       {missing && (
-        <p
-          role="alert"
-          className="m-0 max-w-full rounded-[var(--radius-card)] bg-[var(--warn-soft)] px-3 py-2 text-sm break-words text-[var(--warn-text)] sm:max-w-[52ch]"
-        >
+        <p role="alert" className="m-0 max-w-[60ch] rounded-[var(--radius-card)] bg-[var(--warn-soft)] px-3 py-2 text-sm break-words text-[var(--warn-text)]">
           {value} is not connected. Voice samples play on the system default until it is back.
         </p>
       )}
-      <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">
-        <Select
-          label="Voice sample output"
-          id={`set-${row.id}`}
-          className="max-w-full min-w-0"
-          value={unavailable ? '' : value}
-          onChange={choose}
-          disabled={unavailable !== undefined || engine === undefined || !hasProject}
-          options={[
-            { value: '', label: 'System default' },
-            ...outputs.map((o) => ({ value: o.label, label: o.label })),
-            ...(missing ? [{ value, label: `${value}, not connected` }] : []),
-          ]}
-        />
+      <Select
+        label="Voice sample output"
+        id={`set-${row.id}`}
+        className={FIELD_WIDTH}
+        value={unavailable ? '' : value}
+        onChange={choose}
+        disabled={unavailable !== undefined || engine === undefined || !hasProject}
+        options={[
+          { value: '', label: 'System default' },
+          ...outputs.map((o) => ({ value: o.label, label: o.label })),
+          ...(missing ? [{ value, label: `${value}, not connected` }] : []),
+        ]}
+      />
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={load}>
           {unavailable || missing ? 'Check again' : 'Refresh the list'}
         </Button>
@@ -150,9 +150,9 @@ export function SampleOutputBody() {
         {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for outputs…</span>}
       </div>
       {!hasProject && <span className="text-[0.8125rem] text-[var(--text-muted)]">Open a project to choose where its voice samples play.</span>}
-      <span className="max-w-full text-[0.8125rem] break-words text-[var(--text-muted)] sm:max-w-[52ch]">{NOTE}</span>
+      <span className={NOTE_CLASS}>{NOTE}</span>
       {missing && listing.phase === 'ready' && (
-        <span className="max-w-full text-[0.8125rem] break-words text-[var(--text-muted)] sm:max-w-[52ch]">
+        <span className={NOTE_CLASS}>
           Last checked {new Date(listing.checkedAt).toLocaleTimeString()}. The list is read again when you open Settings, when the window gets focus, and while
           this notice is up.
         </span>
