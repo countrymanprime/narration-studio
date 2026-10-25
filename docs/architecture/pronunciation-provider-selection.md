@@ -20,7 +20,10 @@ then **eSpeak NG** (a letter-to-sound guess for anything neither dictionary has)
 storage — `CmuSource.pronounce()` runs CMU's ARPABET through `arpabet_to_ipa()` — so the value a narrator sees and
 chooses is always IPA regardless of which source produced it. `src/studio/desktop/internal/pronunciationport` is the Go
 side's read-only mirror of the same three names, used to validate the narrator's explicit choice before the sidecar
-starts (`Pronounce`'s `CheckPronounce`).
+starts (`Pronounce`'s `CheckPronounce`). The Wiktextract source reads the index the narrator installed in Settings
+(`internal/wiktextract`), whose path the host passes as `--wiktextract-index` only while it is installed and verifies
+([Manuscript Guide](../utilities/manuscript-guide.md#pronunciation-generate-and-replace) lists the commands that get it); without
+it the source answers "not installed yet" and the automatic fallback goes on to eSpeak NG.
 
 ## Choosing and previewing a pronunciation
 
@@ -64,6 +67,6 @@ Python: `src/studio/sidecars/manuscript-guide/tests/test_providers.py` (the fall
 first and ignored when unregistered, each source's conformance suite) and `test_pronunciation_preview.py` (chosen vs.
 unchosen, a chosen pronunciation as the host writes it spoken by the preview) and `test_pronounce.py` (`pronunciation --source`). Go:
 `src/studio/desktop/internal/guide/service_test.go` (the default-source argument reaches build/alias-edit/create and only those),
-`pronounce_test.go` and `pronounce_parity_test.go` (Generate/Replace) and `preview_test.go` (the cache key). Vitest:
+`pronounce_test.go` and `pronounce_parity_test.go` (Generate/Replace), `wiktextract_index_test.go` (which commands get the index) and `preview_test.go` (the cache key). Vitest:
 `GuideDetail.pronunciation.test.tsx` and `GuideDetail.aliasPronunciation.test.tsx`. Visual: `storybible/entry-pronunciation-missing`,
 `entry-pronunciation-online` and `alias-pronunciation-editing`.
