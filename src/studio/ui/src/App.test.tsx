@@ -96,7 +96,7 @@ const linkChapterOne = async () => {
   const table = await within(panel).findByRole('table', { name: 'Chapter links' });
   const row = within(table)
     .getAllByRole('row')
-    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1( — |$)/ }))!;
+    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1(: |$)/ }))!;
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });

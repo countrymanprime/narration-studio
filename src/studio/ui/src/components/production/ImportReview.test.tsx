@@ -297,7 +297,7 @@ describe('ImportReview', () => {
     renderReview();
     const row = screen.getByText('Chapter Four').closest('[title]')!;
     expect(row.querySelector('.truncate')).not.toBeNull();
-    expect(row.getAttribute('title')).toMatch(/^Chapter Four — In Which Alice Considers/);
+    expect(row.getAttribute('title')).toMatch(/^Chapter Four: In Which Alice Considers/);
   });
 });
 
