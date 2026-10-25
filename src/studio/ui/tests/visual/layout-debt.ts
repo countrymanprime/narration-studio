@@ -20,31 +20,6 @@ export const LAYOUT_DEBT: LayoutDebt[] = [
     defect:
       'desktop: cell 2 of like rows starts at 1329, 1168.5; small-desktop: cell 2 of like rows starts at 905, 736.5; tablet: cell 2 of like rows starts at 649, 480.5',
   },
-  {
-    page: 'pickups',
-    state: 'marked-recorded',
-    viewports: ['tablet', 'reflow'],
-    rule: 'A3',
-    element: 'table[aria-label="Pickups"] > tbody',
-    defect: 'tablet, reflow: cell 5 of like rows starts at 204.6, 208.9, 190.3',
-  },
-  // A4: the rows' last actions do not end at one x.
-  {
-    page: 'storybible',
-    state: 'alias-pronunciation-editing',
-    viewports: ['desktop', 'small-desktop', 'tablet'],
-    rule: 'A4',
-    element: 'div:nth-of-type(1) > ul[aria-label="Names"]',
-    defect: 'desktop: row actions end at 1353, 1397; small-desktop: row actions end at 937, 981; tablet: row actions end at 681, 725',
-  },
-  {
-    page: 'storybible',
-    state: 'review-filter',
-    viewports: ['desktop', 'small-desktop', 'tablet'],
-    rule: 'A4',
-    element: 'div:nth-of-type(1) > ul[aria-label="Names"]',
-    defect: 'desktop: row actions end at 1353, 1397; small-desktop: row actions end at 937, 981; tablet: row actions end at 681, 725',
-  },
   // G2: a flush table's text does not start where its card's title starts.
   {
     page: 'script',
@@ -134,14 +109,5 @@ export const LAYOUT_DEBT: LayoutDebt[] = [
     rule: 'H1',
     element: 'div:nth-of-type(2) > span[aria-label="Window start"]',
     defect: 'desktop, small-desktop, tablet: "Window start" is 12x34px beside another target',
-  },
-  // W3: text cut through at the edge of a box that hides its overflow.
-  {
-    page: 'editing',
-    state: 'range',
-    viewports: ['tablet'],
-    rule: 'W3',
-    element: 'div > div:nth-of-type(3)',
-    defect: 'tablet: cuts "Sub-word edge, shown as a prev" at its edge',
   },
 ];
