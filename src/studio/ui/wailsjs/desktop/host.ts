@@ -3049,6 +3049,8 @@ export function TeleprompterSeek(word: number): $CancellablePromise<string> {
  * installed and reports it as asset_required, tagged with the engine so the UI
  * installs it through the right asset kind; once running, the sidecar's events
  * arrive as "teleprompter:event" and phase changes as "teleprompter:state".
+ * `coldRead: "true"` starts a cold read (#2251 item 13): the same session with no take, which keeps no reading, anchors no word and
+ * never stops itself; the state's `coldRead` says so.
  */
 export function TeleprompterStart(options: { [_ in string]?: string }): $CancellablePromise<string> {
     return $Call.ByID(2257611617, options);
