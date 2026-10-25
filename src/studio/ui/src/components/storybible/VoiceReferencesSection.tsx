@@ -108,10 +108,9 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
         </ul>
       )}
       {/* One row where there is room (the region 14 rem, the note the rest, then the button), else the three stacked at one width,
-          never a staircase of three widths (SBX-11). It ends at the right inset of the cards' buttons and Check again above it, so
-          Approve as reference ends where they do (alignment audit A4). */}
+          never a staircase of three widths (SBX-11). */}
       <div className="@container mt-2">
-        <div className="grid grid-cols-1 items-end gap-2 pr-[0.8125rem] @min-[36rem]:grid-cols-[14rem_minmax(0,1fr)_auto]">
+        <div className="grid grid-cols-1 items-end gap-2 @min-[36rem]:grid-cols-[14rem_minmax(0,1fr)_auto]">
           <Select
             fullWidth
             label={`Approve a region for ${characterLabel}`}
