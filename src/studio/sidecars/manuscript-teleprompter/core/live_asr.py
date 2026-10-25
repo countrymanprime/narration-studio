@@ -91,7 +91,7 @@ turns them into these three event types:
         exits (see align_word.py for every field)
     {"type": "level", "peak": -12.3, "rms": -24.1}
         the input level in dBFS every 100 ms of audio, in every session (see
-        levels.py). With --meter --mic NAME it is the only event: no model,
+        narration_common.recording.meter). With --meter --mic NAME it is the only event: no model,
         no script, until the stop file appears, so the narrator can check the
         microphone before Start; with --capture NAME it meters through that
         capture row (wasapi: the built-in recorder's device, before Record)
@@ -676,6 +676,9 @@ def _run_locate(ap: argparse.ArgumentParser, args) -> None:
         ap.error(f"{error}{choices}")
     decode = _load_whisper_decoder(args, vad_filter=True)
     log(f"Locating seconds {args.tail_start:g} to {args.tail_end:g} of {args.wav}...")
+    if args.words_only:
+        _emit(_heard_event(args, decode))
+        return
     _emit(locate.run(args.wav, args.tail_start, args.tail_end, tokens, breaks, decode))
 
 
@@ -695,7 +698,20 @@ def _run_align_word(ap: argparse.ArgumentParser, args) -> None:
         ap.error(f"{error}{choices}")
     decode = _load_whisper_decoder(args, vad_filter=True)
     log(f"Timing script word {args.align_word} in seconds {args.tail_start:g} to {args.tail_end:g} of {args.wav}...")
+    if args.words_only:
+        _emit(_heard_event(args, decode))
+        return
     _emit(align_word.run(args.wav, args.tail_start, args.tail_end, tokens, args.align_word, decode))
+
+
+def _heard_event(args, decode) -> dict:
+    """--words-only: the words decoded from seconds --tail-start to --tail-end of --wav, each [text, start, end] in
+    seconds into the stretch, for the host to place (src/studio/desktop/internal/scripttrack)."""
+    import locate
+
+    audio = locate.read_audio_range(args.wav, args.tail_start, args.tail_end)
+    words = list(decode(audio)) if len(audio) else []
+    return {"type": "heard", "words": [[text, float(start), float(end)] for text, start, end in words]}
 
 
 def _check_engine_args(ap: argparse.ArgumentParser, args) -> None:
@@ -746,7 +762,7 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
     """Stream engine events (and, with a tracker, the position events they
     cause) to stdout until the input ends or Ctrl+C."""
     from control_channel import ControlChannel, pause_state, seek_word
-    from levels import LevelMeter, metered
+    from narration_common.recording import LevelMeter, metered
 
     capture_started = None
     last_logged_commit = None
@@ -790,7 +806,7 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
         if tracker and args.start_word is not None:
             for position in tracker.reset_to(args.start_word, clock.now()):
                 _emit(track(position))
-        chunks = metered(stoppable(chunks, args.stop_file), LevelMeter(), _emit)
+        chunks = metered(stoppable(chunks, args.stop_file), LevelMeter(SAMPLE_RATE), _emit)
         if tracker:
             control = ControlChannel(args.control_file)
 
@@ -821,13 +837,13 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
 
 
 # What --meter cannot be combined with: it opens a microphone and reports its level, nothing else.
-_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_word", "locate", "list_devices", "capabilities", "verify")
+_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_word", "words_only", "locate", "list_devices", "capabilities", "verify")
 
 
 def _run_meter(ap: argparse.ArgumentParser, args) -> None:
-    """--meter: report the microphone's level (levels.py) until the stop file appears. No model loads and no script is
+    """--meter: report the microphone's level (narration_common.recording.meter) until the stop file appears. No model loads and no script is
     read, so it starts in about the time the device takes to open."""
-    from levels import LevelMeter, metered
+    from narration_common.recording import LevelMeter, metered
 
     if not args.mic:
         ap.error("--meter needs --mic")
@@ -838,7 +854,7 @@ def _run_meter(ap: argparse.ArgumentParser, args) -> None:
     try:
         # --capture meters through that row (the built-in recorder's wasapi); dshow otherwise.
         chunks = _capture_row(ap, args.capture).chunks(args.mic) if args.capture else iter_microphone_chunks(args.mic)
-        for _chunk in metered(stoppable(chunks, args.stop_file), LevelMeter(), _emit):
+        for _chunk in metered(stoppable(chunks, args.stop_file), LevelMeter(SAMPLE_RATE), _emit):
             pass
     except KeyboardInterrupt:
         log("Stopped.")
@@ -1007,6 +1023,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Instead of a session: transcribe seconds --tail-start to --tail-end of --wav, place them in the script and print one "
         "`word_time` line with when script word WORD starts in --wav (align_word.py, punch and roll); needs --model-dir, never downloads a model",
     )
+    ap.add_argument(
+        "--words-only",
+        action="store_true",
+        help="With --locate or --align-word: print the decoded words as one `heard` line ({type: heard, words: [[text, "
+        "start, end], ...]}, seconds into the stretch) and leave placing them to the host",
+    )
     ap.add_argument("--tail-start", type=float, default=None, help="--locate/--align-word: where the stretch starts in --wav, in seconds")
     ap.add_argument("--tail-end", type=float, default=None, help="--locate/--align-word: where the stretch (the recorded audio) ends in --wav, in seconds")
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"], help="Inference device (default: cpu)")
@@ -1060,6 +1082,8 @@ def main() -> None:
         if args.verify and not _capabilities_all_loadable(report):
             sys.exit(1)
         return
+    if args.words_only and not (args.locate or args.align_word is not None):
+        ap.error("--words-only needs --locate or --align-word")
     if args.align_word is not None:
         _run_align_word(ap, args)
         return
