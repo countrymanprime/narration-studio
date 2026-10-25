@@ -168,7 +168,7 @@ own, in the background, once REAPER has been quiet for a few minutes and the app
 busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open Recording check rules**); pressing **Check recording**
 yourself always pre-empts it.
 
-A chapter's recording check panel has the same choices under **Check options**, closed until you open it, and its **Check recording** button runs exactly
+A chapter's recording check panel has the same choices under **Check options**, at the foot of the panel after the result and closed until you open it, and its **Check recording** button runs exactly
 what they show. **Chapters at once** is how many chapters may be checked together when this one starts, itself included: with the default of 1 the
 button waits for a chapter being checked elsewhere, and says so, and above 1 it starts beside them.
 
@@ -209,7 +209,7 @@ which finishes the check with the fast pass alone rather than blocking on the do
 The result reads as a **chapter summary first**: "Passes the check", or "Not complete" naming the
 one thing that fails first ("Not complete: paragraph 14: 9 words not read"), then an unread start
 or end stated in plain words ("Recorded to paragraph N of M"), then the chapter's own figures
-(text present, paragraphs fully read, audio checked, pace). Under that, **Pickups** lists only the
+(text present, paragraphs fully read, audio checked, pace in words a minute), two to a row. Under that, **Pickups** lists only the
 check's own interior gaps worth reading again on their own — a skipped block, a short read or
 different text read — each with its paragraphs, word count, first and last missing words, where
 the gap sits in the audio, and **Go to paragraph** to open the manuscript there. An unread start or

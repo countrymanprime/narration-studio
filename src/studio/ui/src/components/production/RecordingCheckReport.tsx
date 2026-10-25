@@ -112,7 +112,7 @@ export function RecordingCheckReport({
           value={formatAudioTime(report.playedSeconds)}
           hint={`in ${plural(report.items.length, 'item')}${mutedItems > 0 ? ` (${mutedItems} muted)` : ''}`}
         />
-        {pace !== undefined && <StatTile label="Pace" value={pace.toLocaleString()} unit="/min" hint="words a minute (estimate)" />}
+        {pace !== undefined && <StatTile label="Pace" value={pace.toLocaleString()} unit="/min" hint="words a minute" />}
       </div>
       {report.extraTokens > 0 && (
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
