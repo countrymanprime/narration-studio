@@ -104,7 +104,8 @@ function Section({ title, badge, children, first = false }: { title: string; bad
  * Companion mode's layout: `CompactShell` in the app's own window, narrowed
  * and pinned beside the DAW. It is the same teleprompter session the Booth
  * shows (`CompanionHost` renders this beside the DAW, apart from the Booth page), re-laid out for a 380 px column: REAPER's playhead in the
- * header, then the script, the note at the playhead (not built yet, so an honest "Coming soon"), the Pickups page's list, and the gestures that work here.
+ * header, then the script, the Pickups page's list, the gestures that work here, this chapter, and last the note at the playhead (not built yet, so
+ * an honest "Coming soon").
  *
  * Play/Pause and Stop repeat the Booth page's few lines on the same handlers rather than share a hook with it: each surface
  * is mounted alone (one `reading.toggle` registration at a time).
@@ -184,14 +185,19 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           {escapeArmed ? 'Press Esc again to return to the full app.' : ''}
         </p>
         <Section title="Script" first>
-          {chapterTitle && <p className="mb-2 font-semibold">{chapterTitle}</p>}
+          {/* While it reads, the read-along draws the chapter's own heading; the title here would say it a second time (alignment audit XBO-16). */}
+          {chapterTitle && !t.active && <p className="mb-2 font-semibold">{chapterTitle}</p>}
           <Toolbar label="Companion commands">
             <ToolbarButton
               render={
                 // Named by what it draws, the key and the action ("Space Play"): an aria-label of the action alone leaves out the key
                 // the button draws, which axe's label-content-name-mismatch fails.
                 <Button aria-pressed={listening} onClick={onPlayPause} disabled={playPauseDisabled} size="sm">
-                  <Kbd keys={['Space']} /> {playPauseLabel}
+                  {/* The key cap keeps its own case inside the button's capitals, as the hotkeys list draws it (XBO-17). */}
+                  <span className="normal-case">
+                    <Kbd keys={['Space']} />
+                  </span>{' '}
+                  {playPauseLabel}
                 </Button>
               }
             />
@@ -212,26 +218,26 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
               />
             )}
           </Toolbar>
-          {/* Its own scroll box, so the sections below stay in reach however long the chapter is; the cursor follows inside it. */}
-          <div className="mt-2 max-h-[12rem] overflow-y-auto">
-            <ReadAlongView session={t} follow={follow} header={header} marks={marks} onOpenMark={onOpenMark} hideKey dense />
+          {/* Its own scroll box, so the sections below stay in reach however long the chapter is; the cursor follows inside it. Framed, with
+              a fade at its foot, so text it cuts off reads as more to scroll, not as a cropped card (XBO-16). */}
+          <div data-companion-script="" className="mt-2 rounded-md border border-[var(--border)]">
+            <div className="max-h-[12rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)] p-2">
+              <ReadAlongView session={t} follow={follow} header={header} marks={marks} onOpenMark={onOpenMark} hideKey dense />
+            </div>
           </div>
-        </Section>
-        <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />}>
-          <p style={{ color: 'var(--text-muted)' }}>The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.</p>
         </Section>
         <Section title="Pickups">
           <PickupsCompanionSummary />
         </Section>
         <Section title="Hotkeys (while this window has focus)">
-          {/* Mock 07's two columns of key cap and action. Only the keys this window really answers: the mock's F9-F12 work
-              from inside REAPER, which needs a global hotkey the app does not have, so they are not listed. */}
-          <dl className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-x-3 gap-y-1.5">
-            <dt>
+          {/* Mock 07's two columns of key cap and action, one key per row with the caps right-aligned (XBO-17). Only the keys this window
+              really answers: the mock's F9-F12 work from inside REAPER, which needs a global hotkey the app does not have, so they are not listed. */}
+          <dl className="grid grid-cols-[max-content_1fr] items-center gap-x-3 gap-y-1.5">
+            <dt className="flex justify-end">
               <Kbd keys={['Space']} />
             </dt>
             <dd>Play or pause</dd>
-            <dt className="flex gap-1">
+            <dt className="flex justify-end gap-1">
               <Kbd keys={['Esc']} />
               <Kbd keys={['Esc']} />
             </dt>
@@ -243,6 +249,10 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
         </Section>
         <Section title="This chapter">
           <CompanionThisChapter chapterId={chapterId} />
+        </Section>
+        {/* Not built yet: last, so the working sections come first (XBO-32). */}
+        <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />}>
+          <p style={{ color: 'var(--text-muted)' }}>The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.</p>
         </Section>
       </CompactShell>
     </div>,

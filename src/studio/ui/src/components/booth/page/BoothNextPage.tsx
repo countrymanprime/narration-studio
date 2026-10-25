@@ -22,7 +22,6 @@ import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
-import { Panel } from '../../primitives/Panel';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { entryColour, speakerColour } from '../../../kinds/entityColour';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
@@ -64,6 +63,7 @@ import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothT
 import { LoadError } from '../../layout/LoadError';
 import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
+import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
 import { creditsParagraphs, entityAtWord, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
@@ -184,16 +184,16 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   if (data.error)
     return (
       <BoothExit onExit={leave}>
-        <LoadError title="Booth" message={data.error} retry={data.retry} exit={{ label: 'Leave the Booth', onClick: leave }} />
+        <BoothGutter>
+          <LoadError title="Booth" message={data.error} retry={data.retry} exit={{ label: 'Leave the Booth', onClick: leave }} />
+        </BoothGutter>
       </BoothExit>
     );
   if (data.chapters?.length === 0)
     return (
-      <div className="p-4 md:p-6">
-        <Panel title="This manuscript has no chapters to read">
-          <p className="text-sm text-[var(--text-muted)]">The Booth reads narration chapters. Import a manuscript with at least one narration chapter first.</p>
-        </Panel>
-      </div>
+      <BoothMessage title="This manuscript has no chapters to read">
+        The Booth reads narration chapters. Import a manuscript with at least one narration chapter first.
+      </BoothMessage>
     );
   if (!source) {
     // Still reading the chapters (or the credits): the page's frame, drawn as blocks. A failed read is the alert above, never this.
