@@ -358,6 +358,9 @@ describe('the text ramp keeps its order', () => {
 // unmeasured. `text-[var(--x)]`, `color: 'var(--x)'` and a `color:` declaration in a stylesheet all count.
 const NO_TEXT_PAIR: Record<string, string> = {
   'non-text': 'the colour of icons, status dots and decorative glyphs, held to 3:1 as a mark and never the colour of text that carries information',
+  // Not an app token: the report preview's stylesheet in api/productionMock.ts copies the host page's own `--muted`
+  // (desktop/internal/productionreport/report.html.tmpl), which lives inside the iframe and is not in styles.css.
+  muted: "the status report page's label colour, its own variable inside the preview iframe: #5c5c66 on #ffffff is 6.61:1 and #a8a8b3 on #16161a 7.66:1",
 };
 
 function sourceFiles(directory: string): string[] {
