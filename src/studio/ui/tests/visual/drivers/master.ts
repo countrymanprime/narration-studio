@@ -210,3 +210,5 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Import manuscript' }).waitFor();
   },
 };
+// The whole page of measured (catalog/shared.ts: wholePage), driven the same way.
+masterDrivers['whole-page'] = masterDrivers['measured'];

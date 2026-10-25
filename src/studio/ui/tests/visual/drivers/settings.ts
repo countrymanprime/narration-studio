@@ -548,3 +548,5 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('This project uses', { exact: true }).waitFor();
   },
 };
+// The whole page of page-top (catalog/shared.ts: wholePage), driven the same way.
+settingsDrivers['whole-page'] = settingsDrivers['page-top'];

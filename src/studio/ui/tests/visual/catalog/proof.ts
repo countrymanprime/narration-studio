@@ -1,6 +1,6 @@
 // The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 
 export const proofStates: StateEntry[] = [
   {
@@ -144,3 +144,4 @@ export const proofStates: StateEntry[] = [
     ...REFLOW,
   },
 ];
+proofStates.push(wholePage(proofStates, 'default', ['desktop']));
