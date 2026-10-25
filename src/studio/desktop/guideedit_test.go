@@ -18,7 +18,8 @@ import (
 )
 
 // fakeGuideCountEnv turns this test binary into a Story Bible sidecar that only records how it was called: one JSON line of arguments per
-// process it is started as, in the file the variable names. It answers a pronunciation lookup the way the real one does: one line per word.
+// process it is started as, in the file the variable names. It answers a pronunciation lookup the way the real one does: one line per word,
+// from --word or a --words-file, naming the --source when there is one.
 const fakeGuideCountEnv = "SHELL_FAKE_GUIDE_COUNT"
 
 func runFakeGuideCount(path string) int {
@@ -30,10 +31,24 @@ func runFakeGuideCount(path string) int {
 	line, _ := json.Marshal(os.Args[1:])
 	_, _ = file.Write(append(line, '\n'))
 	if len(os.Args) > 1 && os.Args[1] == "pronunciation" {
-		for _, arg := range os.Args[2:] {
+		source := "cmu"
+		var words []string
+		for index, arg := range os.Args[2:] {
 			if strings.HasPrefix(arg, "--word=") {
-				_, _ = os.Stdout.WriteString(`{"ipa": "say ` + strings.ReplaceAll(strings.TrimPrefix(arg, "--word="), `"`, "") + `", "source": "cmu", "confidence": "high"}` + "\n")
+				words = append(words, strings.TrimPrefix(arg, "--word="))
 			}
+			if next := 2 + index + 1; next < len(os.Args) && arg == "--source" {
+				source = os.Args[next]
+			}
+			if next := 2 + index + 1; next < len(os.Args) && arg == "--words-file" {
+				raw, err := os.ReadFile(os.Args[next])
+				if err != nil || json.Unmarshal(raw, &words) != nil {
+					return 2
+				}
+			}
+		}
+		for _, word := range words {
+			_, _ = os.Stdout.WriteString(`{"ipa": "say ` + strings.ReplaceAll(word, `"`, "") + `", "source": "` + source + `", "confidence": "high"}` + "\n")
 		}
 	}
 	return 0

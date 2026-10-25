@@ -468,3 +468,31 @@ def test_the_locate_line_matches_the_committed_contract_file(tmp_path):
     heard = ["ning", *tokens[22:40], "um", *tokens[40:52]]
 
     contract_files.check("teleprompter-locate", locate.locate_event(heard, tokens, breaks))
+
+
+def test_words_only_prints_the_decoded_words_for_the_host_to_place(tmp_path, monkeypatch, capsys):
+    wav = tmp_path / "take.wav"
+    _write_steps_wav(wav, 4)
+    decoder = lambda args, vad_filter=False: lambda audio: [("the", 0.0, 0.25), ("rabbit", 0.31, 0.6)]
+    argv = ["--locate", "--words-only", "--model-dir", "d", "--manuscript", str(_manuscript(tmp_path)), "--chapter", "c1", "--wav", str(wav)]
+    _main(monkeypatch, [*argv, "--tail-start", "1", "--tail-end", "3"], decoder)
+
+    assert json.loads(capsys.readouterr().out) == {"type": "heard", "words": [["the", 0.0, 0.25], ["rabbit", 0.31, 0.6]]}
+
+
+def test_words_only_still_refuses_an_unknown_chapter_before_loading_the_model(tmp_path, monkeypatch, capsys):
+    argv = ["--locate", "--words-only", "--model-dir", "d", "--manuscript", str(_manuscript(tmp_path)), "--chapter", "nope", "--wav", "take.wav"]
+
+    with pytest.raises(SystemExit) as refused:
+        _main(monkeypatch, [*argv, "--tail-start", "1", "--tail-end", "3"], lambda args, vad_filter=False: pytest.fail("loaded the model"))
+
+    assert refused.value.code == 2
+    assert "Chapter One" in capsys.readouterr().err
+
+
+def test_words_only_needs_a_locate_or_an_align_word(monkeypatch, capsys):
+    with pytest.raises(SystemExit) as refused:
+        _main(monkeypatch, ["--words-only", "--wav", "take.wav"], lambda args, vad_filter=False: pytest.fail("loaded the model"))
+
+    assert refused.value.code == 2
+    assert "--words-only needs --locate or --align-word" in capsys.readouterr().err

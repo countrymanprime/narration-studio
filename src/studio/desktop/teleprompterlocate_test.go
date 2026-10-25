@@ -9,12 +9,14 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"desktop/internal/contractfile"
 	"desktop/internal/process"
+	"desktop/internal/scripttrack"
 	"desktop/internal/teleprompter"
 )
 
@@ -53,12 +55,34 @@ func runFakeTeleprompterLocate() bool {
 	default:
 		_, _ = fmt.Sscan(value, &word)
 	}
+	if slices.Contains(os.Args, "--words-only") {
+		// The host places the words itself: hear the chapter's own words up to the word, 30 of them for a confident place
+		// and 4 for an unsure one.
+		count := 30
+		if os.Getenv(fakeLocateUnsureEnv) != "" {
+			count = 4
+		}
+		printFakeHeard(fakeArg("--manuscript"), fakeArg("--chapter"), word-count, word, 0)
+		return true
+	}
 	confident, confidence := true, 0.812
 	if os.Getenv(fakeLocateUnsureEnv) != "" {
 		confident, confidence = false, 0.31
 	}
 	fmt.Printf(`{"type":"locate","word":%d,"last":%d,"sentence":{"start":23,"end":59,"text":"Once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, and what is the use of a book, thought Alice, without pictures or conversations?"},"confidence":%g,"confident":%t,"matched":30,"heard":32,"runnerUp":4,"tokens":%d,"heardText":"do once or twice she had peeped into the book her sister was reading but it had no pictures or conversations in it and what is the use of a"}`+"\n", word, word-1, confidence, confident, tokens)
 	return true
+}
+
+// printFakeHeard prints the `heard` line of a `--words-only` run that heard the chapter's tokens [from, to): each word
+// 0.3 s long, word `at` starting one second into the stretch.
+func printFakeHeard(manuscript, chapter string, from, to, at int) {
+	script, _ := scripttrack.LoadChapterScript(manuscript, chapter)
+	words := []string{}
+	for index := max(0, from); index < min(to, len(script.Tokens)); index++ {
+		start := 1.0 + float64(index-at)*0.3
+		words = append(words, fmt.Sprintf(`[%q, %g, %g]`, strings.Trim(script.Tokens[index], ".,;:!?\"'“”‘’()"), start, start+0.25))
+	}
+	fmt.Printf(`{"type": "heard", "words": [%s]}`+"\n", strings.Join(words, ", "))
 }
 
 // fakeArg is the value after flag in the fake sidecar's arguments.
