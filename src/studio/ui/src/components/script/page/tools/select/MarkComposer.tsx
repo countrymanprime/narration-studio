@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import { Button } from '../../../../primitives/Button';
 import { Dialog } from '../../../../primitives/Dialog';
-import { Field } from '../../../../primitives/Field';
+import { FIELD_LABEL_CLASSES, Field } from '../../../../primitives/Field';
 import { Select } from '../../../../primitives/Select';
 import type { ReaderSelection } from '../../registry/contextProvider';
 
 const TITLE_SHOWN = 60;
 export const QUERY_NEEDED = 'Write the question first.';
 
-/** The selected words as the dialog's title, shortened with an ellipsis past 60 characters. */
-export const composerTitle = (quote: string): string => (quote.length > TITLE_SHOWN ? `${quote.slice(0, TITLE_SHOWN)}…` : quote);
+/** The dialog's title: Mark and the selected words, quoted and shortened with an ellipsis past 60 characters (the mock's "Mark" eyebrow over the words). */
+export const composerTitle = (quote: string): string => `Mark “${quote.length > TITLE_SHOWN ? `${quote.slice(0, TITLE_SHOWN)}…` : quote}”`;
 
 /**
  * One composer for every kind of mark (the mock's `Composer`): pick a type, add a note if you want one. A type that asks needs
@@ -60,7 +60,7 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
     >
       <div className="flex flex-col gap-3">
         <div>
-          <label className="block text-[0.88rem] font-medium text-[var(--text-muted)]" htmlFor="mark-type">
+          <label className={FIELD_LABEL_CLASSES} htmlFor="mark-type">
             Type
           </label>
           <div className="mt-2">
