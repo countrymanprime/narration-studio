@@ -93,7 +93,7 @@ export function SampleOutputBody() {
     void playTestSound(engine === 'builtin' ? value : '').then((problem) => problem && overlay.toast(problem));
   };
   const testButton = (
-    <Button variant="secondary" size="sm" onClick={test}>
+    <Button variant="secondary" onClick={test}>
       Test sound
     </Button>
   );
@@ -143,7 +143,7 @@ export function SampleOutputBody() {
             ...(missing ? [{ value, label: `${value}, not connected` }] : []),
           ]}
         />
-        <Button variant="secondary" size="sm" onClick={load}>
+        <Button variant="secondary" onClick={load}>
           {unavailable || missing ? 'Check again' : 'Refresh the list'}
         </Button>
         {testButton}
