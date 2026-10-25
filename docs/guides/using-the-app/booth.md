@@ -19,7 +19,7 @@ built-in recorder). The chip opens [Settings](settings.md). The chapter is named
 you last chose. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
 side-panel button move together and stay at the right edge. The chapter picker is as wide as the chapter's name, up to 340 pixels.
-The resume line is not offered while you are already at the place it would take you to.
+The resume line is not offered while you are already in the paragraph it would take you to.
 
 ![Booth - the Text settings: the font and size of the text you read](../../images/ui/booth-text-settings.webp)
 

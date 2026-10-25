@@ -72,13 +72,12 @@ export function resumeOfferFor(args: {
 }
 
 /**
- * The offer as the top bar shows it: nothing while the reading position already is the offered place, since choosing it would move
- * nothing and the progress line beside it already says that paragraph (alignment audit R4BO1-3, R4BO2-10).
+ * The offer as the top bar shows it: nothing while the reading position is already in the offered paragraph. The chip names only the
+ * paragraph ("Resume at ¶ 14"), which the progress line beside it already says (alignment audit R4BO1-3, R4BO2-10).
  */
 export function offerAwayFrom(state: ResumeOfferState, position: ResumeTarget | null | undefined): ResumeOfferState {
   if (state.kind !== 'offer' || !position) return state;
-  const { offer } = state;
-  return offer.paragraphId === position.paragraphId && offer.word === position.word ? NONE : state;
+  return state.offer.paragraphId === position.paragraphId ? NONE : state;
 }
 
 const SOURCE_TEXT: Record<ResumeSource, string> = {

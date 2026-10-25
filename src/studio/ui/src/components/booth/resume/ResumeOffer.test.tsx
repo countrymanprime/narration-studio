@@ -159,11 +159,11 @@ describe('ResumeOffer', () => {
 
 describe('offerAwayFrom', () => {
   const state = resumeOfferFor({ spans, recording: false, kept: { paragraphId: 'p2', word: 4 } });
-  it('offers nothing while the reading position already is the offered place (R4BO1-3, R4BO2-10)', () => {
+  it('offers nothing while the reading position is already in the offered paragraph (R4BO1-3, R4BO2-10)', () => {
     expect(offerAwayFrom(state, { paragraphId: 'p2', word: 4 })).toEqual({ kind: 'none' });
+    expect(offerAwayFrom(state, { paragraphId: 'p2', word: 0 })).toEqual({ kind: 'none' });
   });
-  it('keeps the offer elsewhere, a word away in the same paragraph included, and with no position yet', () => {
-    expect(offerAwayFrom(state, { paragraphId: 'p2', word: 0 })).toBe(state);
+  it('keeps the offer in another paragraph, and with no position yet', () => {
     expect(offerAwayFrom(state, { paragraphId: 'p1', word: 4 })).toBe(state);
     expect(offerAwayFrom(state, undefined)).toBe(state);
   });
