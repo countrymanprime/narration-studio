@@ -38,11 +38,11 @@ Hand-written; add a pair when a real misread is scored wrongly.
 ## heading-misreads/
 
 Small constructed manuscripts (DOCX, EPUB, Markdown and plain text, one chapter heading each) that exercise the
-importer's title/subtitle heuristic: 5 read correctly and 18 do not.
+importer's title/subtitle heuristic: 5 controls and 18 misreads, 7 of them since fixed.
 `cases.json` records each case's intended and observed title and subtitle, and `TestHeadingMisreadFixtures`
 (`src/studio/desktop/internal/importer/heading_misreads_test.go`) holds the importer to the observed values.
-[`docs/research/import-heading-misreads.md`](../../docs/research/import-heading-misreads.md) explains each failure
-mode, and the subtitle override uses these cases as its fixtures. Regenerate with the standard library only:
+[The import failure modes](../../docs/architecture/import-settings-workflow.md#failure-modes) say what each case
+shows, and the subtitle override uses these cases as its fixtures. Regenerate with the standard library only:
 
 ```powershell
 cd tests/fixtures/heading-misreads

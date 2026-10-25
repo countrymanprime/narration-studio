@@ -80,6 +80,7 @@
     "capability.input_level": "auto",
     "capability.punch_preroll": "auto",
     "capability.daw_meters": "auto",
+    "capability.replace_range": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"
   },

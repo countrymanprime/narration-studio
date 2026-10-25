@@ -121,6 +121,21 @@ describe('teleprompter mock', () => {
     ]);
   });
 
+  it('runs a cold read to the end of the chapter and on, until it is stopped', async () => {
+    const mock = build();
+    const states: TeleprompterState[] = [];
+    mock.subscribeTeleprompterState((state) => states.push(state));
+    await mock.teleprompterStart({ ...options, coldRead: true });
+    await vi.runAllTimersAsync();
+
+    expect(states.at(-1)).toMatchObject({ phase: 'running', message: 'Listening…', coldRead: true });
+    await mock.teleprompterStop();
+    expect(states.at(-1)).toMatchObject({ phase: 'stopped', coldRead: true });
+    await mock.teleprompterStart(options);
+    expect(states.at(-1)).toMatchObject({ phase: 'running', coldRead: false });
+    await mock.teleprompterStop();
+  });
+
   it('keeps listening when the narrator reads on after the end of the chapter', async () => {
     const mock = build();
     const states: TeleprompterState[] = [];

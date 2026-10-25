@@ -19,7 +19,7 @@ var uninstallKeys = []string{
 
 // LocateReaperExecutable auto-detects reaper.exe: first the Windows
 // "Uninstall" registry entries (the source the REAPER reachability spike verified
-// against a real install, docs/research/reaper-spike-s6-daw-reachability.md),
+// against a real install, docs/reference/daw/reaper.md),
 // then the .rpp file association as a fallback for an install that did not
 // register there.
 func LocateReaperExecutable() (path, source string, err error) {

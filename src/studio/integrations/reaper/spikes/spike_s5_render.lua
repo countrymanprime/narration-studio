@@ -1,4 +1,4 @@
--- Spike S5: render details (docs/research/reaper-spike-s5-render-details.md).
+-- Spike S5: render details (docs/reference/daw/reaper.md).
 -- Verifies, against a real REAPER: RENDER_STATS/RENDER_STATS_SUMMARY key format, $region naming in RENDER_PATTERN for
 -- per-region ("chapter") rendering, the current IDs of the actions research section 2 and 6 named, and whether a
 -- render can be previewed/validated without writing files. Run by run-reaper.ps1 inside an isolated REAPER

@@ -9,6 +9,7 @@ release without an approved provenance entry.
 from __future__ import annotations
 
 import argparse
+import ast
 import os
 import shutil
 import subprocess
@@ -32,6 +33,21 @@ RESOURCES = ROOT / RESOURCES_DIR
 RUNTIME = RESOURCES / "runtime"
 # The packages of the optional analysis tools, which a sidecar loads from the asset registry's install folder.
 OPTIONAL_TOOL_MODULES = ("gliner", "booknlp", "transformers", "torch")
+
+
+# What those packages import that the guide itself does not, and the metadata transformers checks: the BookNLP adapter keeps the list
+# (FREEZE_IMPORTS, FREEZE_IMPORTS_WINDOWS, FREEZE_METADATA), and its `self-check` line `tool-runtime` proves the freeze carries them.
+def _adapter_tuple(name: str) -> tuple[str, ...]:
+    """A tuple of strings the BookNLP adapter assigns at its top level, read without importing it (it needs the sidecar's packages)."""
+    tree = ast.parse((ROOT / SIDECARS_DIR / "manuscript-guide" / "core" / "extraction_booknlp.py").read_text(encoding="utf-8"))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+            return tuple(ast.literal_eval(node.value))
+    raise LookupError(f"extraction_booknlp.py assigns no {name}")
+
+
+OPTIONAL_TOOL_IMPORTS = _adapter_tuple("FREEZE_IMPORTS") + (_adapter_tuple("FREEZE_IMPORTS_WINDOWS") if sys.platform == "win32" else ())
+OPTIONAL_TOOL_METADATA = _adapter_tuple("FREEZE_METADATA")
 REAPER = RESOURCES / "reaper"
 
 # The freezes run at the same time, so their output is written one whole line at a time.
@@ -46,6 +62,7 @@ class Sidecar(NamedTuple):
     copy_metadata: tuple[str, ...] = ()
     collect_binaries: tuple[str, ...] = ()
     exclude_modules: tuple[str, ...] = ()
+    hidden_imports: tuple[str, ...] = ()
 
 
 def emit(text: str) -> None:
@@ -91,6 +108,7 @@ def freeze(
     copy_metadata: tuple[str, ...] = (),
     collect_binaries: tuple[str, ...] = (),
     exclude_modules: tuple[str, ...] = (),
+    hidden_imports: tuple[str, ...] = (),
 ) -> None:
     work = build_dir(name)
     args = [
@@ -119,6 +137,8 @@ def freeze(
         args.extend(["--collect-binaries", package])
     for module in exclude_modules:
         args.extend(["--exclude-module", module])
+    for module in hidden_imports:
+        args.extend(["--hidden-import", module])
     args.append(str(entry))
     # `--clean` wipes PyInstaller's cache directory, which every run shares by default. With the freezes
     # running at once, that would delete files another one is reading, so each gets a cache of its own.
@@ -170,8 +190,9 @@ def main() -> None:
             sidecars_root / "manuscript-guide" / "core" / "manuscript_guide.py",
             [shared_python, sidecars_root / "manuscript-guide" / "core"],
             ("piper", "cmudict"),
-            ("cmudict",),
+            ("cmudict", *OPTIONAL_TOOL_METADATA),
             exclude_modules=OPTIONAL_TOOL_MODULES,
+            hidden_imports=OPTIONAL_TOOL_IMPORTS,
         ),
         # faster-whisper ships its Silero VAD model (assets/silero_vad_v6.onnx) as
         # package data and PyInstaller has no hook for it. Without collecting it, a

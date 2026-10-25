@@ -40,7 +40,7 @@ on request, take markers) plus a unified diff file of the script text against wh
   (`TAKE_TRANSCRIPTION` and `TAKE_WORDS` lines). The host aligns them to the span with the same diff
   the markers use and writes each span word's status and time and every divergence as span words plus
   source seconds (`src/studio/desktop/internal/takedivergence`). The manifest, output and exit codes
-  are in the module docstring; [the evaluation](../../../../docs/research/take-divergence-evaluation.md)
+  are in the module docstring; [Alignment and confidence](../../../../docs/utilities/transcript-compare.md#alignment-and-confidence)
   explains why ASR word timestamps are precise enough. `tests/divergence_harness.py` scores the host's
   alignment (through `tests/go_divergence.py`) against the constructed takes in `tests/fixtures/divergence/`.
 - `src/studio/libs/python/narration_common/spoken_forms.py` — the built-in homophone list (your/you're,

@@ -2,7 +2,7 @@
 
 **Status: measured, 2026-09-23.** This note records the calibration that chose the recording check's shipped defaults
 ([Settings](../utilities/recording-coverage.md#settings)).
-It uses the [synthetic fixture set](recording-coverage-fixtures.md), because the owner chose constructed fixtures over
+It uses the [synthetic fixture set](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md), because the owner chose constructed fixtures over
 an owner-supplied corpus (Q15 in [the recording check's decisions](../utilities/recording-coverage.md#decisions)).
 The defaults therefore stay **Proposed** and labelled uncalibrated on real narration until a permissioned corpus exists.
 The first real-speech run, on public-domain LibriVox readings, is in [LibriVox real speech](#librivox-real-speech-2026-09-27).
@@ -106,7 +106,7 @@ labels with a perfect transcript:
 | Shipped (0.8, 3, 8, 3) | tune | 498/501 | 65/66 | 65/66 |
 | Shipped (0.8, 3, 8, 3) | held out | 250/255 | 44/46 | 44/46 |
 
-The misses are the long pickups the [alignment spike](recording-coverage-alignment-spike.md) describes. The one extra
+The misses are the long pickups [the recording check](../utilities/recording-coverage.md#how-it-works) describes. The one extra
 label miss in each split at 0.8 is a paragraph whose long first sentence was dropped (`c-0001-drop-sentence-2`,
 `c-0002-drop-sentence-3`). Under a fifth of it was read, so the harness labels it `missing` instead of `partial` at 0.8.
 The verdicts and regions are unchanged.
