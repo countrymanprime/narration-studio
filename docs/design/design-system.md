@@ -127,6 +127,7 @@ The custom-CSS system (`.btn`, `.panel-head`/`.panel-body`, `.progressbar`, etc.
 ## Conventions
 
 - **A mark placed on a track by time** (Proof's waveform pins, the window's handles) is a 24 px press target centred on its time with the dot drawn inside it, so dots of different sizes share one centre line, and its position is `clamp(half, x%, 100% - half)` so a mark at the start or end stays inside the card's text edges (`WaveformWindow.tsx`, alignment audit XPF-15, R3PF-6).
+- **Read-only quoted text is a filled box, not a field.** Proof's Inspector draws what the script says and what was heard as the Studio Next mock's `.quote`: `--surface-2` fill, no border, the card radius (`quoteClass` in `components/proof/inspector/quoteStyle.ts`; on a tinted banner, the card's `--surface`), with the mock's `.diff` marks, a word struck on `--danger-soft` and a word heard instead on `--ok-soft` without an underline (alignment audit R4TB-5). A bordered box on `--surface` is a text field.
 - **Numeric table columns are right-aligned** (`align="right"` on the `TableHeader`, `numeric` on its `TableCell`s) — see `DiagnosticsTables.tsx` (Delivery's diagnostics) for a reference implementation.
 - **Disabled interactive elements never show a hover affordance.** Use `disabled:pointer-events-none` (Tailwind) alongside `disabled:opacity-*`, not just the opacity change alone — a hover transform/background change that still fires on a disabled element reads as clickable when it isn't.
 - **A field that is read-only, locked or not-yet-persisted is `disabled`, not hidden**, so the user can see what exists without being able to edit it. Story Bible entries open read-only and gain Edit/Save/Cancel controls only on request ([Story Bible](../guides/using-the-app/story-bible.md)); see `GuideDetail.tsx`.s `editingDisabled`.
@@ -189,6 +190,12 @@ The Settings page always keeps every setting. A working page may also offer a co
 - **"Go to line" target** stays highlighted (accent edge and tint) for 30 seconds (`JUMP_HIGHLIGHT_MS` in `script/ScriptPage.tsx`) and its paragraph fades from the accent tint once when the jump lands (`CHANGE_HIGHLIGHT_CLASSES`).
 - **Formatting and line breaks** from import (`spans`, `\n`) render as `<strong>`/`<em>`/`<u>` and `white-space: pre-line` ([Manuscript import: formatting quirks and how they are handled](../architecture/docx-import-quirks.md)).
 - **Side panels** use `SlideOver`; state-dependent classes are mutually exclusive.
+
+## Story Bible entry
+
+- **The names list is one grid** (`NAMES_GRID` in `storybible/GuideDetail.tsx`): the name (9 rem), how it is said, the source and the row's buttons. Each row is a CSS subgrid of it, so the columns are shared and a row with more buttons (an alias's Remove, a flagged name's Mark reviewed) does not move another row's (alignment audit SBX-1 to SBX-4). Play comes first and Record second in every row, so they stand in one column; the buttons only some rows have follow. Read view sizes the pronunciation column to the longest pronunciation, so the source pill follows it and the play button keeps the right edge; edit view gives the room to the text box. The text sits on the middle of the row's 36 px buttons, a pronunciation breaks only between its words (never at the `/` inside `/ˈælɪs/`), and below a 32 rem card the row wraps, the name on a line of its own. The entry's own name is semibold and its aliases medium, so the two read apart in read view.
+- **Rescan sits with Appears in**, the list it refreshes, as a small labelled button beside that heading. The mock has no Rescan; as a lone icon at the right of the names heading it stood over the first row's play and record buttons, a column of unrelated squares (R4SB-1, R3SB1-6).
+- **Add a name** is the mock's 200 px field with an **Add name** button beside it (the mock adds on Enter only), and a clash line and **Merge into this entry** (secondary, the mock's plain `.btn`) on the same row.
 
 ## Chapter names
 
