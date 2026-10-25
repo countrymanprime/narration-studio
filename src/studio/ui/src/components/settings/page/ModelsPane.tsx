@@ -18,6 +18,7 @@ import { ASSET_FILTERS, assetPages, GROUP_OF_KIND, RECOMMENDED_SET, type AssetGr
 import { ANALYSIS_KIND } from '../analysis/components';
 import type { Category } from '../registry/types';
 import { useSettingsNav } from '../row/SettingsNav';
+import { PaneTitle } from './PaneTitle';
 
 type Filter = 'all' | AssetGroup;
 type Notice = { tone: 'alert' | 'status'; text: string };
@@ -25,14 +26,7 @@ type Notice = { tone: 'alert' | 'status'; text: string };
 const list = (names: readonly string[]): string => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : (names[0] ?? ''));
 
 function Heading({ category }: { category: Category }) {
-  return (
-    <div>
-      <h2 id="settings-heading" tabIndex={-1} className="font-['Barlow_Condensed',sans-serif] text-[1.875rem] leading-[1.1] font-semibold outline-none">
-        {category.label}
-      </h2>
-      <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">{category.blurb}</p>
-    </div>
-  );
+  return <PaneTitle title={category.label} blurb={category.blurb} />;
 }
 
 /**
