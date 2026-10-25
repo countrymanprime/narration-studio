@@ -72,7 +72,7 @@ export function ConfirmDialog({
           </Button>
           <div className="flex gap-2">
             {danger && (
-              <Button variant="danger" disabled={pending} onClick={danger}>
+              <Button variant="danger-solid" disabled={pending} onClick={danger}>
                 {dangerLabel}
               </Button>
             )}
@@ -81,7 +81,8 @@ export function ConfirmDialog({
                 {secondaryLabel}
               </Button>
             )}
-            <Button variant={confirmVariant} pending={pending} onClick={confirm}>
+            {/* A confirm that destroys data is the filled red, heavier than Cancel's outline (alignment audit R4SB-4, R3SB1-14). */}
+            <Button variant={confirmVariant === 'danger' ? 'danger-solid' : 'primary'} pending={pending} onClick={confirm}>
               {confirmLabel}
             </Button>
           </div>
