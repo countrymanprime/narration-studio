@@ -10,10 +10,10 @@ import (
 	"unicode"
 )
 
-// ChapterScript is a chapter as the sidecar tokenises it (chapter_script.load_chapter_script): the title's words,
-// then each paragraph's, split on whitespace as Python's str.split() does. A position event's `read` and locate's
+// ChapterScript is a chapter as the sidecar tokenises it (chapter_script.load_chapter_script) and scripttrack ports it:
+// the heading's words (the title's, then the subtitle's), then each paragraph's, split on whitespace as Python's str.split() does. A position event's `read` and locate's
 // `word` index Tokens, so the host can quote the sentence at any of them without running the sidecar.
-// Breaks holds the index of the title's and each paragraph's first token.
+// Breaks holds the index of the heading's and each paragraph's first token.
 type ChapterScript struct {
 	Tokens []string
 	Breaks []int
@@ -28,8 +28,9 @@ func LoadChapterScript(project, chapterID string) (ChapterScript, bool) {
 	}
 	var data struct {
 		Chapters []struct {
-			ID    string `json:"id"`
-			Title string `json:"title"`
+			ID       string `json:"id"`
+			Title    string `json:"title"`
+			Subtitle string `json:"subtitle"`
 		} `json:"chapters"`
 		Paragraphs []struct {
 			ChapterID string `json:"chapterId"`
@@ -43,7 +44,9 @@ func LoadChapterScript(project, chapterID string) (ChapterScript, bool) {
 		if chapter.ID != chapterID {
 			continue
 		}
-		script := ChapterScript{Tokens: splitWords(chapter.Title), Breaks: []int{0}}
+		// The subtitle is read aloud as part of the heading: without its words the token count is not the tracker's or
+		// locate's, and Reconcile drops both places.
+		script := ChapterScript{Tokens: append(splitWords(chapter.Title), splitWords(chapter.Subtitle)...), Breaks: []int{0}}
 		for _, paragraph := range data.Paragraphs {
 			if paragraph.ChapterID == chapterID {
 				script.Breaks = append(script.Breaks, len(script.Tokens))
