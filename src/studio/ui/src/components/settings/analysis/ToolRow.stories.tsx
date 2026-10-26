@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 import { ANALYSIS_TOOLS } from './fixtures';
 import { ToolRow, type ToolRowProps } from './ToolRow';
 
@@ -76,7 +76,7 @@ export const FailedWithDetails: Story = {
       },
     ],
   },
-  play: async ({ canvasElement, userEvent }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByText('Details'));
     await expect(canvas.getByText('Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: open: Access is denied.')).toBeVisible();
