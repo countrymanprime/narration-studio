@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -609,6 +610,7 @@ func TestTheSidecarIsToldHowToSplitTheAudioAndWhichWordsToDoubtOnTheFirstPassOnl
 	p := newTestProject(t)
 	sidecar := &fakeSidecar{}
 	service := p.service(sidecar)
+	service.config.Machine = func() Machine { return Machine{CPUs: 8, FreeMemoryMB: 16384} }
 	request := testRequest()
 	request.Parallel = Parallel{Workers: 3, ChunkSeconds: 120, OverlapSeconds: 8}
 	request.UnsureBelow = 0.55
@@ -621,6 +623,70 @@ func TestTheSidecarIsToldHowToSplitTheAudioAndWhichWordsToDoubtOnTheFirstPassOnl
 	args := flags(launch)
 	if args["--parallel-workers"] != "3" || args["--chunk-seconds"] != "120" || args["--chunk-overlap-seconds"] != "8" || args["--unsure-below"] != "0.55" {
 		t.Fatalf("args = %v", args)
+	}
+}
+
+func TestTheSidecarIsSentThePlannedCountForEachStagesModel(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		machine   Machine
+		model     string
+		requested int
+		want      string
+	}{
+		{"automatic, tiny, 8 cores, 16 GB: half the cores", Machine{CPUs: 8, FreeMemoryMB: 16384}, "tiny", 0, "4"},
+		{"automatic, large-v3, 8 cores, 4 GB: one copy fits", Machine{CPUs: 8, FreeMemoryMB: 4096}, "large-v3", 0, "1"},
+		{"automatic, small, 16 cores, memory unread: the model's cap", Machine{CPUs: 16}, "small", 0, "4"},
+		{"a named 2 is sent as 2", Machine{CPUs: 8, FreeMemoryMB: 16384}, "small", 2, "2"},
+		{"a named 6 on 4 cores is sent as 4", Machine{CPUs: 4, FreeMemoryMB: 16384}, "small", 6, "4"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := newTestProject(t)
+			sidecar := &fakeSidecar{}
+			service := p.service(sidecar)
+			service.config.Machine = func() Machine { return tc.machine }
+			request := testRequest()
+			request.Transcription.Model = tc.model
+			request.Parallel = Parallel{Workers: tc.requested, ChunkSeconds: 120, OverlapSeconds: 8}
+
+			run(t, service, request)
+
+			sidecar.mu.Lock()
+			launch := sidecar.launches[0]
+			sidecar.mu.Unlock()
+			if got := flags(launch)["--parallel-workers"]; got != tc.want {
+				t.Fatalf("--parallel-workers = %q, want %s", got, tc.want)
+			}
+			if plan := service.WorkerPlan(request); strconv.Itoa(plan.Workers) != tc.want {
+				t.Fatalf("WorkerPlan says %+v, the sidecar was sent %s", plan, tc.want)
+			}
+		})
+	}
+}
+
+func TestABackgroundOrSharedRunPlansWithItsShareOfTheComputer(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{})
+	service.config.Machine = func() Machine { return Machine{CPUs: 16, FreeMemoryMB: 65536} }
+	request := testRequest()
+	request.Transcription.Model = "tiny"
+
+	if got := service.WorkerPlan(request).Workers; got != 8 {
+		t.Fatalf("the whole computer: %d, want 16/2", got)
+	}
+	request.CPUs = 4
+	if got := service.WorkerPlan(request); got.Workers != 2 || got.CPUs != 4 {
+		t.Fatalf("a background budget of 4: %+v, want 2 workers on 4", got)
+	}
+	request.CPUs, request.Concurrent = 0, 4
+	if got := service.WorkerPlan(request); got.Workers != 2 || got.FreeMemoryMB != 16384 {
+		t.Fatalf("one of 4 chapters: %+v, want 2 workers on 4 processors and a quarter of the memory", got)
+	}
+	request.Concurrent = 0
+	request.Recheck, request.UnsureBelow, request.Pipeline = Transcription{Model: "large-v3"}, 0.5, true
+	service.config.Machine = func() Machine { return Machine{CPUs: 16, FreeMemoryMB: 4096} }
+	if got := service.WorkerPlan(request); got.Workers != 1 {
+		t.Fatalf("a pipelined large-v3 beside tiny in 4 GB: %+v, want 1", got)
 	}
 }
 

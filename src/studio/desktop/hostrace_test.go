@@ -228,6 +228,7 @@ var stressReaders = []stressReader{
 	{"canAttach (ProjectCreateIn's pre-check)", func(h *Host) { _ = h.canAttach() }},
 	{"CoverageStart (asset gate)", func(h *Host) { _, _ = h.CoverageStart("c-0001", nil) }},
 	{"CoverageEngines", func(h *Host) { _, _ = h.CoverageEngines() }},
+	{"CoverageWorkerPlan", func(h *Host) { _, _ = h.CoverageWorkerPlan(nil) }},
 	{"CoverageGapAccept", func(h *Host) { _, _ = h.CoverageGapAccept("c-0001", "missing:p-000001:1") }},
 	{"CoverageGapIgnore", func(h *Host) { _, _ = h.CoverageGapIgnore("c-0001", "missing:p-000001:1") }},
 	{"CoverageGapReviews", func(h *Host) { _, _ = h.CoverageGapReviews("c-0001") }},

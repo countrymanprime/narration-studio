@@ -775,6 +775,7 @@ func (h *Host) configureLocked(next config) {
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: projectFileReader{},
 		Align:         h.coverageAligner,
+		Machine:       coverageMachine,
 	}, h.coverageLauncherLocked(), h.emitCoverage)
 	// A chapter's recordedFraction is the measured share of its words from a current, complete check, and absent otherwise;
 	// reading it never starts a check.

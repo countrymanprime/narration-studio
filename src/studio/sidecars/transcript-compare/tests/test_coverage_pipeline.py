@@ -7,8 +7,10 @@ import importlib
 import json
 import threading
 import time
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
 
+import numpy as np
 import pytest
 import test_coverage_mode as base
 from hypothesis import given
@@ -31,6 +33,7 @@ from test_coverage_mode import (
 )
 
 pipeline = importlib.import_module("coverage_pipeline")  # on sys.path once test_coverage_mode is imported
+chunks = importlib.import_module("coverage_chunks")
 progress = base.progress
 
 WAIT = 5.0
@@ -550,6 +553,53 @@ def test_items_are_transcribed_in_parallel_up_to_the_workers_asked_for(tmp_path,
 
     assert 2 <= peak[0] <= 2
     assert [item["index"] for item in _results(args)["COVERAGE_ITEM"]] == [0, 1, 2]
+
+
+@pytest.mark.parametrize(
+    ("items", "workers", "pools", "peak"),
+    [
+        (3, 1, [], 1),  # one at a time: no process is started, one transcription runs
+        (3, 3, [], 3),  # three items side by side, each chunk in this process on one shared model
+        (1, 3, [3], 3),  # one long item: its chunks take all three processes
+        (2, 4, [2, 2], 4),  # two items, two processes each: never more than the four asked for
+    ],
+)
+def test_the_parallel_count_sets_the_processes_started_and_the_transcriptions_at_once(tmp_path, progress, cpus, monkeypatch, items, workers, pools, peak):
+    cpus(8)
+    manuscript, manifest, _truth_by_item = _corpus(tmp_path, count=items, seconds=120.0)
+    monkeypatch.setattr(compare, "decode_segment", lambda path, start, length: np.zeros(int(length * chunks.SAMPLE_RATE), dtype=np.float32))
+    monkeypatch.setattr(compare, "load_vocabulary_hints", lambda path: None)
+    started, running, most, calls, lock = [], [0], [0], [0], threading.Lock()
+    # The calls that must be in flight together: each item's first chunk runs before its pool starts, so with a pool the
+    # gate waits for the pool's chunks; the gate raises BrokenBarrierError if the count never reaches `peak` at once.
+    gate, skip = threading.Barrier(peak, timeout=WAIT), items if pools else 0
+
+    def chunk(job):
+        with lock:
+            call = calls[0]
+            calls[0] += 1
+            running[0] += 1
+            most[0] = max(most[0], running[0])
+        try:
+            if peak > 1 and skip <= call < skip + peak:
+                gate.wait()
+            return chunks.ChunkWords(job.chunk, (), (), "en")
+        finally:
+            with lock:
+                running[0] -= 1
+
+    def pool(processes):
+        started.append(processes)
+        return ThreadPool(processes)
+
+    monkeypatch.setattr(chunks, "whisper_chunk", chunk)
+    monkeypatch.setattr(chunks, "spawn_pool", pool)
+    args = _args(tmp_path, manuscript, manifest, parallel_workers=workers, chunk_seconds=30, chunk_overlap_seconds=2)
+
+    mode.run(args, compare)
+
+    assert sorted(started) == pools
+    assert most[0] == peak <= workers
 
 
 def test_the_pool_gives_the_same_chapter_as_one_item_at_a_time(tmp_path, progress, cpus):

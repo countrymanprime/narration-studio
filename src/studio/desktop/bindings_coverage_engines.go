@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/coverage"
 	"desktop/internal/settings"
 )
 
@@ -91,4 +92,41 @@ func listedOrFirst(engines []coverageEngine, id string) string {
 		return engines[0].ID
 	}
 	return ""
+}
+
+// coverageWorkerPlan is CoverageWorkerPlan's answer: the plan for one chapter, the model's name as the catalog gives it,
+// the chapters checked at once and the whole computer's processors.
+type coverageWorkerPlan struct {
+	coverage.WorkerPlan
+	ModelLabel   string `json:"modelLabel"`
+	Chapters     int    `json:"chapters"`
+	ComputerCPUs int    `json:"computerCpus"`
+}
+
+// CoverageWorkerPlan says how many transcriptions a recording check started now with options (CoverageStart's: "model",
+// "recheck", "workers", "chapters" and the rest, over the settings) would run at once for each chapter, on this
+// computer's processors and free memory, and what set the number: the plan CoverageStart sends the sidecar. The Settings
+// page and the Check recordings dialog show it beside the count. It reads the settings and this computer, not a project.
+func (h *Host) CoverageWorkerPlan(options map[string]string) (string, error) {
+	choices, err := resolveCoverageChoices(h.services().settings, options)
+	if err != nil {
+		return "", err
+	}
+	request := coverage.Request{
+		Transcription: coverage.Transcription{Model: choices.FirstPass},
+		Parallel:      choices.Parallel,
+		Pipeline:      choices.Pipeline,
+		Concurrent:    choices.Parallel.Chapters,
+	}
+	if choices.Recheck != "" {
+		request.Recheck, request.UnsureBelow = coverage.Transcription{Model: choices.Recheck}, choices.UnsureBelow
+	}
+	machine := coverageMachine()
+	answer := coverageWorkerPlan{WorkerPlan: coverage.PlanRequest(machine, request), ModelLabel: choices.FirstPass, Chapters: max(1, choices.Parallel.Chapters), ComputerCPUs: max(1, machine.CPUs)}
+	if models := h.registry().whisper; models != nil {
+		if model, known := models.Model(choices.FirstPass); known && model.DisplayName != "" {
+			answer.ModelLabel = model.DisplayName
+		}
+	}
+	return encodeBinding(answer, nil)
 }
