@@ -172,7 +172,8 @@ threshold that raised it, and the file and the kind of source it was measured in
 REAPER: the section plays nothing, changes nothing and saves nothing, so every finding is a candidate to
 listen to, not a verdict. When nothing reaches a threshold, the section says so without calling the file
 a pass. **Thresholds**, below it, lists every threshold the check uses, even before you check anything. They are
-fixed in this version; only the silence cleanup values below can be changed.
+fixed in this version; only the silence cleanup values below can be changed. Each of these cards has a **?** by its buttons that says in a
+line what it lists; the rest is here, not on the page.
 
 **Silence cleanup candidates**, below that, lists the silences, breaths and clicks the same check found in
 each file, each a candidate to cut. Nothing is cut from here. The values the check used are listed under the
