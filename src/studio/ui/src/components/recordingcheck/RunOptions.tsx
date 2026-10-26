@@ -65,7 +65,6 @@ export function RunOptions({
       </label>
       <Checkbox checked={choices.recheck} onChange={(recheck) => onChange({ recheck })}>
         Look again with a larger model
-        <span className="block text-[var(--text-muted)]">Only the passages that are missing or that Whisper was unsure of are transcribed a second time.</span>
       </Checkbox>
       {choices.recheck ? (
         <div className="flex flex-col gap-3 pl-6">
@@ -123,7 +122,6 @@ export function RunOptions({
             onValueChange={(overlapSeconds) => onChange({ overlapSeconds })}
           />
           {/* Each hint sits under the controls it explains (alignment audit XPF-20). */}
-          <p className="m-0 text-sm text-[var(--text-muted)]">Chunks overlap so a word on an edge is whole in one of them.</p>
           <Slider
             label={<span className={LABEL}>Parallel workers</span>}
             aria-label="Parallel workers"
@@ -138,7 +136,6 @@ export function RunOptions({
           <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
             Let the model choose the workers
           </Checkbox>
-          <p className="m-0 text-sm text-[var(--text-muted)]">Each worker transcribes its own chunks.</p>
           <label className="flex flex-col gap-1">
             <span className={LABEL}>Chapters at once</span>
             <Select
@@ -149,7 +146,6 @@ export function RunOptions({
               options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
             />
           </label>
-          <p className="m-0 text-sm text-[var(--text-muted)]">Chapters share the processors, so more chapters at once means fewer workers for each.</p>
         </fieldset>
       ) : (
         <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--border)] p-0 pt-3 @sm:grid-cols-3">
@@ -189,9 +185,6 @@ export function RunOptions({
               options={withChoice(OVERLAP_SECONDS, choices.overlapSeconds).map((seconds) => ({ value: String(seconds), label: `${seconds} s` }))}
             />
           </label>
-          <p className="m-0 text-[var(--text-muted)] @sm:col-span-3">
-            Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.
-          </p>
           <label className="flex flex-col gap-1">
             <span className={LABEL}>Chapters at once</span>
             <Select
@@ -202,7 +195,6 @@ export function RunOptions({
               options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
             />
           </label>
-          <p className="m-0 self-end text-[var(--text-muted)] @sm:col-span-2">Chapters share the processors, so more at once means fewer processes for each.</p>
         </fieldset>
       )}
       <p className="m-0">{runSummary(choices, engines)}</p>

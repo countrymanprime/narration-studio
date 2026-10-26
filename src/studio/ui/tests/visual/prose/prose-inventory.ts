@@ -27,16 +27,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'state',
   },
   {
-    file: 'components/booth/ReaderKey.tsx',
-    text: 'Click a highlighted name, note or flag to open it here. The reading position stays where it is.',
-    class: 'instruction',
-  },
-  {
-    file: 'components/booth/ReaderKey.tsx',
-    text: 'Flags are suspected: live listening can mishear a correct read. Transcript Compare over the recording is authoritative.',
-    class: 'explanation',
-  },
-  {
     file: 'components/booth/RecordInReaperConfirm.tsx',
     text: 'Play will arm and start recording in REAPER on the track linked to … , and Stop will stop that recording.',
     class: 'overlay',
@@ -130,11 +120,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/editing/EditingPage.tsx', text: 'Import a manuscript with at least one narration chapter first.', class: 'empty' },
   { file: 'components/editing/cleanup/CleanupPreview.tsx', text: 'Hidden on …; nothing is deleted.', class: 'state' },
-  {
-    file: 'components/editing/effects/AddEffect.tsx',
-    text: 'Favourites are saved for every project. To keep them for one project only, use Favourite effects in Settings, under Set on a page.',
-    class: 'explanation',
-  },
   {
     file: 'components/editing/effects/ChooseInDaw.tsx',
     text: 'Choose an effect for … in …’s FX window. When you close that window it is added to these words; Keep it adds it now.',
@@ -308,43 +293,13 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/master/DiagnosticsSection.tsx',
-    text: 'Silences, breaths and clicks the same check found while reading each file, each a candidate to cut, never applied here: cutting a candidate needs the … actions this app does not yet run from here. Nothing is saved, played or changed.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/master/DiagnosticsSection.tsx',
     text: 'No silence, breath or click candidates in the checked files, against the thresholds below.',
     class: 'empty',
   },
   {
     file: 'components/master/DiagnosticsSection.tsx',
-    text: 'Set in Settings &gt; Silence cleanup (Open Settings, above), or for this project only from Jump to or run &gt; Open Silence cleanup options.',
-    class: 'instruction',
-  },
-  {
-    file: 'components/master/DiagnosticsSection.tsx',
-    text: 'These are starting values, fixed in this version and not a delivery specification. Each finding shows the threshold that raised it.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/master/DiagnosticsSection.tsx',
-    text: 'Clipping, level shifts, room-tone changes and long pauses, each with its time in the file and the threshold that raised it. Listen at those times in …: nothing here is saved, played or changed.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/master/DiagnosticsSection.tsx',
-    text: 'Room tone and level mean different things in each: a render may have been gated or cleaned on purpose.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/master/DiagnosticsSection.tsx',
     text: 'Nothing reached a threshold in the checked files. That is not a pass: it only means no clipping, level shift, room-tone change or long pause reached the thresholds below.',
     class: 'empty',
-  },
-  {
-    file: 'components/master/DiagnosticsSection.tsx',
-    text: 'Every finding is a candidate to listen to, not a verdict, and stays unreviewed: deciding on them comes with the review list.',
-    class: 'explanation',
   },
   {
     file: 'components/master/DiagnosticsSection.tsx',
@@ -478,26 +433,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Only the passages that are missing or that Whisper was unsure of are transcribed a second time.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Chapters share the processors, so more chapters at once means fewer workers for each.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Chapters share the processors, so more at once means fewer processes for each.',
-    class: 'explanation',
-  },
-  {
     file: 'components/recordingcheck/background/BackgroundChecksNotice.tsx',
     text: '… changed since … last check. The app can listen back to what you recorded while you work and mark skipped or misread words, so they are ready on Editing and Pickups.',
     class: 'overlay',
@@ -565,21 +500,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Replace takes it from "…", which is then left with no key; you can give it another one afterwards.',
     class: 'explanation',
   },
-  {
-    file: 'components/settings/KeyboardPanel.tsx',
-    text: 'Choose Change, then press the key or pedal to use. A USB footswitch that types a key works like a keyboard. These apply to every project.',
-    class: 'instruction',
-  },
   { file: 'components/settings/RecordingCheckSummary.tsx', text: 'Misreads, extra words and a spoken title never count against it.', class: 'explanation' },
   {
     file: 'components/settings/RecordingCheckSummary.tsx',
     text: 'These values were chosen on synthetic test recordings and have not been checked against real recordings yet. Changing the first two only changes how a stored check is judged; changing either of the last two makes earlier checks out of date, so check those chapters again.',
     class: 'explanation',
-  },
-  {
-    file: 'components/settings/RetailSamplePanel.tsx',
-    text: 'Pick up to 5 minutes from anywhere in the book. The sample is marked in the Manuscript view; it adds no time to the estimate.',
-    class: 'instruction',
   },
   {
     file: 'components/settings/UpdatesPanel.tsx',
@@ -626,7 +551,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/controls/MicBody.tsx',
     text: 'Type the device name the Booth should use, or leave it empty for the system input.',
-    class: 'instruction',
+    class: 'error',
   },
   {
     file: 'components/settings/controls/MwKeyBody.tsx',
