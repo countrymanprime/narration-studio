@@ -197,6 +197,44 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     expect(rows[0]!.cells.record).toMatchObject({ kind: 'none', state: 'not started' });
   });
 
+  it('says in its tip and name how far the chapter is recorded (#2251): through which paragraph, to the end, or about for the track’s length', () => {
+    const through = { paragraphId: 'p-12', paragraph: 12, word: 3, percent: 38, complete: false, source: 'booth', confident: true } as const;
+    const [part, whole, about, unnumbered, unlinked] = rowsOf([
+      chapter('c1', { recordedSeconds: 1500, recordedThrough: through }),
+      chapter('c2', { recordedSeconds: 3600, recordedThrough: { ...through, paragraph: 40, percent: 100, complete: true, source: 'proof' } }),
+      chapter('c3', { recordedSeconds: 1080, recordedThrough: { ...through, percent: 30, source: 'daw', confident: false } }),
+      chapter('c4', { recordedSeconds: 1500, recordedThrough: { ...through, paragraph: undefined } }),
+      chapter('c5', { recordedUnavailable: 'unlinked', recordedThrough: through }),
+    ]);
+    expect(part!.recorded.label).toBe('Chapter 1: 0:25 recorded of about 1:00 estimated, recorded through paragraph 12 (38%)');
+    expect(part!.recorded.tip).toBe(
+      '0:25 recorded of about 1:00 estimated · on the linked track in the saved project, before editing · Recorded through ¶ 12 (38%)',
+    );
+    expect(whole!.recorded.tip).toContain(' · Recorded to the end');
+    expect(whole!.recorded.label).toBe('Chapter 2: 1:00 recorded of about 1:00 estimated, recorded to the end');
+    expect(about!.recorded.label).toContain('recorded through about paragraph 12 (~30%)');
+    expect(about!.recorded.tip).toContain('Recorded through about ¶ 12 (~30%, from the track’s length)');
+    // A host without the paragraph number says the share alone, never a made-up ¶.
+    expect(unnumbered!.recorded.label).toMatch(/, recorded through 38%$/);
+    // Proof and the Booth's takes say how far a chapter is recorded even when no track is linked to measure.
+    expect(unlinked!.recorded).toMatchObject({ kind: 'none', text: 'Not linked' });
+    expect(unlinked!.recorded.label).toBe('Chapter 5: recorded not linked, recorded through paragraph 12 (38%)');
+  });
+
+  it('draws the Record percent from how far the chapter is recorded, so the board and the Booth agree', () => {
+    const through = { paragraphId: 'p-12', paragraph: 12, word: 3, percent: 38, complete: false, source: 'booth', confident: true } as const;
+    const [part, whole, none] = rowsOf([
+      chapter('c1', { status: 'recording', recordedSeconds: 2700, recordedThrough: through }),
+      chapter('c2', { status: 'recording', recordedSeconds: 3600, recordedThrough: { ...through, percent: 100, complete: true } }),
+      chapter('c3', { status: 'recording', recordedSeconds: 1800 }),
+    ]);
+    expect(part!.cells.record).toMatchObject({ kind: 'progress', text: '38%', state: '38% recorded' });
+    expect(part!.cells.record.tip).toContain('Recorded through ¶ 12 (38%)');
+    expect(whole!.cells.record).toMatchObject({ kind: 'progress', text: '100%', state: '100% recorded' });
+    expect(whole!.cells.record.tip).toContain('Recorded to the end');
+    expect(none!.cells.record).toMatchObject({ kind: 'progress', text: '50%' });
+  });
+
   it('never shows under a minute of audio as 0:00, and shows a dash for a chapter with no words to estimate from', () => {
     const [short] = rowsOf([chapter('c1', { recordedSeconds: 20, wordCount: 0 })]);
     expect(short!.recorded.text).toBe('<0:01');

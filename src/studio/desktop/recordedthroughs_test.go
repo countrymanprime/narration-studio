@@ -46,9 +46,9 @@ func TestEachChapterIsRecordedThroughWhatItsOwnSourcesSay(t *testing.T) {
 	got := recordedThroughsFor(project, []string{"c1", "c2", "c3", "gone"}, proof, lengths)
 
 	want := map[string]recordedthrough.Through{
-		"c1": {ParagraphID: "p2", Word: 3, Percent: 71, Source: recordedthrough.SourceBooth, Confident: true},
-		"c2": {ParagraphID: "p3", Word: 9, Percent: 52, Source: recordedthrough.SourceProof, Confident: true},
-		"c3": {ParagraphID: "p6", Word: 9, Percent: 100, Complete: true, Source: recordedthrough.SourceDAW},
+		"c1": {ParagraphID: "p2", Paragraph: 2, Word: 3, Percent: 71, Source: recordedthrough.SourceBooth, Confident: true},
+		"c2": {ParagraphID: "p3", Paragraph: 1, Word: 9, Percent: 52, Source: recordedthrough.SourceProof, Confident: true},
+		"c3": {ParagraphID: "p6", Paragraph: 2, Word: 9, Percent: 100, Complete: true, Source: recordedthrough.SourceDAW},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got %+v, want %+v", got, want)

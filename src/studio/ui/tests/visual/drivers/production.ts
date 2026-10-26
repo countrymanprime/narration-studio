@@ -55,10 +55,10 @@ export const productionDrivers: Record<string, Driver> = {
     await openProduction(page, '?mockProduction=linked');
     const table = page.getByRole('table', { name: 'Chapter pipeline' });
     await table
-      .getByRole('img', { name: /: recorded none yet$/ })
+      .getByRole('img', { name: /: recorded none yet(,|$)/ })
       .first()
       .waitFor();
-    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded not linked$/ }).waitFor();
+    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded not linked(,|$)/ }).waitFor();
   },
 
   'live-updates-degraded': async (page) => {

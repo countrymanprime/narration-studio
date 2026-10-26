@@ -14,6 +14,7 @@
       "recordedThrough": {
         "complete": true,
         "confident": true,
+        "paragraph": 40,
         "paragraphId": "p-000040",
         "percent": 100,
         "source": "proof",
@@ -38,6 +39,7 @@
       "recordedThrough": {
         "complete": false,
         "confident": true,
+        "paragraph": 12,
         "paragraphId": "p-000052",
         "percent": 38,
         "source": "booth",
