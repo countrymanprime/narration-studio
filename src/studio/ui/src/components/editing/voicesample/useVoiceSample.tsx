@@ -8,7 +8,7 @@ import { usePort } from '../../../ports/usePort';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
 import { registerWordMenuSection } from '../menu/wordMenuRegistry';
-import { summarize } from '../model';
+import { heardWindow, summarize } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
 import { VoiceSampleDialog, type Audition } from './VoiceSampleDialog';
 import { characterChoices, speakerOfWord } from './voiceSampleCharacters';
@@ -80,7 +80,8 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
         const file = result.ok ? items.find((item) => item.guid === result.range.itemGuid)?.sourceFile : undefined;
         const words = summarize(doc, [...picked], [], (t) => t);
         const page = live.current;
-        const through = page && words.audible.length ? { play: () => page.playFrom(words.start, words.end), stop: page.stop } : undefined;
+        const heard = words.audible.length ? heardWindow(doc, words.audible[0].key, words.audible[words.audible.length - 1].key, words.start, words.end) : null;
+        const through = page && heard ? { play: () => page.playFrom(...heard), stop: page.stop } : undefined;
         const audition: Audition | undefined =
           result.ok && file
             ? { sourceFile: file, start: result.range.sourceStart, end: result.range.sourceEnd, mediaUrl, ...(through ? { through } : {}) }
