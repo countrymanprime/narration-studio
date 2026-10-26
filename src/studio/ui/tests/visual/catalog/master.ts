@@ -105,7 +105,11 @@ export const masterStates: StateEntry[] = [
   {
     page: 'master',
     state: 'report-needs-files',
-    description: 'Master & QC, before anything was checked - Export report is off and says to check some files first (scrolled to the Report panel)',
+    // The whole page: scrolled to the Report panel, the last on the page, it drew the same screen as diagnostics-empty wherever the
+    // page is too short to bring Diagnostics to the top (#2532 shortened it).
+    fullPage: true,
+    description:
+      'Master & QC, before anything was checked, the whole page - every panel down to the Report panel, whose Export report is off and says to check some files first',
     ...KEEPS_DESKTOP_SCROLL,
   },
   // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)

@@ -176,7 +176,8 @@ export const editingStates: StateEntry[] = [
     state: 'drawer-effects-chains',
     // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
     mask: ['[data-projectfx-read]'],
-    description: 'Editing, the drawer on Effects with a DAW that lists its chains - each chain with a Favourite button, the favourites first',
+    description:
+      'Editing, the drawer on Effects with a DAW that lists its chains, one starred - each chain with a Favourite button, the starred chain moved first and its button pressed',
   },
   {
     page: 'editing',

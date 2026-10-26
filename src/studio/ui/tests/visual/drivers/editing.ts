@@ -259,10 +259,14 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Clean up and effects' }).click();
     await page.locator('#drawer').waitFor();
     await page.getByRole('tab', { name: /^Effects/ }).click();
-    await page
-      .getByRole('button', { name: /^Favourite .*RfxChain$/ })
-      .first()
-      .waitFor();
+    const chains = page.getByRole('button', { name: /^Favourite .*RfxChain$/ });
+    await chains.first().waitFor();
+    // Every Effects tab lists the linked DAW's chains now (drawer-effects draws them too): this state stars the last one, so it shows a
+    // favourite moved to the top, which is what tells it apart.
+    const last = chains.last();
+    const name = await last.getAttribute('aria-label');
+    await last.click();
+    await page.getByRole('button', { name: name ?? '', exact: true, pressed: true }).waitFor();
   },
   'drawer-effects-choose': async (page) => {
     // Choose in REAPER… on the selected words: the mock host's REAPER answers that ReaComp is chosen, its window still open.
