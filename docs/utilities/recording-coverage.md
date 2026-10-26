@@ -20,9 +20,9 @@ recording" from memory. The cost of a wrong call is an editing pass started on a
 
 Save the REAPER project. Every narration chapter's Record cell on the Production board already shows its check without a click
 a bold label ("Current", "Out of date", "Never checked", "Needs a track", "Suggested track",
-"Track missing" or "No track yet") and, under it, when it was checked or last changed. There is no separate Check
-button any more; the row itself opens the chapter's recording-check panel, a slide-over with the stored result and
-**Check recording** (or **Check again**). The check reads the chapter's confirmed REAPER track from the saved project
+"Track missing" or "No track yet") and, under it, when it was checked or last changed. Every entry that starts a check (the
+Recording check card, a row's menu, a credits row, the readiness panel, and Proof, Pickups and Editing) opens the one **Check
+recordings** dialog (`openCheckRecordings`) with its chapters ticked; Proof's Recording check card shows the stored result. The check reads the chapter's confirmed REAPER track from the saved project
 file. It transcribes each item's played range that it has not transcribed before, and then aligns the chapter's text
 to the words in order. The result reads "Text present: N of M words" and lists each missing region: which paragraphs,
 how many words, the first and last missing words, and where the gap sits in the audio. When every paragraph passes the
@@ -61,7 +61,7 @@ A background check is not the narrator's own Check recording:
 - It plans for `background_processors` processors, or, at 0, half the computer's, a quarter while the Booth follows a reading
   (`coverage.BackgroundCPUs`, the sidecar's `--cpus`), and its sidecar runs below normal priority
   (`process.WithLowPriority`: `BELOW_NORMAL_PRIORITY_CLASS` on Windows, nice 10 elsewhere).
-- Pressing **Check recording** pre-empts it.
+- A check the narrator starts in **Check recordings** pre-empts it.
 
 `chaptersync:state`'s `background` says why none runs (`wait`), how many changed chapters wait (`queued`) and the model pair
 (`firstPassModel`, `recheckModel`). The app shows a running background check, and the chapters that wait with their reason, at
@@ -166,7 +166,7 @@ flowchart LR
   removed, trimmed, moved, muted or switched to another take, or an audio file changed. It also goes stale when the
   chapter's text, the equivalences, the vocabulary hints or an alignment setting changes. A different Whisper model or
   language keeps it current and labelled with the model (Q13).
-- **Three readers.** The Production board's slide-over (`RecordingCheck.tsx`, opened from the row's check-status cell, which replaced the row's own Check button) shows the stored report. The `CoverageResult` payload also
+- **Three readers.** Check recordings' result view (`recordingcheck/CheckResult.tsx`) and Proof's Recording check card (`proof/checkcard/CheckCard.tsx`) show the stored report. The `CoverageResult` payload also
   carries `judgement`: met or not met by the narrator's thresholds, with the gap that fails first. It comes from
   `coverage.Judge`, the same function the stage signal uses, so the two cannot disagree. It is set for any complete
   result with a report, a stale one included (as of the last check)
@@ -348,17 +348,21 @@ flowchart LR
   confident words. `planRecheck` adds a window for each, bounded to the item's played range, beside the windows of the missing regions, and merges and pads
   them by the same rules (MC3). A word with no score (a file written before scores) is never doubted. Scores never score a gap.
 - **One decision about what runs.** `resolveCoverageChoices` (`src/studio/desktop/coverage_choices.go`) reads the settings and the run's options once. The
-  Check recordings dialog and a press from a chapter's panel call it, so the same chapter is checked the same way wherever the narrator starts it. The
+  Check recordings dialog, the only place a narrator starts a check, calls it, so the same chapter is checked the same way wherever the narrator starts it. The
   dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice. A background check takes the chunking and the doubt line from it and
   its own model pair and processors from the background settings above, and never downloads a model.
 - **Several chapters at once**.
   `coverage.Service` holds one job per run, each with its own sidecar, folder and state. A start is refused while `Request.Concurrent` runs are
   already in progress (1 when it names none, the old rule) and while the same chapter is being checked. A Check recordings run names
   its Chapters at once on every start, and the dialog keeps that many in progress, starting the next as each ends. `coverage:state` carries every run's
-  state with its run id and chapter, so a page keeps state by chapter (`useCoverageRuns`). With workers left to the host, each chapter gets
+  state with its run id and chapter, so the dialog and Proof's card follow each run by its chapter. With workers left to the host, each chapter gets
   `cpus / chapters` processes. Cancel stops every run; a background check gives way to a narrator's start without touching the narrator's other runs.
-- **One set of options.** `RunOptions` draws the choices (model, larger model and score line, chunk length, processes, crossover, chapters at once) for
-  both the Check recordings dialog and a chapter's own check panel (Production, Proof and Editing), starting from `CoverageEngines.defaults`.
+- **One flow.** `CheckRecordingsDialog` is the one recording check: one container (a wide dialog), one host entry (`coverageStart` from its run
+  reducer), one set of options (`RunOptions`: model, larger model and score line, chunk length, overlap, workers, chapters at once, starting from
+  `CoverageEngines.defaults`) and one chapter result view (`CheckResult` with `RecordingCheckReport`, after a single chapter's run or from a
+  row's Show result). A start the host holds for a missing model (`asset_required`, `recheck_asset_required`) is asked for in the dialog
+  (`useAssetInstall` on the `whisper` port), with "Check with <model> only" for a missing larger model. A page's entry hands it the
+  chapters to tick and nothing else. Proof's `CheckCard` is the findings triage on Proof (accept or ignore each).
 - **What is not measured.** The chunked path is tested with real spawned processes and a fake model; no real-speech timing or accuracy was measured, so the
   shipped 5 min, 6 s and 0.5 are provisional like the other numbers. The words files made before scores are made again once (cache version 3).
 

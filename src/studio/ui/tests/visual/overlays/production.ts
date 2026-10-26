@@ -29,7 +29,7 @@ export const productionCases: OverlayCase[] = [
   fromState('production', 'chapter-remove-confirm'),
   fromState('production', 'credits-setup-dialog'),
   fromState('production', 'import-confirm'),
-  fromState('production', 'recording-check-complete'),
+  fromState('production', 'recording-check-never'),
   fromState('production', 'recording-check-model-required'),
   fromState('production', 'chapter-sync-consent'),
   fromState('production', 'credits-panel'),

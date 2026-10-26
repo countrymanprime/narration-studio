@@ -3,12 +3,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
-import type { NarrationApi } from '../../../types';
+import type { AssetItem, NarrationApi } from '../../../types';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import { MemoryRouter } from 'react-router-dom';
 import { SettingsPage } from '../page/SettingsPage';
 import { AnalysisToolsSection } from './AnalysisToolsSection';
-import { createFakeTools, type FakeInstall } from './fixtures';
+import { ANALYSIS_TOOLS, createFakeTools, type FakeInstall } from './fixtures';
 
 afterEach(cleanup);
 
@@ -17,8 +17,8 @@ afterEach(cleanup);
 // `testTimeout`, 15 s). It still ends as soon as the state arrives.
 const SLOW = { timeout: 10_000 };
 
-function mount(options: { installs?: Record<string, FakeInstall>; overrides?: Partial<NarrationApi> } = {}) {
-  const fake = createFakeTools({ installs: options.installs });
+function mount(options: { tools?: AssetItem[]; installs?: Record<string, FakeInstall>; overrides?: Partial<NarrationApi> } = {}) {
+  const fake = createFakeTools({ tools: options.tools, installs: options.installs });
   const port = {
     assetsList: vi.fn(fake.port.assetsList),
     assetsInstall: vi.fn(fake.port.assetsInstall),
@@ -54,7 +54,6 @@ describe('AnalysisToolsSection', () => {
       ['gliner', 'GLiNER'],
       ['booknlp-small', 'BookNLP (small)'],
       ['booknlp-big', 'BookNLP (large)'],
-      ['local-llm', 'Local language model'],
     ]) {
       expect(within(await row(id)).getByRole('heading', { level: 3, name })).toBeTruthy();
     }
@@ -71,14 +70,14 @@ describe('AnalysisToolsSection', () => {
   });
 
   it('unavailable-shows-its-reason-and-no-button', async () => {
-    mount();
-    const local = await row('local-llm');
-    expect(local.getAttribute('data-status')).toBe('unavailable');
-    expect(within(local).getByText('Not available yet')).toBeTruthy();
-    expect(local.querySelector('[data-comp-reason]')!.textContent).toBe(
-      'A model small enough for this computer takes many hours per book. It will be offered once that is practical.',
-    );
-    expect(within(local).queryAllByRole('button')).toHaveLength(0);
+    // No row of the production catalog is pending today; a row whose files are not all pinned still says why and offers nothing.
+    const pending = 'GLiNER is not yet available: its download is still being checked, and it will be offered once every file is pinned.';
+    mount({ tools: ANALYSIS_TOOLS.map((tool) => (tool.id === 'gliner' ? { ...tool, unavailableReason: pending } : tool)) });
+    const gliner = await row('gliner');
+    expect(gliner.getAttribute('data-status')).toBe('unavailable');
+    expect(within(gliner).getByText('Not available yet')).toBeTruthy();
+    expect(gliner.querySelector('[data-comp-reason]')!.textContent).toBe(pending);
+    expect(within(gliner).queryAllByRole('button')).toHaveLength(0);
   });
 
   it('download-asks-first', async () => {

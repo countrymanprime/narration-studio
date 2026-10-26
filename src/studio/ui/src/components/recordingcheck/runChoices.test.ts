@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CoverageEngines } from '../../api/contracts/coverage';
-import { chunkLabel, runProblem, runSummary, startChoices, startOptions, withChoice, workerChoices, type RunChoices } from './runChoices';
+import { chunkLabel, runProblem, runSummary, startChoices, startOptions, withChoice, type RunChoices } from './runChoices';
 
 const engines: CoverageEngines = {
   default: 'small',
@@ -52,18 +52,6 @@ describe('startOptions', () => {
   });
 });
 
-describe('workerChoices', () => {
-  it('offers automatic, then each count up to the computer’s processors', () => {
-    expect(workerChoices(4)).toEqual([0, 1, 2, 3, 4]);
-    expect(workerChoices(16)).toEqual([0, 1, 2, 3, 4, 6, 8, 12, 16]);
-  });
-
-  it('always offers at least one process', () => {
-    expect(workerChoices(0)).toEqual([0, 1]);
-    expect(workerChoices(Number.NaN)).toEqual([0, 1]);
-  });
-});
-
 describe('withChoice', () => {
   it('keeps a value a setting holds even when it is not in the list', () => {
     expect(withChoice([60, 300], 120)).toEqual([60, 120, 300]);
@@ -83,14 +71,14 @@ describe('runProblem', () => {
   });
 
   it('names a first-pass model that is not installed', () => {
-    expect(runProblem({ ...base, model: 'large-v3' }, engines)).toBe('Download Large v3 in Settings first.');
+    expect(runProblem({ ...base, model: 'large-v3' }, engines)).toBe('Large v3 is not installed yet: Check asks before downloading it.');
     expect(runProblem({ ...base, model: 'gone' }, engines)).toBe('Choose a speech model.');
   });
 
   it('names a larger model that is not installed, only when the second pass is on', () => {
     const choices: RunChoices = { ...base, recheckModel: 'large-v3' };
     expect(runProblem(choices, engines)).toBeUndefined();
-    expect(runProblem({ ...choices, recheck: true }, engines)).toBe('Download Large v3 in Settings first.');
+    expect(runProblem({ ...choices, recheck: true }, engines)).toBe('Large v3 is not installed yet: Check asks before downloading it.');
   });
 
   it('refuses a second pass by the same model as the first, which would find nothing new', () => {

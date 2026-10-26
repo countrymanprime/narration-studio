@@ -252,8 +252,28 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-popover',
     description:
-      "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share) and the Booth size, 40 px, on a slider from 24 to 72 in steps of 4",
+      "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share), the Booth size, 40 px, on a slider from 24 to 72 in steps of 4, and the Column width, Medium (the Script's and Settings › Reader text's Column width, one saved choice), on a slider from Narrow to Full",
     ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'text-width-narrow',
+    description:
+      'Booth (as setup) with Text settings › Column width moved to Narrow and the popover closed: the text column 48ch wide, the Script’s Narrow (Medium is 64ch), left-aligned, each paragraph starting at the column edge with no indent and a small gap above it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'text-width-full',
+    description:
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100ch, so at 40 px it runs the width of the text area between the gutters, left-aligned, no paragraph indent',
+    ...REFLOW,
+    sameAs: {
+      of: 'booth/text-width-narrow',
+      reason:
+        'At tablet and reflow the text area is narrower than Narrow (48ch at 40 px is 960 px), so Narrow and Full both fill it and draw the same; desktop and small-desktop show them apart.',
+      viewports: ['tablet', 'reflow'],
+    },
   },
   {
     page: 'booth',

@@ -3,19 +3,8 @@ import { Checkbox } from '../primitives/Checkbox';
 import { Select } from '../primitives/Select';
 import { Slider } from '../primitives/Slider';
 import { engineOptionLabel } from './checkSelection';
+import { CHAPTERS_AT_ONCE, DOUBT_SHARES, runProblem, runSummary, withChoice, type RunChoices } from './runChoices';
 import { useWorkerPlan, workerPlanSentences } from './workerPlan';
-import {
-  CHAPTERS_AT_ONCE,
-  CHUNK_SECONDS,
-  DOUBT_SHARES,
-  OVERLAP_SECONDS,
-  chunkLabel,
-  findProblem,
-  runSummary,
-  withChoice,
-  workerChoices,
-  type RunChoices,
-} from './runChoices';
 
 const engineOptions = (engines: readonly CoverageEngine[]) => engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }));
 
@@ -31,28 +20,12 @@ const LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
 
 /**
  * How a recording check is made: the speech model, whether a larger model looks again and at what, and how a long recording is cut up and shared
- * between processes and chapters. It is the one set of controls every page that starts a check offers (the Check recordings dialog and a
- * chapter's own check panel), so a choice means the same wherever it is made. It starts from the host's defaults (`useRunChoices`) and only
- * reports changes; the page sends them with `startOptions`.
+ * between processes and chapters. The Check recordings dialog draws it; it starts from the host's defaults (the narrator's
+ * settings, `startChoices`) and only reports changes; the dialog sends them with `startOptions`.
  *
- * "Chapters at once" is how many checks may be in progress together when this one starts, itself included: a run of several chapters
- * starts that many, and a single chapter's check starts beside the others already going when it is above 1.
+ * "Chapters at once" is how many checks of the run may be in progress together.
  */
-export function RunOptions({
-  engines,
-  choices,
-  onChange,
-  showInstallProblems = true,
-  sliders = false,
-}: {
-  engines: CoverageEngines;
-  choices: RunChoices;
-  onChange: (patch: Partial<RunChoices>) => void;
-  /** Say that a chosen model is not installed. A page that offers the download itself when a check starts leaves it out. */
-  showInstallProblems?: boolean;
-  /** Draw chunk length, crossover and processes as sliders (the Check recordings dialog, mock `CheckRecordings.tsx`) instead of selects. */
-  sliders?: boolean;
-}) {
+export function RunOptions({ engines, choices, onChange }: { engines: CoverageEngines; choices: RunChoices; onChange: (patch: Partial<RunChoices>) => void }) {
   const whole = choices.chunkSeconds === 0;
   const automatic = choices.workers === 0;
   const cpus = typeof navigator === 'undefined' ? 4 : navigator.hardwareConcurrency || 4;
@@ -64,17 +37,7 @@ export function RunOptions({
     chapters: choices.chapters,
   });
   const planned = plan && workerPlanSentences(plan);
-  const planLine = (
-    <p className="m-0 text-sm text-[var(--text-muted)]" data-live="workerPlan" aria-live="polite">
-      {planError
-        ? `Could not work out how many run at once: ${planError}`
-        : planned
-          ? `${planned.summary} ${planned.reason}`
-          : 'Working out how many run at once…'}
-    </p>
-  );
-  const blocker = findProblem(choices, engines);
-  const problem = blocker && (showInstallProblems || !blocker.needsInstall) ? blocker.message : undefined;
+  const problem = runProblem(choices, engines);
   return (
     <div className="@container flex min-w-0 flex-col gap-3">
       <label className="flex flex-col gap-1">
@@ -112,120 +75,70 @@ export function RunOptions({
           </label>
         </div>
       ) : null}
-      {sliders ? (
-        <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 border-t border-[var(--border)] p-0 pt-3">
-          <legend className="sr-only">Long recordings</legend>
-          <Checkbox checked={whole} onChange={(on) => onChange({ chunkSeconds: on ? 0 : SLIDER_CHUNK_DEFAULT })}>
-            Transcribe each recording whole
-          </Checkbox>
-          <Slider
-            label={<span className={LABEL}>Chunk length</span>}
-            aria-label="Chunk length"
-            valueText={whole ? 'Whole' : `${choices.chunkSeconds} s`}
-            min={CHUNK_RANGE.min}
-            max={CHUNK_RANGE.max}
-            step={CHUNK_RANGE.step}
-            disabled={whole}
-            value={clampTo(choices.chunkSeconds, CHUNK_RANGE)}
-            onValueChange={(chunkSeconds) => onChange({ chunkSeconds })}
+      <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 border-t border-[var(--border)] p-0 pt-3">
+        <legend className="sr-only">Long recordings</legend>
+        <Checkbox checked={whole} onChange={(on) => onChange({ chunkSeconds: on ? 0 : SLIDER_CHUNK_DEFAULT })}>
+          Transcribe each recording whole
+        </Checkbox>
+        <Slider
+          label={<span className={LABEL}>Chunk length</span>}
+          aria-label="Chunk length"
+          valueText={whole ? 'Whole' : `${choices.chunkSeconds} s`}
+          min={CHUNK_RANGE.min}
+          max={CHUNK_RANGE.max}
+          step={CHUNK_RANGE.step}
+          disabled={whole}
+          value={clampTo(choices.chunkSeconds, CHUNK_RANGE)}
+          onValueChange={(chunkSeconds) => onChange({ chunkSeconds })}
+        />
+        <Slider
+          label={<span className={LABEL}>Overlap between chunks</span>}
+          aria-label="Overlap between chunks"
+          valueText={`${choices.overlapSeconds} s`}
+          min={OVERLAP_RANGE.min}
+          max={OVERLAP_RANGE.max}
+          step={OVERLAP_RANGE.step}
+          disabled={whole}
+          value={clampTo(choices.overlapSeconds, OVERLAP_RANGE)}
+          onValueChange={(overlapSeconds) => onChange({ overlapSeconds })}
+        />
+        {/* Each hint sits under the controls it explains (alignment audit XPF-20). */}
+        <p className="m-0 text-sm text-[var(--text-muted)]">Chunks overlap so a word on an edge is whole in one of them.</p>
+        <Slider
+          label={<span className={LABEL}>Parallel workers</span>}
+          aria-label="Parallel workers"
+          valueText={whole ? '1' : automatic ? 'Automatic' : String(choices.workers)}
+          min={WORKER_RANGE.min}
+          max={WORKER_RANGE.max}
+          step={WORKER_RANGE.step}
+          disabled={whole || automatic}
+          value={clampTo(whole ? 1 : choices.workers, WORKER_RANGE)}
+          onValueChange={(workers) => onChange({ workers })}
+        />
+        <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
+          Automatic: plan it from the processors, the free memory and the model
+        </Checkbox>
+        <p className="m-0 text-sm text-[var(--text-muted)]" data-live="workerPlan" aria-live="polite">
+          {planError
+            ? `Could not work out how many run at once: ${planError}`
+            : planned
+              ? `${planned.summary} ${planned.reason}`
+              : 'Working out how many run at once…'}
+        </p>
+        <label className="flex flex-col gap-1">
+          <span className={LABEL}>Chapters at once</span>
+          <Select
+            label="Chapters at once"
+            fullWidth
+            value={String(choices.chapters)}
+            onChange={(value) => onChange({ chapters: Number(value) })}
+            options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
           />
-          <Slider
-            label={<span className={LABEL}>Overlap between chunks</span>}
-            aria-label="Overlap between chunks"
-            valueText={`${choices.overlapSeconds} s`}
-            min={OVERLAP_RANGE.min}
-            max={OVERLAP_RANGE.max}
-            step={OVERLAP_RANGE.step}
-            disabled={whole}
-            value={clampTo(choices.overlapSeconds, OVERLAP_RANGE)}
-            onValueChange={(overlapSeconds) => onChange({ overlapSeconds })}
-          />
-          {/* Each hint sits under the controls it explains (alignment audit XPF-20). */}
-          <p className="m-0 text-sm text-[var(--text-muted)]">Chunks overlap so a word on an edge is whole in one of them.</p>
-          <Slider
-            label={<span className={LABEL}>Parallel workers</span>}
-            aria-label="Parallel workers"
-            valueText={whole ? '1' : automatic ? 'Automatic' : String(choices.workers)}
-            min={WORKER_RANGE.min}
-            max={WORKER_RANGE.max}
-            step={WORKER_RANGE.step}
-            disabled={whole || automatic}
-            value={clampTo(whole ? 1 : choices.workers, WORKER_RANGE)}
-            onValueChange={(workers) => onChange({ workers })}
-          />
-          <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
-            Automatic: plan it from the processors, the free memory and the model
-          </Checkbox>
-          {planLine}
-          <label className="flex flex-col gap-1">
-            <span className={LABEL}>Chapters at once</span>
-            <Select
-              label="Chapters at once"
-              fullWidth
-              value={String(choices.chapters)}
-              onChange={(value) => onChange({ chapters: Number(value) })}
-              options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
-            />
-          </label>
-          <p className="m-0 text-sm text-[var(--text-muted)]">
-            Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.
-          </p>
-        </fieldset>
-      ) : (
-        <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--border)] p-0 pt-3 @sm:grid-cols-3">
-          <legend className="sr-only">Long recordings</legend>
-          <label className="flex flex-col gap-1">
-            <span className={LABEL}>Chunk length</span>
-            <Select
-              label="Chunk length"
-              fullWidth
-              value={String(choices.chunkSeconds)}
-              onChange={(value) => onChange({ chunkSeconds: Number(value) })}
-              options={withChoice(CHUNK_SECONDS, choices.chunkSeconds).map((seconds) => ({ value: String(seconds), label: chunkLabel(seconds) }))}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={LABEL}>Parallel processes</span>
-            <Select
-              label="Parallel processes"
-              fullWidth
-              disabled={whole}
-              value={String(whole ? 1 : choices.workers)}
-              onChange={(value) => onChange({ workers: Number(value) })}
-              options={withChoice(workerChoices(cpus), whole ? 1 : choices.workers).map((count) => ({
-                value: String(count),
-                label: count === 0 ? 'Automatic' : String(count),
-              }))}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={LABEL}>Crossover</span>
-            <Select
-              label="Crossover"
-              fullWidth
-              disabled={whole}
-              value={String(choices.overlapSeconds)}
-              onChange={(value) => onChange({ overlapSeconds: Number(value) })}
-              options={withChoice(OVERLAP_SECONDS, choices.overlapSeconds).map((seconds) => ({ value: String(seconds), label: `${seconds} s` }))}
-            />
-          </label>
-          <p className="m-0 text-[var(--text-muted)] @sm:col-span-3">Chunks overlap by the crossover so a word on an edge is whole in one of them.</p>
-          <div className="@sm:col-span-3">{planLine}</div>
-          <label className="flex flex-col gap-1">
-            <span className={LABEL}>Chapters at once</span>
-            <Select
-              label="Chapters at once"
-              fullWidth
-              value={String(choices.chapters)}
-              onChange={(value) => onChange({ chapters: Number(value) })}
-              options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
-            />
-          </label>
-          <p className="m-0 self-end text-[var(--text-muted)] @sm:col-span-2">
-            Chapters share the processors and the memory, so more at once means fewer transcriptions for each.
-          </p>
-        </fieldset>
-      )}
+        </label>
+        <p className="m-0 text-sm text-[var(--text-muted)]">
+          Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.
+        </p>
+      </fieldset>
       <p className="m-0">{runSummary(choices, engines)}</p>
       {problem ? (
         <p role="status" className="m-0 text-[var(--text-muted)]">

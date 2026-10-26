@@ -1,15 +1,17 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
-import type { CoverageEngines, CoverageResult, CoverageStartOptions, CoverageState } from '../../api/contracts/coverage';
+import type { CoverageEngines, CoverageResult, CoverageStartOptions, CoverageStartResult, CoverageState } from '../../api/contracts/coverage';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { createMockApi } from '../../api/mockApi';
 import { createOverlayService } from '../../overlay/overlayService';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { NarrationApi } from '../../types';
+import { COVERAGE_REASON_TEXT } from '../production/recordingCheckText';
 import { openCheckRecordings } from './openCheckRecordings';
 
 afterEach(cleanup);
@@ -79,22 +81,153 @@ function host(overrides: Partial<NarrationApi> = {}) {
   return { api, starts, sent, results, emit };
 }
 
-function open(api: NarrationApi, preselected: string[] = [], opener = true) {
+function open(api: NarrationApi, preselected: string[] = [], opener = true, options: Parameters<typeof openCheckRecordings>[1] = {}) {
   const service = createOverlayService();
   render(
-    <ApiProvider api={api}>
-      <button type="button">Check icon</button>
-      <OverlayProvider service={service} />
-    </ApiProvider>,
+    <MemoryRouter>
+      <ApiProvider api={api}>
+        <button type="button">Check icon</button>
+        <OverlayProvider service={service} />
+      </ApiProvider>
+    </MemoryRouter>,
   );
   if (opener) screen.getByText('Check icon').focus();
-  const close = act(() => openCheckRecordings(preselected, service));
+  const close = act(() => openCheckRecordings(preselected, options, service));
   return { service, close };
 }
 
 const toasts = (service: ReturnType<typeof createOverlayService>) => service.getSnapshot().toasts.map((t) => t.text);
 
 describe('CheckRecordingsDialog', () => {
+  it('offers-a-chapter-the-manuscript-does-not-list-ticked-and-checks-it', async () => {
+    // A credits row's synthetic chapter: no recording measured, never in the manuscript, still checked by its own id.
+    const { api, starts } = host();
+    const credits = chapter('credits-opening', { title: 'Opening credits', recordedSeconds: undefined, wordCount: 0 });
+    open(api, ['credits-opening'], true, { extra: [credits] });
+    const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
+    expect(
+      within(dialog)
+        .getByRole('checkbox', { name: /Opening credits/ })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check 1 chapter' }));
+    await waitFor(() => expect(starts).toEqual([{ id: 'credits-opening', model: 'small' }]));
+  });
+
+  it('shows-the-full-report-after-a-single-chapter-run-with-go-to-paragraph-and-check-again', async () => {
+    const { api, results, emit } = host();
+    open(api, ['a']);
+    await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
+    results.a = {
+      chapterId: 'a',
+      state: 'current',
+      reasons: [],
+      record: { completedAt: '2026-10-20T10:00:00Z' },
+      result: {
+        model: 'small',
+        alignment: { maxMisreadRun: 8, minAnchorRun: 3 },
+        bodyTokens: 100,
+        presentTokens: 84,
+        missingTokens: 16,
+        extraTokens: 0,
+        longestMissingRun: 16,
+        playedSeconds: 60,
+        items: [],
+        paragraphs: [
+          { id: 'p-a', tokens: 50, present: 50, longestMissingRun: 0 },
+          { id: 'p-b', tokens: 50, present: 34, longestMissingRun: 16 },
+        ],
+        regions: [],
+      },
+    } as unknown as CoverageResult;
+    emit({ runId: 'run-1', phase: 'complete' });
+    const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
+    expect(await within(dialog).findByText('Text present')).toBeTruthy();
+    expect(within(dialog).getByText(/Checked .* with the small Whisper model/)).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Open in Editing' })).toBeTruthy();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Back to chapters' }));
+    expect(await within(dialog).findByRole('button', { name: 'Show result: Chapter a' })).toBeTruthy();
+  });
+
+  it('asks-before-downloading-a-missing-model-and-checks-once-it-is-installed', async () => {
+    let installed = false;
+    const installs: string[] = [];
+    const { api, starts } = host({
+      coverageStart: async (id, options) => {
+        starts.push({ id, model: options?.model });
+        if (!installed)
+          return {
+            status: 'asset_required',
+            model: { id: 'small', displayName: 'Whisper small', version: '1', publisher: 'OpenAI', license: 'MIT' },
+            installState: 'not_installed',
+            downloadSize: 1,
+            diskSize: 1,
+            installPath: '/models',
+          } as unknown as CoverageStartResult;
+        return { status: 'started', state: { runId: 'r-1', chapterId: id, phase: 'running', percent: 0, message: '' } };
+      },
+      whisperInstall: async (modelId) => {
+        installs.push(modelId);
+        installed = true;
+        return { id: 'job-1', modelId, phase: 'success', message: 'Installed', percent: 100 } as never;
+      },
+      whisperInstallState: async () => ({ id: 'job-1', modelId: 'small', phase: 'success', message: 'Installed', percent: 100 }) as never,
+    });
+    open(api, ['a']);
+    await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'Download local Whisper model?' });
+    await userEvent.click(within(ask).getByRole('button', { name: 'Download model' }));
+    await waitFor(() => expect(installs).toEqual(['small']));
+    await waitFor(() => expect(starts).toHaveLength(2));
+    expect(await screen.findByRole('button', { name: 'Stop checking' })).toBeTruthy();
+  });
+
+  it('offers-the-first-pass-alone-when-the-larger-model-is-missing', async () => {
+    const { api, sent } = host({
+      coverageStart: async (id, options) => {
+        sent.push(options);
+        if (options?.recheck)
+          return {
+            status: 'recheck_asset_required',
+            model: { id: 'large', displayName: 'Whisper large', version: '1', publisher: 'OpenAI', license: 'MIT' },
+            installState: 'not_installed',
+            downloadSize: 1,
+            diskSize: 1,
+            installPath: '/models',
+          } as unknown as CoverageStartResult;
+        return { status: 'started', state: { runId: 'r-1', chapterId: id, phase: 'running', percent: 0, message: '' } };
+      },
+    });
+    open(api, ['a']);
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Look again with a larger model/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'Download the re-check model?' });
+    await userEvent.click(within(ask).getByRole('button', { name: 'Check with Whisper small only' }));
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent[1]).toMatchObject({ model: 'small', recheck: false });
+  });
+
+  it('opened-with-no-chapter-ticks-the-chapters-whose-check-is-not-up-to-date', async () => {
+    const { api, results } = host();
+    results.a = stored('current');
+    open(api, []);
+    expect(await screen.findByRole('button', { name: 'Check 2 chapters' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: /Chapter a/ }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('checkbox', { name: /Chapter b/ }).getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('tells-the-opener-once-however-it-closes', async () => {
+    const { api } = host();
+    const onClosed = vi.fn();
+    const { service } = open(api, ['a'], true, { onClosed });
+    await screen.findByRole('button', { name: 'Check 1 chapter' });
+    expect(onClosed).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
+    expect(onClosed).toHaveBeenCalledTimes(1);
+  });
+
   it('lists-the-hosts-engines-only', async () => {
     const { api } = host();
     open(api);
@@ -103,13 +236,14 @@ describe('CheckRecordingsDialog', () => {
       within(select)
         .getAllByRole('option')
         .map((o) => o.textContent),
-    ).toEqual(['Whisper tiny', 'Whisper small', 'Whisper large (Download it in Settings)']);
+    ).toEqual(['Whisper tiny', 'Whisper small', 'Whisper large (not installed)']);
     expect(select.value).toBe('small');
     expect(screen.queryByText(/moonshine/i)).toBeNull();
     await userEvent.selectOptions(select, 'large');
-    expect(screen.getByText('Download Whisper large in Settings first.')).toBeTruthy();
+    expect(screen.getByText('Whisper large is not installed yet: Check asks before downloading it.')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'All' }));
-    expect((screen.getByRole('button', { name: /^Check \d/ }) as HTMLButtonElement).disabled).toBe(true);
+    // A model that is not installed does not stop Check: the start asks to download it.
+    expect((screen.getByRole('button', { name: /^Check \d/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('lists-recorded-chapters-with-their-state', async () => {
@@ -136,7 +270,7 @@ describe('CheckRecordingsDialog', () => {
     open(api, ['a', 'b', 'c']);
     await screen.findByText('Audio to check');
     expect(screen.getByText('20 min')).toBeTruthy();
-    expect(screen.getByText('1 chapter left out: length not measured')).toBeTruthy();
+    expect(screen.getByText('1 ticked chapter has no measured length, so the total leaves it out')).toBeTruthy();
     expect(screen.queryByText('Estimated time')).toBeNull();
   });
 
@@ -151,7 +285,7 @@ describe('CheckRecordingsDialog', () => {
     await screen.findByText('Audio to check');
     expect(screen.getByText('Not measured')).toBeTruthy();
     expect(screen.queryByText('0 min')).toBeNull();
-    expect(screen.getByText('2 chapters left out: length not measured')).toBeTruthy();
+    expect(screen.getByText('2 ticked chapters have no measured length, so the total leaves them out')).toBeTruthy();
   });
 
   it('run-checks-chapters-one-at-a-time', async () => {
@@ -201,7 +335,7 @@ describe('CheckRecordingsDialog', () => {
     expect(toasts(service)).toEqual(['Checked 2 chapters · 3 lines to redo · 1 not recorded to the end']);
   });
 
-  it('refusals-are-shown-in-the-host-words', async () => {
+  it('refusals-are-shown-in-plain-words-with-the-host-words-and-the-page-that-fixes-them', async () => {
     const starts: string[] = [];
     const { api, emit } = host({
       coverageStart: async (id) => {
@@ -214,7 +348,12 @@ describe('CheckRecordingsDialog', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Check 2 chapters' }));
     await waitFor(() => expect(starts).toEqual(['a', 'b']));
     emit({ runId: 'r-b', phase: 'complete' });
-    expect(await within(await screen.findByRole('dialog')).findByText('Link a REAPER track to this chapter first.')).toBeTruthy();
+    const dialog = await screen.findByRole('dialog');
+    const alert = await within(dialog).findByRole('alert');
+    expect(within(alert).getByText('The recording could not be checked')).toBeTruthy();
+    expect(within(alert).getByText(COVERAGE_REASON_TEXT.unmapped)).toBeTruthy();
+    // The track link is made right in the row, as the chapter's own panel did.
+    expect(await within(alert).findByRole('combobox', { name: /^Track for Chapter a/ })).toBeTruthy();
     expect(service.getSnapshot().dialogs).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Check 2 chapters' })).toBeTruthy();
   });
@@ -242,7 +381,7 @@ describe('CheckRecordingsDialog', () => {
     await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByText('Check icon')));
 
-    act(() => openCheckRecordings(['a'], service));
+    act(() => openCheckRecordings(['a'], {}, service));
     await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
     await waitFor(() => expect(starts).toHaveLength(1));
     await userEvent.keyboard('{Escape}');
@@ -306,8 +445,8 @@ describe('CheckRecordingsDialog', () => {
       await userEvent.click(await screen.findByRole('checkbox', { name: /Look again with a larger model/ }));
       const larger = (await option('Larger model')) as HTMLSelectElement;
       expect(larger.value).toBe('large');
-      expect(screen.getByText('Download Whisper large in Settings first.')).toBeTruthy();
-      expect((screen.getByRole('button', { name: 'Check 1 chapter' }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText('Whisper large is not installed yet: Check asks before downloading it.')).toBeTruthy();
+      expect((screen.getByRole('button', { name: 'Check 1 chapter' }) as HTMLButtonElement).disabled).toBe(false);
       await userEvent.selectOptions(larger, 'tiny');
       await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Also look again at words scored under' }), '0.4');
       expect(screen.getByText(/Then Whisper tiny re-checks what is missing and words scored under 40%\./)).toBeTruthy();

@@ -107,7 +107,8 @@ def source_with(model, install: Path | None = None) -> "gliner.GlinerSource":
 
 
 def _complete_install(root: Path) -> Path:
-    """An install folder with every file the adapter checks for, and a fake ``gliner`` package in its wheel folder."""
+    """An install folder with every file the adapter checks for, and fake ``gliner`` and ``transformers`` packages in their wheel
+    folders. The fake GLiNER asks ``AutoConfig`` for its encoder by name, as the real one does."""
     root.mkdir(parents=True, exist_ok=True)
     for name in gliner.REQUIRED_FILES:
         (root / name).write_text("{}", encoding="utf-8")
@@ -118,14 +119,39 @@ def _complete_install(root: Path) -> Path:
             """
             LOADED = []
 
+            ENCODERS = []
+
             class GLiNER:
                 @classmethod
                 def from_pretrained(cls, path, **options):
+                    from transformers import AutoConfig
+
                     LOADED.append((path, options))
+                    ENCODERS.append(AutoConfig.from_pretrained("microsoft/deberta-v3-small"))
                     return cls()
 
                 def predict_entities(self, text, labels, threshold=0.5):
                     return []
+            """
+        ),
+        encoding="utf-8",
+    )
+    transformers = root / "wheel-transformers" / "transformers"
+    transformers.mkdir(parents=True)
+    (transformers / "__init__.py").write_text(
+        textwrap.dedent(
+            """
+            import os
+
+
+            class AutoConfig:
+                # A name that is not a folder is a Hugging Face repository: the real class would fetch it, so the fake
+                # refuses it as the network a test must never reach.
+                @classmethod
+                def from_pretrained(cls, name, *args, **options):
+                    if not os.path.isdir(str(name)):
+                        raise OSError(f"would fetch {name} from the Hugging Face hub")
+                    return (str(name), options)
             """
         ),
         encoding="utf-8",
@@ -145,7 +171,7 @@ def _forget_gliner():
     finally:
         sys.path[:] = path
         for name in set(sys.modules) - modules:
-            if name == "gliner" or name.startswith("gliner."):
+            if name in ("gliner", "transformers") or name.startswith(("gliner.", "transformers.")):
                 del sys.modules[name]
 
 
@@ -352,6 +378,37 @@ class NoNetworkAtRunTimeTests(unittest.TestCase):
         self.assertTrue(opened, "the fake package was imported, so something was opened")
         for path in opened:
             self.assertTrue(Path(path).resolve().is_relative_to(install), f"{path} is outside the install folder")
+
+    def test_the_encoder_gliner_names_is_read_from_the_install_folder_and_the_loader_is_put_back(self):
+        install = _complete_install(Path(tempfile.mkdtemp()))
+        with _forget_gliner():
+            gliner.load_model(install)
+            encoders = sys.modules["gliner"].ENCODERS
+            restored = sys.modules["transformers"].AutoConfig
+
+        self.assertEqual([(str(install), {"local_files_only": True})], encoders)
+        with self.assertRaisesRegex(OSError, "hub"):
+            restored.from_pretrained(gliner.ENCODER)  # put back once GLiNER is loaded: the encoder name means the hub again
+
+    def test_the_encoder_lookup_reaches_no_hub_and_no_socket(self):
+        def refuse(*args, **kwargs):
+            raise AssertionError("the adapter opened a socket")
+
+        install = _complete_install(Path(tempfile.mkdtemp()))
+        original = socket.socket
+        socket.socket = refuse
+        try:
+            with _forget_gliner():
+                gliner.load_model(install)  # the fake GLiNER asks for the encoder by its hub name, which fails if it is not answered locally
+        finally:
+            socket.socket = original
+
+    def test_the_encoder_files_are_required_under_their_hugging_face_names(self):
+        for name in ("config.json", "spm.model", "tokenizer_config.json"):
+            self.assertIn(name, gliner.REQUIRED_FILES)
+            install = _complete_install(Path(tempfile.mkdtemp()))
+            (install / name).unlink()
+            self.assertIn(name, gliner.damage(install))
 
     def test_the_loader_asks_huggingface_to_stay_offline(self):
         with _forget_gliner():
