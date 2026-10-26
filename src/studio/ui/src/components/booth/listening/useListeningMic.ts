@@ -29,7 +29,7 @@ type Options = {
 
 /**
  * The microphone the Booth listens to so the text follows the voice (`resolveListeningMic`). With a DAW, `TeleprompterReaperInput`
- * is asked when the chapter changes, and its input is listened on without being saved, so the DAW stays the source of truth.
+ * is asked when the chapter changes and when the window gets focus, and its input is listened on without being saved, so the DAW stays the source of truth.
  */
 export function useListeningMic({ dawRecords, chapterId, chosen, source, settingsLoaded, devices, listenOn }: Options): ListeningMic {
   const teleprompter = usePort('teleprompter');
@@ -41,12 +41,17 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
       return;
     }
     let live = true;
-    void teleprompter
-      .teleprompterReaperInput(chapterId)
-      .then((answer) => live && setInput(answer))
-      .catch(() => {});
+    const ask = () =>
+      void teleprompter
+        .teleprompterReaperInput(chapterId)
+        .then((answer) => live && setInput(answer))
+        .catch(() => {});
+    ask();
+    // The narrator may change the input in the DAW and come back: the window's focus asks again.
+    window.addEventListener('focus', ask);
     return () => {
       live = false;
+      window.removeEventListener('focus', ask);
     };
   }, [teleprompter, dawRecords, chapterId]);
 

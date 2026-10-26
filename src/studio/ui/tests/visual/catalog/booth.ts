@@ -217,8 +217,20 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu',
     description:
-      "Booth, the footer's Levels menu open with the narrator's settings untouched: the input level and the microphone the DAW records from, named, with \"Chosen in REAPER\" (TeleprompterReaperInput); REAPER's own meters and pre-roll show with no switch (they only read), and the monitor slider, which writes, is off with Turn on in Settings",
+      "Booth, the footer's Levels menu open with the narrator's settings untouched: the input level and the microphone the DAW records from, named, with \"Same as REAPER\", what REAPER records from (device · channel) and plays on, and Choose a different one (TeleprompterReaperInput, #2251); REAPER's own meters and pre-roll show with no switch (they only read), and the monitor slider, which writes, is off with Turn on in Settings",
     ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-mic-uncertain',
+    description:
+      'Booth, the Levels menu when REAPER\'s input could be either of two microphones (?mockReaperInput=uncertain): the host\'s sentence in the warning colour, one button per microphone, "Listening to … until you pick", and Choose a different one',
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-mic-chosen',
+    description:
+      "Booth, the Levels menu after Choose a different one: the microphone picker with the narrator's choice, \"Your choice, kept over REAPER's input.\", what REAPER records from, and Use REAPER's input to go back",
   },
   {
     page: 'booth',

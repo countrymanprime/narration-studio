@@ -77,7 +77,7 @@ test('row 6: the listening microphone is named in Levels, with the DAW choosing 
   await page.getByRole('button', { name: 'Levels' }).click();
   const popup = page.getByRole('dialog', { name: 'Levels' });
   await expect(popup).toContainText('Microphone');
-  await expect(popup.getByText(/Chosen in REAPER|Microphone Array|Headset Microphone/).first()).toBeVisible();
+  await expect(popup.getByText(/Same as REAPER|Microphone Array|Headset Microphone/).first()).toBeVisible();
 });
 
 test('row 7: with the speech model missing, a take asks before anything downloads', async ({ page }) => {

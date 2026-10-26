@@ -338,11 +338,28 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Levels' }).click();
     const menu = page.getByRole('dialog', { name: 'Levels' });
-    await menu.getByText('Chosen in REAPER').waitFor();
-    // The microphone the DAW records from is named (the mock's first listed microphone), not left blank.
-    await menu.getByText('Microphone Array (Realtek(R) Audio)').waitFor();
+    await menu.getByText('Same as REAPER').waitFor();
+    // The microphone the DAW records from is named (the mock's first listed microphone), not left blank, with REAPER's device and channel.
+    await menu.getByText('Microphone Array (Realtek(R) Audio)', { exact: true }).waitFor();
+    await menu.getByText('REAPER records from Microphone Array (Realtek(R) Audio) · Input 1.').waitFor();
     // REAPER's meters only read, so they show by default with no Experimental switch (the owner's decision on #2251).
     await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
+  },
+  // REAPER's input fits two microphones (#2251): Levels says so with one button each, and listens on the first meanwhile.
+  'levels-menu-mic-uncertain': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockReaperInput=uncertain`);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByRole('group', { name: 'Which microphone REAPER records from' }).waitFor();
+  },
+  // The narrator chose a different microphone than REAPER's (#2251): the picker, the sentence that says so, and the way back.
+  'levels-menu-mic-chosen': async (page) => {
+    await readyToRecord(page);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByRole('button', { name: 'Choose a different one' }).click();
+    await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ index: 1 });
+    await menu.getByRole('button', { name: "Use REAPER's input" }).waitFor();
   },
   // The Punch part is REAPER's own pre-roll, read from REAPER and shown in measures with no switch (#2251 item 11).
   // With no track armed in REAPER, so the meters say so (#2251 item 11) and this state differs from levels-menu.

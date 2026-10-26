@@ -253,10 +253,20 @@ The engine and model the Booth listens with are chosen in [Settings](settings.md
 
 ### The microphone the Booth listens to
 
-The text follows your voice through a microphone of its own choosing. With a DAW, the Booth listens to the microphone the DAW
-records from when the DAW names it, and **Levels** shows its name with **Chosen in** and the DAW's name. When the DAW cannot say,
-**Levels** lists the microphones on this computer with the DAW's reason, and the footer says **Choose the microphone the Booth listens
-to in Levels**. A microphone you chose is never replaced. The choice is remembered for every project.
+Nothing has to be set. Everything that listens (the text following your voice, a [cold read](#a-cold-read), the level bar and the
+room tone) uses one microphone:
+
+- **With a DAW, the DAW's own input.** The Booth asks the DAW which input it records from and listens to the same device.
+  **Levels** shows it with **Same as REAPER**, what REAPER records from (its audio device and, for a linked chapter, the track's
+  input, such as **Focusrite USB ASIO · Mic/Line 1**) and the device REAPER plays on. Change the input in REAPER and the Booth
+  follows it the next time it asks: when you open the Booth, change chapter or come back to the window.
+- **When the DAW's input could be several microphones** (two inputs of one audio interface), **Levels** says so and shows one button
+  for each. Press the one REAPER uses; until then the Booth listens to the first of them.
+- **Choose a different one** in **Levels** or in [Settings](settings.md) keeps another microphone over the DAW's, for every project,
+  until you press **Use REAPER's input**.
+- **When the DAW cannot say** (REAPER has no audio device open, its device matches no microphone here, or the DAW is Audacity,
+  which cannot report its input), the Booth listens to the microphone you chose in **Levels**, else the first one this computer lists,
+  and **Levels** says why with a list to choose from.
 
 ![Booth with no microphone listed: the footer says the text cannot follow the voice](../../images/ui/booth-no-mic.webp)
 
