@@ -201,15 +201,14 @@ export function createManuscriptMock(
       if (initial.chaptersRead === 'fails') throw new Error('The manuscript could not be read from this project.');
       await manuscriptReady;
       const readable = Boolean(s.tracksDiscovery.selected);
+      const narration = s.chapters.filter((chapter) => (chapter.contentKind ?? 'narration') === 'narration');
       return wireClone(
-        s.chapters.map((chapter, index) => {
-          // How far it is recorded: a seeded chapter's own, else the mock book's pattern over the text it really has.
-          const through =
-            chapter.recordedThrough ??
-            mockRecordedThrough(
-              index,
-              s.paragraphs.filter((paragraph) => paragraph.chapterId === chapter.id),
-            );
+        s.chapters.map((chapter) => {
+          // How far it is recorded: a seeded chapter's own, else the mock book's pattern over the text it really has, counted over the
+          // narration chapters only (as WIRE_CHAPTERS are), so front matter before them does not shift which chapter is which.
+          const narrationIndex = narration.indexOf(chapter);
+          const paragraphs = s.paragraphs.filter((paragraph) => paragraph.chapterId === chapter.id);
+          const through = chapter.recordedThrough ?? (narrationIndex < 0 ? undefined : mockRecordedThrough(narrationIndex, paragraphs));
           return {
             ...withMeasurement(chapter),
             ...mockRecordedLength(chapter.id, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
