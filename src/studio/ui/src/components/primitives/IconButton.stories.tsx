@@ -52,6 +52,16 @@ export const Primary: Story = { args: { variant: 'primary', label: 'Save changes
 export const Danger: Story = { args: { variant: 'danger', label: 'Delete entity', children: <FontAwesomeIcon icon={faTrash} /> } };
 // 28 px, beside a small Button in a dense row.
 export const Small: Story = { args: { size: 'sm' } };
+// As tall as its row and 44 px wide: the end of a lane it pages (the Editing waveform's arrows).
+export const Lane: Story = {
+  args: { size: 'lane' },
+  render: (args) => (
+    <div className="flex h-16 items-stretch gap-1">
+      <IconButton {...args} />
+      <div className="flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)]" />
+    </div>
+  ),
+};
 export const Disabled: Story = { args: { disabled: true, label: 'Remove relationship', children: <FontAwesomeIcon icon={faXmark} /> } };
 
 // The action this button started is running: the icon becomes a spinner, the name stays, and a press does nothing.
