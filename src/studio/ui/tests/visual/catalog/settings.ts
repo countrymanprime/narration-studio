@@ -139,7 +139,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'speech-advanced',
     description:
-      'Settings, Speech to text with Advanced open: the Recording check rows (Two-pass check, First-pass model, Re-check model, Transcriptions at once, Chunk length)',
+      'Settings, Speech to text with Advanced open: the Recording check rows (Two-pass check, First-pass model, Re-check model, Parallel processes, Chunk length)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

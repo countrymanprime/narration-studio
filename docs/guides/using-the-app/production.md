@@ -183,11 +183,11 @@ first pass. **Look again with a larger model** adds a second pass: the **Larger 
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
 share. In the **Check recordings** dialog, three sliders set how a long chapter is read: **Chunk length** (10 to 120 s, in steps
 of 5) cuts each recording into pieces, **Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a
-word on an edge is whole in one of them, and **Transcriptions at once** (1 to 8) is how many recordings, or pieces of one long recording, are
+word on an edge is whole in one of them, and **Parallel workers** (1 to 8) is how many recordings, or pieces of one long recording, are
 transcribed side by side (each holds a copy of the model in memory). **Transcribe each recording whole** turns the chunks off and leaves one, and
 **Automatic: plan it from the processors, the free memory and the model** hands the count back to the app. The line under it says what will run
 and why, for example "Automatic: 3 transcriptions at once, using 6 of 8 processors for the Large v3 model. Set by the memory: …". A setting the sliders do not reach, such as a 5 min chunk from Settings, shows its real figure
-and is kept until you move the slider. A chapter's own **Check options** keeps the same choices as lists (**Chunk length**, **Transcriptions at once**,
+and is kept until you move the slider. A chapter's own **Check options** keeps the same choices as lists (**Chunk length**, **Parallel processes**,
 **Crossover**). A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
 processors and the memory, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.

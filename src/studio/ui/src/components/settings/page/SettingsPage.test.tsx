@@ -267,7 +267,7 @@ describe('Settings: row layout', () => {
     expect(hint.className).toContain('text-[0.8125rem]');
   });
 
-  it('says under Transcriptions at once what the value shown runs on this computer, and reads it again when the value changes', async () => {
+  it('says under Parallel processes what the value shown runs on this computer, and reads it again when the value changes', async () => {
     const api = createMockApi();
     const asked = vi.spyOn(api, 'coverageWorkerPlan');
     await renderPage({ api });
@@ -286,7 +286,7 @@ describe('Settings: row layout', () => {
     expect(asked).toHaveBeenLastCalledWith({ workers: 3 });
   });
 
-  it('says so under Transcriptions at once when the host cannot work the count out', async () => {
+  it('says so under Parallel processes when the host cannot work the count out', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'coverageWorkerPlan').mockRejectedValue(new Error('the settings could not be read'));
     await renderPage({ api });

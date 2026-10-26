@@ -184,7 +184,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'recording-check-options',
     description:
-      "Production, a chapter's recording check panel with its Check options section open: Speech model, Larger model, the score under which words are looked at again, Chunk length, Transcriptions at once, Crossover and Chapters at once",
+      "Production, a chapter's recording check panel with its Check options section open: Speech model, Larger model, the score under which words are looked at again, Chunk length, Parallel processes, Crossover and Chapters at once",
   },
   {
     page: 'production',

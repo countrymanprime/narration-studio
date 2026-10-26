@@ -143,8 +143,8 @@ export function RunOptions({
           {/* Each hint sits under the controls it explains (alignment audit XPF-20). */}
           <p className="m-0 text-sm text-[var(--text-muted)]">Chunks overlap so a word on an edge is whole in one of them.</p>
           <Slider
-            label={<span className={LABEL}>Transcriptions at once</span>}
-            aria-label="Transcriptions at once"
+            label={<span className={LABEL}>Parallel workers</span>}
+            aria-label="Parallel workers"
             valueText={whole ? '1' : automatic ? 'Automatic' : String(choices.workers)}
             min={WORKER_RANGE.min}
             max={WORKER_RANGE.max}
@@ -185,9 +185,9 @@ export function RunOptions({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className={LABEL}>Transcriptions at once</span>
+            <span className={LABEL}>Parallel processes</span>
             <Select
-              label="Transcriptions at once"
+              label="Parallel processes"
               fullWidth
               disabled={whole}
               value={String(whole ? 1 : choices.workers)}
