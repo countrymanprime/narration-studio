@@ -121,7 +121,15 @@ export function useBoothPage(options: BoothPageOptions) {
   // Where the narrator is (the real cursor): the voice while a session for a take listens, the keys and clicks otherwise.
   const [local, setLocal] = useState<UnitPosition>(START);
   const heard = following ? positionInScript(spans, paragraphs, session.cursor) : null;
-  const at: UnitPosition = (heard && unitAtPosition(paragraphs, units, heard)) ?? clampAt(local, units.length);
+  const heardUnit = heard && unitAtPosition(paragraphs, units, heard);
+  const at: UnitPosition = heardUnit ?? clampAt(local, units.length);
+  // Stop keeps the place: the word the voice reached stays the real cursor once the take's session ends, so the next take, Resume and
+  // Start begin there instead of back where the take began. Going back is the narrator's choice (a click, Start from here, a punch).
+  const heardCur = heardUnit?.cur;
+  const heardWcur = heardUnit?.wcur;
+  useEffect(() => {
+    if (heardCur !== undefined && heardWcur !== undefined) setLocal({ cur: heardCur, wcur: heardWcur });
+  }, [heardCur, heardWcur]);
   const position: ReadingPosition | undefined = positionOf(paragraphs, units, at) ?? undefined;
   // The ghost: where a cold read hears the narrator. It writes nothing; it goes the moment the cold read is told to end.
   const [endingColdRead, setEndingColdRead] = useState(false);

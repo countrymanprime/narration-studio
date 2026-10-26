@@ -101,14 +101,45 @@ local function restore_arms(state)
   return restored, kept
 end
 
--- Ends the recording this bridge started: forgets it, puts the arms back and remembers the undo points it left
--- (state.last_take, nil when it left none). Answers the arms restored and kept, and the undo points.
+-- Where a stopped recording ended: the end of the item REAPER made from the recording's start on its track (the
+-- latest when several start there), else the last play position read while it recorded (auto-punch records only the
+-- time selection, so its item starts elsewhere), else nil.
+local STOP_EPSILON = 0.0005
+local function stopped_at(record)
+  local track = find_track(record.track)
+  local found
+  if track then
+    for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+      local item = reaper.GetTrackMediaItem(track, index)
+      local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+      if math.abs(position - record.position) <= STOP_EPSILON then
+        local stop = position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+        found = math.max(found or stop, stop)
+      end
+    end
+  end
+  return found or record.last_play
+end
+
+-- Ends the recording this bridge started: forgets it, puts the arms back, leaves the edit cursor where the recording
+-- stopped and remembers the undo points it left (state.last_take, nil when it left none). Answers the arms restored and
+-- kept, and the undo points.
+--
+-- REAPER's Stop leaves the edit cursor where recording began. The narrator goes on from where they stopped, so a
+-- recording that ran ends with the cursor at its end, in view and without seeking playback, whoever pressed Stop. No
+-- REAPER preference is read or changed. The undo points are counted before the move, and the take's change count read
+-- after it, so the move is never counted as the take's nor makes record_take take it for another action.
 local function finish(state)
   local record = state.recording
   state.recording = nil
   local restored, kept = restore_arms(state)
   local count = reaper.GetProjectStateChangeCount(0)
   local points = record and record.changes_before and math.max(0, count - record.changes_before) or 0
+  local stop = record and record.started and stopped_at(record)
+  if stop then
+    reaper.SetEditCurPos(stop, true, false)
+    count = reaper.GetProjectStateChangeCount(0)
+  end
   local label = reaper.Undo_CanUndo2(0)
   if points > 0 and type(label) == 'string' and label ~= '' then
     state.last_take = { count = count, label = label, points = points }
@@ -305,6 +336,8 @@ local function watch(session_dir, state, record)
       return
     end
     if recording() then
+      -- Where REAPER records now, for where it stopped when no item starts at the recording's start.
+      record.last_play = reaper.GetPlayPosition()
       reaper.defer(tick)
       return
     end
@@ -392,6 +425,8 @@ local function record_stop(session_dir, state, run_id)
     event(session_dir, 'ERROR', record.run_id, 'Recording was stopped before REAPER started it.')
   end
   if recording() then
+    -- Read before the stop: GetPlayPosition answers 0 just after it (docs/reference/daw/reaper.md, Transport).
+    record.last_play = reaper.GetPlayPosition()
     reaper.OnStopButton()
   end
   local restored, kept, points = finish(state)

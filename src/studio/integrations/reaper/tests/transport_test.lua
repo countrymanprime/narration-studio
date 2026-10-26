@@ -431,3 +431,98 @@ H.test('the undo points count only what changed since the start: an earlier edit
   s:send('record_stop', 's1')
   H.eq(s:events()[1][5], '1')
 end)
+
+-- Where Stop leaves the edit cursor -----------------------------------------------------------------------------
+-- REAPER's own Stop leaves the edit cursor where recording began, so the next look, play or take would start back
+-- there. A recording the app started ends with the cursor at the end of what was just recorded (the end of the item
+-- REAPER made from the recording start), in view and without seeking playback, whoever pressed Stop. Going back is a
+-- choice the narrator makes (punch_to, set_cursor, roll), never a side effect of Stop. No REAPER preference is read or set.
+
+H.test('record_stop leaves the edit cursor at the end of what was just recorded, in view, not seeking', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 5
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0', '1' } })
+  H.eq(s.fake.cursor, 7, 'the cursor is where recording stopped, not where it began')
+  H.eq(s.fake.cursor_moveview, true)
+  H.eq(s.fake.cursor_seekplay, false)
+  H.eq(#s.fake.undo, 1, 'moving the cursor adds no undo point of its own')
+end)
+
+H.test('a recording the narrator stops in REAPER also leaves the edit cursor where it stopped', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 4, 3
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  s.fake:stop_recording() -- the narrator pressed Stop in REAPER, which left the cursor at 4
+  s:tick()
+  H.eq(s:events(), { { 'RECORD_ENDED', 'r1', '0', '0', '1' } })
+  H.eq(s.fake.cursor, 7)
+end)
+
+H.test('a recording over earlier audio stops with the cursor at the end of the new pass, not the earlier item', function()
+  local s, chapter = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 20, source = 'earlier.wav' })
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 8)
+end)
+
+H.test('with no item at the recording start, Stop leaves the cursor at the last position REAPER recorded', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 0, 2
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  -- Auto-punch: REAPER records only the time selection, so the item does not begin at the cursor.
+  s.fake.recording_from.position = 3
+  s.fake.play_position = 9.5
+  s:tick()
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 9.5)
+end)
+
+H.test('a start record_stop cancelled before REAPER recorded leaves the cursor where it was', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_delay_ticks = 6, 3
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 6)
+end)
+
+H.test('the next take starts where the last one stopped; going back is only the narrator choosing a place', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.record_seconds = 4
+  s:send('record_start', 'r1', chapter.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', chapter.guid, '0.000000' } })
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 4, 'take A stopped at its end')
+  s:send('record_start', 'r2', chapter.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', chapter.guid, '4.000000' } }, 'take B starts where A stopped, with no start rule')
+  s.fake.record_seconds = 3
+  s:send('record_stop', 's2')
+  s:events()
+  H.eq(s.fake.cursor, 7, 'take B stopped at its end')
+  s:send('punch_to', 'p1', '2.5', '0')
+  H.eq(s:events()[1][1], 'PUNCHED')
+  H.eq(s.fake.cursor, 2.5, 'the narrator chose to go back')
+  s.fake.record_seconds = 1
+  s:send('record_start', 'r3', chapter.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r3', chapter.guid, '2.500000' } })
+  s:send('record_stop', 's3')
+  s:events()
+  H.eq(s.fake.cursor, 3.5, 'the pickup stopped at its own end, not back at the punch')
+end)

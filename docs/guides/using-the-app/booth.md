@@ -105,6 +105,11 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
 track and starts at the end of the last item on it, so a take never records over an earlier one.
 
+Stop leaves you where you stopped. The highlight stays on the last word the Booth heard, and the next take, **Resume** and a cold
+read start from there. In REAPER the edit cursor stays at the end of what you just recorded, whether you press Stop in the Booth or
+in REAPER. REAPER on its own would put it back where the recording began, so the app moves it to the end itself and changes none of
+REAPER's preferences. Going back is always your own choice: click a word, use **Start from here**, or punch and roll (**R**).
+
 When Record cannot start, it looks off and the footer says why, but you can still press it: the press opens the dialog that
 fixes the problem, or, when there is nothing to fix from the Booth, a message that says why with **Check again**. Nothing
 records, and the app does not start listening or play the start tone first. A refusal the DAW gives at the press (a full disk,
