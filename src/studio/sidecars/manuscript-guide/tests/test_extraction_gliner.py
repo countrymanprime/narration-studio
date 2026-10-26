@@ -141,9 +141,16 @@ def _complete_install(root: Path) -> Path:
     (transformers / "__init__.py").write_text(
         textwrap.dedent(
             """
+            import os
+
+
             class AutoConfig:
+                # A name that is not a folder is a Hugging Face repository: the real class would fetch it, so the fake
+                # refuses it as the network a test must never reach.
                 @classmethod
                 def from_pretrained(cls, name, *args, **options):
+                    if not os.path.isdir(str(name)):
+                        raise OSError(f"would fetch {name} from the Hugging Face hub")
                     return (str(name), options)
             """
         ),
@@ -377,10 +384,24 @@ class NoNetworkAtRunTimeTests(unittest.TestCase):
         with _forget_gliner():
             gliner.load_model(install)
             encoders = sys.modules["gliner"].ENCODERS
-            after = sys.modules["transformers"].AutoConfig.from_pretrained(gliner.ENCODER)
+            restored = sys.modules["transformers"].AutoConfig
 
         self.assertEqual([(str(install), {"local_files_only": True})], encoders)
-        self.assertEqual((gliner.ENCODER, {}), after, "AutoConfig is put back once GLiNER is loaded")
+        with self.assertRaisesRegex(OSError, "hub"):
+            restored.from_pretrained(gliner.ENCODER)  # put back once GLiNER is loaded: the encoder name means the hub again
+
+    def test_the_encoder_lookup_reaches_no_hub_and_no_socket(self):
+        def refuse(*args, **kwargs):
+            raise AssertionError("the adapter opened a socket")
+
+        install = _complete_install(Path(tempfile.mkdtemp()))
+        original = socket.socket
+        socket.socket = refuse
+        try:
+            with _forget_gliner():
+                gliner.load_model(install)  # the fake GLiNER asks for the encoder by its hub name, which fails if it is not answered locally
+        finally:
+            socket.socket = original
 
     def test_the_encoder_files_are_required_under_their_hugging_face_names(self):
         for name in ("config.json", "spm.model", "tokenizer_config.json"):
