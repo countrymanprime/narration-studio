@@ -85,5 +85,8 @@ export const WithChapterDetails: Story = {
     await userEvent.click(within(canvasElement).getByRole('button', { name: /Change chapter/ }));
     const items = await screen.findAllByRole('menuitemradio');
     await expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent ?? null)).toEqual(['Complete', '45%', '~30%', null]);
+    // The atlas checks the story as it ends: the menu is closed again, as the Choosing A Chapter story leaves it.
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menuitemradio')).toBeNull());
   },
 };
