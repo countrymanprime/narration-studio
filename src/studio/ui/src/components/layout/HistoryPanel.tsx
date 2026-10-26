@@ -3,6 +3,7 @@ import { JOURNAL_LIMIT, type Journal } from '../../studio/journal/createJournal'
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { OverlayService } from '../../overlay/overlayService';
 import { Button } from '../primitives/Button';
+import { KeyChord } from '../primitives/KeyCap';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { useJournalEntries, type JournalRow } from './useJournalEntries';
 
@@ -35,9 +36,10 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
   };
 
   return (
+    // What there is comes first (the empty sentence or the list), the key that undoes the newest change last, in key caps as everywhere
+    // else (alignment audit R4SM-19, XSL-13).
     <div className="flex flex-col gap-3">
-      <p className="text-[var(--text-muted)]">Ctrl Z undoes the last one</p>
-      {rows && rows.length === 0 ? <p className="text-[var(--text-muted)]">Nothing to undo yet.</p> : null}
+      {rows && rows.length === 0 ? <p>Nothing to undo yet.</p> : null}
       {rows && rows.length >= JOURNAL_LIMIT ? (
         <p className="text-[var(--text-muted)]">{`History keeps the newest ${JOURNAL_LIMIT} changes; older changes can no longer be undone.`}</p>
       ) : null}
@@ -73,6 +75,10 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
           })}
         </ul>
       ) : null}
+      <p className="flex items-center gap-1.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+        <KeyChord keys={['Ctrl', 'Z']} />
+        undoes the newest change
+      </p>
     </div>
   );
 }

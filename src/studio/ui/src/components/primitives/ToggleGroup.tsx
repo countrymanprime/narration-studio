@@ -9,7 +9,7 @@ type ToggleGroupOption = {
 };
 
 /** `default` is a row of standalone chips, each with its own border. `segmented` is one bordered container (the Master
- * platform switch): 33 px, 1 px `--line-strong`, `--bg` fill, radius
+ * platform switch): the control height (36 px; the mock draws 33), 1 px `--line-strong`, `--bg` fill, radius
  * ≈6; the chosen segment is inset, filled `--accent`, and the rest carry no fill, in the label's own case (title case in
  * the mocks, not uppercase — ACX, iNaudio, Google Play). */
 export type ToggleGroupLook = 'default' | 'segmented';
@@ -34,7 +34,8 @@ export function ToggleGroup({
 }) {
   const containerClass =
     look === 'segmented'
-      ? 'inline-flex h-[2.0625rem] gap-0.5 rounded-[var(--radius-button)] border border-[var(--line-strong)] bg-[var(--bg)] p-[0.1875rem]'
+      ? // The control height (36 px), so it lines up with a search box or a select beside it (alignment audit XSE1-19).
+        'inline-flex h-[var(--control-height)] gap-0.5 rounded-[var(--radius-button)] border border-[var(--line-strong)] bg-[var(--bg)] p-[0.1875rem]'
       : // The chips wrap onto another line rather than squeeze, 6 px apart (alignment audit cause L); at no specificity, so a
         // caller's own gap or nowrap still wins.
         'flex [:where(&)]:flex-wrap [:where(&)]:gap-1.5';

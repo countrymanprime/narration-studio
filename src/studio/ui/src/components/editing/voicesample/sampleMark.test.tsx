@@ -100,6 +100,9 @@ describe('the dots', () => {
     expect(dot.getAttribute('aria-label')).toBe('Voice sample: The Queen of Hearts, Furious, to the court. Press Enter for details');
     // The dot sits right after the word the range ends with (the span of that word, then the dot).
     expect(document.querySelector(`[data-k="${END}"]`)?.nextElementSibling).toBe(dot);
+    // R3ED-16: the 20 px dot has a 24 px press target around it.
+    expect(dot.className).toMatch(/after:min-h-6/);
+    expect(dot.className).toMatch(/after:min-w-6/);
     await userEvent.click(dot);
     const row = await screen.findByText('pitch up, clipped');
     const li = row.closest('li')!;

@@ -8,7 +8,9 @@ import { NOT_MEASURED } from '../measured/measured.selectors';
 
 const MIN_WIDTH = 280;
 const DAY = 86_400_000;
-const PAD = { left: 40, right: 12, top: 14, bottom: 28 };
+// The axis labels ("3h", right-aligned 6 px before the plot) start about as far in from the card's content edge as the plot ends before its
+// right edge, and the plot starts 6 px under the card's body padding, so no empty band sits under the header (alignment audit XSH-16).
+const PAD = { left: 28, right: 12, top: 6, bottom: 28 };
 const MONO = 'IBM Plex Mono, monospace';
 /** The least room, in px, between two date labels on the axis. */
 const TICK_GAP = 72;
@@ -33,6 +35,9 @@ type Props = {
   title?: string;
   /** Put the "today" label on the side of the dot away from the plan and projection lines (the Schedule page); off, it is centred above the dot as Production draws it. */
   clearTodayLabel?: boolean;
+  /** Says "Recorded days not measured yet" as a caption under the plot instead of inside it, where a narrow card puts it on a gridline and under
+   * the "today" label (Production's 360 px card; alignment audit R4TA-2). */
+  noteBelow?: boolean;
   /** Draws the header's "Open schedule" calendar button (Production's panel, the mock's `side-chart`); the Schedule page is already there and passes nothing. */
   onOpenSchedule?: () => void;
 };
@@ -50,6 +55,7 @@ export function ProgressChart({
   fill = false,
   title = 'Recorded vs plan',
   clearTodayLabel = false,
+  noteBelow = false,
   onOpenSchedule,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
@@ -91,7 +97,9 @@ export function ProgressChart({
   const dueGap = due ? x(due) - x(today) : Infinity;
   const todayLeft = !todayBelow || (dueGap > -6 && dueGap < 46 && x(today) >= PAD.left + 40);
   const todayY = Math.min(y(recordedHours) + (todayBelow ? 18 : -14), height - PAD.bottom - 6);
-  const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
+  // Gridlines up to the top of the scale (at most five), so the plot's top is a labelled line, not an empty band over the last one (XSH-16).
+  const rowStep = Math.max(1, Math.ceil(yMax / 4));
+  const rows = Array.from({ length: Math.floor(yMax / rowStep) + 1 }, (_, i) => i * rowStep);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
@@ -102,93 +110,103 @@ export function ProgressChart({
       actions={onOpenSchedule && <IconButton action="calendar" label="Open schedule" onClick={onOpenSchedule} />}
     >
       {/* Filling, the svg is laid over the box so what it draws never sets the card's height: the cell does. */}
-      <div ref={box} className={fill ? 'relative size-full overflow-hidden' : 'w-full overflow-hidden'} style={fill ? { minHeight } : { height }}>
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          width={width}
-          height={height}
-          className={fill ? 'absolute inset-0 block' : 'block'}
-          role="img"
-          aria-label="Recorded audio versus plan"
-          aria-describedby={describedBy}
-        >
-          {rows.map((v) => (
-            <g key={v}>
-              <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} stroke="var(--border)" />
-              <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)" fontFamily={MONO}>{`${v}h`}</text>
-            </g>
-          ))}
-          {weeks.map((d) => (
-            <text key={d} x={x(addDays(start, d))} y={height - 8} textAnchor="middle" fontSize="11" fill="var(--text-muted)" fontFamily={MONO}>
-              {fmtD(addDays(start, d))}
-            </text>
-          ))}
-          {due && (
-            <>
-              <line x1={x(due)} x2={x(due)} y1={PAD.top} y2={height - PAD.bottom} stroke="var(--danger)" strokeDasharray="2 4" data-line="due" />
-              <text
-                x={x(due) + (x(due) < 96 ? 4 : -4)}
-                y={PAD.top + 10}
-                textAnchor={x(due) < 96 ? 'start' : 'end'}
-                fontSize="11"
-                fill="var(--danger-text)"
-              >{`due ${fmtD(due)}`}</text>
-              {/* A due date on or before the plan's first day leaves no plan to draw. */}
-              {diffDays(due, start) > 0 && (
-                <line
-                  x1={x(start)}
-                  y1={y(0)}
-                  x2={x(due)}
-                  y2={y(finishedHours)}
-                  stroke="var(--text-muted)"
-                  strokeWidth="2"
-                  strokeDasharray="6 5"
-                  data-line="plan"
-                />
-              )}
-            </>
-          )}
-          {actual.length > 0 && (
-            <polyline
-              fill="none"
+      <div className={fill ? 'flex h-full flex-col' : undefined}>
+        <div ref={box} className={fill ? 'relative w-full flex-1 overflow-hidden' : 'w-full overflow-hidden'} style={fill ? { minHeight } : { height }}>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            width={width}
+            height={height}
+            className={fill ? 'absolute inset-0 block' : 'block'}
+            role="img"
+            aria-label="Recorded audio versus plan"
+            aria-describedby={describedBy}
+          >
+            {rows.map((v) => (
+              <g key={v}>
+                <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} stroke="var(--border)" />
+                <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)" fontFamily={MONO}>{`${v}h`}</text>
+              </g>
+            ))}
+            {weeks.map((d) => (
+              <text key={d} x={x(addDays(start, d))} y={height - 8} textAnchor="middle" fontSize="11" fill="var(--text-muted)" fontFamily={MONO}>
+                {fmtD(addDays(start, d))}
+              </text>
+            ))}
+            {due && (
+              <>
+                <line x1={x(due)} x2={x(due)} y1={PAD.top} y2={height - PAD.bottom} stroke="var(--danger)" strokeDasharray="2 4" data-line="due" />
+                <text
+                  x={x(due) + (x(due) < 96 ? 4 : -4)}
+                  y={PAD.top + 10}
+                  textAnchor={x(due) < 96 ? 'start' : 'end'}
+                  fontSize="11"
+                  fill="var(--danger-text)"
+                >{`due ${fmtD(due)}`}</text>
+                {/* A due date on or before the plan's first day leaves no plan to draw. */}
+                {diffDays(due, start) > 0 && (
+                  <line
+                    x1={x(start)}
+                    y1={y(0)}
+                    x2={x(due)}
+                    y2={y(finishedHours)}
+                    stroke="var(--text-muted)"
+                    strokeWidth="2"
+                    strokeDasharray="6 5"
+                    data-line="plan"
+                  />
+                )}
+              </>
+            )}
+            {actual.length > 0 && (
+              <polyline
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="3"
+                data-line="actual"
+                points={actual.map((p) => `${x(addDays(start, p[0]))},${y(p[1])}`).join(' ')}
+              />
+            )}
+            {/* Mid-height at the left, clear of the "done" label at the top right and the "today" marker at the bottom. */}
+            {!series.ok && !noteBelow && (
+              <text x={PAD.left + 8} y={(PAD.top + y(0)) / 2} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>
+            )}
+            <line
+              x1={x(today)}
+              y1={y(recordedHours)}
+              x2={x(k.finish)}
+              y2={y(finishedHours)}
               stroke="var(--accent)"
-              strokeWidth="3"
-              data-line="actual"
-              points={actual.map((p) => `${x(addDays(start, p[0]))},${y(p[1])}`).join(' ')}
+              strokeWidth="2"
+              strokeDasharray="1 5"
+              strokeLinecap="round"
+              data-line="projection"
             />
-          )}
-          {/* Mid-height at the left, clear of the "done" label at the top right and the "today" marker at the bottom. */}
-          {!series.ok && <text x={PAD.left + 8} y={(PAD.top + y(0)) / 2} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>}
-          <line
-            x1={x(today)}
-            y1={y(recordedHours)}
-            x2={x(k.finish)}
-            y2={y(finishedHours)}
-            stroke="var(--accent)"
-            strokeWidth="2"
-            strokeDasharray="1 5"
-            strokeLinecap="round"
-            data-line="projection"
-          />
-          <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
-          {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
-          {clearTodayLabel ? (
-            <text x={todayLeft ? x(today) - 7 : x(today) + 9} y={todayY} textAnchor={todayLeft ? 'end' : 'start'} fontSize="11" fill="var(--text)">
-              today
-            </text>
-          ) : (
-            <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
-              today
-            </text>
-          )}
-          <text
-            x={x(k.finish)}
-            y={y(finishedHours) - 8}
-            textAnchor={x(k.finish) < 130 ? 'start' : 'end'}
-            fontSize="11"
-            fill="var(--text)"
-          >{`done ${fmtD(k.finish)} (est.)`}</text>
-        </svg>
+            <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
+            {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
+            {clearTodayLabel ? (
+              <text x={todayLeft ? x(today) - 7 : x(today) + 9} y={todayY} textAnchor={todayLeft ? 'end' : 'start'} fontSize="11" fill="var(--text)">
+                today
+              </text>
+            ) : (
+              <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
+                today
+              </text>
+            )}
+            <text
+              x={x(k.finish)}
+              y={y(finishedHours) - 8}
+              textAnchor={x(k.finish) < 130 ? 'start' : 'end'}
+              fontSize="11"
+              fill="var(--text)"
+            >{`done ${fmtD(k.finish)} (est.)`}</text>
+          </svg>
+        </div>
+        {((!series.ok && noteBelow) || !due) && (
+          <p className="mt-1 flex-none text-[0.75rem] text-[var(--text-muted)]" data-chart-note>
+            {/* With no due date there is no plan line and the projection alone looks like a glitch: say what draws the plan (XSH-18). */}
+            {[!due && 'Set a due date to see the plan line.', !series.ok && noteBelow && `Recorded days ${NOT_MEASURED}`].filter(Boolean).join(' ')}
+          </p>
+        )}
       </div>
       <p id={describedBy} className="sr-only">
         {summary}

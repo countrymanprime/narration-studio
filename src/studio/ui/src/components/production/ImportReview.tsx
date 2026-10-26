@@ -191,9 +191,8 @@ export function ImportReview({
   const subtitleRows = sections.filter(hasSubtitleChoice).length;
   const options = (preview.format === 'markdown' || buildStoryBible || subtitleChoices || deliveryProfile) && (
     <fieldset className="min-w-0">
-      <SectionLabel as="legend" className="px-1">
-        Import options
-      </SectionLabel>
+      {/* At the same left edge as the chips above and the box below (alignment audit XPR2-21, R3PR1-13). */}
+      <SectionLabel as="legend">Import options</SectionLabel>
       <div className="space-y-2">
         {preview.format === 'markdown' && (
           <label className="flex items-center gap-2">
@@ -244,7 +243,7 @@ export function ImportReview({
       {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
         // The label stays in view, and so does every group's header: the box is a column in which the one open group scrolls.
         <div role="group" aria-labelledby={labelId} className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
-          <SectionLabel as="div" id={labelId} className="flex-none px-1">
+          <SectionLabel as="div" id={labelId} className="flex-none">
             Review what was found
           </SectionLabel>
           <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-card)] border px-3" style={{ borderColor: 'var(--border)' }}>

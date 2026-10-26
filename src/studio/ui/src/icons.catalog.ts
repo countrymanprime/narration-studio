@@ -89,6 +89,7 @@ import {
   faListCheck,
   faEllipsis,
   faStar,
+  faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircleCheck as faCircleCheckRegular } from '@fortawesome/free-regular-svg-icons';
 
@@ -102,6 +103,8 @@ type CatalogFields = {
   tooltip: string;
   /** Shown in parentheses after the tooltip. */
   shortcut?: string;
+  /** `rec` draws the icon in `--rec-text` inside an outlined `IconButton`, the Studio Next mock's `.ibtn.rec`: a record disc in the text colour read as a status light. */
+  tint?: 'rec';
 };
 
 type IconRow = CatalogFields & { kind: CatalogKind; icon: IconDefinition };
@@ -216,12 +219,13 @@ export const CATALOG = {
   silenceOutput: action(faVolumeXmark, 'silence output', 'Toggle silence for the output'),
   outputAudio: action(faHeadphones, 'output audio', 'Show volume and output device'),
   hear: action(faVolumeHigh, 'hear a reference', 'Hear the reference clip'),
-  record: action(faCircle, 'record', 'Record my own clip'),
+  record: { ...action(faCircle, 'record', 'Record my own clip'), tint: 'rec' },
   zoomIn: action(faMagnifyingGlassPlus, 'zoom in', 'Zoom in'),
   zoomOut: action(faMagnifyingGlassMinus, 'zoom out', 'Zoom out'),
   scrollWaveBack: action(faCaretLeft, 'scroll the waveform back', 'Scroll the waveform back a window'),
   scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward a window'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
+  problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
 
   // State: outline is off, solid is on (audit rule 3).
   markDone: action(faCircleCheckRegular, 'mark done', 'Mark done'),
@@ -257,7 +261,7 @@ export const CATALOG = {
   incomingRelationship: action(faArrowLeft, 'incoming relationship', 'Show an incoming relationship'),
   showExample: action(faEye, 'show an example', 'Show the format example'),
   hideExample: action(faEyeSlash, 'hide an example', 'Hide the format example'),
-  recordHere: action(faCircle, 'record', 'Record from here'),
+  recordHere: { ...action(faCircle, 'record', 'Record from here'), tint: 'rec' },
   goToChapter: action(faArrowRight, 'go on', 'Go to the chapter'),
   addWord: action(faPlus, 'add', 'Add to my words'),
   addMark: action(faPlus, 'add', 'Add a mark'),
@@ -332,6 +336,13 @@ const hasIcon = (name: string): name is IconName => Object.hasOwn(CATALOG, name)
 
 /** An icon by a name that comes from data (a source list); an unknown name falls back to the neutral key. */
 export const iconNamed = (name: string): IconName => (hasIcon(name) ? name : NEUTRAL);
+
+/**
+ * The one icon for hearing a name or word said (owner, 2026-10-26: the Story Bible's list and its entry drew two): the speaker of
+ * `hear`, as the Studio Next mock draws it in the entry editor and the Words tab, and `stop` while it plays. Every button that speaks
+ * a name asks this for its `action` (`hearName.test.ts` fails one that draws its own glyph).
+ */
+export const hearNameAction = (playing = false): IconName => (playing ? 'stop' : 'hear');
 
 /** The Font Awesome definition a key draws. */
 export const iconFor = (name: IconName): IconDefinition => CATALOG[name].icon;

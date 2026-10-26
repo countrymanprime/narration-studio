@@ -20,7 +20,7 @@ const meta = {
   component: BoothTop,
   decorators: [withApi],
   args: {
-    progress: '¶ 38 of 71 · 41% · ~8:10 finished left',
+    progress: '¶ 38 of 71 · 41% · ~8:10 of audio left',
     recording: false,
     panelOpen: true,
     onTogglePanel: fn(),

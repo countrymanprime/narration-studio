@@ -9,11 +9,14 @@ import type { Driver } from '../app.drivers';
 import { runRecordPath, screenshotDir, settleFrames, settlePage } from '../helpers/settle';
 import type { Viewport } from '../viewports';
 import type { StateEntry } from './types';
+import { scanLayout } from './layoutScan';
 import {
   checkAxeFindings,
   checkControlWidths,
   checkDocumentScroll,
+  checkLayoutHits,
   disambiguateLabels,
+  findMixedRowHeights,
   NON_TEXT_INPUT_TYPES,
   OVERFLOW_TOLERANCE_PX,
   resolveAxeMode,
@@ -26,7 +29,9 @@ import {
   type ControlMeasurement,
   type DocumentScrollMode,
   type EscapedAbsolute,
+  type LayoutDebt,
   type RawAxeViolation,
+  type RowControl,
 } from './validators';
 
 function watchForProblems(page: Page, problems: string[]): void {
@@ -55,7 +60,7 @@ async function measureVerticalOverflow(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight);
 }
 
-// Absolutely positioned elements under #root whose containing block escaped the shell: rendered, position: absolute, and
+// Absolutely positioned elements under #root whose containing block escaped the shell: rendered (it draws a box), position: absolute, and
 // offsetParent is <body> or null (no positioned ancestor caught it). Structural, so it finds a zoom-only escape that no
 // captured viewport happens to overflow at.
 async function findEscapedAbsolutes(page: Page): Promise<EscapedAbsolute[]> {
@@ -87,6 +92,8 @@ async function findEscapedAbsolutes(page: Page): Promise<EscapedAbsolute[]> {
     for (const element of root.querySelectorAll<HTMLElement>('*')) {
       const style = getComputedStyle(element);
       if (style.position !== 'absolute' || style.display === 'none' || style.visibility === 'hidden') continue;
+      // Inside a `display: none` ancestor (a footer not drawn at this width) it has no box, so it lays out against nothing.
+      if (element.getClientRects().length === 0) continue;
       const offsetParent = element.offsetParent;
       if (offsetParent === document.body || offsetParent === null) {
         found.push({ selector: selectorOf(element), bottom: Math.round(element.getBoundingClientRect().bottom) });
@@ -135,6 +142,31 @@ async function measureTextControls(page: Page): Promise<ControlMeasurement[]> {
       }));
   }, NON_TEXT_INPUT_TYPES);
   return disambiguateLabels(measured);
+}
+
+// The one-line controls in view, for the row-height check: text boxes, selects and buttons 28 to 48 px tall (a taller one is a card or a
+// multi-line control, a shorter one an inline link or a chip), each with its parent element's number.
+async function measureRowControls(page: Page): Promise<RowControl[]> {
+  return page.evaluate((nonText) => {
+    const parents = new Map<Element, number>();
+    return Array.from(document.querySelectorAll<HTMLElement>('input, select, button'))
+      .filter((element) => !(element instanceof HTMLInputElement && nonText.includes(element.type)))
+      .filter((element) => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden')
+      .filter((element) => !element.closest('[aria-hidden="true"], [inert]') && element.parentElement)
+      .map((element) => ({ element, box: element.getBoundingClientRect() }))
+      .filter(({ box }) => box.height >= 28 && box.height <= 48 && box.bottom > 0 && box.top < innerHeight)
+      .map(({ element, box }) => {
+        const parent = element.parentElement!;
+        if (!parents.has(parent)) parents.set(parent, parents.size);
+        const name = (element.getAttribute('aria-label') ?? element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+        return {
+          name: `${element.tagName.toLowerCase()} ${name}`,
+          parent: parents.get(parent)!,
+          top: Math.round(box.top * 10) / 10,
+          height: Math.round(box.height * 10) / 10,
+        };
+      });
+  }, NON_TEXT_INPUT_TYPES);
 }
 
 // axe-core is read only when axe runs, so a project that never turns it on does not need the package.
@@ -216,11 +248,29 @@ export function maskOptions(
 
 async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, problems: string[]): Promise<string[]> {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
-  // A long page is shown whole by growing the viewport (Playwright's fullPage would stretch fixed elements).
+  // A long page is shown whole by growing the viewport (Playwright's fullPage would stretch fixed elements). The document never scrolls
+  // (documentScroll 'locked'): the page area inside the shell does, or a pane of the page, so the window grows by what the most
+  // overflowing scroll container under <main> hides, again until nothing more is hidden (a taller window can lay the page out anew).
   if (entry.fullPage) {
-    const height = await page.evaluate(() => document.documentElement.scrollHeight);
-    if (height > 6000) problems.push(`fullPage: the page is ${height}px tall, beyond the 6000px cap - the capture would be cut off`);
-    await page.setViewportSize({ width: viewport.width, height: Math.min(height, 6000) });
+    let height = viewport.height;
+    for (let round = 0; round < 4; round += 1) {
+      const hidden = await page.evaluate(() =>
+        Math.max(
+          0,
+          ...Array.from(document.querySelectorAll<HTMLElement>('main *'))
+            .filter((element) => /(auto|scroll)/.test(getComputedStyle(element).overflowY))
+            .map((element) => element.scrollHeight - element.clientHeight),
+        ),
+      );
+      if (hidden <= 1) break;
+      height += hidden;
+      if (height > 6000) {
+        problems.push(`fullPage: the page is ${height}px tall, beyond the 6000px cap - the capture would be cut off`);
+        height = 6000;
+      }
+      await page.setViewportSize({ width: viewport.width, height });
+      if (height === 6000) break;
+    }
   }
   await settleFrames(page);
   // A pointer left over from the driver's last click paints a hover style on
@@ -236,6 +286,11 @@ async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, prob
   // taken and recorded, so the picture of the failure exists.
   const controls = await measureTextControls(page);
   problems.push(...checkControlWidths(controls, entry.narrowControls, viewport.name));
+  problems.push(...findMixedRowHeights(await measureRowControls(page), viewport.name));
+  // The alignment audit's DOM rules: a hit fails the capture unless the project's layoutDebt declares it.
+  const layout = await page.evaluate(scanLayout);
+  const layoutDebt = (appDrivers as { layoutDebt?: readonly LayoutDebt[] }).layoutDebt ?? [];
+  problems.push(...checkLayoutHits(layout, layoutDebt, entry.page, entry.state, viewport.name));
   const axeDebt = (appDrivers as { axeDebt?: readonly AxeDebt[] }).axeDebt;
   const axeMode = resolveAxeMode(process.env.UI_AXE, axeDebt !== undefined);
   const png = await page.screenshot({
@@ -262,6 +317,7 @@ async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, prob
     escapedAbsolutes,
     narrowestControlPx: controls.length > 0 ? Math.min(...controls.map((control) => control.width)) : null,
     ...(axe ? { axe } : {}),
+    layout,
   });
 
   const failures = problems.splice(0).map((problem) => `${viewport.name}: ${problem}`);
@@ -276,6 +332,8 @@ function failOn(failures: string[]): void {
 // One {state, viewport} capture: boot the app fresh, drive to the state, screenshot it, and fail on anything that makes the
 // picture untrustworthy (a page error, a failed request, horizontal overflow). For a row with `reloadPerViewport`.
 export async function captureState(page: Page, entry: StateEntry, viewport: Viewport, driver: Driver): Promise<void> {
+  // The time a capture is given, as captureAcrossViewports gives each of its viewports.
+  test.setTimeout(test.info().timeout * (entry.timeoutFactor ?? 1));
   const problems: string[] = [];
   await boot(page, viewport, driver, problems);
   failOn(await captureAt(page, entry, viewport, problems));

@@ -26,13 +26,15 @@ export const HEADING_LABEL_END = /[.:]$/;
 /**
  * The one way a chapter's name is shown to read everywhere but the Booth's main reading area (#2251 item 24): the name in the style the
  * manuscript settled, the standard the manuscript import dialog sets (`production/importReviewModel.headingParts`). A label heading keeps the
- * manuscript's own separator ("CHAPTER VIII. Croquet", "8. Croquet", "Chapter 8: Croquet"); any other keeps `chapterName`'s "Title — Subtitle".
+ * manuscript's own separator ("CHAPTER VIII. Croquet", "8. Croquet", "Chapter 8: Croquet"); a plain heading with a subtitle reads "Chapter 3: Title"
+ * (colon, owner decision on #2251); a heading with no subtitle is the title alone.
  * This is the single display formatter the Editing, Booth and Pickups chapter lists used to each write by hand; every other chapter-name
  * display reads it too, so the dash never shows on a numbered heading on one page and not on another.
  */
 export function headingName(chapter: Named): string {
   const { label, title } = chapterHeading(chapter);
-  return HEADING_LABEL_END.test(label) ? `${label} ${title}` : chapterName(chapter);
+  if (!label) return title;
+  return HEADING_LABEL_END.test(label) ? `${label} ${title}` : `${label}: ${title}`;
 }
 
 /** What the card's top row says: "Credits" for the opening pages, otherwise the chapter's label. */

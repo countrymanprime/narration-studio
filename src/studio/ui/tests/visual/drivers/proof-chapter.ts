@@ -25,13 +25,13 @@ export const proofChapterDrivers: Record<string, Driver> = {
       window.dispatchEvent(new PopStateEvent('popstate'));
     }, '/proof/chapter-1');
     await page.getByRole('button', { name: 'Retry' }).waitFor();
-    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    // The panel says the failure, so no toast says it again (#2494): the picture is the panel alone.
+    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
   never: async (page) => {
     // Chapter 7 has no recordedFraction in the fixture (mockFixtures.ts: only chapters 1-6 do), so it reads "never checked".
     await openLinkedProofChapter(page, 'Chapter 7');
-    await page.getByText(/hasn.t been checked yet/).waitFor();
+    await page.getByRole('button', { name: 'Check recording', exact: true }).waitFor();
   },
   stale: async (page) => {
     // ?mockCoverage=stale marks Chapter 4's check stale (main.tsx).
@@ -83,10 +83,10 @@ export const proofChapterDrivers: Record<string, Driver> = {
   // "May have changed since comparison": reviewing the last completed
   // comparison (its mock fixture carries a baseline count of 41), whose default background check answers 42 - no
   // seam needed. Live just-finished results carry no baseline in this mock (the real host sets one at prepare_compare),
-  // so this state goes through "Last narrated take" rather than a fresh run.
+  // so this state goes through "Review last run" rather than a fresh run.
   'compare-results-changed-since': async (page) => {
     await openCompare(page);
-    await clickVisible(page, 'button', /Last narrated take/);
+    await clickVisible(page, 'button', /^Review last run$/);
     await page.getByText(/may have changed/).waitFor();
     await compareRun(page).scrollIntoViewIfNeeded();
   },
@@ -205,10 +205,10 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await openPanel(page, '/', page.getByText('Proofing readiness'), 'Chapter 9');
     await clickVisible(page, 'button', 'Choose rendered file');
     await clickVisible(page, 'button', 'Measure');
-    // Scoped to the section itself: a page-wide /Measured/ also matches a delivery check's own
+    // Scoped to the section itself: a page-wide /measured/ also matches a delivery check's own
     // "Measured <timestamp>" evidence line elsewhere on this same chapter's page.
     const renderedFileSection = page.getByRole('heading', { name: 'Rendered file' }).locator('xpath=..');
-    const measured = renderedFileSection.getByText(/Measured/);
+    const measured = renderedFileSection.getByText(/· measured/);
     await measured.waitFor();
     await measured.scrollIntoViewIfNeeded();
   },

@@ -25,12 +25,8 @@ export const shellStates: StateEntry[] = [
   {
     page: 'shell',
     state: 'engine-mismatch',
-    description: 'Header engine chip reading REAPER with its warning dot and the different-project tooltip: a live heartbeat disagrees with the linked file',
-    sameAs: {
-      of: 'production/no-data',
-      reason:
-        'The chip draws a name and a warning dot for both a REAPER that is not running and a different open project; only the tooltip and the accessible name differ, and neither is on screen.',
-    },
+    description:
+      'Header engine chip reading "REAPER: Other project" with its warning dot, and the different-project tooltip: a live heartbeat disagrees with the linked file',
     ...REFLOW,
   },
   // The zoom chip: the default states show no chip (zoom is 100%), so a non-100% level gets its own row, and the chip's press its own. Reflow
@@ -76,6 +72,9 @@ export const shellStates: StateEntry[] = [
     description:
       'No manuscript imported (?mockNoManuscript=1): the rail shows the nine pages that need one off with a lock, and a press on Proof opens its note with the reason, beside the item',
     pointer: 'keep',
+    // Driven at each width: driven once at desktop and resized, the note stayed anchored to the rail item that hides below 860 px and
+    // was drawn over the header (alignment audit XSL-9); at that width the press is in the drawer.
+    reloadPerViewport: true,
     extraViewports: [...REFLOW.extraViewports, ...LAYOUT_BANDS.extraViewports],
   },
   {

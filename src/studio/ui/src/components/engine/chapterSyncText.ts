@@ -83,19 +83,33 @@ function basename(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
 
+/**
+ * Which DAW chapter sync reads, so its text names that one. For REAPER it is the saved .rpp the host reports as `projectFile`. An
+ * Audacity project has no .rpp: the host reads the snapshot taken while Audacity answered (or, with none yet, whatever .rpp
+ * discovery finds), so the text names `linkedFile`, the narrator's linked .aup3 (null when none is linked), and never `projectFile`.
+ */
+export type ChapterSyncDaw = { daw: 'REAPER' } | { daw: 'Audacity'; linkedFile: string | null };
+
+/** The project chapter sync reads, as a sentence's subject: "Alice.rpp", "Book One.aup3", "The open Audacity project". */
+export function chapterSyncProjectName(projectFile: string, daw: ChapterSyncDaw): string {
+  if (daw.daw === 'Audacity') return daw.linkedFile ? basename(daw.linkedFile) : 'The open Audacity project';
+  return projectFile;
+}
+
 const chapters = (count: number) => `${count} chapter${count === 1 ? '' : 's'}`;
 
-/**
- * Chapter sync's "on" line: "On · last synced 10:42 from the saved Alice.rpp · 8 chapters linked automatically, 1 by
- * you". The split comes from the host's per-chapter rows (`origin`); before it has them (the saved .rpp unreadable) the plain
- * count of links stands in.
- */
-export function chapterSyncSummaryText(
-  state: { lastSync: string | null; projectFile: string; chapters: Pick<ChapterSyncChapter, 'origin'>[]; linked: number },
+/** Chapter sync's facts, one per row of its card: when it last synced and from which project (`daw` says which one to name), and how many chapters it and you linked. */
+export function chapterSyncSummaryFacts(
+  state: { lastSync: string | null; projectFile: string; chapters: Pick<ChapterSyncChapter, 'origin'>[]; linked: number; daw: ChapterSyncDaw },
   now: Date = new Date(),
-): string {
-  const synced = state.lastSync ? `last synced ${chapterSyncTimeLabel(state.lastSync, now) || 'at an unknown time'}` : 'not synced yet';
-  const file = state.lastSync && state.projectFile ? ` from the saved ${basename(state.projectFile)}` : '';
+): { synced: string; links: string } {
+  const when = state.lastSync ? chapterSyncTimeLabel(state.lastSync, now) || 'At an unknown time' : 'Not synced yet';
+  let file = '';
+  if (state.lastSync && state.daw.daw === 'Audacity') {
+    file = state.daw.linkedFile ? `, from ${basename(state.daw.linkedFile)} in Audacity` : ', from the open Audacity project';
+  } else if (state.lastSync && state.projectFile) {
+    file = `, from the saved ${basename(state.projectFile)}`;
+  }
   let links: string;
   if (state.chapters.length === 0) {
     links = `${chapters(state.linked)} linked`;
@@ -104,24 +118,24 @@ export function chapterSyncSummaryText(
     const manual = state.chapters.filter((chapter) => chapter.origin === 'manual').length;
     if (auto > 0) links = `${chapters(auto)} linked automatically${manual > 0 ? `, ${manual} by you` : ''}`;
     else if (manual > 0) links = `${chapters(manual)} linked by you`;
-    else links = 'no chapters linked';
+    else links = 'No chapters linked';
   }
-  return `On · ${synced}${file} · ${links}`;
+  return { synced: `${when}${file}`, links };
 }
 
 /**
- * Chapter sync's background-checks wait line: why a changed
+ * Chapter sync's Background checks row (`daw` names the DAW a recording wait is for): why a changed
  * chapter is not being re-checked on its own right now. '' when there is nothing worth telling the narrator: checks
  * are off, another check (the narrator's own or another background pick) is already running, or nothing has
  * changed since its last check.
  */
-export function chapterSyncBackgroundWaitText(background: { enabled: boolean; wait: ChapterSyncBackgroundWait }): string {
+export function chapterSyncBackgroundWaitText(background: { enabled: boolean; wait: ChapterSyncBackgroundWait }, daw: ChapterSyncDaw['daw']): string {
   if (!background.enabled) return '';
   const REASONS: Partial<Record<ChapterSyncBackgroundWait, string>> = {
-    recording: 'Background checks: waiting, REAPER is recording.',
-    battery: 'Background checks: waiting for mains power.',
-    quiet: 'Background checks: waiting for things to settle down.',
-    model: 'Background checks: waiting for the Whisper model.',
+    recording: `Waiting: ${daw} is recording.`,
+    battery: 'Waiting for mains power.',
+    quiet: 'Waiting for things to settle down.',
+    model: 'Waiting for the Whisper model.',
   };
   return REASONS[background.wait] ?? '';
 }

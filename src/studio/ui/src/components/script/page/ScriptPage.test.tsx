@@ -216,7 +216,7 @@ describe('registers-and-unregisters', () => {
 
 describe('right-click-menus-reach-what-the-page-draws', () => {
   const labels = (target: Element | null) =>
-    target ? (contextItemsFor(target) ?? []).map((item) => (item.group ? `${item.group}: ${item.label}` : item.label)) : [];
+    target ? (contextItemsFor(target) ?? []).flatMap((item) => (item.submenu ? item.submenu.map((sub) => `${item.label}: ${sub.label}`) : [item.label])) : [];
 
   it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
     const api = createMockApi({ creditsTemplates: async () => [] });
@@ -364,7 +364,12 @@ describe('credits-cards-and-banner-stay', () => {
     mount();
     const opening = await waitFor(() => card('Opening credits'));
     expect(within(opening).getByText('Credits')).toBeTruthy();
-    expect(within(opening).getByText(/words · about \d+ min finished audio · 0 notes/)).toBeTruthy();
+    // The facts are separate unbreakable spans (alignment audit XSC-10): match the paragraph's whole text.
+    expect(
+      within(opening).getByText(
+        (_, element) => element?.tagName === 'P' && /words · about \d+ min finished audio · 0 notes/.test((element.textContent ?? '').replace(/\u00a0/g, ' ')),
+      ),
+    ).toBeTruthy();
     expect(within(opening).getByRole('group', { name: 'Prep state for Opening credits' })).toBeTruthy();
     // The text the template renders, with the tokens left to fill in, as lines of the reader under the card.
     await waitFor(() => expect(document.querySelectorAll('[data-para][data-ch="credits:opening"]').length).toBeGreaterThan(0));

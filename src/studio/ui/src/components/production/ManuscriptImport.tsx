@@ -1,6 +1,7 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
+import { calendarDay } from '../../calendarDay';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useWorkJob } from '../../hooks/useWorkJob';
 import type { CreditsSetupState, DeliveryProfilesState, ManuscriptImportSelection, WorkJob } from '../../types';
@@ -260,7 +261,7 @@ export function useManuscriptImport({
       {step1Open && !importJob && (
         <ImportChooseDialog
           replacing={found}
-          importedOn={data.manuscript?.importedAt ? new Date(data.manuscript.importedAt).toLocaleDateString() : undefined}
+          importedOn={data.manuscript?.importedAt ? calendarDay(data.manuscript.importedAt) : undefined}
           choosing={choosing.isPending('choose')}
           onChoose={chooseFile}
           onDrop={dropFile}

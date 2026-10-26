@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -16,7 +16,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'running',
     description:
-      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read, what it is reading, Cancel, and each file waiting in the table',
+      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read, what it is reading and Cancel in the table card under Check files, the file being read marked Measuring and the rest Waiting',
   },
   {
     page: 'master',
@@ -45,7 +45,7 @@ export const masterStates: StateEntry[] = [
   {
     page: 'master',
     state: 'cancelled',
-    description: 'Master & QC, a running check cancelled - every file not yet read says it was not measured',
+    description: 'Master & QC, a running check cancelled - every file not yet read marked Not measured, and the reason said once in the card',
   },
   {
     page: 'master',
@@ -106,11 +106,6 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'report-needs-files',
     description: 'Master & QC, before anything was checked - Export report is off and says to check some files first (scrolled to the Report panel)',
-    sameAs: {
-      of: 'master/multi-export-empty',
-      reason: 'Both are scrolled to the end of the one-column page, where the Report and Multi-platform export panels sit together',
-      viewports: ['small-desktop', 'tablet'],
-    },
     ...KEEPS_DESKTOP_SCROLL,
   },
   // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)
@@ -147,14 +142,14 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'multi-export-running',
     description:
-      'Master & QC, a multi-platform build part way through (?mockPackageMulti=running) - the first checked platform Building…, the rest waiting, Cancel, and a progress indicator',
+      'Master & QC, a multi-platform build part way through (?mockPackageMulti=running) - Building… under the checked platform, Cancel, and a progress indicator',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'master',
     state: 'multi-export-results',
     description:
-      'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - a per-profile result row for each: its name, Built, the output folder and how many files it wrote',
+      'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - under each checked platform its result: Built, the output folder and how many files it wrote',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -166,19 +161,20 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'package-loading',
     description:
-      'Master & QC while the chapters are still being read (?mockChapters=loading): the page as usual, and in the Delivery package panel grey blocks in place of the checks and of the "failing and not ready" count, with Open Delivery still offered and one polite "Reading the profile and the chapters…" status',
+      'Master & QC while the chapters are still being read (?mockChapters=loading): the page as usual, and in the Delivery package panel four grey blocks in place of the checks, Open Delivery off until they arrive, and one polite "Reading the profile and the chapters…" status',
   },
   {
     page: 'master',
     state: 'chapters-load-failed',
     description:
-      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and, under the file table, "The chapters could not be read, so the files keep their file names" with the reason as an alert and a Retry button that reads the chapters again',
+      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and, in the file table card under its controls, "The chapters could not be read, so the files keep their file names" with the reason as an alert and a Retry button that reads the chapters again',
   },
   {
     page: 'master',
     state: 'profile-load-failed',
     description:
-      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, under the file table, "The delivery profile could not be read" with the reason as an alert and a Retry button that reads the profile again (scrolled to the alert)',
+      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, in the file table card under its controls, the reason ("The delivery profiles could not be read from this project.", said once) as an alert and a Retry button that reads the profile again (scrolled to the alert)',
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];
+masterStates.push(wholePage(masterStates, 'measured'));

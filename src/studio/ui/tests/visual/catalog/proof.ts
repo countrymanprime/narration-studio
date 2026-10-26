@@ -1,6 +1,6 @@
 // The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 
 export const proofStates: StateEntry[] = [
   {
@@ -34,8 +34,7 @@ export const proofStates: StateEntry[] = [
   {
     page: 'proof',
     state: 'chapter-no-recording',
-    description:
-      'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check, "No recording for this chapter yet" where the waveform goes',
+    description: 'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why, and no waveform under it',
     ...REFLOW,
   },
   {
@@ -145,3 +144,4 @@ export const proofStates: StateEntry[] = [
     ...REFLOW,
   },
 ];
+proofStates.push(wholePage(proofStates, 'default', ['desktop']));

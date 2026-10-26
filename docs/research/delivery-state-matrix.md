@@ -70,7 +70,7 @@ Each cell is a test name or **not tested: reason**. `page` is `src/studio/ui/src
 | - | - |
 | refused (the folder is gone) | `page`: "a double press asks the host once; a refusal is shown in its words" |
 | rapid double-fire | the same test |
-| overlays | `e2e`: "hint on Open the folder" at 1440x900, 1100x700, 820x600 and 360x500. **Not covered:** 320x300, where the hint opens and does not settle (the guard says it never became visible; cause not found, as with Master & QC's hints over scrolled content) |
+| overlays | `e2e`: "hint on Open the folder" at the desktop, small-desktop and tablet sizes, 360x500 and 320x300. Below 390 px the window is narrowed with the hint open; the button keeps to the card's right edge and moves out from under the pointer, so the guard points at it again (`afterNarrowing`) |
 
 ### D8 and D9 The aside
 

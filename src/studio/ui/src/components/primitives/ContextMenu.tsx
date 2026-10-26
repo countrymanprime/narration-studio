@@ -1,5 +1,5 @@
 import { ContextMenu as BaseContextMenu } from '@base-ui/react/context-menu';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -129,6 +129,31 @@ function Runs({ items, reasonId }: { items: ContextMenuItem[]; reasonId: string 
   });
 }
 
+/** A box the popup is placed against: what floating positioning reads of an anchor. */
+type VirtualAnchor = { getBoundingClientRect: () => DOMRect };
+
+const contains = (box: DOMRect, x: number, y: number) => x >= box.left - 1 && x <= box.right + 1 && y >= box.top - 1 && y <= box.bottom + 1;
+
+/**
+ * The text the menu was opened on, as a box at the pointer's x as tall as that text: the selection when the pointer is inside it (it may
+ * run over several lines), else the line of text under the pointer. Undefined when the pointer is not on text (empty space, a button
+ * row), and the menu opens at the pointer as before.
+ */
+export function textBoxAt(x: number, y: number): DOMRect | undefined {
+  const selection = window.getSelection?.();
+  if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0);
+    if ([...range.getClientRects()].some((box) => contains(box, x, y))) {
+      const box = range.getBoundingClientRect();
+      return new DOMRect(x, box.top, 0, box.height);
+    }
+  }
+  const caret = document.caretRangeFromPoint?.(x, y);
+  const line = caret?.getClientRects()[0] ?? caret?.getBoundingClientRect();
+  if (!line || line.height === 0 || !contains(new DOMRect(line.left - 1e4, line.top, 2e4, line.height), x, y)) return undefined;
+  return new DOMRect(x, line.top, 0, line.height);
+}
+
 // An area that opens a menu of actions at the pointer on a right click, a long press, or the keyboard's Menu key or
 // Shift+F10. It is `Menu`'s sibling: the same popup, the same items,
 // the same roles and keys, but opened by the area instead of a button. `onOpen` runs on the contextmenu event, before the
@@ -136,6 +161,8 @@ function Runs({ items, reasonId }: { items: ContextMenuItem[]; reasonId: string 
 // with no items leaves the browser's own menu alone. An item that cannot run says why instead of vanishing, and is not
 // selectable. An item with `submenu` opens a nested list beside it. The popup is portalled into the page's <main> (else to <body>), so screen readers and axe place it inside a
 // landmark like the page it belongs to. The area keeps its own layout (`className`); the popup sits between the slide-over and the dialogs.
+// Opened on text, the popup starts 4 px below the line (or the selection) at the pointer's x, and above it when there is more room
+// there, so it never covers the words it acts on (alignment audit R3SC-2); anywhere else it opens at the pointer.
 export function ContextMenu({
   items,
   onOpen,
@@ -148,13 +175,20 @@ export function ContextMenu({
   children: ReactNode;
 }) {
   const reasonId = useId();
+  const [anchor, setAnchor] = useState<VirtualAnchor>();
+  const opened = (event: MouseEvent) => {
+    const box = textBoxAt(event.clientX, event.clientY);
+    setAnchor(box ? { getBoundingClientRect: () => box } : undefined);
+    onOpen?.(event);
+  };
+  const beside = anchor ? { anchor, side: 'bottom' as const, align: 'start' as const, sideOffset: 4 } : {};
   return (
     <BaseContextMenu.Root>
-      <BaseContextMenu.Trigger className={className} onContextMenu={items.length > 0 || onOpen ? onOpen : undefined}>
+      <BaseContextMenu.Trigger className={className} onContextMenu={items.length > 0 || onOpen ? opened : undefined}>
         {children}
       </BaseContextMenu.Trigger>
       <BaseContextMenu.Portal container={document.querySelector('main') ?? undefined}>
-        <BaseContextMenu.Positioner collisionPadding={8} className="z-[var(--z-popover)]">
+        <BaseContextMenu.Positioner collisionPadding={8} className="z-[var(--z-popover)]" {...beside}>
           <BaseContextMenu.Popup
             tabIndex={0}
             className={`max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}

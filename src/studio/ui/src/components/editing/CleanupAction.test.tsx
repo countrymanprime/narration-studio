@@ -30,6 +30,15 @@ describe('CleanupAction', () => {
     await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
   });
 
+  // R3PR1-23: the reason the button is off is printed under it, not only in its hint.
+  it('prints why Match levels is off under the button', async () => {
+    renderAction();
+    const match = await screen.findByRole('button', { name: 'Match levels…' });
+    await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
+    const reason = document.getElementById(match.getAttribute('aria-describedby')!)!.textContent!;
+    expect(screen.getAllByText(reason).some((node) => !node.classList.contains('sr-only'))).toBe(true);
+  });
+
   // SN-E9: silence trim moved to the Editing page's Clean up tab; item gain stays here, the mock having no equivalent.
   it('editing-check-panel-keeps-what-the-drawer-does-not-replace: offers item gain and no silence trim', async () => {
     renderAction();
@@ -45,7 +54,8 @@ describe('CleanupAction', () => {
     await user.click(match);
 
     const dialog = await screen.findByRole('alertdialog', { name: 'Match levels' });
-    expect(dialog.textContent).toMatch(/1 item on this chapter's linked track/);
+    // R3PR1-22, XPR1-29: one item "differs", and no unit is left alone on a line.
+    expect(dialog.textContent).toMatch(/1 item on this chapter's linked track differs from -20\u00a0dBFS RMS by more than 2\u00a0dB\./);
 
     await user.click(screen.getByRole('button', { name: 'Match' }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Matched levels on 1 item\./), 'info'));

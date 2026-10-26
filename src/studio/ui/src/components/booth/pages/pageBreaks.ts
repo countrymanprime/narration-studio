@@ -1,5 +1,7 @@
-// Where the Booth's pages break: every `words_per_page` words of the chapter, counted from its first word with the progress line's
-// word count (runs of non-space, `wordCount`). A break is a word, never a place on screen, so it stays put at any text size or width.
+// Where the Booth's pages break: at the end of the paragraph in which a page's count reaches `words_per_page`, never inside one, counted
+// from the chapter's first word with the progress line's word count (runs of non-space, `wordCount`). A page is at least that many words
+// and ends on a paragraph; a paragraph longer than a page makes one long page. A break is a word (the next paragraph's first), never a
+// place on screen, so it stays put at any text size or width.
 import { wordCount, type BoothUnit, type ReadingParagraph } from '../reading/boothUnits';
 
 /** Booth.words_per_page: the default (a manuscript page) and the range the host accepts. */
@@ -11,22 +13,28 @@ const WORDS_PER_PAGE_MAX = 1000;
  * for a bookmark), and the word's number in its paragraph. */
 export type PageBreak = { page: number; cur: number; wcur: number; paragraphId: string; word: number; offset: number };
 
-/** The breaks of a chapter: before word n × perPage for every n ≥ 1 that is a word of it. A chapter of a page or less has none. */
+/**
+ * The breaks of a chapter: before the first word of the paragraph after the one that brings the page to `perPage` words, the count
+ * starting again from that word. Paragraphs with no words take no part, and nothing breaks after the chapter's last words, so a chapter of
+ * one page, or of one paragraph, has none.
+ */
 export function pageBreaks(paragraphs: readonly ReadingParagraph[], units: readonly BoothUnit[], perPage: number): PageBreak[] {
   if (!(perPage >= 1)) return [];
   const breaks: PageBreak[] = [];
-  let before = 0;
+  let count = 0;
+  let paragraphIndex = -1;
   units.forEach((unit, cur) => {
-    let next = (Math.floor(before / perPage) + 1) * perPage;
-    while (next < before + unit.words) {
+    // An empty paragraph's unit counts as a word for stepping (`boothUnits`), but it has none to break before or to count.
+    if (wordCount(unit.text) === 0) return;
+    if (unit.paragraphIndex !== paragraphIndex && count >= perPage) {
       const text = paragraphs[unit.paragraphIndex]?.text ?? '';
-      const wcur = next - before;
-      const word = wordCount(text.slice(0, unit.start)) + wcur;
+      const word = wordCount(text.slice(0, unit.start));
       const offset = [...text.matchAll(/\S+/g)][word]?.index ?? 0;
-      breaks.push({ page: next / perPage + 1, cur, wcur, paragraphId: unit.paragraphId, word, offset });
-      next += perPage;
+      breaks.push({ page: breaks.length + 2, cur, wcur: 0, paragraphId: unit.paragraphId, word, offset });
+      count = 0;
     }
-    before += unit.words;
+    paragraphIndex = unit.paragraphIndex;
+    count += unit.words;
   });
   return breaks;
 }

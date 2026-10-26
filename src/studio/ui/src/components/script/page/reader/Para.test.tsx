@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MarkColour, MarkStyle } from '../../../../api/contracts/marks';
 import { buildLayerIndex, paragraphLayers, type Layer } from './layers';
+import { HIT_AREA } from '../../../primitives/hitArea';
 import { Para } from './Para';
 import { cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
@@ -126,6 +127,12 @@ describe('Para', () => {
       expect(unknown.style.borderStyle).toBe('dashed');
       expect(unknown.style.color).toBe('var(--text-muted)');
     });
+
+    it('takes presses in a box at least 24 px each way, though it is drawn in the 0.7 em line (R3SC-8)', () => {
+      const { container } = render(<Para paragraph={para} layers={layersOf({ ...base, cues: [cue('q2', 'p1', 'c1', at('along,"'), null, 'unknown')] })} />);
+      const chip = container.querySelector<HTMLElement>('[data-chip="q2"]')!;
+      for (const part of HIT_AREA.split(' ')) expect(chip.classList).toContain(part);
+    });
   });
 
   describe('speaker chips', () => {
@@ -177,9 +184,9 @@ describe('Para', () => {
       expect(container.querySelector('[data-gutter]')?.textContent).toBe('ribbon');
     });
 
-    it('hangs the gutter outside the text, so the text starts at the paragraph edge, with 6 px above and below', () => {
+    it('hangs the gutter outside the text, centred in its 24 px inset, so the text starts at the paragraph edge, with 6 px above and below', () => {
       const { container } = render(<Para paragraph={para} layers={[]} />);
-      expect(container.querySelector('[data-gutter]')?.className).toContain('left-[-19px]');
+      expect(container.querySelector('[data-gutter]')?.className).toContain('left-[-20px]');
       const box = container.querySelector('[data-para]')!.className;
       expect(box).toContain('py-1.5');
       expect(box).not.toMatch(/\bpl-/);

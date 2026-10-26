@@ -266,23 +266,27 @@ export function CustomProfileList({ ctl }: { ctl: DeliveryProfilesController }) 
           {custom.map((profile) => {
             const users = ctl.usedBy(profile);
             return (
-              <li key={profile.id} data-profile={profile.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <b>{profile.name}</b>
-                <span className="text-[0.8125rem] text-[var(--text-muted)]">
-                  {describe(profile, ctl.baseOf(profile))}
-                  {users.length > 0 ? ` · used by ${users.join(' and ').toLowerCase()}` : ''}
+              // The name and its description on the left, the three buttons as one group at the top right, never split across lines (XSE1-9).
+              <li key={profile.id} data-profile={profile.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <b>{profile.name}</b>
+                  <span className="text-[0.8125rem] text-[var(--text-muted)]">
+                    {describe(profile, ctl.baseOf(profile))}
+                    {users.length > 0 ? ` · used by ${users.join(' and ').toLowerCase()}` : ''}
+                  </span>
                 </span>
-                <span className="flex-1" />
-                <IconButton action="copy" label={`Duplicate ${profile.name}`} size="sm" disabled={busy} onClick={() => void ctl.duplicate(profile, false)} />
-                <IconButton action="edit" label={`Edit ${profile.name}`} size="sm" disabled={busy} onClick={() => ctl.edit(profile)} />
-                <IconButton
-                  action="delete"
-                  label={`Delete ${profile.name}`}
-                  variant="danger"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => ctl.setDeleting(profile)}
-                />
+                <span className="flex flex-none items-center gap-2">
+                  <IconButton action="copy" label={`Duplicate ${profile.name}`} size="sm" disabled={busy} onClick={() => void ctl.duplicate(profile, false)} />
+                  <IconButton action="edit" label={`Edit ${profile.name}`} size="sm" disabled={busy} onClick={() => ctl.edit(profile)} />
+                  <IconButton
+                    action="delete"
+                    label={`Delete ${profile.name}`}
+                    variant="danger"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => ctl.setDeleting(profile)}
+                  />
+                </span>
               </li>
             );
           })}

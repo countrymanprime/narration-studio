@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Finding } from '../../../api/contracts/findings';
 import { useSearchSource } from '../../../registries/search';
 import { IconButton } from '../../primitives/IconButton';
@@ -170,7 +170,8 @@ export function NotesPanel({
         // Focus going to another row keeps it; going anywhere else (or out of the window) lets it go.
         if (!(event.relatedTarget instanceof HTMLTableRowElement && root.current?.contains(event.relatedTarget))) rowFocused.current = false;
       }}
-      className="flex min-h-0 flex-col rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]"
+      // Clipped to its rounded corners, so the selected and last rows' fills and rules end on the card's curve (XPF-25).
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]"
     >
       <div className="flex flex-wrap items-center gap-3 px-4 py-2">
         <h2 className="text-base font-semibold">
@@ -187,14 +188,20 @@ export function NotesPanel({
               onClick={() => setChip(key)}
             />
           ))}
-          {narrow && <Pill label="In view" look="filter" active={inView} onClick={() => setInView((on) => !on)} />}
         </div>
-        <span className="flex-1" />
-        <div className="flex items-center gap-1.5">
-          <Select label="Sort notes" value={sort} onChange={(value) => onSortChange(value as NoteSort)} options={NOTE_SORTS} />
+        {/* "In view" follows the waveform window: a toggle of its own, set off from the chips, which pick one filter (R3PF-12). */}
+        {narrow && (
+          <div className="border-l border-[var(--border)] pl-3">
+            <Pill label="In view" look="filter" active={inView} onClick={() => setInView((on) => !on)} />
+          </div>
+        )}
+        {/* One place at every width: the right end of the chips row, or the right of its own row once it no longer fits there
+            (alignment audit XPF-13). It wraps inside itself before it would run out of the card (XPF-1). */}
+        <div className="ml-auto flex max-w-full min-w-0 flex-wrap items-center justify-end gap-1.5">
+          {base.length > 0 && <Select label="Sort notes" value={sort} onChange={(value) => onSortChange(value as NoteSort)} options={NOTE_SORTS} />}
           {lead}
           {findOpen && (
-            <div className="w-44">
+            <div className="w-44 max-w-full min-w-0 flex-[0_1_11rem]">
               <SearchField
                 label="Find in notes"
                 placeholder="Find in notes"
@@ -210,12 +217,21 @@ export function NotesPanel({
               />
             </div>
           )}
-          <IconButton action="find" label="Find in notes" onClick={() => (findOpen ? closeFind() : openFind())} />
+          {base.length > 0 && <IconButton action="find" label="Find in notes" onClick={() => (findOpen ? closeFind() : openFind())} />}
           {actions}
         </div>
       </div>
       <SourcesLine rows={base} />
-      <div className="min-h-0 flex-1 overflow-auto" tabIndex={0} role="group" aria-label="Notes scroll area">
+      {/* The table runs to the card's edges, its outer cells 16 px in like the card's own text (`--panel-pad` 0, the Table's flush-card
+          edges, XPF-22), and the box shows when there is more to the side (XPF-12). It keeps no gutter for a bar it does not have: the
+          side shadow would be drawn in it. */}
+      <div
+        className="scroll-x-edges min-h-0 flex-1 [scrollbar-gutter:auto] overflow-auto"
+        style={{ '--panel-pad': '0px' } as CSSProperties}
+        tabIndex={0}
+        role="group"
+        aria-label="Notes scroll area"
+      >
         <NotesTable
           rows={rows}
           total={base.length}

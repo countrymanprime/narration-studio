@@ -97,7 +97,8 @@ export function BiblePanel({
           id: row.id,
           name: row.canonical_name,
           kind: { label: row.category, colour: swatchOf(colourOf(row.category)) },
-          detail: `first ${firstAppearance(row, tagOf)}`,
+          // No "first —": a name with no first appearance says nothing after its kind (alignment audit XSC-43).
+          detail: firstAppearance(row, tagOf) === '—' ? undefined : `first ${firstAppearance(row, tagOf)}`,
           hear: Boolean(row.pronunciation.ipa.trim()),
           selected: entry?.id === row.id,
           onActivate: () => onPick(row.id),

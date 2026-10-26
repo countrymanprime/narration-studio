@@ -38,10 +38,13 @@ export function CreditsSetupBanner({
     }
   };
   return (
-    <Panel tone="review" className="mb-4">
+    <Panel tone="review">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <Dot color="var(--review)" />
+        {/* The dot sits on the sentence's first line, in a box one line tall, however many lines the sentence wraps to (XSC-15). */}
+        <div className="flex items-start gap-2 text-sm">
+          <span className="flex h-5 flex-none items-center">
+            <Dot color="var(--review)" />
+          </span>
           <span>
             <strong>
               The credits need {tokens.length} value{tokens.length === 1 ? '' : 's'}

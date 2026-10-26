@@ -4,7 +4,7 @@
     "state": "picker-empty",
     "viewport": "desktop",
     "docName": "project-picker",
-    "caption": "Choose your project - New project, the pinned and recent projects with Open, Pin and Remove, and Browse folders"
+    "caption": "Choose your project - Open folder and New project, the pinned and recent projects with Open, Pin and Remove"
   },
   {
     "page": "project",
@@ -18,7 +18,7 @@
     "state": "picker-daw-running",
     "viewport": "desktop",
     "docName": "project-picker-daw-running",
-    "caption": "REAPER is running with a project linked to a recent project - the bar above the list offers Open"
+    "caption": "REAPER is running with a project linked to a recent project - the bar above the list, and that project's row marked"
   },
   {
     "page": "production",
@@ -102,7 +102,7 @@
     "state": "reader-context-menu",
     "viewport": "desktop",
     "docName": "script-context-menu",
-    "caption": "Script - the right-click menu on a selected word, in labelled groups"
+    "caption": "Script - the right-click menu on a selected word, opened under it, with Mark as and Add to the Story Bible as as submenus"
   },
   {
     "page": "script",
@@ -291,7 +291,7 @@
     "state": "builtin-refusal",
     "viewport": "desktop",
     "docName": "booth-builtin-refusal",
-    "caption": "Booth - the built-in recorder with Experimental actions off: Record off with the reason, and the Record is switched off chip above the footer"
+    "caption": "Booth - the built-in recorder with Experimental actions off: Record off, and the Record is switched off chip under the text"
   },
   {
     "page": "booth",
@@ -368,7 +368,7 @@
     "state": "record-unlinked-closed",
     "viewport": "desktop",
     "docName": "booth-record-unlinked-closed",
-    "caption": "Booth - the dialog closed: the Not linked to a track chip above the footer, and the footer saying the chapter has no track to record on"
+    "caption": "Booth - the dialog closed: the Not linked to a track chip under the text, which reopens it"
   },
   {
     "page": "booth",
@@ -571,7 +571,7 @@
     "state": "reader-text",
     "viewport": "desktop",
     "docName": "settings-reader-text",
-    "caption": "Settings - Reader text: font, size, line spacing and column width over the preview quote"
+    "caption": "Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote"
   },
   {
     "page": "settings",

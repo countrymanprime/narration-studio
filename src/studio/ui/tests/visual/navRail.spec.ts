@@ -70,6 +70,46 @@ test('Navigation rail / the wide rail draws headings and no rules / 1440', async
   expect(new Set(wide)).toEqual(new Set(['none']));
 });
 
+// Alignment audit XSL-8, R3SL-1: the brand mark, the group names and the nav icons' boxes share one left edge in the wide rail; in the
+// opened icon rail the group names start where the (centred) icon boxes do, and the mark stays centred over the icons.
+async function railEdges(page: import('@playwright/test').Page) {
+  return page.evaluate((rail) => {
+    const left = (el: Element) => el.getBoundingClientRect().left;
+    const mark = document.querySelector(`${rail} .brand-name`)!.previousElementSibling!;
+    const iconBox = document.querySelector(`${rail} nav button svg`)!;
+    const heading = document.querySelector(`${rail} [role="group"] > .section-label`)!;
+    const markBox = mark.getBoundingClientRect();
+    const iconRect = iconBox.getBoundingClientRect();
+    return {
+      mark: left(mark),
+      markCentre: markBox.left + markBox.width / 2,
+      icon: iconRect.left,
+      iconCentre: iconRect.left + iconRect.width / 2,
+      heading: left(heading) + parseFloat(getComputedStyle(heading).paddingLeft),
+    };
+  }, RAIL);
+}
+
+test('Navigation rail / the mark, the group names and the icons share a left edge / 1440', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await settlePage(page);
+  const edges = await railEdges(page);
+  expect(Math.abs(edges.mark - edges.icon), 'mark vs icon box').toBeLessThanOrEqual(0.5);
+  expect(Math.abs(edges.heading - edges.icon), 'group name vs icon box').toBeLessThanOrEqual(0.5);
+});
+
+test('Navigation rail / the opened icon rail starts its group names at the icons / 1100', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto('/');
+  await settlePage(page);
+  await page.locator(RAIL).hover({ position: { x: 20, y: 300 } });
+  await expect(page.locator(`${RAIL} > div`)).toHaveCSS('width', '236px');
+  const edges = await railEdges(page);
+  expect(Math.abs(edges.heading - edges.icon), 'group name vs icon box').toBeLessThanOrEqual(0.5);
+  expect(Math.abs(edges.markCentre - edges.iconCentre), 'mark centred over the icons').toBeLessThanOrEqual(1);
+});
+
 // The rail's sizes, measured on the Studio Next mock (docs/research/mockups/studio-next/src/styles/app.css `.nav`, `.grp`, `.brand`):
 // 40 px items on a 42 px pitch, a 15 px label, a 20 px icon in a 22 px box, a 36 px group heading, a 50 px brand block, no rule above the foot.
 for (const width of [1440, 1100]) {

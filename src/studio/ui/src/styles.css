@@ -101,6 +101,8 @@ html[data-motion='reduce'] {
   --accent-strong: #8f3f0f;
   --accent-soft: #f2deca; /* the mock's #F1DDC9, one step lighter: warn text on it was 4.49:1 (SKIPPED word) */
   --accent-contrast: #ffffff;
+  /* The label on a filled danger button (`Button variant="danger-solid"`). */
+  --danger-contrast: #ffffff;
   /* The mock's keyboard focus ring (2 px outline, 2 px offset): blue, not the accent, so it reads on an accent fill. */
   --focus: #1f5fbf;
   --character: #3c7a5c;
@@ -201,6 +203,9 @@ html[data-motion='reduce'] {
   --speaker-7: var(--event);
   --speaker-7-text: var(--event-text);
   --backdrop: rgba(20, 17, 12, 0.42);
+  /* The lighter dim behind a page's own drawer (the Script and Editing drawers over the text) and a slide-over: the page stays readable
+     around it, but a line cut by the drawer reads as behind it, not beside it. */
+  --panel-scrim: rgba(10, 8, 5, 0.35);
   --shadow: 0 1px 2px rgba(30, 26, 16, 0.06), 0 1px 1px rgba(30, 26, 16, 0.04);
   --shadow-lg: 0 1px 2px rgba(36, 33, 28, 0.08), 0 10px 28px rgba(36, 33, 28, 0.14);
   --control-radius: 0.45rem;
@@ -211,7 +216,9 @@ html[data-motion='reduce'] {
   /* The page gutter: the top bar's content and the page's content start this far in from the main column's edges, so the bar's first
      item sits over the page title (alignment audit cause J). */
   --page-gutter: 1rem;
-  --control-height: 2.55rem;
+  /* Every one-line control (text box, select, date, button) shares one height, so neighbours on a row line up. */
+  --control-height: var(--button-height); /* 36 */
+  --control-height-sm: var(--button-height-sm); /* 32 */
   /* The one layer scale, lowest first (layers.test.ts pins the order). A page panel and its scrim (a Script drawer) sit under the navigation rail,
      so the rail stays clickable with one open and a press on it dismisses the panel. A takeover is a full-window surface (the booth's companion).
      The slide-over, menu/popover and dialog layers are the app's overlays, in that order; a Popover opened from inside a dialog sits one
@@ -258,6 +265,7 @@ html[data-motion='reduce'] {
   --header-row-height: 2.25rem; /* 36, th: 13 px line plus 8 px padding each side and the rule */
   --font-size-page-title: 1.75rem; /* 28, h1 */
   --font-size-card-title: 1.3125rem; /* 21, h2 */
+  --font-size-overlay-title: 1.5rem; /* 24, .dlg .dh h2: a Dialog's and a SlideOver's title */
   --font-size-label: 0.8125rem; /* 13, .label and th */
   --tracking-label: 0.14em;
   --tracking-button: 0.09em;
@@ -289,6 +297,11 @@ html[data-motion='reduce'] {
   --accent-soft: #3a2617;
   --focus: #7fb0ff;
   --accent-contrast: #1a0f05;
+  --danger-contrast: #1a0f05;
+  /* Dark only: the selected row's tint doubled, and a darker scrim, so a selected row and an open dialog stand off the near-black page as they
+     do in light (alignment audit XPF-28, R3EN2-15, R3MS-20). The mock's dark set has neither. */
+  --row-selected: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --backdrop: rgba(0, 0, 0, 0.62);
   --character: #5fae85;
   --character-soft: #1d2e24;
   --place: #6e9fdb;
@@ -481,5 +494,13 @@ html[data-motion='reduce'] {
       linear-gradient(to left, var(--surface) 30%, transparent) right center / 2rem 100% no-repeat local,
       linear-gradient(to right, rgb(0 0 0 / 0.2), transparent) left center / 0.75rem 100% no-repeat scroll,
       linear-gradient(to left, rgb(0 0 0 / 0.2), transparent) right center / 0.75rem 100% no-repeat scroll;
+  }
+  /* Its vertical twin, for a box that scrolls up and down inside a dialog (Check recordings' form, alignment audit XPF-2). */
+  .scroll-y-edges {
+    background:
+      linear-gradient(var(--surface) 30%, transparent) center top / 100% 2rem no-repeat local,
+      linear-gradient(to top, var(--surface) 30%, transparent) center bottom / 100% 2rem no-repeat local,
+      linear-gradient(rgb(0 0 0 / 0.2), transparent) center top / 100% 0.75rem no-repeat scroll,
+      linear-gradient(to top, rgb(0 0 0 / 0.2), transparent) center bottom / 100% 0.75rem no-repeat scroll;
   }
 }

@@ -32,7 +32,7 @@ export function CommonsAudioLookup({ name, disabled }: { name: string; disabled:
         Listen on Commons
       </Button>
       {error && (
-        <p role="status" className="text-xs text-[var(--danger-text)]">
+        <p role="status" className="text-sm text-[var(--danger-text)]">
           {error}
         </p>
       )}

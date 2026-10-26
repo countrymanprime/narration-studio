@@ -2,7 +2,7 @@
 // Delivery page (SN-M5): the profile card, Output, the profile's rules and the "Before you build" aside. `?mockDelivery=` boots
 // every chapter measured and passing with the files mastered and encoded, so Build is on and the build's own states can be captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
 
 export const deliveryStates: StateEntry[] = [
   {
@@ -77,7 +77,7 @@ export const deliveryStates: StateEntry[] = [
     page: 'delivery',
     state: 'host-quiet-cancelled',
     description:
-      'Delivery with the host not answering (?mockDelivery=quiet), after Check again and then Cancel - "You checked again just now: the host still did not answer." and "Cancel was sent, but the host did not confirm it, so the build may still be running." with the quiet notice and Cancel still up',
+      'Delivery with the host not answering (?mockDelivery=quiet), after Check again and then Cancel - the quiet notice ending "(you checked again just now)." and "Cancel was sent, but the host did not confirm it, so the build may still be running." with the quiet notice and Cancel still up',
   },
   {
     page: 'delivery',
@@ -91,3 +91,4 @@ export const deliveryStates: StateEntry[] = [
       'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
   },
 ];
+deliveryStates.push(wholePage(deliveryStates, 'measured'));

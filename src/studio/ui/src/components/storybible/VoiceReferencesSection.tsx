@@ -107,20 +107,25 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
           ))}
         </ul>
       )}
-      <div className="mt-2 flex flex-wrap items-end gap-2">
-        <Select
-          label={`Approve a region for ${characterLabel}`}
-          value={regionGuid}
-          onChange={setRegionGuid}
-          options={[
-            { value: '', label: 'Choose a region…' },
-            ...(regions ?? []).map((region) => ({ value: region.guid, label: region.name || `Region ${region.index}` })),
-          ]}
-        />
-        <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
-        <Button variant="secondary" disabled={!regionGuid} pending={mutation.isPending('approve')} onClick={() => void approve()}>
-          Approve as reference
-        </Button>
+      {/* One row where there is room (the region 14 rem, the note the rest, then the button), else the three stacked at one width,
+          never a staircase of three widths (SBX-11). */}
+      <div className="@container mt-2">
+        <div className="grid grid-cols-1 items-end gap-2 @min-[36rem]:grid-cols-[14rem_minmax(0,1fr)_auto]">
+          <Select
+            fullWidth
+            label={`Approve a region for ${characterLabel}`}
+            value={regionGuid}
+            onChange={setRegionGuid}
+            options={[
+              { value: '', label: 'Choose a region…' },
+              ...(regions ?? []).map((region) => ({ value: region.guid, label: region.name || `Region ${region.index}` })),
+            ]}
+          />
+          <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
+          <Button variant="secondary" disabled={!regionGuid} pending={mutation.isPending('approve')} onClick={() => void approve()}>
+            Approve as reference
+          </Button>
+        </div>
       </div>
     </div>
   );

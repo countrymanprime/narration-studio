@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
+import { brand } from '../../../brand.gen';
 
 afterEach(() => {
   cleanup();
@@ -19,7 +20,8 @@ async function renderPage({
   initialCategory,
   cameFrom,
   go = vi.fn(),
-}: { api?: NarrationApi; initialCategory?: string; cameFrom?: string; go?: (path: string) => void } = {}) {
+  notify = vi.fn(),
+}: { api?: NarrationApi; initialCategory?: string; cameFrom?: string; go?: (path: string) => void; notify?: (message: string) => void } = {}) {
   const data = await api.bootstrap();
   render(
     <MemoryRouter>
@@ -27,7 +29,7 @@ async function renderPage({
         <ApiProvider api={api}>
           <SettingsPage
             data={data}
-            notify={vi.fn()}
+            notify={notify}
             onDirtyChange={vi.fn()}
             registerActions={vi.fn()}
             onProjectDataCleared={async () => undefined}
@@ -83,6 +85,202 @@ describe('Settings: structure', () => {
     expect(model.textContent).toContain('All projects');
     fireEvent.click(within(model).getByRole('button', { name: 'Used by Proof. Go to Proof' }));
     expect(go).toHaveBeenCalledWith('/proof');
+  });
+
+  // Alignment audit cause E: rows were two equal halves, and selects and text boxes came in different widths.
+  it('lays every row out as a label column and a control column, and gives a select and a text box one width', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
+    const model = row('stt.model');
+    expect(model.className).toContain('@min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
+    expect(model.className).not.toContain('grid-cols-2');
+    expect(within(model).getByRole('combobox').className).toContain('w-80');
+  });
+});
+
+// Alignment audit, Settings page frame (XSE1-16, XSE2-32, R4SE2-1, XSE1-19, XSE2-31, R3SE2-3, XSE2-20, XSE1-26, R4SE2-7, R3SE2-2, XSE2-36).
+describe('Settings: page frame', () => {
+  it('fills the page to its gutter instead of stopping at 1180 px', async () => {
+    await renderPage();
+    expect(screen.getByTestId('settings-page').className).not.toMatch(/max-w-\[/);
+  });
+
+  it('draws the magnifier inside the search box, none outside it, and the search row spans a narrow page', async () => {
+    await renderPage();
+    const find = screen.getByRole('search');
+    expect(find.querySelector(':scope > svg')).toBeNull();
+    // The magnifier sits inside the box, at its left (SearchField leadingIcon).
+    expect(find.querySelector('[data-search-icon] svg')).toBeTruthy();
+    expect(find.className).toContain('@max-[760px]:w-full');
+    expect(within(find).getByRole('textbox', { name: 'Search settings' }).closest('[class*="flex-[1_1_180px]"]')).toBeTruthy();
+  });
+
+  it('puts Reset to defaults in the title line as a small button, not a 16 px link', async () => {
+    await renderPage();
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    const reset = await screen.findByRole('button', { name: 'Reset to defaults' });
+    expect(reset.className).toContain('min-h-[var(--button-height-sm)]');
+    expect(reset.className).not.toContain('underline');
+  });
+
+  it('the folded Category button says Search results while results show, with a drawn chevron', async () => {
+    await renderPage();
+    const toggle = await screen.findByRole('button', { name: /^Category/ });
+    expect(toggle.textContent).toContain('Recording & DAW');
+    expect(toggle.textContent).not.toMatch(/[▴▾]/);
+    expect(toggle.querySelector('svg')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'whisper' } });
+    expect(toggle.textContent).toContain('Search results');
+  });
+
+  it('spaces the category groups apart, the same for Elsewhere, and attaches each label to its group', async () => {
+    await renderPage();
+    const groups = within(nav()).getAllByRole('group');
+    expect(new Set(groups.map((group) => group.className)).size).toBe(1);
+    expect(groups[0]!.className).toContain('first:mt-0');
+    expect(new Set(groups.map((group) => (group.firstElementChild as HTMLElement).className)).size).toBe(1);
+  });
+
+  it('the current category keeps a straight accent edge (no left radius)', async () => {
+    await renderPage();
+    expect(within(nav()).getByRole('button', { name: /^Recording & DAW/ }).className).toContain('aria-[current=page]:rounded-l-none');
+  });
+
+  it('Show the whole category is a button at the end of the group header, not a link inside the label', async () => {
+    await renderPage();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'whisper' } });
+    const show = (await screen.findAllByRole('button', { name: 'Show the whole category' }))[0]!;
+    expect(show.closest('h3')).toBeNull();
+    expect(show.className).toContain('min-h-[var(--button-height-sm)]');
+  });
+
+  it('says so when nothing matches in a left-aligned card like the rest of the page', async () => {
+    await renderPage();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'zzzz' } });
+    const empty = document.querySelector<HTMLElement>('[data-empty-results]')!;
+    expect(empty.className).not.toContain('text-center');
+    expect(empty.className).not.toContain('border-dashed');
+  });
+});
+
+// Alignment audit, App & updates (XSE1-7, R3SE2-18): the version and the updates are rows under a section label, not boxes in a box.
+describe('Settings: This version', () => {
+  it('draws the version and the updates as two labelled rows under a This version section label', async () => {
+    await renderPage();
+    pick('App & updates');
+    const section = await screen.findByRole('region', { name: 'This version' });
+    expect(within(section).getByRole('heading', { level: 3, name: 'This version' })).toBeTruthy();
+    const version = section.querySelector<HTMLElement>('[data-about="version"]')!;
+    expect(version.textContent).toContain(brand.name);
+    expect(version.textContent).toContain('GNU Affero General Public License');
+    expect(version.textContent).toMatch(/Version \S+/);
+    expect(version.className).toContain('@min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]');
+    const updates = section.querySelector<HTMLElement>('[data-about="updates"]')!;
+    expect(within(updates).getByText('Updates')).toBeTruthy();
+    expect(section.querySelector('[style*="surface-2"]')).toBeNull();
+  });
+});
+
+// Alignment audit XSE2-1, XSE2-2: a text box takes its column's width up to its cap, so it never runs past the card in a narrow column
+// (tests/visual/settings-fields.spec.ts measures it in a browser at 1024 and 390 px).
+describe('Settings: field widths', () => {
+  it('caps the REAPER program box at 26rem of its row instead of fixing it at 26rem', async () => {
+    await renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+    const box = await within(row('daw.reaperPath')).findByRole('textbox', { name: 'REAPER program' });
+    expect(box.className).toContain('w-full');
+    expect(box.className).toContain('max-w-[26rem]');
+    expect(box.className).not.toMatch(/(^| )w-\[26rem\]/);
+    expect(box.parentElement!.className).toContain('w-full');
+  });
+});
+
+// Alignment audit, the row itself (settings/row/**): a wide body under the label, a Changed row that keeps its first line, a gap when the row
+// stacks, a placeholder for the narrator, one number box width, and a download note in two fixed lines named like the select.
+describe('Settings: row layout', () => {
+  const openAdvanced = async () => fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+  const wideBody = (id: string) => {
+    const body = row(id)?.querySelector<HTMLElement>('[data-row-body="wide"]');
+    expect(body).toBeTruthy();
+    return body!;
+  };
+
+  it('draws the Capabilities table under its label across the whole row (XSE2-4, R4SE2-6)', async () => {
+    await renderPage();
+    await openAdvanced();
+    const body = await waitFor(() => wideBody('daw.capabilities'));
+    expect(body.className).toContain('col-span-full');
+    expect(within(body).getByRole('table')).toBeTruthy();
+  });
+
+  it('draws the Credits body across the whole row (XSE2-11)', async () => {
+    await renderPage();
+    pick('Project');
+    const body = await waitFor(() => wideBody('project.credits'));
+    expect(body.className).toContain('col-span-full');
+    fireEvent.click(await within(body).findByRole('button', { name: /^Edit credits/ }));
+    const fields = await waitFor(() => {
+      const found = body.querySelector<HTMLElement>('[data-credits-fields]');
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    expect(fields.className).toContain('max-w-[32rem]');
+    expect(within(fields).getByRole('combobox', { name: 'Template' })).toBeTruthy();
+  });
+
+  it("keeps a Changed row's title line one height, its bar the full row and Saved beside Reset (XSE1-22, XSE2-34, R3SE1-16)", async () => {
+    await renderPage();
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    const changed = row('app.channel');
+    await waitFor(() => expect(within(changed).getByText('Saved')).toBeTruthy());
+    expect(within(changed).getByText('Changed').closest('[data-title-line]')!.className).toContain('min-h-6');
+    expect(changed.querySelector('[data-changed-bar]')!.className).toContain('inset-y-0');
+    const reset = within(changed).getByRole('button', { name: /^Reset Update channel/ });
+    expect(within(changed).getByText('Saved').closest('[data-control-line]')).toBe(reset.closest('[data-control-line]'));
+  });
+
+  it('leaves a gap between the label and the control when the row stacks (R3SE2-15)', async () => {
+    await renderPage();
+    pick('App & updates');
+    await screen.findByRole('combobox', { name: /Update channel/ });
+    expect(row('app.channel').className).toMatch(/(^| )gap-y-3( |$)/);
+    expect(row('app.channel').className).toContain('@min-[761px]:gap-y-1.5');
+  });
+
+  it('says what goes in an empty Narrator name box (R3SE1-17)', async () => {
+    await renderPage();
+    pick('Project');
+    const box = await waitFor(() => within(row('project.narrator')).getByRole('textbox', { name: /Narrator name/ }));
+    expect(box.getAttribute('placeholder')).toBe('Your name as the narrator');
+  });
+
+  it('draws a number box 10rem wide with its range in the 13 px note size (XSE2-37)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    expect(box.className).toContain('w-40');
+    const hint = within(row('stt.workers')).getByText(/^From \d+ to \d+/);
+    expect(hint.className).toContain('text-[0.8125rem]');
+  });
+
+  it('draws a download note as a status line then an action line, naming the voice as the select does (XSE2-14, R3SE2-20)', async () => {
+    await renderPage();
+    pick('Voice & pronunciation');
+    const note = await waitFor(() => {
+      const found = row('voice.id').querySelector<HTMLElement>('[data-asset-note]');
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    const [status, actions] = Array.from(note.children) as HTMLElement[];
+    expect(note.children).toHaveLength(2);
+    expect(within(status).getByText('Not on this computer')).toBeTruthy();
+    expect(status.textContent).toContain('LJ Speech (US English, high) must be downloaded before it is used.');
+    expect(within(actions).getByRole('button', { name: 'Download LJ Speech (US English, high)' })).toBeTruthy();
+    expect(within(actions).getByRole('button', { name: 'Models & downloads' })).toBeTruthy();
   });
 });
 
@@ -176,6 +374,13 @@ describe('Settings: editing', () => {
     expect(row('daw.experimental')).toBeTruthy();
   });
 
+  // Alignment audit (XSE2-18): the opened Advanced sections sit behind a rule, so a section named like one above reads as its advanced part.
+  it('draws the opened Advanced sections behind a rule', async () => {
+    await renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+    expect(document.getElementById('advanced-recording')!.className).toContain('border-l-2');
+  });
+
   it('a category shows how many are changed and resets them together', async () => {
     const api = createMockApi();
     const save = vi.spyOn(api, 'saveSettings');
@@ -183,7 +388,7 @@ describe('Settings: editing', () => {
     pick('App & updates');
     fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
     await waitFor(() => expect(within(nav()).getByLabelText('1 changed')).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Reset App & updates to defaults' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('Updates', 'global', { channel: null }));
     await waitFor(() => expect(within(nav()).queryByLabelText('1 changed')).toBeNull());
   });
@@ -217,6 +422,17 @@ describe('Settings: search and filters', () => {
     expect(backups).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+  });
+
+  // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
+  it('puts Open <page> on the line of Change it here for now', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
+    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
+    const open = within(punch).getByRole('button', { name: /^Open Booth/ });
+    const change = within(punch).getByRole('button', { name: 'Change it here for now' });
+    expect(open.parentElement).toBe(change.parentElement);
+    expect(open.className).toContain('min-w-[9.5rem]');
   });
 
   it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {
@@ -298,6 +514,17 @@ describe('Settings: states', () => {
     expect(screen.getByText('Reading your settings…')).toBeTruthy();
   });
 
+  it('loading keeps the title and blurb of the loaded page and draws section cards of label and control rows', async () => {
+    const api = createMockApi();
+    api.settingsForScope = () => new Promise(() => undefined);
+    await renderPage({ api });
+    const busy = document.querySelector<HTMLElement>('[aria-busy="true"]')!;
+    expect(within(busy).getByRole('heading', { level: 2, name: 'Recording & DAW' }).className).toContain('leading-[1.1]');
+    expect(busy.textContent).toContain('How the app records');
+    expect(busy.querySelectorAll('.rounded-\\[var\\(--radius-card\\)\\]').length).toBeGreaterThan(1);
+    expect(busy.querySelector('[class*="grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"]')).toBeTruthy();
+  });
+
   it('an unreadable settings file shows an alert, disables the controls and Retry recovers', async () => {
     const api = createMockApi();
     const read = api.settingsForScope.bind(api);
@@ -309,10 +536,38 @@ describe('Settings: states', () => {
     await renderPage({ api });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Your settings could not be read.');
+    // The banner sits above the breadcrumb, so the breadcrumb stays on its title (R4SE2-7).
+    const crumb = screen.getByLabelText('Breadcrumb');
+    expect(alert.compareDocumentPosition(crumb) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     failing = false;
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
     await waitFor(() => expect(screen.queryByText('Your settings could not be read.')).toBeNull());
+  });
+
+  it('does not toast a read failure the alert already says, and toasts a project read failure it does not (alignment audit R3SE2-4)', async () => {
+    const api = createMockApi();
+    api.settingsForScope = async () => {
+      throw new Error('the settings file is damaged');
+    };
+    const notify = vi.fn();
+    await renderPage({ api, notify });
+    await screen.findByText('Your settings could not be read.');
+    // Both reads have ended by now; let the last one's handler run.
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 20))));
+    expect(notify.mock.calls.flat().filter((message) => String(message).includes('the settings file is damaged'))).toEqual([]);
+
+    cleanup();
+    const other = createMockApi();
+    const read = other.settingsForScope.bind(other);
+    other.settingsForScope = async (scope) => {
+      if (scope === 'project') throw new Error('the project file is locked');
+      return read(scope);
+    };
+    const told = vi.fn();
+    await renderPage({ api: other, notify: told });
+    await waitFor(() => expect(told).toHaveBeenCalledWith(expect.stringContaining('the project file is locked')));
+    expect(screen.queryByText('Your settings could not be read.')).toBeNull();
   });
 
   it('has a Category button that opens the list', async () => {

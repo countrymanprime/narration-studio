@@ -19,6 +19,7 @@ import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { passing, profile as acxProfile } from './components/masterqc/files/testFiles';
 import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
+import { claimAttachRefusal } from './components/connection/attachRefusal';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -95,12 +96,19 @@ const linkChapterOne = async () => {
   const table = await within(panel).findByRole('table', { name: 'Chapter links' });
   const row = within(table)
     .getAllByRole('row')
-    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1( — |$)/ }))!;
+    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1(: |$)/ }))!;
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
-  fireEvent.change(select, { target: { value: select.options[0].value } });
+  // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
+  fireEvent.change(select, { target: { value: select.options[1].value } });
   fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
-  await within(row).findByRole('link', { name: 'Open in Editing' });
+  await within(row).findByRole('button', { name: 'Change' });
   return row;
+};
+
+/** Chooses an item from a Chapter links row's More actions menu (Open in Editing, Open in Proof, Editing check…). */
+const rowAction = async (row: HTMLElement, item: string) => {
+  fireEvent.click(within(row).getByRole('button', { name: /^More actions for / }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: item }));
 };
 
 /** Opens Settings, Set on a page, and the panel kept behind one entry; resolves to the panel's region. */
@@ -170,16 +178,16 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
   });
 
-  it('shows the Script page an inline error with Retry when its chapters cannot be read, beside the notice Home raised for the same data', async () => {
+  it('shows the Script page an inline error with Retry when its chapters cannot be read, and takes away the notice Home raised for the same data', async () => {
     renderApp({}, { invalidPayload: 'manuscript' });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    // Home's audiobook estimate reads the same chapters, so it tells the narrator at once, and the notice stays ...
+    // Home's audiobook estimate reads the same chapters, so it tells the narrator at once ...
     const message = 'The app received data it could not read.';
     await waitFor(() => expect(screen.getAllByText(message)).toHaveLength(1));
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
-    // ... so once the page has its own inline error the same words are on screen twice, which is why the visual driver waits for both.
+    // ... and once the page says it in its own inline error, that notice goes, so the words are on screen once (#2494).
     expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
-    expect(screen.getAllByText(message)).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByText(message)).toHaveLength(1));
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
   });
 
@@ -410,6 +418,24 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     hasFocus.mockRestore();
   });
 
+  it('toasts why a launched project was turned away, unless a dialog that already says it claims the reason (R4BO2-4)', async () => {
+    let attach: ((state: { attached: boolean; reason?: string }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const release = claimAttachRefusal();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(screen.queryByText(/The app is busy/)).toBeNull();
+    release();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(within(appToasts('alert')).getByText(/The app is busy/)).toBeTruthy();
+  });
+
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
     // App.tsx only wires this listener up from a useEffect, a passive effect React flushes on its own
     // schedule after the commit that renders the Production heading - not necessarily before it. Under load the
@@ -620,7 +646,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
     expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
     expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Link a different REAPER project file' })).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'Change file…' })).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 
@@ -766,8 +792,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     const row = await linkChapterOne();
-    expect(within(row).getByRole('link', { name: 'Open in Proof' }).getAttribute('href')).toBe(`/proof/${WIRE_CHAPTERS[0].id}`);
-    fireEvent.click(within(row).getByRole('link', { name: 'Open in Editing' }));
+    await rowAction(row, 'Open in Editing');
     await screen.findByRole('region', { name: 'Script editor' });
     expect(window.location.pathname).toBe(`/editing/${WIRE_CHAPTERS[0].id}`);
   });
@@ -1149,7 +1174,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const activity = await screen.findByRole('dialog', { name: 'Import manuscript' });
     expect(activity.querySelector('.progressbar')).toBeTruthy();
     expect(await screen.findByText('Writing the project-owned manuscript…')).toBeTruthy();
-    expect((await screen.findAllByText('Manuscript import complete.')).length).toBeGreaterThanOrEqual(2);
+    // Said once: the status line. The work dialog's log no longer repeats the line the status already says (alignment audit R3SE1-1, R4SB-8).
+    expect(await screen.findAllByText('Manuscript import complete.')).toHaveLength(1);
     await waitFor(() => expect(bootstrap.mock.calls.length).toBeGreaterThanOrEqual(2));
     // The empty state has become the pipeline behind the modal import dialog, which stayed open through it (useManuscriptImport).
     expect(await screen.findByRole('table', { name: 'Chapter pipeline', hidden: true })).toBeTruthy();
@@ -1330,7 +1356,7 @@ describe('App Back and Forward', () => {
     renderApp({ transcriptReset });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     // The engine panel's chapter link is the way into Proof's chapter view, where the compare run lives.
-    fireEvent.click(within(await linkChapterOne()).getByRole('link', { name: 'Open in Proof' }));
+    await rowAction(await linkChapterOne(), 'Open in Proof');
     await startRunOnChapterOne();
 
     await runFromJump('Back');
@@ -1725,7 +1751,7 @@ describe('App shell mounts', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.keyDown(document.body, { code: 'KeyH', key: 'h', ctrlKey: true, shiftKey: true });
     const dialog = await screen.findByRole('dialog', { name: 'Undo history' });
-    expect(within(dialog).getByText('Ctrl Z undoes the last one')).toBeTruthy();
+    expect(within(dialog).getByText('undoes the newest change')).toBeTruthy();
     fireEvent.keyDown(dialog, { code: 'KeyZ', key: 'z', ctrlKey: true });
     await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();

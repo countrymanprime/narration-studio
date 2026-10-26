@@ -47,6 +47,11 @@ export interface OverlayCase {
    * overlay whose page has nothing to scroll.
    */
   scrolled?: false | 'end';
+  /**
+   * Runs after a `fresh` case's window is narrowed below the reflow width with the overlay open. A hint on a button the narrower layout moves
+   * out from under the pointer closes, as it should; pointing at the button again (what a person does) opens it at the narrow size.
+   */
+  afterNarrowing?: (page: Page) => Promise<void>;
 }
 
 /**
@@ -167,7 +172,10 @@ function runCase(pageName: OverlayPage, overlay: OverlayCase, viewport: Viewport
         const closing = close ? () => close(page) : undefined;
         const open = async () => {
           await overlay.open(page, at);
-          if (narrowedAfterOpen) await page.setViewportSize({ width: viewport.width, height: viewport.height });
+          if (narrowedAfterOpen) {
+            await page.setViewportSize({ width: viewport.width, height: viewport.height });
+            await overlay.afterNarrowing?.(page);
+          }
         };
         problems.push(...(await overlayProblemsWhileOpen(page, open, { root: rootOf(page), label, close: closing })));
         opened += 1;

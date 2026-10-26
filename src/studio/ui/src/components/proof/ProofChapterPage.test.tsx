@@ -9,7 +9,7 @@ import { WIRE_CHAPTERS, WIRE_DISCREPANCIES, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { CommandRouter } from '../../input/router';
 import type { NarrationApi } from '../../types';
 import { ProofChapterPage } from './ProofChapterPage';
@@ -52,7 +52,7 @@ function renderWorkspace(overrides: Partial<NarrationApi> = {}, initial: Paramet
 describe('ProofChapterPage', () => {
   it('shows the chapter’s name and a current check state', async () => {
     renderWorkspace();
-    expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
     expect(await screen.findByText('Check current')).toBeTruthy();
   });
 
@@ -106,7 +106,10 @@ describe('ProofChapterPage', () => {
         </CommandRouter>
       </ApiProvider>,
     );
-    expect(await screen.findAllByText(/hasn’t been checked yet/)).not.toHaveLength(0);
+    // The title row's status says it, with Check recording beside it; the sentence is not repeated in a card under it (alignment audit XPC-13).
+    expect(await screen.findByText('Not checked yet')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Check recording' })).toBeTruthy();
+    expect(screen.queryByText(/hasn’t been checked yet/)).toBeNull();
   });
 
   it('shows a message when the chapter has no linked track', async () => {
@@ -127,7 +130,7 @@ describe('ProofChapterPage compare run', () => {
   it('reviews the last comparison with no linked DAW file, with Export off', async () => {
     const user = userEvent.setup();
     renderWorkspace({}, {}, { dawFileLinked: false });
-    await user.click(await screen.findByRole('button', { name: /Last narrated take/ }));
+    await user.click(await screen.findByRole('button', { name: 'Review last run' }));
     await waitFor(() => expect((screen.getByRole('button', { name: /Export \d+ marker/ }) as HTMLButtonElement).disabled).toBe(true));
   });
 });
@@ -186,7 +189,7 @@ describe('ProofChapterPage loading state', () => {
 
   it('is replaced by the chapter when it arrives', async () => {
     renderWorkspace();
-    expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
     expect(region()).toBeNull();
   });
 
@@ -229,7 +232,7 @@ describe('ProofChapterPage loading state', () => {
       expect(screen.queryByText(/The manuscript could not be read\./)).toBeNull();
       expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
       await act(async () => release(WIRE_CHAPTERS));
-      expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+      expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
       expect(region()).toBeNull();
     });
 

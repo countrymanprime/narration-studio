@@ -146,6 +146,8 @@ export function ChapterTrackPanel({
   };
 
   const state = link ? chapterTrackButtonState(link) : undefined;
+  const missing = state?.kind === 'missing';
+  const conflict = link?.status === 'ambiguous' && link.links.length > 1;
   return (
     <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose}>
       {!link ? (
@@ -154,7 +156,7 @@ export function ChapterTrackPanel({
         <div className="space-y-4 text-sm">
           <Header chapterTitle={shortName} link={link} trackSummary={trackSummary} />
           {/* The state's own sentence (chapter-track-link-control mocks 03-05). */}
-          {state?.kind === 'missing' && (
+          {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
                 The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the saved project. It may have been deleted or the project
@@ -170,8 +172,9 @@ export function ChapterTrackPanel({
           )}
           {trackSummary && (
             <section aria-labelledby="chapter-track-facts" className="space-y-1.5">
+              {/* A missing track's figures are what the project said before it went, never a healthy reading under the red box (R3PR1-1). */}
               <SectionLabel as="h3" id="chapter-track-facts">
-                As of last save {formatWhen(savedAt)}
+                {missing ? 'Last known, as of save' : 'As of last save'} {formatWhen(savedAt)}
               </SectionLabel>
               <Fact label="Items" value={`${trackSummary.playableCount} playable of ${trackSummary.itemCount}`} />
               {trackSummary.missingSourceCount > 0 && <Fact label="Missing sources" value={String(trackSummary.missingSourceCount)} />}
@@ -194,7 +197,7 @@ export function ChapterTrackPanel({
               )}
             </section>
           )}
-          {trackIndex >= 0 && (
+          {trackIndex >= 0 && !missing && (
             <section aria-labelledby="chapter-track-play" className="space-y-2">
               <h3 id="chapter-track-play" className="sr-only">
                 Play
@@ -225,7 +228,7 @@ export function ChapterTrackPanel({
               </Button>
             </section>
           )}
-          {link.status === 'ambiguous' && link.links.length > 1 && (
+          {conflict && (
             <section aria-labelledby="chapter-track-conflict" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-conflict">
                 Linked to {link.links.length} tracks
@@ -246,7 +249,7 @@ export function ChapterTrackPanel({
               </ul>
             </section>
           )}
-          {link.candidates.length > 0 && !link.track && !(link.status === 'ambiguous' && link.links.length > 1) && (
+          {link.candidates.length > 0 && !link.track && !conflict && (
             <section aria-labelledby="chapter-track-candidates" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-candidates">
                 Possible tracks
@@ -266,28 +269,31 @@ export function ChapterTrackPanel({
               </ul>
             </section>
           )}
-          <section aria-labelledby="chapter-track-link" className="space-y-2">
-            <SectionLabel as="h3" id="chapter-track-link">
-              Link
-            </SectionLabel>
-            {tracksError ? (
-              <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
-            ) : !tracks ? (
-              <p role="status">Reading the REAPER tracks…</p>
-            ) : (
-              <MappingConfirm
-                chapterTitle={shortName}
-                tracks={tracks}
-                linkedTrackGuid={link.track?.trackGuid}
-                linkedTrackName={link.track?.trackName}
-                busy={busy}
-                onConfirm={(trackGuid) => void link_(trackGuid)}
-                onClear={() => void unlink()}
-                changeLabel="Another track…"
-                clearLabel="Unlink"
-              />
-            )}
-          </section>
+          {/* Two links to choose between are resolved by the Keep this one rows above; a second way to the same answer is not offered (R3PR1-6). */}
+          {!conflict && (
+            <section aria-labelledby="chapter-track-link" className="space-y-2">
+              <SectionLabel as="h3" id="chapter-track-link">
+                Link
+              </SectionLabel>
+              {tracksError ? (
+                <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
+              ) : !tracks ? (
+                <p role="status">Reading the REAPER tracks…</p>
+              ) : (
+                <MappingConfirm
+                  chapterTitle={shortName}
+                  tracks={tracks}
+                  linkedTrackGuid={link.track?.trackGuid}
+                  linkedTrackName={link.track?.trackName}
+                  busy={busy}
+                  onConfirm={(trackGuid) => void link_(trackGuid)}
+                  onClear={() => void unlink()}
+                  changeLabel="Another track…"
+                  clearLabel="Unlink"
+                />
+              )}
+            </section>
+          )}
           <section aria-labelledby="chapter-track-remove" className="space-y-2 border-t border-[var(--border)] pt-3">
             <SectionLabel as="h3" id="chapter-track-remove">
               Chapter
@@ -316,13 +322,18 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
     missing: 'Missing',
     not_linked: 'Not linked',
   };
+  // The dot is always drawn, so the name starts at one x in every state (XPR1-22): the track's colour, or a hollow ring when there is no
+  // track to colour it or the linked one is missing. The name and the state share a baseline.
+  const hollow = !trackSummary || state.kind === 'missing';
   return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex items-center gap-2">
-        {trackSummary && (
-          <span aria-hidden="true" className="mt-1 size-3 flex-none rounded-full" style={{ background: trackSummary.color || 'var(--non-text)' }} />
-        )}
-        <div>
+    <div className="flex items-baseline justify-between gap-3">
+      <div className="flex min-w-0 items-baseline gap-2">
+        <span
+          aria-hidden="true"
+          className="size-3 flex-none self-center rounded-full border-2"
+          style={hollow ? { borderColor: 'var(--non-text)' } : { background: trackSummary.color || 'var(--non-text)', borderColor: 'transparent' }}
+        />
+        <div className="min-w-0">
           <div className="font-['Barlow_Condensed',sans-serif] text-lg font-semibold uppercase">{link.track?.trackName ?? chapterTitle}</div>
           {trackSummary && <div style={{ color: 'var(--text-muted)' }}>Track {trackSummary.index + 1}</div>}
         </div>
@@ -335,8 +346,11 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{value}</span>
+      <span className="flex-none" style={{ color: 'var(--text-muted)' }}>
+        {label}
+      </span>
+      {/* A value that wraps keeps to the right edge with the others ("by you" under the date, XPR1-23). */}
+      <span className="min-w-0 text-right font-['IBM_Plex_Mono',ui-monospace,monospace]">{value}</span>
     </div>
   );
 }

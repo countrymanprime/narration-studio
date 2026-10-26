@@ -22,6 +22,12 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
 
+def _write_bible(path: Path, document: dict) -> None:
+    """Writes a Story Bible as the host does: two-space indented, non-ASCII as itself, a trailing newline."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def _speaking_voice() -> MagicMock:
     def synthesize(_spoken, wav_file):
         wav_file.setnchannels(1)
@@ -42,8 +48,8 @@ class SpokenFormTests(unittest.TestCase):
         self.assertEqual("Dawnspire", guide.spoken_form(None, "Dawnspire"))
 
     def test_an_unchosen_pronunciation_still_speaks_the_name(self):
-        # A pronunciation the build generated but the narrator never picked (pronounce()/pronounce_user()
-        # mark "chosen") must not silently change what the preview says.
+        # A pronunciation the build generated but the narrator never picked (the host marks the one the narrator sets
+        # "chosen") must not silently change what the preview says.
         holder = {"pronunciation": {"ipa": "dˈɔːnspaɪɚ", "source": "eSpeak NG", "confidence": "low"}}
         self.assertEqual("Dawnspire", guide.spoken_form(holder, "Dawnspire"))
 
@@ -64,7 +70,7 @@ class SpokenFormTests(unittest.TestCase):
 class RenderAudioSpeaksThePronunciationTests(unittest.TestCase):
     def _render(self, root: Path, entity: dict, voice, alias_index: int | None = None) -> MagicMock:
         guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-        guide.write_json(str(guide_file), {"entities": [entity]})
+        _write_bible(guide_file, {"entities": [entity]})
         args = argparse.Namespace(
             guide=str(guide_file),
             entity_id=entity["id"],
@@ -123,32 +129,17 @@ class RenderAudioSpeaksThePronunciationTests(unittest.TestCase):
 
 
 class ChosenPronunciationRoundTripTests(unittest.TestCase):
-    """pronounce() -> a rebuild's merge_locked -> render_audio, so a chosen pronunciation survives a rebuild and is still spoken."""
+    """The host's Generate/Replace -> render_audio: a chosen pronunciation is spoken (a rebuild keeps it: the host's
+    TestARebuildKeepsTheNarratorsPronunciationWork)."""
 
-    def test_a_pronunciation_chosen_then_rebuilt_is_still_spoken_by_render_audio(self):
+    def test_a_chosen_pronunciation_is_spoken_by_render_audio(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-            entity = {"id": "entity-1", "canonical_name": "Dawnspire", "aliases": [], "pronunciation": {}}
-            guide.write_json(str(guide_file), {"entities": [entity]})
-
-            with patch.object(guide, "pronounce_source", return_value={"ipa": "dˈɔːnspaɪɚ", "source": "eSpeak NG", "confidence": "low"}):
-                guide.pronounce(argparse.Namespace(guide=str(guide_file), entity_id="entity-1", alias_index=None, source="espeak", espeak_library=""))
-
-            chosen = json.loads(guide_file.read_text(encoding="utf-8"))["entities"][0]
-            self.assertTrue(chosen["pronunciation"]["chosen"])
-
-            # A rebuild re-extracts the entity fresh (a new pronunciation guess, not yet chosen) and merge_locked
-            # must keep the narrator's chosen one instead (already covered by test_pronounce.py; exercised again
-            # here so the round trip through render_audio is proven end to end).
-            fresh = {
-                "id": "entity-1",
-                "canonical_name": "Dawnspire",
-                "aliases": [],
-                "pronunciation": {"ipa": "wrong", "source": "CMU dictionary", "confidence": "medium"},
-            }
-            rebuilt = guide.merge_locked([fresh], {"entities": [chosen]})
-            guide.write_json(str(guide_file), {"entities": rebuilt})
+            # What the host's Pronounce writes for eSpeak's answer (src/studio/desktop/internal/guide/pronounce.go).
+            chosen = {"ipa": "dˈɔːnspaɪɚ", "source": "espeak", "confidence": "low", "chosen": True}
+            entity = {"id": "entity-1", "canonical_name": "Dawnspire", "aliases": [], "pronunciation": chosen}
+            _write_bible(guide_file, {"entities": [entity]})
 
             args = argparse.Namespace(
                 guide=str(guide_file),

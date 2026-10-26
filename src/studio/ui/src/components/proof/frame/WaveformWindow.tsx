@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { HIT_AREA_PLACED } from '../../primitives/hitArea';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { PeaksCanvas } from './PeaksCanvas';
@@ -10,6 +11,16 @@ const WAVE_HEIGHT = 84;
 const OVERVIEW_HEIGHT = 34;
 /** Width assumed where nothing can be measured (jsdom), so pins cluster the same everywhere. */
 const FALLBACK_WIDTH = 860;
+
+/** A pin's press target: 24 px (the hit-area floor), centred on its time and on one line along the top, whatever the dot's size (R3PF-6). */
+const PIN_TARGET = 'absolute top-0 flex size-6 -translate-x-1/2 items-center justify-center rounded-full';
+const PIN_HALF = '0.75rem';
+/** The dot drawn in the target: a pin's 12 px (16 px selected), or a cluster's numbered 20 px. */
+const PIN_DOT = 'flex items-center justify-center rounded-full border-2';
+
+/** `percent` along the track, kept `half` in from either end, so a mark centred on the chapter's start or end stays inside the card's text
+ * edges instead of hanging half out (alignment audit XPF-15). */
+const inTrack = (percent: number, half: string): string => `clamp(${half}, ${percent}%, calc(100% - ${half}))`;
 
 function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement>(null);
@@ -155,8 +166,10 @@ export function WaveformWindow({
         aria-valuenow={Math.round(here)}
         aria-valuetext={clock(here)}
         data-edge={which}
-        className="absolute top-0 h-full w-3 -translate-x-1/2 cursor-ew-resize touch-none rounded bg-[var(--accent)] opacity-60 hover:opacity-100 focus-visible:opacity-100"
-        style={{ left: `${(here / total) * 100}%` }}
+        // Drawn 12 px wide; HIT_AREA_PLACED takes presses in a 24 px band around it, so a pointer need not land on the bar (WCAG 2.2 target size).
+        className={`absolute top-0 h-full w-3 -translate-x-1/2 cursor-ew-resize touch-none rounded bg-[var(--accent)] opacity-60 hover:opacity-100 focus-visible:opacity-100 ${HIT_AREA_PLACED}`}
+        // Kept inside the track: at the chapter's start or end a centred handle hung half outside the card's text edge (XPF-15).
+        style={{ left: inTrack((here / total) * 100, '0.375rem') }}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           event.stopPropagation();
@@ -243,7 +256,8 @@ export function WaveformWindow({
             <div
               key={band.id}
               data-band={band.id}
-              className={`pointer-events-none absolute inset-y-1 overflow-hidden rounded border text-xs ${band.tone === 'ok' ? 'border-[var(--ok)] bg-[var(--ok-soft)] text-[var(--ok-text)]' : 'border-[var(--line-strong)] text-[var(--text-muted)]'}`}
+              // See-through, so the trace under the playing take still shows, its label at the bottom, clear of the pins along the top (R3PF-1).
+              className={`pointer-events-none absolute inset-y-1 flex items-end overflow-hidden rounded border text-xs ${band.tone === 'ok' ? 'border-[var(--ok)] bg-[color-mix(in_srgb,var(--ok-soft)_45%,transparent)] text-[var(--ok-text)]' : 'border-[var(--line-strong)] text-[var(--text-muted)]'}`}
               style={{ left: `${x0}%`, width: `${x1 - x0}%` }}
             >
               <span className="px-1">{band.label}</span>
@@ -261,10 +275,10 @@ export function WaveformWindow({
                 aria-label={`${cluster.pins.length} notes`}
                 data-cluster={cluster.pins.map((p) => p.id).join(',')}
                 onClick={() => onPin(cluster.pins[0].id)}
-                className="absolute top-0 flex size-5 -translate-x-1/2 items-center justify-center rounded-full border-2 border-[var(--text)] bg-[var(--surface)] text-xs font-bold text-[var(--text)]"
-                style={{ left: `${mid}%` }}
+                className={`${PIN_TARGET} [&>span]:size-5 [&>span]:border-[var(--text)] [&>span]:bg-[var(--surface)] [&>span]:text-xs [&>span]:font-bold [&>span]:text-[var(--text)]`}
+                style={{ left: inTrack(mid, PIN_HALF) }}
               >
-                {cluster.pins.length}
+                <span className={PIN_DOT}>{cluster.pins.length}</span>
               </button>
             );
           }
@@ -280,9 +294,14 @@ export function WaveformWindow({
               data-pin={pin.id}
               data-hollow={pin.done || undefined}
               onClick={() => onPin(pin.id)}
-              className={`absolute top-0 -translate-x-1/2 rounded-full border-2 ${isSelected ? 'size-4' : 'size-3'}`}
-              style={{ left: `${(cluster.x0 / width) * 100}%`, borderColor: pin.colour, background: pin.done ? 'var(--surface)' : pin.colour }}
-            />
+              className={PIN_TARGET}
+              style={{ left: inTrack((cluster.x0 / width) * 100, PIN_HALF) }}
+            >
+              <span
+                className={`${PIN_DOT} ${isSelected ? 'size-4' : 'size-3'}`}
+                style={{ borderColor: pin.colour, background: pin.done ? 'var(--surface)' : pin.colour }}
+              />
+            </button>
           );
         })}
         {playhead != null && playhead >= win.start && playhead <= end ? (

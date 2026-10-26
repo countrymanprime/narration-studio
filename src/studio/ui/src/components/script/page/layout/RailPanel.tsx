@@ -29,14 +29,16 @@ export function RailPanel({ body, onClose }: { body: (tab: RailTab) => ReactNode
         <IconButton action="close" label="Close" size="sm" onClick={onClose} />
       </div>
       <Tabs value={tab} onChange={(next) => update({ tab: next as RailTab })} className="flex min-h-0 flex-1 flex-col">
-        <TabList label={RAIL_LABEL} activation="automatic" className="flex-none px-1">
+        {/* Beside the reader (above 1280 px) the strip is the reader header's 65 px, so the two rules are one line (XSC-11). */}
+        <TabList label={RAIL_LABEL} activation="automatic" className="flex-none px-1 min-[1281px]:min-h-[4.0625rem]">
           {RAIL_TABS.map(([key, label]) => (
             <Tab key={key} value={key}>
               <span data-tab={key}>{label}</span>
             </Tab>
           ))}
         </TabList>
-        <TabPanel value={tab} className="min-h-0 flex-1 overflow-y-auto p-3">
+        {/* A Panel's 16 px inset, named as `--panel-pad`, so a flush table runs to the edges with its text on the labels' x. */}
+        <TabPanel value={tab} className="min-h-0 flex-1 overflow-y-auto p-4 [--panel-pad:1rem]">
           <div id="railbody">{body(tab)}</div>
         </TabPanel>
       </Tabs>

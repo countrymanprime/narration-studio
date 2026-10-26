@@ -709,6 +709,8 @@ func (h *Host) configureLocked(next config) {
 	h.guide = guide.New(h.config.projectFolder, h.config.manuscriptPython, h.config.manuscriptBackend, h.settings, h.sidecars)
 	h.guide.SetPersist(h.persist)
 	h.guide.SetFindings(h.findings)
+	// Asked when a lookup starts, not now: h.mu is held here, and an install made after the project opens counts.
+	h.guide.SetWiktextractIndex(h.wiktextractIndexPath)
 	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
 	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
 	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.
@@ -1937,7 +1939,8 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"fx_cap_pct", "Most of a chapter effects may cover (%)", "number", nil},
 		{"replace_target_lufs", "Loudness another narrator's audio is set to (LUFS)", "number", nil},
 	},
-	// Booth.words_per_page is where the Booth draws a page break: every this many words from a chapter's first word. A whole number from
+	// Booth.words_per_page is where the Booth draws a page break: at the end of the paragraph that brings a page to this many words, counted
+	// from a chapter's first word (pageBreaks.ts). A whole number from
 	// 50 to 1000, 250 (a manuscript page) by default; a stored value outside the range reads as the layer below (settings.wholeNumbers).
 	"Booth": {{"words_per_page", "Words per page", "number", nil}},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,

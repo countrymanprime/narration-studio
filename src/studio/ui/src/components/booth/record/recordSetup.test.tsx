@@ -3,6 +3,7 @@ import { act, cleanup, render, renderHook, screen, waitFor, within } from '@test
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
+import { attachRefusalClaimed } from '../../connection/attachRefusal';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities, DawTransport } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
@@ -167,6 +168,8 @@ describe('RecordSetup when the app turns the launch away', () => {
     expect(dialog.textContent).toContain('REAPER started, but its project was turned away.');
     const alert = within(dialog).getByRole('alert');
     expect(alert.textContent).toContain('The app is busy');
+    // The dialog says it, so App's toast of the same reason stays out of the way of the script (R4BO2-4).
+    expect(attachRefusalClaimed()).toBe(true);
     expect(alert.textContent).toContain('Finish or cancel what is running, then press Open in REAPER and connect again.');
     attach({ attached: true });
     expect(screen.queryByRole('alert')).toBeNull();
@@ -395,6 +398,27 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
     mountChecked(recordRefused('experimental_off'));
     await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
     expect(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Check again' })).toHaveLength(1);
+  });
+
+  it("the built-in recorder names no DAW and waits for nothing: its switch is this app's own setting (R4BO1-2)", async () => {
+    const onSettings = vi.fn();
+    mountChecked(recordRefused('experimental_off', 'Built-in'), { onSettings });
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    const dialog = screen.getByRole('dialog', { name: 'Recording in the built-in recorder is experimental' });
+    expect(dialog.textContent).not.toMatch(/DAW|Waiting for|Last checked/);
+    expect(within(dialog).queryByRole('button', { name: 'Check again' })).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Recording settings' }));
+    expect(onSettings).toHaveBeenCalledTimes(1);
+    expect(within(dialog).getByRole('button', { name: 'Turn on Record' })).toBeTruthy();
+  });
+
+  it('every button in a notice dialog is one height: none is drawn small (XBO-6)', async () => {
+    mountChecked(recordRefused('experimental_off'));
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    for (const button of within(screen.getByRole('dialog'))
+      .getAllByRole('button')
+      .filter((b) => !b.getAttribute('aria-label')))
+      expect(button.className, button.textContent ?? '').not.toMatch(/button-height-sm/);
   });
 });
 

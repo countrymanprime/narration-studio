@@ -5,6 +5,7 @@ import { useToastClearance } from '../../../hooks/useToastClearance';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { CheckLine } from '../../layout/CheckLine';
+import { claimAttachRefusal } from '../../connection/attachRefusal';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
@@ -100,7 +101,7 @@ export function NoticeChip({ id, label, onOpen }: { id: string; label: string; o
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
   return (
-    <div ref={bar} className="mx-5 mb-2 flex">
+    <div ref={bar} className="mx-[var(--page-gutter)] mb-2 flex">
       <ConnectionIndicator id={id} label={label} onOpen={onOpen} />
     </div>
   );
@@ -155,14 +156,18 @@ function TurnOn({
           }
           onClose={() => setOpen(false)}
           primary={{ label: 'Turn on Record', onPress: () => void turnOn(), pending: busy }}
-          secondary={{ label: 'Check again', onPress: () => check.onCheckAgain?.() }}
+          // An in-app recorder's switch is this app's own setting: nothing outside can turn it on, so there is nothing to wait for or
+          // check again, and no DAW to name; its secondary opens the recording settings instead (alignment audit R4BO1-2).
+          secondary={plan.inApp ? { label: 'Recording settings', onPress: onSettings } : { label: 'Check again', onPress: () => check.onCheckAgain?.() }}
         >
-          <p>
-            <Button variant="secondary" size="sm" onClick={onSettings}>
-              DAW settings
-            </Button>
-          </p>
-          {check.onCheckAgain && (
+          {!plan.inApp && (
+            <p>
+              <Button variant="secondary" onClick={onSettings}>
+                DAW settings
+              </Button>
+            </p>
+          )}
+          {check.onCheckAgain && !plan.inApp && (
             <CheckLine
               waiting={`Waiting for Record to be turned on in ${plan.dawName}`}
               unknown={`Record is on in ${plan.dawName}`}
@@ -231,9 +236,11 @@ function OtherProject({
           primary={{ label: 'Link the open project', onPress: () => void linkOpen(), pending: busy }}
           secondary={{ label: 'Check again', onPress: () => check.onCheckAgain?.() }}
         >
+          {/* The caption sits with the action it describes; DAW settings, which only shows the linked file, has its own line. */}
+          <p className="text-[var(--text-muted)]">Link the open project asks you to choose the project file {dawName} has open.</p>
           <p className="flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
-            Choose the project file {dawName} has open.
-            <Button variant="secondary" size="sm" onClick={onSettings}>
+            The file linked now is in
+            <Button variant="secondary" onClick={onSettings}>
               DAW settings
             </Button>
           </p>
@@ -291,6 +298,8 @@ function Connect({
   const dialog = useOpenOnce(`reaper-off:${name}`, settling && !turnedAway);
   const reopen = dialog.reopen;
   useReopenOnAsk(asked, reopen);
+  // This dialog says why in its own alert, so App does not toast the same sentence over the script (R4BO2-4).
+  useEffect(() => claimAttachRefusal(), []);
   useEffect(
     () =>
       system.subscribeProjectAttach((state) => {
@@ -315,7 +324,7 @@ function Connect({
       {plan.launcherPath && (
         <span className="mt-1 flex flex-wrap items-center gap-2">
           <code className="rounded bg-[var(--surface-2)] px-2 py-1 text-xs break-all text-[var(--text)]">{plan.launcherPath}</code>
-          <Button variant="secondary" size="sm" onClick={copy}>
+          <Button variant="secondary" onClick={copy}>
             Copy path
           </Button>
         </span>
@@ -360,7 +369,7 @@ function Connect({
         >
           {turnedAway && (
             <p role="alert" className="text-[var(--danger-text)]">
-              {name} started, but this app turned its project away: {turnedAway} Finish or cancel what is running, then press {guide.launch.label} again.
+              {turnedAway} Finish or cancel what is running, then press {guide.launch.label} again.
             </p>
           )}
           {factsFailed && <p className="text-[var(--text-muted)]">Could not read whether a project file is linked. Press Check again.</p>}

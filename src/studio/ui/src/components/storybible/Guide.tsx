@@ -39,7 +39,7 @@ import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
 import { AcceptedClaims } from './suggested/row/AcceptedClaims';
 import { SuggestionList } from './suggested/row/SuggestionList';
-import { reviewable, summaryOf, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
+import { kindLabel as suggestionKind, reviewable, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
 import { useStartScan } from './suggested/scan/useStartScan';
 import { GuideDetail, type EntryCommand } from './GuideDetail';
 import { ReadNotice } from './ReadNotice';
@@ -223,6 +223,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const toVerifyAll = verifyCount(suggestions);
   const loose = verifyOnly ? unattached(suggestions) : [];
   const looseChosen = loose.find((suggestion) => suggestion.id === looseId);
+  const openHidden = selected !== undefined && !pendingNewEntity && !looseChosen && !sorted.some((row) => row.id === selected.id);
   const filtering = query.trim() !== '' || filterCount(filters) > 0;
   const clearFilters = () => {
     setQuery('');
@@ -410,6 +411,13 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 <SortMenu sort={sort} onPick={(column) => keepSort(pickSort(sort, column))} />
               </div>
               <FilterChips value={chosen} onChange={setFilter} />
+              {/* The open entry is not among the rows the search and filters leave: say so, so the entry beside the list does not look
+                  like one of them (R3SB1-2, R3SB2-12). */}
+              {openHidden && (
+                <p role="status" className="m-0 text-xs text-[var(--text-muted)]">
+                  {selected.canonical_name} is open but not in this list.
+                </p>
+              )}
               {/* Under the filters, so a scan starting or ending moves the table, never the buttons and chips the pointer is on. */}
               <ScanStatus scan={scanWithStart} />
             </div>
@@ -464,7 +472,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 loadingId={listPreview.loadingPreview ? heardId : undefined}
               />
             ) : (
-              <div className="min-h-0 flex-1 overflow-hidden p-2">
+              <div className="min-h-0 flex-1 overflow-hidden">
                 <GuideListSkeleton />
               </div>
             )}
@@ -473,7 +481,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
             {!entriesRead ? (
               <GuideDetailSkeleton />
             ) : looseChosen ? (
-              <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
+              // Titled by the kind of suggestion, not its sentence, which the card below says once; the entry's header size, so the card
+              // does not change shape between an entry and a suggestion (R3SB1-4, SBX-22).
+              <Panel title={`Suggested ${suggestionKind(looseChosen.payload).toLowerCase()}`} titleStyle="entry" scroll className="min-h-0 flex-1">
                 <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
               </Panel>
             ) : (

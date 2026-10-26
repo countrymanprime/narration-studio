@@ -56,6 +56,7 @@ const PAIRS: PairSpec[] = [
   text('selection-toolbar', 'the selection toolbar: surface colour on the text colour', 'var(--surface)', ['surface'], 'var(--text)'),
   text('on-accent', 'primary button and logo: accent-contrast on accent', 'var(--accent-contrast)', ['surface'], 'var(--accent)'),
   text('on-accent-strong', 'primary button hover: accent-contrast on accent-strong', 'var(--accent-contrast)', ['surface'], 'var(--accent-strong)'),
+  text('on-danger', 'filled danger button: danger-contrast on danger', 'var(--danger-contrast)', ['surface'], 'var(--danger)'),
   text('accent-link', 'the Reset link and other accent text on the page', 'var(--accent)', ['surface']),
   text('accent-strong', 'active sort header, alias text, table header on the page', 'var(--accent-strong)', SURFACES),
   text('accent-strong-on-soft', 'notice and chip text: accent-strong on accent-soft', 'var(--accent-strong)', ['surface'], 'var(--accent-soft)'),
@@ -357,6 +358,9 @@ describe('the text ramp keeps its order', () => {
 // unmeasured. `text-[var(--x)]`, `color: 'var(--x)'` and a `color:` declaration in a stylesheet all count.
 const NO_TEXT_PAIR: Record<string, string> = {
   'non-text': 'the colour of icons, status dots and decorative glyphs, held to 3:1 as a mark and never the colour of text that carries information',
+  // Not an app token: the report preview's stylesheet in api/productionMock.ts copies the host page's own `--muted`
+  // (desktop/internal/productionreport/report.html.tmpl), which lives inside the iframe and is not in styles.css.
+  muted: "the status report page's label colour, its own variable inside the preview iframe: #5c5c66 on #ffffff is 6.61:1 and #a8a8b3 on #16161a 7.66:1",
 };
 
 function sourceFiles(directory: string): string[] {
@@ -393,10 +397,14 @@ const tokensUsedAsText = (): Set<string> => new Set([...textColourUses().values(
 // a dot or a decorative glyph is the reviewer's call: the test only makes every use visible.
 const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/master/DeliveryProfilePanel.tsx': { count: 1, what: 'the ear icon beside a rule the narrator checks by listening' },
-  'components/production/ChapterTrackPanel.tsx': { count: 1, what: "the panel header's linked-track colour dot" },
+  'components/production/ChapterTrackPanel.tsx': {
+    count: 2,
+    what: "the panel header's track dot: its fill when the track has no colour, its ring when there is no track or it is missing",
+  },
   'components/layout/EngineChip.tsx': { count: 2, what: "the header chip dot when no DAW file is linked, and the Built-in chip's dot" },
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
+  'components/production/target/TargetInfoButton.tsx': { count: 1, what: "the ring of the Recording tile's info mark, the same as Tooltip's" },
   'components/engine/EnginePanel.tsx': { count: 1, what: 'the dot of a track that has no colour' },
   'styles.css': { count: 1, what: "LevelMeter's below-floor zone: --meter-floor is a derived alias of --non-text, not text" },
 };
