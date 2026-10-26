@@ -1402,7 +1402,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     const catalog = await api.assetsList();
     expectMatches(assetCatalogSchema, catalog, 'mock asset list');
-    expect(catalog.assets.map((asset) => asset.kind)).toEqual(['tts', 'whisper', 'spacy', 'dictionary', 'analysis', 'analysis', 'analysis', 'analysis']);
+    expect(catalog.assets.map((asset) => asset.kind)).toEqual(['tts', 'whisper', 'spacy', 'dictionary', 'analysis', 'analysis', 'analysis']);
     const voice = catalog.assets[0];
     const started = await api.assetsInstall(voice.kind, voice.id);
     for (const job of [started, await api.assetsInstallState(started.id), await api.assetsInstallState(started.id), await api.assetsInstallState(started.id)]) {
@@ -1419,7 +1419,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   it('the asset list: the golden lists the analysis tools with their consent facts, and a list without them still parses', async () => {
     const golden = parseWire(assetCatalogSchema, readGolden('assets-list.json'), ctx('assets list'));
     const tools = golden.assets.filter((asset) => asset.kind === 'analysis');
-    expect(tools.map((tool) => tool.id)).toEqual(['gliner', 'booknlp-small', 'booknlp-big', 'local-llm']);
+    expect(tools.map((tool) => tool.id)).toEqual(['gliner', 'booknlp-small', 'booknlp-big']);
     expect(new Set(tools.map((tool) => tool.kindLabel))).toEqual(new Set(['Analysis tool']));
     expect(tools[0]).toMatchObject({
       downloadHost: 'huggingface.co, files.pythonhosted.org',
@@ -1429,12 +1429,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       rank: 1,
       recommended: true,
     });
-    // BookNLP is pinned and can be installed; GLiNER and the local model each say why they cannot.
+    // Every file of each is pinned, so each can be installed and none carries a reason it cannot.
     expect(tools.map((tool) => [tool.id, (tool.unavailableReason ?? '').length > 0])).toEqual([
-      ['gliner', true],
+      ['gliner', false],
       ['booknlp-small', false],
       ['booknlp-big', false],
-      ['local-llm', true],
     ]);
     for (const other of golden.assets.filter((asset) => asset.kind !== 'analysis')) expect(other.unavailableReason).toBeUndefined();
     // The mock lists no analysis tool, so it is the older payload: no entry carries a consent fact, and it parses.

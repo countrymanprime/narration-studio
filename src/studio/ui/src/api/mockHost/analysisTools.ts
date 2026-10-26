@@ -1,12 +1,10 @@
 // The mock host (mockApi.ts): the Story Bible analysis tools, as the real host lists them (tests/fixtures/contracts/assets-list.json,
 // written by the Go catalog test). The rows carry the facts only; the install state, path and job are the asset mock's.
 import type { AssetItem } from '../contracts/assets';
-import { brand } from '../../brand.gen';
 
 export type MockAnalysisTool = Omit<AssetItem, 'kind' | 'kindLabel' | 'path' | 'installState' | 'installedAt' | 'verifiedAt' | 'activeJobId'>;
 
-/** GLiNER, both BookNLP sizes and the local language model. Both BookNLP sizes can be installed; GLiNER and the local model are
- * unavailable with the host's sentence (config/analysis-assets.json pins every BookNLP file and not yet every GLiNER one). */
+/** GLiNER and both BookNLP sizes; config/analysis-assets.json pins every file of each, so all three can be installed. */
 export const MOCK_ANALYSIS_TOOLS: readonly MockAnalysisTool[] = [
   {
     id: 'gliner',
@@ -19,16 +17,15 @@ export const MOCK_ANALYSIS_TOOLS: readonly MockAnalysisTool[] = [
     modelCardUrl: 'https://huggingface.co/urchade/gliner_small-v2.1',
     provenanceUrl: 'https://huggingface.co/urchade/gliner_small-v2.1/tree/4e091416cf7c3481db542c2a3d26156916f3a47f',
     attribution:
-      'The model files are published under the Apache 2.0 licence, which allows this use. GLiNER small v2.1 by Urchade Zaratiana; the gliner and transformers packages are Apache-2.0 and torch is BSD-3-Clause.',
-    downloadSize: 747042859,
-    diskSize: 1136082201,
+      'The model files are published under the Apache 2.0 licence, which allows this use. GLiNER small v2.1 by Urchade Zaratiana, on the DeBERTa v3 small encoder by Microsoft (MIT; only its config and tokenizer are downloaded); the gliner, transformers and sentencepiece packages are Apache-2.0 and torch is BSD-3-Clause.',
+    downloadSize: 766216530,
+    diskSize: 1198620197,
     downloadHost: 'huggingface.co, files.pythonhosted.org',
     ramGB: 2,
     minutesPerBook: 2,
     source: 'gliner',
     rank: 1,
     recommended: true,
-    unavailableReason: 'GLiNER is not yet available: its download is still being checked, and it will be offered once every file is pinned.',
   },
   {
     id: 'booknlp-small',
@@ -72,23 +69,5 @@ export const MOCK_ANALYSIS_TOOLS: readonly MockAnalysisTool[] = [
     source: 'booknlp',
     rank: 2,
     recommended: false,
-  },
-  {
-    id: 'local-llm',
-    displayName: 'Local language model',
-    description: 'Reads the manuscript like a person would and writes descriptions, relationships and what each character says, does and knows.',
-    version: 'none',
-    publisher: 'Not chosen',
-    license: 'To be confirmed',
-    licenseUrl: `${brand.repository.url}/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md`,
-    modelCardUrl: `${brand.repository.url}/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md`,
-    provenanceUrl: `${brand.repository.url}/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md`,
-    attribution: 'Licence to be confirmed before it is offered.',
-    downloadSize: 0,
-    diskSize: 0,
-    ramGB: 11,
-    rank: 0,
-    recommended: false,
-    unavailableReason: 'A model small enough for this computer takes many hours per book. It will be offered once that is practical.',
   },
 ];

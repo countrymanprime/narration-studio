@@ -119,8 +119,10 @@ by `rules/testdata/suggest-lines.json`, which `TestTheSuggestLinesMatchTheContra
 
 `suggest --source gliner --manuscript M --guide G --install DIR` runs the optional GLiNER download
 (`core/extraction_gliner.py`). It loads the model only from `DIR`, the tool's install folder, with the Hugging Face hub
-turned off ([CI and releases](../operations/ci-and-releases.md)),
-and prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
+turned off ([CI and releases](../operations/ci-and-releases.md)). GLiNER builds its `microsoft/deberta-v3-small` encoder by
+that name; the adapter answers it with the folder's own `config.json`, and the tokenizer is read from the folder's
+`tokenizer_config.json` and `spm.model`, so the install folder needs those three beside the weights. It
+prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
 the model's own score or `null`, and the sentence the name is in as its quote. Spans under `SCORE_FLOOR` (0.5) are
 dropped, and a name found twice is offered once. A missing or damaged install exits 1 with a sentence. The host runs it
 through `src/studio/desktop/internal/extractionport/gliner` with the same caps and checks as the rules row, plus an entry-only,
