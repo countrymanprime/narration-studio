@@ -206,8 +206,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Hydrates whatever launch was already in flight when the dialog reopened; the narrator can press Open either way, and a launch shows its own failure inline.',
   'src/components/engine/RenderConfigDialog.tsx#1':
     'Hydrates whatever configure run was already in flight, then offers a suggested output folder when none was configured yet; the narrator can still type a folder and press Configure render either way.',
-  'src/components/production/RecordingCheckReport.tsx#1':
-    "A background count of the chapter's other pickups; a failure just leaves that line out of the Pickups list, with the check's own gaps unaffected.",
   'src/input/keymap.ts#1':
     "keymapFromBindings: one stored gesture this build cannot parse (a hand-edited settings file, or an older/newer app's own bug) falls back to that one command's catalog default; not a narrator action, and not swallowed silently since the Keyboard & pedals panel still shows every other override normally.",
   'src/components/engine/CreateChapterRegionsDialog.tsx#1':

@@ -1,6 +1,7 @@
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import type { CoverageEngines, CoverageResult } from '../../api/contracts/coverage';
+import { Link } from 'react-router-dom';
+import type { CoverageEngines, CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { describeApiError } from '../../api/errorMessage';
 import { useOverlay } from '../../overlay/OverlayProvider';
@@ -8,6 +9,7 @@ import { usePort } from '../../ports/usePort';
 import { useCapability } from '../../useCapability';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
+import { COVERAGE_REASON_TEXT, LINK_REASONS, REASON_PAGE } from '../production/recordingCheckText';
 import {
   audioToCheck,
   checkStateLabel,
@@ -29,15 +31,31 @@ import { RunningView } from './RunningView';
 /** The dialog's section labels: the Chapters column, Audio to check. */
 const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
 
+const NONE: readonly ManuscriptChapter[] = [];
+
+/** A chapter with no confirmed track is linked in the audio engine panel, which the retired Tracks address opens. */
+const UNMAPPED_FIX = { path: '/tracks', label: 'Open the audio engine panel' };
+
 type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageResult>; engines: CoverageEngines };
 
 /**
- * Check recordings (mock pickups/CheckRecordings.tsx): how the check is made (`RunOptions`, shared with a chapter's own check panel), the recorded
+ * Check recordings (mock pickups/CheckRecordings.tsx), the app's one recording check: how the check is made (`RunOptions`), the recorded
  * chapters with their check state and last result, the audio to check, and a live run of up to "Chapters at once" chapters (the host runs one
- * check per chapter and allows as many at once as each start names). It opens from an icon on the
- * Proof, Pickups and Production pages through `openCheckRecordings`, which hands it `preselected` and `close`.
+ * check per chapter and allows as many at once as each start names). Every entry, on every page and for one chapter or several, opens it
+ * through `openCheckRecordings`, which hands it `preselected`, `extra`, `onClosed` and `close`. What a check found is read on Proof's check card.
  */
-export function CheckRecordingsDialog({ preselected, close }: { preselected: readonly string[]; close: () => void }) {
+export function CheckRecordingsDialog({
+  preselected,
+  extra = NONE,
+  onClosed,
+  close,
+}: {
+  preselected: readonly string[];
+  /** Chapters the manuscript does not list (a credits row's), offered first whatever their recording reads. */
+  extra?: readonly ManuscriptChapter[];
+  onClosed?: () => void;
+  close: () => void;
+}) {
   const manuscript = usePort('manuscript');
   const coverage = usePort('coverage');
   const overlay = useOverlay();
@@ -47,15 +65,21 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
   const [choices, setChoices] = useState<RunChoices>();
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(preselected));
   const [run, dispatch] = useReducer(runReducer, idleRun);
+  // Why the host refused a chapter's start, by chapter id: its row says it in plain words with the page that fixes it.
+  const [refusedWhy, setRefusedWhy] = useState<Record<string, CoverageReason>>({});
   const requested = useRef(new Set<string>());
   const reported = useRef(false);
+
+  // However the dialog goes (Cancel, Escape, a finished run), the opener hears once.
+  const closed = useRef(onClosed);
+  useEffect(() => () => closed.current?.(), []);
 
   useEffect(() => {
     let active = true;
     void (async () => {
       try {
         const [allChapters, engines] = await Promise.all([manuscript.manuscriptChapters(), coverage.coverageEngines()]);
-        const chapters = recordedChapters(allChapters);
+        const chapters = [...extra.filter((chapter) => !allChapters.some((listed) => listed.id === chapter.id)), ...recordedChapters(allChapters)];
         const results = Object.fromEntries(
           await Promise.all(chapters.map(async (chapter) => [chapter.id, await coverage.coverageResult(chapter.id)] as const)),
         );
@@ -70,7 +94,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
     return () => {
       active = false;
     };
-  }, [manuscript, coverage]);
+  }, [manuscript, coverage, extra]);
 
   // The host's live progress and the end of each run.
   useEffect(
@@ -92,7 +116,10 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
       if (active.phase !== 'starting' || requested.current.has(id)) continue;
       requested.current.add(id);
       void coverage.coverageStart(id, startOptions(choices)).then(
-        (answer) => dispatch({ type: 'answered', answer, id }),
+        (answer) => {
+          if (answer.status === 'refused') setRefusedWhy((current) => ({ ...current, [id]: answer.reason }));
+          dispatch({ type: 'answered', answer, id });
+        },
         (error: unknown) => dispatch({ type: 'answered', id, answer: { status: 'refused', reason: 'busy', message: describeApiError(error) } }),
       );
     }
@@ -170,7 +197,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
       <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-4 overflow-y-auto">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
-            <RunOptions engines={loaded.engines} choices={choices} onChange={change} sliders />
+            <RunOptions engines={loaded.engines} choices={choices} onChange={change} />
           </div>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -191,6 +218,8 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
                   const result = loaded.results[chapter.id];
                   const last = lastResultSentence(result);
                   const refused = run.messages[chapter.id];
+                  const why = refusedWhy[chapter.id];
+                  const fix = why && (LINK_REASONS.has(why) ? UNMAPPED_FIX : REASON_PAGE[why]);
                   return (
                     <li key={chapter.id}>
                       <Checkbox checked={ticked.has(chapter.id)} onChange={(on) => toggle(chapter.id, on)}>
@@ -199,9 +228,15 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
                         {last ? <span className="block text-[var(--text-muted)]">{last}</span> : null}
                       </Checkbox>
                       {refused ? (
-                        <p role="alert" className="m-0 pl-6 text-[var(--danger-text)]">
-                          {refused}
-                        </p>
+                        <div role="alert" className="m-0 pl-6">
+                          <p className="m-0 text-[var(--danger-text)]">{(why && COVERAGE_REASON_TEXT[why]) ?? refused}</p>
+                          {why && COVERAGE_REASON_TEXT[why] ? <p className="m-0 text-sm break-words text-[var(--text-muted)]">Details: {refused}</p> : null}
+                          {fix ? (
+                            <Link to={fix.path} onClick={close} className="text-sm font-semibold underline">
+                              {fix.label}
+                            </Link>
+                          ) : null}
+                        </div>
                       ) : null}
                     </li>
                   );
@@ -231,6 +266,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
           onClick={() => {
             reported.current = false;
             requested.current = new Set();
+            setRefusedWhy({});
             dispatch({ type: 'begin', ids, limit: choices.chapters });
           }}
         >

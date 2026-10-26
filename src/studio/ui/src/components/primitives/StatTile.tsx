@@ -13,8 +13,8 @@ const TONE_TEXT: Record<Exclude<StatTileTone, 'neutral'>, string> = {
 
 export type StatTileTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'experimental';
 
-// One KPI figure: an eyebrow label, a mono value, and an optional hint line under it (promoted from the local copy in
-// home/RecordingCheckReport.tsx). `unit` sits beside the value in the label's muted style rather than baked into the
+// One KPI figure: an eyebrow label, a mono value, and an optional hint line under it (first written for the recording
+// check's report). `unit` sits beside the value in the label's muted style rather than baked into the
 // value string, so a caller that colours the value by `tone` doesn't also tint its unit. `progress` (0-1) draws the
 // existing ProgressBar under the value, named after the tile's own label.
 export function StatTile({

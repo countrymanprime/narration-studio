@@ -149,10 +149,10 @@ describe('EditingPage', () => {
     mount({ api });
     await script();
     const first = workspaceAlignment.mock.calls.length;
-    fireEvent.click(await screen.findByRole('button', { name: 'Check recording' }));
-    const panel = await screen.findByRole('dialog');
-    expect(panel).toBeTruthy();
-    fireEvent.click(within(panel).getByRole('button', { name: /close/i }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Check recordings…' }));
+    // The one recording check: the Check recordings dialog, the same one Proof, Pickups and Production open.
+    const panel = await screen.findByRole('dialog', { name: 'Check recordings' });
+    fireEvent.click(await within(panel).findByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(workspaceAlignment.mock.calls.length).toBeGreaterThan(first));
   });
 

@@ -46,8 +46,6 @@ const CEILING: Record<string, number> = {
   'src/components/pickups/usePickupsState.ts': 1,
   'src/components/production/ChapterTrackPanel.tsx': 1,
   'src/components/production/ManuscriptImport.tsx': 1,
-  'src/components/production/RecordingCheck.tsx': 2,
-  'src/components/production/RecordingCheckReport.tsx': 1,
   'src/components/production/useChapterTools.tsx': 1,
   'src/components/project/NewProjectDialog.tsx': 1,
   'src/components/project/ProjectPicker.tsx': 1,

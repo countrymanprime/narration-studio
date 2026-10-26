@@ -122,8 +122,6 @@ export interface EditingBodyProps {
   onReread: () => void;
   /** The chapter's manuscript record, which the recording check needs; absent until the chapter list is read. */
   checkChapter?: ManuscriptChapter;
-  /** Opens the manuscript text at a paragraph (the recording check's passage links). */
-  onGoToParagraph: (index: number) => void;
   /** Opens a character's Story Bible entry from a voice-sample dot. Absent: the dot's popover has no link. */
   onOpenStoryBible?: (entityId: string) => void;
   caps: DawCapabilities | null;
@@ -186,7 +184,7 @@ export function EditingBody(props: EditingBodyProps) {
     () => ({ marks: marksRead.marks, markTypes: marksRead.types, words: [], entries: entriesRead.entries, cues: speakersRead.cues, types: entriesRead.types }),
     [marksRead.marks, marksRead.types, entriesRead.entries, entriesRead.types, speakersRead.cues],
   );
-  const check = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread, goToParagraph: props.onGoToParagraph });
+  const checkRecording = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread });
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const closedCuts = useMemo(() => closedCutsOf(read), [read]);
@@ -466,7 +464,7 @@ export function EditingBody(props: EditingBodyProps) {
     },
   });
 
-  useEditingActionCommands({ doc, selected, cuts: read.cuts, cut, fx, checkRecording: check.open, tabs: offered, openTab, keymap });
+  useEditingActionCommands({ doc, selected, cuts: read.cuts, cut, fx, checkRecording, tabs: offered, openTab, keymap });
 
   // The keys hook binds nothing for a chapter with no text, so the page keeps the chapter step working there.
   const empty = doc.items.length === 0;
@@ -567,7 +565,7 @@ export function EditingBody(props: EditingBodyProps) {
                     <SampleMarksContext.Provider value={sampleMarks}>
                       <SamplePlayerContext.Provider value={samplePlayer}>
                         <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
-                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
+                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={checkRecording} />
                         </ScriptNotesProvider>
                       </SamplePlayerContext.Provider>
                     </SampleMarksContext.Provider>
@@ -580,7 +578,6 @@ export function EditingBody(props: EditingBodyProps) {
                 </div>
               )}
             </ScriptHost>
-            {check.panel}
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             {cut.plan?.kind === 'refused' ? <EditOffNotice reason={cut.plan.reason} /> : null}
             {doc.paras.length ? (

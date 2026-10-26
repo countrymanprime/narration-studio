@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CoverageEngines } from '../../api/contracts/coverage';
-import { chunkLabel, runProblem, runSummary, startChoices, startOptions, withChoice, workerChoices, type RunChoices } from './runChoices';
+import { chunkLabel, runProblem, runSummary, startChoices, startOptions, withChoice, type RunChoices } from './runChoices';
 
 const engines: CoverageEngines = {
   default: 'small',
@@ -49,18 +49,6 @@ describe('startOptions', () => {
 
   it('runs a whole item in one process, since workers share chunks', () => {
     expect(startOptions({ ...base, workers: 4, chunkSeconds: 0 })).toMatchObject({ workers: 1, chunkSeconds: 0 });
-  });
-});
-
-describe('workerChoices', () => {
-  it('offers automatic, then each count up to the computer’s processors', () => {
-    expect(workerChoices(4)).toEqual([0, 1, 2, 3, 4]);
-    expect(workerChoices(16)).toEqual([0, 1, 2, 3, 4, 6, 8, 12, 16]);
-  });
-
-  it('always offers at least one process', () => {
-    expect(workerChoices(0)).toEqual([0, 1]);
-    expect(workerChoices(Number.NaN)).toEqual([0, 1]);
   });
 });
 

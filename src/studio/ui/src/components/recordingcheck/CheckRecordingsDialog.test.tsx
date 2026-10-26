@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { CoverageEngines, CoverageResult, CoverageStartOptions, CoverageState } from '../../api/contracts/coverage';
@@ -10,6 +11,7 @@ import { createMockApi } from '../../api/mockApi';
 import { createOverlayService } from '../../overlay/overlayService';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { NarrationApi } from '../../types';
+import { COVERAGE_REASON_TEXT } from '../production/recordingCheckText';
 import { openCheckRecordings } from './openCheckRecordings';
 
 afterEach(cleanup);
@@ -79,22 +81,50 @@ function host(overrides: Partial<NarrationApi> = {}) {
   return { api, starts, sent, results, emit };
 }
 
-function open(api: NarrationApi, preselected: string[] = [], opener = true) {
+function open(api: NarrationApi, preselected: string[] = [], opener = true, options: Parameters<typeof openCheckRecordings>[1] = {}) {
   const service = createOverlayService();
   render(
-    <ApiProvider api={api}>
-      <button type="button">Check icon</button>
-      <OverlayProvider service={service} />
-    </ApiProvider>,
+    <MemoryRouter>
+      <ApiProvider api={api}>
+        <button type="button">Check icon</button>
+        <OverlayProvider service={service} />
+      </ApiProvider>
+    </MemoryRouter>,
   );
   if (opener) screen.getByText('Check icon').focus();
-  const close = act(() => openCheckRecordings(preselected, service));
+  const close = act(() => openCheckRecordings(preselected, options, service));
   return { service, close };
 }
 
 const toasts = (service: ReturnType<typeof createOverlayService>) => service.getSnapshot().toasts.map((t) => t.text);
 
 describe('CheckRecordingsDialog', () => {
+  it('offers-a-chapter-the-manuscript-does-not-list-ticked-and-checks-it', async () => {
+    // A credits row's synthetic chapter: no recording measured, never in the manuscript, still checked by its own id.
+    const { api, starts } = host();
+    const credits = chapter('credits-opening', { title: 'Opening credits', recordedSeconds: undefined, wordCount: 0 });
+    open(api, ['credits-opening'], true, { extra: [credits] });
+    const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
+    expect(
+      within(dialog)
+        .getByRole('checkbox', { name: /Opening credits/ })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check 1 chapter' }));
+    await waitFor(() => expect(starts).toEqual([{ id: 'credits-opening', model: 'small' }]));
+  });
+
+  it('tells-the-opener-once-however-it-closes', async () => {
+    const { api } = host();
+    const onClosed = vi.fn();
+    const { service } = open(api, ['a'], true, { onClosed });
+    await screen.findByRole('button', { name: 'Check 1 chapter' });
+    expect(onClosed).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
+    expect(onClosed).toHaveBeenCalledTimes(1);
+  });
+
   it('lists-the-hosts-engines-only', async () => {
     const { api } = host();
     open(api);
@@ -201,7 +231,7 @@ describe('CheckRecordingsDialog', () => {
     expect(toasts(service)).toEqual(['Checked 2 chapters · 3 lines to redo · 1 not recorded to the end']);
   });
 
-  it('refusals-are-shown-in-the-host-words', async () => {
+  it('refusals-are-shown-in-plain-words-with-the-host-words-and-the-page-that-fixes-them', async () => {
     const starts: string[] = [];
     const { api, emit } = host({
       coverageStart: async (id) => {
@@ -214,7 +244,10 @@ describe('CheckRecordingsDialog', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Check 2 chapters' }));
     await waitFor(() => expect(starts).toEqual(['a', 'b']));
     emit({ runId: 'r-b', phase: 'complete' });
-    expect(await within(await screen.findByRole('dialog')).findByText('Link a REAPER track to this chapter first.')).toBeTruthy();
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('Details: Link a REAPER track to this chapter first.')).toBeTruthy();
+    expect(within(dialog).getByText(COVERAGE_REASON_TEXT.unmapped)).toBeTruthy();
+    expect(within(dialog).getByRole('link', { name: 'Open the audio engine panel' }).getAttribute('href')).toBe('/tracks');
     expect(service.getSnapshot().dialogs).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Check 2 chapters' })).toBeTruthy();
   });
@@ -242,7 +275,7 @@ describe('CheckRecordingsDialog', () => {
     await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByText('Check icon')));
 
-    act(() => openCheckRecordings(['a'], service));
+    act(() => openCheckRecordings(['a'], {}, service));
     await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
     await waitFor(() => expect(starts).toHaveLength(1));
     await userEvent.keyboard('{Escape}');

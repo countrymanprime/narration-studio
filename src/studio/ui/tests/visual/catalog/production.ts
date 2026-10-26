@@ -148,31 +148,21 @@ export const productionStates: StateEntry[] = [
       'Production with no linked REAPER project file (?mockNoDaw=1): the header engine chip reads REAPER with a quiet dot, its tooltip pointing to the engine panel',
   },
 
-  // The recording check (docs/utilities/recording-coverage.md), from a chapter's Record cell on the board. The mock's chapters 1-3 have a
+  // The recording check (docs/utilities/recording-coverage.md) from a chapter's row menu: Check recordings, the one dialog every page opens,
+  // with the row's chapter ticked. What a check found is Proof's check card (catalog/proof.ts, check-*). The mock's chapters 1-3 have a
   // current check with every word, 4-6 a current check with a third of the text missing, the rest were never checked.
   {
     page: 'production',
     state: 'recording-check-never',
-    description: 'Production, recording check dialog for a chapter never checked: the saved-project basis, what a check does, and Check recording',
+    description:
+      "Production, Check recordings opened from Chapter 7's row menu (never checked): the run options, the chapter ticked with Not checked yet, and Check 1 chapter",
   },
   {
     page: 'production',
     state: 'recording-check-running',
     description:
-      'Production, a recording check running (?mockCoverage=hold): the work dialog with the real percent from the host, its activity log, Cancel and Continue in background',
+      'Production, a recording check running (?mockCoverage=hold) in the Check recordings dialog: the chapter with the real percent from the host, and Stop checking',
     ...LIVE_PROGRESS_MOVES_ON,
-  },
-  {
-    page: 'production',
-    state: 'recording-check-complete',
-    description:
-      'Production, recording check result for a chapter read in full: the chapter summary (text present, paragraphs, audio checked), no pickups, the paragraph detail folded',
-  },
-  {
-    page: 'production',
-    state: 'recording-check-incomplete',
-    description:
-      'Production, recording check result for a chapter not finished: the summary states "Recorded to paragraph N of M" rather than listing the unread end as a pickup, with no pickups from this check',
   },
   {
     page: 'production',
@@ -182,51 +172,21 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
-    state: 'recording-check-options',
-    description:
-      "Production, a chapter's recording check panel with its Check options section open: Speech model, Larger model, the score under which words are looked at again, Chunk length, Parallel processes, Crossover and Chapters at once",
-  },
-  {
-    page: 'production',
     state: 'recording-check-rules',
     description:
       "Production, the Recording check rules dialog opened from the jump menu: the note that the values are proposed, then the share of each paragraph, the missing and misread runs, the shortest match and the background switch, this project's values",
   },
   {
     page: 'production',
-    state: 'recording-check-pickups',
-    description:
-      'Production, recording check result with interior gaps (?mockCoverage=pickups): a skip and a short read listed one per line under Pickups, each with Go to paragraph, alongside a small unread tail stated in the summary, not listed',
-  },
-  {
-    page: 'production',
-    state: 'recording-check-stale',
-    description:
-      'Production, a stored recording check that is out of date (?mockCoverage=stale): the plain-language reason and the old counts labelled as from then',
-  },
-  {
-    page: 'production',
     state: 'recording-check-refused',
     description:
-      'Production, a recording check refused because the chapter has no confirmed track (?mockCoverageRefusal=unmapped): the reason in plain words and the track link in place',
+      "Production, a recording check refused because the chapter has no confirmed track (?mockCoverageRefusal=unmapped): the row in the Check recordings dialog says why in plain words, with the host's detail and Open the audio engine panel",
   },
   {
     page: 'production',
     state: 'recording-check-model-required',
     description:
-      'Production, a recording check that needs the Whisper model first (?mockAssets=missing): the first-use download question, never a silent download',
-  },
-  {
-    page: 'production',
-    state: 'recording-check-cascade',
-    description:
-      'Production, a recording check result from the model cascade (?mockCoverage=cascade): the summary names both models and the re-checked passage, and each pickup it confirmed missing says so (MC5)',
-  },
-  {
-    page: 'production',
-    state: 'recording-check-recheck-model-required',
-    description:
-      'Production, a recording check whose re-check model needs downloading first (?mockCoverage=recheck-required): the same first-use question as the first-pass model, with "Check with tiny only" beside the download',
+      'Production, Check recordings when the chosen speech model is not installed (?mockAssets=missing): the dialog says to download it in Settings and Check stays off, never a silent download',
   },
   // Stage suggestions, on `?mockStages=mixed`: Chapter 4 read in
   // full (suggested), Chapter 5 with no track linked (can't tell), Chapter 6 short (not ready), Chapter 7 confirmed into Editing and since
@@ -252,7 +212,7 @@ export const productionStates: StateEntry[] = [
   {
     page: 'production',
     state: 'stage-evidence-unknown',
-    description: 'Production, the evidence of a chapter that can’t tell yet: the cause (no track linked), what resolves it and Open recording check',
+    description: 'Production, the evidence of a chapter that can’t tell yet: the cause (no track linked), what resolves it and Check recordings…',
   },
   {
     page: 'production',
