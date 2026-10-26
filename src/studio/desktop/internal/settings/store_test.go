@@ -84,15 +84,12 @@ func TestPreservesLayerPrecedenceAndProjectReset(t *testing.T) {
 	}
 }
 
-// The edit capabilities (SND-3) each have a DAW.capability.<name> row, on auto, in the built-in copy as in defaults.json.
-func TestTheEditCapabilityRowsDefaultToAuto(t *testing.T) {
-	store := New(t.TempDir(), "")
-	for _, name := range []string{"cut_range", "fx_range", "stack_takes", "backups"} {
-		if got := builtinDefaults["DAW"]["capability."+name]; got != "auto" {
-			t.Errorf("builtinDefaults DAW.capability.%s = %q, want auto", name, got)
-		}
-		if value, _ := store.Effective("DAW", "capability."+name, ""); value != "auto" {
-			t.Errorf("Effective DAW.capability.%s = %q, want auto", name, value)
+// No default turns a DAW capability on or off (owner directive 2026-10-26, #2251): the old DAW.experimental_reaper_actions
+// switch and the DAW.capability.<name> toggles are gone from the built-in copy, as from defaults.json.
+func TestNoDAWDefaultGatesACapability(t *testing.T) {
+	for key := range builtinDefaults["DAW"] {
+		if key == "experimental_reaper_actions" || strings.HasPrefix(key, "capability.") {
+			t.Errorf("builtinDefaults has DAW.%s, a gate the owner removed", key)
 		}
 	}
 }

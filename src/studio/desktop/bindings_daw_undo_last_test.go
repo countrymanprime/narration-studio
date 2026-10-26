@@ -88,7 +88,7 @@ func TestDawUndoLastPassesOnTheRolesAnswers(t *testing.T) {
 			t.Errorf("DawUndoLast = %+v, %v (sent %v %v); want %+v", got, err, role.kinds, role.steps, answer)
 		}
 	}
-	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrExperimentalOff, context.DeadlineExceeded, errors.New("boom")} {
+	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, errors.New("boom")} {
 		if got, gotErr := dawUndoLastIn(t.Context(), "REAPER", available(), &fakeUndoer{err: err}, "cut_range", 1); gotErr != nil || got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, %v; want a refusal", err, got, gotErr)
 		}
@@ -110,22 +110,14 @@ func TestDawUndoLastRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) 
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeUndoer{answer: undoneInREAPER(), last: dawport.LastActionThis}
-			host := deleteRangeHost(t, c.kind, c.reach, nil, "")
-			if c.toggle != "" {
-				if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapUndoLast): &c.toggle}); err != nil {
-					t.Fatal(err)
-				}
-			}
+			host := deleteRangeHost(t, c.kind, c.reach, nil)
 			host.mu.Lock()
 			host.lastActionUndoer = role
 			host.mu.Unlock()
@@ -149,7 +141,7 @@ func TestDawUndoLastRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) 
 // last action is not the cut, the undo_last capability's refusal, a take undone in REAPER, and DawLastAction's this and unknown. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-undo-last-*.json and daw-last-action-*.json.
 func TestDawUndoLastContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to undo the app's last action."}
+	refusedCapability := dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

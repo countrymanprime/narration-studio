@@ -1,10 +1,11 @@
 // Package scripttrack follows a narrator through a known script from a live
-// speech engine's events, as the Booth's sidecar does in
-// src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py: it
+// speech engine's events, as the Booth's sidecar did in script_tracker.py
+// before the host took it over (the comments name the Python each part came
+// from, and the recorded answers in tests/fixtures/booth-parity hold it): it
 // consumes `partial`, `word` and `segment_end` events and reports `position`
 // events when the cursor, the committed position or the status change
 // (docs/architecture/manuscript-teleprompter.md). It also builds the script it
-// follows from a chapter or the credits text, as chapter_script.py does.
+// follows from a chapter or the credits text, as the sidecar's chapter_script.py does.
 //
 // It is a port held byte for byte to the Python by
 // tests/fixtures/booth-parity (tracker-sessions, tracker-cases, flag-sessions

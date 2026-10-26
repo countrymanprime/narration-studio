@@ -71,9 +71,8 @@ func TestWorkspaceUseTakeRefusesATakeItDidNotOffer(t *testing.T) {
 }
 
 // useTakeHost is a REAPER launch over twoTakeCoverageProject wired as the app wires one: a session folder, so the
-// bridge client, navigation and h.dawPortResolver are the attach's own, with REAPER answering and the takes capability
-// set to toggle. role stands in for the takes role the attach takes from the REAPER adapter.
-func useTakeHost(t *testing.T, role dawport.TakeSelector, toggle string) *Host {
+// bridge client, navigation and h.dawPortResolver are the attach's own, with REAPER answering. role stands in for the takes role the attach takes from the REAPER adapter.
+func useTakeHost(t *testing.T, role dawport.TakeSelector) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
@@ -92,9 +91,6 @@ func useTakeHost(t *testing.T, role dawport.TakeSelector, toggle string) *Host {
 	host.services().coverage.Wait()
 	// The finished check starts a chaptersync:state read of the project folder; Windows cannot remove the folder while it runs.
 	host.chapterSyncEmits.Wait()
-	if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapTakes): &toggle}); err != nil {
-		t.Fatal(err)
-	}
 	host.mu.Lock()
 	host.reachability.(*daw.Reachability).Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/Projects/Alice/Alice.rpp", "0"}})
 	host.takeSelector = role
@@ -107,7 +103,7 @@ func useTakeHost(t *testing.T, role dawport.TakeSelector, toggle string) *Host {
 // the takes capability was on.
 func TestWorkspaceUseTakeMakesAnotherTakeActiveThroughTheTakesRole(t *testing.T) {
 	role := &fakeTakeSelector{}
-	host := useTakeHost(t, role, "on")
+	host := useTakeHost(t, role)
 
 	answer := decodeAnswer(t)(host.WorkspaceUseTake("c-0001", 0, 0, hideKeepA))
 
@@ -116,17 +112,6 @@ func TestWorkspaceUseTakeMakesAnotherTakeActiveThroughTheTakesRole(t *testing.T)
 	}
 	if want := [][2]string{{"{ITEM-1}", "{TAKE-A}"}}; !reflect.DeepEqual(role.activated, want) {
 		t.Fatalf("sent %v, want %v", role.activated, want)
-	}
-}
-
-func TestWorkspaceUseTakeWithTakesTurnedOffRefusesAndSendsNothing(t *testing.T) {
-	role := &fakeTakeSelector{}
-	host := useTakeHost(t, role, "off")
-
-	answer := decodeAnswer(t)(host.WorkspaceUseTake("c-0001", 0, 0, hideKeepA))
-
-	if answer["outcome"] != "refused" || answer["reason"] != "experimental_off" || answer["changed"] != false || len(role.activated) != 0 {
-		t.Fatalf("answer = %v, sent %v", answer, role.activated)
 	}
 }
 

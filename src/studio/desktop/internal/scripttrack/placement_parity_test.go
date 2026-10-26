@@ -10,8 +10,8 @@ import (
 	"desktop/internal/layout"
 )
 
-// The placement is held to what locate.py and align_word.py answer (tests/fixtures/booth-parity/placement-cases.jsonl
-// and its .golden.jsonl, written by the sidecar's test_tracker_parity.py): the recorded calls and the seeded tails.
+// The placement is held to what locate.py and align_word.py answered (tests/fixtures/booth-parity/placement-cases.jsonl
+// and its .golden.jsonl, frozen since that Python was deleted): the recorded calls and the seeded tails.
 
 type placementCase struct {
 	K      string   `json:"k"`

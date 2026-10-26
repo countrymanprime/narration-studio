@@ -16,7 +16,7 @@ import (
 	"desktop/internal/scripttrack"
 )
 
-// FlagKinds is flags.py's FLAG_KINDS, in its order.
+// FlagKinds are the flag kinds in the order the reports list them (the deleted flags.py's FLAG_KINDS).
 var FlagKinds = []string{"misread", "extra", "skipped", "restart"}
 
 // Call is one tracker call: a tick at T, or a feed of Event at T.

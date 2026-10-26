@@ -59,8 +59,6 @@ const TOOLTIP: Record<string, string> = {
   reaper_path: 'Leave blank to auto-detect reaper.exe. Set this only when auto-detect finds the wrong install or none at all.',
   auto_start_launcher:
     'On by default: the app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off: the app writes nothing into REAPER, and REAPER does not connect.',
-  experimental_reaper_actions:
-    'The DAW actions not yet verified in a real REAPER are refused while this is off, unless that action’s own row below is on. On, every action left on auto is allowed.',
   suggestions_enabled: 'Turns every stage suggestion on the Production board off at once, without changing which signals are required below.',
   'recording.text_present':
     'Whether every paragraph present in order, as the recording check measures it, must be met before the Production board suggests moving a chapter from Recording to Editing.',

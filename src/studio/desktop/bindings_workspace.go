@@ -146,7 +146,7 @@ func alignmentItemAt(items []coverage.AlignmentItem, index int) (coverage.Alignm
 // future FX plug-in listing) already lists.
 
 // fxManagerFrom is svc's FX chains role, or nil exactly as gainAdjusterFrom is nil (bindings_cleanup.go): no DAW
-// port resolver, no adapter, the capability toggled off, or REAPER unreachable right now.
+// port resolver, no adapter, a DAW that does not declare the capability, or REAPER unreachable right now.
 func fxManagerFrom(svc hostServices) dawport.FXManager {
 	if svc.dawPortResolver == nil {
 		return nil

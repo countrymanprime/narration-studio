@@ -8,10 +8,9 @@ const TONE_TEXT: Record<Exclude<StatTileTone, 'neutral'>, string> = {
   success: 'var(--ok-text)',
   warning: 'var(--warn-text)',
   danger: 'var(--danger-text)',
-  experimental: 'var(--experimental-text)',
 };
 
-export type StatTileTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'experimental';
+export type StatTileTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
 // One KPI figure: an eyebrow label, a mono value, and an optional hint line under it (first written for the recording
 // check's report). `unit` sits beside the value in the label's muted style rather than baked into the

@@ -140,16 +140,16 @@ export type ChapterTrackSetResult = {
 /** ChapterTrackCreate's answer: a new track named after the chapter was added at the end of the DAW project (not saved) and
  * linked to the chapter, as ChapterTrackSet links one; or a refusal that changed nothing. `unsupported` is an engine that cannot
  * add a track from this app (the sentence says what to do in it instead). */
-export type ChapterTrackCreateReason = 'standalone' | 'not_running' | 'experimental_off' | 'recording' | 'unsupported' | 'failed';
+export type ChapterTrackCreateReason = 'standalone' | 'not_running' | 'recording' | 'unsupported' | 'failed';
 export type ChapterTrackCreateResult =
   | (ChapterTrackSetResult & { outcome: 'created'; track: { guid: string; name: string; index: number } })
   | { outcome: 'refused'; reason: ChapterTrackCreateReason; message: string };
 
 /** TrackSelectInReaper's answer: "Select in REAPER" from the chapter track
- * slide-over. `refused` reasons mirror ReadAloudRecording's connection and experimental-switch cases, plus `track_missing`
+ * slide-over. `refused` reasons mirror ReadAloudRecording's connection cases, plus `track_missing`
  * for a track no longer in the project; nothing in REAPER changes for a refusal. */
 export type TrackSelectOutcome = 'selected' | 'refused';
-export type TrackSelectReason = 'track_missing' | 'standalone' | 'not_running' | 'experimental_off' | 'failed';
+export type TrackSelectReason = 'track_missing' | 'standalone' | 'not_running' | 'unsupported' | 'failed';
 export type TrackSelectResult = {
   outcome: TrackSelectOutcome;
   reason?: TrackSelectReason;

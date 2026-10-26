@@ -38,8 +38,8 @@ describe('choosing-writes-the-parameter', () => {
   it('marks the current option from the URL', () => {
     expect(currentOption(length, '?mockChapters=40').value).toBe('40');
     expect(currentOption(length, '').value).toBe('default');
-    expect(isOptionOn(flags.options[1], '?mockNoDevices')).toBe(true);
-    expect(applyOption('?mockNoDevices=1&mockPanel=1', flags, flags.options[1], false)).toBe('?mockPanel=1');
+    expect(isOptionOn(flags.options[0], '?mockNoDevices')).toBe(true);
+    expect(applyOption('?mockNoDevices=1&mockPanel=1', flags, flags.options[0], false)).toBe('?mockPanel=1');
   });
 });
 

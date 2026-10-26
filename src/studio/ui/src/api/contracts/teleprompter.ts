@@ -27,7 +27,7 @@ export type TeleprompterPosition = {
 export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
 
 /**
- * A suspected reading error the sidecar raised when a speech segment closed (`flags.py`). Always only suspected:
+ * A suspected reading error the host's tracker raised when a speech segment closed (`internal/scripttrack` flags). Always only suspected:
  * live recognition is not proof, and Transcript Compare over the recorded take stays authoritative. `start`/`end` are script
  * word indices (the space of `TeleprompterPosition.read`): the misread, skipped or re-read words are `[start, end)`, and an
  * `extra` is zero-width (`start === end`), sitting before the word at `start`. `heard` is what was heard in their place ('' for
@@ -306,11 +306,11 @@ export type TeleprompterRoomTone = { db: number; measuredAt: string; seconds: nu
 /**
  * Whether REAPER is ready to record a chapter with reading (`ReadAloudReaperState`):
  * `ready` only when the chapter's linked track is the one track armed and REAPER is not recording. `reason` qualifies `no_link`
- * (`unlinked`, `several_links`, `track_missing`) and `unavailable` (`standalone`, `not_running`, `experimental_off`, `failed`).
+ * (`unlinked`, `several_links`, `track_missing`) and `unavailable` (`standalone`, `not_running`, `failed`).
  * `armedCount`, `playing` and `recording` are what REAPER said; `armedCount` is absent when it was not asked.
  */
 export type ReadAloudReaperStatus = 'ready' | 'not_armed' | 'other_armed' | 'several_armed' | 'no_link' | 'recording_elsewhere' | 'unavailable';
-export type ReadAloudReaperReason = 'unlinked' | 'several_links' | 'track_missing' | 'standalone' | 'not_running' | 'experimental_off' | 'failed';
+export type ReadAloudReaperReason = 'unlinked' | 'several_links' | 'track_missing' | 'standalone' | 'not_running' | 'failed';
 export type ReadAloudReaperState = {
   status: ReadAloudReaperStatus;
   reason?: ReadAloudReaperReason;
@@ -341,7 +341,6 @@ export type ReadAloudRecordReason =
   | 'timeout'
   | 'bad_time'
   // The built-in recorder's (bindings_booth_record.go): the capability's own refusals and the microphone's.
-  | 'turned_off'
   | 'unsupported'
   | 'not_yet'
   | 'no_microphone'
@@ -370,7 +369,7 @@ export type ReadAloudRecording = {
  */
 export type TeleprompterReaperInput = {
   status: 'matched' | 'uncertain' | 'no_match' | 'unavailable';
-  reason?: 'standalone' | 'not_running' | 'experimental_off' | 'failed' | 'reaper_no_device' | 'devices_failed' | 'daw_cannot_report';
+  reason?: 'standalone' | 'not_running' | 'failed' | 'reaper_no_device' | 'devices_failed' | 'daw_cannot_report';
   message: string;
   reaperDevice?: string;
   inputChannel?: string;

@@ -31,7 +31,7 @@ The release carries each Python sidecar as a PyInstaller `--onedir` freeze. A fr
    - **Data files** a package reads from its own folder (`piper/espeak-ng-data`, `cmudict/data`, `faster_whisper`'s Silero VAD model): add the package to the sidecar's `collect_data`.
    - **Package metadata** a package reads with `importlib.metadata` (`cmudict` reads its own version): add it to `copy_metadata`.
    - **Native libraries loaded with `ctypes`** (`moonshine.dll`, `onnxruntime.dll`): add the package to `collect_binaries`. A package with a PyInstaller hook in `pyinstaller-hooks-contrib` (`sounddevice`) needs nothing here, but still needs a check (step 3).
-   - **Your own data files:** keep them as Python, as `narration_common/spoken_forms.py` does, so an import carries them. A data file beside a script is lost.
+   - **Your own data files:** keep them as Python (a module of constants), so an import carries them. A data file beside a script is lost.
 2. **Exclude what the freeze must not carry.** `exclude_modules` removes an optional speed-up the sidecar never runs (`google_crc32c`). The freeze already takes more than the runtime needs (`hypothesis`, `pytest`, `setuptools`, `fastapi`; [#245](https://github.com/countrymanprime/narration-studio/issues/245)); do not add to that without a reason, because every shipped package is a licence line in `THIRD-PARTY-NOTICES`.
 3. **Prove it is in the tree and that it loads, in two places.** A change to the freeze is incomplete with only one:
    - `scripts/release/verify-installable.mjs` checks the file exists under `runtime/<name>/_internal/` before the native build (a platform-only dependency inside `process.platform === 'win32'`). Add a check with an error that names the file and `prepare-resources.py`.

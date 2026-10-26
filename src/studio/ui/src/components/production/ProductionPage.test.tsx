@@ -433,10 +433,18 @@ describe('the row menu keeps the features the mock has none for', () => {
   });
 
   it('says why Go to this chapter is off: the DAW cannot select a track, or the chapter has no linked track', async () => {
-    await renderPage();
+    const cannot = 'REAPER could not select the track.';
+    const noSelect = async () => {
+      const caps = structuredClone(DAW_SETUPS.reaper);
+      return {
+        ...caps,
+        capabilities: { ...caps.capabilities, track_select: { level: 'experimental' as const, available: false, reason: 'failed' as const, message: cannot } },
+      };
+    };
+    await renderPage({ overrides: { dawCapabilities: noSelect } });
     const offTable = await pipeline();
     const offRow = within(offTable).getAllByRole('row')[2];
-    await waitFor(() => expect(contextItemsFor(offRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/Experimental/));
+    await waitFor(() => expect(contextItemsFor(offRow)?.find((item) => item.key === 'goto')?.unavailable).toBe(cannot));
     cleanup();
     await renderPage({ overrides: { dawCapabilities: selecting } });
     const table = await pipeline();

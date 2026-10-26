@@ -15,8 +15,7 @@ import (
 // Device when Status is matched, unless the narrator chose a different one (Teleprompter.input_source); uncertain offers
 // the Candidates as a one-click pick; every other answer leaves the narrator's own choice as it is.
 
-// The reasons that go with unavailable, beside the connection ones (reaperStandalone, reaperNotRunning,
-// readAloudExperimentalOff, refusedFailed).
+// The reasons that go with unavailable, beside the connection ones (reaperStandalone, reaperNotRunning, refusedFailed).
 const (
 	inputReaperNoDevice = "reaper_no_device"
 	inputDevicesFailed  = "devices_failed"

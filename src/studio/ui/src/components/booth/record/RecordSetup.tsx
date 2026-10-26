@@ -23,8 +23,7 @@ export const START_TOPIC = 'daw-start';
 
 /**
  * The Booth's one-time recording setup, shown beside the Record control only while Record is unavailable for a reason the narrator
- * can fix from here (`recordSetupFor`): turning on the Experimental record capability with one click (docs/architecture/reaper-bridge.md: an explicit choice,
- * never a default), or connecting the DAW by the steps of its own guide (`dawConnectGuide`), which words them. Every button says what
+ * can fix from here (`recordSetupFor`): connecting the DAW by the steps of its own guide (`dawConnectGuide`), which words them. Every button says what
  * it did or why it could not, and nothing here records or arms anything.
  */
 export function RecordSetup({
@@ -63,7 +62,6 @@ export function RecordSetup({
   const plan = recordSetupFor(capabilities, facts);
   if (!plan) return null;
   const check = { checkedAt, readFailed, onCheckAgain };
-  if (plan.kind === 'turn-on') return <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} asked={asked} />;
   if (plan.kind === 'other-project') return <OtherProject plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} asked={asked} />;
   return (
     <Connect
@@ -104,80 +102,6 @@ export function NoticeChip({ id, label, onOpen }: { id: string; label: string; o
     <div ref={bar} className="mx-[var(--page-gutter)] mb-2 flex">
       <ConnectionIndicator id={id} label={label} onOpen={onOpen} />
     </div>
-  );
-}
-
-/**
- * Record's capability is Experimental and switched off. The chip above the footer says so; the dialog explains and turns it on with one click.
- * It opens on a press of Record (or the chip), not by itself: Record being off is how every new project starts, not news.
- */
-function TurnOn({
-  plan,
-  say,
-  onSettings,
-  onChanged,
-  check,
-  asked,
-}: {
-  plan: Extract<RecordSetupPlan, { kind: 'turn-on' }>;
-  say: Say;
-  onSettings: () => void;
-  onChanged: () => void;
-  check: CheckProps;
-  asked: number;
-}) {
-  const system = usePort('system');
-  const [busy, run] = useBusy();
-  const [open, setOpen] = useState(false);
-  const reopen = useCallback(() => setOpen(true), []);
-  useReopenOnAsk(asked, reopen);
-  const turnOn = () =>
-    run(async () => {
-      try {
-        // Only Record's own toggle: the other Experimental actions stay as the narrator set them.
-        await system.saveSettings('DAW', 'global', { 'capability.record': 'on' });
-        say(`Record in ${plan.dawName} is on. You can turn it off again in Settings, DAW Integration.`);
-        setOpen(false);
-        onChanged();
-      } catch (error) {
-        say(`Record could not be turned on: ${apiErrorMessage(error)}`, 'error');
-      }
-    });
-  return (
-    <>
-      <NoticeChip id="brec-setup" label="Record is switched off" onOpen={reopen} />
-      {open && (
-        <ResolveShell
-          title={`Recording in ${plan.dawName} is experimental`}
-          description={
-            plan.inApp
-              ? "It is built and tested in this app, but not yet checked on every microphone and computer, so it starts switched off. Turn it on to record; the take is saved in the project's Recordings folder."
-              : `It is built and tested in this app, but not yet checked in every ${plan.dawName} setup, so it starts switched off. Turn it on to record this chapter; the take goes on the chapter's own track, after what is already there.`
-          }
-          onClose={() => setOpen(false)}
-          primary={{ label: 'Turn on Record', onPress: () => void turnOn(), pending: busy }}
-          // An in-app recorder's switch is this app's own setting: nothing outside can turn it on, so there is nothing to wait for or
-          // check again, and no DAW to name; its secondary opens the recording settings instead (alignment audit R4BO1-2).
-          secondary={plan.inApp ? { label: 'Recording settings', onPress: onSettings } : { label: 'Check again', onPress: () => check.onCheckAgain?.() }}
-        >
-          {!plan.inApp && (
-            <p>
-              <Button variant="secondary" onClick={onSettings}>
-                DAW settings
-              </Button>
-            </p>
-          )}
-          {check.onCheckAgain && !plan.inApp && (
-            <CheckLine
-              waiting={`Waiting for Record to be turned on in ${plan.dawName}`}
-              unknown={`Record is on in ${plan.dawName}`}
-              checkedAt={check.checkedAt}
-              readFailed={check.readFailed}
-            />
-          )}
-        </ResolveShell>
-      )}
-    </>
   );
 }
 

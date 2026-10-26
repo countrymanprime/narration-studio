@@ -25,8 +25,8 @@ class Level(enum.IntEnum):
 
     Unsupported = 0  # it cannot do this at all
     NotYetAvailable = 1  # it could, but this app cannot drive it yet
-    Experimental = 2  # built, not yet verified; off unless the narrator turns it on
-    Supported = 3  # verified, and on unless the narrator turns it off
+    Experimental = 2  # built and on, not yet verified; used exactly as Supported is
+    Supported = 3  # built, on and verified
 
     @property
     def wire(self) -> str:

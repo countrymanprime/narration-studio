@@ -10,17 +10,17 @@ import (
 // The new track as src/studio/integrations/reaper/tests/track_create_test.lua pins its answer.
 const createdTrack = "{00000003-0000-4000-8000-000000000003}"
 
-func TestCreateTrackIsRefusedWhileTheExperimentalSettingIsOff(t *testing.T) {
+func TestCreateTrackIsRefusedWhenTheGateRefuses(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{{"TRACK_CREATED", run(command), createdTrack, "2", command[3]}}
 	})
-	if _, err := actions.CreateTrack(context.Background(), "Chapter 2"); !errors.Is(err, ErrExperimentalOff) {
-		t.Fatalf("err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.CreateTrack(context.Background(), "Chapter 2"); !errors.Is(err, errGateRefused) {
+		t.Fatalf("err = %v, want errGateRefused", err)
 	}
 	time.Sleep(20 * time.Millisecond)
 	if got := fake.commands(); len(got) != 0 {
-		t.Fatalf("a command was written while the setting is off: %v", got)
+		t.Fatalf("a command was written while the gate refuses: %v", got)
 	}
 	if !Experimental("track_create") {
 		t.Fatal("track_create must stay experimental until the verification pass has confirmed it")

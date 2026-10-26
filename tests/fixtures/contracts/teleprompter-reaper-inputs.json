@@ -5,12 +5,6 @@
     "message": "Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.",
     "candidates": []
   },
-  "experimental_off": {
-    "status": "unavailable",
-    "reason": "experimental_off",
-    "message": "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
-    "candidates": []
-  },
   "matched": {
     "status": "matched",
     "message": "REAPER records from \"Shure MV7\", so the Booth listens to \"Microphone (2- Shure MV7)\".",

@@ -29,14 +29,20 @@ func runFakeLocator(mode string) bool {
 		os.Exit(2)
 	case "locate-silent":
 		fmt.Println("a library printed this")
-	case "locate-inconsistent":
-		fmt.Println(`{"type":"locate","word":90,"last":89,"sentence":null,"confidence":0.9,"confident":true,"matched":30,"heard":32,"runnerUp":2,"tokens":40,"heardText":""}`)
+	case "locate-unreadable":
+		fmt.Println(`{"type":"heard","words":[["Ada"]]}`)
 	case "locate-hang":
 		time.Sleep(time.Minute)
 	default:
-		args, _ := json.Marshal(strings.Join(os.Args[1:], " "))
+		// Its arguments, heard as words, then the chapter's last words: the host's placement puts the tail at the end, and
+		// the heard text says what the sidecar was given.
+		words := []string{}
+		for _, word := range append(append([]string{}, os.Args[1:]...), "Ada", "climbed", "the", "stairs") {
+			quoted, _ := json.Marshal(word)
+			words = append(words, `[`+string(quoted)+`, 0.5, 0.8]`)
+		}
 		fmt.Println(`{"type":"args"}`)
-		fmt.Printf(`{"type":"locate","word":52,"last":51,"sentence":{"start":23,"end":59,"text":"Once or twice."},"confidence":0.812,"confident":true,"matched":30,"heard":32,"runnerUp":4,"tokens":102,"heardText":%s}`+"\n", args)
+		fmt.Printf(`{"type":"heard","words":[%s]}`+"\n", strings.Join(words, ", "))
 	}
 	return true
 }
@@ -55,7 +61,7 @@ func newLocateFixture(t *testing.T, mode string) locateFixture {
 	if err := os.MkdirAll(filepath.Dir(manuscript), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(manuscript, []byte(`{}`), 0o600); err != nil {
+	if err := os.WriteFile(manuscript, []byte(followedManuscript), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	audio := filepath.Join(project, "media", "Chapter 1.wav")
@@ -83,14 +89,15 @@ func TestLocateRunsTheSidecarOnceAndReturnsItsLocateLine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if located.Word == nil || *located.Word != 52 || *located.Last != 51 || !located.Confident || located.Sentence.Text != "Once or twice." {
+	// "Chapter One The Lamp Ada climbed the stairs.": four words heard at the end place the tail after "stairs.".
+	if located.Word == nil || *located.Word != 8 || *located.Last != 7 || located.Confident || located.Sentence.Text != "Ada climbed the stairs." {
 		t.Fatalf("located = %+v", located)
 	}
 	manuscript := filepath.Join(f.project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	want := strings.Join([]string{
 		"--locate", "--engine", "whisper", "--model", "tiny", "--model-dir", filepath.Join(f.project, "models", "tiny"),
 		"--manuscript", manuscript, "--chapter", "c1", "--wav", f.audio, "--tail-start", "812.400", "--tail-end", "842.400", "--language", "en",
-	}, " ")
+	}, " ") + " Ada climbed the stairs"
 	if located.HeardText != want {
 		t.Fatalf("sidecar arguments =\n%s\nwant\n%s", located.HeardText, want)
 	}
@@ -179,7 +186,7 @@ func TestLocateReportsTheSidecarsOwnErrorLine(t *testing.T) {
 	}
 }
 
-func TestLocateFailsWhenTheSidecarPrintsNoLocateLine(t *testing.T) {
+func TestLocateFailsWhenTheSidecarPrintsNoHeardLine(t *testing.T) {
 	f := newLocateFixture(t, "locate-silent")
 
 	if _, err := f.service.Locate(context.Background(), f.request()); err == nil || !strings.Contains(err.Error(), "did not report") {
@@ -187,10 +194,23 @@ func TestLocateFailsWhenTheSidecarPrintsNoLocateLine(t *testing.T) {
 	}
 }
 
-func TestLocateRefusesAWordOutsideTheChapter(t *testing.T) {
-	f := newLocateFixture(t, "locate-inconsistent")
+func TestLocateRefusesHeardWordsItCannotRead(t *testing.T) {
+	f := newLocateFixture(t, "locate-unreadable")
 
-	if _, err := f.service.Locate(context.Background(), f.request()); err == nil || !strings.Contains(err.Error(), "outside the chapter") {
+	if _, err := f.service.Locate(context.Background(), f.request()); err == nil || !strings.Contains(err.Error(), "unreadable words") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// The sidecar checks the chapter before it decodes; one the host then cannot read was read differently, and nothing is
+// guessed.
+func TestAChapterTheHostCannotReadIsAnErrorNotAGuess(t *testing.T) {
+	f := newLocateFixture(t, "locate-ok")
+	if err := os.WriteFile(filepath.Join(f.project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := f.service.Locate(context.Background(), f.request()); err == nil || !strings.Contains(err.Error(), "could not read the chapter") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -236,8 +256,8 @@ func TestParseLocatedAcceptsATailThatCouldNotBePlaced(t *testing.T) {
 	}
 }
 
-// The sidecar's own `locate` line, pinned by its Python contract test (teleprompter-locate.json), parses here: the two
-// halves of the boundary read the same file.
+// The `locate` line the host's placement makes, pinned by scripttrack's contract test (teleprompter-locate.json),
+// passes the same checks.
 func TestContractTheSidecarsLocateLineParses(t *testing.T) {
 	dir, err := contractfile.Dir()
 	if err != nil {

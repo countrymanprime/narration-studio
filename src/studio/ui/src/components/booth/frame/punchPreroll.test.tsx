@@ -15,7 +15,7 @@ afterEach(cleanup);
 // microphone, and only where a DAW punches. The Settings page lists it under Set on a page and opens the Booth.
 function menu(engine: 'daw' | 'builtin', over: Partial<NarrationApi> = {}, preroll?: DawCapabilitySupport) {
   const save = vi.fn(async () => undefined);
-  const api = createMockApi({ saveSettings: save, ...over } as Partial<NarrationApi>, { daw: { toggles: { punch_preroll: 'on' } } });
+  const api = createMockApi({ saveSettings: save, ...over } as Partial<NarrationApi>, { daw: {} });
   render(
     <ApiProvider api={api}>
       <BoothFooter
@@ -147,11 +147,16 @@ describe("the Levels menu punch pre-roll is REAPER's own when REAPER has one", (
     expect(await screen.findByText('Pre-roll off · 1.5 measures (60.0 s)')).toBeTruthy();
   });
 
-  it("says the capability's own sentence when REAPER has a pre-roll the app may not read now", async () => {
-    const off: DawCapabilitySupport = { level: 'supported', available: false, reason: 'turned_off', message: 'Turned off in Settings.' };
+  it("says the capability's own sentence when REAPER cannot be read now", async () => {
+    const off: DawCapabilitySupport = {
+      level: 'supported',
+      available: false,
+      reason: 'not_running',
+      message: 'REAPER is not answering. Check that REAPER is open, then try again.',
+    };
     const { open } = menu('daw', {}, off);
     await open();
-    expect(await screen.findByText('Turned off in Settings.')).toBeTruthy();
+    expect(await screen.findByText('REAPER is not answering. Check that REAPER is open, then try again.')).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Punch pre-roll (seconds)' })).toBeNull();
   });
 

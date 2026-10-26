@@ -194,7 +194,7 @@ describe('Voice sample output: no project', () => {
 
 describe('Voice sample output: following "Record with"', () => {
   it('changing the recorder on this page changes the row, in both directions', async () => {
-    const api = createMockApi({}, { daw: { experimentalOn: true } });
+    const api = createMockApi({}, { daw: {} });
     await renderRow(api);
     await within(row()).findByText(DAW_SENTENCE);
     const group = await screen.findByRole('radiogroup', { name: 'Record with' });

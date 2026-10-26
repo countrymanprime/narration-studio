@@ -33,10 +33,9 @@ const shell = (children: React.ReactNode, width = 520) => (
   </div>
 );
 
-const settingsOf = (keep: boolean) => ({
-  settings: { ...backupSettingsOf({ DAW: [...BACKUP_SETTING_FIELDS] })!, keep },
+const settingsOf = () => ({
+  settings: backupSettingsOf({ DAW: [...BACKUP_SETTING_FIELDS] })!,
   error: '',
-  setKeep: fn(),
   setWindow: fn(),
   setRetention: fn(),
 });
@@ -60,10 +59,10 @@ export const ListNarrow: Story = { render: () => list(LIST, ON, [], 320) };
 /** A restore the DAW refused because it no longer holds the clone: the row is marked missing. */
 export const ListRestoreRefused: Story = { render: () => list(LIST, ON, ['{bk-3}']) };
 
-const inspector = (keep: boolean, gate: BackupsGate, backup: DawBackup | null, width = 360) =>
-  shell(<BackupsInspector settings={settingsOf(keep)} gate={gate} backup={backup} chapterName="Chapter 1" total={1260} onRestore={fn()} />, width);
+const inspector = (gate: BackupsGate, backup: DawBackup | null, width = 360) =>
+  shell(<BackupsInspector settings={settingsOf()} gate={gate} backup={backup} chapterName="Chapter 1" total={1260} onRestore={fn()} />, width);
 
-export const InspectorSettings: Story = { render: () => inspector(true, ON, null) };
-export const InspectorSelected: Story = { render: () => inspector(true, ON, LIST[0]!) };
-export const InspectorOff: Story = { render: () => inspector(false, OFF, LIST[0]!) };
-export const InspectorNarrow: Story = { render: () => inspector(true, ON, LIST[0]!, 280) };
+export const InspectorSettings: Story = { render: () => inspector(ON, null) };
+export const InspectorSelected: Story = { render: () => inspector(ON, LIST[0]!) };
+export const InspectorOff: Story = { render: () => inspector(OFF, LIST[0]!) };
+export const InspectorNarrow: Story = { render: () => inspector(ON, LIST[0]!, 280) };

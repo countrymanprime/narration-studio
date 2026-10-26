@@ -14,10 +14,10 @@ import (
 func TestChooseRangeFXCommandsAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.ChooseRangeFX(context.Background(), fxRangeItem, 14, 16, 10); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ChooseRangeFX(context.Background(), fxRangeItem, 14, 16, 10); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ChooseRangeFX: %v", err)
 	}
-	if _, err := actions.RangeFXChosen(context.Background(), fxRangePiece, fxRangeTake); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.RangeFXChosen(context.Background(), fxRangePiece, fxRangeTake); !errors.Is(err, errGateRefused) {
 		t.Fatalf("RangeFXChosen: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)
