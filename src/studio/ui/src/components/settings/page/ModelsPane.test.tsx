@@ -105,7 +105,8 @@ describe('Settings: Models & downloads', () => {
     expect(screen.getByText(/Everything the app downloads, in one list/)).toBeTruthy();
 
     const small = await ready('whisper/small');
-    expect(document.querySelectorAll('[data-asset]').length).toBe(4);
+    // The four approved voices, the Whisper model, the language model and the dictionary.
+    expect(document.querySelectorAll('[data-asset]').length).toBe(7);
     expect(within(small).getByText('Installed · checked')).toBeTruthy();
     expect(small.textContent).toContain('Whisper model');
     expect(small.textContent).toMatch(/\d+ MB/);
@@ -181,12 +182,12 @@ describe('Settings: Models & downloads', () => {
     await renderModels();
     await ready('whisper/small');
     fireEvent.click(screen.getByRole('button', { name: 'Voices' }));
-    expect(document.querySelectorAll('[data-asset]').length).toBe(1);
+    expect(document.querySelectorAll('[data-asset]').length).toBe(4);
     expect(asset('tts/en_US-ljspeech-high')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Language' }));
     expect(document.querySelectorAll('[data-asset]').length).toBe(2);
     fireEvent.click(within(document.getElementById('settings-pane')!).getByRole('button', { name: 'All' }));
-    expect(document.querySelectorAll('[data-asset]').length).toBe(4);
+    expect(document.querySelectorAll('[data-asset]').length).toBe(7);
   });
 
   it('downloads with progress, can be cancelled, and ends installed and checked', async () => {

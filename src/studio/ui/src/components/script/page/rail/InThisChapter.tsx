@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { IconButton } from '../../../primitives/IconButton';
+import { hearNameAction } from '../../../../icons.catalog';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Swatch, type SwatchColour } from '../../../primitives/Swatch';
 import { Table, TableBody, TableCell, TableRow } from '../../../primitives/Table';
@@ -59,7 +60,9 @@ export function InThisChapter({ label, rows, empty }: { label: string; rows: rea
                     </span>
                   )}
                 </TableCell>
-                <TableCell>{row.hear && <IconButton action="hear" label={`Hear ${row.name}`} size="sm" onClick={() => hearReference(row.name)} />}</TableCell>
+                <TableCell>
+                  {row.hear && <IconButton action={hearNameAction()} label={`Hear ${row.name}`} size="sm" onClick={() => hearReference(row.name)} />}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
