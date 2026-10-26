@@ -18,7 +18,6 @@ const TONE_TOKENS: Record<StatusTone, { fill: string; text: string; line: string
   warning: { fill: 'var(--warn-soft)', text: 'var(--warn-text)', line: 'var(--warn)' },
   danger: { fill: 'var(--danger-soft)', text: 'var(--danger-text)', line: 'var(--danger)' },
   org: { fill: 'var(--org-soft)', text: 'var(--org-text)', line: 'var(--org)' },
-  experimental: { fill: 'var(--badge-experimental-fill)', text: 'var(--experimental-text)', line: 'var(--experimental)' },
 };
 
 describe('StatusBadge', () => {

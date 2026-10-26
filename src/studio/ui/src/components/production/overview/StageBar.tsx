@@ -27,7 +27,7 @@ export function StageBar({ segments, wph }: { segments: readonly StageSegment[];
             role="img"
             aria-label="Book progress by stage"
             className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-full bg-[var(--border)]"
-            title={`By finished audio, at each stage. Estimated at ${num(wph)} words per finished hour.`}
+            title={`Finished audio per stage, at ${num(wph)} words per finished hour`}
           >
             {/* A stage with nothing in it draws no segment: a zero-width one still painted a sliver at the bar's end (R3PR2-13). The legend keeps it. */}
             {segments

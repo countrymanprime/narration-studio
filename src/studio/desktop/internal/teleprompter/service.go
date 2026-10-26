@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"desktop/internal/asrport"
 	"desktop/internal/process"
 	"desktop/internal/roomtone"
+	"desktop/internal/scripttrack"
 )
 
 // defaultGrace is how long a stopping sidecar gets to flush and exit on its
@@ -104,6 +106,15 @@ type Service struct {
 	controlFile string
 	// +checklocks:mu
 	scriptFile string
+	// follow follows the running session's read in the host (follow.go); nil, with unfollowed the reason, when the host
+	// could not read the script.
+	// +checklocks:mu
+	follow *follower
+	// +checklocks:mu
+	unfollowed error
+	// unfollowedStop is the error a session that could not be followed was stopped with, the message it ends on.
+	// +checklocks:mu
+	unfollowedStop string
 	// meter is the running level meter child (meter.go), or nil; its stopping flag is also guarded by mu.
 	// +checklocks:mu
 	meter    *meterRun
@@ -254,8 +265,10 @@ type launch struct {
 	engine, chapter, stopFile, controlFile string
 	// device is the microphone the session opens, or "" when it reads a WAV.
 	device string
-	// scriptFile and scriptText are set only for a Script session: the file Start writes scriptText to.
-	scriptFile, scriptText string
+	// scriptFile, scriptText and scriptTitle are set only for a Script session: the file Start writes scriptText to.
+	scriptFile, scriptText, scriptTitle string
+	// manuscript and startWord are what the host's follower reads the script from and starts at ("" for none).
+	manuscript, startWord string
 	// coldRead is a session with no take (#2251 item 13): it follows the narrator only, so it keeps no reading, anchors no word and
 	// never stops itself. The sidecar runs exactly as for a take.
 	coldRead bool
@@ -318,24 +331,29 @@ func (s *Service) planSession(options map[string]string, src source) (launch, er
 	stamp := time.Now().UnixNano()
 	stopFile := filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.stop", stamp))
 	controlFile := filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.control", stamp))
-	planned := launch{engine: engine, chapter: src.chapter, stopFile: stopFile, controlFile: controlFile, coldRead: option(options, "coldRead", "") == "true"}
+	planned := launch{
+		engine: engine, chapter: src.chapter, stopFile: stopFile, controlFile: controlFile, coldRead: option(options, "coldRead", "") == "true",
+		manuscript: src.manuscript, startWord: option(options, "startWord", ""),
+	}
 	args := []string{"--engine", engine, "--model", option(options, "model", DefaultModel)}
 	if src.script != nil {
 		planned.scriptFile = filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.script.txt", stamp))
-		planned.scriptText = src.script.Text
-		args = append(args, "--script", planned.scriptFile, "--script-id", src.script.ID, "--script-title", src.script.Title)
+		planned.scriptText, planned.scriptTitle = src.script.Text, src.script.Title
+		args = append(args, "--script", planned.scriptFile)
 	} else {
 		args = append(args, "--manuscript", src.manuscript, "--chapter", src.chapter)
 	}
-	args = append(args, "--stop-file", stopFile, "--control-file", controlFile)
+	if planned.startWord != "" {
+		if _, err := strconv.Atoi(planned.startWord); err != nil {
+			return launch{}, fmt.Errorf("the start word %q is not a word of the script", planned.startWord)
+		}
+	}
+	args = append(args, "--stop-file", stopFile, "--control-file", controlFile, "--clock")
 	if modelDir := option(options, "modelDir", ""); modelDir != "" {
 		args = append(args, "--model-dir", modelDir)
 	}
 	if language := option(options, "language", ""); language != "" {
 		args = append(args, "--language", language)
-	}
-	if startWord := option(options, "startWord", ""); startWord != "" {
-		args = append(args, "--start-word", startWord)
 	}
 	if wav != "" {
 		args = append(args, "--wav", wav)
@@ -428,6 +446,7 @@ func (s *Service) begin(plan launch) error {
 	}
 	s.state = map[string]any{"phase": "starting", "message": "Starting the teleprompter…", "engine": plan.engine, "chapter": plan.chapter, "paused": false, "coldRead": plan.coldRead}
 	s.script, s.position, s.stopping, s.stopFile, s.controlFile, s.scriptFile = nil, nil, false, plan.stopFile, plan.controlFile, plan.scriptFile
+	s.follow = nil
 	s.device = plan.device
 	s.cancelAutoStopLocked()
 	s.autoStopped = false
@@ -447,6 +466,16 @@ func (s *Service) begin(plan launch) error {
 			return err
 		}
 	}
+	// A chapter the host cannot read is one the sidecar refuses too, with its own message for the narrator; the session
+	// starts without a follower, and stops at its first clock line if the sidecar read it after all (unfollowed).
+	script, startWord, followErr := plan.followed()
+	if followErr == nil {
+		s.startFollowing(script, startWord)
+	}
+	s.mu.Lock()
+	s.unfollowed, s.unfollowedStop = followErr, ""
+	follow := s.follow
+	s.mu.Unlock()
 	ctx, cancel := context.WithCancel(context.Background())
 	child, err := s.sidecars.StartStream(ctx, s.onLine, s.config.Python, plan.args...)
 	if err != nil {
@@ -454,6 +483,9 @@ func (s *Service) begin(plan launch) error {
 		if plan.scriptFile != "" {
 			_ = os.Remove(plan.scriptFile)
 		}
+		s.mu.Lock()
+		s.follow = nil
+		s.mu.Unlock()
 		s.fail(err.Error())
 		return err
 	}
@@ -466,6 +498,9 @@ func (s *Service) begin(plan launch) error {
 	}
 	s.mu.Unlock()
 	s.notify()
+	if follow != nil {
+		s.sendScript(follow)
+	}
 	go s.watch(child, cancel, finished)
 	return nil
 }
@@ -534,6 +569,55 @@ func (s *Service) onLine(line string) {
 		s.drop()
 		return
 	}
+	s.mu.RLock()
+	follow := s.follow
+	s.mu.RUnlock()
+	if follow != nil {
+		s.sendScript(follow)
+	}
+	if kind == clockEventType && follow == nil {
+		s.mu.Lock()
+		message := ""
+		if s.unfollowed != nil && s.unfollowedStop == "" {
+			message = "Could not follow the read: " + s.unfollowed.Error()
+			s.unfollowedStop = message
+		}
+		s.mu.Unlock()
+		if message != "" {
+			go s.stop(message, false)
+		}
+		return
+	}
+	if kind == clockEventType {
+		var clock struct {
+			T     json.RawMessage `json:"t"`
+			Event bool            `json:"event"`
+		}
+		if follow != nil && json.Unmarshal(raw, &clock) == nil {
+			if t, isNumber := scripttrack.ParseNum(clock.T); isNumber && clock.Event {
+				follow.eventClock(t.Value())
+			} else if isNumber {
+				s.relayAll(follow.clock(t.Value()))
+			}
+		}
+		return
+	}
+	s.relay(kind, raw)
+	if follow != nil && (kind == "partial" || kind == "word" || kind == "segment_end") {
+		s.relayAll(follow.event(raw))
+	}
+}
+
+func (s *Service) relayAll(lines []json.RawMessage) {
+	for _, line := range lines {
+		kind, _ := isEvent(line)
+		s.relay(kind, line)
+	}
+}
+
+// relay records what an event changes in the session and sends it to the UI unchanged: a line the sidecar printed, or one
+// the host's follower made.
+func (s *Service) relay(kind string, raw json.RawMessage) {
 	if kind != "script" {
 		s.markReady()
 	}
@@ -628,12 +712,15 @@ func (s *Service) watch(child *process.StreamChild, cancel context.CancelFunc, f
 	s.mu.Lock()
 	stopFile, controlFile, scriptFile := s.stopFile, s.controlFile, s.scriptFile
 	s.cancelAutoStopLocked()
-	if s.stopping || code == 0 {
+	switch {
+	case s.unfollowedStop != "":
+		s.state["phase"], s.state["message"] = "error", s.unfollowedStop
+	case s.stopping || code == 0:
 		s.state["phase"], s.state["message"] = "stopped", stoppedMessage
 		if s.autoStopped {
 			s.state["message"] = autoStoppedMessage
 		}
-	} else {
+	default:
 		s.state["phase"], s.state["message"] = "error", failureMessage(code, child.StderrTail(), "The teleprompter stopped unexpectedly")
 	}
 	s.child, s.stopping, s.state["paused"] = nil, false, false
@@ -706,17 +793,22 @@ func (s *Service) stop(message string, auto bool) {
 }
 
 // Seek asks a running session's tracker to jump straight to script word
-// `word` (the same index space as a position event's `read`/`committed`):
-// one line appended to the session's control file, the sidecar's own
-// ControlChannel tails it (control_channel.py), same sentinel-file pattern
-// as Stop's stop file - no server, no port. It errors if no session is
-// running; the caller (TeleprompterSeek) reports that back to the UI.
+// `word` (the same index space as a position event's `read`/`committed`) at
+// the next chunk: the host's follower when it follows the read (follow.go),
+// else one line appended to the session's control file, which the sidecar's
+// ControlChannel tails (control_channel.py), the same sentinel-file pattern as
+// Stop's stop file - no server, no port. It errors if no session is running;
+// the caller (TeleprompterSeek) reports that back to the UI.
 func (s *Service) Seek(word int) error {
 	s.mu.RLock()
-	child, controlFile := s.child, s.controlFile
+	child, controlFile, follow := s.child, s.controlFile, s.follow
 	s.mu.RUnlock()
 	if child == nil {
 		return errors.New("no teleprompter session is running")
+	}
+	if follow != nil {
+		follow.seek(word)
+		return nil
 	}
 	return appendControl(controlFile, map[string]any{"cmd": "seek", "word": word})
 }

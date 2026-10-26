@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { productionDrivers } from './drivers/production';
+import { openProduction } from './drivers/shared';
 
 // The Production board's grid, checked from the DOM at the widths the alignment audit found it broken at
 // (docs/research/alignment-audit/findings/production.md): one right-hand column for both rows, two columns that end together, the stage
@@ -46,8 +47,11 @@ test('Production / This week and Recording check share a row at the tablet width
 
 test('Production / the header stays on screen at 390 px and says why Start session is off once / 390', async ({ page }) => {
   // XPR2-2: Start session ran off the right edge while the timer runs; XPR2-9: the same reason in the header and in Next up.
-  await board(page, 390, 844);
+  // REAPER not connected, so Start session is off with the DAW's own sentence.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.install({ time: new Date(2026, 8, 26, 9, 0, 0) });
+  await openProduction(page, '?mockProduction=on-pace&mockDawConnected=0');
   const start = (await page.getByRole('button', { name: 'Start session' }).boundingBox())!;
   expect(start.x + start.width).toBeLessThanOrEqual(390 - 16 + 1);
-  await expect(page.getByText('Experimental: switched off in Settings.', { exact: false })).toHaveCount(1);
+  await expect(page.getByText('REAPER is not connected to this app.', { exact: false })).toHaveCount(1);
 });

@@ -11,7 +11,7 @@ import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 // Each level is a word and a glyph, so no level is told apart by colour alone.
 const LEVEL: Record<DawCapabilityLevel, { status: StatusId; glyph: string }> = {
   supported: { status: 'supported', glyph: '✓' },
-  experimental: { status: 'experimental', glyph: '◇' },
+  experimental: { status: 'supported', glyph: '✓' },
   not_yet_available: { status: 'not_yet_available', glyph: '…' },
   unsupported: { status: 'unsupported', glyph: '✕' },
 };

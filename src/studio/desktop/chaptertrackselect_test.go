@@ -67,7 +67,7 @@ func TestTrackSelectInReaperIsStandaloneWithoutAReaperSession(t *testing.T) {
 	}
 }
 
-func TestTrackSelectInReaperWithNoSelectorIsExperimentalOff(t *testing.T) {
+func TestTrackSelectInReaperWithNoSelectorIsUnsupported(t *testing.T) {
 	// A nil *fakeSelector must reach trackSelectInReaperIn as a true nil dawport.TrackSelector, not a typed nil in a
 	// non-nil interface (which would pass its `selector == nil` check and then panic on the fake's nil receiver).
 	var selector dawport.TrackSelector
@@ -75,7 +75,7 @@ func TestTrackSelectInReaperWithNoSelectorIsExperimentalOff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Outcome != "refused" || result.Reason != readAloudExperimentalOff {
+	if result.Outcome != "refused" || result.Reason != readAloudUnsupported {
 		t.Fatalf("result = %+v", result)
 	}
 }
@@ -144,7 +144,7 @@ func TestContractTrackSelectResults(t *testing.T) {
 	}
 	record("selected", connectedServices(), &fakeSelector{})
 	record("track_missing", connectedServices(), &fakeSelector{err: &bridge.TrackStaleError{GUID: trackSelectGUID}})
-	record("experimental_off", connectedServices(), nil)
+	record("unsupported", connectedServices(), nil)
 	record("standalone", hostServices{}, &fakeSelector{})
 	record("failed", connectedServices(), &fakeSelector{err: errors.New("boom")})
 	contractfile.Check(t, "track-select-results", answers)

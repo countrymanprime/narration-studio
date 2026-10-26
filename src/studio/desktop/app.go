@@ -75,7 +75,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 143
+const hostAPIVersion = 144
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -303,7 +303,7 @@ type Host struct {
 	// audacity is the open project's one Audacity connection (audacityconn.go): nil unless the project records with Audacity.
 	audacity *audacityConn
 	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
-	// transcript, and it reads the experimental switch on every request.
+	// transcript, and it asks the DAW port's resolver on every request.
 	actions *bridge.Actions
 	recents *recents.Store
 	// creditTemplates is the narrator's own credit-template library,
@@ -811,15 +811,10 @@ func (h *Host) configureLocked(next config) {
 		h.production = production.New(production.Config{Project: h.config.projectFolder, Reporter: h.persist, Recorded: productionRecorded(h.manuscript)})
 	}
 	// The action commands (internal/bridge/actions.go) are one more consumer of the same client. Whether each may be sent
-	// is the DAW port resolver's answer, asked before anything is written: the narrator's
-	// DAW.capability.<name> toggles, with DAW.experimental_reaper_actions still turning on every Experimental one left
-	// on auto. This resolver is over REAPER's declaration alone; the one below, over p5aAdapter, serves the
+	// is the DAW port resolver's answer, asked before anything is written: what REAPER declares, with no setting in the
+	// way. This resolver is over REAPER's declaration alone; the one below, over p5aAdapter, serves the
 	// consumers that take their roles from the adapter.
-	dawResolver := dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      reaper.Declaration(),
-		Toggle:       dawport.SettingsToggles(settingsStore.Effective),
-		Experimental: dawport.SettingsExperimental(settingsStore.Effective),
-	})
+	dawResolver := dawport.NewResolver(dawport.ResolverConfig{Adapter: reaper.Declaration()})
 	h.actions = bridge.NewActions(client, reaper.Gate(dawResolver.Allowed))
 	h.actions.SetObserver(h.recordBridgeTiming)
 	// The retake-lane, project-state and take-creation roles below come from a live REAPER adapter over the same
@@ -888,12 +883,7 @@ func (h *Host) configureLocked(next config) {
 	if conn := h.audacity; conn != nil {
 		dawPortAdapter, runtime = conn.adapter, conn.runtime
 	}
-	h.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      dawPortAdapter,
-		Runtime:      runtime,
-		Toggle:       dawport.SettingsToggles(settingsStore.Effective),
-		Experimental: dawport.SettingsExperimental(settingsStore.Effective),
-	})
+	h.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{Adapter: dawPortAdapter, Runtime: runtime})
 	h.navigation = newFindingNavigation(h.dawPortResolver, client == nil && h.audacity == nil, h.audacity != nil)
 	// The pickup, line-identity, render-config and cleanup-tool services take the DAW port's roles instead of the
 	// raw bridge client: each depends on dawport.PickupList, LineStamper,
@@ -1822,27 +1812,22 @@ var fieldSchemas = map[string][]fieldSchema{
 	// DAW.auto_start_launcher: the app may pass the launcher script as REAPER's trailing script argument when
 	// it starts REAPER, so the bridge is live without the narrator running the action by hand - but only when this is on, and
 	// it defaults off.
-	// DAW.experimental_reaper_actions is an owner decision: the REAPER bridge commands built before the owner's
-	// verification pass (docs/operations/reaper-verification-pass.md) are refused by the host while it is off, unless the
-	// narrator turns their capability on with its DAW.capability.<name> row (dawport's resolver decides),
-	// and it defaults off (bridge.ExperimentalSettingTool/Key, internal/bridge/actions.go).
-	// The per-capability toggles come after the three above, from capabilityFieldSchemas: one
-	// choice field per dawport.Capability, labeled with the port's own narrator-facing label, so Settings lists and
-	// saves every DAW.capability.<name> row through this same generic mechanism.
+	// No field here turns a DAW capability on or off: what the linked DAW declares and whether it answers decide it
+	// (dawport's resolver). The old DAW.experimental_reaper_actions and DAW.capability.<name> rows are gone, and a
+	// settings file that still holds them is never read for them (owner directive 2026-10-26, #2251).
 	// fx_favourites is the narrator's favourite REAPER effects: names WorkspaceListFXChains or a future FX plug-in listing already lists, kept as one "tags" field
 	// rather than two, since a chain and a plug-in are just two shapes of name (a chain always ends ".RfxChain",
 	// so the two are never confused). It
 	// works at either scope through the same global/project layering as every other setting; there is no separate
 	// project-only or global-only rule for it (unlike Teleprompter, Keymap or Updates above).
-	"DAW": append([]fieldSchema{
+	"DAW": {
 		{"reaper_path", "REAPER executable (override)", "text", nil},
 		{"auto_start_launcher", "Start the launcher script automatically", "bool", nil},
-		{"experimental_reaper_actions", "Experimental DAW actions", "bool", nil},
 		{"fx_favourites", "Favourite effects (FX chains and plug-ins)", "tags", nil},
 		// The Audacity backups' window and retention, with the Studio Next mock's labels and ranges (BackupsTab.tsx).
 		{"backups.window_seconds", "Audio kept either side of a punch or an edit (s)", "number", nil},
 		{"backups.retention_days", "Keep backups for (days)", "number", nil},
-	}, capabilityFieldSchemas()...),
+	},
 	// RecordingCoverage is the recording check's four settings (docs/utilities/recording-coverage.md Q3),
 	// read by coverage.ResolveSettings. The two thresholds judge a stored result on read; the two alignment settings are
 	// in a result's parameter hash, so changing one makes older results stale. Their defaults are Proposed and
@@ -1981,18 +1966,6 @@ var fieldSchemas = map[string][]fieldSchema{
 	},
 }
 
-// capabilityFieldSchemas is one choice field (auto/on/off) per DAW port capability (dawport.Capabilities()),
-// labeled with the port's own narrator-facing label so it never drifts from the resolver's own catalog. The resolver
-// already reads DAW.capability.<name>; this only exposes the row Settings needs to list and save it.
-func capabilityFieldSchemas() []fieldSchema {
-	specs := dawport.Capabilities()
-	fields := make([]fieldSchema, 0, len(specs))
-	for _, spec := range specs {
-		fields = append(fields, fieldSchema{dawport.ToggleKey(spec.Capability), spec.Label, "choice", []string{"auto", "on", "off"}})
-	}
-	return fields
-}
-
 // keymapOverridesMaxBytes bounds Keymap.overrides: a
 // generous cap for a document holding one short gesture list per command, well short of anything that would
 // slow down loading or saving settings.
@@ -2123,8 +2096,8 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 		}
 	}
 	if tool == "DAW" {
-		// A capability toggle (or the old experimental switch) takes effect on the wire now, rather than waiting for
-		// transcriptLoop's next tick.
+		// A DAW setting (the REAPER path, the launcher) can change what the DAW reports, so it goes out on the wire now,
+		// rather than waiting for transcriptLoop's next tick.
 		h.pollDawCapabilities()
 	}
 	return nil

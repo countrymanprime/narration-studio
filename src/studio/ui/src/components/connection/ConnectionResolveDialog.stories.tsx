@@ -38,7 +38,6 @@ const choice = (over: Partial<DawChoice> = {}): DawChoice => ({
   linkedFile: 'Book.rpp',
   foundFiles: [],
   launcherAutoStart: true,
-  experimental: false,
   options: [],
   starting: null,
   bridge: null,

@@ -274,9 +274,6 @@ func TestTeleprompterLocateFallsBackToTheSavedProjectWhenREAPERCannotSay(t *test
 		{"the track is gone", func(locateHost, *testing.T) trackStateReader {
 			return &fakeTrackState{err: &bridge.TrackStaleError{GUID: chapterOneTrack}}
 		}},
-		{"the experimental switch is off", func(locateHost, *testing.T) trackStateReader {
-			return &fakeTrackState{err: bridge.ErrExperimentalOff}
-		}},
 		{"no answer in time", func(f locateHost, t *testing.T) trackStateReader {
 			return &fakeTrackState{state: f.liveChapterOne(t, 5), delay: time.Minute}
 		}},

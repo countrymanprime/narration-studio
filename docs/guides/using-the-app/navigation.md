@@ -250,10 +250,7 @@ Tick **Move an existing region that shares a chapter's title, instead of adding 
 same-titled region instead of adding another; left unticked, a region that would move or is ambiguous
 still gets a new one alongside it. **Create N regions** writes the plan in one step and reports what
 happened, naming only the counts that aren't zero ("Sent 3: 2 created, 1 already existed."); **Close** then becomes the
-main button. Creating chapter
-regions is an experimental REAPER action ([Settings](settings.md)), off by default: until you turn it
-on, **Create N regions** stays disabled and says why. Once on, its **Experimental** badge sits before the button, which
-stays the last one in the row. The plan's column names stay in view while you scroll a long plan, as they do in
+main button. While REAPER is not answering, **Create N regions** stays disabled and says why. The plan's column names stay in view while you scroll a long plan, as they do in
 **Link chapters…**.
 
 **Embed chapter tags…** adds ID3 chapter markers to an MP3 of the whole book that you have already

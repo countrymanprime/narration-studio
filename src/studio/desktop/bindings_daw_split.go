@@ -28,7 +28,7 @@ const (
 // take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
 // checks the cut is inside that take, and sends the item and take it read itself, so an id is never sent to the DAW as given
 // (threat model row 5f). The answer is a DawResult: the takes capability's own sentence when the resolver refuses it
-// (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first; an engine whose takes role
+// (a standalone launch, a DAW not answering), checked first; an engine whose takes role
 // cannot split, or no live adapter, is refused in a sentence; a time that is not one, a take the track no longer holds or a cut
 // outside it is refused (code stale for the last two). Nothing is sent to the DAW on any of them. A take that changed between the
 // read and the DAW's own check is the DAW's stale refusal, and nothing changes.
@@ -109,8 +109,6 @@ func splitRefusal(name string, err error) dawport.Result {
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperNotRunning).Message)
 	case errors.Is(err, bridge.ErrUnavailable):
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperStandalone).Message)
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error())
 	case errors.Is(err, context.DeadlineExceeded):
 		return dawport.Refused(fmt.Sprintf(splitNoAnswerSentence, name, int(splitTakeTimeout.Seconds())))
 	}

@@ -118,7 +118,6 @@ export function ProductionPage({
   go,
   notify,
   goToScript,
-  goToEditing,
   goToBooth,
   refreshBootstrap,
   onManuscriptChanged,
@@ -128,8 +127,6 @@ export function ProductionPage({
   go: (page: string) => void;
   notify: Notify;
   goToScript: (chapter: string, paragraph?: number) => void;
-  /** Opens the Editing page at a chapter (the recording check's Open in Editing). */
-  goToEditing: (chapterId: string) => void;
   /** Opens the Booth, on a chapter when one is given. */
   goToBooth: (chapterId?: string) => void;
   refreshBootstrap: () => Promise<void>;
@@ -245,8 +242,6 @@ export function ProductionPage({
     credits,
     notify,
     go: { script: (id) => goToScript(id), booth: (id) => goToBooth(id), proof: (id) => go(proofAt(id)), master: () => go('/master') },
-    goToScript,
-    goToEditing,
     active: found,
     refreshKey: manuscriptKey,
     onChanged,
@@ -282,8 +277,6 @@ export function ProductionPage({
     ? {
         ok: Boolean(caps.capabilities.record?.available),
         reason: caps.capabilities.record?.message ?? '',
-        // Switched off is the one refusal the narrator fixes in Settings; the others (not connected, not answering) are fixed in the DAW.
-        inSettings: caps.capabilities.record?.reason === 'experimental_off' || caps.capabilities.record?.reason === 'turned_off',
       }
     : { ok: false, reason: 'Checking the audio engine…' };
   const narrationIds = new Set(narrated.map((c) => c.id));
@@ -394,7 +387,6 @@ export function ProductionPage({
         onStartSession={() => goToBooth(recordingChapter?.id)}
         onExport={() => openReportDialog({ projectName: data.projectName, asOf: fmtD(today) })}
         onOpenSchedule={() => go('/schedule')}
-        onOpenSettings={() => go('/settings#daw')}
       />
       {manuscriptImport.dialogs}
       {manuscriptImport.creditsBanner}

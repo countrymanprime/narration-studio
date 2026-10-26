@@ -46,6 +46,10 @@ The file may carry `types`, the narrator's ordered list of `{name, colour, speak
 - The file keeps an undo record for each of the last ten merges (`merge_undo`): both entries as they were, every other entry's relationships the merge changed, and the absorbed names it set. A rebuild writes a file without them.
 - **Unmerge** (`GuideUnmerge`, with that undo id) puts both entries, those relationships and those absorbed names back as they were. It refuses, writing nothing, when the target or one of those entries changed after the merge, when an entry has the source's id again, or when the file no longer holds the record. Two merges into one target are undone newest first. The host checks the id is 16 lowercase hexadecimal characters (`guide.Service.Unmerge`) and runs merge, unmerge and split itself (`src/studio/desktop/internal/guide/merge.go`). An undo record holds SHA-256 fingerprints of how the merge left each entry, taken over Python's `json.dumps(value, sort_keys=True, ensure_ascii=False)`; the host's encoder (`pythonjson.go`) writes the same bytes, so the host can undo a merge an older sidecar recorded.
 
+## Delete Story Bible data
+
+`GuideDeleteAll` (More actions on the Story Bible page) deletes the project's Story Bible data and nothing else: it counts the scan's suggestions, deletes the `ManuscriptGuide` folder with `suggestions.json` in it (`guide.Service.DeleteAll`, `src/studio/desktop/internal/guide/deleteall.go`) and the `story-bible` findings (`findings.Store.RemoveAnalyzer`), and answers `{entries, suggestions}`, the counts before the delete. It refuses unless confirmed and while a build or a scan runs. Voice samples and references stay: they name an entry by id, and an entry's id is a hash of its name (`entityID`), so an entry added again under the same name has them again. There is no undo.
+
 ## Pronunciation: generate and replace
 
 Alongside the automatic CMU-then-eSpeak fallback a build asks for (`pronunciation()`), a narrator can set a pronunciation
@@ -98,9 +102,16 @@ speech tag resolves to an entry of a speaking type, unless the Story Bible alrea
 corrected it. A locked entry gets nothing, nor does a name a merge absorbed. Each quote is a slice of the paragraph it names.
 Each confidence comes from `RuleConfidence`, which is provisional until SN-X8: `speech-tag` is 0.96 (the
 [cue evaluation](../research/character-continuity-cue-extraction-eval/RESULTS.md)), and the other rules give `null` with the
-note "The rules give no score for this." The name rules are the build's own (`rules_text.go` `ruleCandidates` and `classify`, which `build.go` runs too); they match the
-sidecar's deleted copy case for case (`tests/fixtures/guide-rules`, recorded from the sidecar's
-`suggest --source rules` before it was deleted on 2026-10-25).
+note "The rules give no score for this." The names come from the name finder in `rules_scan.go` (`scanGroups`), which the
+build also reads without a language model (`scanCandidates`); it replaced the sidecar's `rule_candidates` after #2251 found it
+offering "I'm", "Mr" and "Because I": it cuts a capitalised run
+at pronouns, contractions, function words and shouted words, never offers a bare honorific, keeps particles (de la, van der),
+merges Mr Darcy, Mr. Darcy and Darcy's, keeps Mr. and Mrs. Bennet apart, needs evidence for each name (an honorific, a speech
+verb beside it, or mentions capitalised mid-sentence in more than one paragraph) and lists the strongest first. Its word lists
+are English. `testdata/scan-corpus.json` holds the expected names for each excerpt, and `testdata/scan-names.json` pins the names
+for every frozen case (`build-rules.json` and `build-cues.json` the builds without a model). The speaker lines, every refusal,
+and every build with the model's spans still match the sidecar's deleted copy case for case
+(`tests/fixtures/guide-rules`, recorded from the sidecar's `suggest --source rules` before it was deleted on 2026-10-25).
 
 `src/studio/desktop/internal/extractionport/rules` is the scan's rules row. It caps the lines (8 MB in all, 64 KB a line,
 8 KB a field), refuses an unknown field or a kind other than entry, alias or speaker, drops a suggestion whose quote
@@ -112,8 +123,10 @@ by `rules/testdata/suggest-lines.json`, which `TestTheSuggestLinesMatchTheContra
 
 `suggest --source gliner --manuscript M --guide G --install DIR` runs the optional GLiNER download
 (`core/extraction_gliner.py`). It loads the model only from `DIR`, the tool's install folder, with the Hugging Face hub
-turned off ([CI and releases](../operations/ci-and-releases.md)),
-and prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
+turned off ([CI and releases](../operations/ci-and-releases.md)). GLiNER builds its `microsoft/deberta-v3-small` encoder by
+that name; the adapter answers it with the folder's own `config.json`, and the tokenizer is read from the folder's
+`tokenizer_config.json` and `spm.model`, so the install folder needs those three beside the weights. It
+prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
 the model's own score or `null`, and the sentence the name is in as its quote. Spans under `SCORE_FLOOR` (0.5) are
 dropped, and a name found twice is offered once. A missing or damaged install exits 1 with a sentence. The host runs it
 through `src/studio/desktop/internal/extractionport/gliner` with the same caps and checks as the rules row, plus an entry-only,
@@ -141,7 +154,7 @@ What BookNLP prints while it loads and runs goes to stderr: stdout carries only 
 weights and encoder files, the unpacked wheels the freeze does not carry: `booknlp`, `torch`, `transformers`, `huggingface-hub`,
 `tokenizers`, `safetensors`, `regex`, `filelock`, `fsspec`, `sympy`, `mpmath`, `networkx`, and `setuptools` 80 for the
 `pkg_resources` BookNLP imports. The guide's freeze carries the standard library and the submodules those packages import that the
-guide does not (`FREEZE_IMPORTS`, `FREEZE_METADATA`, read by `scripts/release/prepare-resources.py`), and every `self-check` has
+guide does not, with `httpx` and the packages it imports, which `huggingface-hub` needs at import (`FREEZE_IMPORTS`, `FREEZE_METADATA`, read by `scripts/release/prepare-resources.py`), and every `self-check` has
 a `tool-runtime` line that imports them, which the packaged smoke test requires.
 
 ## Workflow

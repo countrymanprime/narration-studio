@@ -1,12 +1,16 @@
 import type { CoverageEngine, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 
-/** The chapters the dialog offers: the ones with a recording. A length the host measured counts; so does a stored share when no length is known. */
-export function recordedChapters(chapters: readonly ManuscriptChapter[]): ManuscriptChapter[] {
+/**
+ * The chapters the dialog offers: the ones with a recording. A length the host measured counts; so does a stored share when no length is known.
+ * A chapter the opener asked for (`asked`: a chapter's own Check recordings) is offered too while nothing has measured its recording, since
+ * not measured is not empty; a recording measured as empty is still left out.
+ */
+export function recordedChapters(chapters: readonly ManuscriptChapter[], asked: readonly string[] = []): ManuscriptChapter[] {
   return chapters.filter((chapter) => {
     if (chapter.removedFromRecording) return false;
     if (chapter.recordedSeconds !== undefined) return chapter.recordedSeconds > 0;
-    return (chapter.recordedFraction ?? 0) > 0;
+    return (chapter.recordedFraction ?? 0) > 0 || asked.includes(chapter.id);
   });
 }
 
@@ -37,7 +41,8 @@ export function formatAudio(seconds: number): string {
 /** The "Audio to check" line's note on chapters whose length was not measured, or '' when none were left out. */
 export function unmeasuredNote(unmeasured: number): string {
   if (unmeasured === 0) return '';
-  return `${unmeasured} ${unmeasured === 1 ? 'chapter' : 'chapters'} left out: length not measured`;
+  // The chapters are still checked; only their length is missing from the total above.
+  return `${unmeasured} ticked ${unmeasured === 1 ? 'chapter has' : 'chapters have'} no measured length, so the total leaves ${unmeasured === 1 ? 'it' : 'them'} out`;
 }
 
 const STATE_LABEL: Record<CoverageResult['state'], string> = { current: 'Checked, as of last save', stale: 'Out of date', never: 'Not checked yet' };
@@ -78,5 +83,4 @@ export function stoppedToast(finished: number, interrupted = 1): string {
   return finished === 0 ? 'Stopped. Nothing was stored.' : `Stopped. ${plural(finished, 'chapter', 'chapters')} finished and kept; ${left}.`;
 }
 
-export const engineOptionLabel = (engine: CoverageEngine): string =>
-  engine.installState === 'installed' ? engine.label : `${engine.label} (Download it in Settings)`;
+export const engineOptionLabel = (engine: CoverageEngine): string => (engine.installState === 'installed' ? engine.label : `${engine.label} (not installed)`);

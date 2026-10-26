@@ -15,7 +15,7 @@ const hideTakesTimeout = takeReviewCreateTakeTimeout
 // deleted, and REAPER adds one undo step when anything changed. As for WorkspaceUseTake, the page sends ids and token
 // indices only: the item and kept take GUIDs are read here from the saved project, and an id the host does not offer is
 // refused as stale (docs/architecture/reaper-navigation.md). The answer is a DawResult: the takes capability's own sentence when
-// the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked
+// the resolver refuses it (a standalone launch, a DAW not answering), checked
 // before the passage is read, and nothing is sent to REAPER on any refusal. A token range outside the alignment is an
 // error, as for WorkspaceTakes.
 func (h *Host) WorkspaceHideTakes(chapterID string, firstToken int, lastToken int, keepCandidateID string) (string, error) {

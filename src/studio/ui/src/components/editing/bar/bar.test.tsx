@@ -9,6 +9,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
+import { MIN_TAIL_SECONDS } from '../model';
 import { clock } from './clock';
 import { SelectionActionButton } from './SelectionActionButton';
 import { SelectionBar } from './SelectionBar';
@@ -137,10 +138,31 @@ describe('play the selection', () => {
     const end = base.items[base.index.get('p-1:4') ?? -1].t1 as number;
     act(() => playback.toggle());
     expect(audio().currentTime).toBeCloseTo(start);
+    // The recognizer's end falls before the word's tail, so the play runs on past it (model/runway.ts) and stops before the next word's middle.
     tick(end + 0.01);
+    expect(state().playT).not.toBeNull();
+    tick(end + MIN_TAIL_SECONDS);
     expect(state().playT).toBeNull();
     expect(state().sel).not.toBeNull();
     expect(screen.getByText('/ 14:03', { exact: false }).parentElement?.textContent).toBe(`${clock(start)} / 14:03`);
+  });
+  it('stops on time between timeupdates, which come only every 250 ms or so', () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:1' });
+      const start = t0('p-1:1');
+      const end = base.items[base.index.get('p-1:1') ?? -1].t1 as number;
+      act(() => playback.toggle());
+      tick(start);
+      expect(state().playT).not.toBeNull();
+      audio().currentTime = end + MIN_TAIL_SECONDS;
+      act(() => vi.advanceTimersByTime((end + MIN_TAIL_SECONDS - start) * 1000 + 1));
+      expect(state().playT).toBeNull();
+      expect(audio().pause).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

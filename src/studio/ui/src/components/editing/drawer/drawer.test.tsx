@@ -27,9 +27,9 @@ beforeEach(() => {
 });
 
 const doc = marksDoc();
-const withBackups = (level: 'supported' | 'unsupported', reason?: 'turned_off'): DawCapabilities => ({
+const withBackups = (level: 'supported' | 'unsupported'): DawCapabilities => ({
   ...DAW_SETUPS.reaper,
-  capabilities: { ...DAW_SETUPS.reaper.capabilities, backups: { level, available: level === 'supported' && !reason, ...(reason ? { reason } : {}) } },
+  capabilities: { ...DAW_SETUPS.reaper.capabilities, backups: { level, available: level === 'supported' } },
 });
 
 /** Stands in for the page: it owns the drawer state, the way the Editing page will. */
@@ -101,7 +101,6 @@ describe('tabs-follow-the-capabilities', () => {
     expect(tabsFor(true, true).map(([k]) => k)).toEqual(['cleanup', 'effects', 'backups']);
     expect(tabsFor(true, false).map(([k]) => k)).toEqual(['cleanup', 'effects', 'backups', 'timeline']);
     expect(backupsOffered(withBackups('unsupported'))).toBe(false);
-    expect(backupsOffered(withBackups('supported', 'turned_off'))).toBe(false);
     expect(backupsOffered(null)).toBe(false);
   });
   it('wears a count on every label but the timeline', async () => {

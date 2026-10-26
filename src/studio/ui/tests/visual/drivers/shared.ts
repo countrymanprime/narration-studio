@@ -320,20 +320,26 @@ export async function openImportReview(page: Page, preview?: 'markdown' | 'repai
   return dialog;
 }
 
-// Opens a chapter's recording check from its Record cell on the Production board (docs/utilities/recording-coverage.md), optionally booted with a mock seed (main.tsx), and waits until the stored
-// result has been read into the slide-over. A chapter still recording has Record as its current stage, whose cell opens the stage
-// slide-over instead: its "Recording check" button is the way on. Returns the slide-over.
+// Opens a chapter's recording check from its row menu on the Production board (docs/utilities/recording-coverage.md), optionally booted with a
+// mock seed (main.tsx). Returns the Check recordings dialog.
 export async function openRecordingCheck(page: Page, chapter: string, seed?: string) {
   if (seed) {
     await page.goto(`/?${seed}`);
     await settlePage(page);
   }
   await productionLoaded(page);
-  await rowMenu(page, chapter, 'Recording check…');
-  // A prefix match: the panel's full name also carries the chapter's subtitle when it has one,
-  // which this helper's callers do not all pass.
-  const dialog = page.getByRole('dialog', { name: new RegExp(`^Recording check: ${chapter}\\b`) });
-  await dialog.getByRole('button', { name: /^Check (recording|again)$/ }).waitFor();
+  await rowMenu(page, chapter, 'Check recordings…');
+  // Check recordings, the one recording check, with the row's chapter ticked once its chapters and options have loaded.
+  const dialog = page.getByRole('dialog', { name: 'Check recordings' });
+  await dialog.getByRole('button', { name: 'Check 1 chapter' }).waitFor();
+  return dialog;
+}
+
+// Opens Check recordings from a chapter's row menu and shows that chapter's stored result (its row's Show result). Returns the dialog.
+export async function showResult(page: Page, chapter: string, seed?: string) {
+  const dialog = await openRecordingCheck(page, chapter, seed);
+  await dialog.getByRole('button', { name: new RegExp(`^Show result: ${chapter}\\b`) }).click();
+  await dialog.getByRole('button', { name: 'Back to chapters' }).waitFor();
   await dialog.getByText('Reading the last check…').waitFor({ state: 'detached' });
   return dialog;
 }

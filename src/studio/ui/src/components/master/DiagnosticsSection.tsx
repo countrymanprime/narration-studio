@@ -7,6 +7,7 @@ import type { DiagnosticsJob, DiagnosticsSourceKind } from '../../types';
 import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
+import { Tooltip } from '../primitives/Tooltip';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { ProofOptions } from '../proof/proofOptions/ProofOptions';
 import { cleanupThresholdRows, thresholdRows } from './diagnosticsFormat';
@@ -33,9 +34,6 @@ function useDawName(): string {
 const CLEANUP_OPTION_KEYS = ['pad_seconds', 'min_breath_seconds', 'max_breath_seconds', 'breath_below_speech_db', 'click_above_silence_db'] as const;
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-
-// Panel prose stops at a readable measure on a wide window, not 150 characters a line (R3MS-17).
-const PROSE = 'max-w-[80ch]';
 
 // A label and value list, one label column for every panel here so Thresholds and Silence cleanup line up (R3MS-4).
 const DEFINITIONS = 'grid grid-cols-[minmax(8rem,11rem)_minmax(0,1fr)] gap-x-6 gap-y-1 text-sm';
@@ -74,15 +72,15 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
     <Panel
       title="Silence cleanup candidates"
       actions={
-        // In the header, not glued to the end of the hint sentence (XMS-21).
-        <Button variant="secondary" onClick={openSettings}>
-          Open Settings
-        </Button>
+        // In the header (XMS-21). What the list is goes on the "?", not in a paragraph under the title (#2251).
+        <div className="flex items-center gap-2">
+          <Tooltip label="About silence cleanup candidates" text={`Candidates to cut in ${dawName}, never applied here`} />
+          <Button variant="secondary" onClick={openSettings}>
+            Open Settings
+          </Button>
+        </div>
       }
     >
-      <p className={`text-sm ${PROSE}`} style={MUTED}>
-        {`Silences, breaths and clicks the same check found while reading each file, each a candidate to cut, never applied here: cutting a candidate needs the ${dawName} actions this app does not yet run from here. Nothing is saved, played or changed.`}
-      </p>
       {candidates.length > 0 ? (
         <TableScroll label="Silence cleanup candidates" className="mt-3">
           <CleanupFindingsTable files={files} />
@@ -105,9 +103,6 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
               </div>
             ))}
           </dl>
-          <p className={`mt-2 text-xs ${PROSE}`} style={MUTED}>
-            Set in Settings &gt; Silence cleanup (Open Settings, above), or for this project only from Jump to or run &gt; Open Silence cleanup options.
-          </p>
         </>
       ) : (
         <p className="mt-2 text-sm" style={MUTED}>
@@ -121,7 +116,7 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
 
 function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
   return (
-    <Panel title="Thresholds">
+    <Panel title="Thresholds" actions={<Tooltip label="About the thresholds" text="Starting values, not a delivery specification" />}>
       {job ? (
         <>
           <dl className={DEFINITIONS}>
@@ -132,9 +127,6 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
               </div>
             ))}
           </dl>
-          <p className="mt-2 text-xs" style={MUTED}>
-            These are starting values, fixed in this version and not a delivery specification. Each finding shows the threshold that raised it.
-          </p>
         </>
       ) : (
         <p className="text-sm" style={MUTED}>
@@ -225,7 +217,8 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
       <Panel
         title="Diagnostics"
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Tooltip label="About diagnostics" text={`Times to listen to in ${dawName}: nothing here is changed`} />
             {measuredPaths.length > 0 && (
               <Button variant="secondary" onClick={() => void checkMeasured()} pending={picking} disabled={running}>
                 {`Check the ${plural(measuredPaths.length, 'measured file', 'measured files')}`}
@@ -237,11 +230,8 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
           </div>
         }
       >
-        <p className={`text-sm ${PROSE}`} style={MUTED}>
-          {`Clipping, level shifts, room-tone changes and long pauses, each with its time in the file and the threshold that raised it. Listen at those times in ${dawName}: nothing here is saved, played or changed.`}
-        </p>
         {/* A setting, so the segmented switch and not a second solid orange button beside "Choose files to check…" (R4MS1-8). */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
           <span aria-hidden="true">The files are</span>
           <ToggleGroup
             label="The files are"
@@ -251,9 +241,6 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
             options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running }))}
           />
         </div>
-        <p className={`mt-2 text-xs ${PROSE}`} style={MUTED}>
-          Room tone and level mean different things in each: a render may have been gated or cleaned on purpose.
-        </p>
         {jobError && (
           <p role="alert" className="mt-2 text-sm" style={DANGER}>
             The diagnostics could not be read: {jobError}
@@ -306,11 +293,6 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
                   reached the thresholds below.
                 </p>
               )
-            )}
-            {findings.length > 0 && (
-              <p className="mt-2 text-xs" style={MUTED}>
-                Every finding is a candidate to listen to, not a verdict, and stays unreviewed: deciding on them comes with the review list.
-              </p>
             )}
           </>
         ) : (

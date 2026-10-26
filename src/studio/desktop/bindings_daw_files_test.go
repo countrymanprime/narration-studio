@@ -18,7 +18,7 @@ import (
 )
 
 // DawPreviewFileRange, DawStopFilePreview and DawRevealFile (SN-B98) over a host with a bridge, fake file roles standing in for
-// REAPER, and the file_preview and file_reveal capabilities toggled. What REAPER answers is bridge's and the harness's own
+// REAPER. What REAPER answers is bridge's and the harness's own
 // (media_file_test.go, media_file_test.lua); these cover the host's wiring: the resolver first, then a path the narrator
 // picked to measure, then the role.
 
@@ -50,20 +50,12 @@ func (f *fakeFiles) RevealFile(_ context.Context, path string) (dawport.FileReve
 
 func (f *fakeFiles) sent() int { return len(f.previews) + f.stops + len(f.reveals) }
 
-// filesHost is a host launched for kind ("" standalone) with a bridge client, the given reachability and file roles, both file
-// capabilities set to toggle ("" leaves them on auto, Experimental and off), and one file the narrator picked to measure,
-// "Chapter 01.wav", whose path it returns.
-func filesHost(t *testing.T, kind string, reach *daw.Reachability, role *fakeFiles, toggle string) (*Host, string) {
+// filesHost is a host launched for kind ("" standalone) with a bridge client, the given reachability and file roles, and one
+// file the narrator picked to measure, "Chapter 01.wav", whose path it returns.
+func filesHost(t *testing.T, kind string, reach *daw.Reachability, role *fakeFiles) (*Host, string) {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host, _ := newReadAloudReaperHost(t)
-	if toggle != "" {
-		for _, c := range []dawport.Capability{dawport.CapFilePreview, dawport.CapFileReveal} {
-			if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(c): &toggle}); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
 	client, err := bridge.New(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -88,7 +80,7 @@ func filesHost(t *testing.T, kind string, reach *daw.Reachability, role *fakeFil
 
 func TestDawPreviewFileRangePlaysAPickedFileAndAnswersADawResult(t *testing.T) {
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.DawPreviewFileRange(path, 12.5, 5))
 
@@ -103,7 +95,7 @@ func TestDawPreviewFileRangePlaysAPickedFileAndAnswersADawResult(t *testing.T) {
 
 func TestDawStopFilePreviewSaysWhetherAnythingWasPlaying(t *testing.T) {
 	role := &fakeFiles{stopped: true}
-	host, _ := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, _ := filesHost(t, "REAPER", liveReachability(), role)
 	if got := decodeDawResult(t)(host.DawStopFilePreview()); !reflect.DeepEqual(got, dawport.OK(fileStoppedSentence, false)) {
 		t.Fatalf("DawStopFilePreview = %+v", got)
 	}
@@ -115,7 +107,7 @@ func TestDawStopFilePreviewSaysWhetherAnythingWasPlaying(t *testing.T) {
 
 func TestDawRevealFileShowsAPickedFileInTheEngine(t *testing.T) {
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 	got := decodeDawResult(t)(host.DawRevealFile(path))
 	if want := dawport.OK("Showing Chapter 01.wav in REAPER.", false); !reflect.DeepEqual(got, want) {
 		t.Fatalf("DawRevealFile = %+v, want %+v", got, want)
@@ -130,17 +122,14 @@ func TestTheFileBindingsRefuseWithTheResolversSentenceAndSendNothing(t *testing.
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeFiles{}
-			host, path := filesHost(t, c.kind, c.reach, role, c.toggle)
+			host, path := filesHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			for capability, call := range map[dawport.Capability]func() (string, error){
 				dawport.CapFilePreview: func() (string, error) { return host.DawPreviewFileRange(path, 0, 5) },
@@ -168,7 +157,7 @@ func TestTheFileBindingsRefuseWithTheResolversSentenceAndSendNothing(t *testing.
 // stretch is checked before anything is sent.
 func TestTheFileBindingsCheckThePathAndStretchOnTheHostAndSendNothing(t *testing.T) {
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 	other := filepath.Join(filepath.Dir(path), "Other.wav")
 	if err := os.WriteFile(other, []byte("RIFF"), 0o600); err != nil {
 		t.Fatal(err)
@@ -221,13 +210,13 @@ func TestTheFileBindingsWordWhatTheEngineRefused(t *testing.T) {
 	}
 	for err, sentence := range cases {
 		role := &fakeFiles{err: err}
-		host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+		host, path := filesHost(t, "REAPER", liveReachability(), role)
 		if got := decodeDawResult(t)(host.DawPreviewFileRange(path, 0, 5)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
 			t.Errorf("%v: DawPreviewFileRange = %+v, want Refused(%q)", err, got, sentence)
 		}
 	}
 	role := &fakeFiles{err: bridge.ErrRevealUnsupported}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 	if got := decodeDawResult(t)(host.DawRevealFile(path)); got.Refused != "This version of REAPER cannot show a file in its own file browser." {
 		t.Fatalf("DawRevealFile = %+v", got)
 	}
@@ -235,7 +224,7 @@ func TestTheFileBindingsWordWhatTheEngineRefused(t *testing.T) {
 
 // A launch whose resolver allows the capabilities but that has no file role (no live adapter) refuses rather than failing.
 func TestTheFileBindingsWithNoRoleAreRefused(t *testing.T) {
-	host, path := filesHost(t, "REAPER", liveReachability(), nil, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), nil)
 	for name, raw := range map[string]func() (string, error){
 		"preview": func() (string, error) { return host.DawPreviewFileRange(path, 0, 5) },
 		"stop":    host.DawStopFilePreview,
@@ -259,7 +248,7 @@ func TestDawFileContractGoldenIsCurrent(t *testing.T) {
 	}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {
 		t.Run(name, func(t *testing.T) {
-			host, path := filesHost(t, "REAPER", liveReachability(), &fakeFiles{stopped: true}, "on")
+			host, path := filesHost(t, "REAPER", liveReachability(), &fakeFiles{stopped: true})
 			contractfile.Check(t, name, decodeDawResult(t)(cases[name](host, path)))
 		})
 	}

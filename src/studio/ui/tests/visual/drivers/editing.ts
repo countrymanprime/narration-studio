@@ -5,8 +5,6 @@ import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscrip
 
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
-/** As LINKED, with the DAW's experimental edits on. */
-const EDITS = `${LINKED}&mockDawExperimentalOn=1`;
 
 export const editingDrivers: Record<string, Driver> = {
   'address-checking': async (page) => {
@@ -54,11 +52,11 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('option', { name: /Delete the selected words and audio/ }).waitFor();
   },
   selection: async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
   },
   range: async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     // Draw a range on the line's waveform that ends inside words, then zoom in once.
     const surface = page.locator('[data-ribbon-surface]');
@@ -107,23 +105,23 @@ export const editingDrivers: Record<string, Driver> = {
     });
   },
   'output-popover': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
     await page.getByRole('dialog', { name: 'Output' }).waitFor();
   },
   'output-no-outputs': async (page) => {
-    await openEditing(page, `${EDITS}&mockAudioOutputs=none`);
+    await openEditing(page, `${LINKED}&mockAudioOutputs=none`);
     await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
     await page.getByRole('dialog', { name: 'Output' }).getByRole('button', { name: 'Check again' }).waitFor();
   },
   'delete-dialog': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     await bar(page).getByRole('button', { name: 'Delete words and audio' }).click();
     await question(page, /^Delete 4 words/).waitFor();
   },
   'fx-menu': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     await bar(page).getByRole('button', { name: 'Add FX' }).click();
     await page
@@ -134,7 +132,7 @@ export const editingDrivers: Record<string, Driver> = {
     if (await page.getByRole('menuitem', { name: /Jump menu|Find a page/ }).count()) throw new Error('The Add FX menu lists the page menu’s search items.');
   },
   'word-menu-fx': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     await page.locator('[data-k="p-1:2"]').click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Add FX' }).click();
@@ -148,7 +146,7 @@ export const editingDrivers: Record<string, Driver> = {
   },
   'drawer-effects-inspector': async (page) => {
     // Two effects on different words, so the inspector has a neighbour either way; the first is picked.
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await addEffect(page, 'p-1:1', 'p-1:4');
     await addEffect(page, 'p-2:0', 'p-2:2');
     await page.getByRole('button', { name: 'Clean up and effects' }).click();
@@ -161,7 +159,7 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('region', { name: 'Effect', exact: true }).evaluate((el) => el.scrollIntoView({ block: 'start' }));
   },
   'fx-dialog': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     await bar(page).getByRole('button', { name: 'Add FX' }).click();
     await page
@@ -171,13 +169,13 @@ export const editingDrivers: Record<string, Driver> = {
     await page.locator('[role="dialog"], [role="alertdialog"]').first().waitFor();
   },
   'voice-sample-dialog': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     await bar(page).getByRole('button', { name: 'Voice sample' }).click();
     await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
   },
   'voice-sample-refused': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     // The extra word at the start of the first line was heard and is not in the script: nothing there can be a sample.
     const said = page.locator('[data-k="p-1:x0"]');
     await said.click();
@@ -186,7 +184,7 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('dialog', { name: 'Voice sample' }).getByRole('alert').waitFor();
   },
   'voice-sample-saved': async (page) => {
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     await bar(page).getByRole('button', { name: 'Voice sample' }).click();
     const dialog = page.getByRole('dialog', { name: 'Voice sample' });
@@ -227,11 +225,11 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('dialog', { name: "Eric Leach's audio" }).waitFor();
   },
   'takes-open': async (page) => {
-    await openTakes(page, EDITS);
+    await openTakes(page, LINKED);
     await expectPanelTextSize(page, 'Suggested take');
   },
   'suggestion-step': async (page) => {
-    await openTakes(page, EDITS);
+    await openTakes(page, LINKED);
     await page.getByRole('button', { name: 'Normalise' }).first().click();
     await question(page, 'Normalise?').waitFor();
   },
@@ -246,7 +244,7 @@ export const editingDrivers: Record<string, Driver> = {
   },
   'drawer-effects-daw-unread': async (page) => {
     // A DAW that is not connected: the FX in the DAW section says so in place of the list (#2251 item 36).
-    await openEditing(page, `${EDITS}&mockReaper=standalone`);
+    await openEditing(page, `${LINKED}&mockReaper=standalone`);
     await page.getByRole('button', { name: 'Clean up and effects' }).click();
     await page.locator('#drawer').waitFor();
     await page.getByRole('tab', { name: /^Effects/ }).click();
@@ -256,8 +254,8 @@ export const editingDrivers: Record<string, Driver> = {
       .waitFor();
   },
   'drawer-effects-chains': async (page) => {
-    // With a DAW that lists its chains (the mock host's EDITS setup), the Effects tab lists them with a Favourite button on each.
-    await openEditing(page, EDITS);
+    // With a DAW that lists its chains (the mock host's linked setup), the Effects tab lists them with a Favourite button on each.
+    await openEditing(page, LINKED);
     await page.getByRole('button', { name: 'Clean up and effects' }).click();
     await page.locator('#drawer').waitFor();
     await page.getByRole('tab', { name: /^Effects/ }).click();
@@ -268,7 +266,7 @@ export const editingDrivers: Record<string, Driver> = {
   },
   'drawer-effects-choose': async (page) => {
     // Choose in REAPER… on the selected words: the mock host's REAPER answers that ReaComp is chosen, its window still open.
-    await openEditing(page, EDITS);
+    await openEditing(page, LINKED);
     await selectWords(page);
     await page.getByRole('button', { name: 'Clean up and effects' }).click();
     await page.locator('#drawer').waitFor();
@@ -385,7 +383,7 @@ const bar = (page: Page) => page.getByRole('toolbar', { name: 'Playback and sele
 /** Loads `query` and opens Editing from the rail on the first chapter, its script read. */
 /** Saves a voice sample from the four selected words, as the narrator would, and waits for the dialog to close. */
 async function saveSample(page: Page): Promise<void> {
-  await openEditing(page, EDITS);
+  await openEditing(page, LINKED);
   await selectWords(page);
   await bar(page).getByRole('button', { name: 'Voice sample' }).click();
   const dialog = page.getByRole('dialog', { name: 'Voice sample' });
@@ -395,7 +393,7 @@ async function saveSample(page: Page): Promise<void> {
 
 /** Replace with another narrator's audio on the selected words, the other narrator named and a file of theirs added, with the host's plan shown. */
 async function openReplace(page: Page): Promise<Locator> {
-  await openEditing(page, EDITS);
+  await openEditing(page, LINKED);
   await selectWords(page);
   await bar(page).getByRole('button', { name: "Replace with another narrator's audio" }).click();
   const dialog = page.getByRole('dialog', { name: /with another narrator's audio$/ });

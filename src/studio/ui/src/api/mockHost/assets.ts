@@ -39,7 +39,7 @@ const librivoxVoice = (id: string, path: string, displayName: string, downloadSi
 });
 
 /** The approved voices after LJ Speech, as config/tts-assets.json lists them. */
-export const MOCK_OTHER_VOICES: ReadonlyArray<AssetFactsSource & { locale: string }> = [
+const MOCK_OTHER_VOICES: ReadonlyArray<AssetFactsSource & { locale: string }> = [
   librivoxVoice('en_GB-cori-high', 'en/en_GB/cori/high', 'Cori (British English)', 114219352 + 4963),
   librivoxVoice('en_US-kristin-medium', 'en/en_US/kristin/medium', 'Kristin (U.S. English)', 63531379 + 4968),
   librivoxVoice('en_US-norman-medium', 'en/en_US/norman/medium', 'Norman (U.S. English)', 63531379 + 4968),

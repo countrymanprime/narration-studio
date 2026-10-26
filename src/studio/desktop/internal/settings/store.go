@@ -124,28 +124,9 @@ var builtinDefaults = map[string]Values{
 	"Teleprompter":      {"engine": "whisper", "model": "tiny", "punch_preroll_seconds": "3"},
 	// auto_start_launcher defaults on: the app runs the launcher in REAPER itself (REAPER runs a script it is started with),
 	// so the narrator never has to add the action by hand.
-	// experimental_reaper_actions defaults off: the bridge commands not yet verified in a real
-	// REAPER stay off until the narrator turns them on (internal/bridge/actions.go).
-	// capability.<name> is the narrator's per-capability toggle for the DAW port: auto, on or off, defaulting
-	// auto, which is today's behaviour (on when Supported; when Experimental, on only while
-	// experimental_reaper_actions is on). One row per dawport capability; dawport's toggles_test.go holds the rows to its catalog.
 	// backups.window_seconds and backups.retention_days are the Audacity backups' window either side of an edit and how long a
 	// backup is kept: the process defaults, two minutes and seven days.
-	"DAW": {"auto_start_launcher": "true", "experimental_reaper_actions": "false",
-		"backups.window_seconds": "120", "backups.retention_days": "7",
-		"capability.review": "auto", "capability.navigate": "auto", "capability.markers": "auto", "capability.pickups": "auto",
-		"capability.line_identity": "auto", "capability.render_config": "auto", "capability.cleanup_tools": "auto",
-		"capability.retake_lanes": "auto", "capability.project_state": "auto", "capability.take_create": "auto",
-		"capability.heartbeat": "auto", "capability.project_read": "auto", "capability.track_state": "auto",
-		"capability.record": "auto", "capability.punch": "auto", "capability.regions": "auto", "capability.takes": "auto",
-		"capability.fx_chains": "auto", "capability.item_gain": "auto",
-		"capability.track_select": "auto", "capability.render_with_fx": "auto", "capability.master_chain_read": "auto",
-		"capability.macro_render": "auto", "capability.cut_range": "auto", "capability.fx_range": "auto",
-		"capability.stack_takes": "auto", "capability.backups": "auto",
-		"capability.file_preview": "auto", "capability.file_reveal": "auto", "capability.range_gain": "auto",
-		"capability.click_repair": "auto", "capability.undo_last": "auto",
-		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.punch_preroll": "auto", "capability.daw_meters": "auto", "capability.replace_range": "auto", "capability.follow_position": "auto", "capability.transport_sync": "auto",
-		"capability.track_create": "auto"},
+	"DAW": {"auto_start_launcher": "true", "backups.window_seconds": "120", "backups.retention_days": "7"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
 	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md).
 	// background_checks defaults on: it only ever runs with the model installed, on mains power and while

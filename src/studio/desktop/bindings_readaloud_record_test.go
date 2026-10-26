@@ -112,14 +112,14 @@ func TestReadAloudArmOnlyWithNoLinkedTrackIsRefused(t *testing.T) {
 	}
 }
 
-func TestReadAloudArmOnlyWithNoRecorderIsExperimentalOff(t *testing.T) {
+func TestReadAloudArmOnlyWithNoRecorderIsUnsupported(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 
 	result, err := readAloudArmOnlyIn(context.Background(), host.services(), nil, ids[0])
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Outcome != "refused" || result.Reason != readAloudExperimentalOff {
+	if result.Outcome != "refused" || result.Reason != readAloudUnsupported {
 		t.Fatalf("result = %+v", result)
 	}
 }
@@ -243,9 +243,9 @@ func TestReadAloudRecordStartPreconditionsStillRefuseAndChangeNothing(t *testing
 			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
 		}
 	})
-	t.Run("experimental off", func(t *testing.T) {
+	t.Run("no record role", func(t *testing.T) {
 		host, ids := newReadAloudReaperHost(t)
-		if result := recordStart(t, host, nil, nil, ids[0]); result.Outcome != "refused" || result.Reason != readAloudExperimentalOff {
+		if result := recordStart(t, host, nil, nil, ids[0]); result.Outcome != "refused" || result.Reason != readAloudUnsupported {
 			t.Fatalf("result = %+v", result)
 		}
 	})
@@ -415,14 +415,14 @@ func TestReadAloudRecordStartAtRefusesAsRecordStartDoes(t *testing.T) {
 	})
 	t.Run("no recorder", func(t *testing.T) {
 		host, ids := newReadAloudReaperHost(t)
-		if result := recordStartAt(t, host, nil, &fakeStartPuncher{recorder: &fakeRecorder{}}, nil, ids[0], 30); result.Reason != readAloudExperimentalOff {
+		if result := recordStartAt(t, host, nil, &fakeStartPuncher{recorder: &fakeRecorder{}}, nil, ids[0], 30); result.Reason != readAloudUnsupported {
 			t.Fatalf("result = %+v", result)
 		}
 	})
 	t.Run("no puncher", func(t *testing.T) {
 		host, ids := newReadAloudReaperHost(t)
 		fake := &fakeRecorder{}
-		if result := recordStartAt(t, host, fake, nil, nil, ids[0], 30); result.Reason != readAloudExperimentalOff || len(fake.calls) != 0 {
+		if result := recordStartAt(t, host, fake, nil, nil, ids[0], 30); result.Reason != readAloudUnsupported || len(fake.calls) != 0 {
 			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
 		}
 	})
@@ -473,7 +473,7 @@ func TestRecordRefusalsNameTheAdapterNotReaper(t *testing.T) {
 	if got := readAloudConnectionRefusal("Audacity", reaperStandalone); strings.Contains(got.Message, "REAPER") {
 		t.Fatalf("message = %q", got.Message)
 	}
-	if got := readAloudExperimentalOffRefusal("Audacity"); strings.Contains(got.Message, "REAPER") {
+	if got := readAloudUnsupportedRefusal("Audacity"); strings.Contains(got.Message, "REAPER") {
 		t.Fatalf("message = %q", got.Message)
 	}
 	// No string literal in this file spells REAPER outside the adapter-name helper (comments are free to).
@@ -498,10 +498,10 @@ func TestRecordRefusalsNameTheAdapterNotReaper(t *testing.T) {
 	}
 }
 
-func TestReadAloudRecordStartWithNoRecorderIsExperimentalOff(t *testing.T) {
+func TestReadAloudRecordStartWithNoRecorderIsUnsupported(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	result := recordStart(t, host, nil, nil, ids[0])
-	if result.Outcome != "refused" || result.Reason != readAloudExperimentalOff {
+	if result.Outcome != "refused" || result.Reason != readAloudUnsupported {
 		t.Fatalf("result = %+v", result)
 	}
 }
@@ -542,12 +542,12 @@ func TestReadAloudRecordStopLeavesARecordingItDidNotStartAlone(t *testing.T) {
 	}
 }
 
-func TestReadAloudRecordStopWithNoRecorderIsExperimentalOff(t *testing.T) {
+func TestReadAloudRecordStopWithNoRecorderIsUnsupported(t *testing.T) {
 	result, err := readAloudRecordStopIn(context.Background(), "REAPER", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Outcome != "refused" || result.Reason != readAloudExperimentalOff {
+	if result.Outcome != "refused" || result.Reason != readAloudUnsupported {
 		t.Fatalf("result = %+v", result)
 	}
 }
@@ -641,7 +641,7 @@ func TestRecorderFromIsNilWithoutAResolver(t *testing.T) {
 // disarms the others: one arm, record start and record stop per REAPER
 // state the mock (`?mockReaper=`) can put a chapter in, plus the stale-track and no-link cases only the host can
 // reach. wireContracts.test.ts cross-checks every mock seed but "unavailable" (its own reason, standalone, differs
-// from experimental_off's here on purpose - the read-aloud-reaper-states golden the same way).
+// from unsupported's here on purpose - the read-aloud-reaper-states golden the same way).
 func TestContractReadAloudRecordings(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	answers := map[string]ReadAloudRecording{}
@@ -676,7 +676,7 @@ func TestContractReadAloudRecordings(t *testing.T) {
 	record("several_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 3, Changed: true}}, ids[0])
 	record("recording_elsewhere", &fakeRecorder{armErr: bridge.ErrAlreadyRecording, startErr: bridge.ErrAlreadyRecording}, ids[0])
 	record("track_missing", &fakeRecorder{armErr: &bridge.TrackStaleError{GUID: readAloudTrack}, startErr: &bridge.TrackStaleError{GUID: readAloudTrack}}, ids[0])
-	record("experimental_off", nil, ids[0])
+	record("unsupported", nil, ids[0])
 	record("no_link", &fakeRecorder{}, ids[1])
 	contractfile.Check(t, "read-aloud-recordings", answers)
 }

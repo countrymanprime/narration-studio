@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { expect, fn, screen, userEvent, within } from 'storybook/test';
+import { expect, fn, screen, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
@@ -10,13 +10,12 @@ import { RecordSetup } from './RecordSetup';
 import { brand } from '../../../brand.gen';
 
 // The Booth's one-time recording setup, above the footer while Record is unavailable for a reason the narrator can fix from the Booth:
-// the Experimental record capability switched off with its one-click turn-on, and REAPER not connected or not answering with
-// the launcher steps. It is drawn on the footer's surface, as on the page.
+// REAPER not connected or not answering with the launcher steps, and a different project open in REAPER. It is drawn on the footer's surface, as on the page.
 const LAUNCHER = `C:\\Users\\narrator\\AppData\\Local\\${brand.identity.dataFolder}\\runtime\\5f2c\\reaper\\${brand.identity.reaperLauncher}`;
 
-const refused = (reason: 'experimental_off' | 'standalone' | 'not_running', message: string): DawCapabilities => ({
+const refused = (reason: 'standalone' | 'not_running', message: string): DawCapabilities => ({
   ...DAW_SETUPS.reaper,
-  reachable: reason === 'experimental_off',
+  reachable: false,
   capabilities: { ...DAW_SETUPS.reaper.capabilities, record: { level: 'experimental', available: false, reason, message } },
 });
 
@@ -52,7 +51,7 @@ const meta = {
   title: 'Booth/RecordSetup',
   component: Strip,
   args: {
-    capabilities: refused('experimental_off', 'Experimental: switched off in Settings.'),
+    capabilities: refused('standalone', 'REAPER is not connected to this app. Open this app from REAPER to use it.'),
     linked: true,
     say: fn(),
     onSettings: fn(),
@@ -62,35 +61,6 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-/** Record switched off: a chip above the footer, and the dialog it opens (as a press of Record does) turns Record on in one click. */
-export const TurnOnRecord: Story = {
-  play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Record is switched off. Show details' }));
-    const open = await screen.findByRole('dialog', { name: 'Recording in REAPER is experimental' });
-    await expect(within(open).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
-  },
-};
-
-/** The app's own recorder with Experimental off: no DAW setup and no track, and the take goes in the project's Recordings folder. */
-export const TurnOnRecordBuiltIn: Story = {
-  args: {
-    capabilities: {
-      ...DAW_SETUPS.builtin,
-      capabilities: {
-        ...DAW_SETUPS.builtin.capabilities,
-        record: { level: 'experimental', available: false, reason: 'experimental_off', message: 'Experimental: switched off in Settings.' },
-      },
-    },
-    linked: false,
-  },
-  play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Record is switched off. Show details' }));
-    const open = await screen.findByRole('dialog', { name: 'Recording in the built-in recorder is experimental' });
-    await expect(within(open).getByText(/saved in the project's Recordings folder/)).toBeInTheDocument();
-    await expect(within(open).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
-  },
-};
 
 /** REAPER is not connected: a chip stands in the Booth and a dialog opens by itself once with the launcher steps and Open in REAPER. */
 export const ConnectReaper: Story = {

@@ -45,15 +45,7 @@ import { optionalFromNull } from './base';
 
 const DAW_KINDS = ['REAPER', 'Audacity', 'Built-in', 'none'] as const satisfies readonly DawKind[];
 const DAW_CAPABILITY_LEVELS = ['unsupported', 'not_yet_available', 'experimental', 'supported'] as const satisfies readonly DawCapabilityLevel[];
-const DAW_CAPABILITY_REASONS = [
-  'standalone',
-  'not_running',
-  'experimental_off',
-  'failed',
-  'turned_off',
-  'not_yet',
-  'unsupported',
-] as const satisfies readonly DawCapabilityReason[];
+const DAW_CAPABILITY_REASONS = ['standalone', 'not_running', 'failed', 'not_yet', 'unsupported'] as const satisfies readonly DawCapabilityReason[];
 const DAW_CAPABILITY_MODES = ['native', 'app', 'steps'] as const satisfies readonly DawCapabilityMode[];
 
 export const dawCapabilitySupportSchema = z.object({
@@ -86,7 +78,6 @@ export const dawChoiceSchema = z.strictObject({
   linkedFile: z.string().nullable(),
   foundFiles: z.array(z.string()),
   launcherAutoStart: z.boolean(),
-  experimental: z.boolean(),
   options: z.array(
     z.strictObject({
       daw: z.enum(CHOOSABLE_DAWS),

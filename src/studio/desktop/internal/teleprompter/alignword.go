@@ -49,14 +49,10 @@ func (s *Service) AlignWord(ctx context.Context, request AlignRequest) (WordTime
 	if request.Word < 0 {
 		return WordTime{}, errors.New("choose a word of the chapter to time")
 	}
-	var placement hostPlacement
-	placed := false
+	var manuscriptPath string
 	code, out, stderr, err := s.runOverRecording(ctx, request.Recording, func(manuscript string) []string {
-		args := s.alignWordArgs(manuscript, request)
-		if placement, placed = placementFor(manuscript, request.Recording.Chapter); placed {
-			args = append(args, "--words-only")
-		}
-		return args
+		manuscriptPath = manuscript
+		return s.alignWordArgs(manuscript, request)
 	})
 	if err != nil {
 		return WordTime{}, err
@@ -67,14 +63,11 @@ func (s *Service) AlignWord(ctx context.Context, request AlignRequest) (WordTime
 	if code != 0 {
 		return WordTime{}, errors.New(failureMessage(code, stderr, "Could not time the word in the recording"))
 	}
-	if placed {
-		heard, err := parseHeard(out)
-		if err != nil {
-			return WordTime{}, err
-		}
-		out = placedLine(scripttrack.WordTimeEvent(heard, placement.tokens, request.Word, sidecarSeconds(request.Recording.From)))
+	placement, heard, err := placed(manuscriptPath, request.Recording.Chapter, out)
+	if err != nil {
+		return WordTime{}, err
 	}
-	return parseWordTime(out, request)
+	return parseWordTime(placedLine(scripttrack.WordTimeEvent(heard, placement.tokens, request.Word, sidecarSeconds(request.Recording.From))), request)
 }
 
 // parseWordTime finds the one `word_time` line among the sidecar's stdout lines (a library may print other lines).

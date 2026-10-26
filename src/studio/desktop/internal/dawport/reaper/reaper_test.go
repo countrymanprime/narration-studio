@@ -280,13 +280,12 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 
 func typeName(v any) string { return fmt.Sprintf("%T", v) }
 
-// bridge.Actions' gating is the resolver's: with nothing allowed, an experimental command is refused before anything
-// is written, as it was behind the old switch.
+// bridge.Actions' gating is the resolver's: with no gate at all, a command is refused before anything is written.
 func TestActionsWithNothingAllowedWriteNothing(t *testing.T) {
 	adapter, dir := newAdapter(t, nil)
 	punch := adapter.Role(dawport.CapPunch).(dawport.Puncher)
-	if _, err := punch.PlayPosition(t.Context()); !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Errorf("PlayPosition with nothing allowed = %v, want ErrExperimentalOff", err)
+	if _, err := punch.PlayPosition(t.Context()); !errors.Is(err, bridge.ErrNotGated) {
+		t.Errorf("PlayPosition with nothing allowed = %v, want ErrNotGated", err)
 	}
 	if entries, _ := os.ReadDir(filepath.Join(dir, "commands")); len(entries) != 0 {
 		t.Errorf("a refused command wrote %d files", len(entries))
@@ -294,23 +293,12 @@ func TestActionsWithNothingAllowedWriteNothing(t *testing.T) {
 }
 
 // resolverOver is the composition root's wiring in miniature: the adapter's Env.Allowed is a closure over the resolver built over
-// that same adapter, reading the narrator's settings from values.
-func resolverOver(t *testing.T, values map[string]string) (*dawport.Resolver, *Adapter, string) {
+// that same adapter.
+func resolverOver(t *testing.T) (*dawport.Resolver, *Adapter, string) {
 	t.Helper()
 	var resolver *dawport.Resolver
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error { return resolver.Allowed(c) })
-	effective := func(tool, key, fallback string) (string, string) {
-		if v, ok := values[tool+"."+key]; ok {
-			return v, "global"
-		}
-		return fallback, "hardcoded"
-	}
-	resolver = dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      adapter,
-		Runtime:      adapter.Runtime,
-		Toggle:       dawport.SettingsToggles(effective),
-		Experimental: dawport.SettingsExperimental(effective),
-	})
+	resolver = dawport.NewResolver(dawport.ResolverConfig{Adapter: adapter, Runtime: adapter.Runtime})
 	return resolver, adapter, dir
 }
 
@@ -340,50 +328,24 @@ func commandsWritten(t *testing.T, dir string) int {
 	return len(entries)
 }
 
-// Turning punch on alone in Settings lets punch's commands out and nothing else.
-func TestTurningPunchOnAloneSendsPunchAndNothingElse(t *testing.T) {
-	_, adapter, dir := resolverOver(t, map[string]string{"DAW.capability.punch": "on"})
-	fx := adapter.Role(dawport.CapFXChains).(dawport.FXManager)
-	if _, err := fx.ListFXChains(t.Context()); !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Fatalf("ListFXChains with only punch on = %v, want ErrExperimentalOff", err)
-	}
-	if n := commandsWritten(t, dir); n != 0 {
-		t.Fatalf("a refused FX command wrote %d files", n)
-	}
-	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(200 * time.Millisecond)
-	punch := adapter.Role(dawport.CapPunch).(dawport.Puncher)
-	n, err := sentWhileWaiting(t, dir, func() error { _, err := punch.PlayPosition(t.Context()); return err })
-	if errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Fatalf("PlayPosition with punch on = %v: it was refused", err)
-	}
-	if n != 1 {
-		t.Fatalf("PlayPosition with punch on wrote %d command files, want 1", n)
-	}
-}
-
-// The old switch keeps working through the resolver: on, it lets every Experimental capability on auto out, but not one the
-// narrator turned off.
-func TestTheOldSwitchStillTurnsExperimentalCapabilitiesOn(t *testing.T) {
-	_, adapter, dir := resolverOver(t, map[string]string{"DAW.experimental_reaper_actions": "true", "DAW.capability.fx_chains": "off"})
-	fx := adapter.Role(dawport.CapFXChains).(dawport.FXManager)
-	_, err := fx.ListFXChains(t.Context())
-	var refusal *dawport.NotSupportedError
-	if !errors.As(err, &refusal) || refusal.Support.Reason != dawport.ReasonTurnedOff {
-		t.Fatalf("ListFXChains turned off = %v, want a turned_off refusal", err)
-	}
-	if n := commandsWritten(t, dir); n != 0 {
-		t.Fatalf("a refused FX command wrote %d files", n)
-	}
+// Once REAPER is linked, every capability it declares is sent, Experimental ones included: no setting stands in the way.
+func TestEveryDeclaredCapabilityIsSentWithNoSetting(t *testing.T) {
+	_, adapter, dir := resolverOver(t)
+	// One bridge.Actions serves both roles, so this timeout is the FX chains' too.
 	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(200 * time.Millisecond)
 	n, err := sentWhileWaiting(t, dir, func() error {
+		_, err := adapter.Role(dawport.CapFXChains).(dawport.FXManager).ListFXChains(t.Context())
+		return err
+	})
+	if errors.Is(err, dawport.ErrNotSupported) || n != 1 {
+		t.Fatalf("ListFXChains = %v and wrote %d command files, want it sent once", err, n)
+	}
+	n, err = sentWhileWaiting(t, dir, func() error {
 		_, err := adapter.Role(dawport.CapPunch).(dawport.Puncher).PlayPosition(t.Context())
 		return err
 	})
-	if errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Fatalf("PlayPosition on auto with the old switch on = %v: it was refused", err)
-	}
-	if n != 1 {
-		t.Fatalf("wrote %d command files, want 1", n)
+	if errors.Is(err, dawport.ErrNotSupported) || n != 1 {
+		t.Fatalf("PlayPosition = %v and wrote %d command files, want it sent once", err, n)
 	}
 }
 
@@ -403,8 +365,8 @@ func TestGateMapsEveryActionsCommandToItsCapability(t *testing.T) {
 	if err := gate("no_such_command"); err == nil {
 		t.Error("gate(no_such_command) let an unknown command through")
 	}
-	if err := Gate(nil)("punch_to"); !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Errorf("Gate(nil)(punch_to) = %v, want ErrExperimentalOff", err)
+	if err := Gate(nil)("punch_to"); !errors.Is(err, bridge.ErrNotGated) {
+		t.Errorf("Gate(nil)(punch_to) = %v, want ErrNotGated", err)
 	}
 }
 
@@ -420,7 +382,7 @@ func TestDeclarationIsTheAdaptersDeclarationWithNoRoles(t *testing.T) {
 			t.Errorf("Declaration().Role(%s) = %T, want nil", spec.Capability, role)
 		}
 	}
-	for _, reason := range []dawport.Reason{dawport.ReasonStandalone, dawport.ReasonNotRunning, dawport.ReasonTurnedOff} {
+	for _, reason := range []dawport.Reason{dawport.ReasonStandalone, dawport.ReasonNotRunning, dawport.ReasonNotYet} {
 		if got, want := d.(dawport.Explainer).Explain(dawport.CapPunch, reason), adapter.Explain(dawport.CapPunch, reason); got != want {
 			t.Errorf("Explain(%s) = %q, want the adapter's %q", reason, got, want)
 		}
@@ -476,8 +438,8 @@ func TestExplainUsesREAPERsWording(t *testing.T) {
 	if got := resolver(dawport.Runtime{Bridge: true}).Support(dawport.CapNavigate).Message; got != messageNotRunning {
 		t.Errorf("not running message = %q, want %q", got, messageNotRunning)
 	}
-	if got := resolver(dawport.Runtime{Bridge: true, Reachable: true}).Support(dawport.CapPunch).Message; got != "Experimental: switched off in Settings." {
-		t.Errorf("experimental_off message = %q, want the resolver's own", got)
+	if s := resolver(dawport.Runtime{Bridge: true, Reachable: true}).Support(dawport.CapPunch); !s.Available || s.Message != "" {
+		t.Errorf("punch with REAPER answering = %+v, want available with no message", s)
 	}
 }
 
@@ -553,11 +515,11 @@ func TestHideTakesRefusesWhileRecordingAndPassesOnACallThatNeverAnswered(t *test
 
 // A capability the resolver refuses is a refused Result in the refusal's own sentence, and nothing is written.
 func TestHideTakesIsGatedByTheResolver(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to choose takes."
+	sentence := "REAPER cannot choose takes from this app."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	got, err := adapter.Role(dawport.CapTakes).(dawport.TakeSelector).HideTakes(t.Context(), hideItem, hideTake)
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
@@ -571,9 +533,8 @@ func TestHideTakesIsGatedByTheResolver(t *testing.T) {
 	}
 
 	ungated, dir := newAdapter(t, nil)
-	got, err = ungated.Role(dawport.CapTakes).(dawport.TakeSelector).HideTakes(t.Context(), hideItem, hideTake)
-	if err != nil || !reflect.DeepEqual(got, dawport.Refused(bridge.ErrExperimentalOff.Error())) {
-		t.Errorf("HideTakes with nothing allowed = %+v, %v; want refused as experimental and off", got, err)
+	if _, err = ungated.Role(dawport.CapTakes).(dawport.TakeSelector).HideTakes(t.Context(), hideItem, hideTake); !errors.Is(err, bridge.ErrNotGated) {
+		t.Errorf("HideTakes with no gate = %v, want ErrNotGated", err)
 	}
 	if n := len(sentCommands(t, dir)); n != 0 {
 		t.Errorf("a refused hide wrote %d commands", n)
@@ -620,11 +581,11 @@ func TestSplitTakeIsExperimentalAndAnswersADawResult(t *testing.T) {
 		}
 	}
 
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to choose takes."
+	sentence := "REAPER cannot choose takes from this app."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	got, err = adapter.Role(dawport.CapTakes).(dawport.TakeSplitter).SplitTake(t.Context(), hideItem, hideTake, 15.5)
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) || len(asked) == 0 || asked[0] != dawport.CapTakes {
@@ -688,11 +649,11 @@ func TestReduceRangeGainIsExperimentalAndAnswersADawResult(t *testing.T) {
 		}
 	}
 
-	refusedSentence := "Experimental DAW actions are off. Turn them on in Settings to lower stretches."
+	refusedSentence := "REAPER cannot lower stretches from this app."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: refusedSentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: refusedSentence}}
 	})
 	got, err = adapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer).ReduceRangeGain(t.Context(), request)
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(refusedSentence)) || len(asked) == 0 || asked[0] != dawport.CapRangeGain {
@@ -762,11 +723,11 @@ func TestRepairClickIsExperimentalAndAnswersADawResult(t *testing.T) {
 		}
 	}
 
-	refusedSentence := "Experimental DAW actions are off. Turn them on in Settings to repair clicks."
+	refusedSentence := "REAPER cannot repair clicks from this app."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: refusedSentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: refusedSentence}}
 	})
 	got, err = adapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer).RepairClick(t.Context(), request)
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(refusedSentence)) || len(asked) == 0 || asked[0] != dawport.CapClickRepair {
@@ -847,9 +808,9 @@ func TestRollThatStoppedButDidNotRecordAgainSaysTheRecordingEnded(t *testing.T) 
 }
 
 func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to roll."
+	sentence := "REAPER cannot roll from this app."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	got, err := adapter.Role(dawport.CapPunch).(dawport.Puncher).Roll(t.Context(), rollTrack, 40)
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
@@ -960,9 +921,9 @@ func TestDeleteRangeRefusesABadRequestWithoutSendingIt(t *testing.T) {
 }
 
 func TestDeleteRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to cut words and audio."
+	sentence := "REAPER cannot cut words and audio from this app."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	got, err := adapter.Role(dawport.CapCutRange).(dawport.RangeCutter).DeleteRange(t.Context(), cutRequest(2, dawport.CutClose))
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
@@ -1090,9 +1051,9 @@ func TestFXRangeRefusesABadRequestWithoutSendingIt(t *testing.T) {
 }
 
 func TestFXRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to add an effect to words."
+	sentence := "REAPER cannot add an effect to words from this app."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	fx := adapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
 	if got, err := fx.ApplyFXToRange(t.Context(), fxRangeRequest(2)); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
@@ -1205,9 +1166,9 @@ func TestStackTakesRefusesABadRequestWithoutSendingIt(t *testing.T) {
 }
 
 func TestStackTakesIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to stack takes."
+	sentence := "REAPER cannot stack takes from this app."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	stacker := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
 	if got, err := stacker.StackTakes(t.Context(), stackTakesRequest(-6, 16, 10)); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
@@ -1416,9 +1377,9 @@ func TestFXRangeEditRefusals(t *testing.T) {
 }
 
 func TestFXRangeEditsAreGatedByTheResolverAndSendNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to add an effect to words."
+	sentence := "REAPER cannot add an effect to words from this app."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	editor := adapter.Role(dawport.CapFXRange).(dawport.RangeFXEditor)
 	if got, err := editor.FXRangeParams(t.Context(), fxTarget()); err != nil || !reflect.DeepEqual(got.Result, dawport.Refused(sentence)) {

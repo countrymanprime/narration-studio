@@ -101,14 +101,78 @@ local function restore_arms(state)
   return restored, kept
 end
 
--- Ends the recording this bridge started: forgets it, puts the arms back and remembers the undo points it left
--- (state.last_take, nil when it left none). Answers the arms restored and kept, and the undo points.
+-- Where a stopped recording ended: the end of the item REAPER made from the recording's start on its track (the
+-- latest when several start there), else the last play position read while it recorded (auto-punch records only the
+-- time selection, so its item starts elsewhere), else nil.
+local STOP_EPSILON = 0.0005
+local function stopped_at(record)
+  local track = find_track(record.track)
+  local found
+  if track then
+    for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+      local item = reaper.GetTrackMediaItem(track, index)
+      local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+      if math.abs(position - record.position) <= STOP_EPSILON then
+        local stop = position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+        found = math.max(found or stop, stop)
+      end
+    end
+  end
+  return found or record.last_play
+end
+
+-- Ends the recording this bridge started: forgets it, puts the arms back, leaves the edit cursor where the recording
+-- stopped and remembers the undo points it left (state.last_take, nil when it left none). Answers the arms restored and
+-- kept, and the undo points.
+--
+-- REAPER's Stop leaves the edit cursor where recording began. The narrator goes on from where they stopped, so a
+-- recording that ran ends with the cursor at its end, in view and without seeking playback, whoever pressed Stop. No
+-- REAPER preference is read or changed. The undo points are counted before the move, and the take's change count read
+-- after it, so the move is never counted as the take's nor makes record_take take it for another action.
+-- How many defer cycles after a stop (about half a second) a seek of REAPER's back to where the recording began is undone.
+local GUARD_CYCLES = 15
+
+-- Keeps the cursor at the stop position for GUARD_CYCLES cycles: a cursor back at the recording's start (REAPER seeking
+-- there after the stop) is put back at the stop; one anywhere else is the narrator's and ends the guard at once.
+local function guard_stop(state, at, from)
+  local guard = { at = at, from = from, cycles = GUARD_CYCLES }
+  state.stop_guard = guard
+  local function tick()
+    if state.stop_guard ~= guard then
+      return
+    end
+    local now = reaper.GetCursorPosition()
+    if math.abs(now - guard.at) > STOP_EPSILON then
+      if math.abs(now - guard.from) > STOP_EPSILON then
+        state.stop_guard = nil
+        return
+      end
+      reaper.SetEditCurPos(guard.at, true, false)
+    end
+    guard.cycles = guard.cycles - 1
+    if guard.cycles <= 0 then
+      state.stop_guard = nil
+      return
+    end
+    reaper.defer(tick)
+  end
+  reaper.defer(tick)
+end
+
 local function finish(state)
   local record = state.recording
   state.recording = nil
   local restored, kept = restore_arms(state)
   local count = reaper.GetProjectStateChangeCount(0)
   local points = record and record.changes_before and math.max(0, count - record.changes_before) or 0
+  local stop = record and record.started and stopped_at(record)
+  if stop then
+    reaper.SetEditCurPos(stop, true, false)
+    count = reaper.GetProjectStateChangeCount(0)
+    -- Where the narrator stopped on this track, for record_start's end rule.
+    state.last_stop = { track = record.track, at = stop }
+    guard_stop(state, stop, record.position)
+  end
   local label = reaper.Undo_CanUndo2(0)
   if points > 0 and type(label) == 'string' and label ~= '' then
     state.last_take = { count = count, label = label, points = points }
@@ -305,6 +369,8 @@ local function watch(session_dir, state, record)
       return
     end
     if recording() then
+      -- Where REAPER records now, for where it stopped when no item starts at the recording's start.
+      record.last_play = reaper.GetPlayPosition()
       reaper.defer(tick)
       return
     end
@@ -363,9 +429,16 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule)
     return
   end
   if start_rule == 'end' then
-    -- Only now that every check passed. Like punch_to: scroll the view, do not seek playback, open no undo block.
-    reaper.SetEditCurPos(track_end(target), true, false)
+    -- Only now that every check passed. Like punch_to: scroll the view, do not seek playback, open no undo block. A cursor
+    -- still where the last take on this track stopped is where the narrator goes on, later audio or not; anywhere else
+    -- the take starts after the track's last item, so it never records over audio from a place nobody chose.
+    local last = state.last_stop
+    local here = last and last.track == track_guid(target) and math.abs(reaper.GetCursorPosition() - last.at) <= STOP_EPSILON
+    if not here then
+      reaper.SetEditCurPos(track_end(target), true, false)
+    end
   end
+  state.stop_guard = nil
   local record = {
     run_id = run_id,
     track = track_guid(target),
@@ -392,6 +465,8 @@ local function record_stop(session_dir, state, run_id)
     event(session_dir, 'ERROR', record.run_id, 'Recording was stopped before REAPER started it.')
   end
   if recording() then
+    -- Read before the stop: GetPlayPosition answers 0 just after it (docs/reference/daw/reaper.md, Transport).
+    record.last_play = reaper.GetPlayPosition()
     reaper.OnStopButton()
   end
   local restored, kept, points = finish(state)

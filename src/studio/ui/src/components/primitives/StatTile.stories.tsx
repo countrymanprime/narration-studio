@@ -55,8 +55,6 @@ export const Danger: Story = { args: { label: 'Delivery check', value: '4 of 12'
 
 export const Info: Story = { args: { label: 'REAPER linked', value: 'following Ch 7', tone: 'info', hint: undefined } };
 
-export const Experimental: Story = { args: { label: 'Punch estimate', value: '~2 min', tone: 'experimental', hint: 'from an unreleased analyzer' } };
-
 // Rate figures and pace read as single tight numbers; long labels and hints must not push the tile sideways.
 export const LongLabelWraps: Story = {
   args: {

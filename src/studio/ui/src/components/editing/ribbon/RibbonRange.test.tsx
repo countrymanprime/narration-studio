@@ -109,7 +109,9 @@ describe('the range on the waveform', () => {
     act(() => state.dispatch({ type: 'play', t: 5.1 }));
     await ready();
     expect(screen.queryByRole('slider', { name: 'Start of range' })).toBeNull();
-    expect(screen.getByText(/Drag to choose a range; right-drag/)).toBeTruthy();
+    // How to make one is behind the "?", not a line under the waveform (#2251): the notes slot is empty.
+    expect(document.querySelector('[data-ribbon-notes]')?.textContent).toBe('');
+    expect(screen.getByRole('button', { name: 'Waveform gestures' }).getAttribute('aria-description')).toMatch(/^Drag: select\./);
   });
 
   it('selecting words sets the range to their span', async () => {
@@ -479,15 +481,6 @@ describe('zoom', () => {
     act(() => state.dispatch({ type: 'play', t: null }));
     act(() => state.dispatch({ type: 'play', t: 7.3 }));
     expect(label()).toBe('0:06.80 to 0:07.80');
-  });
-
-  it('says what a bar is when the zoom is finer than the peaks, and not when it is not', async () => {
-    mount();
-    await ready();
-    expect(document.querySelector('[data-peaks-detail]')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
-    expect(document.querySelector('[data-peaks-detail]')?.textContent).toBe('Each bar is 20 ms of audio at this zoom: the host keeps 50 peaks a second.');
   });
 
   it('keeps the range when the view moves, and the handles stay on their times', async () => {

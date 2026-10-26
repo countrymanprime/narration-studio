@@ -86,8 +86,6 @@ func (u lastActionUndoer) UndoLast(ctx context.Context, kind dawport.ActionKind,
 		return dawport.Refused(messageUndoScriptOutdated), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case err != nil:
 		return dawport.Result{}, err
 	}

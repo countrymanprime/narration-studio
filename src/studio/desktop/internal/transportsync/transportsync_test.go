@@ -125,7 +125,6 @@ func TestTransportSyncWordsEachFailureAsASentence(t *testing.T) {
 		"no answer":      bridge.ErrNoAnswer,
 		"unavailable":    bridge.ErrUnavailable,
 		"deadline":       context.DeadlineExceeded,
-		"experimental":   bridge.ErrExperimentalOff,
 		"something else": errors.New("boom"),
 	} {
 		got := run(t, &fakeSyncer{err: err}, available(), true, "play", 3)

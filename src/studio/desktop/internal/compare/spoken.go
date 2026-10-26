@@ -39,10 +39,8 @@ var fillerWords = map[string]bool{"uh": true, "um": true, "umm": true, "uhh": tr
 // IsFiller reports whether token is a filler word the alignment drops.
 func IsFiller(token string) bool { return fillerWords[token] }
 
-// homophonesCSV is spoken_forms.HOMOPHONE_GROUPS written out as CSV (a Go
-// embed cannot reach Python data);
-// src/studio/libs/python/tests/test_spoken_forms.py fails when the two drift
-// apart.
+// homophonesCSV is the homophone groups, once spoken_forms.HOMOPHONE_GROUPS:
+// the Python copy is gone, so this is the only list.
 //
 //go:embed homophones.csv
 var homophonesCSV string

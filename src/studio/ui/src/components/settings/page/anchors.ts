@@ -14,8 +14,6 @@ export const ANCHOR_TARGETS: Record<string, { cat: CategoryId; row: string | nul
   Delivery: { cat: 'delivery', row: 'delivery.profile' },
   Cleanup: { cat: 'pages', row: 'ps.cleanup' },
   Teleprompter: { cat: 'recording', row: 'daw.mic' },
-  // The Booth's Levels menu: the switch that keeps its Experimental rows off.
-  Experimental: { cat: 'recording', row: 'daw.experimental' },
   // The jump menu's "Settings: <category>": `/settings#category-<id>` opens the category with no row to light up.
   ...Object.fromEntries(CATEGORIES.map((category) => [categoryAnchorKey(category.id), { cat: category.id, row: null }])),
 };

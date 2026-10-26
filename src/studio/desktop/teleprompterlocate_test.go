@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -31,8 +30,7 @@ const (
 )
 
 // runFakeTeleprompterLocate stands in for the sidecar's `--locate` mode (locate.py): it records its arguments and
-// prints one `locate` line, the shape the Python contract test pins (teleprompter-locate.json). Its token count is the
-// chapter's as the host tokenises it, so the resume verdict compares like with like.
+// prints the `heard` line of the chapter's own words up to the word the test names, which the host places.
 func runFakeTeleprompterLocate() bool {
 	if len(os.Args) < 2 || os.Args[1] != "--locate" {
 		return false
@@ -55,25 +53,17 @@ func runFakeTeleprompterLocate() bool {
 	default:
 		_, _ = fmt.Sscan(value, &word)
 	}
-	if slices.Contains(os.Args, "--words-only") {
-		// The host places the words itself: hear the chapter's own words up to the word, 30 of them for a confident place
-		// and 4 for an unsure one.
-		count := 30
-		if os.Getenv(fakeLocateUnsureEnv) != "" {
-			count = 4
-		}
-		printFakeHeard(fakeArg("--manuscript"), fakeArg("--chapter"), word-count, word, 0)
-		return true
-	}
-	confident, confidence := true, 0.812
+	// The host places the words itself: hear the chapter's own words up to the word, 30 of them for a confident place
+	// and 4 for an unsure one.
+	count := 30
 	if os.Getenv(fakeLocateUnsureEnv) != "" {
-		confident, confidence = false, 0.31
+		count = 4
 	}
-	fmt.Printf(`{"type":"locate","word":%d,"last":%d,"sentence":{"start":23,"end":59,"text":"Once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, and what is the use of a book, thought Alice, without pictures or conversations?"},"confidence":%g,"confident":%t,"matched":30,"heard":32,"runnerUp":4,"tokens":%d,"heardText":"do once or twice she had peeped into the book her sister was reading but it had no pictures or conversations in it and what is the use of a"}`+"\n", word, word-1, confidence, confident, tokens)
+	printFakeHeard(fakeArg("--manuscript"), fakeArg("--chapter"), word-count, word, 0)
 	return true
 }
 
-// printFakeHeard prints the `heard` line of a `--words-only` run that heard the chapter's tokens [from, to): each word
+// printFakeHeard prints the `heard` line of a run that heard the chapter's tokens [from, to): each word
 // 0.3 s long, word `at` starting one second into the stretch.
 func printFakeHeard(manuscript, chapter string, from, to, at int) {
 	script, _ := scripttrack.LoadChapterScript(manuscript, chapter)

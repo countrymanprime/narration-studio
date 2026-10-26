@@ -7,18 +7,14 @@ import { CapabilityGate, type CapabilityEntry } from './CapabilityGate';
 import { IconButton } from './IconButton';
 import { NavButton } from './NavButton';
 
-// The badge's fill is a tint checked against a surface, the same backdrop every real caller gives it (StatusBadge.stories.tsx),
-// never the bare page background the atlas's own decorator otherwise renders a story on.
+// A surface, the same backdrop every real caller gives the control, never the bare page background the atlas's own decorator
+// otherwise renders a story on.
 function OnSurface({ children }: { children: ReactNode }) {
   return <div className="rounded-lg bg-[var(--surface)] p-6">{children}</div>;
 }
 
 const SUPPORTED: CapabilityEntry = { level: 'supported', available: true };
-const EXPERIMENTAL_ON: CapabilityEntry = {
-  level: 'experimental',
-  available: true,
-  message: 'Experimental: switched on in Settings',
-};
+const BUILT_ON: CapabilityEntry = { level: 'experimental', available: true };
 const NOT_YET_AVAILABLE: CapabilityEntry = {
   level: 'not_yet_available',
   available: false,
@@ -48,12 +44,11 @@ export const SupportedIsUnchanged: Story = {
   ),
 };
 
-// `experimental` and available: the control stays live, but an "Experimental" badge and the host's message
-// (as its description) mark it out.
-export const ExperimentalIsEnabledWithABadge: Story = {
+// Available but not yet through the owner's verification pass: the control is live and carries no badge, the same as `supported`.
+export const BuiltIsUnchanged: Story = {
   render: () => (
     <OnSurface>
-      <CapabilityGate capability={EXPERIMENTAL_ON}>
+      <CapabilityGate capability={BUILT_ON}>
         <IconButton label="Apply FX chain" onClick={fn()}>
           FX
         </IconButton>
@@ -64,10 +59,7 @@ export const ExperimentalIsEnabledWithABadge: Story = {
     const canvas = within(canvasElement);
     const button = canvas.getByRole('button', { name: 'Apply FX chain' });
     await expect(button).not.toHaveAttribute('aria-disabled');
-    await expect(canvas.getByText('Experimental')).toBeVisible();
-    const describedBy = button.getAttribute('aria-describedby');
-    await expect(describedBy).toBeTruthy();
-    await expect(document.getElementById(describedBy as string)).toHaveTextContent('Experimental: switched on in Settings');
+    await expect(canvas.queryByText(/experimental/i)).toBeNull();
   },
 };
 

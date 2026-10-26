@@ -11,9 +11,9 @@ import (
 	"desktop/internal/layout"
 )
 
-// The tracker is held to what script_tracker.py answers, in tests/fixtures/booth-parity: every recorded and synthetic
+// The tracker is held to what script_tracker.py answered, in tests/fixtures/booth-parity: every recorded and synthetic
 // session (tracker-sessions.jsonl) and every single call (tracker-cases.jsonl), against the .golden.jsonl beside each,
-// written by src/studio/sidecars/manuscript-teleprompter/tests/test_tracker_parity.py.
+// frozen since the Python tracker was deleted.
 
 func fixture(t testing.TB, name string) []string {
 	t.Helper()
