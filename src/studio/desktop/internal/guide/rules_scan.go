@@ -97,7 +97,7 @@ var scanContractions = []string{"m", "ll", "re", "ve", "d", "t"}
 var scanSpeechVerbs = func() map[string]bool {
 	words := wordSet("says", "asks", "replies", "screamed", "told", "tells", "wrote", "nodded", "shrugged", "sighed", "frowned",
 		"grinned", "smiled", "laughed", "wept", "groaned", "growled", "hissed", "sobbed", "breathed", "insisted", "admitted",
-		"agreed", "begged", "pleaded", "promised", "warned", "explained", "observed", "began", "went", "thought", "wondered")
+		"agreed", "begged", "pleaded", "promised", "warned", "explained", "observed", "thought")
 	for verb := range speechVerbs {
 		words[verb] = true
 	}

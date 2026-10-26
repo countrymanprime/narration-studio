@@ -29,7 +29,6 @@
     "new-name: Mabel",
     "new-name: Cheshire Cat",
     "new-name: Eaglet",
-    "new-name: Fish-Footman",
     "new-name: Tortoise",
     "new-name: Lobster Quadrille",
     "new-name: Owl",
@@ -39,8 +38,8 @@
     "new-name: Mercia",
     "new-name: Northumbria",
     "new-name: Caucus-race",
-    "new-name: Magpie",
     "new-name: Canary",
+    "new-name: Fish-Footman",
     "new-name: Cheshire",
     "new-name: Wonderland",
     "new-name: William the Conqueror",
@@ -64,7 +63,6 @@
     "needs-review-name: Lizard",
     "needs-review-name: Mabel",
     "needs-review-name: Eaglet",
-    "new-name: Fish-Footman",
     "needs-review-name: Tortoise",
     "needs-review-name: Lobster Quadrille",
     "new-name: Owl",
@@ -73,8 +71,8 @@
     "new-name: Mercia",
     "new-name: Northumbria",
     "new-name: Caucus-race",
-    "new-name: Magpie",
     "new-name: Canary",
+    "new-name: Fish-Footman",
     "new-name: Cheshire",
     "new-name: Wonderland",
     "new-name: William the Conqueror",
@@ -96,7 +94,6 @@
     "needs-review-name: Queen of Hearts",
     "needs-review-name: Cheshire Cat",
     "needs-review-name: Eaglet",
-    "new-name: Fish-Footman",
     "needs-review-name: Tortoise",
     "needs-review-name: Lobster Quadrille",
     "new-name: Owl",
@@ -106,8 +103,8 @@
     "new-name: Mercia",
     "new-name: Northumbria",
     "new-name: Caucus-race",
-    "new-name: Magpie",
     "new-name: Canary",
+    "new-name: Fish-Footman",
     "new-name: Cheshire",
     "new-name: Wonderland",
     "new-name: William the Conqueror",
@@ -137,7 +134,6 @@
     "new-name: Mabel",
     "new-name: Cheshire Cat",
     "new-name: Eaglet",
-    "new-name: Fish-Footman",
     "new-name: Tortoise",
     "new-name: Lobster Quadrille",
     "new-name: Owl",
@@ -147,8 +143,8 @@
     "new-name: Mercia",
     "new-name: Northumbria",
     "new-name: Caucus-race",
-    "new-name: Magpie",
     "new-name: Canary",
+    "new-name: Fish-Footman",
     "new-name: Cheshire",
     "new-name: Wonderland",
     "new-name: William the Conqueror",
@@ -179,7 +175,6 @@
     "new-name: Mabel",
     "new-name: Cheshire Cat",
     "new-name: Eaglet",
-    "new-name: Fish-Footman",
     "new-name: Tortoise",
     "new-name: Lobster Quadrille",
     "new-name: Owl",
@@ -189,8 +184,8 @@
     "new-name: Mercia",
     "new-name: Northumbria",
     "new-name: Caucus-race",
-    "new-name: Magpie",
     "new-name: Canary",
+    "new-name: Fish-Footman",
     "new-name: Cheshire",
     "new-name: Wonderland",
     "new-name: William the Conqueror",
@@ -214,7 +209,6 @@
     "needs-review-name: Lizard",
     "needs-review-name: Mabel",
     "needs-review-name: Eaglet",
-    "new-name: Fish-Footman",
     "needs-review-name: Tortoise",
     "needs-review-name: Lobster Quadrille",
     "new-name: Owl",
@@ -223,8 +217,8 @@
     "new-name: Mercia",
     "new-name: Northumbria",
     "new-name: Caucus-race",
-    "new-name: Magpie",
     "new-name: Canary",
+    "new-name: Fish-Footman",
     "new-name: Cheshire",
     "new-name: Wonderland",
     "new-name: William the Conqueror",
@@ -254,7 +248,6 @@
     "new-name: Mabel",
     "new-name: Cheshire Cat",
     "new-name: Eaglet",
-    "new-name: Fish-Footman",
     "new-name: Tortoise",
     "new-name: Lobster Quadrille",
     "new-name: Owl",
@@ -264,8 +257,8 @@
     "new-name: Mercia",
     "new-name: Northumbria",
     "new-name: Caucus-race",
-    "new-name: Magpie",
     "new-name: Canary",
+    "new-name: Fish-Footman",
     "new-name: Cheshire",
     "new-name: Wonderland",
     "new-name: William the Conqueror",
@@ -391,78 +384,30 @@
   "edge-quote-window-700": [
     "new-name: Captain Zed"
   ],
-  "edge-sentence-start-13-20": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-13-201c": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-13-28": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-13-a": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-14-20": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-14-201c": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-14-28": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-14-a": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-15-20": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-15-201c": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-15-28": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-15-a": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-16-20": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-16-201c": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-16-28": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-16-a": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-17-20": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-17-201c": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-17-28": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-17-a": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-18-20": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-18-201c": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-18-28": [
-    "new-name: Zed"
-  ],
-  "edge-sentence-start-18-a": [
-    "new-name: Zed"
-  ],
+  "edge-sentence-start-13-20": [],
+  "edge-sentence-start-13-201c": [],
+  "edge-sentence-start-13-28": [],
+  "edge-sentence-start-13-a": [],
+  "edge-sentence-start-14-20": [],
+  "edge-sentence-start-14-201c": [],
+  "edge-sentence-start-14-28": [],
+  "edge-sentence-start-14-a": [],
+  "edge-sentence-start-15-20": [],
+  "edge-sentence-start-15-201c": [],
+  "edge-sentence-start-15-28": [],
+  "edge-sentence-start-15-a": [],
+  "edge-sentence-start-16-20": [],
+  "edge-sentence-start-16-201c": [],
+  "edge-sentence-start-16-28": [],
+  "edge-sentence-start-16-a": [],
+  "edge-sentence-start-17-20": [],
+  "edge-sentence-start-17-201c": [],
+  "edge-sentence-start-17-28": [],
+  "edge-sentence-start-17-a": [],
+  "edge-sentence-start-18-20": [],
+  "edge-sentence-start-18-201c": [],
+  "edge-sentence-start-18-28": [],
+  "edge-sentence-start-18-a": [],
   "edge-tag-window-48": [],
   "edge-tag-window-49": [],
   "edge-tag-window-50": [],

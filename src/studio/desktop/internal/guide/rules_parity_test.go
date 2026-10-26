@@ -143,7 +143,7 @@ func TestRuleSuggestionsMatchTheSidecar(t *testing.T) {
 		}
 		scanned[c.Name] = names
 	}
-	if len(cases) < 500 || printed < 250 || failed < 40 || lines < 3000 {
+	if len(cases) < 500 || printed < 250 || failed < 40 || lines < 4000 {
 		t.Errorf("%d cases: %d printed %d lines, %d failed", len(cases), printed, lines, failed)
 	}
 	contractfile.CheckIn(t, "testdata", "scan-names", scanned)
