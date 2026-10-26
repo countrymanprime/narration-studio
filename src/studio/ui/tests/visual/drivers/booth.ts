@@ -18,7 +18,8 @@ const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 const UNLINKED = '?mockReaperState=no_link';
 
 async function readyToRecord(page: Page, query = ''): Promise<void> {
-  await openBooth(page, query);
+  // Always a fresh load: a spec that calls a driver on a blank page has no app to navigate in until one is loaded.
+  await openBooth(page, query || '?');
   await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
   await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
 }

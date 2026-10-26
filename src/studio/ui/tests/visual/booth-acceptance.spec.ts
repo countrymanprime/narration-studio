@@ -11,7 +11,8 @@ test.use({ viewport: { width: 1440, height: 900 } });
 // includeHidden: the connect dialog hides the page behind it from the accessibility tree, and Record is still there, disabled.
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
-const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: / });
+// includeHidden: with REAPER not answering, the setup dialog opens by itself and hides the page from the accessibility tree.
+const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: /, includeHidden: true });
 const cursorWord = (page: Page) => page.locator('[data-current]').first();
 
 // The built-in recorder listens before it records, so a built-in take needs a microphone chosen in Levels; the rows that are about having none
