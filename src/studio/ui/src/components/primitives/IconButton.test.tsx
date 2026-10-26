@@ -164,6 +164,14 @@ describe('IconButton', () => {
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+  it('lane is 44 px wide and stretches to its row, with a larger icon, for the end of a lane it pages', () => {
+    render(<IconButton action="scrollWaveBack" size="lane" />);
+    const cls = screen.getByRole('button', { name: 'Scroll the waveform back a window' }).className;
+    expect(cls).toContain('w-11');
+    expect(cls).toContain('self-stretch');
+    expect(cls).toContain('text-lg');
+    expect(cls).not.toMatch(/(^|\s)size-/);
+  });
   it('holds its size in a flex row instead of shrinking to its icon', () => {
     render(<IconButton label="Close">x</IconButton>);
     expect(screen.getByRole('button', { name: 'Close' }).className).toContain('[:where(&)]:flex-none');

@@ -878,7 +878,6 @@ function AppRoutes() {
                       go={guardedNavigate}
                       notify={setNotice}
                       goToScript={goToScript}
-                      goToEditing={goToEditing}
                       goToBooth={(chapterId) => {
                         const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
                         if (credits) goToBooth({ credits });
@@ -911,6 +910,7 @@ function AppRoutes() {
                       notify={setNotice}
                       goToManuscript={goToScript}
                       hasManuscript={Boolean(data.manuscript)}
+                      projectName={data.projectFolder ? data.projectName : undefined}
                       needManuscript={
                         <NeedManuscriptImport title="Story Bible" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
                       }
@@ -1171,7 +1171,6 @@ function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onI
       t={seconds !== undefined && Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined}
       onChapter={(id) => navigate(`/editing/${encodeURIComponent(id)}`, { replace: true })}
       onImport={onImport}
-      onGoToParagraph={(chapter, index) => navigate(scriptPath(chapter, index))}
       onOpenStoryBible={(entityId) => navigate(addressPath({ page: 'story-bible', entity: entityId }))}
     />
   );

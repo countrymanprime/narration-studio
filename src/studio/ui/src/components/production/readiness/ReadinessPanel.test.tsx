@@ -113,14 +113,14 @@ describe('panel content', () => {
   it('an unmeasured chapter in Recording offers its recording check, which closes this panel first (XPR2-35)', async () => {
     const onCheckRecording = vi.fn();
     const { panel } = await open(c5, api(), undefined, onCheckRecording);
-    fireEvent.click(within(panel).getByRole('button', { name: 'Open recording check' }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Check recordings…' }));
     expect(onCheckRecording).toHaveBeenCalledOnce();
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Stage readiness' })).toBeNull());
   });
 
   it('a chapter that is ready offers no recording check', async () => {
     const { panel } = await open(c4, api(), undefined, vi.fn());
-    expect(within(panel).queryByRole('button', { name: 'Open recording check' })).toBeNull();
+    expect(within(panel).queryByRole('button', { name: 'Check recordings…' })).toBeNull();
   });
 
   it('changed evidence shows was and now, and offers Revert, not Confirm', async () => {

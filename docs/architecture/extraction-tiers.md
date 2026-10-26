@@ -7,9 +7,9 @@ Story Bible extraction turns a manuscript into suggestions: new entries, aliases
 | Tier | Source (`internal/extractionport`) | Runs in | Download | State on this branch |
 | --- | --- | --- | --- | --- |
 | Rules baseline | `Rules` (`rules`) | Go host, `guide.RuleSuggestions` (`src/studio/desktop/internal/guide/rules.go`) | none | Built. Emits `entry`, `alias` and `speaker` only; properties, relationships and claims need a language model. Always part of a scan. |
-| Optional download: names | `Gliner` (`gliner`) | Same sidecar, `suggest --source gliner --install <folder>` (`core/extraction_gliner.py`) | asset `gliner` | Adapter built. Row not installable: its `pending` note in `config/analysis-assets.json` lists files without a pinned hash. Emits `entry` only. |
+| Optional download: names | `Gliner` (`gliner`) | Same sidecar, `suggest --source gliner --install <folder>` (`core/extraction_gliner.py`) | asset `gliner` | Adapter built; the row is pinned and installs (2026-10-26). Emits `entry` only. |
 | Optional download: characters | `BookNLP` (`booknlp`) | Same sidecar, `suggest --source booknlp --install <folder>` (`core/extraction_booknlp.py`) | assets `booknlp-small`, `booknlp-big` | Adapter built. Rows not installable, same reason. Emits `entry`, `alias` (flagged `duplicate`), `speaker` and a `Gender` `property`. |
-| Local language model | `LocalModel` (`local-model`) | nowhere | none in the registry; catalogue row `local-llm` | Not built. The registry row has no extractor and the reason `No local model is installed.`; the catalogue row has no files and an `unavailable` sentence. |
+| Local language model | `LocalModel` (`local-model`) | nowhere | none | Not built. The registry row has no extractor and the reason `No local model is installed.`, so a scan skips it; it has no catalogue row (removed 2026-10-26: it had no files and could never be had). |
 | Bring-your-own import | `Imported` (`imported`) | Go host only (`src/studio/desktop/internal/extraction/importer`, `src/studio/desktop/bindings_extraction_import.go`) | none | Built. Not started from a scan (`Runs()` is false); it arrives through the import dialog. |
 
 The registry order above is the scan order. `NewRegistry` in `src/studio/desktop/internal/extractionport/extractionport.go` registers the five rows, and `Host.extractionRegistry` in `src/studio/desktop/extraction_job.go` swaps in the `rules`, `gliner` and `booknlp` adapters (`src/studio/desktop/internal/extractionport/{rules,gliner,booknlp}`). Python mirrors the rows in `src/studio/libs/python/narration_common/ports/extraction.py` (`BUILT_IN`). The port itself, its suites and the row table are in [provider ports](provider-ports.md#extraction-sources); this page does not repeat them.
@@ -99,8 +99,7 @@ The downloads are catalogue entries of the one asset registry ([The asset regist
 
 | Tool | Asset id | Consent UI | State |
 | --- | --- | --- | --- |
-| GLiNER | `gliner` | `src/studio/ui/src/components/settings/analysis/ConsentDialog.tsx` | Refused at install while the row has a `pending` note |
+| GLiNER | `gliner` | `src/studio/ui/src/components/settings/analysis/ConsentDialog.tsx` | Installs; every file pinned 2026-10-26 |
 | BookNLP small, large | `booknlp-small`, `booknlp-big` | same | Refused, same reason |
-| Local language model | `local-llm` | none; no files | Not built; the row carries an `unavailable` sentence |
 
 Nothing downloads without the narrator's confirmation, and with nothing installed the scan runs the rules.

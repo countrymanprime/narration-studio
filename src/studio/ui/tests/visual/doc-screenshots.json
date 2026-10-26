@@ -141,13 +141,6 @@
   },
   {
     "page": "production",
-    "state": "recording-check-options",
-    "viewport": "desktop",
-    "docName": "production-recording-check-options",
-    "caption": "Production - a chapter's recording check with Check options open"
-  },
-  {
-    "page": "production",
     "state": "recording-check-rules",
     "viewport": "desktop",
     "docName": "production-recording-check-rules",

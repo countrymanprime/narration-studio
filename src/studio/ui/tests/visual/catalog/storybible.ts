@@ -158,6 +158,17 @@ export const storybibleStates: StateEntry[] = [
     state: 'remove-voice-data-confirm',
     description: 'Story Bible, the Voice data slide-over with the Remove voice data confirm dialog open (destructive, project-wide)',
   },
+  {
+    page: 'storybible',
+    state: 'delete-story-bible-confirm',
+    description:
+      'Story Bible, More actions > Delete Story Bible data: the destructive confirm naming the project, the entries and scan suggestions it deletes, what stays and that there is no undo, focus on Cancel',
+  },
+  {
+    page: 'storybible',
+    state: 'story-bible-deleted',
+    description: 'Story Bible after Delete Story Bible data: no entries, no suggestions, the empty list and the toast saying what was deleted',
+  },
 
   // Voice samples (phase 4 of docs/prds/character-voice-samples.prd.md): the entry's section and the Voice data panel's lists, with samples seeded by
   // `?mockVoiceSamples=bible` (a Queen with four samples, one whose passage changed and one whose audio file is missing; the Hatter's one; Narration's

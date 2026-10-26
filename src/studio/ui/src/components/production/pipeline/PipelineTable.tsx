@@ -17,6 +17,7 @@ import {
   type PipelineCell,
   type PipelineColumn,
   type PipelineRow,
+  type RecordedFigure,
 } from './pipelineRows';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../primitives/changeHighlight';
 
@@ -26,13 +27,14 @@ const cellStatus = (cell: PipelineCell): StatusId => {
   return cell.kind === 'open' ? (cell.column === 'pickups' ? 'open_pickup' : 'fail') : byKind[cell.kind];
 };
 /**
- * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge, and Fin.
- * holds "0:14" and its info mark on one line (the mock's 80 px stage columns left 28 px of air around each cell and squeezed the chapter
- * names to two to five lines, alignment audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that it scrolls inside its card with the
- * names pinned at the left (R4TA-1).
+ * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge, and
+ * Rec. / Est. holds the recorded length over "of" the estimate, "10:42" or a two-word state on top (the mock's 80 px stage columns left
+ * 28 px of air around each cell and squeezed the chapter names to two to five lines, alignment audit XPR2-10; one stacked column
+ * rather than two keeps the names their 300 px at 1440). Chapter takes the rest, and the table never goes below a 10 rem name column:
+ * under that it scrolls inside its card with the names pinned at the left (R4TA-1).
  */
 const STAGE_WIDTH = '3.75rem';
-const COLUMNS = ['auto', '4rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
+const COLUMNS = ['auto', '4.75rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
 const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'proof', 'pickups', 'master', 'qc'];
 // Important: the cell's own 10 px padding is the same specificity and comes later in the stylesheet. The last column keeps its 16 px card edge.
 const STAGE_CELL = 'px-1! last:pr-4!';
@@ -94,6 +96,20 @@ function StageCell({
   );
 }
 
+/** The Rec. / Est. cell: the measured clock (or a muted state word, never a 0 for unknown) over "of" the estimate. One image, named in full. */
+function RecordedCell({ figure, estimate }: { figure: RecordedFigure; estimate: string }) {
+  return (
+    <TooltipTarget text={figure.tip}>
+      <span role="img" aria-label={figure.label} data-recorded={figure.kind} className="flex flex-col items-end leading-[1.2]">
+        <span className={figure.kind === 'none' ? 'font-sans text-[0.75rem] whitespace-normal text-[var(--text-muted)]' : undefined}>{figure.text}</span>
+        <span data-estimate="" className="text-[0.6875rem] text-[var(--text-muted)]">
+          {estimate === '—' ? 'no est.' : `of ${estimate}`}
+        </span>
+      </span>
+    </TooltipTarget>
+  );
+}
+
 type TableProps = {
   rows: readonly PipelineRow[];
   /** The readiness of each chapter; a chapter without one draws no chip. */
@@ -116,12 +132,15 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
     // The table scrolls inside its panel at a narrow width, never the page, with a shadow on the side that has more (`scroll-x-edges`);
     // the region is a tab stop so the keyboard can scroll it.
     <div className="scroll-x-edges overflow-x-auto" tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
-      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[41rem]">
+      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[41.75rem]">
         <TableHead>
           <TableRow>
             <TableHeader className={STICKY_NAME}>Chapter</TableHeader>
-            <TableHeader align="right" info="Estimated finished length at the planning rate. The measured length is in the Record cell's tip.">
-              Fin.
+            <TableHeader
+              align="right"
+              info="Rec.: the audio on the chapter's linked track in the saved project, before editing, or a word saying why there is none. Est.: its finished length estimated from its words at the planning rate, not a measurement."
+            >
+              Rec. / Est.
             </TableHeader>
             {STAGE_COLUMNS.map((column) => (
               <TableHeader key={column} className={STAGE_CELL}>
@@ -141,7 +160,9 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
               >
                 {/* Broken between words, never inside one ("Caterpill / ar", R4SM-3). */}
                 <TableCell className={`font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>{row.name}</TableCell>
-                <TableCell numeric>{row.finished}</TableCell>
+                <TableCell numeric>
+                  <RecordedCell figure={row.recorded} estimate={row.estimate} />
+                </TableCell>
                 {STAGE_COLUMNS.map((column) => {
                   const chip = recommendation && row.current === column;
                   return (

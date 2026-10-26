@@ -34,7 +34,9 @@ export type RunAction =
   | { type: 'answered'; answer: CoverageStartResult; id: string }
   | { type: 'progress'; runId: string; percent: number }
   | { type: 'ended'; runId: string; phase: 'complete' | 'cancelled' | 'failed'; message: string }
-  | { type: 'stop' };
+  | { type: 'stop' }
+  /** A start the host held for a model download: the run goes back to idle, nothing started and nothing to report, so the dialog can ask. */
+  | { type: 'halt' };
 
 export const idleRun: RunState = { ids: [], limit: 1, next: 0, step: 'idle', active: {}, messages: {}, finished: [], early: {}, interrupted: 0 };
 
@@ -97,6 +99,8 @@ export function runReducer(state: RunState, action: RunAction): RunState {
       // A run no answer has named yet: keep its end for the answer, when a chapter is still waiting for one.
       return Object.values(state.active).some((run) => run.phase === 'starting') ? { ...state, early: { ...state.early, [action.runId]: ended } } : state;
     }
+    case 'halt':
+      return state.step === 'running' ? idleRun : state;
     case 'stop':
       return state.step === 'running' ? { ...state, step: 'stopped', active: {}, interrupted: Object.keys(state.active).length } : state;
   }
