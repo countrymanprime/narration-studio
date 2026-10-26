@@ -47,10 +47,11 @@ const (
 // minChunkSeconds is the shortest chunk a narrator can ask for: under it the crossover would be most of the chunk.
 const minChunkSeconds = 30
 
-// Parallel is how a long item is cut up and how many Whisper processes work on the pieces (docs/utilities/recording-coverage.md,
-// "Long chapters"). The zero value is the sidecar's own default: the whole item, one process.
+// Parallel is how a long item is cut up and how many transcriptions run at once (docs/utilities/recording-coverage.md,
+// "Long chapters"). The zero value transcribes each item whole, with an Automatic count.
 type Parallel struct {
-	// Workers is the number of worker processes; 0 lets the sidecar choose from the model's memory cost.
+	// Workers is the transcriptions at once the narrator asked for: the items checked side by side, or the pieces of one
+	// long item, each a copy of the model. 0 is Automatic (PlanWorkers); either way the host plans the number it sends.
 	Workers int
 	// ChunkSeconds is each piece's length; 0 transcribes an item whole.
 	ChunkSeconds int

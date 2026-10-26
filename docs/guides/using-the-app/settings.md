@@ -144,6 +144,11 @@ Changing it asks first. Choosing a model that is not on this computer shows **No
 **Live reading in the Booth** holds the **Live engine** (Whisper, or Moonshine on Windows) and the **Live model** (`tiny`
 or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
 **Re-check model**, **Run both models together**, **Parallel processes** and **Chunk length** ([how it works](../../utilities/recording-coverage.md#the-model-cascade)).
+**Parallel processes** is how many recordings, or pieces of one long recording, a check transcribes side by side; each holds a copy of the
+speech model in memory. 0 is Automatic: half this computer's processors, fewer when the chosen model's copies would not fit in the free memory. The
+line under the box says what the value shown runs on this computer and what set it, for example "Automatic: 4 transcriptions at once, using 8 of
+8 processors for the small model. Set by the processors: half of them, so each transcription has 2 processors." A number you type is kept up to
+the processors and the memory, and the line says when it was cut down.
 
 **Background checks** holds **Check recordings in the background**, the **Model for background checks** (`tiny`) and the
 **Double-check model for background checks** (`small`, or **None (one model)**), and under Advanced the **Processors for background

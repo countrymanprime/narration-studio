@@ -232,11 +232,11 @@ class _FakeModel:
 def test_a_chunks_words_are_in_the_items_seconds_with_their_probabilities():
     model = _FakeModel()
     job = chunks.ChunkJob(chunks.Chunk(100.0, 130.0), np.zeros(10, dtype=np.float32), "tinyx", None, "cpu", "en", "Alyce", 2)
-    chunks._MODELS[("tinyx", None, "cpu", 2)] = model
+    chunks._MODELS[("tinyx", None, "cpu", 2, 1)] = model
     try:
         result = chunks.whisper_chunk(job)
     finally:
-        chunks._MODELS.pop(("tinyx", None, "cpu", 2))
+        chunks._MODELS.pop(("tinyx", None, "cpu", 2, 1))
     assert result.words == (("hi", 100.5, 100.9), ("there", 101.0, 101.4))
     assert result.scores == (0.812, None)
     assert result.language == "en"
@@ -292,12 +292,12 @@ def test_a_worker_stops_between_segments_when_the_cancel_file_exists(tmp_path):
     cancel = tmp_path / "progress.txt.cancel"
     cancel.write_text("cancel")
     job = chunks.ChunkJob(chunks.Chunk(0.0, 30.0), np.zeros(10, dtype=np.float32), "tinyy", None, "cpu", "en", None, 0, str(cancel))
-    chunks._MODELS[("tinyy", None, "cpu", 0)] = _FakeModel()
+    chunks._MODELS[("tinyy", None, "cpu", 0, 1)] = _FakeModel()
     try:
         with pytest.raises(chunks.ChunkCancelled):
             chunks.whisper_chunk(job)
     finally:
-        chunks._MODELS.pop(("tinyy", None, "cpu", 0))
+        chunks._MODELS.pop(("tinyy", None, "cpu", 0, 1))
 
 
 def test_the_chunked_transcriber_hands_each_chunk_the_cancel_file_of_its_run(tmp_path):

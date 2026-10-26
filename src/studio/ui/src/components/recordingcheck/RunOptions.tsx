@@ -4,6 +4,7 @@ import { Select } from '../primitives/Select';
 import { Slider } from '../primitives/Slider';
 import { engineOptionLabel } from './checkSelection';
 import { CHAPTERS_AT_ONCE, DOUBT_SHARES, runProblem, runSummary, withChoice, type RunChoices } from './runChoices';
+import { useWorkerPlan, workerPlanSentences } from './workerPlan';
 
 const engineOptions = (engines: readonly CoverageEngine[]) => engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }));
 
@@ -28,6 +29,14 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
   const whole = choices.chunkSeconds === 0;
   const automatic = choices.workers === 0;
   const cpus = typeof navigator === 'undefined' ? 4 : navigator.hardwareConcurrency || 4;
+  const { plan, error: planError } = useWorkerPlan({
+    model: choices.model,
+    recheck: choices.recheck,
+    recheckModel: choices.recheckModel,
+    workers: whole ? 1 : choices.workers,
+    chapters: choices.chapters,
+  });
+  const planned = plan && workerPlanSentences(plan);
   const problem = runProblem(choices, engines);
   return (
     <div className="@container flex min-w-0 flex-col gap-3">
@@ -107,9 +116,16 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
           onValueChange={(workers) => onChange({ workers })}
         />
         <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
-          Let the model choose the workers
+          Automatic: plan it from the processors, the free memory and the model
         </Checkbox>
-        <p className="m-0 text-sm text-[var(--text-muted)]">Each worker transcribes its own chunks.</p>
+        {/* A reserved slot: the plan arrives after the dialog opens and changes with the choices, so it holds three lines and moves nothing. */}
+        <p className="m-0 min-h-[3lh] text-sm text-[var(--text-muted)]" data-live="workerPlan" aria-live="polite">
+          {planError
+            ? `Could not work out how many run at once: ${planError}`
+            : planned
+              ? `${planned.summary} ${planned.reason}`
+              : 'Working out how many run at once…'}
+        </p>
         <label className="flex flex-col gap-1">
           <span className={LABEL}>Chapters at once</span>
           <Select
@@ -120,7 +136,9 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
             options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
           />
         </label>
-        <p className="m-0 text-sm text-[var(--text-muted)]">Chapters share the processors, so more chapters at once means fewer workers for each.</p>
+        <p className="m-0 text-sm text-[var(--text-muted)]">
+          Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.
+        </p>
       </fieldset>
       <p className="m-0">{runSummary(choices, engines)}</p>
       {problem ? (

@@ -464,6 +464,16 @@ export function CoverageState(): $CancellablePromise<string> {
 }
 
 /**
+ * CoverageWorkerPlan says how many transcriptions a recording check started now with options (CoverageStart's: "model",
+ * "recheck", "workers", "chapters" and the rest, over the settings) would run at once for each chapter, on this
+ * computer's processors and free memory, and what set the number: the plan CoverageStart sends the sidecar. The Settings
+ * page and the Check recordings dialog show it beside the count. It reads the settings and this computer, not a project.
+ */
+export function CoverageWorkerPlan(options: { [_ in string]?: string }): $CancellablePromise<string> {
+    return $Call.ByID(1310535801, options);
+}
+
+/**
  * CreditsChapterAnnouncements renders body once per narration chapter, with the project's own tokens plus the chapter's
  * [Chapter] and [Chapter Title]. The Settings preview shows the first; the estimate times them all.
  */

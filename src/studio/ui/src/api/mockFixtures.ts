@@ -896,7 +896,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       unit: '',
     }),
     bool('cascade_pipeline', 'Run the larger model alongside the first pass', 'true'),
-    recordingCheck('parallel_workers', 'Items checked at once (0 = chosen from the model and the processors)', '0', {
+    recordingCheck('parallel_workers', 'Transcriptions at once (0 = Automatic: from the processors, the free memory and the model)', '0', {
       min: 0,
       max: 32,
       step: 1,

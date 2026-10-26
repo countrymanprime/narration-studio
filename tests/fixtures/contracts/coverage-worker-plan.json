@@ -1,0 +1,13 @@
+{
+  "chapters": 1,
+  "computerCpus": 8,
+  "cpus": 8,
+  "freeMemoryMB": 6000,
+  "limit": "processors",
+  "model": "small",
+  "modelLabel": "small",
+  "modelMemoryMB": 700,
+  "requested": 0,
+  "threadsEach": 2,
+  "workers": 4
+}
