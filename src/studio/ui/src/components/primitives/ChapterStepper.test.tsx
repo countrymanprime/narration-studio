@@ -181,4 +181,20 @@ describe('ChapterStepper', () => {
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next chapter' }));
   });
+
+  // R3MS-19: in a narrow picker the label ran under the caret.
+  it('keeps the caret its own width, so the label truncates before it', () => {
+    render(
+      <ChapterStepper chapters={[{ id: 'c1', name: 'Chapter 1 — Down the Rabbit-Hole' }]} value="c1" onChange={() => undefined} onStep={() => undefined} />,
+    );
+    expect(screen.getByText('▾').className).toContain('flex-none');
+  });
+
+  // R3PK-4: the picker drew the chapter's name in the Button's capitals.
+  it('draws the chapter name in its own case inside the picker', () => {
+    render(
+      <ChapterStepper chapters={[{ id: 'c1', name: 'Chapter 1 — Down the Rabbit-Hole' }]} value="c1" onChange={() => undefined} onStep={() => undefined} />,
+    );
+    expect(screen.getByText('Chapter 1 — Down the Rabbit-Hole').className).toContain('normal-case');
+  });
 });

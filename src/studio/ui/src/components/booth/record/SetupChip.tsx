@@ -41,23 +41,27 @@ function stateDetail(choice: DawChoice): string {
  * recording settings, where the project's engine is chosen. With the project's DAW choice (`choice`), the chip's text, tooltip and
  * name say whether that DAW is linked, connected or not running, and the tone warns until it is connected. When the host reports
  * that the DAW's project has changes its saved file does not have (`DawProjectState`), the chip says so in its tooltip and its name.
+ * `otherProject` is the setup notice's own finding that the DAW has another project open: connected, but not ready, so the chip warns
+ * and says so, as the notice and its dialog do (alignment audit R4BO2-1).
  */
 export function SetupChip({
   capabilities,
   standaloneName,
   project,
   choice,
+  otherProject = false,
   onClick,
 }: {
   capabilities: DawCapabilities;
   standaloneName: string;
   project?: DawProjectState | null;
   choice?: DawChoice | null;
+  otherProject?: boolean;
   onClick?: () => void;
 }) {
   const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none' || recordsInApp(capabilities.daw);
   const name = standalone ? standaloneName : (choice?.daw ?? capabilities.daw);
-  const ready = choice ? choice.state === 'connected' || choice.state === 'app' : capabilities.reachable;
+  const ready = !otherProject && (choice ? choice.state === 'connected' || choice.state === 'app' : capabilities.reachable);
   const tone = !ready ? 'warning' : standalone ? 'neutral' : 'success';
   const detail = choice
     ? choiceDetail(choice)
@@ -68,10 +72,10 @@ export function SetupChip({
         : `${name} linked`;
   const unsaved = capabilities.reachable && !!project?.unsavedChanges;
   // The project's DAW short of connected says how far it got in the chip itself, not only in the tooltip.
-  const stateWords = choice && !standalone && choice.state !== 'connected' ? choice.state.replace('_', ' ') : '';
+  const stateWords = otherProject ? 'other project' : choice && !standalone && choice.state !== 'connected' ? choice.state.replace('_', ' ') : '';
   const state = stateWords ? `, ${stateWords}` : '';
   return (
-    <TooltipTarget text={`Recording settings · ${detail}${unsaved ? ` · ${UNSAVED}` : ''}`}>
+    <TooltipTarget text={`Recording settings · ${otherProject ? `${detail} · ${name} has a different project open` : detail}${unsaved ? ` · ${UNSAVED}` : ''}`}>
       <HeaderChip
         tone={tone}
         onClick={onClick}

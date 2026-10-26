@@ -179,9 +179,19 @@ describe('a name row', () => {
 
   it('read-only it shows the value and a read-only tag', async () => {
     renderRow(pron(), { editing: false });
-    expect(screen.getByText('AE1 L AH0 S')).toBeTruthy();
+    expect(
+      screen.getByText((_, element) => element?.tagName === 'SPAN' && element.parentElement?.dataset.name === 'Alice' && element.textContent === 'AE1 L AH0 S'),
+    ).toBeTruthy();
     expect(await screen.findByLabelText('Source: CMU dictionary')).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
+  });
+});
+
+describe('a read-only pronunciation', () => {
+  it('breaks only between its words, never at the slash inside one (alignment audit R3SB1-5)', () => {
+    renderRow(pron({ ipa: '/ˈælɪs/ ɪn' }), { editing: false });
+    const words = [...document.querySelectorAll('[data-name="Alice"] .whitespace-nowrap')].map((word) => word.textContent);
+    expect(words).toEqual(['/ˈælɪs/', 'ɪn']);
   });
 });
 

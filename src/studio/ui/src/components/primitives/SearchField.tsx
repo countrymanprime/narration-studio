@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useRef, type ComponentPropsWithRef, type KeyboardEvent } from 'react';
+import { Icon } from './Icon';
 import { IconButton } from './IconButton';
 import { TextField } from './TextField';
 import { TooltipTarget } from './Tooltip';
@@ -16,6 +17,7 @@ export function SearchField({
   autoFocus = false,
   onKeyDown,
   combobox,
+  leadingIcon = false,
 }: {
   label: string;
   value: string;
@@ -27,6 +29,8 @@ export function SearchField({
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
   // The field is the text box of a combobox whose list it drives (the Booth's speaker picker): its role and the attributes that name the list and the active row.
   combobox?: Pick<ComponentPropsWithRef<'input'>, 'role' | 'aria-controls' | 'aria-activedescendant' | 'aria-expanded'>;
+  /** Draws a magnifier inside the box at its left, for a field that has no other sign it searches (alignment audit XSE1-19, R4SE2-2). */
+  leadingIcon?: boolean;
 }) {
   const fieldRef = useRef<HTMLInputElement>(null);
   return (
@@ -40,11 +44,19 @@ export function SearchField({
         autoFocus={autoFocus}
         onKeyDown={onKeyDown}
         {...combobox}
-        style={value ? { paddingRight: '2.25rem' } : undefined}
+        style={{ ...(value ? { paddingRight: '2.25rem' } : {}), ...(leadingIcon ? { paddingLeft: '2.25rem' } : {}) }}
       />
+      {leadingIcon && (
+        <span data-search-icon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--text-muted)]">
+          <Icon name="find" />
+        </span>
+      )}
       {value && (
+        // A quiet 28 px button inside the box, not a bordered 36 px square drawn 4 px inside the field's own border (alignment audit R4SE2-2, XPF-21).
         <TooltipTarget text={clearLabel} style={{ position: 'absolute', right: '.25rem', top: '50%', transform: 'translateY(-50%)' }}>
           <IconButton
+            variant="ghost"
+            size="xs"
             label={clearLabel}
             onClick={() => {
               onChange('');

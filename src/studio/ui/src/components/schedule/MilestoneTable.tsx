@@ -52,15 +52,13 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
   const final = due ? milestoneStatus({ dueDate: due, measure: 'all' }, chapters, today) : null;
   return (
     /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, instead of spilling out of the card on a narrow window. */
-    <div className="scroll-x-edges overflow-x-auto" tabIndex={0} role="group" aria-label="Milestones scroll area">
-      <Table label="Milestones" flush>
+    <div className={`scroll-x-edges overflow-x-auto ${MEASURES_WIDTH}`} tabIndex={0} role="group" aria-label="Milestones scroll area">
+      <Table label="Milestones" flush columns={COLUMNS} className="min-w-[34.5rem] lg:min-w-[44.5rem]">
         <TableHead>
           <TableRow>
-            <TableHeader hiddenLabel="Done" />
-            <TableHeader className="min-w-[10rem]">Milestone</TableHeader>
-            {/* The mock's column sizes: Measures keeps room for "All recorded" on one line, and Due is a date wide (152 px) whatever a milestone is called. */}
-            <TableHeader className="md:min-w-[9rem]">Measures</TableHeader>
-            <TableHeader className="w-[9.5rem]">Due</TableHeader>
+            <TableHeader>Milestone</TableHeader>
+            <TableHeader className={NARROW_HIDDEN}>Measures</TableHeader>
+            <TableHeader>Due</TableHeader>
             <TableHeader>Status</TableHeader>
             <TableHeader hiddenLabel="Actions" />
           </TableRow>
@@ -69,16 +67,9 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
           {rows.map(({ m, index }) => (
             <TableRow key={index}>
               <TableCell>
-                <IconButton label={`Mark ${m.name} complete`} aria-pressed={Boolean(m.done)} data-done={index} onClick={() => onToggleDone(index)}>
-                  <Icon name={m.done ? 'markedDone' : 'markDone'} />
-                </IconButton>
+                <NameBlock name={m.name} measure={measureText(m.measure)} data={{ 'data-name': String(index) }} />
               </TableCell>
-              <TableCell>
-                <b data-name={index} dir="auto" className="[overflow-wrap:anywhere]">
-                  {m.name}
-                </b>
-              </TableCell>
-              <TableCell>
+              <TableCell className={NARROW_HIDDEN}>
                 <span data-measure={index}>{measureText(m.measure)}</span>
               </TableCell>
               <TableCell numeric align="left">
@@ -88,7 +79,11 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
                 <StatusCell status={milestoneStatus(m, chapters, today)} />
               </TableCell>
               <TableCell align="right">
-                <span className="inline-flex gap-0.5">
+                {/* The done toggle leads the row's buttons, 8 px apart, so the Milestone column starts at the card title for every row, the Final one too. */}
+                <span className="inline-flex gap-2">
+                  <IconButton label={`Mark ${m.name} complete`} aria-pressed={Boolean(m.done)} data-done={index} onClick={() => onToggleDone(index)}>
+                    <Icon name={m.done ? 'markedDone' : 'markDone'} />
+                  </IconButton>
                   <TooltipTarget text={m.note ?? 'Add a note'}>
                     <IconButton
                       label={m.note ? `Edit the note on ${m.name}` : `Add a note to ${m.name}`}
@@ -104,14 +99,22 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
               </TableCell>
             </TableRow>
           ))}
+          {rows.length === 0 && (
+            // A card holding only the Final row says the rest is "none yet" and how to add one (XSH-17).
+            <TableRow>
+              <TableCell colSpan={COLUMNS.length} className="text-[var(--text-muted)]">
+                <span data-milestones-empty>No other milestones yet. Add one with +.</span>
+              </TableCell>
+            </TableRow>
+          )}
           <TableRow>
-            <TableCell />
             <TableCell>
-              <b>Final delivery</b>
+              <NameBlock name="Final delivery" measure={WHOLE_BOOK} />
             </TableCell>
-            <TableCell muted>Whole book</TableCell>
-            {/* The mock's 152 px column: a long milestone name must not take the room the date field needs. */}
-            <TableCell className="min-w-[9.5rem]">
+            <TableCell className={NARROW_HIDDEN}>
+              <span data-measure-final>{WHOLE_BOOK}</span>
+            </TableCell>
+            <TableCell>
               <DueField value={due ?? ''} onCommit={onDueChange} />
             </TableCell>
             <TableCell>
@@ -125,6 +128,35 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
   );
 }
 
+const WHOLE_BOOK = 'Whole book';
+
+// Fixed columns (alignment audit XSH-3): only Milestone takes what is left, so Due and Status stand at the same x in every state
+// whatever the milestones are called. Due is the mock's 152 px; Actions holds four 36 px buttons 8 px apart.
+// Below 1024 px Measures folds to nothing and its words move under the name (R4SM-13), so Due and Status stay on screen.
+const COLUMNS = ['auto', 'var(--ms-measures)', '9.5rem', '6rem', '12rem'] as const;
+const MEASURES_WIDTH = '[--ms-measures:0px] lg:[--ms-measures:9rem]';
+// A folded column keeps its cells for a screen reader (the copy under the name is hidden from it) but draws nothing.
+const NARROW_HIDDEN = 'max-lg:overflow-hidden max-lg:p-0 max-lg:whitespace-nowrap max-lg:text-transparent';
+
+/**
+ * A milestone's name, at most two lines with the whole name on hover and in the dialog (R3SH-7: a 200-character word made one row five
+ * lines tall), and under it, below 1024 px only, what it measures in the same size.
+ */
+function NameBlock({ name, measure, data }: { name: string; measure: string; data?: Record<`data-${string}`, string> }) {
+  return (
+    <>
+      <TooltipTarget text={name} className="max-w-full">
+        <b {...data} dir="auto" className="line-clamp-2 [overflow-wrap:anywhere]">
+          {name}
+        </b>
+      </TooltipTarget>
+      <span aria-hidden="true" className="block text-[var(--text-muted)] lg:hidden">
+        {measure}
+      </span>
+    </>
+  );
+}
+
 /**
  * The due date, a native date field. A whole, real date is committed as soon as it is written or picked. A part-written one waits and leaving the field drops it;
  * Enter on an emptied field clears the due date, so deleting one part of the date on the way to another never does.
@@ -134,8 +166,9 @@ function DueField({ value, onCommit }: { value: string; onCommit: (date: string)
   return (
     <DateField
       label="Delivery due"
-      // The cell's own width (the mock's 152 px less its 10 px padding each side): a percentage width counts as the field's natural 160 px when the column is sized, which made Due 180 px.
-      className="w-[8.25rem] px-2 text-[0.8125rem]!"
+      // The cell's own width (the mock's 152 px less its 10 px padding each side). It reads as the column's text (R3SH-1, XSH-11): no frame or fill until
+      // the pointer or focus is on it, the date in the column's 13 px mono, and its text pulled left onto the other rows' dates.
+      className="-ml-2 w-[8.25rem] border-transparent! bg-transparent! px-2! text-[0.8125rem]! hover:border-[var(--line-strong)]! focus:border-[var(--line-strong)]!"
       value={draft ?? value}
       onChange={(text) => {
         setDraft(text);

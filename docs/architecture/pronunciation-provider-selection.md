@@ -20,7 +20,10 @@ then **eSpeak NG** (a letter-to-sound guess for anything neither dictionary has)
 storage — `CmuSource.pronounce()` runs CMU's ARPABET through `arpabet_to_ipa()` — so the value a narrator sees and
 chooses is always IPA regardless of which source produced it. `src/studio/desktop/internal/pronunciationport` is the Go
 side's read-only mirror of the same three names, used to validate the narrator's explicit choice before the sidecar
-starts (`Pronounce`'s `CheckPronounce`).
+starts (`Pronounce`'s `CheckPronounce`). The Wiktextract source reads the index the narrator installed in Settings
+(`internal/wiktextract`), whose path the host passes as `--wiktextract-index` only while it is installed and verifies
+([Manuscript Guide](../utilities/manuscript-guide.md#pronunciation-generate-and-replace) lists the commands that get it); without
+it the source answers "not installed yet" and the automatic fallback goes on to eSpeak NG.
 
 ## Choosing and previewing a pronunciation
 
@@ -30,9 +33,9 @@ starts (`Pronounce`'s `CheckPronounce`).
   rather than raising.
 - **Chosen explicitly** through `GuideDetail.tsx`'s edit-mode Generate/Replace control, for the entity and
   independently for each alias: a `Menu` offering "From the CMU dictionary" / "From eSpeak NG" next to the
-  Play button, calling `Host.GuidePronounce` (which asks `pronounce_source()` for exactly the named source and raises
-  when it has nothing for the name, unlike the automatic fallback) and marking the result `chosen: true` so a rebuild
-  never silently replaces it (`merge_locked`). The narrator's own typed pronunciation
+  Play button, calling `Host.GuidePronounce` (the host asks the sidecar's `pronunciation --source`, which runs `pronounce_source()`
+  for exactly the named source and reports a miss, unlike the automatic fallback) and marking the result `chosen: true` so a rebuild
+  never silently replaces it (the host's rebuild merge, `mergeLocked` in `src/studio/desktop/internal/guide/build_merge.go`). The narrator's own typed pronunciation
   ([Manuscript Guide](../utilities/manuscript-guide.md))
   and the kept alternate work the same way for an alias as for the entity — `GuidePronounce`,
   `GuidePronounceUser`, `GuidePronunciationUseAlternate` and `GuidePronunciationSetStatus` each take an
@@ -40,7 +43,7 @@ starts (`Pronounce`'s `CheckPronounce`).
 - **Spoken by the preview:** Choosing and previewing a pronunciation
   changed `render_audio` to speak a **chosen** pronunciation as a Piper raw-phoneme block (`"[[ipa]]"`) instead of the
   spelled name; an unchosen (freshly auto-generated) pronunciation never changes what the preview says, since
-  `merge_locked` keeps regenerating a guess on every rebuild and the preview must not flip on its own. The Go preview
+  the rebuild merge keeps regenerating a guess on every rebuild and the preview must not flip on its own. The Go preview
   cache key folds in the chosen pronunciation's IPA, so choosing or changing one invalidates a stale cached render.
 
 ## The default source setting
@@ -50,8 +53,8 @@ added `ManuscriptGuide.default_pronunciation_source` (Settings > Voice & pronunc
 original CMU-then-Wiktionary-then-eSpeak order) or one of the three source names. It only **reorders** the automatic
 fallback to try the narrator's preferred source first — the rest of the chain still runs if that source has nothing
 for a name — and never limits the entity/alias Generate/Replace control's own explicit per-name choice.
-`src/studio/desktop/internal/guide/service.go` passes it to the sidecar's `build`, `create`, and an `edit` that adds an
-alias; it is left off the command line entirely while unset, so an untouched project's command line is unchanged.
+`src/studio/desktop/internal/guide` passes it to the sidecar's pronunciation lookups: a build's (`entities --words-file`, or
+`pronunciation --words-file` for a rules-only build, `build.go`) and those of a create and of an edit that adds an alias; it is left off the command line entirely while unset, so an untouched project's command line is unchanged.
 
 ## Open, owner-only item
 
@@ -62,7 +65,8 @@ human ear; it is filed as owner QA on issue #510 and blocks nothing.
 
 Python: `src/studio/sidecars/manuscript-guide/tests/test_providers.py` (the fallback order, a narrator's default source tried
 first and ignored when unregistered, each source's conformance suite) and `test_pronunciation_preview.py` (chosen vs.
-unchosen, the pronounce-then-rebuild-then-preview round trip). Go: `src/studio/desktop/internal/guide/service_test.go` (the
-default-source argument reaches build/alias-edit/create and only those) and `preview_test.go` (the cache key). Vitest:
+unchosen, a chosen pronunciation as the host writes it spoken by the preview) and `test_pronounce.py` (`pronunciation --source`). Go:
+`src/studio/desktop/internal/guide/service_test.go` (the default-source argument reaches build/alias-edit/create and only those),
+`pronounce_test.go` and `pronounce_parity_test.go` (Generate/Replace), `wiktextract_index_test.go` (which commands get the index) and `preview_test.go` (the cache key). Vitest:
 `GuideDetail.pronunciation.test.tsx` and `GuideDetail.aliasPronunciation.test.tsx`. Visual: `storybible/entry-pronunciation-missing`,
 `entry-pronunciation-online` and `alias-pronunciation-editing`.

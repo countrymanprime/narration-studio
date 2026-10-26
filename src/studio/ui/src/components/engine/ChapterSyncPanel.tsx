@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
@@ -9,15 +9,22 @@ import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
-import { chapterSyncBackgroundWaitText, chapterSyncPanelNotChaptersText, chapterSyncPanelReasonText, chapterSyncSummaryText } from './chapterSyncText';
+import { StatusBadge } from '../primitives/StatusBadge';
+import {
+  chapterSyncBackgroundWaitText,
+  chapterSyncPanelNotChaptersText,
+  chapterSyncPanelReasonText,
+  chapterSyncSummaryFacts,
+  type ChapterSyncDaw,
+} from './chapterSyncText';
 
 /**
  * Chapter sync's own section of the engine panel the on/off state and last-sync summary, the Needs you list with an inline Link
  * (chapterTrackSet, the same binding as Chapter links below), and the tracks sync could not place. The Sync activity log is in
  * Settings (Recording & DAW › Advanced). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
- * decision, not a second copy of it here.
+ * decision, not a second copy of it here. `daw` is the DAW the project records with, which its text names.
  */
-export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChanged: () => void }) {
+export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; onChanged: () => void; daw: ChapterSyncDaw }) {
   const api = useApi();
   const state = useChapterSync(api);
   const [preview, setPreview] = useState<ChapterSyncPreview>();
@@ -51,15 +58,19 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
     }
   };
 
+  // The on/off button is in the card's header in both states, so it never moves and the card keeps its header (alignment audit ENX-8).
+  const toggleButton = (on: boolean) => (
+    <Button variant="secondary" pending={toggling} onClick={() => void toggle(on)}>
+      {on ? 'Turn on' : 'Turn off'}
+    </Button>
+  );
+
   if (state.consent === 'off') {
     return (
-      <Panel title="Chapter sync">
-        <div className="flex items-center justify-between gap-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+      <Panel title="Chapter sync" actions={toggleButton(true)}>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Chapter sync is off.
-          <Button variant="secondary" pending={toggling} onClick={() => void toggle(true)}>
-            Turn on
-          </Button>
-        </div>
+        </p>
       </Panel>
     );
   }
@@ -83,26 +94,32 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
   const notChapters = preview ? chapterSyncPanelNotChaptersText(preview.unmatched, preview.pickupTracks) : '';
   const notChaptersCount = preview ? preview.unmatched.length + preview.pickupTracks.length : 0;
 
+  const facts = chapterSyncSummaryFacts({
+    lastSync: state.lastSync,
+    projectFile: state.projectFile,
+    chapters: state.chapters,
+    linked: state.counts.linked,
+    daw,
+  });
+  const background = chapterSyncBackgroundWaitText(state.background, daw.daw);
+
+  // One fact per row, label beside value (R3EN2-3): the status, when and from what it last synced, the links, background checks while they
+  // wait, and the tracks it found that are not chapters, which used to be a second column under a rule.
   return (
-    <Panel
-      title="Chapter sync"
-      actions={
-        <Button variant="secondary" pending={toggling} onClick={() => void toggle(false)}>
-          Turn off
-        </Button>
-      }
-    >
-      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        {chapterSyncSummaryText({ lastSync: state.lastSync, projectFile: state.projectFile, chapters: state.chapters, linked: state.counts.linked })}
-      </p>
-      {state.unsavedEdits && (
-        <p role="status" className="mt-1 text-sm" style={{ color: 'var(--warn-text)' }}>
+    <Panel title="Chapter sync" actions={toggleButton(false)}>
+      <SyncFacts
+        rows={[
+          { label: 'Status', value: <StatusBadge tone="success" label="On" /> },
+          { label: 'Last synced', value: facts.synced },
+          { label: 'Links', value: facts.links },
+          ...(background ? [{ label: 'Background checks', value: background }] : []),
+          ...(notChapters ? [{ label: `Not chapters (${notChaptersCount})`, value: <span className="[overflow-wrap:anywhere]">{notChapters}</span> }] : []),
+        ]}
+      />
+      {/* Only REAPER's heartbeat carries an edit count, and the line names REAPER. */}
+      {state.unsavedEdits && daw.daw === 'REAPER' && (
+        <p role="status" className="mt-2 text-sm" style={{ color: 'var(--warn-text)' }}>
           REAPER has changes that aren&rsquo;t saved yet. Sync reads the saved project, so it picks them up when you save.
-        </p>
-      )}
-      {chapterSyncBackgroundWaitText(state.background) && (
-        <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {chapterSyncBackgroundWaitText(state.background)}
         </p>
       )}
       {preview && preview.needsYou.length > 0 && (
@@ -137,14 +154,21 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
           })}
         </div>
       )}
-      {notChapters && (
-        <div className="mt-3 min-w-0 border-t border-[var(--border)] pt-3 text-sm">
-          <SectionLabel as="h3" className="mb-1">
-            Tracks that are not chapters ({notChaptersCount})
-          </SectionLabel>
-          <p className="[overflow-wrap:anywhere]">{notChapters}</p>
-        </div>
-      )}
     </Panel>
+  );
+}
+
+// Chapter sync's facts as label and value rows on one grid: the labels muted in their own column, so status and a background wait no longer
+// read as one grey run-on line.
+function SyncFacts({ rows }: { rows: { label: string; value: ReactNode }[] }) {
+  return (
+    <dl className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] items-baseline gap-x-4 gap-y-1.5 text-sm">
+      {rows.map((row) => (
+        <Fragment key={row.label}>
+          <dt style={{ color: 'var(--text-muted)' }}>{row.label}</dt>
+          <dd className="m-0 min-w-0">{row.value}</dd>
+        </Fragment>
+      ))}
+    </dl>
   );
 }

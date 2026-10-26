@@ -116,7 +116,8 @@ function renderCompanion(overrides: Partial<Parameters<typeof CompanionShell>[0]
 }
 
 describe('CompanionShell', () => {
-  it('lays out CompactShell: the Companion heading, Full app, and the script, note, pickups, hotkeys and this-chapter sections in order', () => {
+  // The note section, not built yet, moved from second to last so the working sections come first (alignment audit XBO-32).
+  it('lays out CompactShell: the Companion heading, Full app, and the script, pickups, hotkeys, this-chapter and note sections in order', () => {
     renderCompanion();
     expect(screen.getByRole('heading', { level: 1, name: 'Companion' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Full app' })).toBeTruthy();
@@ -124,7 +125,7 @@ describe('CompanionShell', () => {
     const sections = within(main)
       .getAllByRole('region')
       .map((region) => document.getElementById(region.getAttribute('aria-labelledby') ?? '')?.textContent);
-    expect(sections).toEqual(['Script', 'Note at playhead', 'Pickups', 'Hotkeys (while this window has focus)', 'This chapter']);
+    expect(sections).toEqual(['Script', 'Pickups', 'Hotkeys (while this window has focus)', 'This chapter', 'Note at playhead']);
     expect(within(main).getByText('Chapter 5 — Advice from a Caterpillar')).toBeTruthy();
   });
 

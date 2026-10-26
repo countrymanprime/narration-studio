@@ -162,6 +162,24 @@ afterEach(() => {
 });
 
 describe('Delete words and audio', () => {
+  // XED-17, XED-19: one label column for every fact, the words included; the shared action row: Cancel left, Delete right.
+  it('lays the question out as one facts grid with the dialogs’ shared action row', async () => {
+    mount();
+    await flush();
+    await select('p-1:0', 'p-1:1');
+    fireEvent.click(button('Delete words and audio'));
+    const words = dialog().querySelector('[data-cut-words]')!;
+    const range = dialog().querySelector('[data-cut-range]')!;
+    expect(words.closest('dd')).not.toBeNull();
+    expect(words.closest('dl')!.className).toBe(range.closest('dl')!.className);
+    expect(dialog().querySelectorAll('dt.pt-0\\.5')).toHaveLength(0);
+    const footer = dialog().querySelector('[data-dialog-footer]')!;
+    expect(footer.className).toContain('[&>:first-child:not(:only-child)]:mr-auto');
+    expect([...footer.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Cancel', 'Delete 2 words and audio']);
+    const selects = within(dialog()).getAllByRole('combobox');
+    expect(new Set(selects.map((s) => s.className.match(/\bw-\d+\b/)?.[0]))).toEqual(new Set(['w-28']));
+  });
+
   it('asks-first-and-never-cuts-at-once: the bar, the key, the menu and the card open the question; Cancel and Escape change nothing', async () => {
     mount();
     await flush();

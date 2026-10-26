@@ -15,12 +15,16 @@ const NOT_CANCELLABLE_NOTICE = 'This step cannot be cancelled. Close appears whe
 // The same, for a job the caller lets keep running without the dialog: the app tells the narrator when it ends.
 const BACKGROUND_NOTICE = 'This step cannot be cancelled. You can close this window: it keeps running, and a message appears when it finishes.';
 
+// One ellipsis: the host's steps end in three dots ("Starting the recording check...") where the app's own lines use the character (R3PR2-22).
+const tidy = (line: string) => line.replace(/\.\.\.(?=\s|$)/g, '…');
+
 export function WorkDialog({
   title,
   job,
   close,
   cancel,
   background,
+  retry,
 }: {
   title: string;
   job: WorkJob;
@@ -28,6 +32,8 @@ export function WorkDialog({
   cancel?: () => void;
   /** Lets the narrator dismiss the dialog while the job runs. Only for a job whose end the app announces on its own. */
   background?: () => void;
+  /** Runs the job again after it failed: a primary Retry beside Close. Only for a job that is safe to start again (a download). */
+  retry?: () => void;
 }) {
   const running = active.has(job.phase);
   // The live activity follows its newest line, so a running job looks like what it is: something moving. Scrolling up to read stops that, and
@@ -38,25 +44,31 @@ export function WorkDialog({
     const box = logBox.current;
     if (box) following.current = box.scrollHeight - box.scrollTop - box.clientHeight < FOLLOW_SLACK_PX;
   };
-  useEffect(() => {
-    const box = logBox.current;
-    if (box && following.current) box.scrollTop = box.scrollHeight;
-  }, [job.logs.length]);
   // A running job that has reported no progress yet (percent 0) is indeterminate: no value, and the bar slides.
   const indeterminate = running && job.percent === 0;
   const showCancel = Boolean(cancel) && running;
   const showClose = Boolean(close) && !running;
   const showBackground = Boolean(background) && running;
   const notCancellable = running && !cancel;
+  const showRetry = Boolean(retry) && job.phase === 'error';
+  const status = tidy(job.error || job.message);
+  // The log keeps what the status line above it does not say: a line that repeats the status is left out, and with nothing left there is no log
+  // box, so a one-step job does not show its sentence twice over an empty grey box (R4SB-8, R3SE1-1, R3SB2-15).
+  const history = job.logs.map(tidy).filter((line) => line.trim() !== status.trim());
+  useEffect(() => {
+    const box = logBox.current;
+    if (box && following.current) box.scrollTop = box.scrollHeight;
+  }, [history.length]);
   return (
     <Dialog
       title={title}
       dismissOnOutsidePress={false}
       actionsAlign="end"
-      // Escape is ignored while a job runs (Cancel is a deliberate action) and works as Close once it has finished.
+      // Escape is ignored while a job runs (Cancel is a deliberate action) and works as Close once it has finished. The header draws no Close: the
+      // action row's Close is the way out, and a second button of that name would be read twice.
       onEscape={close && !running ? close : showBackground ? background : undefined}
       // A running job with no Cancel has nothing to press: no action row is drawn, and the description says why.
-      description={notCancellable ? <span className="mb-3 block">{showBackground ? BACKGROUND_NOTICE : NOT_CANCELLABLE_NOTICE}</span> : undefined}
+      description={notCancellable ? (showBackground ? BACKGROUND_NOTICE : NOT_CANCELLABLE_NOTICE) : undefined}
       actions={
         showCancel || showClose || showBackground ? (
           <>
@@ -71,42 +83,55 @@ export function WorkDialog({
               </Button>
             )}
             {showClose && (
-              <Button variant="primary" onClick={close}>
+              <Button variant={showRetry ? 'secondary' : 'primary'} onClick={close}>
                 Close
+              </Button>
+            )}
+            {showRetry && (
+              <Button variant="primary" onClick={retry}>
+                Retry
               </Button>
             )}
           </>
         ) : null
       }
     >
-      <div className="flex justify-between gap-3 text-sm">
+      <p className="text-sm">
         {/* A live region, so a screen reader hears each step; a failure interrupts (alert), progress does not (status). */}
-        <span>
-          <span role={job.error ? 'alert' : 'status'}>{job.error || job.message}</span>
-          {/* The numbers move on nearly every poll, so they sit outside the live region: the progress bar carries them for a screen reader. */}
-          {job.detail && !job.error && <span> {job.detail}</span>}
-        </span>
-        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs">{Math.floor(job.elapsed)}s</span>
-      </div>
-      <ProgressBar label={`${title} progress`} value={indeterminate ? null : job.percent} running={running} valueText={job.detail} className="mt-3" />
-      <div className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-        <SectionLabel as="div" className="mb-1.5">
-          Live activity
-        </SectionLabel>
-        <div
-          ref={logBox}
-          onScroll={onLogScroll}
-          tabIndex={0}
-          className="h-36 overflow-x-hidden overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] font-['IBM_Plex_Mono',ui-monospace,monospace] focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset"
-        >
-          {job.logs.map((line, index) => (
-            <div key={`${index}-${line}`} className="border-b border-[var(--border)] px-[0.45rem] py-1 break-words">
-              {line}
-            </div>
-          ))}
-          {!job.logs.length && <div className="border-b border-[var(--border)] px-[0.45rem] py-1">Waiting for activity…</div>}
+        <span role={job.error ? 'alert' : 'status'}>{status}</span>
+        {/* The numbers move on nearly every poll, so they sit outside the live region: the progress bar carries them for a screen reader. */}
+        {job.detail && !job.error && <span> {job.detail}</span>}
+      </p>
+      <ProgressBar
+        label={`${title} progress`}
+        value={indeterminate ? null : job.percent}
+        running={running}
+        valueText={job.detail}
+        tone={job.error ? 'danger' : 'accent'}
+        className="mt-3"
+      />
+      {/* Elapsed time under the bar's left end, beside what it measures, not alone at the far edge of the status line (R3PR2-22, R4SB-8). */}
+      <p className="mt-1.5 text-xs text-[var(--text-muted)]">{Math.floor(job.elapsed)} s elapsed</p>
+      {history.length > 0 && (
+        <div className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <SectionLabel as="div" className="mb-1.5">
+            Live activity
+          </SectionLabel>
+          {/* As tall as its lines, up to 9 rem, then it scrolls. */}
+          <div
+            ref={logBox}
+            onScroll={onLogScroll}
+            tabIndex={0}
+            className="max-h-36 overflow-x-hidden overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] font-['IBM_Plex_Mono',ui-monospace,monospace] focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset [&>:last-child]:border-b-0"
+          >
+            {history.map((line, index) => (
+              <div key={`${index}-${line}`} className="border-b border-[var(--border)] px-[0.45rem] py-1 break-words">
+                {line}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </Dialog>
   );
 }

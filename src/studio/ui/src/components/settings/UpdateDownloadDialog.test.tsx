@@ -92,6 +92,27 @@ describe('UpdateDownloadDialog', () => {
     expect(close).toHaveBeenCalledWith('error');
   });
 
+  it('offers Retry beside Close after a failure, and Retry starts the download again', async () => {
+    // The second start answers from a host that is downloading, and the poll asks that same host about its job.
+    const host = createMockApi({}, { update: 'downloading' });
+    let calls = 0;
+    const download = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error('the connection dropped');
+      return (await host.updateDownload()) as UpdateJob;
+    });
+    renderDialog('downloading', { updateDownload: download, updateJobState: (id) => host.updateJobState(id) });
+    await advance(100);
+    expect(screen.getByRole('alert').textContent).toContain('the connection dropped');
+    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await advance(1000);
+    expect(download).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(/the connection dropped/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('shows the error when the host refuses to start', async () => {
     const { close } = renderDialog('available', {
       updateDownload: async () => {

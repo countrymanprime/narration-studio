@@ -136,7 +136,8 @@ describe('Retail sample', () => {
     pick('Sample ends in', chapter.id);
     pick('End line', '3');
     fireEvent.click(screen.getByRole('button', { name: 'Save sample' }));
-    expect(await screen.findByText(/Chapter 2 — The Pool of Tears, line 1 to Chapter 2 — The Pool of Tears, line 3/)).toBeTruthy();
+    // One chapter is named once (alignment audit R3SE2-7).
+    expect(await screen.findByText(/^Chapter 2: The Pool of Tears, lines 1 to 3 \(\d[\d,]* words, about /)).toBeTruthy();
     expect(screen.getByText(/adds no time to the estimate/)).toBeTruthy();
     expect((await api.creditsRetailSample()).sample).toMatchObject({ startLine: 1, endLine: 3 });
   });
@@ -164,9 +165,50 @@ describe('Retail sample', () => {
         <CreditsPanel notify={vi.fn()} />
       </ApiProvider>,
     );
-    expect(await screen.findByText(/Chapter 2 — The Pool of Tears, line 1 to Chapter 2 — The Pool of Tears, line 2/)).toBeTruthy();
+    expect(await screen.findByText(/^Chapter 2: The Pool of Tears, lines 1 to 2 \(/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Clear sample' }));
     expect(await screen.findByText(/No retail sample picked/)).toBeTruthy();
     expect((await api.creditsRetailSample()).sample).toBeNull();
+  });
+});
+
+// Alignment audit (XSE2-11, XSE2-5, R3SE2-6, R3SE2-9): the editor's sections are set apart, the short fields pair up, a chapter select
+// takes its row, a template named like its kind is not labelled twice, and Use suggestion never wraps.
+describe('CreditsPanel layout', () => {
+  it('sets each section apart with a rule and a heading above the field labels', async () => {
+    renderPanel();
+    const heading = await screen.findByRole('heading', { level: 3, name: 'Project values' });
+    expect(heading.className).toContain('text-[0.9375rem]');
+    expect(heading.closest('section')!.className).toContain('border-t');
+  });
+
+  it('pairs the short project values on one line once there is room', async () => {
+    renderPanel();
+    const title = await screen.findByRole('textbox', { name: 'Title' });
+    expect(title.closest('[class*="@lg:grid-cols-2"]')).toBeTruthy();
+  });
+
+  it('gives each chapter select the row and its line a short field beside it', async () => {
+    renderPanel();
+    const start = await screen.findByRole('combobox', { name: 'Sample starts in' });
+    expect(start.closest('[class*="grid-cols-[minmax(0,1fr)_6rem]"]')).toBeTruthy();
+  });
+
+  it('does not repeat the kind after a template named like it', async () => {
+    const plain = createMockApi();
+    const api = createMockApi({
+      creditsTemplates: async () => [
+        ...(await plain.creditsTemplates()),
+        { id: 'announce', name: 'Chapter announcement', kind: 'chapter_announcement', body: '[Chapter]', builtIn: false },
+      ],
+    });
+    render(
+      <ApiProvider api={api}>
+        <CreditsPanel notify={vi.fn()} />
+      </ApiProvider>,
+    );
+    const picker = await screen.findByRole('combobox', { name: 'Template' });
+    await waitFor(() => expect([...picker.querySelectorAll('option')].map((option) => option.textContent)).toContain('Chapter announcement'));
+    expect([...picker.querySelectorAll('option')].map((option) => option.textContent)).not.toContain('Chapter announcement (Chapter announcement)');
   });
 });

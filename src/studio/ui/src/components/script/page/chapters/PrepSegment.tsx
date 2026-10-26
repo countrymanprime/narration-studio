@@ -14,6 +14,8 @@ export function PrepSegment({ chapter }: { chapter: ChapterNameInput & { id: str
     <ToggleGroup
       label={`Prep state for ${headingName(chapter)}`}
       look="segmented"
+      // One width for the three states, so like options are alike and the group does not shift as the label changes (XSC-31).
+      className="[&>*]:min-w-[6rem]"
       value={prep.prepOf(chapter.id)}
       options={PREP_STATES.map((state) => ({ value: state, label: PREP_LABELS[state] }))}
       onChange={(state) => void setPrep(chapter, state as PrepState)}

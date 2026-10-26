@@ -100,6 +100,15 @@ describe('SlideOver is a real modal panel', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('dims the page behind it, like the page drawers (alignment audit cause O)', () => {
+    render(
+      <SlideOver open title="Voice data" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    expect(document.querySelector('[data-slide-over-backdrop]')!.className).toContain('bg-[var(--panel-scrim)]');
+  });
+
   it('closes when the click-away backdrop is pressed', async () => {
     const onClose = vi.fn();
     const { user } = await openPanel(onClose);
@@ -114,5 +123,40 @@ describe('SlideOver is a real modal panel', () => {
       const focused = await tabInsideTrap(user);
       expect(focused, `press ${press}`).not.toBe(behind);
     }
+  });
+});
+
+describe('the header (ENX-11, ENX-13)', () => {
+  it('is one height whatever the title, which keeps to one line and names itself in full on hover', () => {
+    render(
+      <SlideOver open title="Editing check: Chapter 1 — Down the Rabbit-Hole" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    const title = screen.getByRole('heading', { name: 'Editing check: Chapter 1 — Down the Rabbit-Hole' });
+    expect(title.className).toContain('truncate');
+    expect(title.className).toContain('flex-1');
+    expect(title.getAttribute('title')).toBe('Editing check: Chapter 1 — Down the Rabbit-Hole');
+    // 52 px since XSL-13 (the top bar's height), 60 px before.
+    expect(title.parentElement!.className).toContain('h-13');
+  });
+
+  it('draws its title with the overlay title token, larger than a card title', () => {
+    render(
+      <SlideOver open title="Audio engine" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    expect(screen.getByRole('heading', { name: 'Audio engine' }).className).toContain('--font-size-overlay-title');
+  });
+
+  // XSL-13: the panel's rule stood 12 px under the top bar's.
+  it("draws its header at the top bar's 52 px, so the two rules meet", () => {
+    render(
+      <SlideOver open title="Undo history" onClose={() => undefined}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    expect(screen.getByRole('heading', { name: 'Undo history' }).parentElement!.className).toContain('h-13');
   });
 });

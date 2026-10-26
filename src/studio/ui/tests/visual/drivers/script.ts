@@ -18,11 +18,11 @@ export const scriptDrivers: Record<string, Driver> = {
     await settlePage(page);
     // The page's own content never loads here, so goToPage (which waits for it) is not used: the inline error is the proof.
     await clickNav(page, 'Script');
-    // The words are on screen twice: Home's audiobook estimate read the same chapters first and raised a notice that stays, and
-    // the page then shows its own inline error. Wait for each by what it is, so neither the state nor a strict-mode locator depends on
-    // which of the two rendered first.
+    // The page shows its own inline error with Retry, and the toast that said the same is cleared by it (#2494), so the words are on
+    // screen once.
     await page.getByRole('button', { name: 'Retry' }).waitFor();
-    await page.locator('[data-tone="error"]').getByText('The app received data it could not read.').waitFor();
+    await page.getByText('The app received data it could not read.').waitFor();
+    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
   reader: async (page) => {
     await goToPage(page, 'Script');
@@ -71,7 +71,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.keyboard.press('Escape');
     await page.getByRole('toolbar', { name: 'Selection tools' }).waitFor({ state: 'detached' });
     await page.mouse.click(at.x, at.y, { button: 'right' });
-    await page.getByRole('group', { name: 'Mark as' }).waitFor();
+    await page.getByRole('menuitem', { name: 'Mark as' }).waitFor();
   },
   'skip-to-side-panel': async (page) => {
     await goToPage(page, 'Script');
@@ -88,10 +88,8 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.keyboard.press('Escape');
     // Focus returns to the ribbon, whose tooltip would be portalled outside the landmarks.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await page
-      .locator('[role="tooltip"]')
-      .waitFor({ state: 'detached' })
-      .catch(() => undefined);
+    // Bounded, and not swallowed: a tooltip that stays fails here and says so, instead of using up the test's time.
+    await page.locator('[role="tooltip"]').waitFor({ state: 'detached', timeout: 5_000 });
   },
   // The jump menu on the Script: the page's own groups first, under "On this page".
   'jump-menu': async (page) => {

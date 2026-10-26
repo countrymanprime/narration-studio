@@ -1,24 +1,31 @@
 """Generate/replace pronunciation controls.
 
 `pronounce_source` gets a pronunciation from one named engine and raises when that engine has nothing for the name,
-instead of the automatic-fallback ``pronunciation()`` that quietly reports "not generated". The ``pronounce`` command
-applies it to an entity's own name or one of its aliases, refuses a locked entity, and marks the value
-``chosen`` so a rebuild (`merge_locked`) keeps it (B11) instead of overwriting it with a freshly generated one.
+instead of the automatic-fallback ``pronunciation()`` that quietly reports "not generated". ``pronunciation --source`` prints it for
+the host, which applies it to the entry's own name or one of its aliases, refuses a locked entry and marks the value ``chosen``
+(src/studio/desktop/internal/guide/pronounce.go, pinned to what this sidecar's deleted ``pronounce`` command wrote by
+tests/fixtures/guide-pronounce).
 """
 
 import argparse
+import contextlib
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from narration_common import contract_files
+
 MODULE_PATH = Path(__file__).parents[1] / "core" / "manuscript_guide.py"
 SPEC = importlib.util.spec_from_file_location("manuscript_guide", MODULE_PATH)
 guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
+
+TESTDATA = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide" / "testdata"
 
 
 def _guide_file(root: Path, **fields) -> Path:
@@ -30,12 +37,9 @@ def _guide_file(root: Path, **fields) -> Path:
         "aliases": [{"text": "the Sparrow", "pronunciation": {}, "occurrences": []}],
         **fields,
     }
-    guide.write_json(str(path), {"entities": [entity]})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"entities": [entity]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
-
-
-def _entity(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))["entities"][0]
 
 
 class PronounceSourceTests(unittest.TestCase):
@@ -67,87 +71,79 @@ class PronounceSourceTests(unittest.TestCase):
             self.assertEqual({"ipa": "", "source": "not generated", "confidence": "unknown"}, guide.pronunciation("Name", None))
 
 
-class PronounceCommandTests(unittest.TestCase):
-    def _run(self, path: Path, alias_index=None, source="cmu"):
-        guide.pronounce(argparse.Namespace(guide=str(path), entity_id="entity-1", alias_index=alias_index, source=source, espeak_library=""))
+class SourceLookupTests(unittest.TestCase):
+    """``pronunciation --source``: each word asked of that source alone, one JSON line each, a miss being its reason."""
 
-    def test_sets_the_canonical_pronunciation_and_marks_it_chosen(self):
+    def _run(self, words, source="cmu", **namespace):
         with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), canonical_name="hello")
-            self._run(path)
-            value = _entity(path)["pronunciation"]
-            self.assertEqual("cmu", value["source"])
-            self.assertTrue(value["chosen"])
+            path = Path(temporary) / "words.json"
+            path.write_text(json.dumps(words), encoding="utf-8")
+            out = io.StringIO()
+            args = argparse.Namespace(word=None, words_file=str(path), source=source, default_source="espeak", espeak_library="", **namespace)
+            with contextlib.redirect_stdout(out):
+                guide.lookup_pronunciations(args)
+        return out.getvalue().split("\n")[:-1]
 
-    def test_sets_an_alias_pronunciation_by_index_and_leaves_the_canonical_one_alone(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), aliases=[{"text": "hello", "pronunciation": {}, "occurrences": []}])
-            self._run(path, alias_index=0)
-            entity = _entity(path)
-            self.assertTrue(entity["aliases"][0]["pronunciation"]["chosen"])
-            self.assertNotIn("pronunciation", entity)
+    def test_a_hit_is_the_source_value_in_its_key_order(self):
+        self.assertEqual(['{"ipa": "h ʌ l oʊ", "source": "cmu", "confidence": "medium"}'], self._run(["hello"]))
 
-    def test_an_alias_index_out_of_range_is_refused(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            with self.assertRaisesRegex(ValueError, "out of range"):
-                self._run(path, alias_index=5)
+    def test_a_miss_is_the_reason_in_the_sources_words_and_no_other_source_is_asked(self):
+        with patch("phonemizer.phonemize", side_effect=AssertionError("eSpeak asked")):
+            lines = self._run(["Zzyzxqq", "hello"])
+        self.assertEqual({"miss": 'The CMU dictionary has no entry for "Zzyzxqq".'}, json.loads(lines[0]))
+        self.assertEqual("cmu", json.loads(lines[1])["source"])
 
-    def test_a_locked_entity_refuses_and_stays_as_it_was(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), locked=True, canonical_name="hello")
-            before = path.read_text(encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "locked"):
-                self._run(path)
-            self.assertEqual(before, path.read_text(encoding="utf-8"))
+    def test_any_failure_is_a_miss_and_one_with_no_text_is_its_type(self):
+        for raised, reason in ((RuntimeError("espeak not installed on your system"), "espeak not installed on your system"), (KeyError(), "KeyError")):
+            with self.subTest(reason=reason), patch.object(guide, "pronounce_source", side_effect=raised):
+                self.assertEqual([json.dumps({"miss": reason})], self._run(["Wren"]))
 
-    def test_an_engine_with_nothing_for_the_name_leaves_the_file_unchanged_and_says_why(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), canonical_name="Zzyzxqq")
-            before = path.read_text(encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "CMU dictionary has no entry"):
-                self._run(path)
-            self.assertEqual(before, path.read_text(encoding="utf-8"))
+    def test_a_name_is_asked_exactly_as_the_story_bible_holds_it_even_empty(self):
+        asked = []
 
-    def test_the_command_line_runs_it(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary), canonical_name="hello")
-            argv = ["manuscript_guide.py", "pronounce", "--guide", str(path), "--entity-id", "entity-1", "--source", "cmu"]
-            with patch("sys.argv", argv), patch("sys.stdout"):
-                guide.main()
-            self.assertTrue(_entity(path)["pronunciation"]["chosen"])
+        def stub(name, espeak_library, source):
+            asked.append((name, source))
+            return {"ipa": "x", "source": source, "confidence": "low"}
 
+        names = ["", "  Wren  ", "-dash", "a\u2028b", "Zoë 😀"]
+        with patch.object(guide, "pronounce_source", stub):
+            lines = self._run(names, source="espeak")
+        self.assertEqual([(name, "espeak") for name in names], asked)
+        self.assertEqual(len(names), len(lines))
 
-class ChosenPronunciationSurvivesRebuildTests(unittest.TestCase):
-    def _generated(self, name: str = "Wren") -> dict:
-        return {
-            "id": guide.entity_id(name),
-            "canonical_name": name,
-            "aliases": [],
-            "category": "Character",
-            "occurrences": [],
-            "occurrence_count": 0,
-            "pronunciation": {"ipa": "fresh", "source": "CMU dictionary", "confidence": "medium"},
-            "description": {"text": "", "evidence": {}},
-            "personality_notes": [],
-            "context": "",
-            "relationships": [],
-            "properties": [],
-            "locked": False,
-            "manual": False,
-            "review_state": "generated",
-        }
+    def test_without_source_an_empty_name_is_still_refused(self):
+        with self.assertRaises(ValueError):
+            self._run([""], source=None)
 
-    def test_a_chosen_pronunciation_is_kept_over_a_freshly_generated_one(self):
-        prior = {**self._generated(), "pronunciation": {"ipa": "chosen one", "source": "eSpeak NG", "confidence": "low", "chosen": True}}
-        merged = guide.merge_locked([self._generated()], {"entities": [prior]})
-        self.assertEqual(prior["pronunciation"], merged[0]["pronunciation"])
+    def test_the_command_line_takes_a_registered_source_only(self):
+        with patch("sys.argv", ["g", "pronunciation", "--source", "cmu", "--words-file", "w.json"]), patch.object(guide, "lookup_pronunciations") as run:
+            guide.main()
+        self.assertEqual("cmu", run.call_args.args[0].source)
+        with patch("sys.argv", ["g", "pronunciation", "--source", "forvo", "--words-file", "w.json"]), patch("sys.stderr"), self.assertRaises(SystemExit):
+            guide.main()
 
-    def test_an_unchosen_pronunciation_is_replaced_by_the_fresh_one_as_before(self):
-        prior = {**self._generated(), "pronunciation": {"ipa": "stale", "source": "CMU dictionary", "confidence": "medium"}}
-        fresh = self._generated()
-        merged = guide.merge_locked([fresh], {"entities": [prior]})
-        self.assertEqual(fresh["pronunciation"], merged[0]["pronunciation"])
+    def test_what_it_printed_matches_the_committed_golden(self):
+        # pronunciation-source-golden.json: the lines the host's parseSourceAnswer reads (TestTheSourceAnswerMatchesTheGolden). Run with
+        # UPDATE_CONTRACTS=1 to rewrite it.
+        known = {"Wren": "ɹɛn", "Zoë 😀": "zoʊ", "a\u2028b": 'ə "b"'}
+        failures = {"": KeyError(), "espeak": RuntimeError("espeak not installed on your system")}
+
+        def stub(name, espeak_library, source):
+            if name in failures:
+                raise failures[name]
+            if name not in known:
+                raise ValueError(f'The CMU dictionary has no entry for "{name}".')
+            return {"ipa": known[name], "source": source, "confidence": "medium"}
+
+        words = ["Wren", "Zoë 😀", "Zzyzxqq", "", "espeak", "a\u2028b"]
+        with patch.object(guide, "pronounce_source", stub):
+            lines = self._run(words)
+        contract_files.check("pronunciation-source-golden", {"source": "cmu", "words": words, "lines": lines}, TESTDATA)
+
+    def test_the_pronounce_command_is_gone(self):
+        self.assertFalse(hasattr(guide, "pronounce"))
+        with patch("sys.argv", ["g", "pronounce", "--guide", "g", "--entity-id", "e", "--source", "cmu"]), patch("sys.stderr"), self.assertRaises(SystemExit):
+            guide.main()
 
 
 if __name__ == "__main__":

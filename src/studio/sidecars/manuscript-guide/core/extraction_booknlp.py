@@ -43,7 +43,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, TypedDict
 
-import extraction_rules
 import manuscript_guide as guide
 from narration_common.logging_utils import log
 from narration_common.ports.extraction import AVAILABLE, BOOKNLP, BUILT_IN, FLAG_DUPLICATE, Availability, Book, RawSuggestion
@@ -490,7 +489,7 @@ class _Reading:
 
     def raw(self, payload: dict[str, Any], confidence: float | None, where: tuple[dict[str, str], int, int], *, whole: bool = False) -> RawSuggestion:
         paragraph, start, end = where
-        quote = paragraph["text"][start:end].strip() if whole else extraction_rules.sentence_around(paragraph["text"], start, end)
+        quote = paragraph["text"][start:end].strip() if whole else guide.sentence_around(paragraph["text"], start, end)
         return {
             "payload": payload,
             "confidence": confidence,

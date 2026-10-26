@@ -334,19 +334,19 @@ export const settingsDrivers: Record<string, Driver> = {
   // The chapter announcement template ?mockCredits=extras adds, previewed for Chapter 1.
   'project-credits-chapter-announcement': async (page) => {
     await openCreditsEditor(page, '?mockCredits=extras');
-    await page.getByRole('combobox', { name: 'Template' }).selectOption({ label: 'Chapter announcement (Chapter announcement)' });
+    await page.getByRole('combobox', { name: 'Template' }).selectOption({ label: 'Chapter announcement' });
     await page.getByText(/Shown for Chapter 1/).waitFor();
   },
   // The retail sample ?mockCredits=extras picked (Chapter 3, lines 1-3), scrolled into view.
   'project-credits-retail-sample': async (page) => {
     await openCreditsEditor(page, '?mockCredits=extras');
-    await page.getByText(/line 1 to Chapter 3 — A Caucus-Race and a Long Tale, line 3/).waitFor();
+    await page.getByText(/Chapter 3: A Caucus-Race and a Long Tale, lines 1 to 3/).waitFor();
     await page.getByRole('heading', { name: 'Retail sample' }).scrollIntoViewIfNeeded();
   },
   // A range over 5 minutes (Chapter 1 to Chapter 12) is refused, and the refusal says why.
   'project-credits-retail-sample-refused': async (page) => {
     await openCreditsEditor(page);
-    await page.getByRole('combobox', { name: 'Sample ends in' }).selectOption({ label: 'Chapter 12 — Alice’s Evidence' });
+    await page.getByRole('combobox', { name: 'Sample ends in' }).selectOption({ label: 'Chapter 12: Alice’s Evidence' });
     await page.getByRole('button', { name: 'Save sample' }).click();
     await page.getByText(/at most 5 minutes/).waitFor();
     await page.getByRole('button', { name: 'Save sample' }).scrollIntoViewIfNeeded();
@@ -370,7 +370,7 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'global-keyboard': async (page) => {
     await openShortcuts(page);
-    await page.getByText('Keys and pedals').waitFor();
+    await page.getByRole('button', { name: 'Reset all to defaults' }).waitFor();
   },
   'global-keyboard-recording': async (page) => {
     await openShortcuts(page);
@@ -548,3 +548,5 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('This project uses', { exact: true }).waitFor();
   },
 };
+// The whole page of page-top (catalog/shared.ts: wholePage), driven the same way.
+settingsDrivers['whole-page'] = settingsDrivers['page-top'];

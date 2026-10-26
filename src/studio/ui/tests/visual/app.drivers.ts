@@ -32,6 +32,10 @@ export type { Driver } from './drivers/shared';
 /** @public */
 export { AXE_DEBT as axeDebt } from './axe-debt';
 
+// The alignment rules an app state is known to break (layout-debt.ts); every other hit of lib/layoutScan.ts fails its capture.
+/** @public */
+export { LAYOUT_DEBT as layoutDebt } from './layout-debt';
+
 // The document never scrolls: the page area (AppShell.tsx) is the app's one scroll container, and nothing under #root
 // lays out against the document.
 // Turns on the vendored lib/capture.ts's vertical-overflow and escaped-absolute checks, with no per-row escape hatch.

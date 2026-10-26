@@ -9,6 +9,10 @@ import { WPH } from '../../../schedule/estimates';
 import { CREDITS, ONE, TWO, chapterHost } from './chapterFixtures';
 import { ChapterCard } from './ChapterCard';
 
+/** The facts paragraph, whose facts are separate unbreakable spans (alignment audit XSC-10), matched on its whole text. */
+const factsLine = (pattern: RegExp) => (_: string, element: Element | null) =>
+  element?.tagName === 'P' && pattern.test((element.textContent ?? '').replace(/\u00a0/g, ' '));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -32,7 +36,9 @@ describe('chapter card', () => {
     expect(screen.getByRole('heading', { name: 'The Salt Marsh' })).toBeTruthy();
     const minutes = Math.round((TWO.wordCount / WPH) * 60);
     await vi.waitFor(() =>
-      expect(screen.getByText(new RegExp(`2,044 words · about ${minutes} min finished audio · 1 note`)).textContent).toContain('without pronunciation'),
+      expect(screen.getByText(factsLine(new RegExp(`2,044 words · about ${minutes} min finished audio · 1 note`))).textContent).toContain(
+        'without pronunciation',
+      ),
     );
   });
 
@@ -80,7 +86,7 @@ describe('chapter card', () => {
   it('changes the pressed button and says so when a prep state is pressed', async () => {
     const announce = vi.spyOn(overlay, 'announce');
     mount();
-    const group = await screen.findByRole('group', { name: 'Prep state for Chapter 2 — The Salt Marsh' });
+    const group = await screen.findByRole('group', { name: 'Prep state for Chapter 2: The Salt Marsh' });
     await vi.waitFor(() => expect(within(group).getByRole('button', { name: 'Not started' }).getAttribute('aria-pressed')).toBe('true'));
     await userEvent.click(within(group).getByRole('button', { name: 'Prepped' }));
     await vi.waitFor(() => expect(within(group).getByRole('button', { name: 'Prepped' }).getAttribute('aria-pressed')).toBe('true'));

@@ -172,7 +172,7 @@ export async function openProofChapter(page: Page, chapterTitle = 'Chapter 1'): 
     window.history.pushState(null, '', path);
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, `/proof/chapter-${number}`);
-  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
+  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}(: | — |$)`) }).waitFor();
 }
 
 // The chapter view's compare run (the retired Proofing page's setup, run and results), scrolled into view for the picture.
@@ -209,12 +209,9 @@ export async function measureOnMaster(page: Page, query = ''): Promise<void> {
 }
 
 // The table's rows that have a file behind them. The table draws a waiting row per chapter before anything is measured, so the grid
-// alone no longer says that files have arrived: a row that is not "No file measured yet" / "Waiting on N pickups" does.
+// alone no longer says that files have arrived: a row the table does not mark `data-no-file` does.
 export function masterFileRows(page: Page): Locator {
-  return page
-    .getByRole('grid', { name: 'Per-file checks' })
-    .locator('tbody tr')
-    .filter({ hasNotText: /No file measured yet|Waiting on \d+ pickups?/ });
+  return page.getByRole('grid', { name: 'Per-file checks' }).locator('tbody tr:not([data-no-file])');
 }
 
 // Opens Master & QC's Diagnostics section, after a reload with mock seams when given, once its
@@ -348,8 +345,8 @@ export async function openTrackPanel(page: Page, chapter: string, seed: string) 
   await settlePage(page);
   await productionLoaded(page);
   await rowMenu(page, chapter, 'Chapter track…');
-  // The slide-over's name carries the chapter's subtitle after " — ".
-  const dialog = page.getByRole('dialog', { name: new RegExp(`^Track: ${chapter}( — |$)`) });
+  // The slide-over's name carries the chapter's subtitle after " — " or ": ".
+  const dialog = page.getByRole('dialog', { name: new RegExp(`^Track: ${chapter}(: | — |$)`) });
   await dialog.getByText('Reading the saved project…').waitFor({ state: 'detached' });
   return dialog;
 }
@@ -390,14 +387,15 @@ export async function openEditingCheck(page: Page, query: string) {
 
 /** Opens the engine panel from the header's engine chip, whatever state
  * the chip is in, and waits for the panel to have read its REAPER project. Returns the panel. */
-export async function openEnginePanel(page: Page): Promise<Locator> {
+export async function openEnginePanel(page: Page, daw: 'REAPER' | 'Audacity' = 'REAPER'): Promise<Locator> {
   await page
     .locator('header')
-    .getByRole('button', { name: /^REAPER: / })
+    .getByRole('button', { name: new RegExp(`^${daw}: `) })
     .click();
   const panel = page.getByRole('dialog', { name: 'Audio engine' });
-  await panel.getByRole('region', { name: 'REAPER project' }).waitFor();
-  await panel.getByRole('status').filter({ hasText: 'Looking for the REAPER project file…' }).waitFor({ state: 'detached' });
+  // An Audacity project's card takes the place of the REAPER project section.
+  await panel.getByRole('region', { name: `${daw} project` }).waitFor();
+  if (daw === 'REAPER') await panel.getByRole('status').filter({ hasText: 'Looking for the REAPER project file…' }).waitFor({ state: 'detached' });
   return panel;
 }
 
@@ -405,8 +403,10 @@ export async function openEnginePanel(page: Page): Promise<Locator> {
 export async function openEditingCheckFromEngine(page: Page, query: string) {
   await page.goto(`/?${query}`);
   await settlePage(page);
-  await openEnginePanel(page);
-  await clickVisible(page, 'button', 'Editing check…');
+  const engine = await openEnginePanel(page);
+  // Editing check is in each Chapter links row's More actions menu.
+  await engine.getByRole('button', { name: 'More actions for Chapter 1', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Editing check…' }).click();
   const panel = page.getByRole('dialog', { name: /^Editing check: Chapter 1\b/ });
   await panel.getByRole('button', { name: /^Check editing|Check again$/ }).waitFor();
   return panel;
@@ -500,28 +500,32 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
 }
 
 /** Links a chapter to its first available track from the engine panel's Chapter links table (the same real-UI path
- * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" link to `/proof/:chapterId` and waits for the chapter
+ * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" menu item to `/proof/:chapterId` and waits for the chapter
  * view to render: only Chapter 1 starts linked by default in the mock. */
 export async function openLinkedProofChapter(page: Page, chapterTitle: string): Promise<void> {
   await openEnginePanel(page);
   const table = page.getByRole('table', { name: 'Chapter links' });
   await table.scrollIntoViewIfNeeded();
   // An anchored-name cell match, not `hasText` (a substring): "Chapter 1" is also a substring of "Chapter 10"-"Chapter 12".
-  // The cell's full name may carry the chapter's subtitle after " — ", so
+  // The cell's full name may carry the chapter's subtitle after " — " or ": ", so
   // the match allows that suffix rather than requiring an exact "Chapter 1".
-  const row = table.locator('tbody tr').filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapterTitle}( — |$)`) }) });
+  const row = table.locator('tbody tr').filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapterTitle}(: | — |$)`) }) });
   // Chapter 1 boots linked (an unset ?mockChapterLink is `confirmed`), so it has no track to choose; any other chapter is linked here.
   await row
     .getByRole('combobox')
-    .or(row.getByRole('link', { name: 'Open in Proof' }))
+    .or(row.getByRole('button', { name: 'Change' }))
     .first()
     .waitFor();
   if (await row.getByRole('combobox').count()) {
-    await row.getByRole('combobox').selectOption({ index: 0 });
+    // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
+    await row.getByRole('combobox').selectOption({ index: 1 });
     await row.getByRole('button', { name: 'Confirm' }).click();
+    await row.getByRole('button', { name: 'Change' }).waitFor();
   }
-  await row.getByRole('link', { name: 'Open in Proof' }).click();
-  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
+  // Open in Proof is in the row's More actions menu.
+  await row.getByRole('button', { name: /^More actions for / }).click();
+  await page.getByRole('menuitem', { name: 'Open in Proof' }).click();
+  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}(: | — |$)`) }).waitFor();
 }
 
 // Some states have no known/safe driver yet (e.g. forcing

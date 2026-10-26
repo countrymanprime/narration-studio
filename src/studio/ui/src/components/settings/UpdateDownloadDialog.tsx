@@ -30,7 +30,8 @@ const WORK_PHASE: Record<UpdateJob['phase'], WorkJob['phase']> = {
 /**
  * Downloads the update the narrator asked for and shows how it goes: real bytes while it downloads, then the check against the
  * release's checksum and the unpacking. Cancel stops the download; once it has all arrived the remaining steps are short and are
- * not cancellable, and the dialog says so. It starts the download once when it opens and never on its own before that.
+ * not cancellable, and the dialog says so. It starts the download once when it opens and never on its own before that; after a
+ * failure, Retry starts it again.
  */
 export function UpdateDownloadDialog({ available, close }: { available: UpdateAvailable; close: (result: UpdateJob['phase']) => void }) {
   const api = useApi();
@@ -38,8 +39,10 @@ export function UpdateDownloadDialog({ available, close }: { available: UpdateAv
   const [failure, setFailure] = useState('');
   const [seconds, setSeconds] = useState(0);
   const [log, setLog] = useState<string[]>([]);
-  // One start per dialog, even when React runs the effect twice in development: the second run waits for the same request.
+  // One start per attempt, even when React runs the effect twice in development: the second run waits for the same request.
   const starting = useRef<Promise<UpdateJob>>(undefined);
+  // Retry after a failure starts the download again: a new attempt, read afresh from its first byte.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -68,7 +71,7 @@ export function UpdateDownloadDialog({ available, close }: { available: UpdateAv
       clearTimeout(timer);
       clearInterval(clock);
     };
-  }, [api]);
+  }, [api, attempt]);
 
   const message = job?.message ?? '';
   const jobMessage = job?.message;
@@ -91,6 +94,14 @@ export function UpdateDownloadDialog({ available, close }: { available: UpdateAv
       };
   // Only the download itself can be stopped; the checks after it are short and finish what they started.
   const canCancel = job?.phase === 'downloading';
+  const retry = () => {
+    starting.current = undefined;
+    setJob(undefined);
+    setFailure('');
+    setLog([]);
+    setSeconds(0);
+    setAttempt((current) => current + 1);
+  };
   return (
     <WorkDialog
       title={`Download ${brand.name} ${available.version}`}
@@ -105,6 +116,7 @@ export function UpdateDownloadDialog({ available, close }: { available: UpdateAv
                 .catch((error) => setFailure(apiErrorMessage(error)))
           : undefined
       }
+      retry={retry}
     />
   );
 }

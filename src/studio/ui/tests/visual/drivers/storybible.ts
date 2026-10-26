@@ -355,3 +355,5 @@ async function openHatterSampleMenu(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'More about Tea party, quick' }).click();
   await page.getByRole('menuitem', { name: 'Delete…' }).waitFor();
 }
+// The whole page of entity-selected (catalog/shared.ts: wholePage), driven the same way.
+storybibleDrivers['whole-page'] = storybibleDrivers['entity-selected'];

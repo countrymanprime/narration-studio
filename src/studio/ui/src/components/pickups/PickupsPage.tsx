@@ -289,47 +289,52 @@ export function PickupsPage({
 
   return (
     <CommandScope kind="page">
-      <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_360px]">
-        <PickupsTable
-          pickups={list.pickups}
-          returnTo={returnTo}
-          reveal={reveal}
-          read={read}
-          checking={checking}
-          onReload={() => {
-            setChecking(true);
-            void load().finally(() => alive.current && setChecking(false));
-          }}
-          chapters={chapters}
-          scope={scope}
-          currentChapterId={current || chapters[0]?.id || ''}
-          chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
-          daw={{ available: review.available, message: review.message }}
-          onScope={choose}
-          onStep={step}
-          onCheck={(ids) => openCheckRecordings(ids)}
-          onAdd={add}
-          onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
-          onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
-          onRemove={remove}
-          original={{ ...original, play: (pickup) => void original.play(pickup) }}
-          onOpenInBooth={openInBooth}
-          onOpenInScript={goToScript}
-          onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
-          onFine={fine}
-          where={(pickup) => <PickupWhere pickup={pickup} manuscript={manuscriptApi} />}
-        />
-        <SessionPanel
-          pickups={inView}
-          chapters={chapters}
-          unreadable={read.kind === 'failed'}
-          loading={read.kind === 'loading'}
-          seconds={seconds}
-          dawName={dawName}
-          markers={{ available: markers.available, message: markers.message }}
-          onOpenInBooth={openInBooth}
-          onAddMarkers={addMarkers}
-        />
+      {/* Side by side, the side column is Proof's 380 px (XPK-18) and both cards run down to the window's end, so they share a bottom edge
+          in every state (XPK-6, R4TB-7). Stacked, each card keeps its own height, and the session card keeps its 30 rem rather than
+          stretching its rows across the window (XPK-4). */}
+      <div className="flex min-h-full flex-col">
+        <div className="grid flex-1 content-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[minmax(0,1fr)] max-[1180px]:[&>:last-child]:max-w-[30rem]">
+          <PickupsTable
+            pickups={list.pickups}
+            returnTo={returnTo}
+            reveal={reveal}
+            read={read}
+            checking={checking}
+            onReload={() => {
+              setChecking(true);
+              void load().finally(() => alive.current && setChecking(false));
+            }}
+            chapters={chapters}
+            scope={scope}
+            currentChapterId={current || chapters[0]?.id || ''}
+            chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
+            daw={{ available: review.available, message: review.message }}
+            onScope={choose}
+            onStep={step}
+            onCheck={(ids) => openCheckRecordings(ids)}
+            onAdd={add}
+            onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
+            onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
+            onRemove={remove}
+            original={{ ...original, play: (pickup) => void original.play(pickup) }}
+            onOpenInBooth={openInBooth}
+            onOpenInScript={goToScript}
+            onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
+            onFine={fine}
+            where={(pickup) => <PickupWhere pickup={pickup} manuscript={manuscriptApi} />}
+          />
+          <SessionPanel
+            pickups={inView}
+            chapters={chapters}
+            unreadable={read.kind === 'failed'}
+            loading={read.kind === 'loading'}
+            seconds={seconds}
+            dawName={dawName}
+            markers={{ available: markers.available, message: markers.message }}
+            onOpenInBooth={openInBooth}
+            onAddMarkers={addMarkers}
+          />
+        </div>
       </div>
     </CommandScope>
   );

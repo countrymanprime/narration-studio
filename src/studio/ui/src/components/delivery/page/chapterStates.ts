@@ -45,14 +45,17 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
   return undefined;
 }
 
+/** Why Build is off on a book none of whose files is measured: said where the first unready chapter would be (alignment audit R4DL-2). */
+export const NOTHING_MEASURED = 'Nothing is measured yet. Measure the files in Master & QC.';
+
 /**
  * When no chapter fails but some are not ready, the first of them in the rows' order and why: "Chapter 8: no measured file yet." (no file
  * matches), "Chapter 8: not measured yet." / "could not be read." (its file is pending, cancelled or failed), or "Chapter 8: part of its file could not
- * be measured." (a silent render). Nothing when every chapter has a verdict, or when no file was measured at all: the count beside Build
- * already says that, and a red first chapter on an untouched book would only repeat it.
+ * be measured." (a silent render). Nothing when every chapter has a verdict. When no file was measured at all, `NOTHING_MEASURED`, not the
+ * first chapter: a red first chapter on an untouched book would say less than that.
  */
 export function firstNotReady(chapters: readonly Listed[], files: readonly MeasureFileResult[]): string | undefined {
-  if (files.length === 0) return undefined;
+  if (files.length === 0) return chapters.length > 0 ? NOTHING_MEASURED : undefined;
   for (const chapter of chapters) {
     const file = fileOf(chapter, files);
     if (file && fileVerdict(file) !== 'none') continue;

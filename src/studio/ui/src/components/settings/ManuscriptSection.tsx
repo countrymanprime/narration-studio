@@ -1,12 +1,12 @@
+import { calendarDay } from '../../calendarDay';
 import type { Bootstrap } from '../../types';
 import { Panel } from '../primitives/Panel';
 import { useManuscriptImport } from '../production/ManuscriptImport';
 import type { Notify } from '../primitives/Toast';
 
-/** The mock's "Imported Sep 12 · 29,222 words": the import's day, short, and the words a narrator reads. */
+/** The mock's "Imported Sep 12 · 29,222 words", with the year (`calendarDay`): the import's day and the words a narrator reads. */
 function importedLine(manuscript: NonNullable<Bootstrap['manuscript']>): string {
-  const day = new Date(manuscript.importedAt);
-  const when = Number.isNaN(day.getTime()) ? manuscript.importedAt : day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const when = calendarDay(manuscript.importedAt);
   return `Imported ${when} · ${manuscript.narratableWordCount.toLocaleString('en-US')} words`;
 }
 
@@ -28,7 +28,8 @@ export function ManuscriptBody({ data, go, notify, refreshBootstrap }: Manuscrip
   const manuscript = data.manuscript;
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* The line above its button at every width, not side by side at one width and stacked at the next (alignment audit XSE2-24). */}
+      <div className="flex flex-col items-start gap-2">
         <span className="text-sm text-[var(--text-muted)]">{manuscript ? importedLine(manuscript) : 'No manuscript yet'}</span>
         {chooseButton}
       </div>

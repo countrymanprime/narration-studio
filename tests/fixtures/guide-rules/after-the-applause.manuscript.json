@@ -1,0 +1,106 @@
+{
+ "schemaVersion": 1,
+ "documentId": "test-document",
+ "importedAt": "2026-01-01T00:00:00+00:00",
+ "importer": {
+  "format": "markdown",
+  "version": 1
+ },
+ "source": {
+  "fileName": "fixture.md",
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "storedPath": "manuscript/sources/fixture.md"
+ },
+ "chapters": [
+  {
+   "id": "c-0001",
+   "title": "Opening",
+   "subtitle": null,
+   "index": 0,
+   "wordCount": 0,
+   "sections": []
+  },
+  {
+   "id": "c-0002",
+   "title": "Chapter One",
+   "subtitle": null,
+   "index": 1,
+   "wordCount": 0,
+   "sections": []
+  }
+ ],
+ "paragraphs": [
+  {
+   "id": "p-000001",
+   "index": 0,
+   "chapterId": "c-0001",
+   "chapterTitle": "Opening",
+   "sectionId": null,
+   "text": "AFTER",
+   "sourceIndex": 0
+  },
+  {
+   "id": "p-000002",
+   "index": 1,
+   "chapterId": "c-0001",
+   "chapterTitle": "Opening",
+   "sectionId": null,
+   "text": "THE",
+   "sourceIndex": 1
+  },
+  {
+   "id": "p-000003",
+   "index": 2,
+   "chapterId": "c-0001",
+   "chapterTitle": "Opening",
+   "sectionId": null,
+   "text": "APPLAUSE",
+   "sourceIndex": 2
+  },
+  {
+   "id": "p-000004",
+   "index": 3,
+   "chapterId": "c-0001",
+   "chapterTitle": "Opening",
+   "sectionId": null,
+   "text": "A Novel",
+   "sourceIndex": 3
+  },
+  {
+   "id": "p-000005",
+   "index": 4,
+   "chapterId": "c-0001",
+   "chapterTitle": "Opening",
+   "sectionId": null,
+   "text": "Adrian Crow",
+   "sourceIndex": 4
+  },
+  {
+   "id": "p-000006",
+   "index": 5,
+   "chapterId": "c-0001",
+   "chapterTitle": "Opening",
+   "sectionId": null,
+   "text": "Copyright © 2026 Adrian Crow",
+   "sourceIndex": 5
+  },
+  {
+   "id": "p-000007",
+   "index": 6,
+   "chapterId": "c-0001",
+   "chapterTitle": "Opening",
+   "sectionId": null,
+   "text": "All rights reserved.",
+   "sourceIndex": 6
+  },
+  {
+   "id": "p-000008",
+   "index": 7,
+   "chapterId": "c-0002",
+   "chapterTitle": "Chapter One",
+   "sectionId": null,
+   "text": "It was a quiet night when the applause finally came.",
+   "sourceIndex": 7
+  }
+ ]
+}

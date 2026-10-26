@@ -1,13 +1,13 @@
 import { headingName } from '../../chapterHeading';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
 import { formatWhen } from '../production/recordingCheckText';
 import { RecordingCheck } from '../production/RecordingCheck';
-import { LoadError } from '../layout/LoadError';
+import { LoadErrorPanel } from '../layout/LoadError';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
@@ -55,6 +55,7 @@ export function ProofChapterPage(props: ChapterViewProps) {
 
 function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, goToEditing, refreshKey }: ChapterViewProps & { chapterId: string }) {
   const api = useApi();
+  const navigate = useNavigate();
   const [chapter, setChapter] = useState<ManuscriptChapter>();
   const [linkedTrackGuid, setLinkedTrackGuid] = useState<string>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
@@ -124,70 +125,77 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     [compareResults?.rows, chapter],
   );
 
+  // One frame for every state: the breadcrumb and the title row at the page gutter, full width like Proof (alignment audit XPC-12, XPC-17), so
+  // the title does not move between loading, failed and loaded.
+  const frame = (title: string, crumb: ReactNode, children: ReactNode, status?: ReactNode) => (
+    <div className="space-y-4">
+      <nav aria-label="Breadcrumb" className="h-5 truncate text-sm leading-5" style={{ color: 'var(--text-muted)' }}>
+        <Link to="/proof">Proof</Link> <span aria-hidden="true">&rsaquo;</span> {crumb}
+      </nav>
+      {/* The status and its button on the title's centre line (XPC-19); a button's height even without one, so the title sits at one y. */}
+      <div className="flex min-h-[var(--control-height)] flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+          <Heading title={title} />
+        </div>
+        {status}
+      </div>
+      {children}
+    </div>
+  );
+  const backToProof = { label: 'Back to Proof', onClick: () => navigate('/proof') };
+
   let content: ReactNode;
   if (loadError) {
-    content = <LoadError title="Proof" message={loadError} retry={retry} />;
+    // A way back beside Retry (R4PC-2).
+    content = frame('Proof', 'This chapter', <LoadErrorPanel message={loadError} retry={retry} exit={backToProof} />);
   } else if (chapter === undefined && !read) {
-    // Still reading: the page's title stays, the panels are blocks.
-    content = (
-      <div className="mx-auto max-w-7xl space-y-4">
-        <Heading title="Proof" />
-        <LoadingRegion label="Loading the chapter" status="Reading the chapter…" className="flex flex-col gap-4">
-          <Skeleton className="w-48" />
-          <Skeleton tall />
-          <Skeleton tall />
-          <Skeleton tall />
-        </LoadingRegion>
-      </div>
+    // Still reading: the frame stays, and the cards are blocks of about their loaded heights (R3PC-13).
+    content = frame(
+      'Proof',
+      <Skeleton className="inline-block h-3 w-48 align-middle" />,
+      <LoadingRegion label="Loading the chapter" status="Reading the chapter…" className="flex flex-col gap-4">
+        <Skeleton className="h-80" />
+        <Skeleton className="h-60" />
+        <Skeleton className="h-40" />
+      </LoadingRegion>,
     );
   } else if (chapter === undefined) {
-    content = (
-      <div className="mx-auto max-w-7xl space-y-4">
-        <Heading title="Proof" />
-        <Panel title="This chapter is not in the manuscript">
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            The address names a chapter the manuscript does not have. <Link to="/proof">Back to Proof</Link>
-          </p>
-        </Panel>
-      </div>
+    content = frame(
+      'Proof',
+      'This chapter',
+      <Panel title="This chapter is not in the manuscript">
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          The address names a chapter the manuscript does not have. <Link to="/proof">Back to Proof</Link>
+        </p>
+      </Panel>,
     );
   } else {
-    content = (
-      <div className="mx-auto max-w-7xl space-y-4">
-        <nav aria-label="Breadcrumb" className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          <Link to="/proof">Proof</Link> <span aria-hidden="true">&rsaquo;</span> {headingName(chapter)}
-        </nav>
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-            <Heading title={`Proof · ${headingName(chapter)}`} />
+    // What the title row's status does not say, as one strip of sentences under it rather than a card each (XPC-13); "not checked yet" is the
+    // status itself, so it is not said again.
+    const notices = [
+      alignment?.needsAlignAgain && (
+        <p key="align">
+          This chapter was last checked before the app could read its word alignment. Run Check again to edit it word by word on the Editing page.
+        </p>
+      ),
+      !linkedTrackGuid && (
+        <p key="link">
+          <b className="font-semibold" style={{ color: 'var(--text)' }}>
+            No linked track.
+          </b>{' '}
+          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel, then open this chapter again.{' '}
+          <EnginePanelLink />
+        </p>
+      ),
+    ].filter(Boolean);
+    content = frame(
+      `Proof · ${headingName(chapter)}`,
+      headingName(chapter),
+      <>
+        {notices.length > 0 && (
+          <div className="space-y-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+            {notices}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-            {alignment && <SectionLabel>{CHECK_STATE_LABEL[alignment.state]}</SectionLabel>}
-            {alignment?.basis && <span>as of last save {formatWhen(alignment.basis.modifiedAt)}</span>}
-            <Button variant="secondary" onClick={() => setChecking(true)}>
-              {alignment?.state === 'never' ? 'Check recording' : 'Check again'}
-            </Button>
-          </div>
-        </div>
-        {alignment?.needsAlignAgain && (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            This chapter was last checked before the app could read its word alignment. Run Check again to edit it word by word on the Editing page.
-          </p>
-        )}
-        {!linkedTrackGuid && (
-          <Panel title="No linked track">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel, then open this chapter
-              again. <EnginePanelLink />
-            </p>
-          </Panel>
-        )}
-        {alignment?.state === 'never' && (
-          <Panel>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              This chapter hasn&rsquo;t been checked yet. Run Check recording to see what was heard against the script.
-            </p>
-          </Panel>
         )}
         <NativeTakesPanel chapter={chapter} />
         <CompareRun
@@ -223,7 +231,14 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
             goToParagraph={(index) => goToManuscript(chapterId, index)}
           />
         )}
-      </div>
+      </>,
+      <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+        {alignment && <SectionLabel>{CHECK_STATE_LABEL[alignment.state]}</SectionLabel>}
+        {alignment?.basis && <span>as of last save {formatWhen(alignment.basis.modifiedAt)}</span>}
+        <Button variant="secondary" onClick={() => setChecking(true)}>
+          {alignment?.state === 'never' ? 'Check recording' : 'Check again'}
+        </Button>
+      </div>,
     );
   }
 

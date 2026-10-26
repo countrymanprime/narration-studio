@@ -53,10 +53,11 @@ describe('Settings > Manuscript', () => {
 
   it('says when the manuscript was imported and how many words it has, as the mock does, and Replace is the danger button', async () => {
     await renderManuscript();
-    // The mock's "Imported Sep 12 · 29,222 words": a short day, not the stored timestamp, and the narratable word count. It is the
+    // The mock's "Imported Sep 12 · 29,222 words" with the year, as every day in the app is written (`calendarDay`), not the stored
+    // timestamp, and the narratable word count. It is the
     // figure Production's header shows for the same book, so the two pages never name two totals.
     const words = (await createMockApi({}, {}).manuscriptChapters()).reduce((sum, chapter) => sum + chapter.wordCount, 0);
-    expect(await screen.findByText(new RegExp(`^Imported [A-Z][a-z]{2} \\d{1,2} · ${words.toLocaleString('en-US')} words$`))).toBeTruthy();
+    expect(await screen.findByText(new RegExp(`^Imported [A-Z][a-z]{2} \\d{1,2}, \\d{4} · ${words.toLocaleString('en-US')} words$`))).toBeTruthy();
     expect(screen.queryByText(/T00:00:00Z/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Replace manuscript…' }).className).toMatch(/danger/);
   });

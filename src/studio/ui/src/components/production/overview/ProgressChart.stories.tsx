@@ -35,3 +35,5 @@ export const NothingRecorded: Story = {
     return { k: none.k, recordedHours: 0, series: none.series };
   })(),
 };
+// No due date: no plan or due line, and a caption under the plot says what draws them (alignment audit XSH-18).
+export const NoDueDate: Story = { args: { due: null } };

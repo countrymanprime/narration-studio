@@ -5,6 +5,7 @@ import { kindMarkStyle } from '../../../../kinds/markStyle';
 import { composeLayers, type Layer, type PhraseLayer } from './layers';
 import { markStyle } from './markStyles';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../../primitives/changeHighlight';
+import { HIT_AREA } from '../../../primitives/hitArea';
 
 export type FindRange = { start: number; end: number };
 
@@ -50,7 +51,8 @@ function Chip({ phrase, onPick }: { phrase: PhraseLayer; onPick?: ParaProps['onP
       data-label={phrase.label}
       aria-label={`Speaker: ${name}. Change speaker`}
       onClick={click}
-      className="mr-1 inline-block cursor-pointer rounded-sm border px-1 align-baseline text-[0.7em] leading-[1.5] font-semibold select-none before:content-[attr(data-label)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+      // The chip is drawn 23 px tall in the 0.7 em line; presses land in a 24 px box around it (alignment audit R3SC-8).
+      className={`${HIT_AREA} mr-1 inline-block cursor-pointer rounded-sm border px-1 align-baseline text-[0.7em] leading-[1.5] font-semibold select-none before:content-[attr(data-label)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]`}
       style={{
         background: colours.fill,
         color: colours.text,
@@ -126,7 +128,8 @@ export const Para = memo(function Para({
       data-just-changed={flash ? '' : undefined}
       className={`relative py-1.5 ${flash ? `flash ${CHANGE_HIGHLIGHT_CLASSES}` : ''}`}
     >
-      <div data-gutter="" className="absolute inset-y-0 left-[-19px] w-4">
+      {/* Centred in the text's 24 px inset: a ribbon's glyph keeps 6 px from the panel edge and from the first letter (XSC-21). */}
+      <div data-gutter="" className="absolute inset-y-0 left-[-20px] w-4">
         {renderGutter?.(paragraph)}
       </div>
       <p data-pid={paragraph.id} className="m-0 whitespace-pre-wrap">

@@ -119,11 +119,10 @@ export type ReadinessModel = {
   canRevert: boolean;
 };
 
-const unmet = (recommendation: StageChapterRecommendation): string =>
-  recommendation.signals
-    .filter((item) => item.state === 'not_met')
-    .map(signalName)
-    .join(' · ');
+const unmetCount = (recommendation: StageChapterRecommendation): string => {
+  const count = recommendation.signals.filter((item) => item.state === 'not_met').length;
+  return count === 1 ? 'One check' : `${count} checks`;
+};
 
 /** What the panel says and offers for one chapter; `seen` is the suggestion the narrator had on screen when Confirm or Dismiss was pressed. */
 export function readinessOf(recommendation: StageChapterRecommendation, seen?: StageChapterRecommendation): ReadinessModel {
@@ -146,7 +145,8 @@ export function readinessOf(recommendation: StageChapterRecommendation, seen?: S
       break;
     case 'notready':
       headline = `Not ready to move to ${target}`;
-      sub = `${unmet(recommendation)} not met`;
+      // The criteria themselves are the evidence rows under the box; repeating them here ran into a sentence with "not met" (R3PR2-8).
+      sub = `${unmetCount(recommendation)} not met; see the evidence below.`;
       break;
     case 'progress':
       headline = 'Still in progress';

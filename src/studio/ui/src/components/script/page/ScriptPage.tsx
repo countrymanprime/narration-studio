@@ -411,7 +411,7 @@ function ScriptWorkspace({
       return (
         <>
           {sample?.chapterIds.has(chapter.id) && (
-            <span className="mb-1 inline-flex w-fit items-center rounded-[var(--radius-tag)] border border-[var(--accent)] px-1.5 py-0.5 font-sans text-xs font-semibold text-[var(--accent-strong)]">
+            <span className="mb-3 inline-flex w-fit items-center rounded-[var(--radius-tag)] border border-[var(--accent)] px-1.5 py-0.5 font-sans text-xs font-semibold text-[var(--accent-strong)]">
               Retail sample
             </span>
           )}
@@ -432,7 +432,8 @@ function ScriptWorkspace({
   );
   const onFillIn = credits.setup ? () => setFillingIn(true) : undefined;
   const banner = credits.setup?.banner && !fillingIn && (
-    <div className="py-3 font-sans">
+    // The reader's 8 px top padding and this 4 px put the banner 12 px under the header, the gap the card keeps under it (XSC-15).
+    <div className="pt-1 font-sans">
       <CreditsSetupBanner state={credits.setup} notify={notify} onDone={credits.setSetup} onFillIn={() => setFillingIn(true)} />
     </div>
   );
@@ -443,6 +444,7 @@ function ScriptWorkspace({
         <CreditsSection
           kind="opening"
           preview={credits.previews.opening}
+          bannerShown={Boolean(banner)}
           onRecord={goToBooth && (() => goToBooth({ credits: 'opening' }))}
           onFillIn={onFillIn}
         />

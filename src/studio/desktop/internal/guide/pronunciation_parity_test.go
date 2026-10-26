@@ -36,8 +36,8 @@ func (c pronunciationCase) run(s *Service) error {
 	return fmt.Errorf("no such command %q", c.Command)
 }
 
-// TestPronunciationsMatchTheSidecarCases replays every case src/studio/sidecars/manuscript-guide/tests/test_pronunciation_parity.py recorded from
-// the sidecar's pronounce-user and pronunciation-use-alternate: the same file after it, or the same reason with the file untouched (or
+// TestPronunciationsMatchTheSidecarCases replays every case testdata/pronunciation-parity.json recorded from the sidecar's pronounce-user
+// and pronunciation-use-alternate (frozen: #2251 deleted the Python commands and their recorder, so nothing rewrites it): the same file after it, or the same reason with the file untouched (or
 // still missing). One Service runs them all, so the held document must notice every new starting file.
 func TestPronunciationsMatchTheSidecarCases(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("testdata", "pronunciation-parity.json"))

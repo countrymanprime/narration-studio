@@ -73,5 +73,14 @@ export function AssetInstallPrompt({
   }
   // Only the download itself can be stopped; the checks after it finish what they started.
   const canCancel = install.job?.phase === 'downloading';
-  return <WorkDialog title={workTitle} job={workJob(install)} close={dismiss} cancel={canCancel ? () => void install.cancel() : undefined} />;
+  // A failed download can be started again from the dialog that reports it: `begin` clears the failure and fetches afresh (R3SB2-15).
+  return (
+    <WorkDialog
+      title={workTitle}
+      job={workJob(install)}
+      close={dismiss}
+      cancel={canCancel ? () => void install.cancel() : undefined}
+      retry={() => void install.begin()}
+    />
+  );
 }

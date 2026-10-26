@@ -1,5 +1,6 @@
 import { headingName } from '../../chapterHeading';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
+import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { shownFindingNoteType, type Finding, type FindingNoteType, type FindingsSummary } from '../../api/contracts/findings';
@@ -49,6 +50,7 @@ import { useChapterTimeline } from './useChapterTimeline';
 import { useProofKeys } from './useProofKeys';
 import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
+import { hasRecording } from './checkcard/cardSelectors';
 import { addressPath } from '../../navigation/address';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
 
@@ -144,6 +146,10 @@ export function ProofPage({
   const opening = useRef(false);
   // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
   const inspectorPanel = useRef<HTMLDivElement>(null);
+  // Under 1180 px the Inspector stacks under the queue, a page or more down: a pressed note brings it into view, so the press shows its
+  // result (alignment audit XPF-9). A note stepped to with the keys does not move the page.
+  const stacked = useLayoutClass().narrow;
+  const revealInspector = useRef(false);
   useToastSideClearance(inspectorPanel);
   useKeepFocusInside(inspectorPanel);
   const selectingForMenu = useRef(false);
@@ -405,6 +411,12 @@ export function ProofPage({
     );
   }, [all, summary, findings, pickups, scope]);
 
+  useEffect(() => {
+    if (!revealInspector.current) return;
+    revealInspector.current = false;
+    requestAnimationFrame(() => inspectorPanel.current?.scrollIntoView?.({ block: 'start' }));
+  }, [selectedId, chapter?.id]);
+
   useProofKeys({ order, selectedId, select, step, allChapters: all, toAllChapters: () => choose(ALL_CHAPTERS) });
   useProofPageCommands({
     chapters,
@@ -443,7 +455,9 @@ export function ProofPage({
     <CommandScope kind="page">
       <div className="flex min-h-full flex-col">
         <div
-          className="grid flex-1 gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[auto_minmax(0,1fr)]"
+          // `content-start`: in one column the cards keep their own heights and 16 px gaps instead of sharing out the window's spare
+          // height (XPF-8); side by side, the notes card fills its row down to the Inspector's end (XPF-7).
+          className="grid flex-1 content-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[auto_minmax(0,1fr)]"
           // A right click on a row selects it first, so the menu acts on the row under the pointer.
           onContextMenuCapture={(event) => {
             const row = (event.target as Element).closest<HTMLElement>('section[aria-label="Notes"] tr[data-row]');
@@ -483,14 +497,17 @@ export function ProofPage({
                     />
                     <TakeLanes spot={spot} winStart={win.start + shift} winLen={Math.min(win.len, total)} />
                   </>
-                ) : (
-                  <p className="text-sm text-[var(--text-muted)]">{timeline ? 'No recording for this chapter yet.' : 'Reading the recording…'}</p>
-                )}
+                ) : !timeline ? (
+                  <p className="text-sm text-[var(--text-muted)]">Reading the recording…</p>
+                ) : hasRecording(chapter.recordedSeconds) ? (
+                  <p className="text-sm text-[var(--text-muted)]">No recording for this chapter yet.</p>
+                ) : // The check card above already says there is no recording to check (alignment audit XPF-16).
+                null}
               </>
             )}
           </section>
           <div
-            className="min-h-0 min-w-0 min-[1180px]:row-start-2"
+            className="flex min-h-0 min-w-0 flex-col min-[1180px]:row-start-2"
             // A row pressed (a click or Enter), not stepped to with the keys, opens its chapter from All chapters, as in the mock.
             onClickCapture={(event) => {
               if (!selectingForMenu.current && (event.target as Element).closest('tr[data-row]')) opening.current = true;
@@ -509,6 +526,7 @@ export function ProofPage({
               onSelect={(id) => {
                 const open = opening.current;
                 opening.current = false;
+                if (open && stacked) revealInspector.current = true;
                 select(id);
                 const note = findings.find((f) => f.id === id);
                 if (open && all && note && chapterOf(note)) choose(chapterOf(note));
@@ -532,7 +550,8 @@ export function ProofPage({
           </div>
           <div
             ref={inspectorPanel}
-            className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1"
+            // With no note to show it is a placeholder at its own height, not a card the height of the page (XPF-27).
+            className={`min-w-0 scroll-mt-[var(--page-gutter)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1 ${selected ? '' : 'min-[1180px]:self-start'}`}
           >
             {selected ? (
               <Inspector
@@ -562,7 +581,9 @@ export function ProofPage({
                 }
               />
             ) : (
-              <p className="text-sm text-[var(--text-muted)]">{findings.length ? 'Choose a note to see what was heard.' : 'No notes yet.'}</p>
+              <p className="text-sm text-[var(--text-muted)]">
+                {findings.length ? 'Choose a note to see what was heard.' : 'A note shows here once a check finds one.'}
+              </p>
             )}
           </div>
         </div>

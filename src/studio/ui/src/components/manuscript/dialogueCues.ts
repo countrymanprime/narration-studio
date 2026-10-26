@@ -1,7 +1,7 @@
 import type { GuideEntity, ManuscriptParagraph } from '../../types';
 
 // The shape Character Continuity Review's dialogue-cue extractor writes
-// (src/studio/sidecars/manuscript-guide/core/manuscript_guide.py, `extract_dialogue_cues`/`merge_dialogue_cues`): one entry per
+// (src/studio/desktop/internal/guide/cues.go, `RefreshCues`): one entry per
 // quoted span, served by the host's `GuideDialogueCues` binding. `recordedDemoDialogueCues` builds the same shape from a
 // recorded fixture, so the reader below can run without a second extractor.
 type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'proximity' | 'unknown' | 'correction';

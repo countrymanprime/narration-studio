@@ -295,4 +295,45 @@ describe('JumpMenu', () => {
     expect(run).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: 'Jump menu' })).toBeTruthy();
   });
+
+  // Alignment audit XSL-6: a reason several rows of one group share is drawn once, on the first; each row keeps it for a screen reader.
+  it('draws a reason the rows of a group share once, and keeps it on every row for a screen reader', () => {
+    const off = (id: string, label: string): ProvidedCommand => ({ ...command(id, 'Go to', label), disabledReason: 'Import a manuscript first.' });
+    provide(command('t.prod', 'Go to', 'Go to Production'), off('t.script', 'Go to Script'), off('t.proof', 'Go to Proof'), off('t.pick', 'Go to Pickups'));
+    act(() => void mount().open());
+    fireEvent.change(field(), { target: { value: 'go to' } });
+    const shown = screen.getAllByText('Import a manuscript first.').filter((el) => !el.classList.contains('sr-only'));
+    expect(shown).toHaveLength(1);
+    expect(screen.getByRole('option', { name: /Go to Script/ }).textContent).toContain('Import a manuscript first.');
+    for (const name of [/Go to Proof/, /Go to Pickups/]) {
+      const option = screen.getByRole('option', { name });
+      expect(option.getAttribute('aria-disabled')).toBe('true');
+      expect(document.getElementById(option.getAttribute('aria-describedby')!)?.textContent).toBe('Import a manuscript first.');
+    }
+  });
+
+  it('draws no sub-line that only repeats a word the row already says', () => {
+    provide({ ...command('t.z', 'Zoom', 'Set zoom to 110%'), hint: 'zoom' }, { ...command('t.t', 'View', 'Toggle dark theme'), hint: 'light now' });
+    act(() => void mount().open());
+    fireEvent.change(field(), { target: { value: '>' } });
+    fireEvent.change(field(), { target: { value: 'zoom to 110' } });
+    expect(screen.getByRole('option', { name: /Set zoom to 110%/ }).textContent).toBe('Set zoom to 110%');
+    fireEvent.change(field(), { target: { value: 'toggle dark' } });
+    expect(screen.getByRole('option', { name: /Toggle dark theme/ }).textContent).toContain('light now');
+  });
+
+  it("draws the way back to all commands as a muted link, not a command's bold label", () => {
+    act(() => void mount({ initialGroup: 'Zoom' }).open());
+    const back = screen.getByRole('option', { name: /All commands/ });
+    expect(back.querySelector('.font-normal.text-\\[var\\(--text-muted\\)\\]')?.textContent).toBe('‹ All commands');
+  });
+
+  // Alignment audit XSL-15, XSL-16: the typed text starts at the rows' 12 px, and the list ends on an inset above the dialog's edge.
+  it("starts the typed text at the rows' inset and ends the list on an inset", () => {
+    act(() => void mount().open());
+    expect(field().className).toContain('pl-[0.4375rem]!');
+    expect(field().parentElement?.closest('.px-1')).toBeTruthy();
+    const list = screen.getByRole('listbox');
+    expect(list.closest('[role="dialog"]')?.querySelector('[data-jump-end]')).toBeTruthy();
+  });
 });

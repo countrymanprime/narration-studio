@@ -8,7 +8,9 @@ export function NoManuscript({ projectName, importButton, onSetDueDate }: { proj
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <Heading title="Production">{projectName}</Heading>
+        <Heading title="Production" size="hero">
+          {projectName}
+        </Heading>
       </header>
       <Panel label="Import your manuscript">
         <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">

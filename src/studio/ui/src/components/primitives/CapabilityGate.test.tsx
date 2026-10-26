@@ -145,4 +145,16 @@ describe('CapabilityGate', () => {
     const enabled = screen.getByRole('button', { name: 'Punch from here' });
     expect(document.getElementById(enabled.getAttribute('aria-describedby') as string)).toBeTruthy();
   });
+
+  // R3EN1-8: in a dialog's action row the badge after the primary pushed it 72 px short of the corner every other dialog's primary ends in.
+  it('with badgeSide "before", draws the badge ahead of the control, so the control keeps the end of its row', () => {
+    render(
+      <CapabilityGate capability={{ level: 'experimental', available: true }} badgeSide="before">
+        <button type="button">Create 2 regions</button>
+      </CapabilityGate>,
+    );
+    const wrapper = screen.getByRole('button', { name: 'Create 2 regions' }).parentElement!;
+    expect(wrapper.className).toContain('flex-row-reverse');
+    expect(screen.getByText('Experimental')).toBeTruthy();
+  });
 });

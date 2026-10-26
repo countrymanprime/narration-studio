@@ -17,7 +17,7 @@ With no manuscript imported yet, the page says so and offers **Import manuscript
 The header sits inside the one bordered card that holds the script, so the title, the chapter step (the previous and
 next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
 the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
-wide or more) and the button that opens the drawer are all in it. At 1280 px and below the legend uses short labels with no counts.
+wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
@@ -36,12 +36,14 @@ spans on the waveform, the kind chip on a word's card, the rows of the drawer's 
 the take left out (as not read) and added (as extra). A cut word is struck through, and a selected or playing word keeps its own fill;
 the mark's underline stays under both.
 
-Each line starts with its time in the chapter, and a line that has takes shows how many in a round badge under the
-time. Every such line, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
+Each line starts with its time in the chapter (a chapter with nothing heard yet has no times, and its text starts at the
+card's edge). Every line that has takes, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
 the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
 first read's spot), **Duplicate read** (the take reads the line twice) or **To choose**. Tab visits one chip, the one on the
 line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
-cursor's line (and folds them again on a line with one take), and a click on the chip or the badge opens any other.
+cursor's line (and folds them again on a line with one take), and a click on a chip opens any other. The takes list
+lays every take out in the same columns: its name and state, a bar for its length, how much of the script it read as
+written, then Play and Keep.
 
 The script also shows what the Story Bible and your marks say about it, read from the [Script page](script.md)'s data. A
 quoted stretch starts with a chip naming the speaker, in the character's colour (dashed when the Story Bible only suggests
@@ -96,13 +98,16 @@ words it heard show the next time you open the chapter.
 
 Click a word to place the cursor there. Shift+click another, drag across the text or press Shift+← and Shift+→ to
 select a run of words. Hold ← or → (with Shift to select) and the cursor keeps travelling along the text; Up and Down hold
-the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
+the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats over the first line of the selection (under it when the selection starts at the top of the view) with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
-audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
+audio** in full on a wide window. In a narrow window the bar keeps them at the right of the transport and moves what is
+selected to a line of its own under it. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
-and why, and the same sentence is in each button's hint. The chapter's audio is the waveform docked above the bar, always in view (see [The waveform](#the-waveform)). Right-click a word for its
-menu: play the selection, copy, delete or mute the words, **Add FX** and **Mark as** (each opens a list beside it), remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
-show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
+and why, the same sentence is in each button's hint, and the key hints leave out Delete and Add FX. The chapter's audio is the waveform docked above the bar, always in view (see [The waveform](#the-waveform)). Right-click a word for its
+menu, in groups under headings: the word count over play the selection; **Edit** (**Add FX**, which opens a list beside it,
+mute, delete or replace the words, remove an effect); **Mark** (**Mark as**, add a note, mark them for a pickup, **Mark as
+voice sample…**); **Takes** (show or keep the line's takes, hide the others, and **Split into takes** on a line whose one
+take reads it twice); then copy. A row's key, such as **T** or **H**, is drawn at its right end.
 
 With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
 (with ", not in the script" for a word that was only said), or "3 words selected, 0:23 to 0:24" for a selection, and "Selection cleared"
@@ -140,7 +145,7 @@ Proof lists the same words as **Said twice** with an **Open in Editing** link, w
 
 ![Editing - words said again found by the recording check: the Read twice card with Stack as 2 takes, Hear both reads, Leave in place and Delete second read](../../images/ui/editing-read-twice.webp)
 
-![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and their band on the waveform](../../images/ui/editing-selection.webp)
+![Editing - four words selected: the floating toolbar over them, the bar naming the selection with its times, and their band on the waveform](../../images/ui/editing-selection.webp)
 
 ## The waveform
 
@@ -200,11 +205,14 @@ leave room tone of the same length so the timing does not move. You also choose 
 edge of the cut, and whether the cut audio is kept on a muted track named Cuts. The DAW makes the cut as one undo step; the recording file is not
 touched. **Mute** keeps the audio and silences the words. The DAW names words by the script's words, so a word that was only said (in italics, not in the script) at the edge of your selection is left out: the question says so ("“um” was only said and is not in the script, so its audio stays.") and counts only the words that will be cut. A word that was only said between two script words is cut with them.
 
+Every question on this page keeps **Cancel** at the bottom left and its action at the bottom right, in view however far the
+question scrolls; when more of it is below them, a shadow over that row says so.
+
 ![Editing - Delete on four selected words: the question names the words, the cut and what the DAW will do](../../images/ui/editing-delete-dialog.webp)
 
 ## Effects on words
 
-**Add FX** (F) lists your FX chains from the DAW. Choose one and the question shows how the item will be split around
+**Add FX** (F) lists your FX chains from the DAW; from the bar the list opens upward, over the script. Choose one and the question shows how the item will be split around
 the words, where the splits fall, the fades at the joins and what the DAW does: it splits the item at both ends and puts
 the chain on the middle piece only. Nothing else moves, and one undo step in the DAW takes it off. The words with an
 effect are underlined and end with an effects marker: click it to select the words or remove the effect. The question
@@ -359,8 +367,9 @@ from the text once nothing is selected or from the drawer itself, and leaves foc
 with the kind's sample mark and **Review** to step through them) and, under **In the audio**, the clean-up findings by kind: gaps,
 breaths, clicks, plosives and noise. The tab's count adds the words found to the findings that pass the thresholds, and the
 Backups tab counts this chapter's backups.
-Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
-the findings you selected. A gap reads **Fixed** once the chapter's cuts hold its trim (from here or from **Trim the gap**
+The kinds sit in three equal columns; under them, the chosen kind's heading says how many are left to fix, then its
+findings. Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
+the findings you selected. **Preview** and **Apply** stay at the foot of the drawer while the settings above them scroll. A gap reads **Fixed** once the chapter's cuts hold its trim (from here or from **Trim the gap**
 on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** or **Fix in edit** on Proof is still to be fixed, so it stays in the list. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
 
@@ -368,11 +377,12 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name) next to **Remove this effect** moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed under their source, each name with a **Favourite** button at its right. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list; with words selected in the text, the effect on them is the one shown, and its row is marked. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name), beside **Preview** and **Compare**, moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the takes of the line the cursor is on, one lane each,
 on one time axis (the line's audio is the waveform above the bar). On a window 1360 px wide or more it is a strip under the text, which the header's
-timeline button (S) shows and hides; on a narrower window it is a tab of the drawer.
+timeline button (S) shows and hides; on a narrower window it is a tab of the drawer. Each lane names its take with
+the take's state (**Active** or **Muted**) under the name.
 
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
 
@@ -405,7 +415,7 @@ opens so a DAW that connects on its own never shows it; the X closes it, and the
 opens it again. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
 read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
-![Editing - the dialog when the DAW is not connected, with Start REAPER and Check again](../../images/ui/editing-daw-off.webp)
+![Editing - the dialog when the DAW (here Audacity) is not connected, with Start Audacity and Check again](../../images/ui/editing-daw-off.webp)
 
 ![Editing - the mark that reopens the dialog once it is closed](../../images/ui/editing-daw-off-closed.webp)
 

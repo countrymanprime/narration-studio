@@ -12,8 +12,10 @@ import { useDrawerFocus } from './useDrawerFocus';
 export type Drawer = ScriptViewState['drawer'];
 
 const DRAWER = 'z-[var(--z-panel)] motion-ok:transition-[transform,visibility] motion-ok:duration-(--motion-base)';
-const CHAPTER_DRAWER = `max-[1180px]:absolute max-[1180px]:top-2 max-[1180px]:bottom-2 max-[1180px]:left-2 max-[1180px]:w-[min(360px,calc(100%-24px))] max-[1180px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
-const RAIL_DRAWER = `max-[1281px]:absolute max-[1281px]:top-2 max-[1281px]:bottom-2 max-[1281px]:right-2 max-[1281px]:w-[min(380px,calc(100%-24px))] max-[1281px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
+const CHAPTER_DRAWER = `max-[1180px]:absolute max-[1180px]:top-2 max-[1180px]:bottom-2 max-[1180px]:left-2 max-[1180px]:w-[min(360px,calc(100%-16px))] max-[1180px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
+// The rail sheet is as tall as what it holds, up to the columns' height less its 8 px insets, so a short tab is not a tall empty
+// sheet (alignment audit XSC-13); the chapter drawer keeps the full height, as the list is long.
+const RAIL_DRAWER = `max-[1281px]:absolute max-[1281px]:top-2 max-[1281px]:max-h-[calc(100%-16px)] max-[1281px]:right-2 max-[1281px]:w-[min(380px,calc(100%-16px))] max-[1281px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
 const CHAPTER_CLOSED = 'max-[1180px]:invisible max-[1180px]:-translate-x-[calc(100%+16px)]';
 const RAIL_CLOSED = 'max-[1281px]:invisible max-[1281px]:translate-x-[calc(100%+16px)]';
 /** The scrim shows only while the open drawer is a drawer at this width. */
@@ -68,7 +70,7 @@ export function ScriptColumns({
         <div
           data-scrim=""
           aria-hidden="true"
-          className={`absolute inset-0 z-[var(--z-panel-scrim)] bg-[rgba(10,8,5,0.35)] ${SCRIM_FOR[drawer]}`}
+          className={`absolute inset-0 z-[var(--z-panel-scrim)] bg-[var(--panel-scrim)] ${SCRIM_FOR[drawer]}`}
           onClick={onClose}
         />
       )}

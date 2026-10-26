@@ -29,7 +29,7 @@ export function SelectionBar({ playback, end, narrow = false, output }: { playba
     <div
       role="toolbar"
       aria-label="Playback and selection"
-      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 py-2"
+      className="@container/bar flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 py-2"
     >
       <div className="flex items-center gap-1.5">
         <IconButton action="previousWord" onClick={() => playback.skip(-1)} />
@@ -41,7 +41,13 @@ export function SelectionBar({ playback, end, narrow = false, output }: { playba
         </span>
       </div>
       {output}
-      <div aria-live="polite" className="flex min-w-0 flex-[1_1_200px] flex-wrap items-center gap-2.5">
+      {/* Below 60 rem the summary takes a row of its own under the transport, so the actions stay on the transport row at the right instead of
+          dropping under the transport buttons like a second toolbar (alignment audit R3ED-9, XED-26). */}
+      <div
+        aria-live="polite"
+        data-bar-summary
+        className="flex min-w-0 flex-[1_1_200px] flex-wrap items-center gap-2.5 @max-[60rem]/bar:order-last @max-[60rem]/bar:basis-full"
+      >
         {has ? (
           <>
             <b>
@@ -64,7 +70,7 @@ export function SelectionBar({ playback, end, narrow = false, output }: { playba
           </>
         ) : null}
       </div>
-      <div className="flex flex-none items-center gap-2">
+      <div data-bar-actions className="ml-auto flex flex-none items-center gap-2">
         {actions.map((a) => (
           <span key={a.id} className="contents">
             {a.render({ doc, keys, summary, allCut, place: 'bar', narrow })}

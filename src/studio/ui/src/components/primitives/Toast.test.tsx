@@ -117,11 +117,16 @@ describe('ToastRegion', () => {
     expect(error.querySelector('svg[data-icon="layer-group"]')).toBeNull();
   });
 
-  // Alignment audit cause P: a toast at the bottom right covered an open dialog's Cancel and Download buttons.
-  it('moves to the top of the window while a dialog is open, and back when the last one closes', () => {
+  // Alignment audit cause P: a toast at the bottom right covered an open dialog's Cancel and Download buttons. The behaviour changed: it moved to the
+  // top of the window, where it covered the top bar's buttons (R4BO2-4); now the dialog hangs from the top and stops 4.75rem short of the bottom, and
+  // the toast keeps to the bottom-right corner at the gutter, ignoring the bottom bars behind the scrim.
+  it('keeps to the bottom-right corner at the gutter while a dialog is open, and follows the bars again when the last one closes', () => {
     render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
     const region = screen.getByText('Message 1').closest('[data-toast-region]') as HTMLElement;
-    expect(region.className).toContain('[:root[data-modal-open]_&]:top-4');
+    expect(region.className).toContain('[:root[data-modal-open]_&]:bottom-[var(--page-gutter)]');
+    expect(region.className).toContain('[:root[data-modal-open]_&]:right-[var(--page-gutter)]');
+    expect(region.className).not.toContain('top-4');
+    expect(region.className).toContain('bottom-[calc(var(--page-gutter)+var(--toast-clear,0px))]');
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
     const first = render(
       <Dialog dismissOnOutsidePress={false} title="Download model" actions={null}>
@@ -138,5 +143,15 @@ describe('ToastRegion', () => {
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(true);
     first.unmount();
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
+  });
+
+  // XBO-13, R3SE2-4, R3PF-4: the dismiss X was a bare 17 x 20 glyph, and the error edge a border bent round the radius.
+  it("draws the dismiss button as a 32 px square, and an error's edge as a strip inside the clipped box", () => {
+    render(<ToastRegion messages={[failure(1)]} dismiss={vi.fn()} />);
+    const toast = screen.getByText('Failure 1').closest('[data-tone]') as HTMLElement;
+    expect(within(toast).getByRole('button', { name: 'Dismiss message' }).className).toContain('size-[var(--button-height-sm)]');
+    expect(toast.className).not.toContain('border-l-4');
+    expect(toast.className).toContain('overflow-hidden');
+    expect(toast.querySelector('[data-toast-edge]')!.className).toContain('bg-[var(--danger)]');
   });
 });
