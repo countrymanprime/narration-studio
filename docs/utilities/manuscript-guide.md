@@ -98,9 +98,16 @@ speech tag resolves to an entry of a speaking type, unless the Story Bible alrea
 corrected it. A locked entry gets nothing, nor does a name a merge absorbed. Each quote is a slice of the paragraph it names.
 Each confidence comes from `RuleConfidence`, which is provisional until SN-X8: `speech-tag` is 0.96 (the
 [cue evaluation](../research/character-continuity-cue-extraction-eval/RESULTS.md)), and the other rules give `null` with the
-note "The rules give no score for this." The name rules are the build's own (`rules_text.go` `ruleCandidates` and `classify`, which `build.go` runs too); they match the
-sidecar's deleted copy case for case (`tests/fixtures/guide-rules`, recorded from the sidecar's
-`suggest --source rules` before it was deleted on 2026-10-25).
+note "The rules give no score for this." The names come from the name finder in `rules_scan.go` (`scanGroups`), which the
+build also reads without a language model (`scanCandidates`); it replaced the sidecar's `rule_candidates` after #2251 found it
+offering "I'm", "Mr" and "Because I": it cuts a capitalised run
+at pronouns, contractions, function words and shouted words, never offers a bare honorific, keeps particles (de la, van der),
+merges Mr Darcy, Mr. Darcy and Darcy's, keeps Mr. and Mrs. Bennet apart, needs evidence for each name (an honorific, a speech
+verb beside it, or mentions capitalised mid-sentence in more than one paragraph) and lists the strongest first. Its word lists
+are English. `testdata/scan-corpus.json` holds the expected names for each excerpt, and `testdata/scan-names.json` pins the names
+for every frozen case (`build-rules.json` and `build-cues.json` the builds without a model). The speaker lines, every refusal,
+and every build with the model's spans still match the sidecar's deleted copy case for case
+(`tests/fixtures/guide-rules`, recorded from the sidecar's `suggest --source rules` before it was deleted on 2026-10-25).
 
 `src/studio/desktop/internal/extractionport/rules` is the scan's rules row. It caps the lines (8 MB in all, 64 KB a line,
 8 KB a field), refuses an unknown field or a kind other than entry, alias or speaker, drops a suggestion whose quote
@@ -141,7 +148,7 @@ What BookNLP prints while it loads and runs goes to stderr: stdout carries only 
 weights and encoder files, the unpacked wheels the freeze does not carry: `booknlp`, `torch`, `transformers`, `huggingface-hub`,
 `tokenizers`, `safetensors`, `regex`, `filelock`, `fsspec`, `sympy`, `mpmath`, `networkx`, and `setuptools` 80 for the
 `pkg_resources` BookNLP imports. The guide's freeze carries the standard library and the submodules those packages import that the
-guide does not (`FREEZE_IMPORTS`, `FREEZE_METADATA`, read by `scripts/release/prepare-resources.py`), and every `self-check` has
+guide does not, with `httpx` and the packages it imports, which `huggingface-hub` needs at import (`FREEZE_IMPORTS`, `FREEZE_METADATA`, read by `scripts/release/prepare-resources.py`), and every `self-check` has
 a `tool-runtime` line that imports them, which the packaged smoke test requires.
 
 ## Workflow

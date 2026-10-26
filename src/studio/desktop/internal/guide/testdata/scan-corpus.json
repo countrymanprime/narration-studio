@@ -1,0 +1,149 @@
+{
+  "about": "The Story Bible scan's precision corpus (TestTheScanProposesExactlyTheCorpusNames). Each case is a book of paragraphs with an empty Story Bible; entries is the exact set of new-entry names the scan proposes, and rejected lists junk the scan once proposed or easily could, which must never appear as a name or an alias. Precision first: a name the evidence does not support is left out rather than guessed.",
+  "cases": [
+    {
+      "name": "owner examples: I'm, Mr and Because I",
+      "paragraphs": [
+        "“I’m not going back there,” Clara said. “Because I promised Mr Darcy I wouldn’t.”",
+        "Mr Darcy frowned. “I’m sorry, but I’ll go alone. I'm decided.”",
+        "Because I could not stop, I’m told, Clara kept walking.",
+        "“Mr Darcy is waiting,” said Clara, and Mr. Darcy was. I'm sure I saw Mr waiting too."
+      ],
+      "entries": ["Clara", "Mr Darcy"],
+      "rejected": ["I", "I'm", "I’m", "I’ll", "Mr", "Mr.", "Because I", "Because"]
+    },
+    {
+      "name": "honorifics with and without a full stop, merged variants and possessives",
+      "paragraphs": [
+        "It is a truth universally acknowledged that Mr. Bennet had five daughters, and Mrs. Bennet wished each of them married.",
+        "“My dear Mr. Bennet,” said his lady to him one day, “have you heard that Netherfield Park is let at last?”",
+        "Mr. Bennet replied that he had not. Mrs. Bennet told him that Mr. Bingley, a young man of large fortune from the north of England, had taken it.",
+        "Elizabeth laughed. Jane Bennet only smiled, and Elizabeth said nothing more about Mr. Bingley.",
+        "When Mr. Darcy walked into the assembly rooms at Meryton, everyone watched Darcy’s tall figure.",
+        "Darcy's pride was the talk of Meryton for a week."
+      ],
+      "entries": ["Darcy", "Elizabeth", "Jane Bennet", "Meryton", "Mr. Bennet", "Mr. Bingley", "Mrs. Bennet", "Netherfield Park"],
+      "aliases": {"Darcy": ["Mr. Darcy"]},
+      "rejected": ["Mr", "Mrs", "My", "It", "When Mr", "Darcy’s", "Darcy's", "Bennet", "England"]
+    },
+    {
+      "name": "first-person narration and contractions",
+      "paragraphs": [
+        "I woke before dawn. I’d been dreaming of the sea again, and I’m sure I heard Tomas calling.",
+        "“We can’t stay,” I told him. “You know that. They’ll find us.”",
+        "He shrugged. She didn’t. We left at noon, and Tomas carried the lamp.",
+        "“Because I said so,” I’ll admit, was not my finest answer. “Yes,” Tomas said. “Okay. Fine.” Don't. Won’t. Can't."
+      ],
+      "entries": ["Tomas"],
+      "rejected": ["I", "I’d", "I’m", "I’ll", "We", "You", "They’ll", "He", "She", "She didn’t", "Because I", "Yes", "Okay", "Fine", "Don't", "Won’t", "Can't"]
+    },
+    {
+      "name": "shouting and chapter headings",
+      "paragraphs": [
+        "CHAPTER ONE",
+        "Chapter 3: The Storm",
+        "“GET OUT!” Marguerite screamed. “GET OUT OF MY HOUSE!”",
+        "The storm broke over the house that night, and Marguerite did not sleep. STOP, she told herself. STOP.",
+        "PART TWO: THE RECKONING"
+      ],
+      "entries": ["Marguerite"],
+      "rejected": ["CHAPTER ONE", "CHAPTER", "Chapter", "The Storm", "Storm", "GET OUT", "GET OUT OF MY HOUSE", "STOP", "PART TWO", "THE RECKONING", "OUT", "MY HOUSE"]
+    },
+    {
+      "name": "names with particles, places, and a first name folded into the full name",
+      "paragraphs": [
+        "Isabel de la Cruz arrived in Santa Fe on the morning train.",
+        "Everyone in Santa Fe had heard of Isabel de la Cruz, and of her brother, Diego, who never wrote.",
+        "She took rooms on Canyon Road, near the house where Ludwig van der Berg once lived. She waited for Diego.",
+        "“Diego is late,” said Isabel."
+      ],
+      "entries": ["Canyon Road", "Diego", "Isabel de la Cruz", "Ludwig van der Berg", "Santa Fe"],
+      "aliases": {"Isabel de la Cruz": ["Isabel"]},
+      "rejected": ["Cruz", "Ludwig", "Berg", "Everyone", "Everyone in Santa Fe", "She"]
+    },
+    {
+      "name": "plural and possessive family names",
+      "paragraphs": [
+        "The Hendersons lived next door. Mrs Henderson’s roses were famous.",
+        "Every summer the Hendersons hosted a party, and Mrs Henderson invited Arthur.",
+        "Arthur’s dog barked at the Hendersons’ gate.",
+        "“Sit,” Arthur said."
+      ],
+      "entries": ["Arthur", "Mrs Henderson"],
+      "rejected": ["Hendersons", "Hendersons’", "Henderson’s", "Arthur’s", "Every", "The Hendersons", "Sit"]
+    },
+    {
+      "name": "sentence-initial function words and adverbs",
+      "paragraphs": [
+        "However, the rain kept on. Meanwhile the river rose. Suddenly the bank gave way.",
+        "Yesterday it had been dry. Tomorrow it would flood again. Still, Ruth waited by the window.",
+        "Nothing moved. Everything was grey. Ruth watched the road, and Ruth waited.",
+        "Perhaps nobody would come. Although Ruth hoped, nobody did. Then Ruth slept."
+      ],
+      "entries": ["Ruth"],
+      "rejected": ["However", "Meanwhile", "Suddenly", "Yesterday", "Tomorrow", "Still", "Nothing", "Everything", "Perhaps", "Although", "Although Ruth", "Then", "Then Ruth"]
+    },
+    {
+      "name": "bare honorifics and forms of address",
+      "paragraphs": [
+        "“Yes, Sir,” the boy said. “Of course, Ma’am. Right away, Sir.”",
+        "The Doctor will see you now, said the nurse, and the Captain nodded to the Doctor.",
+        "Mr. and Mrs. Okafor arrived late.",
+        "Lady Catherine de Bourgh was not pleased. Lady Catherine said so twice."
+      ],
+      "entries": ["Lady Catherine de Bourgh", "Mrs. Okafor"],
+      "aliases": {"Lady Catherine de Bourgh": ["Lady Catherine"]},
+      "rejected": ["Sir", "Ma’am", "Doctor", "Captain", "Mr.", "Mr", "Lady", "Catherine", "Of", "Right"]
+    },
+    {
+      "name": "days, months, holidays and interjections",
+      "paragraphs": [
+        "On Monday, Priya wrote to her mother. By Friday, Priya had an answer.",
+        "“Oh! Well, Hello there,” said Priya. “Okay, Christmas is in December, God help us.”",
+        "In January the snow came; in March it went, and on Monday it came back."
+      ],
+      "entries": ["Priya"],
+      "rejected": ["Monday", "Friday", "Oh", "Well", "Hello", "Okay", "Christmas", "December", "God", "January", "March", "On Monday", "By Friday"]
+    },
+    {
+      "name": "two names joined by and stay two names",
+      "paragraphs": [
+        "Tom and Mary went to Paris. Later, Tom and Mary came home from Paris.",
+        "Mary was glad to be home from Paris."
+      ],
+      "entries": ["Mary", "Paris"],
+      "rejected": ["Tom and Mary", "Later", "Tom"]
+    },
+    {
+      "name": "unicode names, emoji and right-to-left text",
+      "paragraphs": [
+        "🦎 asked for a beer. The lizard, Zoë, said “שלום” to Zoë’s friend Kofi.",
+        "Kofi laughed; Zoë did not. Later Kofi and Zoë left together."
+      ],
+      "entries": ["Kofi", "Zoë"],
+      "rejected": ["Zo", "Later", "Later Kofi", "The"]
+    },
+    {
+      "name": "stacked titles, a repeated word and a gerund before a name",
+      "paragraphs": [
+        "Lady Ivy came in. Everyone bowed to Lady Ivy, and Mrs. Lady Ivy, as the footman called her, smiled.",
+        "Running was forbidden, and running late was worse. Running the Order of the Lamp was harder still. The Order of the Lamp met at noon.",
+        "“Élodie Élodie,” she sang to Élodie.",
+        "Élodie laughed."
+      ],
+      "entries": ["Lady Ivy", "Order of the Lamp", "Élodie"],
+      "rejected": ["Mrs. Lady Ivy", "Running the Order of the Lamp", "Running", "Élodie Élodie", "Everyone"]
+    },
+    {
+      "name": "a book with no names",
+      "paragraphs": [
+        "I walked. I'm tired. I’ll sleep. Because I can.",
+        "We said nothing. They said less. It rained.",
+        "",
+        "OK. Yes. No. Why? Because."
+      ],
+      "entries": [],
+      "rejected": ["I", "I'm", "I’ll", "Because I", "We", "They", "It", "OK", "Yes", "No", "Why", "Because"]
+    }
+  ]
+}
