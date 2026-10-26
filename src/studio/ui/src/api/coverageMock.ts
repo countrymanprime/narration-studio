@@ -34,7 +34,7 @@ const MOCK_MODEL_MB: Record<string, number> = { tiny: 300, base: 400, small: 700
 
 /** The host's plan (coverage.PlanWorkers) on MOCK_MACHINE: Automatic is half the processors and what fits in three quarters of the
  * free memory, less a copy for the short items; a named number is kept up to both. Chapters at once share the machine. */
-export function mockWorkerPlan(options: CoverageStartOptions | undefined, defaultModel: string, label: (id: string) => string): CoverageWorkerPlan {
+function mockWorkerPlan(options: CoverageStartOptions | undefined, defaultModel: string, label: (id: string) => string): CoverageWorkerPlan {
   const chapters = Math.max(1, options?.chapters ?? 1);
   const cpus = Math.max(1, Math.floor(MOCK_MACHINE.cpus / chapters));
   const freeMemoryMB = Math.floor(MOCK_MACHINE.freeMemoryMB / chapters);
