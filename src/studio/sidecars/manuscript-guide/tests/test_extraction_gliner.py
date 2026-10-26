@@ -107,7 +107,8 @@ def source_with(model, install: Path | None = None) -> "gliner.GlinerSource":
 
 
 def _complete_install(root: Path) -> Path:
-    """An install folder with every file the adapter checks for, and a fake ``gliner`` package in its wheel folder."""
+    """An install folder with every file the adapter checks for, and fake ``gliner`` and ``transformers`` packages in their wheel
+    folders. The fake GLiNER asks ``AutoConfig`` for its encoder by name, as the real one does."""
     root.mkdir(parents=True, exist_ok=True)
     for name in gliner.REQUIRED_FILES:
         (root / name).write_text("{}", encoding="utf-8")
@@ -118,14 +119,32 @@ def _complete_install(root: Path) -> Path:
             """
             LOADED = []
 
+            ENCODERS = []
+
             class GLiNER:
                 @classmethod
                 def from_pretrained(cls, path, **options):
+                    from transformers import AutoConfig
+
                     LOADED.append((path, options))
+                    ENCODERS.append(AutoConfig.from_pretrained("microsoft/deberta-v3-small"))
                     return cls()
 
                 def predict_entities(self, text, labels, threshold=0.5):
                     return []
+            """
+        ),
+        encoding="utf-8",
+    )
+    transformers = root / "wheel-transformers" / "transformers"
+    transformers.mkdir(parents=True)
+    (transformers / "__init__.py").write_text(
+        textwrap.dedent(
+            """
+            class AutoConfig:
+                @classmethod
+                def from_pretrained(cls, name, *args, **options):
+                    return (str(name), options)
             """
         ),
         encoding="utf-8",
@@ -145,7 +164,7 @@ def _forget_gliner():
     finally:
         sys.path[:] = path
         for name in set(sys.modules) - modules:
-            if name == "gliner" or name.startswith("gliner."):
+            if name in ("gliner", "transformers") or name.startswith(("gliner.", "transformers.")):
                 del sys.modules[name]
 
 
@@ -352,6 +371,23 @@ class NoNetworkAtRunTimeTests(unittest.TestCase):
         self.assertTrue(opened, "the fake package was imported, so something was opened")
         for path in opened:
             self.assertTrue(Path(path).resolve().is_relative_to(install), f"{path} is outside the install folder")
+
+    def test_the_encoder_gliner_names_is_read_from_the_install_folder_and_the_loader_is_put_back(self):
+        install = _complete_install(Path(tempfile.mkdtemp()))
+        with _forget_gliner():
+            gliner.load_model(install)
+            encoders = sys.modules["gliner"].ENCODERS
+            after = sys.modules["transformers"].AutoConfig.from_pretrained(gliner.ENCODER)
+
+        self.assertEqual([(str(install), {"local_files_only": True})], encoders)
+        self.assertEqual((gliner.ENCODER, {}), after, "AutoConfig is put back once GLiNER is loaded")
+
+    def test_the_encoder_files_are_required_under_their_hugging_face_names(self):
+        for name in ("config.json", "spm.model", "tokenizer_config.json"):
+            self.assertIn(name, gliner.REQUIRED_FILES)
+            install = _complete_install(Path(tempfile.mkdtemp()))
+            (install / name).unlink()
+            self.assertIn(name, gliner.damage(install))
 
     def test_the_loader_asks_huggingface_to_stay_offline(self):
         with _forget_gliner():

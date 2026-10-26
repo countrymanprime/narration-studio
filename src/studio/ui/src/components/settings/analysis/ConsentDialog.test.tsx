@@ -54,7 +54,7 @@ describe('useAnalysisTools', () => {
     const install = vi.fn(fake.port.assetsInstall);
     const port = { ...fake.port, assetsInstall: install };
     const { result } = renderHook(() => useAnalysisTools(port));
-    await waitFor(() => expect(result.current.tools).toHaveLength(4));
+    await waitFor(() => expect(result.current.tools).toHaveLength(3));
     act(() => result.current.install(['gliner', 'booknlp-small']));
     await waitFor(() => expect(install).toHaveBeenCalledTimes(1));
     expect(install).toHaveBeenLastCalledWith('analysis', 'gliner');

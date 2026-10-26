@@ -16,10 +16,11 @@ A missing or damaged install is a sentence for the narrator, never a traceback.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -45,8 +46,14 @@ SCORE_FLOOR = 0.5
 # trial chunked its chapters.
 CHUNK_WORDS = 180
 
-# The files an install must have before the adapter tries to load it: the weights, their config and the gliner wheel.
-REQUIRED_FILES = ("pytorch_model.bin", "gliner_config.json")
+# The encoder gliner_config.json names. GLiNER builds it from its config and its tokenizer by that name; the install carries the
+# encoder's config.json, SentencePiece vocabulary and tokenizer config under Hugging Face's own names (no weights: pytorch_model.bin
+# holds every encoder parameter). GLiNER reads a tokenizer_config.json beside its weights instead of fetching one, and
+# ``_local_encoder`` reads the config from the install instead of a request to Hugging Face.
+ENCODER = "microsoft/deberta-v3-small"
+ENCODER_FILES = ("config.json", "spm.model", "tokenizer_config.json")
+
+REQUIRED_FILES = ("pytorch_model.bin", "gliner_config.json", *ENCODER_FILES)
 GLINER_WHEEL = "wheel-gliner"
 WHEEL_PREFIX = "wheel-"
 
@@ -81,9 +88,30 @@ def load_model(install: Path) -> Model:
     for wheel in sorted(install.glob(WHEEL_PREFIX + "*"), reverse=True):
         if str(wheel) not in sys.path:
             sys.path.insert(0, str(wheel))
-    from gliner import GLiNER
+    with _local_encoder(install):
+        from gliner import GLiNER
 
-    return GLiNER.from_pretrained(str(install), local_files_only=True)
+        return GLiNER.from_pretrained(str(install), local_files_only=True)
+
+
+@contextlib.contextmanager
+def _local_encoder(install: Path) -> Iterator[None]:
+    """While GLiNER loads, ``AutoConfig.from_pretrained`` of ``ENCODER`` reads the install folder's config.json instead, so the load
+    names no repository. Any other name (the install folder, which the tokenizer reads) goes to the real loader, offline."""
+    from transformers import AutoConfig
+
+    real = AutoConfig.__dict__["from_pretrained"]
+
+    def config(cls: Any, name: Any, *args: Any, **kwargs: Any) -> Any:
+        if str(name) == ENCODER:
+            name, kwargs = str(install), {**kwargs, "local_files_only": True}
+        return real.__func__(cls, name, *args, **kwargs)
+
+    AutoConfig.from_pretrained = classmethod(config)
+    try:
+        yield
+    finally:
+        AutoConfig.from_pretrained = real
 
 
 def _chunks(text: str) -> list[tuple[int, str]]:

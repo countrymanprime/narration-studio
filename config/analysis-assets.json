@@ -12,13 +12,12 @@
       "licenseUrl": "https://huggingface.co/urchade/gliner_small-v2.1/blob/4e091416cf7c3481db542c2a3d26156916f3a47f/README.md",
       "modelCardUrl": "https://huggingface.co/urchade/gliner_small-v2.1",
       "provenanceUrl": "https://huggingface.co/urchade/gliner_small-v2.1/tree/4e091416cf7c3481db542c2a3d26156916f3a47f",
-      "attribution": "The model files are published under the Apache 2.0 licence, which allows this use. GLiNER small v2.1 by Urchade Zaratiana; the gliner and transformers packages are Apache-2.0 and torch is BSD-3-Clause.",
+      "attribution": "The model files are published under the Apache 2.0 licence, which allows this use. GLiNER small v2.1 by Urchade Zaratiana, on the DeBERTa v3 small encoder by Microsoft (MIT; only its config and tokenizer are downloaded); the gliner, transformers and sentencepiece packages are Apache-2.0 and torch is BSD-3-Clause.",
       "ramGB": 2,
       "minutesPerBook": 2,
       "source": "gliner",
       "rank": 1,
       "recommended": true,
-      "pending": "Not every file is pinned: gliner_config.json has no published hash, and the microsoft/deberta-v3-small tokenizer the model loads and the rest of the gliner wheel's dependencies are not listed yet (docs/research/studio-next-gliner-spike.md, Owner steps 1 and 2).",
       "files": [
         {
           "name": "pytorch_model.bin",
@@ -29,8 +28,26 @@
         {
           "name": "gliner_config.json",
           "url": "https://huggingface.co/urchade/gliner_small-v2.1/resolve/4e091416cf7c3481db542c2a3d26156916f3a47f/gliner_config.json",
-          "sha256": "PENDING",
+          "sha256": "eb963bd7182a1eaed4d170a87348ab62de6fc4eb30cfa7130c80846fee43d0ac",
           "size": 477
+        },
+        {
+          "name": "config.json",
+          "url": "https://huggingface.co/microsoft/deberta-v3-small/resolve/a36c739020e01763fe789b4b85e2df55d6180012/config.json",
+          "sha256": "b0bb1caf90a50aa67d1085130508dfbf8646ac5a11928305e280b07a36e100ae",
+          "size": 578
+        },
+        {
+          "name": "spm.model",
+          "url": "https://huggingface.co/microsoft/deberta-v3-small/resolve/a36c739020e01763fe789b4b85e2df55d6180012/spm.model",
+          "sha256": "c679fbf93643d19aab7ee10c0b99e460bdbc02fedf34b92b05af343b4af586fd",
+          "size": 2464616
+        },
+        {
+          "name": "tokenizer_config.json",
+          "url": "https://huggingface.co/microsoft/deberta-v3-small/resolve/a36c739020e01763fe789b4b85e2df55d6180012/tokenizer_config.json",
+          "sha256": "3f3978e0c036f2c2588cac34a6047cbb0af0b0dc1814254e291028529805496d",
+          "size": 52
         },
         {
           "name": "gliner-0.2.29-py3-none-any.whl",
@@ -55,6 +72,158 @@
           "size": 124113906,
           "extract": "wheel-torch",
           "expand": 475876287
+        },
+        {
+          "name": "huggingface_hub-1.31.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/c3/7f/3f886a625043b77312b80da2f2bf00b5ecbf5a73061af1aa0259cd258c9d/huggingface_hub-1.31.0-py3-none-any.whl",
+          "sha256": "9dbb6a503cbe2494ea666695207e7262d410659e09134059deb83e5480864667",
+          "size": 798313,
+          "extract": "wheel-huggingface-hub",
+          "expand": 3117859
+        },
+        {
+          "name": "tokenizers-0.23.2-cp310-abi3-win_amd64.whl",
+          "url": "https://files.pythonhosted.org/packages/db/f7/0a69ac6b82dbccf3f71add938a161c497952749294b8dd6dfe03a819dc40/tokenizers-0.23.2-cp310-abi3-win_amd64.whl",
+          "sha256": "2e96f5699d5249c9c64aa8412e044f727aae3a4098cf830f9901ec1afc361cde",
+          "size": 2863236,
+          "extract": "wheel-tokenizers",
+          "expand": 8240520
+        },
+        {
+          "name": "safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+          "url": "https://files.pythonhosted.org/packages/1b/6d/3fba214c1e5e0f69991677ec3bc17023f0421776975e1de0c682dca475e2/safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+          "sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f",
+          "size": 355540,
+          "extract": "wheel-safetensors",
+          "expand": 848323
+        },
+        {
+          "name": "regex-2026.9.29-cp312-cp312-win_amd64.whl",
+          "url": "https://files.pythonhosted.org/packages/93/19/489bc8db91196381c935752df01ba3f607140daece33b78d88573f028e64/regex-2026.9.29-cp312-cp312-win_amd64.whl",
+          "sha256": "fdd88ed5e20b1bcdd234421e454962c971aa44b653bdb7f1ea9ef683e90fb649",
+          "size": 280334,
+          "extract": "wheel-regex",
+          "expand": 1207707
+        },
+        {
+          "name": "filelock-4.2.1-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/28/00/db89d339bc4ecdc8087fa7b8607ba22ffc27bf96286f340c9620bea428b3/filelock-4.2.1-py3-none-any.whl",
+          "sha256": "7be2662e9e826b9bba28afc0f843a123280d799a2ea44bb5d35ccec67905ae44",
+          "size": 162455,
+          "extract": "wheel-filelock",
+          "expand": 578527
+        },
+        {
+          "name": "fsspec-2026.7.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/fd/3c/6a2bf344106328fd04963664a60b9bb6496fc25df8e962fcdc1367285fb9/fsspec-2026.7.0-py3-none-any.whl",
+          "sha256": "b57ddbafedfaef7018c1ecab32aa200a9d7ca26b77965f64e48b70061249d279",
+          "size": 206583,
+          "extract": "wheel-fsspec",
+          "expand": 752431
+        },
+        {
+          "name": "sympy-1.14.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl",
+          "sha256": "e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5",
+          "size": 6299353,
+          "extract": "wheel-sympy",
+          "expand": 26841861
+        },
+        {
+          "name": "mpmath-1.3.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl",
+          "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
+          "size": 536198,
+          "extract": "wheel-mpmath",
+          "expand": 1950197
+        },
+        {
+          "name": "networkx-3.7-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/7e/cd/fe58041e9011f307c490e3e17dd48cc516448f7c698a3f2d9d9d65d7e6a8/networkx-3.7-py3-none-any.whl",
+          "sha256": "e3fd2c13a7814cee3746340d8d7f8598a67f16a58bf47fb7f8793fab6efca1b0",
+          "size": 2142205,
+          "extract": "wheel-networkx",
+          "expand": 7298220
+        },
+        {
+          "name": "setuptools-80.10.2-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/94/b8/f1f62a5e3c0ad2ff1d189590bfa4c46b4f3b6e49cef6f26c6ee4e575394d/setuptools-80.10.2-py3-none-any.whl",
+          "sha256": "95b30ddfb717250edb492926c92b5221f7ef3fbcc2b07579bcd4a27da21d0173",
+          "size": 1064234,
+          "extract": "wheel-setuptools",
+          "expand": 3661004
+        },
+        {
+          "name": "sentencepiece-0.2.2-cp312-cp312-win_amd64.whl",
+          "url": "https://files.pythonhosted.org/packages/8d/11/753fca2e6b109be3ab7867abf357dfe48677fe726ae5a5363d0b54ca9450/sentencepiece-0.2.2-cp312-cp312-win_amd64.whl",
+          "sha256": "7c6e7bf684dc12145bfa685d3060beaea55139134ba848289bee514ed42e7383",
+          "size": 1248030,
+          "extract": "wheel-sentencepiece",
+          "expand": 2614009
+        },
+        {
+          "name": "protobuf-7.36.1-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/39/ca/c47f91d3cab175b01fd8c4f0d80fdf8613be876cc616e66ad281a59c5ddf/protobuf-7.36.1-py3-none-any.whl",
+          "sha256": "7d951e46b3f963d6c264c367c437921de9d5aedd9c3f9612b9077736b4e3ad5c",
+          "size": 179813,
+          "extract": "wheel-protobuf",
+          "expand": 966138
+        },
+        {
+          "name": "httpx-0.28.1-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl",
+          "sha256": "d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad",
+          "size": 73517,
+          "extract": "wheel-httpx",
+          "expand": 295303
+        },
+        {
+          "name": "httpcore-1.0.9-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl",
+          "sha256": "2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55",
+          "size": 78784,
+          "extract": "wheel-httpcore",
+          "expand": 288016
+        },
+        {
+          "name": "h11-0.16.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl",
+          "sha256": "63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86",
+          "size": 37515,
+          "extract": "wheel-h11",
+          "expand": 103935
+        },
+        {
+          "name": "anyio-4.15.1-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl",
+          "sha256": "6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101",
+          "size": 132079,
+          "extract": "wheel-anyio",
+          "expand": 539217
+        },
+        {
+          "name": "idna-3.20-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl",
+          "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+          "size": 69583,
+          "extract": "wheel-idna",
+          "expand": 342091
+        },
+        {
+          "name": "certifi-2026.10.23-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl",
+          "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+          "size": 135082,
+          "extract": "wheel-certifi",
+          "expand": 244625
+        },
+        {
+          "name": "typing_extensions-4.16.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+          "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+          "size": 45571,
+          "extract": "wheel-typing-extensions",
+          "expand": 182767
         }
       ]
     },
@@ -383,26 +552,6 @@
           "expand": 3661004
         }
       ]
-    },
-    {
-      "id": "local-llm",
-      "provider": "local-llm",
-      "displayName": "Local language model",
-      "description": "Reads the manuscript like a person would and writes descriptions, relationships and what each character says, does and knows.",
-      "version": "none",
-      "publisher": "Not chosen",
-      "license": "To be confirmed",
-      "licenseUrl": "https://github.com/countrymanprime/narration-studio/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md",
-      "modelCardUrl": "https://github.com/countrymanprime/narration-studio/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md",
-      "provenanceUrl": "https://github.com/countrymanprime/narration-studio/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md",
-      "attribution": "Licence to be confirmed before it is offered.",
-      "ramGB": 11,
-      "minutesPerBook": null,
-      "source": null,
-      "rank": 0,
-      "recommended": false,
-      "unavailable": "A model small enough for this computer takes many hours per book. It will be offered once that is practical.",
-      "files": []
     }
   ]
 }
