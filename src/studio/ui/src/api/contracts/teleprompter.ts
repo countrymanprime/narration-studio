@@ -362,15 +362,19 @@ export type ReadAloudRecording = {
 };
 
 /**
- * Which microphone REAPER records from (`TeleprompterReaperInput`). The
- * picker preselects `device` only when `status` is `matched`, and shows `message` as the reason; `uncertain` names the `candidates`
- * that fit equally well; `no_match` and `unavailable` (with a `reason`) leave the list and the narrator's choice alone.
+ * Which microphone the linked DAW records from (`TeleprompterReaperInput`). The Booth listens on `device` when `status` is
+ * `matched` (unless the narrator chose a different one), with `message` as the reason; `uncertain` names the `candidates` that fit
+ * equally well, for a one-click pick; `no_match` and `unavailable` (with a `reason`) leave the narrator's choice. `inputChannel`
+ * (REAPER's name for the linked track's input) and `outputDevice` (the device REAPER plays on) are only shown.
+ * `daw_cannot_report` is a DAW with no way to say (Audacity): it depends only on which DAW is linked.
  */
 export type TeleprompterReaperInput = {
   status: 'matched' | 'uncertain' | 'no_match' | 'unavailable';
-  reason?: 'standalone' | 'not_running' | 'experimental_off' | 'failed' | 'reaper_no_device' | 'devices_failed';
+  reason?: 'standalone' | 'not_running' | 'experimental_off' | 'failed' | 'reaper_no_device' | 'devices_failed' | 'daw_cannot_report';
   message: string;
   reaperDevice?: string;
+  inputChannel?: string;
+  outputDevice?: string;
   device?: string;
   candidates: string[];
 };
@@ -440,7 +444,8 @@ export interface TeleprompterApi {
   /** Stop a recording this app started, putting the narrator's own arms back; a recording it did not start is left alone. */
   readAloudRecordStop(): Promise<ReadAloudRecording>;
   /** Ask REAPER, once, which of the microphones it records from, to preselect it only when sure; read-only. */
-  teleprompterReaperInput(): Promise<TeleprompterReaperInput>;
+  /** `chapterId` is the Booth's chapter, so REAPER also names its linked track's input; `''` reads the device alone. */
+  teleprompterReaperInput(chapterId: string): Promise<TeleprompterReaperInput>;
   /** Where to resume `chapterId` from its recorded audio (the last seconds of its track, placed in the chapter); read-only. */
   teleprompterLocate(chapterId: string, options?: TeleprompterLocateOptions): Promise<TeleprompterLocateResult>;
   subscribeTeleprompterEvent(onEvent: (event: TeleprompterEvent) => void): () => void;

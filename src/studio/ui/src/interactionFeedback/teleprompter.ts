@@ -99,6 +99,17 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'ok',
     "The chosen microphone (global settings) is saved as it is picked; a save failure shows as the inline error (the page's or the ReadAloudDialog modal's), and the value picked stays selected in the field either way.",
   ),
+  'src/components/booth/useTeleprompterSession.ts::saveSettings#3': row(
+    'input',
+    'file-io',
+    'none',
+    'none',
+    'ui',
+    'inline',
+    'no',
+    'ok',
+    "\"Choose a different one\" in the Booth's Levels saves the microphone and input_source: chosen together, so the choice is kept over the DAW's input; a save failure shows as the page's inline error, and the microphone picked is listened on for this visit either way.",
+  ),
   // Companion mode: CompanionShell narrows and pins the one window
   // while it is mounted and gives it back on unmount, and shows REAPER's playhead from the DAW port's live transport.
   'src/components/booth/CompanionShell.tsx::companionModeEnter#1': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Narrows and pins the window as the companion panel mounts; the panel itself is the acknowledgment, and a failure is an inline alert above its sections, with the panel still fully usable (Full app still works).'),
@@ -135,7 +146,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/frame/useLevels.ts::teleprompterMeterStop#1': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Releases the meter-only child when the popover closes or the device changes; nothing is left mounted to tell, and the next start works either way (SILENT_CATCHES).'),
   'src/components/booth/record/useDawChoice.ts::dawChoice#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the project\'s DAW choice for the setup chip on mount and on every capability change; a failed read leaves the chip on the capability report\'s own words.'),
   'src/components/booth/record/useDawChoice.ts::subscribeDawCapabilities#1': subscription('A change in the DAW (it starts or stops answering, the project switches) reads the choice again, so the chip says linked, connected or not running as it is.'),
-  'src/components/booth/listening/useListeningMic.ts::teleprompterReaperInput#1': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Asks once which microphone the DAW records with so the Booth can preselect it on a sure match; a failed ask leaves the choice to the narrator in Levels, as any other answer does.'),
+  'src/components/booth/listening/useListeningMic.ts::teleprompterReaperInput#1': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Asks which microphone the DAW records with, once per chapter, so the Booth listens on it on a sure match; a failed ask leaves the narrator\'s choice (else the first microphone listed) as the one listened on, as any other answer does.'),
   'src/ports/daw.ts::subscribeDawCapabilities#1': subscription('The DAW client\'s live capabilities, which the Booth subscribes to: they keep its Record control on the live capability report, so Record turned on, or the DAW connecting, enables it without leaving the page.'),
   'src/ports/daw.ts::subscribeDawTransport#1': subscription('The DAW client\'s transport, which the Booth subscribes to while a take runs: it notices the DAW stopping it (its own Stop, or the DAW closing) and ends the take here with a toast that says so.'),
   'src/components/booth/record/RecordSetup.tsx::subscribeProjectAttach#1': subscription('A launch from the DAW that the busy app turned away (the host\'s system:attached with a reason) shows in the connect notice, with what to do, until a project is taken or Check again.'),

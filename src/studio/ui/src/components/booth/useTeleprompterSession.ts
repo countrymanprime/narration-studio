@@ -4,6 +4,7 @@ import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { isInstallRunning } from '../../types';
 import { buildRows, creditsRows, hydrateSession, initialSession, previewRows, reduceEvent, type CreditsKind, type Session } from './readerModel';
 import { usePacedCursor } from './usePacedCursor';
+import type { InputSource } from './listening/listeningMic';
 import type {
   ManuscriptChapter,
   ManuscriptParagraph,
@@ -36,6 +37,7 @@ const engineOptions = (choices: string[]) =>
 const LEGACY_DEVICE_KEY = 'narration.teleprompter.device';
 const SETTINGS_TOOL = 'Teleprompter';
 const INPUT_DEVICE_KEY = 'input_device';
+const INPUT_SOURCE_KEY = 'input_source';
 const MODEL_KEY = 'model';
 const ENGINE_KEY = 'engine';
 export const ACTIVE_PHASES: TeleprompterPhase[] = ['starting', 'running', 'stopping'];
@@ -109,7 +111,12 @@ export type UseTeleprompterSessionOptions = {
  */
 export function useTeleprompterSession({ chapterId, chapter, credits, migrateLegacyDevice = true }: UseTeleprompterSessionOptions) {
   const api = useApi();
-  const [device, setDevice] = useState('');
+  // The narrator's saved microphone (`input_device`) and whose input to follow while a DAW records (`input_source`).
+  const [chosenDevice, setDevice] = useState('');
+  const [inputSource, setInputSource] = useState<InputSource>('daw');
+  // The microphone a caller resolved to listen on (the Booth: the linked DAW's own input), never saved; null uses the saved one.
+  const [listenOn, setListenOn] = useState<string | null>(null);
+  const device = listenOn ?? chosenDevice;
   // True once the saved device (if any) has been read, so a caller that fills in a missing device never races the saved one.
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [devices, setDevices] = useState<TeleprompterDevice[]>([]);
@@ -221,6 +228,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         if (!live) return;
         const fields = settings[SETTINGS_TOOL] ?? [];
         setSettingsLoaded(true);
+        const sourceField = fields.find((item) => item.key === INPUT_SOURCE_KEY);
+        setInputSource(sourceField?.effectiveValue === 'chosen' ? 'chosen' : 'daw');
         const deviceField = fields.find((item) => item.key === INPUT_DEVICE_KEY);
         if (deviceField?.isSet) {
           setDevice(deviceField.value);
@@ -394,6 +403,17 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     setDevice(value);
     saveChoice(INPUT_DEVICE_KEY, value);
   };
+  // "Choose a different one": the narrator's microphone, kept even while a DAW records, until `followDaw`.
+  const chooseOverDaw = (value: string) => {
+    setInputSource('chosen');
+    setDevice(value);
+    void api.saveSettings(SETTINGS_TOOL, 'global', { [INPUT_DEVICE_KEY]: value, [INPUT_SOURCE_KEY]: 'chosen' }).catch((reason) => setError(errorText(reason)));
+  };
+  // Back to the linked DAW's own input. The saved microphone stays, for when no DAW records.
+  const followDaw = () => {
+    setInputSource('daw');
+    saveChoice(INPUT_SOURCE_KEY, 'daw');
+  };
   const changeEngine = (value: string) => {
     if (!isEngine(value)) return;
     const before = engine;
@@ -438,6 +458,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     session: shown,
     coldRead,
     device,
+    chosenDevice,
+    inputSource,
+    listenOn: setListenOn,
+    chooseOverDaw,
+    followDaw,
     settingsLoaded,
     devices,
     devicesError,

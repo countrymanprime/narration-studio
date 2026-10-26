@@ -186,12 +186,16 @@ end)
 H.test("chapter_track_state reports the output device REAPER has open and the names of the track's input channels", function()
   local s, chapter = new_session()
   s.fake.audio_input = 'Focusrite USB ASIO'
-  s.fake.audio_output = 'Focusrite USB ASIO'
+  s.fake.audio_output = 'Speakers (Focusrite USB Audio)'
   s.fake.input_channels = { 'Mic/Line 1', 'Mic/Line 2', 'Inst 3' }
   chapter.rec_input = 1
   s:send('chapter_track_state', 't1', chapter.guid)
   local mono = s:events()[1]
-  H.eq({ mono[12], mono[13], mono[14], mono[15] }, { '1', 'Focusrite USB ASIO', 'Focusrite USB ASIO', 'Mic/Line 2' }, 'a mono input names its channel')
+  H.eq(
+    { mono[12], mono[13], mono[14], mono[15] },
+    { '1', 'Focusrite USB ASIO', 'Speakers (Focusrite USB Audio)', 'Mic/Line 2' },
+    'a mono input names its channel'
+  )
   chapter.rec_input = 1024
   s:send('chapter_track_state', 't2', chapter.guid)
   H.eq(s:events()[1][15], 'Mic/Line 1 / Mic/Line 2', 'a stereo input names its pair')
@@ -200,7 +204,12 @@ end)
 H.test('chapter_track_state names no input channel for a track with no input, a MIDI input, a channel REAPER cannot name, or no track', function()
   local s, chapter = new_session()
   s.fake.input_channels = { 'In 1', 'In 2' }
-  for _, case in ipairs({ { -1, 'no input' }, { 4096 + 33, 'MIDI' }, { 5, 'a channel past the device' }, { 1024 + 1, 'a pair past the device' } }) do
+  for _, case in ipairs({
+    { -1, 'no input' },
+    { 4096, 'MIDI (all devices, whose low bits are channel 0)' },
+    { 5, 'a channel past the device' },
+    { 1024 + 1, 'a pair past the device' },
+  }) do
     chapter.rec_input = case[1]
     s:send('chapter_track_state', 't1', chapter.guid)
     H.eq(s:events()[1][15], '', case[2])

@@ -531,7 +531,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), teleprompterReaperInputSchema).parse(readGolden('teleprompter-reaper-inputs.json'));
     for (const seed of MOCK_REAPER_INPUT_SEEDS) {
       const api = createMockApi({}, { reaperInput: seed });
-      const input = await api.teleprompterReaperInput();
+      const input = await api.teleprompterReaperInput('');
       expectMatches(teleprompterReaperInputSchema, input, `mock reaper input ${seed}`);
       expect([input.status, input.reason]).toEqual([golden[seed].status, golden[seed].reason]);
       const listed = (await api.teleprompterDevices()).devices.map((device) => device.name);

@@ -849,7 +849,7 @@ export const wailsClient: NarrationApi = {
   readAloudRecordStart: (chapterId) => decode(readAloudRecordingSchema, 'ReadAloudRecordStart', host.ReadAloudRecordStart(chapterId)),
   readAloudRecordStartAt: (chapterId, at) => decode(readAloudRecordingSchema, 'ReadAloudRecordStartAt', host.ReadAloudRecordStartAt(chapterId, at)),
   readAloudRecordStop: () => decode(readAloudRecordingSchema, 'ReadAloudRecordStop', host.ReadAloudRecordStop()),
-  teleprompterReaperInput: () => decode(teleprompterReaperInputSchema, 'TeleprompterReaperInput', host.TeleprompterReaperInput()),
+  teleprompterReaperInput: (chapterId) => decode(teleprompterReaperInputSchema, 'TeleprompterReaperInput', host.TeleprompterReaperInput(chapterId)),
   teleprompterLocate: (chapterId, options) =>
     decode(teleprompterLocateResultSchema, 'TeleprompterLocate', host.TeleprompterLocate(chapterId, options?.trackGuid ?? '', options?.model ?? '')),
   subscribeTeleprompterEvent: subscribeTeleprompterEvents,
