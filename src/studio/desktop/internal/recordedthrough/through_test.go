@@ -23,7 +23,7 @@ func TestNothingRecordedAnywhereIsNoValue(t *testing.T) {
 func TestBoothRangesGiveTheFurthestContiguousWordNotTheLastTake(t *testing.T) {
 	// Read 0 to 150, then 150 to 230, then a pickup far ahead (350 to 380): the chapter is recorded through word 230.
 	got := Resolve(Inputs{Script: script(), Booth: []Range{{From: 0, To: 150}, {From: 350, To: 380}, {From: 150, To: 230}}})
-	want := &Through{ParagraphID: "p3", Word: 27, Percent: 57, Source: SourceBooth, Confident: true}
+	want := &Through{ParagraphID: "p3", Paragraph: 3, Word: 27, Percent: 57, Source: SourceBooth, Confident: true}
 	if got == nil || *got != *want {
 		t.Fatalf("Resolve() = %+v, want %+v", got, want)
 	}
@@ -46,8 +46,8 @@ func TestATakeThatDidNotStartAtTheTopIsNotContiguous(t *testing.T) {
 
 func TestReadingToTheLastWordIsComplete(t *testing.T) {
 	got := Resolve(Inputs{Script: script(), Booth: []Range{{From: 0, To: 401}}})
-	if got == nil || !got.Complete || got.Percent != 100 || got.ParagraphID != "p4" || got.Word != 99 {
-		t.Fatalf("Resolve() = %+v, want complete at p4 word 99", got)
+	if got == nil || !got.Complete || got.Percent != 100 || got.ParagraphID != "p4" || got.Paragraph != 4 || got.Word != 99 {
+		t.Fatalf("Resolve() = %+v, want complete at p4 (¶ 4) word 99", got)
 	}
 }
 
@@ -61,7 +61,7 @@ func TestOneWordShortIsNotCompleteAndNeverReads100(t *testing.T) {
 func TestProofParagraphsGiveTheRunAndToleratePickups(t *testing.T) {
 	// Paragraph 2 is mostly missing (a pickup), 3 is read, 4 is not read at all: recorded through the end of paragraph 3.
 	got := Resolve(Inputs{Script: script(), Proof: []Coverage{{ID: "p1", Tokens: 98, Present: 98}, {ID: "p2", Tokens: 98, Present: 10}, {ID: "p3", Tokens: 98, Present: 97}, {ID: "p4", Tokens: 98, Present: 0}}})
-	want := &Through{ParagraphID: "p3", Word: 99, Percent: 75, Source: SourceProof, Confident: true}
+	want := &Through{ParagraphID: "p3", Paragraph: 3, Word: 99, Percent: 75, Source: SourceProof, Confident: true}
 	if got == nil || *got != *want {
 		t.Fatalf("Resolve() = %+v, want %+v", got, want)
 	}
@@ -103,7 +103,7 @@ func TestTheFurtherOfProofAndBoothWins(t *testing.T) {
 func TestDAWLengthAloneIsAnEstimateAgainstTheChapterPace(t *testing.T) {
 	// 402 words at 9300 words an hour is 155.6 s; 77.8 s recorded is half.
 	got := Resolve(Inputs{Script: script(), RecordedSeconds: seconds(77.8), WordsPerHour: 9300})
-	want := &Through{ParagraphID: "p2", Word: 98, Percent: 50, Source: SourceDAW}
+	want := &Through{ParagraphID: "p2", Paragraph: 2, Word: 98, Percent: 50, Source: SourceDAW}
 	if got == nil || *got != *want {
 		t.Fatalf("Resolve() = %+v, want %+v", got, want)
 	}

@@ -14,6 +14,8 @@ export type RecordedThroughSource = 'proof' | 'booth' | 'daw';
  */
 export type RecordedThrough = {
   paragraphId: string;
+  /** The paragraph's 1-based place among the chapter's paragraphs, the ¶ number a page shows. An older host leaves it out. */
+  paragraph?: number;
   word: number;
   percent: number;
   complete: boolean;

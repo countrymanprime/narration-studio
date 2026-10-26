@@ -120,7 +120,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 	var asked []string
 	service.SetRecordedThrough(func(ids []string, lengths map[string]RecordedLength) map[string]recordedthrough.Through {
 		given, asked = lengths, ids
-		return map[string]recordedthrough.Through{first: {ParagraphID: "p-000002", Word: 3, Percent: 62, Source: recordedthrough.SourceBooth, Confident: true}}
+		return map[string]recordedthrough.Through{first: {ParagraphID: "p-000002", Paragraph: 2, Word: 3, Percent: 62, Source: recordedthrough.SourceBooth, Confident: true}}
 	})
 	through, err := service.Chapters()
 	if err != nil {

@@ -235,10 +235,19 @@ export function mockRecordedThrough(index: number, paragraphs: readonly Manuscri
   if (!last) return undefined;
   const words = (paragraph: ManuscriptParagraph) => paragraph.text.split(/\s+/).filter(Boolean).length;
   if (index < 3 || (index >= 6 && index < 10))
-    return { paragraphId: last.id, word: words(last) - 1, percent: 100, complete: true, source: 'proof', confident: true };
+    return { paragraphId: last.id, paragraph: paragraphs.length, word: words(last) - 1, percent: 100, complete: true, source: 'proof', confident: true };
   const part = (share: number, source: 'booth' | 'daw') => {
-    const at = paragraphs[Math.min(paragraphs.length - 1, Math.floor(paragraphs.length * share))]!;
-    return { paragraphId: at.id, word: Math.min(3, words(at) - 1), percent: Math.round(share * 100), complete: false, source, confident: source !== 'daw' };
+    const index = Math.min(paragraphs.length - 1, Math.floor(paragraphs.length * share));
+    const at = paragraphs[index]!;
+    return {
+      paragraphId: at.id,
+      paragraph: index + 1,
+      word: Math.min(3, words(at) - 1),
+      percent: Math.round(share * 100),
+      complete: false,
+      source,
+      confident: source !== 'daw',
+    };
   };
   if (index < 6) return part(0.65, 'booth');
   if (index === 10) return part(0.3, 'daw');

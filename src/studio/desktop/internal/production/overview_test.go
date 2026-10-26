@@ -179,13 +179,13 @@ func TestContractProductionOverview(t *testing.T) {
 	first.Title = "Chapter 1"
 	first.Subtitle = "Down the Rabbit-Hole"
 	first.RecordedSeconds = seconds(708)
-	first.RecordedThrough = &recordedthrough.Through{ParagraphID: "p-000040", Word: 12, Percent: 100, Complete: true, Source: recordedthrough.SourceProof, Confident: true}
+	first.RecordedThrough = &recordedthrough.Through{ParagraphID: "p-000040", Paragraph: 40, Word: 12, Percent: 100, Complete: true, Source: recordedthrough.SourceProof, Confident: true}
 	first.Readiness.Target = stages.StageProofing
 	first.Readiness.Reason = "3 clicks are still in the take"
 	second := chapter("c-0002", stages.StageRecording, stages.VerdictUnknown)
 	second.Title = "The Pool of Tears"
 	second.RecordedUnavailable = "unlinked"
-	second.RecordedThrough = &recordedthrough.Through{ParagraphID: "p-000052", Word: 3, Percent: 38, Source: recordedthrough.SourceBooth, Confident: true}
+	second.RecordedThrough = &recordedthrough.Through{ParagraphID: "p-000052", Paragraph: 12, Word: 3, Percent: 38, Source: recordedthrough.SourceBooth, Confident: true}
 	second.Readiness.Target = stages.StageEditing
 	second.Readiness.Reason = "No recording check has run yet"
 	third := chapter("c-0003", stages.StageNotStarted, stages.VerdictNone)

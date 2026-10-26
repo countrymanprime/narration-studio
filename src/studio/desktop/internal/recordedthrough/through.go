@@ -79,11 +79,13 @@ type Inputs struct {
 // is false for SourceDAW, which is an estimate ("about").
 type Through struct {
 	ParagraphID string `json:"paragraphId"`
-	Word        int    `json:"word"`
-	Percent     int    `json:"percent"`
-	Complete    bool   `json:"complete"`
-	Source      string `json:"source"`
-	Confident   bool   `json:"confident"`
+	// Paragraph is ParagraphID's place among the chapter's paragraphs, from 1 (the "¶ n" a page names it by).
+	Paragraph int    `json:"paragraph"`
+	Word      int    `json:"word"`
+	Percent   int    `json:"percent"`
+	Complete  bool   `json:"complete"`
+	Source    string `json:"source"`
+	Confident bool   `json:"confident"`
 }
 
 // Resolve is the chapter's Through, or nil when nothing says any of it is recorded. A measured place (the further of
@@ -123,10 +125,10 @@ func place(script Script, end int, source string, confident bool) *Through {
 		end = finalWord
 	}
 	word := end - 1
-	at := first
-	for _, paragraph := range script.Paragraphs {
+	at, number := first, 1
+	for i, paragraph := range script.Paragraphs {
 		if paragraph.Count > 0 && paragraph.Start <= word {
-			at = paragraph
+			at, number = paragraph, i+1
 		}
 	}
 	offset := min(max(word-at.Start, 0), max(at.Count-1, 0))
@@ -136,7 +138,7 @@ func place(script Script, end int, source string, confident bool) *Through {
 	} else {
 		percent = min(percent, 99)
 	}
-	return &Through{ParagraphID: at.ID, Word: offset, Percent: percent, Complete: complete, Source: source, Confident: confident}
+	return &Through{ParagraphID: at.ID, Paragraph: number, Word: offset, Percent: percent, Complete: complete, Source: source, Confident: confident}
 }
 
 // proofEnd is where the run of recorded paragraphs from the top ends (exclusive, in script words), or -1. A paragraph is
