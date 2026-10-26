@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { marksDoc } from '../script/scriptFixtures';
 import type { ChapterDoc, DocItem } from './doc';
+import { summarize } from './selection';
 import { heardWindow, MIN_TAIL_SECONDS, RUNWAY_SECONDS, runwayEnd, WORD_LEAD_SECONDS, WORD_TAIL_SECONDS } from './runway';
 
 const doc = marksDoc();
@@ -141,5 +142,40 @@ describe('heardWindow', () => {
   it('plays past a mid-line word of the fixture chapter, whose words touch', () => {
     const word = heard.find((i) => i.pid === 'p-1')!;
     expect(heardWindow(doc, word.key, word.key, word.t0 as number, word.t1 as number)[1]).toBeGreaterThan(word.t1 as number);
+  });
+});
+
+// The owner's report: the line says "Up" and the app played "U". The aligner ended "Up" before the release of its "p".
+describe('regression: "Up" heard as "U"', () => {
+  const up = (after: [string, string, number, number] | null): ChapterDoc => timed([['a:0', 'a', 1, 1.18], ...(after ? [after] : [])]);
+
+  it('keeps the "p" of "Up" when it ends a line', () => {
+    expect(heardWindow(up(['b:0', 'b', 2.5, 2.8]), 'a:0', 'a:0', 1, 1.18)[1]).toBeCloseTo(1.18 + RUNWAY_SECONDS, 6);
+  });
+
+  it('keeps the "p" of "Up" in the middle of a line, the next word touching it', () => {
+    expect(heardWindow(up(['a:1', 'a', 1.18, 1.5]), 'a:0', 'a:0', 1, 1.18)[1]).toBeCloseTo(1.18 + MIN_TAIL_SECONDS, 6);
+  });
+
+  it('keeps the "p" of "Up" when a pause follows it', () => {
+    expect(heardWindow(up(['a:1', 'a', 1.6, 1.9]), 'a:0', 'a:0', 1, 1.18)[1]).toBeCloseTo(1.18 + WORD_TAIL_SECONDS, 6);
+  });
+});
+
+// Cuts, replacements and click repairs are made from the words' own aligned times (summarize, padded inward), never from a play's window.
+describe('cut bounds are not the play window', () => {
+  it('summarize still gives the aligned start and end of the words', () => {
+    const words = heard.filter((i) => i.pid === 'p-1').slice(1, 3);
+    const sum = summarize(
+      doc,
+      words.map((w) => w.key),
+      [],
+      (x) => x,
+    );
+    expect(sum.start).toBe(words[0].t0);
+    expect(sum.end).toBe(words[words.length - 1].t1);
+    const [start, end] = heardWindow(doc, words[0].key, words[words.length - 1].key, sum.start, sum.end);
+    expect(end).toBeGreaterThan(sum.end);
+    expect(start).toBeLessThanOrEqual(sum.start);
   });
 });

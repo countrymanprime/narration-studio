@@ -27,7 +27,7 @@ export const WORD_TAIL_SECONDS = 0.2;
 /** Seconds a play runs past a word's end when the next word's aligned start touches it. The recognizer gives touching words one shared
  * boundary that sits early, so the next word's start is no more trustworthy than this word's end; this much of the tail is kept, never past the
  * middle of the next word. */
-export const MIN_TAIL_SECONDS = 0.15;
+export const MIN_TAIL_SECONDS = 0.12;
 /** A next word that starts at least this long after a word's end was heard after a pause, and the play stops before it. */
 const TOUCHING_SECONDS = 0.05;
 /** Seconds a play may start before the first word's aligned start, for a plosive or breath the aligner put after its onset. */

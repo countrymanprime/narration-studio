@@ -83,7 +83,8 @@ export function useScriptPlayback({
   const loaded = useRef<string | undefined>(undefined);
   const segment = useRef(0);
   const stopAt = useRef<number | null>(null);
-  /** Fires at `stopAt`: `timeupdate` comes only every 250 ms or so, which would stop a play anywhere up to that much late. */
+  /** Fires at `stopAt`: `timeupdate` comes only every 250 ms or so, which would stop a play anywhere up to that much late. No output latency is
+   * added: Chromium's `currentTime` is already the frame being heard (its audio clock counts the output delay). */
   const stopTimer = useRef<number | undefined>(undefined);
   // Undefined: no DAW was given, so the app plays. Null: the DAW has not answered yet.
   const caps = sync ? sync.caps : undefined;
