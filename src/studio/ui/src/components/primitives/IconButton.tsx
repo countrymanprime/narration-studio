@@ -16,13 +16,16 @@ const VARIANT_CLASSES: Record<IconButtonVariant, string> = {
   ghost: 'border-transparent bg-transparent text-[var(--text-muted)] not-aria-disabled:hover:bg-[var(--surface-2)] not-aria-disabled:hover:text-[var(--text)]',
 };
 
-// `md` is 36 px, `--button-height`; `sm` is 32 px, `--button-height-sm`, beside a small Button in a dense row; `xs` is 28 px, inside a 36 px field.
-type IconButtonSize = 'md' | 'sm' | 'xs';
+// `md` is 36 px, `--button-height`; `sm` is 32 px, `--button-height-sm`, beside a small Button in a dense row; `xs` is 28 px, inside a 36 px field;
+// `lane` is 44 px wide and as tall as its row, with a larger icon: the end of a lane it pages (the Editing waveform's arrows), so it is the lane's
+// height and a 44 px target, not a dense-row square beside a lane twice its height.
+type IconButtonSize = 'md' | 'sm' | 'xs' | 'lane';
 
 const SIZE_CLASSES: Record<IconButtonSize, string> = {
   md: 'size-[var(--button-height)]',
   sm: 'size-[var(--button-height-sm)]',
   xs: 'size-7',
+  lane: 'w-11 min-h-[var(--button-height-sm)] self-stretch text-lg',
 };
 
 type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
