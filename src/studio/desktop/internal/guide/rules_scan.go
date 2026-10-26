@@ -9,14 +9,15 @@ import (
 )
 
 // This file is the scan's name finder: which capitalised runs of the manuscript the Story Bible scan (nameSuggestions) offers as
-// names, grouped and ranked by the evidence for each. It replaced, for the scan only, the sidecar's rule_candidates and _grouped,
-// which offered "I'm", "Mr" and "Because I" (#2251). The build (build.go) still uses ruleCandidates, which its frozen fixtures pin.
+// names, grouped and ranked by the evidence for each, and the names a Story Bible build (build.go) reads through scanCandidates when
+// it runs without a language model. It replaced the sidecar's rule_candidates and _grouped, which offered "I'm", "Mr" and
+// "Because I" (#2251).
 //
 // English only. A name is a run of capitalised words, with lower-case particles inside it (de la, van der, of the); a run is cut at
 // every pronoun, contraction, function word, interjection and all-caps word, and a leading honorific (Mr, Mrs., Lady) is kept as part
 // of the spelling; a form of address (Mr, Sir, Ma'am) is never a name on its own, a rank alone (the Duchess) only with three mentions
 // capitalised mid-sentence and never in lower case. A name is offered only on evidence: a single word needs an honorific, a speech
-// verb beside it ("said Clara"), or two mentions capitalised mid-sentence (in a book that names it in more than one paragraph), and is refused when the book writes it in lower case
+// verb beside it ("said Clara"), or two mentions capitalised mid-sentence (in more than one paragraph, or three in one), and is refused when the book writes it in lower case
 // somewhere or it looks like a common word. A name of several words needs two mentions capitalised mid-sentence when the book writes
 // every word of it in lower case somewhere (the White Rabbit), and an honorific, a speech verb, one mention mid-sentence or two
 // mentions when it writes some of them so (Netherfield Park). Days, months and holidays
@@ -151,17 +152,17 @@ func (g *scanGroup) honorifics() int {
 func (g *scanGroup) speech() int { return g.count(func(m scanMention) bool { return m.speech }) }
 func (g *scanGroup) mid() int    { return g.count(func(m scanMention) bool { return m.midSentence }) }
 
-// midAcross is how many mentions are capitalised mid-sentence, or 0 when they are all in one paragraph: Latitude or Longitude, twice
-// in one sentence, is not a name.
+// midAcross is how many mentions are capitalised mid-sentence, or 0 when they are all in one paragraph and fewer than
+// scanMinRankMentions: Latitude or Longitude, twice in one paragraph, is not a name; Robert, three times, is.
 func (g *scanGroup) midAcross() int {
 	paragraphs := map[int]bool{}
 	for _, m := range g.mentions {
 		paragraphs[m.paragraph] = true
 	}
-	if len(paragraphs) < 2 {
-		return 0
+	if mid := g.mid(); len(paragraphs) >= 2 || mid >= scanMinRankMentions {
+		return mid
 	}
-	return g.mid()
+	return 0
 }
 
 // score ranks a group: an honorific or a speech verb is stronger evidence than a capital mid-sentence, which is stronger than a mention.
@@ -320,7 +321,7 @@ func scanRun(text []rune, start int) ([]scanWord, int) {
 			for following < len(text) && text[following] == ' ' {
 				following++
 			}
-			if !scanParticles[lower] || following == end {
+			if !scanParticles[lower] || following == end || (len(particles) > 0 && particles[len(particles)-1].lower == lower) {
 				return words, next
 			}
 			particles = append(particles, scanWord{start: gap, end: end, lower: lower, particle: true})
@@ -360,7 +361,8 @@ func scanMentions(index int, text []rune) []scanMention {
 			segment = nil
 		}
 		for _, word := range words {
-			if word.stop || (word.honorific != "" && slices.ContainsFunc(segment, func(w scanWord) bool { return w.honorific == "" && !w.particle })) {
+			repeated := len(segment) > 0 && !word.particle && segment[len(segment)-1].lower == word.lower // Élodie Élodie
+			if repeated || word.stop || (word.honorific != "" && slices.ContainsFunc(segment, func(w scanWord) bool { return w.honorific == "" && !w.particle })) {
 				flush()
 				first = false
 				if word.stop {
@@ -375,7 +377,8 @@ func scanMentions(index int, text []rune) []scanMention {
 	return out
 }
 
-// scanMentionOf is the mention a cut segment of a run makes, if any: particles trimmed from its ends, a name left after its honorific.
+// scanMentionOf is the mention a cut segment of a run makes, if any: particles trimmed from its ends, a name left after its honorific
+// (the last one, where titles are stacked).
 func scanMentionOf(index int, text []rune, segment []scanWord, startsSentence bool) (scanMention, bool) {
 	for len(segment) > 0 && segment[0].particle {
 		segment = segment[1:]
@@ -385,10 +388,11 @@ func scanMentionOf(index int, text []rune, segment []scanWord, startsSentence bo
 	}
 	honorific, core := "", 0
 	for core < len(segment) && segment[core].honorific != "" {
-		if honorific == "" {
-			honorific = segment[core].honorific
-		}
+		honorific = segment[core].honorific
 		core++
+	}
+	if core > 1 && core < len(segment) {
+		segment, core = segment[core-1:], 1 // the last of stacked titles: Lady Ivy, not Mrs. Lady Ivy
 	}
 	if core >= len(segment) {
 		if len(segment) != 1 || scanAddresses[segment[0].lower] {
@@ -457,6 +461,9 @@ func scanGroups(paragraphs []ruleParagraph) []*scanGroup {
 	byKey := map[string]*scanGroup{}
 	for index, paragraph := range paragraphs {
 		for _, m := range scanMentions(index, paragraph.text) {
+			if m = withoutLeadingCommonWord(m, paragraph.text, stats); m.core == "" {
+				continue
+			}
 			key := scanKey(m.core) + "|" + m.honorific
 			if byKey[key] == nil {
 				byKey[key] = &scanGroup{key: key}
@@ -533,6 +540,29 @@ func scanGroups(paragraphs []ruleParagraph) []*scanGroup {
 	return kept
 }
 
+// withoutLeadingCommonWord is m without a first word that is a common word by its suffix and written in lower case in the book:
+// Running the Order of the Lamp is the Order of the Lamp. A mention with an honorific keeps its words; one left with only particles
+// or nothing has an empty core.
+func withoutLeadingCommonWord(m scanMention, text []rune, stats wordStats) scanMention {
+	if m.honorific != "" {
+		return m
+	}
+	words := compare.PySplit(m.core)
+	if len(words) < 2 || !hasCommonSuffix(words[0]) || !stats.lowercase[compare.PyLower(words[0])] {
+		return m
+	}
+	start := m.start + len([]rune(words[0]))
+	for start < m.end && (compare.IsPySpace(text[start]) || unicode.IsLower(text[start])) {
+		start++ // the space and any particles after the word
+	}
+	if start >= m.end {
+		return scanMention{}
+	}
+	m.start, m.midSentence = start, true
+	m.spelling, m.core = string(text[start:m.end]), string(text[start:m.end])
+	return m
+}
+
 // scanAccepts is whether a group's evidence makes it a name.
 func scanAccepts(group *scanGroup, stats wordStats) bool {
 	honorific, speech, mid := group.honorifics(), group.speech(), group.mid()
@@ -560,6 +590,24 @@ func scanAccepts(group *scanGroup, stats wordStats) bool {
 		return false
 	}
 	return speech > 0 || group.midAcross() >= minMidSentenceMentions
+}
+
+// scanCandidates are the scan's names as the build reads them: every mention of every group scanGroups keeps, in reading order, each
+// carrying its group so the build keeps the scan's merges.
+func scanCandidates(paragraphs []ruleParagraph) []ruleCandidate {
+	var out []ruleCandidate
+	for _, group := range scanGroups(paragraphs) {
+		for _, m := range group.mentions {
+			out = append(out, ruleCandidate{name: m.spelling, paragraph: m.paragraph, start: m.start, end: m.end, group: group.key})
+		}
+	}
+	slices.SortStableFunc(out, func(a, b ruleCandidate) int {
+		if a.paragraph != b.paragraph {
+			return a.paragraph - b.paragraph
+		}
+		return a.start - b.start
+	})
+	return out
 }
 
 // spellingsOf are a group's spellings, the name it is offered under first: the most used, on a tie the one with an honorific (Mr Darcy

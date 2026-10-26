@@ -124,6 +124,17 @@
       "rejected": ["Zo", "Later", "Later Kofi", "The"]
     },
     {
+      "name": "stacked titles, a repeated word and a gerund before a name",
+      "paragraphs": [
+        "Lady Ivy came in. Everyone bowed to Lady Ivy, and Mrs. Lady Ivy, as the footman called her, smiled.",
+        "Running was forbidden, and running late was worse. Running the Order of the Lamp was harder still. The Order of the Lamp met at noon.",
+        "“Élodie Élodie,” she sang to Élodie.",
+        "Élodie laughed."
+      ],
+      "entries": ["Lady Ivy", "Order of the Lamp", "Élodie"],
+      "rejected": ["Mrs. Lady Ivy", "Running the Order of the Lamp", "Running", "Élodie Élodie", "Everyone"]
+    },
+    {
       "name": "a book with no names",
       "paragraphs": [
         "I walked. I'm tired. I’ll sleep. Because I can.",
