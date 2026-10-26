@@ -78,7 +78,11 @@ function fakeHost(heading: number) {
   return { api, teleprompterStart, teleprompterSaveFlags, hear: (event: TeleprompterEvent) => act(() => hear(event)) };
 }
 
-function renderPage({ chapter = {}, heading = 2 }: { chapter?: Partial<ManuscriptChapter>; heading?: number } = {}) {
+function renderPage({
+  chapter = {},
+  heading = 2,
+  overlay = createOverlayService(),
+}: { chapter?: Partial<ManuscriptChapter>; heading?: number; overlay?: ReturnType<typeof createOverlayService> } = {}) {
   const host = fakeHost(heading);
   const chapters = CHAPTERS.map((item) => (item.id === 'c1' ? { ...item, ...chapter } : item));
   render(
@@ -86,7 +90,7 @@ function renderPage({ chapter = {}, heading = 2 }: { chapter?: Partial<Manuscrip
       api={pageApi({ passageMapRecordRun: async () => {}, manuscriptChapters: async () => chapters, ...host.api } as Partial<NarrationApi>)}
       daw={dawFor('reaper')}
       journal={newJournal()}
-      overlay={createOverlayService()}
+      overlay={overlay}
     >
       <BoothNextPage hasManuscript navigate={vi.fn()} />
     </BoothHost>,
@@ -194,13 +198,15 @@ describe('the-title-is-read-text', () => {
     expect(host.teleprompterSaveFlags.mock.calls[0]).toEqual(['c1', [expect.objectContaining({ paragraphId: 'p1', wordStart: 2, heard: 'warden' })]]);
   });
 
-  it('a bookmark cannot be put on the title, which is no paragraph of the manuscript', async () => {
-    renderPage();
+  it('a bookmark cannot be put on the title, which is no paragraph of the manuscript, and B there says so', async () => {
+    const overlay = createOverlayService();
+    renderPage({ overlay });
     await ready();
     await act(() => {
       fireEvent.keyDown(document.body, { key: 'b', code: 'KeyB' });
     });
     await settle();
     expect(document.querySelectorAll('[data-bmk-margin] [data-bm]')).toHaveLength(0);
+    expect(overlay.getSnapshot().toasts.map((toast) => toast.text)).toEqual(['A bookmark goes on a line of the text, not on the chapter title.']);
   });
 });

@@ -15,14 +15,14 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'heading-title-only',
     description:
-      'Booth on a chapter with a title and no subtitle (Next chapter from Chapter 1, the mock\'s "A Message from the Author"): the title is the first line of the text (#2251 item 7), semibold and unindented, with the reading position on its first word and a half line before the first paragraph; no empty subtitle line',
+      'Booth on a chapter with a title and no subtitle (?mockManuscript=mixed, Next chapter from Chapter 1 to "A Message from the Author"): the title is the first line of the text (#2251 item 7), semibold and unindented, with the reading position on its first word and a half line before the first paragraph; no empty subtitle line',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'heading-long-subtitle',
     description:
-      'Booth on a chapter whose subtitle is long enough to wrap (the mock\'s third chapter, "Or, How the Understudy Learned Every Line by Heart and Several That Were Cut in Rehearsal"): the title, then the subtitle a step smaller wrapping inside the text column at every width, before the first paragraph; the reading position on the title\'s first word',
+      'Booth on a chapter whose subtitle is long enough to wrap (?mockManuscript=mixed, its third chapter, "Or, How the Understudy Learned Every Line by Heart and Several That Were Cut in Rehearsal"): the title, then the subtitle a step smaller wrapping inside the text column at every width, before the first paragraph; the reading position on the title\'s first word',
     ...REFLOW,
   },
   {
@@ -280,7 +280,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'bookmarks-ribbon',
     description:
-      'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
+      'Booth (as setup) after a click on the first paragraph\'s first word (the chapter title and subtitle above it are no paragraph a bookmark can name) and B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
     ...REFLOW,
   },
   {
