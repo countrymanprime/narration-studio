@@ -16,6 +16,7 @@ import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
 import { Highlight } from '../primitives/Highlight';
 import { IconButton } from '../primitives/IconButton';
+import { hearNameAction } from '../../icons.catalog';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
 import { kindLabel, kindSwatch } from './entryList';
@@ -319,7 +320,7 @@ function EntryRow({
       <TableCell className="px-1 py-0 text-center">
         {hear && (
           <IconButton
-            action={hear.playing ? 'stop' : 'hear'}
+            action={hearNameAction(hear.playing)}
             label={`${hear.playing ? 'Stop' : 'Hear'} ${entry.canonical_name}`}
             size="sm"
             tabIndex={-1}
