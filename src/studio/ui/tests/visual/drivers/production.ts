@@ -171,10 +171,8 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'recording-check-never': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7');
-    await dialog
-      .getByRole('checkbox', { name: /^Chapter 7/ })
-      .getByText('Not checked yet')
-      .waitFor();
+    // The row's label names the chapter and its state; it is the checkbox's name, not its content.
+    await dialog.getByRole('checkbox', { name: /^Chapter 7\b.*Not checked yet/ }).waitFor();
   },
   'recording-check-running': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7', 'mockCoverage=hold');
