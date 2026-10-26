@@ -4,7 +4,7 @@ import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { WorkspaceItem } from '../../../api/contracts/workspace';
-import { firstFrom, runwayEnd, summarize, type ChapterDoc } from '../model';
+import { firstFrom, heardWindow, leadStart, summarize, type ChapterDoc } from '../model';
 import type { ClosedCut } from '../follow/clockMap';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
 import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
@@ -18,6 +18,17 @@ export const AUDIO_FAILED = "This chapter's audio couldn't be played. Check that
 const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
 
 const selectedFrom = (d: ChapterDoc, s: PageState): string[] => selectedKeysOf(d, s);
+
+/** The stretch the selected words are heard over, or null when none of them was recorded. */
+const selectionWindow = (d: ChapterDoc, s: PageState): [number, number] | null => {
+  const keys = selectedFrom(d, s);
+  const sum = summarize(d, keys, [], (x) => x);
+  if (!sum.audible.length) return null;
+  return heardWindow(d, sum.audible[0].key, sum.audible[sum.audible.length - 1].key, sum.start, sum.end);
+};
+
+/** Seconds early a stop timer may fire and still count as the stop: timers are not exact. */
+const STOP_SLACK_SECONDS = 0.005;
 
 export interface ScriptPlayback {
   playing: boolean;
@@ -72,6 +83,8 @@ export function useScriptPlayback({
   const loaded = useRef<string | undefined>(undefined);
   const segment = useRef(0);
   const stopAt = useRef<number | null>(null);
+  /** Fires at `stopAt`: `timeupdate` comes only every 250 ms or so, which would stop a play anywhere up to that much late. */
+  const stopTimer = useRef<number | undefined>(undefined);
   // Undefined: no DAW was given, so the app plays. Null: the DAW has not answered yet.
   const caps = sync ? sync.caps : undefined;
   const read = sync?.read;
@@ -93,6 +106,7 @@ export function useScriptPlayback({
     remoteRef.current?.stop();
     audioRef.current?.pause();
     stopAt.current = null;
+    window.clearTimeout(stopTimer.current);
     live.current.dispatch({ type: 'play', t: null });
   }, []);
 
@@ -239,6 +253,7 @@ export function useScriptPlayback({
   const onLost = useCallback((): void => {
     audioRef.current?.pause();
     stopAt.current = null;
+    window.clearTimeout(stopTimer.current);
     live.current.dispatch({ type: 'play', t: null });
   }, []);
   const syncing = useDawTransportSync({
@@ -272,7 +287,12 @@ export function useScriptPlayback({
         return;
       }
       const t = seg.elapsedStart + el.currentTime - seg.sourceStart;
-      if (stopAt.current !== null && t >= stopAt.current) return reached(stopAt.current);
+      if (stopAt.current !== null && t >= stopAt.current - STOP_SLACK_SECONDS) return reached(stopAt.current);
+      if (stopAt.current !== null && !el.paused) {
+        window.clearTimeout(stopTimer.current);
+        const left = (stopAt.current - t) / (el.playbackRate || 1);
+        stopTimer.current = window.setTimeout(() => onTime(false), left * 1000);
+      }
       send({ type: 'play', t });
     };
     const onUpdate = (): void => onTime(false);
@@ -284,6 +304,7 @@ export function useScriptPlayback({
       el.removeEventListener('timeupdate', onUpdate);
       el.removeEventListener('ended', onEnded);
       el.removeEventListener('error', fail);
+      window.clearTimeout(stopTimer.current);
       el.pause();
     };
   }, [audio, reached, fail, start]);
@@ -298,20 +319,18 @@ export function useScriptPlayback({
     }
     if (!d.aligned) return say('Nothing has been transcribed yet.');
     if (s.sel) {
-      const keys = selectedFrom(d, s);
-      const sum = summarize(d, keys, [], (x) => x);
-      if (sum.audible.length) return playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
+      const heard = selectionWindow(d, s);
+      if (heard) return playFrom(...heard);
     }
     const from = firstFrom(d, s.cursor);
     if (!from || from.t0 == null) return say(NOTHING_FROM_HERE);
-    playFrom(from.t0);
+    playFrom(leadStart(d, from.key, from.t0));
   }, [halt, playFrom]);
 
   const playSelection = useCallback(() => {
     const { doc: d, state: s, notify: say } = live.current;
-    const keys = selectedFrom(d, s);
-    const sum = summarize(d, keys, [], (x) => x);
-    if (sum.audible.length) playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
+    const heard = selectionWindow(d, s);
+    if (heard) playFrom(...heard);
     else say('Nothing was recorded for these words.');
   }, [playFrom]);
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { marksDoc } from '../script/scriptFixtures';
-import { RUNWAY_SECONDS, runwayEnd } from './runway';
+import type { ChapterDoc, DocItem } from './doc';
+import { heardWindow, MIN_TAIL_SECONDS, RUNWAY_SECONDS, runwayEnd, WORD_LEAD_SECONDS, WORD_TAIL_SECONDS } from './runway';
 
 const doc = marksDoc();
 const heard = doc.items.filter((i) => i.t0 != null && i.t1 != null && i.st !== 'miss' && !i.cut);
@@ -35,5 +36,110 @@ describe('runwayEnd', () => {
 
   it('leaves an unknown word as it was', () => {
     expect(runwayEnd(doc, 'no-such-key', 12.5)).toBe(12.5);
+  });
+});
+
+/** Words as the recognizer times them: `[key, line, start, end]`. */
+const timed = (words: [string, string, number, number][]): ChapterDoc => {
+  const items = words.map(([key, pid, t0, t1]) => ({ key, pid, t0, t1, st: 'ok', text: key }) as unknown as DocItem);
+  return {
+    paras: [],
+    items,
+    index: new Map(items.map((i, n) => [i.key, n])),
+    aligned: true,
+    engine: { id: 'e', name: 'e' },
+    counts: {},
+  } as unknown as ChapterDoc;
+};
+
+// The owner heard "U" for "Up": a play stopped on the recognizer's end time, which falls before an "s", a plosive's release or a word's
+// unvoiced tail. Every Editing play of words takes its window from heardWindow.
+describe('heardWindow', () => {
+  it('runs past a word ending in "s" that the next word starts right after (touching boundaries, as the recognizer gives them)', () => {
+    const d = timed([
+      ['p:0', 'p', 0.5, 0.9],
+      ['p:1', 'p', 0.9, 1.2], // "was": the "s" sounds after 1.2
+      ['p:2', 'p', 1.2, 1.6],
+    ]);
+    const [, end] = heardWindow(d, 'p:1', 'p:1', 0.9, 1.2);
+    expect(end).toBeCloseTo(1.2 + MIN_TAIL_SECONDS, 6);
+  });
+
+  it('never runs past the middle of a short next word', () => {
+    const d = timed([
+      ['p:0', 'p', 1, 1.2],
+      ['p:1', 'p', 1.2, 1.3],
+    ]);
+    expect(heardWindow(d, 'p:0', 'p:0', 1, 1.2)[1]).toBeCloseTo(1.25, 6);
+  });
+
+  it('runs the whole tail into a pause inside the line', () => {
+    const d = timed([
+      ['p:0', 'p', 0.5, 0.8], // "Up"
+      ['p:1', 'p', 1.5, 1.8],
+    ]);
+    expect(heardWindow(d, 'p:0', 'p:0', 0.5, 0.8)[1]).toBeCloseTo(0.8 + WORD_TAIL_SECONDS, 6);
+  });
+
+  it('stops short of the next word when the gap is smaller than the tail', () => {
+    const d = timed([
+      ['p:0', 'p', 0.5, 0.8],
+      ['p:1', 'p', 0.9, 1.2],
+    ]);
+    expect(heardWindow(d, 'p:0', 'p:0', 0.5, 0.8)[1]).toBeCloseTo(0.88, 6);
+  });
+
+  it('gives the last word of a line the runway, never into the next line', () => {
+    const d = timed([
+      ['a:0', 'a', 0.5, 0.8],
+      ['b:0', 'b', 2, 2.3],
+    ]);
+    expect(heardWindow(d, 'a:0', 'a:0', 0.5, 0.8)[1]).toBeCloseTo(0.8 + RUNWAY_SECONDS, 6);
+    const near = timed([
+      ['a:0', 'a', 0.5, 0.8],
+      ['b:0', 'b', 1, 1.3],
+    ]);
+    expect(heardWindow(near, 'a:0', 'a:0', 0.5, 0.8)[1]).toBeCloseTo(0.98, 6);
+  });
+
+  it('gives the last word of the recording the runway; the playlist ends the play at the clip end', () => {
+    const d = timed([['p:0', 'p', 0.5, 0.8]]);
+    expect(heardWindow(d, 'p:0', 'p:0', 0.5, 0.8)[1]).toBeCloseTo(0.8 + RUNWAY_SECONDS, 6);
+  });
+
+  it('finds the next word by its time, not by where it sits in the list', () => {
+    const d = timed([
+      ['p:0', 'p', 0.5, 0.8],
+      ['p:x0', 'p', 0.8, 1.1], // an extra word laid after the line's last script word
+      ['p:1', 'p', 3, 3.3],
+    ]);
+    const word = d.items.splice(1, 1)[0];
+    d.items.push(word);
+    d.index = new Map(d.items.map((i, n) => [i.key, n]));
+    expect(heardWindow(d, 'p:0', 'p:0', 0.5, 0.8)[1]).toBeCloseTo(0.8 + MIN_TAIL_SECONDS, 6);
+  });
+
+  it('starts a little early for a plosive, never before the previous word ends or the chapter starts', () => {
+    const gap = timed([
+      ['p:0', 'p', 0.2, 0.5],
+      ['p:1', 'p', 1, 1.3],
+    ]);
+    expect(heardWindow(gap, 'p:1', 'p:1', 1, 1.3)[0]).toBeCloseTo(1 - WORD_LEAD_SECONDS, 6);
+    const touching = timed([
+      ['p:0', 'p', 0.2, 1],
+      ['p:1', 'p', 1, 1.3],
+    ]);
+    expect(heardWindow(touching, 'p:1', 'p:1', 1, 1.3)[0]).toBe(1);
+    const first = timed([['p:0', 'p', 0.02, 0.3]]);
+    expect(heardWindow(first, 'p:0', 'p:0', 0.02, 0.3)[0]).toBe(0);
+  });
+
+  it('leaves an unknown word as it was', () => {
+    expect(heardWindow(doc, 'nope', 'nope', 1, 2)).toEqual([1, 2]);
+  });
+
+  it('plays past a mid-line word of the fixture chapter, whose words touch', () => {
+    const word = heard.find((i) => i.pid === 'p-1')!;
+    expect(heardWindow(doc, word.key, word.key, word.t0 as number, word.t1 as number)[1]).toBeGreaterThan(word.t1 as number);
   });
 });
