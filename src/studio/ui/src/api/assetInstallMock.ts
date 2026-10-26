@@ -41,8 +41,11 @@ export function createInstallMock<Extra extends Pick<AssetInstallJob, 'kind' | '
   extra: Extra;
   seed?: MockAssetSeed;
   onInstalled: () => void;
+  /** The start of each job id, when two installs share a noun (the preview voices); `mock-<noun>` otherwise. */
+  idPrefix?: string;
 }) {
   const { total, noun, extra, seed, onInstalled } = options;
+  const idPrefix = options.idPrefix ?? `mock-${noun.replace(/\W+/g, '-')}`;
   const capital = noun.charAt(0).toUpperCase() + noun.slice(1);
   let count = 0;
   let current: (AssetInstallJob & Extra) | undefined;
@@ -83,7 +86,7 @@ export function createInstallMock<Extra extends Pick<AssetInstallJob, 'kind' | '
   return {
     start: async (): Promise<AssetInstallJob & Extra> => {
       if (current && running(current)) return { ...current };
-      current = { ...download(0), ...extra, id: `mock-${noun.replace(/\W+/g, '-')}-${++count}` };
+      current = { ...download(0), ...extra, id: `${idPrefix}-${++count}` };
       if (seed === 'verifying') current = { ...current, ...verifying() };
       return { ...current };
     },

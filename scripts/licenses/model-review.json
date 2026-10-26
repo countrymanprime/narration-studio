@@ -30,6 +30,21 @@
       "status": "In the catalog",
       "note": "The card's silence on commercial use is a residual, recorded in the local dependency evaluation. The Piper program and eSpeak NG that speak it are GPL-3.0-or-later and are bundled, not downloaded."
     },
+    "piper/en_GB-cori-high": {
+      "commercialUse": "The model card is silent; the LibriVox recordings are public domain and the Piper Voices repository is MIT",
+      "status": "In the catalog",
+      "note": "Read at the pinned revision (2026-10-26): the card gives the dataset as LibriVox, public domain, and says the voice was trained from scratch on about 24 hours of LibriVox recordings, so no other voice's training data is in it (the Piper medium voices fine-tuned from lessac are left out for that reason). The card's silence on commercial use is the same residual as LJ Speech's. Bundled Piper and eSpeak NG speak it, as for LJ Speech."
+    },
+    "piper/en_US-kristin-medium": {
+      "commercialUse": "The model card is silent; the LibriVox recordings are public domain and the Piper Voices repository is MIT",
+      "status": "In the catalog",
+      "note": "Read at the pinned revision (2026-10-26): the card gives the dataset as LibriVox, public domain, and says the voice was trained from scratch on about 11.5 hours of LibriVox recordings, so no other voice's training data is in it (the Piper medium voices fine-tuned from lessac are left out for that reason). The card's silence on commercial use is the same residual as LJ Speech's. Bundled Piper and eSpeak NG speak it, as for LJ Speech."
+    },
+    "piper/en_US-norman-medium": {
+      "commercialUse": "The model card is silent; the LibriVox recordings are public domain and the Piper Voices repository is MIT",
+      "status": "In the catalog",
+      "note": "Read at the pinned revision (2026-10-26): the card gives the dataset as LibriVox, public domain, and says the voice was trained from scratch on about 15.5 hours of LibriVox recordings, so no other voice's training data is in it (the Piper medium voices fine-tuned from lessac are left out for that reason). The card's silence on commercial use is the same residual as LJ Speech's. Bundled Piper and eSpeak NG speak it, as for LJ Speech."
+    },
     "spacy/en_core_web_sm": {
       "commercialUse": "Yes (MIT, ExplosionAI)",
       "status": "In the catalog, cleared from the wheel's own notices",

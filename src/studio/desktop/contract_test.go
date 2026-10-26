@@ -263,6 +263,8 @@ func TestContractSettingsForEachScope(t *testing.T) {
 	project := t.TempDir()
 	host := newTestHost(t)
 	host.settings = settings.New(layout.FindRoot("."), project)
+	// The approved catalogs fill the choices that come from them (the spaCy model, the Preview voice), as in the app.
+	host.assets = contractServices(t).registry
 	// The live engine choices follow the platform (Moonshine ships only on Windows); pin it so the golden is
 	// the same on every runner.
 	host.platform = "windows"
