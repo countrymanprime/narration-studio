@@ -41,7 +41,8 @@ export function formatAudio(seconds: number): string {
 /** The "Audio to check" line's note on chapters whose length was not measured, or '' when none were left out. */
 export function unmeasuredNote(unmeasured: number): string {
   if (unmeasured === 0) return '';
-  return `${unmeasured} ${unmeasured === 1 ? 'chapter' : 'chapters'} left out: length not measured`;
+  // The chapters are still checked; only their length is missing from the total above.
+  return `${unmeasured} ticked ${unmeasured === 1 ? 'chapter has' : 'chapters have'} no measured length, so the total leaves ${unmeasured === 1 ? 'it' : 'them'} out`;
 }
 
 const STATE_LABEL: Record<CoverageResult['state'], string> = { current: 'Checked, as of last save', stale: 'Out of date', never: 'Not checked yet' };

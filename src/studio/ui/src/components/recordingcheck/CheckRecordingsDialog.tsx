@@ -107,7 +107,12 @@ export function CheckRecordingsDialog({
         if (!active) return;
         setLoaded({ chapters, results, engines });
         setChoices(startChoices(engines));
-        setTicked((current) => new Set([...current].filter((id) => chapters.some((chapter) => chapter.id === id))));
+        // Opened with no chapter in mind (Proof's all chapters): the chapters whose check is not up to date, the rule every page's own list uses.
+        setTicked((current) =>
+          current.size === 0
+            ? new Set(chapters.filter((chapter) => results[chapter.id]?.state !== 'current').map((chapter) => chapter.id))
+            : new Set([...current].filter((id) => chapters.some((chapter) => chapter.id === id))),
+        );
       } catch (error) {
         if (active) setLoadError(describeApiError(error));
       }
@@ -158,17 +163,17 @@ export function CheckRecordingsDialog({
     reported.current = true;
     void (async () => {
       const finished = await Promise.all(run.finished.map((id) => coverage.coverageResult(id)));
-      if (run.step === 'stopped') overlay.toast(stoppedToast(finished.length, run.interrupted));
-      // A run whose every chapter was refused checked nothing: the rows say why, so no "Checked 0 chapters" says it again.
-      else if (finished.length > 0 || Object.keys(run.messages).length === 0) overlay.toast(finishedToast(runTotals(finished)));
       const merged = (current: Loaded | undefined) =>
         current && { ...current, results: { ...current.results, ...Object.fromEntries(run.finished.map((id, i) => [id, finished[i]])) } };
-      // One chapter checked: its full result, in place of the form.
+      // One chapter checked: its full result, in place of the form, which says more than a message would.
       if (run.step === 'done' && run.ids.length === 1 && run.finished.length === 1) {
         setLoaded(merged);
         setViewing(run.finished[0]);
         return;
       }
+      if (run.step === 'stopped') overlay.toast(stoppedToast(finished.length, run.interrupted));
+      // A run whose every chapter was refused checked nothing: the rows say why, so no "Checked 0 chapters" says it again.
+      else if (finished.length > 0 || Object.keys(run.messages).length === 0) overlay.toast(finishedToast(runTotals(finished)));
       if (run.step === 'stopped' || Object.keys(run.messages).length === 0) close();
       else setLoaded(merged);
     })();

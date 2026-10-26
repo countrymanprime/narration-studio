@@ -208,6 +208,15 @@ describe('CheckRecordingsDialog', () => {
     expect(sent[1]).toMatchObject({ model: 'small', recheck: false });
   });
 
+  it('opened-with-no-chapter-ticks-the-chapters-whose-check-is-not-up-to-date', async () => {
+    const { api, results } = host();
+    results.a = stored('current');
+    open(api, []);
+    expect(await screen.findByRole('button', { name: 'Check 2 chapters' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: /Chapter a/ }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('checkbox', { name: /Chapter b/ }).getAttribute('aria-checked')).toBe('true');
+  });
+
   it('tells-the-opener-once-however-it-closes', async () => {
     const { api } = host();
     const onClosed = vi.fn();
@@ -261,7 +270,7 @@ describe('CheckRecordingsDialog', () => {
     open(api, ['a', 'b', 'c']);
     await screen.findByText('Audio to check');
     expect(screen.getByText('20 min')).toBeTruthy();
-    expect(screen.getByText('1 chapter left out: length not measured')).toBeTruthy();
+    expect(screen.getByText('1 ticked chapter has no measured length, so the total leaves it out')).toBeTruthy();
     expect(screen.queryByText('Estimated time')).toBeNull();
   });
 
@@ -276,7 +285,7 @@ describe('CheckRecordingsDialog', () => {
     await screen.findByText('Audio to check');
     expect(screen.getByText('Not measured')).toBeTruthy();
     expect(screen.queryByText('0 min')).toBeNull();
-    expect(screen.getByText('2 chapters left out: length not measured')).toBeTruthy();
+    expect(screen.getByText('2 ticked chapters have no measured length, so the total leaves them out')).toBeTruthy();
   });
 
   it('run-checks-chapters-one-at-a-time', async () => {
