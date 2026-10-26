@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { applyMixedManuscriptMock, createMockApi } from './mockApi';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../types';
@@ -184,6 +186,38 @@ describe('mockApi asset install edge cases (createInstallMock)', () => {
     const polledAgain = await api.ttsInstallState(started.id);
 
     expect(polledAgain.phase).toBe('success');
+  });
+});
+
+describe('mockApi preview voices (config/tts-assets.json)', () => {
+  const catalog: Array<{ id: string; files: Array<{ size: number }> }> = JSON.parse(
+    readFileSync(join(__dirname, '../../../../../config/tts-assets.json'), 'utf8'),
+  ).voices;
+
+  it('lists every approved voice, with its download size, in the voice catalog, the downloads list and the Preview voice choices', async () => {
+    const api = createMockApi();
+    const ids = catalog.map((voice) => voice.id);
+    const sizes = catalog.map((voice) => voice.files.reduce((sum, file) => sum + file.size, 0));
+    const voices = (await api.ttsCatalog()).voices;
+    expect(voices.map((voice) => voice.id)).toEqual(ids);
+    expect(voices.map((voice) => voice.downloadSize)).toEqual(sizes);
+    const listed = (await api.assetsList()).assets.filter((asset) => asset.kind === 'tts');
+    expect(listed.map((asset) => [asset.id, asset.downloadSize])).toEqual(ids.map((id, index) => [id, sizes[index]]));
+    const piper = (await api.settingsForScope('global')).Piper;
+    expect(piper.find((field) => field.key === 'tts_voice_id')?.choices).toEqual(ids);
+  });
+
+  it('downloads and removes a second voice on its own, leaving the first as it was', async () => {
+    const api = createMockApi();
+    const job = await api.assetsInstall('tts', 'en_GB-cori-high');
+    let state = await api.assetsInstallState(job.id);
+    for (let guard = 0; guard < 10 && state.phase !== 'success'; guard += 1) state = await api.assetsInstallState(job.id);
+    expect(state).toMatchObject({ phase: 'success', assetId: 'en_GB-cori-high' });
+    const installed = async () =>
+      (await api.assetsList()).assets.filter((asset) => asset.kind === 'tts' && asset.installState === 'installed').map((asset) => asset.id);
+    expect(await installed()).toEqual(['en_GB-cori-high']);
+    await api.assetsRemove('tts', 'en_GB-cori-high');
+    expect(await installed()).toEqual([]);
   });
 });
 

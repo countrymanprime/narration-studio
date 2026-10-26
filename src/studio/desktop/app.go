@@ -2000,7 +2000,8 @@ const keymapOverridesMaxBytes = 64 * 1024
 
 // settingsSchemas is the settings the app offers with each choice that comes from an approved catalog filled in from it: the spaCy model
 // choice is the catalog's models, whether or not they are installed, so a narrator can select a model before downloading it; the live
-// engine choice is the engines this platform can launch; the TTS provider choice is the TTS port's voice engines.
+// engine choice is the engines this platform can launch; the TTS provider choice is the TTS port's voice engines; the Preview voice choice
+// is the approved voice catalog's voices, installed or not.
 func (h *Host) settingsSchemas() map[string][]fieldSchema {
 	schemas := make(map[string][]fieldSchema, len(fieldSchemas))
 	for tool, fields := range fieldSchemas {
@@ -2014,6 +2015,15 @@ func (h *Host) settingsSchemas() map[string][]fieldSchema {
 	// The TTS provider choices are the voice engines the TTS port declares for this platform (docs/architecture/provider-ports.md); the Piper row in
 	// fieldSchemas is only a placeholder.
 	schemas["Piper"] = withChoices(schemas["Piper"], "tts_provider", ttsport.Names(teleprompter.PlatformOrCurrent(h.platform)))
+	if voices := h.registry().tts; voices != nil {
+		// The Preview voice choices are the approved voice catalog's voices, installed or not; the one voice in fieldSchemas is the
+		// placeholder for a launch with no catalog.
+		ids := []string{}
+		for _, voice := range voices.Voices() {
+			ids = append(ids, voice.ID)
+		}
+		schemas["Piper"] = withChoices(schemas["Piper"], "tts_voice_id", ids)
+	}
 	return schemas
 }
 

@@ -985,7 +985,10 @@
     },
     {
       "choices": [
-        "en_US-ljspeech-high"
+        "en_US-ljspeech-high",
+        "en_GB-cori-high",
+        "en_US-kristin-medium",
+        "en_US-norman-medium"
       ],
       "effectiveSource": "repo_default",
       "effectiveValue": "en_US-ljspeech-high",

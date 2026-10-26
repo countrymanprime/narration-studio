@@ -785,7 +785,10 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveSource: 'repo default',
     },
   ],
-  Piper: [choice('tts_provider', 'TTS provider', ['piper'], 'piper'), choice('tts_voice_id', 'Preview voice', ['en_US-ljspeech-high'], 'en_US-ljspeech-high')],
+  Piper: [
+    choice('tts_provider', 'TTS provider', ['piper'], 'piper'),
+    choice('tts_voice_id', 'Preview voice', ['en_US-ljspeech-high', 'en_GB-cori-high', 'en_US-kristin-medium', 'en_US-norman-medium'], 'en_US-ljspeech-high'),
+  ],
   // Global-scope machine facts: the device is unset until the narrator picks one, so the mock starts it empty like the
   // host does. Engine and model carry the repo defaults (whisper, tiny). The engine choices are what a Windows host
   // offers (the host fills in the engines its platform can launch; Moonshine ships only on Windows), and the

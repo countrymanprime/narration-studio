@@ -74,7 +74,7 @@ A change is saved at once, like the other edits to names and relationships, not 
 ## Hearing a name
 
 The play button beside a name, or beside one of its aliases, speaks it with the local preview
-voice. It only works once a pronunciation exists: with none, the button is dimmed and a hint
+voice chosen in [Settings, Voice & pronunciation](settings.md#voice-pronunciation). It only works once a pronunciation exists: with none, the button is dimmed and a hint
 (reachable by keyboard, not just the mouse) says so. The first time you press play, the app asks
 before it downloads the voice. If the preview fails, the message says why, and pressing play
 again tries again; a failed run never leaves a broken recording behind.
