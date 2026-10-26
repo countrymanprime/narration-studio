@@ -165,7 +165,8 @@ the edge of the lane as it passes. With **Motion** set to reduce in Settings (or
 arrows at either end move a whole window back or forward; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
-brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line.
+brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps
+the waveform where you scrolled it.
 
 **The waveform's menu.** A right click without a drag (a long press on a touch screen, or the menu key or **Shift+F10** with the waveform
 focused) opens its own menu: **Play from** that moment, **Play the range** and **Clear the range** when there is one, **Put the cursor on**
