@@ -107,6 +107,65 @@ describe('the right button scrolls', () => {
   });
 });
 
+// The owner: "I can move the selection bar and I can scroll the ribbon, but if I scroll and then try to move the selected range, it moves the
+// range over to where it was before." Drawing or moving a range used to let the hand-scrolled view go, so the waveform jumped back to the
+// cursor's line under the pointer and the range followed the pointer onto the old view.
+describe('a range moved after a scroll stays under the pointer', () => {
+  const drawRange = (from: number, to: number) => {
+    fireEvent.pointerDown(surface(), { clientX: from, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(surface(), { clientX: to, pointerId: 1 });
+    fireEvent.pointerUp(surface(), { clientX: to, pointerId: 1, button: 0 });
+  };
+  const scrollBy = (px: number) => {
+    fireEvent.pointerDown(surface(), { clientX: 500, button: 2, pointerId: 2 });
+    fireEvent.pointerMove(surface(), { clientX: 500 + px, pointerId: 2 });
+    fireEvent.pointerUp(surface(), { clientX: 500 + px, pointerId: 2, button: 2 });
+  };
+  const body = (): HTMLElement => document.querySelector('[data-range-body]') as HTMLElement;
+
+  it('moving the range body after a scroll keeps the view and slides the range by the pointer', async () => {
+    mount();
+    await ready();
+    drawRange(xAt(5.54), xAt(6.296));
+    scrollBy(300);
+    expect(label()).toBe('0:04.07 to 0:07.17');
+    const before = page.state.span!;
+    const at = (((before.start + before.end) / 2 - 4.07) / 3.1) * 1000;
+    fireEvent.pointerDown(body(), { clientX: at, button: 0, pointerId: 3 });
+    fireEvent.pointerMove(body(), { clientX: at + 100, pointerId: 3 });
+    fireEvent.pointerUp(body(), { clientX: at + 100, pointerId: 3, button: 0 });
+    expect(label()).toBe('0:04.07 to 0:07.17');
+    expect(page.state.span!.start - before.start).toBeCloseTo(0.31, 3);
+  });
+
+  it('reads where the waveform is at each event, so a page that scrolled or moved under it keeps the range under the pointer', async () => {
+    mount();
+    await ready();
+    drawRange(xAt(5.54), xAt(6.296));
+    const before = page.state.span!;
+    // The page moved the waveform 200 px right and 300 px up since the range was drawn.
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      const wide = this.hasAttribute('data-ribbon-surface');
+      return { left: wide ? 200 : 0, top: -300, right: wide ? 1200 : 0, bottom: -244, width: wide ? 1000 : 0, height: 56, x: 0, y: 0, toJSON: () => ({}) };
+    };
+    const at = 200 + xAt((before.start + before.end) / 2);
+    fireEvent.pointerDown(body(), { clientX: at, button: 0, pointerId: 3 });
+    fireEvent.pointerMove(body(), { clientX: at + 100, pointerId: 3 });
+    fireEvent.pointerUp(body(), { clientX: at + 100, pointerId: 3, button: 0 });
+    expect(page.state.span!.start - before.start).toBeCloseTo(0.31, 3);
+  });
+
+  it('drawing a range on a scrolled view keeps the view', async () => {
+    mount();
+    await ready();
+    scrollBy(300);
+    drawRange(xAt(5.54, { start: 4.07, len: 3.1 }), xAt(6.296, { start: 4.07, len: 3.1 }));
+    expect(label()).toBe('0:04.07 to 0:07.17');
+    expect(page.state.span!.start).toBeCloseTo(5.54, 2);
+    expect(page.state.span!.end).toBeCloseTo(6.296, 2);
+  });
+});
+
 describe('a right click without a drag opens the waveform’s own menu', () => {
   it('where the menu event comes with the button-down (Linux, macOS), it is held back and sent again at the button-up', async () => {
     mount();

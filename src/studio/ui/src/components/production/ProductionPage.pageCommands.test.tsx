@@ -41,7 +41,6 @@ async function renderPage({ overrides = {}, initial = {} }: { overrides?: Partia
             go={vi.fn()}
             notify={vi.fn()}
             goToScript={vi.fn()}
-            goToEditing={vi.fn()}
             goToBooth={goToBooth}
             refreshBootstrap={async () => {}}
             dawConnectGraceMs={0}

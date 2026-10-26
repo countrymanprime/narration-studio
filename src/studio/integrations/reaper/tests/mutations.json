@@ -2756,5 +2756,59 @@
     "file": "narration_replace.lua",
     "find": "  if not length or length <= EDGE_TOLERANCE then",
     "replace": "  if not length then"
+  },
+  {
+    "name": "Stop leaves the edit cursor where recording began",
+    "file": "narration_transport.lua",
+    "find": "  if stop then\n    reaper.SetEditCurPos(stop, true, false)",
+    "replace": "  if false then\n    reaper.SetEditCurPos(stop, true, false)"
+  },
+  {
+    "name": "Stop puts the cursor at the end of the earlier item, not the new pass",
+    "file": "narration_transport.lua",
+    "find": "      if math.abs(position - record.position) <= STOP_EPSILON then",
+    "replace": "      if true then"
+  },
+  {
+    "name": "Stop forgets where REAPER recorded when no item starts at the recording start",
+    "file": "narration_transport.lua",
+    "find": "  return found or record.last_play\n",
+    "replace": "  return found\n"
+  },
+  {
+    "name": "a cancelled start moves the cursor on Stop",
+    "file": "narration_transport.lua",
+    "find": "local stop = record and record.started and stopped_at(record)",
+    "replace": "local stop = record and (stopped_at(record) or 0)"
+  },
+  {
+    "name": "the end rule ignores where the last take stopped",
+    "file": "narration_transport.lua",
+    "find": "    if not here then\n      reaper.SetEditCurPos(track_end(target), true, false)",
+    "replace": "    if true then\n      reaper.SetEditCurPos(track_end(target), true, false)"
+  },
+  {
+    "name": "the end rule keeps any cursor, so a take records over later audio",
+    "file": "narration_transport.lua",
+    "find": "    if not here then\n      reaper.SetEditCurPos(track_end(target), true, false)",
+    "replace": "    if false then\n      reaper.SetEditCurPos(track_end(target), true, false)"
+  },
+  {
+    "name": "REAPER's seek back after the stop is not undone",
+    "file": "narration_transport.lua",
+    "find": "      reaper.SetEditCurPos(guard.at, true, false)\n",
+    "replace": "\n"
+  },
+  {
+    "name": "the stop guard overrides a place the narrator chose",
+    "file": "narration_transport.lua",
+    "find": "      if math.abs(now - guard.from) > STOP_EPSILON then\n        state.stop_guard = nil\n        return\n      end",
+    "replace": "      if false then\n        state.stop_guard = nil\n        return\n      end"
+  },
+  {
+    "name": "the stop guard never ends",
+    "file": "narration_transport.lua",
+    "find": "    if guard.cycles <= 0 then",
+    "replace": "    if false then"
   }
 ]

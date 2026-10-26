@@ -25,19 +25,19 @@ Every run of prose the app draws (JSX text over 60 characters or two sentences, 
 | Credits | 0 | 0 | 0 | 0 | 0 | 4 | 4 |
 | Delivery | 0 | 0 | 0 | 2 | 0 | 0 | 2 |
 | Dev tools | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
-| Editing | 1 | 2 | 4 | 1 | 1 | 18 | 27 |
-| Master & QC | 1 | 5 | 1 | 1 | 3 | 0 | 11 |
+| Editing | 1 | 2 | 4 | 1 | 1 | 17 | 26 |
+| Master & QC | 1 | 5 | 0 | 1 | 3 | 0 | 10 |
 | Pickups | 1 | 0 | 0 | 1 | 0 | 1 | 3 |
-| Production | 0 | 4 | 1 | 0 | 1 | 10 | 16 |
+| Production | 0 | 4 | 1 | 0 | 0 | 8 | 13 |
 | Proof | 0 | 0 | 3 | 0 | 2 | 3 | 8 |
-| Recording check | 0 | 4 | 0 | 0 | 0 | 5 | 9 |
+| Recording check | 0 | 2 | 0 | 0 | 1 | 5 | 8 |
 | Schedule | 0 | 1 | 0 | 1 | 1 | 0 | 3 |
-| Script | 0 | 0 | 0 | 3 | 1 | 0 | 4 |
+| Script | 0 | 0 | 0 | 1 | 1 | 0 | 2 |
 | Settings | 0 | 7 | 11 | 10 | 1 | 4 | 33 |
 | Shell | 0 | 1 | 0 | 0 | 2 | 0 | 3 |
 | Stage evidence | 0 | 1 | 2 | 0 | 0 | 0 | 3 |
 | Story Bible | 0 | 2 | 1 | 0 | 3 | 1 | 7 |
-| **All** | **4** | **28** | **32** | **24** | **17** | **66** | **171** |
+| **All** | **4** | **26** | **31** | **22** | **17** | **63** | **163** |
 
 ## In-flow instructions and explanations (the debt)
 
@@ -63,8 +63,6 @@ These are capped: the number may only go down. Each one moves to a tooltip, a "?
 | Production | `production/pipeline/NoManuscript.tsx` | explanation | The app reads your manuscript, finds the chapters, and works out how much finished audio, recording and editing that means. |
 | Recording check | `recordingcheck/RunOptions.tsx` | explanation | Only the passages that are missing or that Whisper was unsure of are transcribed a second time. |
 | Recording check | `recordingcheck/RunOptions.tsx` | explanation | Chapters share the processors, so more chapters at once means fewer workers for each. |
-| Recording check | `recordingcheck/RunOptions.tsx` | explanation | Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks. |
-| Recording check | `recordingcheck/RunOptions.tsx` | explanation | Chapters share the processors, so more at once means fewer processes for each. |
 | Schedule | `schedule/WorkedOut.tsx` | explanation | Finished audio is words ÷ …. Recording takes …×, editing …× and proofing …× the finished hours. Your pace is an estimate, not measured from your sessions: it assumes … h of work a day. |
 | Settings | `settings/KeyboardPanel.tsx` | explanation | Replace takes it from "…", which is then left with no key; you can give it another one afterwards. |
 | Settings | `settings/RecordingCheckSummary.tsx` | explanation | Misreads, extra words and a spoken title never count against it. |

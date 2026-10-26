@@ -56,6 +56,13 @@ describe('runReducer one at a time', () => {
     expect(apply(s, { type: 'ended', runId: 'r2', phase: 'complete', message: '' })).toBe(s);
   });
 
+  it('halts back to idle for a model download, and ignores a late answer of that run', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a', 'b'], limit: 2 }, { type: 'halt' });
+    expect(s).toBe(idleRun);
+    s = apply(s, { type: 'answered', id: 'b', answer: started('r2') });
+    expect(s).toBe(idleRun);
+  });
+
   it('does nothing to begin on no chapters', () => {
     expect(apply(idleRun, { type: 'begin', ids: [] })).toBe(idleRun);
   });

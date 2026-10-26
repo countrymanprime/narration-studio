@@ -81,7 +81,7 @@ export function ReadinessPanel({ recommendation, seen, phase, error, isPending, 
     // "Can't tell yet" for a chapter in Recording means nothing has checked its recording: the way on is to check it.
     model.verdict === 'notchecked' && recommendation.from === 'recording' && onCheckRecording && (
       <Button key="check" variant="secondary" onClick={onCheckRecording}>
-        Open recording check
+        Check recordings…
       </Button>
     ),
   ].filter((node) => node !== false && node !== undefined);

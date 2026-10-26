@@ -114,5 +114,5 @@ function extractFile(path: string, code = readFileSync(path, 'utf8')): ProseHit[
 /** Every text run in the app's components and pages (tests and stories excluded). */
 export const extractAll = (): ProseHit[] => sources(SRC).flatMap((p) => extractFile(p));
 
-/** Long enough or sentence-shaped enough to read as prose rather than a label: over 60 characters, or two sentences. */
-export const isProse = (text: string): boolean => text.length > 60 || /[.!?;:]\s+\S.*[.!?]$/.test(text);
+/** Long enough or sentence-shaped enough to read as prose rather than a label: over 60 characters, or two sentences (20 characters or more, so an abbreviated header such as "Rec. / Est." is not one). */
+export const isProse = (text: string): boolean => text.length > 60 || (text.length >= 20 && /[.!?;:]\s+\S.*[.!?]$/.test(text));

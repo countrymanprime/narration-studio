@@ -123,19 +123,19 @@ describe('not-transcribed-state', () => {
     const onCheckRecording = vi.fn();
     const answer = notTranscribed();
     show(docFromHeard(PARAS, answer), { reason: answer.heard ? null : answer.reason, onCheckRecording });
-    fireEvent.click(screen.getByRole('button', { name: 'Check recording' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check recordings…' }));
     expect(onCheckRecording).toHaveBeenCalledTimes(1);
   });
   it('offers no check without a way to run one, once words were heard, or when the page already says there is no audio', () => {
     const answer = notTranscribed();
     show(docFromHeard(PARAS, answer));
-    expect(screen.queryByRole('button', { name: 'Check recording' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Check recordings…' })).toBeNull();
     cleanup();
     show(marksDoc(), { onCheckRecording: vi.fn() });
-    expect(screen.queryByRole('button', { name: 'Check recording' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Check recordings…' })).toBeNull();
     cleanup();
     show(docFromHeard(PARAS, answer), { explained: true, onCheckRecording: vi.fn() });
-    expect(screen.queryByRole('button', { name: 'Check recording' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Check recordings…' })).toBeNull();
   });
 });
 

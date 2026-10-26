@@ -37,7 +37,7 @@ test('Proof chapter / a never-checked chapter says so once, in the title row, on
   await drive(page, { width: 1440, height: 900 }, 'never');
   await expect(page.getByText(/hasn.t been checked yet/)).toHaveCount(0);
   const title = (await heading(page).boundingBox())!;
-  const button = (await page.getByRole('button', { name: 'Check recording', exact: true }).boundingBox())!;
+  const button = (await page.getByRole('button', { name: 'Check recordings…', exact: true }).boundingBox())!;
   expect(Math.abs(title.y + title.height / 2 - (button.y + button.height / 2))).toBeLessThanOrEqual(1.5);
 });
 

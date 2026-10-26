@@ -37,9 +37,10 @@ type Armed struct {
 	Changed   bool
 }
 
-// StartRule says where recording begins. StartHere leaves the edit cursor where it is; AtEnd first moves it to the end
-// of the last item on the track (the third argument of record_start in narration_transport.lua), so a take never
-// overwrites what the track already holds.
+// StartRule says where recording begins. StartHere leaves the edit cursor where it is. AtEnd (the third argument of
+// record_start in narration_transport.lua) keeps the cursor when it is still where the bridge's last take on the track
+// stopped, so the narrator goes on from there; anywhere else it first moves it to the end of the last item on the
+// track, so a take never records over audio from a place nobody chose.
 type StartRule string
 
 const (
