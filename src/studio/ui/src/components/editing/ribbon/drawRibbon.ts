@@ -1,6 +1,6 @@
 import type { PeakColumn } from './peaksWindow';
 import { BAR_RADIUS, barLayout, barPosition, FULL_SCALE, halfHeight, playheadAt, type PeakScale } from './ribbonBars';
-import { barSwell, swelledHalf } from './waveSwell';
+import { barSwell, crestAt, swelledHalf } from './waveSwell';
 import type { RibbonLayout } from './ribbonLayout';
 
 import { kindColour, type KindId } from '../../../kinds/kindMap';
@@ -56,7 +56,10 @@ export interface RibbonFrame {
   /** Milliseconds since the host last published the playhead, to move it on between updates. */
   sinceUpdateMs: number;
   animate: boolean;
-  /** The swell's phase (0..1, `waveSwell.ts`), or null for bars at rest. */
+  /**
+   * Null for bars at rest. Otherwise the swell is on: its crest rides the playhead when there is one, and on placeholder columns (or with no
+   * playhead) it is this phase (0..1) of the way through a loop (`crestAt`).
+   */
   swell: number | null;
 }
 export const STILL_FRAME: RibbonFrame = { nowMs: 0, sinceUpdateMs: 0, animate: false, swell: null };
@@ -106,7 +109,8 @@ export function drawRibbon(
 
   const head = layout.playhead == null ? null : frame.animate ? playheadAt(layout.playhead, frame.sinceUpdateMs, layout.t1) : layout.playhead;
   const headBar = head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length);
-  drawBars(ctx, width, height, columns, placeholder ? { ...colors, bars: colors.unplayed } : colors, headBar, frame.swell, scale);
+  const crest = frame.swell == null ? null : headBar != null && !placeholder ? headBar : crestAt(frame.swell, columns.length);
+  drawBars(ctx, width, height, columns, placeholder ? { ...colors, bars: colors.unplayed } : colors, headBar, crest, scale);
 
   ctx.save();
   ctx.globalAlpha = 0.7;
@@ -150,7 +154,7 @@ export function drawRibbon(
 
 /**
  * The bars, centred on the middle line. With a playhead (`headBar`, in bars) the played bars are `colors.bars` and the rest `colors.unplayed`;
- * without one every bar is `colors.bars`. With a `swell` phase each bar is scaled on its own height (`barSwell`), never past the lane's edge.
+ * without one every bar is `colors.bars`. With a `crest` (in bars) each bar is scaled on its own height (`barSwell`), never past the lane's edge.
  * Each colour is one path, filled once.
  */
 function drawBars(
@@ -160,7 +164,7 @@ function drawBars(
   columns: PeakColumn[],
   colors: RibbonColors,
   headBar: number | null,
-  swell: number | null,
+  crest: number | null,
   scale: PeakScale,
 ): void {
   const mid = height / 2;
@@ -168,7 +172,7 @@ function drawBars(
   const radius = Math.min(BAR_RADIUS, barWidth / 2);
   const halfAt = (i: number): number => {
     const half = halfHeight(columns[i], mid, scale);
-    return swell == null ? half : swelledHalf(half, barSwell(i, columns.length, swell), mid - 0.5);
+    return crest == null ? half : swelledHalf(half, barSwell(i, columns.length, crest), mid - 0.5);
   };
   // One path and one fill for each colour, not one stroke for each bar.
   const fillBars = (colour: string, from: number, to: number): void => {

@@ -157,10 +157,10 @@ Each thin bar is how loud that moment is, drawn from the middle line. The height
 level 99 in 100 of its sounding moments stay under), over 30 dB: a loud syllable fills the lane, a quiet one is still a clear bar, and a pause
 is a hairline. A chapter recorded quietly draws as tall as one that was normalised, the way REAPER's view looks once you normalise, and one
 click or plosive does not make the rest small. The bars are the peaks, not the RMS: the host keeps each 20 ms's highest and lowest sample.
-While the chapter plays, the bars already played are in the accent colour and the rest grey, and a swell passes through the bars from left
-to right about every second and a half, like a stadium wave: the bars ahead of it rise, the ones under it stand up to half again their own
-height and the ones behind settle back, so the shape of the audio stays the same under it. While the waveform is still being read, a low
-row of grey bars stands in its place with the same swell running over it. With **Motion** set to reduce in Settings (or Windows asking for
+While the chapter plays, the bars already played are in the accent colour and the rest grey, and a swell travels with the playhead, like a
+stadium wave: the bars just ahead of it rise, the ones under it stand up to half again their own height and the ones behind settle back, so
+the shape of the audio stays the same under it. While the waveform is still being read, a low row of grey bars stands in its place with a
+swell crossing it from left to right about every second and a half. With **Motion** set to reduce in Settings (or Windows asking for
 it), nothing moves.
 
 **Scrolling.** Hold the right button and drag to move the audio along, or use the wheel or two fingers on a trackpad or touch screen. The

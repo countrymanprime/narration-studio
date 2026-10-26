@@ -68,7 +68,10 @@ export interface RibbonViewProps {
   menu?: (at: number | null) => ContextMenuItem[];
   /** The peaks are still being read: a flat row of placeholder bars with the swell running over it, instead of the reason. */
   loading?: boolean;
-  /** Draws the swell held at this phase (0..1) instead of running it, for a story or a screenshot that must be the same on every run. */
+  /**
+   * Draws the swell held still instead of running it, for a story or a screenshot that must be the same on every run: on the playhead when
+   * there is one, else this phase (0..1) of the placeholder loop.
+   */
   swellPhase?: number;
 }
 
@@ -188,7 +191,8 @@ export function RibbonView({
     drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame, s, stand);
   };
 
-  // The swell runs while the chapter plays and while the waveform is read (waveSwell.ts); the playhead moves on between host updates while it runs.
+  // The swell runs while the chapter plays, its crest on the playhead, and while the waveform is read, looping over the placeholder bars
+  // (waveSwell.ts); the playhead moves on between host updates while it runs.
   const playing = shownLayout.playhead != null && columns !== null;
   const lastPhase = useRef<number | null>(null);
   const moving = (phase: number, nowMs: number): RibbonFrame => ({ nowMs, sinceUpdateMs: nowMs - headStamp.current, animate: true, swell: phase });

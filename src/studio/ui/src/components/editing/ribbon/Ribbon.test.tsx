@@ -323,11 +323,11 @@ describe('RibbonView animation', () => {
     expect(frames.size).toBe(0);
   });
 
-  it('redraws only its own canvas on each frame, with the bars under the travelling crest taller than at rest', async () => {
+  it('redraws only its own canvas on each frame, with the bars around the playhead taller than at rest', async () => {
     render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(1));
     const heightsOf = () => bars().map((c) => c.args[3]);
-    // The first frame starts the pass (the crest just off the left edge); half a pass later it is mid-way across.
+    // The crest rides the playhead from the first frame on.
     step(1000);
     calls.length = 0;
     step(1000 + SWELL.periodMs / 2);

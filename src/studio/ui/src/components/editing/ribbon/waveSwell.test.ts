@@ -3,14 +3,16 @@ import { halfHeight, FULL_SCALE, PEAK_HEADROOM } from './ribbonBars';
 import { barSwell, crestAt, PLACEHOLDER_LEVEL, placeholderColumns, SWELL, swelledHalf, swellPhase, swellProfile, swellWidth } from './waveSwell';
 
 // Ported from ribbonBars.test.ts's pulseEnvelope, barScale and grownHalf: the bump that grew each bar toward the lane's edge around the
-// playhead is replaced by a swell that scales each bar on its own height and travels across the bars (the owner's report of 2026-10-26).
+// playhead is replaced by a swell that scales each bar on its own height and rides the playhead (the owner's report of 2026-10-26).
 
 describe('swellProfile', () => {
   const width = 20;
-  it('is SWELL.peak at the crest and 1 at and beyond half the width on either side', () => {
+  const ahead = width * SWELL.aheadShare;
+  const behind = width - ahead;
+  it('is SWELL.peak at the crest and 1 at and beyond its reach on either side', () => {
     expect(swellProfile(0, width)).toBeCloseTo(SWELL.peak, 9);
-    expect(swellProfile(width / 2, width)).toBe(1);
-    expect(swellProfile(-width / 2, width)).toBe(1);
+    expect(swellProfile(ahead, width)).toBe(1);
+    expect(swellProfile(-behind, width)).toBe(1);
     expect(swellProfile(500, width)).toBe(1);
     expect(swellProfile(-500, width)).toBe(1);
   });
@@ -24,11 +26,15 @@ describe('swellProfile', () => {
       }
     }
   });
-  it('is symmetric: the bars ahead rise as the ones behind settle', () => {
-    for (let d = 0; d < width; d += 0.7) expect(swellProfile(d, width)).toBeCloseTo(swellProfile(-d, width), 12);
+  it('rises over a longer ramp ahead of the crest than it settles behind it', () => {
+    expect(SWELL.aheadShare).toBeGreaterThan(0.5);
+    for (let d = 0.5; d < behind; d += 0.5) expect(swellProfile(d, width)).toBeGreaterThan(swellProfile(-d, width));
+    expect(swellProfile(behind + 0.5, width)).toBeGreaterThan(1);
+    expect(swellProfile(-(behind + 0.5), width)).toBe(1);
   });
-  it('eases: a quarter width from the crest is half way up', () => {
-    expect(swellProfile(width / 4, width)).toBeCloseTo(1 + (SWELL.peak - 1) / 2, 9);
+  it('eases: half way along each ramp is half way up', () => {
+    expect(swellProfile(ahead / 2, width)).toBeCloseTo(1 + (SWELL.peak - 1) / 2, 9);
+    expect(swellProfile(-behind / 2, width)).toBeCloseTo(1 + (SWELL.peak - 1) / 2, 9);
   });
   it('is bounded to [1, peak], and 1 for NaN or a zero width', () => {
     for (let d = -30; d <= 30; d += 0.1) {
@@ -50,13 +56,12 @@ describe('swellWidth', () => {
   });
 });
 
-describe('crestAt', () => {
-  it('enters from just off the left edge and leaves just off the right, left to right', () => {
+describe('crestAt (the placeholder loop)', () => {
+  it('enters with the whole swell off the left edge and leaves with it off the right, left to right', () => {
     const count = 200;
-    const half = swellWidth(count) / 2;
-    expect(crestAt(0, count)).toBeCloseTo(-half, 9);
-    expect(crestAt(1, count)).toBeCloseTo(count + half, 9);
-    expect(crestAt(0.5, count)).toBeCloseTo(count / 2, 9);
+    const w = swellWidth(count);
+    expect(crestAt(0, count)).toBeCloseTo(-w * SWELL.aheadShare, 9);
+    expect(crestAt(1, count)).toBeCloseTo(count + w * (1 - SWELL.aheadShare), 9);
     let last = -Infinity;
     for (let p = 0; p <= 1; p += 0.01) {
       const c = crestAt(p, count);
@@ -85,15 +90,15 @@ describe('swellPhase', () => {
     expect(swellPhase(Number.NaN)).toBe(0);
   });
   it('joins up: the end of one pass and the start of the next leave every bar at rest', () => {
-    for (const p of [0, 0.999999]) for (let i = 0; i < 100; i += 1) expect(barSwell(i, 100, p)).toBeCloseTo(1, 3);
+    for (const p of [0, 0.999999]) for (let i = 0; i < 100; i += 1) expect(barSwell(i, 100, crestAt(p, 100))).toBeCloseTo(1, 3);
   });
 });
 
 describe('barSwell, a pass as one bar sees it', () => {
-  it('a bar rises as the crest comes up to it, is tallest under it, and settles as it goes by', () => {
+  it('a bar rises as the crest (the playhead) comes up to it, is tallest under it, and settles as it goes by', () => {
     const count = 120;
     const seen: number[] = [];
-    for (let p = 0; p <= 1; p += 0.002) seen.push(barSwell(60, count, p));
+    for (let crest = 0; crest <= count; crest += 0.25) seen.push(barSwell(60, count, crest));
     const top = seen.indexOf(Math.max(...seen));
     for (let k = 1; k <= top; k += 1) expect(seen[k]).toBeGreaterThanOrEqual(seen[k - 1] - 1e-12);
     for (let k = top + 1; k < seen.length; k += 1) expect(seen[k]).toBeLessThanOrEqual(seen[k - 1] + 1e-12);
@@ -103,12 +108,13 @@ describe('barSwell, a pass as one bar sees it', () => {
   });
   it('at one moment only the bars near the crest are scaled; far ahead and behind are 1', () => {
     const count = 200;
-    const crest = Math.round(crestAt(0.5, count));
-    expect(barSwell(crest, count, 0.5)).toBeGreaterThan(1.4);
-    expect(barSwell(0, count, 0.5)).toBe(1);
-    expect(barSwell(count - 1, count, 0.5)).toBe(1);
+    expect(barSwell(100, count, 100.5)).toBeCloseTo(SWELL.peak, 9);
+    expect(barSwell(0, count, 100.5)).toBe(1);
+    expect(barSwell(count - 1, count, 100.5)).toBe(1);
+    // the bars ahead (to the right) are the ones rising
+    expect(barSwell(105, count, 100.5)).toBeGreaterThan(barSwell(96, count, 100.5));
   });
-  it('is 1 for every bar with no phase (still, or motion reduced)', () => {
+  it('is 1 for every bar with no crest (still, or motion reduced)', () => {
     for (let i = 0; i < 50; i += 1) expect(barSwell(i, 50, null)).toBe(1);
   });
 });

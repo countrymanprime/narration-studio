@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { drawRibbon, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
 import type { PeakColumn } from './peaksWindow';
 import { BAR_GAP, BAR_RADIUS, barLayout, FULL_SCALE, halfHeight, MIN_BAR_HEIGHT } from './ribbonBars';
-import { crestAt, placeholderColumns, SWELL } from './waveSwell';
+import { placeholderColumns, SWELL } from './waveSwell';
 import type { RibbonLayout } from './ribbonLayout';
 
 const colors: RibbonColors = {
@@ -157,12 +157,12 @@ describe('drawRibbon swell', () => {
     drawRibbon(r.canvas, r.size, layout({ playhead }), cols, colors, frame);
     return r.bars.map((b) => b.h);
   };
-  const crestBar = (phase: number) => Math.floor(crestAt(phase, N));
+  // The playhead at 5 s of a 10 s window: the crest is on bar 50.
+  const c = 50;
 
   it('scales the bars under the crest on their own height, up to SWELL.peak, and leaves the ones far from it at rest', () => {
     const still = heights(STILL_FRAME);
     const live = heights(moving(0, 0, 0.5));
-    const c = crestBar(0.5);
     expect(live[c] / still[c]).toBeGreaterThan(SWELL.peak - 0.02);
     expect(live[c] / still[c]).toBeLessThanOrEqual(SWELL.peak + 1e-9);
     expect(live[0]).toBe(still[0]);
@@ -173,7 +173,6 @@ describe('drawRibbon swell', () => {
     const cols = flat(N, 40).map((col, i) => (i % 2 ? ([0, 0] as PeakColumn) : col));
     const still = heights(STILL_FRAME, cols);
     const live = heights(moving(0, 0, 0.5), cols);
-    const c = crestBar(0.5);
     const pause = c % 2 ? c : c + 1;
     // the hairline grows only by the factor, not toward the lane's edge
     expect(live[pause]).toBeLessThanOrEqual(still[pause] * SWELL.peak + 1e-9);
@@ -182,19 +181,34 @@ describe('drawRibbon swell', () => {
 
   it('rises ahead of the crest and settles behind it, monotonically on each side', () => {
     const live = heights(moving(0, 0, 0.5));
-    const c = crestBar(0.5);
     for (let i = c; i > 0; i -= 1) expect(live[i]).toBeGreaterThanOrEqual(live[i - 1]);
     for (let i = c + 1; i < N - 1; i += 1) expect(live[i]).toBeGreaterThanOrEqual(live[i + 1]);
   });
 
-  it('travels left to right through a pass, whatever the playhead does', () => {
+  it('rides the playhead while playing: the crest moves with it, and the loop phase does not move it', () => {
+    const tallest = (playhead: number, phase = 0.5) => {
+      const h = heights(moving(0, 0, phase), flat(N, 40), playhead);
+      return h.indexOf(Math.max(...h));
+    };
+    expect(tallest(3)).toBe(30);
+    expect(tallest(7)).toBe(70);
+    expect(heights(moving(0, 0, 0.1))).toEqual(heights(moving(0, 0, 0.9)));
+  });
+
+  it('rises over a longer ramp ahead of the playhead than it settles behind it', () => {
+    const still = heights(STILL_FRAME);
+    const live = heights(moving(0, 0, 0.5));
+    const grown = live.map((h, i) => h > still[i] + 1e-9);
+    expect(grown.slice(c).filter(Boolean).length).toBeGreaterThan(grown.slice(0, c).filter(Boolean).length);
+  });
+
+  it('with no playhead (the placeholder) loops left to right with the phase', () => {
     const tallest = (phase: number) => {
-      const h = heights(moving(0, 0, phase));
+      const h = heights(moving(0, 0, phase), flat(N, 40), null);
       return h.indexOf(Math.max(...h));
     };
     expect(tallest(0.3)).toBeLessThan(tallest(0.5));
     expect(tallest(0.5)).toBeLessThan(tallest(0.7));
-    expect(heights(moving(0, 0, 0.5), flat(N, 40), 1)).toEqual(heights(moving(0, 0, 0.5), flat(N, 40), 9));
   });
 
   it('with no swell (still, reduced motion, or stopped) draws every bar at rest, with the played split kept', () => {
