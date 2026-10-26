@@ -433,8 +433,8 @@ const mockDeliveryProfile = mockParams.get('mockDeliveryProfile') === 'custom' ?
 // `fails` ends it with the host's refusal, `quiet` holds it running and then stops answering the job's reads.
 const mockDelivery = (['ready', 'building', 'fails', 'quiet'] as const).find((seed) => seed === mockParams.get('mockDelivery'));
 // `?mockProduction=on-pace|at-risk` seeds the Production page with a time log, a running timer (on-pace only), a deadline and a
-// contracted amount; with none, nothing is logged or set yet.
-const mockProduction = (['on-pace', 'at-risk'] as const).find((seed) => seed === mockParams.get('mockProduction'));
+// contracted amount; `linked` measures every chapter's linked track with no stage moved on; with none, nothing is logged or set yet.
+const mockProduction = (['on-pace', 'at-risk', 'linked'] as const).find((seed) => seed === mockParams.get('mockProduction'));
 // `?mockFidelity=05` draws the mock backend as benchmark mock 05 draws Master & QC, for the pixel-match tool (mockHost/mockFidelity.ts).
 const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 

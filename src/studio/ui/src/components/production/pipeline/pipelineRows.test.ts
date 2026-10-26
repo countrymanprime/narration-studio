@@ -157,3 +157,50 @@ describe('currentColumn', () => {
     expect(currentColumn('proofing', 2)).toBe('pickups');
   });
 });
+
+describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
+  // The owner's book: 16 chapters linked to their tracks, audio on every one (17 h in the headline), every status still "not started".
+  // The rows showed only the estimate, and the Record cell a dash, so nothing on the row said anything was recorded.
+  const linked = Array.from({ length: 16 }, (_, i) => chapter(`c${i + 1}`, { recordedSeconds: 3825 }));
+
+  it('shows the recorded length of every linked chapter, never a blank, whatever its status', () => {
+    const rows = rowsOf(linked);
+    expect(rows).toHaveLength(16);
+    for (const row of rows) {
+      expect(row.recorded).toMatchObject({ kind: 'measured', text: '1:04' });
+      expect(row.recorded.label).toBe(`${row.name}: 1:04 recorded of about 1:00 estimated`);
+      expect(row.estimate).toBe('1:00');
+      // The audio is there, so Record is under way even though the chapter's stage still says not started.
+      expect(row.cells.record).toMatchObject({ kind: 'progress', text: '99%' });
+      expect(row.cells.record.tip).toContain('stage is still Not started');
+    }
+  });
+
+  it('tells linked with nothing recorded from not linked, no readable project, two tracks, a missing track and not read', () => {
+    const rows = rowsOf([
+      chapter('a', { recordedSeconds: 0 }),
+      chapter('b', { recordedUnavailable: 'unlinked' }),
+      chapter('c', { recordedUnavailable: 'no_project' }),
+      chapter('d', { recordedUnavailable: 'multiple_tracks' }),
+      chapter('e', { recordedUnavailable: 'track_missing' }),
+      chapter('f'),
+    ]);
+    expect(rows.map((r) => [r.recorded.kind, r.recorded.text])).toEqual([
+      ['none', 'None yet'],
+      ['none', 'Not linked'],
+      ['none', 'No project'],
+      ['none', '2+ tracks'],
+      ['none', 'Track gone'],
+      ['none', 'Not read'],
+    ]);
+    for (const row of rows) expect(row.recorded.text).not.toMatch(/^0:00$/);
+    expect(rows[0]!.cells.record).toMatchObject({ kind: 'none', state: 'not started' });
+  });
+
+  it('never shows under a minute of audio as 0:00, and shows a dash for a chapter with no words to estimate from', () => {
+    const [short] = rowsOf([chapter('c1', { recordedSeconds: 20, wordCount: 0 })]);
+    expect(short!.recorded.text).toBe('<0:01');
+    expect(short!.estimate).toBe('—');
+    expect(short!.recorded.label).toBe('Chapter 1: <0:01 recorded, no estimate');
+  });
+});

@@ -33,9 +33,10 @@ for (const size of [
     // XPR1-5, R4SM-3: the name column was 65 to 130 px, so names broke one word, or half a word, a line.
     const name = (await table.getByRole('columnheader', { name: 'Chapter' }).boundingBox())!;
     expect(name.width, 'the Chapter column holds a name').toBeGreaterThanOrEqual(158);
-    // The Fin. header and its info mark stay on one line.
-    const fin = (await table.getByRole('columnheader', { name: /Fin\./ }).boundingBox())!;
-    expect(fin.height).toBeLessThan(40);
+    // The Rec. / Est. header and its info mark take at most two short lines, and each cell holds its figure and its estimate unclipped.
+    expect((await table.getByRole('columnheader', { name: /^Rec\. \/ Est\./ }).boundingBox())!.height).toBeLessThan(40);
+    const clipped = await table.locator('[data-recorded]').evaluateAll((nodes) => nodes.filter((node) => node.scrollWidth > node.clientWidth + 1).length);
+    expect(clipped, 'no Rec. / Est. cell is clipped').toBe(0);
     if (size.width >= 1440) expect(name.width, 'the names are not squeezed beside eight wide stage columns (XPR2-10)').toBeGreaterThanOrEqual(300);
   });
 }
