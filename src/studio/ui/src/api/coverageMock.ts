@@ -17,6 +17,7 @@ import type {
   CoverageStartOptions,
   CoverageStartResult,
   CoverageState,
+  CoverageWorkerPlan,
   Finding,
   JobEnded,
   ManuscriptChapter,
@@ -25,6 +26,40 @@ import { WIRE_CHAPTERS } from './mockFixtures';
 import { MOCK_ASSET_ROOT } from './mockHost/assets';
 
 type AssetRequired = Extract<CoverageStartResult, { status: 'asset_required' }>;
+
+/** The computer the mock plans for: eight processors with 12 GB free. */
+const MOCK_MACHINE = { cpus: 8, freeMemoryMB: 12_288 };
+/** One copy of each model, in MB: the host's estimates (src/studio/desktop/internal/coverage/workers.go). */
+const MOCK_MODEL_MB: Record<string, number> = { tiny: 300, base: 400, small: 700, medium: 1500, 'large-v3-turbo': 1500, 'large-v3': 2600 };
+
+/** The host's plan (coverage.PlanWorkers) on MOCK_MACHINE: Automatic is half the processors and what fits in three quarters of the
+ * free memory, less a copy for the short items; a named number is kept up to both. Chapters at once share the machine. */
+export function mockWorkerPlan(options: CoverageStartOptions | undefined, defaultModel: string, label: (id: string) => string): CoverageWorkerPlan {
+  const chapters = Math.max(1, options?.chapters ?? 1);
+  const cpus = Math.max(1, Math.floor(MOCK_MACHINE.cpus / chapters));
+  const freeMemoryMB = Math.floor(MOCK_MACHINE.freeMemoryMB / chapters);
+  const model = options?.model || defaultModel;
+  const modelMemoryMB = MOCK_MODEL_MB[model] ?? 2600;
+  const requested = Math.max(0, options?.workers ?? 0);
+  const byMemory = Math.max(1, Math.floor((freeMemoryMB * 0.75) / modelMemoryMB) - 1);
+  const byCpu = requested > 0 ? Math.min(requested, cpus) : Math.max(1, Math.floor(cpus / 2));
+  const cpuLimit = requested > 0 && requested <= cpus ? 'requested' : 'processors';
+  const workers = Math.min(byCpu, byMemory);
+  const limit = byMemory < byCpu ? 'memory' : cpuLimit;
+  return {
+    requested,
+    workers,
+    threadsEach: Math.max(1, Math.floor(cpus / workers)),
+    cpus,
+    computerCpus: MOCK_MACHINE.cpus,
+    freeMemoryMB,
+    model,
+    modelLabel: label(model),
+    modelMemoryMB,
+    limit,
+    chapters,
+  };
+}
 
 /** The model cascade's own re-check model (the cascade's default), for the
  * recheckAssetRequired seed's "Download model" prompt - its own identity, distinct from mockWhisperIdentity's small
@@ -493,6 +528,10 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       return unmeasured;
     },
     coverageEngines: async () => enginesFor(deps),
+    coverageWorkerPlan: async (options) => {
+      const engines = enginesFor(deps);
+      return mockWorkerPlan(options, engines.default, (id) => engines.engines.find((engine) => engine.id === id)?.label ?? id);
+    },
     coverageGapAccept: async (chapterId, gapId) => {
       const { gap, recordId } = reviewable(chapterId, gapId);
       const existing = gapReviews.get(gapKey(chapterId, gapId));

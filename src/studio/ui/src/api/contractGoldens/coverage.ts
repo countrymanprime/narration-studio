@@ -1,7 +1,14 @@
 // The golden payloads for recording coverage: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import { z } from 'zod';
 import { findingSchema } from '../schemas/findings';
-import { coverageEnginesSchema, coverageGapReviewsSchema, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from '../schemas/coverage';
+import {
+  coverageEnginesSchema,
+  coverageGapReviewsSchema,
+  coverageWorkerPlanSchema,
+  coverageResultSchema,
+  coverageStartResultSchema,
+  coverageStateSchema,
+} from '../schemas/coverage';
 
 export const coverageGoldens: Record<string, z.ZodType> = {
   'coverage-result-current.json': coverageResultSchema,
@@ -12,6 +19,7 @@ export const coverageGoldens: Record<string, z.ZodType> = {
   'coverage-result-cascade.json': coverageResultSchema,
   'coverage-result-repeat.json': coverageResultSchema,
   'coverage-engines.json': coverageEnginesSchema,
+  'coverage-worker-plan.json': coverageWorkerPlanSchema,
   // An accepted gap is an ordinary finding; the reviews map follows it.
   'coverage-gap-review-accepted.json': findingSchema,
   'coverage-gap-review-reviews.json': coverageGapReviewsSchema,

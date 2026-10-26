@@ -10,6 +10,7 @@ import { rowOf } from '../registry/rows';
 import { AssetNote } from './AssetNote';
 import { useSettingsNav } from './SettingsNav';
 import { ValueControl } from './ValueControl';
+import { WorkerPlanNote } from './WorkerPlanNote';
 
 const SCOPE_LABEL: Record<Scope, string> = { computer: 'This computer', project: 'This project', both: 'All projects', browser: 'This computer' };
 
@@ -195,6 +196,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
           <span className="text-[0.8125rem] text-[var(--text-muted)]">This setting is not offered by this version of the app.</span>
         )}
         {row.effect && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.effect}</span>}
+        {row.live === 'workerPlan' && global && <WorkerPlanNote value={own ?? comp} again={store.saved?.n} />}
         {heavy && (
           <span data-heavy={row.id} className="max-w-[52ch] text-[0.8125rem] text-[var(--warn-text)]">
             {heavy}

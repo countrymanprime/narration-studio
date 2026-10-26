@@ -91,7 +91,7 @@ export function runSummary(choices: RunChoices, engines: CoverageEngines): strin
   if (choices.chunkSeconds === 0) {
     how = `${first} over each recording whole, one process.`;
   } else {
-    const at = choices.workers === 0 ? 'as many at a time as the model allows' : choices.workers === 1 ? 'one at a time' : `${choices.workers} at a time`;
+    const at = choices.workers === 0 ? 'as many at a time as Automatic plans' : choices.workers === 1 ? 'one at a time' : `${choices.workers} at a time`;
     how = `${first} in ${chunkLabel(choices.chunkSeconds)} chunks that overlap by ${choices.overlapSeconds} s, ${at}.`;
   }
   const together = choices.chapters > 1 ? ` Up to ${choices.chapters} chapters at once.` : '';

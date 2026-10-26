@@ -81,6 +81,9 @@ export type SettingMeta = {
   needs?: 'reaper';
   /** A note beside the control on when it takes effect. */
   effect?: string;
+  /** A line under the control that the host works out for the value shown: `workerPlan` is how many transcriptions a recording check
+   * would run at once on this computer and why (CoverageWorkerPlan). */
+  live?: 'workerPlan';
   /** A warning for a value that costs this computer a lot (a large model, most of the processors), or `undefined`. Shown under the
    * control while that value is chosen; it does not stop the choice. */
   heavy?: (value: string) => string | undefined;

@@ -50,6 +50,19 @@ describe('the Sync activity row', () => {
   });
 });
 
+describe('the Transcriptions at once row (#2251)', () => {
+  const row = ROWS.find((candidate) => candidate.id === 'stt.workers')!;
+  it('says what Automatic does and shows the host’s plan live', () => {
+    expect(row.label).toBe('Transcriptions at once');
+    expect(row.live).toBe('workerPlan');
+    for (const words of ['copy of the speech model', 'half this computer’s processors', 'free memory', 'A number you choose is kept'])
+      expect(row.desc).toContain(words);
+  });
+  it('is still found by the name it had and the words a narrator uses', () => {
+    for (const query of ['parallel processes', 'workers', 'ram', 'automatic']) expect(search(query).some((hit) => hit.row?.id === 'stt.workers')).toBe(true);
+  });
+});
+
 describe('search', () => {
   it('finds a setting by a word that is not in its name', () => {
     expect(search('whisper').some((hit) => hit.row?.id === 'stt.model')).toBe(true);

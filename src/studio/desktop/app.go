@@ -1870,7 +1870,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"cascade_pipeline", "Run the larger model alongside the first pass", "bool", nil},
 		// How a long item is cut up and how many Whisper processes work on the pieces. They change how fast
 		// the same words are made, not which ones count, so changing one never makes a result stale.
-		{"parallel_workers", "Items checked at once (0 = chosen from the model and the processors)", "number", nil},
+		{"parallel_workers", "Transcriptions at once (0 = Automatic: from the processors, the free memory and the model)", "number", nil},
 		{"chunk_seconds", "Chunk length in seconds (0 = each item whole)", "choice", []string{"0", "60", "120", "300", "600", "900"}},
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
 		// Chapters a Check recordings run checks at once; they share the processors.

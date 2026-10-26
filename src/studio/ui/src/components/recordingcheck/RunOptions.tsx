@@ -3,6 +3,7 @@ import { Checkbox } from '../primitives/Checkbox';
 import { Select } from '../primitives/Select';
 import { Slider } from '../primitives/Slider';
 import { engineOptionLabel } from './checkSelection';
+import { useWorkerPlan, workerPlanSentences } from './workerPlan';
 import {
   CHAPTERS_AT_ONCE,
   CHUNK_SECONDS,
@@ -55,6 +56,23 @@ export function RunOptions({
   const whole = choices.chunkSeconds === 0;
   const automatic = choices.workers === 0;
   const cpus = typeof navigator === 'undefined' ? 4 : navigator.hardwareConcurrency || 4;
+  const { plan, error: planError } = useWorkerPlan({
+    model: choices.model,
+    recheck: choices.recheck,
+    recheckModel: choices.recheckModel,
+    workers: whole ? 1 : choices.workers,
+    chapters: choices.chapters,
+  });
+  const planned = plan && workerPlanSentences(plan);
+  const planLine = (
+    <p className="m-0 text-sm text-[var(--text-muted)]" data-live="workerPlan" aria-live="polite">
+      {planError
+        ? `Could not work out how many run at once: ${planError}`
+        : planned
+          ? `${planned.summary} ${planned.reason}`
+          : 'Working out how many run at once…'}
+    </p>
+  );
   const blocker = findProblem(choices, engines);
   const problem = blocker && (showInstallProblems || !blocker.needsInstall) ? blocker.message : undefined;
   return (
@@ -125,8 +143,8 @@ export function RunOptions({
           {/* Each hint sits under the controls it explains (alignment audit XPF-20). */}
           <p className="m-0 text-sm text-[var(--text-muted)]">Chunks overlap so a word on an edge is whole in one of them.</p>
           <Slider
-            label={<span className={LABEL}>Parallel workers</span>}
-            aria-label="Parallel workers"
+            label={<span className={LABEL}>Transcriptions at once</span>}
+            aria-label="Transcriptions at once"
             valueText={whole ? '1' : automatic ? 'Automatic' : String(choices.workers)}
             min={WORKER_RANGE.min}
             max={WORKER_RANGE.max}
@@ -136,9 +154,9 @@ export function RunOptions({
             onValueChange={(workers) => onChange({ workers })}
           />
           <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
-            Let the model choose the workers
+            Automatic: plan it from the processors, the free memory and the model
           </Checkbox>
-          <p className="m-0 text-sm text-[var(--text-muted)]">Each worker transcribes its own chunks.</p>
+          {planLine}
           <label className="flex flex-col gap-1">
             <span className={LABEL}>Chapters at once</span>
             <Select
@@ -149,7 +167,9 @@ export function RunOptions({
               options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
             />
           </label>
-          <p className="m-0 text-sm text-[var(--text-muted)]">Chapters share the processors, so more chapters at once means fewer workers for each.</p>
+          <p className="m-0 text-sm text-[var(--text-muted)]">
+            Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.
+          </p>
         </fieldset>
       ) : (
         <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--border)] p-0 pt-3 @sm:grid-cols-3">
@@ -165,9 +185,9 @@ export function RunOptions({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className={LABEL}>Parallel processes</span>
+            <span className={LABEL}>Transcriptions at once</span>
             <Select
-              label="Parallel processes"
+              label="Transcriptions at once"
               fullWidth
               disabled={whole}
               value={String(whole ? 1 : choices.workers)}
@@ -189,9 +209,8 @@ export function RunOptions({
               options={withChoice(OVERLAP_SECONDS, choices.overlapSeconds).map((seconds) => ({ value: String(seconds), label: `${seconds} s` }))}
             />
           </label>
-          <p className="m-0 text-[var(--text-muted)] @sm:col-span-3">
-            Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.
-          </p>
+          <p className="m-0 text-[var(--text-muted)] @sm:col-span-3">Chunks overlap by the crossover so a word on an edge is whole in one of them.</p>
+          <div className="@sm:col-span-3">{planLine}</div>
           <label className="flex flex-col gap-1">
             <span className={LABEL}>Chapters at once</span>
             <Select
@@ -202,7 +221,9 @@ export function RunOptions({
               options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
             />
           </label>
-          <p className="m-0 self-end text-[var(--text-muted)] @sm:col-span-2">Chapters share the processors, so more at once means fewer processes for each.</p>
+          <p className="m-0 self-end text-[var(--text-muted)] @sm:col-span-2">
+            Chapters share the processors and the memory, so more at once means fewer transcriptions for each.
+          </p>
         </fieldset>
       )}
       <p className="m-0">{runSummary(choices, engines)}</p>

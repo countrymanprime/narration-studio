@@ -266,7 +266,7 @@ describe('CheckRecordingsDialog', () => {
       expect((screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement).value).toBe('6');
       expect(screen.getByText('Automatic')).toBeTruthy();
       expect((screen.getByRole('checkbox', { name: /Look again with a larger model/ }) as HTMLInputElement).getAttribute('aria-checked')).toBe('false');
-      expect(screen.getByText('Whisper small in 5 min chunks that overlap by 6 s, as many at a time as the model allows.')).toBeTruthy();
+      expect(screen.getByText('Whisper small in 5 min chunks that overlap by 6 s, as many at a time as Automatic plans.')).toBeTruthy();
       expect(screen.queryByRole('combobox', { name: 'Larger model' })).toBeNull();
       expect(screen.queryByText(/Checking recordings runs speech recognition/)).toBeNull();
     });
@@ -278,15 +278,15 @@ describe('CheckRecordingsDialog', () => {
       expect([chunk.min, chunk.max, chunk.step]).toEqual(['10', '120', '5']);
       const overlap = screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement;
       expect([overlap.min, overlap.max, overlap.step]).toEqual(['0', '10', '1']);
-      const workers = screen.getByRole('slider', { name: 'Parallel workers' }) as HTMLInputElement;
+      const workers = screen.getByRole('slider', { name: 'Transcriptions at once' }) as HTMLInputElement;
       expect([workers.min, workers.max, workers.step]).toEqual(['1', '8', '1']);
     });
 
     it('sends every choice, so the host runs what the dialog showed', async () => {
       const { api, sent } = host();
       open(api, ['a']);
-      await userEvent.click(await screen.findByRole('checkbox', { name: /Let the model choose the workers/ }));
-      const workers = screen.getByRole('slider', { name: 'Parallel workers' });
+      await userEvent.click(await screen.findByRole('checkbox', { name: /Automatic: plan it from the processors/ }));
+      const workers = screen.getByRole('slider', { name: 'Transcriptions at once' });
       workers.focus();
       await userEvent.keyboard('{Home}{ArrowRight}{ArrowRight}');
       const chunk = screen.getByRole('slider', { name: 'Chunk length' });
@@ -329,7 +329,7 @@ describe('CheckRecordingsDialog', () => {
       const { api, sent } = host();
       open(api, ['a']);
       await userEvent.click(await screen.findByRole('checkbox', { name: /Transcribe each recording whole/ }));
-      expect((screen.getByRole('slider', { name: 'Parallel workers' }) as HTMLInputElement).disabled).toBe(true);
+      expect((screen.getByRole('slider', { name: 'Transcriptions at once' }) as HTMLInputElement).disabled).toBe(true);
       expect((screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement).disabled).toBe(true);
       expect((screen.getByRole('slider', { name: 'Chunk length' }) as HTMLInputElement).disabled).toBe(true);
       expect(screen.getByText('Whisper small over each recording whole, one process.')).toBeTruthy();
