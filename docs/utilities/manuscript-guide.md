@@ -46,6 +46,10 @@ The file may carry `types`, the narrator's ordered list of `{name, colour, speak
 - The file keeps an undo record for each of the last ten merges (`merge_undo`): both entries as they were, every other entry's relationships the merge changed, and the absorbed names it set. A rebuild writes a file without them.
 - **Unmerge** (`GuideUnmerge`, with that undo id) puts both entries, those relationships and those absorbed names back as they were. It refuses, writing nothing, when the target or one of those entries changed after the merge, when an entry has the source's id again, or when the file no longer holds the record. Two merges into one target are undone newest first. The host checks the id is 16 lowercase hexadecimal characters (`guide.Service.Unmerge`) and runs merge, unmerge and split itself (`src/studio/desktop/internal/guide/merge.go`). An undo record holds SHA-256 fingerprints of how the merge left each entry, taken over Python's `json.dumps(value, sort_keys=True, ensure_ascii=False)`; the host's encoder (`pythonjson.go`) writes the same bytes, so the host can undo a merge an older sidecar recorded.
 
+## Delete Story Bible data
+
+`GuideDeleteAll` (More actions on the Story Bible page) deletes the project's Story Bible data and nothing else: it counts the scan's suggestions, deletes the `ManuscriptGuide` folder with `suggestions.json` in it (`guide.Service.DeleteAll`, `src/studio/desktop/internal/guide/deleteall.go`) and the `story-bible` findings (`findings.Store.RemoveAnalyzer`), and answers `{entries, suggestions}`, the counts before the delete. It refuses unless confirmed and while a build or a scan runs. Voice samples and references stay: they name an entry by id, and an entry's id is a hash of its name (`entityID`), so an entry added again under the same name has them again. There is no undo.
+
 ## Pronunciation: generate and replace
 
 Alongside the automatic CMU-then-eSpeak fallback a build asks for (`pronunciation()`), a narrator can set a pronunciation

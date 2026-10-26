@@ -185,6 +185,7 @@ import {
 import { dawCatalogListSchema } from './schemas/dawCatalog';
 import {
   guideCreatedSchema,
+  guideDeletedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
   guideMergeResultSchema,
@@ -1006,6 +1007,26 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(guideCreatedSchema, { id: await api.guideCreate('New', 'Character', []) }, 'mock guide create');
     const entity = (await api.guideEntities())[0];
     expectMatches(guidePreviewSchema, await api.guidePreview(entity?.id ?? ''), 'mock preview');
+  });
+
+  it('Delete Story Bible data answers two counts, and the mock empties the Story Bible and the suggestions but no voice samples', async () => {
+    const golden = parseWire(guideDeletedSchema, readGolden('guide-delete-all.json'), ctx('guide delete all'));
+    expect(golden).toEqual({ entries: 1, suggestions: 0 });
+    expect(guideDeletedSchema.safeParse({ entries: -1, suggestions: 0 }).success).toBe(false);
+    expect(guideDeletedSchema.safeParse({ entries: 1 }).success).toBe(false);
+
+    const api = createMockApi();
+    const entries = (await api.guideEntities()).length;
+    const suggestions = (await api.extractionList()).length;
+    const samples = (await api.voiceSamplesList()).totals.count;
+    const deleted = await api.guideDeleteAll();
+    expectMatches(guideDeletedSchema, deleted, 'mock guide delete all');
+    expect(deleted).toEqual({ entries, suggestions });
+    expect(await api.guideEntities()).toEqual([]);
+    expect(await api.extractionList()).toEqual([]);
+    expect(await api.guideDialogueCues()).toEqual([]);
+    expect((await api.voiceSamplesList()).totals.count).toBe(samples);
+    expect(await api.guideDeleteAll()).toEqual({ entries: 0, suggestions: 0 });
   });
 
   it('the Story Bible merge answers its undo id, and the undo gives both entries back or refuses with the reason', async () => {
@@ -4356,6 +4377,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideEntities',
       'guideCreate',
       'guideMerge',
+      'guideDeleteAll',
       'guidePreview',
       'guideDialogueCues',
       'guideTypes',
