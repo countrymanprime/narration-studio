@@ -93,7 +93,14 @@ import { deliveryReportExportSchema, measureJobSchema, measurePickResultSchema }
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
 import { coverageStartOptions } from './coverageOptions';
-import { coverageEnginesSchema, coverageGapReviewsSchema, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from './schemas/coverage';
+import {
+  coverageEnginesSchema,
+  coverageGapReviewsSchema,
+  coverageResultSchema,
+  coverageStartResultSchema,
+  coverageStateSchema,
+  coverageWorkerPlanSchema,
+} from './schemas/coverage';
 import { editingCandidatesSchema, editingSourceChoiceSchema, editingStartResultSchema, editingStateSchema } from './schemas/editing';
 import {
   workspaceAlignmentResultSchema,
@@ -523,6 +530,7 @@ export const wailsClient: NarrationApi = {
   coverageGapIgnore: (chapterId, gapId) => decode(voidResult, 'CoverageGapIgnore', host.CoverageGapIgnore(chapterId, gapId)),
   coverageGapReviews: (chapterId) => decode(coverageGapReviewsSchema, 'CoverageGapReviews', host.CoverageGapReviews(chapterId)),
   coverageEngines: () => decode(coverageEnginesSchema, 'CoverageEngines', host.CoverageEngines()),
+  coverageWorkerPlan: (options) => decode(coverageWorkerPlanSchema, 'CoverageWorkerPlan', host.CoverageWorkerPlan(coverageStartOptions(options))),
   coverageState: () => decode(coverageStateSchema, 'CoverageState', host.CoverageState()),
   coverageCancel: () => decode(voidResult, 'CoverageCancel', host.CoverageCancel()),
   coverageResult: (chapterId) => decode(coverageResultSchema, 'CoverageResult', host.CoverageResult(chapterId)),
@@ -851,7 +859,7 @@ export const wailsClient: NarrationApi = {
   readAloudRecordStart: (chapterId) => decode(readAloudRecordingSchema, 'ReadAloudRecordStart', host.ReadAloudRecordStart(chapterId)),
   readAloudRecordStartAt: (chapterId, at) => decode(readAloudRecordingSchema, 'ReadAloudRecordStartAt', host.ReadAloudRecordStartAt(chapterId, at)),
   readAloudRecordStop: () => decode(readAloudRecordingSchema, 'ReadAloudRecordStop', host.ReadAloudRecordStop()),
-  teleprompterReaperInput: () => decode(teleprompterReaperInputSchema, 'TeleprompterReaperInput', host.TeleprompterReaperInput()),
+  teleprompterReaperInput: (chapterId) => decode(teleprompterReaperInputSchema, 'TeleprompterReaperInput', host.TeleprompterReaperInput(chapterId)),
   teleprompterLocate: (chapterId, options) =>
     decode(teleprompterLocateResultSchema, 'TeleprompterLocate', host.TeleprompterLocate(chapterId, options?.trackGuid ?? '', options?.model ?? '')),
   subscribeTeleprompterEvent: subscribeTeleprompterEvents,

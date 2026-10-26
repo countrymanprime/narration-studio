@@ -24,7 +24,8 @@ function workJob(install: AssetInstall): WorkJob {
     message: cancelFailure ? `The download could not be stopped: ${cancelFailure}` : job.message,
     detail: bytesProgress(job),
     percent: job.percent,
-    logs: log,
+    // A failure after the download names its step, file and cause; the activity log is where the dialog keeps what its sentence does not say.
+    logs: job.phase === 'error' && job.errorDetail ? [...log, job.errorDetail] : log,
     elapsed: seconds,
     error: job.phase === 'error' ? job.error || job.message : undefined,
   };

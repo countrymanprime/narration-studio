@@ -14,3 +14,13 @@ func TestCoverageEnginesContract(t *testing.T) {
 	answer := decodeAnswer(t)(host.CoverageEngines())
 	contractfile.Check(t, "coverage-engines", answer)
 }
+
+// TestCoverageWorkerPlanContract pins CoverageWorkerPlan's answer for tests/fixtures/contracts/coverage-worker-plan.json
+// (UPDATE_CONTRACTS=1 rewrites it): Automatic, the small model on 8 processors with 6000 MB free.
+func TestCoverageWorkerPlanContract(t *testing.T) {
+	onMachine(t, 8, 6000)
+	models := whisperCatalog(t, map[string]bool{"small": true})
+	host := coverageHostWithModels(t, coverageProject(t), models, fakeCoverageSidecar(10))
+	answer := decodeAnswer(t)(host.CoverageWorkerPlan(map[string]string{"model": "small"}))
+	contractfile.Check(t, "coverage-worker-plan", answer)
+}

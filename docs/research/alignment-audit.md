@@ -50,6 +50,7 @@ A rule is checkable from the DOM, with a tolerance of 1 px unless stated. A fail
 | A5 | Like rows have like heights unless content differs | 5,072 | 110 |
 | A6 | Controls on one row have one height | 466 | 26 |
 | A7 | Controls on one row share a centre line | 21 | 1 |
+| A8 | A margin label (a paragraph's time) is centred on the first line of the text beside it; added after the audit, from the owner's report on the Editing page's times | n/a | n/a |
 | A9 | No small controls stacked in a column beside their row | 1,234 | 19 |
 | W1 | Buttons, badges, chips and tabs do not wrap their label | 5,368 | 193 |
 | W2 | No truncation while free space exists beside the element | 0 | 0 |

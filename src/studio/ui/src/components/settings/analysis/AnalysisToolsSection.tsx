@@ -69,6 +69,7 @@ export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
               {(tools.tools ?? []).map((tool) => {
                 const status = tools.statusFor(tool);
                 const failure = tools.failureFor(tool.id) || removeFailures[tool.id] || (tools.jobFor(tool.id) ? tools.cancelFailure : '');
+                const failureDetail = tools.failureFor(tool.id) ? tools.failureDetailFor(tool.id) : '';
                 return (
                   <ToolRow
                     key={tool.id}
@@ -76,6 +77,7 @@ export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
                     status={status}
                     job={tools.jobFor(tool.id)}
                     failure={failure}
+                    failureDetail={failureDetail}
                     download={() => openConsent([tool.id])}
                     cancel={() => tools.cancel(tool.id)}
                     retry={() => tools.install([tool.id])}

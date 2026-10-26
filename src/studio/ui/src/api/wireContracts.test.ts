@@ -118,6 +118,7 @@ import {
   COVERAGE_REFUSAL_REASONS,
   coverageEnginesSchema,
   coverageGapReviewsSchema,
+  coverageWorkerPlanSchema,
   coverageResultSchema,
   coverageStartResultSchema,
   coverageStateSchema,
@@ -283,6 +284,21 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const declared = z.object({ refusal: z.array(z.string()), evaluator: z.array(z.string()) }).parse(readGolden('coverage-reasons.json'));
     expect([...COVERAGE_REFUSAL_REASONS]).toEqual(declared.refusal);
     expect([...COVERAGE_EVALUATOR_REASONS]).toEqual(declared.evaluator);
+  });
+
+  it('the recording check worker plan: the golden parses, and the mock plans like the host', async () => {
+    const parsed = parseWire(coverageWorkerPlanSchema, readGolden('coverage-worker-plan.json'), ctx('coverage worker plan'));
+    expect(parsed.workers).toBeGreaterThanOrEqual(1);
+    expect(() => parseWire(coverageWorkerPlanSchema, { ...parsed, extra: 1 }, ctx('coverage worker plan'))).toThrow();
+    expect(() => parseWire(coverageWorkerPlanSchema, { ...parsed, limit: 'luck' }, ctx('coverage worker plan'))).toThrow();
+
+    const api = createMockApi();
+    const automatic = await api.coverageWorkerPlan({ model: 'small' });
+    expectMatches(coverageWorkerPlanSchema, automatic, 'mock coverage worker plan');
+    // The host's golden: small on 8 processors with 6000 MB free plans 4; the mock's 8 processors and 12 GB plan the same.
+    expect([automatic.workers, automatic.threadsEach, automatic.limit]).toEqual([parsed.workers, parsed.threadsEach, parsed.limit]);
+    expect((await api.coverageWorkerPlan({ model: 'large-v3' })).workers).toBe(2);
+    expect((await api.coverageWorkerPlan({ model: 'small', workers: 3 })).workers).toBe(3);
   });
 
   it('the recording check engines: the golden parses, the mock answers the same engines and refuses the same unknown model', async () => {
@@ -531,7 +547,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), teleprompterReaperInputSchema).parse(readGolden('teleprompter-reaper-inputs.json'));
     for (const seed of MOCK_REAPER_INPUT_SEEDS) {
       const api = createMockApi({}, { reaperInput: seed });
-      const input = await api.teleprompterReaperInput();
+      const input = await api.teleprompterReaperInput('');
       expectMatches(teleprompterReaperInputSchema, input, `mock reaper input ${seed}`);
       expect([input.status, input.reason]).toEqual([golden[seed].status, golden[seed].reason]);
       const listed = (await api.teleprompterDevices()).devices.map((device) => device.name);
@@ -4263,6 +4279,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawChoose',
       'dawLinkFound',
       'coverageEngines',
+      'coverageWorkerPlan',
       'coverageGapAccept',
       'coverageGapIgnore',
       'coverageGapReviews',

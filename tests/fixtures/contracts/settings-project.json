@@ -679,7 +679,7 @@
       "isSet": false,
       "key": "parallel_workers",
       "kind": "number",
-      "label": "Items checked at once (0 = chosen from the model and the processors)",
+      "label": "Transcriptions at once (0 = Automatic: from the processors, the free memory and the model)",
       "number": {
         "max": 32,
         "min": 0,
@@ -1029,6 +1029,19 @@
       "key": "input_device",
       "kind": "text",
       "label": "Microphone",
+      "value": ""
+    },
+    {
+      "choices": [
+        "daw",
+        "chosen"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "daw",
+      "isSet": false,
+      "key": "input_source",
+      "kind": "choice",
+      "label": "Microphone source",
       "value": ""
     },
     {

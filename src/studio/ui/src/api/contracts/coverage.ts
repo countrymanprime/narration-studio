@@ -105,7 +105,8 @@ export type CoverageStartOptions = {
   recheckModel?: string;
   /** Also re-check passages whose words Whisper scored under this share (0 to 1), not only what is missing. */
   recheckBelow?: number;
-  /** Whisper processes working on a long item's chunks; 0 lets the host choose from the model. */
+  /** Transcriptions at once: items side by side, or a long item's chunks, each a copy of the model. 0 is Automatic: the host plans it
+   * from the processors, the free memory and the model (coverageWorkerPlan says the number). */
   workers?: number;
   /** Each chunk's length in seconds; 0 transcribes an item whole. */
   chunkSeconds?: number;
@@ -247,6 +248,32 @@ export type CoverageJudgement = {
   thresholds: { minParagraphPresent: number; maxMissingRun: number };
 };
 
+/** What set a worker plan's count: half the processors (Automatic) or all of them (a named number), the free memory, the number
+ * named, or the model's fixed cap when the free memory cannot be read. */
+export type CoverageWorkerLimit = 'processors' | 'memory' | 'requested' | 'model';
+
+/** How many transcriptions each chapter of a recording check runs at once on this computer, and why: the count a start sends. */
+export type CoverageWorkerPlan = {
+  /** The number asked for; 0 is Automatic. */
+  requested: number;
+  /** Transcriptions at once, at least 1. */
+  workers: number;
+  /** Processors each one decodes with. */
+  threadsEach: number;
+  /** Processors one chapter's check may use, and the whole computer's. */
+  cpus: number;
+  computerCpus: number;
+  /** Free memory one chapter's check plans with, in MB; 0 when it cannot be read. */
+  freeMemoryMB: number;
+  model: string;
+  modelLabel: string;
+  /** About how much one copy of the model takes, in MB (an estimate). */
+  modelMemoryMB: number;
+  limit: CoverageWorkerLimit;
+  /** Chapters checked at once, which share the computer. */
+  chapters: number;
+};
+
 /** The narrator's call on one gap of a current check: accepted became a note, ignored is remembered. */
 export type CoverageGapReview = 'accepted' | 'ignored';
 
@@ -259,6 +286,8 @@ export interface CoverageApi {
   coverageStart(chapterId: string, options?: CoverageStartOptions): Promise<CoverageStartResult>;
   /** The engines a recording check can run and the one a start naming none would use; needs no project. */
   coverageEngines(): Promise<CoverageEngines>;
+  /** How many transcriptions a start with these options would run at once on this computer, and why; needs no project. */
+  coverageWorkerPlan(options?: CoverageStartOptions): Promise<CoverageWorkerPlan>;
   coverageState(): Promise<CoverageState>;
   /** Asks a running check to stop; the items it finished stay cached. */
   coverageCancel(): Promise<void>;

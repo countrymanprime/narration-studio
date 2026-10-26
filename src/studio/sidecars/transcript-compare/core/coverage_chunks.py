@@ -144,6 +144,9 @@ class ChunkJob:
     cpu_threads: int
     cancel_path: str | None = None
     """The run's cancel file: a worker stops between segments when it exists, so a cancel does not wait for a whole chunk."""
+    sharers: int = 1
+    """The item workers that may call this process's model at once: a chunk run in this process shares one model between
+    them (faster-whisper's `num_workers`), so items side by side are not queued behind one another."""
 
 
 _MODELS: dict[tuple, object] = {}
@@ -157,10 +160,10 @@ def whisper_chunk(job: ChunkJob) -> ChunkWords:
     """Transcribe one chunk with faster-whisper. Runs in a worker process (or here, for one worker)."""
     import coverage_mode  # a sibling module; imported late because it imports this one
 
-    key = (job.model_size, job.model_dir, job.device, job.cpu_threads)
+    key = (job.model_size, job.model_dir, job.device, job.cpu_threads, job.sharers)
     with _MODELS_LOCK:
         if key not in _MODELS:  # pragma: no cover - needs a Whisper model
-            _MODELS[key] = coverage_mode.load_whisper_model(job.model_size, job.model_dir, job.device, job.cpu_threads)
+            _MODELS[key] = coverage_mode.load_whisper_model(job.model_size, job.model_dir, job.device, job.cpu_threads, job.sharers)
         model = _MODELS[key]
     segments, info = model.transcribe(job.audio, language=job.language, word_timestamps=True, vad_filter=True, hotwords=job.hotwords or None)
     words: list[Word] = []
@@ -200,10 +203,11 @@ class ChunkedTranscriber:
         workers: int,
         progress_path: str | None,
         decode: Callable[[ManifestItem], np.ndarray] | None = None,
-        chunk_fn: Callable[[ChunkJob], ChunkWords] = whisper_chunk,
-        pool_factory: Callable[[int], object] = spawn_pool,
+        chunk_fn: Callable[[ChunkJob], ChunkWords] | None = None,
+        pool_factory: Callable[[int], object] | None = None,
         plain: Callable[[ManifestItem, Callable[[float], None]], ItemWords] | None = None,
         cpus: int | None = None,
+        sharers: int = 1,
     ):
         self._engine = engine
         self._model_size = model_size
@@ -216,10 +220,11 @@ class ChunkedTranscriber:
         self._workers = workers
         self._progress_path = progress_path
         self._decode = decode or (lambda item: engine.decode_segment(item.source_file, item.start_offset, item.length))
-        self._chunk_fn = chunk_fn
-        self._pool_factory = pool_factory
+        self._chunk_fn = chunk_fn or whisper_chunk
+        self._pool_factory = pool_factory or (lambda processes: spawn_pool(processes))
         self._plain = plain
         self._cpus = cpus
+        self._sharers = max(1, sharers)
 
     def __call__(self, item: ManifestItem, on_seconds: Callable[[float], None]) -> ItemWords:
         """Transcribe the item's played range. `on_seconds` is told how much of it is done as chunks finish. An item that is one
@@ -251,16 +256,18 @@ class ChunkedTranscriber:
             """The seconds of the item a finished chunk accounts for; the overlap is not counted twice."""
             return chunk.length / total * item.length
 
-        def job(chunk: Chunk, language: str | None) -> ChunkJob:
+        def job(chunk: Chunk, language: str | None, here: bool) -> ChunkJob:
+            """`here`: the chunk runs in this process, whose model the other item workers share; a spawned process has its own."""
             piece = audio[int(chunk.start * SAMPLE_RATE) : int(chunk.end * SAMPLE_RATE)]
-            return ChunkJob(chunk, piece, self._model_size, self._model_dir, self._device, language, self._hotwords, threads, cancel_path)
+            sharers = self._sharers if here else 1
+            return ChunkJob(chunk, piece, self._model_size, self._model_dir, self._device, language, self._hotwords, threads, cancel_path, sharers)
 
-        first = self._chunk_fn(job(planned[0], self._language))
+        first = self._chunk_fn(job(planned[0], self._language, True))
         results = [first]
         done = credit(planned[0])
         on_seconds(done)
         language = self._language or first.language
-        rest = [job(chunk, language) for chunk in planned[1:]]
+        rest = [job(chunk, language, workers == 1) for chunk in planned[1:]]
         if workers == 1 or not rest:
             for pending in rest:
                 self._engine.check_cancelled(self._progress_path)

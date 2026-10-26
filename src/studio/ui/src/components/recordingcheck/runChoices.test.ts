@@ -92,7 +92,7 @@ describe('runSummary', () => {
   });
 
   it('says automatic and whole', () => {
-    expect(runSummary(base, engines)).toBe('Small in 5 min chunks that overlap by 6 s, as many at a time as the model allows.');
+    expect(runSummary(base, engines)).toBe('Small in 5 min chunks that overlap by 6 s, as many at a time as Automatic plans.');
     expect(runSummary({ ...base, chunkSeconds: 0 }, engines)).toBe('Small over each recording whole, one process.');
     expect(runSummary({ ...base, workers: 1 }, engines)).toBe('Small in 5 min chunks that overlap by 6 s, one at a time.');
   });

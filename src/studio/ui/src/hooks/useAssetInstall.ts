@@ -13,7 +13,8 @@ type Options<J extends AssetInstallJob> = {
   /** Called once when the install succeeded, and never after the page that started it has gone. */
   onSuccess?: (job: J) => void | Promise<void>;
   /** Called once with the sentence the narrator reads when the install failed, or a call to the host did. */
-  onFailure?: (message: string) => void;
+  /** `detail` is the host's step, file and cause of a failure after the download (`errorDetail`), empty when it has none. */
+  onFailure?: (message: string, detail: string) => void;
 };
 
 /**
@@ -91,13 +92,13 @@ export function useAssetInstall<J extends AssetInstallJob>(options: Options<J>) 
         current = currentJob.current ?? answer;
       }
       if (current.phase === 'success') await latest.current.onSuccess?.(current);
-      else if (current.phase === 'error') latest.current.onFailure?.(current.error || current.message);
+      else if (current.phase === 'error') latest.current.onFailure?.(current.error || current.message, current.errorDetail);
     } catch (error) {
       if (stale()) return;
       const text = apiErrorMessage(error);
       setStarting(false);
       setFailure(text);
-      latest.current.onFailure?.(text);
+      latest.current.onFailure?.(text, '');
     } finally {
       if (!stale()) active.current = false;
     }

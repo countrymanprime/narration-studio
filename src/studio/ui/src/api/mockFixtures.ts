@@ -791,6 +791,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   // model choice is tiny and small for either engine (only those have measured live-lag data).
   Teleprompter: [
     { key: 'input_device', label: 'Microphone', kind: 'text', choices: [], value: '', isSet: false, effectiveValue: '', effectiveSource: 'hardcoded' },
+    choice('input_source', 'Microphone source', ['daw', 'chosen'], 'daw'),
     {
       key: 'engine',
       label: 'Live engine',
@@ -896,7 +897,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       unit: '',
     }),
     bool('cascade_pipeline', 'Run the larger model alongside the first pass', 'true'),
-    recordingCheck('parallel_workers', 'Items checked at once (0 = chosen from the model and the processors)', '0', {
+    recordingCheck('parallel_workers', 'Transcriptions at once (0 = Automatic: from the processors, the free memory and the model)', '0', {
       min: 0,
       max: 32,
       step: 1,

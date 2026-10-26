@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 import { ANALYSIS_TOOLS } from './fixtures';
 import { ToolRow, type ToolRowProps } from './ToolRow';
 
@@ -63,5 +63,26 @@ export const EveryStatus: Story = {
       { tool: small, status: 'not-installed', ...actions },
       { tool: pending, status: 'unavailable', ...actions },
     ],
+  },
+};
+
+// A failure after the download (#2251): the host's sentence, and its step, file and cause behind Details, closed until asked for and
+// opened here so the atlas measures the text.
+export const FailedWithDetails: Story = {
+  args: {
+    rows: [
+      {
+        tool: small,
+        status: 'failed',
+        failure: 'The downloaded analysis tool matched the approved file but could not be saved on this computer, so it was not installed.',
+        failureDetail: 'Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: open: Access is denied.',
+        ...actions,
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText('Details'));
+    await expect(canvas.getByText('Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: open: Access is denied.')).toBeVisible();
   },
 };

@@ -21,6 +21,7 @@ const job = (patch: Partial<AssetInstallJob> = {}): AssetInstallJob => ({
   bytesDone: 0,
   bytesTotal: 1000,
   error: '',
+  errorDetail: '',
   ...patch,
 });
 
@@ -90,9 +91,22 @@ describe('useAssetInstall', () => {
     });
     await settle();
     expect(result.current.job?.error).toBe(sentence);
-    expect(onFailure).toHaveBeenCalledExactlyOnceWith(sentence);
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith(sentence, '');
     expect(onSuccess).not.toHaveBeenCalled();
     expect(result.current.running).toBe(false);
+  });
+
+  it('hands a failure after the download its step and file with the sentence', async () => {
+    const sentence = 'The downloaded analysis tool matched the approved file but could not be unpacked or prepared, so it was not installed.';
+    const detail = 'Unpacking torch.whl: it holds 12990 entries';
+    const host = scripted([job(), job({ phase: 'error', message: sentence, error: sentence, errorDetail: detail })]);
+    const onFailure = vi.fn();
+    const { result } = renderHook(() => useAssetInstall({ ...host, onFailure }));
+    await act(async () => {
+      void result.current.begin();
+    });
+    await settle();
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith(sentence, detail);
   });
 
   it('turns a failed call into a failure sentence and lets the narrator try again', async () => {

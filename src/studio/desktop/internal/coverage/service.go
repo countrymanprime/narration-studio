@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -50,6 +51,9 @@ type Config struct {
 	// Align aligns the chapter to a run's words and writes its results file; nil is
 	// recordingcoverage.Run. The sidecar only transcribes (docs/utilities/recording-coverage.md).
 	Align func(recordingcoverage.Request) error
+	// Machine reads this computer's processors and free memory each time a stage starts, for the plan of how many
+	// transcriptions it runs at once (PlanWorkers); nil reads the processors and leaves the memory unknown.
+	Machine func() Machine
 }
 
 // Child is a started sidecar: *process.Child satisfies it.
@@ -125,8 +129,8 @@ type Request struct {
 	// whole-chapter pass with Recheck's model in its place. The zero value keeps today's
 	// single-pass behaviour; the host resolves it from settings (MC1, MC2, off by default).
 	Recheck Transcription
-	// Parallel is how the first pass (and a whole-chapter re-check) cuts an item up and how many processes
-	// transcribe the pieces. The zero value sends nothing: the sidecar transcribes each item whole, in one process.
+	// Parallel is how the first pass (and a whole-chapter re-check) cuts an item up and how many transcriptions run at
+	// once (0: Automatic, planned for each stage's model by PlanWorkers). The zero value transcribes each item whole.
 	Parallel Parallel
 	// UnsureBelow, above 0, has the first pass report the passages whose words Whisper scored under it, so the
 	// re-check can take them as well as what is missing. 0 reports none.
@@ -141,6 +145,43 @@ type Request struct {
 	// CPUs, above 0, is the most processors the sidecar plans its workers for (--cpus): a background check leaves the
 	// rest to the Booth's live tracking. 0 plans for every processor.
 	CPUs int
+}
+
+// WorkerPlan is how many transcriptions a check of request runs at once with its first-pass model now: what a start
+// sends the sidecar.
+func (s *Service) WorkerPlan(request Request) WorkerPlan {
+	return PlanRequest(s.machine(), request)
+}
+
+func (s *Service) machine() Machine {
+	if s.config.Machine != nil {
+		return s.config.Machine()
+	}
+	return Machine{CPUs: runtime.NumCPU()}
+}
+
+// workerPlan plans one stage of request under model.
+func (s *Service) workerPlan(request Request, model string, firstPass bool) WorkerPlan {
+	return planStage(s.machine(), request, model, firstPass)
+}
+
+// PlanRequest is how many transcriptions the first pass of request runs at once on machine: the plan the Settings page
+// and the Check recordings dialog show, and the one a start sends.
+func PlanRequest(machine Machine, request Request) WorkerPlan {
+	return planStage(machine, request, request.Transcription.Model, true)
+}
+
+// planStage plans one stage under model on machine, or on the background check's share of it (request.CPUs), shared
+// with the other chapters checked at once. A pipelined first pass keeps room for the larger model working beside it.
+func planStage(machine Machine, request Request, model string, firstPass bool) WorkerPlan {
+	if request.CPUs > 0 {
+		machine.CPUs = min(request.CPUs, max(1, machine.CPUs))
+	}
+	recheck := ""
+	if firstPass && request.pipelined() {
+		recheck = request.Recheck.Model
+	}
+	return PlanWorkers(SharePlan(machine, request.Concurrent), model, recheck, request.Parallel.Workers)
 }
 
 // launchContext is the context every stage of the run starts its sidecar with: a background run's sidecar runs below
@@ -501,7 +542,8 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 	if transcription.Language != "" {
 		args = append(args, "--language", transcription.Language)
 	}
-	args = append(args, running.request.Parallel.args()...)
+	plan := s.workerPlan(running.request, transcription.Model, running.stage == stageFirstPass)
+	args = append(args, running.request.Parallel.args(plan.Workers)...)
 	if running.request.CPUs > 0 {
 		args = append(args, "--cpus", strconv.Itoa(running.request.CPUs))
 	}

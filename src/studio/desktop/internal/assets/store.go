@@ -217,11 +217,11 @@ func InstallWith(ctx context.Context, root, provider, id, version string, files 
 		}
 		entries, err := extractArchive(staging, file)
 		if err != nil {
-			return fail(err)
+			return fail(&StepError{Step: StepUnpack, File: file.Name, Err: err, staging: staging})
 		}
 		if options.Derive != nil {
 			if entries, err = derive(staging, file, entries, options.Derive); err != nil {
-				return fail(err)
+				return fail(&StepError{Step: StepPrepare, File: file.Name, Err: err, staging: staging})
 			}
 		}
 		extracted[file.Name] = entries

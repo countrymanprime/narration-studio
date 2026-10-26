@@ -359,13 +359,16 @@ export const readAloudRecordingSchema = z.object({
   undoPoints: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<ReadAloudRecording>;
 
-/** `TeleprompterReaperInput` (`src/studio/desktop/teleprompterinput.go`): a device to preselect only when `matched`. */
+/** `TeleprompterReaperInput` (`src/studio/desktop/teleprompterinput.go`): a device to listen on only when `matched`. */
 export const teleprompterReaperInputSchema = z
   .object({
     status: z.enum(['matched', 'uncertain', 'no_match', 'unavailable']),
-    reason: z.enum(['standalone', 'not_running', 'failed', 'reaper_no_device', 'devices_failed']).optional(),
+    reason: z.enum(['standalone', 'not_running', 'failed', 'reaper_no_device', 'devices_failed', 'daw_cannot_report']).optional(),
     message: z.string(),
-    reaperDevice: z.string().optional(),
+    // Names REAPER passed on from an audio driver: bounded by the host (bridge.DeviceName), bounded again here.
+    reaperDevice: z.string().max(200).optional(),
+    inputChannel: z.string().max(200).optional(),
+    outputDevice: z.string().max(200).optional(),
     device: z.string().optional(),
     candidates: z.array(z.string()),
   })

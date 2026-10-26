@@ -13,6 +13,8 @@ import type {
   CoverageResult,
   CoverageStartResult,
   CoverageState,
+  CoverageWorkerLimit,
+  CoverageWorkerPlan,
 } from '../contracts/coverage';
 import { listFromNull, optionalFromNull } from './base';
 import { modelAssetRequiredSchema, whisperInstallStateSchema } from './whisper';
@@ -101,6 +103,21 @@ export const coverageEnginesSchema = z.strictObject({
     chapters: z.number(),
   }),
 }) satisfies z.ZodType<CoverageEngines>;
+
+/** How many transcriptions a check would run at once; the golden is tests/fixtures/contracts/coverage-worker-plan.json. */
+export const coverageWorkerPlanSchema = z.strictObject({
+  requested: z.number(),
+  workers: z.number(),
+  threadsEach: z.number(),
+  cpus: z.number(),
+  computerCpus: z.number(),
+  freeMemoryMB: z.number(),
+  model: z.string(),
+  modelLabel: z.string(),
+  modelMemoryMB: z.number(),
+  limit: z.enum(['processors', 'memory', 'requested', 'model']) satisfies z.ZodType<CoverageWorkerLimit>,
+  chapters: z.number(),
+}) satisfies z.ZodType<CoverageWorkerPlan>;
 
 /** The reviews of a chapter's current check by gap id; the golden is tests/fixtures/contracts/coverage-gap-review-reviews.json.
  * The answer of an accept is a Finding (findingSchema; its golden is coverage-gap-review-accepted.json). */

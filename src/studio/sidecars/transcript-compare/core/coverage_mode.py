@@ -635,7 +635,12 @@ def _default_transcriber(engine: ModuleType, args, budget: coverage_pipeline.Mod
     plain = shared_transcriber(engine, args, args.model, budget, shared_instance=shared_instance)
     chunk_seconds = getattr(args, "chunk_seconds", 0) or 0
     workers = getattr(args, "parallel_workers", 0) or 0
-    if chunk_seconds > 0 or workers > 1:
+    if chunk_seconds > 0:
+        # `--parallel-workers` is every transcription at once: the item pool's workers share it, so a long item cut into
+        # chunks starts its share of the processes and the run never holds more copies of the model than the host planned.
+        sharers = 1 if budget is None else budget.workers
+        if workers > 0 and budget is not None:
+            workers = max(1, workers // budget.workers)
         return coverage_chunks.ChunkedTranscriber(
             engine,
             model_size=args.model,
@@ -643,12 +648,13 @@ def _default_transcriber(engine: ModuleType, args, budget: coverage_pipeline.Mod
             device=args.device,
             language=args.language,
             hotwords=plain._hotwords,
-            chunk_seconds=chunk_seconds or coverage_chunks.DEFAULT_CHUNK_SECONDS,
+            chunk_seconds=chunk_seconds,
             overlap_seconds=getattr(args, "chunk_overlap_seconds", None) or coverage_chunks.DEFAULT_OVERLAP_SECONDS,
             workers=workers,
             progress_path=args.progress,
             plain=plain,
             cpus=None if budget is None else budget.threads,
+            sharers=sharers,
         )
     return plain
 

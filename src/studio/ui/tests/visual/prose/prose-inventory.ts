@@ -451,9 +451,10 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Chapters share the processors, so more chapters at once means fewer workers for each.',
+    text: 'Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.',
     class: 'explanation',
   },
+  { file: 'components/recordingcheck/RunOptions.tsx', text: 'Automatic: plan it from the processors, the free memory and the model', class: 'overlay' },
   { file: 'components/schedule/MilestoneTable.tsx', text: 'No other milestones yet. Add one with +.', class: 'empty' },
   { file: 'components/schedule/SchedulePage.tsx', text: "Couldn't read the schedule again: …. This is what was read ….", class: 'error' },
   {
@@ -545,7 +546,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/settings/controls/MicBody.tsx',
-    text: 'Type the device name the Booth should use, or leave it empty for the system input.',
+    text: 'Type the device name the Booth should use, or leave it empty to listen automatically.',
     class: 'error',
   },
   {
