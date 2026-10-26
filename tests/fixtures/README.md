@@ -231,6 +231,14 @@ and `script` event), the `ChapterError` (message and candidates) or the name of 
 same test; `scripttrack`'s `chapter_parity_test.go` must agree with it, and answers an input Python raised on with a
 `ChapterError` of its own.
 
+`live-sessions.golden.jsonl`: 40 seeded live sessions (coverage-manuscript chapters and credits text, with misreads,
+added words, skips, restarts, silences long enough to be "waiting", seeks, pauses and start words), each run through the
+teleprompter sidecar's real `_run` twice over the same audio clock and engine events: tracking in the sidecar, and with
+`--clock`. It holds both outputs line for line, and each seek with the clock line it comes before, written by
+`src/studio/sidecars/manuscript-teleprompter/tests/test_clock_parity.py` (`UPDATE_CONTRACTS=1`).
+`internal/teleprompter`'s `follow_test.go` relays the first and follows the second, and the events and state sent to the
+UI must be the same.
+
 `placement-cases.jsonl`: the `locate.locate_event` and `align_word.word_time_event` calls the teleprompter suite made
 when they were recorded (2026-10-25), and seeded tails cut from `teleprompter-locate/`'s chapters and the coverage
 manuscript's: words dropped, misread, near-missed, added or re-read, another chapter's words, silence, timed words with
