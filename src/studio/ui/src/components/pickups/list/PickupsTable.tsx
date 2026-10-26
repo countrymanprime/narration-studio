@@ -432,7 +432,7 @@ export function PickupsTable({
                           <PickupSource pickup={pickup} />
                         </TableCell>
                         <TableCell valign="top" className={CELL_TOP}>
-                          <span className={`${LINE_BOX} flex-col items-stretch! justify-center`} title={pickup.done && pickup.waiting ? WAITING : undefined}>
+                          <span className={`${LINE_BOX} flex-col items-start! justify-center`} title={pickup.done && pickup.waiting ? WAITING : undefined}>
                             <StatusBadge
                               tone={statusTone(pickup.done ? 'recorded' : 'open_pickup')}
                               label={statusLabel(pickup.done ? 'recorded' : 'open_pickup')}
