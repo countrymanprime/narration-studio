@@ -91,6 +91,21 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },
   setup: (page) => readyToRecord(page),
+  // The mock manuscript's second chapter has a title and no subtitle, its third a subtitle long enough to wrap (api/mockHost/manuscript.ts).
+  'heading-title-only': async (page) => {
+    await readyToRecord(page);
+    await page.getByRole('button', { name: 'Next chapter' }).click();
+    await page.locator('[data-heading="title"]', { hasText: 'A Message from the Author' }).waitFor();
+    await page.locator('[data-heading="title"] [data-current]').waitFor();
+  },
+  'heading-long-subtitle': async (page) => {
+    await readyToRecord(page);
+    await page.getByRole('button', { name: 'Next chapter' }).click();
+    await page.locator('[data-heading="title"]', { hasText: 'A Message from the Author' }).waitFor();
+    await page.getByRole('button', { name: 'Next chapter' }).click();
+    await page.locator('[data-heading="subtitle"]', { hasText: 'Or, How the Understudy' }).waitFor();
+    await page.locator('[data-heading="title"] [data-current]').waitFor();
+  },
   'daw-not-linked': async (page) => {
     await openBooth(page, '?mockDawChoice=found');
     const chip = page.getByRole('button', { name: 'Recording setup: REAPER, not linked' });
