@@ -104,11 +104,13 @@ func writeRuleCase(t *testing.T, root, dir string, c ruleCase) (string, string) 
 }
 
 // TestRuleSuggestionsMatchTheSidecar replays every case the sidecar's test_rules_parity.py recorded before its rules were deleted
-// (#2251 step 3; the files are frozen): the same lines, byte for byte, and an error exactly where the sidecar exited 1, in its words
-// where it refused (a ValueError) rather than crashed.
+// (#2251 step 3; the files are frozen): an error exactly where the sidecar exited 1, in its words where it refused (a ValueError)
+// rather than crashed, and the same speaker lines, byte for byte. The name lines are the scan's own since #2251 tuned it (rules_scan.go):
+// testdata/scan-names.json pins them, each as its rule, its name or alias and its aliases (UPDATE_CONTRACTS=1 rewrites it).
 func TestRuleSuggestionsMatchTheSidecar(t *testing.T) {
 	root, cases, results := readRuleCases(t)
 	printed, failed, lines := 0, 0, 0
+	scanned := map[string][]string{}
 	for i, c := range cases {
 		want := results[i]
 		if want.Name != c.Name {
@@ -134,25 +136,39 @@ func TestRuleSuggestionsMatchTheSidecar(t *testing.T) {
 			printed++
 		}
 		lines += len(got)
-		if !slices.Equal(got, want.Stdout) {
-			for j := range max(len(got), len(want.Stdout)) {
-				var g, w string
-				if j < len(got) {
-					g = got[j]
-				}
-				if j < len(want.Stdout) {
-					w = want.Stdout[j]
-				}
-				if g != w {
-					t.Errorf("%s: line %d of %d (want %d)\n got: %s\nwant: %s", c.Name, j+1, len(got), len(want.Stdout), g, w)
-					break
-				}
-			}
+		speakers, names := splitSpeakerLines(t, got)
+		wantSpeakers, _ := splitSpeakerLines(t, want.Stdout)
+		if !slices.Equal(speakers, wantSpeakers) {
+			t.Errorf("%s: %d speaker lines, want the sidecar's %d\n got: %q\nwant: %q", c.Name, len(speakers), len(wantSpeakers), speakers, wantSpeakers)
 		}
+		scanned[c.Name] = names
 	}
 	if len(cases) < 500 || printed < 250 || failed < 40 || lines < 4000 {
 		t.Errorf("%d cases: %d printed %d lines, %d failed", len(cases), printed, lines, failed)
 	}
+	contractfile.CheckIn(t, "testdata", "scan-names", scanned)
+}
+
+// splitSpeakerLines gives a run's speaker lines as printed, and each name line as "rule: name or alias [aliases]".
+func splitSpeakerLines(t *testing.T, lines []string) (speakers, names []string) {
+	t.Helper()
+	names = []string{}
+	for _, line := range lines {
+		var l suggestionLine
+		if err := json.Unmarshal([]byte(line), &l); err != nil {
+			t.Fatal(err)
+		}
+		if l.Payload.Kind == "speaker" {
+			speakers = append(speakers, line)
+			continue
+		}
+		name := l.Rule + ": " + l.Payload.Name + l.Payload.Alias
+		if len(l.Payload.Aliases) > 0 {
+			name += " " + jsonList(l.Payload.Aliases)
+		}
+		names = append(names, name)
+	}
+	return speakers, names
 }
 
 func TestRuleSuggestionsStopWhenCancelled(t *testing.T) {

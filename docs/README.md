@@ -56,7 +56,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
    To rename the product itself, use [Renaming the app](operations/renaming-the-app.md).
    For the checks the recent Studio Next work could not run off Windows (recording, linking a project, delivery),
    use the [Windows QA checklist](operations/windows-qa-checklist.md).
-   Before switching on a REAPER bridge command that ships behind the Experimental DAW actions switch, run
+   To confirm a REAPER bridge command that is still on the unverified list in REAPER itself, run
    [the REAPER verification pass](operations/reaper-verification-pass.md); the calls each command makes are in
    [the ReaScript calls behind the planned commands](research/reaper-api-for-planned-commands.md).
 1. Before changing what crosses a trust boundary (a download, the update, a sidecar's arguments, the REAPER bridge, a

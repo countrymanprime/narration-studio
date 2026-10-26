@@ -1,6 +1,6 @@
 // The DAW port's capability payload: what the launch's DAW can do right now, computed by
-// the host's dawport.Resolver from the adapter's declaration, the bridge's reachability and the narrator's
-// DAW.capability.<name> settings. src/studio/desktop/bindings_daw.go is the binding and the daw_capabilities_changed event;
+// the host's dawport.Resolver from the adapter's declaration and the bridge's reachability; no setting turns a capability on or
+// off. src/studio/desktop/bindings_daw.go is the binding and the daw_capabilities_changed event;
 // src/studio/desktop/internal/dawport/capability.go is the capability catalog this file's DAW_CAPABILITIES mirrors.
 
 /** Which DAW the launch is talking to, 'Built-in' when the app's own recorder is the engine (a launch with no DAW whose project
@@ -11,7 +11,7 @@ export type DawKind = 'REAPER' | 'Audacity' | 'Built-in' | 'none';
 export type DawCapabilityLevel = 'unsupported' | 'not_yet_available' | 'experimental' | 'supported';
 
 /** Why a capability is unavailable now (port.Reason in Go); absent when it is available. */
-export type DawCapabilityReason = 'standalone' | 'not_running' | 'experimental_off' | 'failed' | 'turned_off' | 'not_yet' | 'unsupported';
+export type DawCapabilityReason = 'standalone' | 'not_running' | 'failed' | 'not_yet' | 'unsupported';
 
 /** How a change that needs several edits is made (port.Mode in Go): `native` (the DAW does it itself, one undo step), `app`
  * (the app makes it; the DAW keeps no project of its own) or `steps` (the app performs the edits one after another). */
@@ -99,7 +99,7 @@ export type DawCapabilityKey =
 export type DawCapabilities = {
   daw: DawKind;
   /** Whether the DAW is answering now (the heartbeat), not per capability: a capability may still be unavailable for
-   * another reason (turned off, experimental, not yet available) even while this is true. */
+   * another reason (not yet available, or a capability it requires is unavailable) even while this is true. */
   reachable: boolean;
   capabilities: Record<string, DawCapabilitySupport>;
 };
@@ -201,7 +201,6 @@ export type DawChoice = {
   linkedFile: string | null;
   foundFiles: string[];
   launcherAutoStart: boolean;
-  experimental: boolean;
   options: DawChoiceOption[];
   /** Set while a REAPER start the app made has not answered: when it started (RFC 3339). */
   starting: { since: string } | null;

@@ -27,7 +27,7 @@ ul.plain li { border-bottom: 1px solid var(--line); padding: .35rem 0; }
 <ul>
 <li>{{.Book.Chapters}} chapter(s), {{.Book.FinalizedChapters}} finalized.</li>
 {{with .Words}}<li>{{.WordCount}} words.</li>
-<li>Finished audio: {{clock .RecordedSeconds}} ({{.MeasuredChapters}} of {{$.Book.Chapters}} chapters measured).</li>
+<li>Recorded audio: {{clock .RecordedSeconds}} ({{.MeasuredChapters}} of {{$.Book.Chapters}} chapters measured).</li>
 {{end}}{{with .Stages}}<li>Hours logged: {{optClock .HoursLogged}}.</li>
 <li>Hours per finished hour (book-wide): {{optPfh .BookPFH}}.</li>
 {{end}}</ul>

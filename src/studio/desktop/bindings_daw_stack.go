@@ -28,7 +28,7 @@ const (
 // Booth's passage map, which names the items each passage was read into, and the chapter's one linked track as the DAW
 // reports it now (chapter_track_state), so a GUID-shaped id is looked up like any other and the plan the page showed is
 // never an input (threat model row 5f). The answer is a DawResult: the stack_takes capability's own sentence
-// when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off, an
+// when the resolver refuses it (a standalone launch, a DAW not answering, an
 // engine that cannot stack), checked first; then too many passages; then a passage id the chapter does not list or a track
 // that is gone (code stale); then a kept take, reads two passages share and nothing to move. Nothing is sent to the DAW on
 // any of them. An item that changed between the read and REAPER's own check is REAPER's stale refusal, and nothing changes.
@@ -184,8 +184,6 @@ func stackRefusal(name string, err error) dawport.Result {
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperNotRunning).Message)
 	case errors.Is(err, bridge.ErrUnavailable):
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperStandalone).Message)
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error())
 	case errors.Is(err, context.DeadlineExceeded):
 		return dawport.Refused(fmt.Sprintf("%s did not answer the stack within %d seconds. Check the project before trying again.", name, int(stackTakesTimeout.Seconds())))
 	}

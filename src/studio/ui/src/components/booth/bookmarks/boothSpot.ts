@@ -10,9 +10,12 @@ function wordStart(text: string, word: number): number | null {
   return [...text.matchAll(/\S+/g)][word]?.index ?? null;
 }
 
-/** The spot of the word being read: the start of that word. Null when there is no position or no such word. */
+/**
+ * The spot of the word being read: the start of that word. Null when there is no position or no such word, and on the chapter heading:
+ * a bookmark names a manuscript paragraph, which the heading is not.
+ */
 export function spotAtPosition(chapterId: string, paragraphs: readonly ReadingParagraph[], position: ReadingPosition | undefined): BookmarkSpot | null {
-  const paragraph = position && paragraphs.find((p) => p.id === position.paragraphId);
+  const paragraph = position && paragraphs.find((p) => p.id === position.paragraphId && !p.heading);
   const offset = paragraph && position ? wordStart(paragraph.text, position.word) : null;
   return paragraph && offset !== null ? { chapterId, paragraphId: paragraph.id, offset } : null;
 }

@@ -13,10 +13,10 @@ const DRAWER_TABS: ReadonlyArray<readonly [DrawerTab, string]> = [
   ['timeline', 'Timeline'],
 ];
 
-/** Whether the DAW keeps backups at all: the capability is there and the narrator has not turned it off. The page never names a DAW. */
+/** Whether the DAW keeps backups at all: the capability is there. The page never names a DAW. */
 export function backupsOffered(caps: DawCapabilities | null): boolean {
   const support = caps?.capabilities['backups'];
-  return !!support && support.level !== 'unsupported' && support.reason !== 'turned_off';
+  return !!support && support.level !== 'unsupported';
 }
 
 /** The tabs on offer: Clean up and Effects always, Backups where the DAW has them, Timeline only where the strip does not fit. */

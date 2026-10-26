@@ -87,7 +87,7 @@ export function CreditsRowPanel({
             track linked, because its refusal is where the row is linked to one. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Button variant="secondary" onClick={onCheck}>
-            Recording check
+            Check recordings…
           </Button>
           <Link className={`font-semibold underline ${HIT_AREA}`} to={addressPath({ page: 'script', credits: row.kind })}>
             Open in Script

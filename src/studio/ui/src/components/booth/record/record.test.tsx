@@ -171,7 +171,6 @@ describe('SetupChip with the project DAW choice', () => {
     linkedFile: null,
     foundFiles: ['Book.rpp'],
     launcherAutoStart: false,
-    experimental: false,
     options: [],
     starting: null,
     bridge: null,

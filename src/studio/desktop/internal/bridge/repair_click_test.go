@@ -98,7 +98,7 @@ func TestRepairClickChecksItsArgumentsBeforeAnythingIsSent(t *testing.T) {
 func TestRepairClickIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.RepairClick(context.Background(), testItem, testTake, testClicks); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.RepairClick(context.Background(), testItem, testTake, testClicks); !errors.Is(err, errGateRefused) {
 		t.Fatalf("RepairClick: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

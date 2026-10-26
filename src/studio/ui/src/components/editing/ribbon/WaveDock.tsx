@@ -47,12 +47,14 @@ export function WaveDock({ chapterId, clocks, take, playFrom, reason }: WaveDock
   const end = useMemo(() => docEnd(doc), [doc]);
   const pid = activePid(doc, state) ?? doc.paras.find((p) => lineWindow(doc, p.p.id))?.p.id ?? null;
   const line = useMemo(() => (pid ? lineWindow(doc, pid) : null), [doc, pid]);
-  const focus = useMemo(() => (line ? { start: line.t0, len: line.t1 - line.t0 } : null), [line]);
+  // The range is only what the narrator drew: selecting a word does not draw one.
+  const range = state.span ?? null;
+  // While a drawn range is up the view stays where the narrator put it: the cursor follows the range's last word, and following its line would
+  // move the waveform under a drag.
+  const focus = useMemo(() => (line && !range ? { start: line.t0, len: line.t1 - line.t0 } : null), [line, range]);
   const layout = useMemo(() => windowLayout(doc, 0, end, selected, state.playT, pid ?? ''), [doc, end, selected, state.playT, pid]);
   const describe = useCallback((a: number, b: number) => windowLayout(doc, a, b, selected, state.playT).description, [doc, selected, state.playT]);
   const words = doc.items;
-  // The range is only what the narrator drew: selecting a word does not draw one.
-  const range = state.span ?? null;
   // While a drag runs the page follows only when the words it covers change, so the script is not redrawn at every pixel.
   const lastKeys = useRef('');
   const onRange = useCallback(

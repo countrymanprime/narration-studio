@@ -100,14 +100,14 @@ describe('teleprompter mock', () => {
 
     const script = events[0];
     if (script.type !== 'script') throw new Error('the script event must come first');
-    // The title span counts the title's own words only; the subtitle is
-    // shown but never part of what is tracked.
-    const words = tokenize(chapters[0].title).length + paragraphs.reduce((total, paragraph) => total + tokenize(paragraph.text).length, 0);
+    // The title span is the heading read aloud: the title's words, then the subtitle's (chapter_script.py).
+    const heading = tokenize(`${chapters[0].title} ${chapters[0].subtitle}`).length;
+    const words = heading + paragraphs.reduce((total, paragraph) => total + tokenize(paragraph.text).length, 0);
     expect(script.tokens).toBe(words);
     expect(script.spans.map((span) => [span.kind, span.start, span.count])).toEqual([
-      ['title', 0, 2],
-      ['paragraph', 2, 15],
-      ['paragraph', 17, 15],
+      ['title', 0, 5],
+      ['paragraph', 5, 15],
+      ['paragraph', 20, 15],
     ]);
     const positions = events.flatMap((event) => (event.type === 'position' ? [event] : []));
     expect(positions.at(-1)).toMatchObject({ read: words, status: 'done' });
@@ -154,7 +154,7 @@ describe('teleprompter mock', () => {
 
   it('reads a long chapter at 150 words a minute, block by block, and reports the end only at the end', async () => {
     expect(MOCK_READING_WORDS_PER_MINUTE).toBe(150);
-    // 2 title words and 300 paragraph words: 302 words read in 302 / 2.5 = 120.8 s.
+    // 5 heading words (the title's and the subtitle's) and 300 paragraph words: 305 words read in 305 / 2.5 = 122 s.
     const long = Array.from({ length: 10 }, (_, index) => ({ ...paragraphs[0], id: `p-${index}`, index, text: `${sentence} ${sentence}` }));
     const mock = build({ paragraphs: () => long });
     const reads: Array<{ at: number; read: number; status: string }> = [];
@@ -171,9 +171,9 @@ describe('teleprompter mock', () => {
     expect(furthest(40)).toBeGreaterThanOrEqual(100);
     expect(furthest(80)).toBeGreaterThanOrEqual(200);
     expect(furthest(120)).toBeGreaterThanOrEqual(300);
-    expect(furthest(121)).toBe(302);
+    expect(furthest(123)).toBe(305);
     // Only the chapter's last word says done, so the auto-stop is not armed between blocks.
-    expect(reads.filter((entry) => entry.status === 'done').every((entry) => entry.read === 302)).toBe(true);
+    expect(reads.filter((entry) => entry.status === 'done').every((entry) => entry.read === 305)).toBe(true);
     expect(reads.some((entry) => entry.status === 'done')).toBe(true);
     await mock.teleprompterStop();
   });
@@ -242,7 +242,7 @@ describe('teleprompter mock', () => {
   });
 
   // Resuming starts the tracker at the resume word, as the host's
-  // --start-word does: the first position is that word and the replay never goes back before it.
+  // follower does: the first position is that word and the replay never goes back before it.
   it('starts at the requested word and replays onward from it', async () => {
     const mock = build();
     const events: TeleprompterEvent[] = [];
@@ -254,7 +254,7 @@ describe('teleprompter mock', () => {
     const reads = events.flatMap((event) => (event.type === 'position' ? [event.read] : []));
     expect(reads[0]).toBe(12);
     expect(Math.min(...reads)).toBe(12);
-    expect(reads.at(-1)).toBe(32);
+    expect(reads.at(-1)).toBe(35);
   });
 
   it('asks for the model first when it is not installed', async () => {
@@ -322,6 +322,16 @@ describe('teleprompter mock locate', () => {
     expect(result.tail).toEqual({ from: 60, to: 90 });
     expect(result.located.sentence.start).toBeLessThan(result.located.word);
     expect(result.located.sentence.end).toBeGreaterThanOrEqual(result.located.word);
+    // The word and the sentence index the script the Booth reads, heading included (chapter_script.py), so the resume
+    // quote bolds the word reading starts at.
+    const words = [chapters[0].title, chapters[0].subtitle, ...paragraphs.map((paragraph) => paragraph.text)].flatMap((text) => tokenize(text ?? ''));
+    const { start, end, text } = result.located.sentence;
+    expect(text.split(/\s+/)).toEqual(words.slice(start, end));
+    expect(result.located.tokens).toBe(words.length);
+    // The quote bolds the sentence's word `word - start` (ResumePrompt): that must be the script's word `word`, the next
+    // one to read, and the word before it the last one the recording heard.
+    expect(text.split(/\s+/)[result.located.word - start]).toBe(words[result.located.word]);
+    expect(result.located.heardText.split(' ').at(-1)).toBe(words[result.located.word - 1]);
   });
 
   it('asks for the model only once there is audio to read', async () => {

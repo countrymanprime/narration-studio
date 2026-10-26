@@ -114,7 +114,7 @@ export const chapterTrackMatchSchema = z.object({
 
 export const trackSelectResultSchema = z.object({
   outcome: z.enum(['selected', 'refused']),
-  reason: z.enum(['track_missing', 'standalone', 'not_running', 'experimental_off', 'failed']).optional(),
+  reason: z.enum(['track_missing', 'standalone', 'not_running', 'unsupported', 'failed']).optional(),
   message: z.string().optional(),
   trackGuid: z.string().optional(),
 }) satisfies z.ZodType<TrackSelectResult>;
@@ -133,7 +133,7 @@ export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
   }),
   z.object({
     outcome: z.literal('refused'),
-    reason: z.enum(['standalone', 'not_running', 'experimental_off', 'recording', 'unsupported', 'failed']),
+    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed']),
     message: z.string().min(1),
   }),
 ]) satisfies z.ZodType<ChapterTrackCreateResult>;

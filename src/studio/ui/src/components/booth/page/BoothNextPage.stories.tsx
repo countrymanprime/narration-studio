@@ -195,6 +195,8 @@ export const Drawer: Story = {
 export const Bookmarked: Story = {
   play: async ({ canvasElement }) => {
     await recordButton(canvasElement);
+    // On the first paragraph: the chapter title above it is no manuscript paragraph a bookmark can name.
+    await userEvent.click(canvasElement.querySelector('[data-paragraph]:not([data-heading]) [data-word="0"]')!);
     await userEvent.keyboard('b');
     await waitFor(() => expect(canvasElement.querySelectorAll('[data-bmk-margin] [data-bm]')).toHaveLength(1));
   },

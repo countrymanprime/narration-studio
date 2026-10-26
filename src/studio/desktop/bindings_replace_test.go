@@ -194,9 +194,9 @@ func TestReplacePlanRefusals(t *testing.T) {
 		start, end  float64
 		want        string
 	}{
-		{"capability off", func(f *replaceFixture) {
-			f.deps.support = dawport.Support{Message: "Experimental: switched off in Settings."}
-		}, 4, 6, "f-1", 50, 53, "Experimental: switched off in Settings."},
+		{"capability refused", func(f *replaceFixture) {
+			f.deps.support = dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
+		}, 4, 6, "f-1", 50, 53, "REAPER is not answering. Check that REAPER is open, then try again."},
 		{"no such file", nil, 4, 6, "f-9", 50, 53, replaceNoFileSentence},
 		{"a stretch past the file", nil, 4, 6, "f-1", 118, 121, replaceStretchSentence},
 		{"a stretch backwards", nil, 4, 6, "f-1", 53, 50, replaceStretchSentence},
@@ -423,8 +423,8 @@ func TestReplaceAddFileRefusesWithNothingSent(t *testing.T) {
 		{"gone", "n-1", filepath.Join(dir, "gone.wav"), "gone.wav could not be opened. Choose it again.", nil},
 		{"a network path", "n-1", `\\server\share\leach.wav`, "leach.wav is on a network drive. Copy it to this computer first, then add it.", nil},
 		{"no such narrator", "n-9", write("a.wav", "RIFF"), replaceNoNarratorSentence, nil},
-		{"capability off", "n-1", write("b.wav", "RIFF"), "Experimental: switched off in Settings.", func(f *replaceFixture) {
-			f.deps.support = dawport.Support{Message: "Experimental: switched off in Settings."}
+		{"capability refused", "n-1", write("b.wav", "RIFF"), "REAPER is not answering. Check that REAPER is open, then try again.", func(f *replaceFixture) {
+			f.deps.support = dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 		}},
 	}
 	for _, c := range cases {

@@ -279,3 +279,17 @@ H.test('7.82/Linux: SelectAllMediaItems unselecting outside an undo block adds "
   reaper_api.SelectAllMediaItems(0, false)
   H.eq(#fake.undo, 1, 'nothing to unselect, no point')
 end)
+
+-- Observed in REAPER 7.82 on Linux with the JACK dummy device, 2026-10-26 (docs/reference/daw/reaper.md, "Cursor after a stop").
+
+H.test('7.82/Linux: Stop leaves the edit cursor where recording began, and the item starts there', function()
+  local reaper_api, fake = api()
+  local track = fake:add_track('T')
+  track.armed = true
+  fake.cursor, fake.record_seconds = 20, 1.2
+  reaper_api.CSurf_OnRecord()
+  reaper_api.OnStopButton()
+  H.eq(reaper_api.GetCursorPosition(), 20, 'REAPER does not move the cursor on a stop')
+  local item = fake.items[#fake.items]
+  H.eq(reaper_api.GetMediaItemInfo_Value(item, 'D_POSITION'), 20)
+end)

@@ -78,10 +78,10 @@ func TestMonitorLevelPassesOnTheScriptsSentenceAndRecognisesAnOldScript(t *testi
 func TestMonitorLevelIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.MonitorLevel(context.Background()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.MonitorLevel(context.Background()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("MonitorLevel: %v", err)
 	}
-	if _, err := actions.SetMonitorLevel(context.Background(), 10); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.SetMonitorLevel(context.Background(), 10); !errors.Is(err, errGateRefused) {
 		t.Fatalf("SetMonitorLevel: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

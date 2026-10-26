@@ -61,7 +61,7 @@ const KIND_WORDS = new Set([
 ]);
 const ENTITY_NAMES = new Set(['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event', 'Location', 'Needs Review', 'Draft']);
 const ENTITY_LOWER = new Set([...ENTITY_NAMES].map((name) => name.toLowerCase()));
-const TONES = new Set(['neutral', 'info', 'progress', 'accent', 'success', 'warning', 'danger', 'org', 'experimental']);
+const TONES = new Set(['neutral', 'info', 'progress', 'accent', 'success', 'warning', 'danger', 'org']);
 const TAILWIND_COLOUR =
   /\b(?:text|bg|border|ring|fill|stroke|decoration)-(?:\[(?:color:)?var\(--|(?:red|orange|amber|yellow|green|emerald|teal|sky|blue|indigo|violet|purple|pink|rose|slate|gray|zinc|neutral|stone)-\d)/;
 const KIND_LABEL =

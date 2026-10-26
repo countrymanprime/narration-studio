@@ -315,7 +315,7 @@ func TestConfigureBuildsTheNavigatorOnTheSessionsBridge(t *testing.T) {
 }
 
 // p5aAdapter is the adapter behind h.dawPortResolver, which recorderFrom and puncherFrom ask for the Booth's Record and
-// punch roles. It once declared neither, so every Record press from the Booth was refused as experimental_off on a
+// punch roles. It once declared neither, so every Record press from the Booth was refused on a
 // connected REAPER whatever the settings said, while DawCapabilities (over REAPER's full declaration) enabled the button.
 // Every capability it declares is at REAPER's own level and served by a role of the capability's type.
 func TestP5aAdapterServesRecordAndPunchAtREAPERsLevel(t *testing.T) {
@@ -343,9 +343,8 @@ func TestP5aAdapterServesRecordAndPunchAtREAPERsLevel(t *testing.T) {
 	}
 
 	resolver := dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      adapter,
-		Runtime:      func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
-		Experimental: func() bool { return true },
+		Adapter: adapter,
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
 	})
 	if _, err := dawport.Role[dawport.Recorder](resolver, dawport.CapRecord); err != nil {
 		t.Errorf("record role: %v", err)

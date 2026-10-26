@@ -9,8 +9,7 @@ const golden = z.record(z.string(), readAloudRecordingSchema).parse(JSON.parse(r
 const answer = (name: string) => ({ outcome: golden[name].outcome, reason: golden[name].reason, message: golden[name].message });
 
 // The state matrix of the Booth's Record with the built-in recorder, against the host's own answers (read-aloud-recordings-builtin.json).
-const builtin = (recording: object = {}, toggles: object = { record: 'on' }) =>
-  createMockApi({}, { daw: { daw: 'Built-in', toggles }, recording: { engine: 'builtin', ...recording } });
+const builtin = (recording: object = {}) => createMockApi({}, { daw: { daw: 'Built-in' }, recording: { engine: 'builtin', ...recording } });
 
 describe('the mock Booth Record with the built-in recorder', () => {
   it('starts a take on the last microphone, shows it in the recorder and the transport, and stops it into a take', async () => {
@@ -32,10 +31,8 @@ describe('the mock Booth Record with the built-in recorder', () => {
   });
 
   it('answers as the host does when a start is refused', async () => {
-    const off = await builtin({}, {}).readAloudRecordStart('chapter-1');
-    expect({ outcome: off.outcome, reason: off.reason, message: off.message }).toEqual(answer('experimental off'));
-    const switchedOff = await builtin({}, { record: 'off' }).readAloudRecordStart('chapter-1');
-    expect({ outcome: switchedOff.outcome, reason: switchedOff.reason, message: switchedOff.message }).toEqual(answer('record switched off'));
+    // No setting turns the recorder off: a fresh project records as soon as a microphone answers.
+    expect((await builtin().readAloudRecordStart('chapter-1')).outcome).toBe('started');
     const none = await builtin({ devices: 'none', takes: 'none' }).readAloudRecordStart('chapter-1');
     expect(none).toEqual(golden['no microphone']);
     const many = await builtin({ takes: 'none' }).readAloudRecordStart('chapter-1');
@@ -64,7 +61,7 @@ describe('the mock Booth Record with the built-in recorder', () => {
   });
 
   it('leaves a project that records in a DAW to the DAW', async () => {
-    const api = createMockApi({}, { daw: { toggles: { record: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const started = await api.readAloudRecordStart('chapter-1');
     expect(started.outcome).toBe('started');
     expect((await api.recorderState()).phase).toBe('idle');

@@ -50,10 +50,10 @@ func unstackRequest() StackRequest {
 func TestStackCommandsAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.StackTakes(context.Background(), stackRequest()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.StackTakes(context.Background(), stackRequest()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("StackTakes: %v", err)
 	}
-	if _, err := actions.UnstackTakes(context.Background(), unstackRequest()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.UnstackTakes(context.Background(), unstackRequest()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("UnstackTakes: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

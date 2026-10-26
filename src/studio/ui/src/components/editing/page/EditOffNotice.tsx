@@ -1,5 +1,5 @@
 /**
- * Why Delete, Mute and Add FX are off, in words above the bar: the capability's own sentence ("Experimental: switched off in Settings."). The
+ * Why Delete, Mute and Add FX are off, in words above the bar: the capability's own sentence ("REAPER is not answering. …"). The
  * buttons stay, disabled, and carry the same sentence in their hint, but a hint is not on the page for someone who does not hover.
  */
 export function EditOffNotice({ reason }: { reason: string }) {

@@ -144,10 +144,6 @@ html[data-motion='reduce'] {
   --warn-text: var(--warn);
   --info-text: var(--info);
   --ok-text: var(--ok);
-  /* The fifth status meaning: a capability the host reports as
-     experimental, distinct from every other kind and status hue. */
-  --experimental: #1f7a7a;
-  --experimental-text: color-mix(in srgb, var(--experimental) 85%, var(--text));
   /* Alternating reader rows: a touch darker than --surface, like banded table rows. */
   --row-alt: color-mix(in srgb, var(--surface) 94%, var(--text));
   /* LevelMeter's zones: named for their role rather than duplicating the status
@@ -157,9 +153,6 @@ html[data-motion='reduce'] {
   --meter-body: var(--ok);
   --meter-hot: var(--warn);
   --meter-over: var(--danger);
-  /* The 14% badge tints of docs/design/colour-and-contrast.md#derived-and-status-tokens: a 14% tint of the tone colour, the one percentage that holds 4.5:1 against
-     every tone's own -text colour in both themes. StatusBadge fills with the opaque --<tone>-soft family below; this one stays for the experimental tone, which has no soft token. */
-  --badge-experimental-fill: color-mix(in srgb, var(--experimental) 14%, transparent);
   /* The status soft fills are the mock's own opaque values (Studio Next), no longer aliases of the entity fills or a
      mix of the warn colour, so the entity and status fills no longer move together. */
   --ok-soft: #d9ead9;
@@ -323,8 +316,6 @@ html[data-motion='reduce'] {
   --warn-soft: #3a2d10;
   --info-soft: #1b2f42;
   --danger-soft: #40201d;
-  --experimental: #4fbdbd;
-  --experimental-text: var(--experimental);
   /* Mock 03 measures both. */
   --reading-bg: #0e0d09;
   --rec-fill: #5e1d16;

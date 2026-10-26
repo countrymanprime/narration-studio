@@ -27,8 +27,8 @@ type Props = {
   k: Calc;
   today: Date;
   due: Date | null;
-  /** The record capability: Start session is disabled with its own reason under it, and a way to Settings when Settings is what fixes it. */
-  record: { ok: boolean; reason: string; inSettings?: boolean };
+  /** The record capability: Start session is disabled with its own reason under it. */
+  record: { ok: boolean; reason: string };
   timerRunning: boolean;
   /** The running stage timer, drawn as a chip beside Stop timer (it was the app header's chip); null draws none. */
   timer?: RunningTimer | null;
@@ -38,8 +38,6 @@ type Props = {
   /** Opens the status report dialog (SN-P622). */
   onExport: () => void;
   onOpenSchedule: () => void;
-  /** Opens Settings' DAW section, where recording is switched on. */
-  onOpenSettings?: () => void;
 };
 
 /** The Production title, the book's figures and due date in their tone, the verdict, and the page's actions (the mock's `phead`). */
@@ -58,7 +56,6 @@ export function PageHeader({
   onStartSession,
   onExport,
   onOpenSchedule,
-  onOpenSettings,
 }: Props) {
   const color = TONE_COLOR[deadlineTone(k)];
   const days = k.daysLeft === null ? null : `${Math.abs(k.daysLeft)} ${Math.abs(k.daysLeft) === 1 ? 'day' : 'days'}`;
@@ -114,14 +111,6 @@ export function PageHeader({
         {!record.ok && !loading && (
           <p id="start-session-reason" className="text-[0.8125rem] text-[var(--text-muted)] min-[860px]:text-right">
             {record.reason}
-            {record.inSettings && onOpenSettings && (
-              <>
-                {' '}
-                <Button variant="link" onClick={onOpenSettings}>
-                  Open DAW settings
-                </Button>
-              </>
-            )}
           </p>
         )}
       </div>

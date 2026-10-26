@@ -3,8 +3,9 @@
 - The Unicode tables in `pyunicode_gen.go` must be what `scripts/dev/gen-pyunicode.py` writes from this Python.
 - `tests/fixtures/booth-parity/text-rules.json` holds Python's answers: a digest of `str.lower`, `str.casefold`, `\\w`,
   `str.isspace` and `str.isprintable` over every code point (lowercase alone, between "A" and a capital sigma, before
-  "Σa" and after "AΣ", so both sides of the final-sigma rule are exercised for each), and `spoken_key` and `repr` over
-  seeded text. `compare/pyunicode_test.go` reproduces it.
+  "Σa" and after "AΣ", so both sides of the final-sigma rule are exercised for each), and `repr` over seeded text. Its
+  `spokenKey` cases were written by `narration_common.spoken_forms` before it was deleted (2026-10-25); they are kept
+  as written, and only Go reads them. `compare/pyunicode_test.go` reproduces it.
   Regenerate with `UPDATE_CONTRACTS=1` only when a rule changes on purpose, and say why in the PR.
 """
 
@@ -17,8 +18,6 @@ import subprocess
 import sys
 import unicodedata
 from pathlib import Path
-
-from narration_common import spoken_forms
 
 ROOT = Path(__file__).resolve().parents[5]
 GOLDEN = ROOT / "tests" / "fixtures" / "booth-parity" / "text-rules.json"
@@ -55,6 +54,8 @@ def reprs(rng):
 def rules():
     rng = random.Random(2251)
     texts = [" ".join(rng.choice(WORDS) for _ in range(rng.randint(0, 8))) for _ in range(300)] + ["", "billion " * 12]
+    spoken = json.loads(GOLDEN.read_text(encoding="utf-8"))["spokenKey"]
+    assert [text for text, _key in spoken] == texts, "the frozen spoken_key cases are for these seeded texts"
     return {
         "unicode": unicodedata.unidata_version,
         "lower": digest(p for ch in code_points() for p in (ch.lower(), ("A" + ch + "Σ").lower(), (ch + "Σa").lower(), ("AΣ" + ch).lower())),
@@ -62,7 +63,7 @@ def rules():
         "space": digest("1" if ch.isspace() else "0" for ch in code_points()),
         "casefold": digest(ch.casefold() for ch in code_points()),
         "printable": digest("1" if ch.isprintable() else "0" for ch in code_points()),
-        "spokenKey": [[text, spoken_forms.spoken_key(text)] for text in texts],
+        "spokenKey": spoken,
         "repr": [[text, repr(text)] for text in reprs(rng)],
     }
 

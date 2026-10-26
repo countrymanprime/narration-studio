@@ -27,8 +27,7 @@ func (h *Host) DawCapabilities() (string, error) {
 	return encodeBinding(dawCapabilitiesPayload(resolver, runtime), nil)
 }
 
-// dawResolver is a fresh resolver over the launch's declaration-only adapter, the current bridge and heartbeat, and the
-// settings store, built from one services() snapshot so a project switch mid-call cannot mix two projects' state. A
+// dawResolver is a fresh resolver over the launch's declaration-only adapter and the current bridge and heartbeat, built from one services() snapshot so a project switch mid-call cannot mix two projects' state. A
 // dawport.Resolver holds no state of its own, so building one per call is cheap; runtime is returned alongside it so a caller
 // can report the same "reachable" fact the resolver used, without a second read of the (possibly swapped) services.
 func (h *Host) dawResolver() (*dawport.Resolver, dawport.Runtime) {
@@ -45,7 +44,7 @@ func (h *Host) dawResolverFor(svc hostServices) (*dawport.Resolver, dawport.Runt
 // bridge and heartbeat are svc's; any other kind (a DAW Settings > Recording lists but the project does not use) has no bridge.
 func dawResolverOver(svc hostServices, kind dawport.Kind, live bool) (*dawport.Resolver, dawport.Runtime) {
 	adapter := dawDeclarationFor(kind)
-	client, reach, store := svc.bridge, svc.reachability, svc.settings
+	client, reach := svc.bridge, svc.reachability
 	runtime := dawport.Runtime{}
 	if live {
 		runtime = dawport.Runtime{Bridge: client != nil, Reachable: reach != nil && reach.Reachable()}
@@ -58,12 +57,7 @@ func dawResolverOver(svc hostServices, kind dawport.Kind, live bool) (*dawport.R
 	if own, ok := adapter.(interface{ Runtime() dawport.Runtime }); ok {
 		runtime = own.Runtime()
 	}
-	resolver := dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      adapter,
-		Runtime:      func() dawport.Runtime { return runtime },
-		Toggle:       dawport.SettingsToggles(store.Effective),
-		Experimental: dawport.SettingsExperimental(store.Effective),
-	})
+	resolver := dawport.NewResolver(dawport.ResolverConfig{Adapter: adapter, Runtime: func() dawport.Runtime { return runtime }})
 	return resolver, runtime
 }
 

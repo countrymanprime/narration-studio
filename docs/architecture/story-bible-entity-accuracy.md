@@ -24,7 +24,7 @@
 
 **spaCy path (`spacy_candidates`).** Keeps PERSON/ORG/GPE/LOC/FAC entities, cleans them as above, and drops single-word entities that fail the common-word test.
 
-**Rules-only fallback (`rule_candidates`, used when the spaCy model is unavailable).** A cleaned candidate is accepted only if it is multi-word, or a single word that passes the common-word test (no spaCy override here) **and** either appears capitalized mid-sentence at least twice or is the short form of an accepted title-prefixed name ("Arelian" after "Captain Arelian"). Sentence-initial-only words are therefore rejected.
+**Rules-only fallback (used when the spaCy model is unavailable).** The names are the Story Bible scan's, from `scanCandidates` in `src/studio/desktop/internal/guide/rules_scan.go` ([manuscript-guide.md](../utilities/manuscript-guide.md#rules-suggestions)), with the scan's merges kept. Until #2251 this was the sidecar's `rule_candidates`, which accepted every multi-word capitalised run and so wrote entries such as "Do I", "I’m" and "KING AND QUEEN".
 
 **Classification (`classify`).** The explicit rules (ORG_WORDS, PLACE_WORDS, TITLE_WORDS, spaCy labels) come first. The `PERSON_WORDS`/`PLACE_WORDS` proximity guess applies only to multi-word names. Anything else returns `"Needs Review"` instead of defaulting toward Character. When an entity's occurrences vote for several categories, a confident category beats "Needs Review" votes.
 
@@ -39,7 +39,7 @@
 ## Known trade-offs
 
 - In the rules-only fallback, a lone-word name is always "Needs Review" (no proximity guessing) and so needs 3 occurrences to appear. Installing the spaCy model gives real Character/Place/Organization labels.
-- Multi-word capitalized phrases are trusted as proper-name-shaped, so a run such as "Abandoned And Afraid" can still appear; it stays "Needs Review" and is dropped below 3 occurrences.
+- spaCy's multi-word entities are trusted as proper-name-shaped, so a run such as "Abandoned And Afraid" can still appear; it stays "Needs Review" and is dropped below 3 occurrences. The rules fallback cuts that run at "And" and needs evidence for what is left.
 - Names that are also lowercase words in the manuscript ("Hope", "Grace") and names ending in a common suffix ("Sterling") are missed unless spaCy tags them and they appear capitalized mid-sentence twice. Add these as manual entities.
 - Name matching is not a general accuracy guarantee; the fixtures in `StrictEntityExtractionTests` pin the reported examples ("ACCEPTABLE", "Abandoned", "About S-Dawn") and should grow with any new report.
 

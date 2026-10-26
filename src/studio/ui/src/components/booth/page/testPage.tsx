@@ -16,7 +16,7 @@ import { createJournal, type Journal } from '../../../studio/journal/createJourn
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { GuideEntity, ManuscriptChapter, ManuscriptParagraph, NarrationApi, TeleprompterLocateResult } from '../../../types';
 
-const CHAPTERS: ManuscriptChapter[] = [
+export const CHAPTERS: ManuscriptChapter[] = [
   { id: 'c1', title: 'Chapter One', index: 0, wordCount: 30, status: 'not_started', contentKind: 'narration' } as ManuscriptChapter,
   { id: 'c2', title: 'Chapter Two', index: 1, wordCount: 6, status: 'not_started', contentKind: 'narration' } as ManuscriptChapter,
 ];

@@ -117,7 +117,7 @@ func TestReduceRangeGainChecksItsArgumentsBeforeAnythingIsSent(t *testing.T) {
 func TestReduceRangeGainIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.ReduceRangeGain(context.Background(), testItem, testTake, 6, testStretches); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ReduceRangeGain(context.Background(), testItem, testTake, 6, testStretches); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ReduceRangeGain: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

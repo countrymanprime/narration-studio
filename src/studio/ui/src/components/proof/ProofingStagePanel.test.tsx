@@ -73,14 +73,14 @@ describe('the Proof chapter view’s readiness panel', () => {
     expect(onOpenFinding).toHaveBeenCalledWith(`mock-proofing-finding-${c9.id}`);
   });
 
-  it('names the cause of an unknown pickup check and opens the audio engine panel, never "Open recording check"', async () => {
+  it('names the cause of an unknown pickup check and opens the audio engine panel, never "Check recordings…"', async () => {
     const api = createMockApi({}, { stages: { proofing: { [c9.id]: { unknown: 'unmapped_track' } } } });
     renderPanel(api, c9);
     await waitFor(() => expect(screen.getByText(/no track linked/)).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: `Why: ${c9.title}` }));
     const view = await screen.findByRole('dialog');
     expect(within(view).getByRole('button', { name: 'Open the audio engine panel' })).toBeTruthy();
-    expect(within(view).queryByRole('button', { name: /Open recording check/ })).toBeNull();
+    expect(within(view).queryByRole('button', { name: /Check recordings/ })).toBeNull();
     expect(within(view).queryByRole('button', { name: /Open editing check/ })).toBeNull();
   });
 

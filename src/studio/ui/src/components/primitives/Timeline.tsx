@@ -1,7 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
 // The meanings a marker's tone may take, sharing the fills the meter zones and the badge tones use: a marker earns a colour for what it is, not for which lane it happens to sit in.
-type TimelineMarkerTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'experimental';
+type TimelineMarkerTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
 const TONE_DOT: Record<TimelineMarkerTone, string> = {
   neutral: 'bg-[var(--text-muted)]',
@@ -9,7 +9,6 @@ const TONE_DOT: Record<TimelineMarkerTone, string> = {
   success: 'bg-[var(--ok)]',
   warning: 'bg-[var(--warn)]',
   danger: 'bg-[var(--danger)]',
-  experimental: 'bg-[var(--experimental)]',
 };
 
 export type TimelineMarker = {

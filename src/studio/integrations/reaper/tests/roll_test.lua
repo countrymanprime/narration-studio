@@ -484,3 +484,13 @@ H.test('roll needs the record and config APIs', function()
     H.eq(calls_named(s, 'OnStopButton'), 0, name)
   end
 end)
+
+H.test('a take stopped after a roll leaves the edit cursor at the end of the rolled pass, not back at the roll', function()
+  local s, chapter = recording_session()
+  s:send('roll', 'o1', chapter.guid, '40')
+  s:events()
+  s.fake.record_seconds = 6
+  s:send('record_stop', 's1')
+  H.eq(s:events()[1][1], 'RECORD_STOPPED')
+  H.eq(s.fake.cursor, 46)
+end)

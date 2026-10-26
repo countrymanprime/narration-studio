@@ -9,8 +9,8 @@ import (
 	"desktop/internal/findings"
 )
 
-// newAudacityReviewHost is an Audacity project whose Audacity answers (a project with one audio track, 10 to 610 s), with the
-// Experimental switch on and one finding from a comparison: at 22.5 s of the project, 12.5 s into the track.
+// newAudacityReviewHost is an Audacity project whose Audacity answers (a project with one audio track, 10 to 610 s), with
+// one finding from a comparison: at 22.5 s of the project, 12.5 s into the track.
 func newAudacityReviewHost(t *testing.T) *audacityLinkFixture {
 	t.Helper()
 	f := newAudacityLinkFixture(t)
@@ -20,10 +20,6 @@ func newAudacityReviewHost(t *testing.T) *audacityLinkFixture {
 		p.AddWaveTrack("Chapter 1", 10, 610)
 		p.Tracks[0].Selected = true
 	})
-	on := "true"
-	if err := f.host.saveSettings("DAW", "global", map[string]*string{"experimental_reaper_actions": &on}); err != nil {
-		t.Fatal(err)
-	}
 	finding := audioFinding("heard", "", seconds(12.5), seconds(12.5))
 	finding.TimeRange = &findings.TimeRange{Start: 22.5, End: 22.5, SourceStart: seconds(12.5), SourceEnd: seconds(12.5)}
 	finding.Source = findings.Source{File: "x.wav"}
@@ -107,14 +103,12 @@ func TestAudacityFindingsAreRefusedInAudacitysWords(t *testing.T) {
 	}
 }
 
-func TestAudacityNavigationNeedsTheExperimentalSwitch(t *testing.T) {
+// Navigation needs no setting, only Audacity answering: with Audacity closed it is refused in Audacity's words, and nothing moves.
+func TestAudacityNavigationNeedsOnlyAudacityAnswering(t *testing.T) {
 	f := newAudacityReviewHost(t)
-	off := "false"
-	if err := f.host.saveSettings("DAW", "global", map[string]*string{"experimental_reaper_actions": &off}); err != nil {
-		t.Fatal(err)
-	}
+	f.server.SetDown(true)
 	got := bindingAnswer[FindingNavigation](t)(f.host.FindingsGoTo("heard"))
-	if got.Outcome != "refused" || !strings.Contains(got.Message, "Experimental") {
+	if got.Outcome != "refused" || !strings.Contains(got.Message, "Audacity") || strings.Contains(got.Message, "REAPER") {
 		t.Fatalf("got %+v", got)
 	}
 	f.server.With(func(p *abt.Project) {
@@ -150,22 +144,9 @@ func TestAudacityReviewIsGatedByTheResolver(t *testing.T) {
 	if review == nil {
 		t.Fatal("the project has no transcript service")
 	}
-	off := "false"
-	if err := f.host.saveSettings("DAW", "global", map[string]*string{"experimental_reaper_actions": &off}); err != nil {
-		t.Fatal(err)
-	}
 	gated := f.host.gatedAudacityReview(f.host.services().audacity)
-	err := gated.PrepareReview("run1", f.host.config.projectFolder)
-	if err == nil || !strings.Contains(err.Error(), "Experimental") {
-		t.Fatalf("with the switch off: %v", err)
-	}
-	if err := gated.NavigateToFinding("run1", "x"); err == nil {
-		t.Error("navigating was allowed with the switch off")
-	}
-	on := "true"
-	_ = f.host.saveSettings("DAW", "global", map[string]*string{"experimental_reaper_actions": &on})
 	if err := gated.PrepareReview("run1", f.host.config.projectFolder); err != nil {
-		t.Errorf("with the switch on: %v", err)
+		t.Errorf("with Audacity answering and no setting: %v", err)
 	}
 	if !reflect.DeepEqual(f.host.services().audacity != nil, true) {
 		t.Error("the project lost its connection")

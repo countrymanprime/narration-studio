@@ -1,6 +1,6 @@
 # Editing page and REAPER: two-way transport sync
 
-Status: built, Experimental (capability `transport_sync`). Only the harness and the unit tests have run it; nothing here has run in a real REAPER ([the owner's checklist](#what-only-a-person-in-reaper-can-check)).
+Status: built, and on whenever REAPER is linked and answering (capability `transport_sync`, not yet through the verification pass). Only the harness and the unit tests have run it; nothing here has run in a real REAPER ([the owner's checklist](#what-only-a-person-in-reaper-can-check)).
 
 ## What existed before
 
@@ -18,7 +18,7 @@ That is why Play in the app sounds different from Play in REAPER and does not mo
 
 ## Decisions
 
-**A new capability, `transport_sync`, Experimental on REAPER.** It starts REAPER's transport, which `follow_position` (read the place, move the cursor) never did, and a narrator who allowed the Booth to follow REAPER has not allowed the app to start it. Audacity declares it Not yet available, the built-in recorder Unsupported. When it is not usable, for any reason the resolver words, the page behaves as before this change: `useDawPlayPosition` keeps following the heartbeat and Play plays the app's audio.
+**A new capability, `transport_sync`, on with REAPER.** It starts REAPER's transport, which `follow_position` (read the place, move the cursor) never did, and a narrator who allowed the Booth to follow REAPER has not allowed the app to start it. Audacity declares it Not yet available, the built-in recorder Unsupported. When it is not usable, for any reason the resolver words, the page behaves as before this change: `useDawPlayPosition` keeps following the heartbeat and Play plays the app's audio.
 
 **Four commands, one stream.** `set_cursor`, `play_from` and `stop_play` act; `watch_transport` takes a lease on a `TRANSPORT` stream. A poll of an existing read was the alternative: `projectState` carries no cursor, and a `read_place` round trip is a command file, a defer cycle and an event for every sample. The lease costs REAPER three API reads per defer cycle and, while it plays, four small appends a second ([cost](../architecture/reaper-bridge.md#transport-sync-narration_transportlua)). Four a second is the rate at which a word (about 0.3 s) lights without lagging by more than one; the host and the page add no rate of their own. A stopped REAPER sends only changes.
 
@@ -64,7 +64,7 @@ The rule, which replaces "a linked DAW is the only player" of #2251 item 32 by t
 - A DAW provider that is ready plays, and the app stays silent. A DAW that can play is never passed over, so its FX, routing and level are what is heard.
 - Before the DAW's capabilities first arrive, or before the first answer to the watch lease, nothing plays and the page says it is checking: passing it over would play the raw files where the DAW could have played them.
 - A DAW provider that is not usable now (not answering, the switch off, another project open, the word not in its project) or that refuses the play hands the play to the app, from the same word, with one notice: the DAW's reason, then "Played in the app instead." A read of the capabilities that failed does the same and asks again.
-- An engine that never declared the capability (Audacity today, the built-in recorder, no recording tool) is passed over without a notice: the app is its normal player. When Audacity declares `transport_sync` or `file_preview` Experimental, the same code drives it; nothing in the page names an engine.
+- An engine that never declared the capability (Audacity today, the built-in recorder, no recording tool) is passed over without a notice: the app is its normal player. When Audacity builds `transport_sync` or `file_preview`, the same code drives it; nothing in the page names an engine.
 - Before the app plays in place of a DAW, the DAW's project state is read: while it records, nothing plays (`quietWhileRecording`).
 - A play the narrator stopped, or replaced, while the DAW was being asked is not handed on.
 - An action that needs the DAW's own FX, routing or project state (`dawSpecific`) never falls back; nothing plays and the notice says it can only be done in the DAW. No play on this page is one; the rule is there for one that is.
@@ -86,7 +86,7 @@ Drift. While REAPER plays for the page, the app's audio is silent, so there is o
 | Playing while the page opens | The lease's first event carries the play state, and the word lights | `transportSync.test.tsx` |
 | Chapter not linked, or no audio | No segment or no live item: every second maps to null; Play plays in the app and says the part is not in REAPER's project; nothing is written | `clockMap.test.ts`, `transportSync.test.tsx` (item not live) |
 | Recording | Reads are ignored, writes are refused with REAPER's sentence; Play plays nothing, in REAPER or the app | Lua and `transportsync_test.go`; the page's toast on a refusal is `transportSync.test.tsx` |
-| Capability off (Experimental switch, per-capability Off) | No lease; Play plays in the app and says the capability's sentence | `transportSync.test.tsx` |
+| Capability unavailable (the DAW does not report it) | No lease; Play plays in the app and says the capability's sentence | `transportSync.test.tsx` |
 | DAW not answered yet | Play plays nothing and says the page is checking | `transportSync.test.tsx` |
 | Built-in recorder, no tool, Audacity | The app plays the files itself, with no notice | `transportSync.test.tsx`, `providers.test.ts` |
 | Every provider readiness | The DAW ready, waiting, read failed, undeclared or unavailable; its play taken, refused or refused finally; the app ready or not; DAW-specific or not; recording or not: 120 cells | `providers.test.ts` |

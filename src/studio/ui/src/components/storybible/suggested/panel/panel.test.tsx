@@ -50,7 +50,7 @@ function Panel({ pollMs = 10, entries = [] as { id: string; name: string }[] }) 
   const picked = loose.find((s) => s.id === chosen);
   return (
     <div>
-      <ActionsMenu scan={scan} onImport={() => {}} onVoiceData={() => {}} />
+      <ActionsMenu scan={scan} onImport={() => {}} onVoiceData={() => {}} onDeleteData={() => {}} />
       <ScanStatus scan={scan} />
       <Select
         label="Show"
@@ -277,22 +277,31 @@ describe('scan-failure-names-the-reason', () => {
 });
 
 describe('the-actions-menu-offers-scan-import-and-voice-data', () => {
-  it('has one icon button that opens the three, and each item calls its own handler and closes the menu', async () => {
+  it('has one icon button that opens the four, and each item calls its own handler and closes the menu', async () => {
     const onImport = vi.fn();
     const onVoiceData = vi.fn();
+    const onDeleteData = vi.fn();
     const scan = { job: null, starting: false, running: false, start: vi.fn(async () => {}), cancel: vi.fn(async () => {}) };
-    render(wrap(<ActionsMenu scan={scan} onImport={onImport} onVoiceData={onVoiceData} />));
+    render(wrap(<ActionsMenu scan={scan} onImport={onImport} onVoiceData={onVoiceData} onDeleteData={onDeleteData} />));
     const u = userEvent.setup();
     const trigger = screen.getByRole('button', { name: 'More actions' });
     expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
     await u.click(trigger);
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Scan the manuscript', 'Import entries', 'Voice data']);
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
+      'Scan the manuscript',
+      'Import entries',
+      'Voice data',
+      'Delete Story Bible data…',
+    ]);
     await u.click(screen.getByRole('menuitem', { name: 'Import entries' }));
     expect(onImport).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await u.click(trigger);
     await u.click(await screen.findByRole('menuitem', { name: 'Voice data' }));
     expect(onVoiceData).toHaveBeenCalledTimes(1);
+    await u.click(trigger);
+    await u.click(await screen.findByRole('menuitem', { name: 'Delete Story Bible data…' }));
+    await waitFor(() => expect(onDeleteData).toHaveBeenCalledTimes(1));
     expect(scan.start).not.toHaveBeenCalled();
   });
 });

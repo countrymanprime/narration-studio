@@ -14,7 +14,7 @@ const control = (reachable = true) => ({
 
 describe('the Simulated DAW panel', () => {
   it('is a labelled badge that opens to what the app asked the DAW, and shuts again', async () => {
-    const sim = simulateDaw(createMockApi({}, { daw: { experimentalOn: true } }));
+    const sim = simulateDaw(createMockApi({}, {}));
     render(<SimulatedDawPanel sim={sim} control={() => control()} />);
     const badge = screen.getByRole('button', { name: /^Simulated DAW · REAPER/ });
     expect(screen.queryByRole('region', { name: 'Simulated DAW' })).toBeNull();

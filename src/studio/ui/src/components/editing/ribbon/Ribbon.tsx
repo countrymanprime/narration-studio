@@ -29,10 +29,10 @@ const DOCK_HEIGHT = 146;
 /** Width used where nothing can measure the canvas (a test environment without ResizeObserver). */
 const FALLBACK_WIDTH = 640;
 
-const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
+/** The waveform's gestures, behind the "?" in the row above it: never a line on the page, which would take the waveform's room (#2251). */
+const GESTURES = 'Drag: select. Right-drag, wheel or two fingers: scroll. Right-click: menu.';
 
-/** A peak bar wider than this many pixels is a block of audio, not a detail of it, and the waveform says so. */
-const COARSE_PX = 10;
+const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
 
 /** What makes the waveform a place to choose a range: the words, the range now, and what to do when it changes or is tapped. Without it the waveform only shows. */
 interface RibbonRange {
@@ -171,7 +171,6 @@ export function RibbonView({
   }, [peaks, loading, scale, shownLayout.t0, shownLayout.t1, measured]);
   const empty = placeholder ? false : peaks ? columns === null && measured > 0 : true;
   // The host's resolution, for the note on what a bar is at this zoom.
-  const bps = peaks?.[0]?.peaks.bucketsPerSecond;
 
   // What the frame loop reads, so it keeps running while the host's playhead and the layout change under it.
   const latest = useRef({ layout: shownLayout, columns, width: measured, scale, placeholder });
@@ -339,7 +338,6 @@ export function RibbonView({
   ) : null;
   // Nothing to choose or zoom yet: the empty lane, or the placeholder bars while the peaks are read.
   const bare = empty || placeholder;
-  const coarse = bps && !bare && measured / (view.len * bps) >= COARSE_PX;
   return (
     <div
       ref={boxRef}
@@ -354,7 +352,7 @@ export function RibbonView({
           {placeholder ? <span data-ribbon-reading>{why}</span> : null}
         </div>
       ) : (
-        <ZoomRow t0={layout.t0} ribbon={ribbon} head={headRow} />
+        <ZoomRow t0={layout.t0} ribbon={ribbon} head={headRow} gestures={GESTURES} />
       )}
       <div className="flex min-h-0 items-stretch gap-1 px-2 py-1">
         <ScrollEnd dir={-1} ribbon={ribbon} />
@@ -362,11 +360,6 @@ export function RibbonView({
         <ScrollEnd dir={1} ribbon={ribbon} />
       </div>
       <div className="min-h-0 flex-1 overflow-hidden" data-ribbon-notes>
-        {bare ? null : coarse ? (
-          <p data-peaks-detail className="m-0 px-3 text-xs text-[var(--text-muted)]">
-            Each bar is {Math.round(1000 / bps)} ms of audio at this zoom: the host keeps {bps} peaks a second.
-          </p>
-        ) : null}
         {bare ? null : <RangeNotes shown={interaction.shown} covered={interaction.covered} words={choose.words} />}
       </div>
       <p role="status" className="sr-only">

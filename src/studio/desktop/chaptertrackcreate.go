@@ -16,8 +16,8 @@ import (
 // click, with the chapter id, never a name from the UI: the track is named here, after the chapter's display title, the same
 // rule chapterLinksFor and the name matcher use, so the new track also matches its chapter by name.
 
-// The outcomes and the refusal reasons ChapterTrackCreate answers. standalone, not_running and experimental_off are the
-// shared words (reaperStandalone, reaperNotRunning, readAloudExperimentalOff); the others are this action's own.
+// The outcomes and the refusal reasons ChapterTrackCreate answers. standalone and not_running are the shared words
+// (reaperStandalone, reaperNotRunning); the others are this action's own.
 const (
 	trackCreateCreated     = "created"
 	trackCreateRefused     = "refused"
@@ -77,10 +77,6 @@ func trackCreateUnavailable(name, title string, support dawport.Support) chapter
 		return trackCreateRefusedWith(reaperStandalone, fmt.Sprintf("%s is not connected to this app, so no track can be added. Start %s, then try again.", name, name))
 	case dawport.ReasonNotRunning:
 		return trackCreateRefusedWith(reaperNotRunning, fmt.Sprintf("%s is not answering, so no track can be added. Check that %s is open, then try again.", name, name))
-	case dawport.ReasonExperimentalOff:
-		return trackCreateRefusedWith(readAloudExperimentalOff, "Adding tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.")
-	case dawport.ReasonTurnedOff:
-		return trackCreateRefusedWith(readAloudExperimentalOff, "Adding a track for a chapter is turned off in Settings. Turn it on there to use it.")
 	case dawport.ReasonNotYet, dawport.ReasonUnsupported:
 		return trackCreateRefusedWith(trackCreateUnsupported, fmt.Sprintf("%s cannot add a track for a chapter from this app. Add a track named “%s” in %s, then link it.", name, title, name))
 	default:
@@ -97,15 +93,12 @@ func trackCreateFailedSentence(name, title, why string) string {
 	return fmt.Sprintf("%s could not add the track: %s. Add a track named “%s” in %s, then link it.", name, why, title, name)
 }
 
-// trackCreateError turns what CreateTrack answered into a refusal. The gate refusing the command (the resolver's settings changed
-// between the role being handed out and the send) is experimental_off; a bridge that went away or stopped answering is the
+// trackCreateError turns what CreateTrack answered into a refusal. A bridge that went away or stopped answering is the
 // connection's own reason.
 func trackCreateError(name, title string, err error) chapterTrackCreateRefusal {
 	switch {
 	case errors.Is(err, bridge.ErrRecording):
 		return trackCreateRefusedWith(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then create the track.", name))
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return trackCreateUnavailable(name, title, dawport.Support{Reason: dawport.ReasonExperimentalOff})
 	case errors.Is(err, bridge.ErrUnavailable):
 		return trackCreateUnavailable(name, title, dawport.Support{Reason: dawport.ReasonStandalone})
 	case errors.Is(err, bridge.ErrNoAnswer):

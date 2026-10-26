@@ -125,11 +125,11 @@ func TestReadMasterChainIsTheBridgesListInTheDAWPortsShape(t *testing.T) {
 	}
 }
 
-// master_chain_read goes through bridge.Actions' gate like every experimental command: refused, and nothing written, until allowed.
+// master_chain_read goes through bridge.Actions' gate like every command: with no gate, refused and nothing written.
 func TestReadMasterChainIsGatedByTheResolver(t *testing.T) {
 	adapter, dir := newAdapter(t, nil)
-	if _, err := adapter.Role(dawport.CapMasterChainRead).(dawport.MasterChainReader).ReadMasterChain(t.Context()); !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Fatalf("err = %v, want ErrExperimentalOff", err)
+	if _, err := adapter.Role(dawport.CapMasterChainRead).(dawport.MasterChainReader).ReadMasterChain(t.Context()); !errors.Is(err, bridge.ErrNotGated) {
+		t.Fatalf("err = %v, want ErrNotGated", err)
 	}
 	if got := sentCommands(t, dir); len(got) != 0 {
 		t.Errorf("wrote %q", got)

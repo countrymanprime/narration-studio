@@ -30,7 +30,7 @@ const LAUNCHER = `C:\\Users\\n\\AppData\\Local\\${brand.identity.dataFolder}\\ru
 const LINKED = { dawFileLinked: true, launcherPath: LAUNCHER };
 
 /** REAPER's setup with record refused for `reason`, everything else as the connected setup. */
-function recordRefused(reason: 'experimental_off' | 'turned_off' | 'standalone' | 'not_running', daw: DawCapabilities['daw'] = 'REAPER'): DawCapabilities {
+function recordRefused(reason: 'unsupported' | 'standalone' | 'not_running', daw: DawCapabilities['daw'] = 'REAPER'): DawCapabilities {
   const base = DAW_SETUPS.reaper;
   return {
     ...base,
@@ -51,8 +51,7 @@ describe('recordSetupFor the project the DAW has open', () => {
     expect(recordSetupFor(DAW_SETUPS.reaper, LINKED)).toBeNull();
   });
 
-  it('puts what stops Record altogether first: a switched-off Record or a DAW that is not answering is not a wrong-project problem', () => {
-    expect(recordSetupFor(recordRefused('experimental_off'), { ...LINKED, openProject: 'different' })).toMatchObject({ kind: 'turn-on' });
+  it('puts what stops Record altogether first: a DAW that is not answering is not a wrong-project problem', () => {
     expect(recordSetupFor(recordRefused('not_running'), { ...LINKED, openProject: 'different' })).toMatchObject({ kind: 'connect' });
   });
 });
@@ -62,9 +61,8 @@ describe('recordSetupFor', () => {
     expect(recordSetupFor(DAW_SETUPS.reaper, LINKED)).toBeNull();
   });
 
-  it('offers the one-click turn-on for the experimental switch and for record turned off', () => {
-    expect(recordSetupFor(recordRefused('experimental_off'), LINKED)).toEqual({ kind: 'turn-on', dawName: 'REAPER', inApp: false });
-    expect(recordSetupFor(recordRefused('turned_off'), LINKED)).toMatchObject({ kind: 'turn-on' });
+  it('offers nothing to turn on: a DAW that cannot record says so in its own sentence, with no setting to switch', () => {
+    expect(recordSetupFor(recordRefused('unsupported'), LINKED)).toBeNull();
   });
 
   it('offers the REAPER connection steps when no bridge is connected, also on a launch with no DAW', () => {
@@ -189,31 +187,6 @@ describe('RecordSetup when the app turns the launch away', () => {
 });
 
 describe('RecordSetup', () => {
-  it('turn-on-saves-only-records-own-toggle-and-says-so', async () => {
-    const saveSettings = vi.fn(async () => createMockApi().bootstrap());
-    const { say, onChanged } = mount(recordRefused('experimental_off'), LINKED, { saveSettings } as Partial<NarrationApi>);
-    // Record off is how every project starts: a chip, not a dialog that opens by itself; the chip (or a press of Record) opens it.
-    expect(screen.queryByRole('dialog')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
-    expect(screen.getByRole('dialog', { name: 'Recording in REAPER is experimental' })).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Turn on Record' }));
-    await waitFor(() => expect(onChanged).toHaveBeenCalled());
-    expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'capability.record': 'on' });
-    expect(say.mock.calls[0][0]).toMatch(/^Record in REAPER is on\./);
-  });
-
-  it('turn-on-says-why-when-the-save-fails', async () => {
-    const saveSettings = vi.fn(async () => {
-      throw new Error('settings are read-only');
-    });
-    const { say, onChanged } = mount(recordRefused('experimental_off'), LINKED, { saveSettings } as Partial<NarrationApi>);
-    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Turn on Record' }));
-    await waitFor(() => expect(say).toHaveBeenCalled());
-    expect(say.mock.calls[0]).toEqual([expect.stringMatching(/^Record could not be turned on: .*read-only/), 'error']);
-    expect(onChanged).not.toHaveBeenCalled();
-  });
-
   it('connect-says-what-the-app-does-with-the-bridge-and-asks-for-nothing-in-reaper', async () => {
     const writeText = vi.fn(async () => {});
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
@@ -314,8 +287,8 @@ describe('useRecordControl follows the DAW live', () => {
     return { ...live, notify, ...view };
   }
 
-  it('record-turned-on-while-the-booth-is-open-enables-record', async () => {
-    const { result, capabilities } = hook(recordRefused('experimental_off'));
+  it('the-daw-answering-while-the-booth-is-open-enables-record', async () => {
+    const { result, capabilities } = hook(recordRefused('not_running'));
     await waitFor(() => expect(result.current.disabled).toBe(true));
     act(() => capabilities(DAW_SETUPS.reaper));
     await waitFor(() => expect(result.current.disabled).toBe(false));
@@ -394,27 +367,8 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
     expect(screen.getByText(/Could not read whether a project file is linked/)).toBeTruthy();
   });
 
-  it('turn-on-also-offers-check-again', async () => {
-    mountChecked(recordRefused('experimental_off'));
-    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
-    expect(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Check again' })).toHaveLength(1);
-  });
-
-  it("the built-in recorder names no DAW and waits for nothing: its switch is this app's own setting (R4BO1-2)", async () => {
-    const onSettings = vi.fn();
-    mountChecked(recordRefused('experimental_off', 'Built-in'), { onSettings });
-    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
-    const dialog = screen.getByRole('dialog', { name: 'Recording in the built-in recorder is experimental' });
-    expect(dialog.textContent).not.toMatch(/DAW|Waiting for|Last checked/);
-    expect(within(dialog).queryByRole('button', { name: 'Check again' })).toBeNull();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Recording settings' }));
-    expect(onSettings).toHaveBeenCalledTimes(1);
-    expect(within(dialog).getByRole('button', { name: 'Turn on Record' })).toBeTruthy();
-  });
-
   it('every button in a notice dialog is one height: none is drawn small (XBO-6)', async () => {
-    mountChecked(recordRefused('experimental_off'));
-    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    mountChecked(recordRefused('standalone'));
     for (const button of within(screen.getByRole('dialog'))
       .getAllByRole('button')
       .filter((b) => !b.getAttribute('aria-label')))

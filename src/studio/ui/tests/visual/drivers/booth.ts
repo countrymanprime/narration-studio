@@ -4,41 +4,43 @@ import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
-// The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
-const RECORD_ON = '?mockRecordCapabilityOn=1';
 // Where the page clock stops once Record is pressed, so the timer reads 00:00 at every viewport.
 const REC_START = new Date('2026-09-28T10:00:00Z').getTime();
-// The seams boot a session already 30 words into the first paragraph (word 35 of the chapter). Wait for the highlight to
-// land there so the shot is never taken mid-walk.
-const LISTENING_WORD = '[data-word="32"] [data-highlight="Cursor"]';
+// The seams boot a session already 30 words into the first paragraph: word 35 of the chapter, after the heading's five words
+// ("Chapter 1", "Down the Rabbit-Hole", read aloud as the sidecar's script opens). Wait for the highlight to land there so the shot
+// is never taken mid-walk.
+const LISTENING_WORD = '[data-word="35"] [data-highlight="Cursor"]';
 
-// The record capability on and the project's voice samples saved (api/voiceSamplesMock.ts).
-const SAMPLES = `${RECORD_ON}&mockVoiceSamples=bible`;
+// The project's voice samples saved (api/voiceSamplesMock.ts).
+const SAMPLES = '?mockVoiceSamples=bible';
+// The manuscript whose chapter headings vary: a title alone, a long subtitle (api/mockHost/manuscript.ts).
+const HEADINGS = '?mockManuscript=mixed';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
-// Record while it cannot start: off (`aria-disabled`) but pressable, and behind a dialog once one opens.
-const recordOff = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
-// A chapter with no linked track (REAPER's Experimental reads on, so the Booth reads the chapter's track; Record on).
-const UNLINKED = '?mockDawExperimentalOn=1&mockRecordCapabilityOn=1&mockReaperState=no_link';
+// A chapter with no linked track.
+const UNLINKED = '?mockReaperState=no_link';
 
-// Record switched off is a chip; a press of Record opens the dialog that turns it on.
-async function turnOnRecord(page: Page): Promise<void> {
-  await recordOff(page).click({ force: true });
-  await page
-    .getByRole('dialog', { name: /^Recording in .* is experimental$/ })
-    .getByRole('button', { name: 'Turn on Record' })
-    .click();
-}
-
-async function readyToRecord(page: Page, query = RECORD_ON): Promise<void> {
-  await openBooth(page, query);
+async function readyToRecord(page: Page, query = ''): Promise<void> {
+  // Always a fresh load: a spec that calls a driver on a blank page has no app to navigate in until one is loaded.
+  await openBooth(page, query || '?');
   await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
   await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
 }
 
+// The Booth on the mixed manuscript at the chapter named, chosen in the chapter picker (the Booth reopens on the chapter it was left
+// on, so a step from the first is not the same chapter at every viewport), ready to record, the reading on the title's first word.
+async function openHeadings(page: Page, chapter: string | RegExp): Promise<void> {
+  await openBooth(page, HEADINGS);
+  await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
+  await page.getByRole('button', { name: /^Chapter: / }).click();
+  await page.getByRole('menuitemradio', { name: chapter }).click();
+  await page.locator('[data-heading="title"]', { hasText: typeof chapter === 'string' ? chapter : undefined }).waitFor();
+  await page.locator('[data-heading="title"] [data-current]').waitFor();
+}
+
 // A take running on a paused clock; focus leaves Stop, so the page's own keys (Escape, R) reach the page as they do once the
 // narrator reads on.
-async function startTake(page: Page, query = RECORD_ON): Promise<void> {
+async function startTake(page: Page, query = ''): Promise<void> {
   await readyToRecord(page, query);
   if (query.includes('mockEngine=builtin')) await chooseMicrophone(page);
   await page.clock.install({ time: REC_START });
@@ -70,6 +72,16 @@ async function openBoothReading(page: Page, seam: 'loading' | 'fails'): Promise<
   await clickNav(page, 'Booth');
 }
 
+/** Moves the Booth's Text settings › Column width slider to one end and closes the popover. */
+async function setBoothColumnWidth(page: Page, key: 'Home' | 'End'): Promise<void> {
+  await page.getByRole('button', { name: 'Text settings' }).click();
+  const width = page.getByRole('slider', { name: 'Column width' });
+  await width.focus();
+  await width.press(key);
+  await page.keyboard.press('Escape');
+  await page.getByRole('slider', { name: 'Column width' }).waitFor({ state: 'hidden' });
+}
+
 export const boothDrivers: Record<string, Driver> = {
   'address-checking': async (page) => {
     await openCheckingLink(page, '/booth?chapter=gone');
@@ -91,8 +103,18 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },
   setup: (page) => readyToRecord(page),
+  // The mixed manuscript's second chapter has a title and no subtitle, its third a subtitle long enough to wrap (applyMixedManuscriptMock).
+  'heading-title-only': async (page) => {
+    await openHeadings(page, 'A Message from the Author');
+  },
+  'heading-long-subtitle': async (page) => {
+    await openHeadings(page, /Or, How the Understudy/);
+    await page.locator('[data-heading="subtitle"]', { hasText: 'Or, How the Understudy' }).waitFor();
+  },
   'daw-not-linked': async (page) => {
     await openBooth(page, '?mockDawChoice=found');
+    // Record has no switch now, so the setup dialog opens by itself on a REAPER that is not connected: close it to reach the chip.
+    await page.getByRole('dialog', { name: 'REAPER is not connected' }).getByRole('button', { name: 'Close' }).click();
     const chip = page.getByRole('button', { name: 'Recording setup: REAPER, not linked' });
     await chip.hover();
     await page
@@ -108,19 +130,6 @@ export const boothDrivers: Record<string, Driver> = {
       .getByRole('tooltip')
       .getByText(/not running/)
       .waitFor();
-  },
-  refusal: async (page) => {
-    await openBooth(page);
-    await page.getByText('Experimental: switched off in Settings.').waitFor();
-    await page.getByRole('button', { name: 'Record is switched off. Show details' }).waitFor();
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
-  },
-  // The same Booth after Record was pressed: the press opens the dialog that turns Record on, and nothing records.
-  'refusal-pressed': async (page) => {
-    await openBooth(page);
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
-    await recordOff(page).click({ force: true });
-    await page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' }).waitFor();
   },
   // A chapter with no track: the link dialog opens by itself, with the project's tracks to choose from and the offer to create one.
   'record-unlinked': async (page) => {
@@ -156,14 +165,14 @@ export const boothDrivers: Record<string, Driver> = {
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'record-connect': async (page) => {
-    await openBooth(page, '?mockDawConnected=0&mockRecordCapabilityOn=1');
+    await openBooth(page, '?mockDawConnected=0');
     // The bridge is down and the project is not linked: the dialog opens by itself, with the launcher steps and Open in REAPER (off until a file is linked).
     await page.getByRole('dialog', { name: /is not connected/ }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
   },
   // The same with the dialog closed by its X: the quiet mark stands above the footer and reopens it.
   'record-connect-closed': async (page) => {
-    await openBooth(page, '?mockDawConnected=0&mockRecordCapabilityOn=1');
+    await openBooth(page, '?mockDawConnected=0');
     const dialog = page.getByRole('dialog', { name: /is not connected/ });
     await dialog.getByRole('button', { name: 'Close' }).click();
     await dialog.waitFor({ state: 'detached' });
@@ -175,7 +184,6 @@ export const boothDrivers: Record<string, Driver> = {
   'record-turned-away': async (page) => {
     await openBooth(page, '?mockDaw=busy');
     const notice = page.locator('#brec-setup');
-    await turnOnRecord(page);
     const connect = page.getByRole('dialog', { name: /is not connected/ });
     await connect.getByRole('button', { name: 'Link in Settings' }).click();
     await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
@@ -189,7 +197,6 @@ export const boothDrivers: Record<string, Driver> = {
   'record-other-project': async (page) => {
     await openBooth(page, '?mockDaw=different');
     const notice = page.locator('#brec-setup');
-    await turnOnRecord(page);
     const connect = page.getByRole('dialog', { name: /is not connected/ });
     await connect.getByRole('button', { name: 'Link in Settings' }).click();
     await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
@@ -203,21 +210,16 @@ export const boothDrivers: Record<string, Driver> = {
   },
   // The app's own recorder: the chip names it, Record needs no track, and what stops a take is said in its own words.
   'builtin-setup': async (page) => {
-    await openBooth(page, `?mockEngine=builtin&mockRecordCapabilityOn=1`);
+    await openBooth(page, '?mockEngine=builtin');
     await page
       .getByRole('button', { name: /^Recording setup: / })
       .filter({ hasText: /Built-in/ })
       .waitFor();
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
-  'builtin-refusal': async (page) => {
-    await openBooth(page, '?mockEngine=builtin');
-    await page.getByRole('button', { name: 'Record is switched off. Show details' }).waitFor();
-    await page.getByText('Experimental: switched off in Settings.').waitFor();
-  },
-  'builtin-recording': (page) => startTake(page, '?mockEngine=builtin&mockRecordCapabilityOn=1'),
+  'builtin-recording': (page) => startTake(page, '?mockEngine=builtin'),
   'builtin-take-ended': async (page) => {
-    await startTake(page, '?mockEngine=builtin&mockRecordCapabilityOn=1&mockRecorder=failed');
+    await startTake(page, '?mockEngine=builtin&mockRecorder=failed');
     // The Booth hears the take on the mock DAW's next heartbeat; a stop heard before that is not the take's end.
     await page.clock.runFor(1_000);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
@@ -307,13 +309,13 @@ export const boothDrivers: Record<string, Driver> = {
     if ((await control.getAttribute('aria-disabled')) !== 'true') throw new Error('a voice sample can be played while a take records');
   },
   'listening-no-mic': async (page) => {
-    await openBooth(page, `${RECORD_ON}&mockNoDevices=1`);
+    await openBooth(page, `?mockNoDevices=1`);
     await page.locator('#blisten-why', { hasText: 'The text cannot follow your voice: No microphone found.' }).waitFor();
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'model-required': async (page) => {
     // No resume line here: finding where the recording ends needs the same missing model.
-    await openBooth(page, `${RECORD_ON}&mockAssets=missing`);
+    await openBooth(page, `?mockAssets=missing`);
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
     await page.clock.install({ time: REC_START });
     await page.clock.pauseAt(REC_START + 1_000);
@@ -325,7 +327,7 @@ export const boothDrivers: Record<string, Driver> = {
   // The chip is not offered at the place it would take the narrator to, so once chosen it goes; a page opened again (the next
   // viewport) returns to the remembered ¶ 14 and offers no chip at all.
   resume: async (page) => {
-    await openBooth(page, RECORD_ON);
+    await openBooth(page, '');
     const chip = page.getByRole('button', { name: /^Resume at ¶/ });
     const there = page.getByText(/¶ 14 of 24/);
     await chip.or(there).first().waitFor();
@@ -341,13 +343,13 @@ export const boothDrivers: Record<string, Driver> = {
     await menu.getByText('Chosen in REAPER').waitFor();
     // The microphone the DAW records from is named (the mock's first listed microphone), not left blank.
     await menu.getByText('Microphone Array (Realtek(R) Audio)').waitFor();
-    // REAPER's meters only read, so they show by default with no Experimental switch (the owner's decision on #2251).
+    // REAPER's meters, and the monitor slider, show whenever REAPER is linked and answering (#2251).
     await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
   },
   // The Punch part is REAPER's own pre-roll, read from REAPER and shown in measures with no switch (#2251 item 11).
   // With no track armed in REAPER, so the meters say so (#2251 item 11) and this state differs from levels-menu.
   'levels-menu-preroll': async (page) => {
-    await readyToRecord(page, `${RECORD_ON}&mockDawMeters=unarmed`);
+    await readyToRecord(page, `?mockDawMeters=unarmed`);
     await page.getByRole('button', { name: 'Levels' }).click();
     const menu = page.getByRole('dialog', { name: 'Levels' });
     await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
@@ -355,7 +357,7 @@ export const boothDrivers: Record<string, Driver> = {
   },
   // The pre-roll's "i" opened from the keyboard: the note, inside the menu, says what the pre-roll does and where to change it in REAPER.
   'levels-menu-preroll-about': async (page) => {
-    await readyToRecord(page, `${RECORD_ON}&mockDawMeters=unarmed`);
+    await readyToRecord(page, `?mockDawMeters=unarmed`);
     await page.getByRole('button', { name: 'Levels' }).click();
     const menu = page.getByRole('dialog', { name: 'Levels' });
     await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
@@ -365,16 +367,8 @@ export const boothDrivers: Record<string, Driver> = {
     await page.keyboard.press('Enter');
     await menu.getByText(/Pre-roll: Toggle pre-roll on record/).waitFor();
   },
-  // Experimental DAW actions on, so the monitor slider is usable and this state differs from levels-menu.
-  'levels-menu-daw-meters': async (page) => {
-    await readyToRecord(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
-    await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
-    await menu.getByRole('meter', { name: 'REAPER output level' }).waitFor();
-  },
   'room-tone-kept': async (page) => {
-    await readyToRecord(page, `${RECORD_ON}&mockRoomTone=-58.6`);
+    await readyToRecord(page, `?mockRoomTone=-58.6`);
     await page.getByText('Room −58.6 dB').waitFor();
   },
   'text-popover': async (page) => {
@@ -382,9 +376,18 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Text settings' }).click();
     await page.getByRole('slider', { name: 'Size' }).waitFor();
   },
+  // The Column width slider moved to one end, then the popover closed so the text column shows whole.
+  'text-width-narrow': async (page) => {
+    await readyToRecord(page);
+    await setBoothColumnWidth(page, 'Home');
+  },
+  'text-width-full': async (page) => {
+    await readyToRecord(page);
+    await setBoothColumnWidth(page, 'End');
+  },
   // A word marked on the Script with a note, then clicked in the Booth: the note under its paragraph and the side panel's Reference.
   'marked-note': async (page) => {
-    await page.goto(`/${RECORD_ON}`);
+    await page.goto(`/`);
     await settlePage(page);
     await goToPage(page, 'Script');
     await selectReaderWord(page, 'tired');
@@ -404,6 +407,8 @@ export const boothDrivers: Record<string, Driver> = {
   // B on the word being read: the ribbon in the margin beside its line (the toast is dismissed so the shot shows the margin).
   'bookmarks-ribbon': async (page) => {
     await readyToRecord(page);
+    // On the first paragraph's first word: the chapter title and subtitle above it are no manuscript paragraph a bookmark can name.
+    await page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
     await page.keyboard.press('b');
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();
@@ -438,7 +443,7 @@ export const boothDrivers: Record<string, Driver> = {
   },
   // Pickups' "Open in Booth at this line": the Booth in a pickup session, the line listed in the side panel and marked in the text.
   'pickup-session': async (page) => {
-    await page.goto(`/${RECORD_ON}`);
+    await page.goto(`/`);
     await settlePage(page);
     await goToPage(page, 'Pickups');
     await page.getByRole('region', { name: 'Pickups' }).getByRole('button', { name: 'Open in Booth at this line' }).first().click();
@@ -450,19 +455,19 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('[data-booth-text] [data-pickup]').first().waitFor();
   },
   'credits-unresolved': async (page) => {
-    await page.goto(`/booth${RECORD_ON}&credits=closing`);
+    await page.goto(`/booth?credits=closing`);
     await settlePage(page);
     await page.getByRole('button', { name: /Fill them in Settings$/ }).waitFor();
   },
   'credits-missing': async (page) => {
-    await page.goto(`/booth${RECORD_ON}&credits=closing&mockCreditsMissing=1`);
+    await page.goto(`/booth?credits=closing&mockCreditsMissing=1`);
     await settlePage(page);
     await page.getByRole('heading', { name: 'The closing credits are not set up' }).waitFor();
   },
   // The Booth in the Dark theme, chosen the way a narrator chooses it (Settings' Appearance panel). If the Booth ever forced one
   // palette again, this would render the same as 'setup' and the suite's identical-states check would fail the run.
   dark: async (page) => {
-    await page.goto(`/${RECORD_ON}`);
+    await page.goto(`/`);
     await settlePage(page);
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Booth');
