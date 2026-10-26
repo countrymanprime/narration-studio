@@ -792,6 +792,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   // model choice is tiny and small for either engine (only those have measured live-lag data).
   Teleprompter: [
     { key: 'input_device', label: 'Microphone', kind: 'text', choices: [], value: '', isSet: false, effectiveValue: '', effectiveSource: 'hardcoded' },
+    choice('input_source', 'Microphone source', ['daw', 'chosen'], 'daw'),
     {
       key: 'engine',
       label: 'Live engine',

@@ -285,8 +285,10 @@ describe('Recording & DAW: Record with', () => {
 });
 
 describe('Recording & DAW: Microphone', () => {
-  it('lists the input devices and saves the one chosen', async () => {
-    const api = createMockApi();
+  const builtin = () => createMockApi({}, { recording: { engine: 'builtin' } });
+
+  it('lists the input devices and saves the one chosen with the built-in recorder', async () => {
+    const api = builtin();
     const save = vi.spyOn(api, 'saveSettings');
     const { devices } = await api.teleprompterDevices();
     expect(devices.length).toBeGreaterThan(0);
@@ -296,7 +298,7 @@ describe('Recording & DAW: Microphone', () => {
       within(select)
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toEqual(['System default', ...devices.map((device) => device.name)]);
+    ).toEqual(['Automatic', ...devices.map((device) => device.name)]);
     fireEvent.change(select, { target: { value: devices[0]!.name } });
     await waitFor(() => expect(save).toHaveBeenCalledWith('Teleprompter', 'global', { input_device: devices[0]!.name }));
     await waitFor(() => expect(within(row('daw.mic')).getByText('Saved')).toBeTruthy());
@@ -304,8 +306,52 @@ describe('Recording & DAW: Microphone', () => {
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('Teleprompter', 'global', { input_device: null }));
   });
 
+  it('with a DAW shows its own input read-only, and nothing has to be set', async () => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    const [first] = (await api.teleprompterDevices()).devices;
+    await renderPage({ api, category: 'Recording & DAW' });
+    expect(await within(row('daw.mic')).findByText(first!.name)).toBeTruthy();
+    expect(within(row('daw.mic')).getByText(/Same as REAPER/)).toBeTruthy();
+    expect(within(row('daw.mic')).getByText(`REAPER records from ${first!.name} · Input 1.`)).toBeTruthy();
+    expect(within(row('daw.mic')).getByText('REAPER plays on Speakers (Realtek(R) Audio).')).toBeTruthy();
+    expect(within(row('daw.mic')).queryByRole('combobox')).toBeNull();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('Choose a different one keeps the narrator’s microphone over the DAW’s, and Use REAPER’s input goes back', async () => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api, category: 'Recording & DAW' });
+    fireEvent.click(await within(row('daw.mic')).findByRole('button', { name: 'Choose a different one' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Teleprompter', 'global', { input_source: 'chosen' }));
+    expect(await within(row('daw.mic')).findByRole('combobox', { name: 'Microphone' })).toBeTruthy();
+    expect(within(row('daw.mic')).getByText("Your choice, kept over REAPER's input in the Booth.")).toBeTruthy();
+    fireEvent.click(within(row('daw.mic')).getByRole('button', { name: "Use REAPER's input" }));
+    await waitFor(() => expect(save).toHaveBeenLastCalledWith('Teleprompter', 'global', { input_source: null }));
+    expect(await within(row('daw.mic')).findByText(/Same as REAPER/)).toBeTruthy();
+  });
+
+  it('when the DAW’s input fits several microphones, says so with one button each', async () => {
+    const api = createMockApi({}, { reaperInput: 'uncertain' });
+    const save = vi.spyOn(api, 'saveSettings');
+    const { devices } = await api.teleprompterDevices();
+    await renderPage({ api, category: 'Recording & DAW' });
+    const group = await within(row('daw.mic')).findByRole('group', { name: 'Which microphone REAPER records from' });
+    fireEvent.click(within(group).getByRole('button', { name: devices[1]!.name }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Teleprompter', 'global', { input_device: devices[1]!.name }));
+  });
+
+  it('with Audacity says it cannot report its input and offers the picker, with no ask-again', async () => {
+    const api = createMockApi({}, { reaperInput: 'daw_cannot_report' });
+    await renderPage({ api, category: 'Recording & DAW' });
+    expect(await within(row('daw.mic')).findByText(/Audacity cannot report which microphone it records from/)).toBeTruthy();
+    expect(within(row('daw.mic')).getByRole('combobox', { name: 'Microphone' })).toBeTruthy();
+    expect(within(row('daw.mic')).queryByRole('button', { name: /again/ })).toBeNull();
+  });
+
   it('keeps a free-text box when the devices cannot be listed, so the setting is never out of reach', async () => {
-    const api = createMockApi({}, { teleprompterDevices: [] });
+    const api = createMockApi({}, { teleprompterDevices: [], recording: { engine: 'builtin' } });
     const save = vi.spyOn(api, 'saveSettings');
     await renderPage({ api, category: 'Recording & DAW' });
     const box = await within(row('daw.mic')).findByRole('textbox');
@@ -315,7 +361,10 @@ describe('Recording & DAW: Microphone', () => {
   });
 
   it('says why the list could not be read and still offers the text box', async () => {
-    const api = createMockApi({ teleprompterDevices: async () => ({ devices: [], error: 'audio service is not running' }) });
+    const api = createMockApi(
+      { teleprompterDevices: async () => ({ devices: [], error: 'audio service is not running' }) },
+      { recording: { engine: 'builtin' } },
+    );
     await renderPage({ api, category: 'Recording & DAW' });
     expect(await within(row('daw.mic')).findByText(/audio service is not running/)).toBeTruthy();
     expect(within(row('daw.mic')).getByRole('textbox')).toBeTruthy();
@@ -343,7 +392,7 @@ describe('Recording & DAW: REAPER program', () => {
 // Alignment audit (R3SE1-4, XSE2-8): the Microphone select is the settings' field width with Refresh under it, not beside it.
 describe('Recording & DAW: Microphone layout', () => {
   it('draws the select at the field width and Refresh on its own line under it', async () => {
-    await renderPage({ category: 'Recording & DAW' });
+    await renderPage({ api: createMockApi({}, { recording: { engine: 'builtin' } }), category: 'Recording & DAW' });
     const select = await within(row('daw.mic')).findByRole('combobox', { name: 'Microphone' });
     expect(select.className).toContain('w-80');
     const refresh = within(row('daw.mic')).getByRole('button', { name: 'Refresh the list' });
