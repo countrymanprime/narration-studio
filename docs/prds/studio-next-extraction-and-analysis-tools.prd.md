@@ -24,6 +24,7 @@ The owner wants the Story Bible to fill itself with varying success: anything un
 4. **Sources as providers.** `ExtractionProvider` port with registered sources: rules (existing sidecar), imported, GLiNER, BookNLP, local model (unavailable with a reason). Each source has its own label and icon in the UI.
 5. **Import** of a CSV or a JSON (`storybible-import` v1) with per-row errors and a preview worked out on a copy (add, merge, skip); a copyable prompt template filled from the format so a narrator can use any LLM.
 6. **Analysis tools as registry assets.** GLiNER, BookNLP small and large and the local language model are catalogue entries of the existing asset registry, installed only after a consent screen (what, size, source host, licence note), with progress, cancel and remove; the first-scan prompt offers basic scan, download the recommended pair, or import from a file, with "Don't ask again" in preferences.
+   Superseded in part (2026-10-26, umbrella [#2251](https://github.com/countrymanprime/narration-studio/issues/2251)): the local language model is no longer a catalogue entry. It had no model, runtime or scanner, so Settings listed an option with no download that could never be had; the owner asked for it to be removed until SNX-9 picks a model. The mock's fourth row is not built. GLiNER is pinned and installs.
 7. **Sidecar adapters** for GLiNER and BookNLP behind the extraction port, with conformance tests against fakes; real models run only in the packaged smoke test.
 
 ## Key Hypothesis

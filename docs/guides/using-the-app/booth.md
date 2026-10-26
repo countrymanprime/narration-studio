@@ -15,8 +15,10 @@ The top bar holds the chapter stepper (previous chapter, the chapter menu with t
 where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and a chip naming the recording setup (the DAW, or the
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
-[Script](script.md), and the Booth's text size, 24 to 72 px; **+** and **-** change the size too, and the Booth opens at the size
-you last chose. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
+[Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
+the same choice as **Column width** in [Settings › Reader text](settings.md); **+** and **-** change the size too, and the Booth opens at the size
+and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
+**Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
 side-panel button move together and stay at the right edge. The chapter picker is as wide as the chapter's name, up to 340 pixels.
 The resume line is not offered while you are already in the paragraph it would take you to.
@@ -44,8 +46,8 @@ dotted or wavy underline), as they are on Script; a mark's note shows under its 
 speaker chip takes its character's colour; a suggested speaker's chip is dashed until you confirm it, and a quote nobody is
 matched to has a grey dashed **?** chip, by the same rule as on [Script](script.md). The chip's menu lists the entries whose
 type speaks. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **In this
-chapter** chips alike. Paragraphs sit one line apart, as the lines inside them do, and each starts with an indent, so a page of short paragraphs or
-back-and-forth dialogue shows many more lines at the same text size. The word you
+chapter** chips alike. The text is left-aligned and a paragraph starts at the column's edge, with no indent and a small gap above it, so a page of short paragraphs or
+back-and-forth dialogue still shows many lines at the same text size. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
 
@@ -111,7 +113,14 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 ## Recording
 
 Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
-track and starts at the end of the last item on it, so a take never records over an earlier one.
+track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
+the end of the last item on the track, so a take never records over audio from a place you did not choose.
+
+Stop leaves you where you stopped. The highlight stays on the last word the Booth heard, and the next take, **Resume** and a cold
+read start from there. In REAPER the edit cursor stays at the end of what you just recorded, whether you press Stop in the Booth or
+in REAPER. REAPER on its own would put it back where the recording began, so the app moves it to the end itself and changes none of
+REAPER's preferences. Going back is always your own choice: click a word, use **Start from here**, or punch and roll (**R**).
+Audacity cannot record from the Booth yet. The built-in recorder has no edit cursor, so only the highlight stays.
 
 When Record cannot start, it looks off and the footer says why, but you can still press it: the press opens the dialog that
 fixes the problem, or, when there is nothing to fix from the Booth, a message that says why with **Check again**. Nothing
@@ -423,7 +432,7 @@ While its chapters are being read, the panel shows its title and grey blocks, an
 
 With **Check recordings in the background** on (Settings > Speech to text > Background checks), the app listens back to each
 take you record and marks skipped or misread words for [Editing](editing.md) and [Pickups](pickups.md), so you do not have to
-press **Check recording** chapter by chapter.
+press **Check recordings** chapter by chapter.
 
 - **It asks first.** The first time a recorded chapter is ready to check, **Check recordings in the background?** names the
   models it would use (`tiny`, with `small` double-checking what `tiny` was unsure of). Nothing is checked until you choose

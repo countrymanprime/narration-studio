@@ -723,6 +723,8 @@ def _check_engine_args(ap: argparse.ArgumentParser, args) -> None:
         ap.error("--start-word needs --script or --manuscript")
     if args.control_file and not has_tracker:
         ap.error("--control-file needs --script or --manuscript")
+    if args.clock and not has_tracker:
+        ap.error("--clock needs --script or --manuscript")
     if bool(args.script_id) != bool(args.script_title):
         ap.error("--script-id and --script-title go together")
     if args.script_id and not args.script:
@@ -754,13 +756,23 @@ def _load_script(ap: argparse.ArgumentParser, args):
     return None, None, None
 
 
+def _session_script(ap: argparse.ArgumentParser, args):
+    """_load_script for a session. With --clock the host follows the read (src/studio/desktop/internal/scripttrack): the
+    script still checks the chapter and is the engine's context, but nothing here tracks or describes it."""
+    tracker, script_message, chapter_text = _load_script(ap, args)
+    if args.clock:
+        return None, None, chapter_text
+    return tracker, script_message, chapter_text
+
+
 def _emit(event: dict) -> None:
     print(json.dumps(event), flush=True)
 
 
 def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> None:
     """Stream engine events (and, with a tracker, the position events they
-    cause) to stdout until the input ends or Ctrl+C."""
+    cause; with --clock, a clock line per chunk instead) to stdout until the
+    input ends or Ctrl+C."""
     from control_channel import ControlChannel, pause_state, seek_word
     from narration_common.recording import LevelMeter, metered
 
@@ -803,11 +815,13 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
         if args.mic:
             chunks, capture_started = _anchor_capture_clock(chunks)
         clock = StreamClock(capture_started)
+        if args.clock:
+            _emit({"type": "clock", "t": clock.now()})
         if tracker and args.start_word is not None:
             for position in tracker.reset_to(args.start_word, clock.now()):
                 _emit(track(position))
         chunks = metered(stoppable(chunks, args.stop_file), LevelMeter(SAMPLE_RATE), _emit)
-        if tracker:
+        if tracker or args.clock:
             control = ControlChannel(args.control_file)
 
             def on_tick(now: float) -> None:
@@ -816,14 +830,19 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
                     if paused is not None:
                         clock.pause() if paused else clock.resume()
                     word = seek_word(command)
-                    if word is not None:
+                    if word is not None and tracker:
                         for position in tracker.reset_to(word, clock.now()):
                             _emit(track(position))
-                for position in tracker.tick(clock.now()):
-                    _emit(track(position))
+                if args.clock:
+                    _emit({"type": "clock", "t": clock.now()})
+                if tracker:
+                    for position in tracker.tick(clock.now()):
+                        _emit(track(position))
 
             chunks = gated(ticking(chunks, clock, on_tick), lambda: clock.paused)
         for event in stream(chunks):
+            if args.clock:
+                _emit({"type": "clock", "t": clock.now(), "event": True})
             _emit(event)
             if tracker:
                 for tracked in tracker.feed(event, clock.now()):
@@ -837,7 +856,7 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
 
 
 # What --meter cannot be combined with: it opens a microphone and reports its level, nothing else.
-_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_word", "words_only", "locate", "list_devices", "capabilities", "verify")
+_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_word", "clock", "words_only", "locate", "list_devices", "capabilities", "verify")
 
 
 def _run_meter(ap: argparse.ArgumentParser, args) -> None:
@@ -1004,6 +1023,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--script-title", default=None, help="The --script-id script's display name, e.g. 'Opening credits' (needs --script-id)")
     ap.add_argument("--start-word", type=int, default=None, help="Start the tracker already at this script word index (needs --script or --manuscript)")
     ap.add_argument(
+        "--clock",
+        action="store_true",
+        help='Leave following the read to the host: print {"type": "clock", "t": seconds} (the stream time the tracker would '
+        'read) before the first chunk and as each chunk arrives, and {"type": "clock", "t": seconds, "event": true} before '
+        "each engine event, and no script, position or flag events; pause and resume still act, a seek is the host's",
+    )
+    ap.add_argument(
         "--control-file",
         default=None,
         help='Sentinel file the host appends seek commands to, one JSON object per line, e.g. {"cmd": "seek", "word": 12} '
@@ -1094,7 +1120,7 @@ def main() -> None:
         ap.error("one of --wav or --mic is required")
     _check_engine_args(ap, args)
 
-    tracker, script_message, chapter_text = _load_script(ap, args)
+    tracker, script_message, chapter_text = _session_script(ap, args)
     # --context, else the chapter itself; an engine that takes no context (Whisper refuses --context) ignores it.
     args.context_text = Path(args.context).read_text(encoding="utf-8") if args.context else chapter_text
     if args.no_context:

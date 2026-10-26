@@ -53,11 +53,11 @@ type Story = StoryObj<typeof meta>;
 
 const doc = rangeDoc();
 
-// No range yet: the line says how to make one.
+// No range yet: the notes slot is empty, and the "?" above the waveform says how to make one.
 export const NoRange: Story = {
   args: { doc },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/Drag to choose a range; right-drag/)).toBeTruthy();
+    await expect(within(canvasElement).getByRole('button', { name: 'Waveform gestures' })).toBeTruthy();
     await expect(within(canvasElement).queryByRole('slider', { name: 'Start of range' })).toBeNull();
   },
 };
@@ -81,8 +81,6 @@ export const ZoomedIn: Story = {
     const c = within(canvasElement);
     await expect(c.getByRole('button', { name: 'Scroll the waveform back a window' })).toBeTruthy();
     await expect(c.queryByRole('slider', { name: 'Visible part' })).toBeNull();
-    // The bar note shows only where a 20 ms bar is wide enough to see (a narrow window at one second is not): the unit test holds it.
-    await expect(c.queryByText(/Each bar is (?!20 ms)\d+ ms/)).toBeNull();
   },
 };
 

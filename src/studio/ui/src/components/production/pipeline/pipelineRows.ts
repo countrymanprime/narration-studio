@@ -1,4 +1,4 @@
-import type { ChapterStatus } from '../../../api/contracts/manuscript';
+import type { ChapterStatus, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName } from '../../../chapterName';
 import { hm } from '../../schedule/dates';
@@ -25,11 +25,24 @@ export type PipelineCell = {
   go: boolean;
 };
 
+/** What the row's Rec. column says: the measured length of the chapter's linked track, or why there is none (never a 0 standing in for "unknown"). */
+export type RecordedFigure = {
+  /** `measured` for a length the host read, `none` for a state word. */
+  kind: 'measured' | 'none';
+  /** A clock ("1:12"), "<0:01" for under a minute, or a short state ("None yet", "Not linked"). */
+  text: string;
+  /** The accessible name: "<chapter>: 1:12 recorded of about 1:20 estimated", or the state in words. */
+  label: string;
+  tip: string;
+};
+
 export type PipelineRow = {
   id: string;
   name: string;
-  /** The estimated finished length of the chapter at the planning rate, or a dash. */
-  finished: string;
+  /** What is recorded on the chapter's linked track in the saved project: a measurement, not a stage. */
+  recorded: RecordedFigure;
+  /** The estimated finished length of the chapter from its words at the planning rate, or a dash. */
+  estimate: string;
   /** The column of the stage the chapter is in: the readiness chip sits on it. */
   current: PipelineColumn;
   cells: Record<PipelineColumn, PipelineCell>;
@@ -87,13 +100,49 @@ const unknown = (column: PipelineColumn, target: GoTarget, go = true): PipelineC
 
 const clockOf = (seconds: number): string => hm(seconds / 3600);
 
+/** Why a chapter has no recorded length, as the Rec. column's word and its tip (`recordedlengths.go`'s reasons). */
+const UNAVAILABLE: Record<RecordedUnavailable, { text: string; tip: string }> = {
+  unlinked: { text: 'Not linked', tip: 'Not linked to a track, so nothing is measured. Link it from the chapter’s track panel' },
+  no_project: { text: 'No project', tip: 'No saved DAW project could be read, so nothing is measured' },
+  multiple_tracks: { text: '2+ tracks', tip: 'Linked to more than one track, so nothing is measured. Keep one in the chapter’s track panel' },
+  track_missing: { text: 'Track gone', tip: 'The linked track is no longer in the saved project, so nothing is measured' },
+};
+const NOT_READ = { text: 'Not read', tip: 'The recorded length has not been read' };
+
+/** A recorded length as h:mm; under a minute is "<0:01", so a few seconds of audio never reads as nothing. */
+const recordedClock = (seconds: number): string => (seconds > 0 && seconds < 60 ? '<0:01' : clockOf(seconds));
+
+function recordedFigure(name: string, chapter: ProductionChapter, estimate: string): RecordedFigure {
+  const seconds = chapter.recordedSeconds;
+  const of = estimate === DASH ? ', no estimate' : ` of about ${estimate} estimated`;
+  if (seconds !== null && seconds > 0) {
+    const text = recordedClock(seconds);
+    return {
+      kind: 'measured',
+      text,
+      label: `${name}: ${text} recorded${of}`,
+      tip: `${text} recorded${of} · on the linked track in the saved project, before editing`,
+    };
+  }
+  const state =
+    seconds === 0
+      ? { text: 'None yet', tip: 'Linked to its track, with nothing recorded on it yet' }
+      : chapter.recordedUnavailable
+        ? UNAVAILABLE[chapter.recordedUnavailable]
+        : NOT_READ;
+  return { kind: 'none', text: state.text, label: `${name}: recorded ${state.text.toLowerCase()}`, tip: state.tip };
+}
+
 function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | undefined): PipelineCell {
   const status = check ? chapterCheckStatusText(chapterName(chapter), check) : undefined;
   const checkLine = status ? `Recording check: ${status.label}${status.detail ? ` · ${status.detail}` : ''}` : '';
   const withCheck = (tip: string): string => (checkLine ? `${tip} · ${checkLine}` : tip);
   const length = chapter.recordedSeconds !== null ? `${clockOf(chapter.recordedSeconds)} recorded` : '';
   if (past(chapter.status, 'editing')) return done('record', 'booth', withCheck(length ? `Recorded · ${length}` : 'Recorded'));
-  if (chapter.status === 'recording') {
+  // Audio on the linked track means recording is under way, even while the chapter's stage still says not started.
+  const audio = chapter.recordedSeconds !== null && chapter.recordedSeconds > 0;
+  if (chapter.status === 'recording' || audio) {
+    const stageNote = chapter.status === 'recording' ? '' : ' · The chapter’s stage is still Not started';
     const finished = (chapter.wordCount / WPH) * 3600;
     // A percent only from a measured length against the chapter's finished length; never one made up.
     if (chapter.recordedSeconds !== null && finished > 0) {
@@ -104,10 +153,10 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
         'progress',
         `${percent}%`,
         `${percent}% recorded`,
-        withCheck(`${percent}% recorded · ${length} of about ${clockOf(finished)}`),
+        withCheck(`${percent}% recorded · ${length} of about ${clockOf(finished)}${stageNote}`),
       );
     }
-    return underWay('record', 'booth', withCheck('Recording in progress'));
+    return underWay('record', 'booth', withCheck(`Recording in progress${stageNote}`));
   }
   return { ...notStarted('record', 'booth'), tip: withCheck('Not started') };
 }
@@ -179,10 +228,13 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
       master: masterCell(review),
       qc: qcCell(review),
     };
+    const name = chapterName(chapter);
+    const estimate = chapter.wordCount > 0 ? hm(chapter.wordCount / WPH) : DASH;
     return {
       id: chapter.id,
-      name: chapterName(chapter),
-      finished: chapter.wordCount > 0 ? hm(chapter.wordCount / WPH) : DASH,
+      name,
+      recorded: recordedFigure(name, chapter, estimate),
+      estimate,
       current: currentColumn(chapter.status, open),
       cells,
     };

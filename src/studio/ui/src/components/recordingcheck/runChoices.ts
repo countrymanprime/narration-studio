@@ -17,8 +17,6 @@ export type RunChoices = {
 };
 
 export const CHAPTERS_AT_ONCE = [1, 2, 3, 4, 6, 8] as const;
-export const CHUNK_SECONDS = [0, 60, 120, 300, 600, 900] as const;
-export const OVERLAP_SECONDS = [2, 4, 6, 10, 15] as const;
 export const DOUBT_SHARES = [0, 0.3, 0.4, 0.5, 0.6, 0.7] as const;
 
 /** The choices a run begins with: what the host would do with no options, so the dialog shows the narrator's own settings. */
@@ -42,13 +40,6 @@ export function startOptions(choices: RunChoices): CoverageStartOptions {
   return options;
 }
 
-/** The process counts to offer: automatic (0), then 1 and up to the computer's processors. */
-export function workerChoices(cpus: number): number[] {
-  const top = Number.isFinite(cpus) && cpus >= 1 ? Math.floor(cpus) : 1;
-  const counts = [0, ...[1, 2, 3, 4, 6, 8, 12, 16, 24, 32].filter((count) => count <= top)];
-  return counts.includes(top) || top > 32 ? counts : [...counts, top];
-}
-
 /** `list` with `current` in it, in order: a setting can hold a value the dialog does not list, and a select must show it. */
 export const withChoice = (list: readonly number[], current: number): number[] =>
   list.includes(current) ? [...list] : [...list, current].sort((a, b) => a - b);
@@ -63,9 +54,9 @@ export function chunkLabel(seconds: number): string {
 
 const labelOf = (engines: CoverageEngines, id: string): string => engines.engines.find((engine) => engine.id === id)?.label ?? id;
 
-const needsDownload = (engine: CoverageEngine): string => `Download ${engine.label} in Settings first.`;
+const needsDownload = (engine: CoverageEngine): string => `${engine.label} is not installed yet: Check asks before downloading it.`;
 
-/** What stops a run: the words for it, and whether it is only that a model is not installed yet (a page that can download one still lets the run start). */
+/** What stops a run: the words for it, and whether it is only that a model is not installed yet (Check then asks to download it). */
 export type RunBlocker = { message: string; needsInstall: boolean };
 
 /** Why the run cannot start as chosen, or undefined: a model missing or not installed, or a second pass by the model that made the first. */
@@ -81,7 +72,7 @@ export function findProblem(choices: RunChoices, engines: CoverageEngines): RunB
   return undefined;
 }
 
-/** The words for what stops the run, or undefined. */
+/** The words for what stops or holds up the run, or undefined. */
 export const runProblem = (choices: RunChoices, engines: CoverageEngines): string | undefined => findProblem(choices, engines)?.message;
 
 /** One or two sentences saying what the run will do, in the narrator's words. */

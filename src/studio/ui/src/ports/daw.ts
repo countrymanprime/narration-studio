@@ -151,6 +151,9 @@ export type BackupRequest = { chapterId: string; firstToken: number; lastToken: 
 /** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
 export const NOTHING_TO_CHANGE = 'Nothing to change.';
 
+/** A record start's answer: a DawResult and, when the DAW says, where the take began in project seconds. */
+export type DawRecordStart = DawResult & { position?: number };
+
 export interface DawClient {
   /** What the launch's DAW can do now, as the host or the mock setup reports it. */
   capabilities(): Promise<DawCapabilities>;
@@ -162,9 +165,10 @@ export interface DawClient {
   subscribeTransport?(onUpdate: (next: DawTransport) => void): () => void;
   /** The project as last saved, whether the DAW has unsaved changes, and the transport. `playPosition` is for display only. */
   projectState(): Promise<DawProjectState>;
-  /** Start recording on the chapter's track: from the end of its last item, or from `at` (project seconds) when the
-   * narrator chose a punch. A time that is not a finite, non-negative number of seconds is refused before anything changes. */
-  recordStart(chapterId: string, at?: number): Promise<DawResult>;
+  /** Start recording on the chapter's track: where the last take on it stopped while the cursor is still there, else from the end
+   * of its last item, or from `at` (project seconds) when the narrator chose a punch. A time that is not a finite, non-negative
+   * number of seconds is refused before anything changes. A start answers `position`, where the take began, when the DAW says. */
+  recordStart(chapterId: string, at?: number): Promise<DawRecordStart>;
   /** Stop a recording this app started. */
   recordStop(): Promise<DawResult>;
   /** Make `candidateId` the active take of the passage between the two tokens. */
@@ -439,7 +443,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     projectState: () => api.dawProjectState(),
     async recordStart(chapterId, at) {
       const result = await (at === undefined ? api.readAloudRecordStart(chapterId) : api.readAloudRecordStartAt(chapterId, at));
-      return result.outcome === 'refused' ? refused(result.message, 'recordStart', result.reason === 'track_missing') : done(true, 0, result.message);
+      if (result.outcome === 'refused') return refused(result.message, 'recordStart', result.reason === 'track_missing');
+      return { ...done(true, 0, result.message), ...(result.position === undefined ? {} : { position: result.position }) };
     },
     async recordStop() {
       const result = await api.readAloudRecordStop();
@@ -573,7 +578,8 @@ function mockDawCalls(setup: DawCapabilities, project: DawProject, projectState:
       const punch = at === undefined ? null : unavailable(setup, 'punch', 'recordStart');
       if (punch) return refused(punch, 'recordStart');
       if (!project.chapterIds.includes(chapterId)) return refused(DAW_ANSWERS.noTrack, 'recordStart', true);
-      return at === undefined ? done(true, 0) : done(true, 0, recordingFromAnswer(at));
+      // The mock's track is empty, so a plain start begins at 0, as the host's golden does.
+      return at === undefined ? { ...done(true, 0), position: 0 } : { ...done(true, 0, recordingFromAnswer(at)), position: at };
     },
     async recordStop() {
       const sentence = unavailable(setup, 'record', 'recordStop');

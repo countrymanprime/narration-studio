@@ -194,8 +194,11 @@ describe('the-title-is-read-text', () => {
     await host.hear({ type: 'flag', id: 3, kind: 'misread', start: 4, end: 5, heard: 'warden' });
     await host.hear(heardAt(9));
     await space();
-    await waitFor(() => expect(host.teleprompterSaveFlags).toHaveBeenCalledTimes(1));
-    expect(host.teleprompterSaveFlags.mock.calls[0]).toEqual(['c1', [expect.objectContaining({ paragraphId: 'p1', wordStart: 2, heard: 'warden' })]]);
+    await waitFor(() => expect(host.teleprompterSaveFlags).toHaveBeenCalled());
+    // Every save of the take names the text's misread only (a take's stop may be told more than once; the host answers a repeat
+    // with the decision it already stored).
+    for (const call of host.teleprompterSaveFlags.mock.calls)
+      expect(call).toEqual(['c1', [expect.objectContaining({ paragraphId: 'p1', wordStart: 2, heard: 'warden' })]]);
   });
 
   it('a bookmark cannot be put on the title, which is no paragraph of the manuscript, and B there says so', async () => {

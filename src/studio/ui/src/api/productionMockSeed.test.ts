@@ -28,3 +28,20 @@ describe('scenarioFromToday', () => {
     }
   });
 });
+
+describe('the linked scenario', () => {
+  it('measures every linked chapter with no stage moved on, and names why the rest have no length', async () => {
+    const api = createMockApi({}, { production: PRODUCTION_SCENARIOS.linked });
+    const { chapters, totals } = await api.productionOverview();
+    const byId = new Map(chapters.map((chapter) => [chapter.id, chapter]));
+    expect(chapters.every((chapter) => chapter.status === 'not_started')).toBe(true);
+    expect(byId.get('chapter-1')?.recordedSeconds).toBe(790);
+    expect(byId.get('chapter-7')?.recordedSeconds).toBe(0);
+    expect(byId.get('chapter-9')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'unlinked' });
+    expect(byId.get('chapter-10')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'multiple_tracks' });
+    expect(byId.get('chapter-11')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'track_missing' });
+    expect(byId.get('chapter-12')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'no_project' });
+    expect(totals.recordedSeconds).toBe(790 + 725 + 640 + 512 + 311 + 45);
+    expect(totals.measuredChapters).toBe(8);
+  });
+});

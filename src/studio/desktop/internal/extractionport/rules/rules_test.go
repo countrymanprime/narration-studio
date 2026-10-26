@@ -112,10 +112,11 @@ func TestTheRulesLinesBecomeRawSuggestions(t *testing.T) {
 			t.Error(p)
 		}
 	}
-	if want := []extraction.Kind{extraction.KindAlias, extraction.KindEntry, extraction.KindEntry, extraction.KindSpeaker}; !slices.Equal(kinds, want) {
+	// The names come strongest first (Dawnspire, then Captain Arelian, then the Council of Ash), then the speakers.
+	if want := []extraction.Kind{extraction.KindEntry, extraction.KindAlias, extraction.KindEntry, extraction.KindSpeaker}; !slices.Equal(kinds, want) {
 		t.Fatalf("kinds = %v, want %v (logged %q)", kinds, want, *logged)
 	}
-	alias, speaker := raws[0], raws[3]
+	alias, speaker := raws[1], raws[3]
 	if alias.Payload.Entry != "Arelian" || alias.Payload.Alias != "Captain Arelian" || alias.Confidence != nil || alias.Note == "" {
 		t.Errorf("alias = %+v", alias)
 	}
@@ -245,8 +246,9 @@ func contractBook(t *testing.T) Files {
 	return files
 }
 
-// TestTheSuggestLinesMatchTheContractFile writes testdata/suggest-lines.json, one line of each kind the rules give, which the
-// sidecar's test_contract_goldens.py wrote before the rules moved here (the same bytes).
+// TestTheSuggestLinesMatchTheContractFile writes testdata/suggest-lines.json, one line of each kind the rules give. The sidecar's
+// test_contract_goldens.py wrote it before the rules moved here; since #2251 the scan ranks names by evidence, so the lines are in
+// that order, each the same bytes.
 func TestTheSuggestLinesMatchTheContractFile(t *testing.T) {
 	files := contractBook(t)
 	lines, err := guide.RuleSuggestions(context.Background(), files.Manuscript, files.Guide)

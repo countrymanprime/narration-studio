@@ -129,7 +129,13 @@ Wikimedia Commons.
 **Scan the manuscript** (in **More actions**) reads the book and suggests new entries and facts about the ones
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
-until you agree. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
+until you agree. The basic scan reads English and would rather miss a name than suggest a word that is not one: it
+never suggests a pronoun or a contraction (I, I'm, We'll), a word that only starts a sentence (However, Because I), a title on
+its own (Mr, Sir, Ma'am), a shouted word, a chapter heading, a day or a month. It suggests a name once something shows it is
+one: a title before it (Mr Darcy), a speech verb beside it ("said Clara"), or a capital in the middle of sentences in more than
+one paragraph. Mr Darcy, Mr. Darcy and Darcy's are one suggestion; Mr. Bennet and Mrs. Bennet are two. Names with de la or van
+der stay whole. A name it misses can be added by hand or found by the
+better analysis. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
 before it adds anything. **Copy prompt** copies the prompt to give your own LLM with the manuscript, and **Show example** shows the format it answers in. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
 found on their own, though: after a manuscript import and at the end of every scan, each quoted line is matched to a
 speaker where a speech tag names an entry whose type speaks ("Ada said"). Such an entry's name within 70 characters of
