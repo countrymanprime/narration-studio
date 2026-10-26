@@ -2986,12 +2986,13 @@ export function TeleprompterPunchPreview(word: number): $CancellablePromise<stri
 }
 
 /**
- * TeleprompterReaperInput answers which of the teleprompter's microphones REAPER records from, so the picker can
- * preselect it with a reason. It asks REAPER once, read-only,
- * and never on a timer; a REAPER that is not there or cannot say is an answer, and the picker then keeps its list.
+ * TeleprompterReaperInput answers which of the teleprompter's microphones REAPER records from, so the Booth listens on
+ * the device REAPER records with. chapterID names the Booth's chapter: when it is linked to one track, REAPER also names
+ * that track's input channel; "" or an unlinked chapter reads the device alone. It asks REAPER once, read-only, and never
+ * on a timer; a DAW that is not there or cannot say is an answer, and the Booth then uses the narrator's choice.
  */
-export function TeleprompterReaperInput(): $CancellablePromise<string> {
-    return $Call.ByID(3054312412);
+export function TeleprompterReaperInput(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(3054312412, chapterID);
 }
 
 /**

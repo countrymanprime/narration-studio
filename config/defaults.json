@@ -33,6 +33,7 @@
     "color_extra": "40A0FF"
   },
   "Teleprompter": {
+    "input_source": "daw",
     "engine": "whisper",
     "model": "tiny",
     "punch_preroll_seconds": "3"

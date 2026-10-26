@@ -2,14 +2,14 @@
 -- calls are in docs/research/reaper-api-for-planned-commands.md). Loaded by narration_ui_bridge.lua, which passes the
 -- shared helpers as the chunk argument.
 --
--- Read-only: it reads the transport, the edit counter, which tracks are armed, the named track's record input and
--- REAPER's input device, and lists the named track's items with their active takes. It opens no undo block and sets
--- nothing. A track is named by its GUID; a GUID that does not resolve is reported as TRACK_STALE and no other track is
+-- Read-only: it reads the transport, the edit counter, which tracks are armed, the named track's record input, REAPER's
+-- input and output devices and the names of the track's input channels, and lists the named track's items with their
+-- active takes. It opens no undo block and sets nothing. A track is named by its GUID; a GUID that does not resolve is reported as TRACK_STALE and no other track is
 -- ever answered in its place. With no GUID it answers the transport and the arms only.
 --
 -- Events: TRACK_STATE|run|guid|playState|editCursor|playPosition|rpp|unsaved|changeCount|thisArmed|armedCount|recInput|
--- inputDevice, then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|sourceFile|muted per item (at
--- most ITEM_LIMIT; muted is the last field), then TRACK_STATE_END|run|listed|total.
+-- inputDevice|outputDevice|recInputName, then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|
+-- sourceFile|muted per item (at most ITEM_LIMIT; muted is the last field), then TRACK_STATE_END|run|listed|total.
 
 local core = ...
 local event = core.event
@@ -53,13 +53,32 @@ local function armed_count()
   end
   return count
 end
--- The input device REAPER has open, or empty when it has none open or cannot say.
-local function input_device()
+-- The input (IDENT_IN) or output (IDENT_OUT) device REAPER has open, or empty when it has none open or cannot say.
+local function audio_device(attribute)
   if not reaper.APIExists('GetAudioDeviceInfo') then
     return ''
   end
-  local ok, name = reaper.GetAudioDeviceInfo('IDENT_IN')
+  local ok, name = reaper.GetAudioDeviceInfo(attribute)
   return ok and name or ''
+end
+local function channel_name(index)
+  local name = reaper.GetInputChannelName(index)
+  return type(name) == 'string' and name or ''
+end
+-- The hardware channel(s) a track records from, by REAPER's names for them: I_RECINPUT's low ten bits are the first
+-- channel, 1024 makes it a pair and 4096 a MIDI input. Empty for no input, MIDI, a channel REAPER cannot name, or no
+-- GetInputChannelName.
+local function input_channel_name(rec_input)
+  if rec_input < 0 or math.floor(rec_input / 4096) % 2 == 1 or not reaper.APIExists('GetInputChannelName') then
+    return ''
+  end
+  local first = rec_input % 1024
+  local name = channel_name(first)
+  if name == '' or math.floor(rec_input / 1024) % 2 == 0 then
+    return name
+  end
+  local second = channel_name(first + 1)
+  return second ~= '' and (name .. ' / ' .. second) or ''
 end
 
 local function item_row(item)
@@ -100,6 +119,7 @@ local function chapter_track_state(session_dir, run_id, guid_text)
   end
   local _, rpp = reaper.EnumProjects(-1, '')
   rpp = rpp or ''
+  local rec_input = track and math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_RECINPUT')) or nil
   event(
     session_dir,
     'TRACK_STATE',
@@ -113,8 +133,10 @@ local function chapter_track_state(session_dir, run_id, guid_text)
     reaper.GetProjectStateChangeCount(0),
     (track and armed(track)) and 1 or 0,
     armed_count(),
-    track and math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_RECINPUT')) or '',
-    input_device()
+    rec_input or '',
+    audio_device('IDENT_IN'),
+    audio_device('IDENT_OUT'),
+    rec_input and input_channel_name(rec_input) or ''
   )
   local total = track and reaper.CountTrackMediaItems(track) or 0
   local listed = math.min(total, ITEM_LIMIT)

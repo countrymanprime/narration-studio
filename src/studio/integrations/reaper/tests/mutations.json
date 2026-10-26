@@ -432,6 +432,24 @@
     "replace": "    if false then\n      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot report its transport and tracks.')"
   },
   {
+    "name": "a MIDI record input is named as a hardware channel",
+    "file": "narration_track_state.lua",
+    "find": "if rec_input < 0 or math.floor(rec_input / 4096) % 2 == 1 or",
+    "replace": "if rec_input < 0 or"
+  },
+  {
+    "name": "a stereo input names only its first channel",
+    "file": "narration_track_state.lua",
+    "find": "if name == '' or math.floor(rec_input / 1024) % 2 == 0 then",
+    "replace": "if true then"
+  },
+  {
+    "name": "the output device is reported as the input device",
+    "file": "narration_track_state.lua",
+    "find": "audio_device('IDENT_OUT'),",
+    "replace": "audio_device('IDENT_IN'),"
+  },
+  {
     "name": "the heartbeat drops the edit counter",
     "file": "narration_ui_bridge.lua",
     "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)",

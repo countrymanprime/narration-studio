@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,7 +27,7 @@ func newActionsSession(t *testing.T, enabled bool) (*Actions, *Client, string) {
 // is muted; the second has no muted field, as a bridge script older than the muted field answers.
 func trackStateAnswer(command []string) [][]string {
 	return [][]string{
-		{"TRACK_STATE", run(command), testTrack, "5", "2.500000", "12.345678", "C:/p/Book.rpp", "0", "7", "1", "2", "1024", "Focusrite USB ASIO"},
+		{"TRACK_STATE", run(command), testTrack, "5", "2.500000", "12.345678", "C:/p/Book.rpp", "0", "7", "1", "2", "1024", "Focusrite USB ASIO", "Speakers (Focusrite USB Audio)", "Mic/Line 1 / Mic/Line 2"},
 		{"TRACK_ITEM", run(command), testItem, testTake, "0.000000", "4.000000", "0.000000", "1.000000", "C:/Audio/ch1|take 1.wav", "1"},
 		{"TRACK_ITEM", run(command), "{AAAAAAAA-0000-4000-8000-000000000002}", "", "10.000000", "3.000000", "1.500000", "1.250000", ""},
 		{"TRACK_STATE_END", run(command), "2", "3"},
@@ -78,6 +79,7 @@ func TestChapterTrackStateSendsTheTrackAndReadsTheTransportArmsAndItems(t *testi
 		TrackGUID: testTrack, PlayState: 5, Playing: true, Recording: true,
 		EditCursor: 2.5, PlayPosition: 12.345678, ProjectPath: "C:/p/Book.rpp", ChangeCount: 7,
 		TrackArmed: true, ArmedCount: 2, RecordInput: &input, InputDevice: "Focusrite USB ASIO",
+		OutputDevice: "Speakers (Focusrite USB Audio)", InputChannel: "Mic/Line 1 / Mic/Line 2",
 		Items: []TrackItem{
 			{ItemGUID: testItem, TakeGUID: testTake, Position: 0, Length: 4, SourceOffset: 0, PlayRate: 1, SourceFile: "C:/Audio/ch1|take 1.wav", Muted: &muted},
 			{ItemGUID: "{AAAAAAAA-0000-4000-8000-000000000002}", Position: 10, Length: 3, SourceOffset: 1.5, PlayRate: 1.25},
@@ -164,5 +166,28 @@ func TestASessionLevelErrorAnswersEveryActionInFlight(t *testing.T) {
 	})
 	if _, err := actions.ChapterTrackState(context.Background(), testTrack); err == nil || err.Error() != "Unsupported hub protocol" {
 		t.Fatalf("err = %v, want the session-level error", err)
+	}
+}
+
+func TestDeviceNameDropsControlCharactersAndBoundsTheLength(t *testing.T) {
+	cases := map[string]string{
+		"":                         "",
+		"  Focusrite   USB ASIO ":  "Focusrite USB ASIO",
+		"Mic\x1b[31m\nLine\t1\x00": "Mic [31m Line 1",
+		"Микрофон (USB) 🎙️":        "Микрофон (USB) 🎙️",
+		"\u202eOIDUA\u2066":        "OIDUA",
+		strings.Repeat("é", 500):   strings.Repeat("é", maxDeviceName-1) + "…",
+	}
+	for raw, want := range cases {
+		if got := DeviceName(raw); got != want {
+			t.Errorf("DeviceName(%q) = %q, want %q", raw, got, want)
+		}
+	}
+}
+
+func TestChapterTrackStateFromAnOlderScriptHasNoOutputDeviceOrChannel(t *testing.T) {
+	state := readTrackState([]string{"TRACK_STATE", "t1", testTrack, "0", "0", "0", "", "1", "0", "0", "0", "1", "ASIO4ALL"})
+	if state.InputDevice != "ASIO4ALL" || state.OutputDevice != "" || state.InputChannel != "" {
+		t.Fatalf("got %+v", state)
 	}
 }

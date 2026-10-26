@@ -41,7 +41,7 @@ H.test('chapter_track_state reports the transport, the project, the arms and the
   chapter.rec_input = 1024
   s:send('chapter_track_state', 't1', chapter.guid)
   H.eq(s:events(), {
-    { 'TRACK_STATE', 't1', CH1, '0', '2.500000', '1.250000', path, '0', '7', '1', '2', '1024', '' },
+    { 'TRACK_STATE', 't1', CH1, '0', '2.500000', '1.250000', path, '0', '7', '1', '2', '1024', '', '', '' },
     { 'TRACK_STATE_END', 't1', '0', '0' },
   })
 end)
@@ -93,7 +93,7 @@ H.test('chapter_track_state lists every item on the named track with its active 
   s.fake:add_item(pickups, { position = 1, length = 1, source = 'pickup.wav' })
   s:send('chapter_track_state', 't1', chapter.guid)
   H.eq(s:events(), {
-    { 'TRACK_STATE', 't1', CH1, '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '0', '0', '' },
+    { 'TRACK_STATE', 't1', CH1, '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '0', '0', '', '', '' },
     { 'TRACK_ITEM', 't1', first.guid, first.takes[1].guid, '0.000000', '4.000000', '0.000000', '1.000000', 'C:\\Audio\\ch1|take 1.wav', '0' },
     { 'TRACK_ITEM', 't1', trimmed.guid, trimmed.takes[1].guid, '10.000000', '3.000000', '1.500000', '1.250000', 'ch1-b.wav', '0' },
     { 'TRACK_STATE_END', 't1', '2', '2' },
@@ -147,7 +147,7 @@ H.test('chapter_track_state with no track answers the transport and the arms, an
   s.fake:add_item(chapter, { position = 0, length = 1, source = 'a.wav' })
   s:send('chapter_track_state', 't1', '')
   H.eq(s:events(), {
-    { 'TRACK_STATE', 't1', '', '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '1', '', '' },
+    { 'TRACK_STATE', 't1', '', '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '1', '', '', '', '' },
     { 'TRACK_STATE_END', 't1', '0', '0' },
   })
 end)
@@ -181,4 +181,42 @@ H.test('chapter_track_state answers an empty input device when REAPER cannot say
   s.fake:remove_api('GetAudioDeviceInfo')
   s:send('chapter_track_state', 't1', chapter.guid)
   H.eq(s:events()[1][13], '')
+end)
+
+H.test("chapter_track_state reports the output device REAPER has open and the names of the track's input channels", function()
+  local s, chapter = new_session()
+  s.fake.audio_input = 'Focusrite USB ASIO'
+  s.fake.audio_output = 'Focusrite USB ASIO'
+  s.fake.input_channels = { 'Mic/Line 1', 'Mic/Line 2', 'Inst 3' }
+  chapter.rec_input = 1
+  s:send('chapter_track_state', 't1', chapter.guid)
+  local mono = s:events()[1]
+  H.eq({ mono[12], mono[13], mono[14], mono[15] }, { '1', 'Focusrite USB ASIO', 'Focusrite USB ASIO', 'Mic/Line 2' }, 'a mono input names its channel')
+  chapter.rec_input = 1024
+  s:send('chapter_track_state', 't2', chapter.guid)
+  H.eq(s:events()[1][15], 'Mic/Line 1 / Mic/Line 2', 'a stereo input names its pair')
+end)
+
+H.test('chapter_track_state names no input channel for a track with no input, a MIDI input, a channel REAPER cannot name, or no track', function()
+  local s, chapter = new_session()
+  s.fake.input_channels = { 'In 1', 'In 2' }
+  for _, case in ipairs({ { -1, 'no input' }, { 4096 + 33, 'MIDI' }, { 5, 'a channel past the device' }, { 1024 + 1, 'a pair past the device' } }) do
+    chapter.rec_input = case[1]
+    s:send('chapter_track_state', 't1', chapter.guid)
+    H.eq(s:events()[1][15], '', case[2])
+  end
+  s:send('chapter_track_state', 't2', '')
+  H.eq(s:events()[1][15], '', 'no track')
+end)
+
+H.test('chapter_track_state answers an empty output device and channel name when REAPER cannot say', function()
+  local s, chapter = new_session()
+  s.fake.audio_output = 'Speakers'
+  s.fake.input_channels = { 'In 1' }
+  chapter.rec_input = 0
+  s.fake:remove_api('GetAudioDeviceInfo')
+  s.fake:remove_api('GetInputChannelName')
+  s:send('chapter_track_state', 't1', chapter.guid)
+  local state = s:events()[1]
+  H.eq({ state[14], state[15] }, { '', '' })
 end)
