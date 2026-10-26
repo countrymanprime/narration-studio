@@ -145,6 +145,7 @@ export function WaveDock({ chapterId, clocks, take, playFrom, reason }: WaveDock
         scale={peakScale(peaks)}
         describe={describe}
         menu={menu}
+        loading={peaks.status === 'loading' && doc.aligned}
         {...('peaks' in entry
           ? { peaks: entry.peaks }
           : { reason: doc.aligned ? entry.reason : (reason ?? 'The chapter is not transcribed yet, so its words have no times.') })}

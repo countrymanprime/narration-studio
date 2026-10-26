@@ -9,6 +9,7 @@ import type { ChapterDoc } from '../model';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import { frameSubscribers } from './frameLoop';
+import { SWELL } from './waveSwell';
 import { sameClock, shiftPeaks } from './docClock';
 import { RibbonView } from './Ribbon';
 import { WaveDock } from './WaveDock';
@@ -231,7 +232,8 @@ describe('no-audio-state', () => {
     click();
     await waitFor(() => expect(screen.getByText(/No audio to draw/)).toBeTruthy());
     expect(document.body.textContent).toMatch(/source is not a WAV/);
-    expect(sizes).toHaveLength(0);
+    // While the peaks were read, placeholder bars were drawn (the swell over them); once the host says there are none, no canvas is left.
+    expect(document.querySelector('canvas')).toBeNull();
     expect(screen.getByText('go')).toBeTruthy();
   });
 
@@ -321,12 +323,14 @@ describe('RibbonView animation', () => {
     expect(frames.size).toBe(0);
   });
 
-  it('redraws only its own canvas on each frame, with the bars near the playhead taller than at rest', async () => {
+  it('redraws only its own canvas on each frame, with the bars under the travelling crest taller than at rest', async () => {
     render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(1));
     const heightsOf = () => bars().map((c) => c.args[3]);
+    // The first frame starts the pass (the crest just off the left edge); half a pass later it is mid-way across.
+    step(1000);
     calls.length = 0;
-    step(1000 / 2.4 / 2);
+    step(1000 + SWELL.periodMs / 2);
     const grown = heightsOf();
     expect(grown.length).toBeGreaterThan(0);
     expect(Math.max(...grown)).toBeGreaterThan(Math.min(...grown));
@@ -379,5 +383,91 @@ describe('RibbonView animation', () => {
     );
     await waitFor(() => expect(frameSubscribers()).toBe(2));
     expect(frames.size).toBe(1);
+  });
+  it('runs the swell over a flat row of placeholder bars while the waveform is read, then over the real bars', async () => {
+    const { rerender } = render(<RibbonView layout={l} loading reason="Reading the waveform." />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+    expect(screen.getByRole('img', { name: 'Reading the waveform' })).toBeTruthy();
+    expect(document.querySelector('[data-ribbon-empty]')).toBeNull();
+    step(1000);
+    calls.length = 0;
+    step(1000 + SWELL.periodMs / 2);
+    const h = bars().map((c) => c.args[3]);
+    expect(h.length).toBeGreaterThan(0);
+    expect(Math.max(...h)).toBeGreaterThan(Math.min(...h) * 1.4);
+    // the peaks arrive and nothing plays: the loop stops
+    rerender(<RibbonView layout={l} peaks={onDoc(peaks(0, 20))} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(0));
+  });
+
+  it('draws a fixed swellPhase without a loop, the same on every run, even with motion reduced', async () => {
+    document.documentElement.dataset.motion = 'reduce';
+    const draw = async () => {
+      calls.length = 0;
+      const { unmount } = render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} swellPhase={0.5} />);
+      await waitFor(() => expect(bars().length).toBeGreaterThan(0));
+      const h = bars().map((c) => c.args[3]);
+      unmount();
+      return h;
+    };
+    const first = await draw();
+    expect(frameSubscribers()).toBe(0);
+    expect(new Set(first).size).toBeGreaterThan(1);
+    expect(await draw()).toEqual(first);
+  });
+
+  it('stops the loop while the waveform is off screen and starts it again when it is back', async () => {
+    let seen: IntersectionObserverCallback = () => {};
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          seen = cb;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const at = (isIntersecting: boolean) => act(() => seen([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver));
+    render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+    at(false);
+    await waitFor(() => expect(frameSubscribers()).toBe(0));
+    at(true);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+  });
+
+  it('stops the loop while the page is hidden', async () => {
+    render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await waitFor(() => expect(frameSubscribers()).toBe(0));
+    hidden.mockRestore();
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+  });
+
+  it('keeps the lane and the dock one height whether reading, empty, at rest or swelling: the swell shifts no layout', async () => {
+    const choose = { words: doc.items, range: null, onRange: () => {}, onTap: () => {} };
+    const lane = () => {
+      const c = document.querySelector('canvas') ?? document.querySelector('[data-ribbon-empty]');
+      return (c as HTMLElement).style.height || (c as HTMLElement).style.minHeight;
+    };
+    const dock = () => (document.querySelector('[data-wave-dock]') as HTMLElement).style.height;
+    const { rerender } = render(<RibbonView layout={l} choose={choose} loading reason="Reading the waveform." />);
+    const reading = { lane: lane(), dock: dock() };
+    expect(screen.getByText('Reading the waveform.')).toBeTruthy();
+    rerender(<RibbonView layout={l} choose={choose} reason="No waveform here." />);
+    expect({ lane: lane(), dock: dock() }).toEqual(reading);
+    rerender(<RibbonView layout={l} choose={choose} peaks={onDoc(peaks(0, 20))} />);
+    expect({ lane: lane(), dock: dock() }).toEqual(reading);
+    rerender(<RibbonView layout={playingAt(mid)} choose={choose} peaks={onDoc(peaks(0, 20))} swellPhase={0.5} />);
+    expect({ lane: lane(), dock: dock() }).toEqual(reading);
+    expect(reading.lane).toBe('56px');
   });
 });
