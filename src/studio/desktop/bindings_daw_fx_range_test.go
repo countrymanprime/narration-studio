@@ -59,15 +59,10 @@ func listing(names ...string) fxChainNames {
 	return func(context.Context) ([]string, bool, error) { return names, false, nil }
 }
 
-// fxRangeHost is deleteRangeHost with the fx_range role and toggle.
-func fxRangeHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.RangeFXApplier, toggle string) *Host {
+// fxRangeHost is deleteRangeHost with the fx_range role.
+func fxRangeHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.RangeFXApplier) *Host {
 	t.Helper()
-	host := deleteRangeHost(t, kind, reach, nil, "")
-	if toggle != "" {
-		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapFXRange): &toggle}); err != nil {
-			t.Fatal(err)
-		}
-	}
+	host := deleteRangeHost(t, kind, reach, nil)
 	host.mu.Lock()
 	host.rangeFX = role
 	host.mu.Unlock()
@@ -93,7 +88,7 @@ func applyFx(t *testing.T, host *Host, role dawport.RangeFXApplier, chains fxCha
 // those with the chain and the fade, and the answer is the role's DawResult with one undo step.
 func TestDawApplyFxToRangeSendsTheResolvedItemSecondsAndChainAndAnswersADawResult(t *testing.T) {
 	role := &fakeRangeFX{answer: chainOnInREAPER()}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 
 	got := applyFx(t, host, role, listing("Other.RfxChain", fxRangeChain), 0, 0, fxRangeChain, 10)
 
@@ -111,7 +106,7 @@ func TestDawApplyFxToRangeSendsTheResolvedItemSecondsAndChainAndAnswersADawResul
 
 func TestDawRemoveFxFromRangeSendsTheResolvedItemAndChainAndAnswersADawResult(t *testing.T) {
 	role := &fakeRangeFX{answer: chainOffInREAPER()}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.DawRemoveFxFromRange("c-0001", 0, 0, fxRangeChain))
 
@@ -127,7 +122,7 @@ func TestDawRemoveFxFromRangeSendsTheResolvedItemAndChainAndAnswersADawResult(t 
 // new check.
 func TestDawRemoveFxFromRangeOfAnItemWithoutTheChainChangesNothingAndSaysToCheckAgain(t *testing.T) {
 	role := &fakeRangeFX{answer: dawport.OK("Podcast Voice.RfxChain is not on that piece in REAPER, so nothing changed.", false)}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.DawRemoveFxFromRange("c-0001", 0, 0, fxRangeChain))
 
@@ -141,7 +136,7 @@ func TestDawRemoveFxFromRangeOfAnItemWithoutTheChainChangesNothingAndSaysToCheck
 // action name is refused with the bad-chain sentence and nothing is sent. A removal takes a plain chain name only.
 func TestDawFxRangeRefusesAChainTheDAWDoesNotListAndSendsNothing(t *testing.T) {
 	role := &fakeRangeFX{answer: chainOnInREAPER()}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 	notListed := dawport.Refused(fxRangeBadChainSentence)
 	for _, chain := range []string{"", "Unknown.RfxChain", "voice/radio.rfxchain", "../reaper.ini", `C:\FXChains\Voice\Radio.RfxChain`, "/etc/Radio.RfxChain", "40001", "_SWS_ABOUT"} {
 		if got := applyFx(t, host, role, listing(fxRangeChain), 0, 0, chain, 0); !reflect.DeepEqual(got, notListed) {
@@ -169,7 +164,7 @@ func TestDawFxRangeRefusesAChainTheDAWDoesNotListAndSendsNothing(t *testing.T) {
 // The list read's own refusal is the page's answer: the fx_chains capability's sentence, or REAPER not answering.
 func TestDawApplyFxToRangeAnswersTheChainListsRefusal(t *testing.T) {
 	role := &fakeRangeFX{answer: chainOnInREAPER()}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 	off := &dawport.NotSupportedError{Capability: dawport.CapFXChains, Support: dawport.Support{Message: "FX chains are switched off in Settings."}}
 	for err, want := range map[error]string{off: off.Support.Message, bridge.ErrNoAnswer: "", bridge.ErrUnavailable: ""} {
 		failing := func(context.Context) ([]string, bool, error) { return nil, false, err }
@@ -192,17 +187,14 @@ func TestDawFxRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T) 
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeRangeFX{answer: chainOnInREAPER()}
-			host := fxRangeHost(t, c.kind, c.reach, role, c.toggle)
+			host := fxRangeHost(t, c.kind, c.reach, role)
 			support := fxRangeSupport(t, host)
 			if support.Available || support.Reason != c.reason {
 				t.Fatalf("fx_range support = %+v, want reason %s", support, c.reason)
@@ -221,7 +213,7 @@ func TestDawFxRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T) 
 
 // A DAW without fx_range (Audacity before backups) answers its own sentence.
 func TestDawFxRangeAnswersAnEnginesOwnFxRangeReason(t *testing.T) {
-	host := fxRangeHost(t, "REAPER", liveReachability(), nil, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), nil)
 	support := dawport.Support{Message: "Turn on backups before adding an effect to words in Audacity."}
 	role := &fakeRangeFX{answer: chainOnInREAPER()}
 	applied, err := dawApplyFxToRangeIn(t.Context(), host.services(), support, role, listing(fxRangeChain), "c-0001", 0, 0, fxRangeChain, 0)
@@ -237,7 +229,7 @@ func TestDawFxRangeAnswersAnEnginesOwnFxRangeReason(t *testing.T) {
 // The fade is 0 to 500 ms, refused in apply_fx_range's own sentence otherwise.
 func TestDawApplyFxToRangeTakesAFadeFrom0To500(t *testing.T) {
 	role := &fakeRangeFX{answer: chainOnInREAPER()}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 	for _, fade := range []int{-1, 501} {
 		if got := applyFx(t, host, role, listing(fxRangeChain), 0, 0, fxRangeChain, fade); !reflect.DeepEqual(got, dawport.Refused(cutBadFadeSentence)) {
 			t.Errorf("fade %d: %+v", fade, got)
@@ -252,7 +244,7 @@ func TestDawApplyFxToRangeTakesAFadeFrom0To500(t *testing.T) {
 // is refused with code stale. Nothing is sent for any of them.
 func TestDawFxRangeRefusesUnheardWordsAndAStaleRange(t *testing.T) {
 	role := &fakeRangeFX{answer: chainOnInREAPER()}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 
 	unheard := applyFx(t, host, role, listing(fxRangeChain), 0, 1, fxRangeChain, 0)
 	if !reflect.DeepEqual(unheard, dawport.Refused(fxRangeNotHeardSentence)) {
@@ -315,7 +307,7 @@ func TestFxRangeResolvesAsTheCutDoesInAnEffectsWords(t *testing.T) {
 func TestDawFxRangePassesOnTheRolesAnswers(t *testing.T) {
 	stale := dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again.")
 	role := &fakeRangeFX{answer: stale}
-	host := fxRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := fxRangeHost(t, "REAPER", liveReachability(), role)
 	if got := applyFx(t, host, role, listing(fxRangeChain), 0, 0, fxRangeChain, 0); !reflect.DeepEqual(got, stale) {
 		t.Fatalf("stale apply = %+v", got)
 	}
@@ -324,7 +316,7 @@ func TestDawFxRangePassesOnTheRolesAnswers(t *testing.T) {
 	}
 	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrBadChainName, context.DeadlineExceeded, errors.New("boom")} {
 		failing := &fakeRangeFX{err: err}
-		host := fxRangeHost(t, "REAPER", liveReachability(), failing, "on")
+		host := fxRangeHost(t, "REAPER", liveReachability(), failing)
 		if got := applyFx(t, host, failing, listing(fxRangeChain), 0, 0, fxRangeChain, 0); got.OK || got.Refused == "" {
 			t.Errorf("%v: apply %+v, want a refusal", err, got)
 		}
@@ -332,7 +324,7 @@ func TestDawFxRangePassesOnTheRolesAnswers(t *testing.T) {
 			t.Errorf("%v: remove %+v, want a refusal", err, got)
 		}
 	}
-	none := fxRangeHost(t, "REAPER", liveReachability(), nil, "on")
+	none := fxRangeHost(t, "REAPER", liveReachability(), nil)
 	if got := decodeDawResult(t)(none.DawApplyFxToRange("c-0001", 0, 0, fxRangeChain, 0)); got.OK || got.Refused == "" {
 		t.Fatalf("no role: apply %+v, want a refusal", got)
 	}
@@ -342,28 +334,32 @@ func TestDawFxRangePassesOnTheRolesAnswers(t *testing.T) {
 }
 
 // TestDawFxRangeContractGoldenIsCurrent pins the two bindings' answers: a chain put on one word (one undo step), the
-// capability's refusal, and a chain taken off (one undo step). UPDATE_CONTRACTS=1 rewrites
+// capability's refusal while REAPER is not answering, and a chain taken off (one undo step). UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-*-fx-range-*.json.
 func TestDawFxRangeContractGoldenIsCurrent(t *testing.T) {
 	cases := map[string]struct {
-		toggle string
+		quiet  bool
 		remove bool
 	}{
-		"daw-apply-fx-range-done":    {"on", false},
-		"daw-apply-fx-range-refused": {"", false},
-		"daw-remove-fx-range-done":   {"on", true},
+		"daw-apply-fx-range-done":    {false, false},
+		"daw-apply-fx-range-refused": {true, false},
+		"daw-remove-fx-range-done":   {false, true},
 	}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {
 		c := cases[name]
 		t.Run(name, func(t *testing.T) {
 			if c.remove {
 				role := &fakeRangeFX{answer: chainOffInREAPER()}
-				host := fxRangeHost(t, "REAPER", liveReachability(), role, c.toggle)
+				host := fxRangeHost(t, "REAPER", liveReachability(), role)
 				contractfile.Check(t, name, decodeDawResult(t)(host.DawRemoveFxFromRange("c-0001", 0, 0, fxRangeChain)))
 				return
 			}
+			reach := liveReachability()
+			if c.quiet {
+				reach = daw.NewReachability(nil)
+			}
 			role := &fakeRangeFX{answer: chainOnInREAPER()}
-			host := fxRangeHost(t, "REAPER", liveReachability(), role, c.toggle)
+			host := fxRangeHost(t, "REAPER", reach, role)
 			contractfile.Check(t, name, applyFx(t, host, role, listing(fxRangeChain), 0, 0, fxRangeChain, 10))
 		})
 	}
@@ -424,18 +420,18 @@ func decodeFxSettings(t *testing.T) func(string, error) dawport.FXRangeSettings 
 	}
 }
 
-func fxEditHost(t *testing.T, editor *fakeRangeFXEditor, toggle string) *Host {
+func fxEditHost(t *testing.T, editor *fakeRangeFXEditor) *Host {
 	t.Helper()
 	var role dawport.RangeFXApplier
 	if editor != nil {
 		role = editor
 	}
-	return fxRangeHost(t, "REAPER", liveReachability(), role, toggle)
+	return fxRangeHost(t, "REAPER", liveReachability(), role)
 }
 
 func TestDawFxRangeEditsSendTheResolvedRangeAndChainAndAnswer(t *testing.T) {
 	editor := &fakeRangeFXEditor{settings: gainSetting()}
-	host := fxEditHost(t, editor, "on")
+	host := fxEditHost(t, editor)
 
 	got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
 	if !reflect.DeepEqual(got, gainSetting()) {
@@ -459,9 +455,10 @@ func TestDawFxRangeEditsSendTheResolvedRangeAndChainAndAnswer(t *testing.T) {
 }
 
 func TestDawFxRangeEditsRefuseWithTheResolversSentenceAndSendNothing(t *testing.T) {
-	for _, toggle := range []string{"", "off"} {
+	// REAPER not answering: the resolver refuses fx_range, and every edit says so.
+	{
 		editor := &fakeRangeFXEditor{settings: gainSetting()}
-		host := fxEditHost(t, editor, toggle)
+		host := fxRangeHost(t, "REAPER", daw.NewReachability(nil), editor)
 		support := fxRangeSupport(t, host)
 		want := dawport.Refused(support.Message)
 		params := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
@@ -469,14 +466,14 @@ func TestDawFxRangeEditsRefuseWithTheResolversSentenceAndSendNothing(t *testing.
 		bypass := decodeDawResult(t)(host.DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true))
 		if support.Available || !reflect.DeepEqual(params.Result, want) || params.Settings == nil || len(params.Settings) != 0 ||
 			!reflect.DeepEqual(set, want) || !reflect.DeepEqual(bypass, want) || len(editor.targets) != 0 {
-			t.Fatalf("toggle %q: params %+v, set %+v, bypass %+v, sent %d", toggle, params, set, bypass, len(editor.targets))
+			t.Fatalf("not answering: params %+v, set %+v, bypass %+v, sent %d", params, set, bypass, len(editor.targets))
 		}
 	}
 }
 
 func TestDawFxRangeEditsRefuseABadRangeChainOrSettingAndSendNothing(t *testing.T) {
 	editor := &fakeRangeFXEditor{settings: gainSetting()}
-	host := fxEditHost(t, editor, "on")
+	host := fxEditHost(t, editor)
 	if got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 2, fxRangeChain)); got.Result.Code != dawport.CodeStale || len(got.Settings) != 0 {
 		t.Errorf("stale range: %+v", got)
 	}
@@ -512,17 +509,17 @@ func TestDawFxRangeEditsRefuseABadRangeChainOrSettingAndSendNothing(t *testing.T
 // An engine whose fx_range role keeps no live effect, or no role at all, refuses; a role's error is worded as a refusal; a stale
 // answer passes on with its code.
 func TestDawFxRangeEditsPassOnTheRolesAnswers(t *testing.T) {
-	applyOnly := fxRangeHost(t, "REAPER", liveReachability(), &fakeRangeFX{answer: chainOnInREAPER()}, "on")
+	applyOnly := fxRangeHost(t, "REAPER", liveReachability(), &fakeRangeFX{answer: chainOnInREAPER()})
 	if got := decodeDawResult(t)(applyOnly.DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true)); got.OK || got.Refused != "REAPER cannot read or change an effect on words." {
 		t.Errorf("no editor: %+v", got)
 	}
-	none := fxEditHost(t, nil, "on")
+	none := fxEditHost(t, nil)
 	if got := decodeFxSettings(t)(none.DawFxRangeParams("c-0001", 0, 0, fxRangeChain)); got.Result.OK || got.Result.Refused == "" {
 		t.Errorf("no role: %+v", got)
 	}
 	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
 	stale := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: gone}, settings: dawport.FXRangeSettings{Result: gone}}
-	host := fxEditHost(t, stale, "on")
+	host := fxEditHost(t, stale)
 	if got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain)); !reflect.DeepEqual(got.Result, gone) || got.Settings == nil {
 		t.Errorf("stale params: %+v", got)
 	}
@@ -531,7 +528,7 @@ func TestDawFxRangeEditsPassOnTheRolesAnswers(t *testing.T) {
 	}
 	for _, err := range []error{bridge.ErrNoAnswer, context.DeadlineExceeded, errors.New("boom")} {
 		failing := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{err: err}}
-		host := fxEditHost(t, failing, "on")
+		host := fxEditHost(t, failing)
 		if got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain)); got.Result.OK || got.Result.Refused == "" || got.Settings == nil {
 			t.Errorf("%v: params %+v", err, got)
 		}
@@ -541,29 +538,30 @@ func TestDawFxRangeEditsPassOnTheRolesAnswers(t *testing.T) {
 	}
 }
 
-// TestDawFxRangeEditsContractGoldenIsCurrent pins the edits' answers: the settings read, the capability's refusal of a read, a
+// TestDawFxRangeEditsContractGoldenIsCurrent pins the edits' answers: the settings read, the capability's refusal of a read (REAPER
+// not answering), a
 // setting changed and a chain bypassed (one undo step each), and a chain no longer on the words (code stale). UPDATE_CONTRACTS=1
 // rewrites tests/fixtures/contracts/daw-fx-range-{params,bypass}-*.json.
 func TestDawFxRangeEditsContractGoldenIsCurrent(t *testing.T) {
 	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
 	cases := map[string]func(t *testing.T) any{
 		"daw-fx-range-params-done": func(t *testing.T) any {
-			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: gainSetting()}, "on").DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
+			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: gainSetting()}).DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
 		},
 		"daw-fx-range-params-refused": func(t *testing.T) any {
-			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: gainSetting()}, "").DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
+			return decodeFxSettings(t)(fxRangeHost(t, "REAPER", daw.NewReachability(nil), &fakeRangeFXEditor{settings: gainSetting()}).DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
 		},
 		"daw-fx-range-params-set-done": func(t *testing.T) any {
 			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: dawport.OK("Set Podcast Voice.RfxChain to -3 dB in REAPER. Undo it there in one step.", true)}}
-			return decodeDawResult(t)(fxEditHost(t, editor, "on").DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, -3))
+			return decodeDawResult(t)(fxEditHost(t, editor).DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, -3))
 		},
 		"daw-fx-range-bypass-done": func(t *testing.T) any {
 			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: dawport.OK("Podcast Voice.RfxChain bypassed in REAPER. Undo it there in one step.", true)}}
-			return decodeDawResult(t)(fxEditHost(t, editor, "on").DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true))
+			return decodeDawResult(t)(fxEditHost(t, editor).DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true))
 		},
 		"daw-fx-range-bypass-refused-stale": func(t *testing.T) any {
 			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: gone}}
-			return decodeDawResult(t)(fxEditHost(t, editor, "on").DawBypassFxRange("c-0001", 0, 0, fxRangeChain, false))
+			return decodeDawResult(t)(fxEditHost(t, editor).DawBypassFxRange("c-0001", 0, 0, fxRangeChain, false))
 		},
 	}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {

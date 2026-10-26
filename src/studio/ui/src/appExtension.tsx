@@ -7,7 +7,7 @@ import type { NarrationApi } from './types';
 // app behaves exactly as before. Nothing here names the site: another host page could use the same seams.
 //
 // Registration must happen before the app's modules are evaluated (an ES module graph evaluates a sibling import before the next one), because
-// `main.tsx` reads `commandInput`, `experimentalDaw` and `wrapApi` while it loads.
+// `main.tsx` reads `commandInput` and `wrapApi` while it loads.
 
 /** What an embedding build hands the app. Every field is optional. */
 export interface AppExtension {
@@ -19,8 +19,6 @@ export interface AppExtension {
   playAnimations?: boolean;
   /** Listen to the keyboard only: a frame with no permissions grant gets no MIDI or HID. */
   keyboardOnly?: boolean;
-  /** Boot the mock DAW with Experimental capabilities on. */
-  experimentalDaw?: boolean;
   /** Wraps the mock API before the app uses it. Never called for the Wails client. */
   wrapApi?: (api: NarrationApi) => NarrationApi;
   /** A theme the embedding page chose: read at first paint, and followed while the page changes it. */

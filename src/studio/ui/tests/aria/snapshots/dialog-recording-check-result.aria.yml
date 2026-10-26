@@ -1,0 +1,36 @@
+# A chapter's recording check result (docs/utilities/recording-coverage.md), shown in Check recordings, the one recording check: the
+# dialog named for it with the chapter as a heading, the host's judgement as a heading, an unfinished chapter's "recorded to" line,
+# the chapter's stat grid, its actions (Check again, kept beside the figures it refreshes, and Open in Editing), its own interior gaps
+# as a named Pickups region (a paragraph when there are none) with the two other pickup sources as ruled rows, the paragraph detail as a
+# folded disclosure (never auto-expanded), and Back to chapters and Done. The page behind it is aria-hidden.
+- /children: equal
+# The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
+- main
+- status
+- alert
+- status
+- alert
+- status
+- dialog "Check recordings":
+  - heading "Check recordings" [level=2]
+  - button "Close"
+  - 'heading "Chapter 4: The Rabbit Sends in a Little Bill" [level=3]'
+  - paragraph: /Based on the saved REAPER project, file modified Sep \d+, \d+, \d+:\d+ AM\./
+  - paragraph: /Checked Sep \d+, \d+, \d+:\d+ AM with the small Whisper model\./
+  - 'heading /Not complete: paragraphs \d+ to \d+: \d+ words not read\./ [level=3]'
+  - paragraph: /Recorded to paragraph \d+ of \d+ \(\d+ words left\)\./
+  - text: /Text present \d+% \d+,\d+ of \d+,\d+ words Paragraphs \d+ of \d+ fully read Audio checked \d+:\d+ in 1 item Pace \d+\/min words a minute/
+  - button "Check again"
+  - button "Open in Editing"
+  - region "Pickups (0)":
+    - heading "Pickups (0)" [level=3]
+    - paragraph: None from this check.
+    - text: "Repeated reads (Proof): none waiting"
+    - link "Open Proof":
+      - /url: /proof
+    - text: "Pickup list: 3 open (project-wide)"
+    - link "Open pickups":
+      - /url: /pickups
+  - button /Paragraph detail \d+ of \d+ fully read/
+  - button "Back to chapters"
+  - button "Done"

@@ -70,7 +70,8 @@ describe('switching chapters and coming back', () => {
     renderPage({ search: '?chapter=c2' });
     await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
     await settle();
-    expect(reading()).toBe('A');
+    // The top is the chapter's heading, the first line the Booth reads (#2517).
+    expect(reading()).toBe('Chapter');
     expect(screen.queryByRole('group', { name: /^Recorded/ })).toBeNull();
   });
 });
@@ -148,7 +149,8 @@ describe('a chapter with a recording', () => {
     await waitFor(() => expect(screen.getByRole('group', { name: /^Recorded through/ }).textContent).toBe('Recorded 45%'));
     await push({});
     await push({ phase: 'stopped' });
-    await waitFor(() => expect(screen.getByRole('group', { name: /^Recorded through/ }).textContent).toBe('Recorded 80%'));
+    // The read again waits on the mock host's chapter read, which can take longer than waitFor's default second.
+    await waitFor(() => expect(screen.getByRole('group', { name: /^Recorded through/ }).textContent).toBe('Recorded 80%'), { timeout: 4000 });
     expect(calls).toBe(2);
   });
 });

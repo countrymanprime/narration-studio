@@ -210,6 +210,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Hydrates whatever configure run was already in flight, then offers a suggested output folder when none was configured yet; the narrator can still type a folder and press Configure render either way.',
   'src/components/production/RecordingCheckReport.tsx#1':
     "A background count of the chapter's other pickups; a failure just leaves that line out of the Pickups list, with the check's own gaps unaffected.",
+  'src/components/recordingcheck/CheckRecordingsDialog.tsx#1':
+    'Reads the models again after a download only to drop the installed one\'s "not installed"; the run starts either way, so a failed read just keeps the old list.',
   'src/input/keymap.ts#1':
     "keymapFromBindings: one stored gesture this build cannot parse (a hand-edited settings file, or an older/newer app's own bug) falls back to that one command's catalog default; not a narrator action, and not swallowed silently since the Keyboard & pedals panel still shows every other override normally.",
   'src/components/engine/CreateChapterRegionsDialog.tsx#1':

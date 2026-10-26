@@ -9,21 +9,21 @@ export const CATEGORIES: readonly Category[] = [
     label: 'Speech to text',
     group: 'Shared tools',
     icon: 'wave',
-    blurb: 'The one transcription engine that Booth, the recording check, Proof and Pickups listen with.',
+    blurb: 'The transcription engine Booth, the recording check, Proof and Pickups use.',
   },
   {
     id: 'voice',
     label: 'Voice & pronunciation',
     group: 'Shared tools',
     icon: 'hear',
-    blurb: 'The voice that speaks previews, and where definitions and pronunciations come from.',
+    blurb: 'The preview voice, and where definitions and pronunciations come from.',
   },
   {
     id: 'models',
     label: 'Models & downloads',
     group: 'Shared tools',
     icon: 'download',
-    blurb: 'Everything the app downloads, in one list. Pick which one is used in the section that uses it.',
+    blurb: 'Everything the app downloads, in one list.',
   },
   {
     id: 'delivery',
@@ -37,7 +37,7 @@ export const CATEGORIES: readonly Category[] = [
     label: 'Project',
     group: 'This project',
     icon: 'book',
-    blurb: 'The manuscript, the Story Bible vocabulary, narrator and credits of the open project.',
+    blurb: 'The open project’s manuscript, vocabulary, narrator and credits.',
   },
   {
     id: 'appearance',

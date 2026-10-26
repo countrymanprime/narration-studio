@@ -106,11 +106,8 @@ export const MOCK_GROUPS: readonly MockGroup[] = [
     id: 'flags',
     label: 'Other states',
     kind: 'checkbox',
-    params: ['mockDawExperimentalOn', 'mockNoDevices'],
-    options: [
-      { value: 'experimental', label: 'Experimental DAW capabilities on', set: { mockDawExperimentalOn: '1' } },
-      { value: 'no-devices', label: 'No input devices', set: { mockNoDevices: '1' } },
-    ],
+    params: ['mockNoDevices'],
+    options: [{ value: 'no-devices', label: 'No input devices', set: { mockNoDevices: '1' } }],
   },
 ];
 

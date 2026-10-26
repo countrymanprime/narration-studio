@@ -40,7 +40,7 @@ const meta = {
   title: 'Settings/BackupsSection',
   component: BackupsView,
   args: {
-    daw: DAW_SETUPS['audacity-backups'].daw,
+    daw: DAW_SETUPS.audacity.daw,
     rows: ROWS,
     drafts: {},
     onChange: fn(),

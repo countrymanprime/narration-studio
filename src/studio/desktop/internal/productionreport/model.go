@@ -35,7 +35,7 @@ type BookSummary struct {
 	FinalizedChapters int `json:"finalized_chapters"`
 }
 
-// Words is the "words" section: the book's word count and finished audio, measured, never estimated.
+// Words is the "words" section: the book's word count and recorded audio (the confirmed tracks, before editing), measured, never estimated.
 type Words struct {
 	WordCount        int     `json:"word_count"`
 	RecordedSeconds  float64 `json:"recorded_seconds"`

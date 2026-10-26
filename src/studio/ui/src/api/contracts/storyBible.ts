@@ -72,6 +72,10 @@ export type GuidePreview =
 /** What a merge answers: the id `guideUnmerge` takes it back by (16 lowercase hexadecimal characters). */
 export type GuideMergeResult = { undoId: string };
 
+/** What `guideDeleteAll` deleted: the entries the Story Bible held and the suggestions the manuscript scan had stored, accepted and
+ * rejected ones included. */
+export type GuideDeleted = { entries: number; suggestions: number };
+
 /** One entry of the Story Bible's dialogue_cues: a quoted span with
  * its resolved (or unknown) speaker. A document-level list, a sibling of the entity list, not per-entity data. */
 export type GuideDialogueCueEvidence = { chapterId: string; paragraphId: string; excerpt: string; tag: string };
@@ -106,6 +110,10 @@ export interface StoryBibleApi {
    * reason, changing nothing, when the target or a re-pointed entry changed since, or the merge is gone (undone, a rebuild, ten newer). */
   guideUnmerge(undoId: string): Promise<void>;
   guideDelete(id: string): Promise<void>;
+  /** Deletes the project's Story Bible data and nothing else: every entry with its names, pronunciations, notes, relationships, review
+   * flags and speaker colour, the types, the dialogue cues, the preview audio, the scan's suggestions and the Story Bible's findings. The
+   * script, takes, recordings, settings, voice samples and voice references stay. No undo. Rejects while a build or a scan runs. */
+  guideDeleteAll(): Promise<GuideDeleted>;
   guideRelate(id: string, otherId: string, label: string): Promise<void>;
   guideUnrelate(id: string, otherId: string, label: string): Promise<void>;
   guidePreview(id: string, aliasIndex?: number): Promise<GuidePreview>;

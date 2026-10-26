@@ -12,8 +12,7 @@ import (
 // teleprompter's capture opens. The picker preselects Device only when Status is matched, with Message as the reason;
 // every other answer leaves the full list and the narrator's own choice as they are.
 
-// The reasons that go with unavailable, beside the connection ones (reaperStandalone, reaperNotRunning,
-// readAloudExperimentalOff, refusedFailed).
+// The reasons that go with unavailable, beside the connection ones (reaperStandalone, reaperNotRunning, refusedFailed).
 const (
 	inputReaperNoDevice = "reaper_no_device"
 	inputDevicesFailed  = "devices_failed"

@@ -11,14 +11,14 @@ const CASES: Case[] = [
   { name: 'turn-on notice at 1440x900, Text size 72', width: 1440, height: 900, larger: 14, query: '?mockDaw=live' },
   { name: 'turn-on notice at 1440x500, Text size 72', width: 1440, height: 500, larger: 14, query: '?mockDaw=live' },
   { name: 'turn-on notice at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDaw=live' },
-  { name: 'connect mark at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
-  { name: 'connect mark at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
-  { name: 'connect mark at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
+  { name: 'connect mark at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawConnected=0' },
+  { name: 'connect mark at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawConnected=0' },
+  { name: 'connect mark at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawConnected=0' },
   // The DAW answers with another project open (the heartbeat's project is not the linked file): the open-project notice (Booth pass 3).
-  { name: 'open-project notice at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
-  { name: 'open-project notice at 800x600', width: 800, height: 600, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
-  { name: 'open-project notice at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
-  { name: 'open-project notice at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
+  { name: 'open-project notice at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawMismatch=1' },
+  { name: 'open-project notice at 800x600', width: 800, height: 600, larger: 0, query: '?mockDawMismatch=1' },
+  { name: 'open-project notice at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawMismatch=1' },
+  { name: 'open-project notice at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawMismatch=1' },
 ];
 
 /** Rects (viewport px) of the word being read, the text scroller and the notice. */
@@ -77,7 +77,7 @@ for (const c of [
 ]) {
   test(`a toast sits above the notice, not over it: ${c.width}x${c.height}`, async ({ page }) => {
     await page.setViewportSize(c);
-    await page.goto('/?mockDawMismatch=1&mockRecordCapabilityOn=1');
+    await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
     await goToPage(page, 'Booth');
     await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
@@ -117,7 +117,7 @@ for (const c of [
 ]) {
   test(`the notice sits in the text column and is said once: ${c.width}x${c.height}`, async ({ page }) => {
     await page.setViewportSize(c);
-    await page.goto('/?mockDawMismatch=1&mockRecordCapabilityOn=1');
+    await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
     await goToPage(page, 'Booth');
     await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();

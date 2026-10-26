@@ -63,7 +63,7 @@ func TestARefusedByTheGateCommandIsNotLogged(t *testing.T) {
 	logged := 0
 	client.SetLog(func(string, string) { logged++ })
 	startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.ArmOnly(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ArmOnly(context.Background(), testTrack); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ArmOnly: %v", err)
 	}
 	if logged != 0 {

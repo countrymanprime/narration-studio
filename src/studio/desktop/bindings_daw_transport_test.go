@@ -7,7 +7,6 @@ import (
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
 	"desktop/internal/daw"
-	"desktop/internal/dawport"
 )
 
 // newTestHostWithHeartbeat is a REAPER launch with a live bridge whose last heartbeat is fields (after the tag and the
@@ -78,19 +77,6 @@ func TestDawTransportIsQuietWithoutAKnownTransport(t *testing.T) {
 		if _, has := got["position"]; has {
 			t.Errorf("%s: dawTransport() = %v, want no position", name, got)
 		}
-	}
-}
-
-// TestDawTransportHeartbeatTurnedOffIsQuiet: the transport is read through the heartbeat capability, so a narrator who
-// turned that capability off gets no transport, the same as any other role the resolver refuses.
-func TestDawTransportHeartbeatTurnedOffIsQuiet(t *testing.T) {
-	host, _ := newTestHostWithHeartbeat(t, "C:/Projects/Alice/Alice.rpp", "0", "7", "5", "12.500000")
-	off := "off"
-	if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapHeartbeat): &off}); err != nil {
-		t.Fatal(err)
-	}
-	if got := decodeTransport(t, host.dawTransport()); got["recording"] != false {
-		t.Fatalf("dawTransport() = %v with the heartbeat capability turned off, want not recording", got)
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 
 // autoStopDelay is how long a session keeps listening after the tracker first reports that the narrator reached the
 // end of the chapter (a `done` position) before the service stops it. It is longer than the tracker's 1.5 s pause
-// timeout (WAIT_SECONDS in script_tracker.py) and leaves room for the recognizer's lag, so a narrator who re-reads the
+// timeout (scripttrack.WaitSeconds) and leaves room for the recognizer's lag, so a narrator who re-reads the
 // last line produces a later non-done position that cancels the stop first. There is no setting for it yet.
 const autoStopDelay = 5 * time.Second
 

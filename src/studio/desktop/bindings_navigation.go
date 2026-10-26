@@ -151,8 +151,6 @@ func roleRefusal(err error) error {
 		mapped = bridge.ErrUnavailable
 	case dawport.ReasonNotRunning:
 		mapped = bridge.ErrNoAnswer
-	case dawport.ReasonTurnedOff, dawport.ReasonExperimentalOff:
-		mapped = bridge.ErrExperimentalOff
 	default:
 		return err
 	}

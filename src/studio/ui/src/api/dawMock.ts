@@ -1,6 +1,6 @@
 // The mock's DAW port capabilities: a stand-in for the host's dawport.Resolver, over the same
-// three inputs (a declaration per DAW kind, the narrator's per-capability toggles, and reachability) and the same
-// refusal order (declaration, then toggle, then what a capability requires, then runtime) as
+// inputs (a declaration per DAW kind and reachability) and the same refusal order (declaration, then what a capability
+// requires, then runtime) as
 // src/studio/desktop/internal/dawport/resolver.go. It is stateful like the host: a saved setting, an engine choice, a launch, a
 // heartbeat that stops or returns, and a take each change the picture and push it (daw_capabilities_changed,
 // daw_transport_changed), and `DawMockControl` lets a test or a Playwright driver play REAPER's side (`?mockDaw=`, window.__NARRATION_MOCK_DAW__).
@@ -125,8 +125,6 @@ const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio inte
 const MESSAGE_STANDALONE_REAPER = 'REAPER is not connected to this app. Open REAPER; the app connects to it by itself.';
 const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.';
 const MESSAGE_NO_ENGINE = 'No DAW is connected to this app. Open this app from your DAW to use it.';
-const MESSAGE_TURNED_OFF = 'Turned off in Settings.';
-const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
 /** An Audacity capability while the project does not record with Audacity, so the host holds no pipe to it (
  * src/studio/desktop/internal/dawport/audacity/audacity.go's Declaration). */
 const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.";
@@ -144,9 +142,9 @@ const AUDACITY_NEED_BACKUPS: Partial<Record<DawCapabilityKey, string>> = {
   click_repair: 'Repairing clicks in a take',
 };
 const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch', 'stack_takes', 'cut_range', 'fx_range', 'range_gain', 'click_repair'];
-/** What the Audacity adapter declares Experimental until the owner's verification pass (docs/reference/daw/audacity-3.md for backups, SN-D83 for
- * the rows that need backups); the rest is not_yet_available. */
-const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
+/** What the Audacity adapter builds (wire level `experimental`: on, not yet through the owner's verification pass; docs/reference/daw/audacity-3.md
+ * for backups, SN-D83 for the rows that need backups); the rest is not_yet_available. */
+const AUDACITY_BUILT: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
   'review',
   'pickups',
   'project_read',
@@ -175,14 +173,12 @@ const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
 const MESSAGE_BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved project.';
 /** What the built-in recorder declares (dawport/builtin): record, takes (the others hidden, never deleted) and cut_range (an edit
- * list the recorder plays and exports past, mode `app`) Experimental until the owner's pass, punch and the edits the app has not
- * built yet not available, everything else unsupported. */
-const BUILTIN_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['record', 'takes', 'cut_range']);
+ * list the recorder plays and exports past, mode `app`), all on; punch and the edits the app has not built yet not available,
+ * everything else unsupported. */
+const BUILTIN_BUILT: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['record', 'takes', 'cut_range']);
 const BUILTIN_NOT_YET: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['punch', 'fx_range', 'stack_takes', 'undo_last']);
 /** The built-in recorder's Describer (builtin.go's depthOf): the app makes a cut itself. */
 const BUILTIN_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = { cut_range: { mode: 'app' } };
-
-type DawToggle = 'auto' | 'on' | 'off';
 
 export type DawMockSeed = {
   /** Which DAW the launch is talking to; defaults to 'REAPER'. */
@@ -198,10 +194,6 @@ export type DawMockSeed = {
    * capability answers 'not_running', but the heartbeat capability itself (NeedsBridge only) stays available - its
    * whole job is reporting this. */
   reachable?: boolean;
-  /** The narrator's per-capability toggle, by key; a key left out is 'auto'. */
-  toggles?: Partial<Record<DawCapabilityKey, DawToggle>>;
-  /** The old DAW.experimental_reaper_actions switch: while true, every Experimental capability left on 'auto' is on. */
-  experimentalOn?: boolean;
   /** What the adapter declares about how a capability acts (dawport.Describer), by key; reported on every answer for the
    * key, available or not. A key left out takes the engine's own declaration (REAPER_DEPTH), as the host goldens do. */
   depth?: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>>;
@@ -223,7 +215,7 @@ function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
     return Object.fromEntries(
       DAW_CAPABILITIES.map(({ key }) => [
         key,
-        key === 'input_level' ? ('unsupported' as const) : AUDACITY_EXPERIMENTAL.has(key) ? ('experimental' as const) : ('not_yet_available' as const),
+        key === 'input_level' ? ('unsupported' as const) : AUDACITY_BUILT.has(key) ? ('experimental' as const) : ('not_yet_available' as const),
       ]),
     );
   }
@@ -231,7 +223,7 @@ function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
     return Object.fromEntries(
       DAW_CAPABILITIES.map(({ key }) => [
         key,
-        BUILTIN_EXPERIMENTAL.has(key) ? ('experimental' as const) : BUILTIN_NOT_YET.has(key) ? ('not_yet_available' as const) : ('unsupported' as const),
+        BUILTIN_BUILT.has(key) ? ('experimental' as const) : BUILTIN_NOT_YET.has(key) ? ('not_yet_available' as const) : ('unsupported' as const),
       ]),
     );
   }
@@ -256,10 +248,6 @@ function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySuppo
   switch (reason) {
     case 'standalone':
       return MESSAGE_NO_ENGINE;
-    case 'turned_off':
-      return MESSAGE_TURNED_OFF;
-    case 'experimental_off':
-      return MESSAGE_EXPERIMENTAL_OFF;
     case 'not_yet':
       return `${DAW_CAPABILITIES.find((c) => c.key === key)?.label ?? key} is not available with ${daw} yet.`;
     default:
@@ -285,11 +273,7 @@ function refuseFor(
   refused: DawCapabilitySupport,
 ): DawCapabilitySupport {
   const reason = refused.reason;
-  const what = daw === 'Audacity' && required === 'backups' ? AUDACITY_NEED_BACKUPS[key] : undefined;
-  const message =
-    what && (reason === 'turned_off' || reason === 'experimental_off')
-      ? `${what} needs Audacity backups. Turn on Audio backups in Settings.`
-      : `${labelOf(key)} needs ${labelOf(required)}. ${refused.message ?? ''}`;
+  const message = `${labelOf(key)} needs ${labelOf(required)}. ${refused.message ?? ''}`;
   return { level, available: false, reason, message };
 }
 
@@ -301,9 +285,9 @@ function depthOf(m: Mock, key: DawCapabilityKey): { destructive?: boolean; mode?
   return m.seed.depth?.[key] ?? declared[key];
 }
 
-/** The declaration and settings checks, then each requirement's (resolver.go's permitted); null when they permit `key`. */
+/** The declaration check, then each requirement's (resolver.go's permitted); null when they permit `key`. */
 function permitted(m: Mock, key: DawCapabilityKey, trail: DawCapabilityKey[]): DawCapabilitySupport | null {
-  const { daw, seed } = m;
+  const { daw } = m;
   const pipe = m.connected;
   const level = declarationFor(daw)[key] ?? 'unsupported';
   if (level === 'unsupported') {
@@ -313,11 +297,6 @@ function permitted(m: Mock, key: DawCapabilityKey, trail: DawCapabilityKey[]): D
     return { level, available: false, reason, message: explain(daw, key, reason, pipe) };
   }
   if (level === 'not_yet_available') return { level, available: false, reason: 'not_yet', message: explain(daw, key, 'not_yet', pipe) };
-  const toggle = seed.toggles?.[key] ?? 'auto';
-  if (toggle === 'off') return { level, available: false, reason: 'turned_off', message: explain(daw, key, 'turned_off', pipe) };
-  if (toggle !== 'on' && level === 'experimental' && !seed.experimentalOn) {
-    return { level, available: false, reason: 'experimental_off', message: explain(daw, key, 'experimental_off', pipe) };
-  }
   if (!depthOf(m, key)?.destructive) {
     for (const required of requiresOf(daw, key, trail)) {
       const refused = permitted(m, required, [...trail, key]);
@@ -468,14 +447,11 @@ export interface DawMockControl {
     openProject: 'linked' | 'other';
     recording: boolean;
     monitorLevel: number;
-    toggles: Partial<Record<DawCapabilityKey, DawToggle>>;
   };
-  /** A setting the host saved (`saveSettings`): the capability toggles and the Experimental switch. */
-  settingsSaved(tool: string, values: Record<string, string | null>): void;
   /** The project's recording engine changed (`recorderChooseEngine`). */
   engineChosen(engine: 'daw' | 'builtin'): void;
   /** A record start or stop as the host answers it: a refusal sentence and its reason, or null once the transport changed. */
-  record(kind: 'start' | 'stop'): { reason: 'standalone' | 'experimental_off' | 'unlinked' | 'unavailable'; message: string } | null;
+  record(kind: 'start' | 'stop'): { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
   /** The facts the host puts in bootstrap. */
   facts(): { reachable: boolean; projectMatches: boolean; bridge: boolean };
 }
@@ -488,7 +464,7 @@ const HEARTBEAT_MS = 250;
 const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200, busy: 0 };
 
 export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): DawMock {
-  const live: DawMockSeed = { ...seed, toggles: { ...seed.toggles } };
+  const live: DawMockSeed = { ...seed };
   const home: DawKind = seed.daw ?? 'REAPER';
   let open: 'linked' | 'other' = script === 'different' ? 'other' : 'linked';
   const isRecording = () => !!live.transport?.recording;
@@ -679,20 +655,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       openProject: open,
       recording: isRecording(),
       monitorLevel,
-      toggles: live.toggles ?? {},
     }),
-    settingsSaved: (tool, values) => {
-      if (tool !== 'DAW') return;
-      for (const [key, value] of Object.entries(values)) {
-        if (key.startsWith('capability.')) {
-          const capability = DAW_CAPABILITIES.find((c) => c.key === key.slice('capability.'.length))?.key;
-          if (!capability) continue;
-          if (value === 'on' || value === 'off') live.toggles = { ...live.toggles, [capability]: value };
-          else delete live.toggles?.[capability];
-        } else if (key === 'experimental_reaper_actions') live.experimentalOn = value === 'true';
-      }
-      publish();
-    },
     engineChosen: (engine) => {
       live.daw = engine === 'builtin' ? 'Built-in' : home === 'Built-in' ? 'REAPER' : home;
       live.transport = { playing: false, recording: false };
@@ -713,7 +676,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         return null;
       }
       if (!record?.available) {
-        const reason = record?.reason === 'experimental_off' ? 'experimental_off' : record?.reason === 'standalone' ? 'standalone' : 'unavailable';
+        const reason = record?.reason === 'standalone' ? 'standalone' : 'unavailable';
         return { reason, message: record?.message ?? MESSAGE_NO_ENGINE };
       }
       live.transport = { playing: true, recording: true, position: 0 };

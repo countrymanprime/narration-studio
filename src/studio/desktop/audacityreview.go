@@ -5,8 +5,7 @@ import (
 )
 
 // gatedReview is the Audacity adapter's review role behind the resolver: the transcript service starts a comparison straight on
-// the role, so each request asks the resolver first and the narrator's capability switches (Experimental, the review toggle) and
-// Audacity not answering refuse it with the resolver's own sentence, as they do the REAPER actions (internal/bridge/actions.go).
+// the role, so each request asks the resolver first and Audacity not answering refuses it with the resolver's own sentence, as they do the REAPER actions (internal/bridge/actions.go).
 type gatedReview struct {
 	dawport.ReviewSession
 	allowed func() error
@@ -51,8 +50,7 @@ func (h *Host) gatedAudacityReview(conn *audacityConn) dawport.ReviewSession {
 }
 
 // gatedPickups is the Audacity adapter's pickup-list role behind the resolver, as gatedReview is for the comparison: the pickup service
-// calls the role straight, so each request asks the resolver first and the Experimental switch and the pickups toggle refuse in their
-// own sentence.
+// calls the role straight, so each request asks the resolver first and Audacity not answering refuses in its own sentence.
 type gatedPickups struct {
 	dawport.PickupList
 	allowed func() error

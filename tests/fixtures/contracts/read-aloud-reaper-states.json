@@ -1,11 +1,4 @@
 {
-  "experimental_off": {
-    "status": "unavailable",
-    "reason": "experimental_off",
-    "message": "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
-    "playing": false,
-    "recording": false
-  },
   "no_link": {
     "status": "no_link",
     "reason": "unlinked",

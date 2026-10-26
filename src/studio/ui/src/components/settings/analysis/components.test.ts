@@ -8,7 +8,7 @@ const with_ = (id: string, change: Partial<AssetItem>) => ANALYSIS_TOOLS.map((it
 describe('analysis tool selectors', () => {
   it('keeps only the analysis rows of the registry, in its order', () => {
     const voice = { ...ANALYSIS_TOOLS[0], kind: 'tts', id: 'voice' };
-    expect(analysisTools({ assets: [voice, ...ANALYSIS_TOOLS] }).map((item) => item.id)).toEqual(['gliner', 'booknlp-small', 'booknlp-big', 'local-llm']);
+    expect(analysisTools({ assets: [voice, ...ANALYSIS_TOOLS] }).map((item) => item.id)).toEqual(['gliner', 'booknlp-small', 'booknlp-big']);
   });
 
   it('reads the status from the install state and the running job', () => {
@@ -21,7 +21,7 @@ describe('analysis tool selectors', () => {
     expect(statusOf(gliner, { job: { phase: 'success' } })).toBe('installed');
     expect(statusOf(gliner, { job: { phase: 'cancelled' } })).toBe('not-installed');
     expect(statusOf(gliner, { failure: 'Could not reach huggingface.co.' })).toBe('failed');
-    expect(statusOf(ANALYSIS_TOOLS[3])).toBe('unavailable');
+    expect(statusOf({ ...gliner, unavailableReason: 'Not pinned yet.' })).toBe('unavailable');
   });
 
   it('recommended-pair-is-from-the-host: the recommended flag, not a list kept here', () => {
@@ -34,11 +34,12 @@ describe('analysis tool selectors', () => {
   it('anyInstalled counts only tools that can be used', () => {
     expect(anyInstalled(ANALYSIS_TOOLS)).toBe(false);
     expect(anyInstalled(with_('booknlp-big', { installState: 'installed' }))).toBe(true);
-    expect(anyInstalled(with_('local-llm', { installState: 'installed' }))).toBe(false);
+    expect(anyInstalled(with_('gliner', { installState: 'installed', unavailableReason: 'Not pinned yet.' }))).toBe(false);
   });
 
   it('offers known, available tools in the order asked', () => {
-    expect(offerable(ANALYSIS_TOOLS, ['booknlp-small', 'local-llm', 'gone', 'gliner']).map((item) => item.id)).toEqual(['booknlp-small', 'gliner']);
+    const pending = with_('booknlp-big', { unavailableReason: 'Not pinned yet.' });
+    expect(offerable(pending, ['booknlp-small', 'booknlp-big', 'gone', 'gliner']).map((item) => item.id)).toEqual(['booknlp-small', 'gliner']);
   });
 
   it('words sizes, memory and time as the mock does', () => {

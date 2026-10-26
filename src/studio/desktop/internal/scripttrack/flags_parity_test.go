@@ -7,8 +7,8 @@ import (
 	"desktop/internal/compare"
 )
 
-// The flagging tracker is held to what flags.py answers over every run in tests/fixtures/booth-parity/flag-sessions.jsonl
-// (a session of tracker-sessions.jsonl and a heading length), against flag-sessions.golden.jsonl.
+// The flagging tracker is held to what flags.py answered over every run in tests/fixtures/booth-parity/flag-sessions.jsonl
+// (a session of tracker-sessions.jsonl and a heading length), against flag-sessions.golden.jsonl (frozen).
 
 func flagJSON(f FlagEvent) compare.PyObject {
 	return compare.PyObject{"type": "flag", "id": f.ID, "kind": f.Kind, "start": f.Start, "end": f.End, "heard": f.Heard}

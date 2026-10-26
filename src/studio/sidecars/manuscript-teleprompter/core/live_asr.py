@@ -42,27 +42,19 @@ turns them into these three event types:
         a confirmed word; append-only, never retracted
     {"type": "segment_end", "segment": 0}
         the segment closed; all its words were emitted as `word` events first
-    {"type": "position", "read": 12, "committed": 10, "status": "listening", "jump": null, "skipped": null}
-        only with --script FILE or --manuscript FILE --chapter X: where the
-        narrator is in the script, on change only (see script_tracker.py);
-        replay.py runs recorded output through the same tracker offline. A
-        session can also start already at a word with --start-word N, and
-        while running the host can move it there with --control-file PATH,
-        which is tailed for lines shaped {"cmd": "seek", "word": N}
-        (control_channel.py) - both emit a "position" event with
-        jump: "restart", the same sentinel-file pattern as --stop-file.
-        {"cmd": "pause"} and {"cmd": "resume"} on the same file stop and
-        restart listening: the device stays open and levels still flow, but
-        the engine hears nothing and the tracker's clock stands still
-    {"type": "flag", "id": 1, "kind": "misread", "start": 7, "end": 8, "heard": "chairs"}
-        with a tracker, after a segment closes: a suspected misread, extra,
-        skipped or restart, judged from confirmed words only (see flags.py)
-    {"type": "script", "chapter": {"id": "c1", "title": "..."}, "tokens": 512, "spans": [{"kind": "paragraph", "id": "p1", "index": 0, "start": 6, "count": 4}]}
-        once, first, only with --manuscript (or a --script named with
-        --script-id and --script-title, the credits): how the chapter was
-        tokenized (title, then each paragraph split on whitespace; a named
-        script has no title and one paragraph per line) so a frontend can
-        map `read` indices onto paragraphs and words (see chapter_script.py)
+    {"type": "clock", "t": 12.48}
+        only with --clock: the stream time (wall time since capture began
+        for a mic, less any pause; the audio consumed so far for a file),
+        before the first chunk and as each chunk arrives, and with
+        "event": true just before each engine event. The host follows the
+        read on it (src/studio/desktop/internal/teleprompter, follow.go);
+        {"cmd": "pause"} and {"cmd": "resume"} lines on --control-file PATH
+        stop and restart listening: the device stays open and levels still
+        flow, but the engine hears nothing and the clock stands still
+    {"type": "heard", "words": [["hello", 1.24, 1.51]]}
+        only with --locate or --align-word: the words decoded from the
+        stretch of --wav, each with its seconds into the stretch, for the
+        host to place (locate.py, align_word.py)
     {"type": "devices", "devices": [{"name": "Microphone Array (Realtek(R) Audio)"}], "error": null}
         only with --list-devices: the input devices the --mic capture path
         (iter_microphone_chunks, below) can open, by the same name dshow
@@ -80,15 +72,6 @@ turns them into these three event types:
         (checkCapabilities) reads it to catch a row Go declares for this
         platform that this process never registered, or, on Windows, that
         registered but does not actually load.
-    {"type": "locate", "word": 812, "sentence": {...}, "confidence": 0.84, "confident": true, ...}
-        only with --locate --wav FILE --tail-start S --tail-end E: seconds S
-        to E of a recording, placed in the script; prints once and exits,
-        no session follows (see locate.py for every field)
-    {"type": "word_time", "word": 812, "time": 783.42, "exact": true, ...}
-        only with --align-word N --wav FILE --tail-start S --tail-end E:
-        when script word N starts in the recording, placed through seconds
-        S to E of it (punch and roll's offline fallback); prints once and
-        exits (see align_word.py for every field)
     {"type": "level", "peak": -12.3, "rms": -24.1}
         the input level in dBFS every 100 ms of audio, in every session (see
         narration_common.recording.meter). With --meter --mic NAME it is the only event: no model,
@@ -499,7 +482,7 @@ def event_lag_seconds(event: dict, elapsed: float) -> float | None:
 
 
 class StreamClock:
-    """Stream time for the script tracker: wall time since capture began for a
+    """Stream time for the host's script tracker: wall time since capture began for a
     mic, or the audio consumed so far for a file (which replays faster than
     real time). While paused it stands still, and after a resume it runs on
     without the paused time, so the tracker's pause timeout never counts a
@@ -551,8 +534,8 @@ def stoppable(chunks: Iterable[np.ndarray], stop_path: str | None) -> Iterator[n
 
 def ticking(chunks: Iterable[np.ndarray], clock: StreamClock, on_tick: Callable[[float], None]) -> Iterator[np.ndarray]:
     """Pass chunks through, reporting the stream time as each arrives, so
-    time-based status (the tracker's pause timeout) advances even while the
-    engine emits nothing."""
+    time-based status (the host tracker's pause timeout, from the clock
+    lines) advances even while the engine emits nothing."""
     for chunk in chunks:
         clock.note_chunk(chunk)
         on_tick(clock.now())
@@ -662,55 +645,49 @@ def _capabilities_all_loadable(report: dict) -> bool:
 
 
 def _run_locate(ap: argparse.ArgumentParser, args) -> None:
-    """--locate: place a recording's tail in the chapter and print one `locate` line (locate.py). The chapter is
+    """--locate: decode a recording's tail and print one `heard` line for the host to place (locate.py). The chapter is
     checked before the model loads, so a wrong chapter fails fast."""
     import locate
-    from chapter_script import ChapterError
 
     locate.check_args(ap, args)
     _check_engine_args(ap, args)
-    try:
-        tokens, breaks = locate.load_script(args)
-    except ChapterError as error:
-        choices = f" Choose one of: {'; '.join(error.candidates)}" if error.candidates else ""
-        ap.error(f"{error}{choices}")
+    _check_script(ap, args)
     decode = _load_whisper_decoder(args, vad_filter=True)
     log(f"Locating seconds {args.tail_start:g} to {args.tail_end:g} of {args.wav}...")
-    if args.words_only:
-        _emit(_heard_event(args, decode))
-        return
-    _emit(locate.run(args.wav, args.tail_start, args.tail_end, tokens, breaks, decode))
+    _emit(_heard_event(args, decode))
 
 
 def _run_align_word(ap: argparse.ArgumentParser, args) -> None:
-    """--align-word: time one script word in a stretch of a recording and print one `word_time` line (align_word.py,
-    punch and roll's offline fallback). Checked like --locate, the chapter before the model loads."""
+    """--align-word: decode a stretch of a recording and print one `heard` line for the host to time the word in
+    (align_word.py, punch and roll's offline fallback). Checked like --locate, the chapter before the model loads."""
     import align_word
-    import locate
-    from chapter_script import ChapterError
 
     align_word.check_args(ap, args)
     _check_engine_args(ap, args)
+    _check_script(ap, args)
+    decode = _load_whisper_decoder(args, vad_filter=True)
+    log(f"Timing script word {args.align_word} in seconds {args.tail_start:g} to {args.tail_end:g} of {args.wav}...")
+    _emit(_heard_event(args, decode))
+
+
+def _check_script(ap: argparse.ArgumentParser, args) -> None:
+    """Refuse an unknown chapter with its candidates (chapter_script's ChapterError), before the model loads."""
+    import locate
+    from chapter_script import ChapterError
+
     try:
-        tokens, _breaks = locate.load_script(args)
+        locate.check_script(args)
     except ChapterError as error:
         choices = f" Choose one of: {'; '.join(error.candidates)}" if error.candidates else ""
         ap.error(f"{error}{choices}")
-    decode = _load_whisper_decoder(args, vad_filter=True)
-    log(f"Timing script word {args.align_word} in seconds {args.tail_start:g} to {args.tail_end:g} of {args.wav}...")
-    if args.words_only:
-        _emit(_heard_event(args, decode))
-        return
-    _emit(align_word.run(args.wav, args.tail_start, args.tail_end, tokens, args.align_word, decode))
 
 
 def _heard_event(args, decode) -> dict:
-    """--words-only: the words decoded from seconds --tail-start to --tail-end of --wav, each [text, start, end] in
-    seconds into the stretch, for the host to place (src/studio/desktop/internal/scripttrack)."""
+    """The words decoded from seconds --tail-start to --tail-end of --wav, each [text, start, end] in seconds into the
+    stretch, for the host to place (src/studio/desktop/internal/scripttrack)."""
     import locate
 
-    audio = locate.read_audio_range(args.wav, args.tail_start, args.tail_end)
-    words = list(decode(audio)) if len(audio) else []
+    words = locate.decode_range(args.wav, args.tail_start, args.tail_end, decode)
     return {"type": "heard", "words": [[text, float(start), float(end)] for text, start, end in words]}
 
 
@@ -718,96 +695,49 @@ def _check_engine_args(ap: argparse.ArgumentParser, args) -> None:
     ENGINES.lookup(args.engine).check(ap, args)
     if bool(args.manuscript) != bool(args.chapter):
         ap.error("--manuscript and --chapter go together")
-    has_tracker = bool(args.manuscript or args.script)
-    if args.start_word is not None and not has_tracker:
-        ap.error("--start-word needs --script or --manuscript")
-    if args.control_file and not has_tracker:
+    has_script = bool(args.manuscript or args.script)
+    if args.control_file and not has_script:
         ap.error("--control-file needs --script or --manuscript")
-    if bool(args.script_id) != bool(args.script_title):
-        ap.error("--script-id and --script-title go together")
-    if args.script_id and not args.script:
-        ap.error("--script-id needs --script")
+    if args.clock and not has_script:
+        ap.error("--clock needs --script or --manuscript")
 
 
-def _load_script(ap: argparse.ArgumentParser, args):
-    """(tracker, `script` event, chapter text) for --manuscript/--chapter or
-    --script, or all None. A --script named with --script-id/--script-title
-    (the credits) gets a `script` event like a chapter; a plain
-    --script does not. Sibling modules are imported only when needed."""
-    from flags import FlaggingTracker
-    from script_tracker import script_words
-
-    if args.manuscript or args.script_id:
-        from chapter_script import ChapterError, load_chapter_script, load_text_script, script_event
+def _load_script(ap: argparse.ArgumentParser, args) -> str | None:
+    """The text of --manuscript/--chapter or --script (the engine's context), or None: an unknown chapter is refused
+    with its candidates, as the host's own reading of it would refuse it (src/studio/desktop/internal/scripttrack)."""
+    if args.manuscript:
+        from chapter_script import ChapterError, load_chapter_script
 
         try:
-            if args.manuscript:
-                chapter = load_chapter_script(args.manuscript, args.chapter)
-            else:
-                chapter = load_text_script(args.script, args.script_id, args.script_title)
+            return load_chapter_script(args.manuscript, args.chapter).text
         except ChapterError as error:
             choices = f" Choose one of: {'; '.join(error.candidates)}" if error.candidates else ""
             ap.error(f"{error}{choices}")
-        return FlaggingTracker(chapter.tokens, heading=chapter.heading), script_event(chapter), chapter.text
     if args.script:
-        return FlaggingTracker(script_words(Path(args.script).read_text(encoding="utf-8"))), None, None
-    return None, None, None
+        return Path(args.script).read_text(encoding="utf-8")
+    return None
 
 
 def _emit(event: dict) -> None:
     print(json.dumps(event), flush=True)
 
 
-def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> None:
-    """Stream engine events (and, with a tracker, the position events they
-    cause) to stdout until the input ends or Ctrl+C."""
-    from control_channel import ControlChannel, pause_state, seek_word
+def _run(args, stream: EventStream, chunks: Iterator[np.ndarray]) -> None:
+    """Stream engine events (with --clock, and a clock line per chunk and before each event) to stdout until the input
+    ends or Ctrl+C."""
+    from control_channel import ControlChannel, pause_state
     from narration_common.recording import LevelMeter, metered
 
     capture_started = None
-    last_logged_commit = None
-
-    def track(position: dict) -> dict:
-        """Debug-log a tracker position, sampled so a session's ~0.32s ticks don't flood the log: a jump (resync)
-        always logs, and a plain commit logs only when the committed word actually advances. A tracker can also emit
-        a `flag` event (script_tracker.py, flags.py) carrying the heard words as content, which this must never
-        touch, so anything that is not a `position` passes straight through."""
-        nonlocal last_logged_commit
-        if position.get("type") != "position":
-            return position
-        if position.get("jump"):
-            log(
-                "the tracker resynced",
-                level="debug",
-                event="teleprompter.tracker_resync",
-                read=position["read"],
-                committed=position["committed"],
-                status=position["status"],
-                jump=position["jump"],
-                skipped=len(position["skipped"]) if position.get("skipped") else 0,
-            )
-            last_logged_commit = position["committed"]
-        elif position["committed"] != last_logged_commit:
-            log(
-                "the tracker committed",
-                level="debug",
-                event="teleprompter.tracker_commit",
-                read=position["read"],
-                committed=position["committed"],
-                status=position["status"],
-            )
-            last_logged_commit = position["committed"]
-        return position
 
     try:
         if args.mic:
             chunks, capture_started = _anchor_capture_clock(chunks)
         clock = StreamClock(capture_started)
-        if tracker and args.start_word is not None:
-            for position in tracker.reset_to(args.start_word, clock.now()):
-                _emit(track(position))
+        if args.clock:
+            _emit({"type": "clock", "t": clock.now()})
         chunks = metered(stoppable(chunks, args.stop_file), LevelMeter(SAMPLE_RATE), _emit)
-        if tracker:
+        if args.clock or args.control_file:
             control = ControlChannel(args.control_file)
 
             def on_tick(now: float) -> None:
@@ -815,19 +745,14 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
                     paused = pause_state(command)
                     if paused is not None:
                         clock.pause() if paused else clock.resume()
-                    word = seek_word(command)
-                    if word is not None:
-                        for position in tracker.reset_to(word, clock.now()):
-                            _emit(track(position))
-                for position in tracker.tick(clock.now()):
-                    _emit(track(position))
+                if args.clock:
+                    _emit({"type": "clock", "t": clock.now()})
 
             chunks = gated(ticking(chunks, clock, on_tick), lambda: clock.paused)
         for event in stream(chunks):
+            if args.clock:
+                _emit({"type": "clock", "t": clock.now(), "event": True})
             _emit(event)
-            if tracker:
-                for tracked in tracker.feed(event, clock.now()):
-                    _emit(track(tracked))
             if args.timing and capture_started is not None:
                 lag = event_lag_seconds(event, clock.now())
                 if lag is not None:
@@ -837,7 +762,7 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
 
 
 # What --meter cannot be combined with: it opens a microphone and reports its level, nothing else.
-_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_word", "words_only", "locate", "list_devices", "capabilities", "verify")
+_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "clock", "locate", "list_devices", "capabilities", "verify")
 
 
 def _run_meter(ap: argparse.ArgumentParser, args) -> None:
@@ -991,43 +916,36 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--hotwords", default=None, help="Comma-separated vocabulary hints (faster-whisper hotwords, or Moonshine key terms)")
     ap.add_argument("--context", default=None, help="Text file (e.g. the script passage) whose unusual words Moonshine is biased toward; moonshine only")
     script_source = ap.add_mutually_exclusive_group()
-    script_source.add_argument("--script", default=None, help="Plain-text script being read; adds `position` events (see script_tracker.py) to the stream")
+    script_source.add_argument("--script", default=None, help="Plain-text script being read (the credits): the engine's context")
     script_source.add_argument(
-        "--manuscript", default=None, help="Canonical manuscript.json to read the script from (needs --chapter); also emits a `script` event"
+        "--manuscript", default=None, help="Canonical manuscript.json to read the chapter from (needs --chapter): checked, and the engine's context"
     )
     ap.add_argument("--chapter", default=None, help="Chapter id or title in --manuscript (narration chapters only)")
     ap.add_argument(
-        "--script-id",
-        default=None,
-        help="Names a --script that is not a chapter (the credits) so it also emits a `script` event, one paragraph per line (needs --script-title)",
+        "--clock",
+        action="store_true",
+        help='For the host that follows the read: print {"type": "clock", "t": seconds} (the stream time) before the first '
+        'chunk and as each chunk arrives, and {"type": "clock", "t": seconds, "event": true} before each engine event',
     )
-    ap.add_argument("--script-title", default=None, help="The --script-id script's display name, e.g. 'Opening credits' (needs --script-id)")
-    ap.add_argument("--start-word", type=int, default=None, help="Start the tracker already at this script word index (needs --script or --manuscript)")
     ap.add_argument(
         "--control-file",
         default=None,
-        help='Sentinel file the host appends seek commands to, one JSON object per line, e.g. {"cmd": "seek", "word": 12} '
-        "(needs --script or --manuscript); tailed once per chunk like --stop-file, no server or port",
+        help='Sentinel file the host appends {"cmd": "pause"} and {"cmd": "resume"} lines to (needs --script or --manuscript); '
+        "tailed once per chunk like --stop-file, no server or port",
     )
     ap.add_argument(
         "--locate",
         action="store_true",
-        help="Instead of a session: transcribe seconds --tail-start to --tail-end of --wav, place them in the script and print one "
-        "`locate` line with the word to resume from (locate.py); needs --model-dir, never downloads a model",
+        help="Instead of a session: transcribe seconds --tail-start to --tail-end of --wav and print one `heard` line for the host "
+        "to place in the chapter (locate.py, Resume from here); needs --model-dir, never downloads a model",
     )
     ap.add_argument(
         "--align-word",
         type=int,
         default=None,
         metavar="WORD",
-        help="Instead of a session: transcribe seconds --tail-start to --tail-end of --wav, place them in the script and print one "
-        "`word_time` line with when script word WORD starts in --wav (align_word.py, punch and roll); needs --model-dir, never downloads a model",
-    )
-    ap.add_argument(
-        "--words-only",
-        action="store_true",
-        help="With --locate or --align-word: print the decoded words as one `heard` line ({type: heard, words: [[text, "
-        "start, end], ...]}, seconds into the stretch) and leave placing them to the host",
+        help="Instead of a session: transcribe seconds --tail-start to --tail-end of --wav and print one `heard` line for the host "
+        "to time script word WORD in (align_word.py, punch and roll); needs --model-dir, never downloads a model",
     )
     ap.add_argument("--tail-start", type=float, default=None, help="--locate/--align-word: where the stretch starts in --wav, in seconds")
     ap.add_argument("--tail-end", type=float, default=None, help="--locate/--align-word: where the stretch (the recorded audio) ends in --wav, in seconds")
@@ -1082,8 +1000,6 @@ def main() -> None:
         if args.verify and not _capabilities_all_loadable(report):
             sys.exit(1)
         return
-    if args.words_only and not (args.locate or args.align_word is not None):
-        ap.error("--words-only needs --locate or --align-word")
     if args.align_word is not None:
         _run_align_word(ap, args)
         return
@@ -1094,17 +1010,15 @@ def main() -> None:
         ap.error("one of --wav or --mic is required")
     _check_engine_args(ap, args)
 
-    tracker, script_message, chapter_text = _load_script(ap, args)
+    chapter_text = _load_script(ap, args)
     # --context, else the chapter itself; an engine that takes no context (Whisper refuses --context) ignores it.
     args.context_text = Path(args.context).read_text(encoding="utf-8") if args.context else chapter_text
     if args.no_context:
         args.context_text = None
-    if script_message:
-        _emit(script_message)
     stream = _load_engine(args)
     chunks = iter_wav_chunks(args.wav) if args.wav else iter_microphone_chunks(args.mic, args.chunk_seconds)
     log("Listening..." if args.mic else f"Replaying {args.wav}...")
-    _run(args, stream, chunks, tracker)
+    _run(args, stream, chunks)
 
 
 if __name__ == "__main__":

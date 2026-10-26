@@ -118,12 +118,11 @@ func TestSelectInAudacityAndGoToAChapterUseTheAudacityRoles(t *testing.T) {
 	}
 }
 
-func TestInAudacityWordsLeavesTheSwitchesNameAlone(t *testing.T) {
+func TestInAudacityWordsNamesAudacityForREAPER(t *testing.T) {
 	for in, want := range map[string]string{
-		"This track is no longer in the REAPER project.":                     "This track is no longer in the Audacity project.",
-		"Turn on Experimental DAW actions in Settings. REAPER is not there.": "Turn on Experimental DAW actions in Settings. Audacity is not there.",
+		"This track is no longer in the REAPER project.":    "This track is no longer in the Audacity project.",
+		"Open REAPER, then try again. REAPER is not there.": "Open Audacity, then try again. Audacity is not there.",
 		"": "",
-		"Experimental DAW actions, then REAPER, then Experimental DAW actions and REAPER": "Experimental DAW actions, then Audacity, then Experimental DAW actions and Audacity",
 	} {
 		if got := inAudacityWords(in); got != want {
 			t.Errorf("%q = %q, want %q", in, got, want)

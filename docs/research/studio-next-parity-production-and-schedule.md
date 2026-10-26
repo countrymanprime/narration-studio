@@ -96,7 +96,7 @@ Method: each mock case is a row below, mapped to a real test by reading the real
 | batch-b.test.tsx | every offered measure round-trips through the stored scope | covered | src/studio/ui/src/components/schedule/draft.test.ts::stores every detail: name, date, measure with its N, note and done |  |
 | batch-b.test.tsx | stores the model, the text and how much was recorded, and is current as of the last save | covered | src/studio/ui/src/components/production/chapterCheckStatus.test.ts::labels current with when it was checked | The host stores the result and says current or stale (chaptersync_status_test.go TestEachChapterSaysWhetherItsCheckIsCurrentWithoutAClick). |
 | batch-b.test.tsx | is out of date once more is recorded or the text changes, and absent before any check | covered | src/studio/desktop/internal/coverage/read_test.go::TestAManuscriptTextChangeMakesTheResultStale | A chapter never checked reads not_linked or unchecked: chapterCheckStatus.test.ts. |
-| batch-b.test.tsx | a new check replaces the old result and is current again | covered | src/studio/ui/src/components/production/RecordingCheck.test.tsx::runs a check with real progress and shows its result |  |
+| batch-b.test.tsx | a new check replaces the old result and is current again | covered | src/studio/ui/src/components/recordingcheck/CheckRecordingsDialog.test.tsx::shows-the-full-report-after-a-single-chapter-run-with-go-to-paragraph-and-check-again |  |
 | batch-b.test.tsx | Production counts the same data Pickups uses | covered | src/studio/ui/src/components/production/overview/overview.test.tsx::check-counts-from-the-sync-state |  |
 | batch-b.test.tsx | the Check recordings button offers the chapters that are out of date or unchecked | covered | src/studio/ui/src/components/production/ProductionPage.test.tsx::opens Check recordings from the Recording check card | The card offers the stale and unchecked chapters; the preselection is checkSelection.test.ts. |
 | batch-b.test.tsx | the Check recordings dialog labels each chapter | covered | src/studio/ui/src/components/recordingcheck/CheckRecordingsDialog.test.tsx::lists-recorded-chapters-with-their-state |  |
@@ -200,7 +200,7 @@ The cited tests, run together at `e4deb06`:
 ```text
 pnpm --dir src/studio/ui exec vitest run \
   src/components/booth/frame/frame.test.tsx src/components/production/ProductionPage.test.tsx \
-  src/components/production/RecordingCheck.test.tsx src/components/production/chapterCheckStatus.test.ts \
+  src/components/recordingcheck/CheckRecordingsDialog.test.tsx src/components/production/chapterCheckStatus.test.ts \
   src/components/production/measured src/components/production/overview \
   src/components/production/pipeline src/components/production/readiness \
   src/components/production/report src/components/production/target \

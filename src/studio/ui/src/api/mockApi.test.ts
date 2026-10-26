@@ -205,21 +205,14 @@ describe('mockApi guideMarkReviewed (the host refuses an entry with suggestions 
 });
 
 describe('the mock host lists the Story Bible analysis tools as the real host does', () => {
-  it("lists the four tools not installed, BookNLP installable and the others with the host's reason, and refuses one of those", async () => {
+  it('lists the three tools not installed, none with a reason it cannot be had', async () => {
     const api = createMockApi();
     const analysis = (await api.assetsList()).assets.filter((asset) => asset.kind === 'analysis');
     expect(analysis.map((tool) => [tool.id, tool.installState])).toEqual([
       ['gliner', 'not_installed'],
       ['booknlp-small', 'not_installed'],
       ['booknlp-big', 'not_installed'],
-      ['local-llm', 'not_installed'],
     ]);
-    expect(analysis.map((tool) => [tool.id, Boolean(tool.unavailableReason)])).toEqual([
-      ['gliner', true],
-      ['booknlp-small', false],
-      ['booknlp-big', false],
-      ['local-llm', true],
-    ]);
-    await expect(api.assetsInstall('analysis', 'gliner')).rejects.toThrow();
+    expect(analysis.filter((tool) => tool.unavailableReason)).toEqual([]);
   });
 });

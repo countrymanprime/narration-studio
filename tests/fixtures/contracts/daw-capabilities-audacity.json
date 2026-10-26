@@ -3,8 +3,8 @@
     "backups": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "cleanup_tools": {
       "available": false,
@@ -15,16 +15,16 @@
     "click_repair": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
       "mode": "steps",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "cut_range": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
       "mode": "steps",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "daw_meters": {
       "available": false,
@@ -47,8 +47,8 @@
     "follow_position": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "fx_chains": {
       "available": false,
@@ -59,9 +59,9 @@
     "fx_range": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
       "mode": "steps",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "heartbeat": {
       "available": false,
@@ -90,14 +90,14 @@
     "macro_render": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "markers": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "master_chain_read": {
       "available": false,
@@ -114,20 +114,18 @@
     "navigate": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "pickups": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "project_read": {
-      "available": false,
-      "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "available": true,
+      "level": "experimental"
     },
     "project_state": {
       "available": false,
@@ -139,8 +137,8 @@
       "available": false,
       "destructive": true,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "punch_preroll": {
       "available": false,
@@ -151,9 +149,9 @@
     "range_gain": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
       "mode": "steps",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "record": {
       "available": false,
@@ -164,8 +162,8 @@
     "regions": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "render_config": {
       "available": false,
@@ -194,15 +192,15 @@
     "review": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "stack_takes": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
       "mode": "steps",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "take_create": {
       "available": false,
@@ -213,26 +211,26 @@
     "takes": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "track_create": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "track_select": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "track_state": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
+      "reason": "standalone"
     },
     "transport_sync": {
       "available": false,

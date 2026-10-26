@@ -259,10 +259,10 @@ describe('the-page-passes-the-ports-splitter', () => {
   });
 
   it('with Audacity backups on, the page has no backup around a time to make, so it refuses before the DAW is asked', async () => {
-    const audacity = dawWith('audacity-backups');
+    const audacity = dawWith('audacity');
     const splitTake = vi.spyOn(audacity, 'splitTake');
     splitter = dawSplitter(audacity, '5');
-    mount('audacity-backups', audacity);
+    mount('audacity', audacity);
     await flush();
     fireEvent.click(stack());
     await waitFor(() => expect(toast).toHaveBeenCalledWith(NO_SPLIT_COMMAND, { tone: 'error' }));
@@ -287,7 +287,7 @@ describe('built-in-recorder-cuts-its-own-take', () => {
 
 describe('audacity-backs-up-first', () => {
   it('with backups the backup call comes before the split', async () => {
-    mount('audacity-backups');
+    mount('audacity');
     await flush();
     fireEvent.click(stack());
     await waitFor(() => expect(calls).toHaveLength(2));
@@ -299,19 +299,10 @@ describe('audacity-backs-up-first', () => {
       ...fakeSplitter(calls),
       backupAround: async () => ({ ok: false, changed: false, message: 'Disk full.', refused: 'Disk full.', undoSteps: 0 }),
     };
-    mount('audacity-backups');
-    await flush();
-    fireEvent.click(stack());
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Disk full.', { tone: 'error' }));
-    expect(calls).toEqual([]);
-  });
-
-  it('without backups the split is refused with the reason', async () => {
     mount('audacity');
     await flush();
     fireEvent.click(stack());
-    await flush();
-    expect(toast).toHaveBeenCalledWith('Keeping takes needs Audacity backups. Turn on Audio backups in Settings.', { tone: 'error' });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Disk full.', { tone: 'error' }));
     expect(calls).toEqual([]);
   });
 });
@@ -320,8 +311,7 @@ describe('planSplit', () => {
   it.each([
     ['reaper', 'daw'],
     ['builtin', 'recorder'],
-    ['audacity-backups', 'backup-then-daw'],
-    ['audacity', 'refused'],
+    ['audacity', 'backup-then-daw'],
     ['reaper-off', 'refused'],
   ] as const)('%s → %s', (setup, kind) => expect(planSplit(DAW_SETUPS[setup]).kind).toBe(kind));
 });

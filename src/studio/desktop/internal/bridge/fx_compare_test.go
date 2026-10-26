@@ -10,10 +10,10 @@ import (
 func TestFXCompareIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.CompareFXRange(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.CompareFXRange(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain); !errors.Is(err, errGateRefused) {
 		t.Fatalf("CompareFXRange: %v", err)
 	}
-	if _, err := actions.StopFXCompare(context.Background()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.StopFXCompare(context.Background()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("StopFXCompare: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

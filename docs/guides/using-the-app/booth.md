@@ -15,8 +15,10 @@ The top bar holds the chapter stepper (previous chapter, the chapter menu with t
 where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and a chip naming the recording setup (the DAW, or the
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
-[Script](script.md), and the Booth's text size, 24 to 72 px; **+** and **-** change the size too, and the Booth opens at the size
-you last chose. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
+[Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
+the same choice as **Column width** in [Settings › Reader text](settings.md); **+** and **-** change the size too, and the Booth opens at the size
+and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
+**Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
 side-panel button move together and stay at the right edge. The chapter picker is as wide as the chapter's name, up to 340 pixels.
 The resume line is not offered while you are already in the paragraph it would take you to.
@@ -30,20 +32,28 @@ its own once connected. Click it to fix that in [Settings](settings.md#link-your
 
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
+The text opens with the chapter's title, in bold, then its subtitle under it, a little smaller, each on a line of its own and in
+the manuscript's own words ("Chapter 7", "Chapter 7: The Road"). These are the first lines you read, and the Booth follows them
+like any other line: a take from the start of the chapter starts on the title, the caret moves through it as you say it, and its
+words count in the progress line and the pages. A chapter with no subtitle has the title alone, and one with no title starts at
+its first paragraph. Reading the heading is optional (see [Suspected lines](#suspected-lines)). It is not a paragraph of the
+manuscript: the paragraph numbers start after it, and a bookmark or **Read to here** cannot be put on it (**B** there says so). The credits have no
+heading line.
+
 The text fills the middle, fading into the page at the top and bottom edges, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
 marked on [Script](script.md) drawn in their mark's colour and the line style you chose for it (a tint, a box, or a solid, double,
 dotted or wavy underline), as they are on Script; a mark's note shows under its paragraph with a bar in the mark's colour. A
 speaker chip takes its character's colour; a suggested speaker's chip is dashed until you confirm it, and a quote nobody is
 matched to has a grey dashed **?** chip, by the same rule as on [Script](script.md). The chip's menu lists the entries whose
 type speaks. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **In this
-chapter** chips alike. Paragraphs sit one line apart, as the lines inside them do, and each starts with an indent, so a page of short paragraphs or
-back-and-forth dialogue shows many more lines at the same text size. The word you
+chapter** chips alike. The text is left-aligned and a paragraph starts at the column's edge, with no indent and a small gap above it, so a page of short paragraphs or
+back-and-forth dialogue still shows many lines at the same text size. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
 
 ### Finding text in the chapter
 
-**Ctrl+F** opens the jump menu, as on every page. Type two or more letters and the matches in the chapter on screen are listed under **In this chapter**, each with the words around it and its paragraph (**¶ 12**), the same search as on [Script](script.md). Choosing one marks every match in the text, rings the one you chose, and moves your place to it. While a take is recording your place belongs to your voice, so choosing a match only scrolls the text there and the recording is not disturbed; the text returns to your place when you click a word or step, as after the mouse wheel. While a search shows, the jump menu also offers **Next match**, **Previous match** and **Clear the search**.
+**Ctrl+F** opens the jump menu, as on every page. Type two or more letters and the matches in the chapter on screen are listed under **In this chapter**, each with the words around it and its paragraph (**¶ 12**, or **Title** and **Subtitle** for the heading), the same search as on [Script](script.md). Choosing one marks every match in the text, rings the one you chose, and moves your place to it. While a take is recording your place belongs to your voice, so choosing a match only scrolls the text there and the recording is not disturbed; the text returns to your place when you click a word or step, as after the mouse wheel. While a search shows, the jump menu also offers **Next match**, **Previous match** and **Clear the search**.
 
 ![Booth after a search for "the": every match in the text is tinted and the chosen one is ringed and being read](../../images/ui/booth-search.webp)
 
@@ -77,9 +87,8 @@ With REAPER, each slider has REAPER's own meter under it, read four times a seco
 the level of the first track armed for recording in REAPER, with that track's name; with no track armed the menu says so, because
 the app never arms a track just to measure it. Under **Monitor level (output)** is what REAPER plays out, which moves while it plays,
 records with monitoring on, or monitors the armed track. If REAPER stops answering for two seconds, the meters say how long ago
-they last heard it instead of showing an old level. The meters only read, so they show whenever REAPER is linked and answering.
-The monitor slider changes REAPER, so it is an Experimental DAW action: while those are off, the slider is off and **Turn on in
-Settings** opens the switch.
+they last heard it instead of showing an old level. The meters and the monitor slider show whenever REAPER is linked and answering;
+while it is not, each says why in REAPER's own words. No setting turns them on.
 
 **Punch** shows the lead-in you hear before a punch. With REAPER it is REAPER's own pre-roll, the one the punch really uses, in
 one line: whether it is on and its length, for example **Pre-roll off · 2 measures (4.0 s)**. The seconds are the measures at the
@@ -98,12 +107,17 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 
 ![Booth - the Levels menu: REAPER's own pre-roll in one line, read from REAPER](../../images/ui/booth-levels-menu-preroll.webp)
 
-![Booth - the Levels menu showing REAPER's own input level (the armed track) and output level under the two sliders](../../images/ui/booth-levels-menu-daw-meters.webp)
-
 ## Recording
 
 Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
-track and starts at the end of the last item on it, so a take never records over an earlier one.
+track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
+the end of the last item on the track, so a take never records over audio from a place you did not choose.
+
+Stop leaves you where you stopped. The highlight stays on the last word the Booth heard, and the next take, **Resume** and a cold
+read start from there. In REAPER the edit cursor stays at the end of what you just recorded, whether you press Stop in the Booth or
+in REAPER. REAPER on its own would put it back where the recording began, so the app moves it to the end itself and changes none of
+REAPER's preferences. Going back is always your own choice: click a word, use **Start from here**, or punch and roll (**R**).
+Audacity cannot record from the Booth yet. The built-in recorder has no edit cursor, so only the highlight stays.
 
 When Record cannot start, it looks off and the footer says why, but you can still press it: the press opens the dialog that
 fixes the problem, or, when there is nothing to fix from the Booth, a message that says why with **Check again**. Nothing
@@ -123,19 +137,12 @@ footer does not repeat the reason, and the setup chip on the top bar warns too:
     to choose from, this is the main button. Save the REAPER project afterwards so the new track is kept; the message after
     creating it reminds you.
 
-  Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording, not connected, or the Experimental
-  actions are off), the dialog says why and links nothing. Audacity 3 adds the track too (an Experimental action, like REAPER's);
-  Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
+  Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording or not connected), the dialog says
+  why and links nothing. Audacity 3 adds the track too; Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
 
   ![Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again](../../images/ui/booth-record-unlinked.webp)
 
   ![Booth - the dialog closed: the Not linked to a track chip under the text, which reopens it](../../images/ui/booth-record-unlinked-closed.webp)
-
-- **Record is switched off.** Recording in a DAW starts switched off until it has been checked in that DAW. Press Record (or the
-  chip) and the dialog explains it; **Turn on Record** turns it on for this computer (Settings > Recording & DAW > Capabilities >
-  Record), and Record is ready at once.
-
-  ![Booth - Record pressed while switched off: the Recording in REAPER is experimental dialog with Turn on Record, DAW settings and Check again](../../images/ui/booth-record-refused.webp)
 
 - **REAPER not connected** (or **REAPER not answering**). The app records in REAPER through its bridge, a small script
   that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and REAPER starts it
@@ -184,13 +191,6 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 ![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
 
-- **Experimental.** Like recording in a DAW, it starts switched off until it has been checked on your microphone. The **Record
-  is switched off** chip above the footer says so; it, or a press of Record, opens the dialog whose **Turn on Record** turns it
-  on, the same switch as in Settings > Recording & DAW > Capabilities > Record. The switch is this app's own, so the dialog waits
-  for nothing outside it: its other button is **Recording settings**.
-
-  ![Booth - the built-in recorder with Experimental actions off: Record off, and the Record is switched off chip under the text](../../images/ui/booth-builtin-refusal.webp)
-
 - **The microphone.** The take records on the microphone you chose in **Levels**. With none chosen it uses the one the project
   last recorded with, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
   microphone in Levels, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
@@ -207,7 +207,7 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
   ![Booth - the built-in recorder's take ended by itself: Record is back and a message says the audio before it is kept in the Recordings folder](../../images/ui/booth-builtin-take-ended.webp)
 
 - **Leaving.** Leaving the Booth during a take asks "Stop recording?", as with a DAW. Reloading the window during a take picks the
-  take up again, and Stop still stops it. Turning Experimental off during a take does not stop the take, and Stop still works.
+  take up again, and Stop still stops it.
 - **Not yet.** **R** (punch and roll) is not available with the built-in recorder, and the footer's Levels cannot set an audio
   interface's input gain: set it in the interface's own control panel.
 - **Where the takes go.** The Booth does not link a take to its chapter. Assign it in the native takes of the
@@ -371,7 +371,7 @@ into another chapter when needed; during a take they move only within the chapte
 
 ## Pages and your stopping place
 
-The Booth marks where a page breaks: a faint dashed line across the text above the page's first line, and **Page 2**, **Page 3** and so on written down the right margin beside the ribbons. A page is at least 250 words, counted from the start of the chapter, and never breaks inside a paragraph: when the count reaches 250 partway through a paragraph, the page runs on to that paragraph's last word and the next page starts with the next paragraph, counting again from there. A paragraph longer than a page makes one long page. The last page of a chapter has no break after it, so a chapter of one page, or of a single paragraph, has none. Change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size.
+The Booth marks where a page breaks: a faint dashed line across the text above the page's first line, and **Page 2**, **Page 3** and so on written down the right margin beside the ribbons. A page is at least 250 words, counted from the start of the chapter (the title and subtitle included), and never breaks inside a paragraph: when the count reaches 250 partway through a paragraph, the page runs on to that paragraph's last word and the next page starts with the next paragraph, counting again from there. A paragraph longer than a page makes one long page. The last page of a chapter has no break after it, so a chapter of one page, or of a single paragraph, has none. Change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size.
 
 To mark where you mean to stop, right-click a word, or a page's label, and choose **Read to here**. The place gets a chequered-flag ribbon, also shown in the Script and in the jump menu (**Read to here: …**), with **Undo** on the message. A chapter has one stopping place: setting another moves it, and **Undo** puts it back where it was. It only marks the place: nothing stops, pauses or ends a take when you reach it. Right-click the flag for **Edit stopping place** and **Remove stopping place**.
 
@@ -437,7 +437,7 @@ While its chapters are being read, the panel shows its title and grey blocks, an
 
 With **Check recordings in the background** on (Settings > Speech to text > Background checks), the app listens back to each
 take you record and marks skipped or misread words for [Editing](editing.md) and [Pickups](pickups.md), so you do not have to
-press **Check recording** chapter by chapter.
+press **Check recordings** chapter by chapter.
 
 - **It asks first.** The first time a recorded chapter is ready to check, **Check recordings in the background?** names the
   models it would use (`tiny`, with `small` double-checking what `tiny` was unsure of). Nothing is checked until you choose

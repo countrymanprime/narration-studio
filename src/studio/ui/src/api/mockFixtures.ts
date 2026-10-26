@@ -30,7 +30,6 @@ import type {
   TracksProject,
   TranscriptState,
 } from '../types';
-import { DAW_CAPABILITIES } from '../types';
 
 export const aliceChapterSeeds = [
   {
@@ -876,16 +875,6 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: 'true',
       effectiveSource: 'repo default',
     },
-    {
-      key: 'experimental_reaper_actions',
-      label: 'Experimental DAW actions',
-      kind: 'bool',
-      choices: [],
-      value: '',
-      isSet: false,
-      effectiveValue: 'false',
-      effectiveSource: 'repo default',
-    },
     // DAW.fx_favourites: the narrator's favourite FX chains and
     // plug-ins, a comma-joined "tags" field, mirroring src/studio/desktop/app.go's fieldSchemas.
     {
@@ -898,18 +887,6 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '',
       effectiveSource: 'repo default',
     },
-    // One choice field (auto/on/off) per DAW port capability, mirroring src/studio/desktop/app.go's
-    // capabilityFieldSchemas: every row starts unset, its repo default "auto", like auto_start_launcher above.
-    ...DAW_CAPABILITIES.map(({ key, label }): ScopedSettingField => ({
-      key: `capability.${key}`,
-      label,
-      kind: 'choice',
-      choices: ['auto', 'on', 'off'],
-      value: '',
-      isSet: false,
-      effectiveValue: 'auto',
-      effectiveSource: 'repo default',
-    })),
   ],
   // The narrator's own delivery limits, mirroring the host's
   // fieldSchemas and numberSpecs.

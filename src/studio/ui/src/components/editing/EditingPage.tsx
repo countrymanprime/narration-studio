@@ -47,8 +47,6 @@ export interface EditingPageProps {
   onChapter?: (id: string) => void;
   /** Opens the import flow, from the need-a-manuscript state. */
   onImport?: () => void;
-  /** Opens the manuscript text at a paragraph of a chapter (the recording check's passage links). */
-  onGoToParagraph?: (chapterId: string, index: number) => void;
   /** Opens a character's Story Bible entry (the voice-sample dots' "Open in Story Bible"). Absent: no link is drawn. */
   onOpenStoryBible?: (entityId: string) => void;
   /** How long after the app opens an unconnected DAW is waited for before its dialog opens by itself (tests pass 0). */
@@ -90,7 +88,6 @@ function EditingLoaded({
   t,
   drawer,
   onChapter,
-  onGoToParagraph,
   onOpenStoryBible,
   dawConnectGraceMs = DAW_CONNECT_GRACE_MS,
 }: EditingPageProps) {
@@ -217,7 +214,6 @@ function EditingLoaded({
               width={width}
               step={step}
               checkChapter={chapters?.find((c) => c.id === chapter.id)}
-              onGoToParagraph={(index) => onGoToParagraph?.(chapter.id, index)}
               onOpenStoryBible={onOpenStoryBible}
             />
           ) : chapters ? (
@@ -263,7 +259,6 @@ type ChapterProps = {
   width: number;
   step: (d: 1 | -1) => void;
   checkChapter?: ManuscriptChapter;
-  onGoToParagraph: (index: number) => void;
   onOpenStoryBible?: (entityId: string) => void;
 };
 
@@ -282,7 +277,6 @@ function EditingChapter({
   width,
   step,
   checkChapter,
-  onGoToParagraph,
   onOpenStoryBible,
 }: ChapterProps) {
   const { source, setCuts, setEffects, reloadAccepted, reread, retry } = useChapterSource(chapterId, name);
@@ -326,7 +320,6 @@ function EditingChapter({
         onAccepted={reloadAccepted}
         onReread={reread}
         checkChapter={checkChapter}
-        onGoToParagraph={onGoToParagraph}
         onOpenStoryBible={onOpenStoryBible}
         caps={caps}
         dawRead={dawRead}

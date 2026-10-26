@@ -68,7 +68,6 @@ func TestDawMonitorLevelRefusesInASentence(t *testing.T) {
 		"not answering":         {bridge.ErrNoAnswer, "is not answering"},
 		"not connected":         {bridge.ErrUnavailable, "is not connected"},
 		"old script":            {bridge.ErrScriptOutdated, "older than this app"},
-		"experimental off":      {bridge.ErrExperimentalOff, "experimental"},
 		"timeout":               {context.DeadlineExceeded, "did not answer"},
 		"anything else":         {errors.New("boom"), "boom"},
 	} {
@@ -94,22 +93,14 @@ func TestDawMonitorLevelRefusesWithTheResolversSentenceAndAsksNothing(t *testing
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeMonitorLeveler{level: 70}
-			host := deleteRangeHost(t, c.kind, c.reach, nil, "")
-			if c.toggle != "" {
-				if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapMonitorLevel): &c.toggle}); err != nil {
-					t.Fatal(err)
-				}
-			}
+			host := deleteRangeHost(t, c.kind, c.reach, nil)
 			host.mu.Lock()
 			host.monitorLeveler = role
 			host.mu.Unlock()
@@ -135,7 +126,7 @@ func TestDawMonitorLevelRefusesWithTheResolversSentenceAndAsksNothing(t *testing
 // A level outside 0 to 100 is an error and nothing is asked or sent, whatever the launch.
 func TestDawSetMonitorLevelRefusesALevelOutsideTheScale(t *testing.T) {
 	role := &fakeMonitorLeveler{level: 70}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), nil, "")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), nil)
 	host.mu.Lock()
 	host.monitorLeveler = role
 	host.mu.Unlock()
@@ -152,7 +143,7 @@ func TestDawSetMonitorLevelRefusesALevelOutsideTheScale(t *testing.T) {
 // TestDawMonitorLevelContractGoldenIsCurrent pins the bindings' answers: a level read or set, and a refusal. UPDATE_CONTRACTS=1
 // rewrites tests/fixtures/contracts/daw-monitor-level-*.json.
 func TestDawMonitorLevelContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to set the monitor level."}
+	refusedCapability := dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	cases := map[string]struct {
 		support dawport.Support
 		role    *fakeMonitorLeveler

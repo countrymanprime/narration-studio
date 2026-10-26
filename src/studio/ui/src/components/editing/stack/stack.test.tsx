@@ -369,9 +369,9 @@ describe('what the DAW can do', () => {
     expect(planStack(DAW_SETUPS.reaper)).toEqual({ kind: 'daw', dawName: 'REAPER' });
     expect(planStack(stepsCaps(true)).kind).toBe('steps');
     expect(planStack(recorderCaps()).kind).toBe('recorder');
-    // Audacity can stack only with backups on, in steps; the reason says so (SN-D83).
-    expect(planStack(DAW_SETUPS['audacity-backups']).kind).toBe('steps');
-    expect(planStack(DAW_SETUPS.audacity)).toMatchObject({ kind: 'refused', reason: expect.stringContaining('Audacity backups') });
+    // Audacity stacks in steps, backed up first (SN-D83); with REAPER not answering the reason is its own.
+    expect(planStack(DAW_SETUPS.audacity).kind).toBe('steps');
+    expect(planStack(DAW_SETUPS['reaper-off'])).toMatchObject({ kind: 'refused', reason: DAW_SETUPS['reaper-off'].capabilities.stack_takes!.message });
   });
 });
 

@@ -835,3 +835,30 @@ func TestDefaultNoteTypeRefinesAudioQualityByEvidenceKind(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveAnalyzerDeletesOnlyThatAnalyzersFindings(t *testing.T) {
+	store := NewStore(t.TempDir())
+	if _, err := store.SaveAnalyzerFindings("story-bible", "entities", []Finding{testFinding("f1", "c-0001", "v1")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SaveAnalyzerFindings("guide", "c-0002", []Finding{testFinding("f2", "c-0002", "v1")}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.RemoveAnalyzer("story-bible"); err != nil {
+		t.Fatal(err)
+	}
+	left, err := store.List(Query{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) != 1 || left[0].ID != "f2" {
+		t.Fatalf("after removing story-bible = %+v, want only f2", left)
+	}
+	// Nothing saved for it is not an error, and a name that could leave the folder is refused.
+	if err := store.RemoveAnalyzer("story-bible"); err != nil {
+		t.Fatalf("a second remove = %v", err)
+	}
+	if err := store.RemoveAnalyzer(".."); err == nil {
+		t.Fatal(`RemoveAnalyzer("..") was not refused`)
+	}
+}
