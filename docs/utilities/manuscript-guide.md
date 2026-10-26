@@ -141,7 +141,7 @@ What BookNLP prints while it loads and runs goes to stderr: stdout carries only 
 weights and encoder files, the unpacked wheels the freeze does not carry: `booknlp`, `torch`, `transformers`, `huggingface-hub`,
 `tokenizers`, `safetensors`, `regex`, `filelock`, `fsspec`, `sympy`, `mpmath`, `networkx`, and `setuptools` 80 for the
 `pkg_resources` BookNLP imports. The guide's freeze carries the standard library and the submodules those packages import that the
-guide does not (`FREEZE_IMPORTS`, `FREEZE_METADATA`, read by `scripts/release/prepare-resources.py`), and every `self-check` has
+guide does not, with `httpx` and the packages it imports, which `huggingface-hub` needs at import (`FREEZE_IMPORTS`, `FREEZE_METADATA`, read by `scripts/release/prepare-resources.py`), and every `self-check` has
 a `tool-runtime` line that imports them, which the packaged smoke test requires.
 
 ## Workflow

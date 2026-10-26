@@ -45,6 +45,8 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
   return (
     <div className="flex flex-wrap items-center gap-2" data-retry-bar={level}>
       <SectionLabel>{STACK_TEXT.howKept}</SectionLabel>
+      {/* The toggle and the stack action end the row, where a drawer's other actions end (alignment rule A4). */}
+      <span className="flex-1" />
       <ToggleGroup
         label={`How retries are kept in this ${scope}`}
         look="segmented"
@@ -52,7 +54,6 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
         options={answer ? options : options.map((o) => ({ ...o, disabled: true }))}
         onChange={(v) => void choose(v === 'inherit' ? '' : (v as RetryMode))}
       />
-      <span className="flex-1" />
       {mode === 'stack' && count > 0 ? (
         <span title="Later reads that can go on the first read’s spot" data-stack-count>
           <StatusBadge tone="info" label={`${count} ${count === 1 ? 'retry' : 'retries'} can be stacked`} />
