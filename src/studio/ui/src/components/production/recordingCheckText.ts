@@ -73,7 +73,7 @@ const CREDITS_CHECK_TITLE: Record<CreditsKind, string> = { opening: 'Opening cre
 const creditsCheckId = (kind: CreditsKind): string => `credits-${kind}`;
 
 /** The credits kind a check id names, or undefined for a manuscript chapter id (the host's `coverage.CreditsKind`,
- * mirrored here so a mounted `RecordingCheck` can tell a credits row apart from a real chapter without importing
+ * mirrored here so Check recordings can tell a credits row apart from a real chapter without importing
  * `useCreditsRows`' own module). */
 export function creditsCheckKind(chapterId: string): CreditsKind | undefined {
   if (chapterId === creditsCheckId('opening')) return 'opening';
@@ -82,7 +82,7 @@ export function creditsCheckKind(chapterId: string): CreditsKind | undefined {
 }
 
 /**
- * The synthetic `ManuscriptChapter` a credits row's Check button opens `RecordingCheck` with: `RecordingCheck` treats `chapter.id` as an opaque key for every host call, so this
+ * The synthetic `ManuscriptChapter` a credits row's check hands Check recordings (`openCheckRecordings`'s `extra`): the dialog treats `chapter.id` as an opaque key for every host call, so this
  * needs nothing beyond a title and the one paragraph id the host's synthetic check manuscript gives the credits kind
  * (`coverage.creditsParagraphID`, `"<chapterId>-p0"`), so a reported gap numbers as "paragraph 1" the same way a real
  * chapter's first paragraph would. Never inserted into the real chapters array (docs/architecture/manuscript-teleprompter.md: credits are not manuscript

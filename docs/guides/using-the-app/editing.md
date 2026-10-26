@@ -5,8 +5,8 @@
 Editing is where you hear a chapter against its script and edit it. The chapter's script is the editor: each word
 shows how it was heard, each line has its takes under it, and what you select is what you play, delete or put an
 effect on. Open it from **Editing** in the sidebar's Edit group, from a linked chapter's **Open in Editing** in the
-[audio engine panel](navigation.md#linking-chapters-to-tracks), from a recording check's **Open in Editing** on
-[Production](production.md#checking-a-chapters-recording), or from **Manage takes in Editing** on a note in
+[audio engine panel](navigation.md#linking-chapters-to-tracks), from a recording check finding's **Open in Editing** on
+[Proof](proof.md#one-chapter), or from **Manage takes in Editing** on a note in
 [Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the first chapter.
 
 With no manuscript imported yet, the page says so and offers **Import manuscript**, which goes to
@@ -83,9 +83,9 @@ to its window, so a link made in REAPER or the audio engine panel shows without 
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recording** button beside it that opens the chapter's recording check. Close the check and the page reads the chapter again, so
-what it found shows without a reload. Opening Editing never starts a check. The check's **Check options** (a closed section in its panel) are the same
-choices as [Check recordings](production.md#checking-a-chapters-recording) offers.
+**Check recordings…** button beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
+what the check found shows without a reload. Opening Editing never starts a check.
 
 A chapter you recorded since its last check may be checked in the background, whatever page is open
 ([Checking what you recorded](booth.md#checking-what-you-recorded)). While one runs, the bottom left of the page names the
@@ -151,7 +151,8 @@ Proof lists the same words as **Said twice** with an **Open in Editing** link, w
 
 The page has one waveform, docked above the bar so it is always in view. It shows the chapter's audio and opens on the line the cursor is on;
 when the cursor moves to a line that is not on screen, or playback reaches one, the waveform moves to it. Its first row names the take that
-plays (or "Recording"), the stretch it shows, and **Zoom out** and **Zoom in**.
+plays (or "Recording"), the stretch it shows, a **?** that lists the waveform's gestures when you point at it or Tab to it, and **Zoom out**
+and **Zoom in**. The line under the waveform shows a range's time and words; with no range it is blank, not a set of instructions.
 
 Each thin bar is how loud that moment is, drawn from the middle line. The height is in decibels against the chapter's own loud level (the
 level 99 in 100 of its sounding moments stay under), over 30 dB: a loud syllable fills the lane, a quiet one is still a clear bar, and a pause
@@ -164,7 +165,8 @@ the edge of the lane as it passes. With **Motion** set to reduce in Settings (or
 arrows at either end move a whole window back or forward; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
-brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line.
+brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps
+the waveform where you scrolled it.
 
 **The waveform's menu.** A right click without a drag (a long press on a touch screen, or the menu key or **Shift+F10** with the waveform
 focused) opens its own menu: **Play from** that moment, **Play the range** and **Clear the range** when there is one, **Put the cursor on**
@@ -188,8 +190,7 @@ and its words, and the range is announced when it is set.
 
 **Zoom in** and **Zoom out** step the view from the whole chapter down to one second; **Ctrl+wheel** (or a trackpad pinch) zooms about the
 pointer. The view follows the playhead; scrolling it by hand while the chapter plays stops that until playback stops. One second is the
-closest view because the host keeps 50 peaks a second, 20 ms each: closer, the picture would only get bigger. When a bar is wider than 10 px
-the waveform says what a bar is.
+closest view because the host keeps 50 peaks a second, 20 ms each: closer, the picture would only get bigger.
 
 **Delete** and **Add FX** still work on whole words, because the DAW takes a range as its first and last word. When an edge is inside a word, the line under the
 waveform names the word and how much of it the range covers, and the question before a cut or an effect shows "Sub-word edge, shown as a preview" with

@@ -347,9 +347,10 @@ describe('the text popover', () => {
           recording={false}
           panelOpen={false}
           onTogglePanel={() => {}}
-          text={{ font: text.font, size: text.size, onFont: text.setFont, onSize: text.setSize }}
+          text={{ font: text.font, size: text.size, width: text.width, onFont: text.setFont, onSize: text.setSize, onWidth: text.setWidth }}
         />
         <span data-testid="shown">{`${text.size}px ${text.fontFamily}`}</span>
+        <span data-testid="column">{text.column}</span>
       </>
     );
   }
@@ -368,6 +369,31 @@ describe('the text popover', () => {
     // The reader font is the Script's saved choice: its other text choices are kept.
     expect(JSON.parse(window.localStorage.getItem(TEXT_PREFS_STORAGE_KEY)!)).toEqual({ font: 'Verdana', size: 18, spacing: 1.6, width: 48 });
     expect(screen.getByTestId('shown').textContent).toBe('44px Verdana, Geneva, sans-serif');
+  });
+
+  it('the column width is the Reader text column width, Narrow to Full, saved with the other choices', async () => {
+    window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ font: 'Georgia', size: 18, spacing: 1.6, width: 64 }));
+    render(<WithChoices />);
+    // The Script's own setting and unit: Medium is 64 characters a line on both pages.
+    expect(screen.getByTestId('column').textContent).toBe('64ch');
+    await userEvent.click(screen.getByRole('button', { name: 'Text settings' }));
+    const width = await screen.findByRole('slider', { name: 'Column width' });
+    expect([width.getAttribute('min'), width.getAttribute('max')]).toEqual(['0', '3']);
+    expect(screen.getByText('Medium')).toBeTruthy();
+    fireEvent.keyDown(width, { key: 'ArrowLeft' });
+    expect(screen.getByText('Narrow')).toBeTruthy();
+    expect(screen.getByTestId('column').textContent).toBe('48ch');
+    expect(JSON.parse(window.localStorage.getItem(TEXT_PREFS_STORAGE_KEY)!)).toEqual({ font: 'Georgia', size: 18, spacing: 1.6, width: 48 });
+    fireEvent.keyDown(width, { key: 'End' });
+    expect(screen.getByText('Full')).toBeTruthy();
+    expect(screen.getByTestId('column').textContent).toBe('100ch');
+    expect(JSON.parse(window.localStorage.getItem(TEXT_PREFS_STORAGE_KEY)!).width).toBe(100);
+  });
+
+  it('opens on the width Settings › Reader text saved', () => {
+    window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ font: 'Georgia', size: 18, spacing: 1.6, width: 80 }));
+    render(<WithChoices />);
+    expect(screen.getByTestId('column').textContent).toBe('80ch');
   });
 
   it('is not drawn without the choices', () => {

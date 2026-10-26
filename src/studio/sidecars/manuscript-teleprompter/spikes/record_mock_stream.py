@@ -12,6 +12,7 @@ words, when it pauses, the jump events) and the suspected flags are the
 tracker's own rather than invented.
 
     python record_mock_stream.py [--out PATH]
+    python record_mock_stream.py --calls | go run ./cmd/booth-replay --mock PATH   (the host's own tracker)
 """
 
 import argparse
@@ -103,6 +104,24 @@ def schedule(words: list[tuple[str, float, float, int]]) -> Iterator[tuple[float
         t += TICK_SECONDS
 
 
+def calls() -> list[dict]:
+    """The tracker calls `record` makes, one JSON object each: `{"tick": t}` at every decode tick and `{"feed": event,
+    "t": t}` for each engine event, for the host's replay tool (`go run ./cmd/booth-replay --mock OUT`)."""
+    made: list[dict] = []
+    now = {"t": 0.0}
+
+    def hypotheses() -> Iterator[live_asr.Hypothesis]:
+        for t, hypothesis in schedule(timed_words()):
+            now["t"] = t
+            made.append({"tick": t})
+            if hypothesis is not None:
+                yield hypothesis
+
+    for event in live_asr.confirmed_events(hypotheses()):
+        made.append({"feed": event, "t": now["t"]})
+    return made
+
+
 def record() -> list[dict]:
     tracker = FlaggingTracker(TOKENS)
     recording: list[dict] = []
@@ -127,7 +146,13 @@ def main() -> None:
     default_out = Path(__file__).resolve().parents[5] / "src" / "studio" / "ui" / "src" / "api" / "teleprompterRecording.json"
     ap = argparse.ArgumentParser(description="Regenerate the Teleprompter mock's recorded position stream")
     ap.add_argument("--out", default=str(default_out))
+    ap.add_argument("--calls", action="store_true", help="Print the tracker calls instead, for go run ./cmd/booth-replay --mock")
     args = ap.parse_args()
+    if args.calls:
+        print(json.dumps({"tokens": TOKENS}))
+        for call in calls():
+            print(json.dumps(call))
+        return
 
     events = record()
     positions = [item["event"] for item in events if item["event"]["type"] == "position"]

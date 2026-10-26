@@ -64,6 +64,7 @@ import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema }
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
 import {
   guideCreatedSchema,
+  guideDeletedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
   guideMergeResultSchema,
@@ -350,6 +351,7 @@ export const wailsClient: NarrationApi = {
   guideMerge: (sourceId, targetId) => decode(guideMergeResultSchema, 'GuideMerge', host.GuideMerge(sourceId, targetId)),
   guideUnmerge: (undoId) => decode(voidResult, 'GuideUnmerge', host.GuideUnmerge(undoId)),
   guideDelete: (id) => decode(voidResult, 'GuideDelete', host.GuideDelete(id)),
+  guideDeleteAll: () => decode(guideDeletedSchema, 'GuideDeleteAll', host.GuideDeleteAll(true)),
   guideRelate: (id, otherId, label) => decode(voidResult, 'GuideRelate', host.GuideRelate(id, otherId, label)),
   guideUnrelate: (id, otherId, label) => decode(voidResult, 'GuideUnrelate', host.GuideUnrelate(id, otherId, label)),
   guidePreview: (id, aliasIndex) => decode(guidePreviewSchema, 'GuidePreview', host.GuidePreview(id, aliasIndex ?? null)),

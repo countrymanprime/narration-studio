@@ -65,7 +65,10 @@ export function pageReducer(s: PageState, a: PageAction): PageState {
     case 'select':
       return move(s, a.head, { anchor: a.anchor, head: a.head });
     case 'selectSpan':
-      return a.head && a.anchor ? { ...move(s, a.head, { anchor: a.anchor, head: a.head }), span: a.span } : { ...s, sel: null, span: a.span };
+      // A range is drawn on the view the narrator scrolled to, so it keeps that view: letting it go would move the waveform under the pointer.
+      return a.head && a.anchor
+        ? { ...move(s, a.head, { anchor: a.anchor, head: a.head }), span: a.span, ...(s.view ? { view: s.view } : {}) }
+        : { ...s, sel: null, span: a.span };
     case 'dropSpan':
       return s.span ? { ...s, span: null } : s;
     case 'dropRange':

@@ -25,4 +25,16 @@ describe('placeOf', () => {
   it('is null when the chapter has no sentences', () => {
     expect(placeOf([], [], { cur: 0, wcur: 0 })).toBeNull();
   });
+
+  it('a place on the chapter heading is the start of the first paragraph: the heading is no manuscript paragraph the host knows', () => {
+    const headed: ReadingParagraph[] = [
+      { id: 'chapter-heading-title', text: 'Chapter 7', heading: 'title' },
+      { id: 'chapter-heading-subtitle', text: 'The Road', heading: 'subtitle' },
+      ...paragraphs,
+    ];
+    const headedUnits = boothUnits(headed);
+    expect(placeOf(headed, headedUnits, { cur: 0, wcur: 1 })).toEqual({ pid: 'p1', word: 0 });
+    expect(placeOf(headed, headedUnits, { cur: 1, wcur: 1 })).toEqual({ pid: 'p1', word: 0 });
+    expect(placeOf(headed, headedUnits, { cur: 2, wcur: 1 })).toEqual({ pid: 'p1', word: 1 });
+  });
 });

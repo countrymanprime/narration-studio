@@ -1,6 +1,7 @@
 // Shared by the page's tests and stories: the Editing page over the mock api with a small chapter that was heard, the mock DAW client of one
 // of the mock's setups, the command router, the shell's journal, the overlay host and the shell's context menu.
 import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { Finding } from '../../../api/contracts/findings';
 import type { WorkspaceAlignmentResult, WorkspaceTakesResult } from '../../../api/contracts/workspace';
@@ -178,21 +179,23 @@ export const dawFor = (setup: DawSetupId): DawClient =>
 
 export const newJournal = (): Journal => createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'unknown' });
 
-/** The page's surroundings in the app shell. */
+/** The page's surroundings in the app shell, the router included: the app's overlays (Check recordings) sit inside it, as in App.tsx. */
 export function EditingHost({ api, daw, journal, children }: { api: NarrationApi; daw: DawClient; journal: Journal; children: ReactNode }) {
   return (
-    <ApiProvider api={api}>
-      <PortOverrides clients={{ daw }}>
-        <CommandRouter>
-          <StudioProvider journal={journal}>
-            <OverlayProvider>
-              <main className="h-full">
-                <ContextMenuHost className="size-full">{children}</ContextMenuHost>
-              </main>
-            </OverlayProvider>
-          </StudioProvider>
-        </CommandRouter>
-      </PortOverrides>
-    </ApiProvider>
+    <MemoryRouter>
+      <ApiProvider api={api}>
+        <PortOverrides clients={{ daw }}>
+          <CommandRouter>
+            <StudioProvider journal={journal}>
+              <OverlayProvider>
+                <main className="h-full">
+                  <ContextMenuHost className="size-full">{children}</ContextMenuHost>
+                </main>
+              </OverlayProvider>
+            </StudioProvider>
+          </CommandRouter>
+        </PortOverrides>
+      </ApiProvider>
+    </MemoryRouter>
   );
 }

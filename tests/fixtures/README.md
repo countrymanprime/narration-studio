@@ -231,9 +231,25 @@ and `script` event), the `ChapterError` (message and candidates) or the name of 
 same test; `scripttrack`'s `chapter_parity_test.go` must agree with it, and answers an input Python raised on with a
 `ChapterError` of its own.
 
+`live-sessions.golden.jsonl`: 40 seeded live sessions (coverage-manuscript chapters and credits text, with misreads,
+added words, skips, restarts, silences long enough to be "waiting", seeks, pauses and start words), each run through the
+teleprompter sidecar's real `_run` twice over the same audio clock and engine events: tracking in the sidecar, and with
+`--clock`. It holds both outputs line for line, and each seek with the clock line it comes before, written by
+`src/studio/sidecars/manuscript-teleprompter/tests/test_clock_parity.py` (`UPDATE_CONTRACTS=1`).
+`internal/teleprompter`'s `follow_test.go` relays the first and follows the second, and the events and state sent to the
+UI must be the same.
+
 `placement-cases.jsonl`: the `locate.locate_event` and `align_word.word_time_event` calls the teleprompter suite made
 when they were recorded (2026-10-25), and seeded tails cut from `teleprompter-locate/`'s chapters and the coverage
 manuscript's: words dropped, misread, near-missed, added or re-read, another chapter's words, silence, timed words with
 pauses at punctuation, and words to time inside, between, before, after and past the end of what was heard. A seeded case
 names its script instead of holding it. `placement-cases.golden.jsonl` holds the `locate` or `word_time` event, written by
 `test_tracker_parity.py`; `scripttrack`'s `placement_parity_test.go` must agree with it.
+
+`replay-cases.golden.jsonl`: what `replay.py` reports (its summary and `--timeline` lines) for each live session replayed
+as tracker calls and as a printed session, and for three hand-made printed sessions (int engine times, a script with
+curly quotes and an accented word, a misread and an extra word), whose events and script it holds. `mock-calls.jsonl`:
+`spikes/record_mock_stream.py --calls`, the tracker calls behind the browser mock's
+`src/studio/ui/src/api/teleprompterRecording.json`. Both are written by
+`src/studio/sidecars/manuscript-teleprompter/tests/test_replay_parity.py` (`UPDATE_CONTRACTS=1`);
+`internal/boothreplay`'s `replay_test.go` must agree with the first and turn the second into the committed recording.

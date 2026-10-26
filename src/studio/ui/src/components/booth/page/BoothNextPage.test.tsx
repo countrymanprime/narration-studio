@@ -428,11 +428,17 @@ describe('keys-register-through-the-catalogue', () => {
   it('down and up step a phrase, left and right a word', async () => {
     renderPage();
     await ready();
+    // The chapter title is the first line (#2251 item 7): the reading starts on its first word.
     expect(current()).toBe('0');
+    expect(document.querySelector('[data-current]')?.textContent).toBe('Chapter');
+    await press('ArrowRight');
+    expect(document.querySelector('[data-current]')?.textContent).toBe('One');
     await press('ArrowDown');
     expect(current()).toBe('1');
+    await press('ArrowDown');
+    expect(current()).toBe('2');
     await press('ArrowUp');
-    expect(current()).toBe('0');
+    expect(current()).toBe('1');
     await press('ArrowRight');
     expect(document.querySelector('[data-current]')?.textContent).toBe('Garden');
     await press('ArrowLeft');
@@ -442,14 +448,15 @@ describe('keys-register-through-the-catalogue', () => {
   it('a held arrow keeps stepping the word, and a held Down the phrase, but a held Space rolls once', async () => {
     const page = renderPage();
     await ready();
+    await press('ArrowDown');
     await press('ArrowRight', 'ArrowRight', { repeat: true });
     await press('ArrowRight', 'ArrowRight', { repeat: true });
     expect(document.querySelector('[data-current]')?.textContent).toBe('was');
     await press('ArrowDown', 'ArrowDown', { repeat: true });
     await press('ArrowDown', 'ArrowDown', { repeat: true });
-    expect(current()).toBe('2');
+    expect(current()).toBe('3');
     await press('ArrowUp', 'ArrowUp', { repeat: true });
-    expect(current()).toBe('1');
+    expect(current()).toBe('2');
     await space();
     await press(' ', 'Space', { repeat: true });
     await press(' ', 'Space', { repeat: true });
@@ -632,12 +639,43 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     expect(page.overlay.getSnapshot().dialogs).toHaveLength(0);
     await waitFor(() => expect(screen.getByText(/1 punch\b/)).toBeTruthy());
   });
+
+  it('a roll counts from where the DAW says the take began, not the end of the recording', async () => {
+    const base = dawFor('reaper');
+    // A plain take that starts where the last one stopped, at 42 s, though the track's recording ends later.
+    const daw: DawClient = { ...base, recordStart: async (chapterId, at) => ({ ...(await base.recordStart(chapterId, at)), position: 42 }) };
+    const page = renderPage({ daw });
+    await record(page);
+    await press('ArrowDown');
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
+    const at = page.daw.roll.mock.calls[0][1];
+    expect(at).toBeGreaterThanOrEqual(42);
+    expect(at).toBeLessThan(45);
+  });
+
+  it('after a take stops, Start from here still starts the next take from the chosen place', async () => {
+    const page = renderPage();
+    await record(page);
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    const word = document.querySelector('[data-unit="3"] [data-word]')!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    // Not recording, Start from here moves the place there and starts the take at once (useRoll.startFromHere).
+    await waitFor(() => expect(current()).toBe('3'));
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+    expect(current()).toBe('3');
+  });
 });
 
 describe('start-from-here-and-record-from-here', () => {
   it('right-click Start from here moves the reading position there and marks the next start', async () => {
     renderPage();
     await ready();
+    // Unit 0 is the chapter title, so the second paragraph's first sentence is unit 3.
     const word = document.querySelector('[data-unit="3"] [data-word]')!;
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
@@ -650,7 +688,7 @@ describe('start-from-here-and-record-from-here', () => {
   it('opening the Booth at a paragraph and offset from Script starts there', async () => {
     renderPage({ search: '?chapter=c1&para=p3&at=28' });
     await ready();
-    await waitFor(() => expect(current()).toBe('6'));
+    await waitFor(() => expect(current()).toBe('7'));
     expect(screen.getByText(/Next roll starts from ¶ 3/)).toBeTruthy();
   });
 });
@@ -843,6 +881,8 @@ describe('bookmarks on the page', () => {
   it('B bookmarks the word being read and the toast Undo takes it back', async () => {
     const page = renderPage();
     await ready();
+    // Off the chapter title, which is no manuscript paragraph a bookmark can name.
+    await press('ArrowDown');
     await press('b', 'KeyB');
     await waitFor(() => expect(page.overlay.getSnapshot().toasts.map((toast) => toast.text)).toEqual(['Bookmark added.']));
     await waitFor(() => expect(ribbons()).toHaveLength(1));
@@ -1254,9 +1294,9 @@ describe('the reference in the side panel', () => {
   it('clicking a marked word shows the note and its thread in the side panel', async () => {
     renderPage({ api: { marksList: async () => MARKS } });
     await ready();
-    await waitFor(() => expect(word(0, 3).title).toBe('Word stress'));
+    await waitFor(() => expect(word(1, 3).title).toBe('Word stress'));
     expect(reference()).toBeNull();
-    await userEvent.click(word(0, 3));
+    await userEvent.click(word(1, 3));
     const ref = within(reference()!);
     expect(ref.getByText('Word stress')).toBeTruthy();
     expect(ref.getByText('“quiet”')).toBeTruthy();
@@ -1264,7 +1304,7 @@ describe('the reference in the side panel', () => {
     expect(ref.getByText('Yes, hushed.')).toBeTruthy();
     expect(ref.getByText(/Author/)).toBeTruthy();
     // The click still moves the reading position.
-    expect(current()).toBe('0');
+    expect(current()).toBe('1');
   });
 
   it('a note under a paragraph opens its text; empty space or a plain word clears the reference', async () => {
@@ -1295,7 +1335,7 @@ describe('the reference in the side panel', () => {
   it('a Story Bible name shows its entry', async () => {
     renderPage({ api: { marksList: async () => MARKS } });
     await ready();
-    await userEvent.click(word(0, 1));
+    await userEvent.click(word(1, 1));
     expect(within(reference()!).getByText('The walled rose garden.')).toBeTruthy();
   });
 

@@ -22,7 +22,7 @@ export type ReportSection = keyof ProductionReportInclude;
 
 /** The report's sections in the order the form lists them; `money` is the one only a per-finished-hour plan with an amount offers. */
 export const REPORT_SECTIONS: ReadonlyArray<{ id: ReportSection; label: string }> = [
-  { id: 'words', label: 'Words and finished audio' },
+  { id: 'words', label: 'Words and recorded audio' },
   { id: 'stages', label: 'Hours by stage' },
   { id: 'milestones', label: 'Deadline and milestones' },
   { id: 'pickups', label: 'Open pickups and chapters held back' },

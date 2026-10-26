@@ -5,7 +5,7 @@ import { Popover } from '../../primitives/Popover';
 import { Select } from '../../primitives/Select';
 import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
-import { READER_FONTS } from '../../script/page/tools/text/readerText';
+import { READER_FONTS, READER_WIDTHS, widthName } from '../../script/page/tools/text/readerText';
 import { TEXT_SIZE } from '../reading/BoothText';
 
 /** At the reported width 1280 and below the side panel is a drawer, not a column (the layout class's `medium`). */
@@ -15,11 +15,20 @@ function useSidePanelDrawer(): boolean {
 
 const FONT_OPTIONS = READER_FONTS.map(([name]) => ({ value: name, label: name }));
 
-/** The text choices the popover shows and changes: the reader font and the Booth's own size. */
-export type BoothTextChoice = { font: string; size: number; onFont: (font: string) => void; onSize: (size: number) => void };
+/** The text choices the popover shows and changes: the reader font and column width, and the Booth's own size. */
+export type BoothTextChoice = {
+  font: string;
+  size: number;
+  /** The Reader text column width, one of `READER_WIDTHS`' percentages. Absent: no width control. */
+  width?: number;
+  onFont: (font: string) => void;
+  onSize: (size: number) => void;
+  onWidth?: (width: number) => void;
+};
 
-// The mock's `TextPop`: the reader font (the choice the Script's text settings write too) and the Booth size, 24 to 72 px in steps of 4.
-function TextPopover({ font, size, onFont, onSize }: BoothTextChoice) {
+// The mock's `TextPop`: the reader font (the choice the Script's text settings write too), the Booth size, 24 to 72 px in steps of 4, and
+// the column width, Narrow to Full, the same choice as Settings › Reader text's Column width (#2251: the narrator sets how wide the text is).
+function TextPopover({ font, size, width, onFont, onSize, onWidth }: BoothTextChoice) {
   return (
     <Popover trigger={<IconButton action="textSettings" label="Text settings" />} label="Text settings">
       <div className="flex min-w-[280px] flex-col gap-3">
@@ -28,6 +37,23 @@ function TextPopover({ font, size, onFont, onSize }: BoothTextChoice) {
           <Select label="Font" value={font} onChange={onFont} options={FONT_OPTIONS} fullWidth />
         </div>
         <Slider label="Size" valueText={`${size} px`} min={TEXT_SIZE.min} max={TEXT_SIZE.max} step={TEXT_SIZE.step} value={size} onValueChange={onSize} />
+        {width !== undefined && onWidth ? (
+          <Slider
+            label="Column width"
+            valueText={widthName(width)}
+            min={0}
+            max={READER_WIDTHS.length - 1}
+            step={1}
+            value={Math.max(
+              0,
+              READER_WIDTHS.findIndex(([, percent]) => percent === width),
+            )}
+            onValueChange={(index) => {
+              const next = READER_WIDTHS[index]?.[1];
+              if (next !== undefined) onWidth(next);
+            }}
+          />
+        ) : null}
       </div>
     </Popover>
   );

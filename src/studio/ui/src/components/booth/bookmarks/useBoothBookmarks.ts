@@ -122,9 +122,12 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
   );
 
   const here = useMemo(() => spotAtPosition(chapterId, paragraphs, position), [chapterId, paragraphs, position]);
+  // The chapter heading is no manuscript paragraph (`spotAtPosition`): B there says so rather than doing nothing.
+  const onHeading = !!position && !!paragraphs.find((paragraph) => paragraph.id === position.paragraphId)?.heading;
   const onHere = useCallback(() => {
     if (here) void mark(here);
-  }, [here, mark]);
+    else if (onHeading) overlay.toast('A bookmark goes on a line of the text, not on the chapter title.');
+  }, [here, mark, onHeading, overlay]);
 
   const stepFrom = useCallback((): Spot | null => {
     if (!here) return null;

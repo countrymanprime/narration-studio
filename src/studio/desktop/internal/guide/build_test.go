@@ -245,7 +245,7 @@ func TestAModelThatCannotBeLoadedBuildsWithTheRules(t *testing.T) {
 
 func TestTheRulesStripArticlesAndKeepANameSeenThreeTimes(t *testing.T) {
 	texts := []string{"A Black Halo appeared. About noon, it vanished.", "Black Halo appeared again.", "Black Halo appeared once more."}
-	candidates := candidateNames(ruleCandidates(paragraphsOf(t, texts...)))
+	candidates := candidateNames(scanCandidates(paragraphsOf(t, texts...)))
 	if !slices.Contains(candidates, "Black Halo") || slices.Contains(candidates, "About") {
 		t.Fatalf("candidates %v", candidates)
 	}
@@ -408,10 +408,10 @@ func TestCommonWordsNeverBecomeNames(t *testing.T) {
 	for name, test := range map[string]struct {
 		got, want []string
 	}{
-		"the rules refuse sentence-initial common words":                        {candidateNames(ruleCandidates(paragraphsOf(t, commonWordParagraphs...))), nil},
+		"the rules refuse sentence-initial common words":                        {candidateNames(scanCandidates(paragraphsOf(t, commonWordParagraphs...))), nil},
 		"the model's tag does not make a common word a name":                    {spacyNames(t, commonLabels, commonWordParagraphs...), nil},
-		"the rules refuse a common word capitalised mid-sentence twice":         {candidateNames(ruleCandidates(paragraphsOf(t, hopeParagraphs...))), nil},
-		"the rules refuse an adjective-looking word":                            {candidateNames(ruleCandidates(paragraphsOf(t, "They fled Blazing near Hollowed at dusk.", "Ada left Blazing near Hollowed behind."))), nil},
+		"the rules refuse a common word capitalised mid-sentence twice":         {candidateNames(scanCandidates(paragraphsOf(t, hopeParagraphs...))), nil},
+		"the rules refuse an adjective-looking word":                            {candidateNames(scanCandidates(paragraphsOf(t, "They fled Blazing near Hollowed at dusk.", "Ada left Blazing near Hollowed behind."))), nil},
 		"a tag and two mid-sentence mentions make a common-looking word a name": {spacyNames(t, map[string]string{"Hope": "PERSON"}, hopeParagraphs...), []string{"Hope", "Hope"}},
 		"a tag and one mid-sentence mention do not":                             {spacyNames(t, map[string]string{"Hope": "PERSON"}, "They loved Hope dearly.", "Without hope there is nothing."), nil},
 		"a tagged suffix word with two mid-sentence mentions is a name":         {spacyNames(t, map[string]string{"Blazing": "GPE"}, "They fled Blazing at dusk.", "Ada left Blazing behind."), []string{"Blazing", "Blazing"}},
@@ -419,7 +419,7 @@ func TestCommonWordsNeverBecomeNames(t *testing.T) {
 		"a tagged stopword is dropped":                                          {spacyNames(t, map[string]string{"They": "PERSON"}, "Ada saw them. They ran. They hid."), nil},
 		"a tag made only of filler is dropped":                                  {spacyNames(t, map[string]string{"The": "ORG", "of the": "ORG"}, "The end of the road."), nil},
 		"a tag loses its leading filler":                                        {spacyNames(t, map[string]string{"About S-Dawn": "GPE"}, "They talked About S-Dawn all night."), []string{"S-Dawn"}},
-		"the rules drop a single word capitalised mid-sentence once":            {candidateNames(ruleCandidates(paragraphsOf(t, "They sailed to Dawnspire.", "Dawnspire fell. Dawnspire burned."))), nil},
+		"the rules drop a single word capitalised mid-sentence once":            {candidateNames(scanCandidates(paragraphsOf(t, "They sailed to Dawnspire.", "Dawnspire fell. Dawnspire burned."))), nil},
 	} {
 		if !slices.Equal(test.got, test.want) && (len(test.got) != 0 || len(test.want) != 0) {
 			t.Errorf("%s: %v, want %v", name, test.got, test.want)
@@ -445,7 +445,7 @@ func TestAModelTagLosesItsFillerAndKeepsItsOffsets(t *testing.T) {
 }
 
 func TestTheRulesStripFillerAndStopwordsFromNames(t *testing.T) {
-	got := candidateNames(ruleCandidates(paragraphsOf(t, "He asked About S-Dawn twice.", "Then Ada Voss arrived. With Ada Voss came rain.")))
+	got := candidateNames(scanCandidates(paragraphsOf(t, "He asked About S-Dawn twice.", "Then Ada Voss arrived. With Ada Voss came rain.")))
 	for _, name := range []string{"About S-Dawn", "Then Ada Voss", "With Ada Voss"} {
 		if slices.Contains(got, name) {
 			t.Fatalf("%q in %v", name, got)

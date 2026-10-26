@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
 
-**Verdict: ship behind "not yet available".** The artifact `urchade/gliner_small-v2.1` is Apache-2.0 and its bytes are pinned below, but two things stay open until an owner run: the footprint and quality on this repo's fixture were not measured in this session, and the only published weight format for the small model is a pickle. The adapter (SNX-7a) can start from these pins; the consent screen should wait for the numbers in [Owner steps](#owner-steps).
+**Verdict: ship behind "not yet available"** (2026-10-11; every file was pinned on 2026-10-26, [below](#pinned-and-loaded-2026-10-26)). The artifact `urchade/gliner_small-v2.1` is Apache-2.0 and its bytes are pinned below, but two things stay open until an owner run: the footprint and quality on this repo's fixture were not measured in this session, and the only published weight format for the small model is a pickle. The adapter (SNX-7a) can start from these pins; the consent screen should wait for the numbers in [Owner steps](#owner-steps).
 
 ## What was read, and from where
 
@@ -127,6 +127,16 @@ Against the rules baseline the trial recorded only counts, not a paired precisio
 ## Recommendation
 
 **Ship behind "not yet available":** the Apache-2.0 small-v2.1 artifact is pinned and the trial's recall is strong, but its disk and memory are unmeasured on the target machine, its only format is a pickle, and its base-encoder fetch and dependency closure are unpinned, so the consent screen should not offer it until the owner run fills those in.
+
+## Pinned and loaded 2026-10-26
+
+Owner steps 1 and 2 were done from a session with a network, and `config/analysis-assets.json` now pins every file of the `gliner` row; it installs like the BookNLP rows.
+
+- `gliner_config.json` (477 bytes): `eb963bd7182a1eaed4d170a87348ab62de6fc4eb30cfa7130c80846fee43d0ac`, hashed from the pinned revision.
+- The encoder `microsoft/deberta-v3-small` (MIT on its card) at revision `a36c739020e01763fe789b4b85e2df55d6180012`: `config.json` (578 bytes, `b0bb1caf…00ae`), `spm.model` (2,464,616 bytes, `c679fbf9…86fd`, the LFS hash Hugging Face publishes) and `tokenizer_config.json` (52 bytes, `3f3978e0…496d`). No encoder weights: `pytorch_model.bin` holds every encoder parameter.
+- The wheels: BookNLP's `transformers` closure (same pins), plus `sentencepiece` 0.2.2 and `protobuf` 7.36.1, which transformers needs to turn `spm.model` into a tokenizer, and `httpx` 0.28.1 with `httpcore`, `h11`, `anyio`, `idna`, `certifi` and `typing-extensions`, which `huggingface_hub` 1.x imports at start-up. Each SHA-256 is PyPI's published digest. 27 files, 766,216,530 bytes to download.
+
+GLiNER 0.2.29 reads its tokenizer from a `tokenizer_config.json` beside the weights, so the encoder files are installed under Hugging Face's own names, and it builds the encoder from `AutoConfig.from_pretrained("microsoft/deberta-v3-small")`, which the adapter answers with the install folder's `config.json` (`extraction_gliner._local_encoder`). Loaded that way on Linux, with the hub and the proxy turned off, it found Alice, the White Rabbit, the Queen of Hearts and the Cheshire Cat as characters and Wonderland as a place in one test sentence (the Windows `torch` wheel was swapped for the Linux one for that run). Not run: the Windows freeze with the real install, and Owner step 3's footprint and quality measurement.
 
 ## Owner steps
 

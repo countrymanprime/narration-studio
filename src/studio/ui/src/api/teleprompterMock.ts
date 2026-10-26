@@ -307,9 +307,9 @@ const idle: TeleprompterState = {
 };
 
 function buildScript(chapter: ManuscriptChapter, paragraphs: ManuscriptParagraph[]): { script: TeleprompterScript; words: string[] } {
-  // The title span counts the title's own words only - the same as the
-  // real sidecar (chapter_script.py); the subtitle is shown but never tracked, so it must not shift word positions.
-  const titleWords = tokenize(chapter.title);
+  // The title span is the heading read aloud, the title's words and then the subtitle's - the same as the real sidecar
+  // (chapter_script.py, #2251 item 7), so the Booth's heading lines follow the mock's reading as they follow the host's.
+  const titleWords = [...tokenize(chapter.title), ...tokenize(chapter.subtitle ?? '')];
   const words = [...titleWords];
   const spans: TeleprompterScript['spans'] = [{ kind: 'title', id: chapter.id, index: null, start: 0, count: titleWords.length }];
   for (const paragraph of paragraphs.filter((item) => item.chapterId === chapter.id)) {

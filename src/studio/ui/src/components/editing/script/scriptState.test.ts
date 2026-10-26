@@ -52,6 +52,11 @@ describe('a range on the waveform', () => {
     const s = run({ type: 'selectSpan', span, anchor: a, head: b });
     expect(s).toMatchObject({ cursor: b, sel: { anchor: a, head: b }, span });
   });
+  it('selectSpan keeps the view the narrator scrolled the waveform to, where placing the cursor lets it go', () => {
+    const s = run({ type: 'view', t0: 4, t1: 7 }, { type: 'selectSpan', span, anchor: a, head: b });
+    expect(s.view).toEqual({ t0: 4, t1: 7 });
+    expect(pageReducer(s, { type: 'place', key: a }).view ?? null).toBeNull();
+  });
   it('a span over no words keeps the span and lets the selection go, leaving the cursor where it was', () => {
     const s = run({ type: 'place', key: a }, { type: 'selectSpan', span, anchor: null, head: null });
     expect(s).toMatchObject({ cursor: a, sel: null, span });

@@ -159,6 +159,20 @@ fuzzy matching against the script is the ordinary open-source pattern.
    time, not engine timestamps. Karaoke-style word animation should pace
    itself instead of trusting per-word times.
 
+   **Who follows the read.** The host does
+   ([Go versus Python for the sidecars](../research/sidecar-go-vs-python.md), step 2): a session's sidecar runs with
+   `--clock`, still reading the chapter as the engine's context and still acting on pause and resume, but printing no
+   `script`, `position` or `flag` events. Instead it prints `{"type": "clock", "t": seconds}` before its first chunk
+   and as each chunk arrives, and `{"type": "clock", "t": seconds, "event": true}` just before each engine event: the
+   stream time the tracker reads at that moment (wall time less pauses for a microphone, audio consumed for a file). The host builds the same script (`internal/scripttrack`, a port held byte for byte to
+   `chapter_script.py`, `script_tracker.py` and `flags.py`), sends its `script` event once the session runs, places a start word at the
+   first clock line, applies each Seek at the next one (where the sidecar read it from the control file), and runs
+   the tracker on every engine event it relays at that event's own time, sending the position and flag events right
+   after it. A clock line
+   is never relayed. When the host cannot build the script or read the start word as the sidecar would, the
+   sidecar follows the read itself, as before, and reports any problem in its own words. The sidecar's own tracker
+   stays for the replay tools until they move too.
+
    The script tracker is implemented (`script_tracker.py`, enabled with
    `live_asr.py --script FILE`, which adds `position` events to the stream:
    `read` = index of the next script word, `committed`, `status` of
@@ -233,9 +247,10 @@ The Go host relays flags like any other event and keeps none in its snapshot:
 `internal/liveflags` persists each flag as a suspected finding (`transcript_discrepancy`,
 or `pickup` for a restart) when the session ends. Only a misread has a confidence: how
 alike the script's and the heard words sound (`internal/soundalike`, as for Transcript Compare) ([`docs/architecture/findings-contract.md`](findings-contract.md)), and that store, not the snapshot, is what a view
-opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
-printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
-words by kind, which on a clean read is the false-flag rate. Nothing confirms a
+opened mid-session reads. The host's `cmd/booth-replay` replays a printed `live_asr.py` session (`--stream`), or a
+Moonshine probe recording through `replay.py --events X --calls`, through the host's own tracker
+(`internal/boothreplay`, held to `replay.py`'s reports), and reports flags per 100 heard words by kind, which on a
+clean read is the false-flag rate. Nothing confirms a
 flag after the session.
 
 ## Streaming subprocess support
@@ -304,13 +319,17 @@ sequenceDiagram
   B->>B: first-use model gate, modelDir from the installed model
   B->>S: Start(options)
   S->>S: plan: argv slice, stop file in the session folder
+  S->>S: build the chapter's script and tracker (scripttrack), add --clock
+  S-->>UI: teleprompter:event, the script event
   S->>P: StartStream(onLine, program, args)
   P->>T: exec, no shell, assigned to the Job Object
   S-->>UI: teleprompter:state starting, then running
-  T-->>P: stdout NDJSON: script, then level, partial, word, position, segment_end, flag
+  T-->>P: stdout NDJSON: clock, level, partial, word, segment_end
   P->>S: onLine(line) on its own goroutine
   S->>S: valid JSON object with a string type, else dropped and counted
-  S-->>UI: teleprompter:event, the line verbatim (emitTeleprompterEvent)
+  S-->>UI: teleprompter:event, the line verbatim (emitTeleprompterEvent), never a clock line
+  S->>S: the tracker reads each clock and engine event
+  S-->>UI: teleprompter:event, the position and flag events it caused
   UI->>UI: Zod schema per event, a wrong one is dropped and counted
   N->>UI: Stop
   UI->>B: TeleprompterStop()
@@ -321,7 +340,7 @@ sequenceDiagram
   S-->>UI: teleprompter:state stopping, then stopped
 ```
 
-*Verified 2026-09-21 against `bindings.go` (`TeleprompterStart`), `app.go` (`emitTeleprompterEvent`, `emitTeleprompterState`, `Shutdown`), `internal/teleprompter/service.go` (`plan`, `Start`, `onLine`, `Stop`, `watch`, `defaultGrace`), `internal/process/stream.go` (`StartStream`), `src/studio/sidecars/manuscript-teleprompter/core/live_asr.py` (`--stop-file`) and `src/studio/ui/src/api/wailsClient.ts`. `Shutdown` stops a live session first and waits up to 12 s. A page opened mid-session catches up from the last `script` and `position` events the service keeps. The threats at each step are rows 4a to 4d of the [threat model](threat-model.md#4-the-go-host-to-the-sidecars-securitymd-bullet-4).*
+*Verified 2026-09-21 against `bindings.go` (`TeleprompterStart`), `app.go` (`emitTeleprompterEvent`, `emitTeleprompterState`, `Shutdown`), `internal/teleprompter/service.go` (`plan`, `Start`, `onLine`, `Stop`, `watch`, `defaultGrace`), and on 2026-10-25 against `internal/teleprompter/follow.go`, `internal/process/stream.go` (`StartStream`), `src/studio/sidecars/manuscript-teleprompter/core/live_asr.py` (`--stop-file`) and `src/studio/ui/src/api/wailsClient.ts`. `Shutdown` stops a live session first and waits up to 12 s. A page opened mid-session catches up from the last `script` and `position` events the service keeps. The threats at each step are rows 4a to 4d of the [threat model](threat-model.md#4-the-go-host-to-the-sidecars-securitymd-bullet-4).*
 
 **Packaging.** The sidecar is frozen as `manuscript-teleprompter` by
 `scripts/release/prepare-resources.py` and required by
@@ -452,7 +471,7 @@ redirects here keeping its query and hash. What the narrator sees and does on it
   (`components/script/page/reader/Para.tsx`), which renders character-offset layers, not words
   ([usePacedCursor.ts](../../src/studio/ui/src/components/booth/usePacedCursor.ts)).
 - **Mock mode.** In the browser mock, Start replays a position stream recorded from the real tracker
-  (`spikes/record_mock_stream.py`), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
+  (`spikes/record_mock_stream.py --calls | go run ./cmd/booth-replay --mock …`, the host's tracker), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
   a chapter for the visual suite (`ended` is a session that already stopped itself at the end of the chapter).
 
 ## Resume: where REAPER is and where the prompter was
