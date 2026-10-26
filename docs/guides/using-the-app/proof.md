@@ -29,7 +29,8 @@ loaded" with the reason and a **Retry** button, which reads them again. The rest
 
 The chapter stepper beside the title shows **All chapters** or one chapter. On **All chapters** the notes run in book order, chapter by chapter, and **J**/**K** follow that order. Choose a chapter from it, or step with its
 arrows or the Left and Right keys. From All chapters, a step opens the last chapter you looked at in this project (the
-first chapter until you have looked at one). The chapter is in the page's address (`/proof?chapter=<id>`), and Esc goes
+first chapter until you have looked at one). The list shows how far each chapter is recorded after its name (**45%**, **~30%**
+for an estimate from the track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped). The chapter is in the page's address (`/proof?chapter=<id>`), and Esc goes
 back to All chapters. Each change of chapter is a step in the browser's history, so Back returns to the chapter or to All chapters you came from.
 
 On the right of the title, a ring and two counters say how far the notes in view have got: **12 of 14 cleared · 13
