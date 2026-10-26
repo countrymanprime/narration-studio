@@ -55,12 +55,19 @@ type Props = {
   size: number;
   /** A CSS font-family for the text. */
   font?: string;
+  /** The column's CSS max-width (`useTextChoices`' column, the Reader text column width). Left out: the mock's 26em. */
+  width?: string;
   viewRef?: Ref<BrowseView>;
   /** Drawn inside the text column, which is `relative` and moves with the text: the bookmark ribbons (`BookmarkRibbons`). */
   margin?: ReactNode;
 };
 
 type Mode = 'done' | 'cur' | 'next';
+
+// The chapter heading opens the text at the column's edge like every line (#2251 item 7): the title semibold, the subtitle under it regular
+// and a step smaller, both in source casing (design-system "Chapter names"), with a full line before the first paragraph. Its words are
+// read text like any other, so the reading tones still apply; the subtitle is not dimmed, which would read as already read.
+const HEADING_LOOK: Record<'title' | 'subtitle' | 'none', string> = { title: 'font-semibold', subtitle: 'text-[0.85em]', none: '' };
 
 type UnitProps = {
   unit: BoothUnit;
@@ -199,6 +206,7 @@ export function BoothText({
   punchAt = null,
   size,
   font,
+  width = '26em',
   viewRef,
   margin,
 }: Props) {
@@ -254,11 +262,21 @@ export function BoothText({
     >
       <div
         ref={text}
-        style={{ fontSize: `${textSizePx(size)}px`, fontFamily: font, '--tsize': `${textSizePx(size)}px` } as CSSProperties}
-        className="relative mx-auto max-w-[26em] py-[30vh] leading-[1.5] [overflow-wrap:anywhere] motion-ok:transition-transform motion-ok:duration-(--motion-slow)"
+        style={
+          {
+            fontSize: `${textSizePx(size)}px`,
+            fontFamily: font,
+            maxWidth: width,
+            '--tsize': `${textSizePx(size)}px`,
+          } as CSSProperties
+        }
+        // Left-aligned (start-aligned for a right-to-left paragraph), never justified, balanced or hyphenated: the lines break where they did.
+        className="relative mx-auto py-[30vh] text-start leading-[1.5] [overflow-wrap:anywhere] motion-ok:transition-transform motion-ok:duration-(--motion-slow)"
       >
         {paragraphs.map((paragraph, paragraphIndex) => {
           const pickup = pickupLines.find((line) => line.paragraphId === paragraph.id);
+          // A paragraph starts at the column's edge with no first-line indent, half an em below the one before (#2251 item 8 asked for
+          // less than the old 0.9em; the indent #2256 added in its place was never asked for).
           return (
             <p
               key={paragraph.id}
@@ -269,7 +287,8 @@ export function BoothText({
               // full, since its caret and glow reach past the paragraph's box, which a skipped paragraph would clip.
               style={{ '--est': `${estimatedEm(paragraph.text)}em` } as CSSProperties}
               data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
-              className={`indent-[1.5em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `border-l-4 pl-3 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
+              data-heading={paragraph.heading}
+              className={`${paragraph.heading && !paragraphs[paragraphIndex + 1]?.heading ? 'mb-[1em]' : 'mb-[0.5em]'} text-start ${HEADING_LOOK[paragraph.heading ?? 'none']} [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `border-l-4 pl-3 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
               {unitsOf[paragraphIndex].map((unit) => {
                 index++;
@@ -304,7 +323,7 @@ export function BoothText({
                     onClick={() => onNote?.(note.id)}
                     // The end marker follows the mark's colour (D8).
                     style={note.colour ? { boxShadow: `inset 0.25em 0 0 var(${markToken(note.colour)})`, paddingLeft: '1.1em' } : undefined}
-                    className="mt-2 block w-fit cursor-pointer rounded-md bg-[var(--accent-soft)] px-[0.8em] py-[0.4em] text-left indent-0 text-[0.42em] font-medium text-[var(--accent-strong)]"
+                    className="mt-2 block w-fit cursor-pointer rounded-md bg-[var(--accent-soft)] px-[0.8em] py-[0.4em] text-left text-[0.42em] font-medium text-[var(--accent-strong)]"
                   >
                     {note.name}: {note.text}
                   </button>

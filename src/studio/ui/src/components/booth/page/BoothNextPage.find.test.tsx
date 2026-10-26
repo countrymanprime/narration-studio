@@ -53,6 +53,13 @@ describe('Find in the Booth', () => {
     expect(hits[0].snippet?.hit).toBe('King');
   });
 
+  it('finds-the-chapter-title-and-names-it-the-title-not-a-paragraph', async () => {
+    renderPage();
+    await ready();
+    const hits = searchAll('Chapter One');
+    expect(hits[0]).toMatchObject({ group: 'In this chapter', sub: 'Title' });
+  });
+
   it('finds-nothing-from-another-chapter', async () => {
     renderPage();
     await ready();

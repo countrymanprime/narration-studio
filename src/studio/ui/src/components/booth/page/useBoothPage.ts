@@ -27,7 +27,7 @@ import { retryAction } from '../../primitives/Toast';
 import { resumeOfferFor, type KeptResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
-import { estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
+import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
 import type { BoothStart } from './boothQuery';
 import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
@@ -116,7 +116,7 @@ export function useBoothPage(options: BoothPageOptions) {
   // A cold read (#2251 item 13) listens with no take: what it hears is the ghost, never the reading position.
   const coldRead = session.active && session.coldRead;
   const following = listening && !coldRead;
-  const spans = useMemo(() => (script ? script.spans : estimatedSpans(title, paragraphs)), [script, title, paragraphs]);
+  const spans = useMemo(() => (script ? script.spans : estimatedSpans(paragraphs)), [script, paragraphs]);
 
   // Where the narrator is (the real cursor): the voice while a session for a take listens, the keys and clicks otherwise.
   const [local, setLocal] = useState<UnitPosition>(START);
@@ -295,7 +295,7 @@ export function useBoothPage(options: BoothPageOptions) {
       phraseCount: units.length,
       phrase: at.cur,
       punchAt,
-      paragraphOf: (phrase) => units[phrase]?.paragraphIndex ?? 0,
+      paragraphOf: (phrase) => bodyParagraphIndex(paragraphs, units[phrase]?.paragraphIndex ?? 0),
       secondsOf: (phrase) => secondsBefore(units, phrase),
       recordedEnd,
       takeSeconds: seconds,
@@ -634,7 +634,7 @@ export function useBoothPage(options: BoothPageOptions) {
       recordedSeconds: recorded + (recording ? seconds : 0),
       punches: punches.length,
       lastPunch: lastPunch ? `Rolled from ¶ ${lastPunch.paragraph + 1} · ${clock(lastPunch.seconds)}` : undefined,
-      nextRoll: punchAt !== null && units[punchAt] ? `Next roll starts from ¶ ${units[punchAt].paragraphIndex + 1}` : undefined,
+      nextRoll: punchAt !== null && units[punchAt] ? `Next roll starts from ¶ ${bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1}` : undefined,
     },
     seek: (paragraphId: string, word: number) => {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });

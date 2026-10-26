@@ -36,8 +36,8 @@ Every run of prose the app draws (JSX text over 60 characters or two sentences, 
 | Settings | 0 | 7 | 11 | 10 | 1 | 4 | 33 |
 | Shell | 0 | 1 | 0 | 0 | 2 | 0 | 3 |
 | Stage evidence | 0 | 1 | 2 | 0 | 0 | 0 | 3 |
-| Story Bible | 0 | 2 | 1 | 0 | 3 | 1 | 7 |
-| **All** | **4** | **26** | **31** | **22** | **17** | **63** | **163** |
+| Story Bible | 0 | 2 | 1 | 0 | 3 | 3 | 9 |
+| **All** | **4** | **26** | **31** | **22** | **17** | **65** | **165** |
 
 ## In-flow instructions and explanations (the debt)
 

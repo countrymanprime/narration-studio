@@ -46,6 +46,10 @@ The file may carry `types`, the narrator's ordered list of `{name, colour, speak
 - The file keeps an undo record for each of the last ten merges (`merge_undo`): both entries as they were, every other entry's relationships the merge changed, and the absorbed names it set. A rebuild writes a file without them.
 - **Unmerge** (`GuideUnmerge`, with that undo id) puts both entries, those relationships and those absorbed names back as they were. It refuses, writing nothing, when the target or one of those entries changed after the merge, when an entry has the source's id again, or when the file no longer holds the record. Two merges into one target are undone newest first. The host checks the id is 16 lowercase hexadecimal characters (`guide.Service.Unmerge`) and runs merge, unmerge and split itself (`src/studio/desktop/internal/guide/merge.go`). An undo record holds SHA-256 fingerprints of how the merge left each entry, taken over Python's `json.dumps(value, sort_keys=True, ensure_ascii=False)`; the host's encoder (`pythonjson.go`) writes the same bytes, so the host can undo a merge an older sidecar recorded.
 
+## Delete Story Bible data
+
+`GuideDeleteAll` (More actions on the Story Bible page) deletes the project's Story Bible data and nothing else: it counts the scan's suggestions, deletes the `ManuscriptGuide` folder with `suggestions.json` in it (`guide.Service.DeleteAll`, `src/studio/desktop/internal/guide/deleteall.go`) and the `story-bible` findings (`findings.Store.RemoveAnalyzer`), and answers `{entries, suggestions}`, the counts before the delete. It refuses unless confirmed and while a build or a scan runs. Voice samples and references stay: they name an entry by id, and an entry's id is a hash of its name (`entityID`), so an entry added again under the same name has them again. There is no undo.
+
 ## Pronunciation: generate and replace
 
 Alongside the automatic CMU-then-eSpeak fallback a build asks for (`pronunciation()`), a narrator can set a pronunciation
@@ -119,8 +123,10 @@ by `rules/testdata/suggest-lines.json`, which `TestTheSuggestLinesMatchTheContra
 
 `suggest --source gliner --manuscript M --guide G --install DIR` runs the optional GLiNER download
 (`core/extraction_gliner.py`). It loads the model only from `DIR`, the tool's install folder, with the Hugging Face hub
-turned off ([CI and releases](../operations/ci-and-releases.md)),
-and prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
+turned off ([CI and releases](../operations/ci-and-releases.md)). GLiNER builds its `microsoft/deberta-v3-small` encoder by
+that name; the adapter answers it with the folder's own `config.json`, and the tokenizer is read from the folder's
+`tokenizer_config.json` and `spm.model`, so the install folder needs those three beside the weights. It
+prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
 the model's own score or `null`, and the sentence the name is in as its quote. Spans under `SCORE_FLOOR` (0.5) are
 dropped, and a name found twice is offered once. A missing or damaged install exits 1 with a sentence. The host runs it
 through `src/studio/desktop/internal/extractionport/gliner` with the same caps and checks as the rules row, plus an entry-only,

@@ -8,7 +8,21 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
+      'Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, "Resume at ¶ 14 from the saved project" and the REAPER setup chip; the text full-bleed, opening with the chapter\'s title and subtitle as its first lines (#2251 item 7: "CHAPTER ONE", then "Bad Ideas Look Great in Neon"), the reading position on the title\'s first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock\'s .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock\'s .btop does, the chapter picker at the mock\'s medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'heading-title-only',
+    description:
+      'Booth on a chapter with a title and no subtitle (?mockManuscript=mixed, Next chapter from Chapter 1 to "A Message from the Author"): the title is the first line of the text (#2251 item 7), semibold and unindented, with the reading position on its first word and a half line before the first paragraph; no empty subtitle line',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'heading-long-subtitle',
+    description:
+      'Booth on a chapter whose subtitle is long enough to wrap (?mockManuscript=mixed, its third chapter, "Or, How the Understudy Learned Every Line by Heart and Several That Were Cut in Rehearsal"): the title, then the subtitle a step smaller wrapping inside the text column at every width, before the first paragraph; the reading position on the title\'s first word',
     ...REFLOW,
   },
   {
@@ -252,8 +266,28 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-popover',
     description:
-      "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share) and the Booth size, 40 px, on a slider from 24 to 72 in steps of 4",
+      "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share), the Booth size, 40 px, on a slider from 24 to 72 in steps of 4, and the Column width, Medium (the Script's and Settings › Reader text's Column width, one saved choice), on a slider from Narrow to Full",
     ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'text-width-narrow',
+    description:
+      'Booth (as setup) with Text settings › Column width moved to Narrow and the popover closed: the text column 48ch wide, the Script’s Narrow (Medium is 64ch), left-aligned, each paragraph starting at the column edge with no indent and a small gap above it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'text-width-full',
+    description:
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100ch, so at 40 px it runs the width of the text area between the gutters, left-aligned, no paragraph indent',
+    ...REFLOW,
+    sameAs: {
+      of: 'booth/text-width-narrow',
+      reason:
+        'At tablet and reflow the text area is narrower than Narrow (48ch at 40 px is 960 px), so Narrow and Full both fill it and draw the same; desktop and small-desktop show them apart.',
+      viewports: ['tablet', 'reflow'],
+    },
   },
   {
     page: 'booth',
@@ -266,7 +300,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'bookmarks-ribbon',
     description:
-      'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
+      'Booth (as setup) after a click on the first paragraph\'s first word (the chapter title and subtitle above it are no paragraph a bookmark can name) and B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
     ...REFLOW,
   },
   {

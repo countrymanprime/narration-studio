@@ -267,7 +267,7 @@ func TestTheAnalysisToolsAreListedUnderOneKindWithTheirConsentFacts(t *testing.T
 			t.Errorf("%s kindLabel = %v", asset["id"], asset["kindLabel"])
 		}
 	}
-	if strings.Join(ids, ",") != "gliner,booknlp-small,booknlp-big,local-llm" {
+	if strings.Join(ids, ",") != "gliner,booknlp-small,booknlp-big" {
 		t.Fatalf("analysis rows = %v", ids)
 	}
 	gliner := listedAsset(t, catalog, installKindAnalysis, "gliner")
@@ -275,18 +275,11 @@ func TestTheAnalysisToolsAreListedUnderOneKindWithTheirConsentFacts(t *testing.T
 		gliner["rank"] != float64(1) || gliner["recommended"] != true || gliner["source"] != "gliner" || gliner["description"] == "" {
 		t.Fatalf("gliner = %v", gliner)
 	}
-	if reason, _ := gliner["unavailableReason"].(string); !strings.Contains(reason, "not yet available") {
-		t.Fatalf("gliner unavailableReason = %q, want the not yet available sentence until it is pinned", reason)
+	if reason, ok := gliner["unavailableReason"]; ok {
+		t.Fatalf("gliner unavailableReason = %v, want none: every file is pinned, so it can be downloaded", reason)
 	}
-	llm := listedAsset(t, catalog, installKindAnalysis, "local-llm")
-	if _, ok := llm["minutesPerBook"]; ok {
-		t.Fatalf("local-llm minutesPerBook = %v, want it absent: the time per book is not known", llm["minutesPerBook"])
-	}
-	if _, ok := llm["source"]; ok {
-		t.Fatalf("local-llm source = %v, want it absent: it is not a scanner", llm["source"])
-	}
-	if llm["downloadSize"] != float64(0) || !strings.Contains(llm["unavailableReason"].(string), "many hours per book") {
-		t.Fatalf("local-llm = %v", llm)
+	if size, _ := gliner["downloadSize"].(float64); size <= 0 {
+		t.Fatalf("gliner downloadSize = %v, want the pinned bytes", gliner["downloadSize"])
 	}
 }
 
