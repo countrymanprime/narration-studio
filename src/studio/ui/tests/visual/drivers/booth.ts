@@ -70,6 +70,16 @@ async function openBoothReading(page: Page, seam: 'loading' | 'fails'): Promise<
   await clickNav(page, 'Booth');
 }
 
+/** Moves the Booth's Text settings › Column width slider to one end and closes the popover. */
+async function setBoothColumnWidth(page: Page, key: 'Home' | 'End'): Promise<void> {
+  await page.getByRole('button', { name: 'Text settings' }).click();
+  const width = page.getByRole('slider', { name: 'Column width' });
+  await width.focus();
+  await width.press(key);
+  await page.keyboard.press('Escape');
+  await page.getByRole('slider', { name: 'Column width' }).waitFor({ state: 'hidden' });
+}
+
 export const boothDrivers: Record<string, Driver> = {
   'address-checking': async (page) => {
     await openCheckingLink(page, '/booth?chapter=gone');
@@ -381,6 +391,15 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Text settings' }).click();
     await page.getByRole('slider', { name: 'Size' }).waitFor();
+  },
+  // The Column width slider moved to one end, then the popover closed so the text column shows whole.
+  'text-width-narrow': async (page) => {
+    await readyToRecord(page);
+    await setBoothColumnWidth(page, 'Home');
+  },
+  'text-width-full': async (page) => {
+    await readyToRecord(page);
+    await setBoothColumnWidth(page, 'End');
   },
   // A word marked on the Script with a note, then clicked in the Booth: the note under its paragraph and the side panel's Reference.
   'marked-note': async (page) => {
