@@ -476,9 +476,10 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Chapters share the processors, so more chapters at once means fewer workers for each.',
+    text: 'Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.',
     class: 'explanation',
   },
+  { file: 'components/recordingcheck/RunOptions.tsx', text: 'Automatic: plan it from the processors, the free memory and the model', class: 'overlay' },
   {
     file: 'components/recordingcheck/background/BackgroundChecksNotice.tsx',
     text: '… changed since … last check. The app can listen back to what you recorded while you work and mark skipped or misread words, so they are ready on Editing and Pickups.',
@@ -647,6 +648,16 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/stages/StageEvidence.tsx', text: 'Reads the evidence again; it starts no check.', class: 'explanation' },
   { file: 'components/stages/StageEvidence.tsx', text: 'Based on the saved REAPER project, file modified … …. Read ….', class: 'state' },
+  {
+    file: 'components/storybible/DeleteStoryBibleData.tsx',
+    text: 'Delete the Story Bible of …: …, with every name, pronunciation, note, relationship, review flag and speaker colour, the types and the dialogue speakers?',
+    class: 'overlay',
+  },
+  {
+    file: 'components/storybible/DeleteStoryBibleData.tsx',
+    text: 'This cannot be undone. The script, takes, recordings, settings, voice samples and voice references stay. Add entry or Scan the manuscript starts the Story Bible again.',
+    class: 'overlay',
+  },
   { file: 'components/storybible/AppearsIn.tsx', text: 'Not listed yet. Build the Story Bible again to list the chapters.', class: 'empty' },
   {
     file: 'components/storybible/Guide.tsx',

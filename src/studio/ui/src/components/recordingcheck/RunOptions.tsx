@@ -118,7 +118,8 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
         <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
           Automatic: plan it from the processors, the free memory and the model
         </Checkbox>
-        <p className="m-0 text-sm text-[var(--text-muted)]" data-live="workerPlan" aria-live="polite">
+        {/* A reserved slot: the plan arrives after the dialog opens and changes with the choices, so it holds three lines and moves nothing. */}
+        <p className="m-0 min-h-[3lh] text-sm text-[var(--text-muted)]" data-live="workerPlan" aria-live="polite">
           {planError
             ? `Could not work out how many run at once: ${planError}`
             : planned
