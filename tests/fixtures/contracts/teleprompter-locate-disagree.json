@@ -4,6 +4,12 @@
   "lastReading": {
     "chapterId": "c-0001",
     "endedAt": "2026-09-21T10:00:00Z",
+    "ranges": [
+      {
+        "from": 0,
+        "to": 400
+      }
+    ],
     "read": 400,
     "scriptHash": "0000000000000000000000000000000000000000000000000000000000000000",
     "status": "listening",
