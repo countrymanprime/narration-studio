@@ -305,16 +305,15 @@ describe('paragraph spacing and search marks', () => {
     expect(note?.className).not.toMatch(/(^|\s)indent-\[/);
   });
 
-  it('the-column-is-as-wide-as-the-chosen-width-and-full-has-no-cap', () => {
-    const column = (width?: number | null) => {
+  it('the-column-is-as-wide-as-the-width-it-is-given', () => {
+    const column = (width?: string) => {
       cleanup();
       const { container } = setup(width === undefined ? {} : { width });
       return container.querySelector<HTMLElement>('[data-booth-text] > div')!.style.maxWidth;
     };
     expect(column()).toBe('26em');
-    expect(column(22)).toBe('22em');
-    expect(column(32)).toBe('32em');
-    expect(column(null)).toBe('none');
+    expect(column('48ch')).toBe('48ch');
+    expect(column('100ch')).toBe('100ch');
   });
 
   it('draws-the-matches-of-a-search-and-the-one-chosen-apart', () => {

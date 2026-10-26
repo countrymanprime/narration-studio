@@ -96,16 +96,23 @@ test('setup: every paragraph is left-aligned with no first-line indent and no ba
   }
 });
 
-test('the column width setting changes how wide the text column is', async ({ page }) => {
-  const width = async (state: string): Promise<number> => {
-    await drive(page, state, { width: 1440, height: 900 });
-    return page.evaluate(() => document.querySelector('[data-booth-text] > div')!.getBoundingClientRect().width);
-  };
-  const medium = await width('setup');
-  const narrow = await width('text-width-narrow');
-  const full = await width('text-width-full');
-  expect(narrow).toBeLessThan(medium);
-  expect(full).toBeGreaterThan(medium);
-  // Medium is the 26em column the Booth always had, at the 40 px default size.
-  expect(Math.round(medium)).toBe(26 * 40);
-});
+// The Booth reads the Script's own setting in the Script's unit, `ch` of the text, so Medium is 64 characters a line on both pages; the
+// text area caps it. At 40 px, 1920 wide leaves room for every width; 1440 caps Medium and Full alike, still wider than the old 26em (1040 px).
+for (const { size, roomForFull } of [
+  { size: { width: 1920, height: 1080 }, roomForFull: true },
+  { size: { width: 1440, height: 900 }, roomForFull: false },
+]) {
+  test(`at ${size.width}: the Reader text column width changes how wide the Booth's text column is`, async ({ page }) => {
+    const width = async (state: string): Promise<number> => {
+      await drive(page, state, size);
+      return page.evaluate(() => document.querySelector('[data-booth-text] > div')!.getBoundingClientRect().width);
+    };
+    const medium = await width('setup');
+    const narrow = await width('text-width-narrow');
+    const full = await width('text-width-full');
+    expect(narrow).toBeLessThan(medium);
+    expect(medium).toBeGreaterThanOrEqual(26 * 40);
+    if (roomForFull) expect(full).toBeGreaterThan(medium);
+    else expect(full).toBe(medium);
+  });
+}

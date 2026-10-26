@@ -17,7 +17,8 @@ built-in recorder). The chip opens [Settings](settings.md). The chapter is named
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
 the same choice as **Column width** in [Settings › Reader text](settings.md); **+** and **-** change the size too, and the Booth opens at the size
-and width you last chose. **Medium** is the Booth's usual column; **Full** lets the text run the width of the window. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
+and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
+**Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
 side-panel button move together and stay at the right edge. The chapter picker is as wide as the chapter's name, up to 340 pixels.
 The resume line is not offered while you are already in the paragraph it would take you to.

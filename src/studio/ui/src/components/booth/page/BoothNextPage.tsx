@@ -699,7 +699,7 @@ function BoothSession({
                   pickupLines={pickups.bars}
                   size={page.text.size}
                   font={page.text.fontFamily}
-                  width={page.text.columnEm}
+                  width={page.text.column}
                   viewRef={page.view}
                   margin={
                     chapter ? (

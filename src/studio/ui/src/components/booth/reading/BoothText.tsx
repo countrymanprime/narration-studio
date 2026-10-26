@@ -55,8 +55,8 @@ type Props = {
   size: number;
   /** A CSS font-family for the text. */
   font?: string;
-  /** The column's widest line in ems of the text size (`useTextChoices`' column width); null, no cap but the window. Left out: 26. */
-  width?: number | null;
+  /** The column's CSS max-width (`useTextChoices`' column, the Reader text column width). Left out: the mock's 26em. */
+  width?: string;
   viewRef?: Ref<BrowseView>;
   /** Drawn inside the text column, which is `relative` and moves with the text: the bookmark ribbons (`BookmarkRibbons`). */
   margin?: ReactNode;
@@ -201,7 +201,7 @@ export function BoothText({
   punchAt = null,
   size,
   font,
-  width = 26,
+  width = '26em',
   viewRef,
   margin,
 }: Props) {
@@ -261,7 +261,7 @@ export function BoothText({
           {
             fontSize: `${textSizePx(size)}px`,
             fontFamily: font,
-            maxWidth: width === null ? 'none' : `${width}em`,
+            maxWidth: width,
             '--tsize': `${textSizePx(size)}px`,
           } as CSSProperties
         }

@@ -28,13 +28,10 @@ function saveBoothSize(size: number): void {
 }
 
 /**
- * The Booth column for each Reader text column width, in ems of the Booth's text size: Medium, the default, is the 26em the Booth always
- * had, and Full has no cap but the window. The Script measures its column in `ch` of a much smaller size, so the Booth keeps its own scale.
+ * The Booth column for a Reader text column width: the same value the Script reads (`readerVars`' `--rw`), in the same unit, `ch` of the
+ * text, so one setting gives the same characters a line on both pages. The text area's own width caps it at a large size or a narrow window.
  */
-export const BOOTH_COLUMN_EM: Readonly<Record<number, number | null>> = { 48: 22, 64: 26, 80: 32, 100: null };
-
-/** The Booth column for a Reader text width; a width that is not one of `READER_WIDTHS` gets Medium's. */
-export const boothColumnEm = (width: number): number | null => (width in BOOTH_COLUMN_EM ? BOOTH_COLUMN_EM[width]! : 26);
+export const boothColumn = (width: number): string => `${width}ch`;
 
 export type TextChoices = {
   /** Px, 24 to 72 in steps of 4. */
@@ -42,9 +39,9 @@ export type TextChoices = {
   /** The reader font's name, and the CSS stack the text is set in. */
   font: string;
   fontFamily: string;
-  /** The Reader text column width (one of `READER_WIDTHS`' percentages), and the Booth column it gives in ems (null: no cap). */
+  /** The Reader text column width (one of `READER_WIDTHS`' values), and the Booth column's CSS max-width it gives. */
   width: number;
-  columnEm: number | null;
+  column: string;
   /** Sets the size, clamped to the steps, and saves it. */
   setSize: (next: number | ((current: number) => number)) => void;
   /** Sets the reader font, keeping the Script's other text choices, and saves it. */
@@ -74,5 +71,5 @@ export function useTextChoices(): TextChoices {
     saveTextPrefs({ ...loadTextPrefs(), width: next });
     setWidthState(loadTextPrefs().width);
   }, []);
-  return { size, font, fontFamily: fontStack(font), width, columnEm: boothColumnEm(width), setSize, setFont, setWidth };
+  return { size, font, fontFamily: fontStack(font), width, column: boothColumn(width), setSize, setFont, setWidth };
 }
