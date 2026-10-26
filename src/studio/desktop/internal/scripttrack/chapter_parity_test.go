@@ -16,7 +16,7 @@ import (
 )
 
 // The chapter script is held to what chapter_script.py answers (tests/fixtures/booth-parity/chapter-scripts.jsonl and
-// its .golden.jsonl, written by the sidecar's test_tracker_parity.py): the recorded calls and the synthetic ones.
+// its .golden.jsonl, written by the sidecar's test_chapter_script_parity.py): the recorded calls and the synthetic ones.
 
 type scriptCase struct {
 	K                string  `json:"k"`

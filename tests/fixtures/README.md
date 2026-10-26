@@ -127,8 +127,7 @@ host's take markers and recording check (`src/studio/desktop/internal/recordingc
 `cases.json`: Python's own answers, on a seeded set of awkward inputs, for the text rules the host's port of Transcript Compare
 (`src/studio/desktop/internal/compare`) reproduces: the tokenizer, the sentence split, the chapter units, the number-word merge,
 the equivalence list, `difflib.SequenceMatcher`, `str.split`, `str.strip`, `str.lower`, and float `repr`, `round` and `sum`.
-`compare.py` wrote it before its tokenizer was deleted (2026-10-24), so it is frozen: `compare_test.go` must agree with it, and
-`test_compare_go_parity.py` holds `narration_common`'s number merge, which the teleprompter still runs, to the same answers.
+`compare.py` wrote it before its tokenizer was deleted (2026-10-24), so it is frozen: `compare_test.go` must agree with it.
 
 ## guide-edit/
 
@@ -213,29 +212,30 @@ of `str.lower`, `str.casefold`, `re`'s `\w`, `str.isspace` and `str.isprintable`
 drove when they were recorded (2026-10-25, deduplicated) and eight seeded synthetic reads of the coverage manuscript's
 chapters, with restarts, skips, seeks, pauses, wobbling partials and engine times as ints, floats or missing. The cases
 are seeded single calls of `normalize_word`, `words_match`, `SequenceMatcher.ratio`, `locate` and `align`. The
-`.golden.jsonl` beside each holds what `script_tracker.py` answers, one line per input line, written by
-`src/studio/sidecars/manuscript-teleprompter/tests/test_tracker_parity.py` (`UPDATE_CONTRACTS=1`); `scripttrack`'s
-`parity_test.go` must agree with it.
+`.golden.jsonl` beside each holds what `script_tracker.py` answered, one line per input line. The tracker was deleted
+(2026-10-25), so these goldens, the flag, placement, live-session and replay goldens below and the `spoken_key` cases in
+`text-rules.json` are frozen: no test rewrites them. `scripttrack`'s `parity_test.go` must agree with it.
 
 `flag-sessions.jsonl`: flag runs, each a session of `tracker-sessions.jsonl` and the heading length to flag it with
 (every session with none, those the teleprompter suite flagged with the heading it gave, and the synthetic reads with a
 three-word heading). `flag-sessions.golden.jsonl` holds what `flags.py`'s `FlaggingTracker` answers, every operation's
-position and flag events, written by the same test; `scripttrack`'s `flags_parity_test.go` must agree with it.
+position and flag events (frozen); `scripttrack`'s `flags_parity_test.go` must agree with it.
 
 `chapter-scripts.jsonl`: the calls of `chapter_script.py` the teleprompter suite made when they were recorded
 (2026-10-25, deduplicated), each with the manuscript or text file it read, and seeded synthetic ones: titles holding a
 subtitle after a line break, trailing separators, Unicode case and space, every kind of paragraph index, broken
 manuscripts, and credits text with each line ending. A case that names `manuscriptPath` reads the coverage manuscript
 (4.6 MB) in place and is answered with a digest. `chapter-scripts.golden.jsonl` holds the script (tokens, heading, text
-and `script` event), the `ChapterError` (message and candidates) or the name of any other exception, written by the
-same test; `scripttrack`'s `chapter_parity_test.go` must agree with it, and answers an input Python raised on with a
+and `script` event), the `ChapterError` (message and candidates) or the name of any other exception, written by
+`src/studio/sidecars/manuscript-teleprompter/tests/test_chapter_script_parity.py` (`UPDATE_CONTRACTS=1`), since the
+sidecar still reads the chapter as the engine's context; `scripttrack`'s `chapter_parity_test.go` must agree with it, and answers an input Python raised on with a
 `ChapterError` of its own.
 
 `live-sessions.golden.jsonl`: 40 seeded live sessions (coverage-manuscript chapters and credits text, with misreads,
 added words, skips, restarts, silences long enough to be "waiting", seeks, pauses and start words), each run through the
 teleprompter sidecar's real `_run` twice over the same audio clock and engine events: tracking in the sidecar, and with
-`--clock`. It holds both outputs line for line, and each seek with the clock line it comes before, written by
-`src/studio/sidecars/manuscript-teleprompter/tests/test_clock_parity.py` (`UPDATE_CONTRACTS=1`).
+`--clock`. It holds both outputs line for line, and each seek with the clock line it comes before (frozen: the
+sidecar no longer tracks).
 `internal/teleprompter`'s `follow_test.go` relays the first and follows the second, and the events and state sent to the
 UI must be the same.
 
@@ -243,13 +243,12 @@ UI must be the same.
 when they were recorded (2026-10-25), and seeded tails cut from `teleprompter-locate/`'s chapters and the coverage
 manuscript's: words dropped, misread, near-missed, added or re-read, another chapter's words, silence, timed words with
 pauses at punctuation, and words to time inside, between, before, after and past the end of what was heard. A seeded case
-names its script instead of holding it. `placement-cases.golden.jsonl` holds the `locate` or `word_time` event, written by
-`test_tracker_parity.py`; `scripttrack`'s `placement_parity_test.go` must agree with it.
+names its script instead of holding it. `placement-cases.golden.jsonl` holds the `locate` or `word_time` event (frozen); `scripttrack`'s `placement_parity_test.go` must agree with it.
 
-`replay-cases.golden.jsonl`: what `replay.py` reports (its summary and `--timeline` lines) for each live session replayed
+`replay-cases.golden.jsonl` (frozen): what `replay.py` reported (its summary and `--timeline` lines) for each live session replayed
 as tracker calls and as a printed session, and for three hand-made printed sessions (int engine times, a script with
 curly quotes and an accented word, a misread and an extra word), whose events and script it holds. `mock-calls.jsonl`:
-`spikes/record_mock_stream.py --calls`, the tracker calls behind the browser mock's
-`src/studio/ui/src/api/teleprompterRecording.json`. Both are written by
-`src/studio/sidecars/manuscript-teleprompter/tests/test_replay_parity.py` (`UPDATE_CONTRACTS=1`);
+`spikes/record_mock_stream.py`'s tracker calls, behind the browser mock's
+`src/studio/ui/src/api/teleprompterRecording.json`, which
+`src/studio/sidecars/manuscript-teleprompter/tests/test_mock_calls.py` holds equal to the recorder's output;
 `internal/boothreplay`'s `replay_test.go` must agree with the first and turn the second into the committed recording.

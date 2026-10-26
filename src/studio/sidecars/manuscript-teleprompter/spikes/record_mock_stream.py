@@ -4,22 +4,22 @@ stream the browser mock replays for the Teleprompter page.
 
 A scripted narrator (a few mishearings, a two-word skip, a long pause, a
 re-read of an earlier sentence) is turned into Whisper-style rolling
-hypotheses, then run through the REAL shared event layer (`confirmed_events`)
-and `ScriptTracker` with its flags (`flags.FlaggingTracker`). The mock only
+hypotheses, then run through the REAL shared event layer (`confirmed_events`),
+and the tracker calls that make are printed for the host's own tracker and
+flags (src/studio/desktop/internal/boothreplay) to run. The mock only
 replays the resulting `position` and `flag` events, rescaled onto whatever
 chapter it is showing, so the pacing (how far the cursor leads the confirmed
 words, when it pauses, the jump events) and the suspected flags are the
 tracker's own rather than invented.
 
-    python record_mock_stream.py [--out PATH]
-    python record_mock_stream.py --calls | go run ./cmd/booth-replay --mock PATH   (the host's own tracker)
+    python record_mock_stream.py | go run ./cmd/booth-replay --mock ../ui/src/api/teleprompterRecording.json
+    (from src/studio/desktop)
 """
 
 import argparse
 import json
 import sys
 from collections.abc import Iterator
-from itertools import pairwise
 from pathlib import Path
 
 _CORE_DIR = Path(__file__).resolve().parents[1] / "core"
@@ -27,7 +27,6 @@ if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
 import live_asr
-from flags import FlaggingTracker
 
 SCRIPT = (
     "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: "
@@ -122,60 +121,11 @@ def calls() -> list[dict]:
     return made
 
 
-def record() -> list[dict]:
-    tracker = FlaggingTracker(TOKENS)
-    recording: list[dict] = []
-    now = {"t": 0.0}
-
-    def take(tracked: list[dict]) -> None:
-        recording.extend({"t": round(now["t"], 2), "event": event} for event in tracked)
-
-    def hypotheses() -> Iterator[live_asr.Hypothesis]:
-        for t, hypothesis in schedule(timed_words()):
-            now["t"] = t
-            take(tracker.tick(t))
-            if hypothesis is not None:
-                yield hypothesis
-
-    for event in live_asr.confirmed_events(hypotheses()):
-        take(tracker.feed(event, now["t"]))
-    return recording
-
-
 def main() -> None:
-    default_out = Path(__file__).resolve().parents[5] / "src" / "studio" / "ui" / "src" / "api" / "teleprompterRecording.json"
-    ap = argparse.ArgumentParser(description="Regenerate the Teleprompter mock's recorded position stream")
-    ap.add_argument("--out", default=str(default_out))
-    ap.add_argument("--calls", action="store_true", help="Print the tracker calls instead, for go run ./cmd/booth-replay --mock")
-    args = ap.parse_args()
-    if args.calls:
-        print(json.dumps({"tokens": TOKENS}))
-        for call in calls():
-            print(json.dumps(call))
-        return
-
-    events = record()
-    positions = [item["event"] for item in events if item["event"]["type"] == "position"]
-    backward = sum(1 for before, after in pairwise(positions) if after["read"] < before["read"])
-    Path(args.out).write_text(json.dumps({"tokens": len(TOKENS), "events": events}, separators=(",", ":")) + "\n", encoding="utf-8")
-    print(
-        json.dumps(
-            {
-                "tokens": len(TOKENS),
-                "events": len(events),
-                "final_read": positions[-1]["read"],
-                "final_status": positions[-1]["status"],
-                "backward_moves": backward,
-                "jumps": [(item["t"], item["event"]["jump"]) for item in events if item["event"].get("jump")],
-                "flags": [
-                    (item["t"], item["event"]["kind"], item["event"]["start"], item["event"]["end"], item["event"]["heard"])
-                    for item in events
-                    if item["event"]["type"] == "flag"
-                ],
-                "waiting_events": sum(1 for p in positions if p["status"] == "waiting"),
-            }
-        )
-    )
+    argparse.ArgumentParser(description="Print the tracker calls behind the Teleprompter mock's recorded position stream").parse_args()
+    print(json.dumps({"tokens": TOKENS}))
+    for call in calls():
+        print(json.dumps(call))
 
 
 if __name__ == "__main__":

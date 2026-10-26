@@ -27,7 +27,7 @@ export type TeleprompterPosition = {
 export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
 
 /**
- * A suspected reading error the sidecar raised when a speech segment closed (`flags.py`). Always only suspected:
+ * A suspected reading error the host's tracker raised when a speech segment closed (`internal/scripttrack` flags). Always only suspected:
  * live recognition is not proof, and Transcript Compare over the recorded take stays authoritative. `start`/`end` are script
  * word indices (the space of `TeleprompterPosition.read`): the misread, skipped or re-read words are `[start, end)`, and an
  * `extra` is zero-width (`start === end`), sitting before the word at `start`. `heard` is what was heard in their place ('' for
