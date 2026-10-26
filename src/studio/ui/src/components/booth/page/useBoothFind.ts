@@ -5,6 +5,15 @@ import { manuscriptSource } from '../../script/page/registry/searchSources';
 import { searchManuscript, type FindMatch } from '../../script/page/tools/find/searchManuscript';
 import { wordCount, type ReadingParagraph, type WordDecoration } from '../reading/boothUnits';
 import type { BrowseView } from '../reading/useBrowseView';
+import { bodyParagraphIndex } from './readingSource';
+
+/** Where a match is: the chapter heading's line by name, else the manuscript paragraph's number (the heading lines are not paragraphs). */
+function locationOf(paragraphs: readonly ReadingParagraph[], paragraphId: string): string {
+  const index = paragraphs.findIndex((paragraph) => paragraph.id === paragraphId);
+  const heading = paragraphs[index]?.heading;
+  if (heading) return heading === 'title' ? 'Title' : 'Subtitle';
+  return `¶ ${bodyParagraphIndex(paragraphs, Math.max(0, index)) + 1}`;
+}
 
 type Options = {
   /** The id the chapter's paragraphs are searched under. */
@@ -35,8 +44,8 @@ export function useBoothFind({ chapterId, paragraphs, recording, seek, view }: O
   const lines = useMemo(() => paragraphs.map((paragraph, index) => ({ chapterId, id: paragraph.id, index, text: paragraph.text })), [chapterId, paragraphs]);
   const matches = useMemo<FindMatch[]>(() => (shown ? searchManuscript(lines, shown.term) : []), [lines, shown]);
 
-  const latest = useRef({ recording, seek, view, lines });
-  latest.current = { recording, seek, view, lines };
+  const latest = useRef({ recording, seek, view, lines, paragraphs });
+  latest.current = { recording, seek, view, lines, paragraphs };
 
   const go = useCallback((term: string, index: number) => {
     const now = latest.current;
@@ -51,7 +60,7 @@ export function useBoothFind({ chapterId, paragraphs, recording, seek, view }: O
     () =>
       manuscriptSource({
         lines: () => latest.current.lines,
-        locationOf: (match) => `¶ ${(latest.current.lines.find((line) => line.id === match.paragraphId)?.index ?? 0) + 1}`,
+        locationOf: (match) => locationOf(latest.current.paragraphs, match.paragraphId),
         onFind: go,
         group: 'In this chapter',
         showIn: 'the text',

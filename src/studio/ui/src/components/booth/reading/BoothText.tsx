@@ -62,6 +62,11 @@ type Props = {
 
 type Mode = 'done' | 'cur' | 'next';
 
+// The chapter heading opens the text unindented (#2251 item 7): the title semibold, the subtitle under it regular and a step smaller, both
+// in source casing (design-system "Chapter names"), with a half line before the first paragraph. Its words are read text like any other,
+// so the reading tones still apply; the subtitle is not dimmed, which would read as already read.
+const HEADING_LOOK: Record<'title' | 'subtitle' | 'none', string> = { title: 'font-semibold', subtitle: 'text-[0.85em]', none: 'indent-[1.5em]' };
+
 type UnitProps = {
   unit: BoothUnit;
   index: number;
@@ -269,7 +274,8 @@ export function BoothText({
               // full, since its caret and glow reach past the paragraph's box, which a skipped paragraph would clip.
               style={{ '--est': `${estimatedEm(paragraph.text)}em` } as CSSProperties}
               data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
-              className={`indent-[1.5em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `border-l-4 pl-3 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
+              data-heading={paragraph.heading}
+              className={`${HEADING_LOOK[paragraph.heading ?? 'none']} ${paragraph.heading && !paragraphs[paragraphIndex + 1]?.heading ? 'mb-[0.5em]' : ''} [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `border-l-4 pl-3 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
               {unitsOf[paragraphIndex].map((unit) => {
                 index++;

@@ -47,6 +47,31 @@ export function readingParagraphsOf(
   });
 }
 
+/** The ids of the heading lines; no manuscript paragraph has one. */
+export const HEADING_TITLE_ID = 'chapter-heading-title';
+export const HEADING_SUBTITLE_ID = 'chapter-heading-subtitle';
+
+/**
+ * The chapter heading as the Booth's first lines (#2251 item 7): the title, then the subtitle when there is one, in source casing, each a
+ * line of its own with its words on one line (a manual break in a title is a space). A part with no words is no line, so a chapter
+ * with no title starts at its first paragraph. The host's script opens with the same words, title then subtitle (`chapter_script.py`'s
+ * heading), so reading them aloud is followed like any line; reading them is optional, so no flag is ever placed on them (`suspectedFrom`).
+ */
+export function headingParagraphs(chapter: { title: string; subtitle?: string }): ReadingParagraph[] {
+  const line = (text: string | undefined) => (text ?? '').split(/\s+/).filter(Boolean).join(' ');
+  const parts = [
+    { id: HEADING_TITLE_ID, text: line(chapter.title), heading: 'title' as const },
+    { id: HEADING_SUBTITLE_ID, text: line(chapter.subtitle), heading: 'subtitle' as const },
+  ];
+  return parts.filter((part) => part.text !== '');
+}
+
+/** The manuscript paragraph number (from 0) of a line the Booth reads: the heading lines are not paragraphs, so they are on the first. */
+export function bodyParagraphIndex(paragraphs: readonly ReadingParagraph[], paragraphIndex: number): number {
+  const heading = paragraphs.filter((paragraph) => paragraph.heading).length;
+  return Math.max(0, paragraphIndex - heading);
+}
+
 /** The rendered credits, one paragraph per non-empty line. */
 export function creditsParagraphs(kind: CreditsKind, text: string): ReadingParagraph[] {
   return text
@@ -59,19 +84,49 @@ export function creditsParagraphs(kind: CreditsKind, text: string): ReadingParag
 /** The host's paragraph spans in order; the n-th is the n-th paragraph the Booth reads (credits have no paragraph ids of their own). */
 const paragraphSpans = (spans: readonly TeleprompterSpan[]) => spans.filter((span) => span.kind === 'paragraph');
 
-/** The paragraph and word a script word (the host's `read`) stands at, or null outside every paragraph. */
-export function positionInScript(spans: readonly TeleprompterSpan[], paragraphs: readonly ReadingParagraph[], word: number): ReadingPosition | null {
-  const own = paragraphSpans(spans);
-  const at = own.findIndex((span) => word >= span.start && word < span.start + span.count);
-  const paragraph = paragraphs[at];
-  return paragraph ? { paragraphId: paragraph.id, word: word - own[at].start } : null;
+/**
+ * Where each line the Booth reads sits in the host's script: its first script word and its word count, or null when the host's script
+ * does not follow it. The heading lines share the host's title span, title first: both are followed when their words fill the span, the
+ * title alone when the span counts the title only (a script from before the subtitle was read), neither when the counts disagree. The
+ * other lines are the host's paragraph spans in order.
+ */
+function scriptPlaces(spans: readonly TeleprompterSpan[], paragraphs: readonly ReadingParagraph[]): Array<{ start: number; count: number } | null> {
+  const title = spans.find((span) => span.kind === 'title');
+  const heading = paragraphs.filter((paragraph) => paragraph.heading);
+  const counts = heading.map((paragraph) => wordCount(paragraph.text));
+  const all = counts.reduce((sum, count) => sum + count, 0);
+  const followed = !title ? 0 : all === title.count ? heading.length : counts[0] === title.count ? 1 : 0;
+  const body = paragraphSpans(spans);
+  let headingIndex = 0;
+  let headingStart = title?.start ?? 0;
+  let bodyIndex = 0;
+  return paragraphs.map((paragraph) => {
+    if (paragraph.heading) {
+      const count = counts[headingIndex];
+      const place = headingIndex < followed ? { start: headingStart, count } : null;
+      headingIndex += 1;
+      headingStart += count;
+      return place;
+    }
+    const span = body[bodyIndex];
+    bodyIndex += 1;
+    return span ? { start: span.start, count: span.count } : null;
+  });
 }
 
-/** The script word for a paragraph and word, or null when the host's script has no such paragraph. */
+/** The line and word a script word (the host's `read`) stands at, or null outside every line the Booth follows. */
+export function positionInScript(spans: readonly TeleprompterSpan[], paragraphs: readonly ReadingParagraph[], word: number): ReadingPosition | null {
+  const places = scriptPlaces(spans, paragraphs);
+  const at = places.findIndex((place) => place !== null && word >= place.start && word < place.start + place.count);
+  const place = places[at];
+  return place ? { paragraphId: paragraphs[at].id, word: word - place.start } : null;
+}
+
+/** The script word for a line and word, or null when the host's script does not follow that line. */
 export function scriptWordAt(spans: readonly TeleprompterSpan[], paragraphs: readonly ReadingParagraph[], position: ReadingPosition): number | null {
   const index = paragraphs.findIndex((paragraph) => paragraph.id === position.paragraphId);
-  const span = paragraphSpans(spans)[index];
-  return span ? span.start + Math.max(0, Math.min(position.word, span.count - 1)) : null;
+  const place = scriptPlaces(spans, paragraphs)[index];
+  return place ? place.start + Math.max(0, Math.min(position.word, place.count - 1)) : null;
 }
 
 /** The word a character offset falls in (or the word after it, on a space): the words that end at or before it come first. */
@@ -95,11 +150,14 @@ export function suspectedFrom(
   paragraphs: readonly ReadingParagraph[],
   chapterId: string,
 ): SuspectedFlag[] {
+  // The heading is read optionally and in the narrator's own words ("Chapter Seven" for "Chapter 7"): nothing said there is a pickup,
+  // as the host's own flags already hold (flags.py), so a flag that starts in it is dropped here too.
   const own = paragraphSpans(spans);
+  const body = paragraphs.filter((paragraph) => !paragraph.heading);
   return flags.flatMap((flag) => {
     const at = own.findIndex((span) => flag.start >= span.start && flag.start < span.start + span.count);
     const span = own[at];
-    const paragraph = paragraphs[at];
+    const paragraph = body[at];
     if (!span || !paragraph) return [];
     const wordStart = flag.start - span.start;
     const wordEnd = Math.max(wordStart + 1, Math.min(flag.end, span.start + span.count) - span.start);
@@ -120,18 +178,20 @@ export function suspectedFrom(
   });
 }
 
-/** The host's spans before it has sent a script: a title span, then one per paragraph, counted by words. For the resume line only. */
-export function estimatedSpans(title: string, paragraphs: readonly ReadingParagraph[]): TeleprompterSpan[] {
-  const titleCount = wordCount(title);
+/** The host's spans before it has sent a script: a title span over the heading lines, then one per paragraph, counted by words. For the resume line only. */
+export function estimatedSpans(paragraphs: readonly ReadingParagraph[]): TeleprompterSpan[] {
+  const titleCount = paragraphs.filter((paragraph) => paragraph.heading).reduce((sum, paragraph) => sum + wordCount(paragraph.text), 0);
   let start = titleCount;
   return [
     { kind: 'title', id: 'title', index: null, start: 0, count: titleCount },
-    ...paragraphs.map((paragraph, index) => {
-      const count = wordCount(paragraph.text);
-      const span: TeleprompterSpan = { kind: 'paragraph', id: paragraph.id, index, start, count };
-      start += count;
-      return span;
-    }),
+    ...paragraphs
+      .filter((paragraph) => !paragraph.heading)
+      .map((paragraph, index) => {
+        const count = wordCount(paragraph.text);
+        const span: TeleprompterSpan = { kind: 'paragraph', id: paragraph.id, index, start, count };
+        start += count;
+        return span;
+      }),
   ];
 }
 
