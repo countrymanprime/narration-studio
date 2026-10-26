@@ -47,6 +47,9 @@ type installJob struct {
 	message string
 	// +checklocks:mu
 	errorText string
+	// errorDetail is the step, file and cause of a failure after the download (assets.StepError.Detail), for the narrator's details.
+	// +checklocks:mu
+	errorDetail string
 	// downloadingText is the message while bytes arrive, so a file that follows a checked one does not keep saying it is checking.
 	// +checklocks:mu
 	downloadingText string
@@ -148,10 +151,10 @@ func (h *Host) runInstall(ctx context.Context, spec installSpec, job *installJob
 	defer job.cancel()
 	err := h.runGuarded(ctx, spec, job)
 	// The cause is logged before the job is locked: a poll must never wait on a disk write.
-	var narratorText string
+	var narratorText, detail string
 	if err != nil && ctx.Err() == nil {
 		_ = h.log.Report("install_failed", spec.kind+" "+spec.assetID+": "+err.Error())
-		narratorText = installFailureText(err, spec.noun)
+		narratorText, detail = installFailureText(err, spec.noun), installFailureDetail(err)
 	}
 	job.mu.Lock()
 	switch {
@@ -160,7 +163,7 @@ func (h *Host) runInstall(ctx context.Context, spec installSpec, job *installJob
 	case ctx.Err() != nil:
 		job.phase, job.message = installPhaseCancelled, installCancelledText(spec.noun)
 	default:
-		job.phase, job.errorText, job.message = installPhaseError, narratorText, narratorText
+		job.phase, job.errorText, job.errorDetail, job.message = installPhaseError, narratorText, detail, narratorText
 	}
 	event, ok := endedJob(job.id, spec.endedKind, job.phase, job.message, job.started)
 	job.mu.Unlock()
@@ -229,6 +232,7 @@ func installFailureText(err error, noun string) string {
 	var status *assets.StatusError
 	var unreachable *analysistools.UnreachableError
 	var unavailable *analysistools.UnavailableError
+	var step *assets.StepError
 	switch {
 	case errors.As(err, &unavailable):
 		return unavailable.Error()
@@ -241,6 +245,10 @@ func installFailureText(err error, noun string) string {
 		return short.Error()
 	case assets.IsDiskFull(err):
 		return "The disk filled up while the " + noun + " was downloading. Free some space and try again: what was downloaded so far is kept, so the download carries on from there."
+	case errors.As(err, &step):
+		// The files matched; writing what they hold failed (a folder that cannot be written, a file another program holds).
+		return "The downloaded " + noun + " matched the approved file but could not be saved on this computer, so it was not installed. " +
+			"Close any program that may be using the app's files, such as a virus scanner, and try again."
 	case errors.As(err, &status) && status.Missing():
 		return "The download host no longer has the approved " + noun + ". This is a problem with the release, not with your connection: please report it."
 	case errors.As(err, &status):
@@ -250,6 +258,16 @@ func installFailureText(err error, noun string) string {
 		return unreachable.Sentence()
 	}
 	return "The " + noun + " could not be downloaded. Check your internet connection and try again: what was downloaded so far is kept, so the download carries on from there."
+}
+
+// installFailureDetail is what the narrator's details show beside the sentence: the step after the download that failed, its file and the
+// cause, without a folder of this computer; "" for any other failure, whose sentence says all the narrator can act on.
+func installFailureDetail(err error) string {
+	var step *assets.StepError
+	if errors.As(err, &step) {
+		return step.Detail()
+	}
+	return ""
 }
 
 func (h *Host) installJobByID(id, what string) (*installJob, error) {
@@ -278,7 +296,7 @@ func snapshotInstall(job *installJob) map[string]any {
 		}
 	}
 	return map[string]any{"id": job.id, "kind": job.kind, "assetId": job.assetID, "phase": job.phase, "message": job.message, "percent": percent,
-		"bytesDone": job.done, "bytesTotal": job.total, "error": job.errorText}
+		"bytesDone": job.done, "bytesTotal": job.total, "error": job.errorText, "errorDetail": job.errorDetail}
 }
 
 // legacyInstall is the payload of the voice and Whisper install bindings that predate the generic ones: the same job, and the asset named

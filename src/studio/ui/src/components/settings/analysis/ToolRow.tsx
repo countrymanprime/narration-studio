@@ -13,6 +13,8 @@ export type ToolRowProps = {
   job?: Pick<AssetInstallJob, 'percent'>;
   /** The host's sentence for the failed download, or why a cancel or a removal did not work. */
   failure?: string;
+  /** What the host says went wrong after the download (the step, the file and the cause), behind the failure's Details. */
+  failureDetail?: string;
   download: () => void;
   cancel: () => void;
   retry: () => void;
@@ -25,7 +27,7 @@ export type ToolRowProps = {
  * reason it cannot be had yet). The one action its status allows sits on the right: Download, Cancel while it downloads, Retry and
  * Dismiss after a failure, Remove once installed. Props only, so a story can show every status.
  */
-export function ToolRow({ tool, status, job, failure, download, cancel, retry, dismiss, remove }: ToolRowProps) {
+export function ToolRow({ tool, status, job, failure, failureDetail, download, cancel, retry, dismiss, remove }: ToolRowProps) {
   const { tone, label } = installPill(status === 'not-installed' ? 'missing' : status);
   const name = tool.displayName;
   const busy = status === 'downloading' || status === 'verifying';
@@ -77,6 +79,12 @@ export function ToolRow({ tool, status, job, failure, download, cancel, retry, d
         <span role="alert" data-comp-error className="text-xs text-[var(--danger-text)]">
           {failure}
         </span>
+      )}
+      {failure && failureDetail && (
+        <details data-comp-error-detail className="text-xs text-[var(--text-muted)]">
+          <summary className="cursor-pointer font-medium text-[var(--text)]">Details</summary>
+          <p className="m-0 mt-1 [overflow-wrap:anywhere]">{failureDetail}</p>
+        </details>
       )}
     </li>
   );

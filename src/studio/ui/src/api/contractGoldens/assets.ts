@@ -11,6 +11,7 @@ export const assetsGoldens: Record<string, z.ZodType> = {
   'tts-install-error.json': ttsInstallJobSchema,
   'tts-install-cancelled.json': ttsInstallJobSchema,
   'asset-install-downloading.json': assetInstallJobSchema,
+  'asset-install-unpack-error.json': assetInstallJobSchema,
   'assets-list.json': assetCatalogSchema,
   'assets-verify.json': assetVerifyResultSchema,
   'whisper-catalog.json': whisperCatalogSchema,

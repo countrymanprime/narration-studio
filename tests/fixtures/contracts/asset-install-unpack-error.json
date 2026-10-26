@@ -1,0 +1,12 @@
+{
+  "assetId": "booknlp-small",
+  "bytesDone": 220000000,
+  "bytesTotal": 220000000,
+  "error": "The downloaded analysis tool matched the approved file but could not be saved on this computer, so it was not installed. Close any program that may be using the app's files, such as a virus scanner, and try again.",
+  "errorDetail": "Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: open: Access is denied.",
+  "id": "analysis-1",
+  "kind": "analysis",
+  "message": "The downloaded analysis tool matched the approved file but could not be saved on this computer, so it was not installed. Close any program that may be using the app's files, such as a virus scanner, and try again.",
+  "percent": 99,
+  "phase": "error"
+}

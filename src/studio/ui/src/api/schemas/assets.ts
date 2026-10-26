@@ -18,6 +18,7 @@ export const assetInstallJobShape = {
   bytesDone: z.number(),
   bytesTotal: z.number(),
   error: z.string(),
+  errorDetail: z.string(),
 };
 
 export const assetInstallStateSchema = z.enum(['installed', 'not_installed', 'verification_failed']) satisfies z.ZodType<AssetInstallState>;

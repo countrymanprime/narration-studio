@@ -22,6 +22,7 @@ const job = (patch: Partial<AssetInstallJob> = {}): AssetInstallJob => ({
   bytesDone: 0,
   bytesTotal: 100 * 1024 * 1024,
   error: '',
+  errorDetail: '',
   ...patch,
 });
 
@@ -93,6 +94,16 @@ describe('AssetInstallPrompt', () => {
     expect(screen.getByRole('alert').textContent).toBe(sentence);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failure after the download names its step and file in the activity log, under the sentence', async () => {
+    const sentence = 'The downloaded voice matched the approved file but could not be unpacked or prepared, so it was not installed.';
+    const detail = 'Unpacking voice.zip: the downloaded archive could not be unpacked safely: zip: not a valid zip file';
+    render(<Harness steps={[job(), job({ phase: 'error', message: sentence, error: sentence, errorDetail: detail })]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Download voice' }));
+    await advance(400);
+    expect(screen.getByRole('alert').textContent).toBe(sentence);
+    expect(screen.getByText(detail)).toBeTruthy();
   });
 
   it('offers Retry on a failure, which starts the download again (R3SB2-15)', async () => {

@@ -3,6 +3,7 @@
   "bytesDone": 486212372,
   "bytesTotal": 486212372,
   "error": "",
+  "errorDetail": "",
   "id": "whisper-1",
   "kind": "whisper",
   "message": "Whisper model installed and verified.",
