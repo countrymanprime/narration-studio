@@ -105,6 +105,12 @@ func TestTheDetailOfAStepErrorCarriesNoFolderOfThisComputer(t *testing.T) {
 			t.Errorf("%s: Detail = %q", name, detail)
 		}
 	}
+	// A Windows folder quoted with %q has every backslash doubled; it is cut too, on every platform the test runs on.
+	windows := `C:\Users\Narrator Name\AppData\Local\cache\booknlp.installing`
+	quoted := (&StepError{Step: StepUnpack, File: "t.whl", Err: fmt.Errorf("could not read %q", windows+`\model\x.json`), staging: windows}).Detail()
+	if strings.Contains(quoted, "Narrator Name") {
+		t.Errorf("the detail %q names a quoted Windows folder", quoted)
+	}
 	if got := (&StepError{Step: StepUnpack, File: "t.whl", Err: cases["a path error"], staging: staging}).Detail(); got != "Unpacking t.whl: open: Access is denied." {
 		t.Errorf("Detail = %q, want the operation and the reason", got)
 	}

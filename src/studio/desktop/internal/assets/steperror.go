@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -46,9 +46,25 @@ func (e *StepError) Detail() string {
 		cause = strings.Replace(cause, linkErr.Error(), linkErr.Op+": "+linkErr.Err.Error(), 1)
 	}
 	if e.staging != "" {
-		cause = strings.ReplaceAll(cause, e.staging+string(filepath.Separator), "")
-		cause = strings.ReplaceAll(cause, e.staging, "")
+		// The folder as it is and as %q writes it (on Windows every backslash doubled), with the separators after it.
+		escaped := strconv.Quote(e.staging)
+		for _, folder := range []string{e.staging, escaped[1 : len(escaped)-1]} {
+			cause = cutFolder(cause, folder)
+		}
 	}
 	verb := e.verb()
 	return strings.ToUpper(verb[:1]) + verb[1:] + " " + e.File + ": " + cause
+}
+
+// cutFolder removes every mention of folder from text, with the path separators that follow it, so only the part inside it is left.
+func cutFolder(text, folder string) string {
+	var out strings.Builder
+	for {
+		at := strings.Index(text, folder)
+		if at < 0 {
+			return out.String() + text
+		}
+		out.WriteString(text[:at])
+		text = strings.TrimLeft(text[at+len(folder):], `/\`)
+	}
 }
