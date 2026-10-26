@@ -77,9 +77,8 @@ With REAPER, each slider has REAPER's own meter under it, read four times a seco
 the level of the first track armed for recording in REAPER, with that track's name; with no track armed the menu says so, because
 the app never arms a track just to measure it. Under **Monitor level (output)** is what REAPER plays out, which moves while it plays,
 records with monitoring on, or monitors the armed track. If REAPER stops answering for two seconds, the meters say how long ago
-they last heard it instead of showing an old level. The meters only read, so they show whenever REAPER is linked and answering.
-The monitor slider changes REAPER, so it is an Experimental DAW action: while those are off, the slider is off and **Turn on in
-Settings** opens the switch.
+they last heard it instead of showing an old level. The meters and the monitor slider show whenever REAPER is linked and answering;
+while it is not, each says why in REAPER's own words. No setting turns them on.
 
 **Punch** shows the lead-in you hear before a punch. With REAPER it is REAPER's own pre-roll, the one the punch really uses, in
 one line: whether it is on and its length, for example **Pre-roll off · 2 measures (4.0 s)**. The seconds are the measures at the
@@ -97,8 +96,6 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 ![Booth - the Levels menu: the input level, the microphone the text listens to, and REAPER's own meters and pre-roll](../../images/ui/booth-levels-menu.webp)
 
 ![Booth - the Levels menu: REAPER's own pre-roll in one line, read from REAPER](../../images/ui/booth-levels-menu-preroll.webp)
-
-![Booth - the Levels menu showing REAPER's own input level (the armed track) and output level under the two sliders](../../images/ui/booth-levels-menu-daw-meters.webp)
 
 ## Recording
 
@@ -123,19 +120,12 @@ footer does not repeat the reason, and the setup chip on the top bar warns too:
     to choose from, this is the main button. Save the REAPER project afterwards so the new track is kept; the message after
     creating it reminds you.
 
-  Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording, not connected, or the Experimental
-  actions are off), the dialog says why and links nothing. Audacity 3 adds the track too (an Experimental action, like REAPER's);
-  Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
+  Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording or not connected), the dialog says
+  why and links nothing. Audacity 3 adds the track too; Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
 
   ![Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again](../../images/ui/booth-record-unlinked.webp)
 
   ![Booth - the dialog closed: the Not linked to a track chip under the text, which reopens it](../../images/ui/booth-record-unlinked-closed.webp)
-
-- **Record is switched off.** Recording in a DAW starts switched off until it has been checked in that DAW. Press Record (or the
-  chip) and the dialog explains it; **Turn on Record** turns it on for this computer (Settings > Recording & DAW > Capabilities >
-  Record), and Record is ready at once.
-
-  ![Booth - Record pressed while switched off: the Recording in REAPER is experimental dialog with Turn on Record, DAW settings and Check again](../../images/ui/booth-record-refused.webp)
 
 - **REAPER not connected** (or **REAPER not answering**). The app records in REAPER through its bridge, a small script
   that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and REAPER starts it
@@ -184,13 +174,6 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 ![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
 
-- **Experimental.** Like recording in a DAW, it starts switched off until it has been checked on your microphone. The **Record
-  is switched off** chip above the footer says so; it, or a press of Record, opens the dialog whose **Turn on Record** turns it
-  on, the same switch as in Settings > Recording & DAW > Capabilities > Record. The switch is this app's own, so the dialog waits
-  for nothing outside it: its other button is **Recording settings**.
-
-  ![Booth - the built-in recorder with Experimental actions off: Record off, and the Record is switched off chip under the text](../../images/ui/booth-builtin-refusal.webp)
-
 - **The microphone.** The take records on the microphone you chose in **Levels**. With none chosen it uses the one the project
   last recorded with, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
   microphone in Levels, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
@@ -207,7 +190,7 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
   ![Booth - the built-in recorder's take ended by itself: Record is back and a message says the audio before it is kept in the Recordings folder](../../images/ui/booth-builtin-take-ended.webp)
 
 - **Leaving.** Leaving the Booth during a take asks "Stop recording?", as with a DAW. Reloading the window during a take picks the
-  take up again, and Stop still stops it. Turning Experimental off during a take does not stop the take, and Stop still works.
+  take up again, and Stop still stops it.
 - **Not yet.** **R** (punch and roll) is not available with the built-in recorder, and the footer's Levels cannot set an audio
   interface's input gain: set it in the interface's own control panel.
 - **Where the takes go.** The Booth does not link a take to its chapter. Assign it in the native takes of the

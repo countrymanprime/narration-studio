@@ -18,7 +18,7 @@ const withRoll = (base: DawCapabilities, punch: DawCapabilities['capabilities'][
 const SETUPS = {
   reaper: DAW_SETUPS.reaper,
   audacity: withRoll(DAW_SETUPS.audacity, { level: 'experimental', available: true, destructive: true }),
-  audacityBackups: withRoll(DAW_SETUPS['audacity-backups'], { level: 'experimental', available: true }),
+  audacityBackups: withRoll(DAW_SETUPS.audacity, { level: 'experimental', available: true }),
   reaperOff: DAW_SETUPS['reaper-off'],
 };
 const ok: DawResult = { ok: true, changed: true, message: '', undoSteps: 1 };
@@ -71,8 +71,8 @@ describe('rollPlan', () => {
   });
   it('a-dawless-or-rollless-setup-says-why', () => {
     expect(rollPlan(SETUPS.reaperOff)).toEqual({ kind: 'refused', reason: SETUPS.reaperOff.capabilities.punch.message });
-    // Audacity rolls destructively until its backups are on (SN-D83): it asks rather than refuses.
-    expect(rollPlan(DAW_SETUPS.audacity)).toEqual({ kind: 'confirm', dawName: 'Audacity' });
+    // Audacity keeps backups while it answers (SN-D83), so its roll keeps the earlier audio and needs no question.
+    expect(rollPlan(DAW_SETUPS.audacity)).toEqual({ kind: 'roll' });
     expect(rollPlan(null)).toEqual({ kind: 'refused', reason: 'Rolling again is not available.' });
   });
 });
@@ -178,9 +178,9 @@ describe('useRoll', () => {
   });
 
   it('r-says-why-record-cannot-start-in-the-record-controls-own-sentence', async () => {
-    const { hook, actions } = setup(SETUPS.reaper, { recording: false, recordRefusal: 'Experimental: switched off in Settings.' });
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, recordRefusal: 'REAPER is not answering. Check that REAPER is open, then try again.' });
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith('Experimental: switched off in Settings.');
+    expect(actions.notify).toHaveBeenCalledWith('REAPER is not answering. Check that REAPER is open, then try again.');
     expect(actions.notify).not.toHaveBeenCalledWith('Start recording first.');
     expect(actions.roll).not.toHaveBeenCalled();
   });

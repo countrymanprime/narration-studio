@@ -422,7 +422,7 @@ describe('the tab', () => {
     const view = render(withApi(<EffectsTab {...base()} />));
     await waitFor(() => expect(screen.getAllByText('Not available in the built-in recorder.').length).toBe(3));
     view.unmount();
-    dawSetup = DAW_SETUPS['audacity-backups'];
+    dawSetup = DAW_SETUPS.audacity;
     fxStub = { ...fxStub, list: { source: 'Your Audacity macros', choices: [{ id: 'Normalize', name: 'Normalize' }] } };
     render(withApi(<EffectsTab {...base()} />));
     await waitFor(() => expect(screen.getAllByText('Not available in Audacity.').length).toBe(3));

@@ -8,7 +8,6 @@ import { chooseMicrophone, chooseTheme, goToPage } from './drivers/shared';
 // The side panel is a drawer below 1360 px; the rows that read it are driven at the desktop size.
 test.use({ viewport: { width: 1440, height: 900 } });
 
-const RECORD_ON = '?mockRecordCapabilityOn=1';
 // includeHidden: the connect dialog hides the page behind it from the accessibility tree, and Record is still there, disabled.
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
@@ -17,7 +16,7 @@ const cursorWord = (page: Page) => page.locator('[data-current]').first();
 
 // The built-in recorder listens before it records, so a built-in take needs a microphone chosen in Levels; the rows that are about having none
 // chosen (row 45) say so with `mic: false`.
-async function open(page: Page, query = RECORD_ON, ready = true, mic = query.includes('mockEngine=builtin')): Promise<void> {
+async function open(page: Page, query = '', ready = true, mic = query.includes('mockEngine=builtin')): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -26,7 +25,7 @@ async function open(page: Page, query = RECORD_ON, ready = true, mic = query.inc
   if (mic) await chooseMicrophone(page);
 }
 
-async function take(page: Page, query = RECORD_ON): Promise<void> {
+async function take(page: Page, query = ''): Promise<void> {
   await open(page, query);
   await record(page).click();
   await expect(stop(page)).toBeVisible();
@@ -38,7 +37,7 @@ const wordIndex = (page: Page) => cursorWord(page).evaluate((e) => `${e.closest<
 const noSideways = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 
 test('row 1: open the Booth on a chosen chapter', async ({ page }) => {
-  await page.goto(`/booth${RECORD_ON}&chapter=chapter-3`);
+  await page.goto(`/booth?chapter=chapter-3`);
   await settlePage(page);
   await expect(chapterButton(page)).toHaveAccessibleName(/Chapter: Chapter 3/);
 });
@@ -81,13 +80,13 @@ test('row 6: the listening microphone is named in Levels, with the DAW choosing 
 });
 
 test('row 7: with the speech model missing, a take asks before anything downloads', async ({ page }) => {
-  await open(page, `${RECORD_ON}&mockAssets=missing`);
+  await open(page, `?mockAssets=missing`);
   await record(page).click();
   await expect(page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ })).toBeVisible({ timeout: 10_000 });
 });
 
 test('row 7: declining the model download leaves a footer line saying the text is not following', async ({ page }) => {
-  await open(page, `${RECORD_ON}&mockAssets=missing`);
+  await open(page, `?mockAssets=missing`);
   await record(page).click();
   const ask = page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ });
   await ask.waitFor({ timeout: 10_000 });
@@ -96,7 +95,7 @@ test('row 7: declining the model download leaves a footer line saying the text i
 });
 
 test('row 8: with no microphone listed, the Booth says the text cannot follow and why', async ({ page }) => {
-  await open(page, `${RECORD_ON}&mockNoDevices=1`);
+  await open(page, `?mockNoDevices=1`);
   await expect(page.locator('#blisten-why')).toContainText('The text cannot follow your voice: No microphone found.');
 });
 
@@ -190,7 +189,7 @@ test("row 15: the side panel lists its sections in the mock's order and the togg
 });
 
 test('row 16: suspected flags show while reading and Dismiss removes one', async ({ page }) => {
-  await page.goto(`/${RECORD_ON}&mockTeleprompter=flagged`);
+  await page.goto(`/?mockTeleprompter=flagged`);
   await settlePage(page);
   await goToPage(page, 'Booth');
   const dismiss = page.getByRole('button', { name: /^Dismiss/ }).filter({ hasNotText: 'message' });
@@ -207,18 +206,14 @@ test('row 17: a Story Bible name shows its reference in the side panel', async (
   await expect(page.locator('#booth-reference')).toContainText('Alice');
 });
 
-test('row 18: Record refused by the capability: off, with its sentence beside it, and a press opens the dialog that turns it on', async ({ page }) => {
-  await open(page, '', false);
-  await expect(record(page)).toBeDisabled();
-  await expect(page.locator('#brec-why')).toHaveText('Experimental: switched off in Settings.');
-  await record(page).click({ force: true });
-  await expect(page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' })).toBeVisible();
+test('row 18: with REAPER linked and answering, Record is ready: nothing to switch on, no setup chip', async ({ page }) => {
+  await open(page);
+  await expect(page.getByRole('button', { name: /Record is switched off/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Turn on Record' })).toHaveCount(0);
 });
 
 test('row 19: Record with no project linked and no bridge: disabled, with the reason and the link step', async ({ page }) => {
   await open(page, '?mockDaw=live', false);
-  await record(page).click({ force: true });
-  await page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' }).click();
   await expect(record(page)).toBeDisabled();
   await expect(page.getByRole('dialog', { name: /is not connected/ }).getByRole('button', { name: 'Link in Settings' })).toBeVisible();
   await expect(page.locator('#brec-why')).not.toHaveText('');
@@ -226,8 +221,6 @@ test('row 19: Record with no project linked and no bridge: disabled, with the re
 
 test('row 20: Record with REAPER not answering, and with another project open, is disabled with the reason', async ({ page }) => {
   await open(page, '?mockDaw=quiet', false);
-  await record(page).click({ force: true });
-  await page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' }).click();
   await page
     .getByRole('dialog', { name: /is not connected/ })
     .getByRole('button', { name: 'Link in Settings' })
@@ -251,7 +244,7 @@ test('row 20: Record with REAPER not answering, and with another project open, i
 });
 
 test('row 21: with the built-in recorder chosen, the chip names it and Record is available', async ({ page }) => {
-  await open(page, '?mockEngine=builtin&mockRecordCapabilityOn=1', false);
+  await open(page, '?mockEngine=builtin', false);
   await expect(page.getByRole('button', { name: /^Recording setup: / })).toContainText(/Built-in/);
   await expect(record(page)).toBeEnabled();
 });
@@ -281,13 +274,13 @@ test('row 23: leaving by the jump menu during a take asks, and Stop and leave st
 });
 
 test('row 24: R during a take on a DAW whose roll replaces audio asks first', async ({ page }) => {
-  await take(page, `${RECORD_ON}&mockRollReplaces=1`);
+  await take(page, `?mockRollReplaces=1`);
   await page.keyboard.press('r');
   await expect(page.getByRole('alertdialog', { name: /^Roll again from ¶ \d+\?$/ })).toBeVisible();
 });
 
 test('row 25: R during a take on a DAW that keeps the take rolls without asking, and Last punch logs it', async ({ page }) => {
-  await take(page, `${RECORD_ON}&mockPunchCapabilityOn=1`);
+  await take(page, ``);
   await page.keyboard.press('r');
   await expect(page.getByText(/Rolling again from ¶/).first()).toBeVisible();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -378,7 +371,7 @@ test('row 33: the chapter stepper changes the chapter and the text', async ({ pa
 });
 
 test('row 34: a pickup session from Pickups marks the line and lists the pickups', async ({ page }) => {
-  await page.goto(`/${RECORD_ON}`);
+  await page.goto(`/`);
   await settlePage(page);
   await goToPage(page, 'Pickups');
   await page.getByRole('region', { name: 'Pickups' }).getByRole('button', { name: 'Open in Booth at this line' }).first().click();
@@ -388,7 +381,7 @@ test('row 34: a pickup session from Pickups marks the line and lists the pickups
 });
 
 test('row 35: the credits read as the text and the chip names the unfilled tokens', async ({ page }) => {
-  await page.goto(`/booth${RECORD_ON}&credits=closing`);
+  await page.goto(`/booth?credits=closing`);
   await settlePage(page);
   await expect(page.getByRole('button', { name: /Fill them in Settings$/ })).toBeVisible();
   await expect(page.locator('[data-booth-text]')).toContainText(/\S/);
@@ -416,7 +409,7 @@ test('row 37: at 1100 px nothing scrolls sideways and the side panel is a drawer
 });
 
 test('row 38: the Booth follows the Dark theme', async ({ page }) => {
-  await page.goto(`/${RECORD_ON}`);
+  await page.goto(`/`);
   await settlePage(page);
   await chooseTheme(page, 'Dark');
   await goToPage(page, 'Booth');
@@ -433,7 +426,7 @@ test('row 39: with no manuscript the Booth asks for one', async ({ page }) => {
 });
 
 // The built-in recorder, rows 43 to 47: the same Record and Stop, answered by the app's own recorder (the mock's `?mockEngine=builtin`).
-const BUILTIN = '?mockEngine=builtin&mockRecordCapabilityOn=1';
+const BUILTIN = '?mockEngine=builtin';
 
 test('row 43: with the built-in recorder Space starts a take and Stop ends it, with no track and no DAW', async ({ page }) => {
   await open(page, BUILTIN);
@@ -446,13 +439,9 @@ test('row 43: with the built-in recorder Space starts a take and Stop ends it, w
   await expect(page.getByText('REC', { exact: true })).toHaveCount(0);
 });
 
-test('row 44: the built-in recorder with Experimental off says so, and Turn on Record makes Record ready', async ({ page }) => {
-  await open(page, '?mockEngine=builtin', false);
-  await expect(record(page)).toBeDisabled();
-  await expect(page.locator('#brec-why')).toHaveText('Experimental: switched off in Settings.');
-  await page.locator('#brec-setup').getByRole('button', { name: 'Record is switched off. Show details' }).click();
-  await page.getByRole('dialog', { name: 'Recording in the built-in recorder is experimental' }).getByRole('button', { name: 'Turn on Record' }).click();
-  await expect(record(page)).toBeEnabled();
+test('row 44: the built-in recorder records with nothing to switch on', async ({ page }) => {
+  await open(page, '?mockEngine=builtin');
+  await expect(page.getByRole('button', { name: /Record is switched off/ })).toHaveCount(0);
 });
 
 test('row 45: with several microphones and none chosen, none listed, or one that will not open, Record says why and records nothing', async ({ page }) => {

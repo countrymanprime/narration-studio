@@ -48,12 +48,6 @@ export const DAW_CHOICE_MOCK_SEEDS = {
 
 export type DawChoiceMockName = keyof typeof DAW_CHOICE_MOCK_SEEDS;
 
-const EXPERIMENTAL_OFF: DawCapabilitySupport = {
-  level: 'experimental',
-  available: false,
-  reason: 'experimental_off',
-  message: 'Experimental: switched off in Settings.',
-};
 const REAPER_NOT_CONNECTED: DawCapabilitySupport = {
   level: 'experimental',
   available: false,
@@ -71,9 +65,8 @@ const BUILTIN_ON: DawCapabilitySupport = { level: 'experimental', available: tru
 const DAWS: ChoosableDaw[] = ['REAPER', 'Audacity', 'Built-in'];
 
 /** The record capability `daw` would answer when it is not the project's engine (no bridge of its own). */
-function idleRecord(daw: ChoosableDaw, experimental: boolean): DawCapabilitySupport {
+function idleRecord(daw: ChoosableDaw): DawCapabilitySupport {
   if (daw === 'Audacity') return AUDACITY_NOT_YET;
-  if (!experimental) return EXPERIMENTAL_OFF;
   return daw === 'REAPER' ? REAPER_NOT_CONNECTED : BUILTIN_ON;
 }
 
@@ -97,7 +90,6 @@ export function createDawChoiceMock(
 
   const current = async (): Promise<DawChoice> => {
     const [capabilities, recorder] = await Promise.all([deps.capabilities(), deps.recording.recorderState()]);
-    const experimental = capabilities.capabilities.record?.reason !== 'experimental_off';
     const inApp = recorder.engine === 'builtin' && chosen !== 'REAPER' && chosen !== 'Audacity';
     const daw = inApp ? 'Built-in' : (chosen ?? (capabilities.daw === 'none' || capabilities.daw === 'Built-in' ? 'REAPER' : capabilities.daw));
     const source: DawChoiceSource = chosen ? 'chosen' : inApp ? 'default' : linkedName() ? 'linked' : foundFiles.length > 0 ? 'found' : 'default';
@@ -119,14 +111,10 @@ export function createDawChoiceMock(
       linkedFile: linkedName(),
       foundFiles,
       launcherAutoStart: seed.launcherAutoStart ?? false,
-      experimental,
       options: DAWS.map((option) => ({
         daw: option,
         installed: option === 'Audacity' ? null : option === 'REAPER' ? (seed.reaperInstalled ?? true) : true,
-        record:
-          option === daw && option === capabilities.daw && capabilities.capabilities.record
-            ? capabilities.capabilities.record
-            : idleRecord(option, experimental),
+        record: option === daw && option === capabilities.daw && capabilities.capabilities.record ? capabilities.capabilities.record : idleRecord(option),
       })),
       starting: startingNow ? { since: startedSince } : null,
       bridge: daw === 'REAPER' ? { installed: true, startsWithReaper: true, problem: seed.bridgeProblem ?? null } : null,
@@ -136,10 +124,6 @@ export function createDawChoiceMock(
   return {
     dawChoice: current,
     dawChoose: async (daw) => {
-      // The host refuses the built-in recorder where it cannot record (`chooseProjectDaw`): here, while the Experimental switch is off.
-      if (daw === 'Built-in' && (await deps.capabilities()).capabilities.record?.reason === 'experimental_off') {
-        throw new Error(`${EXPERIMENTAL_OFF.message} Turn on Experimental DAW actions under Advanced to record in the app.`);
-      }
       await deps.recording.recorderChooseEngine(daw === 'Built-in' ? 'builtin' : 'daw');
       chosen = daw;
       return current();

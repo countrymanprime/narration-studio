@@ -446,20 +446,6 @@ describe('EditingPage', () => {
       expect(document.querySelector('#keyhints')!.textContent).toContain('Delete words and audio');
     });
 
-    it('keeps the setting out of the dialog: a quiet DAW is "not answering", and the switched-off edits are the notice’s to say', async () => {
-      const off = { level: 'experimental', available: false, reason: 'experimental_off', message: 'Experimental: switched off in Settings.' } as const;
-      const quiet = DAW_SETUPS['reaper-off'];
-      const setting = { ...quiet, capabilities: { ...quiet.capabilities, record: off, cut_range: off, fx_range: off } };
-      mount({ daw: createMockDawClient(setting, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] }), dawConnectGraceMs: 0 });
-      await script();
-      const open = await dawDialog();
-      expect(open.textContent).toContain('REAPER is not answering.');
-      expect(open.textContent).not.toContain('Experimental');
-      fireEvent.click(within(open).getByRole('button', { name: 'Close' }));
-      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-      expect(document.querySelector('#editoff')!.textContent).toContain('Experimental: switched off in Settings.');
-    });
-
     it('blames the connection, not what the engine has not built: Audacity quiet says it is not answering, never "Record is not available with Audacity yet"', async () => {
       const audacity = DAW_SETUPS['audacity'];
       const notAnswering =
@@ -1048,7 +1034,7 @@ describe('EditingPage', () => {
     });
 
     it('a DAW that edits in steps backs the words up before a cut', async () => {
-      const base = dawFor('audacity-backups');
+      const base = dawFor('audacity');
       const backupAround = vi.fn(base.backupAround);
       mount({ daw: { ...base, backupAround } });
       await script();

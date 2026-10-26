@@ -321,8 +321,7 @@ buttons.
 
 **With Audacity,** the comparison reads the audio track you have selected in Audacity (click its name), exports it whole to a
 WAV in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/audacity-session folder (for a long chapter that takes a while), and compares that. The
-project must be [linked in Settings](settings.md#daw-integration) and Audacity must be answering; the Audacity features here are
-Experimental and stay off until the Experimental switch is on. **Export N markers** adds a label for each discrepancy to the
+project must be [linked in Settings](settings.md#daw-integration) and Audacity must be answering. **Export N markers** adds a label for each discrepancy to the
 "<!-- brand:identity.audacityLabelTrack -->Narration Studio<!-- /brand -->" label track, named like `[nu:f0-12500] MISREAD: …`, and skips a discrepancy whose label is already there.
 Labels have no colour, so the three marker colours in Settings do not apply. Audacity reports no unsaved-changes count, so the
 "project may have changed" notice never shows. The label of **Add marker in Audacity** has the finding's words in it, not the

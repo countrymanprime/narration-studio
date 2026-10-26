@@ -23,7 +23,7 @@ const blocked = (page: Page) => page.getByRole('heading', { level: 2, name: BAD 
 test.describe('cross-page hand-offs', () => {
   test('Production Start session lands on the Booth at a chapter', async ({ page }) => {
     // The record capability on: the mock's DAW keeps Start session disabled by default, which is its own refusal row.
-    await open(page, '/?mockRecordCapabilityOn=1');
+    await open(page, '/');
     await h1(page, 'Production').waitFor();
     await page
       .getByRole('button', { name: /Start session/ })

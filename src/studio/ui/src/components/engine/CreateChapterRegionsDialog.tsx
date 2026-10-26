@@ -132,7 +132,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
           <Button variant={created ? 'primary' : 'secondary'} onClick={onClose} disabled={creating}>
             {created ? 'Close' : 'Cancel'}
           </Button>
-          <CapabilityGate capability={regionsCapability} badgeSide="before">
+          <CapabilityGate capability={regionsCapability}>
             {/* After a run Close is the next step, so the primary goes quiet until the plan changes (ENX-28). */}
             <Button variant={created ? 'secondary' : 'primary'} onClick={create} disabled={!canCreate} pending={creating}>
               {`Create ${rows.length} region${rows.length === 1 ? '' : 's'}`}

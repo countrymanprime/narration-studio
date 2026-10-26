@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import type { DawBackup } from '../../../api/contracts/daw';
-import { Checkbox } from '../../primitives/Checkbox';
 import { IconButton } from '../../primitives/IconButton';
 import { NumberInput } from '../../primitives/NumberInput';
 import { SectionLabel } from '../../primitives/SectionLabel';
@@ -30,7 +29,7 @@ export function BackupsInspector({
   total,
   onRestore,
 }: {
-  settings: Pick<BackupSettingsState, 'settings' | 'error' | 'setKeep' | 'setWindow' | 'setRetention'>;
+  settings: Pick<BackupSettingsState, 'settings' | 'error' | 'setWindow' | 'setRetention'>;
   gate: BackupsGate;
   backup: DawBackup | null;
   chapterName: string;
@@ -46,12 +45,9 @@ export function BackupsInspector({
       <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{BACKUPS_TEXT.scope}</p>
       {s ? (
         <>
-          <Checkbox checked={s.keep} onChange={settings.setKeep}>
-            {BACKUPS_TEXT.keep}
-          </Checkbox>
-          {!s.keep ? (
+          {reason ? (
             <p id="bknote" className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-              {reason ?? BACKUPS_TEXT.off}
+              {reason}
             </p>
           ) : null}
           <label className="flex flex-col gap-1">

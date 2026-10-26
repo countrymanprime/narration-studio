@@ -1146,8 +1146,13 @@ describe('the footer room tone', () => {
 });
 
 describe('the Levels menu', () => {
-  it('Turn on in Settings goes to the Experimental DAW actions switch', async () => {
-    const off = { level: 'experimental' as const, available: false, reason: 'experimental_off' as const, message: 'Experimental: switched off in Settings.' };
+  it('the monitor slider off says the DAW’s reason and offers no way to Settings', async () => {
+    const off = {
+      level: 'experimental' as const,
+      available: false,
+      reason: 'not_running' as const,
+      message: 'REAPER is not answering. Check that REAPER is open, then try again.',
+    };
     const setup = DAW_SETUPS.reaper;
     const daw = createMockDawClient(
       { ...setup, capabilities: { ...setup.capabilities, monitor_level: off } },
@@ -1157,8 +1162,9 @@ describe('the Levels menu', () => {
     await ready();
     await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
     const levels = await screen.findByRole('dialog', { name: 'Levels' });
-    await userEvent.click(within(levels).getByRole('button', { name: 'Turn on in Settings' }));
-    expect(page.navigate).toHaveBeenCalledWith('/settings#experimental');
+    expect(within(levels).getByText(off.message)).toBeTruthy();
+    expect(within(levels).queryByRole('button', { name: 'Turn on in Settings' })).toBeNull();
+    expect(page.navigate).not.toHaveBeenCalledWith(expect.stringContaining('/settings'));
   });
 });
 

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { DAW_CAPABILITIES, type DawCapabilityKey } from '../api/contracts/daw';
+import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import { createDawMock } from '../api/dawMock';
 import { dawCapabilitiesSchema, dawProjectStateSchema } from '../api/schemas/daw';
 import { parseWire } from '../api/wire/parseWire';
@@ -38,10 +38,10 @@ import {
   noBackupAnswer,
 } from './daw';
 
-const SETUP_IDS: DawSetupId[] = ['reaper', 'reaper-off', 'builtin', 'audacity', 'audacity-backups'];
+const SETUP_IDS: DawSetupId[] = ['reaper', 'reaper-off', 'builtin', 'audacity'];
 
 describe('the mock DAW setups', () => {
-  it('mock-setups-are-data: holds REAPER, REAPER off, built-in and Audacity with and without backups', () => {
+  it('mock-setups-are-data: holds REAPER, REAPER off, built-in and Audacity', () => {
     expect(Object.keys(DAW_SETUPS).sort()).toEqual([...SETUP_IDS].sort());
   });
 
@@ -81,33 +81,24 @@ describe('the mock DAW setups', () => {
     expect(DAW_PROJECT_STATES.builtin.unsavedChanges).toBe(false);
   });
 
-  it('mock-setups-are-data: a roll in Audacity is destructive only without backups', () => {
-    expect(DAW_SETUPS.audacity.capabilities.punch.destructive).toBe(true);
-    expect(DAW_SETUPS['audacity-backups'].capabilities.punch.destructive).toBeUndefined();
+  it('mock-setups-are-data: a roll in Audacity keeps the audio, since Audacity keeps backups while it answers', () => {
+    expect(DAW_SETUPS.audacity.capabilities.punch.destructive).toBeUndefined();
   });
 
-  // goldens-and-mock-agree (SN-D83): each Audacity setup is the host's resolver over the adapter, as the mock host mirrors it: a
-  // connected Audacity with every capability switched on and backups off or on.
-  it.each([
-    ['audacity', 'off'],
-    ['audacity-backups', 'on'],
-  ] as const)('goldens-and-mock-agree: the %s setup is what the host answers with backups %s', async (id, backups) => {
-    const toggles = Object.fromEntries(DAW_CAPABILITIES.map(({ key }) => [key, key === 'backups' ? backups : 'on'])) as Record<DawCapabilityKey, 'on' | 'off'>;
-    const host = await createDawMock({ daw: 'Audacity', connected: true, toggles }).dawCapabilities();
-    expect(DAW_SETUPS[id].capabilities).toEqual(host.capabilities);
+  // goldens-and-mock-agree (SN-D83): the Audacity setup is the host's resolver over the adapter, as the mock host mirrors it: a
+  // connected Audacity, every built capability on with no setting.
+  it('goldens-and-mock-agree: the audacity setup is what the host answers', async () => {
+    const host = await createDawMock({ daw: 'Audacity', connected: true }).dawCapabilities();
+    expect(DAW_SETUPS.audacity.capabilities).toEqual(host.capabilities);
   });
 
-  it('goldens-and-mock-agree: Audacity gains takes, stacking, cutting and an effect on words only with backups, in steps', () => {
+  it('goldens-and-mock-agree: Audacity has takes, stacking, cutting and an effect on words, the edits in steps', () => {
     for (const key of ['takes', 'stack_takes', 'cut_range', 'fx_range'] as const) {
-      expect(DAW_SETUPS.audacity.capabilities[key], key).toMatchObject({ available: false, reason: 'turned_off' });
-      expect(DAW_SETUPS.audacity.capabilities[key].message, key).toMatch(/needs Audacity backups\. Turn on Audio backups in Settings\.$/);
-      expect(DAW_SETUPS['audacity-backups'].capabilities[key], key).toMatchObject({ available: true });
+      expect(DAW_SETUPS.audacity.capabilities[key], key).toMatchObject({ available: true });
     }
     for (const key of ['stack_takes', 'cut_range', 'fx_range'] as const) {
       expect(DAW_SETUPS.audacity.capabilities[key].mode, key).toBe('steps');
-      expect(DAW_SETUPS['audacity-backups'].capabilities[key].mode, key).toBe('steps');
     }
-    expect(DAW_SETUPS.audacity.capabilities.stack_takes.message).toBe('Stacking takes needs Audacity backups. Turn on Audio backups in Settings.');
   });
 
   it('ui-mirror-names-exactly-the-go-catalogue: the four edit capabilities follow macro_render, in Go order', () => {
@@ -159,17 +150,11 @@ describe('the mock DAW setups', () => {
     expect(DAW_SETUPS[id].capabilities.fx_range.destructive).toBeUndefined();
   });
 
-  it('mock-setup-agrees-with-the-host: Audacity declares backups experimental, on with backups and turned off in Settings without', () => {
-    expect(DAW_SETUPS['audacity-backups'].capabilities.backups).toEqual({ level: 'experimental', available: true });
-    expect(DAW_SETUPS.audacity.capabilities.backups).toEqual({
-      level: 'experimental',
-      available: false,
-      reason: 'turned_off',
-      message: 'Turned off in Settings.',
-    });
+  it('mock-setup-agrees-with-the-host: Audacity declares backups, and they are on while it answers', () => {
+    expect(DAW_SETUPS.audacity.capabilities.backups).toEqual({ level: 'experimental', available: true });
   });
 
-  // Like the Audacity setups, the built-in one has its Experimental rows switched on; every other row is the host's own.
+  // Every row of the built-in setup is the host's own.
   it("mock-setup-agrees-with-the-host: the built-in setup has the golden's level for every capability, and its reason and sentence wherever both refuse", () => {
     const golden = parseWire(
       dawCapabilitiesSchema,
@@ -179,8 +164,7 @@ describe('the mock DAW setups', () => {
     for (const [name, host] of Object.entries(golden.capabilities)) {
       const setup = DAW_SETUPS.builtin.capabilities[name];
       expect(setup.level, name).toBe(host.level);
-      if (host.reason === 'experimental_off') expect(setup.available, name).toBe(true);
-      else expect(setup, name).toEqual(host);
+      expect(setup, name).toEqual(host);
     }
   });
 
@@ -234,9 +218,12 @@ describe('the roll answers (SN-D64)', () => {
 
   it('rolledOf keeps the earlier audio with no undo point where punch is not destructive, and replaces it in one step where it is', () => {
     expect(rolledOf(DAW_SETUPS.reaper, 12)).toEqual({ message: rolledAnswer(12), undoSteps: 0 });
-    expect(DAW_SETUPS.audacity.capabilities.punch.destructive).toBe(true);
-    expect(rolledOf(DAW_SETUPS.audacity, 12)).toEqual({ message: rolledReplacingAnswer(12), undoSteps: 1 });
-    expect(DAW_SETUPS['audacity-backups'].capabilities.punch.destructive).toBeUndefined();
+    const replacing = {
+      ...DAW_SETUPS.audacity,
+      capabilities: { ...DAW_SETUPS.audacity.capabilities, punch: { ...DAW_SETUPS.audacity.capabilities.punch, destructive: true } },
+    };
+    expect(rolledOf(replacing, 12)).toEqual({ message: rolledReplacingAnswer(12), undoSteps: 1 });
+    expect(rolledOf(DAW_SETUPS.audacity, 12)).toEqual({ message: rolledAnswer(12), undoSteps: 0 });
   });
 });
 
@@ -348,7 +335,7 @@ describe('the backups answers (SN-D82)', () => {
 
   it('the mock table windows the words, lists the newest first and stamps a restore', () => {
     const table = new MockBackupTable();
-    const setup = DAW_SETUPS['audacity-backups'];
+    const setup = DAW_SETUPS.audacity;
     expect(table.backup(setup, 'chapter-1', 140, 159, 'Roll at ¶ 3').message).toBe(golden('daw-backup-done.json').message);
     table.backup(setup, 'chapter-1', 0, 0, 'Trim white space');
     const [newest, oldest] = table.list();

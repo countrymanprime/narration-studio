@@ -963,7 +963,7 @@ describe('the host adapter maps each existing golden', () => {
       workspaceUseTake: () => Promise.resolve({ outcome: 'refused', reason: 'recording', message: sentence, changed: false }),
     });
     expect(await take.useTake('chapter-1', 0, 4, 'take-1')).toEqual({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
-    const off = recording('experimental_off.start');
+    const off = recording('unsupported.start');
     const record = createHostDawClient({ ...hostApi(), readAloudRecordStart: () => Promise.resolve(off) });
     expect(await record.recordStart('chapter-1')).not.toHaveProperty('code');
     const standalone = createHostDawClient({
@@ -1157,7 +1157,7 @@ describe('the mock setups', () => {
   });
 
   it("dawclient-hide-takes: the mock refuses with the setup's takes sentence, finds nothing to hide, or mutes in one undo step naming the DAW", async () => {
-    for (const id of ['reaper-off', 'audacity'] as const) {
+    for (const id of ['reaper-off'] as const) {
       const sentence = DAW_SETUPS[id].capabilities.takes.message;
       expect(sentence, id).toBeTruthy();
       expect(await createMockDawClient(DAW_SETUPS[id]).hideTakes('chapter-1', 0, 4, 'take-1'), id).toEqual({
@@ -1172,7 +1172,7 @@ describe('the mock setups', () => {
     expect(await reaper.hideTakes('chapter-1', 0, 4, 'take-1')).toEqual({ ok: true, changed: true, message: takesHiddenAnswer(1, 'REAPER'), undoSteps: 1 });
     expect(await reaper.hideTakes('chapter-1', 0, 4, 'take-solo')).toEqual({ ok: true, changed: false, message: takesHiddenAnswer(0, 'REAPER'), undoSteps: 0 });
     expect(await reaper.hideTakes('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(DAW_ANSWERS.staleHide));
-    const backups = createMockDawClient(DAW_SETUPS['audacity-backups'], { ...DAW_PROJECT, otherTakes: { 'take-1': 2 } });
+    const backups = createMockDawClient(DAW_SETUPS.audacity, { ...DAW_PROJECT, otherTakes: { 'take-1': 2 } });
     expect((await backups.hideTakes('chapter-1', 0, 4, 'take-1')).message).toBe('Muted 2 other takes in Audacity. They are still in the project.');
     expect(await createMockDawClient(DAW_SETUPS.builtin).hideTakes('chapter-1', 0, 4, 'take-1')).toEqual({
       ok: true,
@@ -1194,8 +1194,11 @@ describe('the mock setups', () => {
     expect(await reaper.roll('chapter-9', 40)).toEqual(staleRefusal(DAW_ANSWERS.rollStale));
     expect(await reaper.roll('chapter-1', Number.POSITIVE_INFINITY)).toEqual(refusal(DAW_ANSWERS.rollBadTime));
 
-    // Audacity without backups (SN-D83): punch is available, and a roll there replaces the audio.
-    const mock = createMockDawClient(DAW_SETUPS.audacity);
+    // A DAW whose roll replaces the audio (its punch declared destructive): the roll asks first.
+    const mock = createMockDawClient({
+      ...DAW_SETUPS.audacity,
+      capabilities: { ...DAW_SETUPS.audacity.capabilities, punch: { ...DAW_SETUPS.audacity.capabilities.punch, destructive: true } },
+    });
     expect(await mock.roll('chapter-1', 40)).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: false })).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: true })).toEqual({ ok: true, changed: true, message: rolledReplacingAnswer(40), undoSteps: 1 });
@@ -1257,7 +1260,7 @@ describe('the mock setups', () => {
   });
 
   it('dawclient-backups: the mock refuses where backups are unavailable, and with backups makes a row and restores it', async () => {
-    for (const id of ['reaper', 'reaper-off', 'builtin', 'audacity'] as const) {
+    for (const id of ['reaper', 'reaper-off', 'builtin'] as const) {
       const sentence = DAW_SETUPS[id].capabilities.backups.message;
       expect(sentence, id).toBeTruthy();
       const mock = createMockDawClient(DAW_SETUPS[id]);
@@ -1265,7 +1268,7 @@ describe('the mock setups', () => {
       expect(await mock.restoreBackup('{00000000-0000-4000-8000-000000000001}'), id).toEqual(refusal(sentence ?? ''));
       expect(await mock.backups(), id).toEqual([]);
     }
-    const mock = createMockDawClient(DAW_SETUPS['audacity-backups']);
+    const mock = createMockDawClient(DAW_SETUPS.audacity);
     expect(await mock.backupAround(BACKUP)).toEqual(read('daw-backup-done.json', dawResultSchema));
     expect(await mock.backupAround({ ...BACKUP, firstToken: 3, lastToken: 3, label: 'Trim white space' })).toMatchObject({ ok: true, changed: false });
     const [newest, oldest] = await mock.backups();
@@ -1282,7 +1285,7 @@ describe('the mock setups', () => {
   });
 
   it('dawclient-stack: the mock follows the setups: one undo step natively, the steps listed in steps, none where the app stacks', async () => {
-    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+    for (const id of ['reaper-off', 'builtin'] as const) {
       const sentence = DAW_SETUPS[id].capabilities.stack_takes.message;
       expect(sentence, id).toBeTruthy();
       expect(await createMockDawClient(DAW_SETUPS[id]).stackTakes(STACK), id).toEqual(refusal(sentence ?? ''));
@@ -1484,7 +1487,7 @@ describe('the mock setups', () => {
 
   it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {
     const request = { chapterId: 'chapter-1', firstToken: 2, lastToken: 4, mode: 'close', fadeMs: 0 } as const;
-    for (const id of ['reaper-off', 'audacity'] as const) {
+    for (const id of ['reaper-off'] as const) {
       const sentence = DAW_SETUPS[id].capabilities.cut_range.message;
       expect(sentence, id).toBeTruthy();
       expect(await createMockDawClient(DAW_SETUPS[id]).deleteRange(request), id).toEqual(refusal(sentence ?? ''));
@@ -1514,7 +1517,7 @@ describe('the mock setups', () => {
 
   it("dawclient-fx-range: the mock refuses with the setup's fx_range sentence, lists the setup's chains and answers undo steps by the mode", async () => {
     const request = { chapterId: 'chapter-1', firstToken: 2, lastToken: 4, chainName: 'Podcast Voice.RfxChain', fadeMs: 0 } as const;
-    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+    for (const id of ['reaper-off', 'builtin'] as const) {
       const sentence = DAW_SETUPS[id].capabilities.fx_range.message;
       expect(sentence, id).toBeTruthy();
       expect(await createMockDawClient(DAW_SETUPS[id]).applyFxToRange(request), id).toEqual(refusal(sentence ?? ''));
@@ -1556,8 +1559,8 @@ describe('the mock setups', () => {
   });
 
   it('refusal-carries-the-capabilitys-sentence: take and marker calls use their own capability sentence', async () => {
-    const mock = createMockDawClient(DAW_SETUPS.audacity);
-    expect((await mock.useTake('chapter-1', 0, 4, 'take-1')).refused).toBe(DAW_SETUPS.audacity.capabilities.takes.message);
+    const mock = createMockDawClient(DAW_SETUPS['reaper-off']);
+    expect((await mock.useTake('chapter-1', 0, 4, 'take-1')).refused).toBe(DAW_SETUPS['reaper-off'].capabilities.takes.message);
     expect((await createMockDawClient(DAW_SETUPS.builtin).addMarker('finding-1')).refused).toBe(DAW_SETUPS.builtin.capabilities.markers.message);
   });
 
@@ -1577,9 +1580,9 @@ describe('the mock setups', () => {
     expect(await createMockDawClient(DAW_SETUPS.reaper, DAW_PROJECT, live).projectState()).toEqual(live);
   });
 
-  it('behaviour differs only through the capability fields: Audacity with backups can use a take, without them it cannot', async () => {
-    expect((await createMockDawClient(DAW_SETUPS.audacity).useTake('chapter-1', 0, 4, 'take-1')).ok).toBe(false);
-    expect((await createMockDawClient(DAW_SETUPS['audacity-backups']).useTake('chapter-1', 0, 4, 'take-1')).ok).toBe(true);
+  it('behaviour differs only through the capability fields: Audacity answering can use a take, REAPER not answering cannot', async () => {
+    expect((await createMockDawClient(DAW_SETUPS['reaper-off']).useTake('chapter-1', 0, 4, 'take-1')).ok).toBe(false);
+    expect((await createMockDawClient(DAW_SETUPS.audacity).useTake('chapter-1', 0, 4, 'take-1')).ok).toBe(true);
   });
 });
 
@@ -1731,7 +1734,7 @@ describe('fx-range-params-and-bypass', () => {
       expect(await daw.fxRangeParams(FX_TARGET), id).toEqual({ result: refusal(sentence), settings: [], truncated: false, bypassed: false });
       expect(await daw.bypassFxRange(FX_TARGET, true), id).toEqual(refusal(sentence));
     }
-    const audacity = createMockDawClient(DAW_SETUPS['audacity-backups']);
+    const audacity = createMockDawClient(DAW_SETUPS.audacity);
     expect((await audacity.fxRangeParams(FX_TARGET)).result).toEqual(refusal(DAW_ANSWERS.fxBakedIn));
     expect(await audacity.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 0, value: -3 })).toEqual(refusal(DAW_ANSWERS.fxBakedIn));
     expect(await audacity.bypassFxRange(FX_TARGET, true)).toEqual(refusal(DAW_ANSWERS.fxBakedIn));
@@ -1793,7 +1796,7 @@ describe('fx-compare', () => {
       expect(await daw.compareFxRange(FX_TARGET), id).toEqual({ result: refusal(sentence), pass: 0 });
       expect(await daw.stopFxCompare(), id).toEqual(refusal(sentence));
     }
-    const audacity = createMockDawClient(DAW_SETUPS['audacity-backups']);
+    const audacity = createMockDawClient(DAW_SETUPS.audacity);
     expect(await audacity.compareFxRange(FX_TARGET)).toEqual({ result: refusal(DAW_ANSWERS.fxBakedIn), pass: 0 });
     const reaper = createMockDawClient(DAW_SETUPS.reaper);
     const compare = await reaper.compareFxRange(FX_TARGET);

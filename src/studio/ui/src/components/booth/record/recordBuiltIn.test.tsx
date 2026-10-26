@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -25,16 +24,13 @@ afterEach(() => {
 });
 
 const BUILTIN = DAW_SETUPS.builtin;
-const withoutRecord = (reason: 'experimental_off' | 'turned_off'): DawCapabilities => ({
+// The recorder refusing Record for a reason of its own (no capture device here): the host's sentence, and nothing to switch on.
+const NO_CAPTURE = 'The built-in recorder cannot record on this computer.';
+const withoutRecord = (): DawCapabilities => ({
   ...BUILTIN,
   capabilities: {
     ...BUILTIN.capabilities,
-    record: {
-      level: 'experimental',
-      available: false,
-      reason,
-      message: reason === 'turned_off' ? 'Turned off in Settings.' : 'Experimental: switched off in Settings.',
-    },
+    record: { level: 'experimental', available: false, reason: 'unsupported', message: NO_CAPTURE },
   },
 });
 const projectState = (playState: DawProjectState['playState']): DawProjectState => ({ savedAt: null, unsavedChanges: false, playState, playPosition: 0 });
@@ -72,36 +68,18 @@ describe('Record with the built-in recorder', () => {
     expect(result.current.reason).toBe('');
   });
 
-  it("says the capability's own sentence while Experimental is off, and is ready once Record is turned on", async () => {
-    const { result } = hook(withoutRecord('experimental_off'));
+  it("says the capability's own sentence when the recorder cannot record, and offers no switch", async () => {
+    const { result } = hook(withoutRecord());
     await waitFor(() => expect(result.current.disabled).toBe(true));
-    expect(result.current.reason).toBe('Experimental: switched off in Settings.');
-    expect(recordSetupFor(withoutRecord('experimental_off'), { dawFileLinked: false, launcherPath: '' })).toEqual({
-      kind: 'turn-on',
-      dawName: 'the built-in recorder',
-      inApp: true,
-    });
-  });
-
-  it("offers a one-click turn-on in the recorder's own words, with no talk of a DAW setup or a track", async () => {
-    const saveSettings = vi.fn(async (..._args: unknown[]) => createMockApi().bootstrap());
+    expect(result.current.reason).toBe(NO_CAPTURE);
+    expect(recordSetupFor(withoutRecord(), { dawFileLinked: false, launcherPath: '' })).toBeNull();
     render(
-      <ApiProvider api={createMockApi({ saveSettings })}>
-        <RecordSetup
-          capabilities={withoutRecord('experimental_off')}
-          facts={{ dawFileLinked: false, launcherPath: '' }}
-          say={vi.fn()}
-          onSettings={vi.fn()}
-          onChanged={vi.fn()}
-        />
+      <ApiProvider api={createMockApi()}>
+        <RecordSetup capabilities={withoutRecord()} facts={{ dawFileLinked: false, launcherPath: '' }} say={vi.fn()} onSettings={vi.fn()} onChanged={vi.fn()} />
       </ApiProvider>,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
-    expect(screen.getByRole('dialog', { name: 'Recording in the built-in recorder is experimental' })).toBeTruthy();
-    expect(screen.getByText(/saved in the project's Recordings folder/)).toBeTruthy();
-    expect(screen.queryByText(/chapter's own track/)).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Turn on Record' }));
-    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'capability.record': 'on' }));
+    expect(screen.queryByRole('button', { name: /Record is switched off/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Turn on Record' })).toBeNull();
   });
 
   it("shows the host's refusal of a start (no microphone, a blocked device) and records nothing", async () => {

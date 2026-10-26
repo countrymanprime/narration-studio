@@ -66,8 +66,8 @@ when it has no measurements): every rule the app measured for it with **Pass** o
 measured and the profile's limit. A rule the app could not measure has no row here. Of the buttons
 beside the heading, **Play the quietest 5 s** plays the 5 seconds around the quietest stretch the measurement found, through your DAW
 without adding anything to the project, and **Open in** your DAW shows the file in the DAW's own file browser without
-importing it. Both are Experimental: they stay off, with the reason on hover, until you turn on **Play part of a file**
-and **Show a file in the audio engine** in Settings. A file with no quiet stretch says so, and a file from an earlier
+importing it. Both are on while the DAW is linked and answering; while it is not, or with a DAW that cannot do it, they stay
+off with the reason on hover. A file with no quiet stretch says so, and a file from an earlier
 check asks you to check the files again. Pressing either button twice while the DAW has not answered sends one request. The buttons
 follow the DAW as it connects or changes, and when the window regains focus; if the app cannot read what the DAW can do, the buttons stay
 off and the page says **Can't tell what your DAW can do right now**, with **Check again**.

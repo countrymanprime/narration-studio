@@ -63,7 +63,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapRegions:       dawport.Experimental,
 	dawport.CapTakes:         dawport.Experimental,
 	dawport.CapFXChains:      dawport.Experimental,
-	// Built, never wired to a binding: no screen sends it yet.
+	// Level matching (bindings_cleanup.go, apply_item_gain).
 	dawport.CapItemGain: dawport.Experimental,
 	// The mastering port's DAW row (masterrender.go): Experimental until the owner's
 	// REAPER pass. master_chain_read is one of bridge.Actions' gated commands; render_with_fx answers through the fan-out, and each

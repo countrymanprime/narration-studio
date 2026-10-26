@@ -151,7 +151,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'create-regions-preview',
     description:
-      'The engine panel, "Create chapter regions" dialog with Chapter 1 already linked (?mockChapterLink=confirmed) and an opening credits track chosen - one planned region shown as "New region", Create 2 regions enabled (?mockRegionsCapabilityOn=1 turns the Experimental gate on so the button is not just previewed disabled)',
+      'The engine panel, "Create chapter regions" dialog with Chapter 1 already linked (?mockChapterLink=confirmed) and an opening credits track chosen - one planned region shown as "New region", Create 2 regions enabled (REAPER answers, so the regions capability is on)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

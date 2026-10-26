@@ -26,17 +26,8 @@ function optionDescription(option: DawChoiceOption): ReactNode {
     );
   }
   const { record } = option;
-  // The resolver's sentence for an Experimental capability switched off already says so; one that is on is marked here.
-  if (record.level === 'experimental' && record.reason !== 'experimental_off') lines.push(<span key="level">Experimental. </span>);
-  // Switched off is the same sentence for every option, so the group says it once (experimentalOffNote), not under each radio.
-  if (!record.available && record.message && record.reason !== 'experimental_off') lines.push(<span key="record">{record.message}</span>);
+  if (!record.available && record.message) lines.push(<span key="record">{record.message}</span>);
   return lines.length > 0 ? <>{lines}</> : undefined;
-}
-
-/** The host's sentence for the options switched off by the Experimental setting, said once under the radios (alignment audit R4SE2-11). */
-function experimentalOffNote(choice: DawChoice): string | undefined {
-  const off = choice.options.find((option) => !option.record.available && option.record.reason === 'experimental_off' && option.record.message);
-  return off ? `${off.record.message} Turn on Experimental DAW actions under Advanced, below.` : undefined;
 }
 
 /** Whether the project records into a DAW whose project file is linked: then the built-in recorder is a last resort, behind a confirm. */
@@ -247,7 +238,6 @@ export function EngineBody() {
   });
   const notInstalled = choice.options.find((option) => option.daw === daw)?.installed === false;
   const linkable = state === 'not_linked' || linkedFile !== null;
-  const experimentalOff = experimentalOffNote(choice);
   const choose = (next: ChoosableDaw) => {
     if (next === 'Built-in' && next !== daw && dawLinked(choice)) setConfirmBuiltIn(true);
     else void act(() => dawChoice.dawChoose(next));
@@ -262,7 +252,6 @@ export function EngineBody() {
         onChange={choose}
         options={optionsFor(choice, busy || !choice.hasProject)}
       />
-      {experimentalOff && <p className="m-0 max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">{experimentalOff}</p>}
       {overridden && (
         <p className="text-[0.8125rem] text-[var(--text-muted)]">
           This window was opened from {daw}, so it records with {daw} until the app is opened another way. The choice saved for this project is {choice.chosen}.

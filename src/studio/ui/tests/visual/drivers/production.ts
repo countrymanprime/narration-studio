@@ -308,7 +308,7 @@ export const productionDrivers: Record<string, Driver> = {
     await panel.getByText('Met', { exact: true }).waitFor();
   },
   'editing-check-gain-match-confirm': async (page) => {
-    const panel = await openEditingCheck(page, 'mockEditingSignal=met&mockDawExperimentalOn=1');
+    const panel = await openEditingCheck(page, 'mockEditingSignal=met');
     const match = panel.getByRole('button', { name: 'Match levels…' }).and(page.locator(':not([aria-disabled="true"])'));
     await match.waitFor();
     await match.click();

@@ -8,7 +8,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
+      "Booth, ready to record (REAPER linked and answering, the mock's default): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
   },
   {
@@ -27,23 +27,9 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
-    state: 'refusal',
-    description:
-      'Booth with the record capability switched off (the mock\'s default): Record looks off (aria-disabled, still pressable), described by the capability\'s own sentence ("Experimental: switched off in Settings."), which the footer keeps for screen readers but does not draw while the notice is up; under the text, above the footer, the quiet "Record is switched off" chip that opens the dialog, and the side panel running down to the footer',
-    ...REFLOW,
-  },
-  {
-    page: 'booth',
-    state: 'refusal-pressed',
-    description:
-      'The same Booth after Record was pressed (issue 2251 item 3: a press that cannot start a take is answered in front of the narrator): the "Recording in REAPER is experimental" dialog explains it and offers Turn on Record, Check again and DAW settings, with what it waits for and when it last checked; nothing records',
-    ...REFLOW,
-  },
-  {
-    page: 'booth',
     state: 'record-unlinked',
     description:
-      'Booth on a chapter with no linked track (?mockDawExperimentalOn=1&mockRecordCapabilityOn=1&mockReaperState=no_link, issue 2251 items 3 and 4): the "Chapter 1 is not linked to a track" dialog opens by itself, saying Record cannot start until the chapter has a track, with the project\'s tracks to choose from (best match preselected), Link track, the offer to create a new track named after the chapter, Check again and when it last checked',
+      'Booth on a chapter with no linked track (?mockReaperState=no_link, issue 2251 items 3 and 4): the "Chapter 1 is not linked to a track" dialog opens by itself, saying Record cannot start until the chapter has a track, with the project\'s tracks to choose from (best match preselected), Link track, the offer to create a new track named after the chapter, Check again and when it last checked',
     ...REFLOW,
   },
   {
@@ -93,13 +79,6 @@ export const boothStates: StateEntry[] = [
     state: 'builtin-setup',
     description:
       'Booth for a project that records with the built-in recorder (?mockEngine=builtin, the record capability on): the setup chip reads "Built-in", Record is enabled with no track to link, and the footer\'s Levels lists the computer\'s microphones to choose from',
-    ...REFLOW,
-  },
-  {
-    page: 'booth',
-    state: 'builtin-refusal',
-    description:
-      'Booth for a project that records with the built-in recorder while Experimental actions are off (?mockEngine=builtin): Record looks off, with no repeat of the reason in the footer; under the text, the "Record is switched off" chip opens the dialog that says the take is saved in the project\'s Recordings folder, with Turn on Record and Recording settings and nothing about a DAW',
     ...REFLOW,
   },
   {
@@ -224,7 +203,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu-preroll',
     description:
-      'Booth, the Levels menu open (no Experimental switch needed): the Punch part is REAPER\'s own pre-roll, read only, in one line ("Pre-roll off · 2 measures (4.0 s)") with an info button for the explanation; with no track armed in REAPER, so the input meter says so instead of a level',
+      'Booth, the Levels menu open: the Punch part is REAPER\'s own pre-roll, read only, in one line ("Pre-roll off · 2 measures (4.0 s)") with an info button for the explanation; with no track armed in REAPER, so the input meter says so instead of a level',
     ...REFLOW,
   },
   {
@@ -232,13 +211,6 @@ export const boothStates: StateEntry[] = [
     state: 'levels-menu-preroll-about',
     description:
       'Booth, the Levels menu\'s Punch line ("Pre-roll off · 2 measures (4.0 s)") with its info button opened from the keyboard: the note under it, inside the menu, says what REAPER\'s pre-roll does, how long one measure is at the cursor, and where to change it in REAPER',
-    ...REFLOW,
-  },
-  {
-    page: 'booth',
-    state: 'levels-menu-daw-meters',
-    description:
-      "Booth, the Levels menu with Experimental DAW actions on, so the monitor slider is usable too: REAPER's own meters under the two sliders, the armed track's input (named) and the output (DawMeters)",
     ...REFLOW,
   },
   {

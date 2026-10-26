@@ -330,8 +330,7 @@ export function createChapterTracksMock(
       return { sent: plan.rows.length, created, existing, invalid: 0, updated, ambiguous, failed: 0 };
     },
     // "Select in REAPER" follows the same `?mockReaperState=` seed
-    // readAloudArmOnly/readAloudRecordStart already use for "REAPER is not there" and "the experimental switch is
-    // off", so the two REAPER-connection concepts stay consistent in mock mode without a second seed dimension.
+    // readAloudArmOnly/readAloudRecordStart already use for "REAPER is not there", so the two REAPER-connection concepts stay consistent in mock mode without a second seed dimension.
     trackSelectInReaper: async (trackGuid) => {
       await manuscriptReady;
       if (!trackGuid) throw new Error('choose a track before selecting it in REAPER');
@@ -340,13 +339,6 @@ export function createChapterTracksMock(
           outcome: 'refused',
           reason: 'standalone',
           message: 'REAPER is not connected to this app. To select a track in REAPER, open REAPER; the app connects to it by itself.',
-        };
-      }
-      if (initial.reaperState === 'experimental_off') {
-        return {
-          outcome: 'refused',
-          reason: 'experimental_off',
-          message: 'Selecting a track in REAPER is an experimental action. Turn on Experimental DAW actions in Settings to use it.',
         };
       }
       return { outcome: 'selected', trackGuid };
@@ -413,12 +405,6 @@ function mockCreateRefusal(seed: MockApiSeed['reaperState']): ChapterTrackCreate
       outcome: 'refused',
       reason: 'standalone',
       message: 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.',
-    };
-  if (seed === 'experimental_off')
-    return {
-      outcome: 'refused',
-      reason: 'experimental_off',
-      message: 'Adding tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.',
     };
   if (seed === 'recording_elsewhere') return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
   return null;

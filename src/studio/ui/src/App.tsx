@@ -89,7 +89,6 @@ const SETTINGS_ANCHORS: Record<string, string> = {
   '#cleanup': 'Cleanup',
   '#booth': 'Teleprompter',
   '#teleprompter': 'Teleprompter',
-  '#experimental': 'Experimental',
   ...Object.fromEntries(CATEGORIES.map((category) => [`#category-${category.id}`, categoryAnchorKey(category.id)])),
 };
 
