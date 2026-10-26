@@ -25,6 +25,8 @@ export type ReadingParagraph = {
   text: string;
   /** Left out: the paragraph is one narration phrase. */
   phrases?: readonly ReadingPhrase[];
+  /** A line of the chapter heading read before the first paragraph (#2251 item 7): its title, or its subtitle. Not a manuscript paragraph. */
+  heading?: 'title' | 'subtitle';
 };
 
 /** One sentence of a phrase: the unit the Booth lights and steps through. */
