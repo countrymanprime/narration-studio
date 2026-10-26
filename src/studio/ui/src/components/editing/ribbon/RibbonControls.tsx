@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { IconButton } from '../../primitives/IconButton';
+import { Tooltip } from '../../primitives/Tooltip';
 import { fineClock } from './rangeMath';
 import type { RibbonView } from './useRibbonView';
 
-/** The row above the waveform: what it is (`head`), what part of the audio it shows, and the zoom buttons. */
-export function ZoomRow({ t0, ribbon, head }: { t0: number; ribbon: RibbonView; head?: ReactNode }) {
+/** The row above the waveform: what it is (`head`), what part of the audio it shows, a "?" with its `gestures`, and the zoom buttons. */
+export function ZoomRow({ t0, ribbon, head, gestures }: { t0: number; ribbon: RibbonView; head?: ReactNode; gestures?: string }) {
   const { view, canZoomIn, canZoomOut, zoom } = ribbon;
   return (
     <div className="flex h-8 min-w-0 flex-none items-center gap-2 px-3 text-xs text-[var(--text-muted)]">
@@ -16,6 +17,7 @@ export function ZoomRow({ t0, ribbon, head }: { t0: number; ribbon: RibbonView; 
         </span>
       </span>
       <span className="flex-1" />
+      {gestures ? <Tooltip text={gestures} label="Waveform gestures" icon="?" /> : null}
       <IconButton action="zoomOut" size="sm" disabledReason={canZoomOut ? undefined : 'The whole recording is showing'} onClick={() => zoom(1)} />
       <IconButton action="zoomIn" size="sm" disabledReason={canZoomIn ? undefined : 'One second is the closest view'} onClick={() => zoom(-1)} />
     </div>
