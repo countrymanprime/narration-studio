@@ -323,6 +323,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'help-open',
+    description:
+      'Settings, Appearance & keys: the "?" beside Zoom pressed, its note "About Zoom" open as a popover over the rows (the details a row keeps out of the page)',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'reader-text',
     description:
       'Settings, Appearance & keys scrolled to the reader rows: Reader font, Reader text size, Line spacing and Column width, each its own row, with the preview quote under Column width',

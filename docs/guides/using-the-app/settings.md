@@ -16,7 +16,7 @@ offers **Back to** the page you came from.
 
 ## Every setting says whose it is and who uses it
 
-Each row has a name, a line on what it does, and under it:
+Each row has a name, one line on what it does (a **?** beside the name opens the details, where there are more), and under it:
 
 - **This computer**, **This project** or **All projects**. A setting for **All projects** is one value for the
   computer that a project may override: under the control it says **This project uses the computer setting.** with
@@ -38,7 +38,7 @@ says how many it holds.
 
 ## Find a setting
 
-At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description, its details and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
 whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so

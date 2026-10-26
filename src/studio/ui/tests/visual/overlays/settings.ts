@@ -11,4 +11,5 @@ export const settingsCases: OverlayCase[] = [
   fromState('settings', 'models-remove-confirm'),
   fromState('settings', 'project-data-confirm'),
   fromState('settings', 'pages-navigate-away-confirm'),
+  fromState('settings', 'help-open'),
 ];

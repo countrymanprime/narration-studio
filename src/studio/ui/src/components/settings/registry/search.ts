@@ -17,7 +17,7 @@ export function search(query: string, isShown: (row: SettingMeta) => boolean = (
   const hits: Hit[] = [];
   for (const row of ROWS) {
     if (!isShown(row)) continue;
-    const text = haystack(row.label, row.desc, row.section, categoryName(row), row.syn);
+    const text = haystack(row.label, row.desc, row.more, row.section, categoryName(row), row.syn);
     if (needles.every((word) => text.includes(word))) hits.push({ row, cat: categoryName(row) });
   }
   for (const page of PAGE_SETTINGS) {

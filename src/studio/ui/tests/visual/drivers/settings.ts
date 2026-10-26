@@ -363,6 +363,11 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Appearance & keys');
     await page.getByRole('radiogroup', { name: 'Theme' }).waitFor();
   },
+  'help-open': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    await page.getByRole('button', { name: 'About Zoom' }).click();
+    await page.getByRole('dialog', { name: 'About Zoom' }).waitFor();
+  },
   'reader-text': async (page) => {
     await openSettings(page, 'Appearance & keys');
     await showSettingsRow(page, 'look.reader');
