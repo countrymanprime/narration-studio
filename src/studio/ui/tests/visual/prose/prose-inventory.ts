@@ -457,6 +457,26 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Change the models, the processors it may use or turn it off in Settings &rsaquo; Speech to text &rsaquo; Background checks.',
     class: 'overlay',
   },
+  {
+    file: 'components/recordingcheck/RunOptions.tsx',
+    text: 'Only the passages that are missing or that Whisper was unsure of are transcribed a second time.',
+    class: 'explanation',
+  },
+  {
+    file: 'components/recordingcheck/RunOptions.tsx',
+    text: 'Chapters share the processors, so more chapters at once means fewer workers for each.',
+    class: 'explanation',
+  },
+  {
+    file: 'components/recordingcheck/RunOptions.tsx',
+    text: 'Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.',
+    class: 'explanation',
+  },
+  {
+    file: 'components/recordingcheck/RunOptions.tsx',
+    text: 'Chapters share the processors, so more at once means fewer processes for each.',
+    class: 'explanation',
+  },
   { file: 'components/schedule/MilestoneTable.tsx', text: 'No other milestones yet. Add one with +.', class: 'empty' },
   { file: 'components/schedule/SchedulePage.tsx', text: "Couldn't read the schedule again: …. This is what was read ….", class: 'error' },
   {
