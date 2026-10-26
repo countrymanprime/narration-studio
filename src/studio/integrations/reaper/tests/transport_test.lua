@@ -526,3 +526,76 @@ H.test('the next take starts where the last one stopped; going back is only the 
   s:events()
   H.eq(s.fake.cursor, 3.5, 'the pickup stopped at its own end, not back at the punch')
 end)
+
+H.test('the end rule starts at the stop position when the cursor is still where the last take stopped, even with later audio', function()
+  local s, chapter = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 20, source = 'earlier.wav' })
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', chapter.guid) -- a pickup at 5 s
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 8)
+  s:send('record_start', 'r2', chapter.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', chapter.guid, '8.000000' } }, 'where the narrator stopped, not the end of the 20 s item')
+end)
+
+H.test('the end rule starts at the end of the track when the cursor is no longer where the last take stopped', function()
+  local s, chapter = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 20, source = 'earlier.wav' })
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  s.fake.cursor = 12 -- moved in REAPER to listen back
+  s:send('record_start', 'r2', chapter.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', chapter.guid, '20.000000' } }, 'an unknown place never records over later audio')
+end)
+
+H.test('the end rule ignores a stop on another track', function()
+  local s, chapter, other = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 20, source = 'earlier.wav' })
+  other.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', other.guid)
+  s:send('record_stop', 's1')
+  other.armed, chapter.armed = false, true
+  s:events()
+  s:send('record_start', 'r2', chapter.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', chapter.guid, '20.000000' } })
+end)
+
+H.test('a seek REAPER makes back to the recording start after the stop is undone; a move of the narrator is kept', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 5
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 7)
+  s.fake.cursor = 2 -- REAPER seeks back to where recording began, a moment after the stop
+  s:tick()
+  H.eq(s.fake.cursor, 7, 'put back at the stop position')
+  s.fake.cursor = 3.3 -- the narrator clicks somewhere
+  s:tick()
+  H.eq(s.fake.cursor, 3.3, 'a place the narrator chose is never overridden')
+  s.fake.cursor = 2
+  s:tick()
+  H.eq(s.fake.cursor, 2, 'the guard ends once the narrator has moved the cursor')
+end)
+
+H.test('the guard after a stop lasts about half a second and then leaves the cursor alone', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 5
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  for _ = 1, 20 do
+    s:tick()
+  end
+  s.fake.cursor = 2
+  s:tick()
+  H.eq(s.fake.cursor, 2)
+end)

@@ -129,6 +129,36 @@ end
 -- recording that ran ends with the cursor at its end, in view and without seeking playback, whoever pressed Stop. No
 -- REAPER preference is read or changed. The undo points are counted before the move, and the take's change count read
 -- after it, so the move is never counted as the take's nor makes record_take take it for another action.
+-- How many defer cycles after a stop (about half a second) a seek of REAPER's back to where the recording began is undone.
+local GUARD_CYCLES = 15
+
+-- Keeps the cursor at the stop position for GUARD_CYCLES cycles: a cursor back at the recording's start (REAPER seeking
+-- there after the stop) is put back at the stop; one anywhere else is the narrator's and ends the guard at once.
+local function guard_stop(state, at, from)
+  local guard = { at = at, from = from, cycles = GUARD_CYCLES }
+  state.stop_guard = guard
+  local function tick()
+    if state.stop_guard ~= guard then
+      return
+    end
+    local now = reaper.GetCursorPosition()
+    if math.abs(now - guard.at) > STOP_EPSILON then
+      if math.abs(now - guard.from) > STOP_EPSILON then
+        state.stop_guard = nil
+        return
+      end
+      reaper.SetEditCurPos(guard.at, true, false)
+    end
+    guard.cycles = guard.cycles - 1
+    if guard.cycles <= 0 then
+      state.stop_guard = nil
+      return
+    end
+    reaper.defer(tick)
+  end
+  reaper.defer(tick)
+end
+
 local function finish(state)
   local record = state.recording
   state.recording = nil
@@ -139,6 +169,9 @@ local function finish(state)
   if stop then
     reaper.SetEditCurPos(stop, true, false)
     count = reaper.GetProjectStateChangeCount(0)
+    -- Where the narrator stopped on this track, for record_start's end rule.
+    state.last_stop = { track = record.track, at = stop }
+    guard_stop(state, stop, record.position)
   end
   local label = reaper.Undo_CanUndo2(0)
   if points > 0 and type(label) == 'string' and label ~= '' then
@@ -396,9 +429,16 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule)
     return
   end
   if start_rule == 'end' then
-    -- Only now that every check passed. Like punch_to: scroll the view, do not seek playback, open no undo block.
-    reaper.SetEditCurPos(track_end(target), true, false)
+    -- Only now that every check passed. Like punch_to: scroll the view, do not seek playback, open no undo block. A cursor
+    -- still where the last take on this track stopped is where the narrator goes on, later audio or not; anywhere else
+    -- the take starts after the track's last item, so it never records over audio from a place nobody chose.
+    local last = state.last_stop
+    local here = last and last.track == track_guid(target) and math.abs(reaper.GetCursorPosition() - last.at) <= STOP_EPSILON
+    if not here then
+      reaper.SetEditCurPos(track_end(target), true, false)
+    end
   end
+  state.stop_guard = nil
   local record = {
     run_id = run_id,
     track = track_guid(target),

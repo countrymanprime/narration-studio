@@ -700,3 +700,37 @@ def roll_stop_keeps_cursor(env: Env) -> str:
     end = item["position"] + item["length"]
     near(cursor(env), end, 1e-3, "the edit cursor after a roll and Stop")
     return f"rolled at 11 s; the cursor is at {end:.3f} s, the end of the rolled pass, not back at 11 s"
+
+
+@scenario(
+    "record",
+    "record_start, record_stop, punch_to",
+    "record: after a pickup over earlier audio, the next plain take (end rule) starts where the pickup stopped, not after the later audio",
+    needs_audio=True,
+)
+def record_end_rule_after_stop(env: Env) -> str:
+    fx = book(env)
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("punch_to", "1", "0", until="PUNCHED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 2.0, timeout=8, what="the pickup to run")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    item = recorded_from(env, 1.0)
+    stop = item["position"] + item["length"]
+    assert stop < 5.0, f"the pickup ran past the earlier read ({stop} s)"
+    near(cursor(env), stop, 1e-3, "the cursor after the pickup")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    started = env.ok("record_start", fx["ch1"], "end", until="RECORD_STARTED")
+    near(float(started[3]), stop, 1e-3, "the next take starts where the pickup stopped")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > stop + 0.5, timeout=8, what="the take to run")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    # A cursor the narrator moved is not where a take stopped: the end rule goes after the track's last item again.
+    env.lua("reaper.SetEditCurPos(0.5, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    moved = env.ok("record_start", fx["ch1"], "end", until="RECORD_STARTED")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    assert float(moved[3]) >= 5.0 - 1e-3, f"a moved cursor started at {moved[3]}, not after the last item"
+    return f"pickup 1.000-{stop:.3f} s over the 0-5 s read; the next plain take began at {float(started[3]):.3f} s; with the cursor moved it began at {float(moved[3]):.3f} s"

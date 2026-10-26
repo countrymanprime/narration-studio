@@ -3,7 +3,7 @@ import type { DawResult } from '../../../api/contracts/daw';
 import { usePedalSpace } from '../../../input/usePedalSpace';
 import { useCommand } from '../../../input/useCommand';
 import type { OverlayService } from '../../../overlay/overlayService';
-import type { DawClient } from '../../../ports/daw';
+import type { DawClient, DawRecordStart } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
 import { useContextProvider } from '../../../registries/context';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
@@ -161,7 +161,13 @@ export function useBoothPage(options: BoothPageOptions) {
     },
     [daw],
   );
-  const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked, onStopped: keepTake });
+  const takeAt = useRef(0);
+  // Where the take began in the DAW, when it says: the roll counts from there. A plain take starts where the last one stopped, which
+  // is not the end of the recording when later audio follows it.
+  const startedAt = useCallback((result: DawRecordStart) => {
+    if (result.position !== undefined) takeAt.current = result.position;
+  }, []);
+  const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked, onStopped: keepTake, onStarted: startedAt });
   // The press of Record, for a message's Retry that is said before the press itself is defined.
   const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
@@ -174,7 +180,6 @@ export function useBoothPage(options: BoothPageOptions) {
   const [takeNote, setTakeNote] = useState('');
   const [punches, setPunches] = useState<Punch[]>([]);
   const [kept, setKept] = useState<KeptResume | null>(null);
-  const takeAt = useRef(0);
   // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
   const takeBegan = useRef<number | null>(null);
   const tellStopped = useCallback(async (quiet: boolean): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {

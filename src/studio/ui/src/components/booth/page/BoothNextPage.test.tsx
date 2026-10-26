@@ -632,6 +632,36 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     expect(page.overlay.getSnapshot().dialogs).toHaveLength(0);
     await waitFor(() => expect(screen.getByText(/1 punch\b/)).toBeTruthy());
   });
+
+  it('a roll counts from where the DAW says the take began, not the end of the recording', async () => {
+    const base = dawFor('reaper');
+    // A plain take that starts where the last one stopped, at 42 s, though the track's recording ends later.
+    const daw: DawClient = { ...base, recordStart: async (chapterId, at) => ({ ...(await base.recordStart(chapterId, at)), position: 42 }) };
+    const page = renderPage({ daw });
+    await record(page);
+    await press('ArrowDown');
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
+    const at = page.daw.roll.mock.calls[0][1];
+    expect(at).toBeGreaterThanOrEqual(42);
+    expect(at).toBeLessThan(45);
+  });
+
+  it('after a take stops, Start from here still starts the next take from the chosen place', async () => {
+    const page = renderPage();
+    await record(page);
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    const word = document.querySelector('[data-unit="3"] [data-word]')!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    // Not recording, Start from here moves the place there and starts the take at once (useRoll.startFromHere).
+    await waitFor(() => expect(current()).toBe('3'));
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+    expect(current()).toBe('3');
+  });
 });
 
 describe('start-from-here-and-record-from-here', () => {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
+import type { DawRecordStart } from '../../../ports/daw';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
@@ -119,6 +120,7 @@ export function useRecordControl({
   notify,
   onBlocked,
   onStopped,
+  onStarted,
 }: {
   chapterId: string;
   notify: (sentence: string, topic?: string) => void;
@@ -126,6 +128,8 @@ export function useRecordControl({
   onBlocked?: (block: RecordBlock) => void;
   /** A DAW (not the app's own recorder) stopped the take on a press: its answer, with the undo points it left. Awaited before the take reads as stopped. */
   onStopped?: (result: DawResult) => void | Promise<void>;
+  /** A take started: the answer, with `position` where it began when the DAW says. Called before the take reads as recording. */
+  onStarted?: (result: DawRecordStart) => void;
 }): RecordControlState {
   const daw = usePort('daw');
   const system = usePort('system');
@@ -408,6 +412,8 @@ export function useRecordControl({
   recordingRef.current = recording;
   const stoppedRef = useRef(onStopped);
   stoppedRef.current = onStopped;
+  const startedRef = useRef(onStarted);
+  startedRef.current = onStarted;
 
   const toggle = useCallback(
     async (at?: number, how?: { automatic?: boolean }): Promise<boolean> => {
@@ -436,8 +442,9 @@ export function useRecordControl({
         }
         // The start tone, if the narrator turned it on, ends before the take begins so it is not on the recording. A stop has none.
         if (starting) await playTakeTone();
-        const result = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
+        const result: DawRecordStart = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
         if (result.ok) {
+          if (starting) startedRef.current?.(result);
           if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
           if (starting) lastStartAt = Date.now();

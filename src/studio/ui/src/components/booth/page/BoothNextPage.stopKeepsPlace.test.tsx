@@ -100,8 +100,17 @@ const currentPlace = () => {
   const word = document.querySelector<HTMLElement>('[data-current]');
   return `${word?.closest<HTMLElement>('[data-paragraph]')?.dataset.paragraph}:${word?.closest<HTMLElement>('[data-unit]')?.dataset.unit}`;
 };
-// The highlight walks to a heard word a step at a time (usePacedCursor, 45 ms a step): long enough for it to arrive.
-const arrive = () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, 600))));
+// The highlight walks to a heard word a step at a time (usePacedCursor, 45 ms a step): wait until it shows that word.
+const arrive = (paragraph: string, text: string) =>
+  waitFor(
+    () => {
+      const current = document.querySelector<HTMLElement>('[data-current]');
+      expect(`${current?.closest<HTMLElement>('[data-paragraph]')?.dataset.paragraph}:${current?.textContent}`).toMatch(
+        new RegExp(`^${paragraph}:\\W*${text}`),
+      );
+    },
+    { timeout: 5000 },
+  );
 const recordButton = () => screen.getByRole('button', { name: /^Record$/ });
 const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
 const press = async (button: HTMLElement) => {
@@ -118,8 +127,8 @@ describe('stop-keeps-the-place', () => {
     await press(recordButton());
     await waitFor(() => expect(stopButton()).toBeTruthy());
     await page.hear(heardAt(20));
-    // Script word 20 is in p2: the title has 2 words and p1 has 11.
-    await waitFor(() => expect(currentPlace()).toMatch(/^p2:/));
+    // Script word 20 is p2's eighth word, "Not": the title has 2 words and p1 has 11.
+    await arrive('p2', 'Not');
     const heard = currentPlace();
     await press(stopButton());
     await waitFor(() => expect(recordButton()).toBeTruthy());
@@ -136,15 +145,13 @@ describe('stop-keeps-the-place', () => {
     await waitFor(() => expect(stopButton()).toBeTruthy());
     await page.hear(heardAt(30));
     await waitFor(() => expect(currentPlace()).toMatch(/^p3:/));
-    await arrive();
-    // p3 begins at script word 26 (the title's 2 words, p1's 11, p2's 13): the word shown when Stop is pressed.
-    const shown = 26 + Number(document.querySelector<HTMLElement>('[data-current]')?.dataset.word);
+    // Script word 30 is p3's fifth word, "away" (p3 begins at 26: the title's 2 words, p1's 11, p2's 13).
+    await arrive('p3', 'away');
     await press(stopButton());
     await waitFor(() => expect(recordButton()).toBeTruthy());
     await press(recordButton());
     await waitFor(() => expect(page.teleprompterStart).toHaveBeenCalledTimes(2));
-    expect(page.teleprompterStart.mock.calls[1][0]).toMatchObject({ startWord: shown });
-    expect(shown).toBeGreaterThan(26);
+    expect(page.teleprompterStart.mock.calls[1][0]).toMatchObject({ startWord: 30 });
   });
 
   it('going back is the narrator choosing a word: a click after the stop moves the place there', async () => {

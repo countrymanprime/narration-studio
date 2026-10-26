@@ -103,12 +103,14 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 ## Recording
 
 Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
-track and starts at the end of the last item on it, so a take never records over an earlier one.
+track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
+the end of the last item on the track, so a take never records over audio from a place you did not choose.
 
 Stop leaves you where you stopped. The highlight stays on the last word the Booth heard, and the next take, **Resume** and a cold
 read start from there. In REAPER the edit cursor stays at the end of what you just recorded, whether you press Stop in the Booth or
 in REAPER. REAPER on its own would put it back where the recording began, so the app moves it to the end itself and changes none of
 REAPER's preferences. Going back is always your own choice: click a word, use **Start from here**, or punch and roll (**R**).
+Audacity cannot record from the Booth yet. The built-in recorder has no edit cursor, so only the highlight stays.
 
 When Record cannot start, it looks off and the footer says why, but you can still press it: the press opens the dialog that
 fixes the problem, or, when there is nothing to fix from the Booth, a message that says why with **Check again**. Nothing
