@@ -198,6 +198,28 @@ describe('AnalysisToolsSection', () => {
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
   });
 
+  // The owner's report (#2251): the sentence alone did not say which file or why. The host's step, file and cause sit behind Details,
+  // closed until asked for; a failure without one (a host that did not answer) draws no empty Details, and Dismiss clears both.
+  it('a-failure-after-the-download-shows-its-step-and-file-behind-details', async () => {
+    const sentence = 'The downloaded analysis tool matched the approved file but could not be unpacked or prepared, so it was not installed.';
+    const detail = 'Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: it holds 12990 entries, and an archive may hold from 1 to 10000';
+    mount({ installs: { 'booknlp-small': { fails: sentence, detail }, gliner: { fails: 'Could not reach huggingface.co.' } } });
+    await download('booknlp-small', 'BookNLP (small)');
+    const booknlp = await row('booknlp-small');
+    await waitFor(() => expect(booknlp.getAttribute('data-status')).toBe('failed'), SLOW);
+    expect(booknlp.querySelector('[data-comp-error]')!.textContent).toBe(sentence);
+    const details = booknlp.querySelector<HTMLDetailsElement>('[data-comp-error-detail]')!;
+    expect(details.open).toBe(false);
+    expect(within(details).getByText('Details').tagName).toBe('SUMMARY');
+    expect(details.textContent).toContain(detail);
+    await download('gliner', 'GLiNER');
+    const gliner = await row('gliner');
+    await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
+    expect(gliner.querySelector('[data-comp-error-detail]')).toBeNull();
+    fireEvent.click(within(booknlp).getByRole('button', { name: 'Dismiss' }));
+    await waitFor(() => expect(booknlp.querySelector('[data-comp-error-detail]')).toBeNull());
+  });
+
   it('Try again pressed the moment a failure is drawn still starts the download', async () => {
     const { fake } = mount({ installs: { gliner: { fails: 'Not enough disk space.' } } });
     await download('gliner', 'GLiNER');

@@ -17,8 +17,10 @@ import (
 var ErrBadArchive = errors.New("the downloaded archive could not be unpacked safely")
 
 const (
-	// maxArchiveFiles bounds how many files an archive may hold: a model wheel holds a few dozen.
-	maxArchiveFiles = 10000
+	// maxArchiveFiles bounds how many entries an archive may hold. A model wheel holds a few dozen, but the torch 2.14.1 win_amd64 wheel
+	// the analysis tools pin holds 12,990 (#2251), so the cap leaves room for a library wheel of that size. The bytes are bounded by the
+	// catalog's Expand, and the archive's SHA-256 is pinned, so only an approved archive is ever counted against it.
+	maxArchiveFiles = 100000
 	// expandSlack is what an archive may hold beyond the size the catalog gives for it, for the small files a size estimate rounds off.
 	expandSlack = 1 << 20
 )
@@ -77,7 +79,7 @@ func extractArchive(staging string, file File) ([]ExtractedFile, error) {
 	}
 	defer func() { _ = reader.Close() }() // read-only
 	if len(reader.File) == 0 || len(reader.File) > maxArchiveFiles {
-		return nil, fmt.Errorf("%w: it holds %d entries", ErrBadArchive, len(reader.File))
+		return nil, fmt.Errorf("%w: it holds %d entries, and an archive may hold from 1 to %d", ErrBadArchive, len(reader.File), maxArchiveFiles)
 	}
 	limit := file.Expand + expandSlack
 	var declared uint64

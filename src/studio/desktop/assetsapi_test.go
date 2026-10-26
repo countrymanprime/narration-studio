@@ -1,9 +1,12 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -440,4 +443,77 @@ func TestNothingButAssetsInstallStartsAnAnalysisToolDownload(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// wheelServer serves each archive at /<name>, whole and at once, and returns the catalog file of each (unpacked into wheel-<name>).
+func wheelServer(t *testing.T, archives map[string][]byte) []map[string]any {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(archives[strings.TrimPrefix(r.URL.Path, "/")])
+	}))
+	t.Cleanup(server.Close)
+	var files []map[string]any
+	for name, body := range archives {
+		sum := sha256.Sum256(body)
+		files = append(files, map[string]any{"name": name, "url": server.URL + "/" + name, "sha256": hex.EncodeToString(sum[:]), "size": len(body),
+			"extract": "wheel-" + name, "expand": 1 << 20})
+	}
+	return files
+}
+
+func zipOf(t *testing.T, entries int) []byte {
+	t.Helper()
+	var buffer bytes.Buffer
+	writer := zip.NewWriter(&buffer)
+	for i := range entries {
+		file, err := writer.Create(fmt.Sprintf("torch/include/part%05d.h", i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = file.Write([]byte("x"))
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
+}
+
+// The owner's report (#2251): every BookNLP install ended with "matched the approved file but could not be unpacked or prepared",
+// because the pinned torch wheel holds 12,990 entries and the unpack refused more than 10,000. A tool with a wheel that size installs.
+func TestAnAnalysisToolWithAWheelAsLargeAsThePinnedTorchWheelInstalls(t *testing.T) {
+	files := wheelServer(t, map[string][]byte{"torch.whl": zipOf(t, 12990)})
+	f := analysisFixture(t, func(string, []map[string]any) []map[string]any {
+		return []map[string]any{analysisRow("booknlp", files)}
+	})
+	started := answer(t)(f.host.AssetsInstall(installKindAnalysis, "booknlp"))
+	done := waitForPhase(t, func() map[string]any { return answer(t)(f.host.AssetsInstallState(started["id"].(string))) }, "success")
+	if done["error"] != "" || done["errorDetail"] != "" {
+		t.Fatalf("done = %v", done)
+	}
+}
+
+// A failed unpack says which step failed on which file, for the narrator's details, beside the sentence; the detail names no folder of
+// this computer, and the log keeps the same cause.
+func TestAFailedUnpackGivesTheNarratorTheStepAndTheFileBehindDetails(t *testing.T) {
+	files := wheelServer(t, map[string][]byte{"broken.whl": []byte("this is not a zip file at all")})
+	f := analysisFixture(t, func(string, []map[string]any) []map[string]any {
+		return []map[string]any{analysisRow("booknlp", files)}
+	})
+	started := answer(t)(f.host.AssetsInstall(installKindAnalysis, "booknlp"))
+	ended := waitForPhase(t, func() map[string]any { return answer(t)(f.host.AssetsInstallState(started["id"].(string))) }, "error")
+	if !strings.Contains(ended["error"].(string), "could not be unpacked or prepared") {
+		t.Fatalf("error = %v", ended["error"])
+	}
+	detail, _ := ended["errorDetail"].(string)
+	if detail != "Unpacking broken.whl: the downloaded archive could not be unpacked safely: zip: not a valid zip file" {
+		t.Fatalf("errorDetail = %q", detail)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if logged, _ := os.ReadFile(f.logPath); strings.Contains(string(logged), "unpacking broken.whl: ") {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("the host log does not name the step and the file")
 }
