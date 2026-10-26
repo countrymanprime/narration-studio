@@ -28,7 +28,7 @@ export const CAUSE_TEXT: Record<StageUnknownCause, { short: string; action: stri
 };
 
 /** The same causes, worded for the editing check instead of the recording check: the two signal providers share one cause vocabulary (src/studio/desktop/internal/editing/signals.go reuses
- * `stages.UnknownCause`), so a bare `CAUSE_TEXT` lookup would send an editing signal's "Open recording check" -
+ * `stages.UnknownCause`), so a bare `CAUSE_TEXT` lookup would send an editing signal's "Check recordings…" -
  * wrong dialog entirely. `causeText` picks this table instead whenever the signal's id is one of editing's three. */
 const EDITING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; action: string; resolve: StageCauseAction }>> = {
   never_analyzed: { short: 'not checked yet', action: 'Run an editing check of this chapter.', resolve: 'check' },
@@ -86,7 +86,7 @@ const isProofingPickupsSignal = (signalId: string): boolean => signalId === 'pro
 const isProofingDeliverySignal = (signalId: string): boolean => signalId.startsWith('proofing.delivery.');
 
 /** A signal's cause, worded for whichever check produced it: `stageText.ts`'s `CAUSE_TEXT` is shared by every
- * provider, but "Open recording check" is the wrong sentence, and the wrong dialog, for an editing or proofing signal. */
+ * provider, but "Check recordings…" is the wrong sentence, and the wrong dialog, for an editing or proofing signal. */
 export function causeText(signal: Pick<StageSignal, 'id' | 'cause'>): { short: string; action: string; resolve: StageCauseAction } | undefined {
   if (!signal.cause) return undefined;
   if (isEditingSignal(signal.id)) return EDITING_CAUSE_TEXT[signal.cause] ?? CAUSE_TEXT[signal.cause];

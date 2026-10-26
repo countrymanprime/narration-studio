@@ -241,13 +241,7 @@ export function useManuscriptImport({
       {found ? 'Replace manuscript…' : 'Import manuscript'}
     </Button>
   );
-  const chooseButton = found ? (
-    <TooltipTarget text="Replace manuscript — confirmation clears Story Bible, notes, bookmarks, chapter statuses, and saved proofing results.">
-      {button}
-    </TooltipTarget>
-  ) : (
-    button
-  );
+  const chooseButton = found ? <TooltipTarget text="Replacing clears the Story Bible, notes, bookmarks and proofing results">{button}</TooltipTarget> : button;
   // Drops the host's job for the file under review and closes the review; Back follows it with step 1.
   const cancelImport = () => {
     if (!importJob?.id) return;

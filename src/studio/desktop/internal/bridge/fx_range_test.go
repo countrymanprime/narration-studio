@@ -21,10 +21,10 @@ const (
 func TestFXRangeCommandsAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.ApplyFXRange(context.Background(), fxRangeItem, 14, 16, fxRangeChain, 10); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ApplyFXRange(context.Background(), fxRangeItem, 14, 16, fxRangeChain, 10); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ApplyFXRange: %v", err)
 	}
-	if _, err := actions.RemoveFXRange(context.Background(), fxRangePiece, fxRangeChain); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.RemoveFXRange(context.Background(), fxRangePiece, fxRangeChain); !errors.Is(err, errGateRefused) {
 		t.Fatalf("RemoveFXRange: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)
@@ -185,13 +185,13 @@ func TestFXRangeAnsweredForAnotherChainIsAnError(t *testing.T) {
 func TestFXRangeEditsAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.FXRangeParams(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.FXRangeParams(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain); !errors.Is(err, errGateRefused) {
 		t.Fatalf("FXRangeParams: %v", err)
 	}
-	if _, err := actions.SetFXRangeParam(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, 0, 0, 1); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.SetFXRangeParam(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, 0, 0, 1); !errors.Is(err, errGateRefused) {
 		t.Fatalf("SetFXRangeParam: %v", err)
 	}
-	if _, err := actions.BypassFXRange(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, true); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.BypassFXRange(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, true); !errors.Is(err, errGateRefused) {
 		t.Fatalf("BypassFXRange: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

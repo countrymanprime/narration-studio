@@ -1,7 +1,7 @@
 // The `editing` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Editing page (the Studio Next mock's
 // `pages/Editing.tsx`) at `/editing`, which replaced Proof's chapter workspace (SN-E9). Chapter 1 is linked to its track with
-// `?mockChapterLink=confirmed`, so its words carry the times they were heard at; the edit rows also turn the DAW's experimental
-// actions on (`?mockDawExperimentalOn=1`), which the mock REAPER keeps off by default.
+// `?mockChapterLink=confirmed`, so its words carry the times they were heard at; the mock REAPER answers, so every edit it
+// builds is on.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, TOAST_FADES_OUT } from './shared';
 

@@ -3,23 +3,22 @@ import type { ScopedSettingField } from '../../../api/contracts/system';
 import { usePort } from '../../../ports/usePort';
 import { NO_SETTINGS } from './backupsText';
 
-/** The DAW settings the Backups tab edits: the toggle, the window either side of an edit and how long a backup is kept. */
+/** The DAW settings the Backups tab edits: the window either side of an edit and how long a backup is kept. Whether backups are kept is the
+ * DAW's (Audacity keeps them while it answers), never a setting. */
 const TOOL = 'DAW';
-const KEEP_KEY = 'capability.backups';
 export const WINDOW_KEY = 'backups.window_seconds';
 export const RETENTION_KEY = 'backups.retention_days';
 
 /** A number setting as the host sends it: its value and its limits. The limits are the host's, never the tab's. */
 type NumberSetting = { value: number; min?: number; max?: number; step?: number };
 
-export type BackupSettings = { keep: boolean; window: NumberSetting; retention: NumberSetting };
+export type BackupSettings = { window: NumberSetting; retention: NumberSetting };
 
 export interface BackupSettingsState {
   /** Null until the settings are read, and while they cannot be. */
   settings: BackupSettings | null;
   /** Why they could not be read or saved, or ''. */
   error: string;
-  setKeep: (keep: boolean) => void;
   setWindow: (seconds: number) => void;
   setRetention: (days: number) => void;
 }
@@ -38,14 +37,13 @@ export function backupSettingsOf(fields: Record<string, ScopedSettingField[]>): 
   const window = numberOf(find(WINDOW_KEY));
   const retention = numberOf(find(RETENTION_KEY));
   if (!window || !retention) return null;
-  return { keep: find(KEEP_KEY)?.effectiveValue !== 'off', window, retention };
+  return { window, retention };
 }
 
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 /**
- * The backups settings through the settings port, at project scope (the mock keeps them with the project). Turning backups off saves the
- * toggle `off`, and on gives it back to `auto`, so the DAW decides again whether it has them. Each change is saved, then read back. The host prunes the
+ * The backups settings through the settings port, at project scope (the mock keeps them with the project). Each change is saved, then read back. The host prunes the
  * backups the new retention names as it saves a shorter one, so onRetentionSaved runs once that save is answered, for the list to read again.
  */
 export function useBackupSettings(onRetentionSaved?: () => void): BackupSettingsState {
@@ -86,7 +84,6 @@ export function useBackupSettings(onRetentionSaved?: () => void): BackupSettings
   return {
     settings,
     error,
-    setKeep: (keep) => save(KEEP_KEY, keep ? 'auto' : 'off'),
     setWindow: (seconds) => save(WINDOW_KEY, String(seconds)),
     setRetention: (days) => save(RETENTION_KEY, String(Math.round(days))),
   };

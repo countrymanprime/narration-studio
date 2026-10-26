@@ -115,7 +115,7 @@ test('the analysis tools catalog is read with the model catalogs, under its own 
 
   assert.deepEqual(
     items.map((item) => `${item.provider}/${item.id}`),
-    ['gliner/gliner', 'booknlp/booknlp-small', 'booknlp/booknlp-big', 'local-llm/local-llm'],
+    ['gliner/gliner', 'booknlp/booknlp-small', 'booknlp/booknlp-big'],
   );
   for (const item of items) assert.ok(reviewFile.catalogued[`${item.provider}/${item.id}`], `${item.provider}/${item.id} has no review row`);
   assert.match(reviewFile.catalogued['booknlp/booknlp-small'].commercialUse, /no stated licence[^]*SNX-Q3/);

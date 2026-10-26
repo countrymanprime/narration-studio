@@ -565,13 +565,13 @@ func TestRefusalsWithoutBackups(t *testing.T) {
 		}
 	}
 	result, err := cut.DeleteRange(ctx, cutRequest(30, 33, dawport.CutClose))
-	check("DeleteRange", "Cutting words and their audio needs Audacity backups. Turn on Audio backups in Settings.", result, err)
+	check("DeleteRange", "Cutting words and their audio needs a backup first, and Audacity backups need a project open in this app. Open the project, then try again.", result, err)
 	result, err = fx.ApplyFXToRange(ctx, fxRequest(30, 33, "Warm voice"))
-	check("ApplyFXToRange", "Adding an effect to words needs Audacity backups. Turn on Audio backups in Settings.", result, err)
+	check("ApplyFXToRange", "Adding an effect to words needs a backup first, and Audacity backups need a project open in this app. Open the project, then try again.", result, err)
 	result, err = stack.StackTakes(ctx, stackRequest())
-	check("StackTakes", "Stacking takes needs Audacity backups. Turn on Audio backups in Settings.", result, err)
+	check("StackTakes", "Stacking takes needs a backup first, and Audacity backups need a project open in this app. Open the project, then try again.", result, err)
 	result, err = stack.UnstackTakes(ctx, unstackRequest())
-	check("UnstackTakes", "Stacking takes needs Audacity backups. Turn on Audio backups in Settings.", result, err)
+	check("UnstackTakes", "Stacking takes needs a backup first, and Audacity backups need a project open in this app. Open the project, then try again.", result, err)
 	if log := fake.commands(); len(log) != 0 {
 		t.Errorf("refusals sent %v", log)
 	}
@@ -704,7 +704,7 @@ func TestRollBacksUpFromTheRollPointThenRecordsAgain(t *testing.T) {
 		t.Errorf("a roll without backups sent %v", got)
 	}
 
-	on := audacityWith(adapter, dawport.ToggleOn).Support(dawport.CapPunch)
+	on := audacityWith(adapter).Support(dawport.CapPunch)
 	if !on.Available || on.Destructive {
 		t.Errorf("with backups on, punch = %+v, want available and not destructive", on)
 	}
@@ -819,7 +819,7 @@ func TestAudacityReducesRangeGainAfterABackupOrRefuses(t *testing.T) {
 		want    dawport.Result
 	}{
 		"no backups": {false, gainRequest(dawport.GainStretch{Start: 20, End: 21}),
-			dawport.Refused("Lowering stretches of a take needs Audacity backups. Turn on Audio backups in Settings.")},
+			dawport.Refused("Lowering stretches of a take needs a backup first, and Audacity backups need a project open in this app. Open the project, then try again.")},
 		"a track that is gone": {true, gone, dawport.RefusedStale(messageStepTrackGone)},
 		"outside the audio":    {true, gainRequest(dawport.GainStretch{Start: 45, End: 55}), dawport.Refused(messageGainOutside)},
 		"out of shape":         {true, bad, dawport.Refused(messageGainBad)},
@@ -892,7 +892,7 @@ func TestAudacityRepairsClicksAfterABackupOrRefuses(t *testing.T) {
 		want    dawport.Result
 	}{
 		"no backups": {false, clickRequest(dawport.Click{Start: 20, End: 20.002}),
-			dawport.Refused("Repairing clicks in a take needs Audacity backups. Turn on Audio backups in Settings.")},
+			dawport.Refused("Repairing clicks in a take needs a backup first, and Audacity backups need a project open in this app. Open the project, then try again.")},
 		"a track that is gone": {true, gone, dawport.RefusedStale(messageStepTrackGone)},
 		"outside the audio":    {true, clickRequest(dawport.Click{Start: 55, End: 55.002}), dawport.Refused(messageClickOutside)},
 		"too long":             {true, clickRequest(dawport.Click{Start: 20, End: 20.2}), dawport.Refused(messageClickBad)},

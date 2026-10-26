@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 const base = DAW_SETUPS.reaper;
-type Picture = 'available' | 'standalone' | 'not_running' | 'experimental_off' | 'turned_off' | 'no_record_entry';
+type Picture = 'available' | 'standalone' | 'not_running' | 'unsupported' | 'no_record_entry';
 const pictureOf = (kind: Picture): DawCapabilities => {
   if (kind === 'available') return base;
   const rest = Object.fromEntries(Object.entries(base.capabilities).filter(([key]) => key !== 'record'));
@@ -50,7 +50,7 @@ type Action =
   | { t: 'press' }
   | { t: 'doublePress' };
 
-const picture = fc.constantFrom<Picture>('available', 'standalone', 'not_running', 'experimental_off', 'turned_off', 'no_record_entry');
+const picture = fc.constantFrom<Picture>('available', 'standalone', 'not_running', 'unsupported', 'no_record_entry');
 const outcome = fc.constantFrom<Outcome>('ok', 'refuse', 'throw');
 const action: fc.Arbitrary<Action> = fc.oneof(
   { weight: 3, arbitrary: picture.map((p): Action => ({ t: 'event', picture: p })) },
@@ -71,7 +71,7 @@ async function settle() {
 }
 
 async function run(actions: Action[]) {
-  let readPicture: DawCapabilities | 'fail' = pictureOf('experimental_off');
+  let readPicture: DawCapabilities | 'fail' = pictureOf('unsupported');
   let emit: (next: DawCapabilities) => void = () => {};
   const host = { start: 'ok' as Outcome, stop: 'ok' as Outcome };
   let open: 'same' | 'different' | 'unknown' | 'fail' = 'unknown';

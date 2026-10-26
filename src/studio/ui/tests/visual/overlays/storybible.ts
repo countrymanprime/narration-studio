@@ -72,6 +72,7 @@ export const storyBibleCases: OverlayCase[] = [
   fromState('storybible', 'voice-download-confirm'),
   fromState('storybible', 'voice-data-panel', 'dialog', { root: (page) => page.getByRole('dialog', { name: 'Voice data' }) }),
   fromState('storybible', 'remove-voice-data-confirm'),
+  fromState('storybible', 'delete-story-bible-confirm'),
   {
     // The menu of the Hatter's voice sample while its entry is in Edit. Opened here and not as a catalog state: the Menu primitive's focus guards
     // and portal draw axe findings that no catalog row can declare, and the page's other menus are guarded the same way.

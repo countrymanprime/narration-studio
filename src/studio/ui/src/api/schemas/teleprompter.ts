@@ -56,7 +56,7 @@ const teleprompterPositionSchema = z.object({
   skipped: z.tuple([z.number(), z.number()]).nullable(),
 }) satisfies z.ZodType<TeleprompterPosition>;
 
-// A suspected flag (flags.py): `start`/`end` are script word indices, equal for an extra.
+// A suspected flag (internal/scripttrack): `start`/`end` are script word indices, equal for an extra.
 const teleprompterFlagSchema = z
   .object({
     type: z.literal('flag'),
@@ -312,7 +312,7 @@ export const teleprompterPunchResultSchema = z
 /** `ReadAloudReaperState` (`src/studio/desktop/readaloudreaper.go`): REAPER's arms against the chapter's linked track. */
 export const readAloudReaperStateSchema = z.object({
   status: z.enum(['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable']),
-  reason: z.enum(['unlinked', 'several_links', 'track_missing', 'standalone', 'not_running', 'experimental_off', 'failed']).optional(),
+  reason: z.enum(['unlinked', 'several_links', 'track_missing', 'standalone', 'not_running', 'failed']).optional(),
   message: z.string(),
   trackGuid: z.string().optional(),
   armedCount: z.number().int().nonnegative().optional(),
@@ -332,7 +332,6 @@ export const readAloudRecordingSchema = z.object({
       'track_missing',
       'standalone',
       'not_running',
-      'experimental_off',
       'failed',
       'not_armed',
       'several_armed',
@@ -343,7 +342,6 @@ export const readAloudRecordingSchema = z.object({
       'not_our_recording',
       'timeout',
       'bad_time',
-      'turned_off',
       'unsupported',
       'not_yet',
       'no_microphone',
@@ -365,7 +363,7 @@ export const readAloudRecordingSchema = z.object({
 export const teleprompterReaperInputSchema = z
   .object({
     status: z.enum(['matched', 'uncertain', 'no_match', 'unavailable']),
-    reason: z.enum(['standalone', 'not_running', 'experimental_off', 'failed', 'reaper_no_device', 'devices_failed']).optional(),
+    reason: z.enum(['standalone', 'not_running', 'failed', 'reaper_no_device', 'devices_failed']).optional(),
     message: z.string(),
     reaperDevice: z.string().optional(),
     device: z.string().optional(),

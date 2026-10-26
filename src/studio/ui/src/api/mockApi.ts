@@ -161,11 +161,9 @@ export function createMockApi(
   const settings = createSettingsMock(
     () => base.bootstrap(),
     (tool, _scope, values) => {
-      dawControl.settingsSaved(tool, values);
       chapterTracks.backgroundSettingsSaved(tool, values);
     },
     initial.settings,
-    initial.daw?.experimentalOn,
   );
   const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
   const { manuscriptReady } = manuscript;
@@ -186,7 +184,7 @@ export function createMockApi(
   });
   const merges = createMergeEvents();
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
-  const extraction = createExtractionMock(endJob);
+  const { clearSuggestions, ...extraction } = createExtractionMock(endJob);
   const character = createCharacterMock(s);
   const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
   const mockStartedAt = Date.now();
@@ -445,6 +443,12 @@ export function createMockApi(
       }
       return storyBible.bindings.guideMarkReviewed(id, aliasIndex);
     },
+    // As the host's GuideDeleteAll: the suggestions first (refused while a scan runs), then the Story Bible.
+    guideDeleteAll: async () => {
+      const suggestions = clearSuggestions();
+      const deleted = await storyBible.bindings.guideDeleteAll();
+      return { ...deleted, suggestions };
+    },
     ...createEditCutsMock(
       manuscriptReady,
       () => s.chapters,
@@ -494,7 +498,10 @@ export function createMockApi(
     ...dawChoice,
     ...audacityLink,
     ...createHideTakesMock(daw, workspaceTakes),
-    ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    // The credits are recorded like a chapter and the host's DawRoll finds their track as it does a chapter's (readaloudreaper.go).
+    ...createRollMock(daw, (chapterId) =>
+      manuscriptReady.then(() => /^credits-(opening|closing)$/.test(chapterId) || s.chapters.some((chapter) => chapter.id === chapterId)),
+    ),
     ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFxRangeMock(
       daw,

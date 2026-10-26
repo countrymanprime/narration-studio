@@ -24,15 +24,15 @@ function renderAction(initial: Initial = {}) {
 }
 
 describe('CleanupAction', () => {
-  it('is disabled with the experimental-off message before the narrator turns the setting on', async () => {
-    renderAction();
+  it('is disabled with the DAW’s own sentence while REAPER is not answering', async () => {
+    renderAction({ daw: { reachable: false } });
     const match = await screen.findByRole('button', { name: 'Match levels…' });
     await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
   });
 
   // R3PR1-23: the reason the button is off is printed under it, not only in its hint.
   it('prints why Match levels is off under the button', async () => {
-    renderAction();
+    renderAction({ daw: { reachable: false } });
     const match = await screen.findByRole('button', { name: 'Match levels…' });
     await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
     const reason = document.getElementById(match.getAttribute('aria-describedby')!)!.textContent!;
@@ -48,7 +48,7 @@ describe('CleanupAction', () => {
 
   it('previews then matches the linked track’s item levels', async () => {
     const user = userEvent.setup();
-    const { notify } = renderAction({ daw: { experimentalOn: true } });
+    const { notify } = renderAction({ daw: {} });
     const match = await screen.findByRole('button', { name: 'Match levels…' });
     await waitFor(() => expect(match.getAttribute('aria-disabled')).toBeNull());
     await user.click(match);

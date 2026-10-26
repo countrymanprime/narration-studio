@@ -207,14 +207,14 @@ export function ImportReview({
         )}
         {subtitleChoices && (
           // One choice for the book: whether a heading's second line is read as the chapter's subtitle. There is no per-chapter choice.
-          // Why it starts on is in the info tip, not on the page.
+          // How many chapters have a subtitle is in the info tip, not on the page.
           <div className="flex items-center gap-1">
             <Checkbox checked={selection.subtitleDefault ?? true} onChange={(next) => onSelectionChange((current) => ({ ...current, subtitleDefault: next }))}>
               Subtitles
             </Checkbox>
             <Tooltip
               label="About subtitles"
-              text={`${subtitleRows} ${plural(subtitleRows, 'chapter has', 'chapters have')} a second line the importer read as a subtitle, so this starts on. It is shown under the chapter name. Turn it off to read none as subtitles.`}
+              text={`${subtitleRows} ${plural(subtitleRows, 'chapter has', 'chapters have')} a second line read as a subtitle`}
             />
           </div>
         )}

@@ -39,9 +39,9 @@ func productionManager(t *testing.T) *Manager {
 	return manager
 }
 
-// catalog-rows-exist-with-pins: the four rows, in the mock's order, each with its identity and every file with a URL, a size and a
+// catalog-rows-exist-with-pins: the three rows, in the mock's order, each with its identity and every file with a URL, a size and a
 // SHA-256 (or the Pending sentinel, which keeps the row from installing).
-func TestTheProductionCatalogHasTheFourToolsWithTheirPins(t *testing.T) {
+func TestTheProductionCatalogHasTheThreeToolsWithTheirPins(t *testing.T) {
 	manager := productionManager(t)
 	var ids []string
 	for _, tool := range manager.Tools() {
@@ -69,8 +69,8 @@ func TestTheProductionCatalogHasTheFourToolsWithTheirPins(t *testing.T) {
 			}
 		}
 	}
-	if strings.Join(ids, ",") != "gliner,booknlp-small,booknlp-big,local-llm" {
-		t.Fatalf("tools = %v, want gliner, booknlp-small, booknlp-big and local-llm, in the mock's order", ids)
+	if strings.Join(ids, ",") != "gliner,booknlp-small,booknlp-big" {
+		t.Fatalf("tools = %v, want gliner, booknlp-small and booknlp-big, in the mock's order", ids)
 	}
 }
 
@@ -92,10 +92,11 @@ func TestEveryWheelInTheProductionCatalogIsPinnedBySHA256(t *testing.T) {
 	}
 }
 
-// The BookNLP rows are pinned (docs/research/studio-next-booknlp-spike.md, Pins); every other row of the production catalog cannot be
-// installed yet, and each says why in the narrator's words. When a row is pinned this test fails on purpose: update it with the row.
+// The GLiNER and BookNLP rows are pinned (docs/research/studio-next-gliner-spike.md and studio-next-booknlp-spike.md, Pins); any other
+// row of the production catalog cannot be installed yet, and says why in the narrator's words. When a row is pinned this test fails on
+// purpose: update it with the row.
 func TestOnlyThePinnedToolsAreInstallableAndEachOtherSaysWhy(t *testing.T) {
-	pinned := []string{"booknlp-small", "booknlp-big"}
+	pinned := []string{"gliner", "booknlp-small", "booknlp-big"}
 	for _, tool := range productionManager(t).Tools() {
 		if want := slices.Contains(pinned, tool.ID); tool.Available() != want {
 			t.Errorf("%s installable = %v, want %v: pin it, then update this test", tool.ID, tool.Available(), want)
@@ -106,27 +107,31 @@ func TestOnlyThePinnedToolsAreInstallableAndEachOtherSaysWhy(t *testing.T) {
 	}
 }
 
-// local-model-is-unavailable-with-a-reason: no files, the mock's sentence, and an install refuses it without a request.
-func TestTheLocalModelIsUnavailableWithItsReasonAndNothingToDownload(t *testing.T) {
-	manager := productionManager(t)
-	tool, ok := manager.Tool("local-llm")
+// The local language model row is gone (2026-10-26): it had no model, no runtime and no scanner behind it, so the narrator saw an option
+// that could never be had. A row comes back only with its files pinned and a source to file its findings under.
+func TestTheCatalogHasNoLocalModelRow(t *testing.T) {
+	if _, ok := productionManager(t).Tool("local-llm"); ok {
+		t.Fatal("local-llm is listed again: a row needs a model, its pins and a scanner before the narrator sees it")
+	}
+}
+
+// GLiNER loads its DeBERTa encoder's config and tokenizer from its own folder (extraction_gliner.py): those files are in its row under
+// Hugging Face's names, pinned to one revision, so the load names no repository.
+func TestGlinerCarriesItsEncodersConfigAndTokenizerPinnedToOneRevision(t *testing.T) {
+	tool, ok := productionManager(t).Tool("gliner")
 	if !ok {
-		t.Fatal("no local-llm row")
+		t.Fatal("no gliner row")
 	}
-	if len(tool.Files) != 0 || tool.DownloadSize() != 0 {
-		t.Fatalf("local-llm files = %v, want none: nothing is bundled or downloaded", tool.Files)
-	}
-	want := "A model small enough for this computer takes many hours per book. It will be offered once that is practical."
-	if tool.UnavailableReason() != want {
-		t.Fatalf("reason = %q, want %q", tool.UnavailableReason(), want)
-	}
-	if tool.Source != nil || tool.MinutesPerBook != nil {
-		t.Fatalf("local-llm source %v, minutesPerBook %v: want both null", tool.Source, tool.MinutesPerBook)
-	}
-	err := manager.Install(context.Background(), "local-llm")
-	var unavailable *UnavailableError
-	if !errors.As(err, &unavailable) || err.Error() != want {
-		t.Fatalf("Install = %v, want the reason", err)
+	const revision = "https://huggingface.co/microsoft/deberta-v3-small/resolve/a36c739020e01763fe789b4b85e2df55d6180012/"
+	for _, name := range []string{"config.json", "spm.model", "tokenizer_config.json"} {
+		index := slices.IndexFunc(tool.Files, func(file File) bool { return file.Name == name })
+		if index < 0 {
+			t.Errorf("gliner has no %s", name)
+			continue
+		}
+		if file := tool.Files[index]; file.URL != revision+name || !sha256Pattern.MatchString(file.SHA256) {
+			t.Errorf("gliner %s = %+v, want it from %s with its SHA-256", name, file, revision)
+		}
 	}
 }
 

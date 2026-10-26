@@ -5,7 +5,7 @@ Design of the controls for the sound the Editing page plays, and a working sampl
 ## What exists
 
 - The bar at the foot of the script plays the chapter in the app, on one `Audio` element (`useScriptPlayback`), with the DAW closed ([Editing guide](../guides/using-the-app/editing.md)). A take audition on the same page (`useRangePlayer`) and a voice sample (`samplePlayerStore`) play on their own elements.
-- Voice samples have an output device setting, `setSinkId` through `voicesamples/audioOutputs.ts`, kept per project in Settings. The Booth's Levels menu holds the DAW's monitor level (`useMonitorLevel`, the `monitor_level` capability: Experimental on REAPER, unsupported with the built-in recorder, [capabilities](../reference/daw/capabilities.md#monitor_level)).
+- Voice samples have an output device setting, `setSinkId` through `voicesamples/audioOutputs.ts`, kept per project in Settings. The Booth's Levels menu holds the DAW's monitor level (`useMonitorLevel`, the `monitor_level` capability: on with REAPER, unsupported with the built-in recorder, [capabilities](../reference/daw/capabilities.md#monitor_level)).
 - Editing had no volume, mute, speed or device control. The selection toolbar's **Mute** mutes _words_ in the recording, so the output mute is named **Silence output** and the two do not share a name.
 
 ## The controls

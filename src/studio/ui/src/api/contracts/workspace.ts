@@ -175,8 +175,7 @@ export type WorkspaceTakesResult = {
 
 /** Why choosing a take was refused: nothing in REAPER changed for any of these (except `failed` after the read of an
  * add-and-activate was added, which the message says). */
-export type UseTakeRefusal =
-  'not_offered' | 'unusable' | 'stale' | 'recording' | 'script_outdated' | 'standalone' | 'not_running' | 'experimental_off' | 'failed';
+export type UseTakeRefusal = 'not_offered' | 'unusable' | 'stale' | 'recording' | 'script_outdated' | 'standalone' | 'not_running' | 'failed';
 
 /** What "Use this take" did: `done` (changed says whether the active take changed), `started` (a lane pick, whose end
  * retakeLanesState reports) or `refused`. */
@@ -213,7 +212,7 @@ export interface WorkspaceApi {
    * token's item, take and source time, exactly as findingsGoTo does for a finding. Connection status is shared with the Review page (findingsReaperStatus). */
   workspaceGoTo(chapterId: string, tokenIndex: number): Promise<FindingNavigation>;
   /** Lists the narrator's FX chains (list_fx_chains). Refused offline or before the DAW port's FX chains
-   * capability is on (dawport.CapFXChains, experimental). */
+   * capability is available (dawport.CapFXChains). */
   workspaceListFXChains(): Promise<WorkspaceFXChainsResult>;
   /** Lists the FX on the linked DAW's tracks and master track now (master_chain_read). Reads only; refused offline or before
    * the DAW port's master chain capability is on. */

@@ -92,7 +92,7 @@ linters:
         the-script-tracker-reads-engine-events-only:
           # docs/architecture/manuscript-teleprompter.md (the tracker is engine-independent): it follows a script from
           # the events any live engine prints, so it may not reach an engine, a process, the Booth service or a file
-          # store. It replaces the sidecar's test_script_tracker_imports.py. Its tests may read fixtures through
+          # store. Its tests may read fixtures through
           # internal/layout.
           files: ["**/internal/scripttrack/**"]
           list-mode: strict

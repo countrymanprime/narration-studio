@@ -1,4 +1,4 @@
-# Built-in homophone list: narration_common.spoken_forms.HOMOPHONE_GROUPS (src/studio/libs/python), as CSV
+# Built-in homophone list, shared by Transcript Compare and the Booth's flags
 #
 # Whisper sometimes transcribes a correctly-spoken homophone with the wrong
 # spelling (heard "your", wrote "you're") - these aren't narration errors,
@@ -7,8 +7,8 @@
 # comment (whole-line or trailing).
 #
 # Deliberately EXCLUDES one/won, to/too/two, for/four, ate/eight: each has a
-# member that's also a NUMBER_WORDS entry in compare.py, and
-# merge_number_words() accumulates *consecutive* number words into one
+# member that's also a number word (numberWords in spoken.go), and
+# MergeNumberWords accumulates *consecutive* number words into one
 # combined value (e.g. "twenty two" -> 22) - aliasing "won" to "one" could
 # turn an unrelated adjacent number into a bogus merge (e.g. "she won two
 # races" -> "she one two races" -> merged into a single garbage token).

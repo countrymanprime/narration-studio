@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { createMockApi } from '@ui/api/mockApi';
 import { clock, simulateDaw } from './simulatedDaw';
 
-// What the public site boots with: the DAW's Experimental switch on, so the mock DAW answers instead of refusing.
-const on = { daw: { experimentalOn: true } };
+// What the public site boots with: a linked REAPER that answers.
+const on = {};
 const firstChapter = async (api: Parameters<typeof simulateDaw>[0]) => (await api.manuscriptChapters()).filter((candidate) => candidate.index > 0)[0];
 const timedNote = async (api: Parameters<typeof simulateDaw>[0]) => {
   const { findings } = await api.findingsList({});
@@ -41,12 +41,12 @@ describe('the simulated DAW', () => {
   });
 
   it('says what the DAW refused instead of recording an action that did not happen', async () => {
-    const sim = simulateDaw(createMockApi({}, {}));
+    const sim = simulateDaw(createMockApi({}, { daw: { connected: false } }));
     const chapter = await firstChapter(sim.api);
     const result = await sim.api.dawGoToChapter(chapter.id, 'at', 3);
     expect(result.ok).toBe(false);
     expect(sim.snapshot().cursor).toBeNull();
-    expect(sim.snapshot().events[0]).toMatchObject({ kind: 'refused', text: expect.stringContaining('Experimental') });
+    expect(sim.snapshot().events[0]).toMatchObject({ kind: 'refused', text: expect.stringContaining('not connected') });
   });
 
   it('records a take when recording is on, and tells subscribers', async () => {

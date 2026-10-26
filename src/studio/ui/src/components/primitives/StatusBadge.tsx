@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 // A closed set of meanings, not one tone per stage name: stage names change,
 // meanings do not, so a caller maps its own status onto one of these (see src/chapterStatus.ts's STATUS_TONE). `accent`
 // (the proofer, a query, "Author ✓") and `org` (the Proof PACING tag) are the two the benchmark mocks add
-export type StatusTone = 'neutral' | 'info' | 'progress' | 'accent' | 'success' | 'warning' | 'danger' | 'org' | 'experimental';
+export type StatusTone = 'neutral' | 'info' | 'progress' | 'accent' | 'success' | 'warning' | 'danger' | 'org';
 
 /**
  * The one badge shape, measured on the benchmark mocks at 1440 px:
@@ -30,7 +30,7 @@ export type BadgeColors = { fill: string; text: string; line: string; softLine?:
 
 // Each fill is the soft token, opaque and checked against its `-text` by paletteContrast.test.ts;
 // `neutral` and `progress`/`accent` reuse pairs that were already checked (`text-muted` on `surface-2`,
-// `accent-strong-on-soft`). `experimental` has no soft token, so it keeps docs/design/colour-and-contrast.md#derived-and-status-tokens's tint.
+// `accent-strong-on-soft`).
 const TONE_STYLE: Record<StatusTone, BadgeColors> = {
   // Neutral's fill is the raised surface a card's inner row or a settings card is drawn on, where the pill vanished and its label read as a
   // stray caption set in from the text under it (alignment audit XSE2-7): its soft look keeps the --border rim, so the pill shows on any surface.
@@ -42,7 +42,6 @@ const TONE_STYLE: Record<StatusTone, BadgeColors> = {
   warning: { fill: 'var(--warn-soft)', text: 'var(--warn-text)', line: 'var(--warn)' },
   danger: { fill: 'var(--danger-soft)', text: 'var(--danger-text)', line: 'var(--danger)' },
   org: { fill: 'var(--org-soft)', text: 'var(--org-text)', line: 'var(--org)' },
-  experimental: { fill: 'var(--badge-experimental-fill)', text: 'var(--experimental-text)', line: 'var(--experimental)' },
 };
 
 /** The colours a tone draws with, for a caller that draws the badge look on its own element (a Menu trigger). */

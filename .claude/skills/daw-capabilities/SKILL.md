@@ -41,7 +41,7 @@ Load only the page the question needs.
 
 1. A new capability is a row in `dawport/capability.go`, a role interface in `roles.go`, a conformance case in `dawporttest`, and a section in `capabilities.md` in catalog order. The reference test fails until the section exists.
 2. REAPER commands follow `reaper-command-add`; a changed payload follows `wire-contract-change`.
-3. Declare the level honestly: Experimental until the owner's pass. Never Supported on a harness result alone.
+3. Declare the level honestly: Experimental until the owner's pass. Never Supported on a harness result alone. The level gates nothing (owner directive, #2251): a declared capability is live once the DAW is linked and answering, so never add a setting, a toggle or an "Experimental" label to turn one on. A capability that is not ready to be live is declared Not yet available, and the UI shows the DAW's own sentence for it.
 4. Regenerate the matrix: `UPDATE_DAW_DOCS=1 go test ./internal/dawport/dawportdoc` from `src/studio/desktop`. Commit the diff and read it.
 
 ### Review a change

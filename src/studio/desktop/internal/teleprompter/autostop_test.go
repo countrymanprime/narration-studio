@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// trackerWait mirrors the tracker's WAIT_SECONDS (script_tracker.py): the auto-stop delay must be longer, so a
+// trackerWait mirrors the tracker's WaitSeconds (internal/scripttrack): the auto-stop delay must be longer, so a
 // narrator who pauses and then re-reads the last line cancels it before it fires.
 const trackerWait = 1500 * time.Millisecond
 

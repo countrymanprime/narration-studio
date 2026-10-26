@@ -62,7 +62,7 @@ If every number on the page is a selector over a `Measured<T>`, a host field or 
 
 ## Decisions
 
-Owner rulings of 2026-10-11; none is open.
+Owner rulings of 2026-10-11 unless a row is dated; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
@@ -74,6 +74,7 @@ Owner rulings of 2026-10-11; none is open.
 | SNP-Q4 | Royalty share carries no figure; the payment type is a label and removes the rate figure (default taken, standing instruction) | `studio-next/tests/batch-b.test.tsx` |
 | SNP-Q5 | Measures offered as in `studio-next/src/fixtures/schedule.ts` and `platforms.ts` (default taken) | Checkpoint only where the profile has the capability |
 | SNP-Q6 | Own pace needs three measured chapters, else "not enough measured" (`MIN_OWN_RATE_CHAPTERS` in the mock) | Selector test |
+| Owner report, #2251 (2026-10-26) | The mock's "Finished audio" tile is labelled **Recorded audio**, and its pipeline "Fin." column becomes **Est.** with a **Rec.** column before it (each chapter's measured length, or why there is none) | Supersedes `studio-next/src/pages/Production.tsx` (the tile label) and `studio-next/src/pages/production/PipelineTable.tsx` (the `Fin.` header): the tile measures raw recorded audio, not finished audio, and the row showed only the estimate |
 
 ## Users & Context
 

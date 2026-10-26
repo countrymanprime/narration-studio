@@ -28,12 +28,12 @@ func trackSelectRefused(reason, message string) TrackSelectResult {
 	return TrackSelectResult{Outcome: "refused", Reason: reason, Message: message}
 }
 
-// Worded for this action specifically, rather than reused: readaloudreaper.go's standalone and experimental-off
+// Worded for this action specifically, rather than reused: readaloudreaper.go's standalone
 // messages read "To record with reading..." and "Reading REAPER's tracks...", which describe chapter_track_state, not
 // select_track. messageNotRunning (bindings_navigation.go) is already feature-neutral, so that one is reused as is.
 const (
-	messageTrackSelectExperimentalOff = "Selecting a track in REAPER is an experimental action. Turn on Experimental DAW actions in Settings to use it."
-	messageTrackSelectStandalone      = "REAPER is not connected to this app. To select a track in REAPER, open REAPER; the app connects to it by itself."
+	messageTrackSelectUnsupported = "This DAW cannot select a track from this app. Select it in the DAW itself."
+	messageTrackSelectStandalone  = "REAPER is not connected to this app. To select a track in REAPER, open REAPER; the app connects to it by itself."
 )
 
 // trackSelectConnectionMessage words a connection refusal for this action, mirroring readAloudConnectionMessage's shape.
@@ -87,7 +87,7 @@ func trackSelectIn(ctx context.Context, svc hostServices, selector dawport.Track
 		return trackSelectRefused(status.Connection, trackSelectConnectionMessage(status.Connection)), nil
 	}
 	if selector == nil {
-		return trackSelectRefused(readAloudExperimentalOff, messageTrackSelectExperimentalOff), nil
+		return trackSelectRefused(readAloudUnsupported, messageTrackSelectUnsupported), nil
 	}
 	selected, err := selector.SelectTrack(ctx, trackGUID)
 	if err != nil {

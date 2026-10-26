@@ -94,12 +94,6 @@ const PAIRS: PairSpec[] = [
   text('warn-on-accent-soft', 'SKIPPED word in the inline diff: warn text on accent-soft', 'var(--warn-text)', ['surface-2'], 'var(--accent-soft)'),
   text('info', 'the text-safe info colour on the page', 'var(--info-text)', PAGE_SURFACES),
   text('ok', 'a rule met on Master & QC: the text-safe ok colour', 'var(--ok-text)', PAGE_SURFACES),
-  text(
-    'experimental',
-    'the text-safe experimental colour: an docs/architecture/daw-integration.md#the-daw-port capability the host reports as experimental',
-    'var(--experimental-text)',
-    PAGE_SURFACES,
-  ),
   text('info-on-place-soft', 'EXTRA word in the inline diff: info text on place-soft', 'var(--info-text)', ['surface-2'], 'var(--place-soft)'),
   ...KINDS.map((kind) =>
     text(
@@ -147,14 +141,6 @@ const PAIRS: PairSpec[] = [
   mark('meter-body', 'LevelMeter: the safe recording zone', 'var(--meter-body)', ['surface']),
   mark('meter-hot', 'LevelMeter: the zone approaching the peak ceiling', 'var(--meter-hot)', ['surface']),
   mark('meter-over', 'LevelMeter: the zone at or over the peak ceiling', 'var(--meter-over)', ['surface']),
-  // The 14% badge tint left: the tone's -text colour on its own tint of that tone.
-  text(
-    'badge-experimental-fill',
-    "StatusBadge (experimental): experimental text on the badge's own 14% tint",
-    'var(--experimental-text)',
-    ['surface'],
-    'var(--badge-experimental-fill)',
-  ),
   // The status soft fills (Studio Next token batch)
   // are opaque, so a pill in a selected row is measured there as well as on the card.
   ...(
@@ -404,6 +390,7 @@ const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/layout/EngineChip.tsx': { count: 2, what: "the header chip dot when no DAW file is linked, and the Built-in chip's dot" },
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
+  'components/primitives/HelpButton.tsx': { count: 1, what: "the ring of the help '?', the same as Tooltip's info icon" },
   'components/production/target/TargetInfoButton.tsx': { count: 1, what: "the ring of the Recording tile's info mark, the same as Tooltip's" },
   'components/engine/EnginePanel.tsx': { count: 1, what: 'the dot of a track that has no colour' },
   'styles.css': { count: 1, what: "LevelMeter's below-floor zone: --meter-floor is a derived alias of --non-text, not text" },

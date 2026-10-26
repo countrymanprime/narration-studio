@@ -6,7 +6,6 @@ import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
-const RECORD_ON = '?mockRecordCapabilityOn=1';
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const toast = (page: Page, text: string | RegExp) => page.getByRole('status').getByText(text).first();
@@ -24,7 +23,7 @@ function watch(page: Page): string[] {
   return errors;
 }
 
-async function openBooth(page: Page, query = RECORD_ON, ready = true): Promise<void> {
+async function openBooth(page: Page, query = '', ready = true): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -35,7 +34,7 @@ async function openBooth(page: Page, query = RECORD_ON, ready = true): Promise<v
   if (ready) await expect(record(page)).toBeEnabled();
 }
 
-async function takeRunning(page: Page, query = RECORD_ON): Promise<void> {
+async function takeRunning(page: Page, query = ''): Promise<void> {
   await openBooth(page, query);
   await record(page).click();
   await expect(stop(page)).toBeVisible();
@@ -97,7 +96,7 @@ test.describe('with a take running', () => {
 
   test('R says what it did and the take goes on', async ({ page }) => {
     const errors = watch(page);
-    await takeRunning(page, `${RECORD_ON}&mockPunchCapabilityOn=1`);
+    await takeRunning(page, ``);
     await page.keyboard.press('r');
     await expect(toast(page, /Rolling again from ¶/)).toBeVisible();
     expect((await daw(page))?.recording).toBe(true);
@@ -106,7 +105,7 @@ test.describe('with a take running', () => {
 
   test("Levels: Input level is off and says why; Monitor level moves the DAW's level, and a refusal puts it back with the DAW's sentence", async ({ page }) => {
     const errors = watch(page);
-    await openBooth(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+    await openBooth(page, ``);
     await page.getByRole('button', { name: 'Levels' }).click();
     const popup = page.getByRole('dialog', { name: 'Levels' });
     const input = popup.getByRole('slider', { name: 'Input level' });
@@ -140,7 +139,7 @@ test.describe('with a take running', () => {
     test(`Levels with its two sliders is the topmost layer and fully on screen at ${size.width}x${size.height}`, async ({ page }) => {
       const errors = watch(page);
       await page.setViewportSize(size);
-      await openBooth(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+      await openBooth(page, ``);
       await page.getByRole('button', { name: 'Levels' }).click();
       const popup = page.getByRole('dialog', { name: 'Levels' });
       await expect(popup.getByRole('slider', { name: 'Monitor level (output)' })).toBeVisible();
@@ -179,7 +178,7 @@ test.describe('with a take running', () => {
 
   test('R pressed ten times in a moment rolls once, not ten times', async ({ page }) => {
     const errors = watch(page);
-    await takeRunning(page, `${RECORD_ON}&mockPunchCapabilityOn=1`);
+    await takeRunning(page, ``);
     for (let i = 0; i < 10; i++) await page.keyboard.press('r');
     await expect(toast(page, /Rolling again from ¶/)).toBeVisible();
     await page.waitForTimeout(300);
@@ -358,7 +357,7 @@ test.describe('with a take running', () => {
 
   test('a DAW that is only playing is not a take: Record is still offered and starts one', async ({ page }) => {
     const errors = watch(page);
-    await openBooth(page, `${RECORD_ON}&mockDawPlayhead=12`);
+    await openBooth(page, `?mockDawPlayhead=12`);
     await expect(record(page)).toBeEnabled();
     await record(page).click();
     await expect(stop(page)).toBeVisible();
@@ -379,7 +378,7 @@ test.describe('with a take running', () => {
 
   test('a reload mid-take: the take still runs in the DAW, and the Booth says so instead of offering a second start', async ({ page }) => {
     const errors = watch(page);
-    await openBooth(page, `${RECORD_ON}&mockDawRecording=1`, false);
+    await openBooth(page, `?mockDawRecording=1`, false);
     await expect(page.getByText(/REAPER is already recording\. Stop it in REAPER before recording here\./).first()).toBeVisible();
     await expect(record(page)).toBeDisabled();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
@@ -403,7 +402,7 @@ test.describe('with a take running', () => {
 test.describe('the other controls', () => {
   test('the credits: chosen from the picker, read, and a take on them runs and stops', async ({ page }) => {
     const errors = watch(page);
-    await openBooth(page, `${RECORD_ON}&mockCredits=filled`);
+    await openBooth(page, `?mockCredits=filled`);
     await page.getByRole('button', { name: /^Chapter: / }).click();
     await page.getByRole('menuitemradio', { name: 'Opening credits' }).click();
     await expect(page.getByRole('button', { name: /^Chapter: Opening credits/ })).toBeVisible();
@@ -422,7 +421,7 @@ test.describe('the other controls', () => {
 
   test('the speech model is not installed: the download question comes first, and No leaves the take unstarted', async ({ page }) => {
     const errors = watch(page);
-    await openBooth(page, `${RECORD_ON}&mockAssets=missing`);
+    await openBooth(page, `?mockAssets=missing`);
     await record(page).click();
     const question = page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ });
     await expect(question).toBeVisible({ timeout: 10_000 });
@@ -434,7 +433,7 @@ test.describe('the other controls', () => {
   test('a long, narrow, emoji-heavy Text size 72 view still stops a take', async ({ page }) => {
     const errors = watch(page);
     await page.setViewportSize({ width: 400, height: 700 });
-    await takeRunning(page, `${RECORD_ON}&mockBooth=emoji`);
+    await takeRunning(page, `?mockBooth=emoji`);
     for (let i = 0; i < 14; i++) await page.keyboard.press('Equal');
     await page.keyboard.press('ArrowDown');
     expect(await noHorizontalScroll(page)).toBe(true);
@@ -453,7 +452,7 @@ test.describe('the worst inputs', () => {
     // position are now skipped by the browser (`content-visibility`, BoothText), and a step costs about 0.1 s (docs/operations/booth-acceptance.md).
     // The steps are timed inside the page: Playwright's trace snapshots the 300,000-node DOM at every action it takes, which costs more than the step does.
     const started = Date.now();
-    await openBooth(page, `${RECORD_ON}&mockBooth=huge-chapter`);
+    await openBooth(page, `?mockBooth=huge-chapter`);
     const opened = Date.now() - started;
     const steps = await page.evaluate(async () => {
       const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
@@ -485,7 +484,7 @@ test.describe('the worst inputs', () => {
     const errors = watch(page);
     // Straight to the Booth: the Production page lists every chapter and does not finish loading 5000 of them (see the pull request).
     const started = Date.now();
-    await page.goto(`/booth${RECORD_ON}&mockBooth=many-chapters`);
+    await page.goto(`/booth?mockBooth=many-chapters`);
     await settlePage(page);
     await page.getByRole('button', { name: /^Chapter:/ }).waitFor({ timeout: 60_000 });
     expect(Date.now() - started, 'the Booth opens in under 20 s').toBeLessThan(20_000);
@@ -502,7 +501,7 @@ test.describe('the worst inputs', () => {
   for (const book of ['emoji', 'rtl', 'odd-titles'] as const) {
     test(`${book} titles and text: the Booth shows them, fits the window and records`, async ({ page }) => {
       const errors = watch(page);
-      await openBooth(page, `${RECORD_ON}&mockBooth=${book}`);
+      await openBooth(page, `?mockBooth=${book}`);
       expect(await noHorizontalScroll(page)).toBe(true);
       await page.getByRole('button', { name: /^Chapter: / }).click();
       await expect(page.getByRole('menu')).toBeVisible();
@@ -527,7 +526,7 @@ test.describe('the worst inputs', () => {
 
   test('a word of 276 characters with no break wraps inside the text instead of being clipped', async ({ page }) => {
     const errors = watch(page);
-    await openBooth(page, `${RECORD_ON}&mockBooth=odd-titles`);
+    await openBooth(page, `?mockBooth=odd-titles`);
     for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown');
     const overflow = await page.evaluate(() => {
       const box = document.querySelector('[data-booth-text]')!.getBoundingClientRect();
@@ -545,7 +544,7 @@ test.describe('the worst inputs', () => {
   for (const mics of ['0', '1', '50', 'weird', 'long', 'unbroken'] as const) {
     test(`${mics} microphone(s) in Levels: listed or explained, inside the window, and the popover closes`, async ({ page }) => {
       const errors = watch(page);
-      await openBooth(page, `${RECORD_ON}&mockMics=${mics}`);
+      await openBooth(page, `?mockMics=${mics}`);
       await page.getByRole('button', { name: 'Levels' }).click();
       const popup = page.getByRole('dialog', { name: 'Levels' });
       await expect(popup).toBeVisible();

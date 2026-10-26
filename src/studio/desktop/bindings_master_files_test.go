@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"desktop/internal/contractfile"
+	"desktop/internal/daw"
 	"desktop/internal/dawport"
 	"desktop/internal/measure"
 )
@@ -46,7 +47,7 @@ func TestMasterPlayQuietestPlaysTheFiveSecondsAroundTheQuietestWindow(t *testing
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeFiles{}
-			host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+			host, path := filesHost(t, "REAPER", liveReachability(), role)
 			lastRun(host, measuredFile(path, c.duration, &c.quietest))
 
 			got := decodeDawResult(t)(host.MasterPlayQuietest(path))
@@ -61,7 +62,7 @@ func TestMasterPlayQuietestPlaysTheFiveSecondsAroundTheQuietestWindow(t *testing
 		})
 	}
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 	lastRun(host, measuredFile(path, 600, floatPtr(12)))
 	if got, want := decodeDawResult(t)(host.MasterPlayQuietest(path)), dawport.OK("Playing the quietest 5 s of Chapter 01.wav, from 9.75 s.", false); !reflect.DeepEqual(got, want) {
 		t.Fatalf("MasterPlayQuietest = %+v, want %+v", got, want)
@@ -70,7 +71,7 @@ func TestMasterPlayQuietestPlaysTheFiveSecondsAroundTheQuietestWindow(t *testing
 
 func TestMasterOpenInDawShowsAFileOfTheLastRun(t *testing.T) {
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 	// A file the run could not measure is still a file of the run: it can be shown, though it has no quiet stretch to play.
 	lastRun(host, MeasureFileResult{Path: path, Name: filepath.Base(path), Status: measureFileFailed, Error: "not a WAV"})
 
@@ -88,7 +89,7 @@ func TestMasterOpenInDawShowsAFileOfTheLastRun(t *testing.T) {
 // any id before a run are refused with the stale code, and nothing reaches the DAW.
 func TestMasterPlayQuietestAndOpenInDawRefuseAFileNotInTheLastRun(t *testing.T) {
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 	other := filepath.Join(filepath.Dir(path), "Chapter 02.wav")
 	host.mu.Lock()
 	host.measurePicked[other] = true
@@ -117,7 +118,7 @@ func TestMasterPlayQuietestAndOpenInDawRefuseAFileNotInTheLastRun(t *testing.T) 
 // A file of the run with no quietest window (digital silence) or not measured says so; no time is invented.
 func TestMasterPlayQuietestRefusesAFileWithNoQuietestWindow(t *testing.T) {
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
+	host, path := filesHost(t, "REAPER", liveReachability(), role)
 	for _, file := range []MeasureFileResult{
 		measuredFile(path, 600, nil),
 		{Path: path, Name: filepath.Base(path), Status: measureFileFailed, Error: "not a WAV"},
@@ -137,10 +138,10 @@ func TestMasterPlayQuietestRefusesAFileWithNoQuietestWindow(t *testing.T) {
 	}
 }
 
-// The capability's sentence comes before the file id, as for the file bindings.
+// The capability's sentence (here REAPER not answering) comes before the file id, as for the file bindings.
 func TestMasterFileBindingsRefuseWithTheCapabilitySentenceFirst(t *testing.T) {
 	role := &fakeFiles{}
-	host, path := filesHost(t, "REAPER", liveReachability(), role, "off")
+	host, path := filesHost(t, "REAPER", daw.NewReachability(nil), role)
 	resolver, _ := host.dawResolverFor(host.services())
 	for capability, call := range map[dawport.Capability]func(string) (string, error){
 		dawport.CapFilePreview: host.MasterPlayQuietest,
@@ -170,7 +171,7 @@ func TestMasterFileContractGoldenIsCurrent(t *testing.T) {
 	}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {
 		t.Run(name, func(t *testing.T) {
-			host, path := filesHost(t, "REAPER", liveReachability(), &fakeFiles{}, "on")
+			host, path := filesHost(t, "REAPER", liveReachability(), &fakeFiles{})
 			lastRun(host, measuredFile(path, 600, floatPtr(12)))
 			contractfile.Check(t, name, decodeDawResult(t)(cases[name](host, path)))
 		})
