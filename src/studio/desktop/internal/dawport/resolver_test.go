@@ -5,8 +5,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"desktop/internal/bridge"
 )
 
 // stubAdapter declares what a test says and hands back the roles it was given. The conformance suite's fake (dawporttest)
@@ -34,42 +32,31 @@ func (punch) PunchTo(context.Context, float64, float64) (float64, error) { retur
 func (punch) Roll(context.Context, string, float64) (Result, error)      { return Result{}, nil }
 func (punch) PlayPosition(context.Context) (PlayPosition, error)         { return PlayPosition{}, nil }
 
-func togglesOf(m map[Capability]Toggle) func(Capability) Toggle {
-	return func(c Capability) Toggle { return m[c] }
-}
-
-func TestSupportCombinesDeclarationSettingsAndRuntime(t *testing.T) {
+// No setting decides what is available: Experimental is available exactly as Supported is, and only the declaration and the
+// runtime refuse.
+func TestSupportCombinesDeclarationAndRuntime(t *testing.T) {
 	connected := Runtime{Bridge: true, Reachable: true}
 	cases := []struct {
-		name         string
-		level        Level
-		toggle       Toggle
-		experimental bool
-		runtime      Runtime
-		available    bool
-		reason       Reason
+		name      string
+		level     Level
+		runtime   Runtime
+		available bool
+		reason    Reason
 	}{
-		{"supported on auto is available", Supported, ToggleAuto, false, connected, true, ""},
-		{"supported switched on is available", Supported, ToggleOn, false, connected, true, ""},
-		{"supported switched off is turned off", Supported, ToggleOff, false, connected, false, ReasonTurnedOff},
-		{"experimental on auto is off while the old switch is off", Experimental, ToggleAuto, false, connected, false, ReasonExperimentalOff},
-		{"experimental on auto follows the old switch", Experimental, ToggleAuto, true, connected, true, ""},
-		{"experimental switched on needs no old switch", Experimental, ToggleOn, false, connected, true, ""},
-		{"experimental switched off beats the old switch", Experimental, ToggleOff, true, connected, false, ReasonTurnedOff},
-		{"not yet available ignores a toggle", NotYetAvailable, ToggleOn, true, connected, false, ReasonNotYet},
-		{"unsupported ignores a toggle", Unsupported, ToggleOn, true, connected, false, ReasonUnsupported},
-		{"a setting refusal comes before runtime, like Actions.allowed", Experimental, ToggleAuto, false, Runtime{}, false, ReasonExperimentalOff},
-		{"no bridge is standalone", Supported, ToggleAuto, false, Runtime{}, false, ReasonStandalone},
-		{"a quiet DAW is not running", Supported, ToggleAuto, false, Runtime{Bridge: true}, false, ReasonNotRunning},
-		{"an unknown toggle value counts as auto", Supported, Toggle("sometimes"), false, connected, true, ""},
+		{"supported is available", Supported, connected, true, ""},
+		{"experimental is available, as supported is", Experimental, connected, true, ""},
+		{"not yet available", NotYetAvailable, connected, false, ReasonNotYet},
+		{"unsupported", Unsupported, connected, false, ReasonUnsupported},
+		{"the declaration comes before runtime", NotYetAvailable, Runtime{}, false, ReasonNotYet},
+		{"no bridge is standalone", Supported, Runtime{}, false, ReasonStandalone},
+		{"experimental with no bridge is standalone", Experimental, Runtime{}, false, ReasonStandalone},
+		{"a quiet DAW is not running", Supported, Runtime{Bridge: true}, false, ReasonNotRunning},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			r := NewResolver(ResolverConfig{
-				Adapter:      plainAdapter{stubAdapter{kind: KindREAPER, declares: map[Capability]Level{CapPunch: tc.level}}},
-				Runtime:      func() Runtime { return tc.runtime },
-				Toggle:       togglesOf(map[Capability]Toggle{CapPunch: tc.toggle}),
-				Experimental: func() bool { return tc.experimental },
+				Adapter: plainAdapter{stubAdapter{kind: KindREAPER, declares: map[Capability]Level{CapPunch: tc.level}}},
+				Runtime: func() Runtime { return tc.runtime },
 			})
 			got := r.Support(CapPunch)
 			if got.Level != tc.level || got.Available != tc.available || got.Reason != tc.reason {
@@ -152,10 +139,10 @@ func TestSupportMessagesUseTheAdaptersWordingWhenItHasOne(t *testing.T) {
 	// A reason the adapter has no wording for falls back to the resolver's.
 	r2 := NewResolver(ResolverConfig{
 		Adapter: stubAdapter{kind: KindAudacity, declares: map[Capability]Level{CapPunch: Supported}},
-		Toggle:  togglesOf(map[Capability]Toggle{CapPunch: ToggleOff}),
+		Runtime: func() Runtime { return Runtime{Bridge: true} },
 	})
-	if got := r2.Support(CapPunch).Message; got != messageTurnedOff {
-		t.Fatalf("Message = %q, want the resolver's %q", got, messageTurnedOff)
+	if got, want := r2.Support(CapPunch).Message, "Audacity is not answering. Check that Audacity is open, then try again."; got != want {
+		t.Fatalf("Message = %q, want the resolver's %q", got, want)
 	}
 }
 
@@ -180,7 +167,6 @@ func TestRoleReturnsTheAdaptersRoleWhenAvailable(t *testing.T) {
 			declares: map[Capability]Level{CapPunch: Experimental},
 			roles:    map[Capability]any{CapPunch: punch{}}}},
 		Runtime: func() Runtime { return Runtime{Bridge: true, Reachable: true} },
-		Toggle:  togglesOf(map[Capability]Toggle{CapPunch: ToggleOn}),
 	})
 	p, err := Role[Puncher](r, CapPunch)
 	if err != nil || p == nil {
@@ -193,7 +179,7 @@ func TestRoleRefusesWithNotSupportedError(t *testing.T) {
 		Adapter: plainAdapter{stubAdapter{kind: KindREAPER,
 			declares: map[Capability]Level{CapPunch: Experimental},
 			roles:    map[Capability]any{CapPunch: punch{}}}},
-		Runtime: func() Runtime { return Runtime{Bridge: true, Reachable: true} },
+		Runtime: func() Runtime { return Runtime{Bridge: true} },
 	})
 	p, err := Role[Puncher](r, CapPunch)
 	if p != nil {
@@ -203,14 +189,11 @@ func TestRoleRefusesWithNotSupportedError(t *testing.T) {
 	if !errors.As(err, &ns) {
 		t.Fatalf("err = %v (%T), want *NotSupportedError", err, err)
 	}
-	if ns.Capability != CapPunch || ns.Support.Reason != ReasonExperimentalOff || ns.Error() != ns.Support.Message {
+	if ns.Capability != CapPunch || ns.Support.Reason != ReasonNotRunning || ns.Error() != ns.Support.Message {
 		t.Fatalf("NotSupportedError = %+v", ns)
 	}
 	if !errors.Is(err, ErrNotSupported) {
 		t.Fatal("errors.Is(err, ErrNotSupported) = false")
-	}
-	if !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Fatal("an experimental_off refusal must still match bridge.ErrExperimentalOff, which today's consumers check")
 	}
 }
 
@@ -254,63 +237,41 @@ func TestRoleOfTheWrongInterfaceIsARoleError(t *testing.T) {
 	}
 }
 
-// Allowed is the declaration and settings half of Support: what the narrator's settings permit, whatever the engine's runtime state.
-// bridge.Actions' gate asks it, so a command still goes out (and fails on its own terms) while REAPER is not answering.
-func TestAllowedIsTheDeclarationAndSettingsHalfOfSupport(t *testing.T) {
+// Allowed is the declaration half of Support, whatever the engine's runtime state. bridge.Actions' gate asks it, so a command still
+// goes out (and fails on its own terms) while REAPER is not answering.
+func TestAllowedIsTheDeclarationHalfOfSupport(t *testing.T) {
 	cases := []struct {
-		name         string
-		level        Level
-		toggle       Toggle
-		experimental bool
-		reason       Reason // "" when allowed
+		level  Level
+		reason Reason // "" when allowed
 	}{
-		{"supported on auto", Supported, ToggleAuto, false, ""},
-		{"supported switched off", Supported, ToggleOff, false, ReasonTurnedOff},
-		{"experimental on auto, old switch off", Experimental, ToggleAuto, false, ReasonExperimentalOff},
-		{"experimental on auto, old switch on", Experimental, ToggleAuto, true, ""},
-		{"experimental switched on", Experimental, ToggleOn, false, ""},
-		{"experimental switched off, old switch on", Experimental, ToggleOff, true, ReasonTurnedOff},
-		{"not yet available", NotYetAvailable, ToggleOn, true, ReasonNotYet},
-		{"unsupported", Unsupported, ToggleOn, true, ReasonUnsupported},
+		{Supported, ""},
+		{Experimental, ""},
+		{NotYetAvailable, ReasonNotYet},
+		{Unsupported, ReasonUnsupported},
 	}
 	for _, tc := range cases {
 		for _, rt := range []Runtime{{}, {Bridge: true}, {Bridge: true, Reachable: true}} {
 			r := NewResolver(ResolverConfig{
-				Adapter:      plainAdapter{stubAdapter{kind: KindREAPER, declares: map[Capability]Level{CapPunch: tc.level}}},
-				Runtime:      func() Runtime { return rt },
-				Toggle:       togglesOf(map[Capability]Toggle{CapPunch: tc.toggle}),
-				Experimental: func() bool { return tc.experimental },
+				Adapter: plainAdapter{stubAdapter{kind: KindREAPER, declares: map[Capability]Level{CapPunch: tc.level}}},
+				Runtime: func() Runtime { return rt },
 			})
 			err := r.Allowed(CapPunch)
 			if tc.reason == "" {
 				if err != nil {
-					t.Errorf("%s, runtime %+v: Allowed = %v, want nil", tc.name, rt, err)
+					t.Errorf("%v, runtime %+v: Allowed = %v, want nil", tc.level, rt, err)
 				}
 				continue
 			}
 			var refusal *NotSupportedError
 			if !errors.As(err, &refusal) || refusal.Support.Reason != tc.reason || refusal.Support.Level != tc.level || refusal.Support.Message == "" {
-				t.Errorf("%s, runtime %+v: Allowed = %#v, want a %q refusal at %v with a message", tc.name, rt, err, tc.reason, tc.level)
+				t.Errorf("%v, runtime %+v: Allowed = %#v, want a %q refusal with a message", tc.level, rt, err, tc.reason)
 				continue
 			}
 			// Support agrees with Allowed on every refusal Allowed makes.
 			if got := r.Support(CapPunch); got != refusal.Support {
-				t.Errorf("%s, runtime %+v: Support = %+v, but Allowed refused with %+v", tc.name, rt, got, refusal.Support)
+				t.Errorf("%v, runtime %+v: Support = %+v, but Allowed refused with %+v", tc.level, rt, got, refusal.Support)
 			}
 		}
-	}
-}
-
-func TestAllowedMatchesErrExperimentalOffOnlyForThatReason(t *testing.T) {
-	r := NewResolver(ResolverConfig{
-		Adapter: plainAdapter{stubAdapter{kind: KindREAPER, declares: map[Capability]Level{CapPunch: Experimental, CapFXChains: Experimental}}},
-		Toggle:  togglesOf(map[Capability]Toggle{CapFXChains: ToggleOff}),
-	})
-	if err := r.Allowed(CapPunch); !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Errorf("Allowed(punch) = %v, want a match for bridge.ErrExperimentalOff", err)
-	}
-	if err := r.Allowed(CapFXChains); errors.Is(err, bridge.ErrExperimentalOff) || !errors.Is(err, ErrNotSupported) {
-		t.Errorf("Allowed(fx_chains, turned off) = %v, want ErrNotSupported and not ErrExperimentalOff", err)
 	}
 }
 
@@ -340,27 +301,23 @@ func TestSupportCarriesTheDeclaredDepth(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		runtime Runtime
-		toggles map[Capability]Toggle
 		cap     Capability
 		want    Support
 	}{
-		{"available", Runtime{Bridge: true, Reachable: true}, nil, CapPunch,
+		{"available", Runtime{Bridge: true, Reachable: true}, CapPunch,
 			Support{Level: Supported, Available: true, Destructive: true, Mode: ModeSteps}},
-		{"mode only", Runtime{Bridge: true, Reachable: true}, nil, CapRecord,
+		{"mode only", Runtime{Bridge: true, Reachable: true}, CapRecord,
 			Support{Level: Supported, Available: true, Mode: ModeNative}},
-		{"declares neither", Runtime{Bridge: true, Reachable: true}, nil, CapMarkers,
+		{"declares neither", Runtime{Bridge: true, Reachable: true}, CapMarkers,
 			Support{Level: Supported, Available: true}},
-		{"not running keeps reason and message", Runtime{Bridge: true}, nil, CapPunch,
+		{"not running keeps reason and message", Runtime{Bridge: true}, CapPunch,
 			Support{Level: Supported, Reason: ReasonNotRunning, Message: "Audacity is not answering. Check that Audacity is open, then try again.",
 				Destructive: true, Mode: ModeSteps}},
-		{"turned off keeps reason and message", Runtime{Bridge: true, Reachable: true}, map[Capability]Toggle{CapPunch: ToggleOff}, CapPunch,
-			Support{Level: Supported, Reason: ReasonTurnedOff, Message: messageTurnedOff, Destructive: true, Mode: ModeSteps}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := NewResolver(ResolverConfig{
 				Adapter: adapter,
 				Runtime: func() Runtime { return tc.runtime },
-				Toggle:  togglesOf(tc.toggles),
 			})
 			if got := r.Support(tc.cap); got != tc.want {
 				t.Fatalf("Support(%s) = %+v, want %+v", tc.cap, got, tc.want)
@@ -368,7 +325,11 @@ func TestSupportCarriesTheDeclaredDepth(t *testing.T) {
 		})
 	}
 	var refusal *NotSupportedError
-	r := NewResolver(ResolverConfig{Adapter: adapter, Toggle: togglesOf(map[Capability]Toggle{CapPunch: ToggleOff})})
+	notYet := deepAdapter{
+		plainAdapter: plainAdapter{stubAdapter{kind: KindAudacity, declares: map[Capability]Level{CapPunch: NotYetAvailable}}},
+		depth:        adapter.depth,
+	}
+	r := NewResolver(ResolverConfig{Adapter: notYet})
 	if err := r.Allowed(CapPunch); !errors.As(err, &refusal) || !refusal.Support.Destructive || refusal.Support.Mode != ModeSteps {
 		t.Fatalf("Allowed(punch) = %v, want a refusal that still carries the depth", err)
 	}
@@ -384,14 +345,12 @@ func TestSupportWithoutADescriberReportsNoDepth(t *testing.T) {
 	}
 }
 
-// The edit capabilities ship NotYetAvailable on every engine until their command lands: never usable, whatever the toggle, and
-// the message names the capability's own label.
+// A capability declared NotYetAvailable is never usable, and the message names the capability's own label.
 func TestTheEditCapabilitiesResolveNotYetWhileDeclaredSo(t *testing.T) {
 	declares := map[Capability]Level{CapCutRange: NotYetAvailable, CapFXRange: NotYetAvailable, CapStackTakes: NotYetAvailable, CapBackups: NotYetAvailable}
 	r := NewResolver(ResolverConfig{
 		Adapter: plainAdapter{stubAdapter{kind: KindREAPER, declares: declares}},
 		Runtime: func() Runtime { return Runtime{Bridge: true, Reachable: true} },
-		Toggle:  togglesOf(map[Capability]Toggle{CapCutRange: ToggleOn, CapFXRange: ToggleOn, CapStackTakes: ToggleOn, CapBackups: ToggleOn}),
 	})
 	for c := range declares {
 		spec, _ := SpecOf(c)
@@ -405,95 +364,54 @@ func TestTheEditCapabilitiesResolveNotYetWhileDeclaredSo(t *testing.T) {
 	}
 }
 
-// needyAdapter is a deepAdapter whose capabilities may require others (a Requirer), and that words a refusal for a requirement
-// (a RequirementExplainer) when need holds a sentence for the capability.
+// needyAdapter is a deepAdapter whose capabilities may require others (a Requirer).
 type needyAdapter struct {
 	deepAdapter
 	requires map[Capability][]Capability
-	need     map[Capability]string
 }
 
 func (n needyAdapter) Requires(c Capability) []Capability { return n.requires[c] }
-func (n needyAdapter) ExplainRequirement(c, _ Capability, r Reason) string {
-	if r != ReasonTurnedOff && r != ReasonExperimentalOff {
-		return ""
-	}
-	return n.need[c]
-}
 
-const needBackups = "Stacking takes needs Audacity backups. Turn on Audio backups in Settings."
-
-func needy() needyAdapter {
-	declares := map[Capability]Level{CapStackTakes: Experimental, CapPunch: Experimental, CapBackups: Experimental, CapTakes: Experimental}
+// needy is an Audacity-like adapter whose takes, stacking and punch need backups. backups is its level for backups.
+func needy(backups Level) needyAdapter {
+	declares := map[Capability]Level{CapStackTakes: Experimental, CapPunch: Experimental, CapBackups: backups, CapTakes: Experimental}
 	return needyAdapter{
 		deepAdapter: deepAdapter{
 			plainAdapter: plainAdapter{stubAdapter{kind: KindAudacity, declares: declares}},
 			depth:        map[Capability]Depth{CapStackTakes: {Mode: ModeSteps}, CapPunch: {Destructive: true}},
 		},
 		requires: map[Capability][]Capability{CapStackTakes: {CapBackups}, CapPunch: {CapBackups}, CapTakes: {CapBackups}},
-		need:     map[Capability]string{CapStackTakes: needBackups},
 	}
 }
 
-func needyResolver(a Adapter, rt Runtime, toggles map[Capability]Toggle) *Resolver {
-	return NewResolver(ResolverConfig{
-		Adapter: a,
-		Runtime: func() Runtime { return rt },
-		Toggle: func(c Capability) Toggle {
-			if t, ok := toggles[c]; ok {
-				return t
-			}
-			return ToggleOn
-		},
-	})
+func needyResolver(a Adapter, rt Runtime) *Resolver {
+	return NewResolver(ResolverConfig{Adapter: a, Runtime: func() Runtime { return rt }})
 }
 
 // resolver-refuses-with-the-required-capabilitys-reason: a capability whose requirement is unavailable is refused with that
-// requirement's reason, in the adapter's sentence, and is available once the requirement is.
+// requirement's reason, in a sentence naming both, and is available once the requirement is.
 func TestSupportRefusesWithTheRequiredCapabilitysReason(t *testing.T) {
 	answering := Runtime{Bridge: true, Reachable: true}
-	off := needyResolver(needy(), answering, map[Capability]Toggle{CapBackups: ToggleOff})
-	got := off.Support(CapStackTakes)
-	want := Support{Level: Experimental, Reason: ReasonTurnedOff, Message: needBackups, Mode: ModeSteps}
+	off := needyResolver(needy(NotYetAvailable), answering)
+	got := off.Support(CapTakes)
+	want := Support{Level: Experimental, Reason: ReasonNotYet,
+		Message: "Choose the active take needs Audio backups. Audio backups is not available with Audacity yet."}
 	if got != want {
-		t.Fatalf("backups off: Support(stack_takes) = %+v, want %+v", got, want)
+		t.Fatalf("backups not yet: Support(takes) = %+v, want %+v", got, want)
 	}
-	if err := off.Allowed(CapStackTakes); !errors.Is(err, ErrNotSupported) || err.Error() != needBackups {
-		t.Fatalf("backups off: Allowed(stack_takes) = %v, want the requirement's refusal", err)
+	if err := off.Allowed(CapTakes); !errors.Is(err, ErrNotSupported) || err.Error() != want.Message {
+		t.Fatalf("backups not yet: Allowed(takes) = %v, want the requirement's refusal", err)
 	}
 	if _, err := Role[TakeStacker](off, CapStackTakes); !errors.Is(err, ErrNotSupported) {
-		t.Fatalf("backups off: Role(stack_takes) = %v, want a refusal", err)
+		t.Fatalf("backups not yet: Role(stack_takes) = %v, want a refusal", err)
 	}
 
-	on := needyResolver(needy(), answering, nil)
+	on := needyResolver(needy(Experimental), answering)
 	if got := on.Support(CapStackTakes); got != (Support{Level: Experimental, Available: true, Mode: ModeSteps}) {
 		t.Fatalf("backups on: Support(stack_takes) = %+v, want available in steps", got)
 	}
-}
 
-// A requirement refused for a reason the adapter does not word falls back to a sentence that names both capabilities and says
-// the requirement's own refusal; the capability's own refusal still comes first.
-func TestSupportOfARequirementGivesTheFirstThingTheNarratorCanChange(t *testing.T) {
-	answering := Runtime{Bridge: true, Reachable: true}
-	a := needy()
-	a.declares = map[Capability]Level{CapStackTakes: Experimental, CapPunch: Experimental, CapTakes: Experimental, CapBackups: NotYetAvailable}
-	got := needyResolver(a, answering, nil).Support(CapTakes)
-	if got.Available || got.Reason != ReasonNotYet || got.Message != "Choose the active take needs Audio backups. Audio backups is not available with Audacity yet." {
-		t.Fatalf("backups not yet: Support(takes) = %+v, want not_yet naming both", got)
-	}
-
-	ownOff := needyResolver(needy(), answering, map[Capability]Toggle{CapStackTakes: ToggleOff, CapBackups: ToggleOff})
-	if got := ownOff.Support(CapStackTakes); got.Reason != ReasonTurnedOff || got.Message != messageTurnedOff {
-		t.Fatalf("stack_takes itself off: Support = %+v, want its own turned_off first", got)
-	}
-
-	experimental := NewResolver(ResolverConfig{Adapter: needy(), Runtime: func() Runtime { return answering },
-		Toggle: togglesOf(map[Capability]Toggle{CapStackTakes: ToggleOn})})
-	if got := experimental.Support(CapStackTakes); got.Reason != ReasonExperimentalOff || got.Message != needBackups {
-		t.Fatalf("backups experimental and switched off: Support(stack_takes) = %+v, want experimental_off in the adapter's sentence", got)
-	}
-
-	quiet := needyResolver(needy(), Runtime{Bridge: true}, nil)
+	quiet := needyResolver(needy(Experimental), Runtime{Bridge: true})
 	if got := quiet.Support(CapStackTakes); got.Reason != ReasonNotRunning {
 		t.Fatalf("not answering: Support(stack_takes) = %+v, want not_running", got)
 	}
@@ -503,25 +421,21 @@ func TestSupportOfARequirementGivesTheFirstThingTheNarratorCanChange(t *testing.
 // the requirement is not, and destructive; with the requirement available it is not destructive.
 func TestADestructiveCapabilityIsMadeSafeByItsRequirement(t *testing.T) {
 	answering := Runtime{Bridge: true, Reachable: true}
-	off := needyResolver(needy(), answering, map[Capability]Toggle{CapBackups: ToggleOff}).Support(CapPunch)
+	off := needyResolver(needy(Unsupported), answering).Support(CapPunch)
 	if off != (Support{Level: Experimental, Available: true, Destructive: true}) {
-		t.Fatalf("backups off: Support(punch) = %+v, want available and destructive", off)
+		t.Fatalf("no backups: Support(punch) = %+v, want available and destructive", off)
 	}
-	on := needyResolver(needy(), answering, nil).Support(CapPunch)
+	on := needyResolver(needy(Experimental), answering).Support(CapPunch)
 	if on != (Support{Level: Experimental, Available: true}) {
 		t.Fatalf("backups on: Support(punch) = %+v, want available and not destructive", on)
-	}
-	refused := needyResolver(needy(), answering, map[Capability]Toggle{CapPunch: ToggleOff, CapBackups: ToggleOff}).Support(CapPunch)
-	if !refused.Destructive || refused.Reason != ReasonTurnedOff {
-		t.Fatalf("punch off, backups off: Support(punch) = %+v, want its own refusal, destructive", refused)
 	}
 }
 
 // A cycle an adapter should never declare does not hang the resolver (the conformance suite refuses one).
 func TestSupportSurvivesARequirementCycle(t *testing.T) {
-	a := needy()
+	a := needy(Experimental)
 	a.requires = map[Capability][]Capability{CapStackTakes: {CapBackups}, CapBackups: {CapStackTakes}}
-	r := needyResolver(a, Runtime{Bridge: true, Reachable: true}, nil)
+	r := needyResolver(a, Runtime{Bridge: true, Reachable: true})
 	if got := r.Support(CapStackTakes); !got.Available {
 		t.Fatalf("Support(stack_takes) with a cycle = %+v", got)
 	}

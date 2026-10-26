@@ -13,10 +13,10 @@ import (
 func TestPlayPositionAndPunchToAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.PlayPosition(context.Background()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.PlayPosition(context.Background()); !errors.Is(err, errGateRefused) {
 		t.Errorf("PlayPosition: %v", err)
 	}
-	if _, err := actions.PunchTo(context.Background(), 42, 3); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.PunchTo(context.Background(), 42, 3); !errors.Is(err, errGateRefused) {
 		t.Errorf("PunchTo: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

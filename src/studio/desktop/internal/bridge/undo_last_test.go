@@ -113,10 +113,10 @@ func TestUndoLastAndLastActionCheckTheirArgumentsBeforeAnythingIsSent(t *testing
 func TestUndoLastAndLastActionAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.LastAction(context.Background(), "cut_range"); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.LastAction(context.Background(), "cut_range"); !errors.Is(err, errGateRefused) {
 		t.Fatalf("LastAction: %v", err)
 	}
-	if _, err := actions.UndoLast(context.Background(), "cut_range", 1); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.UndoLast(context.Background(), "cut_range", 1); !errors.Is(err, errGateRefused) {
 		t.Fatalf("UndoLast: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

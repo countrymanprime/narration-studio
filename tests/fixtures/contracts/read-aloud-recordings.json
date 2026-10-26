@@ -1,19 +1,4 @@
 {
-  "experimental_off.arm": {
-    "outcome": "refused",
-    "reason": "experimental_off",
-    "message": "Recording in REAPER is an experimental action. Turn on Experimental DAW actions, or Record alone, in Settings to use it."
-  },
-  "experimental_off.start": {
-    "outcome": "refused",
-    "reason": "experimental_off",
-    "message": "Recording in REAPER is an experimental action. Turn on Experimental DAW actions, or Record alone, in Settings to use it."
-  },
-  "experimental_off.stop": {
-    "outcome": "refused",
-    "reason": "experimental_off",
-    "message": "Recording in REAPER is an experimental action. Turn on Experimental DAW actions, or Record alone, in Settings to use it."
-  },
   "no_link.arm": {
     "outcome": "refused",
     "reason": "unlinked",
@@ -129,5 +114,20 @@
     "restored": 0,
     "kept": 0,
     "undoPoints": 0
+  },
+  "unsupported.arm": {
+    "outcome": "refused",
+    "reason": "unsupported",
+    "message": "REAPER cannot record from this app. Record in REAPER itself."
+  },
+  "unsupported.start": {
+    "outcome": "refused",
+    "reason": "unsupported",
+    "message": "REAPER cannot record from this app. Record in REAPER itself."
+  },
+  "unsupported.stop": {
+    "outcome": "refused",
+    "reason": "unsupported",
+    "message": "REAPER cannot record from this app. Record in REAPER itself."
   }
 }

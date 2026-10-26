@@ -199,10 +199,3 @@ type Describer interface {
 type Requirer interface {
 	Requires(c Capability) []Capability
 }
-
-// RequirementExplainer is a Requirer that words the refusal of c for its requirement required, refused with reason r: "Stacking
-// takes needs Audacity backups. Turn on Audio backups in Settings." An empty answer falls back to the resolver's wording, which
-// names both capabilities and gives the requirement's own sentence.
-type RequirementExplainer interface {
-	ExplainRequirement(c, required Capability, r Reason) string
-}

@@ -3,6 +3,6 @@
   "output": 0,
   "input": null,
   "inputTrack": "",
-  "message": "Experimental: switched off in Settings.",
-  "reason": "experimental_off"
+  "message": "REAPER is not answering. Check that REAPER is open, then try again.",
+  "reason": "not_running"
 }

@@ -9,7 +9,6 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
-	"desktop/internal/dawport"
 )
 
 // savedRPP writes a .rpp whose modification time is 2026-09-26 08:40 local time, so savedAt reads the same in every
@@ -105,21 +104,6 @@ func TestDawProjectStateIsIdleWithoutAHeartbeat(t *testing.T) {
 		if !sameProjectState(got, idleProjectState) {
 			t.Errorf("%s: DawProjectState() = %v, want the idle payload %v", name, got, idleProjectState)
 		}
-	}
-}
-
-// binding-and-event: the project state is read through the heartbeat capability, so a narrator who turned it off gets
-// the idle payload. (Its own test: each test host points APPDATA somewhere new, which would hide this host's toggle.)
-func TestDawProjectStateHeartbeatTurnedOffIsIdle(t *testing.T) {
-	host, reach := newTestHostWithHeartbeat(t)
-	reach.Record(heartbeat(savedRPP(t), "7", "5", "12.500000"))
-	off := "off"
-	if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapHeartbeat): &off}); err != nil {
-		t.Fatal(err)
-	}
-	raw, err := host.DawProjectState()
-	if got := decodeProjectState(t, raw, err); !sameProjectState(got, idleProjectState) {
-		t.Fatalf("DawProjectState() = %v with the heartbeat capability turned off, want the idle payload", got)
 	}
 }
 

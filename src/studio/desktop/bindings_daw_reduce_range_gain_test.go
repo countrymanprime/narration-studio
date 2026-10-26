@@ -113,7 +113,7 @@ func TestDawReduceRangeGainPassesOnTheRolesAnswers(t *testing.T) {
 	if got := reduceGain(t, &fakeGainReducer{answer: stale}, splitTake, gainStretches, 9); !reflect.DeepEqual(got, stale) {
 		t.Fatalf("stale = %+v", got)
 	}
-	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrExperimentalOff, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
+	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
 		if got := reduceGain(t, &fakeGainReducer{err: err}, splitTake, gainStretches, 9); got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, want a refusal", err, got)
 		}
@@ -139,22 +139,14 @@ func TestDawReduceRangeGainRefusesWithTheResolversSentenceAndSendsNothing(t *tes
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeGainReducer{answer: gainInREAPER()}
-			host := deleteRangeHost(t, c.kind, c.reach, nil, "")
-			if c.toggle != "" {
-				if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapRangeGain): &c.toggle}); err != nil {
-					t.Fatal(err)
-				}
-			}
+			host := deleteRangeHost(t, c.kind, c.reach, nil)
 			host.mu.Lock()
 			host.rangeGain = role
 			host.mu.Unlock()
@@ -175,7 +167,7 @@ func TestDawReduceRangeGainRefusesWithTheResolversSentenceAndSendsNothing(t *tes
 // stale refusal and the range_gain capability's refusal. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-reduce-range-gain-*.json.
 func TestDawReduceRangeGainContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to lower stretches of a take."}
+	refusedCapability := dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

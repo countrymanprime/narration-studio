@@ -198,10 +198,6 @@ func TestChapterTrackCreateRefusals(t *testing.T) {
 			"REAPER is not connected to this app, so no track can be added. Start REAPER, then try again."},
 		{"engine not answering", dawport.KindREAPER, nil, dawport.Support{Reason: dawport.ReasonNotRunning}, "not_running",
 			"REAPER is not answering, so no track can be added. Check that REAPER is open, then try again."},
-		{"experimental off", dawport.KindREAPER, nil, dawport.Support{Reason: dawport.ReasonExperimentalOff}, "experimental_off",
-			"Adding tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it."},
-		{"turned off", dawport.KindREAPER, nil, dawport.Support{Reason: dawport.ReasonTurnedOff}, "experimental_off",
-			"Adding a track for a chapter is turned off in Settings. Turn it on there to use it."},
 		{"engine has no such role", dawport.KindAudacity, nil, dawport.Support{Reason: dawport.ReasonUnsupported}, "unsupported",
 			"Audacity cannot add a track for a chapter from this app. Add a track named “Chapter I: Down the Rabbit-Hole” in Audacity, then link it."},
 		{"not yet available", dawport.KindAudacity, nil, dawport.Support{Reason: dawport.ReasonNotYet}, "unsupported",
@@ -210,8 +206,6 @@ func TestChapterTrackCreateRefusals(t *testing.T) {
 			"REAPER is recording. Stop the take, then create the track."},
 		{"recording in Audacity", dawport.KindAudacity, &fakeCreator{err: bridge.ErrRecording}, createAvailable(), "recording",
 			"Audacity is recording. Stop the take, then create the track."},
-		{"gate refused at send", dawport.KindREAPER, &fakeCreator{err: bridge.ErrExperimentalOff}, createAvailable(), "experimental_off",
-			"Adding tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it."},
 		{"bridge gone", dawport.KindREAPER, &fakeCreator{err: bridge.ErrUnavailable}, createAvailable(), "standalone",
 			"REAPER is not connected to this app, so no track can be added. Start REAPER, then try again."},
 		{"no answer", dawport.KindREAPER, &fakeCreator{err: bridge.ErrNoAnswer}, createAvailable(), "not_running",
@@ -262,9 +256,8 @@ func TestChapterTrackCreateRefusalsNameTheAdapterNotReaper(t *testing.T) {
 func TestTrackCreatorFromComesFromTheResolver(t *testing.T) {
 	fake := dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))
 	on := dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      fake,
-		Runtime:      func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
-		Experimental: func() bool { return true },
+		Adapter: fake,
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
 	})
 	creator, support := trackCreatorFrom(hostServices{dawPortResolver: on})
 	if creator == nil || !support.Available {
@@ -277,14 +270,14 @@ func TestTrackCreatorFromComesFromTheResolver(t *testing.T) {
 		t.Fatalf("the creator did not come from the resolver: calls = %v", calls)
 	}
 
-	off := dawport.NewResolver(dawport.ResolverConfig{
+	quiet := dawport.NewResolver(dawport.ResolverConfig{
 		Adapter: fake,
-		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true} },
 	})
-	if creator, support := trackCreatorFrom(hostServices{dawPortResolver: off}); creator != nil || support.Reason != dawport.ReasonExperimentalOff {
-		t.Fatalf("experimental off: creator = %v, support = %+v", creator, support)
+	if creator, support := trackCreatorFrom(hostServices{dawPortResolver: quiet}); creator != nil || support.Reason != dawport.ReasonNotRunning {
+		t.Fatalf("not answering: creator = %v, support = %+v", creator, support)
 	}
-	down := dawport.NewResolver(dawport.ResolverConfig{Adapter: fake, Experimental: func() bool { return true }})
+	down := dawport.NewResolver(dawport.ResolverConfig{Adapter: fake})
 	if creator, support := trackCreatorFrom(hostServices{dawPortResolver: down}); creator != nil || support.Reason != dawport.ReasonStandalone {
 		t.Fatalf("no bridge: creator = %v, support = %+v", creator, support)
 	}

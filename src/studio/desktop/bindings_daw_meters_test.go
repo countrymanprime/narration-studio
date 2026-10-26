@@ -68,21 +68,14 @@ func TestDawMetersRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) {
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeMeterReader{}
-			host := deleteRangeHost(t, c.kind, c.reach, nil, "")
-			if c.toggle != "" {
-				if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapDawMeters): &c.toggle}); err != nil {
-					t.Fatal(err)
-				}
-			}
+			host := deleteRangeHost(t, c.kind, c.reach, nil)
 			host.mu.Lock()
 			host.meterReader = role
 			host.mu.Unlock()
@@ -102,11 +95,11 @@ func TestDawMetersRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) {
 	}
 }
 
-// With the narrator's settings untouched and REAPER answering, the meters read: daw_meters is Supported (the owner's decision on
-// #2251), so no Experimental switch stands in front of it.
+// With the narrator's settings untouched and REAPER answering, the meters read: no setting stands in front of daw_meters (the
+// owner's decisions on #2251).
 func TestDawMetersReadsByDefault(t *testing.T) {
 	role := &fakeMeterReader{meters: dawport.DawMeters{OutputDB: -20, Armed: true, InputDB: -6, InputTrack: "Chapter 1"}}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), nil, "")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), nil)
 	host.mu.Lock()
 	host.meterReader = role
 	host.mu.Unlock()
@@ -118,7 +111,7 @@ func TestDawMetersReadsByDefault(t *testing.T) {
 
 // TestDawMetersContractGoldenIsCurrent pins the binding's answers. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-meters-*.json.
 func TestDawMetersContractGoldenIsCurrent(t *testing.T) {
-	refused := dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: "Experimental: switched off in Settings."}
+	refused := dawport.Support{Reason: dawport.ReasonNotRunning, Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	cases := map[string]struct {
 		support dawport.Support
 		role    *fakeMeterReader

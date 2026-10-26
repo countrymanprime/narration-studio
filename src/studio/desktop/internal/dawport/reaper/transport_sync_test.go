@@ -66,9 +66,9 @@ func TestTransportSyncTranslatesTheFourCalls(t *testing.T) {
 }
 
 func TestTransportSyncRefusesWithTheCapabilitysOwnSentenceBeforeAnythingIsSent(t *testing.T) {
-	refused := "Experimental DAW actions are off. Turn them on in Settings to play from the app through the DAW."
+	refused := "REAPER cannot play from the app through the DAW from this app."
 	adapter, _ := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: refused}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: refused}}
 	})
 	syncer := adapter.Role(dawport.CapTransportSync).(dawport.TransportSyncer)
 	calls := map[string]func() error{

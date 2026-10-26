@@ -97,16 +97,16 @@ func TestTheDAWRowNeedsADAWARegionAndItsCapabilities(t *testing.T) {
 		t.Errorf("with no region: %v, want ErrNoRegion", err)
 	}
 
-	// Experimental capabilities the narrator has not switched on are the DAW port's refusal, with its sentence; nothing renders.
+	// A DAW that is not answering is the DAW port's refusal, with its sentence; nothing renders.
 	off := dawport.NewResolver(dawport.ResolverConfig{Adapter: daw,
-		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} }})
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true} }})
 	useSession(t, func() (masteringport.Session, error) {
 		return masteringport.Session{Resolver: off, ProjectFolder: project}, nil
 	})
 	_, err := dawRow(t).Master(context.Background(), request)
 	var refusal *port.NotSupportedError
-	if !errors.As(err, &refusal) || refusal.Support.Reason != port.ReasonExperimentalOff {
-		t.Errorf("with the capabilities off: %v, want an experimental_off refusal", err)
+	if !errors.As(err, &refusal) || refusal.Support.Reason != port.ReasonNotRunning {
+		t.Errorf("with the DAW not answering: %v, want a not_running refusal", err)
 	}
 	if len(daw.Renders()) != 0 {
 		t.Errorf("a refused master rendered: %+v", daw.Renders())

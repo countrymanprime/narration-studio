@@ -125,7 +125,6 @@ func TestWithoutAnAnsweringREAPERTheStateIsUnavailableAndSaysWhy(t *testing.T) {
 		{"standalone", func(h *Host) { h.navigation = &findingNavigation{standalone: true} }, nil, reaperStandalone},
 		{"heartbeat gone quiet", func(h *Host) { h.reachability = nil }, nil, reaperNotRunning},
 		{"no answer", nil, bridge.ErrNoAnswer, reaperNotRunning},
-		{"experimental actions off", nil, bridge.ErrExperimentalOff, readAloudExperimentalOff},
 		{"anything else", nil, errors.New("disk full"), refusedFailed},
 	}
 	for _, c := range cases {
@@ -211,7 +210,6 @@ func TestContractReadAloudReaperStates(t *testing.T) {
 		"several_armed":       {state: bridge.TrackState{TrackArmed: true, ArmedCount: 3}},
 		"recording_elsewhere": {state: bridge.TrackState{ArmedCount: 1, Recording: true, Playing: true, PlayState: 5}},
 		"track_missing":       {err: &bridge.TrackStaleError{GUID: readAloudTrack}},
-		"experimental_off":    {err: bridge.ErrExperimentalOff},
 	} {
 		answers[name] = readState(t, host, reader, ids[0])
 	}

@@ -15,9 +15,10 @@ const (
 	Unsupported Level = iota
 	// NotYetAvailable: the engine can, but this app cannot drive it yet (Audacity until its pipe client lands).
 	NotYetAvailable
-	// Experimental: built, but not yet through the owner's verification pass. Off unless the narrator turns it on.
+	// Experimental is built and on, but not yet through the owner's verification pass. It is available exactly as Supported is; the
+	// level only records which rows the pass still has to confirm, and the UI never shows it.
 	Experimental
-	// Supported: verified, and on unless the narrator turns it off.
+	// Supported is built, on, and confirmed by the owner's verification pass.
 	Supported
 )
 
@@ -34,18 +35,17 @@ func (l Level) String() string {
 	}
 }
 
-// Reason is why a capability is unavailable now. The values are the wire enum the UI already switches on (standalone, not_running,
-// experimental_off, failed), extended; the payload carries a Message beside it, so the UI never words a refusal itself.
+// Reason is why a capability is unavailable now. The values are the wire enum the UI switches on (standalone, not_running, failed,
+// not_yet, unsupported); the payload carries a Message beside it, so the UI never words a refusal itself.
 type Reason string
 
+// The reasons, each with what it means.
 const (
-	ReasonStandalone      Reason = "standalone"       // no bridge at all: the app was opened on its own
-	ReasonNotRunning      Reason = "not_running"      // a bridge, but the DAW's heartbeat has gone quiet
-	ReasonExperimentalOff Reason = "experimental_off" // Experimental and left on auto while experimental actions are off
-	ReasonFailed          Reason = "failed"           // the request was made and failed; never the resolver's answer, only a call's
-	ReasonTurnedOff       Reason = "turned_off"       // the narrator switched this capability off
-	ReasonNotYet          Reason = "not_yet"          // declared NotYetAvailable
-	ReasonUnsupported     Reason = "unsupported"      // declared Unsupported, or not declared at all
+	ReasonStandalone  Reason = "standalone"  // no bridge at all: the app was opened on its own
+	ReasonNotRunning  Reason = "not_running" // a bridge, but the DAW's heartbeat has gone quiet
+	ReasonFailed      Reason = "failed"      // the request was made and failed; never the resolver's answer, only a call's
+	ReasonNotYet      Reason = "not_yet"     // declared NotYetAvailable
+	ReasonUnsupported Reason = "unsupported" // declared Unsupported, or not declared at all
 )
 
 // Mode is how a change that needs several edits is made. The values are the wire's.

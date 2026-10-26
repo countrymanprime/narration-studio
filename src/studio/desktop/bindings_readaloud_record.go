@@ -102,10 +102,10 @@ func readAloudConnectionRefusal(name, connection string) ReadAloudRecording {
 	return readAloudRefused(connection, fmt.Sprintf("%s is not connected to this app. To record with reading, open %s; the app connects to it by itself.", name, name))
 }
 
-// readAloudExperimentalOffRefusal is the refusal while the record (or, for a punch, the punch) capability is switched off: it
-// speaks of recording, which is what the narrator pressed, and names both switches that turn it on.
-func readAloudExperimentalOffRefusal(name string) ReadAloudRecording {
-	return readAloudRefused(readAloudExperimentalOff, fmt.Sprintf("Recording in %s is an experimental action. Turn on Experimental DAW actions, or Record alone, in Settings to use it.", name))
+// readAloudUnsupportedRefusal is the refusal when the linked DAW does not report the record (or, for a punch, the punch)
+// capability: it speaks of recording, which is what the narrator pressed, and names the DAW.
+func readAloudUnsupportedRefusal(name string) ReadAloudRecording {
+	return readAloudRefused(readAloudUnsupported, fmt.Sprintf("%s cannot record from this app. Record in %s itself.", name, name))
 }
 
 // readAloudRecordRefusal turns what ArmOnly, RecordStart or RecordStop answered into the reason and the sentence the
@@ -141,14 +141,14 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 
 // readAloudArmOnlyIn arms chapterID's linked track and disarms every other one (the "Arm Chapter N only" action),
 // refusing while the DAW records. It changes nothing in the reading session. recorder is nil exactly when
-// recorderFrom would answer nil (no resolver, the capability off, or the DAW not reachable).
+// recorderFrom would answer nil (no resolver, a DAW that does not report record, or the DAW not reachable).
 func readAloudArmOnlyIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (ReadAloudRecording, error) {
 	name := readAloudAdapterName(svc)
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return readAloudConnectionRefusal(name, status.Connection), nil
 	}
 	if recorder == nil {
-		return readAloudExperimentalOffRefusal(name), nil
+		return readAloudUnsupportedRefusal(name), nil
 	}
 	guid, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil {
@@ -201,7 +201,7 @@ func readAloudRecordStartFrom(ctx context.Context, svc hostServices, recorder da
 		return readAloudConnectionRefusal(name, status.Connection), nil
 	}
 	if recorder == nil || (at != nil && puncher == nil) {
-		return readAloudExperimentalOffRefusal(name), nil
+		return readAloudUnsupportedRefusal(name), nil
 	}
 	guid, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil {
@@ -314,7 +314,7 @@ func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, err
 // (ErrNotOurRecording). name is the adapter's display name for the refusal sentences.
 func readAloudRecordStopIn(ctx context.Context, name string, recorder dawport.Recorder) (ReadAloudRecording, error) {
 	if recorder == nil {
-		return readAloudExperimentalOffRefusal(name), nil
+		return readAloudUnsupportedRefusal(name), nil
 	}
 	stopped, err := recorder.RecordStop(ctx)
 	if err != nil {

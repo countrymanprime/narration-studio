@@ -1,9 +1,4 @@
 {
-  "experimental_off": {
-    "outcome": "refused",
-    "reason": "experimental_off",
-    "message": "Selecting a track in REAPER is an experimental action. Turn on Experimental DAW actions in Settings to use it."
-  },
   "failed": {
     "outcome": "refused",
     "reason": "failed",
@@ -22,5 +17,10 @@
     "outcome": "refused",
     "reason": "track_missing",
     "message": "This track is no longer in the REAPER project. Link it again in the audio engine panel."
+  },
+  "unsupported": {
+    "outcome": "refused",
+    "reason": "unsupported",
+    "message": "This DAW cannot select a track from this app. Select it in the DAW itself."
   }
 }

@@ -65,21 +65,14 @@ func TestDawPunchPrerollRefusesWithTheResolversSentenceAndAsksNothing(t *testing
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakePrerollReader{held: dawport.PunchPreroll{Measures: 2, MeasureSeconds: 2}}
-			host := deleteRangeHost(t, c.kind, c.reach, nil, "")
-			if c.toggle != "" {
-				if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapPunchPreroll): &c.toggle}); err != nil {
-					t.Fatal(err)
-				}
-			}
+			host := deleteRangeHost(t, c.kind, c.reach, nil)
 			host.mu.Lock()
 			host.prerollReader = role
 			host.mu.Unlock()
@@ -98,11 +91,11 @@ func TestDawPunchPrerollRefusesWithTheResolversSentenceAndAsksNothing(t *testing
 	}
 }
 
-// With the narrator's settings untouched and REAPER answering, REAPER's pre-roll reads: punch_preroll is Supported (the owner's
-// decision on #2251), so no Experimental switch stands in front of it.
+// With the narrator's settings untouched and REAPER answering, REAPER's pre-roll reads: no setting stands in front of
+// punch_preroll (the owner's decisions on #2251).
 func TestDawPunchPrerollReadsByDefault(t *testing.T) {
 	role := &fakePrerollReader{held: dawport.PunchPreroll{OnRecord: true, Measures: 2, MeasureSeconds: 2}}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), nil, "")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), nil)
 	host.mu.Lock()
 	host.prerollReader = role
 	host.mu.Unlock()
@@ -117,6 +110,6 @@ func TestDawPunchPrerollReadsByDefault(t *testing.T) {
 func TestDawPunchPrerollContractGoldenIsCurrent(t *testing.T) {
 	role := &fakePrerollReader{held: dawport.PunchPreroll{OnRecord: true, Measures: 1.5, MeasureSeconds: 2}}
 	contractfile.Check(t, "daw-punch-preroll-held", dawPunchPrerollIn(t.Context(), "REAPER", available(), role))
-	refused := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to use REAPER's pre-roll."}
+	refused := dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	contractfile.Check(t, "daw-punch-preroll-refused", dawPunchPrerollIn(t.Context(), "REAPER", refused, role))
 }

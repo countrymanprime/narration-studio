@@ -15,15 +15,14 @@ const (
 	OutcomeStarted = "started"
 	OutcomeRefused = "refused"
 
-	ReasonNotOffered      = "not_offered"
-	ReasonUnusable        = "unusable"
-	ReasonStale           = "stale"
-	ReasonRecording       = "recording"
-	ReasonScriptOutdated  = "script_outdated"
-	ReasonStandalone      = "standalone"
-	ReasonNotRunning      = "not_running"
-	ReasonExperimentalOff = "experimental_off"
-	ReasonFailed          = "failed"
+	ReasonNotOffered     = "not_offered"
+	ReasonUnusable       = "unusable"
+	ReasonStale          = "stale"
+	ReasonRecording      = "recording"
+	ReasonScriptOutdated = "script_outdated"
+	ReasonStandalone     = "standalone"
+	ReasonNotRunning     = "not_running"
+	ReasonFailed         = "failed"
 )
 
 // Actors are the REAPER requests Use may make, each nil when the DAW cannot do it (standalone, or no such role).
@@ -134,8 +133,6 @@ func refuse(err error) Outcome {
 		return refused(ReasonNotRunning, "REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.")
 	case errors.Is(err, bridge.ErrUnavailable):
 		return refused(ReasonStandalone, "REAPER is not connected to this app. To choose a take, open REAPER; the app connects to it by itself.")
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return refused(ReasonExperimentalOff, "Choosing a take is an Experimental REAPER action and it is switched off: turn on Experimental DAW actions in Settings.")
 	}
 	return refused(ReasonFailed, "REAPER could not do that: "+err.Error()+".")
 }

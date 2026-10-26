@@ -21,15 +21,14 @@ const (
 	micTwo = "Microphone (USB Audio Device)"
 )
 
-// boothRecorderHost is a Windows host whose project records with the built-in recorder, with Experimental actions on (they
-// start off) and the narrator's microphone chosen unless mic is "".
+// boothRecorderHost is a Windows host whose project records with the built-in recorder, with the narrator's microphone chosen
+// unless mic is "".
 func boothRecorderHost(t *testing.T, fake *recordingtest.Fake, mic string) *Host {
 	t.Helper()
-	// The global settings (the microphone, Experimental) live under APPDATA: a test never reads or writes the machine's.
+	// The global settings (the microphone) live under APPDATA: a test never reads or writes the machine's.
 	t.Setenv("APPDATA", t.TempDir())
 	host := recorderHost(t, fake)
 	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
-	boothSetting(t, host, "DAW", "global", "experimental_reaper_actions", "true")
 	if mic != "" {
 		boothSetting(t, host, "Teleprompter", "global", "input_device", mic)
 	}
@@ -91,20 +90,6 @@ func TestBuiltinBoothRecordsATakeOnTheChosenMicrophone(t *testing.T) {
 	}
 	if got := host.dawTransport()["recording"]; got != false {
 		t.Fatalf("transport recording = %v after the take ended, want false", got)
-	}
-}
-
-func TestBuiltinBoothRecordRefusesWhileExperimentalIsOff(t *testing.T) {
-	fake := &recordingtest.Fake{DeviceList: []recording.Device{{Name: micOne}}}
-	host := boothRecorderHost(t, fake, micOne)
-	boothSetting(t, host, "DAW", "global", "experimental_reaper_actions", "false")
-
-	result := boothRecord(t)(host.ReadAloudRecordStart("c-0001"))
-	if result.Outcome != "refused" || result.Reason != readAloudExperimentalOff || result.Message != "Experimental: switched off in Settings." {
-		t.Fatalf("start = %+v, want the capability's own refusal", result)
-	}
-	if fake.Last() != nil {
-		t.Fatal("a refused start opened the device")
 	}
 }
 
@@ -176,17 +161,6 @@ func TestBuiltinBoothRecordRefusesASecondStart(t *testing.T) {
 	waitRecorderIdle(t, host)
 }
 
-// Experimental turned off mid-take must not strand the narrator in a take: Stop is never gated.
-func TestBuiltinBoothStopWorksWhileExperimentalIsOff(t *testing.T) {
-	host := boothRecorderHost(t, &recordingtest.Fake{}, micOne)
-	boothRecord(t)(host.ReadAloudRecordStart("c-0001"))
-	boothSetting(t, host, "DAW", "global", "experimental_reaper_actions", "false")
-	if stopped := boothRecord(t)(host.ReadAloudRecordStop()); stopped.Outcome != "stopped" {
-		t.Fatalf("stop = %+v, want stopped", stopped)
-	}
-	waitRecorderIdle(t, host)
-}
-
 func TestBuiltinBoothStopWithNoTakeSaysSo(t *testing.T) {
 	host := boothRecorderHost(t, &recordingtest.Fake{}, micOne)
 	result := boothRecord(t)(host.ReadAloudRecordStop())
@@ -252,11 +226,6 @@ func TestBuiltinBoothRecordingGoldenIsCurrent(t *testing.T) {
 	waitRecorderIdle(t, host)
 	answers["stop with no take"] = record(host.ReadAloudRecordStop())
 	answers["punch"] = record(host.ReadAloudRecordStartAt("c-0001", 12))
-	boothSetting(t, host, "DAW", "global", "capability.record", "off")
-	answers["record switched off"] = record(host.ReadAloudRecordStart("c-0001"))
-	boothSetting(t, host, "DAW", "global", "capability.record", "auto")
-	boothSetting(t, host, "DAW", "global", "experimental_reaper_actions", "false")
-	answers["experimental off"] = record(host.ReadAloudRecordStart("c-0001"))
 
 	none := boothRecorderHost(t, &recordingtest.Fake{}, "")
 	answers["no microphone"] = record(none.ReadAloudRecordStart("c-0001"))

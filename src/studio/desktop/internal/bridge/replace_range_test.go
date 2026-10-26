@@ -26,10 +26,10 @@ func replaceRequest() ReplaceRangeRequest {
 func TestReplaceRangeIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.ReplaceRange(context.Background(), replaceRequest()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ReplaceRange(context.Background(), replaceRequest()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ReplaceRange: %v", err)
 	}
-	if _, err := actions.RestoreReplacement(context.Background(), replaceNew, "r-0001"); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.RestoreReplacement(context.Background(), replaceNew, "r-0001"); !errors.Is(err, errGateRefused) {
 		t.Fatalf("RestoreReplacement: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)
