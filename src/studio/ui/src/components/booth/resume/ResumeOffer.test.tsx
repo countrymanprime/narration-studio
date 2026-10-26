@@ -6,7 +6,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi, TeleprompterLocateResult, TeleprompterResumePlace, TeleprompterResumeVerdict, TeleprompterSpan } from '../../../types';
 import { ResumeOffer } from './ResumeOffer';
-import { offerAwayFrom, resumeOfferFor, paragraphAt, saveNote } from './resumeOfferModel';
+import { offerAwayFrom, resumeOfferFor, paragraphAt, saveNote, sourceText } from './resumeOfferModel';
 
 afterEach(cleanup);
 
@@ -188,5 +188,28 @@ describe('saveNote', () => {
     expect(saveNote({ ...state, unsavedChanges: true }, 'REAPER')).toBe('Project saved Sep 26, 08:40. Changes in REAPER since then are not included');
     expect(saveNote({ savedAt: null, unsavedChanges: false }, 'none')).toBe('');
     expect(saveNote(null, 'REAPER')).toBe('');
+  });
+});
+
+describe('the place the Booth opened the chapter at', () => {
+  it('is offered when nothing else is, saying why it opened there', () => {
+    expect(resumeOfferFor({ spans, recording: false, opened: { paragraphId: 'p2', word: 4, why: 'recording' } })).toEqual({
+      kind: 'offer',
+      offer: { paragraphId: 'p2', word: 4, paragraph: 2, source: 'recording', confident: true },
+    });
+    const left = resumeOfferFor({ spans, recording: false, opened: { paragraphId: 'p3', word: 0, why: 'left' } });
+    expect(left.kind === 'offer' && sourceText(left.offer)).toBe('where you left off');
+  });
+
+  it('gives way to the DAW’s place, the last take’s stop and a take running', () => {
+    const opened = { paragraphId: 'p2', word: 4, why: 'recording' as const };
+    const daw = located({ verdict: verdict({ kind: 'daw_only', daw: place(25) }) });
+    expect(resumeOfferFor({ spans, recording: false, opened, result: daw })).toMatchObject({ kind: 'offer', offer: { paragraphId: 'p3' } });
+    expect(resumeOfferFor({ spans, recording: false, opened, kept: { paragraphId: 'p1', word: 1 } })).toMatchObject({ offer: { source: 'booth' } });
+    expect(resumeOfferFor({ spans, recording: true, opened })).toEqual({ kind: 'none' });
+  });
+
+  it('offers nothing for a paragraph the text no longer has', () => {
+    expect(resumeOfferFor({ spans, recording: false, opened: { paragraphId: 'gone', word: 0, why: 'left' } })).toEqual({ kind: 'none' });
   });
 });

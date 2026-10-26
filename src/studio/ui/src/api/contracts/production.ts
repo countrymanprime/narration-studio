@@ -1,4 +1,4 @@
-import type { ChapterStatus, ManuscriptContentKind, RecordedUnavailable } from './manuscript';
+import type { ChapterStatus, ManuscriptContentKind, RecordedThrough, RecordedUnavailable } from './manuscript';
 import type { StageVerdict } from './stages';
 
 /**
@@ -75,6 +75,8 @@ export type ProductionChapter = {
   wordCount: number;
   recordedSeconds: number | null;
   recordedUnavailable?: RecordedUnavailable;
+  /** How far the chapter is recorded: the chapter list's `recordedThrough`, passed through, so the board and the Booth agree. */
+  recordedThrough?: RecordedThrough;
   hoursLogged: number;
   /** Hours logged on the chapter per finished hour of it; `null` with no measured audio or no logged time. */
   pfh: number | null;

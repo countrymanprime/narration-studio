@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import userEvent from '@testing-library/user-event';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -661,6 +662,20 @@ describe('EditingPage', () => {
         }
       }
     }
+  });
+
+  it('lists how far each chapter is recorded beside its name, as the Booth does', async () => {
+    const chapters = await pageApi().manuscriptChapters();
+    const recorded = chapters.map((chapter, index) =>
+      index === 0
+        ? { ...chapter, recordedThrough: { paragraphId: 'x', word: 0, percent: 100, complete: true, source: 'proof' as const, confident: true } }
+        : { ...chapter, recordedThrough: { paragraphId: 'x', word: 0, percent: 40, complete: false, source: 'daw' as const, confident: false } },
+    );
+    mount({ api: { manuscriptChapters: async () => recorded } });
+    await script();
+    await userEvent.setup().click(screen.getByRole('button', { name: /Change chapter/ }));
+    const items = await screen.findAllByRole('menuitemradio');
+    expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent ?? null)).toEqual(['Complete', ...items.slice(1).map(() => '~40%')]);
   });
 
   describe('the Enter hint names what Enter does here', () => {

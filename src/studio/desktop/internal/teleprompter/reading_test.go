@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"desktop/internal/contractfile"
+	"desktop/internal/recordedthrough"
 )
 
 // The prompter's last position per chapter.
@@ -266,5 +267,87 @@ func TestLoadReadingReportsAFileItCannotRead(t *testing.T) {
 	}
 	if got, err := LoadReading(project, "c1"); err == nil {
 		t.Fatalf("LoadReading on an unreadable file = %+v, want an error", got)
+	}
+}
+
+// --- the stretches the takes followed ---
+
+const longManuscript = `{"documentId":"doc-1","chapters":[{"id":"c1","title":"One"}],
+"paragraphs":[{"id":"p1","chapterId":"c1","text":"a b c d e f g h i j"},{"id":"p2","chapterId":"c1","text":"k l m n o p q r s t"}]}`
+
+func TestEveryTakeAddsTheStretchItFollowed(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, longManuscript)
+	steps := []struct{ from, read int }{{0, 6}, {15, 18}, {5, 12}}
+	for _, step := range steps {
+		if err := WriteReadingFrom(project, "c1", step.from, step.read, 21, "listening", readingTime); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := LoadReading(project, "c1")
+	if err != nil || got == nil {
+		t.Fatalf("LoadReading = %+v, %v", got, err)
+	}
+	want := []recordedthrough.Range{{From: 0, To: 12}, {From: 15, To: 18}}
+	if got.Read != 12 || len(got.Ranges) != 2 || got.Ranges[0] != want[0] || got.Ranges[1] != want[1] {
+		t.Fatalf("reading = %+v, want read 12 and ranges %+v", got, want)
+	}
+}
+
+func TestATakeThatWentBackAddsNoStretch(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, longManuscript)
+	if err := WriteReadingFrom(project, "c1", 10, 4, 21, "listening", readingTime); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := LoadReading(project, "c1"); got == nil || got.Read != 4 || len(got.Ranges) != 0 {
+		t.Fatalf("reading = %+v, want read 4 and no ranges", got)
+	}
+}
+
+func TestAnEditedChapterStartsItsStretchesAfresh(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, longManuscript)
+	if err := WriteReadingFrom(project, "c1", 0, 15, 21, "listening", readingTime); err != nil {
+		t.Fatal(err)
+	}
+	writeManuscript(t, project, strings.Replace(longManuscript, "k l m", "k l z", 1))
+	if err := WriteReadingFrom(project, "c1", 18, 20, 21, "listening", readingTime); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := LoadReading(project, "c1"); got == nil || len(got.Ranges) != 1 || got.Ranges[0] != (recordedthrough.Range{From: 18, To: 20}) {
+		t.Fatalf("reading = %+v, want only the take after the edit", got)
+	}
+}
+
+func TestAReadingFromBeforeRangesReadsAsOneStretchFromTheTop(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, longManuscript)
+	if err := WriteReadingFrom(project, "c1", 0, 9, 21, "listening", readingTime); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(ReadingDir(project), "c1.reading.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var file map[string]any
+	if err := json.Unmarshal(raw, &file); err != nil {
+		t.Fatal(err)
+	}
+	delete(file, "ranges")
+	old, _ := json.Marshal(file)
+	if err := os.WriteFile(path, old, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := LoadReading(project, "c1")
+	if got == nil || len(got.Ranges) != 0 || len(got.Followed()) != 1 || got.Followed()[0] != (recordedthrough.Range{From: 0, To: 9}) {
+		t.Fatalf("reading = %+v, want one stretch 0-9", got)
+	}
+	if err := WriteReadingFrom(project, "c1", 9, 14, 21, "listening", readingTime); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := LoadReading(project, "c1"); got == nil || len(got.Ranges) != 1 || got.Ranges[0] != (recordedthrough.Range{From: 0, To: 14}) {
+		t.Fatalf("reading = %+v, want one stretch 0-14", got)
 	}
 }

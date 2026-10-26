@@ -93,16 +93,36 @@ func (s *Service) Checking(chapterID string) bool {
 // when the ledger holds a complete coverage record at all.
 func (s *Service) RecordedFractions(alignment AlignmentParams) map[string]float64 {
 	fractions := map[string]float64{}
+	for chapterID, report := range s.currentReports(alignment) {
+		fractions[chapterID] = report.PresentFraction()
+	}
+	return fractions
+}
+
+// CurrentParagraphs is each chapter's paragraph lines from a current, complete check (the same results RecordedFractions
+// reads), for the recorded-through place (recordedthrough.Resolve). A chapter with none is left out; reading it never
+// starts a check.
+func (s *Service) CurrentParagraphs(alignment AlignmentParams) map[string][]ParagraphLine {
+	paragraphs := map[string][]ParagraphLine{}
+	for chapterID, report := range s.currentReports(alignment) {
+		paragraphs[chapterID] = report.Paragraphs
+	}
+	return paragraphs
+}
+
+// currentReports is the stored report of every chapter whose newest complete check is current for the saved project.
+func (s *Service) currentReports(alignment AlignmentParams) map[string]Report {
+	reports := map[string]Report{}
 	if s.config.Project == "" || alignment.validate() != nil {
-		return fractions
+		return reports
 	}
 	chapters := s.checkedChapters()
 	if len(chapters) == 0 {
-		return fractions
+		return reports
 	}
 	project, projectFile, err := s.savedProject()
 	if err != nil {
-		return fractions
+		return reports
 	}
 	for _, chapterID := range chapters {
 		basis, err := s.chapter(chapterID)
@@ -111,10 +131,10 @@ func (s *Service) RecordedFractions(alignment AlignmentParams) map[string]float6
 		}
 		result, err := s.evaluate(project, projectFile, basis, alignment)
 		if err == nil && result.Current() {
-			fractions[chapterID] = result.Result.Report.PresentFraction()
+			reports[chapterID] = result.Result.Report
 		}
 	}
-	return fractions
+	return reports
 }
 
 // checkedChapters lists the chapters with at least one complete coverage

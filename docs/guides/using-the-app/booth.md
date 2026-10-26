@@ -291,7 +291,7 @@ A cold read keeps listening until you stop it: press **Cold read** again, press 
 
 When your DAW is connected and following is on, the Booth and the DAW stay together at the start:
 
-- **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter you last left in this project, at the word you left it on (see [Where you stopped](#where-you-stopped)). With none kept, or the chapter gone from the book, it opens on the chapter whose track is selected in the DAW; with no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
+- **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter you last left in this project, at the place [Where you stopped](#where-you-stopped) describes. With none kept, or the chapter gone from the book, it opens on the chapter whose track is selected in the DAW; with no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
 - **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to that line's place in the track, so you can punch from it.
 - **Start from here** and **Punch and roll** from a line move the text there, move the DAW's cursor to that spot, and start recording from it, so you never have to find the place in the DAW with the microphone live.
 
@@ -299,11 +299,33 @@ The DAW may still be connecting when the Booth opens; the Booth asks for about t
 
 ## Where you stopped
 
-The Booth keeps the chapter and the word you were on, per project, on this computer. Open it from the sidebar and it returns to that place; leaving a chapter by the picker keeps the new chapter instead. A chapter named by a link (from Script, Pickups or a bookmark) wins over the kept place. If the browser's storage is blocked the Booth opens as before.
+Each chapter opens where you left off in it, in this order:
+
+1. **A place you came for**: a pickup session's line, a line a link names (from Script, Pickups, Editing, Proof or a bookmark), or
+   **Start from here**. It always wins.
+2. **Where the recording ends**: the word after the last one recorded, so a chapter recorded half way opens at the half. The app
+   reads this from the chapter's current [Proof](proof.md) check, from the takes the Booth followed, or, with neither, from the
+   length of the chapter's track against its words, which is an estimate. Takes that skipped ahead (a pickup half way through)
+   do not count: it is how far the chapter is recorded from its top. A chapter recorded to the end has nothing left to record and
+   opens at the next step instead.
+3. **The word you last read to in that chapter**, per project, on this computer: switching chapters, leaving the Booth and
+   restarting the app keep it for every chapter, not only the last one. Open the Booth from the sidebar and it returns to the
+   chapter you last left.
+4. **The top of the chapter**, for a chapter with nothing recorded that you have not opened before.
+
+A chapter edited since it was recorded loses the places that named its old words: the Booth then uses the track's length, or the
+word you last read to, or the top. If the browser's storage is blocked, step 3 is skipped.
+
+The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
+the end. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
+figure comes from the track's length. A green rail beside the text runs from the top of the chapter to the last recorded line.
+The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
+[Proof](proof.md) do.
 
 When the chapter's track already has a recording, the top bar offers **Resume at ¶ n** and says where it read that from: the
 DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place to where the recording
-ends; nothing starts until you press Record.
+ends; nothing starts until you press Record. With none of those, once you move elsewhere in the chapter it offers the place the
+chapter opened at, *where your recording ends* or *where you left off*, so you can go back to it.
 
 ![Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends](../../images/ui/booth-waiting.webp)
 

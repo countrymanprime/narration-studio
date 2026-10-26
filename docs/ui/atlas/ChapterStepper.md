@@ -14,6 +14,7 @@ Storybook title: `Primitives/ChapterStepper`. Source: `src/components/primitives
 - Alt Keys
 - Very Long Chapter Name
 - Choosing A Chapter
+- With Chapter Details
 
 ## Used by
 

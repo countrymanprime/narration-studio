@@ -24,7 +24,7 @@ import type { BrowseView } from '../reading/useBrowseView';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
-import { resumeOfferFor, type KeptResume, type ResumeTarget } from '../resume/resumeOfferModel';
+import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
@@ -180,6 +180,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const [takeNote, setTakeNote] = useState('');
   const [punches, setPunches] = useState<Punch[]>([]);
   const [kept, setKept] = useState<KeptResume | null>(null);
+  // Where the page opened the chapter (`resumeStart`), offered back once the narrator has looked elsewhere and nothing else is offered.
+  const [opened, setOpened] = useState<OpenedResume | null>(null);
   // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
   const takeBegan = useRef<number | null>(null);
   const tellStopped = useCallback(async (quiet: boolean): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
@@ -260,7 +262,7 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [teleprompter, recordId, recording, credits]);
   const result = located?.id === recordId ? located.result : null;
   const recordedEnd = result && 'recordedEnd' in result ? (result.recordedEnd?.projectTime ?? 0) : 0;
-  const resume = resumeOfferFor({ spans, recording, kept, result });
+  const resume = resumeOfferFor({ spans, recording, kept, result, opened });
   const chooseResume = useCallback(
     (target: ResumeTarget) => {
       const unit = unitAtPosition(latest.current.paragraphs, latest.current.units, { paragraphId: target.paragraphId, word: target.word });
@@ -628,6 +630,8 @@ export function useBoothPage(options: BoothPageOptions) {
     takeNote,
     resume,
     chooseResume,
+    /** Says where the page opened the chapter, for the resume line to offer back. */
+    setOpened,
     flags,
     dawName,
     numbers: {

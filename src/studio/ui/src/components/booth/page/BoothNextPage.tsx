@@ -71,7 +71,11 @@ import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
-import { loadLastPlace, saveLastPlace, type LastPlace } from './lastPlace';
+import { loadChapterPlace, loadLastPlace, saveLastPlace, type LastPlace } from './lastPlace';
+import { resumeStart } from '../resume/resumeStart';
+import { RecordedThroughChip } from '../resume/RecordedThroughChip';
+import { RecordedExtent } from '../reading/RecordedExtent';
+import { chapterRecordedDetail, recordedThroughLabel } from '../../../recordedThrough';
 import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
 import { canSpeak } from '../../../storyBibleTypes';
@@ -396,17 +400,45 @@ function BoothSession({
   // Ctrl+F opens the jump menu; its search finds the text in this chapter and brings the match into view (during a take, without moving the reading).
   const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, seek, view: page.view });
 
-  // The place is kept as the reading moves, once the place the narrator left is back (a save before then would overwrite it with the start).
+  // Where the chapter opens (resume/resumeStart.ts, #2251): a target the narrator came with is placed by its own code (the address's `from`,
+  // the pickup session's line); otherwise the word after the last one recorded, else where they left this chapter, else its top. The place
+  // is kept as the reading moves only once the chapter is placed (a save before then would overwrite it with the top).
+  const recordedThrough = chapter ? data.recorded[chapter.id] : undefined;
+  const explicitStart = !!from || pickupIds.length > 0;
+  const { setOpened } = page;
   const [back, setBack] = useState(false);
   useEffect(() => {
     if (back) return;
-    if (!returnTo) return setBack(true);
     // The chapter the narrator left is on its way (the address is being changed to it): the fallback chapter on screen until then keeps nothing.
-    if (returnTo.chapterId !== chapter?.id || units.length === 0) return;
-    if (returnTo.paragraphId) seek(returnTo.paragraphId, returnTo.word);
+    if (returnTo && returnTo.chapterId !== chapter?.id) return;
+    if (!chapter) return setBack(true);
+    if (units.length === 0) return;
+    const kept = returnTo?.paragraphId ? returnTo : projectFolder ? loadChapterPlace(projectFolder, chapter.id) : null;
+    const start = resumeStart({ paragraphs, explicit: explicitStart, recorded: recordedThrough, kept });
+    if (start.place) {
+      seek(start.place.paragraphId, start.place.word);
+      setOpened({ ...start.place, why: start.reason === 'recorded' ? 'recording' : 'left' });
+    }
     setBack(true);
     onReturned();
-  }, [back, returnTo, chapter?.id, units.length, seek, onReturned]);
+  }, [back, returnTo, chapter, units.length, paragraphs, projectFolder, explicitStart, recordedThrough, seek, setOpened, onReturned]);
+  // A take just ended (its listening session stopped): how far each chapter is recorded is read again, so a chapter the narrator comes
+  // back to opens where this take ended.
+  const { refreshRecorded } = data;
+  const wasListening = useRef(false);
+  useEffect(() => {
+    if (wasListening.current && !session.active) refreshRecorded();
+    wasListening.current = session.active;
+  }, [session.active, refreshRecorded]);
+  const recordedLabel = recordedThroughLabel(recordedThrough, paragraphs);
+  const recordedTo = useMemo(() => {
+    if (!recordedThrough || units.length === 0) return null;
+    if (recordedThrough.complete) {
+      const last = units[units.length - 1]!;
+      return { cur: units.length - 1, wcur: Math.max(0, last.words - 1) };
+    }
+    return unitAtPosition(paragraphs, units, { paragraphId: recordedThrough.paragraphId, word: recordedThrough.word });
+  }, [recordedThrough, paragraphs, units]);
   const placeParagraph = page.position?.paragraphId;
   const placeWord = page.position?.word;
   useEffect(() => {
@@ -530,7 +562,10 @@ function BoothSession({
 
   const pickerChapters = [
     ...(data.previews.opening ? [{ id: 'credits:opening', name: CREDITS_LABEL.opening }] : []),
-    ...(data.chapters ?? []).map((item) => ({ id: item.id, name: headingName(item) })),
+    ...(data.chapters ?? []).map((item) => {
+      const detail = chapterRecordedDetail({ recordedThrough: data.recorded[item.id] });
+      return { id: item.id, name: headingName(item), ...(detail ? { detail } : {}) };
+    }),
     ...(data.previews.closing ? [{ id: 'credits:closing', name: CREDITS_LABEL.closing }] : []),
   ];
   const pickerValue = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
@@ -649,11 +684,14 @@ function BoothSession({
                 source.kind === 'credits' ? (
                   <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
                 ) : (
-                  <ResumeOfferLine
-                    state={offerAwayFrom(page.resume, page.position)}
-                    saved={saveNote(control.project, page.dawName)}
-                    onChoose={page.chooseResume}
-                  />
+                  <>
+                    {recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}
+                    <ResumeOfferLine
+                      state={offerAwayFrom(page.resume, page.position)}
+                      saved={saveNote(control.project, page.dawName)}
+                      onChoose={page.chooseResume}
+                    />
+                  </>
                 )
               }
               setup={
@@ -719,6 +757,7 @@ function BoothSession({
                   margin={
                     chapter ? (
                       <>
+                        <RecordedExtent to={recordedTo} />
                         <PageBreaks breaks={breaks} />
                         {bookmarks.bookmarks ? (
                           <BookmarkRibbons

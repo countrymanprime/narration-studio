@@ -94,6 +94,10 @@ type Service struct {
 	// device is the microphone the running session opened, or "" (a session reading a WAV, or none).
 	// +checklocks:mu
 	device string
+	// startWord is the script word the running session was asked to start at (Start's startWord option, 0 for the top):
+	// with the last position it is the stretch of the chapter the take followed (Reading.Ranges).
+	// +checklocks:mu
+	startWord int
 
 	state    map[string]any
 	script   json.RawMessage
@@ -447,7 +451,10 @@ func (s *Service) begin(plan launch) error {
 	s.state = map[string]any{"phase": "starting", "message": "Starting the teleprompter…", "engine": plan.engine, "chapter": plan.chapter, "paused": false, "coldRead": plan.coldRead}
 	s.script, s.position, s.stopping, s.stopFile, s.controlFile, s.scriptFile = nil, nil, false, plan.stopFile, plan.controlFile, plan.scriptFile
 	s.follow = nil
-	s.device = plan.device
+	s.device, s.startWord = plan.device, 0
+	if word, err := strconv.Atoi(plan.startWord); err == nil && word > 0 {
+		s.startWord = word
+	}
 	s.cancelAutoStopLocked()
 	s.autoStopped = false
 	s.ready, s.readyDone = make(chan struct{}), false
@@ -744,7 +751,7 @@ func (s *Service) recordReading() {
 	s.mu.RLock()
 	chapter, _ := s.state["chapter"].(string)
 	credits, script, position, project, report := s.scriptFile != "", s.script, s.position, s.config.Project, s.report
-	cold := s.coldReadLocked()
+	cold, from := s.coldReadLocked(), s.startWord
 	s.mu.RUnlock()
 	// A cold read's place is the ghost's, never where the next take starts.
 	if cold {
@@ -754,7 +761,7 @@ func (s *Service) recordReading() {
 	if !ok {
 		return
 	}
-	if err := WriteReading(project, chapter, read, tokens, status, time.Now()); err != nil && report != nil {
+	if err := WriteReadingFrom(project, chapter, from, read, tokens, status, time.Now()); err != nil && report != nil {
 		report("teleprompter_reading_not_saved", err.Error())
 	}
 }

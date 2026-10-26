@@ -188,6 +188,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | Ask, do not silently stop (owner) | Leave guard | Silent stop | Ruling 16 |
 | Pedal is Space only (owner) | Start and stop | Extra pedal actions | Ruling 13 |
 | Record arms the chapter's track (DQ-5) | No separate arming click | Arming as a visible step | The mock is the spec |
+| Where a chapter opens, and how far it is recorded (owner report, #2251, 2026-10-26) | An explicit target, then the word after the chapter's `recordedThrough` (host-derived from Proof, the Booth's takes or the track's length), then the place last read to in that chapter, then its top. Adds a **Recorded NN%** / **Complete** chip to the top bar, a recorded rail beside the text and each chapter's figure in the chapter menu, which the mock lacks | The mock's single kept place per project; offering Resume at ¶ n only | A narrator who switched chapters and came back started at the top of a half-recorded chapter ([Where you stopped](../guides/using-the-app/booth.md#where-you-stopped)) |
 
 ## Research Summary
 

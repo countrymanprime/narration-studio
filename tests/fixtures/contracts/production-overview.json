@@ -11,6 +11,14 @@
         "verdict": "not_ready"
       },
       "recordedSeconds": 708,
+      "recordedThrough": {
+        "complete": true,
+        "confident": true,
+        "paragraphId": "p-000040",
+        "percent": 100,
+        "source": "proof",
+        "word": 12
+      },
       "status": "editing",
       "subtitle": "Down the Rabbit-Hole",
       "title": "Chapter 1",
@@ -27,6 +35,14 @@
         "verdict": "unknown"
       },
       "recordedSeconds": null,
+      "recordedThrough": {
+        "complete": false,
+        "confident": true,
+        "paragraphId": "p-000052",
+        "percent": 38,
+        "source": "booth",
+        "word": 3
+      },
       "recordedUnavailable": "unlinked",
       "status": "recording",
       "title": "The Pool of Tears",

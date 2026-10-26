@@ -1,6 +1,7 @@
 import { usePrefetchPeaks } from './ribbon/useRibbonPeaks';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { headingName } from '../../chapterHeading';
+import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { usePort } from '../../ports/usePort';
@@ -123,7 +124,15 @@ function EditingLoaded({
     setAttempt((n) => n + 1);
   }, []);
 
-  const list = useMemo(() => (chapters ?? []).map((c) => ({ id: c.id, name: headingName(c) })), [chapters]);
+  // Each chapter's note is how far it is recorded, the value the Booth resumes at (`chapterRecordedDetail`).
+  const list = useMemo(
+    () =>
+      (chapters ?? []).map((c) => {
+        const detail = chapterRecordedDetail(c);
+        return { id: c.id, name: headingName(c), ...(detail ? { detail } : {}) };
+      }),
+    [chapters],
+  );
   const chapter = list.find((c) => c.id === chosen) ?? list[0];
   // The other chapters' waveforms are read in the background, in order, and kept until the app closes.
   usePrefetchPeaks(

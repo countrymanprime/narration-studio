@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"desktop/internal/contractfile"
+	"desktop/internal/recordedthrough"
 )
 
 // The payloads the manuscript bindings send to the UI, pinned for its contract tests. They come from a real import of
@@ -113,6 +114,31 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-chapters-recorded", recorded)
+
+	// A chapter the recording reaches part way carries recordedThrough, given the lengths the same payload carries; one with nothing recorded carries none.
+	var given map[string]RecordedLength
+	var asked []string
+	service.SetRecordedThrough(func(ids []string, lengths map[string]RecordedLength) map[string]recordedthrough.Through {
+		given, asked = lengths, ids
+		return map[string]recordedthrough.Through{first: {ParagraphID: "p-000002", Word: 3, Percent: 62, Source: recordedthrough.SourceBooth, Confident: true}}
+	})
+	through, err := service.Chapters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if given[first].Seconds != 2520.5 || len(asked) != 2 || asked[0] != first {
+		t.Fatalf("the provider was given %+v, want the payload's lengths", given)
+	}
+	pin(t, "manuscript-chapters-recorded-through", through)
+	unmeasured, err := service.ChaptersUnmeasured()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, chapter := range unmeasured {
+		if _, ok := chapter["recordedThrough"]; ok {
+			t.Fatalf("an unmeasured chapter list carries recordedThrough: %+v", chapter)
+		}
+	}
 }
 
 // A job's elapsed time is the only value that varies between runs.

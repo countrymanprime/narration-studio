@@ -93,6 +93,9 @@ func TestAChapterScriptsHeadingIsTheTitleThenTheSubtitleAsTheTrackersIs(t *testi
 	if !reflect.DeepEqual(script.Breaks, []int{0, 5, 12}) {
 		t.Fatalf("breaks = %v", script.Breaks)
 	}
+	if !reflect.DeepEqual(script.ParagraphIDs, []string{"p1", "p2"}) {
+		t.Fatalf("paragraph ids = %v", script.ParagraphIDs)
+	}
 	tracked, err := scripttrack.LoadChapterScript(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), "c1")
 	if err != nil {
 		t.Fatal(err)

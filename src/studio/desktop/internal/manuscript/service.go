@@ -31,6 +31,7 @@ import (
 	"desktop/internal/pickuplist"
 	"desktop/internal/preview"
 	"desktop/internal/proofing"
+	"desktop/internal/recordedthrough"
 	"desktop/internal/scriptprep"
 	"desktop/internal/stages"
 	"desktop/internal/voicesample"
@@ -67,6 +68,7 @@ type Service struct {
 	manCache atomic.Pointer[manuscriptCache]
 	recorded atomic.Pointer[RecordedFractions]
 	lengths  atomic.Pointer[RecordedLengths]
+	through  atomic.Pointer[RecordedThroughs]
 }
 
 // RecordedFractions supplies the measured share of each chapter's words present, by chapter id: what fills a chapter
@@ -124,6 +126,25 @@ func (s *Service) recordedLengths() map[string]RecordedLength {
 		}
 	}
 	return map[string]RecordedLength{}
+}
+
+// RecordedThroughs supplies how far each chapter is recorded, by chapter id (recordedthrough.Resolve): what fills a chapter
+// payload's recordedThrough. It is given the payload's chapter ids and the recorded lengths it carries, so the track is
+// read once. A chapter it leaves out carries none. The host wires it in, since it reads the coverage results and the
+// Booth's readings.
+type RecordedThroughs func(chapterIDs []string, lengths map[string]RecordedLength) map[string]recordedthrough.Through
+
+// SetRecordedThrough says where recorded-through places come from; nil means none are known.
+func (s *Service) SetRecordedThrough(fn RecordedThroughs) { s.through.Store(&fn) }
+
+// recordedThrough asks the provider once for a whole payload. Without one it is empty.
+func (s *Service) recordedThrough(chapterIDs []string, lengths map[string]RecordedLength) map[string]recordedthrough.Through {
+	if fn := s.through.Load(); fn != nil && *fn != nil {
+		if through := (*fn)(chapterIDs, lengths); through != nil {
+			return through
+		}
+	}
+	return map[string]recordedthrough.Through{}
 }
 
 // The parsed manuscript, kept only as long as the file's own mtime and size say it is still the

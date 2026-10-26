@@ -8,7 +8,8 @@ import { POPUP_MOTION_CLASSES } from './overlayMotion';
 // The value that stands for "All chapters" in `value` and in `onChange`, where the page allows it.
 export const ALL_CHAPTERS = 'all';
 
-export type Chapter = { id: string; name: string };
+/** `detail` is a short note drawn after the name in the list (how far the chapter is recorded: "45%", "Complete"), never in the picker's own label. */
+export type Chapter = { id: string; name: string; detail?: string };
 
 // The chapter bar of the mocks (`ChapterBar`): previous, a fixed-width picker listing every chapter, next. Presentational: the page
 // owns the chapter and decides what a step means (leaving "all" for the chapter view comes first, as the mock's `stepChapter` does).
@@ -37,7 +38,7 @@ export function ChapterStepper({
   const isAll = value === ALL_CHAPTERS;
   const index = chapters.findIndex((chapter) => chapter.id === value);
   const label = isAll ? 'All chapters' : (chapters[index]?.name ?? '');
-  const items = [...(allowAll ? [{ id: ALL_CHAPTERS, name: 'All chapters' }] : []), ...chapters];
+  const items: Chapter[] = [...(allowAll ? [{ id: ALL_CHAPTERS, name: 'All chapters' }] : []), ...chapters];
 
   const arrow = (direction: -1 | 1, name: string, icon: 'previousChapter' | 'nextChapter', key: string | undefined, atEnd: boolean) => {
     // The tip says why the arrow is off, or the key that does the same; with neither it is just the name.
@@ -94,7 +95,17 @@ export function ChapterStepper({
                     closeOnClick
                     className="flex w-full cursor-pointer items-center gap-2 rounded-[0.3rem] px-[0.55rem] py-[0.45rem] text-left text-[0.82rem] outline-none data-[checked]:font-semibold data-[highlighted]:bg-[var(--surface-2)]"
                   >
-                    {item.name}
+                    {item.detail ? (
+                      <>
+                        <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                        {/* The note is muted and never wraps, so the names keep one left edge and the notes one right edge. */}
+                        <span data-chapter-detail="" className="flex-none font-mono text-[0.72rem] font-normal text-[var(--text-muted)]">
+                          {item.detail}
+                        </span>
+                      </>
+                    ) : (
+                      item.name
+                    )}
                   </BaseMenu.RadioItem>
                 ))}
               </BaseMenu.RadioGroup>

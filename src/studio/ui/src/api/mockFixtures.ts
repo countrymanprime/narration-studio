@@ -226,6 +226,25 @@ export const withFormatting = (paragraph: ManuscriptParagraph): ManuscriptParagr
   return paragraph;
 };
 export const WIRE_PARAGRAPHS: ManuscriptParagraph[] = plainParagraphs.map(withFormatting);
+/**
+ * How far the mock's chapter is recorded (`recordedThrough`): chapters 1-3 and those past recording in full by Proof, 4-6 two
+ * thirds of the way by the Booth’s takes, 11 about a third by its track’s length alone (an estimate), the rest none.
+ */
+export function mockRecordedThrough(index: number, paragraphs: readonly ManuscriptParagraph[]): ManuscriptChapter['recordedThrough'] {
+  const last = paragraphs.at(-1);
+  if (!last) return undefined;
+  const words = (paragraph: ManuscriptParagraph) => paragraph.text.split(/\s+/).filter(Boolean).length;
+  if (index < 3 || (index >= 6 && index < 10))
+    return { paragraphId: last.id, word: words(last) - 1, percent: 100, complete: true, source: 'proof', confident: true };
+  const part = (share: number, source: 'booth' | 'daw') => {
+    const at = paragraphs[Math.min(paragraphs.length - 1, Math.floor(paragraphs.length * share))]!;
+    return { paragraphId: at.id, word: Math.min(3, words(at) - 1), percent: Math.round(share * 100), complete: false, source, confident: source !== 'daw' };
+  };
+  if (index < 6) return part(0.65, 'booth');
+  if (index === 10) return part(0.3, 'daw');
+  return undefined;
+}
+
 export const WIRE_CHAPTERS: ManuscriptChapter[] = aliceChapters.map((chapter, index) => ({
   id: 'chapter-' + (index + 1),
   title: chapter.title,
@@ -235,6 +254,12 @@ export const WIRE_CHAPTERS: ManuscriptChapter[] = aliceChapters.map((chapter, in
     id,
     index: paragraphIndex,
   })),
+  ...((through) => (through ? { recordedThrough: through } : {}))(
+    mockRecordedThrough(
+      index,
+      WIRE_PARAGRAPHS.filter((paragraph) => paragraph.chapterId === `chapter-${index + 1}`),
+    ),
+  ),
   wordCount: chapter.paragraphs.join(' ').split(/\s+/).length * 4,
   // Chapters 1-3 were checked and read in full, 4-6 were checked with a third of their text still to record, the rest were never
   // checked (docs/utilities/recording-coverage.md). The share only drives the recording check and stage suggestions;

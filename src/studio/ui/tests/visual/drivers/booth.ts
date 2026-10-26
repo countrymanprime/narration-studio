@@ -336,6 +336,19 @@ export const boothDrivers: Record<string, Driver> = {
     await chip.waitFor({ state: 'detached' });
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
+  'recorded-partly': async (page) => {
+    // A reload for the next width reopens the chapter left at the last one (the kept place), which has no Resume line to wait for.
+    await openBooth(page, '?');
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
+    const picker = page.getByRole('button', { name: /Change chapter/ });
+    if (!(await picker.getAttribute('aria-label'))?.includes('Chapter 4')) {
+      await picker.click();
+      await page.getByRole('menuitemradio').filter({ hasText: '65%' }).first().click();
+    }
+    await page.getByRole('group', { name: /^Recorded through “.*” \(65%\)$/ }).waitFor();
+    await page.locator('[data-recorded-rail]').waitFor();
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
+  },
   'levels-menu': async (page) => {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Levels' }).click();

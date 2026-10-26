@@ -174,6 +174,7 @@ export const teleprompterReadingSchema = z
     scriptHash: z.string().regex(/^[0-9a-f]{64}$/),
     status: z.enum(['listening', 'waiting', 'done']),
     endedAt: z.string(),
+    ranges: z.array(z.object({ from: z.number().int().nonnegative(), to: z.number().int().positive() })).optional(),
   })
   .refine((reading) => reading.read <= reading.tokens, { message: 'read is past the last word', path: ['read'] }) satisfies z.ZodType<TeleprompterReading>;
 

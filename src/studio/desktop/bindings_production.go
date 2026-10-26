@@ -9,6 +9,7 @@ import (
 	"desktop/internal/manuscript"
 	"desktop/internal/production"
 	"desktop/internal/project"
+	"desktop/internal/recordedthrough"
 	"desktop/internal/stages"
 )
 
@@ -293,6 +294,9 @@ func productionChapters(text *manuscript.Service, recommendations *stages.Servic
 			input.RecordedSeconds = &seconds
 		}
 		input.RecordedUnavailable, _ = chapter["recordedUnavailable"].(string)
+		if place, ok := chapter["recordedThrough"].(recordedthrough.Through); ok {
+			input.RecordedThrough = &place
+		}
 		inputs = append(inputs, input)
 	}
 	return inputs, nil
