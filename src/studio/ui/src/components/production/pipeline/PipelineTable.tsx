@@ -138,7 +138,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
             <TableHeader className={STICKY_NAME}>Chapter</TableHeader>
             <TableHeader
               align="right"
-              info="Rec.: the audio on the chapter's linked track in the saved project, before editing, or a word saying why there is none. Est.: its finished length estimated from its words at the planning rate, not a measurement."
+              info="Rec.: the audio on the chapter's linked track in the saved project, before editing, or a word saying why there is none. Est.: its finished length estimated from its words at the planning rate, not a measurement. The cell's tip also says how far the chapter is recorded: through which paragraph, or to the end."
             >
               Rec. / Est.
             </TableHeader>

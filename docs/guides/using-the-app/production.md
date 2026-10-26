@@ -90,12 +90,15 @@ The pipeline has one row per narration chapter. In a narrow window the stages sc
 on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it is the
 chapter's finished length estimated from its words. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **Not linked**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
-project** (no saved project could be read) or **Not read**.
+project** (no saved project could be read) or **Not read**. The Rec. / Est. cell's tip and its name for a screen reader also say how far the
+chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
+the end*, with *about* when the figure comes only from the track's length.
 
 **Record**, **Edit** and **Proof** follow the chapter's stage, which you set (the row's status, or **Confirm** on its
 [readiness](#stage-readiness)); the app does not move a stage on by itself. They show a check mark (✓) for a stage done, a half
-circle for the stage under way and a dash for one not started. Record is the one exception: once the chapter's track has audio
-it shows the share recorded against the estimate, even while the stage still says not started, and its tip says so.
+circle for the stage under way and a dash for one not started. Record is the one exception: once the chapter's track has audio, or the app knows part of it is recorded,
+it shows the share recorded, even while the stage still says not started, and its tip says so. The share is how far the chapter is
+recorded, the same figure as the Booth's, when the app knows it; otherwise it is the track's audio against the estimate.
 **Prep** is the chapter's prep state from [Script](script.md): a check mark when prepped, a half
 circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
 open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
