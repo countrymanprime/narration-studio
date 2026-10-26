@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
+import { HelpButton } from '../../primitives/HelpButton';
 import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useSettingsStore } from '../data/SettingsStore';
@@ -114,6 +115,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
           <label htmlFor={hasCustom ? undefined : controlId} id={`${uid}l`} className="text-[0.9375rem] font-semibold">
             {row.label}
           </label>
+          {row.more && <HelpButton label={`About ${row.label}`}>{row.more}</HelpButton>}
           {changed && <StatusBadge tone="info" label="Changed" />}
         </span>
         <span id={`${uid}d`} className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">

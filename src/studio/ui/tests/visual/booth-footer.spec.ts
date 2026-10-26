@@ -32,7 +32,7 @@ async function footer(page: Page) {
   });
 }
 
-for (const state of ['builtin-setup', 'builtin-refusal', 'listening-no-mic', 'setup', 'recording']) {
+for (const state of ['builtin-setup', 'listening-no-mic', 'setup', 'recording']) {
   for (const size of [
     { width: 1440, height: 900 },
     { width: 1024, height: 768 },

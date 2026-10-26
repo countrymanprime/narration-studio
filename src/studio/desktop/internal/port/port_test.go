@@ -21,10 +21,10 @@ func TestLevelsAreOrderedAndNamed(t *testing.T) {
 }
 
 func TestReasonsKeepTodaysWireValues(t *testing.T) {
-	// The first four are already on the wire (readaloudreaper.go, bindings_navigation.go); the UI switches on them.
+	// The UI switches on these (readaloudreaper.go, bindings_navigation.go).
 	for reason, want := range map[Reason]string{
-		ReasonStandalone: "standalone", ReasonNotRunning: "not_running", ReasonExperimentalOff: "experimental_off",
-		ReasonFailed: "failed", ReasonTurnedOff: "turned_off", ReasonNotYet: "not_yet", ReasonUnsupported: "unsupported",
+		ReasonStandalone: "standalone", ReasonNotRunning: "not_running",
+		ReasonFailed: "failed", ReasonNotYet: "not_yet", ReasonUnsupported: "unsupported",
 	} {
 		if string(reason) != want {
 			t.Errorf("reason %q, want %q", reason, want)
@@ -33,10 +33,10 @@ func TestReasonsKeepTodaysWireValues(t *testing.T) {
 }
 
 func TestNotSupportedErrorSpeaksTheNarratorsMessage(t *testing.T) {
-	msg := "Punch and roll is experimental and switched off in Settings."
+	msg := "REAPER is not answering. Check that REAPER is open, then try again."
 	var err error = &NotSupportedError{
 		Capability: "punch",
-		Support:    Support{Level: Experimental, Reason: ReasonExperimentalOff, Message: msg},
+		Support:    Support{Level: Experimental, Reason: ReasonNotRunning, Message: msg},
 	}
 	if err.Error() != msg {
 		t.Fatalf("Error() = %q, want the Support.Message %q", err.Error(), msg)
@@ -46,7 +46,7 @@ func TestNotSupportedErrorSpeaksTheNarratorsMessage(t *testing.T) {
 		t.Fatal("errors.Is(wrapped, ErrNotSupported) = false")
 	}
 	var ns *NotSupportedError
-	if !errors.As(wrapped, &ns) || ns.Capability != "punch" || ns.Support.Reason != ReasonExperimentalOff {
+	if !errors.As(wrapped, &ns) || ns.Capability != "punch" || ns.Support.Reason != ReasonNotRunning {
 		t.Fatalf("errors.As = %+v", ns)
 	}
 	if errors.Is(errors.New(msg), ErrNotSupported) {

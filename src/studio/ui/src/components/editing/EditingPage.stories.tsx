@@ -91,7 +91,7 @@ export const DrawerEffects: Story = {
 
 // The drawer on Backups, where the DAW keeps them (Audacity with backups).
 export const DrawerBackups: Story = {
-  args: { setup: 'audacity-backups' },
+  args: { setup: 'audacity' },
   play: async ({ canvasElement }) => {
     await script(canvasElement);
     await userEvent.click(within(canvasElement).getByRole('button', { name: 'Clean up and effects' }));

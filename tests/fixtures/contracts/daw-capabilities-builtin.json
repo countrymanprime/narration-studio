@@ -19,11 +19,9 @@
       "reason": "unsupported"
     },
     "cut_range": {
-      "available": false,
+      "available": true,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "mode": "app",
-      "reason": "experimental_off"
+      "mode": "app"
     },
     "daw_meters": {
       "available": false,
@@ -152,10 +150,8 @@
       "reason": "unsupported"
     },
     "record": {
-      "available": false,
-      "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "available": true,
+      "level": "experimental"
     },
     "regions": {
       "available": false,
@@ -206,10 +202,8 @@
       "reason": "unsupported"
     },
     "takes": {
-      "available": false,
-      "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "available": true,
+      "level": "experimental"
     },
     "track_create": {
       "available": false,

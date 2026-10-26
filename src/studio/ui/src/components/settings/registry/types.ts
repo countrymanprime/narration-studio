@@ -60,7 +60,10 @@ export type SettingMeta = {
   section: string;
   /** The label shown; the host's own label is the fallback. */
   label: string;
+  /** One line (60 characters at most), always shown under the label. */
   desc: string;
+  /** The details behind the row's "?": a few sentences, never drawn in the page (design system, No in-flow instructions). */
+  more?: string;
   scope: Scope;
   /** The host field this row edits. A row without one draws its own control (`controls/`). */
   field?: { tool: string; key: string };

@@ -108,9 +108,9 @@ func TestReplaceRangeRefusesABadRequestWithoutSendingIt(t *testing.T) {
 }
 
 func TestReplaceRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to replace words with another narrator's audio."
+	sentence := "REAPER cannot replace words with another narrator's audio from this app."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	replacer := adapter.Role(dawport.CapReplaceRange).(dawport.RangeReplacer)
 	got, err := replacer.ReplaceRange(t.Context(), replaceRequest(2, "Eric Leach"))

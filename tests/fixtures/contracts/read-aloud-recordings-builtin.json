@@ -9,11 +9,6 @@
     "reason": "failed",
     "message": "Windows has blocked this app from the microphone."
   },
-  "experimental off": {
-    "outcome": "refused",
-    "reason": "experimental_off",
-    "message": "Experimental: switched off in Settings."
-  },
   "no microphone": {
     "outcome": "refused",
     "reason": "no_microphone",
@@ -23,11 +18,6 @@
     "outcome": "refused",
     "reason": "not_yet",
     "message": "Not available with the built-in recorder yet."
-  },
-  "record switched off": {
-    "outcome": "refused",
-    "reason": "turned_off",
-    "message": "Turned off in Settings."
   },
   "start": {
     "outcome": "started"

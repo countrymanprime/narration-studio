@@ -401,9 +401,9 @@ describe('Settings: editing', () => {
     const advanced = await screen.findByRole('button', { name: /Advanced/ });
     expect(advanced.getAttribute('aria-expanded')).toBe('false');
     expect(advanced.textContent).toMatch(/\(\d+\)/);
-    expect(row('daw.experimental')).toBeFalsy();
+    expect(row('daw.capabilities')).toBeFalsy();
     fireEvent.click(advanced);
-    expect(row('daw.experimental')).toBeTruthy();
+    expect(row('daw.capabilities')).toBeTruthy();
   });
 
   // Alignment audit (XSE2-18): the opened Advanced sections sit behind a rule, so a section named like one above reads as its advanced part.

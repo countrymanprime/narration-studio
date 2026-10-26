@@ -79,7 +79,10 @@ describe('useCleanupDeps', () => {
 
     const gainOnly = wrapperFor('reaper', (s) => ({
       ...s,
-      capabilities: { ...s.capabilities, click_repair: { level: 'experimental', available: false, reason: 'turned_off', message: 'Off.' } },
+      capabilities: {
+        ...s.capabilities,
+        click_repair: { level: 'not_yet_available', available: false, reason: 'not_yet', message: 'Repairing clicks is not available with REAPER yet.' },
+      },
     }));
     const second = renderHook(() => useCleanupDeps(NO_CUTS), { wrapper: gainOnly.wrapper });
     await waitFor(() => expect(second.result.current).toBeDefined());

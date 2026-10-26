@@ -150,8 +150,7 @@ func requiresProblems(adapter dawport.Adapter) []string {
 	return problems
 }
 
-// resolverProblems checks the adapter through a Resolver: first with every capability switched on and the engine answering, so
-// only the declaration can refuse, then standalone and not running, so every refusal the runtime causes is worded too.
+// resolverProblems checks the adapter through a Resolver: first with the engine answering, so only the declaration can refuse, then standalone and not running, so every refusal the runtime causes is worded too.
 func resolverProblems(adapter dawport.Adapter, declared map[dawport.Capability]dawport.Level) []string {
 	var problems []string
 	report := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
@@ -159,7 +158,6 @@ func resolverProblems(adapter dawport.Adapter, declared map[dawport.Capability]d
 		return dawport.NewResolver(dawport.ResolverConfig{
 			Adapter: adapter,
 			Runtime: func() dawport.Runtime { return rt },
-			Toggle:  func(dawport.Capability) dawport.Toggle { return dawport.ToggleOn },
 		})
 	}
 
@@ -213,8 +211,8 @@ func resolverProblems(adapter dawport.Adapter, declared map[dawport.Capability]d
 }
 
 var knownReasons = map[dawport.Reason]bool{
-	dawport.ReasonStandalone: true, dawport.ReasonNotRunning: true, dawport.ReasonExperimentalOff: true, dawport.ReasonFailed: true,
-	dawport.ReasonTurnedOff: true, dawport.ReasonNotYet: true, dawport.ReasonUnsupported: true,
+	dawport.ReasonStandalone: true, dawport.ReasonNotRunning: true, dawport.ReasonFailed: true, dawport.ReasonNotYet: true,
+	dawport.ReasonUnsupported: true,
 }
 
 // closedTransportProblems calls every method of the capability's role interface on role, with zero arguments (a no-op for a func

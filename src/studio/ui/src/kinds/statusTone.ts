@@ -56,7 +56,6 @@ const STATUS = {
   offline: { label: 'Offline', tone: 'warning' },
   no_key: { label: 'No key saved', tone: 'warning' },
   supported: { label: 'Supported', tone: 'success' },
-  experimental: { label: 'Experimental', tone: 'experimental' },
   not_yet_available: { label: 'Not yet available', tone: 'neutral' },
   unsupported: { label: 'Unsupported', tone: 'neutral' },
   linked: { label: 'Linked', tone: 'success' },

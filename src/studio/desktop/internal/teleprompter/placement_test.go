@@ -3,31 +3,16 @@ package teleprompter
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"slices"
 	"testing"
-
-	"desktop/internal/brand"
 )
 
 // runFakePlacer is a `--words-only` run: the words it heard in the stretch, and the arguments it was given.
 func runFakePlacer(mode string) bool {
-	if mode != "heard" || !slices.Contains(os.Args[1:], "--words-only") {
+	if mode != "heard" {
 		return false
 	}
 	fmt.Println(`{"type": "heard", "words": [["Ada", 0.5, 0.8], ["climbed", 0.9, 1.3], ["um", 1.4, 1.5], ["the", 1.6, 1.7], ["stairs", 1.8, 2.2]]}`)
 	return true
-}
-
-// writeFollowedManuscript writes the one-paragraph chapter c1 the host builds the script from: "Ada climbed the stairs."
-func writeFollowedManuscript(t *testing.T, project string) {
-	t.Helper()
-	text := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": "Chapter One", "subtitle": "The Lamp"}], "paragraphs": [` +
-		`{"id": "p1", "chapterId": "c1", "index": 0, "text": "Ada climbed the stairs."}]}`
-	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(text), 0o600); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestLocatePlacesTheDecodedWordsInTheHost(t *testing.T) {
@@ -56,13 +41,5 @@ func TestAlignWordTimesTheDecodedWordsInTheHostInTheFilesSeconds(t *testing.T) {
 	// Word 5 is "climbed", heard 0.9 s into the stretch that starts 812.4 s into the file.
 	if timed.Time == nil || *timed.Time != 813.3 || !timed.Exact || timed.Word != 5 || timed.Matched != 4 || timed.Tokens != 8 {
 		t.Fatalf("timed %+v", timed)
-	}
-}
-
-func TestAPlacementTheHostCannotBuildIsLeftToTheSidecar(t *testing.T) {
-	f := newLocateFixture(t, "locate-ok")
-	located, err := f.service.Locate(context.Background(), f.request())
-	if err != nil || located.Word == nil || *located.Word != 52 {
-		t.Fatalf("located %+v, %v: the `{}` manuscript leaves the placing to the sidecar's own locate line", located, err)
 	}
 }

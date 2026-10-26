@@ -86,7 +86,7 @@ Source: [#1766](https://github.com/countrymanprime/narration-studio/pull/1766).
 Source: [#1761](https://github.com/countrymanprime/narration-studio/pull/1761) unless named.
 
 - [ ] **3.10 Odd file locations.** Needs: Folder window. Pick a file on a network share (UNC) and one with a path over 260 characters. See: Check files measures it or says why.
-- [ ] **3.11 Play and Open in REAPER.** Needs: REAPER, Audio. Right-click a row, then **Play the quietest 5 s** and **Open in REAPER** with REAPER running and the Experimental switches on. See: both work, and the toast names the DAW.
+- [ ] **3.11 Play and Open in REAPER.** Needs: REAPER, Audio. Right-click a row, then **Play the quietest 5 s** and **Open in REAPER** with REAPER running. See: both work, and the toast names the DAW.
 - [ ] **3.12 Quit REAPER with the page open.** Needs: REAPER. See: the two buttons go off with a reason within a few seconds, and **Check again** brings them back when REAPER returns.
 - [ ] **3.13 Long measurement and restart.** Needs: Packaged app. Start a long measurement, quit the app and reopen. See: the page shows what happened to the run.
 - [ ] **3.14 Chapter picker height.** Open the chapter picker with the window maximised and at a short height. See: the list stays on screen.

@@ -73,7 +73,7 @@ const notRunningSeed: MockApiSeed = { dawChoice: { linkedFile: 'Alice.rpp', brid
 
 describe('Recording & DAW: Record with', () => {
   it('chooses the recorder: REAPER, Audacity or built-in', async () => {
-    const api = createMockApi({}, { daw: { experimentalOn: true } });
+    const api = createMockApi({}, { daw: {} });
     const choose = vi.spyOn(api, 'dawChoose');
     await renderPage({ api, category: 'Recording & DAW' });
     const group = await screen.findByRole('radiogroup', { name: 'Record with' });
@@ -184,7 +184,7 @@ describe('Recording & DAW: Record with', () => {
     await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(before));
   });
 
-  it("names no .rpp file under Audacity and shows the host's refusal of the built-in recorder", async () => {
+  it('names no .rpp file under Audacity, and the built-in recorder can be chosen with nothing to turn on', async () => {
     await renderPage({ api: createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } }), category: 'Recording & DAW' });
     await screen.findByRole('group', { name: 'Audacity connection' });
     expect(screen.queryByRole('group', { name: 'Connection' })).toBeNull();
@@ -192,42 +192,35 @@ describe('Recording & DAW: Record with', () => {
     cleanup();
     await renderPage({ api: createMockApi({}, foundSeed), category: 'Recording & DAW' });
     fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
-    expect((await screen.findByRole('alert')).textContent).toContain('Experimental: switched off in Settings.');
-    expect(screen.getByRole('radio', { name: /^REAPER\./ }).getAttribute('aria-checked')).toBe('true');
+    // No REAPER file is linked, so the choice is taken at once; nothing refuses it.
+    await waitFor(() => expect(screen.getByRole('radio', { name: /^Built-in recorder/ }).getAttribute('aria-checked')).toBe('true'));
+    expect(document.body.textContent).not.toMatch(/experimental/i);
   });
 
-  it('words the Recording tool rows for the chosen DAW: the Experimental switch is for every DAW and the REAPER-only rows are not shown under Audacity', async () => {
+  it('words the Recording tool rows for the chosen DAW: Capabilities is for every DAW and the REAPER-only rows are not shown under Audacity', async () => {
     const audacity = createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } });
     await renderPage({ api: audacity, category: 'Recording & DAW', advanced: true });
     await screen.findByRole('group', { name: 'Audacity connection' });
-    expect(row('daw.experimental')).toBeTruthy();
-    expect(row('daw.experimental').textContent).toContain('Experimental DAW actions');
-    expect(row('daw.experimental').textContent).not.toMatch(/REAPER/);
+    expect(row('daw.capabilities')).toBeTruthy();
     expect(row('daw.reaperPath')).toBeFalsy();
     expect(row('daw.autoLauncher')).toBeFalsy();
-    expect(document.body.textContent).not.toMatch(/Experimental REAPER actions/);
+    expect(document.body.textContent).not.toMatch(/experimental/i);
     cleanup();
     await renderPage({ api: createMockApi(), category: 'Recording & DAW', advanced: true });
     expect(row('daw.reaperPath')).toBeTruthy();
     expect(row('daw.autoLauncher')).toBeTruthy();
-    expect(row('daw.experimental').textContent).toContain('Experimental DAW actions');
-  });
-
-  it('points the switched-off built-in option at the switch by its own name', async () => {
-    await renderPage({ api: createMockApi({}, foundSeed), category: 'Recording & DAW' });
-    fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
-    await screen.findByRole('alert');
-    expect(screen.getAllByText(/Turn on Experimental DAW actions under Advanced, below\./).length).toBeGreaterThan(0);
+    expect(row('daw.experimental')).toBeFalsy();
+    expect(document.body.textContent).not.toMatch(/experimental/i);
   });
 
   it('the rows follow the recorder chosen here: REAPER-only rows go when Audacity is chosen and come back with REAPER', async () => {
-    await renderPage({ api: createMockApi({}, { daw: { experimentalOn: true } }), category: 'Recording & DAW', advanced: true });
+    await renderPage({ api: createMockApi({}, { daw: {} }), category: 'Recording & DAW', advanced: true });
     await screen.findByText('REAPER linked');
     expect(row('daw.reaperPath')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: /^Audacity/ }));
     await waitFor(() => expect(row('daw.reaperPath')).toBeFalsy());
     expect(row('daw.autoLauncher')).toBeFalsy();
-    expect(row('daw.experimental')).toBeTruthy();
+    expect(row('daw.capabilities')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: /^REAPER\./ }));
     await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
@@ -272,7 +265,7 @@ describe('Recording & DAW: Record with', () => {
   });
 
   it('Keep REAPER in the confirm leaves the project on REAPER', async () => {
-    const api = createMockApi({}, { daw: { experimentalOn: true } });
+    const api = createMockApi({}, { daw: {} });
     const choose = vi.spyOn(api, 'dawChoose');
     await renderPage({ api, category: 'Recording & DAW' });
     fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
@@ -369,15 +362,11 @@ describe('Recording & DAW: Microphone, settings unreadable', () => {
 describe('Recording & DAW: layout', () => {
   it('fixes the Capabilities columns and does not repeat the row description under the table', async () => {
     await renderPage({ category: 'Recording & DAW', advanced: true });
-    const table = await within(row('daw.capabilities')).findByRole('table', { name: 'What the recording tool can do' });
-    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '6.5rem', '8.5rem']);
+    const table = await within(row('daw.capabilities')).findByRole('table', { name: /^What .* can do$/ });
+    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '60%']);
+    // Read-only: no Auto / On / Off control in any row.
+    expect(within(table).queryAllByRole('combobox')).toHaveLength(0);
     expect(row('daw.capabilities').textContent).not.toContain('Auto follows what the recording tool reports.');
-  });
-
-  it('says the Experimental switch is off once, under the radios, not under each option', async () => {
-    await renderPage({ api: createMockApi({}, foundSeed), category: 'Recording & DAW' });
-    await screen.findByRole('group', { name: 'Connection' });
-    expect(screen.getAllByText(/Turn on Experimental DAW actions under Advanced, below\./)).toHaveLength(1);
   });
 
   it('draws the connection card on the card surface with its buttons in one row, Test connection last', async () => {
@@ -392,29 +381,16 @@ describe('Recording & DAW: layout', () => {
 });
 
 describe('Recording & DAW: Capabilities', () => {
-  it('lists every capability with its setting and what the tool reports now, in the host’s words', async () => {
+  it('lists every capability with what the tool reports now, in the host’s words, and no setting', async () => {
     const api = createMockApi({}, { daw: { connected: false } });
     await renderPage({ api, category: 'Recording & DAW', advanced: true });
-    const table = await within(row('daw.capabilities')).findByRole('table', { name: 'What the recording tool can do' });
+    const table = await within(row('daw.capabilities')).findByRole('table', { name: /^What .* can do$/ });
     await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(DAW_CAPABILITIES.length + 1));
     const report = await api.dawCapabilities();
     const recordRow = within(table).getByText('Record').closest('tr')!;
     expect(within(recordRow).getByText('Unavailable')).toBeTruthy();
     expect(within(recordRow).getByText(report.capabilities.record!.message!)).toBeTruthy();
-    expect(within(recordRow).getByRole('combobox', { name: 'Record' })).toHaveProperty('value', 'auto');
-  });
-
-  it('saves On, Off and Auto for one capability, and Auto clears it', async () => {
-    const api = createMockApi();
-    const save = vi.spyOn(api, 'saveSettings');
-    await renderPage({ api, category: 'Recording & DAW', advanced: true });
-    const select = await within(row('daw.capabilities')).findByRole('combobox', { name: 'Add markers' });
-    fireEvent.change(select, { target: { value: 'off' } });
-    await waitFor(() => expect(save).toHaveBeenCalledWith('DAW', 'global', { 'capability.markers': 'off' }));
-    await waitFor(() => expect((within(row('daw.capabilities')).getByRole('combobox', { name: 'Add markers' }) as HTMLSelectElement).value).toBe('off'));
-    expect(within(row('daw.capabilities')).getByText('Saved')).toBeTruthy();
-    fireEvent.change(within(row('daw.capabilities')).getByRole('combobox', { name: 'Add markers' }), { target: { value: 'auto' } });
-    await waitFor(() => expect(save).toHaveBeenLastCalledWith('DAW', 'global', { 'capability.markers': null }));
+    expect(within(recordRow).queryByRole('combobox')).toBeNull();
   });
 
   it('follows the host’s live report and offers Retry when the first read fails', async () => {

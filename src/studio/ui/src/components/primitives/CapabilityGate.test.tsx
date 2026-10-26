@@ -12,15 +12,26 @@ afterEach(() => {
 });
 
 const SUPPORTED: CapabilityEntry = { level: 'supported', available: true };
-const EXPERIMENTAL_ON: CapabilityEntry = {
-  level: 'experimental',
-  available: true,
-  message: 'Experimental: switched on in Settings',
-};
+const BUILT_ON: CapabilityEntry = { level: 'experimental', available: true };
 const NOT_YET: CapabilityEntry = { level: 'not_yet_available', available: false, message: 'REAPER is not running' };
 const UNSUPPORTED: CapabilityEntry = { level: 'unsupported', available: false };
 
 describe('CapabilityGate', () => {
+  it('renders an available control unchanged, whatever its level, with no badge', () => {
+    for (const capability of [SUPPORTED, BUILT_ON]) {
+      cleanup();
+      render(
+        <CapabilityGate capability={capability}>
+          <Button>Apply FX chain</Button>
+        </CapabilityGate>,
+      );
+      const button = screen.getByRole('button', { name: 'Apply FX chain' });
+      expect(button.hasAttribute('aria-disabled')).toBe(false);
+      expect(button.hasAttribute('aria-describedby')).toBe(false);
+      expect(screen.queryByText(/experimental/i)).toBeNull();
+    }
+  });
+
   it('renders a supported, available control unchanged', () => {
     render(
       <CapabilityGate capability={SUPPORTED}>
@@ -30,30 +41,6 @@ describe('CapabilityGate', () => {
     const button = screen.getByRole('button', { name: 'Master all to spec' });
     expect(button.hasAttribute('aria-disabled')).toBe(false);
     expect(screen.queryByText('Experimental')).toBeNull();
-  });
-
-  it('renders an experimental, available control enabled with an Experimental badge and the message as its description', () => {
-    render(
-      <CapabilityGate capability={EXPERIMENTAL_ON}>
-        <Button>Apply FX chain</Button>
-      </CapabilityGate>,
-    );
-    const button = screen.getByRole('button', { name: 'Apply FX chain' });
-    expect(button.hasAttribute('aria-disabled')).toBe(false);
-    expect(screen.getByText('Experimental')).toBeTruthy();
-    const describedBy = button.getAttribute('aria-describedby');
-    expect(describedBy).toBeTruthy();
-    expect(document.getElementById(describedBy as string)?.textContent).toBe('Experimental: switched on in Settings');
-  });
-
-  it('renders no description when an experimental, available control has no message', () => {
-    render(
-      <CapabilityGate capability={{ level: 'experimental', available: true }}>
-        <Button>Apply FX chain</Button>
-      </CapabilityGate>,
-    );
-    const button = screen.getByRole('button', { name: 'Apply FX chain' });
-    expect(button.hasAttribute('aria-describedby')).toBe(false);
   });
 
   it('gates an unavailable control as aria-disabled, still focusable, and the press never reaches the handler', async () => {
@@ -129,7 +116,7 @@ describe('CapabilityGate', () => {
     expect(screen.getByRole('button', { name: 'Punch from here' })).toBeTruthy();
   });
 
-  it('leaves no dangling aria-describedby reference in either the gated or the experimental-badge case', () => {
+  it('leaves no dangling aria-describedby reference when gated, and none at all once available', () => {
     const { rerender } = render(
       <CapabilityGate capability={NOT_YET}>
         <Button>Punch from here</Button>
@@ -138,23 +125,10 @@ describe('CapabilityGate', () => {
     const button = screen.getByRole('button', { name: 'Punch from here' });
     expect(document.getElementById(button.getAttribute('aria-describedby') as string)).toBeTruthy();
     rerender(
-      <CapabilityGate capability={EXPERIMENTAL_ON}>
+      <CapabilityGate capability={BUILT_ON}>
         <Button>Punch from here</Button>
       </CapabilityGate>,
     );
-    const enabled = screen.getByRole('button', { name: 'Punch from here' });
-    expect(document.getElementById(enabled.getAttribute('aria-describedby') as string)).toBeTruthy();
-  });
-
-  // R3EN1-8: in a dialog's action row the badge after the primary pushed it 72 px short of the corner every other dialog's primary ends in.
-  it('with badgeSide "before", draws the badge ahead of the control, so the control keeps the end of its row', () => {
-    render(
-      <CapabilityGate capability={{ level: 'experimental', available: true }} badgeSide="before">
-        <button type="button">Create 2 regions</button>
-      </CapabilityGate>,
-    );
-    const wrapper = screen.getByRole('button', { name: 'Create 2 regions' }).parentElement!;
-    expect(wrapper.className).toContain('flex-row-reverse');
-    expect(screen.getByText('Experimental')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Punch from here' }).hasAttribute('aria-describedby')).toBe(false);
   });
 });

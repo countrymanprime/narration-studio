@@ -54,9 +54,10 @@ const (
 	messageStepTwoTracks = "More than one Audacity track has that name, so the app will not guess which to change. Rename one, then try again."
 )
 
-// backupsSentence is the sentence for a capability that needs backups while they are off, as the resolver words it.
+// backupsSentence is the sentence for a capability that needs a backup this adapter cannot make: it has no project folder to keep
+// the backups table in.
 func backupsSentence(c dawport.Capability) string {
-	return needBackups[c] + " needs Audacity backups. Turn on Audio backups in Settings."
+	return needBackups[c] + " needs a backup first, and Audacity backups need a project open in this app. Open the project, then try again."
 }
 
 // canBackUp is whether this adapter can make a backup at all: it has the app's project folder to keep the table in.

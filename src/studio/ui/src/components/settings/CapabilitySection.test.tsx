@@ -56,7 +56,7 @@ describe('CapabilitySection', () => {
     expect(screen.queryByText(label('review'))).toBeNull();
   });
 
-  it('reads each level as a word with its own badge shape', async () => {
+  it('reads each level as a word with its own badge shape, and a built capability as Supported, never Experimental', async () => {
     renderSection({
       dawCapabilities: async () =>
         report({
@@ -69,11 +69,12 @@ describe('CapabilitySection', () => {
     const rows = await screen.findAllByRole('listitem');
     const marks = rows.map((row) => within(row).getByTestId('capability-level').textContent);
     expect(marks[0]).toContain('Supported');
-    expect(marks[1]).toContain('Experimental');
+    expect(marks[1]).toContain('Supported');
+    expect(marks[1]).not.toMatch(/experimental/i);
     expect(marks[2]).toContain('Not yet available');
     expect(marks[3]).toContain('Unsupported');
     const glyphs = marks.map((text) => text!.split(' ')[0]);
-    expect(new Set(glyphs).size).toBe(4);
+    expect(new Set(glyphs).size).toBe(3);
   });
 
   it("shows an unavailable capability's message verbatim and words nothing of its own", async () => {

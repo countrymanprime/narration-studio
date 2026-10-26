@@ -143,14 +143,13 @@ func TestREAPERsRefusalsAreWordedAndNothingIsClaimedChanged(t *testing.T) {
 		reason string
 		words  string
 	}{
-		"recording":    {bridge.ErrRecording, ReasonRecording, "recording"},
-		"stale item":   {&bridge.StaleError{GUID: guidA, Reason: "item"}, ReasonStale, "no longer"},
-		"stale take":   {&bridge.StaleError{GUID: guidA, Reason: "take"}, ReasonStale, "no longer"},
-		"standalone":   {bridge.ErrUnavailable, ReasonStandalone, "not connected"},
-		"not running":  {bridge.ErrNoAnswer, ReasonNotRunning, "not answering"},
-		"old script":   {bridge.ErrScriptOutdated, ReasonScriptOutdated, "older"},
-		"experimental": {bridge.ErrExperimentalOff, ReasonExperimentalOff, "Experimental"},
-		"other":        {errors.New("boom"), ReasonFailed, "boom"},
+		"recording":   {bridge.ErrRecording, ReasonRecording, "recording"},
+		"stale item":  {&bridge.StaleError{GUID: guidA, Reason: "item"}, ReasonStale, "no longer"},
+		"stale take":  {&bridge.StaleError{GUID: guidA, Reason: "take"}, ReasonStale, "no longer"},
+		"standalone":  {bridge.ErrUnavailable, ReasonStandalone, "not connected"},
+		"not running": {bridge.ErrNoAnswer, ReasonNotRunning, "not answering"},
+		"old script":  {bridge.ErrScriptOutdated, ReasonScriptOutdated, "older"},
+		"other":       {errors.New("boom"), ReasonFailed, "boom"},
 	}
 	for name, c := range cases {
 		fake := &fakeActors{setErr: c.err}

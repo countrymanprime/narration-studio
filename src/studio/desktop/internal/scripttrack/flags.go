@@ -9,7 +9,7 @@ import (
 
 // Suspected reading errors (flags.py): once a segment closes, what did not line up with the script is reported as
 // flag events after the tracker's positions. Every flag is only suspected, so the rules favour precision over recall;
-// the package comment of flags.py gives them in full.
+// docs/architecture/manuscript-teleprompter.md (Flags) gives them in full.
 
 // The flag rules' limits, flags.py's constants.
 const (

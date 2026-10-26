@@ -11,13 +11,13 @@ import (
 func TestTheTransportCommandsAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
-	if _, err := actions.ArmOnly(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ArmOnly(context.Background(), testTrack); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ArmOnly: %v", err)
 	}
-	if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{}); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{}); !errors.Is(err, errGateRefused) {
 		t.Fatalf("RecordStart: %v", err)
 	}
-	if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.RecordStop(context.Background()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("RecordStop: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

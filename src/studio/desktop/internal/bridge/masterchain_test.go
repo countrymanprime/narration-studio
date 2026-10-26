@@ -11,7 +11,7 @@ import (
 func TestReadMasterChainIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ReadMasterChain: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

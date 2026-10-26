@@ -15,7 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -106,9 +106,15 @@ type Service struct {
 	controlFile string
 	// +checklocks:mu
 	scriptFile string
-	// follow follows the running session's read in the host (follow.go), or is nil when the sidecar follows it itself.
+	// follow follows the running session's read in the host (follow.go); nil, with unfollowed the reason, when the host
+	// could not read the script.
 	// +checklocks:mu
 	follow *follower
+	// +checklocks:mu
+	unfollowed error
+	// unfollowedStop is the error a session that could not be followed was stopped with, the message it ends on.
+	// +checklocks:mu
+	unfollowedStop string
 	// meter is the running level meter child (meter.go), or nil; its stopping flag is also guarded by mu.
 	// +checklocks:mu
 	meter    *meterRun
@@ -333,19 +339,21 @@ func (s *Service) planSession(options map[string]string, src source) (launch, er
 	if src.script != nil {
 		planned.scriptFile = filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.script.txt", stamp))
 		planned.scriptText, planned.scriptTitle = src.script.Text, src.script.Title
-		args = append(args, "--script", planned.scriptFile, "--script-id", src.script.ID, "--script-title", src.script.Title)
+		args = append(args, "--script", planned.scriptFile)
 	} else {
 		args = append(args, "--manuscript", src.manuscript, "--chapter", src.chapter)
 	}
-	args = append(args, "--stop-file", stopFile, "--control-file", controlFile)
+	if planned.startWord != "" {
+		if _, err := strconv.Atoi(planned.startWord); err != nil {
+			return launch{}, fmt.Errorf("the start word %q is not a word of the script", planned.startWord)
+		}
+	}
+	args = append(args, "--stop-file", stopFile, "--control-file", controlFile, "--clock")
 	if modelDir := option(options, "modelDir", ""); modelDir != "" {
 		args = append(args, "--model-dir", modelDir)
 	}
 	if language := option(options, "language", ""); language != "" {
 		args = append(args, "--language", language)
-	}
-	if startWord := option(options, "startWord", ""); startWord != "" {
-		args = append(args, "--start-word", startWord)
 	}
 	if wav != "" {
 		args = append(args, "--wav", wav)
@@ -458,16 +466,18 @@ func (s *Service) begin(plan launch) error {
 			return err
 		}
 	}
-	args := plan.args
-	if script, startWord, ok := plan.followed(); ok {
-		args = append(slices.Clone(args), "--clock")
+	// A chapter the host cannot read is one the sidecar refuses too, with its own message for the narrator; the session
+	// starts without a follower, and stops at its first clock line if the sidecar read it after all (unfollowed).
+	script, startWord, followErr := plan.followed()
+	if followErr == nil {
 		s.startFollowing(script, startWord)
 	}
-	s.mu.RLock()
+	s.mu.Lock()
+	s.unfollowed, s.unfollowedStop = followErr, ""
 	follow := s.follow
-	s.mu.RUnlock()
+	s.mu.Unlock()
 	ctx, cancel := context.WithCancel(context.Background())
-	child, err := s.sidecars.StartStream(ctx, s.onLine, s.config.Python, args...)
+	child, err := s.sidecars.StartStream(ctx, s.onLine, s.config.Python, plan.args...)
 	if err != nil {
 		cancel()
 		if plan.scriptFile != "" {
@@ -564,6 +574,19 @@ func (s *Service) onLine(line string) {
 	s.mu.RUnlock()
 	if follow != nil {
 		s.sendScript(follow)
+	}
+	if kind == clockEventType && follow == nil {
+		s.mu.Lock()
+		message := ""
+		if s.unfollowed != nil && s.unfollowedStop == "" {
+			message = "Could not follow the read: " + s.unfollowed.Error()
+			s.unfollowedStop = message
+		}
+		s.mu.Unlock()
+		if message != "" {
+			go s.stop(message, false)
+		}
+		return
 	}
 	if kind == clockEventType {
 		var clock struct {
@@ -689,12 +712,15 @@ func (s *Service) watch(child *process.StreamChild, cancel context.CancelFunc, f
 	s.mu.Lock()
 	stopFile, controlFile, scriptFile := s.stopFile, s.controlFile, s.scriptFile
 	s.cancelAutoStopLocked()
-	if s.stopping || code == 0 {
+	switch {
+	case s.unfollowedStop != "":
+		s.state["phase"], s.state["message"] = "error", s.unfollowedStop
+	case s.stopping || code == 0:
 		s.state["phase"], s.state["message"] = "stopped", stoppedMessage
 		if s.autoStopped {
 			s.state["message"] = autoStoppedMessage
 		}
-	} else {
+	default:
 		s.state["phase"], s.state["message"] = "error", failureMessage(code, child.StderrTail(), "The teleprompter stopped unexpectedly")
 	}
 	s.child, s.stopping, s.state["paused"] = nil, false, false

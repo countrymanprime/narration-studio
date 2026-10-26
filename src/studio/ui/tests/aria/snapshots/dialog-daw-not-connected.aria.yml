@@ -9,7 +9,7 @@
 - dialog "Audacity is not connected":
   - heading "Audacity is not connected" [level=2]
   - button "Close"
-  - paragraph: Audacity is not running.
+  - paragraph: Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.
   - paragraph: Audacity connected before and has stopped answering.
   - paragraph: You can look at takes, findings and effects. Changes wait until Audacity is running.
   - paragraph:

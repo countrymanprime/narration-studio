@@ -7,17 +7,17 @@ import (
 	"time"
 )
 
-func TestSelectTrackIsRefusedWhileTheExperimentalSettingIsOff(t *testing.T) {
+func TestSelectTrackIsRefusedWhenTheGateRefuses(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{{"TRACK_SELECTED", run(command), testTrack}}
 	})
-	if _, err := actions.SelectTrack(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
-		t.Fatalf("err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.SelectTrack(context.Background(), testTrack); !errors.Is(err, errGateRefused) {
+		t.Fatalf("err = %v, want errGateRefused", err)
 	}
 	time.Sleep(20 * time.Millisecond)
 	if got := fake.commands(); len(got) != 0 {
-		t.Fatalf("a command was written while the setting is off: %v", got)
+		t.Fatalf("a command was written while the gate refuses: %v", got)
 	}
 	if !Experimental("select_track") {
 		t.Fatal("select_track must stay experimental until the verification pass has confirmed it")
@@ -26,8 +26,8 @@ func TestSelectTrackIsRefusedWhileTheExperimentalSettingIsOff(t *testing.T) {
 
 func TestSelectTrackWithANilGateIsOff(t *testing.T) {
 	actions := NewActions(nil, nil)
-	if _, err := actions.SelectTrack(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
-		t.Fatalf("err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.SelectTrack(context.Background(), testTrack); !errors.Is(err, ErrNotGated) {
+		t.Fatalf("err = %v, want ErrNotGated", err)
 	}
 }
 

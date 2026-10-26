@@ -56,7 +56,7 @@ describe('the Parallel processes row (#2251)', () => {
     expect(row.label).toBe('Parallel processes');
     expect(row.live).toBe('workerPlan');
     for (const words of ['copy of the speech model', 'half this computer’s processors', 'free memory', 'A number you choose is kept'])
-      expect(row.desc).toContain(words);
+      expect(row.more).toContain(words);
   });
   it('is found by the words a narrator uses', () => {
     for (const query of ['transcriptions at once', 'workers', 'ram', 'automatic'])

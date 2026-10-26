@@ -10,11 +10,8 @@ import (
 )
 
 // Actions sends the REAPER bridge commands that docs/research/reaper-api-for-planned-commands.md plans and waits for
-// their answers. Every command it sends is on experimentalCommands until the owner and Claude have run the REAPER
-// verification pass for it (docs/operations/reaper-verification-pass.md). Whether a command may be
-// sent is its Gate's answer, asked before anything is written: the host builds the gate over the DAW port's resolver
-// so the narrator's per-capability settings decide it, and Actions does not check a
-// setting itself.
+// their answers. Whether a command may be sent is its Gate's answer, asked before anything is written: the host builds the
+// gate over the DAW port's resolver, so what the linked engine declares decides it. No setting does.
 //
 // Like Navigator, a request returns once its answer has been dispatched by the host's loop (Client.Dispatch), so a
 // request must never be made from a Subscription's Handle.
@@ -64,16 +61,9 @@ func (a *Actions) report(command, outcome string, started time.Time) {
 	}
 }
 
-// The old single switch for the experimental commands: DAW.experimental_reaper_actions, a bool that defaults off
-// (config/defaults.json). The DAW port's resolver reads it (every Experimental capability left on auto is on while it
-// is on); Actions does not.
-const (
-	ExperimentalSettingTool = "DAW"
-	ExperimentalSettingKey  = "experimental_reaper_actions"
-)
-
-// experimentalCommands are the commands that stay Experimental until the verification pass has confirmed them in a
-// real REAPER. A command leaves this list in the PR that records its pass, and its capability's declaration in the DAW
+// experimentalCommands are the commands the verification pass (docs/operations/reaper-verification-pass.md) has not yet
+// confirmed in a real REAPER. The list gates nothing: every one is sent when its capability is declared and REAPER answers. It
+// records what the pass still has to run. A command leaves this list in the PR that records its pass, and its capability's declaration in the DAW
 // port's REAPER adapter moves to Supported with it (dawport/reaper's tests parse this map to hold the two together).
 var experimentalCommands = map[string]bool{
 	"chapter_track_state": true,
@@ -133,12 +123,11 @@ var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK
 	"CURSOR_SET", "TRANSPORT_PLAYING", "TRANSPORT_STOPPED", "TRANSPORT_WATCHING", "ERROR"}
 
 // Gate is asked, with the command's name, before Actions sends it. nil lets the command go; an error refuses it and
-// nothing is written. A refusal matching ErrExperimentalOff (errors.Is) reaches the caller as ErrExperimentalOff itself;
-// any other is passed on as it is.
+// nothing is written, and the refusal reaches the caller as it is.
 type Gate func(command string) error
 
-// ErrExperimentalOff: the command is experimental and switched off in Settings, so nothing was sent to REAPER.
-var ErrExperimentalOff = errors.New("this REAPER action is experimental and switched off: turn on Experimental DAW actions in Settings")
+// ErrNotGated is the refusal of an Actions built with no gate: nothing was sent to REAPER. It is a wiring bug, never a narrator's setting.
+var ErrNotGated = errors.New("this REAPER command has no capability gate, so nothing was sent")
 
 // actionRun collects the events of one request until one of its closing tags (or an ERROR) arrives.
 type actionRun struct {
@@ -153,7 +142,7 @@ type answerSet struct {
 }
 
 // NewActions subscribes to the answers of its commands on client. gate is asked on every request; a nil gate
-// refuses every command with ErrExperimentalOff, so an Actions nobody gated sends nothing experimental. With a nil
+// refuses every command with ErrNotGated, so an Actions nobody gated sends nothing. With a nil
 // client every request the gate lets through is ErrUnavailable.
 func NewActions(client *Client, gate Gate) *Actions {
 	a := &Actions{client: client, gate: gate, timeout: DefaultAnswerTimeout, pending: map[string]*actionRun{}}
@@ -170,7 +159,8 @@ func (a *Actions) SetTimeout(timeout time.Duration) {
 	a.timeout = timeout
 }
 
-// Experimental reports whether command is still experimental (not yet through the verification pass).
+// Experimental reports whether command is still on experimentalCommands (not yet through the verification pass). It decides
+// nothing about whether the command is sent.
 func Experimental(command string) bool { return experimentalCommands[command] }
 
 // request sends command with a new run ID and returns every event of that run up to and including the first one whose
@@ -258,12 +248,9 @@ func hostSentence(err error) bool {
 // allowed refuses a command its gate refuses, then any command with no bridge, before anything is written.
 func (a *Actions) allowed(command string) error {
 	if a.gate == nil {
-		return ErrExperimentalOff
+		return ErrNotGated
 	}
 	if err := a.gate(command); err != nil {
-		if errors.Is(err, ErrExperimentalOff) {
-			return ErrExperimentalOff
-		}
 		return err
 	}
 	if a.client == nil {

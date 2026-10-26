@@ -16,7 +16,7 @@ offers **Back to** the page you came from.
 
 ## Every setting says whose it is and who uses it
 
-Each row has a name, a line on what it does, and under it:
+Each row has a name, one line on what it does (a **?** beside the name opens the details, where there are more), and under it:
 
 - **This computer**, **This project** or **All projects**. A setting for **All projects** is one value for the
   computer that a project may override: under the control it says **This project uses the computer setting.** with
@@ -38,7 +38,7 @@ says how many it holds.
 
 ## Find a setting
 
-At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description, its details and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
 whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
@@ -72,7 +72,7 @@ With **Audacity** chosen, **Connection** is **Audacity connection** instead: a s
 
 Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
 one); with REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
-for Audacity or the built-in recorder); and, under Advanced for any recorder, **Experimental DAW actions**,
+for Audacity or the built-in recorder); and, under Advanced for any recorder,
 **Capabilities** and, for REAPER, **Sync activity**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
@@ -95,8 +95,7 @@ you chose elsewhere, and the row does not check whether a take is recording.
 
 ### Choose REAPER
 
-Each radio says whether that program was found on this computer, or what stops it. When the Experimental switch keeps
-recorders off, one line under the radios says so (**Experimental: switched off in Settings.**, with the switch under Advanced, below). A project folder holding a REAPER
+Each radio says whether that program was found on this computer, or what stops it. A project folder holding a REAPER
 project file (`.rpp`) starts on REAPER; pick another radio to change it.
 
 ### Link your REAPER project
@@ -126,11 +125,10 @@ the last 5 seconds, and the card says whether its open project matches the linke
 - **Start the launcher script with REAPER** (on by default): the app keeps its bridge in REAPER's Scripts folder and
   REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off, the app writes nothing into
   REAPER and REAPER does not connect.
-- **Experimental DAW actions** (Advanced, off by default, for REAPER and Audacity alike): the DAW actions not yet verified
-  stay refused while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
-- **Capabilities** (Advanced): a table, across the row under its name, of what the app can ask the recording tool to do, each with **Auto**, **On** or
-  **Off** and a **Now** column: **Available**, **Experimental** or **Unavailable**,
-  with the tool's own reason beside an unavailable one, and a warning on any action that replaces audio that cannot be brought back.
+- **Capabilities** (Advanced): a table, titled with the linked tool's name ("What REAPER can do"), of what the app can ask the
+  recording tool to do, each with a **Now** column: **Available**, or **Unavailable** with the tool's own reason beside it
+  (REAPER not answering, or something that DAW cannot do, such as "Audacity cannot set an audio interface's input gain").
+  Nothing in it turns a capability on or off: what the linked DAW can do is on, all the time.
 - **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
   chapter a later sync linked when you saved in REAPER, and each new track that isn't a chapter. A link sync made has **Undo**
   while the chapter still holds it; Undo removes that link and sync never makes the same one again.

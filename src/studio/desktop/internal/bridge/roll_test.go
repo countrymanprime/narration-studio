@@ -13,7 +13,7 @@ import (
 func TestRollIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.Roll(context.Background(), testTrack, 40); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.Roll(context.Background(), testTrack, 40); !errors.Is(err, errGateRefused) {
 		t.Fatalf("Roll: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

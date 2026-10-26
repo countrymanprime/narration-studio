@@ -475,8 +475,8 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
       const [chapter] = await api.manuscriptChapters();
       const state = await api.readAloudReaperState(chapter.id);
       expectMatches(readAloudReaperStateSchema, state, `mock reaper state ${seed}`);
-      const host = golden[seed === 'unavailable' ? 'experimental_off' : seed];
-      if (seed !== 'unavailable') expect([state.status, state.reason]).toEqual([host.status, host.reason]);
+      // "unavailable" is the mock's own standalone case; the host's golden has no record for it.
+      if (seed !== 'unavailable') expect([state.status, state.reason]).toEqual([golden[seed].status, golden[seed].reason]);
     }
   });
 
@@ -497,7 +497,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('read-aloud-recordings.json'));
     for (const seed of MOCK_REAPER_SEEDS) {
       // Record is switched on in the mock DAW, so the seed alone decides what the host would answer.
-      const api = createMockApi({}, { reaperState: seed, daw: { toggles: { record: 'on' } } });
+      const api = createMockApi({}, { reaperState: seed, daw: {} });
       const [chapter] = await api.manuscriptChapters();
       const armed = await api.readAloudArmOnly(chapter.id);
       const started = await api.readAloudRecordStart(chapter.id);
@@ -505,8 +505,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
       expectMatches(readAloudRecordingSchema, armed, `mock arm ${seed}`);
       expectMatches(readAloudRecordingSchema, started, `mock record start ${seed}`);
       expectMatches(readAloudRecordingSchema, stopped, `mock record stop ${seed}`);
-      // "unavailable" is its own reason (standalone) in the mock, unlike "experimental_off"'s golden key - the same
-      // case the read-aloud-reaper-states check above skips for the same reason.
+      // "unavailable" is the mock's own standalone case, which the read-aloud-reaper-states check above skips too.
       if (seed === 'unavailable') continue;
       expect([armed.outcome, armed.reason]).toEqual([golden[`${seed}.arm`].outcome, golden[`${seed}.arm`].reason]);
       expect([started.outcome, started.reason]).toEqual([golden[`${seed}.start`].outcome, golden[`${seed}.start`].reason]);
@@ -518,7 +517,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('read-aloud-recordings-builtin.json'));
     Object.entries(golden).forEach(([name, result]) => expectMatches(readAloudRecordingSchema, result, `host built-in record ${name}`));
 
-    const api = createMockApi({}, { daw: { daw: 'Built-in', toggles: { record: 'on' } }, recording: { engine: 'builtin' } });
+    const api = createMockApi({}, { daw: { daw: 'Built-in' }, recording: { engine: 'builtin' } });
     const started = await api.readAloudRecordStart('chapter-1');
     expectMatches(readAloudRecordingSchema, started, 'mock built-in record start');
     expect(started).toEqual(golden.start);
@@ -532,7 +531,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('readaloud-record-start-at.json'));
     Object.entries(golden).forEach(([name, result]) => expectMatches(readAloudRecordingSchema, result, `host record start at ${name}`));
 
-    const api = createMockApi({}, { daw: { toggles: { record: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const [chapter] = await api.manuscriptChapters();
     const started = await api.readAloudRecordStartAt(chapter.id, 30);
     expectMatches(readAloudRecordingSchema, started, 'mock record start at');
@@ -540,7 +539,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     for (const at of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(await api.readAloudRecordStartAt(chapter.id, at)).toEqual(golden.bad_time);
     }
-    const unlinked = await createMockApi({}, { reaperState: 'no_link', daw: { toggles: { record: 'on' } } }).readAloudRecordStartAt(chapter.id, 30);
+    const unlinked = await createMockApi({}, { reaperState: 'no_link', daw: {} }).readAloudRecordStartAt(chapter.id, 30);
     expect([unlinked.outcome, unlinked.reason]).toEqual([golden.no_link.outcome, golden.no_link.reason]);
   });
 
@@ -1578,7 +1577,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     if (second.outcome !== 'created') throw new Error('expected a created track');
     expect(second.track.guid).not.toBe(created.track.guid);
     await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
-    for (const reaperState of ['unavailable', 'experimental_off', 'recording_elsewhere'] as const) {
+    for (const reaperState of ['unavailable', 'recording_elsewhere'] as const) {
       const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
       expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
       expect(refused.outcome).toBe('refused');
@@ -1613,7 +1612,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(noProject.tracks).toHaveLength(0);
   });
 
-  it("TrackSelectInReaper selects the track, and agrees with the host's golden for standalone and experimental_off", async () => {
+  it("TrackSelectInReaper selects the track, and agrees with the host's golden for standalone; the golden's unsupported parses", async () => {
     const golden = z.record(z.string(), trackSelectResultSchema).parse(readGolden('track-select-results.json'));
     const [first] = WIRE_TRACKS_PROJECT.tracks;
 
@@ -1625,9 +1624,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(trackSelectResultSchema, standalone, 'mock track select, standalone');
     expect([standalone.outcome, standalone.reason]).toEqual([golden.standalone.outcome, golden.standalone.reason]);
 
-    const experimentalOff = await createMockApi({}, { reaperState: 'experimental_off' }).trackSelectInReaper(first.guid);
-    expectMatches(trackSelectResultSchema, experimentalOff, 'mock track select, experimental off');
-    expect([experimentalOff.outcome, experimentalOff.reason]).toEqual([golden.experimental_off.outcome, golden.experimental_off.reason]);
+    // A DAW that cannot select a track from this app (no `track_select` capability): the host's own refusal, the one the experimental switch had.
+    expect([golden.unsupported.outcome, golden.unsupported.reason]).toEqual(['refused', 'unsupported']);
 
     await expect(createMockApi().trackSelectInReaper('')).rejects.toThrow();
   });
@@ -1946,15 +1944,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(state.capabilities.heartbeat).toMatchObject({ available: true });
   });
 
-  it('dawCapabilities turns an experimental capability on only when its own toggle, or the master switch, is on', async () => {
-    const off = await createMockApi({}, { daw: {} }).dawCapabilities();
-    expect(off.capabilities.punch).toMatchObject({ available: false, reason: 'experimental_off' });
-    const toggledOn = await createMockApi({}, { daw: { toggles: { punch: 'on' } } }).dawCapabilities();
-    expect(toggledOn.capabilities.punch).toMatchObject({ available: true });
-    const masterOn = await createMockApi({}, { daw: { experimentalOn: true } }).dawCapabilities();
-    expect(masterOn.capabilities.punch).toMatchObject({ available: true });
-    const turnedOff = await createMockApi({}, { daw: { experimentalOn: true, toggles: { punch: 'off' } } }).dawCapabilities();
-    expect(turnedOff.capabilities.punch).toMatchObject({ available: false, reason: 'turned_off' });
+  it('dawCapabilities reports every capability a linked, answering REAPER builds as available, with no setting to turn it on', async () => {
+    const live = await createMockApi({}, { daw: {} }).dawCapabilities();
+    for (const [key, support] of Object.entries(live.capabilities)) {
+      if (support.level === 'supported' || support.level === 'experimental') expect(support, key).toMatchObject({ available: true });
+    }
+    expect(live.capabilities.punch).toMatchObject({ level: 'experimental', available: true });
   });
 
   // SN-D2: the call result and the capability depth fields.
@@ -1982,10 +1977,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it('dawCapabilities carries destructive and mode only where the declaration sets them, and rejects an unknown mode', async () => {
-    const api = createMockApi({}, { daw: { toggles: { punch: 'off' }, depth: { punch: { destructive: true, mode: 'steps' }, record: { mode: 'native' } } } });
+    const api = createMockApi({}, { daw: { reachable: false, depth: { punch: { destructive: true, mode: 'steps' }, record: { mode: 'native' } } } });
     const state = await api.dawCapabilities();
     expectMatches(dawCapabilitiesSchema, state, 'mock daw capabilities (with depth)');
-    expect(state.capabilities.punch).toMatchObject({ available: false, reason: 'turned_off', destructive: true, mode: 'steps' });
+    expect(state.capabilities.punch).toMatchObject({ available: false, reason: 'not_running', destructive: true, mode: 'steps' });
     expect(state.capabilities.record).toMatchObject({ mode: 'native' });
     expect(state.capabilities.record).not.toHaveProperty('destructive');
     expect(state.capabilities.markers).not.toHaveProperty('mode');
@@ -2083,10 +2078,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const after = await found.dawLinkFound();
     expectMatches(dawChoiceSchema, after, 'mock daw choice (after linking)');
     expect({ state: after.state, linkedFile: after.linkedFile, chosen: after.chosen }).toEqual({ state: 'linked', linkedFile: 'Alice.rpp', chosen: 'REAPER' });
-    // The host refuses the built-in recorder where it cannot record; here the Experimental switch is off, and the choice stays.
-    await expect(found.dawChoose('Built-in')).rejects.toThrow('Experimental: switched off in Settings.');
-    expect((await found.dawChoice()).daw).toBe('REAPER');
-    const experimental = createMockApi({}, { dawChoice: { linkedFile: null, foundFiles: ['Alice.rpp'] }, daw: { connected: false, experimentalOn: true } });
+    // No setting keeps the built-in recorder off: choosing it is taken.
+    const experimental = createMockApi({}, { dawChoice: { linkedFile: null, foundFiles: ['Alice.rpp'] }, daw: { connected: false } });
     const builtin = await experimental.dawChoose('Built-in');
     expect({ daw: builtin.daw, state: builtin.state }).toEqual({ daw: 'Built-in', state: 'app' });
     expect((await experimental.recorderState()).engine).toBe('builtin');
@@ -2251,7 +2244,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(seen({ daw: { daw: 'Built-in', transport: recording } })[0]).toEqual(readGolden('daw-transport-builtin-recording.json'));
     expect(seen({ daw: { daw: 'Built-in' } })[0]).toEqual(quiet);
     expect(seen({ daw: { connected: true, reachable: false, transport: recording } })[0]).toEqual(quiet);
-    expect(seen({ daw: { toggles: { heartbeat: 'off' }, transport: recording } })[0]).toEqual(quiet);
+    expect(seen({ daw: { connected: false, transport: recording } })[0]).toEqual(quiet);
   });
 
   it('dawProjectState and its subscribe answer the seeded project state, and match the host goldens', async () => {
@@ -2278,14 +2271,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await read({ daw: { daw: 'Built-in', savedAt, unsavedChanges: true, transport: { playing: false, recording: true, position: 1 } } })).toEqual({
       ...(readGolden('daw-project-state-builtin-recording.json') as object),
     });
-    // With no heartbeat to read (no DAW, REAPER not answering, the capability off) it is the idle payload.
+    // With no heartbeat to read (no DAW, REAPER not answering or not connected) it is the idle payload.
     const idle = readGolden('daw-project-state-idle.json');
     const live = { savedAt, unsavedChanges: true, transport: { playing: true, recording: true, position: 1 } };
     for (const daw of [
       { daw: 'none' as const, ...live },
       { daw: 'Audacity' as const, ...live },
       { reachable: false, ...live },
-      { toggles: { heartbeat: 'off' as const }, ...live },
+      { connected: false, ...live },
     ]) {
       expect(await read({ daw })).toEqual(idle);
     }
@@ -3158,7 +3151,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
         },
       ],
     };
-    const api = createMockApi({}, { ...linked, daw: { toggles: { takes: 'on' } } });
+    const api = createMockApi({}, { ...linked, daw: {} });
     const [first, , lane] = (await api.workspaceTakes(measured.id, 0, 1)).candidates;
 
     const hidden = await api.workspaceHideTakes(measured.id, 0, 1, first.id);
@@ -3184,7 +3177,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-roll-refused-stale.json')).toMatchObject({ ok: false, changed: false, code: 'stale', refused: DAW_ANSWERS.rollStale });
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { punch: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const rolled = await api.dawRoll(chapter.id, 40, false);
     expectMatches(dawResultSchema, rolled, 'mock roll, done');
     expect(rolled).toEqual(readGolden('daw-roll-done.json'));
@@ -3218,7 +3211,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-delete-range-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     for (const mode of ['close', 'gap'] as const) {
       const cut = await api.dawDeleteRange(chapter.id, 0, 0, mode, 12, 0, false);
       expectMatches(dawResultSchema, cut, `mock cut, ${mode}`);
@@ -3246,7 +3239,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-delete-range-pad-refused-no-room-tone.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.cutNoRoomTone });
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const cut = await api.dawDeleteRange(chapter.id, 0, 0, 'gap', 12, 100, true);
     expectMatches(dawResultSchema, cut, 'mock cut, pad and room tone');
     expect(cut).toEqual(readGolden('daw-delete-range-pad-room-tone.json'));
@@ -3278,7 +3271,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-apply-fx-range-refused.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const added = await api.dawApplyFxToRange(chapter.id, 0, 0, chain, 10);
     expectMatches(dawResultSchema, added, 'mock chain on a range');
     expect(added).toEqual(readGolden('daw-apply-fx-range-done.json'));
@@ -3296,10 +3289,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(dawResultSchema, stale, 'mock chain off, unknown chapter');
     expect(stale).toMatchObject({ ok: false, code: 'stale', refused: DAW_ANSWERS.rangeStale });
 
-    const off = await createMockApi().dawApplyFxToRange(chapter.id, 0, 0, chain, 0);
-    expectMatches(dawResultSchema, off, 'mock chain on a range, experimental off');
-    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.fx_range.message);
-    expect(off).toEqual(readGolden('daw-apply-fx-range-refused.json'));
+    const off = await createMockApi({}, { daw: { reachable: false } }).dawApplyFxToRange(chapter.id, 0, 0, chain, 0);
+    expectMatches(dawResultSchema, off, 'mock chain on a range, REAPER not answering');
+    expect(off.refused).toBe((await createMockApi({}, { daw: { reachable: false } }).dawCapabilities()).capabilities.fx_range.message);
+    expect(off).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
   });
 
   it('dawFxRangeParams, dawSetFxRangeParam and dawBypassFxRange answer their schemas: the host goldens parse, and the mock answers as the host does', async () => {
@@ -3339,7 +3332,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawFxRangeSettingsSchema.safeParse({ ...refused, settings: done.settings }).success).toBe(false);
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const settings = await api.dawFxRangeParams(chapter.id, 0, 0, chain);
     expectMatches(dawFxRangeSettingsSchema, settings, 'mock settings of a chain on a range');
     expect(settings).toEqual(readGolden('daw-fx-range-params-done.json'));
@@ -3356,8 +3349,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(dawFxRangeSettingsSchema, stale, 'mock settings, unknown chapter');
     expect(stale).toMatchObject({ result: { ok: false, code: 'stale', refused: DAW_ANSWERS.rangeStale }, settings: [] });
 
-    const off = await createMockApi().dawFxRangeParams(chapter.id, 0, 0, chain);
-    expectMatches(dawFxRangeSettingsSchema, off, 'mock settings, experimental off');
+    const off = await createMockApi({}, { daw: { reachable: false } }).dawFxRangeParams(chapter.id, 0, 0, chain);
+    expectMatches(dawFxRangeSettingsSchema, off, 'mock settings, REAPER not answering');
     expect(off).toEqual(readGolden('daw-fx-range-params-refused.json'));
   });
 
@@ -3382,7 +3375,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawFxRangeCompareSchema.safeParse({ ...stale, pass: 1 }).success).toBe(false);
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const compare = await api.dawCompareFxRange(chapter.id, 0, 0, chain);
     expectMatches(dawFxRangeCompareSchema, compare, 'mock Compare of a chain on a range');
     expect(compare).toEqual(readGolden('daw-fx-range-compare-done.json'));
@@ -3393,7 +3386,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const stopped = await api.dawStopFxCompare();
     expectMatches(dawResultSchema, stopped, 'mock stop of a Compare');
     expect(stopped).toMatchObject({ ok: true, changed: false, undoSteps: 0 });
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { reachable: false } });
     const sentence = (await off.dawCapabilities()).capabilities.fx_range.message;
     expect((await off.dawCompareFxRange(chapter.id, 0, 0, chain)).result.refused).toBe(sentence);
     expect((await off.dawStopFxCompare()).refused).toBe(sentence);
@@ -3417,7 +3410,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawFxRangeChoiceSchema.safeParse({ ...FX_CHOSEN, label: '' }).success).toBe(false);
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const opened = await api.dawChooseFxForRange(chapter.id, 0, 0, 10);
     expectMatches(dawResultSchema, opened, 'mock Choose');
     expect(opened).toEqual(readGolden('daw-fx-choose-opened.json'));
@@ -3429,7 +3422,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(removed).toMatchObject({ ok: true, changed: true, undoSteps: 1 });
     const unknown = await api.dawChosenFxForRange('{11111111-1111-4111-8111-111111111111}', 0, 0);
     expect(unknown).toMatchObject({ result: { ok: false, code: 'stale' }, fx: [] });
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { reachable: false } });
     const sentence = (await off.dawCapabilities()).capabilities.fx_range.message;
     expect((await off.dawChooseFxForRange(chapter.id, 0, 0, 10)).refused).toBe(sentence);
     expect(await off.dawChosenFxForRange(chapter.id, 0, 0)).toEqual(readGolden('daw-fx-chosen-refused.json'));
@@ -3446,7 +3439,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
     const [chapter] = await createMockApi().manuscriptChapters();
     const passage = `pm-${chapter.id}-p-1`;
-    const api = createMockApi({}, { daw: { toggles: { stack_takes: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const stacked = await api.dawStackTakes(chapter.id, [passage]);
     expectMatches(dawResultSchema, stacked, 'mock stack');
     expect(stacked).toEqual(readGolden('daw-stack-done.json'));
@@ -3461,9 +3454,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawUnstackTakes('no-such-chapter', [passage])).toMatchObject({ ok: false, code: 'stale' });
     expect((await api.dawStackTakes(chapter.id, [])).refused).toBe(nothingToStackAnswer('REAPER'));
 
-    const off = await createMockApi().dawStackTakes(chapter.id, [passage]);
-    expectMatches(dawResultSchema, off, 'mock stack, experimental off');
-    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.stack_takes.message);
+    const off = await createMockApi({}, { daw: { reachable: false } }).dawStackTakes(chapter.id, [passage]);
+    expectMatches(dawResultSchema, off, 'mock stack, REAPER not answering');
+    expect(off.refused).toBe((await createMockApi({}, { daw: { reachable: false } }).dawCapabilities()).capabilities.stack_takes.message);
   });
 
   it('dawSplitTake answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
@@ -3476,7 +3469,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-split-take-refused-capability.json')).not.toHaveProperty('code');
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { takes: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const split = await api.dawSplitTake(chapter.id, 'take-twice', 15.5);
     expectMatches(dawResultSchema, split, 'mock split');
     expect(split).toEqual(readGolden('daw-split-take-done.json'));
@@ -3491,9 +3484,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     }
     expect((await api.dawSplitTake(chapter.id, 'take-twice', -1)).refused).toBe(DAW_ANSWERS.splitBadTime);
 
-    const off = await createMockApi().dawSplitTake(chapter.id, 'take-twice', 15.5);
-    expectMatches(dawResultSchema, off, 'mock split, experimental off');
-    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.takes.message);
+    const off = await createMockApi({}, { daw: { reachable: false } }).dawSplitTake(chapter.id, 'take-twice', 15.5);
+    expectMatches(dawResultSchema, off, 'mock split, REAPER not answering');
+    expect(off.refused).toBe((await createMockApi({}, { daw: { reachable: false } }).dawCapabilities()).capabilities.takes.message);
   });
 
   it('dawReduceRangeGain answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
@@ -3510,7 +3503,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       { start: 8, end: 8.5 },
     ];
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { range_gain: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const lowered = await api.dawReduceRangeGain(chapter.id, 'take-twice', stretches, 9);
     expectMatches(dawResultSchema, lowered, 'mock reduce range gain');
     expect(lowered).toEqual(readGolden('daw-reduce-range-gain-done.json'));
@@ -3526,9 +3519,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawReduceRangeGain(chapter.id, 'take-twice', stretches, 30)).refused).toBe(DAW_ANSWERS.gainBadDb);
     expect((await api.dawReduceRangeGain(chapter.id, 'take-twice', [], 9)).refused).toBe(DAW_ANSWERS.gainBadStretches);
 
-    const off = await createMockApi().dawReduceRangeGain(chapter.id, 'take-twice', stretches, 9);
-    expectMatches(dawResultSchema, off, 'mock reduce range gain, experimental off');
-    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.range_gain.message);
+    const off = await createMockApi({}, { daw: { reachable: false } }).dawReduceRangeGain(chapter.id, 'take-twice', stretches, 9);
+    expectMatches(dawResultSchema, off, 'mock reduce range gain, REAPER not answering');
+    expect(off.refused).toBe((await createMockApi({}, { daw: { reachable: false } }).dawCapabilities()).capabilities.range_gain.message);
   });
 
   it('dawTrimRange answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
@@ -3541,7 +3534,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-trim-range-refused-capability.json')).not.toHaveProperty('code');
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const trimmed = await api.dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 6);
     expectMatches(dawResultSchema, trimmed, 'mock trim range');
     expect(trimmed).toEqual(readGolden('daw-trim-range-done.json'));
@@ -3558,9 +3551,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawTrimRange(chapter.id, 'item-twice', 14, 12.5, 6)).refused).toBe(DAW_ANSWERS.trimBadRange);
     expect((await api.dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 501)).refused).toBe(DAW_ANSWERS.cutBadFade);
 
-    const off = await createMockApi().dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 6);
-    expectMatches(dawResultSchema, off, 'mock trim range, experimental off');
-    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.cut_range.message);
+    const off = await createMockApi({}, { daw: { reachable: false } }).dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 6);
+    expectMatches(dawResultSchema, off, 'mock trim range, REAPER not answering');
+    expect(off.refused).toBe((await createMockApi({}, { daw: { reachable: false } }).dawCapabilities()).capabilities.cut_range.message);
   });
 
   it('dawRepairClick answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
@@ -3577,7 +3570,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       { start: 8.5, end: 8.502 },
     ];
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { click_repair: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const repaired = await api.dawRepairClick(chapter.id, 'take-twice', clicks);
     expectMatches(dawResultSchema, repaired, 'mock repair click');
     expect(repaired).toEqual(readGolden('daw-repair-click-done.json'));
@@ -3593,9 +3586,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawRepairClick(chapter.id, 'take-twice', [{ start: 4, end: 4.06 }])).refused).toBe(DAW_ANSWERS.clickBad);
     expect((await api.dawRepairClick(chapter.id, 'take-twice', [])).refused).toBe(DAW_ANSWERS.clickBad);
 
-    const off = await createMockApi().dawRepairClick(chapter.id, 'take-twice', clicks);
-    expectMatches(dawResultSchema, off, 'mock repair click, experimental off');
-    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.click_repair.message);
+    const off = await createMockApi({}, { daw: { reachable: false } }).dawRepairClick(chapter.id, 'take-twice', clicks);
+    expectMatches(dawResultSchema, off, 'mock repair click, REAPER not answering');
+    expect(off.refused).toBe((await createMockApi({}, { daw: { reachable: false } }).dawCapabilities()).capabilities.click_repair.message);
   });
 
   it('dawPunchPreroll answers the DAW pre-roll or a refusal in a sentence: the host goldens parse, and the mock answers as the host does', async () => {
@@ -3614,9 +3607,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(dawPunchPrerollSchema, held, 'mock punch pre-roll');
     expect(held).toEqual({ ok: true, onRecord: false, measures: 2, measureSeconds: 2, message: '' });
 
-    const off = createMockApi({}, { daw: { toggles: { punch_preroll: 'off' } } });
+    const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawPunchPreroll();
-    expectMatches(dawPunchPrerollSchema, refused, 'mock punch pre-roll, turned off');
+    expectMatches(dawPunchPrerollSchema, refused, 'mock punch pre-roll, REAPER not answering');
     expect(refused.message).toBe((await off.dawCapabilities()).capabilities.punch_preroll.message);
   });
 
@@ -3631,7 +3624,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawMonitorLevelSchema.safeParse({ ok: true, level: 101, message: '' }).success).toBe(false);
     expect(dawMonitorLevelSchema.safeParse({ ok: true, level: 1.5, message: '' }).success).toBe(false);
 
-    const api = createMockApi({}, { daw: { toggles: { monitor_level: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const held = await api.dawMonitorLevel();
     expectMatches(dawMonitorLevelSchema, held, 'mock monitor level');
     expect(held).toEqual({ ok: true, level: 60, message: '' });
@@ -3641,9 +3634,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.dawSetMonitorLevel(-1)).rejects.toThrow();
     await expect(api.dawSetMonitorLevel(1.5)).rejects.toThrow();
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawMonitorLevel();
-    expectMatches(dawMonitorLevelSchema, refused, 'mock monitor level, experimental off');
+    expectMatches(dawMonitorLevelSchema, refused, 'mock monitor level, REAPER not answering');
     expect(refused).toEqual({ ok: false, level: 0, message: (await off.dawCapabilities()).capabilities.monitor_level.message });
     expect(await off.dawSetMonitorLevel(40)).toEqual(refused);
   });
@@ -3663,11 +3656,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(dawMetersSchema, unarmed, 'mock meters, no armed track');
     expect(unarmed).toMatchObject({ ok: true, input: null, inputTrack: '' });
 
-    const off = createMockApi({}, { daw: { toggles: { daw_meters: 'off' } } });
+    const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawMeters();
-    expectMatches(dawMetersSchema, refused, 'mock meters, turned off');
+    expectMatches(dawMetersSchema, refused, 'mock meters, REAPER not answering');
     const support = (await off.dawCapabilities()).capabilities.daw_meters;
-    expect(refused).toEqual({ ok: false, output: 0, input: null, inputTrack: '', message: support.message, reason: 'turned_off' });
+    expect(refused).toEqual({ ok: false, output: 0, input: null, inputTrack: '', message: support.message, reason: 'not_running' });
   });
 
   it('dawPlace and dawGoToChapter answer where the narrator is and a move: the host goldens parse, and the mock answers as the host does', async () => {
@@ -3682,16 +3675,16 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawPlaceSchema.safeParse({ ok: true, message: '', chapterId: '', selected: -1, cursor: 0 }).success).toBe(false);
     expect(dawPlaceSchema.safeParse({ ok: true, message: '', chapterId: '', selected: 0, cursor: -1 }).success).toBe(false);
 
-    const api = createMockApi({}, { daw: { toggles: { follow_position: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 });
     expect(await api.dawGoToChapter('c-0001', 'at', 17.25)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
     expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: 'c-0001', selected: 1, cursor: 17.25 });
     const bad = await api.dawGoToChapter('c-0001', 'at', -1);
     expect(bad.refused).toBe('The place to go to is not a usable number of seconds.');
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawPlace();
-    expectMatches(dawPlaceSchema, refused, 'mock place, experimental off');
+    expectMatches(dawPlaceSchema, refused, 'mock place, REAPER not answering');
     expect(refused.ok).toBe(false);
     expect(refused.message).toBe((await off.dawCapabilities()).capabilities.follow_position.message);
     expect((await off.dawGoToChapter('c-0001', 'end', 0)).refused).toBe(refused.message);
@@ -3709,7 +3702,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawPositionSchema.safeParse({ ...whole, playPosition: -1 }).success).toBe(false);
     expect(dawPositionSchema.safeParse({ ...whole, extra: 1 }).success).toBe(false);
 
-    const api = createMockApi({}, { daw: { toggles: { transport_sync: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     const heard: unknown[] = [];
     const stop = api.subscribeDawPosition((position) => heard.push(position));
     expect(await api.dawTransportSync('watch', 0)).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
@@ -3719,9 +3712,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawTransportSync('cursor', -1)).refused).toBe('That place is not a usable number of seconds.');
     stop();
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawTransportSync('play', 3);
-    expectMatches(dawResultSchema, refused, 'mock transport sync, experimental off');
+    expectMatches(dawResultSchema, refused, 'mock transport sync, REAPER not answering');
     expect(refused.ok).toBe(false);
     expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.transport_sync.message);
   });
@@ -3735,7 +3728,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       undoSteps: 0,
     });
     expect(undoneAnswer('REAPER', 'record_take', 2, 2)).toBe('Undid the take in REAPER.');
-    const api = createMockApi({}, { daw: { toggles: { undo_last: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     expect(await api.dawLastAction('record_take')).toBe('other');
     const stopped = await api.readAloudRecordStop();
     expectMatches(readAloudRecordingSchema, stopped, 'mock record stop');
@@ -3764,7 +3757,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-undo-last-refused-capability.json')).not.toHaveProperty('code');
 
     const [chapter] = await createMockApi().manuscriptChapters();
-    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on', undo_last: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     expect(await api.dawLastAction('cut_range')).toBe('other');
     expect(await api.dawUndoLast('cut_range', 1)).toEqual(readGolden('daw-undo-last-refused-not-last.json'));
     expect((await api.dawDeleteRange(chapter.id, 0, 0, 'close', 12, 0, false)).ok).toBe(true);
@@ -3781,10 +3774,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawUndoLast('cut_range', 13)).ok).toBe(false);
     await expect(api.dawLastAction('fx_range' as never)).rejects.toThrow();
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { reachable: false } });
     expect(await off.dawLastAction('cut_range')).toBe('unknown');
     const refused = await off.dawUndoLast('cut_range', 1);
-    expectMatches(dawResultSchema, refused, 'mock undo last, experimental off');
+    expectMatches(dawResultSchema, refused, 'mock undo last, REAPER not answering');
     expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.undo_last.message);
   });
 
@@ -3825,8 +3818,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await createMockApi().dawRestoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')).toEqual(readGolden('daw-backup-refused.json'));
 
     // An Audacity launch: the host opens no pipe from a page yet, so the mock host refuses with the capability's sentence too, and the
-    // list is the (empty) table. The DawClient mock's audacity-backups setup covers a backup and a restore (daw.contract.test.ts).
-    const audacity = createMockApi({}, { daw: { daw: 'Audacity', toggles: { backups: 'on' } } });
+    // list is the (empty) table. The DawClient mock's audacity setup covers a backup and a restore (daw.contract.test.ts).
+    const audacity = createMockApi({}, { daw: { daw: 'Audacity' } });
     const support = (await audacity.dawCapabilities()).capabilities.backups;
     expect(support.available).toBe(false);
     expect((await audacity.dawBackupAround(chapter.id, 140, 159, 'Roll at ¶ 3')).refused).toBe(support.message);
@@ -3863,13 +3856,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-file-refused-bad-stretch.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.fileBadStretch });
 
     // Off by default (Experimental): the capability's sentence, as the host answers it.
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { reachable: false } });
     const [path] = (await off.measurePickFiles()).paths;
     const offSupport = (await off.dawCapabilities()).capabilities.file_preview;
     expect(offSupport.available).toBe(false);
     expect((await off.dawPreviewFileRange(path, 0, 5)).refused).toBe(offSupport.message);
 
-    const api = createMockApi({}, { daw: { toggles: { file_preview: 'on', file_reveal: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     expect((await api.dawPreviewFileRange(path, 0, 5)).refused).toBe(DAW_ANSWERS.fileNotPicked);
     const [picked] = (await api.measurePickFiles()).paths;
     const playing = await api.dawPreviewFileRange(picked, 12.5, 5);
@@ -3908,12 +3901,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const none = quietestOf({ path: 'C:/Renders/Chapter 01.wav', report: { duration_seconds: 600, noise_floor_start_seconds: null } });
     expect(readGolden('master-file-refused-no-quiet-stretch.json')).toMatchObject({ ok: false, refused: 'refused' in none ? none.refused : '' });
 
-    // Off by default (Experimental): the capability's sentence, as the host answers it, before the file id.
-    const off = createMockApi({}, { measure: 'spread' });
+    // REAPER not answering: the capability's sentence, as the host answers it, before the file id.
+    const off = createMockApi({}, { measure: 'spread', daw: { reachable: false } });
     const offSupport = (await off.dawCapabilities()).capabilities.file_preview;
     expect((await off.masterPlayQuietest('C:/elsewhere/Other.wav')).refused).toBe(offSupport.message);
 
-    const api = createMockApi({}, { measure: 'spread', daw: { toggles: { file_preview: 'on', file_reveal: 'on' } } });
+    const api = createMockApi({}, { measure: 'spread', daw: {} });
     const [file] = (await api.measureState()).files;
     const playing = await api.masterPlayQuietest(file.path);
     expectMatches(dawResultSchema, playing, 'mock play quietest');
@@ -6168,7 +6161,7 @@ describe('Replace audio (bindings_replace.go): the mock answers through the sche
       origin: 'manual' as const,
       match: null,
     };
-    const api = createMockApi({}, { chapterTrackMappings: [link], daw: { experimentalOn: true } });
+    const api = createMockApi({}, { chapterTrackMappings: [link], daw: {} });
     const alignment = await api.workspaceAlignment(measured.id);
     const heard = alignment.tokens.filter((token) => token.item !== undefined && token.p);
     const first = heard[0];
@@ -6221,8 +6214,8 @@ describe('Replace audio (bindings_replace.go): the mock answers through the sche
     const { api, chapterId, first, last } = await linkedMock();
     await expect(api.replaceNarratorAdd('Eric | Leach')).rejects.toThrow('no bar or control character');
     await expect(api.replaceNarratorAdd('   ')).rejects.toThrow('1 to 80 characters');
-    const off = createMockApi();
-    expect((await off.replaceAddFile('n-1')).result.refused).toBe('Experimental: switched off in Settings.');
+    const off = createMockApi({}, { daw: { reachable: false } });
+    expect((await off.replaceAddFile('n-1')).result.refused).toBe((await off.dawCapabilities()).capabilities.replace_range.message);
     expect((await api.replaceAddFile('n-9')).result.refused).toBe("That narrator is not on this project's list. Add them first.");
     expect((await api.replacePlan(chapterId, first, last, 'f-9', 1, 2)).result.refused).toBe('That file of theirs is not in this project. Add it first.');
     await api.replaceNarratorAdd('Eric Leach');

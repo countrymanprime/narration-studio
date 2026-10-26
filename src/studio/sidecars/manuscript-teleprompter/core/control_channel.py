@@ -1,22 +1,20 @@
-"""Control channel for the Manuscript Teleprompter (see script_tracker.py). The desktop host tells a running sidecar to move the
-tracker to a chosen script word, or to pause and resume listening, by
-appending one JSON object per line to a plain sentinel file
-(`--control-file PATH`):
+"""Control channel for the Manuscript Teleprompter. The desktop host tells a running sidecar to pause and resume
+listening by appending one JSON object per line to a plain sentinel file (`--control-file PATH`):
 
-    {"cmd": "seek", "word": 42}
     {"cmd": "pause"}
     {"cmd": "resume"}
+
+A seek is the host's own now (src/studio/desktop/internal/teleprompter, follow.go), as is following the read.
 
 This is the same sentinel-file pattern `--stop-file` already uses (docs/architecture/manuscript-teleprompter.md:
 no loopback server, no port): the host appends, and this module tails the
 file from a saved byte offset every time it is polled, which `live_asr.py`
 does once per chunk of its existing capture loop (CHUNK_SECONDS apart), so a
-seek takes effect within about one chunk without any extra I/O between polls.
+pause takes effect within about one chunk without any extra I/O between polls.
 
 Only whole trailing lines are consumed; a line still being written by the
 host is left for the next poll. A line that is not valid JSON, or not an
-object, is skipped - a malformed command must never stop the tracker
-following what the narrator actually said.
+object, is skipped - a malformed command must never stop the session.
 """
 
 import json
@@ -60,17 +58,7 @@ class ControlChannel:
         return commands
 
 
-def seek_word(command: dict) -> int | None:
-    """The word index a `{"cmd": "seek", "word": N}` command carries, or None
-    for anything else (an unknown `cmd`, a missing or non-integer `word`) -
-    never raises, so one bad command cannot stop the poll loop."""
-    if command.get("cmd") != "seek":
-        return None
-    word = command.get("word")
-    return word if isinstance(word, int) and not isinstance(word, bool) else None
-
-
 def pause_state(command: dict) -> bool | None:
     """True for `{"cmd": "pause"}`, False for `{"cmd": "resume"}`, None for
-    anything else - never raises, like seek_word."""
+    anything else - never raises, so one bad command cannot stop the poll loop."""
     return {"pause": True, "resume": False}.get(command.get("cmd")) if isinstance(command.get("cmd"), str) else None
