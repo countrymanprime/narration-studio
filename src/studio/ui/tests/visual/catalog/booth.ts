@@ -225,12 +225,14 @@ export const boothStates: StateEntry[] = [
     state: 'levels-menu-mic-uncertain',
     description:
       'Booth, the Levels menu when REAPER\'s input could be either of two microphones (?mockReaperInput=uncertain): the host\'s sentence in the warning colour, one button per microphone, "Listening to … until you pick", and Choose a different one',
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'levels-menu-mic-chosen',
     description:
       "Booth, the Levels menu after Choose a different one: the microphone picker with the narrator's choice, \"Your choice, kept over REAPER's input.\", what REAPER records from, and Use REAPER's input to go back",
+    ...REFLOW,
   },
   {
     page: 'booth',
