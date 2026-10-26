@@ -372,27 +372,6 @@ func (s *Service) Remove(ids []string) error {
 	return s.write(file)
 }
 
-// Clear empties the suggestions file, tombstones included, and answers how many suggestions it held: the first step of Delete Story
-// Bible data, which then deletes the ManuscriptGuide folder the file is in (guide.Service.DeleteAll). A file it cannot read, or one from
-// a newer app, is left for that step and counts as none. Nothing stored is not an error and writes nothing.
-func (s *Service) Clear() (int, error) {
-	if s.config.Project == "" {
-		return 0, errNoProject
-	}
-	unlock := lockFile(File(s.config.Project))
-	defer unlock()
-	file, err := s.read()
-	if err != nil || len(file.Suggestions) == 0 {
-		return 0, nil
-	}
-	count := len(file.Suggestions)
-	file.Suggestions = []Suggestion{}
-	if err := s.write(file); err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
 func (s *Service) decide(id string, change func(*Suggestion) error) (Suggestion, error) {
 	if s.config.Project == "" {
 		return Suggestion{}, errNoProject

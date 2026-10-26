@@ -8,8 +8,8 @@ import (
 
 // DeleteAll removes the project's Story Bible and answers how many entries it held: the ManuscriptGuide folder (the Story Bible file
 // with its entries, names, pronunciations, review flags, relationships, types, dialogue cues and merge undo records, the preview audio
-// and any copy of a file kept aside as unreadable) and the Story Bible's findings. The folder holds nothing else of the project's; the
-// scan's suggestions in it are the extraction store's to remove first (store.Service.Clear), under that file's own lock. A file that
+// and any copy of a file kept aside as unreadable) and the Story Bible's findings. The folder holds nothing else of the project's: the
+// scan's suggestions.json is in it too, and goes with it (the host counts the suggestions first and refuses while a scan runs). A file that
 // cannot be read, or one from a newer app, is deleted too and counts as no entries: deleting is the narrator's way out of it.
 func (s *Service) DeleteAll() (int, error) {
 	s.editMu.Lock()

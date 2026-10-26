@@ -28,9 +28,10 @@ func (h *Host) GuideDeleteAll(confirmed bool) (string, error) {
 	}
 	extractionDecisions.Lock()
 	defer extractionDecisions.Unlock()
-	suggestions, err := h.extractionStore().Clear()
-	if err != nil {
-		return "", err
+	// Counted, not changed: the one delete below removes the suggestions with their folder, so a failure leaves them all in place.
+	suggestions := 0
+	if listed, err := h.extractionStore().List(); err == nil {
+		suggestions = len(listed)
 	}
 	entries, err := svc.guide.DeleteAll()
 	if err != nil {
