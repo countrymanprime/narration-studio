@@ -545,7 +545,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/settings/controls/MicBody.tsx',
-    text: 'Type the device name the Booth should use, or leave it empty for the system input.',
+    text: 'Type the device name the Booth should use, or leave it empty to listen automatically.',
     class: 'error',
   },
   {
