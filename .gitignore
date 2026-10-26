@@ -68,6 +68,9 @@ src/studio/ui/playwright.local.config.ts
 
 # The Wails build output (go build in src/studio/desktop names its binary after the directory)
 /src/studio/desktop/shell
+
+# The go build output of src/studio/desktop (go build names its binary after the directory)
+/src/studio/desktop/desktop
 src/studio/integrations/reaper/*-app-path.txt
 src/studio/integrations/reaper/*-app-path.txt.tmp
 /dist-site/
