@@ -11,7 +11,7 @@ import { KindMark } from '../primitives/KindMark';
 // reader's own tests and the mock-driven visual states rely on those being unique). The other swatches are real `KindMark`s:
 // nothing looks them up as unique.
 // `layout="row"` is the inline strip above the text (the standalone page); `"list"` is the read-aloud rail's Key tab.
-export function ReaderKey({ seekable, marks = false, layout = 'row' }: { seekable: boolean; marks?: boolean; layout?: 'row' | 'list' }) {
+export function ReaderKey({ marks = false, layout = 'row' }: { marks?: boolean; layout?: 'row' | 'list' }) {
   const list = layout === 'list';
   return (
     <div
@@ -62,11 +62,7 @@ export function ReaderKey({ seekable, marks = false, layout = 'row' }: { seekabl
           </span>
         </>
       )}
-      {/* Click-to-seek: only reachable once a session is
-          running, so the hint only shows then - it would be misleading while idle, when no word is clickable. */}
-      {seekable && <span className={list ? '' : 'ml-auto'}>Click a word to start or go back to it.</span>}
-      {marks && <span>Click a highlighted name, note or flag to open it here. The reading position stays where it is.</span>}
-      {marks && <span>Flags are suspected: live listening can mishear a correct read. Transcript Compare over the recording is authoritative.</span>}
+      {/* No how-to lines here: "click a word to go back to it" appeared once a session ran and moved the strip (#2251); the guide says it. */}
     </div>
   );
 }

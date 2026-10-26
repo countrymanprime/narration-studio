@@ -53,8 +53,10 @@ const rowOf = (table: HTMLElement, text: string) => {
 describe('Master & QC, Diagnostics wording', () => {
   it('names the DAW in use, never REAPER by default', async () => {
     await openDiagnostics({ initial: { daw: DAW_SETUPS.audacity } });
-    await waitFor(() => expect(screen.getByText(/Listen at those times in Audacity: nothing here is saved/)).toBeTruthy());
-    expect(screen.getByText(/needs the Audacity actions this app does not yet run/)).toBeTruthy();
+    // What each card lists is on its "?" (#2251), so the DAW's name is there.
+    const about = (name: string) => screen.getByRole('button', { name }).getAttribute('aria-description');
+    await waitFor(() => expect(about('About diagnostics')).toBe('Times to listen to in Audacity: nothing here is changed'));
+    expect(about('About silence cleanup candidates')).toBe('Candidates to cut in Audacity, never applied here');
     expect(screen.queryByText(/REAPER/)).toBeNull();
   });
 });
@@ -131,7 +133,7 @@ describe('Master & QC, Diagnostics', () => {
     expect(within(rowOf(findings, 'Clipping')).getByText('Warning')).toBeTruthy();
     // Read-only: nothing to decide, play or send to REAPER here.
     expect(within(findings).queryAllByRole('button')).toEqual([]);
-    expect(screen.getByText(/nothing here is saved, played or changed/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'About diagnostics' }).getAttribute('aria-description')).toMatch(/nothing here is changed/);
 
     const files = screen.getByRole('table', { name: 'Checked files' });
     expect(within(rowOf(files, 'Chapter 02.wav')).getByText('Not available: no transcript timing for this audio')).toBeTruthy();
