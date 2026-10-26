@@ -322,6 +322,12 @@ describe('teleprompter mock locate', () => {
     expect(result.tail).toEqual({ from: 60, to: 90 });
     expect(result.located.sentence.start).toBeLessThan(result.located.word);
     expect(result.located.sentence.end).toBeGreaterThanOrEqual(result.located.word);
+    // The word and the sentence index the script the Booth reads, heading included (chapter_script.py), so the resume
+    // quote bolds the word reading starts at.
+    const words = [chapters[0].title, chapters[0].subtitle, ...paragraphs.map((paragraph) => paragraph.text)].flatMap((text) => tokenize(text ?? ''));
+    const { start, end, text } = result.located.sentence;
+    expect(text.split(/\s+/)).toEqual(words.slice(start, end));
+    expect(result.located.tokens).toBe(words.length);
   });
 
   it('asks for the model only once there is audio to read', async () => {
