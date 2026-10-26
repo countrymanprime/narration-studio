@@ -9,8 +9,8 @@ import (
 	"desktop/internal/compare"
 )
 
-// This file is the text half of the rules (rules.go): manuscript_guide.py's name rules (rule_candidates and what it calls,
-// classify) and speech-tag rules (QUOTE_PATTERN, AFTER_QUOTE_TAG, BEFORE_QUOTE_TAG), and extraction_rules.py sentence_around. Each
+// This file is the text half of the rules (rules.go): what is left of manuscript_guide.py's name rules (the word statistics, the
+// cleaning spacy_candidates uses, classify; rule_candidates gave way to rules_scan.go in #2251) and speech-tag rules (QUOTE_PATTERN, AFTER_QUOTE_TAG, BEFORE_QUOTE_TAG), and extraction_rules.py sentence_around. Each
 // regular expression is matched by hand, trying the alternatives in the order Python's re backtracks through them, because Go's
 // regexp has no look-behind and its \b and \s are ASCII where Python's are Unicode. A string is a []rune, so an index is a code
 // point, as Python counts. \w and \s are compare.IsPyWord and compare.IsPySpace, Python 3.12's tables; [A-Z] and [a-z] are ASCII,
@@ -339,58 +339,14 @@ func hasCommonSuffix(word string) bool {
 	return false
 }
 
-// isTitlePrefixed is manuscript_guide.py is_title_prefixed: more than one word, the first a title ("Captain", "Dr.").
-func isTitlePrefixed(name string) bool {
-	words := compare.PySplit(name)
-	return len(words) > 1 && titleWords[strings.Trim(compare.PyLower(words[0]), ".")]
-}
-
-// acceptRuleName is manuscript_guide.py accept_rule_name.
-func acceptRuleName(name string, stats wordStats, titleAliases map[string]bool) bool {
-	if len(compare.PySplit(name)) > 1 {
-		return true
-	}
-	if stats.lowercase[compare.PyLower(name)] || hasCommonSuffix(name) {
-		return false
-	}
-	key := normalizeName(name)
-	return titleAliases[key] || stats.midSentence[key] >= minMidSentenceMentions
-}
-
-// ruleCandidate is one of rule_candidates' (or spacy_candidates') candidates: a name, where it is, and the spaCy label that found it
-// ("" for the rules, whose make_candidate source is "rule").
+// ruleCandidate is one of scanCandidates' (or spacy_candidates') candidates: a name, where it is, the spaCy label that found it
+// ("" for the rules, whose make_candidate source is "rule"), and for the rules the scan group it belongs to.
 type ruleCandidate struct {
 	name       string
 	paragraph  int
 	start, end int
 	label      string
-}
-
-// ruleCandidates is manuscript_guide.py rule_candidates: every capitalised name the rules accept, in reading order.
-func ruleCandidates(paragraphs []ruleParagraph) []ruleCandidate {
-	stats := wordStatsOf(paragraphs)
-	var mentions []ruleCandidate
-	for index, paragraph := range paragraphs {
-		for _, match := range finditer(paragraph.text, func(text []rune, start int) (int, bool) { return capitalizedAt(text, start, 3) }) {
-			if name, start, ok := cleanEntityText(paragraph.text[match[0]:match[1]], match[0]); ok {
-				mentions = append(mentions, ruleCandidate{name: string(name), paragraph: index, start: start, end: start + len(name)})
-			}
-		}
-	}
-	titleAliases := map[string]bool{}
-	for _, mention := range mentions {
-		if isTitlePrefixed(mention.name) {
-			words := compare.PySplit(mention.name)
-			titleAliases[normalizeName(words[len(words)-1])] = true
-		}
-	}
-	accepted := []ruleCandidate{}
-	for _, mention := range mentions {
-		if acceptRuleName(mention.name, stats, titleAliases) {
-			accepted = append(accepted, mention)
-		}
-	}
-	return accepted
+	group      string
 }
 
 // The categories classify gives.
