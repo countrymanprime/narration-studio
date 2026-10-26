@@ -136,14 +136,14 @@ func (s *Service) extract(ctx context.Context, run *buildRun, manuscriptPath, mo
 	var err error
 	if model == RulesOnly {
 		run.say(rulesOnlyChosen)
-		if asked := words(ruleCandidates(paragraphs)); len(asked) > 0 {
+		if asked := words(scanCandidates(paragraphs)); len(asked) > 0 {
 			values, err = models.pronunciations(ctx, asked, run.log)
 		}
 	} else {
 		run.say("Extracting candidates with spaCy model " + model)
 		values, err = models.entities(ctx, manuscriptPath, model, run.log, paragraphs, func(spans [][]entitySpan) []string {
 			if spans == nil {
-				return words(ruleCandidates(paragraphs))
+				return words(scanCandidates(paragraphs))
 			}
 			return words(spacyCandidates(paragraphs, spans))
 		})

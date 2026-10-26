@@ -86,11 +86,12 @@ func TestAMissingStoryBibleIsAnEmptyOne(t *testing.T) {
 func TestANameTheStoryBibleLacksIsAnEntrySuggestion(t *testing.T) {
 	lines, _ := suggestionsFor(t, "dawnspire-ada-captain")
 	entries := ofKind(lines, "entry")
-	if got := names(entries); !slices.Equal(got, []string{"Council of Ash", "Dawnspire"}) {
+	// Dawnspire, named four times, comes before the Council of Ash, named once: the scan ranks names by their evidence.
+	if got := names(entries); !slices.Equal(got, []string{"Dawnspire", "Council of Ash"}) {
 		t.Fatalf("entries = %v", got)
 	}
-	if entries[0].Payload.Type != "Organization" {
-		t.Errorf("Council of Ash type = %q", entries[0].Payload.Type)
+	if entries[1].Payload.Type != "Organization" {
+		t.Errorf("Council of Ash type = %q", entries[1].Payload.Type)
 	}
 	for _, entry := range entries {
 		if len(entry.Quotes) == 0 || entry.Source != "rules" {
