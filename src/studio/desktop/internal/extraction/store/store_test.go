@@ -448,3 +448,31 @@ func TestRemoveDeletesTheSuggestionsInOneWrite(t *testing.T) {
 		t.Fatal("Remove without a project did not refuse")
 	}
 }
+
+func TestClearDeletesEverySuggestionTombstonesIncluded(t *testing.T) {
+	s, _ := newService(t)
+	added := ingest(t, s, Raw{Payload: property("Alice", "Mood", "Sleepy")}, Raw{Payload: property("Alice", "Age", "Seven")}).Added
+	if _, err := s.Reject(added[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	cleared, err := s.Clear()
+	if err != nil || cleared != 2 {
+		t.Fatalf("Clear = %d, %v, want 2", cleared, err)
+	}
+	if got := list(t, s); len(got) != 0 {
+		t.Fatalf("after Clear = %+v", got)
+	}
+	// The rejected offer left no tombstone, so a later scan offers it again.
+	if again := ingest(t, s, Raw{Payload: property("Alice", "Mood", "Sleepy")}); len(again.Added) != 1 {
+		t.Fatalf("a cleared rejected offer was skipped: %+v", again)
+	}
+	if _, err := s.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if cleared, err := s.Clear(); err != nil || cleared != 0 {
+		t.Fatalf("Clear with nothing stored = %d, %v", cleared, err)
+	}
+	if _, err := New(Config{}).Clear(); err == nil {
+		t.Fatal("Clear without a project did not refuse")
+	}
+}
