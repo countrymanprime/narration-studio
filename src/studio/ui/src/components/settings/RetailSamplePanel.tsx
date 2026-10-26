@@ -94,9 +94,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
       <h3 id="credits-sample-heading" className={CREDITS_HEADING}>
         Retail sample
       </h3>
-      <p style={{ color: 'var(--text-muted)' }}>
-        Pick up to 5 minutes from anywhere in the book. The sample is marked in the Manuscript view; it adds no time to the estimate.
-      </p>
+      <p style={{ color: 'var(--text-muted)' }}>Up to 5 minutes, and it adds no time to the estimate.</p>
       <p aria-live="polite" className="m-0 text-[0.8125rem]">
         {sample
           ? `${rangeOf(sample)} (${sample.words.toLocaleString('en-US')} words, about ${formatMinutesSeconds(sample.seconds)}).`

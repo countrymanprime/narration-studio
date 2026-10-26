@@ -114,11 +114,7 @@ export function AddEffect({
               );
             })}
           </ul>
-          {favourites ? (
-            <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-              Favourites are saved for every project. To keep them for one project only, use Favourite effects in Settings, under Set on a page.
-            </p>
-          ) : null}
+          {favourites ? <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">Favourites apply to every project.</p> : null}
           {favourites?.error ? (
             <p role="alert" className="m-0 text-[length:var(--font-size-sm)] text-[var(--danger-text)]">
               {favourites.error}
