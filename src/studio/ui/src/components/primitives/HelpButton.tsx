@@ -14,6 +14,9 @@ export function HelpButton({ label, children }: { label: string; children: strin
       compact
       align="start"
       sideOffset={8}
+      // A Settings row's "?" scrolls with the page, and a short or shrinking window can leave it off screen with the note open: the note stays in
+      // the window, clamped to its gutters and scrolling inside itself, rather than following the "?" off screen.
+      fitToWindow
       trigger={
         <button
           type="button"
