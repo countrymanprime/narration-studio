@@ -31,7 +31,7 @@ function saveBoothSize(size: number): void {
  * The Booth column for a Reader text column width: the same value the Script reads (`readerVars`' `--rw`), in the same unit, `ch` of the
  * text, so one setting gives the same characters a line on both pages. The text area's own width caps it at a large size or a narrow window.
  */
-export const boothColumn = (width: number): string => `${width}ch`;
+const boothColumn = (width: number): string => `${width}ch`;
 
 export type TextChoices = {
   /** Px, 24 to 72 in steps of 4. */
