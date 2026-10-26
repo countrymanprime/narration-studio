@@ -57,7 +57,7 @@ const previousHeard = (doc: ChapterDoc, word: ChapterDoc['items'][number]): Chap
  * `MIN_TAIL_SECONDS` (never past the middle of the next word) when that start touches this word's end. The next word is the heard one that starts soonest after this one, so a
  * re-read or an extra word laid out of order is found by its time. An unknown word, or one with no time, ends where it did.
  */
-export function tailEnd(doc: ChapterDoc, lastKey: string, end: number): number {
+function tailEnd(doc: ChapterDoc, lastKey: string, end: number): number {
   const at = doc.index.get(lastKey);
   const word = at == null ? undefined : doc.items[at];
   if (!word || word.t0 == null) return end;
