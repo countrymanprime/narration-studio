@@ -11,7 +11,7 @@ export type InputSource = 'daw' | 'chosen';
  * - `first`: nothing chosen and no DAW answer to follow, so the first microphone listed;
  * - `none`: no microphone is listed.
  */
-export type MicOrigin = 'daw' | 'uncertain' | 'chosen' | 'first' | 'none';
+type MicOrigin = 'daw' | 'uncertain' | 'chosen' | 'first' | 'none';
 
 export type ResolvedMic = {
   device: string;
