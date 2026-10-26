@@ -3,10 +3,8 @@ import type { TimeWindow } from '../../proof/frame/windowMath';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { useContextProvider } from '../../../registries/context';
 import type { DocItem } from '../model';
-import { reducedMotion } from '../../../motion';
 import type { DocPeaks } from './docClock';
 import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
-import { subscribeFrames } from './frameLoop';
 import { peaksWindowAll } from './peaksWindow';
 import { barLayout, FULL_SCALE, type PeakScale } from './ribbonBars';
 import type { RibbonLayout } from './ribbonLayout';
@@ -16,6 +14,8 @@ import { ScrollEnd, ZoomRow } from './RibbonControls';
 import { useRangeInteraction } from './useRangeInteraction';
 import { useRibbonView } from './useRibbonView';
 import { useScrollGestures } from './useScrollGestures';
+import { useWaveSwell } from './useWaveSwell';
+import { placeholderColumns } from './waveSwell';
 
 /** The waveform's own height (CSS pixels): the lane, not the peaks in it. */
 const HEIGHT = 56;
@@ -66,6 +66,13 @@ export interface RibbonViewProps {
   describe?: (t0: number, t1: number) => string;
   /** The waveform's menu items for a time on the document clock (null: opened from the keyboard), before its own view items. */
   menu?: (at: number | null) => ContextMenuItem[];
+  /** The peaks are still being read: a flat row of placeholder bars with the swell running over it, instead of the reason. */
+  loading?: boolean;
+  /**
+   * Draws the swell held still instead of running it, for a story or a screenshot that must be the same on every run: on the playhead when
+   * there is one, else this phase (0..1) of the placeholder loop.
+   */
+  swellPhase?: number;
 }
 
 /**
@@ -86,6 +93,8 @@ export function RibbonView({
   scale = FULL_SCALE,
   describe,
   menu,
+  loading = false,
+  swellPhase,
 }: RibbonViewProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -95,6 +104,7 @@ export function RibbonView({
   const descId = useId();
   const helpId = useId();
   const [surface, setSurface] = useState<HTMLDivElement | null>(null);
+  const [loadingBox, setLoadingBox] = useState<HTMLDivElement | null>(null);
   const total = layout.t1 - layout.t0;
   const ribbon = useRibbonView(total, layout.playhead == null ? null : layout.playhead - layout.t0, surface, {
     initial: initialView,
@@ -151,17 +161,20 @@ export function RibbonView({
 
   // The canvas is measured on its own box, which sits between the end arrows when choosing.
   const measured = choose ? (surface?.clientWidth ?? 0) || width : width;
+  // While the peaks are read, a flat row of placeholder bars stands in, so the lane is the same height and the swell has bars to run over.
+  const placeholder = !peaks && loading;
   const columns = useMemo(() => {
-    if (!peaks || measured <= 0) return null;
+    if (measured <= 0) return null;
+    if (!peaks) return loading ? placeholderColumns(barLayout(measured).count, scale) : null;
     // One column for each bar, so the window is reduced once per span and width, not once per frame.
     return peaksWindowAll(peaks, shownLayout.t0, shownLayout.t1, barLayout(measured).count);
-  }, [peaks, shownLayout.t0, shownLayout.t1, measured]);
-  const empty = peaks ? columns === null && measured > 0 : true;
+  }, [peaks, loading, scale, shownLayout.t0, shownLayout.t1, measured]);
+  const empty = placeholder ? false : peaks ? columns === null && measured > 0 : true;
   // The host's resolution, for the note on what a bar is at this zoom.
 
   // What the frame loop reads, so it keeps running while the host's playhead and the layout change under it.
-  const latest = useRef({ layout: shownLayout, columns, width: measured, scale });
-  latest.current = { layout: shownLayout, columns, width: measured, scale };
+  const latest = useRef({ layout: shownLayout, columns, width: measured, scale, placeholder });
+  latest.current = { layout: shownLayout, columns, width: measured, scale, placeholder };
   const colors = useRef<RibbonColors | null>(null);
   // When the host last moved the playhead, for the loop to move it on from.
   const headStamp = useRef(0);
@@ -171,31 +184,39 @@ export function RibbonView({
 
   const paint = (frame: RibbonFrame): void => {
     const canvas = canvasRef.current;
-    const { layout: l, columns: cols, width: w, scale: s } = latest.current;
+    const { layout: l, columns: cols, width: w, scale: s, placeholder: stand } = latest.current;
     if (!canvas || !cols || w <= 0) return;
     colors.current ??= readRibbonColors(canvas);
-    drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame, s);
+    drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame, s, stand);
   };
 
+  // The swell runs while the chapter plays, its crest on the playhead, and while the waveform is read, looping over the placeholder bars
+  // (waveSwell.ts); the playhead moves on between host updates while it runs.
   const playing = shownLayout.playhead != null && columns !== null;
-  const frameNow = (): RibbonFrame => ({ nowMs: performance.now(), sinceUpdateMs: performance.now() - headStamp.current, animate: true });
+  const lastPhase = useRef<number | null>(null);
+  const moving = (phase: number, nowMs: number): RibbonFrame => ({ nowMs, sinceUpdateMs: nowMs - headStamp.current, animate: true, swell: phase });
+  const held = (phase: number | undefined): RibbonFrame => (phase == null ? STILL_FRAME : { ...STILL_FRAME, swell: phase });
+  const swelling = useWaveSwell({
+    active: playing || placeholder,
+    target: surface ?? loadingBox,
+    fixedPhase: swellPhase,
+    motionKey: theme,
+    onFrame: (phase, now) => {
+      lastPhase.current = phase;
+      paint(moving(phase, now));
+    },
+    onStill: () => {
+      lastPhase.current = null;
+      paint(held(swellPhase));
+    },
+  });
 
-  // A draw whenever the data, the size or the look changes (the tokens are read again only then, not every frame). While the loop below is
-  // running it is drawn in motion, so the host's 4 Hz playhead updates do not flash the still look between frames.
+  // A draw whenever the data, the size or the look changes (the tokens are read again only then, not every frame). While the swell runs it is
+  // drawn at its last phase, so the host's 4 Hz playhead updates do not flash the still look between frames.
   useEffect(() => {
     colors.current = null;
-    paint(playing && !reducedMotion() ? frameNow() : STILL_FRAME);
-  }, [columns, shownLayout, measured, theme, playing, scale]);
-
-  // One shared frame loop, only while the playhead is on screen and motion is wanted; stopping or reducing motion draws the still look once.
-  useEffect(() => {
-    if (!playing || reducedMotion()) return;
-    const stop = subscribeFrames((now) => paint({ ...frameNow(), nowMs: now }));
-    return () => {
-      stop();
-      paint(STILL_FRAME);
-    };
-  }, [playing, theme, measured, scale]);
+    paint(swelling ? moving(lastPhase.current ?? 0, performance.now()) : held(swellPhase));
+  }, [columns, shownLayout, measured, theme, playing, scale, swelling, swellPhase]);
 
   // The waveform's own menu: a right click without a drag, a long touch, or the menu key while it has focus.
   const menuRef = useRef({ menu, ribbon, focus, t0: layout.t0, at: scroll.menuAt });
@@ -255,7 +276,11 @@ export function RibbonView({
   const t0Shown = shownLayout.t0;
   const t1Shown = shownLayout.t1;
   const description = describe ? describe(t0Shown, t1Shown) : layout.description;
-  const lane = empty ? (
+  const lane = placeholder ? (
+    <div ref={setLoadingBox} className="relative min-w-0 flex-1" data-ribbon-loading>
+      <canvas ref={canvasRef} role="img" aria-label="Reading the waveform" style={{ width: '100%', height: HEIGHT, display: 'block' }} />
+    </div>
+  ) : empty ? (
     <p className="m-0 flex min-w-0 flex-1 items-center px-3 text-xs text-[var(--text-muted)]" style={{ minHeight: HEIGHT }} data-ribbon-empty>
       No audio to draw. {why}
     </p>
@@ -311,6 +336,8 @@ export function RibbonView({
       {head.take ? <span>active take</span> : null}
     </span>
   ) : null;
+  // Nothing to choose or zoom yet: the empty lane, or the placeholder bars while the peaks are read.
+  const bare = empty || placeholder;
   return (
     <div
       ref={boxRef}
@@ -319,8 +346,11 @@ export function RibbonView({
       data-ribbon-pid={layout.pid}
       data-wave-dock
     >
-      {empty ? (
-        <div className="flex h-8 flex-none items-center px-3 text-xs text-[var(--text-muted)]">{headRow}</div>
+      {bare ? (
+        <div className="flex h-8 flex-none items-center gap-1.5 px-3 text-xs text-[var(--text-muted)]">
+          {headRow}
+          {placeholder ? <span data-ribbon-reading>{why}</span> : null}
+        </div>
       ) : (
         <ZoomRow t0={layout.t0} ribbon={ribbon} head={headRow} gestures={GESTURES} />
       )}
@@ -330,7 +360,7 @@ export function RibbonView({
         <ScrollEnd dir={1} ribbon={ribbon} />
       </div>
       <div className="min-h-0 flex-1 overflow-hidden" data-ribbon-notes>
-        {empty ? null : <RangeNotes shown={interaction.shown} covered={interaction.covered} words={choose.words} />}
+        {bare ? null : <RangeNotes shown={interaction.shown} covered={interaction.covered} words={choose.words} />}
       </div>
       <p role="status" className="sr-only">
         {interaction.announcement}

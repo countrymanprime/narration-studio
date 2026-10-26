@@ -10,7 +10,19 @@ import { search } from './search';
 // config/defaults.json is the host's repo default layer; a row's `def` is what the page compares a value with to decide "Changed".
 const DEFAULTS: Record<string, Record<string, string>> = JSON.parse(readFileSync(join(__dirname, '../../../../../../../config/defaults.json'), 'utf8'));
 
+// config/tts-assets.json is the approved voice catalog: the host offers each of its voices as a Preview voice choice.
+const VOICES: Array<{ id: string; displayName: string }> = JSON.parse(
+  readFileSync(join(__dirname, '../../../../../../../config/tts-assets.json'), 'utf8'),
+).voices;
+
 describe('the settings registry', () => {
+  it('names every voice in config/tts-assets.json, in its order, as a Preview voice option with its download', () => {
+    const row = ROWS.find((candidate) => candidate.field?.key === 'tts_voice_id')!;
+    expect(VOICES.length).toBeGreaterThan(1);
+    expect(Object.keys(row.options ?? {})).toEqual(VOICES.map((voice) => voice.id));
+    for (const voice of VOICES) expect(row.options?.[voice.id]?.asset, voice.id).toEqual({ kind: 'tts', id: voice.id });
+  });
+
   it('gives every row a unique id and a category that exists', () => {
     const ids = ROWS.map((row) => row.id);
     expect(new Set(ids).size).toBe(ids.length);

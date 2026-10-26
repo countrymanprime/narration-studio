@@ -41,8 +41,8 @@ export const Selection: Story = {
   },
 };
 
-// The playing moment: the bars already played in the accent, the rest in the neutral, and the bars at the playhead taller. The atlas freezes motion,
-// so this is the still look; the pulse is drawn by the frame loop only while a line plays (ribbonBars.ts, Ribbon.test.tsx).
+// The playing moment: the bars already played in the accent, the rest in the neutral. The atlas freezes motion, so this is the still look; the
+// swell runs over the bars on the frame loop only while a line plays (waveSwell.ts, Ribbon.test.tsx).
 export const Playing: Story = {
   args: { layout: base, peaks },
   render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', [], (base.t0 + base.t1) / 2)!} peaks={peaks} />),
@@ -91,6 +91,22 @@ export const Flagged: Story = {
   },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.textContent).toMatch(/flagged words/);
+  },
+};
+
+// The swell held still (`swellPhase`), so the atlas sees one frame of it, the same on every run: its crest on the playhead, the bars under it up
+// to 1.5 times their own height, a longer rise ahead of it than the settle behind, and the far ones at rest.
+export const SwellWhilePlaying: Story = {
+  args: { layout: base, peaks },
+  render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', [], base.t0 + 0.5 * (base.t1 - base.t0))!} peaks={peaks} swellPhase={0.5} />),
+};
+
+// While the peaks are read: a flat row of placeholder bars, the lane its usual height, with the looping swell held mid-pass over them.
+export const ReadingTheWaveform: Story = {
+  args: { layout: base, loading: true },
+  render: () => frame(<RibbonView layout={base} loading reason="Reading the waveform." swellPhase={0.5} />),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('img', { name: 'Reading the waveform' })).toBeTruthy();
   },
 };
 

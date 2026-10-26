@@ -360,7 +360,13 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'both',
     def: 'en_US-ljspeech-high',
     field: { tool: 'Piper', key: 'tts_voice_id' },
-    options: { 'en_US-ljspeech-high': { label: 'LJ Speech (US English, high)', asset: { kind: 'tts', id: 'en_US-ljspeech-high' } } },
+    // One option per voice in config/tts-assets.json, in its order (rows.test.ts); the host offers the same list as the choices.
+    options: {
+      'en_US-ljspeech-high': { label: 'LJ Speech (US English, high)', asset: { kind: 'tts', id: 'en_US-ljspeech-high' } },
+      'en_GB-cori-high': { label: 'Cori (British English, high)', asset: { kind: 'tts', id: 'en_GB-cori-high' } },
+      'en_US-kristin-medium': { label: 'Kristin (US English, medium)', asset: { kind: 'tts', id: 'en_US-kristin-medium' } },
+      'en_US-norman-medium': { label: 'Norman (US English, medium)', asset: { kind: 'tts', id: 'en_US-norman-medium' } },
+    },
     desc: 'The voice that says a name or word in a preview.',
     more: 'The voice that says a name or word when you ask for a preview. It does not narrate anything.',
     used: ['bible', 'script'],

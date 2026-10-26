@@ -22,6 +22,29 @@ type AssetFactsSource = {
   downloadSize: number;
 };
 
+const PIPER_VOICES = 'https://huggingface.co/rhasspy/piper-voices';
+const PIPER_PIN = '5041a7a49ae5b3a0f30e6837769eb03fdbb231bd';
+const librivoxVoice = (id: string, path: string, displayName: string, downloadSize: number): AssetFactsSource & { locale: string } => ({
+  id,
+  displayName,
+  locale: id.slice(0, 5),
+  version: PIPER_PIN,
+  publisher: 'rhasspy',
+  license: 'Public domain training data (LibriVox); Piper Voices repository MIT',
+  licenseUrl: 'https://librivox.org',
+  modelCardUrl: `${PIPER_VOICES}/blob/${PIPER_PIN}/${path}/MODEL_CARD`,
+  provenanceUrl: `${PIPER_VOICES}/tree/${PIPER_PIN}/${path}`,
+  attribution: 'Public domain LibriVox recordings; dataset and Piper voice model by Bryce Beattie, published by rhasspy.',
+  downloadSize,
+});
+
+/** The approved voices after LJ Speech, as config/tts-assets.json lists them. */
+const MOCK_OTHER_VOICES: ReadonlyArray<AssetFactsSource & { locale: string }> = [
+  librivoxVoice('en_GB-cori-high', 'en/en_GB/cori/high', 'Cori (British English)', 114219352 + 4963),
+  librivoxVoice('en_US-kristin-medium', 'en/en_US/kristin/medium', 'Kristin (U.S. English)', 63531379 + 4968),
+  librivoxVoice('en_US-norman-medium', 'en/en_US/norman/medium', 'Norman (U.S. English)', 63531379 + 4968),
+];
+
 /** Where the mock says downloaded assets are kept. */
 export const MOCK_ASSET_ROOT = `C:/Users/narrator/AppData/Local/${brand.identity.dataFolder}/assets`;
 
@@ -43,6 +66,23 @@ export function createAssetsMock(initial: MockApiSeed) {
     attribution: 'LJ Speech Dataset (public domain); Piper voice model by rhasspy contributors.',
   };
   const mockVoice = { ...mockVoiceIdentity, downloadSize: 114203981, installState: 'not_installed' as const };
+  // The catalog's other voices (config/tts-assets.json; mockApi.test.ts keeps the ids equal): listed, downloaded and removed one by one,
+  // never installed at the start, so the voice list shows one installed voice among several that are not.
+  const otherVoices = MOCK_OTHER_VOICES.map((identity) => {
+    const voice = { ...identity, installed: false };
+    const install = createInstallMock({
+      total: identity.downloadSize,
+      noun: 'voice',
+      idPrefix: `mock-other-voice-${identity.id}`,
+      extra: { kind: 'tts', assetId: identity.id },
+      onInstalled: () => {
+        voice.installed = true;
+      },
+    });
+    return { voice, install };
+  });
+  const otherVoice = (id: string) => otherVoices.find(({ voice }) => voice.id === id);
+  const otherVoiceJob = (jobId: string) => otherVoices.find(({ voice }) => jobId.startsWith(`mock-other-voice-${voice.id}-`));
   // Whisper defaults to already installed so existing setup/run flows are not
   // gated in every test; a dedicated scenario calls whisperRemove first to
   // exercise the asset_required prompt.
@@ -153,7 +193,8 @@ export function createAssetsMock(initial: MockApiSeed) {
     },
   });
   const installMockFor = (jobId: string) =>
-    jobId.startsWith('mock-voice')
+    otherVoiceJob(jobId)?.install ??
+    (jobId.startsWith('mock-voice')
       ? voiceInstall
       : jobId.startsWith('mock-language')
         ? languageModelInstall
@@ -161,7 +202,7 @@ export function createAssetsMock(initial: MockApiSeed) {
           ? moonshineInstall
           : jobId.startsWith('mock-dictionary')
             ? dictionaryInstall
-            : modelInstall;
+            : modelInstall);
   const mockWhisperModel = { ...mockWhisperIdentity, downloadSize: 483546902 + 2370 + 2203239 + 459861, installState: 'not_installed' as const };
   // The first-use gate every Whisper start has (teleprompter, recording coverage): undefined once the model is installed.
   const whisperAssetRequired = () =>
@@ -207,15 +248,32 @@ export function createAssetsMock(initial: MockApiSeed) {
       catalogVersion: 1,
       provider: { id: 'piper', effectiveSource: 'repo_default' },
       voice: { id: mockVoice.id, effectiveSource: 'repo_default' },
-      voices: [{ ...mockVoice, installState: ttsInstalled ? 'installed' : 'not_installed' }],
+      voices: [
+        { ...mockVoice, installState: ttsInstalled ? 'installed' : 'not_installed' },
+        ...otherVoices.map(({ voice: { installed, ...voice } }) => ({
+          ...voice,
+          provider: 'piper',
+          installState: installed ? ('installed' as const) : ('not_installed' as const),
+        })),
+      ],
     }),
     ttsInstall: async (voiceId) => {
+      const other = otherVoice(voiceId);
+      if (other) return { ...(await other.install.start()), voiceId };
       if (voiceId !== mockVoice.id) throw new Error('Unknown approved TTS voice.');
       return { ...(await voiceInstall.start()), voiceId };
     },
-    ttsInstallState: async (jobId) => ({ ...(await voiceInstall.state(jobId)), voiceId: mockVoice.id }),
-    ttsInstallCancel: async (jobId) => ({ ...(await voiceInstall.cancel(jobId)), voiceId: mockVoice.id }),
+    ttsInstallState: async (jobId) => {
+      const other = otherVoiceJob(jobId);
+      return other ? { ...(await other.install.state(jobId)), voiceId: other.voice.id } : { ...(await voiceInstall.state(jobId)), voiceId: mockVoice.id };
+    },
+    ttsInstallCancel: async (jobId) => {
+      const other = otherVoiceJob(jobId);
+      return other ? { ...(await other.install.cancel(jobId)), voiceId: other.voice.id } : { ...(await voiceInstall.cancel(jobId)), voiceId: mockVoice.id };
+    },
     ttsRemove: async (voiceId) => {
+      const other = otherVoice(voiceId);
+      if (other) other.voice.installed = false;
       if (voiceId === mockVoice.id) ttsInstalled = false;
     },
     whisperCatalog: async () => ({
@@ -259,6 +317,9 @@ export function createAssetsMock(initial: MockApiSeed) {
         activeJobId,
       });
       const voice = item('tts', 'Preview voice', mockVoice, ttsInstalled ? 'installed' : 'not_installed', voiceInstall.activeId());
+      const others = otherVoices.map(({ voice: other, install }) =>
+        item('tts', 'Preview voice', other, other.installed ? 'installed' : 'not_installed', install.activeId()),
+      );
       const language = item(
         'spacy',
         'Story Bible language model',
@@ -287,14 +348,16 @@ export function createAssetsMock(initial: MockApiSeed) {
         // Only what verifies counts: a damaged asset is not one the app can use.
         totalInstalledBytes:
           (ttsInstalled ? voice.diskSize : 0) +
+          others.reduce((sum, other) => sum + (other.installState === 'installed' ? other.diskSize : 0), 0) +
           (whisperInstalled && !whisperDamaged ? model.diskSize : 0) +
           (spacyInstalled ? language.diskSize : 0) +
           (dictionaryState === 'installed' ? dictionary.diskSize : 0),
-        assets: [voice, model, language, dictionary, ...analysis],
+        assets: [voice, ...others, model, language, dictionary, ...analysis],
       };
     },
     assetsInstall: async (kind, id) => {
       if (kind === 'tts' && id === mockVoice.id) return voiceInstall.start();
+      if (kind === 'tts' && otherVoice(id)) return otherVoice(id)!.install.start();
       if (kind === 'whisper' && id === mockWhisperModel.id) return modelInstall.start();
       if (kind === 'spacy' && id === mockLanguageModel.id) return languageModelInstall.start();
       if (kind === 'moonshine' && id === mockMoonshineIdentity.id) return moonshineInstall.start();
@@ -305,13 +368,17 @@ export function createAssetsMock(initial: MockApiSeed) {
     assetsInstallCancel: async (jobId) => installMockFor(jobId).cancel(jobId),
     assetsVerify: async (kind, id) => {
       if (kind === 'dictionary') return { kind, id, installState: dictionaryState };
+      const other = kind === 'tts' ? otherVoice(id) : undefined;
+      if (other) return { kind, id, installState: other.voice.installed ? ('installed' as const) : ('not_installed' as const) };
       const installed = kind === 'tts' ? ttsInstalled : kind === 'spacy' ? spacyInstalled : kind === 'moonshine' ? moonshineInstalled : whisperInstalled;
       if (kind === 'whisper' && whisperDamaged) return { kind, id, installState: 'verification_failed' as const };
       return { kind, id, installState: installed ? ('installed' as const) : ('not_installed' as const) };
     },
     assetsOpenFolder: async () => {},
-    assetsRemove: async (kind) => {
-      if (kind === 'tts') ttsInstalled = false;
+    assetsRemove: async (kind, id) => {
+      const other = kind === 'tts' ? otherVoice(id) : undefined;
+      if (other) other.voice.installed = false;
+      else if (kind === 'tts') ttsInstalled = false;
       else if (kind === 'spacy') spacyInstalled = false;
       else if (kind === 'moonshine') moonshineInstalled = false;
       else if (kind === 'dictionary') dictionaryState = 'not_installed';
