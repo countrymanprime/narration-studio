@@ -624,7 +624,7 @@ def record_stop_keeps_cursor(env: Env) -> str:
     end = item["position"] + item["length"]
     near(cursor(env), end, 1e-3, "the edit cursor after record_stop")
     assert end > 7.0, f"the recorded item ends at {end}"
-    assert env.lua("local _, label = reaper.Undo_CanUndo2(0) return label") == "Recorded media", "the top undo point is not the take"
+    assert env.lua("return reaper.Undo_CanUndo2(0)") == "Recorded media", "the top undo point is not the take"
     return f"REAPER's own Stop left the cursor at {reaper_own:.3f} s (recording began at 20 s); after record_stop it is at {end:.3f} s, the end of the take begun at 6 s"
 
 
