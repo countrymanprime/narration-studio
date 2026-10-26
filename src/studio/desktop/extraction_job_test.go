@@ -555,10 +555,14 @@ func TestExtractionRegistryRunsTheRulesWithNoSidecar(t *testing.T) {
 		t.Fatal(err)
 	}
 	job := waitScan(t, host)
-	if job.Phase != "success" || !slices.Contains(job.Logs, "Rules offered 1 suggestion.") {
+	// The White Rabbit, and Alice, whom "Alice thought" shows to be a name; never the Duchess, a rank named once.
+	if job.Phase != "success" || !slices.Contains(job.Logs, "Rules offered 2 suggestions.") {
 		t.Fatalf("a scan with the rules = %+v", job)
 	}
 	if got := storedAbout(t, host, "White Rabbit"); got.Source != extractionport.Rules || got.Payload.Type != "Character" {
+		t.Fatalf("stored = %+v", got)
+	}
+	if got := storedAbout(t, host, "Alice"); got.Source != extractionport.Rules {
 		t.Fatalf("stored = %+v", got)
 	}
 }
