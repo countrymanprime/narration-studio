@@ -76,3 +76,36 @@ test('voice-samples-panel at 1440: Coming up is a column and the samples toggle 
   expect(new Set(g.says).size, 'every pronunciation starts at one x').toBe(1);
   expect(g.toggle, 'the toggle is as wide as a sample row').toBeCloseTo(g.row, 0);
 });
+
+// The owner's report against #2256: paragraphs are left-aligned with no first-line indent, and the narrator sets the column's width
+// (Text settings › Column width, the same choice as Settings › Reader text).
+test('setup: every paragraph is left-aligned with no first-line indent and no balanced or justified lines', async ({ page }) => {
+  await drive(page, 'setup', { width: 1440, height: 900 });
+  const looks = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[data-booth-text] [data-paragraph]')].map((p) => {
+      const style = getComputedStyle(p);
+      return { indent: style.textIndent, align: style.textAlign, wrap: style.textWrap || style.getPropertyValue('text-wrap'), hyphens: style.hyphens };
+    }),
+  );
+  expect(looks.length).toBeGreaterThan(1);
+  for (const look of looks) {
+    expect(look.indent).toBe('0px');
+    expect(['start', 'left']).toContain(look.align);
+    expect(look.wrap).not.toMatch(/balance|pretty/);
+    expect(look.hyphens).not.toBe('auto');
+  }
+});
+
+test('the column width setting changes how wide the text column is', async ({ page }) => {
+  const width = async (state: string): Promise<number> => {
+    await drive(page, state, { width: 1440, height: 900 });
+    return page.evaluate(() => document.querySelector('[data-booth-text] > div')!.getBoundingClientRect().width);
+  };
+  const medium = await width('setup');
+  const narrow = await width('text-width-narrow');
+  const full = await width('text-width-full');
+  expect(narrow).toBeLessThan(medium);
+  expect(full).toBeGreaterThan(medium);
+  // Medium is the 26em column the Booth always had, at the 40 px default size.
+  expect(Math.round(medium)).toBe(26 * 40);
+});

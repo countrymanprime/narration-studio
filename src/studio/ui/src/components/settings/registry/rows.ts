@@ -623,9 +623,9 @@ export const ROWS: readonly SettingMeta[] = [
     label: 'Column width',
     scope: 'browser',
     def: '',
-    desc: 'How wide the manuscript’s column is in the Script reader. The quote under it is drawn in all four reader choices.',
-    used: ['script'],
-    also: 'Script › Text settings',
+    desc: 'How wide the manuscript’s column is in the Script reader and the Booth. The quote under it is drawn in all four reader choices.',
+    used: ['script', 'booth'],
+    also: 'Script › Text settings, Booth › Text settings',
     syn: 'reader text measure line length',
   },
   {

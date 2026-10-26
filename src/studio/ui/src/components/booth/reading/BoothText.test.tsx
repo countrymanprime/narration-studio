@@ -278,20 +278,43 @@ describe('paragraphs away from the reading position are skipped by the browser u
 });
 
 describe('paragraph spacing and search marks', () => {
-  it('paragraphs-sit-a-line-apart-with-no-extra-gap-and-are-told-apart-by-an-indent', () => {
+  // The owner's rule (#2251 item 8, and the regression report against #2256): paragraphs start at the column's edge, left-aligned, with no
+  // first-line indent, told apart by a small gap that is tighter than the 0.9em of before.
+  it('paragraphs-start-at-the-column-edge-left-aligned-with-no-first-line-indent', () => {
     const { container } = setup();
     const paragraphs = Array.from(container.querySelectorAll<HTMLElement>('[data-paragraph]'));
     expect(paragraphs.length).toBeGreaterThan(1);
     for (const paragraph of paragraphs) {
-      expect(paragraph.className).not.toMatch(/(^|\s)m[by]?-\[/);
-      expect(paragraph.className).toContain('indent-[1.5em]');
+      expect(paragraph.className).not.toMatch(/(^|\s)-?indent-/);
+      expect(paragraph.className).not.toMatch(/(^|\s)text-(justify|center|right|end)(\s|$)/);
+      expect(paragraph.className).toContain('text-start');
+      expect(paragraph.className).toContain('mb-[0.5em]');
     }
   });
 
-  it('a-note-under-a-paragraph-is-not-indented-with-it', () => {
+  it('the-column-and-its-text-are-not-indented-justified-or-balanced', () => {
+    const { container } = setup();
+    const column = container.querySelector<HTMLElement>('[data-booth-text] > div')!;
+    expect(column.className).not.toMatch(/indent-|text-justify|text-center|text-balance|text-pretty|hyphens-|break-all/);
+    expect(column.className).toContain('text-start');
+  });
+
+  it('a-note-under-a-paragraph-is-not-indented', () => {
     const { container } = setup();
     const note = container.querySelector<HTMLElement>('[data-note]');
-    expect(note?.className).toContain('indent-0');
+    expect(note?.className).not.toMatch(/(^|\s)indent-\[/);
+  });
+
+  it('the-column-is-as-wide-as-the-chosen-width-and-full-has-no-cap', () => {
+    const column = (width?: number | null) => {
+      cleanup();
+      const { container } = setup(width === undefined ? {} : { width });
+      return container.querySelector<HTMLElement>('[data-booth-text] > div')!.style.maxWidth;
+    };
+    expect(column()).toBe('26em');
+    expect(column(22)).toBe('22em');
+    expect(column(32)).toBe('32em');
+    expect(column(null)).toBe('none');
   });
 
   it('draws-the-matches-of-a-search-and-the-one-chosen-apart', () => {

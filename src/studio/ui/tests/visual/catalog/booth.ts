@@ -252,8 +252,20 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-popover',
     description:
-      "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share) and the Booth size, 40 px, on a slider from 24 to 72 in steps of 4",
+      "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share), the Booth size, 40 px, on a slider from 24 to 72 in steps of 4, and the Column width, Medium (Settings › Reader text's Column width), on a slider from Narrow to Full",
     ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'text-width-narrow',
+    description:
+      'Booth (as setup) with Text settings › Column width moved to Narrow and the popover closed: the text column 22em wide (Medium is 26em), left-aligned, each paragraph starting at the column edge with no indent and a small gap above it',
+  },
+  {
+    page: 'booth',
+    state: 'text-width-full',
+    description:
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the text runs the width of the text area between the gutters, left-aligned, no paragraph indent',
   },
   {
     page: 'booth',

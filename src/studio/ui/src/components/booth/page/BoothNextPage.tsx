@@ -659,7 +659,14 @@ function BoothSession({
               panelOpen={side.open}
               onTogglePanel={side.toggle}
               panelId="booth-side"
-              text={{ font: page.text.font, size: page.text.size, onFont: page.text.setFont, onSize: page.text.setSize }}
+              text={{
+                font: page.text.font,
+                size: page.text.size,
+                width: page.text.width,
+                onFont: page.text.setFont,
+                onSize: page.text.setSize,
+                onWidth: page.text.setWidth,
+              }}
             />
           </div>
           <BoothSamplesProvider value={samples}>
@@ -692,6 +699,7 @@ function BoothSession({
                   pickupLines={pickups.bars}
                   size={page.text.size}
                   font={page.text.fontFamily}
+                  width={page.text.columnEm}
                   viewRef={page.view}
                   margin={
                     chapter ? (
