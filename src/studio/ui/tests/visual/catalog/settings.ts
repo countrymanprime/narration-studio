@@ -325,7 +325,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'help-open',
     description:
-      'Settings, Appearance & keys: the "?" beside Zoom pressed, its note "About Zoom" open as a popover over the rows (the details a row keeps out of the page)',
+      'Settings, Recording & DAW: the "?" beside Record with pressed, its note "About Record with" open as a popover over the rows (the details a row keeps out of the page)',
     ...REFLOW,
   },
   {

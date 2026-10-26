@@ -364,9 +364,9 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByRole('radiogroup', { name: 'Theme' }).waitFor();
   },
   'help-open': async (page) => {
-    await openSettings(page, 'Appearance & keys');
-    await page.getByRole('button', { name: 'About Zoom' }).click();
-    await page.getByRole('dialog', { name: 'About Zoom' }).waitFor();
+    await openSettings(page, 'Recording & DAW');
+    await page.getByRole('button', { name: 'About Record with' }).click();
+    await page.getByRole('dialog', { name: 'About Record with' }).waitFor();
   },
   'reader-text': async (page) => {
     await openSettings(page, 'Appearance & keys');
