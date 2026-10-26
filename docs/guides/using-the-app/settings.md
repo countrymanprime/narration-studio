@@ -150,7 +150,7 @@ or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Rec
 **Background checks** holds **Check recordings in the background**, the **Model for background checks** (`tiny`) and the
 **Double-check model for background checks** (`small`, or **None (one model)**), and under Advanced the **Processors for background
 checks** (0 lets the app choose half of this computer's). These apply only to checks the app starts on its own
-([Checking what you recorded](booth.md#checking-what-you-recorded)); your own **Check recording** keeps the models above. A larger
+([Checking what you recorded](booth.md#checking-what-you-recorded)); a check you start in **Check recordings** keeps the models above. A larger
 model, or more than half of the processors, shows a warning under the choice: it makes each check slower and keeps the computer busy
 for longer.
 

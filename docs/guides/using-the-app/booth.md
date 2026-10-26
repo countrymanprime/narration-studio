@@ -422,7 +422,7 @@ While its chapters are being read, the panel shows its title and grey blocks, an
 
 With **Check recordings in the background** on (Settings > Speech to text > Background checks), the app listens back to each
 take you record and marks skipped or misread words for [Editing](editing.md) and [Pickups](pickups.md), so you do not have to
-press **Check recording** chapter by chapter.
+press **Check recordings** chapter by chapter.
 
 - **It asks first.** The first time a recorded chapter is ready to check, **Check recordings in the background?** names the
   models it would use (`tiny`, with `small` double-checking what `tiny` was unsure of). Nothing is checked until you choose

@@ -7,14 +7,13 @@ import type { ProductionChapter } from '../../api/contracts/production';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ChapterTrackLinks, ManuscriptChapter } from '../../types';
-import { useCoverageRuns } from '../recordingcheck/useCoverageRuns';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
 import { CreditsRowPanel } from './CreditsRowPanel';
-import { RecordingCheck } from './RecordingCheck';
-import { creditsCheckChapter, creditsCheckKind } from './recordingCheckText';
+import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
+import { creditsCheckChapter } from './recordingCheckText';
 import { RemovedFromRecordingList } from './RemovedFromRecordingList';
 import { CREDITS_NAME, creditsKindOfId } from '../credits/creditsEntries';
 import type { CreditsKind, CreditsRow } from '../credits/useCreditsRows';
@@ -22,11 +21,7 @@ import type { CreditsKind, CreditsRow } from '../credits/useCreditsRows';
 /** The attribute on the element around the pipeline table; a right click (or the Menu key) on one of its body rows opens the row menu. */
 export const PIPELINE_AREA = 'data-pipeline';
 
-type Open =
-  | { kind: 'track'; chapterId: string }
-  | { kind: 'recording'; chapter: ManuscriptChapter }
-  | { kind: 'editing'; chapter: ManuscriptChapter }
-  | { kind: 'credits'; credits: CreditsKind };
+type Open = { kind: 'track'; chapterId: string } | { kind: 'editing'; chapter: ManuscriptChapter } | { kind: 'credits'; credits: CreditsKind };
 
 /** The pages a row menu item opens; the page maps them to its own navigation. */
 type RowGo = { script: (chapterId: string) => void; booth: (chapterId: string) => void; proof: (chapterId: string) => void; master: () => void };
@@ -38,8 +33,6 @@ type Options = {
   credits: { rows?: Record<CreditsKind, CreditsRow>; setStatus: (kind: CreditsKind, status: ChapterStatus) => Promise<void> };
   notify: Notify;
   go: RowGo;
-  goToScript: (chapter: string, paragraph?: number) => void;
-  goToEditing: (chapterId: string) => void;
   /** False while there is no manuscript: nothing is read. */
   active: boolean;
   /** Changes after a manuscript import or replacement, so the chapter list is read again. */
@@ -59,7 +52,7 @@ type Options = {
  * Returns the row menu's items for a target, the panels, the opener the page's Edit cell uses, and the track links the chapter-sync
  * toast names a track from.
  */
-export function useChapterTools({ rows, credits, notify, go, goToScript, goToEditing, active, refreshKey, onChanged, onRestored, daw }: Options) {
+export function useChapterTools({ rows, credits, notify, go, active, refreshKey, onChanged, onRestored, daw }: Options) {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
@@ -89,7 +82,6 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
   }, [active, loadChapters, loadTrackLinks]);
 
   useEffect(() => reload(), [reload, refreshKey]);
-  const runs = useCoverageRuns();
   // A check that completes changes the chapter's measured length, so the overview is read again, once per run.
   // It follows each event, not the latest state: checks of several chapters can end together, and each is one run.
   const completed = useRef(new Set<string>());
@@ -171,18 +163,13 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
     [manuscriptChapter],
   );
 
-  // The chapter's recording check, for the readiness panel of a chapter whose recording nothing has checked yet.
-  const openRecordingCheck = useCallback(
-    (chapterId: string) => {
-      const chapter = manuscriptChapter(chapterId);
-      if (chapter) setOpen({ kind: 'recording', chapter });
-    },
-    [manuscriptChapter],
-  );
+  // The chapter's recording check (the row menu, and the readiness panel of a chapter whose recording nothing has checked yet): Check recordings with
+  // the chapter ticked, the dialog every page opens. The board reads its checks again as each one completes (above).
+  const openRecordingCheck = useCallback((chapterId: string) => void openCheckRecordings([chapterId]), []);
 
   // The items close over the latest state, read when the menu opens.
-  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack });
-  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack };
+  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack, openRecordingCheck });
+  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack, openRecordingCheck };
   const provider = useMemo<ContextProvider>(
     () => ({
       match: (target) => target.closest(`[${PIPELINE_AREA}] tbody tr`) !== null,
@@ -240,7 +227,7 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
             unavailable: linked ? undefined : 'No chapter track is known yet: link one from the audio engine panel',
             onSelect: () => setOpen({ kind: 'track', chapterId: row.id }),
           },
-          { key: 'recording', label: 'Recording check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'recording', chapter }) },
+          { key: 'recording', label: 'Check recordings…', unavailable: missing, onSelect: () => chapter && latest.current.openRecordingCheck(chapter.id) },
           { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter }) },
           ...STATUS_ORDER.filter((status) => status !== row.status).map((status) => ({
             key: `status-${status}`,
@@ -257,24 +244,10 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
   const close = () => setOpen(undefined);
   const trackOpen = open?.kind === 'track' ? open : undefined;
   const link = trackOpen ? trackLinks?.chapters.find((entry) => entry.chapterId === trackOpen.chapterId) : undefined;
-  const checkingCredits = open?.kind === 'recording' ? creditsCheckKind(open.chapter.id) : undefined;
 
   const panels: ReactNode = (
     <>
       {chapters && <RemovedFromRecordingList chapters={chapters} restoringId={restoringId} onRestore={(chapterId) => void restore(chapterId)} />}
-      {open?.kind === 'recording' && (
-        <RecordingCheck
-          key={open.chapter.id}
-          chapter={open.chapter}
-          coverage={runs.forChapter(open.chapter.id)}
-          othersRunning={runs.othersRunning(open.chapter.id)}
-          notify={notify}
-          close={close}
-          // A credits row's synthetic chapter opens the Manuscript credits entry, never the Editing page or a paragraph.
-          goToParagraph={checkingCredits ? () => goToScript(`credits-${checkingCredits}`) : (paragraph) => goToScript(open.chapter.id, paragraph)}
-          openWorkspace={checkingCredits ? undefined : () => goToEditing(open.chapter.id)}
-        />
-      )}
       {open?.kind === 'editing' && <EditingCheckPanel key={open.chapter.id} chapter={open.chapter} notify={notify} close={close} />}
       {trackOpen && (
         <ChapterTrackPanel
@@ -301,8 +274,12 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
           row={creditsRows[open.credits]}
           label={CREDITS_NAME[open.credits]}
           onStatus={(status) => void setCreditsStatus(open.credits, status)}
-          // Close this slide-over, then open the check as a sibling, never nested.
-          onCheck={() => setOpen({ kind: 'recording', chapter: creditsCheckChapter(open.credits, creditsRows[open.credits].status) })}
+          // Close this slide-over, then open the check, never nested over it. The manuscript has no credits chapter, so the dialog is handed the row's own.
+          onCheck={() => {
+            const chapter = creditsCheckChapter(open.credits, creditsRows[open.credits].status);
+            close();
+            openCheckRecordings([chapter.id], { extra: [chapter] });
+          }}
           onClose={close}
         />
       )}

@@ -106,9 +106,9 @@ describe('ProofChapterPage', () => {
         </CommandRouter>
       </ApiProvider>,
     );
-    // The title row's status says it, with Check recording beside it; the sentence is not repeated in a card under it (alignment audit XPC-13).
+    // The title row's status says it, with Check recordings… beside it; the sentence is not repeated in a card under it (alignment audit XPC-13).
     expect(await screen.findByText('Not checked yet')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Check recording' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Check recordings…' })).toBeTruthy();
     expect(screen.queryByText(/hasn’t been checked yet/)).toBeNull();
   });
 

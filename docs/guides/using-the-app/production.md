@@ -151,7 +151,7 @@ lists that chapter in the opening row's place. Prep is a tick once no token is l
 Edit and Proof follow the row's status, and a stage nothing measures yet is a dash. Right-click a credits row for **Credits…**, which shows the template's name, words and estimated length (including
 room tone), a warning for an unresolved token (`[Author]` never filled in) with **Fill in under
 Settings > Credits**, its status, its Recorded length (once its own track is linked - never an
-estimate), and **Recording check** beside **Open in Script**. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
+estimate), and **Check recordings…** beside **Open in Script**. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
 Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
 below, against the credits template's rendered text rather than a manuscript chapter.
 
@@ -159,91 +159,70 @@ below, against the credits template's rendered text rather than a manuscript cha
 
 ## Checking a chapter's recording
 
-A row's **Recording check…** opens the chapter's recording check (to check several chapters at
-once, use **Check recordings** on the Recording check card). Nothing runs until you ask: the panel
-first shows the last result, or says the chapter was never checked, and names the saved project
-file it reads ("Based on the saved REAPER project, file modified ..."). Save the project in REAPER
-before checking, because the check reads the saved file, not the open session.
+The recording check transcribes the audio items on a chapter's REAPER track with Whisper, then compares the words with the
+chapter's text in order. Every way to start it opens the same **Check recordings** dialog, with the same options and the same
+settings: the Recording check card's icon (with the out-of-date and unchecked chapters ticked), a row's **Check recordings…** in
+the pipeline's row menu, a credits row's check, **Check recordings…** in a chapter's readiness, and the matching buttons on
+[Proof](proof.md#one-chapter), [Pickups](pickups.md) and [Editing](editing.md) (each with its chapter ticked). Nothing runs until
+you press **Check**. Save the project in REAPER before checking, because the check reads the saved file, not the open session.
 
-**Check recording** (or **Check again**) transcribes the audio items on the chapter's REAPER
-track with the Whisper model chosen in Settings, then compares the words with the chapter's text
-in order. The progress is real, from the transcription itself; **Cancel** stops it and keeps the
-items already transcribed, so the next check is quicker, and **Continue in background** closes
-the work dialog. The app tells you when
-it ends, wherever you are. If the Whisper model is not installed yet, the app asks before
-downloading it, as a chapter's Proof view does. A changed chapter can also be re-checked on its
-own, in the background, once REAPER has been quiet for a few minutes and the app is not otherwise
-busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open Recording check rules**); pressing **Check recording**
-yourself always pre-empts it.
-
-A chapter's recording check panel has the same choices under **Check options**, at the foot of the panel after the result and closed until you open it, and its **Check recording** button runs exactly
-what they show. **Chapters at once** is how many chapters may be checked together when this one starts, itself included: with the default of 1 the
-button waits for a chapter being checked elsewhere, and says so, and above 1 it starts beside them.
-
-![Production - a chapter's recording check with Check options open](../../images/ui/production-recording-check-options.webp)
-
-On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a dialog with what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default. Settings under **Set on a page** has the same five rules with a **Global** / **This project** switch.
-
-![Production - the Recording check rules dialog opened from Jump to or run](../../images/ui/production-recording-check-rules.webp)
-
-**Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
-first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
+**Speech model** is the first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
-share. In the **Check recordings** dialog, three sliders set how a long chapter is read: **Chunk length** (10 to 120 s, in steps
+share. Three sliders set how a long chapter is read: **Chunk length** (10 to 120 s, in steps
 of 5) cuts each recording into pieces, **Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a
 word on an edge is whole in one of them, and **Parallel workers** (1 to 8) is how many Whisper copies work on the pieces at
 once (each holds the whole model in memory). **Transcribe each recording whole** turns the chunks off and leaves one worker, and **Let the model choose
 the workers** hands the count back to the computer. A setting the sliders do not reach, such as a 5 min chunk from Settings, shows its real figure
-and is kept until you move the slider. A chapter's own **Check options** keeps the same choices as lists (**Chunk length**, **Parallel processes**,
-**Crossover**). A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
-processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
-shows, so the same chapter is checked the same way wherever you start it, including in the background.
+and is kept until you move the slider. A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
+processors, and starts the next as each ends. The options start at the values in Settings, and the check runs exactly what the dialog
+shows, so a chapter is checked the same way wherever you start it, including in the background. A model that is not installed yet
+is marked **(not installed)** in the lists and named under the options; **Check** then asks before downloading it, with the model's
+facts and the real download progress, and checks the same chapters once it is installed. When only the larger model of a second
+look is missing, the question also offers **Check with … only**, which checks with the first pass alone (untick **Look again with a
+larger model** for the same choice up front).
 
-The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** (it names how many chapters, as in **Check 1 chapter**) stay in view
-under them. It gives no estimate of how long the check will take. While it runs, each chapter has its bar under its name, and **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card has the same **Stop checking**.
+The chapters list each recorded chapter with its check state and last result. The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** (it names how many chapters, as in **Check 1 chapter**) stay in view
+under them. It gives no estimate of how long the check will take. While it runs, each chapter has its bar under its name, and **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card on Proof has the same **Stop checking**. Escape while it runs asks first. A run of one chapter ends on that chapter's result in the dialog; a run of several closes it with a message giving the totals. A chapter with a stored check has **Show result** in its row. Opened with no chapter in mind (Proof's all-chapters view), the dialog ticks the chapters whose check is not up to date.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 
-With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check instead runs a fast
-first pass, then re-checks only whatever it reports missing with a stronger model: the progress
-names each pass ("First pass (tiny), re-checking as it goes (large-v3-turbo)" while both models work, then "Re-checking 3 passages (large-v3-turbo)" for anything still missing), and the
-finished result reads "Checked ... with the tiny Whisper model; 3 passages re-checked with the
-large-v3-turbo Whisper model", with each re-checked pickup marked "Confirmed missing by ...". If
-the re-check model is not installed yet, the app offers the download or **Check with tiny only**,
-which finishes the check with the fast pass alone rather than blocking on the download.
+When a chapter cannot be checked, its row says why in plain words and where to fix it: a chapter that is not linked to its REAPER
+track gets the track picker right there, a missing project file points to the [audio engine panel](navigation.md#the-reaper-project),
+and a missing Transcript Compare tool points to [Settings](settings.md). The dialog stays open on a refused chapter so you can read it.
 
 ![Production - a chapter's recording check, with text still to record](../../images/ui/production-recording-check.webp)
 
-The result reads as a **chapter summary first**: "Passes the check", or "Not complete" naming the
-one thing that fails first ("Not complete: paragraph 14: 9 words not read"), then an unread start
-or end stated in plain words ("Recorded to paragraph N of M"), then the chapter's own figures
-(text present, paragraphs fully read, audio checked, pace in words a minute), two to a row. Under that, **Pickups** lists only the
-check's own interior gaps worth reading again on their own — a skipped block, a short read or
-different text read — each with its paragraphs, word count, first and last missing words, where
-the gap sits in the audio, and **Go to paragraph** to open the manuscript there. An unread start or
-end is unfinished recording, not a pickup, so it never appears in that list. Below the check's own
-gaps, **Repeated reads (Proof)** always shows the chapter's unreviewed take-review pickups —
-repeated reads already recorded, waiting to be compared and kept or discarded — as a count with
-**Open Proof**, or "none waiting" when there are none. Under that, **Pickup list** always shows
-the open lines of the Pickups list as one project-wide count with **Open pickups**, which
-opens [Pickups](pickups.md), not scoped to this chapter, since attributing markers to one chapter's track span is ambiguous when
-chapter tracks share the timeline. It reads "open REAPER to count" instead of a number when REAPER
-is not running. **Paragraph detail** stays folded by default. **Open in Editing** opens the
-chapter on [Editing](editing.md). Misreads, false starts, retakes and a spoken chapter title
-never count against you. The check changes nothing: it never edits the project or moves a
-chapter's status.
+A chapter's result names the saved project file it was read from ("Based on the saved REAPER project, file modified ...") and reads
+as a **chapter summary first**: "Passes the check", or "Not complete" naming the one thing that fails first ("Not complete:
+paragraph 14: 9 words not read"), then an unread start or end stated in plain words ("Recorded to paragraph N of M"), then the
+chapter's own figures (text present, paragraphs fully read, audio checked, pace in words a minute), two to a row, with **Check
+again** and **Open in Editing**. Under that, **Pickups** lists only the check's own interior gaps worth reading again on their own —
+a skipped block, a short read or different text read — each with its paragraphs, word count, first and last missing words, where
+the gap sits in the audio, and **Go to paragraph** to open the manuscript there. An unread start or end is unfinished recording, not
+a pickup, so it never appears in that list. Below the check's own gaps, **Repeated reads (Proof)** shows the chapter's unreviewed
+take-review pickups as a count with **Open Proof**, or "none waiting", and **Pickup list** shows the open lines of the Pickups list
+as one project-wide count with **Open pickups** ("open REAPER to count" when REAPER is not running). **Paragraph detail** stays
+folded by default. **Back to chapters** returns to the form and **Done** closes the dialog. On Proof the same check's findings are
+on the [Recording check card](proof.md#one-chapter), each to accept or ignore. Misreads, false starts, retakes and a spoken chapter
+title never count against you. The check changes nothing: it never edits the project or moves a chapter's status.
 
 ![Production - a recording check with a skip and a short read listed as pickups](../../images/ui/production-recording-check-pickups.webp)
 
-A result goes **out of date** when the saved project changes under it (an item added, removed,
-trimmed, moved, muted or switched to another take, an audio file changed) or the chapter's text
-changes. The panel says which, keeps the old counts labelled as from then, and offers
-**Check again**; only the changed items are transcribed again.
+A result goes **out of date** when the saved project changes under it (an item added, removed, trimmed, moved, muted or switched
+to another take, an audio file changed) or the chapter's text changes. The result says which, keeps the old counts labelled as
+from then, and offers **Check again**; only the changed items are transcribed again.
 
-When a chapter cannot be checked, the panel says why in plain words and where to fix it: a
-chapter that is not linked to its REAPER track gets the track picker right there, a missing
-project file points to the [audio engine panel](navigation.md#the-reaper-project), and a missing Transcript Compare tool points to
-[Settings](settings.md).
+With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check runs a fast first pass, then re-checks only whatever it
+reports missing with a stronger model: the result reads "Checked ... with the tiny Whisper model; 3 passages re-checked with the
+large-v3-turbo Whisper model", with each re-checked pickup marked "Confirmed missing by ...".
+
+A changed chapter can also be re-checked on its own, in the background, once REAPER has been quiet for a few minutes and the app
+is not otherwise busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open
+Recording check rules**); starting a check yourself always pre-empts it.
+
+On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a dialog with what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default. Settings under **Set on a page** has the same five rules with a **Global** / **This project** switch: one store, two ways to reach it.
+
+![Production - the Recording check rules dialog opened from Jump to or run](../../images/ui/production-recording-check-rules.webp)
 
 ## Stage readiness
 
@@ -255,7 +234,7 @@ counts as done: a chapter nobody has checked reads as not checked, not ready.
 
 The chip on a chapter's current-stage cell says the verdict; it opens the chapter's readiness at the
 side of the page: the verdict in a sentence, each check with its state and reason, and the saved
-REAPER project it was read from. Only the decisions that can be taken are shown, under the evidence. A chapter in Recording that nothing has checked yet reads as not checked and offers **Open recording check**, which opens that chapter's [recording check](#checking-a-chapters-recording). **Confirm** moves the chapter to the next stage and records what
+REAPER project it was read from. Only the decisions that can be taken are shown, under the evidence. A chapter in Recording that nothing has checked yet reads as not checked and offers **Check recordings…**, which opens [Check recordings](#checking-a-chapters-recording) with that chapter ticked. **Confirm** moves the chapter to the next stage and records what
 the evidence was, with **Revert** to move it back; **Dismiss** hides the suggestion until the
 evidence changes. **Check now** reads the evidence again; it never starts a check. The readiness is
 read again when the page opens, after an import, when a recording check ends, after you change a

@@ -5,8 +5,8 @@
 Editing is where you hear a chapter against its script and edit it. The chapter's script is the editor: each word
 shows how it was heard, each line has its takes under it, and what you select is what you play, delete or put an
 effect on. Open it from **Editing** in the sidebar's Edit group, from a linked chapter's **Open in Editing** in the
-[audio engine panel](navigation.md#linking-chapters-to-tracks), from a recording check's **Open in Editing** on
-[Production](production.md#checking-a-chapters-recording), or from **Manage takes in Editing** on a note in
+[audio engine panel](navigation.md#linking-chapters-to-tracks), from a recording check finding's **Open in Editing** on
+[Proof](proof.md#one-chapter), or from **Manage takes in Editing** on a note in
 [Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the first chapter.
 
 With no manuscript imported yet, the page says so and offers **Import manuscript**, which goes to
@@ -83,9 +83,9 @@ to its window, so a link made in REAPER or the audio engine panel shows without 
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recording** button beside it that opens the chapter's recording check. Close the check and the page reads the chapter again, so
-what it found shows without a reload. Opening Editing never starts a check. The check's **Check options** (a closed section in its panel) are the same
-choices as [Check recordings](production.md#checking-a-chapters-recording) offers.
+**Check recordings…** button beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
+what the check found shows without a reload. Opening Editing never starts a check.
 
 A chapter you recorded since its last check may be checked in the background, whatever page is open
 ([Checking what you recorded](booth.md#checking-what-you-recorded)). While one runs, the bottom left of the page names the

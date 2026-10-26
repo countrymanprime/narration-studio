@@ -188,7 +188,7 @@ function SignalCard({
           </p>
           <CauseAction
             resolve={cause.resolve}
-            openLabel={isEditingSignal(signal.id) ? 'Open editing check' : 'Open recording check'}
+            openLabel={isEditingSignal(signal.id) ? 'Open editing check' : 'Check recordings…'}
             onCheckNow={onCheckNow}
             onOpenCheck={isEditingSignal(signal.id) ? onOpenEditingCheck : onOpenCheck}
           />

@@ -374,7 +374,7 @@ const MOCK_EDITING_SIGNAL_SEED: Record<NonNullable<typeof mockEditingSignal>, { 
 // (Not ready), so the panel's summary and its evidence view can be seen without a host.
 const mockProofingStages = mockParams.get('mockProofingStages') === 'mixed';
 // `?mockProofingSignal=unmapped-track` seeds Chapter 9's pickups signal directly with an unknown cause that needs a track link, so
-// the evidence view's cause action ("Open Tracks", never "Open recording check" - stageText.ts's `PROOFING_CAUSE_TEXT`) can be seen
+// the evidence view's cause action ("Open Tracks", never "Check recordings…" - stageText.ts's `PROOFING_CAUSE_TEXT`) can be seen
 // without a host.
 const mockProofingSignal = mockParams.get('mockProofingSignal') === 'unmapped-track';
 // `?mockProofingRender=chapter-9-stale` seeds Chapter 9's chosen render as stale, so the "Rendered file" section's
