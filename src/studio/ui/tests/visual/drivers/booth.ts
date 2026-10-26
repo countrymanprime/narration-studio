@@ -80,6 +80,8 @@ export const boothDrivers: Record<string, Driver> = {
   setup: (page) => readyToRecord(page),
   'daw-not-linked': async (page) => {
     await openBooth(page, '?mockDawChoice=found');
+    // Record has no switch now, so the setup dialog opens by itself on a REAPER that is not connected: close it to reach the chip.
+    await page.getByRole('dialog', { name: 'REAPER is not connected' }).getByRole('button', { name: 'Close' }).click();
     const chip = page.getByRole('button', { name: 'Recording setup: REAPER, not linked' });
     await chip.hover();
     await page
