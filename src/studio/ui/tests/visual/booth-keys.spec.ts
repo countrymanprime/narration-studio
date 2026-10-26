@@ -82,6 +82,11 @@ const OVERLAYS: Overlay[] = [
     query: '?mockDaw=quiet',
     recordReady: false,
     open: async (page) => {
+      // With REAPER not answering the setup dialog opens by itself (Record has no switch to stop it): close it to reach Levels.
+      await page
+        .getByRole('dialog', { name: /is not connected/ })
+        .getByRole('button', { name: 'Close' })
+        .click();
       const opener = page.getByRole('button', { name: 'Levels' });
       await opener.click();
       return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
