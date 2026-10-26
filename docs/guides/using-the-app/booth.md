@@ -310,7 +310,7 @@ The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complet
 the end. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
 figure comes from the track's length. A green rail beside the text runs from the top of the chapter to the last recorded line.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
-[Proof](proof.md) do, and [Production](production.md) reads the same value.
+[Proof](proof.md) do.
 
 When the chapter's track already has a recording, the top bar offers **Resume at ¶ n** and says where it read that from: the
 DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place to where the recording

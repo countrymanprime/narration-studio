@@ -497,7 +497,8 @@
         "Off While Recording",
         "Alt Keys",
         "Very Long Chapter Name",
-        "Choosing A Chapter"
+        "Choosing A Chapter",
+        "With Chapter Details"
       ],
       "consumers": [
         "src/components/booth/page/BoothNextPage.tsx",
