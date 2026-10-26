@@ -73,3 +73,18 @@ func TestWordsLeftCountsOnlyTokensTheTrackerReads(t *testing.T) {
 		t.Fatal("only punctuation is left, yet words were reported")
 	}
 }
+
+// The heading is the title and then the subtitle, as the tracker's (scripttrack, chapter_script.py): the paragraphs start after both.
+func TestAChapterScriptsHeadingIsTheTitleThenTheSubtitle(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, `{"documentId":"doc-1","chapters":[{"id":"c1","title":"Chapter 1","subtitle":"Down the Rabbit-Hole"}],
+"paragraphs":[{"id":"p1","chapterId":"c1","text":"Alice was tired."},{"id":"p2","chapterId":"c1","text":"So she was."}]}`)
+	script, ok := LoadChapterScript(project, "c1")
+	if !ok {
+		t.Fatal("chapter c1 was not found")
+	}
+	want := []string{"Chapter", "1", "Down", "the", "Rabbit-Hole", "Alice", "was", "tired.", "So", "she", "was."}
+	if !reflect.DeepEqual(script.Tokens, want) || !reflect.DeepEqual(script.Breaks, []int{0, 5, 8}) || !reflect.DeepEqual(script.ParagraphIDs, []string{"p1", "p2"}) {
+		t.Fatalf("script = %+v", script)
+	}
+}
