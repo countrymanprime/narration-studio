@@ -297,15 +297,8 @@ describe('PageHeader', () => {
     expect(screen.getByText('No recorder is connected.')).toBeTruthy();
   });
 
-  it('offers the settings that switch recording on when that is the reason Start session is off', async () => {
-    const onOpenSettings = vi.fn();
-    header({ record: { ok: false, reason: 'Experimental: switched off in Settings.', inSettings: true }, onOpenSettings });
-    await userEvent.click(screen.getByRole('button', { name: 'Open DAW settings' }));
-    expect(onOpenSettings).toHaveBeenCalledOnce();
-  });
-
-  it('offers no settings link for a reason Settings cannot fix', () => {
-    header({ record: { ok: false, reason: 'No recorder is connected.' }, onOpenSettings: vi.fn() });
+  it('offers no settings link beside the reason Start session is off: no setting switches recording on', () => {
+    header({ record: { ok: false, reason: 'No recorder is connected.' } });
     expect(screen.queryByRole('button', { name: 'Open DAW settings' })).toBeNull();
   });
 

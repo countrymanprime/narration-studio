@@ -58,17 +58,11 @@ func recordingAt(seconds float64) dawport.PlayPosition {
 }
 
 // rollHost is newReadAloudReaperHost launched for kind ("" standalone) with a bridge client, the given reachability and punch
-// role, and the punch capability set to toggle ("" leaves it on auto, Experimental and off). It returns the host and the
-// chapter ids: the first linked to readAloudTrack, the second to nothing.
-func rollHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.Puncher, toggle string) (*Host, []string) {
+// role. It returns the host and the chapter ids: the first linked to readAloudTrack, the second to nothing.
+func rollHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.Puncher) (*Host, []string) {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host, ids := newReadAloudReaperHost(t)
-	if toggle != "" {
-		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapPunch): &toggle}); err != nil {
-			t.Fatal(err)
-		}
-	}
 	client, err := bridge.New(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +107,7 @@ func destructiveSupport(t *testing.T) dawport.Support {
 // role's DawResult.
 func TestDawRollSendsTheChaptersLinkedTrackAndAnswersADawResult(t *testing.T) {
 	role := &fakeRoller{answer: rolledFrom(40), position: recordingAt(52)}
-	host, ids := rollHost(t, "REAPER", liveReachability(), role, "on")
+	host, ids := rollHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.DawRoll(ids[0], 40, false))
 
@@ -129,7 +123,7 @@ func TestDawRollSendsTheChaptersLinkedTrackAndAnswersADawResult(t *testing.T) {
 // sentence and nothing is sent or read; a confirmed one is sent. REAPER's punch is not destructive, so confirmed is ignored.
 func TestDawRollAsksForConfirmationOnlyWhereTheCapabilityIsDestructive(t *testing.T) {
 	role := &fakeRoller{answer: dawport.OK("Rolled again. The audio from here on was replaced.", true), position: recordingAt(52)}
-	host, ids := rollHost(t, "REAPER", liveReachability(), role, "on")
+	host, ids := rollHost(t, "REAPER", liveReachability(), role)
 	svc := host.services()
 	support := destructiveSupport(t)
 
@@ -147,7 +141,7 @@ func TestDawRollAsksForConfirmationOnlyWhereTheCapabilityIsDestructive(t *testin
 
 	for _, confirmed := range []bool{false, true} {
 		reaper := &fakeRoller{answer: rolledFrom(40), position: recordingAt(52)}
-		host, ids := rollHost(t, "REAPER", liveReachability(), reaper, "on")
+		host, ids := rollHost(t, "REAPER", liveReachability(), reaper)
 		if got := decodeDawResult(t)(host.DawRoll(ids[0], 40, confirmed)); !got.OK || len(reaper.rolled) != 1 {
 			t.Fatalf("REAPER, confirmed %v: %+v, sent %v", confirmed, got, reaper.rolled)
 		}
@@ -160,17 +154,14 @@ func TestDawRollRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T) {
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeRoller{answer: rolledFrom(40), position: recordingAt(52)}
-			host, ids := rollHost(t, c.kind, c.reach, role, c.toggle)
+			host, ids := rollHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			support := resolver.Support(dawport.CapPunch)
 			if support.Available || support.Reason != c.reason {
@@ -188,7 +179,7 @@ func TestDawRollRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T) {
 
 func TestDawRollRefusesAChapterWithNoLinkedTrackAndSendsNothing(t *testing.T) {
 	role := &fakeRoller{answer: rolledFrom(40), position: recordingAt(52)}
-	host, ids := rollHost(t, "REAPER", liveReachability(), role, "on")
+	host, ids := rollHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.DawRoll(ids[1], 40, false))
 
@@ -201,7 +192,7 @@ func TestDawRollRefusesAChapterWithNoLinkedTrackAndSendsNothing(t *testing.T) {
 func TestDawRollPassesOnAStaleTrackWithItsCode(t *testing.T) {
 	stale := dawport.RefusedStale("That track is no longer in the REAPER project. Read the project again.")
 	role := &fakeRoller{answer: stale, position: recordingAt(52)}
-	host, ids := rollHost(t, "REAPER", liveReachability(), role, "on")
+	host, ids := rollHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.DawRoll(ids[0], 40, false))
 
@@ -212,7 +203,7 @@ func TestDawRollPassesOnAStaleTrackWithItsCode(t *testing.T) {
 
 // A launch whose resolver allows punch but that has no punch role (no live adapter) refuses rather than failing.
 func TestDawRollWithNoPunchRoleIsRefused(t *testing.T) {
-	host, ids := rollHost(t, "REAPER", liveReachability(), nil, "on")
+	host, ids := rollHost(t, "REAPER", liveReachability(), nil)
 	if got := decodeDawResult(t)(host.DawRoll(ids[0], 40, false)); got.OK || got.Refused == "" {
 		t.Fatalf("DawRoll = %+v, want a refusal", got)
 	}
@@ -223,7 +214,7 @@ func TestDawRollWithNoPunchRoleIsRefused(t *testing.T) {
 func TestDawRollChecksTheTimeBeforeTheRoleIsCalled(t *testing.T) {
 	for _, at := range []float64{math.NaN(), math.Inf(1), math.Inf(-1), -0.5} {
 		role := &fakeRoller{answer: rolledFrom(40), position: recordingAt(52)}
-		host, ids := rollHost(t, "REAPER", liveReachability(), role, "on")
+		host, ids := rollHost(t, "REAPER", liveReachability(), role)
 		got := decodeDawResult(t)(host.DawRoll(ids[0], at, true))
 		if !reflect.DeepEqual(got, dawport.Refused(rollBadTimeSentence)) || len(role.rolled) != 0 || role.asked != 0 {
 			t.Errorf("at %v: DawRoll = %+v, sent %v, asked %d", at, got, role.rolled, role.asked)
@@ -231,7 +222,7 @@ func TestDawRollChecksTheTimeBeforeTheRoleIsCalled(t *testing.T) {
 	}
 
 	role := &fakeRoller{answer: rolledFrom(60), position: recordingAt(52)}
-	host, ids := rollHost(t, "REAPER", liveReachability(), role, "on")
+	host, ids := rollHost(t, "REAPER", liveReachability(), role)
 	got := decodeDawResult(t)(host.DawRoll(ids[0], 60, false))
 	if !reflect.DeepEqual(got, dawport.Refused(rollPastTheEndSentence)) || len(role.rolled) != 0 {
 		t.Fatalf("past the end: DawRoll = %+v, sent %v", got, role.rolled)
@@ -245,7 +236,7 @@ func TestDawRollChecksTheTimeBeforeTheRoleIsCalled(t *testing.T) {
 // The page names a chapter: a GUID, a track id or a path in its place is a chapter the manuscript does not have, and an error.
 func TestDawRollTakesAChapterIDNeverATrack(t *testing.T) {
 	role := &fakeRoller{answer: rolledFrom(40), position: recordingAt(52)}
-	host, _ := rollHost(t, "REAPER", liveReachability(), role, "on")
+	host, _ := rollHost(t, "REAPER", liveReachability(), role)
 	for _, id := range []string{readAloudTrack, "{TRACK-1}", "C:/Projects/Alice/Alice.rpp", "roll"} {
 		if _, err := host.DawRoll(id, 40, true); err == nil {
 			t.Errorf("DawRoll(%q) answered for a chapter the manuscript does not have", id)
@@ -272,7 +263,7 @@ func TestDawRollContractGoldenIsCurrent(t *testing.T) {
 		c := cases[name]
 		t.Run(name, func(t *testing.T) {
 			role := &fakeRoller{answer: c.answer, position: recordingAt(52)}
-			host, ids := rollHost(t, "REAPER", liveReachability(), role, "on")
+			host, ids := rollHost(t, "REAPER", liveReachability(), role)
 			var raw string
 			var err error
 			if c.destructive {

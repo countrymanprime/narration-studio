@@ -34,8 +34,7 @@ export function combinedRequiredReason(missing: MissingRequirements): string | u
  * move onto the gate"). The stored setup facts (a manuscript imported, a project file linked) take precedence over
  * `capability`, since they are unrelated to what the DAW can do right now and `combinedRequiredReason` already
  * names them; once they are met, whether the page is actually usable comes from the DAW port's own capability entry
- * (`useCapability`) rather than a fixed message, so a narrator learns "REAPER is not answering" or "Experimental:
- * switched off in Settings" instead of just "link a REAPER project" once one already is linked.
+ * (`useCapability`) rather than a fixed message, so a narrator learns "REAPER is not answering" instead of just "link a REAPER project" once one already is linked.
  *
  * A refusal with no `message` is never treated as a real refusal: the wire contract sets `message` on every genuine
  * `available: false` answer, so a bare `{ available: false }` is only `useCapability`'s seed before the host's first

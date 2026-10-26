@@ -63,7 +63,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapRegions:       dawport.Experimental,
 	dawport.CapTakes:         dawport.Experimental,
 	dawport.CapFXChains:      dawport.Experimental,
-	// Built, never wired to a binding, so never gated: Experimental keeps it off until it is verified.
+	// Level matching (bindings_cleanup.go, apply_item_gain).
 	dawport.CapItemGain: dawport.Experimental,
 	// The mastering port's DAW row (masterrender.go): Experimental until the owner's
 	// REAPER pass. master_chain_read is one of bridge.Actions' gated commands; render_with_fx answers through the fan-out, and each
@@ -160,7 +160,7 @@ var commandCapability = map[string]dawport.Capability{
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
-// allowed refuses every command as experimental and switched off, and a command with no capability is refused as a bug.
+// allowed refuses every command with bridge.ErrNotGated, and a command with no capability is refused as a bug.
 func Gate(allowed func(dawport.Capability) error) bridge.Gate {
 	return func(command string) error {
 		c, ok := commandCapability[command]
@@ -168,7 +168,7 @@ func Gate(allowed func(dawport.Capability) error) bridge.Gate {
 			return fmt.Errorf("the REAPER adapter has no capability for the command %s", command)
 		}
 		if allowed == nil {
-			return bridge.ErrExperimentalOff
+			return bridge.ErrNotGated
 		}
 		return allowed(c)
 	}
@@ -225,7 +225,7 @@ func Factory(env dawport.Env) (dawport.Adapter, error) {
 }
 
 // New wraps client, which must not be nil (ErrNoSession). allowed is the resolver's Allowed, asked through Gate before each of
-// bridge.Actions' commands is sent; nil refuses them all as experimental and switched off.
+// bridge.Actions' commands is sent; nil refuses them all with bridge.ErrNotGated.
 //
 // Each wrapped consumer subscribes to client here, once. Use one adapter per client.
 func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapter, error) {
@@ -353,7 +353,7 @@ var (
 )
 
 // HideTakes mutes every take of itemGUID but keepTakeGUID (bridge's hide_takes). It asks allowed itself first, so a refusal is
-// the capability's own sentence rather than bridge's ErrExperimentalOff.
+// the capability's own sentence rather than the gate's error.
 func (t takeSelector) HideTakes(ctx context.Context, itemGUID, keepTakeGUID string) (dawport.Result, error) {
 	if t.allowed != nil {
 		if refused, ok := dawport.RefusedFrom(t.allowed(dawport.CapTakes)); ok {
@@ -369,8 +369,6 @@ func (t takeSelector) HideTakes(ctx context.Context, itemGUID, keepTakeGUID stri
 		return dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again."), nil
 	case errors.Is(err, bridge.ErrRecording):
 		return dawport.Refused("REAPER is recording. Stop recording first."), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case err != nil:
 		return dawport.Result{}, err
 	}
@@ -397,8 +395,6 @@ func (t takeSelector) SplitTake(ctx context.Context, itemGUID, takeGUID string, 
 		return dawport.Refused("REAPER is recording. Stop recording first."), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case err != nil:
 		return dawport.Result{}, err
 	}
@@ -417,7 +413,7 @@ type puncher struct {
 var _ dawport.Puncher = puncher{}
 
 // Roll records again from at on trackGUID while the app's recording runs there (bridge's roll). It asks allowed itself first,
-// so a refusal is the capability's own sentence rather than bridge's ErrExperimentalOff.
+// so a refusal is the capability's own sentence rather than the gate's error.
 func (p puncher) Roll(ctx context.Context, trackGUID string, at float64) (dawport.Result, error) {
 	if p.allowed != nil {
 		if refused, ok := dawport.RefusedFrom(p.allowed(dawport.CapPunch)); ok {
@@ -436,8 +432,6 @@ func (p puncher) Roll(ctx context.Context, trackGUID string, at float64) (dawpor
 		return dawport.Refused("The roll time is not a usable number of seconds."), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case errors.Is(err, bridge.ErrRollStopped):
 		// Not a refusal: the recording has ended. Nothing was deleted and the roll added no undo point.
 		return dawport.Result{Changed: true, Message: messageRollStopped}, nil
@@ -471,7 +465,7 @@ var _ dawport.RangeCutter = rangeCutter{}
 
 // DeleteRange splits the request's item at both ends of the range and moves the middle piece to the muted Cuts track, in one
 // undo step (bridge's delete_range). It asks allowed itself first, so a refusal is the capability's own sentence rather than
-// bridge's ErrExperimentalOff.
+// the gate's error.
 func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequest) (dawport.Result, error) {
 	if r.allowed != nil {
 		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapCutRange)); ok {
@@ -493,8 +487,6 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 		return dawport.Refused(messageCutScriptOutdated), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case err != nil:
 		return dawport.Result{}, err
 	}
@@ -525,8 +517,8 @@ type rangeGainReducer struct {
 var _ dawport.RangeGainReducer = rangeGainReducer{}
 
 // ReduceRangeGain lowers the request's stretches of its take with points on the take's volume envelope, in one undo step (bridge's
-// reduce_range_gain). It asks allowed itself first, so a refusal is the capability's own sentence rather than bridge's
-// ErrExperimentalOff, and refuses a request out of shape before anything is sent.
+// reduce_range_gain). It asks allowed itself first, so a refusal is the capability's own sentence rather than the gate's
+// error, and refuses a request out of shape before anything is sent.
 func (r rangeGainReducer) ReduceRangeGain(ctx context.Context, request dawport.RangeGainRequest) (dawport.Result, error) {
 	if r.allowed != nil {
 		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapRangeGain)); ok {
@@ -550,8 +542,6 @@ func (r rangeGainReducer) ReduceRangeGain(ctx context.Context, request dawport.R
 		return dawport.Refused(messageGainScriptOutdated), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case err != nil:
 		return dawport.Result{}, err
 	}
@@ -581,8 +571,8 @@ type clickRepairer struct {
 var _ dawport.ClickRepairer = clickRepairer{}
 
 // RepairClick smooths the request's clicks in its take with a short dip on the take's volume envelope, in one undo step (bridge's
-// repair_click). It asks allowed itself first, so a refusal is the capability's own sentence rather than bridge's
-// ErrExperimentalOff, and refuses a request out of shape before anything is sent.
+// repair_click). It asks allowed itself first, so a refusal is the capability's own sentence rather than the gate's
+// error, and refuses a request out of shape before anything is sent.
 func (r clickRepairer) RepairClick(ctx context.Context, request dawport.ClickRepairRequest) (dawport.Result, error) {
 	if r.allowed != nil {
 		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapClickRepair)); ok {
@@ -606,8 +596,6 @@ func (r clickRepairer) RepairClick(ctx context.Context, request dawport.ClickRep
 		return dawport.Refused(messageClickScriptOutdated), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case err != nil:
 		return dawport.Result{}, err
 	}
@@ -861,8 +849,6 @@ func fxRangeRefused(err error) (dawport.Result, bool, error) {
 		return dawport.Refused("That FX chain is not in the FXChains folder REAPER lists."), true, nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), true, nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), true, nil
 	}
 	return dawport.Result{}, false, err
 }
@@ -951,8 +937,6 @@ func stackRefused(err error) (dawport.Result, bool, error) {
 		return dawport.Refused("The takes to stack are not ones REAPER can read. Nothing was changed."), true, nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), true, nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), true, nil
 	}
 	return dawport.Result{}, false, err
 }

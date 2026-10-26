@@ -81,8 +81,8 @@ func twoTakeCoverageProject(t *testing.T) string {
 }
 
 // hideTakesHost is a REAPER launch over twoTakeCoverageProject with the chapter's alignment stored, a bridge client, the
-// given reachability and takes role, and the takes capability set to toggle ("" leaves it on auto, Experimental and off).
-func hideTakesHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.TakeSelector, toggle string) *Host {
+// given reachability and takes role.
+func hideTakesHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.TakeSelector) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
@@ -101,11 +101,6 @@ func hideTakesHost(t *testing.T, kind string, reach *daw.Reachability, role dawp
 	host.services().coverage.Wait()
 	// The finished check starts a chaptersync:state read of the project folder; Windows cannot remove the folder while it runs.
 	host.chapterSyncEmits.Wait()
-	if toggle != "" {
-		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapTakes): &toggle}); err != nil {
-			t.Fatal(err)
-		}
-	}
 	client, err := bridge.New(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +132,7 @@ func decodeDawResult(t *testing.T) func(string, error) dawport.Result {
 func TestWorkspaceHideTakesSendsThePassagesItemAndKeptTakeAndAnswersADawResult(t *testing.T) {
 	muted := dawport.OK("Muted 1 other take in REAPER. It is still in the project.", true)
 	role := &fakeTakeSelector{answer: muted}
-	host := hideTakesHost(t, "REAPER", liveReachability(), role, "on")
+	host := hideTakesHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.WorkspaceHideTakes("c-0001", 0, 0, hideKeepA))
 
@@ -156,17 +151,14 @@ func TestWorkspaceHideTakesRefusesWithTheResolversSentenceAndSendsNothing(t *tes
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", notAnswering, "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", notAnswering, dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeTakeSelector{answer: dawport.OK("muted", true)}
-			host := hideTakesHost(t, c.kind, c.reach, role, c.toggle)
+			host := hideTakesHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			support := resolver.Support(dawport.CapTakes)
 			if support.Available || support.Reason != c.reason {
@@ -184,7 +176,7 @@ func TestWorkspaceHideTakesRefusesWithTheResolversSentenceAndSendsNothing(t *tes
 
 func TestWorkspaceHideTakesRefusesAStaleCandidateAsStaleAndSendsNothing(t *testing.T) {
 	role := &fakeTakeSelector{answer: dawport.OK("muted", true)}
-	host := hideTakesHost(t, "REAPER", liveReachability(), role, "on")
+	host := hideTakesHost(t, "REAPER", liveReachability(), role)
 
 	got := decodeDawResult(t)(host.WorkspaceHideTakes("c-0001", 0, 0, "take:{ITEM-1}:{TAKE-GONE}"))
 
@@ -196,7 +188,7 @@ func TestWorkspaceHideTakesRefusesAStaleCandidateAsStaleAndSendsNothing(t *testi
 // A token range outside the stored alignment is the caller's error, as for WorkspaceTakes and WorkspaceUseTake.
 func TestWorkspaceHideTakesOutsideTheAlignmentIsTheCallersError(t *testing.T) {
 	role := &fakeTakeSelector{}
-	host := hideTakesHost(t, "REAPER", liveReachability(), role, "on")
+	host := hideTakesHost(t, "REAPER", liveReachability(), role)
 	if _, err := host.WorkspaceHideTakes("c-0001", 0, 9, hideKeepA); err == nil || len(role.hidden) != 0 {
 		t.Fatalf("err = %v, sent %v", err, role.hidden)
 	}
@@ -206,7 +198,7 @@ func TestWorkspaceHideTakesOutsideTheAlignmentIsTheCallersError(t *testing.T) {
 // candidates the host offers, and refused as stale: nothing the page sends is passed on as it is.
 func TestWorkspaceHideTakesLooksUpTheCandidateRatherThanTrustingIt(t *testing.T) {
 	role := &fakeTakeSelector{answer: dawport.OK("muted", true)}
-	host := hideTakesHost(t, "REAPER", liveReachability(), role, "on")
+	host := hideTakesHost(t, "REAPER", liveReachability(), role)
 	for _, id := range []string{"{TAKE-A}", "{ITEM-1}", "take:{ITEM-2}:{TAKE-A}", "media/a.wav", "C:/Projects/book.rpp", "_RS_HIDE_TAKES", "hide_takes"} {
 		got := decodeDawResult(t)(host.WorkspaceHideTakes("c-0001", 0, 0, id))
 		if got.OK || got.Code != dawport.CodeStale {
@@ -222,19 +214,24 @@ func TestWorkspaceHideTakesLooksUpTheCandidateRatherThanTrustingIt(t *testing.T)
 }
 
 // TestDawHideTakesContractGoldenIsCurrent pins WorkspaceHideTakes' answer: other takes muted (one undo step), nothing to mute,
-// and a capability refusal. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-hide-takes-*.json.
+// and a capability refusal (REAPER not answering). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-hide-takes-*.json.
 func TestDawHideTakesContractGoldenIsCurrent(t *testing.T) {
 	cases := []struct {
-		name, toggle string
-		answer       dawport.Result
+		name   string
+		quiet  bool
+		answer dawport.Result
 	}{
-		{"daw-hide-takes-done", "on", dawport.OK("Muted 1 other take in REAPER. It is still in the project.", true)},
-		{"daw-hide-takes-nothing", "on", dawport.OK("No other take to mute in REAPER.", false)},
-		{"daw-hide-takes-refused", "", dawport.OK("never sent", true)},
+		{"daw-hide-takes-done", false, dawport.OK("Muted 1 other take in REAPER. It is still in the project.", true)},
+		{"daw-hide-takes-nothing", false, dawport.OK("No other take to mute in REAPER.", false)},
+		{"daw-hide-takes-refused", true, dawport.OK("never sent", true)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			host := hideTakesHost(t, "REAPER", liveReachability(), &fakeTakeSelector{answer: c.answer}, c.toggle)
+			reach := liveReachability()
+			if c.quiet {
+				reach = daw.NewReachability(nil)
+			}
+			host := hideTakesHost(t, "REAPER", reach, &fakeTakeSelector{answer: c.answer})
 			raw, err := host.WorkspaceHideTakes("c-0001", 0, 0, hideKeepB)
 			contractfile.Check(t, c.name, decodeDawResult(t)(raw, err))
 		})

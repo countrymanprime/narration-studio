@@ -79,7 +79,7 @@ func TestSplitTakeChecksItsArgumentsBeforeAnythingIsSent(t *testing.T) {
 func TestSplitTakeIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.SplitTake(context.Background(), testItem, testTake, 15.5); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.SplitTake(context.Background(), testItem, testTake, 15.5); !errors.Is(err, errGateRefused) {
 		t.Fatalf("SplitTake: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

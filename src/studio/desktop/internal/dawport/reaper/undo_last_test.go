@@ -58,7 +58,7 @@ func TestLastActionAnswersThisOtherOrUnknown(t *testing.T) {
 	}
 
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: "off"}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: "off"}}
 	})
 	undoer := adapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer)
 	if got, err := undoer.LastAction(t.Context(), dawport.ActionCutRange); err != nil || got != dawport.LastActionUnknown {
@@ -145,11 +145,11 @@ func TestUndoLastWordsATakeAsOneTake(t *testing.T) {
 
 // A refused capability is its own sentence, steps outside 1 to 12 are refused and an unknown kind is an error; nothing is sent.
 func TestUndoLastRefusesBeforeAnythingIsSent(t *testing.T) {
-	refusedSentence := "Experimental DAW actions are off. Turn them on in Settings to undo the app's last action."
+	refusedSentence := "REAPER cannot undo the app's last action from this app."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: refusedSentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: refusedSentence}}
 	})
 	got, err := adapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer).UndoLast(t.Context(), dawport.ActionCutRange, 1)
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(refusedSentence)) || len(asked) == 0 || asked[0] != dawport.CapUndoLast {

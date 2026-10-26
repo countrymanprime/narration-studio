@@ -1,5 +1,4 @@
 import { cloneElement, useId, type MouseEvent, type ReactElement } from 'react';
-import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
 
 // The shape of one entry of the DAW port's `DawCapabilities` payload, copied locally so this primitive imports
@@ -31,42 +30,18 @@ const swallow = (event: MouseEvent) => event.preventDefault();
 export function CapabilityGate({
   capability,
   // A caller may hide an `unsupported` control instead of showing it disabled with the host's message.
-  // A `not_yet_available` or an unavailable `experimental`/`supported` control is never hidden by this flag - the
+  // A `not_yet_available` or an unavailable built capability is never hidden by this flag - the
   // narrator still learns the control exists and why it is off.
   hideWhenUnsupported = false,
-  badgeSide = 'after',
   children,
 }: {
   capability: CapabilityEntry;
   hideWhenUnsupported?: boolean;
-  // Where the Experimental badge sits. 'before' keeps the control at the end of its row, for a dialog's primary action, which every other
-  // dialog draws at the action row's right edge (alignment audit R3EN1-8).
-  badgeSide?: 'after' | 'before';
   children: GatedControl;
 }) {
   const descriptionId = useId();
 
-  if (capability.available) {
-    if (capability.level !== 'experimental') return children;
-    if (!capability.message) {
-      return (
-        <span className={`inline-flex items-center gap-[0.4rem] ${badgeSide === 'before' ? 'flex-row-reverse' : ''}`}>
-          {children}
-          <StatusBadge tone="experimental" label="Experimental" />
-        </span>
-      );
-    }
-    const described = cloneElement(children, { 'aria-describedby': descriptionId } as never);
-    return (
-      <span className={`inline-flex items-center gap-[0.4rem] ${badgeSide === 'before' ? 'flex-row-reverse' : ''}`}>
-        {described}
-        <StatusBadge tone="experimental" label="Experimental" />
-        <span id={descriptionId} className="sr-only">
-          {capability.message}
-        </span>
-      </span>
-    );
-  }
+  if (capability.available) return children;
 
   if (capability.level === 'unsupported' && hideWhenUnsupported) return null;
 

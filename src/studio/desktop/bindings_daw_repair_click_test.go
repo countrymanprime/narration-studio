@@ -104,7 +104,7 @@ func TestDawRepairClickPassesOnTheRolesAnswers(t *testing.T) {
 	if got := repairClicks(t, &fakeClickRepairer{answer: stale}, splitTake, testDawClicks); !reflect.DeepEqual(got, stale) {
 		t.Fatalf("stale = %+v", got)
 	}
-	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrExperimentalOff, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
+	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
 		if got := repairClicks(t, &fakeClickRepairer{err: err}, splitTake, testDawClicks); got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, want a refusal", err, got)
 		}
@@ -130,22 +130,14 @@ func TestDawRepairClickRefusesWithTheResolversSentenceAndSendsNothing(t *testing
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeClickRepairer{answer: clicksInREAPER()}
-			host := deleteRangeHost(t, c.kind, c.reach, nil, "")
-			if c.toggle != "" {
-				if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapClickRepair): &c.toggle}); err != nil {
-					t.Fatal(err)
-				}
-			}
+			host := deleteRangeHost(t, c.kind, c.reach, nil)
 			host.mu.Lock()
 			host.clickRepairer = role
 			host.mu.Unlock()
@@ -165,7 +157,7 @@ func TestDawRepairClickRefusesWithTheResolversSentenceAndSendsNothing(t *testing
 // TestDawRepairClickContractGoldenIsCurrent pins the binding's answers: clicks repaired in REAPER (one undo step), REAPER's stale
 // refusal and the click_repair capability's refusal. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-repair-click-*.json.
 func TestDawRepairClickContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to repair clicks in a take."}
+	refusedCapability := dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

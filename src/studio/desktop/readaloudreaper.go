@@ -28,10 +28,11 @@ const (
 // The reasons that go with no_link and unavailable (unavailable also uses reaperStandalone, reaperNotRunning and
 // refusedFailed).
 const (
-	readAloudUnlinked        = "unlinked"
-	readAloudSeveralLinks    = "several_links"
-	readAloudTrackMissing    = "track_missing"
-	readAloudExperimentalOff = "experimental_off"
+	readAloudUnlinked     = "unlinked"
+	readAloudSeveralLinks = "several_links"
+	readAloudTrackMissing = "track_missing"
+	// readAloudUnsupported is the linked DAW not reporting the capability the press needs.
+	readAloudUnsupported = "unsupported"
 )
 
 // readAloudReaperState is the answer: Status, a Reason for no_link and unavailable, and a Message in the narrator's words.
@@ -48,8 +49,7 @@ type readAloudReaperState struct {
 }
 
 const (
-	messageReaperOff       = "REAPER is not connected to this app. To record with reading, open REAPER; the app connects to it by itself."
-	messageExperimentalOff = "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it."
+	messageReaperOff = "REAPER is not connected to this app. To record with reading, open REAPER; the app connects to it by itself."
 )
 
 // trackStateReader is the Track state role's read of chapter_track_state, as the binding needs it (a fake in tests):
@@ -59,7 +59,7 @@ type trackStateReader = dawport.TrackStateReader
 
 // ReadAloudReaperState answers whether REAPER is ready to record chapterID with reading:
 // its linked track the one track armed, and REAPER not already recording. A
-// chapter with no link, a REAPER that is not there and the experimental switch being off are answers, not errors; only
+// chapter with no link, a REAPER that is not there are answers, not errors; only
 // a chapter the manuscript does not have is an error. It reads, and changes nothing in REAPER.
 func (h *Host) ReadAloudReaperState(chapterID string) (string, error) {
 	svc := h.services()
@@ -164,8 +164,6 @@ func readAloudRefusal(err error, title, guid string) readAloudReaperState {
 	case errors.Is(err, bridge.ErrStale):
 		return readAloudReaperState{Status: readAloudNoLink, Reason: readAloudTrackMissing, TrackGUID: guid,
 			Message: fmt.Sprintf("The track linked to %q is no longer in the REAPER project. Link it again in the audio engine panel.", title)}
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return unavailable(readAloudExperimentalOff, messageExperimentalOff)
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return unavailable(reaperNotRunning, messageNotRunning)
 	case errors.Is(err, bridge.ErrUnavailable):

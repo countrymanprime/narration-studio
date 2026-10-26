@@ -32,7 +32,7 @@ export function chapterLines(): StackLine[] {
 
 /** Audacity as it would be once stacking is built: several edits, and backups on or off. */
 export function stepsCaps(backups: boolean): DawCapabilities {
-  const audacity = DAW_SETUPS['audacity-backups'];
+  const audacity = DAW_SETUPS.audacity;
   return {
     ...audacity,
     capabilities: {

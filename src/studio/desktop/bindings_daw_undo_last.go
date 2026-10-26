@@ -19,7 +19,7 @@ const (
 
 // DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, docs/architecture/ui-state-and-journal.md#the-journal-and-undo): "this", "other"
 // (another action, or none), or "unknown" when the DAW cannot tell: the undo_last capability refused (a standalone launch, a DAW not
-// answering, Experimental actions off, the toggle off, an engine that has not built it), no live adapter, or no answer. It never
+// answering, an engine that has not built it), no live adapter, or no answer. It never
 // changes the project. kind is a dawport.ActionKind ("cut_range"); any other is an error, and nothing is sent.
 func (h *Host) DawLastAction(kind string) (string, error) {
 	svc := h.services()
@@ -95,8 +95,6 @@ func undoLastRefusal(name string, err error) dawport.Result {
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperNotRunning).Message)
 	case errors.Is(err, bridge.ErrUnavailable):
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperStandalone).Message)
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error())
 	case errors.Is(err, context.DeadlineExceeded):
 		return dawport.Refused(fmt.Sprintf(undoLastNoAnswerSentence, name, int(undoLastTimeout.Seconds())))
 	}

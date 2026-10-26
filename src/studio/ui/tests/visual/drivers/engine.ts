@@ -193,7 +193,7 @@ export const engineDrivers: Record<string, Driver> = {
       .waitFor();
   },
   'create-regions-preview': async (page) => {
-    await page.goto('/?mockChapterLink=confirmed&mockRegionsCapabilityOn=1');
+    await page.goto('/?mockChapterLink=confirmed');
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Create chapter regions…');
@@ -201,7 +201,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Create 2 regions' }).waitFor();
   },
   'create-regions-success': async (page) => {
-    await page.goto('/?mockChapterLink=confirmed&mockRegionsCapabilityOn=1');
+    await page.goto('/?mockChapterLink=confirmed');
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Create chapter regions…');
@@ -212,7 +212,7 @@ export const engineDrivers: Record<string, Driver> = {
     await message.scrollIntoViewIfNeeded();
   },
   'create-regions-error': async (page) => {
-    await page.goto('/?mockChapterLink=confirmed&mockRegionsCapabilityOn=1&mockRegionsCreateError=1');
+    await page.goto('/?mockChapterLink=confirmed&mockRegionsCreateError=1');
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Create chapter regions…');

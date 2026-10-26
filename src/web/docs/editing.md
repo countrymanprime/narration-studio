@@ -30,7 +30,7 @@ The legend in the header names the marks in the text: words **Not in the script*
 3. Or press **Mute** to keep the audio and silence the words.
 4. Or press **Add FX** (F) and choose one of your FX chains from your DAW. It goes on the selected words only.
 
-> **Note:** **Delete**, **Mute** and **Add FX** are Experimental and start switched off in [Settings](settings.md). A line above the bar says why while they are off.
+> **Note:** **Delete**, **Mute** and **Add FX** are off while the DAW cannot make the change, for example while REAPER is not answering. A line above the bar says why.
 
 ## Choose a take
 

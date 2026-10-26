@@ -14,7 +14,7 @@ import (
 // the Booth uses with a DAW, ReadAloudRecordStart and ReadAloudRecordStop (bindings_readaloud_record.go), so the page
 // asks one question whatever records: the engine is the host's own choice (Recording.engine), never a label from the page
 // (threat-model row 6f), and the start goes through the DAW port's Record role over internal/recording, so the capability
-// report's refusals (Experimental switched off, a toggle) are the ones the Booth already shows before the press.
+// report's refusals are the ones the Booth already shows before the press.
 //
 // The recorder is part of the app, so none of REAPER's preconditions apply: no bridge, no linked track, no armed track. The
 // chapter id the page sends is not used: a take is a file in the project's Recordings folder, and which line it belongs to is
@@ -45,15 +45,12 @@ func builtinTransportPayload(recording bool) map[string]any {
 	return map[string]any{"playing": false, "recording": recording}
 }
 
-// builtinResolver is the DAW port's resolver over the built-in recorder's live adapter, with the narrator's capability toggles
-// and the Experimental switch from svc's settings, as dawResolverOver builds it for a declaration.
-func builtinResolver(svc hostServices, adapter dawport.Adapter) *dawport.Resolver {
-	store := svc.settings
+// builtinResolver is the DAW port's resolver over the built-in recorder's live adapter, as dawResolverOver builds it for a
+// declaration.
+func builtinResolver(adapter dawport.Adapter) *dawport.Resolver {
 	return dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      adapter,
-		Runtime:      adapter.(interface{ Runtime() dawport.Runtime }).Runtime,
-		Toggle:       dawport.SettingsToggles(store.Effective),
-		Experimental: dawport.SettingsExperimental(store.Effective),
+		Adapter: adapter,
+		Runtime: adapter.(interface{ Runtime() dawport.Runtime }).Runtime,
 	})
 }
 
@@ -85,12 +82,12 @@ func (h *Host) builtinMicrophone(ctx context.Context, svc hostServices) (string,
 	return "", &refused
 }
 
-// builtinRecordStart starts a take through the Record role. The capability's own refusal comes first, so a take that Settings has
-// switched off never opens the device.
+// builtinRecordStart starts a take through the Record role. The capability's own refusal comes first, so a take the recorder cannot
+// make never opens the device.
 func (h *Host) builtinRecordStart(ctx context.Context, svc hostServices) ReadAloudRecording {
 	var device string
 	adapter := builtin.New(builtin.Config{Recorder: svc.recorder, Device: func() string { return device }})
-	resolver := builtinResolver(svc, adapter)
+	resolver := builtinResolver(adapter)
 	if support := resolver.Support(dawport.CapRecord); !support.Available {
 		return readAloudRefused(string(support.Reason), support.Message)
 	}
@@ -113,8 +110,8 @@ func (h *Host) builtinRecordStart(ctx context.Context, svc hostServices) ReadAlo
 	return ReadAloudRecording{Outcome: "started"}
 }
 
-// builtinRecordStop ends the take the recorder is making. It is not gated by the capability report: Experimental switched off
-// during a take must not leave the narrator unable to stop it.
+// builtinRecordStop ends the take the recorder is making. It is not gated by the capability report: nothing that changes during
+// a take may leave the narrator unable to stop it.
 func builtinRecordStop(svc hostServices) ReadAloudRecording {
 	if !svc.recorder.Recording() {
 		return readAloudRefused(readAloudNotRecording, "The built-in recorder is not recording, so nothing was stopped.")
@@ -129,7 +126,7 @@ func builtinPunchRefusal(svc hostServices, at float64) ReadAloudRecording {
 		return readAloudRefused(readAloudBadTime, readAloudBadTimeSentence)
 	}
 	adapter := builtin.New(builtin.Config{Recorder: svc.recorder})
-	support := builtinResolver(svc, adapter).Support(dawport.CapPunch)
+	support := builtinResolver(adapter).Support(dawport.CapPunch)
 	return readAloudRefused(string(support.Reason), support.Message)
 }
 

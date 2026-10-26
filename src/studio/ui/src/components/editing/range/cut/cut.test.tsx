@@ -473,7 +473,7 @@ describe('Delete words and audio', () => {
     expect(log.cuts).toHaveLength(1);
   });
 
-  it('a-daw-refusal-changes-nothing: capability off, a stale range and Audacity without backups say the DAW sentence and record nothing', async () => {
+  it('a-daw-refusal-changes-nothing: the DAW not answering and a stale range say the DAW sentence and record nothing', async () => {
     mount('reaper-off');
     await flush();
     await select('p-1:0', 'p-1:1');
@@ -482,13 +482,6 @@ describe('Delete words and audio', () => {
     act(() => cut.remove());
     expect(toast).toHaveBeenLastCalledWith(sentence, { tone: 'error' });
     expect(screen.queryByRole('dialog')).toBeNull();
-    cleanup();
-
-    mount('audacity');
-    await flush();
-    await select('p-1:0', 'p-1:1');
-    act(() => cut.remove());
-    expect(toast).toHaveBeenLastCalledWith(DAW_SETUPS.audacity.capabilities.cut_range!.message, { tone: 'error' });
     cleanup();
 
     mount('reaper');

@@ -7,10 +7,9 @@ import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
-const RECORD_ON = '?mockRecordCapabilityOn=1';
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 
-async function openBooth(page: Page, query = RECORD_ON, recordReady = true): Promise<void> {
+async function openBooth(page: Page, query = '', recordReady = true): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -83,6 +82,11 @@ const OVERLAYS: Overlay[] = [
     query: '?mockDaw=quiet',
     recordReady: false,
     open: async (page) => {
+      // With REAPER not answering the setup dialog opens by itself (Record has no switch to stop it): close it to reach Levels.
+      await page
+        .getByRole('dialog', { name: /is not connected/ })
+        .getByRole('button', { name: 'Close' })
+        .click();
       const opener = page.getByRole('button', { name: 'Levels' });
       await opener.click();
       return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
@@ -156,7 +160,7 @@ const OVERLAYS: Overlay[] = [
     name: 'roll confirmation (a take is running)',
     question: true,
     keepsSpace: true,
-    query: `${RECORD_ON}&mockRollReplaces=1`,
+    query: `?mockRollReplaces=1`,
     open: async (page) => {
       await record(page).click();
       await page.getByRole('button', { name: /^Stop$/ }).waitFor();

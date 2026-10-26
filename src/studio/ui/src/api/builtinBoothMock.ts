@@ -23,9 +23,7 @@ const refused = (reason: ReadAloudRecordReason, message: string): ReadAloudRecor
 const WIRE_REASONS: Record<DawCapabilityReason, ReadAloudRecordReason> = {
   standalone: 'standalone',
   not_running: 'not_running',
-  experimental_off: 'experimental_off',
   failed: 'failed',
-  turned_off: 'turned_off',
   not_yet: 'not_yet',
   unsupported: 'unsupported',
 };

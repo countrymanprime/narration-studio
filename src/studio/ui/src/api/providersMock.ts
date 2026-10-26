@@ -24,7 +24,7 @@ const ROWS: Record<MockPort, MockRow[]> = {
   ],
   capture: [
     { name: 'dshow', label: 'DirectShow', platforms: ['windows'], modes: [] },
-    // The built-in recorder's engine, Experimental until the owner's microphone check.
+    // The built-in recorder's engine; its wire level stays `experimental` until the owner's microphone check, which gates nothing.
     { name: 'wasapi', label: 'WASAPI', platforms: ['windows'], modes: [], level: 'experimental' },
   ],
 };
