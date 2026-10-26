@@ -133,10 +133,10 @@ var eventSpecs = map[string]eventSpec{
 	// The approved marker, "added" or "existing" (the take already had one; nothing changed).
 	"FINDING_MARKER": {required: []fieldSpec{text("run"), text("state"), text("takeGuid"), number("sourceTime"), text("name")}},
 	// chapter_track_state (narration_track_state.lua): the transport and one track, read-only. guid is empty when no track was named; playState is GetPlayState's bit field;
-	// times are seconds; recInput is the track's I_RECINPUT (empty with no track); inputDevice is empty when REAPER has
-	// no input open. One TRACK_ITEM per item on the track follows, then TRACK_STATE_END (listed, and the track's total).
+	// times are seconds; recInput is the track's I_RECINPUT (empty with no track); inputDevice and outputDevice are empty when
+	// REAPER has no device open; recInputName is REAPER's name for the input channel(s), empty when it cannot say. One TRACK_ITEM per item on the track follows, then TRACK_STATE_END (listed, and the track's total).
 	"TRACK_STATE": {required: []fieldSpec{text("run"), text("guid"), count("playState"), number("editCursor"), number("playPosition"), text("rpp"), count("unsaved"),
-		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice")}},
+		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice"), text("outputDevice"), text("recInputName")}},
 	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off.
 	"TRACK_ITEM": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), number("position"), number("length"), number("sourceOffset"), number("playrate"), text("sourceFile")},
 		optional: []fieldSpec{count("muted")}},

@@ -1033,6 +1033,19 @@
     },
     {
       "choices": [
+        "daw",
+        "chosen"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "daw",
+      "isSet": false,
+      "key": "input_source",
+      "kind": "choice",
+      "label": "Microphone source",
+      "value": ""
+    },
+    {
+      "choices": [
         "whisper",
         "moonshine"
       ],

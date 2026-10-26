@@ -633,7 +633,7 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
  * Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
  * stored alignment (passagetakes.ResolveRange) and the track is the chapter's one linked track, and the DAW adds the narrator's
  * window either side (DAW.backups.window_seconds). The answer is a DawResult: the backups capability's own sentence when
- * the resolver refuses it (REAPER, the built-in recorder, a standalone launch, Audacity not connected, the toggle off), checked
+ * the resolver refuses it (REAPER, the built-in recorder, a standalone launch, Audacity not connected), checked
  * first; then a label that is not plain text; then the range's and the link's own refusals. Nothing is sent to the DAW on any of
  * them. A backup changes no audio, so it answers changed false and no undo step.
  */
@@ -750,7 +750,7 @@ export function DawCompareFxRange(chapterID: string, firstToken: number, lastTok
  * mode, fade, pad and room-tone choice, never a GUID or a time: the item and its project seconds are resolved here from the
  * stored alignment and the saved project (threat model row 5f), and one request is one item. The answer is
  * a DawResult: the cut_range capability's own sentence when the resolver refuses it (a standalone launch, a DAW not
- * answering, Experimental actions off, the toggle off, an engine that cannot cut yet), checked first; then a mode, fade or pad
+ * answering, an engine that cannot cut yet), checked first; then a mode, fade or pad
  * delete_range does not take, or room tone with "close"; then the range's own refusals (passagetakes.ResolveRange: words not
  * heard, two items, and a range or item that is stale with code stale); words every one of which the edit log already holds as
  * cut are a no-op, changed false. Nothing is sent to the DAW on any of them. A chapter the manuscript does not have has no
@@ -786,7 +786,7 @@ export function DawGoToChapter(chapterID: string, where: string, seconds: number
 /**
  * DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, docs/architecture/ui-state-and-journal.md#the-journal-and-undo): "this", "other"
  * (another action, or none), or "unknown" when the DAW cannot tell: the undo_last capability refused (a standalone launch, a DAW not
- * answering, Experimental actions off, the toggle off, an engine that has not built it), no live adapter, or no answer. It never
+ * answering, an engine that has not built it), no live adapter, or no answer. It never
  * changes the project. kind is a dawport.ActionKind ("cut_range"); any other is an error, and nothing is sent.
  */
 export function DawLastAction(kind: string): $CancellablePromise<string> {
@@ -876,7 +876,7 @@ export function DawPunchPreroll(): $CancellablePromise<string> {
  * audio file. takeID is the take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host
  * looks it up there, checks every stretch is inside the part of the file the take plays, and sends the item and take it read
  * itself, so an id is never sent to the DAW as given (threat model row 5f). The answer is a DawResult: the range_gain
- * capability's own sentence when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the
+ * capability's own sentence when the resolver refuses it (a standalone launch, a DAW not answering, the
  * toggle off), checked first; no live adapter is refused in a sentence; a reduction or stretches out of bounds are refused; a take
  * the track no longer holds or a stretch outside it is refused with code stale. Nothing is sent to the DAW on any of them. A take
  * that changed between the read and the DAW's own check is the DAW's stale refusal, and nothing changes.
@@ -903,7 +903,7 @@ export function DawRemoveFxFromRange(chapterID: string, firstToken: number, last
  * the take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
  * checks every click is inside the part of the file the take plays, and sends the item and take it read itself, so an id is never
  * sent to the DAW as given (threat model row 5f). The answer is a DawResult: the click_repair capability's own sentence
- * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first;
+ * when the resolver refuses it (a standalone launch, a DAW not answering), checked first;
  * no live adapter is refused in a sentence; clicks out of bounds are refused; a take the track no longer holds or a click outside
  * it is refused with code stale. Nothing is sent to the DAW on any of them. A take that changed between the read and the DAW's own
  * check is the DAW's stale refusal, and nothing changes.
@@ -954,7 +954,7 @@ export function DawRevealFile(path: string): $CancellablePromise<string> {
  * keeping the earlier audio as a take (SND-6a, docs/reference/daw/capabilities.md; the Studio Next mock's roll). The page sends the chapter
  * id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
  * (docs/architecture/threat-model.md, row 5f). The answer is a DawResult: the punch capability's own sentence
- * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off),
+ * when the resolver refuses it (a standalone launch, a DAW not answering),
  * checked first; a time that is not a number of seconds or is past where the DAW records now; the confirmation sentence
  * when the capability is destructive and confirmed is false; and a gone track as the role's stale refusal. Nothing is sent
  * to the DAW on any refusal. A chapter the manuscript does not have is an error.
@@ -988,7 +988,7 @@ export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
  * take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
  * checks the cut is inside that take, and sends the item and take it read itself, so an id is never sent to the DAW as given
  * (threat model row 5f). The answer is a DawResult: the takes capability's own sentence when the resolver refuses it
- * (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first; an engine whose takes role
+ * (a standalone launch, a DAW not answering), checked first; an engine whose takes role
  * cannot split, or no live adapter, is refused in a sentence; a time that is not one, a take the track no longer holds or a cut
  * outside it is refused (code stale for the last two). Nothing is sent to the DAW on any of them. A take that changed between the
  * read and the DAW's own check is the DAW's stale refusal, and nothing changes.
@@ -1004,7 +1004,7 @@ export function DawSplitTake(chapterID: string, takeID: string, at: number): $Ca
  * Booth's passage map, which names the items each passage was read into, and the chapter's one linked track as the DAW
  * reports it now (chapter_track_state), so a GUID-shaped id is looked up like any other and the plan the page showed is
  * never an input (threat model row 5f). The answer is a DawResult: the stack_takes capability's own sentence
- * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off, an
+ * when the resolver refuses it (a standalone launch, a DAW not answering, an
  * engine that cannot stack), checked first; then too many passages; then a passage id the chapter does not list or a track
  * that is gone (code stale); then a kept take, reads two passages share and nothing to move. Nothing is sent to the DAW on
  * any of them. An item that changed between the read and REAPER's own check is REAPER's stale refusal, and nothing changes.
@@ -2516,7 +2516,7 @@ export function ReadAloudArmOnly(chapterID: string): $CancellablePromise<string>
 /**
  * ReadAloudReaperState answers whether REAPER is ready to record chapterID with reading:
  * its linked track the one track armed, and REAPER not already recording. A
- * chapter with no link, a REAPER that is not there and the experimental switch being off are answers, not errors; only
+ * chapter with no link, a REAPER that is not there are answers, not errors; only
  * a chapter the manuscript does not have is an error. It reads, and changes nothing in REAPER.
  */
 export function ReadAloudReaperState(chapterID: string): $CancellablePromise<string> {
@@ -2529,7 +2529,7 @@ export function ReadAloudRecordStart(chapterID: string): $CancellablePromise<str
 
 /**
  * ReadAloudRecordStartAt is Record from a punch the narrator chose: chapterID and a time in project seconds, never a
- * track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, keeps starting at the end of the last item.
+ * track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, starts where the last take stopped, or else at the end of the last item.
  */
 export function ReadAloudRecordStartAt(chapterID: string, at: number): $CancellablePromise<string> {
     return $Call.ByID(3456773893, chapterID, at);
@@ -3008,12 +3008,13 @@ export function TeleprompterPunchPreview(word: number): $CancellablePromise<stri
 }
 
 /**
- * TeleprompterReaperInput answers which of the teleprompter's microphones REAPER records from, so the picker can
- * preselect it with a reason. It asks REAPER once, read-only,
- * and never on a timer; a REAPER that is not there or cannot say is an answer, and the picker then keeps its list.
+ * TeleprompterReaperInput answers which of the teleprompter's microphones REAPER records from, so the Booth listens on
+ * the device REAPER records with. chapterID names the Booth's chapter: when it is linked to one track, REAPER also names
+ * that track's input channel; "" or an unlinked chapter reads the device alone. It asks REAPER once, read-only, and never
+ * on a timer; a DAW that is not there or cannot say is an answer, and the Booth then uses the narrator's choice.
  */
-export function TeleprompterReaperInput(): $CancellablePromise<string> {
-    return $Call.ByID(3054312412);
+export function TeleprompterReaperInput(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(3054312412, chapterID);
 }
 
 /**
@@ -3345,7 +3346,7 @@ export function WorkspaceGoTo(chapterID: string, tokenIndex: number): $Cancellab
  * deleted, and REAPER adds one undo step when anything changed. As for WorkspaceUseTake, the page sends ids and token
  * indices only: the item and kept take GUIDs are read here from the saved project, and an id the host does not offer is
  * refused as stale (docs/architecture/reaper-navigation.md). The answer is a DawResult: the takes capability's own sentence when
- * the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked
+ * the resolver refuses it (a standalone launch, a DAW not answering), checked
  * before the passage is read, and nothing is sent to REAPER on any refusal. A token range outside the alignment is an
  * error, as for WorkspaceTakes.
  */

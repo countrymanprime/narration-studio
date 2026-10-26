@@ -61,7 +61,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: '',
     field: { tool: 'Teleprompter', key: 'input_device' },
     desc: 'The input the Booth listens to and records with.',
-    more: 'The input the Booth listens to and the built-in recorder records with.',
+    more: 'The input the Booth listens to and the built-in recorder records with. With a DAW it is the DAW’s own input unless you choose a different one.',
     used: ['booth'],
     also: 'Booth › Levels menu',
     syn: 'input device audio interface',

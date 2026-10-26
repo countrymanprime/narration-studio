@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -10,6 +10,7 @@ import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText'
 import { BOOTH_SIZE_STORAGE_KEY, useTextChoices } from '../page/useTextChoices';
 import { BoothFooter } from './BoothFooter';
 import { BoothTop } from './BoothTop';
+import type { ListenProps } from './LevelsMenu';
 
 afterEach(() => {
   cleanup();
@@ -207,27 +208,91 @@ describe('the-footer-never-sends-the-narrator-to-the-audio-engine-panel', () => 
 });
 
 describe('with-a-daw-levels-names-the-microphone-the-booth-listens-to', () => {
-  it('names the DAW’s own input when it chose it, with no picker', async () => {
+  const two = [{ name: 'USB Mic' }, { name: 'Line In' }];
+  const listen = (mic: Partial<ListenProps['mic']>, devices: ListenProps['devices'] = two): ListenProps => ({
+    devices,
+    mic: { origin: 'daw', candidates: [], dawInput: null, note: null, overridden: false, ...mic },
+    onPick: vi.fn(),
+    onChooseOverDaw: vi.fn(),
+    onFollowDaw: vi.fn(),
+  });
+  const open = () => userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+
+  it('names the DAW’s own input read-only, with what REAPER records from and plays on, and no picker', async () => {
     footer(api(), {
-      mic: { ...mic, engine: 'daw', device: 'Line In', listen: { devices: [{ name: 'USB Mic' }, { name: 'Line In' }], fromDaw: true, note: null } },
+      mic: {
+        ...mic,
+        engine: 'daw',
+        device: 'Line In',
+        listen: listen({ dawInput: 'Focusrite USB ASIO · Mic/Line 1', outputDevice: 'Speakers (Focusrite USB Audio)' }),
+      },
     });
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    await open();
     expect(await screen.findByText('Line In')).toBeTruthy();
-    expect(screen.getByText('Chosen in REAPER')).toBeTruthy();
+    expect(screen.getByText('Same as REAPER')).toBeTruthy();
+    expect(screen.getByText('REAPER records from Focusrite USB ASIO · Mic/Line 1.')).toBeTruthy();
+    expect(screen.getByText('REAPER plays on Speakers (Focusrite USB Audio).')).toBeTruthy();
     expect(screen.queryByRole('combobox')).toBeNull();
   });
-  it('offers the listed microphones with the host’s sentence when the DAW could not say, and reports the choice', async () => {
-    const onDevice = vi.fn();
-    const note = 'REAPER did not say which input device it has open. Choose the microphone yourself.';
-    footer(api(), { mic: { ...mic, engine: 'daw', device: '', onDevice, listen: { devices: [{ name: 'USB Mic' }], fromDaw: false, note } } });
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    expect(await screen.findByText(note)).toBeTruthy();
+  it('chooses a different microphone over the DAW’s', async () => {
+    const choice = listen({});
+    footer(api(), { mic: { ...mic, engine: 'daw', device: 'Line In', listen: choice } });
+    await open();
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose a different one' }));
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Microphone' }), 'USB Mic');
-    expect(onDevice).toHaveBeenCalledWith('USB Mic');
+    expect(choice.onChooseOverDaw).toHaveBeenCalledWith('USB Mic');
+  });
+  it('keeps a narrator’s override as a picker that says so, with the way back', async () => {
+    const choice = listen({ origin: 'chosen', overridden: true, dawInput: 'Focusrite USB ASIO' });
+    footer(api(), { mic: { ...mic, engine: 'daw', device: 'USB Mic', listen: choice } });
+    await open();
+    expect(await screen.findByText("Your choice, kept over REAPER's input.")).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Microphone' })).toHaveProperty('value', 'USB Mic');
+    await userEvent.click(screen.getByRole('button', { name: "Use REAPER's input" }));
+    expect(choice.onFollowDaw).toHaveBeenCalledTimes(1);
+  });
+  it('says plainly when the DAW’s input fits several microphones, with one button each', async () => {
+    const note = 'REAPER records from "Focusrite USB ASIO", which could be any of 2 microphones here. Pick the one REAPER uses.';
+    const choice = listen({ origin: 'uncertain', candidates: ['USB Mic', 'Line In'], note });
+    footer(api(), { mic: { ...mic, engine: 'daw', device: 'USB Mic', listen: choice } });
+    await open();
+    expect(await screen.findByText(note)).toBeTruthy();
+    const group = screen.getByRole('group', { name: 'Which microphone REAPER records from' });
+    expect(
+      within(group)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-pressed')),
+    ).toEqual(['false', 'false']);
+    await userEvent.click(within(group).getByRole('button', { name: 'Line In' }));
+    expect(choice.onPick).toHaveBeenCalledWith('Line In');
+  });
+  it('marks the candidate picked once the DAW’s input is settled', async () => {
+    footer(api(), { mic: { ...mic, engine: 'daw', device: 'Line In', listen: listen({ candidates: ['USB Mic', 'Line In'] }) } });
+    await open();
+    const group = await screen.findByRole('group', { name: 'Which microphone REAPER records from' });
+    expect(within(group).getByRole('button', { name: 'Line In' }).getAttribute('aria-pressed')).toBe('true');
+  });
+  it('offers the listed microphones with the host’s sentence when the DAW could not say, and reports the choice', async () => {
+    const note = 'REAPER did not say which input device it has open. Choose the microphone in Levels.';
+    const choice = listen({ origin: 'first', note }, [{ name: 'USB Mic' }]);
+    footer(api(), { mic: { ...mic, engine: 'daw', device: 'USB Mic', listen: choice } });
+    await open();
+    expect(await screen.findByText(note)).toBeTruthy();
+    expect(screen.getByText(/The first microphone listed, until you choose one/)).toBeTruthy();
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Microphone' }), 'USB Mic');
+    expect(choice.onPick).toHaveBeenCalledWith('USB Mic');
+  });
+  it('says Audacity cannot report its input and leaves the picker', async () => {
+    const note = 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.';
+    footer(api(), { mic: { ...mic, engine: 'daw', dawName: 'Audacity', device: 'USB Mic', listen: listen({ origin: 'chosen', note }) } });
+    await open();
+    expect(await screen.findByText(note)).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Microphone' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Choose a different one' })).toBeNull();
   });
   it('says no microphone was found when none is listed', async () => {
-    footer(api(), { mic: { ...mic, engine: 'daw', device: '', listen: { devices: [], fromDaw: false, note: null } } });
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    footer(api(), { mic: { ...mic, engine: 'daw', device: '', listen: listen({ origin: 'none' }, []) } });
+    await open();
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'No microphone found');
   });
 });

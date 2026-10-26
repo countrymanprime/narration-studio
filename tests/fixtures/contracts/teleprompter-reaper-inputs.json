@@ -1,26 +1,41 @@
 {
+  "daw_cannot_report": {
+    "status": "unavailable",
+    "reason": "daw_cannot_report",
+    "message": "Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.",
+    "candidates": []
+  },
   "matched": {
     "status": "matched",
-    "message": "REAPER records from \"Shure MV7\", so \"Microphone (2- Shure MV7)\" is selected.",
+    "message": "REAPER records from \"Shure MV7\", so the Booth listens to \"Microphone (2- Shure MV7)\".",
     "reaperDevice": "Shure MV7",
+    "device": "Microphone (2- Shure MV7)",
+    "candidates": []
+  },
+  "matched_with_channel": {
+    "status": "matched",
+    "message": "REAPER records from \"Shure MV7\", so the Booth listens to \"Microphone (2- Shure MV7)\".",
+    "reaperDevice": "Shure MV7",
+    "inputChannel": "Input 1",
+    "outputDevice": "Speakers (Realtek(R) Audio)",
     "device": "Microphone (2- Shure MV7)",
     "candidates": []
   },
   "no_match": {
     "status": "no_match",
-    "message": "REAPER records from \"ASIO4ALL v2\", which does not match a microphone here. Choose the microphone yourself.",
+    "message": "REAPER records from \"ASIO4ALL v2\", which does not match a microphone here. Choose the microphone in Levels.",
     "reaperDevice": "ASIO4ALL v2",
     "candidates": []
   },
   "reaper_no_device": {
     "status": "unavailable",
     "reason": "reaper_no_device",
-    "message": "REAPER did not say which input device it has open. Choose the microphone yourself.",
+    "message": "REAPER did not say which input device it has open. Choose the microphone in Levels.",
     "candidates": []
   },
   "uncertain": {
     "status": "uncertain",
-    "message": "REAPER records from \"Focusrite USB ASIO\", which could be any of 2 microphones here. Choose the one REAPER uses.",
+    "message": "REAPER records from \"Focusrite USB ASIO\", which could be any of 2 microphones here. Pick the one REAPER uses.",
     "reaperDevice": "Focusrite USB ASIO",
     "candidates": [
       "Microphone (Focusrite USB Audio)",

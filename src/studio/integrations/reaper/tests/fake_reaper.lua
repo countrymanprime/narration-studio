@@ -61,6 +61,10 @@ function Fake.new(host)
   self.play_position2 = 0
   -- GetAudioDeviceInfo('IDENT_IN'): the open input device's name; nil when the device is closed (REAPER answers false).
   self.audio_input = nil
+  -- GetAudioDeviceInfo('IDENT_OUT'): the open output device's name; nil when the device is closed.
+  self.audio_output = nil
+  -- GetInputChannelName(index): the open input device's channel names, 1-based here; nil past the last channel.
+  self.input_channels = {}
   -- REAPER's configuration variables, by name, as the text get_config_var_string answers (narration_roll.lua reads
   -- autoxfade). A name a test leaves unset reads as `false, ''`. Nothing in the fake writes them.
   self.config = {}
@@ -855,7 +859,16 @@ function Fake:add_transport_api(api)
     if attribute == 'IDENT_IN' and fake.audio_input then
       return true, fake.audio_input
     end
+    if attribute == 'IDENT_OUT' and fake.audio_output then
+      return true, fake.audio_output
+    end
     return false, ''
+  end
+  -- GetInputChannelName(channelIndex): the hardware input channel's name, nil past the device's last channel. What REAPER
+  -- answers there and with the device closed is not yet observed (docs/reference/daw/reaper.md), so the bridge treats
+  -- nil and '' alike.
+  function api.GetInputChannelName(index)
+    return fake.input_channels[index + 1]
   end
   function api.OnPlayButton()
     fake.calls[#fake.calls + 1] = { name = 'OnPlayButton' }

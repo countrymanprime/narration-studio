@@ -512,7 +512,7 @@ describe('Settings: search and filters', () => {
 
 describe('Settings: arriving from another page', () => {
   it('opens on the setting and focuses it', async () => {
-    await renderPage({ initialCategory: 'Teleprompter' });
+    await renderPage({ api: createMockApi({}, { recording: { engine: 'builtin' } }), initialCategory: 'Teleprompter' });
     const mic = await screen.findByRole('combobox', { name: /Microphone/ });
     await waitFor(() => expect(document.activeElement).toBe(mic));
     expect(

@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // TrackState is one read of REAPER's transport and of one track (chapter_track_state, narration_track_state.lua): what
@@ -15,11 +18,13 @@ type TrackState struct {
 	EditCursor, PlayPosition   float64
 	ProjectPath                string // the active project's .rpp, "" when never saved
 	Unsaved                    bool
-	ChangeCount                int  // GetProjectStateChangeCount: rises on every edit, restarts when the project opens
-	TrackArmed                 bool // the named track is armed for recording
-	ArmedCount                 int  // tracks armed in the whole project
-	RecordInput                *int // the named track's I_RECINPUT as REAPER stores it; nil with no track
-	InputDevice                string
+	ChangeCount                int         // GetProjectStateChangeCount: rises on every edit, restarts when the project opens
+	TrackArmed                 bool        // the named track is armed for recording
+	ArmedCount                 int         // tracks armed in the whole project
+	RecordInput                *int        // the named track's I_RECINPUT as REAPER stores it; nil with no track
+	InputDevice                string      // GetAudioDeviceInfo("IDENT_IN"); "" when REAPER has none open or cannot say
+	OutputDevice               string      // GetAudioDeviceInfo("IDENT_OUT"); "" likewise, and from a script older than the field
+	InputChannel               string      // REAPER's name for the channel(s) RecordInput records from ("In 1 / In 2"); "" when none
 	Items                      []TrackItem // the named track's items, at most the bridge's limit
 	ItemsTotal                 int         // how many items the track holds, listed or not
 }
@@ -94,7 +99,13 @@ func readTrackState(fields []string) TrackState {
 		}
 	}
 	if len(fields) > 12 {
-		state.InputDevice = fields[12]
+		state.InputDevice = DeviceName(fields[12])
+	}
+	if len(fields) > 13 {
+		state.OutputDevice = DeviceName(fields[13])
+	}
+	if len(fields) > 14 {
+		state.InputChannel = DeviceName(fields[14])
 	}
 	return state
 }
@@ -115,4 +126,23 @@ func readTrackItem(fields []string) TrackItem {
 		SourceFile:   fields[8],
 		Muted:        muted,
 	}
+}
+
+// maxDeviceName is the longest device or channel name kept, in runes. REAPER passes on what an audio driver calls itself,
+// so the name is untrusted text: a driver that names itself at length must not flood a sentence or a settings row.
+const maxDeviceName = 120
+
+// DeviceName is a device or channel name REAPER reported, made safe to show: control and bidirectional-override characters dropped, spaces
+// collapsed and the length bounded to maxDeviceName runes (an ellipsis marks a cut).
+func DeviceName(raw string) string {
+	clean := strings.Join(strings.Fields(strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || unicode.Is(unicode.Bidi_Control, r) || r == utf8.RuneError {
+			return ' '
+		}
+		return r
+	}, raw)), " ")
+	if runes := []rune(clean); len(runes) > maxDeviceName {
+		return strings.TrimSpace(string(runes[:maxDeviceName-1])) + "…"
+	}
+	return clean
 }

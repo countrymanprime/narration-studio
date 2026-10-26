@@ -76,7 +76,7 @@ export const MOCK_REAPER_SEEDS = ['ready', 'not_armed', 'other_armed', 'several_
 export type MockReaperSeed = (typeof MOCK_REAPER_SEEDS)[number];
 
 /** `?mockReaperInput=`: what `teleprompterReaperInput` answers (unset: REAPER records from the first microphone listed). */
-export const MOCK_REAPER_INPUT_SEEDS = ['matched', 'uncertain', 'no_match', 'reaper_no_device'] as const;
+export const MOCK_REAPER_INPUT_SEEDS = ['matched', 'uncertain', 'no_match', 'reaper_no_device', 'daw_cannot_report'] as const;
 export type MockReaperInputSeed = (typeof MOCK_REAPER_INPUT_SEEDS)[number];
 
 // The host's answers (src/studio/desktop/teleprompterinput.go), in the same words, over the mock's own microphone list.
@@ -84,27 +84,42 @@ function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): Teleprom
   const [first = 'Microphone Array (Realtek(R) Audio)'] = devices;
   switch (seed) {
     case 'matched':
-      return { status: 'matched', reaperDevice: first, device: first, candidates: [], message: `REAPER records from "${first}", so "${first}" is selected.` };
+      return {
+        status: 'matched',
+        reaperDevice: first,
+        inputChannel: 'Input 1',
+        outputDevice: 'Speakers (Realtek(R) Audio)',
+        device: first,
+        candidates: [],
+        message: `REAPER records from "${first}", so the Booth listens to "${first}".`,
+      };
     case 'uncertain':
       return {
         status: 'uncertain',
         reaperDevice: 'Focusrite USB ASIO',
         candidates: devices,
-        message: `REAPER records from "Focusrite USB ASIO", which could be any of ${devices.length} microphones here. Choose the one REAPER uses.`,
+        message: `REAPER records from "Focusrite USB ASIO", which could be any of ${devices.length} microphones here. Pick the one REAPER uses.`,
       };
     case 'no_match':
       return {
         status: 'no_match',
         reaperDevice: 'ASIO4ALL v2',
         candidates: [],
-        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone yourself.',
+        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone in Levels.',
       };
     case 'reaper_no_device':
       return {
         status: 'unavailable',
         reason: 'reaper_no_device',
         candidates: [],
-        message: 'REAPER did not say which input device it has open. Choose the microphone yourself.',
+        message: 'REAPER did not say which input device it has open. Choose the microphone in Levels.',
+      };
+    case 'daw_cannot_report':
+      return {
+        status: 'unavailable',
+        reason: 'daw_cannot_report',
+        candidates: [],
+        message: 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.',
       };
   }
 }
