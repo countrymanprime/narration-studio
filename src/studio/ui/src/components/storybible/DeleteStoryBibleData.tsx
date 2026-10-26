@@ -1,7 +1,7 @@
 import { describeApiError } from '../../api/errorMessage';
-import { useApi } from '../../api/ApiContext';
 import type { GuideDeleted } from '../../api/contracts/storyBible';
 import { usePendingAction } from '../../hooks/usePendingAction';
+import { usePort } from '../../ports/usePort';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import type { Notify } from '../primitives/Toast';
 
@@ -35,7 +35,7 @@ export function DeleteStoryBibleDataDialog({
   onDeleted: () => void;
   onClose: () => void;
 }) {
-  const api = useApi();
+  const storyBible = usePort('storyBible');
   const deleting = usePendingAction();
   const project = projectName ? `“${projectName}”` : 'this project';
   const goes = [counted(entries, 'entry', 'entries'), suggestions > 0 ? counted(suggestions, 'scan suggestion', 'scan suggestions') : undefined]
@@ -44,7 +44,7 @@ export function DeleteStoryBibleDataDialog({
   const remove = () =>
     deleting.run('delete', async () => {
       try {
-        const deleted = await api.guideDeleteAll();
+        const deleted = await storyBible.guideDeleteAll();
         onClose();
         notify(deletedMessage(deleted));
         onDeleted();
