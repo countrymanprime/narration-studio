@@ -11,6 +11,7 @@ import type {
   ManuscriptParagraph,
   ManuscriptReader,
   ReaderState,
+  RecordedThrough,
   SearchHit,
   TextSpan,
   WorkJob,
@@ -26,6 +27,15 @@ const contentKindFromWire = z
   .optional()
   .transform((value) => (value === '' ? undefined : value));
 
+export const recordedThroughSchema = z.object({
+  paragraphId: z.string().min(1),
+  word: z.number().int().nonnegative(),
+  percent: z.number().int().min(0).max(100),
+  complete: z.boolean(),
+  source: z.enum(['proof', 'booth', 'daw']),
+  confident: z.boolean(),
+}) satisfies z.ZodType<RecordedThrough>;
+
 export const chapterSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -35,6 +45,7 @@ export const chapterSchema = z.object({
   recordedFraction: z.number().min(0).max(1).optional(),
   recordedSeconds: z.number().nonnegative().optional(),
   recordedUnavailable: z.enum(['unlinked', 'multiple_tracks', 'track_missing', 'no_project']).optional(),
+  recordedThrough: recordedThroughSchema.optional(),
   status: z.enum(['not_started', 'recording', 'editing', 'proofing', 'finalized']),
   contentKind: contentKindFromWire,
   kindChangedAt: z.string().optional(),

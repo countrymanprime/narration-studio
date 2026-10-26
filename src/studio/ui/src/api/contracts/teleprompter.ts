@@ -285,6 +285,8 @@ export type TeleprompterReading = {
   scriptHash: string;
   status: TeleprompterStatus;
   endedAt: string;
+  /** The stretches of script every take followed since the chapter's text last changed (`from` first word, `to` one past the last); absent in a file written before them. */
+  ranges?: { from: number; to: number }[];
 };
 
 export type TeleprompterDevice = { name: string };

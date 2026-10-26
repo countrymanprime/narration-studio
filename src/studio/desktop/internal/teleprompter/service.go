@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -92,6 +93,10 @@ type Service struct {
 	// device is the microphone the running session opened, or "" (a session reading a WAV, or none).
 	// +checklocks:mu
 	device string
+	// startWord is the script word the running session was asked to start at (Start's startWord option, 0 for the top):
+	// with the last position it is the stretch of the chapter the take followed (Reading.Ranges).
+	// +checklocks:mu
+	startWord int
 
 	state    map[string]any
 	script   json.RawMessage
@@ -259,6 +264,8 @@ type launch struct {
 	// coldRead is a session with no take (#2251 item 13): it follows the narrator only, so it keeps no reading, anchors no word and
 	// never stops itself. The sidecar runs exactly as for a take.
 	coldRead bool
+	// startWord is the startWord option as a number (0 when absent or not a number).
+	startWord int
 }
 
 // source is what a session reads: a manuscript chapter, or a Script.
@@ -336,6 +343,9 @@ func (s *Service) planSession(options map[string]string, src source) (launch, er
 	}
 	if startWord := option(options, "startWord", ""); startWord != "" {
 		args = append(args, "--start-word", startWord)
+		if word, err := strconv.Atoi(startWord); err == nil && word > 0 {
+			planned.startWord = word
+		}
 	}
 	if wav != "" {
 		args = append(args, "--wav", wav)
@@ -428,7 +438,7 @@ func (s *Service) begin(plan launch) error {
 	}
 	s.state = map[string]any{"phase": "starting", "message": "Starting the teleprompter…", "engine": plan.engine, "chapter": plan.chapter, "paused": false, "coldRead": plan.coldRead}
 	s.script, s.position, s.stopping, s.stopFile, s.controlFile, s.scriptFile = nil, nil, false, plan.stopFile, plan.controlFile, plan.scriptFile
-	s.device = plan.device
+	s.device, s.startWord = plan.device, plan.startWord
 	s.cancelAutoStopLocked()
 	s.autoStopped = false
 	s.ready, s.readyDone = make(chan struct{}), false
@@ -657,7 +667,7 @@ func (s *Service) recordReading() {
 	s.mu.RLock()
 	chapter, _ := s.state["chapter"].(string)
 	credits, script, position, project, report := s.scriptFile != "", s.script, s.position, s.config.Project, s.report
-	cold := s.coldReadLocked()
+	cold, from := s.coldReadLocked(), s.startWord
 	s.mu.RUnlock()
 	// A cold read's place is the ghost's, never where the next take starts.
 	if cold {
@@ -667,7 +677,7 @@ func (s *Service) recordReading() {
 	if !ok {
 		return
 	}
-	if err := WriteReading(project, chapter, read, tokens, status, time.Now()); err != nil && report != nil {
+	if err := WriteReadingFrom(project, chapter, from, read, tokens, status, time.Now()); err != nil && report != nil {
 		report("teleprompter_reading_not_saved", err.Error())
 	}
 }

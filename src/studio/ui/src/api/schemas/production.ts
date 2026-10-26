@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { recordedThroughSchema } from './manuscript';
 import type {
   ProductionBurndownPoint,
   ProductionChapter,
@@ -73,6 +74,7 @@ const chapterSchema = z.object({
   wordCount: z.number(),
   recordedSeconds: z.number().nullable(),
   recordedUnavailable: optionalFromNull(z.enum(['unlinked', 'multiple_tracks', 'track_missing', 'no_project'])),
+  recordedThrough: optionalFromNull(recordedThroughSchema),
   hoursLogged: z.number(),
   pfh: z.number().nullable(),
   readiness: readinessSchema.nullable(),

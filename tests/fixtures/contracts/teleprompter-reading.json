@@ -1,6 +1,12 @@
 {
   "chapterId": "c1",
   "endedAt": "2026-09-25T10:00:00Z",
+  "ranges": [
+    {
+      "from": 0,
+      "to": 3
+    }
+  ],
   "read": 3,
   "scriptHash": "641c27eedb7ae850c1ed46fcd5738cdbf5ff533c1a5dd4032360c3c17951cbf6",
   "status": "done",

@@ -311,6 +311,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         status: chapter.status,
         wordCount: chapter.wordCount,
         recordedSeconds: measured ?? null,
+        ...(chapter.recordedThrough ? { recordedThrough: chapter.recordedThrough } : {}),
         ...(measured === undefined ? { recordedUnavailable: chapter.recordedUnavailable ?? 'unlinked' } : {}),
         hoursLogged,
         pfh: measured === undefined ? null : perFinishedHour(hoursLogged, measured),

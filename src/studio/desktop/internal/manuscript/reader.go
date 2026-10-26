@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"desktop/internal/persist"
+	"desktop/internal/recordedthrough"
 )
 
 // ChapterIDByTitle resolves a chapter title to its manuscript id, for
@@ -66,8 +67,8 @@ func (s *Service) ChaptersUnmeasured() ([]map[string]any, error) {
 	return s.chapters(false)
 }
 
-// chapters is the chapter list; measure adds recordedFraction and the recorded length (recordedSeconds or
-// recordedUnavailable), which only the chapter list carries.
+// chapters is the chapter list; measure adds recordedFraction, the recorded length (recordedSeconds or
+// recordedUnavailable) and recordedThrough, which only the chapter list carries.
 func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 	data, err := s.Load()
 	if err != nil {
@@ -75,9 +76,16 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 	}
 	notes := s.loadNotes()
 	paragraphs := objects(data["paragraphs"])
-	recorded, lengths := map[string]float64{}, map[string]RecordedLength{}
+	recorded, lengths, through := map[string]float64{}, map[string]RecordedLength{}, map[string]recordedthrough.Through{}
 	if measure {
 		recorded, lengths = s.recordedFractions(), s.recordedLengths()
+		ids := []string{}
+		for _, chapter := range objects(data["chapters"]) {
+			if !isFrontMatter(chapter) {
+				ids = append(ids, text(chapter, "id"))
+			}
+		}
+		through = s.recordedThrough(ids, lengths)
 	}
 	result := make([]map[string]any, 0, len(objects(data["chapters"])))
 	for _, chapter := range objects(data["chapters"]) {
@@ -91,6 +99,9 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 			} else {
 				payload["recordedSeconds"] = length.Seconds
 			}
+		}
+		if place, known := through[text(chapter, "id")]; known {
+			payload["recordedThrough"] = place
 		}
 		result = append(result, payload)
 	}

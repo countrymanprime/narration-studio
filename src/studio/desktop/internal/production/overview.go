@@ -5,6 +5,7 @@ import (
 	"slices"
 	"time"
 
+	"desktop/internal/recordedthrough"
 	"desktop/internal/stages"
 )
 
@@ -37,7 +38,9 @@ type ChapterInput struct {
 	WordCount           int
 	RecordedSeconds     *float64
 	RecordedUnavailable string
-	Readiness           *Readiness
+	// RecordedThrough is how far the chapter is recorded (the chapter list's recordedThrough), nil when nothing says.
+	RecordedThrough *recordedthrough.Through
+	Readiness       *Readiness
 }
 
 // OverviewInput is everything BuildOverview reads. Plan is the book's deadline and contracted amount as plan.go
@@ -60,9 +63,11 @@ type OverviewChapter struct {
 	WordCount           int          `json:"wordCount"`
 	RecordedSeconds     *float64     `json:"recordedSeconds"`
 	RecordedUnavailable string       `json:"recordedUnavailable,omitempty"`
-	HoursLogged         float64      `json:"hoursLogged"`
-	PFH                 *float64     `json:"pfh"`
-	Readiness           *Readiness   `json:"readiness"`
+	// RecordedThrough is passed through unchanged, so the board says what the Booth resumes at.
+	RecordedThrough *recordedthrough.Through `json:"recordedThrough,omitempty"`
+	HoursLogged     float64                  `json:"hoursLogged"`
+	PFH             *float64                 `json:"pfh"`
+	Readiness       *Readiness               `json:"readiness"`
 }
 
 // Totals are the book-wide figures of the page's KPI row. A nil figure is undefined: shown as "—", never 0.
@@ -121,6 +126,7 @@ func BuildOverview(in OverviewInput) Overview {
 			Status:              chapter.Status,
 			WordCount:           chapter.WordCount,
 			RecordedUnavailable: chapter.RecordedUnavailable,
+			RecordedThrough:     chapter.RecordedThrough,
 			HoursLogged:         ChapterHours(in.Sessions, chapter.ID),
 			Readiness:           chapter.Readiness,
 		}

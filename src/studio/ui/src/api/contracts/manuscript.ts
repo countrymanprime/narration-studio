@@ -4,6 +4,22 @@ export type ManuscriptContentKind = 'narration' | 'opening' | 'reference';
 /** Why a chapter has no recorded length: no linked track, several, the linked track is
  * not in the saved project, or no saved project could be read. */
 export type RecordedUnavailable = 'unlinked' | 'multiple_tracks' | 'track_missing' | 'no_project';
+/** Where a chapter's recorded-through place was read from: its current Proof result, the takes the Booth followed, or the
+ * linked track's length against the chapter's words (an estimate). */
+export type RecordedThroughSource = 'proof' | 'booth' | 'daw';
+/**
+ * How far a chapter is recorded (`internal/recordedthrough`): the last recorded word, as a paragraph and the word's index in it,
+ * the share of the chapter's words up to there and whether that is the whole chapter. `confident` is false for `daw`, which is
+ * an estimate the page says as "about". The one value the Booth resumes at and Production, Editing and Proof show.
+ */
+export type RecordedThrough = {
+  paragraphId: string;
+  word: number;
+  percent: number;
+  complete: boolean;
+  source: RecordedThroughSource;
+  confident: boolean;
+};
 export type ManuscriptChapter = {
   id: string;
   title: string;
@@ -16,6 +32,8 @@ export type ManuscriptChapter = {
   recordedSeconds?: number;
   /** Set instead of `recordedSeconds` when the chapter has none, saying why. */
   recordedUnavailable?: RecordedUnavailable;
+  /** How far the chapter is recorded; absent when nothing says any of it is. Only on the chapter list. */
+  recordedThrough?: RecordedThrough;
   status: ChapterStatus;
   /** Omitted by manuscripts imported before structural classification. */
   contentKind?: ManuscriptContentKind;

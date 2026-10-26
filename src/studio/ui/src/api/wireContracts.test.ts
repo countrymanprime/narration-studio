@@ -558,6 +558,15 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(chapters.map((chapter) => chapter.recordedUnavailable)).toEqual([undefined, 'unlinked', ...chapters.slice(2).map(() => undefined)]);
   });
 
+  it('recordedThrough is only on the chapter the recording reaches, and the board passes it through', () => {
+    const chapters = parseWire(chaptersSchema, readGolden('manuscript-chapters-recorded-through.json'), ctx('chapters'));
+    expect(chapters[0]?.recordedThrough).toEqual({ paragraphId: 'p-000002', word: 3, percent: 62, complete: false, source: 'booth', confident: true });
+    expect(chapters.slice(1).every((chapter) => chapter.recordedThrough === undefined)).toBe(true);
+    expect(() =>
+      parseWire(chaptersSchema, [{ ...chapters[0], recordedThrough: { ...chapters[0]?.recordedThrough, percent: 140 } }], ctx('chapters')),
+    ).toThrow();
+  });
+
   it('the golden completed run keeps its rows and marker states through the schema', () => {
     const state = parseWire(transcriptStateSchema, readGolden('transcript-success.json'), ctx('transcript'));
     expect(state.rows.map((row) => row.markerState)).toEqual(['pending', 'existing']);

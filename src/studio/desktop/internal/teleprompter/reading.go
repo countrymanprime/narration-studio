@@ -3,6 +3,7 @@ package teleprompter
 import (
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/recordedthrough"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -19,7 +20,10 @@ const readingSchemaVersion = 1
 
 // Reading is where the prompter last was in a chapter: the last position event's Read (the index space of
 // locate's Word) out of Tokens script words, written when a chapter session
-// ends. ScriptHash is a hash of the manuscript document and the chapter's text,
+// ends. Ranges are the stretches of the script every take has followed since the chapter's text last changed, each
+// from the word the session started at to its last Read, joined where they overlap (recordedthrough.Merge): what
+// says how far the chapter is recorded (recordedthrough.Resolve). A file written before Ranges has none, and reads as
+// one stretch from the top to Read. ScriptHash is a hash of the manuscript document and the chapter's text,
 // so a reading is dropped rather than misplaced once the chapter is edited or
 // the manuscript re-imported. It is one word index, never a word-to-time
 // anchor (docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was stands). The host reads it back, so its shape is
@@ -32,6 +36,16 @@ type Reading struct {
 	ScriptHash string    `json:"scriptHash"`
 	Status     string    `json:"status"`
 	EndedAt    time.Time `json:"endedAt"`
+	// Ranges is omitted when empty, so a file with none is the version-1 file it always was.
+	Ranges []recordedthrough.Range `json:"ranges,omitempty"`
+}
+
+// Followed is the stretches the reading says were read: Ranges, or for a file written before them, the top to Read.
+func (r Reading) Followed() []recordedthrough.Range {
+	if len(r.Ranges) > 0 {
+		return r.Ranges
+	}
+	return recordedthrough.Merge(nil, recordedthrough.Range{From: 0, To: r.Read})
 }
 
 // ReadingDir is where the readings live: beside the anchors file (anchors.go).
@@ -62,55 +76,23 @@ func readingFileName(chapterID string) string {
 // title, subtitle and paragraphs, reporting false when the manuscript cannot
 // be read or has no such chapter.
 func chapterScriptHash(project, chapterID string) (string, bool) {
-	raw, err := os.ReadFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"))
-	if err != nil {
+	doc, ok := readManuscriptDoc(project)
+	if !ok {
 		return "", false
 	}
-	var data struct {
-		DocumentID string `json:"documentId"`
-		Chapters   []struct {
-			ID       string `json:"id"`
-			Title    string `json:"title"`
-			Subtitle string `json:"subtitle"`
-		} `json:"chapters"`
-		Paragraphs []struct {
-			ID        string `json:"id"`
-			ChapterID string `json:"chapterId"`
-			Text      string `json:"text"`
-		} `json:"paragraphs"`
-	}
-	if err := json.Unmarshal(raw, &data); err != nil || data.DocumentID == "" {
-		return "", false
-	}
-	hash := sha256.New()
-	write := func(part string) { _, _ = fmt.Fprintf(hash, "%d:%s", len(part), part) }
-	found := false
-	for _, chapter := range data.Chapters {
-		if chapter.ID == chapterID {
-			write(data.DocumentID)
-			write(chapter.ID)
-			write(chapter.Title)
-			write(chapter.Subtitle)
-			found = true
-			break
-		}
-	}
-	if !found {
-		return "", false
-	}
-	for _, paragraph := range data.Paragraphs {
-		if paragraph.ChapterID == chapterID {
-			write(paragraph.ID)
-			write(paragraph.Text)
-		}
-	}
-	return hex.EncodeToString(hash.Sum(nil)), true
+	return doc.hash(chapterID)
 }
 
-// WriteReading records that the prompter stopped at word read of tokens in
-// chapterID, through a temp file and a rename. It refuses a chapter the
-// imported manuscript does not have and a read outside [0, tokens].
+// WriteReading is WriteReadingFrom for a session that started at the top.
 func WriteReading(project, chapterID string, read, tokens int, status string, endedAt time.Time) error {
+	return WriteReadingFrom(project, chapterID, 0, read, tokens, status, endedAt)
+}
+
+// WriteReadingFrom records that the prompter, started at word from, stopped at word read of tokens in chapterID,
+// through a temp file and a rename, adding from-read to the stretches the chapter's reading already holds (a reading
+// for other text or another token count starts them afresh). It refuses a chapter the imported manuscript does not
+// have and a read outside [0, tokens]. A read before from (the narrator went back) adds no stretch.
+func WriteReadingFrom(project, chapterID string, from, read, tokens int, status string, endedAt time.Time) error {
 	if project == "" {
 		return errors.New("no project is open")
 	}
@@ -121,7 +103,14 @@ func WriteReading(project, chapterID string, read, tokens int, status string, en
 	if !ok {
 		return fmt.Errorf("chapter %q is not in the imported manuscript", chapterID)
 	}
-	reading := Reading{Version: readingSchemaVersion, ChapterID: chapterID, Read: read, Tokens: tokens, ScriptHash: hash, Status: status, EndedAt: endedAt.UTC()}
+	var kept []recordedthrough.Range
+	if previous, err := LoadReading(project, chapterID); err == nil && previous != nil && previous.Tokens == tokens {
+		kept = previous.Followed()
+	}
+	reading := Reading{
+		Version: readingSchemaVersion, ChapterID: chapterID, Read: read, Tokens: tokens, ScriptHash: hash, Status: status, EndedAt: endedAt.UTC(),
+		Ranges: recordedthrough.Merge(kept, recordedthrough.Range{From: max(from, 0), To: read}),
+	}
 	bytes, err := json.MarshalIndent(reading, "", "  ")
 	if err != nil {
 		return err
@@ -146,6 +135,12 @@ func WriteReading(project, chapterID string, read, tokens int, status string, en
 // chapter, a read out of range, or a chapter whose text (or document) changed
 // since. Only an unreadable-but-present file is an error.
 func LoadReading(project, chapterID string) (*Reading, error) {
+	hash, ok := chapterScriptHash(project, chapterID)
+	return loadReadingWith(project, chapterID, hash, ok)
+}
+
+// loadReadingWith is LoadReading with the chapter's current script hash already known (ok false: no such chapter).
+func loadReadingWith(project, chapterID, hash string, ok bool) (*Reading, error) {
 	raw, err := os.ReadFile(filepath.Join(ReadingDir(project), readingFileName(chapterID)))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -158,7 +153,7 @@ func LoadReading(project, chapterID string) (*Reading, error) {
 		reading.Tokens <= 0 || reading.Read < 0 || reading.Read > reading.Tokens {
 		return nil, nil
 	}
-	if hash, ok := chapterScriptHash(project, chapterID); !ok || hash != reading.ScriptHash {
+	if !ok || hash != reading.ScriptHash {
 		return nil, nil
 	}
 	return &reading, nil

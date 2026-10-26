@@ -29,6 +29,9 @@ func TestAChapterScriptIsTheTitleThenEachParagraphSplitOnWhitespace(t *testing.T
 	if !reflect.DeepEqual(script.Breaks, []int{0, 2, 8}) {
 		t.Fatalf("breaks = %v", script.Breaks)
 	}
+	if !reflect.DeepEqual(script.ParagraphIDs, []string{"p1", "p3"}) {
+		t.Fatalf("paragraph ids = %v", script.ParagraphIDs)
+	}
 	if _, ok := LoadChapterScript(project, "missing"); ok {
 		t.Fatal("an unknown chapter loaded")
 	}
