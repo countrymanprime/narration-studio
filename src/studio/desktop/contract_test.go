@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"desktop/internal/analysistools"
+	"desktop/internal/assets"
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
 	"desktop/internal/dictionary"
@@ -221,6 +222,9 @@ func TestContractAssetsListAndVerify(t *testing.T) {
 	}
 	contractfile.Check(t, "assets-list", list)
 	contractfile.Check(t, "asset-install-downloading", snapshotInstall(&installJob{id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseDownloading, message: "Downloading and verifying the approved voice…", done: 45678901, total: 114203981}))
+	unpack := installFailureText(&assets.StepError{Step: assets.StepUnpack, File: "torch.whl", Err: os.ErrPermission}, "analysis tool")
+	contractfile.Check(t, "asset-install-unpack-error", snapshotInstall(&installJob{id: "analysis-1", kind: installKindAnalysis, assetID: "booknlp-small", phase: installPhaseError, message: unpack, errorText: unpack,
+		errorDetail: "Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: open: Access is denied.", done: 220000000, total: 220000000}))
 	contractfile.Check(t, "assets-verify", map[string]any{"kind": "tts", "id": "en_US-ljspeech-high", "installState": "verification_failed"})
 }
 

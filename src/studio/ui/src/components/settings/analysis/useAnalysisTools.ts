@@ -23,6 +23,8 @@ export function useAnalysisTools(port: ComponentsPort) {
   const [loadError, setLoadError] = useState('');
   const [queue, setQueue] = useState<string[]>([]);
   const [failures, setFailures] = useState<Record<string, string>>({});
+  // The host's step, file and cause behind a failure, for the row's Details; kept and cleared with the failure.
+  const [details, setDetails] = useState<Record<string, string>>({});
   // The job of a download that was already running when the list was read: the next start follows it instead of asking for a new one.
   const follow = useRef('');
   const head = queue[0];
@@ -51,8 +53,10 @@ export function useAnalysisTools(port: ComponentsPort) {
     void reload();
   }, [reload]);
 
-  const fail = useCallback((id: string | undefined, message: string) => {
-    if (id) setFailures((current) => ({ ...current, [id]: message }));
+  const fail = useCallback((id: string | undefined, message: string, detail: string) => {
+    if (!id) return;
+    setFailures((current) => ({ ...current, [id]: message }));
+    setDetails((current) => ({ ...current, [id]: detail }));
   }, []);
 
   const install = useAssetInstall({
@@ -70,8 +74,8 @@ export function useAnalysisTools(port: ComponentsPort) {
     },
     // The failed tool leaves the queue here, not from the effect below: that runs after the next render, and a Retry pressed before then
     // would find the tool still queued, add nothing, and see the effect remove it.
-    onFailure: (message) => {
-      fail(headRef.current, message);
+    onFailure: (message, detail) => {
+      fail(headRef.current, message, detail);
       next.current();
     },
   });
@@ -100,11 +104,13 @@ export function useAnalysisTools(port: ComponentsPort) {
 
   const enqueue = useCallback((ids: string[]) => {
     setFailures((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !ids.includes(id))));
+    setDetails((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !ids.includes(id))));
     setQueue((current) => [...current, ...ids.filter((id) => !current.includes(id))]);
   }, []);
 
   const dismiss = useCallback((id: string) => {
     setFailures((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== id)));
+    setDetails((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== id)));
   }, []);
 
   const cancel = useCallback(
@@ -133,6 +139,8 @@ export function useAnalysisTools(port: ComponentsPort) {
     /** The running job of a tool, for its progress, or undefined. */
     jobFor: (id: string) => (id === head && running ? job : undefined),
     failureFor: (id: string) => failures[id] ?? '',
+    /** The step, file and cause behind a tool's failed download, or '' (most failures have none). */
+    failureDetailFor: (id: string) => details[id] ?? '',
     cancelFailure: install.cancelFailure,
     install: enqueue,
     cancel,

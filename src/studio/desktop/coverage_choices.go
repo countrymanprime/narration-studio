@@ -34,6 +34,14 @@ const (
 // can say how many there are.
 var coverageCPUs = runtime.NumCPU
 
+// coverageFreeMemoryMB is the memory free now, in MB (0: it cannot be read). A variable so a test can say how much.
+var coverageFreeMemoryMB = platformFreeMemoryMB
+
+// coverageMachine is what a recording check plans its transcriptions at once with (coverage.PlanWorkers).
+func coverageMachine() coverage.Machine {
+	return coverage.Machine{CPUs: coverageCPUs(), FreeMemoryMB: coverageFreeMemoryMB()}
+}
+
 // coverageChoices is what one check will do, decided once from the settings and the run's options: which model makes the
 // first pass, whether and with which larger model a second pass follows, which passages it takes, and how a long item is
 // cut up. CoverageStart, CoverageEngines and the background check all read it here, so what the dialog offers, what a
@@ -109,11 +117,7 @@ func resolveCoverageChoices(store *settings.Store, options map[string]string) (c
 	if choices.Parallel.Chapters, err = wholeOption(options, coverageOptionChapters, choices.Parallel.Chapters, 1, maxCoverageChapters); err != nil {
 		return coverageChoices{}, err
 	}
-	// Chapters at once share the processors: each is its own run with its own worker processes, so a worker count left to
-	// the host is the computer's share for one chapter, not the model's whole cap for each.
-	if choices.Parallel.Chapters > 1 && choices.Parallel.Workers == 0 {
-		choices.Parallel.Workers = max(1, coverageCPUs()/choices.Parallel.Chapters)
-	}
+	// Chapters at once share the computer: each run plans its count with its share (coverage.SharePlan, Request.Concurrent).
 	return choices, nil
 }
 

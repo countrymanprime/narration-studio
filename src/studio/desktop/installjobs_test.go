@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -310,6 +311,8 @@ func TestInstallFailureTextSaysWhatHappenedAndWhatToDo(t *testing.T) {
 		{"a host that is down", &assets.StatusError{Code: 503, Status: "503 Service Unavailable"}, "busy"},
 		{"an archive that cannot be unpacked", fmt.Errorf("%w: it holds 0 entries", assets.ErrBadArchive), "could not be unpacked or prepared"},
 		{"data the app cannot prepare", fmt.Errorf("%w: entries-a.json is not in the release's shape", assets.ErrBadContent), "problem with the release"},
+		{"an unpack the disk refused", &assets.StepError{Step: assets.StepUnpack, File: "torch.whl", Err: &fs.PathError{Op: "open", Path: "C:/x", Err: errors.New("Access is denied.")}}, "could not be saved on this computer"},
+		{"an unpack refused as unsafe", &assets.StepError{Step: assets.StepUnpack, File: "torch.whl", Err: fmt.Errorf("%w: it holds 0 entries", assets.ErrBadArchive)}, "problem with the release"},
 		{"a connection that dropped", assets.ErrIncomplete, "internet connection"},
 		{"no network at all", errors.New(`Get "https://huggingface.co/x": dial tcp: lookup huggingface.co: no such host`), "internet connection"},
 	}

@@ -6,7 +6,8 @@ export type AssetJobPhase = 'downloading' | 'verifying' | 'success' | 'cancelled
 
 /**
  * An install job as the host reports it. `percent` is real bytes over real bytes and never more than 99 until the install succeeded;
- * `error` is a sentence for the narrator, empty unless `phase` is `error`.
+ * `error` is a sentence for the narrator, empty unless `phase` is `error`. `errorDetail` is, for a failure after the download, the step,
+ * the file and the cause ("Unpacking torch-….whl: …"), shown behind the failure's Details; empty otherwise.
  */
 export type AssetInstallJob = {
   id: string;
@@ -19,6 +20,7 @@ export type AssetInstallJob = {
   bytesDone: number;
   bytesTotal: number;
   error: string;
+  errorDetail: string;
 };
 
 /** True while the install is still working, that is until it succeeded, failed or was cancelled. */

@@ -59,6 +59,7 @@ export function createInstallMock<Extra extends Pick<AssetInstallJob, 'kind' | '
     bytesDone: done,
     bytesTotal: total,
     error: '',
+    errorDetail: '',
   });
   const verifying = (): Steps => ({
     ...download(total),

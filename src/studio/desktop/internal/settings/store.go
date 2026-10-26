@@ -65,6 +65,8 @@ var closedChoices = map[string]map[string][]string{
 	// (docs/prds/character-voice-samples.prd.md, Where a sample is kept). Only project is offered until phase 6 builds the DAW
 	// label, so a stored daw or both reads as project.
 	"VoiceSamples": {"storage": {"project"}},
+	// Teleprompter.input_source is whose microphone the Booth listens to while a DAW records (app.go's settings schema).
+	"Teleprompter": {"input_source": {"daw", "chosen"}},
 }
 
 // DefinitionSources is Script.definition_source's choices, in the order Settings lists them.
@@ -121,7 +123,7 @@ var builtinDefaults = map[string]Values{
 	"Updates":           {"check_on_startup": "true", "channel": "candidates"},
 	"Manuscript":        {"color_note": "B85C1E"},
 	"TranscriptCompare": {"chunk_seconds": "60", "model_size": "small", "color_misread": "FF4040", "color_skipped": "FFC000", "color_extra": "40A0FF"},
-	"Teleprompter":      {"engine": "whisper", "model": "tiny", "punch_preroll_seconds": "3"},
+	"Teleprompter":      {"input_source": "daw", "engine": "whisper", "model": "tiny", "punch_preroll_seconds": "3"},
 	// auto_start_launcher defaults on: the app runs the launcher in REAPER itself (REAPER runs a script it is started with),
 	// so the narrator never has to add the action by hand.
 	// backups.window_seconds and backups.retention_days are the Audacity backups' window either side of an edit and how long a

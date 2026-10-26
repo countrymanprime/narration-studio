@@ -2,7 +2,8 @@
 // runs in the browser (page.evaluate), so it is self-contained: no imports, no helpers outside its body.
 // W5 (nothing under a scrollbar) is not measured: Playwright's headless Chromium draws no scrollbars, so it could never fail here.
 
-export type LayoutRule = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A7' | 'A9' | 'W1' | 'W2' | 'W3' | 'W4' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'H1' | 'H2' | 'B1';
+export type LayoutRule =
+  'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A7' | 'A8' | 'A9' | 'W1' | 'W2' | 'W3' | 'W4' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'H1' | 'H2' | 'B1';
 
 export interface LayoutHit {
   rule: LayoutRule;
@@ -416,6 +417,48 @@ export function scanLayout(): LayoutHit[] {
         if (shared >= Math.min(a.height, b.height) / 2 && centres > TOL)
           hit('A7', siblings[i], `"${textOf(siblings[i])}" and "${textOf(siblings[j])}" are ${r1(centres)}px off one centre line`);
       }
+
+  // ---- A8: a margin label (a paragraph's time, speaker or line number) is centred on the first line of the text beside it. The text is
+  // a <p> in a grid or flex row; the label is the smaller text of a sibling cell, on one line. Its glyph box (its font's ascent and descent,
+  // which half-leading centres in any line box) must sit inside the first line's box with its centre on that box's centre: a smaller label
+  // put on the text's baseline reads as sitting low (the owner's report on the Editing page's times, #2094).
+  const drawn = new Set<Element>(all);
+  for (const text of all) {
+    if (text.tagName !== 'P' || !text.parentElement) continue;
+    const row = css(text.parentElement);
+    if (row.display !== 'grid' && !(row.display === 'flex' && row.flexDirection.startsWith('row'))) continue;
+    const lineHeight = parseFloat(css(text).lineHeight);
+    if (!(lineHeight > 0)) continue;
+    const box = text.getBoundingClientRect();
+    const lineTop = box.top + text.clientTop + parseFloat(css(text).paddingTop);
+    const line = { top: lineTop, bottom: lineTop + lineHeight };
+    for (const cell of Array.from(text.parentElement.children)) {
+      if (cell === text || !drawn.has(cell) || cell.querySelector('p')) continue;
+      const cellBox = cell.getBoundingClientRect();
+      // Beside the text, not above or under it.
+      if (cellBox.right > box.left + TOL && cellBox.left < box.right - TOL) continue;
+      const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
+        const label = node.parentElement;
+        if (!label || !node.data.trim() || !drawn.has(label) || inkless(label) || lineCount(node) !== 1) continue;
+        // A control's label (a tip's Got it, an error's Retry) is a control beside the text, which A7 lines up, not a margin label.
+        if (label.closest(`${CONTROL}, a, input, select, label`)) continue;
+        if (parseFloat(css(label).fontSize) >= parseFloat(css(text).fontSize)) continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const ink = range.getBoundingClientRect();
+        const inside = ink.top >= line.top - TOL && ink.bottom <= line.bottom + TOL;
+        const centred = Math.abs(ink.top + ink.height / 2 - (line.top + lineHeight / 2)) <= TOL;
+        if (!inside || !centred)
+          hit(
+            'A8',
+            label,
+            `"${node.data.trim().slice(0, 20)}" runs ${r1(ink.top - line.top)} to ${r1(ink.bottom - line.top)}px against the first line's 0 to ${r1(lineHeight)}px, off its centre`,
+          );
+        break;
+      }
+    }
+  }
 
   // ---- A9: no small controls stacked in a column beside their row: a box in a horizontal row that holds two or more controls one above
   // the other.

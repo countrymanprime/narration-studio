@@ -147,12 +147,15 @@ func TestSettingsForScopeReportsTheTeleprompterInputDeviceField(t *testing.T) {
 		t.Fatal(err)
 	}
 	fields, _ := scoped["Teleprompter"].([]map[string]any)
-	if len(fields) != 4 {
-		t.Fatalf("Teleprompter fields = %v, want exactly input_device, engine, model and punch_preroll_seconds", scoped["Teleprompter"])
+	if len(fields) != 5 {
+		t.Fatalf("Teleprompter fields = %v, want exactly input_device, input_source, engine, model and punch_preroll_seconds", scoped["Teleprompter"])
 	}
 	byKey := map[string]map[string]any{}
 	for _, field := range fields {
 		byKey[field["key"].(string)] = field
+	}
+	if source := byKey["input_source"]; source["effectiveValue"] != "daw" || source["isSet"] != false {
+		t.Fatalf("input_source field = %v, want the linked DAW's input followed until the narrator chooses otherwise", source)
 	}
 	device := byKey["input_device"]
 	if device["kind"] != "text" || device["isSet"] != false {

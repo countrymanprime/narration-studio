@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -155,7 +156,16 @@ func startArgs(t *testing.T, host *Host, launches func() [][]string, options map
 	return all[0], answer
 }
 
+// onMachine has the host plan recording checks for a computer of cpus processors and freeMB of free memory.
+func onMachine(t *testing.T, cpus, freeMB int) {
+	t.Helper()
+	previousCPUs, previousMemory := coverageCPUs, coverageFreeMemoryMB
+	coverageCPUs, coverageFreeMemoryMB = func() int { return cpus }, func() int { return freeMB }
+	t.Cleanup(func() { coverageCPUs, coverageFreeMemoryMB = previousCPUs, previousMemory })
+}
+
 func TestACheckWithNoOptionsSendsTheSettingsParallelRunToTheSidecar(t *testing.T) {
+	onMachine(t, 8, 16384)
 	launcher, launches := recordingLauncher(10)
 	host := coverageHostWithModels(t, coverageProject(t), whisperCatalog(t, map[string]bool{"small": true}), launcher)
 
@@ -164,9 +174,42 @@ func TestACheckWithNoOptionsSendsTheSettingsParallelRunToTheSidecar(t *testing.T
 	if !hasFlag(args, "--chunk-seconds", "300") || !hasFlag(args, "--chunk-overlap-seconds", "6") {
 		t.Fatalf("args = %v, want the shipped five-minute chunks with a six second crossover", args)
 	}
-	if strings.Contains(strings.Join(args, " "), "--parallel-workers") || strings.Contains(strings.Join(args, " "), "--unsure-below") {
-		t.Fatalf("args = %v: automatic workers and no doubt line send nothing", args)
+	if !hasFlag(args, "--parallel-workers", "4") {
+		t.Fatalf("args = %v: Automatic sends the planned count, half of 8 processors for small in 16 GB", args)
 	}
+	if strings.Contains(strings.Join(args, " "), "--unsure-below") {
+		t.Fatalf("args = %v: no doubt line sends nothing", args)
+	}
+}
+
+func TestTheParallelSettingChangesTheCountTheSidecarIsSent(t *testing.T) {
+	onMachine(t, 8, 16384)
+	for value, want := range map[string]string{"0": "4", "1": "1", "3": "3", "8": "8", "20": "8"} {
+		t.Run(value, func(t *testing.T) {
+			launcher, launches := recordingLauncher(10)
+			host := coverageHostWithModels(t, coverageProject(t), whisperCatalog(t, map[string]bool{"small": true}), launcher)
+			if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{coverage.SettingParallelWorkers: &value}); err != nil {
+				t.Fatal(err)
+			}
+			args, _ := startArgs(t, host, launches, nil)
+			if !hasFlag(args, "--parallel-workers", want) {
+				t.Fatalf("parallel_workers %s: args = %v, want --parallel-workers %s", value, args, want)
+			}
+			plan := decodeAnswer(t)(host.CoverageWorkerPlan(nil))
+			if plan["workers"] != float64(mustAtoi(t, want)) {
+				t.Fatalf("CoverageWorkerPlan says %v, the sidecar was sent %s", plan, want)
+			}
+		})
+	}
+}
+
+func mustAtoi(t *testing.T, text string) int {
+	t.Helper()
+	value, err := strconv.Atoi(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return value
 }
 
 func TestACheckSendsTheRunsOwnParallelChoicesAndDoubtLine(t *testing.T) {
@@ -312,30 +355,44 @@ func TestABackgroundCheckNeverDownloadsAndRunsFirstPassAloneWithoutTheLargerMode
 	}
 }
 
-func TestChaptersAtOnceShareTheProcessorsWhenWorkersAreLeftToTheHost(t *testing.T) {
-	defer func(previous func() int) { coverageCPUs = previous }(coverageCPUs)
-	coverageCPUs = func() int { return 12 }
+func TestChaptersAtOnceShareTheComputerInTheirPlan(t *testing.T) {
+	onMachine(t, 12, 24000)
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	plan := func(options map[string]string) map[string]any {
+		return decodeAnswer(t)(host.CoverageWorkerPlan(options))
+	}
 
-	got, err := resolved(t, nil, map[string]string{"chapters": "3"})
-	if err != nil {
-		t.Fatal(err)
+	if got := plan(map[string]string{"model": "tiny", "chapters": "3"}); got["workers"] != 2.0 || got["cpus"] != 4.0 || got["chapters"] != 3.0 || got["computerCpus"] != 12.0 {
+		t.Fatalf("3 chapters on 12 processors: %v, want 4 processors and 2 workers each", got)
 	}
-	if got.Parallel.Chapters != 3 || got.Parallel.Workers != 4 {
-		t.Fatalf("got %+v, want 3 chapters with 12/3 = 4 workers each", got.Parallel)
+	if got := plan(map[string]string{"model": "tiny", "chapters": "3", "workers": "4"}); got["workers"] != 4.0 || got["limit"] != "requested" {
+		t.Fatalf("a named count is kept while it fits the chapter's share: %v", got)
 	}
-	named, err := resolved(t, nil, map[string]string{"chapters": "3", "workers": "5"})
-	if err != nil || named.Parallel.Workers != 5 {
-		t.Fatalf("a named worker count is kept as it is: %+v, %v", named.Parallel, err)
+	onMachine(t, 2, 24000)
+	if got := plan(map[string]string{"model": "tiny", "chapters": "8"}); got["workers"] != 1.0 {
+		t.Fatalf("never below one worker: %v", got)
 	}
-	few := func() int { return 2 }
-	coverageCPUs = few
-	crowded, err := resolved(t, nil, map[string]string{"chapters": "8"})
-	if err != nil || crowded.Parallel.Workers != 1 {
-		t.Fatalf("never below one worker: %+v, %v", crowded.Parallel, err)
+	if got := plan(nil); got["requested"] != 0.0 || got["workers"] != 1.0 {
+		t.Fatalf("one chapter, Automatic, on 2 processors: %v", got)
 	}
-	one, err := resolved(t, nil, nil)
-	if err != nil || one.Parallel.Workers != 0 {
-		t.Fatalf("one chapter at a time leaves the model's own cap: %+v, %v", one.Parallel, err)
+}
+
+func TestTheWorkerPlanFollowsTheModelsSize(t *testing.T) {
+	onMachine(t, 16, 6000)
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	want := map[string]float64{"tiny": 8, "small": 5, "medium": 2, "large-v3-turbo": 2, "large-v3": 1}
+	for model, workers := range want {
+		got := decodeAnswer(t)(host.CoverageWorkerPlan(map[string]string{"model": model}))
+		if got["workers"] != workers || got["model"] != model {
+			t.Errorf("%s on 16 processors and 6000 MB free: %v, want %v at once", model, got, workers)
+		}
+	}
+	if _, err := host.CoverageWorkerPlan(map[string]string{"workers": "-1"}); err == nil {
+		t.Fatal("a refused option is refused here as it is at the start")
+	}
+	onMachine(t, 16, 0)
+	if got := decodeAnswer(t)(host.CoverageWorkerPlan(map[string]string{"model": "small"})); got["limit"] != "model" || got["workers"] != 4.0 {
+		t.Fatalf("memory unread: %v, want the model's fixed cap of 4", got)
 	}
 }
 

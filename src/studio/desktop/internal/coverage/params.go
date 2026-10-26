@@ -123,12 +123,10 @@ func hashParts(parts ...string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-// args are the sidecar flags for p: only what was set, so the zero value leaves the sidecar's own defaults.
-func (p Parallel) args() []string {
-	var args []string
-	if p.Workers > 0 {
-		args = append(args, "--parallel-workers", strconv.Itoa(p.Workers))
-	}
+// args are the sidecar flags for p with workers, the planned transcriptions at once (always sent, so the sidecar runs the
+// count the host planned); the chunk flags only when p cuts items up.
+func (p Parallel) args(workers int) []string {
+	args := []string{"--parallel-workers", strconv.Itoa(max(1, workers))}
 	if p.ChunkSeconds > 0 {
 		args = append(args, "--chunk-seconds", strconv.Itoa(p.ChunkSeconds))
 		args = append(args, "--chunk-overlap-seconds", strconv.Itoa(p.OverlapSeconds))

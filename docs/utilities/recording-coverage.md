@@ -233,7 +233,7 @@ The `RecordingCoverage` settings tool, layered project over global over the buil
 | `cascade_recheck_model` | `large-v3-turbo` | Whisper model, cascade only | The model that re-checks anything the first pass reports missing (MC2) |
 | `cascade_unsure_below` | 0.5 | number, cascade only | The Whisper word score under which a passage is re-checked even when its text is all there. 0 re-checks only what is missing |
 | `cascade_pipeline` | on | switch, cascade only | The re-check model works on each item as soon as the first pass has finished it, in one process ([design](../design/recording-check-pipeline.md)). Needs `cascade_unsure_below` above 0; off, the stages run one after the other |
-| `parallel_workers` | 0 | number | Items checked at once, and Whisper processes working on a long item's chunks. 0 takes the smaller of the model's memory cap and half the processors; a named number is an upper bound, kept up to the items and the processors |
+| `parallel_workers` | 0 | number | Transcriptions at once: items checked side by side, or a long item's chunk processes, each a copy of the model. The host plans the number it sends as `--parallel-workers` ([Long chapters](#long-chapters)); 0 is Automatic |
 | `chunk_seconds` | 300 | choice | Each chunk's length. 0 transcribes an item whole, in one process |
 | `chunk_overlap_seconds` | 6 | number | The crossover: how much neighbouring chunks overlap, where their words are joined |
 | `parallel_chapters` | 1 | number | Chapters a Check recordings run checks at once. Each is its own run; with workers left to the host they share the processors |
@@ -326,10 +326,19 @@ flowchart LR
   longer than one chunk, or `chunk_seconds` 0, is one chunk, and a tail too short to be worth its own joins the last chunk. A crossover of half
   the chunk or more is shrunk to a quarter of it. `merge_chunks` cuts at the middle of each overlap and keeps a word in the chunk its midpoint falls in,
   so no word is repeated or lost, and each chunk's edge (where Whisper is least reliable) is half the crossover from the cut.
-- **Item pool.** Items are transcribed `parallel_workers` at a time on threads sharing one loaded model per process (`num_workers`, `cpu_threads`), and a long item's chunk processes share the threads its worker owns ([design](../design/recording-check-pipeline.md#processors)).
-- **Parallel processes.** Chunks are handed to a pool of spawned processes, each loading its own copy of the model and given its share of the
-  processors as `cpu_threads`. `parallel_workers` 0 takes `compare.MAX_WORKERS_BY_MODEL` (`tiny` 8, `small` 4, `medium` and `large-v3-turbo` 2, `large-v3` 1); a
-  named number is kept up to the processors and the chunks; a GPU runs one. The first chunk runs alone in the sidecar's process, so the model is read
+- **The count.** The host plans how many transcriptions a stage runs at once (`coverage.PlanWorkers`, `internal/coverage/workers.go`) and always
+  sends it as `--parallel-workers`. Automatic (`parallel_workers` 0) is half the processors, and no more copies of the stage's model than fit in three
+  quarters of the free memory (`GlobalMemoryStatusEx`, `memory_windows.go`) less one copy for short items and, for a pipelined first pass, one of the
+  larger model. One copy is estimated in `coverage.ModelMemoryMB` (`tiny` 300 MB to `large-v3` 2600 MB). A named number is kept up to the processors and
+  that memory. When the memory cannot be read the model's fixed cap applies (`tiny` 8, `small` 4, `medium` and `large-v3-turbo` 2, `large-v3` 1). Chapters
+  checked at once each plan with an equal share of the processors and the memory; a background check plans with its processors
+  (`coverage.BackgroundCPUs`). `CoverageWorkerPlan` returns the same plan to the Settings page and the Check recordings dialog, which show it.
+- **Item pool.** Items are transcribed up to that count at a time on threads sharing one loaded model per process (`num_workers`, `cpu_threads`)
+  ([design](../design/recording-check-pipeline.md#processors)). With no chunk length, items are whole and only the pool runs.
+- **Chunk processes.** A long item's chunks are handed to a pool of spawned processes, each loading its own copy of the model and given its share of
+  the processors as `cpu_threads`. The item pool's workers split the count between them (`--parallel-workers` divided by the items at once), so the
+  processes of every item together never pass it; an item whose share is one runs its chunks in the sidecar's process on a model the item workers
+  share. A GPU runs one. The first chunk runs alone in the sidecar's process, so the model is read
   once before the workers race for the same files and, with no forced language, every other chunk uses the language the first one heard.
   Progress is the seconds of the item the finished chunks account for. A cancel, or one chunk failing, ends every worker at once, and each chunk also looks for
   the cancel file between its segments, so a cancel does not wait for a whole chunk. An item that is one chunk goes to the plain transcriber, which reports

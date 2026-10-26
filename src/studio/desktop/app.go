@@ -75,7 +75,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 144
+const hostAPIVersion = 145
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -775,6 +775,7 @@ func (h *Host) configureLocked(next config) {
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: projectFileReader{},
 		Align:         h.coverageAligner,
+		Machine:       coverageMachine,
 	}, h.coverageLauncherLocked(), h.emitCoverage)
 	// A chapter's recordedFraction is the measured share of its words from a current, complete check, and absent otherwise;
 	// reading it never starts a check.
@@ -1801,6 +1802,10 @@ var fieldSchemas = map[string][]fieldSchema{
 	// for either engine, since both catalogs have them and larger models are unmeasured for live use.
 	"Teleprompter": {
 		{"input_device", "Microphone", "text", nil},
+		// input_source says whose microphone the Booth listens to while a DAW records: "daw" (and unset) is the DAW's own input
+		// when the host can match it (TeleprompterReaperInput), "chosen" is input_device even then. Only the narrator's
+		// "Choose a different one" saves "chosen", so an input_device saved before this row existed never outranks the DAW.
+		{"input_source", "Microphone source", "choice", []string{"daw", "chosen"}},
 		{"engine", "Live engine", "choice", []string{teleprompter.EngineWhisper}},
 		{"model", "Model", "choice", []string{"tiny", "small"}},
 		// punch_preroll_seconds is the punch-and-roll fallback: "Punch from here" moves REAPER's edit cursor to the word's resolved
@@ -1854,7 +1859,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"cascade_pipeline", "Run the larger model alongside the first pass", "bool", nil},
 		// How a long item is cut up and how many Whisper processes work on the pieces. They change how fast
 		// the same words are made, not which ones count, so changing one never makes a result stale.
-		{"parallel_workers", "Items checked at once (0 = chosen from the model and the processors)", "number", nil},
+		{"parallel_workers", "Transcriptions at once (0 = Automatic: from the processors, the free memory and the model)", "number", nil},
 		{"chunk_seconds", "Chunk length in seconds (0 = each item whole)", "choice", []string{"0", "60", "120", "300", "600", "900"}},
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
 		// Chapters a Check recordings run checks at once; they share the processors.

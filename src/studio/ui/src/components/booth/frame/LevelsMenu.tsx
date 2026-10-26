@@ -3,6 +3,7 @@ import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import type { RecordingEngine, RecorderDevice } from '../../../api/contracts/recording';
 import type { TeleprompterDevice } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
+import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
@@ -16,6 +17,18 @@ import { useDawMeters, type DawMetersState } from './useDawMeters';
 import { useMonitorLevel } from './useMonitorLevel';
 import { usePunchPreroll } from './usePunchPreroll';
 import { useDawPreroll } from './useDawPreroll';
+import type { ListeningMic } from '../listening/useListeningMic';
+
+export type ListenProps = {
+  devices: readonly TeleprompterDevice[];
+  mic: Pick<ListeningMic, 'origin' | 'candidates' | 'dawInput' | 'note' | 'overridden'> & { outputDevice?: string };
+  /** One of the DAW's candidates: listened on while the DAW's input still decides. */
+  onPick: (device: string) => void;
+  /** "Choose a different one": the narrator's microphone, kept over the DAW's input. */
+  onChooseOverDaw: (device: string) => void;
+  /** Back to the DAW's own input. */
+  onFollowDaw: () => void;
+};
 
 export type LevelsMenuProps = {
   /** Which engine records: with a DAW the microphone is chosen in the DAW, with the built-in recorder here. */
@@ -28,10 +41,11 @@ export type LevelsMenuProps = {
   device: string;
   onDevice: (device: string) => void;
   /**
-   * With a DAW, the microphone the Booth listens to so the text follows the voice: the DAW's own input when it named one
-   * (`fromDaw`), else the narrator's pick from the teleprompter's devices, with the host's `note` on why.
+   * With a DAW, the microphone the Booth listens to so the text follows the voice: the DAW's own input by default (`mic.origin` `daw`),
+   * one of the `candidates` its input could be (`uncertain`, a one-click pick), or the narrator's own choice, with the host's `note` on
+   * why. `device` is the microphone listened on.
    */
-  listen?: { devices: readonly TeleprompterDevice[]; fromDaw: boolean; note: string | null };
+  listen?: ListenProps;
   /**
    * What the DAW says about setting the levels (its `monitor_level` and `input_level` capabilities): the two sliders the mock's menu has, and
    * about reading its own meters (`daw_meters`), shown under them. Absent until the capabilities are read, and then there are no sliders to
@@ -83,45 +97,121 @@ function Devices({ device, onDevice }: { device: string; onDevice: (device: stri
  * Recording levels and the microphone, together, in one menu at the foot of the Booth beside Record (the mock's `LevelsMenu`):
  * an icon button with a tooltip. The room tone is not repeated here; it stays in the footer.
  */
-/** The microphone the Booth listens to while a DAW records: named when the DAW chose it, else picked from the listed devices. */
-function Listening({
-  dawName,
-  device,
-  onDevice,
-  listen,
-}: {
-  dawName: string;
-  device: string;
-  onDevice: (device: string) => void;
-  listen: NonNullable<LevelsMenuProps['listen']>;
-}) {
-  if (listen.fromDaw)
-    return (
-      <div className="text-sm text-[var(--text)]">
-        <b className="[overflow-wrap:anywhere]">{device}</b>
-        <div className="text-[var(--text-muted)]">Chosen in {dawName}</div>
-      </div>
-    );
-  const note = listen.note ? <p className="text-xs text-[var(--text-muted)]">{listen.note}</p> : null;
-  if (listen.devices.length === 0)
+/** The microphone picker over the teleprompter's devices; a chosen name the list no longer holds stays shown as not found. */
+function MicSelect({ device, devices, onChange }: { device: string; devices: readonly TeleprompterDevice[]; onChange: (device: string) => void }) {
+  const options = [
+    ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
+    ...devices.map((d) => ({ value: d.name, label: d.name })),
+    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
+  ];
+  return <Select label="Microphone" fullWidth value={device} options={options} onChange={onChange} />;
+}
+
+const MUTED = 'text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]';
+
+/**
+ * The microphone the Booth listens to while a DAW records. By default it is the DAW's own input, shown read-only ("Same as REAPER");
+ * when that input could be one of several microphones, one button each picks it; "Choose a different one" keeps the narrator's own
+ * microphone over the DAW's until "Use REAPER's input". With no DAW input to follow, the narrator's pick from the listed devices.
+ */
+function Listening({ dawName, device, listen }: { dawName: string; device: string; listen: ListenProps }) {
+  const { mic, devices } = listen;
+  const [choosing, setChoosing] = useState(false);
+  const plays = mic.outputDevice ? <p className={MUTED}>{`${dawName} plays on ${mic.outputDevice}.`}</p> : null;
+  const records = mic.dawInput ? <p className={MUTED}>{`${dawName} records from ${mic.dawInput}.`}</p> : null;
+  if (devices.length === 0)
     return (
       <>
         <p role="alert" className="text-sm text-[var(--danger-text)]">
           No microphone found
         </p>
-        {note}
+        {mic.note ? <p className={MUTED}>{mic.note}</p> : null}
       </>
     );
-  const options = [
-    ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
-    ...listen.devices.map((d) => ({ value: d.name, label: d.name })),
-    ...(device !== '' && !listen.devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
-  ];
+  if (mic.overridden || choosing)
+    return (
+      <>
+        <MicSelect
+          device={device}
+          devices={devices}
+          onChange={(next) => {
+            setChoosing(false);
+            listen.onChooseOverDaw(next);
+          }}
+        />
+        <p className={MUTED}>{`Your choice, kept over ${dawName}'s input.`}</p>
+        {records}
+        {plays}
+        <span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setChoosing(false);
+              listen.onFollowDaw();
+            }}
+          >
+            {`Use ${dawName}'s input`}
+          </Button>
+        </span>
+      </>
+    );
+  const different = (
+    <span>
+      <Button variant="ghost" size="sm" onClick={() => setChoosing(true)}>
+        Choose a different one
+      </Button>
+    </span>
+  );
+  const picks =
+    mic.candidates.length > 1 ? (
+      <div role="group" aria-label={`Which microphone ${dawName} records from`} className="flex flex-wrap gap-1.5">
+        {mic.candidates.map((candidate) => (
+          <Button
+            key={candidate}
+            variant={candidate === device && mic.origin === 'daw' ? 'primary' : 'secondary'}
+            size="sm"
+            aria-pressed={candidate === device && mic.origin === 'daw'}
+            onClick={() => listen.onPick(candidate)}
+          >
+            <span className="[overflow-wrap:anywhere]">{candidate}</span>
+          </Button>
+        ))}
+      </div>
+    ) : null;
+  if (mic.origin === 'daw')
+    return (
+      <>
+        <div className="text-sm text-[var(--text)]">
+          <b className="[overflow-wrap:anywhere]">{device}</b>
+          <div className="text-[var(--text-muted)]">{`Same as ${dawName}`}</div>
+        </div>
+        {records}
+        {picks}
+        {plays}
+        {different}
+      </>
+    );
+  if (mic.origin === 'uncertain')
+    return (
+      <>
+        <p role="status" className="text-sm [overflow-wrap:anywhere] text-[var(--warn-text)]">
+          {mic.note ?? `${dawName}'s input could be any of these microphones. Pick the one it uses.`}
+        </p>
+        {picks}
+        <p className={MUTED}>{`Listening to ${device} until you pick.`}</p>
+        {plays}
+        {different}
+      </>
+    );
   return (
     <>
-      <Select label="Microphone" fullWidth value={device} options={options} onChange={onDevice} />
-      <p className="text-xs text-[var(--text-muted)]">The Booth listens to it to follow your reading.</p>
-      {note}
+      <MicSelect device={device} devices={devices} onChange={listen.onPick} />
+      <p className={MUTED}>
+        {mic.origin === 'first' ? 'The first microphone listed, until you choose one. ' : ''}The Booth listens to it to follow your reading.
+      </p>
+      {mic.note ? <p className={MUTED}>{mic.note}</p> : null}
+      {plays}
     </>
   );
 }
@@ -339,7 +429,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
             <>
               {off ? <div className="text-sm text-[var(--text)]">{offReason ?? `${dawName} is not running`}</div> : null}
               {listen ? (
-                <Listening dawName={dawName} device={device} onDevice={onDevice} listen={listen} />
+                <Listening dawName={dawName} device={device} listen={listen} />
               ) : off ? null : (
                 <div className="text-sm text-[var(--text)]">Chosen in {dawName}</div>
               )}

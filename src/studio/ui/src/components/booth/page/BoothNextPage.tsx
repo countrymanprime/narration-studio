@@ -607,12 +607,16 @@ function BoothSession({
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
+  // Every listener (the text following the voice, a cold read, the meter, room tone) uses the one microphone this resolves: the
+  // linked DAW's own input unless the narrator chose a different one.
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
-    device: session.device,
+    chapterId: chapter?.id ?? '',
+    chosen: session.chosenDevice,
+    source: session.inputSource,
     settingsLoaded: session.settingsLoaded,
     devices: session.devices,
-    choose: session.changeDevice,
+    listenOn: session.listenOn,
   });
 
   return (
@@ -798,7 +802,15 @@ function BoothSession({
               offReason: capabilities?.capabilities.record?.message,
               device: session.device,
               onDevice: session.changeDevice,
-              listen: standalone ? undefined : { devices: session.devices, fromDaw: listening.fromDaw, note: listening.note },
+              listen: standalone
+                ? undefined
+                : {
+                    devices: session.devices,
+                    mic: { ...listening, outputDevice: listening.answer?.outputDevice },
+                    onPick: session.changeDevice,
+                    onChooseOverDaw: session.chooseOverDaw,
+                    onFollowDaw: session.followDaw,
+                  },
               levels: capabilities
                 ? {
                     monitor: capabilities.capabilities.monitor_level,

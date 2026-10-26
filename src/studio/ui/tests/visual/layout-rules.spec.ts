@@ -77,6 +77,12 @@ const cases: { rule: LayoutRule; bad: string; good: string }[] = [
     good: '<div class="row"><button style="height:36px">A</button><button style="height:28px">B</button></div>',
   },
   {
+    // The Editing page's paragraph time: 12 px beside 24 px text on a 36 px line, pushed down by padding in the text's em (#2094).
+    rule: 'A8',
+    bad: '<div style="display:grid;grid-template-columns:76px 600px;font-size:24px;line-height:1.5"><div style="padding-top:0.7em;text-align:right"><span style="font:12px/16px monospace">0:01</span></div><p style="margin:0">It was a bright cold day in April.</p></div>',
+    good: '<div style="display:grid;grid-template-columns:76px 600px;font-size:24px;line-height:1.5"><div style="height:1lh;display:flex;align-items:center;justify-content:flex-end"><span style="font:12px/16px monospace">0:01</span></div><p style="margin:0">It was a bright cold day in April, and the clocks were striking thirteen, and the wind swept the dust along the street.</p></div><div class="row" style="align-items:center;font-size:20px;line-height:30px"><span style="font-size:12px;line-height:30px">A</span><p style="margin:0">Centred on a one-line paragraph.</p></div>',
+  },
+  {
     rule: 'A9',
     bad: '<div class="row" style="width:500px"><span style="flex:1">A name</span><div><button style="height:20px;display:block">Play</button><button style="height:20px;display:block">Rec</button></div></div>',
     good: '<div class="row" style="width:500px"><span style="flex:1">A name</span><div class="row"><button>Play</button><button>Rec</button></div></div>',
@@ -114,6 +120,24 @@ for (const { rule, bad, good } of cases) {
     expect(await rulesOn(page, good), 'laid out right').not.toContain(rule);
   });
 }
+
+test("a small margin label set on the text's baseline sits low in its line (A8)", async ({ page }) => {
+  expect(
+    await rulesOn(
+      page,
+      '<div style="display:grid;grid-template-columns:76px 600px;font-size:24px;line-height:1.5"><div style="text-align:right"><span style="font:12px/16px monospace">0:02</span></div><p style="margin:0">On the baseline, in the bottom half of the line.</p></div>',
+    ),
+  ).toContain('A8');
+});
+
+test("a control beside a paragraph (a tip's Got it) is not a margin label (A8)", async ({ page }) => {
+  expect(
+    await rulesOn(
+      page,
+      '<div class="row" style="align-items:flex-start"><p style="margin:0;font-size:16px;line-height:21px">Select words to edit them.</p><button style="font-size:12px;margin-top:12px">Got it</button></div>',
+    ),
+  ).not.toContain('A8');
+});
 
 test('what is under an open modal is not judged', async ({ page }) => {
   const rules = await rulesOn(

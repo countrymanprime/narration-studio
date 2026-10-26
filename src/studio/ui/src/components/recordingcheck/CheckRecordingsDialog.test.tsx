@@ -405,7 +405,7 @@ describe('CheckRecordingsDialog', () => {
       expect((screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement).value).toBe('6');
       expect(screen.getByText('Automatic')).toBeTruthy();
       expect((screen.getByRole('checkbox', { name: /Look again with a larger model/ }) as HTMLInputElement).getAttribute('aria-checked')).toBe('false');
-      expect(screen.getByText('Whisper small in 5 min chunks that overlap by 6 s, as many at a time as the model allows.')).toBeTruthy();
+      expect(screen.getByText('Whisper small in 5 min chunks that overlap by 6 s, as many at a time as Automatic plans.')).toBeTruthy();
       expect(screen.queryByRole('combobox', { name: 'Larger model' })).toBeNull();
       expect(screen.queryByText(/Checking recordings runs speech recognition/)).toBeNull();
     });
@@ -424,7 +424,7 @@ describe('CheckRecordingsDialog', () => {
     it('sends every choice, so the host runs what the dialog showed', async () => {
       const { api, sent } = host();
       open(api, ['a']);
-      await userEvent.click(await screen.findByRole('checkbox', { name: /Let the model choose the workers/ }));
+      await userEvent.click(await screen.findByRole('checkbox', { name: /Automatic: plan it from the processors/ }));
       const workers = screen.getByRole('slider', { name: 'Parallel workers' });
       workers.focus();
       await userEvent.keyboard('{Home}{ArrowRight}{ArrowRight}');

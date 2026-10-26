@@ -81,7 +81,7 @@ export const ANALYSIS_TOOLS: AssetItem[] = [
 ];
 
 /** How the fake's next install of a tool goes: to the end, held mid-download or at the check, or ending in the host's sentence. */
-export type FakeInstall = 'completes' | 'held' | 'checking' | { fails: string };
+export type FakeInstall = 'completes' | 'held' | 'checking' | { fails: string; detail?: string };
 
 /**
  * A `ComponentsPort` over an in-memory registry for the tests and stories: an install takes one step per poll (40 percent, the check,
@@ -103,7 +103,8 @@ export function createFakeTools(options: { tools?: AssetItem[]; installs?: Recor
     const total = job.bytesTotal;
     if (job.phase === 'downloading' && job.bytesDone === 0) return { ...job, percent: 40, bytesDone: Math.floor(total * 0.4) };
     if (job.phase === 'downloading' && plan === 'held') return job;
-    if (job.phase === 'downloading' && typeof plan === 'object') return { ...job, phase: 'error', message: plan.fails, error: plan.fails };
+    if (job.phase === 'downloading' && typeof plan === 'object')
+      return { ...job, phase: 'error', message: plan.fails, error: plan.fails, errorDetail: plan.detail ?? '' };
     if (job.phase === 'downloading') return { ...job, phase: 'verifying', percent: 99, bytesDone: total, message: 'Checking the files…' };
     if (job.phase === 'verifying' && plan === 'checking') return job;
     if (job.phase === 'verifying') {
@@ -136,6 +137,7 @@ export function createFakeTools(options: { tools?: AssetItem[]; installs?: Recor
         bytesDone: 0,
         bytesTotal: item.downloadSize,
         error: '',
+        errorDetail: '',
       };
       jobs.set(job.id, job);
       return { ...job };

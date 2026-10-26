@@ -35,7 +35,7 @@ func connectedHost() *Host {
 
 func readInput(t *testing.T, host *Host, reader trackStateReader, lister deviceLister) teleprompterReaperInput {
 	t.Helper()
-	return teleprompterReaperInputIn(context.Background(), host.services(), reader, lister)
+	return teleprompterReaperInputIn(context.Background(), host.services(), reader, lister, "")
 }
 
 func TestREAPERsInputDeviceIsMatchedToAMicrophoneAndSaysWhy(t *testing.T) {
@@ -114,7 +114,7 @@ func TestNeitherASidecarNorREAPERIsAskedWithoutAHeartbeat(t *testing.T) {
 }
 
 func TestTeleprompterReaperInputOnAHostWithNoBridgeIsStandalone(t *testing.T) {
-	raw, err := (&Host{}).TeleprompterReaperInput()
+	raw, err := (&Host{}).TeleprompterReaperInput("")
 	if err != nil || !strings.Contains(raw, `"reason":"standalone"`) {
 		t.Fatalf("raw = %s, err = %v", raw, err)
 	}
@@ -128,5 +128,68 @@ func TestContractTeleprompterReaperInputs(t *testing.T) {
 		"no_match":         readInput(t, connectedHost(), &fakeTrackStates{state: bridge.TrackState{InputDevice: "ASIO4ALL v2"}}, &fakeDevices{names: inputDevices}),
 		"reaper_no_device": readInput(t, connectedHost(), &fakeTrackStates{}, &fakeDevices{names: inputDevices}),
 	}
+	answers["matched_with_channel"] = teleprompterReaperInputIn(context.Background(), connectedHost().services(),
+		&fakeTrackStates{state: bridge.TrackState{InputDevice: "Shure MV7", OutputDevice: "Speakers (Realtek(R) Audio)", InputChannel: "Input 1"}}, &fakeDevices{names: inputDevices}, "")
+	answers["daw_cannot_report"] = readInput(t, &Host{audacity: &audacityConn{}}, &fakeTrackStates{}, &fakeDevices{names: inputDevices})
 	contractfile.Check(t, "teleprompter-reaper-inputs", answers)
+}
+
+func TestTheLinkedChaptersTrackNamesItsInputChannelAndREAPERsOutput(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	reader := &fakeTrackStates{state: bridge.TrackState{InputDevice: "Shure MV7", OutputDevice: "Speakers (Shure MV7)", InputChannel: "Mic 1"}}
+
+	input := teleprompterReaperInputIn(context.Background(), host.services(), reader, &fakeDevices{names: inputDevices}, ids[0])
+
+	if len(reader.asked) != 1 || reader.asked[0] != readAloudTrack {
+		t.Fatalf("asked REAPER about %v, want the chapter's track", reader.asked)
+	}
+	if input.Status != "matched" || input.InputChannel != "Mic 1" || input.OutputDevice != "Speakers (Shure MV7)" {
+		t.Fatalf("input = %+v", input)
+	}
+}
+
+func TestAChapterWithNoOneTrackOrAnUnknownChapterReadsTheDeviceAlone(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	for _, chapterID := range []string{ids[1], "no-such-chapter", ""} {
+		reader := &fakeTrackStates{state: bridge.TrackState{InputDevice: "Shure MV7"}}
+		teleprompterReaperInputIn(context.Background(), host.services(), reader, &fakeDevices{names: inputDevices}, chapterID)
+		if len(reader.asked) != 1 || reader.asked[0] != "" {
+			t.Fatalf("chapter %q: asked REAPER about %v, want the device alone", chapterID, reader.asked)
+		}
+	}
+}
+
+// staleOnce answers the first read, for a track, as gone, and the next as fake does.
+type staleOnce struct{ fakeTrackStates }
+
+func (s *staleOnce) ChapterTrackState(ctx context.Context, guid string) (bridge.TrackState, error) {
+	if guid != "" {
+		s.asked = append(s.asked, guid)
+		return bridge.TrackState{}, &bridge.TrackStaleError{GUID: guid}
+	}
+	return s.fakeTrackStates.ChapterTrackState(ctx, guid)
+}
+
+func TestALinkToATrackThatIsGoneStillReadsREAPERsDevice(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	reader := &staleOnce{fakeTrackStates{state: bridge.TrackState{InputDevice: "Shure MV7"}}}
+
+	input := teleprompterReaperInputIn(context.Background(), host.services(), reader, &fakeDevices{names: inputDevices}, ids[0])
+
+	if input.Status != "matched" || len(reader.asked) != 2 || reader.asked[1] != "" {
+		t.Fatalf("input = %+v, asked %v", input, reader.asked)
+	}
+}
+
+func TestAudacityCannotReportItsInputWhateverItsSettings(t *testing.T) {
+	reader, devices := &fakeTrackStates{state: bridge.TrackState{InputDevice: "Shure MV7"}}, &fakeDevices{names: inputDevices}
+
+	input := readInput(t, &Host{audacity: &audacityConn{}}, reader, devices)
+
+	if input.Status != "unavailable" || input.Reason != inputDawCannotReport || !strings.Contains(input.Message, "Audacity cannot report") {
+		t.Fatalf("input = %+v", input)
+	}
+	if len(reader.asked) != 0 || devices.calls != 0 {
+		t.Fatalf("asked a DAW %v and listed devices %d times for an answer that depends only on the DAW", reader.asked, devices.calls)
+	}
 }

@@ -17,6 +17,7 @@ if str(CORE) not in sys.path:
 import compare
 import coverage_chunks
 import coverage_mode as mode
+import coverage_pipeline
 from test_coverage_mode import P1, P2, SUBTITLE, TITLE, _args, _item, _lines, _project, _timed, _words_file, _write_manifest
 
 
@@ -159,12 +160,20 @@ class TestTranscriberChoice:
         transcriber = mode._default_transcriber(engine, self._args(chunk_seconds=300, parallel_workers=2, chunk_overlap_seconds=4))
         assert isinstance(transcriber, coverage_chunks.ChunkedTranscriber)
 
-    def test_more_than_one_worker_alone_makes_the_chunked_transcriber(self, engine):
-        assert isinstance(mode._default_transcriber(engine, self._args(parallel_workers=3)), coverage_chunks.ChunkedTranscriber)
+    def test_workers_without_a_chunk_length_check_whole_items_side_by_side(self, engine):
+        # Behaviour change: the host now always sends the count it planned, so workers with no chunk length no longer cut items
+        # into the default chunks; each item stays whole and the item pool runs that many at once.
+        assert isinstance(mode._default_transcriber(engine, self._args(parallel_workers=3)), mode.WhisperTranscriber)
+        assert isinstance(mode._default_transcriber(engine, self._args(chunk_seconds=0, parallel_workers=4)), mode.WhisperTranscriber)
 
-    def test_workers_without_a_chunk_length_get_the_default_chunks_to_share(self, engine):
-        transcriber = mode._default_transcriber(engine, self._args(parallel_workers=3))
-        assert transcriber._chunk_seconds == coverage_chunks.DEFAULT_CHUNK_SECONDS
+    def test_the_item_pool_and_the_chunk_processes_share_the_planned_count(self, engine):
+        args = self._args(chunk_seconds=300, parallel_workers=4)
+        alone = mode._default_transcriber(engine, args, coverage_pipeline.ModelBudget(workers=1, threads=8))
+        assert (alone._workers, alone._sharers) == (4, 1)  # one long item: its chunks take all four
+        side_by_side = mode._default_transcriber(engine, args, coverage_pipeline.ModelBudget(workers=4, threads=2))
+        assert (side_by_side._workers, side_by_side._sharers) == (1, 4)  # four items: one each, sharing this process's model
+        two = mode._default_transcriber(engine, args, coverage_pipeline.ModelBudget(workers=2, threads=4))
+        assert (two._workers, two._sharers) == (2, 2)
 
 
 WORDS_REPORT_GOLDEN = Path(__file__).resolve().parent / "fixtures" / "coverage-words-report.golden.txt"

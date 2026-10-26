@@ -267,6 +267,38 @@ describe('Settings: row layout', () => {
     expect(hint.className).toContain('text-[0.8125rem]');
   });
 
+  it('says under Parallel processes what the value shown runs on this computer, and reads it again when the value changes', async () => {
+    const api = createMockApi();
+    const asked = vi.spyOn(api, 'coverageWorkerPlan');
+    await renderPage({ api });
+    pick('Speech to text');
+    await openAdvanced();
+    const live = await waitFor(() => {
+      const found = row('stt.workers').querySelector<HTMLElement>('[data-live="workerPlan"]');
+      expect(found?.textContent).toMatch(/^Automatic: \d+ transcriptions? at once, using \d+ of 8 processors for the .+ model\./);
+      return found!;
+    });
+    expect(asked).toHaveBeenLastCalledWith({ workers: 0 });
+    const box = within(row('stt.workers')).getByRole('textbox');
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(live.textContent).toMatch(/^3 transcriptions at once, using 6 of 8 processors/));
+    expect(asked).toHaveBeenLastCalledWith({ workers: 3 });
+  });
+
+  it('says so under Parallel processes when the host cannot work the count out', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'coverageWorkerPlan').mockRejectedValue(new Error('the settings could not be read'));
+    await renderPage({ api });
+    pick('Speech to text');
+    await openAdvanced();
+    await waitFor(() =>
+      expect(row('stt.workers').querySelector('[data-live="workerPlan"]')?.textContent).toMatch(
+        /^Could not work out how many run at once: .*the settings could not be read$/,
+      ),
+    );
+  });
+
   it('draws a download note as a status line then an action line, naming the voice as the select does (XSE2-14, R3SE2-20)', async () => {
     await renderPage();
     pick('Voice & pronunciation');
@@ -480,7 +512,7 @@ describe('Settings: search and filters', () => {
 
 describe('Settings: arriving from another page', () => {
   it('opens on the setting and focuses it', async () => {
-    await renderPage({ initialCategory: 'Teleprompter' });
+    await renderPage({ api: createMockApi({}, { recording: { engine: 'builtin' } }), initialCategory: 'Teleprompter' });
     const mic = await screen.findByRole('combobox', { name: /Microphone/ });
     await waitFor(() => expect(document.activeElement).toBe(mic));
     expect(

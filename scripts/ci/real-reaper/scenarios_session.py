@@ -289,6 +289,43 @@ def track_state(env: Env) -> str:
     return f"{len(items)} items, change count {count} -> {next(e for e in later if e[0] == 'TRACK_STATE')[8]}"
 
 
+@scenario(
+    "track_state",
+    "chapter_track_state",
+    "track state: REAPER's input and output device names and the track's input channel names, as the Booth shows them (#2251)",
+    needs_audio=True,
+)
+def track_state_devices(env: Env) -> str:
+    fx = two_chapters(env)
+    expected = env.lua(
+        """
+        local track = ci.track_by_name('Chapter 1')
+        local function set(value) reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', value) end
+        local _, device_in = reaper.GetAudioDeviceInfo('IDENT_IN', '')
+        local _, device_out = reaper.GetAudioDeviceInfo('IDENT_OUT', '')
+        local names = {}
+        for index = 0, 3 do names[#names + 1] = tostring(reaper.GetInputChannelName(index)) end
+        set(0)
+        return { input = device_in, output = device_out, names = names }
+        """
+    )
+    env.notes.append(f"REAPER answered IDENT_IN {expected['input']!r}, IDENT_OUT {expected['output']!r}, GetInputChannelName(0..3) {expected['names']!r}")
+    mono = next(e for e in env.send("chapter_track_state", fx["ch1"], until={"TRACK_STATE_END"}) if e[0] == "TRACK_STATE")
+    assert mono[11] == "0", f"recInput {mono[11]}"
+    assert mono[12] == expected["input"] and mono[12] != "", f"inputDevice {mono[12]!r} vs {expected['input']!r}"
+    assert mono[13] == expected["output"] and mono[13] != "", f"outputDevice {mono[13]!r} vs {expected['output']!r}"
+    assert mono[14] == expected["names"][0] and mono[14] != "", f"recInputName {mono[14]!r} vs {expected['names'][0]!r}"
+    env.lua("reaper.SetMediaTrackInfo_Value(ci.track_by_name('Chapter 1'), 'I_RECINPUT', 1024) return true")
+    pair = next(e for e in env.send("chapter_track_state", fx["ch1"], until={"TRACK_STATE_END"}) if e[0] == "TRACK_STATE")
+    assert pair[14] == f"{expected['names'][0]} / {expected['names'][1]}", f"stereo recInputName {pair[14]!r}"
+    env.lua("reaper.SetMediaTrackInfo_Value(ci.track_by_name('Chapter 1'), 'I_RECINPUT', 3) return true")
+    past = next(e for e in env.send("chapter_track_state", fx["ch1"], until={"TRACK_STATE_END"}) if e[0] == "TRACK_STATE")
+    env.lua("reaper.SetMediaTrackInfo_Value(ci.track_by_name('Chapter 1'), 'I_RECINPUT', -1) return true")
+    none = next(e for e in env.send("chapter_track_state", fx["ch1"], until={"TRACK_STATE_END"}) if e[0] == "TRACK_STATE")
+    assert none[14] == "", f"no input named {none[14]!r}"
+    return f"in {mono[12]!r}, out {mono[13]!r}, mono {mono[14]!r}, pair {pair[14]!r}, channel 3 of 2 {past[14]!r}"
+
+
 @scenario("track_state", "chapter_track_state, project_state", "track state: a project that was never saved reports no path and unsaved")
 def track_state_unsaved(env: Env) -> str:
     env.lua("reaper.Main_OnCommand(40859, 0) return true")  # File: New project tab: a project that was never saved
