@@ -469,11 +469,12 @@ test('row 44: the built-in recorder with Experimental off says so, and Turn on R
 });
 
 test('row 45: with several microphones and none chosen, none listed, or one that will not open, Record says why and records nothing', async ({ page }) => {
-  // The Booth listens before it records, so with none chosen the take does not begin, and the notice and the footer say the text cannot follow the voice until one is chosen.
+  // Behaviour change (#2251): with nothing chosen the Booth listens on the first microphone listed instead of refusing, so the take is refused by the
+  // built-in recorder itself, which records on a microphone chosen in Levels and never guesses among several.
   await open(page, `${BUILTIN}&mockRecorder=empty`, true, false);
   await record(page).click();
-  await expect(page.getByText(/Recording did not start: the text cannot follow your voice \(Choose a microphone\.\)/).first()).toBeVisible();
-  await expect(page.locator('#blisten-why')).toContainText('The text cannot follow your voice: Choose a microphone.');
+  await expect(page.getByRole('alert').getByText('Choose the microphone in Levels, then press Record.').first()).toBeVisible();
+  await expect(page.locator('#blisten-why')).toHaveCount(0);
   await expect(stop(page)).toHaveCount(0);
 
   // The listening side lists no microphone either (`mockNoDevices`), which is what the Booth listens with before it records. The footer says so
