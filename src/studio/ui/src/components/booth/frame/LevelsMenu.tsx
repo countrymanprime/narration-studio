@@ -143,6 +143,7 @@ function Listening({ dawName, device, listen }: { dawName: string; device: strin
         />
         <p className={MUTED}>{`Your choice, kept over ${dawName}'s input.`}</p>
         {records}
+        {plays}
         <span>
           <Button
             variant="secondary"

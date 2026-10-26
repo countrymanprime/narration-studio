@@ -21,7 +21,7 @@ export const FIELD_WIDTH = 'w-80 max-w-full';
 type Listing = { phase: 'loading' } | { phase: 'ready'; devices: TeleprompterDevice[]; problem?: string };
 
 /** A note under the control: muted 13 px, one width with the row's description. */
-const NOTE_CLASS = 'max-w-[60ch] text-[0.8125rem] break-words text-[var(--text-muted)]';
+const NOTE_CLASS = 'w-full max-w-[60ch] text-[0.8125rem] break-words text-[var(--text-muted)]';
 
 /** `Teleprompter.input_source`, which has no row of its own: this row's "Choose a different one" and "Use … input" write it. */
 const sourceRow = (row: SettingMeta): SettingMeta => ({ ...row, id: 'daw.micSource', def: 'daw', field: { tool: 'Teleprompter', key: 'input_source' } });
