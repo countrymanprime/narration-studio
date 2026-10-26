@@ -1,6 +1,6 @@
 // The mock host (mockApi.ts): the manuscript.
 import type { GuideEvidence, ManuscriptChapter, ManuscriptContentKind, ManuscriptParagraph, NarrationApi, ReaderState, WorkJob } from '../../types';
-import { aliceChapterSeeds, WIRE_NOTES, WIRE_READER_STATE, WIRE_TRACKS_PROJECT, wireClone, withFormatting } from '../mockFixtures';
+import { aliceChapterSeeds, mockRecordedThrough, WIRE_NOTES, WIRE_READER_STATE, WIRE_TRACKS_PROJECT, wireClone, withFormatting } from '../mockFixtures';
 import { loadAliceManuscript } from '../aliceManuscript';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
 import { mockImportPreview, mockImportPreviewLog } from '../mockImportPreview';
@@ -202,10 +202,20 @@ export function createManuscriptMock(
       await manuscriptReady;
       const readable = Boolean(s.tracksDiscovery.selected);
       return wireClone(
-        s.chapters.map((chapter) => ({
-          ...withMeasurement(chapter),
-          ...mockRecordedLength(chapter.id, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
-        })),
+        s.chapters.map((chapter, index) => {
+          // How far it is recorded: a seeded chapter's own, else the mock book's pattern over the text it really has.
+          const through =
+            chapter.recordedThrough ??
+            mockRecordedThrough(
+              index,
+              s.paragraphs.filter((paragraph) => paragraph.chapterId === chapter.id),
+            );
+          return {
+            ...withMeasurement(chapter),
+            ...mockRecordedLength(chapter.id, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
+            ...(through ? { recordedThrough: through } : {}),
+          };
+        }),
       );
     },
     manuscriptParagraphs: async (chapter) => {

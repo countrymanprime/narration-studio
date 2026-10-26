@@ -70,3 +70,20 @@ export const ChoosingAChapter: Story = {
     await waitFor(() => expect(picker).toHaveTextContent('What the lighthouse keeper knew'));
   },
 };
+
+// Each chapter's note after its name in the list (how far it is recorded): muted, right-aligned, never wrapping; a long name truncates before it.
+export const WithChapterDetails: Story = {
+  args: {
+    chapters: [
+      { id: '1', name: 'The ferry at dawn', detail: 'Complete' },
+      { id: '2', name: 'A letter from the coast, with a name long enough to have to truncate before its note', detail: '45%' },
+      { id: '3', name: 'What the lighthouse keeper knew', detail: '~30%' },
+      { id: '4', name: 'Coda' },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: /Change chapter/ }));
+    const items = await screen.findAllByRole('menuitemradio');
+    await expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent ?? null)).toEqual(['Complete', '45%', '~30%', null]);
+  },
+};

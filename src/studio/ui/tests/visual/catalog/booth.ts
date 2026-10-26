@@ -215,6 +215,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'recorded-partly',
+    description:
+      'Booth, a chapter recorded two thirds of the way chosen from the chapter menu (chapter 4): it opens on the word after the recording ends, the top bar says "Recorded 65%" (its tip quotes the last recorded words), and a green rail left of the text runs from the first line to the last recorded one',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'levels-menu',
     description:
       "Booth, the footer's Levels menu open with the narrator's settings untouched: the input level and the microphone the DAW records from, named, with \"Chosen in REAPER\" (TeleprompterReaperInput); REAPER's own meters and pre-roll show with no switch (they only read), and the monitor slider, which writes, is off with Turn on in Settings",

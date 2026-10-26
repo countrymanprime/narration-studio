@@ -231,7 +231,7 @@ export const WIRE_PARAGRAPHS: ManuscriptParagraph[] = plainParagraphs.map(withFo
  * How far the mock's chapter is recorded (`recordedThrough`): chapters 1-3 and those past recording in full by Proof, 4-6 two
  * thirds of the way by the Booth’s takes, 11 about a third by its track’s length alone (an estimate), the rest none.
  */
-function mockRecordedThrough(index: number, paragraphs: readonly ManuscriptParagraph[]): ManuscriptChapter['recordedThrough'] {
+export function mockRecordedThrough(index: number, paragraphs: readonly ManuscriptParagraph[]): ManuscriptChapter['recordedThrough'] {
   const last = paragraphs.at(-1);
   if (!last) return undefined;
   const words = (paragraph: ManuscriptParagraph) => paragraph.text.split(/\s+/).filter(Boolean).length;
