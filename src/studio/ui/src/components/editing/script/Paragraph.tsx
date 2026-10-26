@@ -44,7 +44,8 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       className={`mb-2 grid gap-x-1.5 border-l-[3px] py-1 ${gutter ? 'grid-cols-[76px_minmax(0,1000px)] @max-[30rem]/script:grid-cols-[2.75rem_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1000px)]'} ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 4.5rem' }}
     >
-      <div data-gutter className={`flex flex-col items-end gap-1 pt-[0.7em] pr-2 ${gutter ? '' : 'invisible overflow-hidden'}`}>
+      {/* One line of the text tall (`1lh` is the inherited line height), so the time is centred on the paragraph's first line at any size. */}
+      <div data-gutter className={`flex h-[1lh] items-center justify-end pr-2 ${gutter ? '' : 'invisible overflow-hidden'}`}>
         <span className="font-mono text-xs text-[var(--text-muted)]">{dp.start != null ? clockText(dp.start) : ''}</span>
       </div>
       <p className={`m-0 min-w-0 ${dp.recorded ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
