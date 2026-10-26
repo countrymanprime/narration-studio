@@ -183,6 +183,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
   'src/components/booth/page/lastPlace.ts#1':
     "Remembering the Booth's last chapter and place in localStorage, per project; with storage blocked or full the next visit opens on the DAW's chapter or the first, as it did before the place was kept.",
+  'src/components/booth/page/lastPlace.ts#2':
+    'Remembering the place in each chapter of the project in localStorage; with storage blocked or full a chapter the narrator comes back to opens where its recording ends, or at its top.',
   'src/components/booth/page/useTextChoices.ts#1':
     "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':
@@ -234,11 +236,13 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Releases the meter-only child on cleanup; nothing is left mounted to tell, and the next start works either way.',
   // The new Booth page (SN-O102): secondary reads that only add to a chapter that already reads.
   'src/components/booth/page/useBoothData.ts#1': 'The credits templates only decide whether the picker offers the credits; with none, it offers the chapters.',
-  'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
-  'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
-  'src/components/booth/page/useBoothData.ts#4':
+  'src/components/booth/page/useBoothData.ts#2':
+    'Reading again how far each chapter is recorded after a take only moves where a chapter the narrator comes back to opens; without it the value read when the Booth opened stands.',
+  'src/components/booth/page/useBoothData.ts#3': 'The running session only picks the default chapter; the first chapter is used without it.',
+  'src/components/booth/page/useBoothData.ts#4': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
+  'src/components/booth/page/useBoothData.ts#5':
     'The Story Bible types only colour the names and speakers; without them every entry keeps the fallback colour and the page still opens.',
-  'src/components/booth/page/useBoothData.ts#5': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
+  'src/components/booth/page/useBoothData.ts#6': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };

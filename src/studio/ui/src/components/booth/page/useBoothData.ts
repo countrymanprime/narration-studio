@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
+import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { CreditsKind } from '../readerModel';
 import type { BoothTarget } from './boothQuery';
 
@@ -58,6 +59,16 @@ export function useBoothData(target: BoothTarget | null) {
   const [types, setTypes] = useState<GuideType[]>(NONE);
   const { previews, loaded: creditsLoaded } = useCreditsPreviews();
 
+  // How far each chapter is recorded, read with the chapters and read again after a take (`refreshRecorded`), so a chapter the narrator
+  // comes back to opens where the take they just made ends; the chapters themselves are not replaced, so nothing on the page re-renders.
+  const [recorded, setRecorded] = useState<Record<string, RecordedThrough>>({});
+  const refreshRecorded = useCallback(() => {
+    void manuscript
+      .manuscriptChapters()
+      .then((all) => setRecorded(recordedOf(all)))
+      .catch(() => {});
+  }, [manuscript]);
+
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
@@ -66,6 +77,7 @@ export function useBoothData(target: BoothTarget | null) {
         if (!live) return;
         const narration = all.filter((item) => (item.contentKind ?? 'narration') === 'narration');
         setChapters(narration);
+        setRecorded(recordedOf(narration));
         const running = host && host.phase !== 'idle' && host.phase !== 'stopped' ? narration.find((item) => item.id === host.chapter)?.id : undefined;
         setFallback(running ?? narration[0]?.id ?? '');
       })
@@ -127,6 +139,8 @@ export function useBoothData(target: BoothTarget | null) {
         : undefined;
   return {
     chapters,
+    recorded,
+    refreshRecorded,
     previews,
     source,
     unavailable,
@@ -137,4 +151,9 @@ export function useBoothData(target: BoothTarget | null) {
     cues,
     correctCue,
   };
+}
+
+/** Each chapter's `recordedThrough`, by id; a chapter with none is left out. */
+function recordedOf(chapters: readonly ManuscriptChapter[]): Record<string, RecordedThrough> {
+  return Object.fromEntries(chapters.flatMap((chapter) => (chapter.recordedThrough ? [[chapter.id, chapter.recordedThrough]] : [])));
 }

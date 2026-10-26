@@ -197,4 +197,27 @@ describe('ChapterStepper', () => {
     );
     expect(screen.getByText('Chapter 1 — Down the Rabbit-Hole').className).toContain('normal-case');
   });
+
+  it('draws each chapter’s detail after its name in the list, never in the picker’s label', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChapterStepper
+        chapters={[
+          { id: 'c1', name: 'Chapter 1', detail: 'Complete' },
+          { id: 'c2', name: 'Chapter 2 — a very long name that has to truncate before its note', detail: '45%' },
+          { id: 'c3', name: 'Chapter 3' },
+        ]}
+        value="c2"
+        onChange={() => undefined}
+        onStep={() => undefined}
+      />,
+    );
+    const picker = screen.getByRole('button', { name: /Change chapter/ });
+    expect(picker.textContent).not.toContain('45%');
+    await user.click(picker);
+    const items = await screen.findAllByRole('menuitemradio');
+    expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent ?? null)).toEqual(['Complete', '45%', null]);
+    expect(items[1].textContent).toBe('Chapter 2 — a very long name that has to truncate before its note45%');
+    expect(items[1].querySelector('[data-chapter-detail]')?.className).toContain('flex-none');
+  });
 });

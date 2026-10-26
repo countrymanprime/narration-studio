@@ -1,14 +1,20 @@
 import type { DawProjectState } from '../../../api/contracts/daw';
 import type { TeleprompterLocateResult, TeleprompterResumePlace, TeleprompterSpan } from '../../../types';
 
-/** Where a resume point was read from: REAPER's live project, the saved one, or the Booth's own record of where the last take stopped. */
-type ResumeSource = 'live' | 'saved' | 'booth';
+/**
+ * Where a resume point was read from: REAPER's live project, the saved one, the Booth's own record of where the last take stopped, or
+ * where the Booth opened the chapter (`resumeStart`: where its recording ends, or where the narrator left it).
+ */
+type ResumeSource = 'live' | 'saved' | 'booth' | 'recording' | 'left';
 
 /** A place in the chapter by paragraph and word within it (the Booth's remembered stop has this shape, and `onChoose` returns it). */
 export type ResumeTarget = { paragraphId: string; word: number };
 
 /** The Booth's own record of where a take stopped; it wins over the DAW's answer. */
 export type KeptResume = ResumeTarget;
+
+/** Where the Booth opened the chapter, and why: offered only when nothing else is (`resumeOfferFor`). */
+export type OpenedResume = ResumeTarget & { why: 'recording' | 'left' };
 
 export type ResumeOffer = ResumeTarget & {
   /** The paragraph's one-based position among the chapter's paragraphs, for "Resume at ¶ n". */
@@ -43,6 +49,7 @@ function offerFromPlace(spans: readonly TeleprompterSpan[], place: TeleprompterR
  * The one resume line for a chapter. The Booth's own record wins; otherwise the host's reconciled verdict decides (render it,
  * never recompute it): the DAW's place when it has one, the prompter's last reading when it has the only place or the two
  * disagree. `complete` and `none` offer nothing, and a place whose confidence the host did not vouch for stays an estimate.
+ * With none of those, the place the Booth opened the chapter at (`opened`) is offered, so a narrator who looked elsewhere can go back.
  * Nothing is offered while a take runs.
  */
 export function resumeOfferFor(args: {
@@ -50,13 +57,23 @@ export function resumeOfferFor(args: {
   recording: boolean;
   kept?: KeptResume | null;
   result?: TeleprompterLocateResult | null;
+  opened?: OpenedResume | null;
 }): ResumeOfferState {
-  const { spans, recording, kept, result } = args;
+  const { spans, recording, kept, result, opened } = args;
   if (recording) return NONE;
+  const paragraphOf = (target: ResumeTarget) => spans.filter((span) => span.kind === 'paragraph').findIndex((span) => span.id === target.paragraphId) + 1;
   if (kept) {
-    const paragraph = spans.filter((span) => span.kind === 'paragraph').findIndex((span) => span.id === kept.paragraphId) + 1;
+    const paragraph = paragraphOf(kept);
     if (paragraph) return { kind: 'offer', offer: { paragraphId: kept.paragraphId, word: kept.word, paragraph, source: 'booth', confident: true } };
   }
+  const fromHost = hostOffer(spans, result);
+  if (fromHost.kind === 'offer' || fromHost.note || !opened) return fromHost;
+  const paragraph = paragraphOf(opened);
+  return paragraph ? { kind: 'offer', offer: { paragraphId: opened.paragraphId, word: opened.word, paragraph, source: opened.why, confident: true } } : NONE;
+}
+
+/** The host's reconciled verdict as an offer (render it, never recompute it). */
+function hostOffer(spans: readonly TeleprompterSpan[], result: TeleprompterLocateResult | null | undefined): ResumeOfferState {
   if (!result) return NONE;
   if (result.status === 'asset_required')
     return {
@@ -84,6 +101,8 @@ const SOURCE_TEXT: Record<ResumeSource, string> = {
   live: 'from the live project',
   saved: 'from the saved project',
   booth: 'from your last reading',
+  recording: 'where your recording ends',
+  left: 'where you left off',
 };
 
 /** The line's secondary text: where the place was read from, and that an estimate is not sure. */

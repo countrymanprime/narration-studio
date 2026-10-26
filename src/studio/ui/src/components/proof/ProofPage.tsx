@@ -1,4 +1,5 @@
 import { headingName } from '../../chapterHeading';
+import { chapterRecordedDetail } from '../../recordedThrough';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -441,7 +442,11 @@ export function ProofPage({
 
   const stepper = (
     <ChapterStepper
-      chapters={chapters.map((c) => ({ id: c.id, name: headingName(c) }))}
+      chapters={chapters.map((c) => {
+        // How far the chapter is recorded, the value the Booth resumes at (`chapterRecordedDetail`).
+        const detail = chapterRecordedDetail(c);
+        return { id: c.id, name: headingName(c), ...(detail ? { detail } : {}) };
+      })}
       value={chapter ? chapter.id : ALL_CHAPTERS}
       allowAll
       stepKeys={['←', '→']}
