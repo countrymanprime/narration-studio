@@ -1,6 +1,5 @@
 - main:
   - region "Script editor":
-    - status: "Delete, Mute and Add FX are off. Experimental: switched off in Settings."
     - toolbar "Playback and selection"
 - status
 - alert

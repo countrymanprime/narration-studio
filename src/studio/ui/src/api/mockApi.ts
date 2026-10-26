@@ -492,7 +492,10 @@ export function createMockApi(
     ...dawChoice,
     ...audacityLink,
     ...createHideTakesMock(daw, workspaceTakes),
-    ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    // The credits are recorded like a chapter and the host's DawRoll finds their track as it does a chapter's (readaloudreaper.go).
+    ...createRollMock(daw, (chapterId) =>
+      manuscriptReady.then(() => /^credits-(opening|closing)$/.test(chapterId) || s.chapters.some((chapter) => chapter.id === chapterId)),
+    ),
     ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFxRangeMock(
       daw,
