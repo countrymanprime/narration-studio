@@ -28,7 +28,7 @@ export const TEXT_ATTRS = new Set(['title', 'aria-description', 'hint', 'tip', '
 /** Attributes the app shows as a hover or focus hint on a control. */
 export const HINT_ATTRS = new Set(['title', 'hint', 'disabledReason', 'reason']);
 
-export const SRC = join(import.meta.dirname, '..', '..', '..', 'src');
+const SRC = join(import.meta.dirname, '..', '..', '..', 'src');
 
 const sources = (dir: string): string[] =>
   readdirSync(dir).flatMap((name) => {
@@ -58,7 +58,7 @@ const classOf = (el: ts.JsxOpeningLikeElement): string => {
 const opening = (el: ts.JsxElement | ts.JsxSelfClosingElement): ts.JsxOpeningLikeElement => (ts.isJsxElement(el) ? el.openingElement : el);
 
 /** Every text run in one source file. */
-export function extractFile(path: string, code = readFileSync(path, 'utf8')): ProseHit[] {
+function extractFile(path: string, code = readFileSync(path, 'utf8')): ProseHit[] {
   const sf = ts.createSourceFile(path, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const file = relative(SRC, path).split('\\').join('/');
   const hits: ProseHit[] = [];

@@ -15,7 +15,7 @@
 //
 // Generated on 2026-10-26 from main by the extractor and classed by hand where the pattern guessed wrong; re-class an entry when you touch it.
 
-export type ProseClass = 'overlay' | 'error' | 'empty' | 'state' | 'instruction' | 'explanation';
+type ProseClass = 'overlay' | 'error' | 'empty' | 'state' | 'instruction' | 'explanation';
 
 export type ProseEntry = { file: string; text: string; class: ProseClass };
 
