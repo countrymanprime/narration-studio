@@ -3,19 +3,7 @@ import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faChevronDown,
-  faCodeMerge,
-  faFloppyDisk,
-  faLock,
-  faLockOpen,
-  faPause,
-  faPen,
-  faRotate,
-  faTrash,
-  faWaveSquare,
-  faXmark,
-} from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faCodeMerge, faFloppyDisk, faLock, faLockOpen, faPen, faRotate, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
 import { canSpeak } from '../../storyBibleTypes';
 import { categoryLabel, CREATABLE_CATEGORIES } from '../../state';
@@ -29,6 +17,7 @@ import { usePendingAction } from '../../hooks/usePendingAction';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { Icon } from '../primitives/Icon';
+import { hearNameAction } from '../../icons.catalog';
 import { Dot, StatusBadge, badgeClass, badgeStyle } from '../primitives/StatusBadge';
 import { Button } from '../primitives/Button';
 import { Field } from '../primitives/Field';
@@ -886,10 +875,9 @@ export function GuideDetail({
                         }
                         disabledReason={playReason}
                         pending={loadingPreview === key}
+                        action={hearNameAction(playing)}
                         onClick={() => void playPreview(aliasIndex)}
-                      >
-                        <FontAwesomeIcon icon={playing ? faPause : faWaveSquare} />
-                      </IconButton>
+                      />
                     </TooltipTarget>
                     {canEdit && editing && (
                       <TooltipTarget text={`Record my own clip for ${name}`}>
