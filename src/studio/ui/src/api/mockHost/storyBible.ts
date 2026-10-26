@@ -251,6 +251,15 @@ export function createStoryBibleMock(
         .filter((entity) => entity.id !== id)
         .map((entity) => ({ ...entity, relationships: entity.relationships.filter((relationship) => relationship.id !== id) }));
     },
+    // The Story Bible half of Delete Story Bible data; mockApi.ts adds the suggestions. The voice samples and references stay, as on the host.
+    guideDeleteAll: async () => {
+      const entries = s.entities.length;
+      s.entities = [];
+      s.dialogueCues = [];
+      types = MOCK_DEFAULT_TYPES.map((row) => ({ ...row }));
+      mergeUndo = [];
+      return { entries, suggestions: 0 };
+    },
     guideRelate: async (id, otherId, label) =>
       updateEntity(id, (entity) => ({
         ...entity,

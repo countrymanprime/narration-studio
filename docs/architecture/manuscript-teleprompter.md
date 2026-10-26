@@ -247,9 +247,10 @@ The Go host relays flags like any other event and keeps none in its snapshot:
 `internal/liveflags` persists each flag as a suspected finding (`transcript_discrepancy`,
 or `pickup` for a restart) when the session ends. Only a misread has a confidence: how
 alike the script's and the heard words sound (`internal/soundalike`, as for Transcript Compare) ([`docs/architecture/findings-contract.md`](findings-contract.md)), and that store, not the snapshot, is what a view
-opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
-printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
-words by kind, which on a clean read is the false-flag rate. Nothing confirms a
+opened mid-session reads. The host's `cmd/booth-replay` replays a printed `live_asr.py` session (`--stream`), or a
+Moonshine probe recording through `replay.py --events X --calls`, through the host's own tracker
+(`internal/boothreplay`, held to `replay.py`'s reports), and reports flags per 100 heard words by kind, which on a
+clean read is the false-flag rate. Nothing confirms a
 flag after the session.
 
 ## Streaming subprocess support
@@ -470,7 +471,7 @@ redirects here keeping its query and hash. What the narrator sees and does on it
   (`components/script/page/reader/Para.tsx`), which renders character-offset layers, not words
   ([usePacedCursor.ts](../../src/studio/ui/src/components/booth/usePacedCursor.ts)).
 - **Mock mode.** In the browser mock, Start replays a position stream recorded from the real tracker
-  (`spikes/record_mock_stream.py`), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
+  (`spikes/record_mock_stream.py --calls | go run ./cmd/booth-replay --mock …`, the host's tracker), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
   a chapter for the visual suite (`ended` is a session that already stopped itself at the end of the chapter).
 
 ## Resume: where REAPER is and where the prompter was

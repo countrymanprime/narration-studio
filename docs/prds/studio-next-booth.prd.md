@@ -73,6 +73,7 @@ Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has 
 - **DQ-13.** Companion: frozen as built, no work.
 - **DQ-17.** The mock's wheel-browse behaviour is the spec.
 - **SN0-Q8.** Screenshots are compared against the Studio Next mock page.
+- **Reading column (owner, 2026-10-26, #2251).** The Booth's text column is as wide as the Reader text **Column width** the Script uses (48, 64, 80 or 100 characters of the text, `ch`), and the Booth's Text settings popover gains that Column width slider, writing the same saved choice. This supersedes the mock's fixed `.btext{max-width:26em}` and its `TextPop` of Font and Size only. Paragraphs are left-aligned with no first-line indent, 0.5em apart: #2251 item 8's tighter spacing, in place of the mock's `.btext p{margin:0 0 .9em}`.
 - **Process defaults, taken as recommended (2026-10-11).** Leave while recording asks "Stop recording?" with Cancel as the way to stay; the passage map is the project sidecar `passagemap.json`, written when the take ends and validated on read; opening and closing credits record and map to their regions, checked in SNO-6.
 
 ## Users & Context

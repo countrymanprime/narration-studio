@@ -670,4 +670,14 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'A scan finds more with the optional analysis tools. Nothing downloads until you agree.',
     class: 'explanation',
   },
+  {
+    file: 'components/storybible/DeleteStoryBibleData.tsx',
+    text: 'Delete the Story Bible of \u2026: \u2026, with every name, pronunciation, note, relationship, review flag and speaker colour, the types and the dialogue speakers?',
+    class: 'overlay',
+  },
+  {
+    file: 'components/storybible/DeleteStoryBibleData.tsx',
+    text: 'This cannot be undone. The script, takes, recordings, settings, voice samples and voice references stay. Add entry or Scan the manuscript starts the Story Bible again.',
+    class: 'overlay',
+  },
 ];

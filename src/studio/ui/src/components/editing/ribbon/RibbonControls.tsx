@@ -33,8 +33,7 @@ export function ScrollEnd({ dir, ribbon }: { dir: 1 | -1; ribbon: RibbonView }) 
   return (
     <IconButton
       action={dir < 0 ? 'scrollWaveBack' : 'scrollWaveForward'}
-      size="sm"
-      className="self-center"
+      size="lane"
       disabledReason={able ? undefined : dir < 0 ? 'The start of the recording is showing' : 'The end of the recording is showing'}
       onClick={() => ribbon.nudge(dir, true)}
     />
