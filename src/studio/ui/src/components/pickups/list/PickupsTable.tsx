@@ -542,12 +542,15 @@ function PickupType({ pickup }: { pickup: PickupItem }) {
   return kind ? <KindChip kind={kind} label={typeLabel(pickup)} /> : <StatusBadge tone="neutral" label={typeLabel(pickup)} shape="tag" />;
 }
 
-/** The From column: the source on its line and a speech check's score under it, muted, so "Speech · 0.97" never breaks at its dot (XPK-2). */
+/**
+ * The From column: the source on its line and a speech check's score under it, muted, so "Speech · 0.97" never breaks at its dot (XPK-2).
+ * Each line is the cell's width, so the two end at one x whatever the font draws (alignment rule A2).
+ */
 function PickupSource({ pickup }: { pickup: PickupItem }) {
   const label = sourceLabel(pickup);
   const [source, score] = label.split(' · ');
   return (
-    <span data-pickup-source="" title={sourceTitle(pickup)} className={`${LINE_BOX} flex-col items-start! justify-center leading-tight whitespace-nowrap`}>
+    <span data-pickup-source="" title={sourceTitle(pickup)} className={`${LINE_BOX} flex-col items-stretch! justify-center leading-tight whitespace-nowrap`}>
       <span>{source}</span>
       {score && (
         <span>
