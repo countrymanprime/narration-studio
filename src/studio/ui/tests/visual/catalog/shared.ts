@@ -39,8 +39,11 @@ export const RAIL_DEPENDS_ON_WIDTH = { reloadPerViewport: true as const, extraVi
 // `state` grown to its full height (`fullPage`), driven the same way: its page file's drivers give `whole-page` the same driver. At a
 // width where the page already fits, the picture is the base row's, and `sameAs` (checked) says so.
 export function wholePage(rows: readonly StateEntry[], state: string, fits: string[] = []): StateEntry {
-  const base = rows.find((row) => row.state === state);
-  if (!base) throw new Error(`wholePage: no row "${state}"`);
+  const found = rows.find((row) => row.state === state);
+  if (!found) throw new Error(`wholePage: no row "${state}"`);
+  // The base row's own sameAs compares two window-sized pictures; the whole height is a different picture, so it is not carried over.
+  const base = { ...found };
+  delete base.sameAs;
   return {
     ...base,
     state: 'whole-page',
