@@ -35,7 +35,7 @@ the manuscript's own words ("Chapter 7", "Chapter 7: The Road"). These are the f
 like any other line: a take from the start of the chapter starts on the title, the caret moves through it as you say it, and its
 words count in the progress line and the pages. A chapter with no subtitle has the title alone, and one with no title starts at
 its first paragraph. Reading the heading is optional (see [Suspected lines](#suspected-lines)). It is not a paragraph of the
-manuscript: the paragraph numbers start after it, and a bookmark or **Read to here** cannot be put on it. The credits have no
+manuscript: the paragraph numbers start after it, and a bookmark or **Read to here** cannot be put on it (**B** there says so). The credits have no
 heading line.
 
 The text fills the middle, fading into the page at the top and bottom edges, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
