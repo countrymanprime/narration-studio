@@ -13,7 +13,7 @@ While the production log is being read, the page keeps its title and buttons and
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header](../../images/ui/production-home.webp)
 
 The header names the book's chapters, words and due date ("12 chapters · 29,189 words · delivery
-due 14 Oct (18 days)"). The pill beside them is the verdict for the due date in a word and a mark
+due Oct 14 (18 days)"). The pill beside them is the verdict for the due date in a word and a mark
 (on track, tight or behind, or "No due date set"); it opens [Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
 being recorded. When the audio engine cannot record, one line under the buttons says why, and when
@@ -191,7 +191,7 @@ and is kept until you move the slider. A chapter's own **Check options** keeps t
 processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
 
-The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** stay in view
+The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** (it names how many chapters, as in **Check 1 chapter**) stay in view
 under them. It gives no estimate of how long the check will take. While it runs, each chapter has its bar under its name, and **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card has the same **Stop checking**.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
@@ -319,7 +319,7 @@ file a line such as an epigraph goes back into the chapter's text so it is narra
 
 **Chapters** lists every chapter the importer found in two columns, each with a switch to the left of
 its name. Switch a chapter off to leave it out of the recording. The chapter's subtitle sits under its
-name on a smaller, dimmer line, with the number of words under that. A heading with a label shows the
+name on a smaller, dimmer line, and the number of words is at the right of the name. A heading with a label shows the
 label in bold and the chapter's name after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8:
 Croquet"). The book's title pages and reference material are never listed or asked about: they stay out of the
 chapters, and the title and author in them are offered when you set up the credits. The character

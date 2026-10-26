@@ -110,8 +110,8 @@ linked** and offers **Link** with the file's name; **Choose a project file** ope
 The file can be in the project folder, in a subfolder of it, or anywhere else, such as a folder or drive you keep
 for REAPER. A file inside the project folder keeps working when you move the whole project. For a file elsewhere,
 a note says where the file and the project are. Only a file that is not an `.rpp`, or no longer exists, is
-refused. Linking also chooses REAPER. Once linked, the card reads **REAPER linked** with the file's name and
-**Start REAPER**.
+refused. Linking also chooses REAPER. Once linked, the card names the file and reads **REAPER linked** while REAPER answers, or
+**Not running** with **Start REAPER** while it is closed.
 
 ![Settings - the REAPER project file linked, with Start REAPER](../../images/ui/settings-recording-linked.webp)
 
@@ -129,8 +129,8 @@ the last 5 seconds, and the card says whether its open project matches the linke
 - **Experimental DAW actions** (Advanced, off by default, for REAPER and Audacity alike): the DAW actions not yet verified
   stay refused while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
 - **Capabilities** (Advanced): a table, across the row under its name, of what the app can ask the recording tool to do, each with **Auto**, **On** or
-  **Off** and a **Now** column: the level (**Supported**, **Experimental**, **Not yet available** or **Unsupported**),
-  the tool's own reason when it is unavailable, and a warning on any action that replaces audio that cannot be brought back.
+  **Off** and a **Now** column: **Available**, **Experimental** or **Unavailable**,
+  with the tool's own reason beside an unavailable one, and a warning on any action that replaces audio that cannot be brought back.
 - **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
   chapter a later sync linked when you saved in REAPER, and each new track that isn't a chapter. A link sync made has **Undo**
   while the chapter still holds it; Undo removes that link and sync never makes the same one again.
@@ -243,7 +243,7 @@ credits rows on [Production](production.md#the-credits).
 
 **Retail sample** is the stretch of the book you pick for the retailer's sample: up to 5 minutes, from
 anywhere in the book. Choose the chapter and line it **starts in** and **ends in** (the line numbers the
-[Script](script.md) reader shows) and **Save sample**. The panel says where it runs ("Chapter 3, lines 1 to 3", naming a chapter once) and how long it
+[Script](script.md) reader shows) and **Save sample**. The panel says where it runs ("Chapter 3: A Caucus-Race and a Long Tale, lines 1 to 3", naming a chapter once) and how long it
 is at about 155 words a minute; a range longer than 5 minutes is refused with its length, and the sample
 you had is kept. **Clear sample** removes it. The sample is a marker in the Script page's reader only: it adds
 no time to the estimate, since it is read again from the finished chapter. It is kept with the project, so
