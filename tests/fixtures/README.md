@@ -245,3 +245,11 @@ manuscript's: words dropped, misread, near-missed, added or re-read, another cha
 pauses at punctuation, and words to time inside, between, before, after and past the end of what was heard. A seeded case
 names its script instead of holding it. `placement-cases.golden.jsonl` holds the `locate` or `word_time` event, written by
 `test_tracker_parity.py`; `scripttrack`'s `placement_parity_test.go` must agree with it.
+
+`replay-cases.golden.jsonl`: what `replay.py` reports (its summary and `--timeline` lines) for each live session replayed
+as tracker calls and as a printed session, and for three hand-made printed sessions (int engine times, a script with
+curly quotes and an accented word, a misread and an extra word), whose events and script it holds. `mock-calls.jsonl`:
+`spikes/record_mock_stream.py --calls`, the tracker calls behind the browser mock's
+`src/studio/ui/src/api/teleprompterRecording.json`. Both are written by
+`src/studio/sidecars/manuscript-teleprompter/tests/test_replay_parity.py` (`UPDATE_CONTRACTS=1`);
+`internal/boothreplay`'s `replay_test.go` must agree with the first and turn the second into the committed recording.
