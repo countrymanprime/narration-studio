@@ -6,7 +6,7 @@ import type { ChapterPlace } from '../page/lastPlace';
  * Why the Booth opened a chapter where it did: a target the narrator came with (a pickup line, a flagged line, a go-to link, Start
  * from here), the word after the last one recorded, the place the narrator last read to in the chapter, or its top.
  */
-export type ResumeReason = 'explicit' | 'recorded' | 'kept' | 'start';
+type ResumeReason = 'explicit' | 'recorded' | 'kept' | 'start';
 
 export type ResumeStart = { place: ChapterPlace | null; reason: ResumeReason };
 
