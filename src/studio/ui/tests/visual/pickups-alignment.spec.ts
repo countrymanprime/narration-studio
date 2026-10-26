@@ -105,3 +105,26 @@ for (const size of [
     }
   });
 }
+
+// The From cell's two lines, the source and its score, are drawn the width of the cell, so the cell's lines end at one x whatever the font's
+// width: shrink-wrapped, "Speech" and "0.97" ended at their own text widths, and the alignment scan's A2 read them as like rows that end
+// apart on a machine whose font drew them narrower (#2251).
+for (const size of [
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'reflow', width: 390, height: 844 },
+]) {
+  test(`Pickups / the From cell's lines end at one x / ${size.name}`, async ({ page }) => {
+    await open(page, 'marked-recorded', size.width, size.height);
+    const cells = await card(page)
+      .locator('[data-pickup-source]')
+      .evaluateAll((sources) =>
+        sources.map((source) => ({ box: source.getBoundingClientRect().right, lines: [...source.children].map((line) => line.getBoundingClientRect().right) })),
+      );
+    expect(
+      cells.some((cell) => cell.lines.length > 1),
+      'a source has a score under it',
+    ).toBe(true);
+    for (const cell of cells)
+      for (const right of cell.lines) expect(Math.abs(right - cell.box), `a line ends at its cell's end (${cell.lines.join(', ')})`).toBeLessThanOrEqual(1);
+  });
+}
