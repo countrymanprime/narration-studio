@@ -328,6 +328,10 @@ describe('teleprompter mock locate', () => {
     const { start, end, text } = result.located.sentence;
     expect(text.split(/\s+/)).toEqual(words.slice(start, end));
     expect(result.located.tokens).toBe(words.length);
+    // The quote bolds the sentence's word `word - start` (ResumePrompt): that must be the script's word `word`, the next
+    // one to read, and the word before it the last one the recording heard.
+    expect(text.split(/\s+/)[result.located.word - start]).toBe(words[result.located.word]);
+    expect(result.located.heardText.split(' ').at(-1)).toBe(words[result.located.word - 1]);
   });
 
   it('asks for the model only once there is audio to read', async () => {
