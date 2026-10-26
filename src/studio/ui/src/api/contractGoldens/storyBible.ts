@@ -1,6 +1,7 @@
 // The golden payloads for the Story Bible: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import {
+  guideDeletedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
   guideMergeResultSchema,
@@ -27,4 +28,5 @@ export const storyBibleGoldens: Record<string, z.ZodType> = {
   'guide-types.json': guideTypesSchema,
   'guide-types-sidecar.json': guideTypesFileSchema,
   'guide-merge.json': guideMergeResultSchema,
+  'guide-delete-all.json': guideDeletedSchema,
 };
