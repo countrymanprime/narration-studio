@@ -351,7 +351,7 @@ export function CompareRun({
             <div className="max-w-full min-w-0">
               <span className="text-[0.82rem] font-medium text-[var(--text-muted)]">
                 Whisper model
-                <Tooltip text="Bigger models catch more misreads but run slower and use more memory per instance. Chunk length and worker count are capped automatically once you pick a model." />
+                <Tooltip text="Bigger models catch more misreads, but run slower and use more memory" />
               </span>
               <ToggleGroup
                 label="Whisper model"
@@ -382,7 +382,7 @@ export function CompareRun({
             <div className="max-w-full min-w-0">
               <span className="text-[0.82rem] font-medium text-[var(--text-muted)]">
                 Parallel workers
-                <Tooltip text="Each worker loads its own full copy of the Whisper model, so memory use multiplies with worker count. Auto picks a safe count for this machine." />
+                <Tooltip text="Each worker loads its own copy of the model into memory" />
               </span>
               <ToggleGroup
                 label="Parallel workers"
@@ -404,7 +404,7 @@ export function CompareRun({
           <div>
             <span className="mb-1.5 block text-[0.82rem] font-medium text-[var(--text-muted)]">
               Vocabulary hints
-              <Tooltip text="Unusual names and invented words Whisper is likely to mis-hear. Accepted hints are remembered for this project - you won't need to re-suggest them every run." />
+              <Tooltip text="Names and invented words Whisper may mis-hear, kept for this project" />
             </span>
             <TagInput
               label="Vocabulary hints"

@@ -1627,6 +1627,18 @@ export function GuideDelete(id: string): $CancellablePromise<string> {
 }
 
 /**
+ * GuideDeleteAll deletes the project's Story Bible data and nothing else: every entry with its names, pronunciations, notes,
+ * relationships, review flags and speaker colour, the types, the dialogue cues and their corrections, the merge undo records, the
+ * preview audio, the scan's suggestions and the Story Bible's findings. The manuscript, the takes and recordings, the settings, the
+ * voice samples and the voice references stay; a sample or reference names an entry by id, and a build that finds the same name gives
+ * it the same id. There is no undo. Refused unless confirmed, and while a build or a scan is running, since either writes the files
+ * this removes.
+ */
+export function GuideDeleteAll(confirmed: boolean): $CancellablePromise<string> {
+    return $Call.ByID(3249501808, confirmed);
+}
+
+/**
  * GuideDialogueCues returns the Story Bible's extracted dialogue cues: one
  * entry per quoted span, with its resolved or unknown speaker.
  */

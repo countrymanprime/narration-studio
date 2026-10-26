@@ -8,12 +8,15 @@ import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav,
 const RECORD_ON = '?mockRecordCapabilityOn=1';
 // Where the page clock stops once Record is pressed, so the timer reads 00:00 at every viewport.
 const REC_START = new Date('2026-09-28T10:00:00Z').getTime();
-// The seams boot a session already 30 words into the first paragraph (word 35 of the chapter). Wait for the highlight to
-// land there so the shot is never taken mid-walk.
-const LISTENING_WORD = '[data-word="32"] [data-highlight="Cursor"]';
+// The seams boot a session already 30 words into the first paragraph: word 35 of the chapter, after the heading's five words
+// ("Chapter 1", "Down the Rabbit-Hole", read aloud as the sidecar's script opens). Wait for the highlight to land there so the shot
+// is never taken mid-walk.
+const LISTENING_WORD = '[data-word="35"] [data-highlight="Cursor"]';
 
 // The record capability on and the project's voice samples saved (api/voiceSamplesMock.ts).
 const SAMPLES = `${RECORD_ON}&mockVoiceSamples=bible`;
+// The record capability on and the manuscript whose chapter headings vary: a title alone, a long subtitle (api/mockHost/manuscript.ts).
+const HEADINGS = `${RECORD_ON}&mockManuscript=mixed`;
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 // Record while it cannot start: off (`aria-disabled`) but pressable, and behind a dialog once one opens.
@@ -34,6 +37,17 @@ async function readyToRecord(page: Page, query = RECORD_ON): Promise<void> {
   await openBooth(page, query);
   await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
   await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
+}
+
+// The Booth on the mixed manuscript at the chapter named, chosen in the chapter picker (the Booth reopens on the chapter it was left
+// on, so a step from the first is not the same chapter at every viewport), ready to record, the reading on the title's first word.
+async function openHeadings(page: Page, chapter: string | RegExp): Promise<void> {
+  await openBooth(page, HEADINGS);
+  await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
+  await page.getByRole('button', { name: /^Chapter: / }).click();
+  await page.getByRole('menuitemradio', { name: chapter }).click();
+  await page.locator('[data-heading="title"]', { hasText: typeof chapter === 'string' ? chapter : undefined }).waitFor();
+  await page.locator('[data-heading="title"] [data-current]').waitFor();
 }
 
 // A take running on a paused clock; focus leaves Stop, so the page's own keys (Escape, R) reach the page as they do once the
@@ -101,6 +115,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },
   setup: (page) => readyToRecord(page),
+  // The mixed manuscript's second chapter has a title and no subtitle, its third a subtitle long enough to wrap (applyMixedManuscriptMock).
+  'heading-title-only': async (page) => {
+    await openHeadings(page, 'A Message from the Author');
+  },
+  'heading-long-subtitle': async (page) => {
+    await openHeadings(page, /Or, How the Understudy/);
+    await page.locator('[data-heading="subtitle"]', { hasText: 'Or, How the Understudy' }).waitFor();
+  },
   'daw-not-linked': async (page) => {
     await openBooth(page, '?mockDawChoice=found');
     const chip = page.getByRole('button', { name: 'Recording setup: REAPER, not linked' });
@@ -423,6 +445,8 @@ export const boothDrivers: Record<string, Driver> = {
   // B on the word being read: the ribbon in the margin beside its line (the toast is dismissed so the shot shows the margin).
   'bookmarks-ribbon': async (page) => {
     await readyToRecord(page);
+    // On the first paragraph's first word: the chapter title and subtitle above it are no manuscript paragraph a bookmark can name.
+    await page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
     await page.keyboard.press('b');
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();

@@ -8,7 +8,21 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
+      'Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, "Resume at ¶ 14 from the saved project" and the REAPER setup chip; the text full-bleed, opening with the chapter\'s title and subtitle as its first lines (#2251 item 7: "CHAPTER ONE", then "Bad Ideas Look Great in Neon"), the reading position on the title\'s first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock\'s .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock\'s .btop does, the chapter picker at the mock\'s medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'heading-title-only',
+    description:
+      'Booth on a chapter with a title and no subtitle (?mockManuscript=mixed, Next chapter from Chapter 1 to "A Message from the Author"): the title is the first line of the text (#2251 item 7), semibold and unindented, with the reading position on its first word and a half line before the first paragraph; no empty subtitle line',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'heading-long-subtitle',
+    description:
+      'Booth on a chapter whose subtitle is long enough to wrap (?mockManuscript=mixed, its third chapter, "Or, How the Understudy Learned Every Line by Heart and Several That Were Cut in Rehearsal"): the title, then the subtitle a step smaller wrapping inside the text column at every width, before the first paragraph; the reading position on the title\'s first word',
     ...REFLOW,
   },
   {
@@ -286,7 +300,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'bookmarks-ribbon',
     description:
-      'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
+      'Booth (as setup) after a click on the first paragraph\'s first word (the chapter title and subtitle above it are no paragraph a bookmark can name) and B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
     ...REFLOW,
   },
   {

@@ -104,6 +104,21 @@ func (s *Store) SaveAnalyzerFindings(analyzer, scope string, fresh []Finding) ([
 	return s.mergeScope(analyzer, scope, fresh, true)
 }
 
+// RemoveAnalyzer deletes every finding analyzer saved, in every scope, so the queue no longer lists them: Delete Story Bible data
+// uses it for the Story Bible's findings. The review history is append-only and keeps its entries; a later run that makes a finding
+// with the same id and evidence version picks its decision up again, as it does after any rebuild.
+func (s *Store) RemoveAnalyzer(analyzer string) error {
+	if !scopeNamePattern.MatchString(analyzer) || analyzer == "." || analyzer == ".." {
+		return fmt.Errorf("analyzer name %q is not a valid folder name", analyzer)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := os.RemoveAll(filepath.Join(s.dir(), analyzer)); err != nil {
+		return fmt.Errorf("could not remove the %s findings: %w", analyzer, err)
+	}
+	return nil
+}
+
 // MergeAnalyzerFindings adds fresh to analyzer's findings for scope without
 // treating the run as a full one: a stored finding the run did not reproduce
 // is kept exactly as it was (never marked NotInLatestRun), because an analyzer

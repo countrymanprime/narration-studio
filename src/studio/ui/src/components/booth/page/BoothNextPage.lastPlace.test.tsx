@@ -99,7 +99,8 @@ describe('the Booth returns to where the narrator left it', () => {
     keep({ chapterId: 'c2', paragraphId: 'gone', word: 5 });
     renderPage();
     await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
-    await waitFor(() => expect(reading()).toBe('A'));
+    // The start of a chapter is its title, the first line read (#2251 item 7).
+    await waitFor(() => expect(reading()).toBe('Chapter'));
   });
 
   it('another-project-keeps-its-own-place', async () => {

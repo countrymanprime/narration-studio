@@ -910,6 +910,7 @@ function AppRoutes() {
                       notify={setNotice}
                       goToManuscript={goToScript}
                       hasManuscript={Boolean(data.manuscript)}
+                      projectName={data.projectFolder ? data.projectName : undefined}
                       needManuscript={
                         <NeedManuscriptImport title="Story Bible" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
                       }
