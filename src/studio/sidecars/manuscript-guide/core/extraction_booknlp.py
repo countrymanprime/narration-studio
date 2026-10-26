@@ -97,6 +97,8 @@ NOT_DOWNLOADED = "BookNLP is not downloaded."
 # submodules of packages the freeze carries in part (a frozen package wins over the install folder's copy). Found by running a BookNLP
 # scan in the frozen guide ("No module named 'pickletools'", then "'tqdm.auto'") and by listing every module a real scan imports
 # (docs/research/studio-next-booknlp-spike.md). scripts/release/prepare-resources.py freezes them in; ``check_freeze`` proves it.
+# httpx and the packages it imports are what huggingface_hub (imported by transformers) needs at import time; the freeze carried them only
+# because spaCy imports weasel, which imports httpx, so they are named here for a spaCy that stops doing so (#2251).
 FREEZE_IMPORTS = (
     "pickletools",
     "filecmp",
@@ -110,6 +112,12 @@ FREEZE_IMPORTS = (
     "tqdm.autonotebook",
     "tqdm.contrib",
     "tqdm.contrib.logging",
+    "httpx",
+    "httpcore",
+    "h11",
+    "anyio",
+    "idna",
+    "certifi",
 )
 # torch's own on Windows.
 FREEZE_IMPORTS_WINDOWS = ("ctypes.wintypes",)
