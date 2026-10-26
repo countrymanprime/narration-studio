@@ -159,7 +159,8 @@ export function CheckRecordingsDialog({
     void (async () => {
       const finished = await Promise.all(run.finished.map((id) => coverage.coverageResult(id)));
       if (run.step === 'stopped') overlay.toast(stoppedToast(finished.length, run.interrupted));
-      else overlay.toast(finishedToast(runTotals(finished)));
+      // A run whose every chapter was refused checked nothing: the rows say why, so no "Checked 0 chapters" says it again.
+      else if (finished.length > 0 || Object.keys(run.messages).length === 0) overlay.toast(finishedToast(runTotals(finished)));
       const merged = (current: Loaded | undefined) =>
         current && { ...current, results: { ...current.results, ...Object.fromEntries(run.finished.map((id, i) => [id, finished[i]])) } };
       // One chapter checked: its full result, in place of the form.

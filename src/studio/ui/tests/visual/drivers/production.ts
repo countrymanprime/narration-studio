@@ -232,10 +232,10 @@ export const productionDrivers: Record<string, Driver> = {
   'recording-check-refused': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7', 'mockCoverageRefusal=unmapped');
     await dialog.getByRole('button', { name: 'Check 1 chapter' }).click();
-    await dialog
-      .getByRole('alert')
-      .getByRole('combobox', { name: /^Track for Chapter 7/ })
-      .waitFor();
+    const alert = dialog.getByRole('alert');
+    await alert.getByRole('combobox', { name: /^Track for Chapter 7/ }).waitFor();
+    // Chapter 7's row is low in the list: the picture shows its refusal.
+    await alert.evaluate((element) => element.scrollIntoView({ block: 'start' }));
   },
   'recording-check-model-required': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7', 'mockAssets=missing');
