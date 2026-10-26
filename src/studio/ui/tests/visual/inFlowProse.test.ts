@@ -9,7 +9,7 @@ import { PROSE_INVENTORY } from './prose/prose-inventory';
 // manual under the Editing waveform (#2251); this file makes that a class guard rather than one fix.
 
 /** `instruction` and `explanation` entries in the inventory: drawn in a page's flow, so debt. The number may only go down. */
-const MAX_IN_FLOW_INSTRUCTIONS = 42;
+const MAX_IN_FLOW_INSTRUCTIONS = 30;
 /** Settings rows whose always-shown description is longer than one short line (60 characters). The number may only go down. */
 const MAX_LONG_SETTING_DESCRIPTIONS = 0;
 /** A hover or focus hint is a few words on one line: at most this many characters and one sentence. */

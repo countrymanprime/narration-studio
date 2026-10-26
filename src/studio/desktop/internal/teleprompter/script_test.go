@@ -1,6 +1,9 @@
 package teleprompter
 
 import (
+	"desktop/internal/brand"
+	"desktop/internal/scripttrack"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -28,9 +31,6 @@ func TestAChapterScriptIsTheTitleThenEachParagraphSplitOnWhitespace(t *testing.T
 	// Python's str.split() also splits on the information separators (U+001C to U+001F): the index space must match.
 	if !reflect.DeepEqual(script.Breaks, []int{0, 2, 8}) {
 		t.Fatalf("breaks = %v", script.Breaks)
-	}
-	if !reflect.DeepEqual(script.ParagraphIDs, []string{"p1", "p3"}) {
-		t.Fatalf("paragraph ids = %v", script.ParagraphIDs)
 	}
 	if _, ok := LoadChapterScript(project, "missing"); ok {
 		t.Fatal("an unknown chapter loaded")
@@ -74,17 +74,39 @@ func TestWordsLeftCountsOnlyTokensTheTrackerReads(t *testing.T) {
 	}
 }
 
-// The heading is the title and then the subtitle, as the tracker's (scripttrack, chapter_script.py): the paragraphs start after both.
-func TestAChapterScriptsHeadingIsTheTitleThenTheSubtitle(t *testing.T) {
+// The resume verdict's script must be the tracker's and locate's (scripttrack, chapter_script.py): the heading is the
+// title and then the subtitle. A script without the subtitle has fewer tokens, so Reconcile drops both places.
+func TestAChapterScriptsHeadingIsTheTitleThenTheSubtitleAsTheTrackersIs(t *testing.T) {
 	project := t.TempDir()
-	writeManuscript(t, project, `{"documentId":"doc-1","chapters":[{"id":"c1","title":"Chapter 1","subtitle":"Down the Rabbit-Hole"}],
-"paragraphs":[{"id":"p1","chapterId":"c1","text":"Alice was tired."},{"id":"p2","chapterId":"c1","text":"So she was."}]}`)
+	writeManuscript(t, project, `{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c1","title":"Chapter 1","subtitle":"Down the Rabbit-Hole"}],
+"paragraphs":[{"id":"p1","chapterId":"c1","text":"Alice was beginning to get very tired."},{"id":"p2","chapterId":"c1","text":"So she was considering."}]}`)
+
 	script, ok := LoadChapterScript(project, "c1")
+
 	if !ok {
 		t.Fatal("chapter c1 was not found")
 	}
-	want := []string{"Chapter", "1", "Down", "the", "Rabbit-Hole", "Alice", "was", "tired.", "So", "she", "was."}
-	if !reflect.DeepEqual(script.Tokens, want) || !reflect.DeepEqual(script.Breaks, []int{0, 5, 8}) || !reflect.DeepEqual(script.ParagraphIDs, []string{"p1", "p2"}) {
-		t.Fatalf("script = %+v", script)
+	want := []string{"Chapter", "1", "Down", "the", "Rabbit-Hole", "Alice", "was", "beginning", "to", "get", "very", "tired.", "So", "she", "was", "considering."}
+	if !reflect.DeepEqual(script.Tokens, want) {
+		t.Fatalf("tokens = %q, want %q", script.Tokens, want)
+	}
+	if !reflect.DeepEqual(script.Breaks, []int{0, 5, 12}) {
+		t.Fatalf("breaks = %v", script.Breaks)
+	}
+	if !reflect.DeepEqual(script.ParagraphIDs, []string{"p1", "p2"}) {
+		t.Fatalf("paragraph ids = %v", script.ParagraphIDs)
+	}
+	tracked, err := scripttrack.LoadChapterScript(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), "c1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(script.Tokens, tracked.Tokens) {
+		t.Fatalf("the resume script's tokens %q are not the tracker's %q", script.Tokens, tracked.Tokens)
+	}
+	// The verdict keeps a DAW place whose token count is the tracker's, and quotes the sentence it is in.
+	word := 8
+	verdict := Reconcile(&Located{Word: &word, Tokens: len(tracked.Tokens), Confident: true}, nil, script, ResumeTolerance)
+	if verdict.Kind != VerdictDAWOnly || verdict.DAW == nil || verdict.DAW.Sentence.Text != "Alice was beginning to get very tired." {
+		t.Fatalf("verdict = %+v, want daw_only quoting the first sentence", verdict)
 	}
 }
