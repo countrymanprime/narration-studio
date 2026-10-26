@@ -16,8 +16,8 @@ import (
 )
 
 // This file is the Story Bible's rules source (SN-X32), run in the host: extraction_rules.py suggest, which #2251 step 3 moved here
-// and deleted. RuleSuggestions reads the manuscript and the Story Bible and gives one JSON line per suggestion, the bytes the
-// sidecar printed, in the extraction port's raw shape plus source and rule. It writes nothing and proposes only what the Story
+// and deleted. RuleSuggestions reads the manuscript and the Story Bible and gives one JSON line per suggestion, in the bytes the
+// sidecar printed them, in the extraction port's raw shape plus source and rule. It writes nothing and proposes only what the Story
 // Bible does not already say:
 //
 //   - an entry for a name the rules accept that no entry answers to, or that one answers to only as Needs Review;
@@ -26,9 +26,10 @@ import (
 //     cue with that speaker or the narrator corrected it.
 //
 // A locked entry gets no suggestion, nor does a name a merge absorbed. Each quote is a slice of the paragraph it names; each
-// confidence is ruleConfidence's. tests/fixtures/guide-rules (frozen) pins every answer against the sidecar's
-// (TestRuleSuggestionsMatchTheSidecar), including the files it refused or failed on: where the sidecar crashed on a value of the
-// wrong type, this refuses with errStoryBibleShape or errManuscriptItems.
+// confidence is ruleConfidence's. Which names are offered, and in what order, is the scan's own name finder (rules_scan.go), tuned
+// in #2251 after the sidecar's rules offered "I'm", "Mr" and "Because I". tests/fixtures/guide-rules (frozen) pins every other answer
+// against the sidecar's (TestRuleSuggestionsMatchTheSidecar): the speaker lines and the files it refused or failed on; where the
+// sidecar crashed on a value of the wrong type, this refuses with errStoryBibleShape or errManuscriptItems.
 
 // Rule names a suggestion's rule, and RuleConfidence says what each is worth.
 const (
@@ -432,7 +433,7 @@ func jsonList(items []string) string {
 	return "[" + strings.Join(quoted, ", ") + "]"
 }
 
-// orderedGroups is the dict _grouped builds: keys in insertion order, a key removed when its candidates fold into another.
+// orderedGroups is the dict build_entities groups names into: keys in insertion order, a key removed when its candidates fold into another.
 type orderedGroups struct {
 	keys   []string
 	groups map[string][]ruleCandidate
@@ -450,27 +451,6 @@ func (g *orderedGroups) pop(key string) []ruleCandidate {
 	delete(g.groups, key)
 	g.keys = slices.DeleteFunc(g.keys, func(k string) bool { return k == key })
 	return group
-}
-
-// grouped is extraction_rules.py _grouped: the candidates by normalized name, with a bare name folded into its title-prefixed form
-// (Arelian into Captain Arelian), as the build groups them.
-func grouped(candidates []ruleCandidate) *orderedGroups {
-	g := &orderedGroups{groups: map[string][]ruleCandidate{}}
-	for _, candidate := range candidates {
-		if key := normalizeName(candidate.name); len(key) >= 2 && !ruleStopwords[candidate.name] {
-			g.add(key, candidate)
-		}
-	}
-	for _, short := range slices.Clone(g.keys) {
-		for _, long := range slices.Clone(g.keys) {
-			if _, ok := g.groups[short]; ok && long != short && strings.HasSuffix(long, short) && isTitlePrefixed(g.groups[long][0].name) {
-				moved := g.pop(short)
-				g.groups[long] = append(g.groups[long], moved...)
-				break
-			}
-		}
-	}
-	return g
 }
 
 // category is extraction_rules.py _category: the category most of a name's mentions classify as (the first to reach that count on
@@ -498,48 +478,45 @@ func category(occurrences []ruleCandidate, paragraphs []ruleParagraph) string {
 	return best
 }
 
-// nameSuggestions is extraction_rules.py name_suggestions: entry and alias suggestions from the build's name rules, in the order
-// the names first appear.
+// nameSuggestions is extraction_rules.py name_suggestions over the scan's own name finder (scanGroups): entry and alias suggestions,
+// the name with the strongest evidence first.
 func nameSuggestions(ctx context.Context, paragraphs []ruleParagraph, bible *ruleBibleFile) ([]ruleSuggestion, error) {
 	known, err := bible.byName()
 	if err != nil {
 		return nil, err
 	}
-	candidates := ruleCandidates(paragraphs)
+	groups := scanGroups(paragraphs)
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	groups := grouped(candidates)
+	cores := map[string]int{}
+	for _, group := range groups {
+		cores[normalizeName(group.mentions[0].core)]++
+	}
 	out := []ruleSuggestion{}
-	for _, key := range groups.keys {
+	for _, group := range groups {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		occurrences := groups.groups[key]
+		occurrences := make([]ruleCandidate, len(group.mentions))
+		for i, m := range group.mentions {
+			occurrences[i] = ruleCandidate{name: m.spelling, paragraph: m.paragraph, start: m.start, end: m.end}
+		}
 		kind := category(occurrences, paragraphs)
-		if kind == categoryNeedsReview && len(occurrences) < minNeedsReviewMentions {
-			continue
-		}
+		spellings, mentions := spellingsOf(group)
 		first := map[string]ruleCandidate{}
-		var spellings []string
-		for _, occurrence := range occurrences {
-			if _, ok := first[occurrence.name]; !ok {
-				first[occurrence.name] = occurrence
-				spellings = append(spellings, occurrence.name)
-			}
+		for spelling, m := range mentions {
+			first[spelling] = ruleCandidate{name: spelling, paragraph: m.paragraph, start: m.start, end: m.end}
 		}
-		slices.SortFunc(spellings, func(a, b string) int {
-			if n, m := utf8.RuneCountInString(a), utf8.RuneCountInString(b); n != m {
-				return m - n
-			}
-			return strings.Compare(a, b) // UTF-8 byte order is code point order, as Python sorts str
-		})
 		var entry *bibleEntry
 		for _, spelling := range spellings {
 			if found, ok := known[normalizeName(spelling)]; ok {
 				entry = found
 				break
 			}
+		}
+		if core := normalizeName(group.mentions[0].core); entry == nil && cores[core] == 1 {
+			entry = known[core] // the Story Bible's Darcy is the book's Mr. Darcy
 		}
 		if entry != nil {
 			if locked, _ := entry.object.get("locked"); pyTruthy(locked) {

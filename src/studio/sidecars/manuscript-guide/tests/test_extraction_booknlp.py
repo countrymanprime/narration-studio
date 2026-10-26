@@ -831,6 +831,10 @@ class FreezeCheckTests(unittest.TestCase):
         for name in booknlp.FREEZE_METADATA:
             self.assertIn(name, detail)
 
+    def test_it_imports_the_http_stack_huggingface_hub_needs_at_import(self):
+        # huggingface_hub 1.31.0, pinned for both BookNLP rows, imports httpx at module level; no BookNLP row downloads it (#2251).
+        self.assertLessEqual({"httpx", "httpcore", "h11", "anyio", "idna", "certifi"}, set(booknlp.FREEZE_IMPORTS))
+
     def test_a_module_the_freeze_left_out_fails_and_is_named(self):
         left_out = (*booknlp.FREEZE_IMPORTS, "no_such_module_left_out")
         with patch.object(booknlp, "FREEZE_IMPORTS", left_out), self.assertRaises(ImportError) as failed:
