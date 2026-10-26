@@ -30,6 +30,12 @@ export const productionStates: StateEntry[] = [
     description:
       'Production 3 days from its delivery date with chapters unfinished (?mockProduction=at-risk) - the delivery date as a warning, a higher PFH from more hours logged, and Next up led by the chapters whose stage is held back',
   },
+  {
+    page: 'production',
+    state: 'recorded-linked',
+    description:
+      'Production with every chapter linked to its track and no stage moved on (?mockProduction=linked): the Recorded audio tile sums the measured audio, and each pipeline row shows its Rec. length beside its Est. length - recorded in full, part-way, under a minute ("<0:01"), "None yet" for a linked track with nothing on it, and "Not linked", "2+ tracks", "Track gone" and "No project" for the four that measure nothing - with Record under way from the audio while the stage still says not started',
+  },
 
   // Home's surfaces, opened from the board
   {

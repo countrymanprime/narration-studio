@@ -183,7 +183,7 @@ describe('StageGrid', () => {
 
   it("lays its columns out at mock 01's widths from the left, the spare width after the last, and truncates a long row name", () => {
     const cell = (_row: number, col: number): StageGridCell => (col === 0 ? { tone: 'neutral', label: '1:00', look: 'text' } : { tone: 'success', label: '✓' });
-    render(<StageGrid label="Board" rows={['A very long chapter name indeed']} columns={['Fin.', 'Prep', 'Record']} cell={cell} />);
+    render(<StageGrid label="Board" rows={['A very long chapter name indeed']} columns={['Est.', 'Prep', 'Record']} cell={cell} />);
     const table = screen.getByRole('grid', { name: 'Board' });
     expect(table.className).toContain('table-fixed');
     const widths = [...table.querySelectorAll('col')].map((col) => col.style.width);

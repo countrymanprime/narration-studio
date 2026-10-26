@@ -41,8 +41,9 @@ be loaded" with the reason and a **Retry** button, which reads it again.
 
 The six figures are one card; each opens the page it counts.
 
-- **Finished audio**: the measured length of every chapter with a confirmed track, out of the
-  book's finished length estimated from its words.
+- **Recorded audio**: the audio on every chapter's confirmed track in the saved DAW project, out of
+  the book's finished length estimated from its words. It is what is recorded, before editing: the
+  app does not know from the audio whether it is edited, proofed or mastered.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
   words still to do. The info icon on **Recording** opens the target pace: the standard rate or
   your own, once enough chapters are measured.
@@ -86,9 +87,16 @@ measured file fails the delivery check, with each failed check, its value and it
 
 ## Chapter pipeline
 
-The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Fin.** is the chapter's estimated finished
-length; its Record cell's tip has the measured one. **Record**, **Edit** and **Proof** show a check
-mark (✓) for a stage done, a half circle for the stage under way and a dash for one not started.
+The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
+on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it is the
+chapter's finished length estimated from its words. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
+**Not linked**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
+project** (no saved project could be read) or **Not read**.
+
+**Record**, **Edit** and **Proof** follow the chapter's stage, which you set (the row's status, or **Confirm** on its
+[readiness](#stage-readiness)); the app does not move a stage on by itself. They show a check mark (✓) for a stage done, a half
+circle for the stage under way and a dash for one not started. Record is the one exception: once the chapter's track has audio
+it shows the share recorded against the estimate, even while the stage still says not started, and its tip says so.
 **Prep** is the chapter's prep state from [Script](script.md): a check mark when prepped, a half
 circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
 open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
@@ -282,7 +290,7 @@ live preview of the host's own report is on the right, under the project's name 
 
 ![The Export status report dialog: the Include checkboxes and format beside the live preview](../../images/ui/production-report-dialog.webp)
 
-The sections are **Words and finished audio**, **Hours by stage**, **Deadline and milestones**,
+The sections are **Words and recorded audio**, **Hours by stage**, **Deadline and milestones**,
 **Open pickups and chapters held back** (the lines still to record again, counted by chapter from the [Pickups](pickups.md) list, and
 the chapters whose stage is held back, with the reason), **Delivery check and chapter readiness** (the files of the last measurement
 made in this session, judged against the project's delivery profile, and the count of chapters by verdict; with nothing measured yet it

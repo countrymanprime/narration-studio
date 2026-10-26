@@ -173,7 +173,7 @@ func TestAnUntickedSectionIsLeftOutOfBothRenderings(t *testing.T) {
 		jsonKey string
 		heading string
 	}{
-		{"words", func(s *Sections) { s.Words = false }, `"word_count"`, "Finished audio"},
+		{"words", func(s *Sections) { s.Words = false }, `"word_count"`, "Recorded audio"},
 		{"stages", func(s *Sections) { s.Stages = false }, `"hours_by_stage"`, "Hours by stage"},
 		{"milestones", func(s *Sections) { s.Milestones = false }, `"schedule"`, "<h2>Milestones</h2>"},
 		{"pickups", func(s *Sections) { s.Pickups = false }, `"held_back"`, "Chapters held back"},

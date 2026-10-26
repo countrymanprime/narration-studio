@@ -50,6 +50,15 @@ export const productionDrivers: Record<string, Driver> = {
       .getByText(/Sep 29/)
       .waitFor();
   },
+  'recorded-linked': async (page) => {
+    await openProduction(page, '?mockProduction=linked');
+    const table = page.getByRole('table', { name: 'Chapter pipeline' });
+    await table
+      .getByRole('img', { name: /: recorded none yet$/ })
+      .first()
+      .waitFor();
+    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded not linked$/ }).waitFor();
+  },
 
   'live-updates-degraded': async (page) => {
     await page.goto('/?mockLiveDegraded=1');
