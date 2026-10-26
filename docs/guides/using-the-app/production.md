@@ -87,7 +87,7 @@ measured file fails the delivery check, with each failed check, its value and it
 ## Chapter pipeline
 
 The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
-on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it is the
+on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** under it (`of 1:20`) is the
 chapter's finished length estimated from its words. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **Not linked**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
 project** (no saved project could be read) or **Not read**. The Rec. / Est. cell's tip and its name for a screen reader also say how far the
