@@ -441,6 +441,8 @@ export function scanLayout(): LayoutHit[] {
       for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
         const label = node.parentElement;
         if (!label || !node.data.trim() || !drawn.has(label) || inkless(label) || lineCount(node) !== 1) continue;
+        // A control's label (a tip's Got it, an error's Retry) is a control beside the text, which A7 lines up, not a margin label.
+        if (label.closest(`${CONTROL}, a, input, select, label`)) continue;
         if (parseFloat(css(label).fontSize) >= parseFloat(css(text).fontSize)) continue;
         const range = document.createRange();
         range.selectNodeContents(node);

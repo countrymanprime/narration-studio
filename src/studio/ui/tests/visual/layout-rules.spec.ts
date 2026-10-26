@@ -130,6 +130,15 @@ test("a small margin label set on the text's baseline sits low in its line (A8)"
   ).toContain('A8');
 });
 
+test("a control beside a paragraph (a tip's Got it) is not a margin label (A8)", async ({ page }) => {
+  expect(
+    await rulesOn(
+      page,
+      '<div class="row" style="align-items:flex-start"><p style="margin:0;font-size:16px;line-height:21px">Select words to edit them.</p><button style="font-size:12px;margin-top:12px">Got it</button></div>',
+    ),
+  ).not.toContain('A8');
+});
+
 test('what is under an open modal is not judged', async ({ page }) => {
   const rules = await rulesOn(
     page,
