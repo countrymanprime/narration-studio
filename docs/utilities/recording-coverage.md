@@ -166,7 +166,7 @@ flowchart LR
   removed, trimmed, moved, muted or switched to another take, or an audio file changed. It also goes stale when the
   chapter's text, the equivalences, the vocabulary hints or an alignment setting changes. A different Whisper model or
   language keeps it current and labelled with the model (Q13).
-- **Three readers.** Proof's Recording check card (`proof/checkcard/CheckCard.tsx`) shows the stored report. The `CoverageResult` payload also
+- **Three readers.** Check recordings' result view (`recordingcheck/CheckResult.tsx`) and Proof's Recording check card (`proof/checkcard/CheckCard.tsx`) show the stored report. The `CoverageResult` payload also
   carries `judgement`: met or not met by the narrator's thresholds, with the gap that fails first. It comes from
   `coverage.Judge`, the same function the stage signal uses, so the two cannot disagree. It is set for any complete
   result with a report, a stale one included (as of the last check)
@@ -350,7 +350,10 @@ flowchart LR
   `cpus / chapters` processes. Cancel stops every run; a background check gives way to a narrator's start without touching the narrator's other runs.
 - **One flow.** `CheckRecordingsDialog` is the one recording check: one container (a wide dialog), one host entry (`coverageStart` from its run
   reducer), one set of options (`RunOptions`: model, larger model and score line, chunk length, overlap, workers, chapters at once, starting from
-  `CoverageEngines.defaults`) and one result view (Proof's `CheckCard`). A page's entry hands it the chapters to tick and nothing else.
+  `CoverageEngines.defaults`) and one chapter result view (`CheckResult` with `RecordingCheckReport`, after a single chapter's run or from a
+  row's Show result). A start the host holds for a missing model (`asset_required`, `recheck_asset_required`) is asked for in the dialog
+  (`useAssetInstall` on the `whisper` port), with "Check with <model> only" for a missing larger model. A page's entry hands it the
+  chapters to tick and nothing else. Proof's `CheckCard` is the findings triage on Proof (accept or ignore each).
 - **What is not measured.** The chunked path is tested with real spawned processes and a fake model; no real-speech timing or accuracy was measured, so the
   shipped 5 min, 6 s and 0.5 are provisional like the other numbers. The words files made before scores are made again once (cache version 3).
 

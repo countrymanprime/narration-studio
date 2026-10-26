@@ -103,8 +103,9 @@ export const RefusedChapter: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     (await canvas.findByRole('button', { name: 'Check 1 chapter' })).click();
-    await expect(await canvas.findByText('Details: Link a REAPER track to this chapter first.')).toBeTruthy();
-    await expect(canvas.getByRole('link', { name: 'Open the audio engine panel' })).toBeTruthy();
+    // The reason in plain words, and the chapter-track link made right in the row.
+    await expect(await canvas.findByText('The recording could not be checked')).toBeTruthy();
+    await expect(await canvas.findByRole('combobox', { name: /^Track for Chapter 1/ })).toBeTruthy();
   },
 };
 

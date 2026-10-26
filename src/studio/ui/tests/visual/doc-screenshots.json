@@ -127,6 +127,13 @@
   },
   {
     "page": "production",
+    "state": "recording-check-incomplete",
+    "viewport": "desktop",
+    "docName": "production-recording-check",
+    "caption": "Production - a chapter's recording check, opened from its Record cell, with text still to record"
+  },
+  {
+    "page": "production",
     "state": "report-dialog",
     "viewport": "desktop",
     "docName": "production-report-dialog",
@@ -950,6 +957,13 @@
     "viewport": "desktop",
     "docName": "production-credits-panel",
     "caption": "Production - the Opening credits row opened: its template, words and estimated length"
+  },
+  {
+    "page": "production",
+    "state": "recording-check-pickups",
+    "viewport": "desktop",
+    "docName": "production-recording-check-pickups",
+    "caption": "Production - a recording check with a skip and a short read listed as pickups"
   },
   {
     "page": "production",

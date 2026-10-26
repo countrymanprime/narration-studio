@@ -335,6 +335,15 @@ export async function openRecordingCheck(page: Page, chapter: string, seed?: str
   return dialog;
 }
 
+// Opens Check recordings from a chapter's row menu and shows that chapter's stored result (its row's Show result). Returns the dialog.
+export async function showResult(page: Page, chapter: string, seed?: string) {
+  const dialog = await openRecordingCheck(page, chapter, seed);
+  await dialog.getByRole('button', { name: new RegExp(`^Show result: ${chapter}\\b`) }).click();
+  await dialog.getByRole('button', { name: 'Back to chapters' }).waitFor();
+  await dialog.getByText('Reading the last check…').waitFor({ state: 'detached' });
+  return dialog;
+}
+
 // Opens a chapter's track slide-over from its Recorded cell, booted with a mock seed
 // (main.tsx's `?mockChapterLink=`), and waits for its saved-project facts to have loaded. Returns the dialog.
 export async function openTrackPanel(page: Page, chapter: string, seed: string) {

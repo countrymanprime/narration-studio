@@ -12,7 +12,7 @@ export type CheckRecordingsOptions = {
 /**
  * Opens Check recordings through the overlay service, which owns its focus, stacking and Escape; the opener gets focus back on close.
  * It is the one way into a recording check: every page's entry, for one chapter or several, opens this dialog with its chapters ticked.
- * `preselected` are the chapters ticked on open (a chapter without a recording is dropped). Returns the close function.
+ * `preselected` are the chapters ticked on open (a chapter whose recording was measured as empty is dropped). Returns the close function.
  */
 export function openCheckRecordings(
   preselected: readonly string[] = [],

@@ -168,26 +168,45 @@ the workers** hands the count back to the computer. A setting the sliders do not
 and is kept until you move the slider. A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
 processors, and starts the next as each ends. The options start at the values in Settings, and the check runs exactly what the dialog
 shows, so a chapter is checked the same way wherever you start it, including in the background. A model that is not installed yet
-is named under the options with **Download … in Settings first**, and **Check** stays off until it is; untick
-**Look again with a larger model** to check with the first pass alone.
+is marked **(not installed)** in the lists and named under the options; **Check** then asks before downloading it, with the model's
+facts and the real download progress, and checks the same chapters once it is installed. When only the larger model of a second
+look is missing, the question also offers **Check with … only**, which checks with the first pass alone (untick **Look again with a
+larger model** for the same choice up front).
 
 The chapters list each recorded chapter with its check state and last result. The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** (it names how many chapters, as in **Check 1 chapter**) stay in view
-under them. It gives no estimate of how long the check will take. While it runs, each chapter has its bar under its name, and **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card on Proof has the same **Stop checking**. Escape while it runs asks first. When the run ends the dialog closes and a message gives the totals.
+under them. It gives no estimate of how long the check will take. While it runs, each chapter has its bar under its name, and **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card on Proof has the same **Stop checking**. Escape while it runs asks first. When the run ends a message gives the totals; a run of one chapter then shows that chapter's result in the dialog, and a run of several closes it. A chapter with a stored check has **Show result** in its row.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 
-When a chapter cannot be checked, its row says why in plain words, with the host's own detail under it and the page that fixes it:
-a chapter that is not linked to its REAPER track gets **Open the audio engine panel**, a missing project file **Open Tracks**, and a
-missing Transcript Compare tool **Open Settings**. The dialog stays open on a refused chapter so you can read it.
+When a chapter cannot be checked, its row says why in plain words and where to fix it: a chapter that is not linked to its REAPER
+track gets the track picker right there, a missing project file points to the [audio engine panel](navigation.md#the-reaper-project),
+and a missing Transcript Compare tool points to [Settings](settings.md). The dialog stays open on a refused chapter so you can read it.
 
-What a check found is read on Proof's [Recording check card](proof.md#one-chapter): the chapter's state, its recorded length,
-what the check found by kind and each finding to accept or ignore. Misreads, false starts, retakes and a spoken chapter title
-never count against you. The check changes nothing: it never edits the project or moves a chapter's status. A result goes
-**out of date** when the saved project changes under it (an item added, removed, trimmed, moved, muted or switched to another
-take, an audio file changed) or the chapter's text changes; only the changed items are transcribed again on the next check.
+![Production - a chapter's recording check, with text still to record](../../images/ui/production-recording-check.webp)
 
-With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check runs a fast
-first pass, then re-checks only whatever it reports missing with a stronger model, and the result names both models.
+A chapter's result names the saved project file it was read from ("Based on the saved REAPER project, file modified ...") and reads
+as a **chapter summary first**: "Passes the check", or "Not complete" naming the one thing that fails first ("Not complete:
+paragraph 14: 9 words not read"), then an unread start or end stated in plain words ("Recorded to paragraph N of M"), then the
+chapter's own figures (text present, paragraphs fully read, audio checked, pace in words a minute), two to a row, with **Check
+again** and **Open in Editing**. Under that, **Pickups** lists only the check's own interior gaps worth reading again on their own —
+a skipped block, a short read or different text read — each with its paragraphs, word count, first and last missing words, where
+the gap sits in the audio, and **Go to paragraph** to open the manuscript there. An unread start or end is unfinished recording, not
+a pickup, so it never appears in that list. Below the check's own gaps, **Repeated reads (Proof)** shows the chapter's unreviewed
+take-review pickups as a count with **Open Proof**, or "none waiting", and **Pickup list** shows the open lines of the Pickups list
+as one project-wide count with **Open pickups** ("open REAPER to count" when REAPER is not running). **Paragraph detail** stays
+folded by default. **Back to chapters** returns to the form and **Done** closes the dialog. On Proof the same check's findings are
+on the [Recording check card](proof.md#one-chapter), each to accept or ignore. Misreads, false starts, retakes and a spoken chapter
+title never count against you. The check changes nothing: it never edits the project or moves a chapter's status.
+
+![Production - a recording check with a skip and a short read listed as pickups](../../images/ui/production-recording-check-pickups.webp)
+
+A result goes **out of date** when the saved project changes under it (an item added, removed, trimmed, moved, muted or switched
+to another take, an audio file changed) or the chapter's text changes. The result says which, keeps the old counts labelled as
+from then, and offers **Check again**; only the changed items are transcribed again.
+
+With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check runs a fast first pass, then re-checks only whatever it
+reports missing with a stronger model: the result reads "Checked ... with the tiny Whisper model; 3 passages re-checked with the
+large-v3-turbo Whisper model", with each re-checked pickup marked "Confirmed missing by ...".
 
 A changed chapter can also be re-checked on its own, in the background, once REAPER has been quiet for a few minutes and the app
 is not otherwise busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open

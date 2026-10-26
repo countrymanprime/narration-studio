@@ -68,6 +68,7 @@ export const GAPS: readonly string[] = [
   'src/components/pickups/usePickupsState.ts',
   'src/components/production/ChapterTrackPanel.tsx',
   'src/components/production/ManuscriptImport.tsx',
+  'src/components/production/RecordingCheckReport.tsx',
   'src/components/production/useChapterSyncToast.ts',
   'src/components/production/useChapterTools.tsx',
   'src/components/proof/AuditionDialog.tsx',

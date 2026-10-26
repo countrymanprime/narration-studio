@@ -54,20 +54,26 @@ export function chunkLabel(seconds: number): string {
 
 const labelOf = (engines: CoverageEngines, id: string): string => engines.engines.find((engine) => engine.id === id)?.label ?? id;
 
-const needsDownload = (engine: CoverageEngine): string => `Download ${engine.label} in Settings first.`;
+const needsDownload = (engine: CoverageEngine): string => `${engine.label} is not installed yet: Check asks before downloading it.`;
+
+/** What stops a run: the words for it, and whether it is only that a model is not installed yet (Check then asks to download it). */
+export type RunBlocker = { message: string; needsInstall: boolean };
 
 /** Why the run cannot start as chosen, or undefined: a model missing or not installed, or a second pass by the model that made the first. */
-export function runProblem(choices: RunChoices, engines: CoverageEngines): string | undefined {
+export function findProblem(choices: RunChoices, engines: CoverageEngines): RunBlocker | undefined {
   const first = engines.engines.find((engine) => engine.id === choices.model);
-  if (!first) return 'Choose a speech model.';
-  if (first.installState !== 'installed') return needsDownload(first);
+  if (!first) return { message: 'Choose a speech model.', needsInstall: false };
+  if (first.installState !== 'installed') return { message: needsDownload(first), needsInstall: true };
   if (!choices.recheck) return undefined;
   const larger = engines.engines.find((engine) => engine.id === choices.recheckModel);
-  if (!larger) return 'Choose a model to re-check with.';
-  if (larger.installState !== 'installed') return needsDownload(larger);
-  if (larger.id === first.id) return 'Choose a different model to re-check with.';
+  if (!larger) return { message: 'Choose a model to re-check with.', needsInstall: false };
+  if (larger.installState !== 'installed') return { message: needsDownload(larger), needsInstall: true };
+  if (larger.id === first.id) return { message: 'Choose a different model to re-check with.', needsInstall: false };
   return undefined;
 }
+
+/** The words for what stops or holds up the run, or undefined. */
+export const runProblem = (choices: RunChoices, engines: CoverageEngines): string | undefined => findProblem(choices, engines)?.message;
 
 /** One or two sentences saying what the run will do, in the narrator's words. */
 export function runSummary(choices: RunChoices, engines: CoverageEngines): string {

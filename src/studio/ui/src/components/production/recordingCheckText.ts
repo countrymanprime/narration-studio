@@ -1,7 +1,16 @@
 // The words of the recording check (docs/utilities/recording-coverage.md): every reason the host can give
-// for a check it refused or a result it cannot trust, in the narrator's terms, and the small formatters the pages share.
-// Pure functions, so the dialog only lays them out.
-import type { ChapterStatus, CoverageReason, ManuscriptChapter } from '../../types';
+// for a check it refused or a result it cannot trust, in the narrator's terms, and the sentences a stored report is read
+// out as. Pure functions, so the dialog only lays them out.
+import type {
+  ChapterStatus,
+  CoverageJudgement,
+  CoverageReason,
+  CoverageRegion,
+  CoverageRegionKind,
+  CoverageReport,
+  CoverageState,
+  ManuscriptChapter,
+} from '../../types';
 import type { CreditsKind } from '../credits/useCreditsRows';
 
 /**
@@ -63,6 +72,15 @@ const CREDITS_CHECK_TITLE: Record<CreditsKind, string> = { opening: 'Opening cre
  * `coverage.CreditsChapterID`. */
 const creditsCheckId = (kind: CreditsKind): string => `credits-${kind}`;
 
+/** The credits kind a check id names, or undefined for a manuscript chapter id (the host's `coverage.CreditsKind`,
+ * mirrored here so Check recordings can tell a credits row apart from a real chapter without importing
+ * `useCreditsRows`' own module). */
+export function creditsCheckKind(chapterId: string): CreditsKind | undefined {
+  if (chapterId === creditsCheckId('opening')) return 'opening';
+  if (chapterId === creditsCheckId('closing')) return 'closing';
+  return undefined;
+}
+
 /**
  * The synthetic `ManuscriptChapter` a credits row's check hands Check recordings (`openCheckRecordings`'s `extra`): the dialog treats `chapter.id` as an opaque key for every host call, so this
  * needs nothing beyond a title and the one paragraph id the host's synthetic check manuscript gives the credits kind
@@ -75,6 +93,14 @@ export function creditsCheckChapter(kind: CreditsKind, status: ChapterStatus): M
   return { id, title: CREDITS_CHECK_TITLE[kind], index: 0, wordCount: 0, status, paragraphIds: [{ id: `${id}-p0`, index: 0 }] };
 }
 
+export const REGION_LABEL: Record<CoverageRegionKind, string> = {
+  head: 'Start not read',
+  tail: 'End not read',
+  skip: 'Skipped',
+  short_read: 'Read short',
+  different_text: 'Different text read',
+};
+
 export const plural = (count: number, one: string, many = `${one}s`) => `${count.toLocaleString()} ${count === 1 ? one : many}`;
 
 /** "0:07", "3:05", "1:02:09": a position in an audio file. */
@@ -84,6 +110,51 @@ export function formatAudioTime(seconds: number): string {
   const minutes = Math.floor((whole % 3600) / 60);
   const rest = String(whole % 60).padStart(2, '0');
   return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
+}
+
+/**
+ * The report's headline. With a judgement it leads with the host's
+ * pass/fail, the same rule the stage signal uses, so the dialog and the stage engine never disagree: a passing
+ * chapter reads "Passes the check" with the judgement's own reason as a plain detail line below it; a failing one
+ * folds the reason (the gap that fails first) straight into the headline itself - "Not complete: paragraph 14: 9
+ * words not read." - as the approved mockups show it (`01-slideover-not-complete.webp`,
+ * `02-slideover-passes.webp`), with no separate detail line. Without a judgement - an older stored result, or a
+ * result missing entirely - it falls back to the plain word count docs/guides/using-the-app/production.md#checking-a-chapters-recording originally specified.
+ */
+export function verdict(report: CoverageReport, judgement?: CoverageJudgement): { complete: boolean; headline: string; detail: string } {
+  if (judgement) {
+    const complete = judgement.state === 'met';
+    return { complete, headline: complete ? 'Passes the check' : `Not complete: ${judgement.reason}`, detail: complete ? judgement.reason : '' };
+  }
+  const complete = report.missingTokens === 0;
+  return {
+    complete,
+    headline: complete ? 'All the text is recorded' : `${plural(report.missingTokens, 'word')} not recorded`,
+    detail: `Text present: ${report.presentTokens.toLocaleString()} of ${plural(report.bodyTokens, 'word')}.`,
+  };
+}
+
+/** RS2 A: an unread start or end is unfinished recording, not a pickup - stated in the
+ * summary as "Recorded to paragraph N of M" or "Start not read: paragraphs 1 to K", never listed with the interior
+ * gaps (skip, short_read, different_text). undefined when the chapter has no head or tail region (every gap, if any,
+ * is interior). A tail wins over a head if somehow both are present (a chapter this sparse needs the "unfinished"
+ * framing regardless of which end is missing). */
+export function recordedTo(
+  report: CoverageReport,
+  chapter: ManuscriptChapter,
+): { kind: 'head' | 'tail'; paragraph: number; total: number; wordsLeft: number } | undefined {
+  const total = report.paragraphs.length;
+  const tail = report.regions.find((region) => region.kind === 'tail');
+  if (tail) {
+    const numbers = paragraphRefs(chapter, tail.paragraphIds).map((ref) => ref.number);
+    return { kind: 'tail', paragraph: Math.max(0, Math.min(...numbers) - 1), total, wordsLeft: tail.tokenCount };
+  }
+  const head = report.regions.find((region) => region.kind === 'head');
+  if (head) {
+    const numbers = paragraphRefs(chapter, head.paragraphIds).map((ref) => ref.number);
+    return { kind: 'head', paragraph: Math.max(...numbers), total, wordsLeft: head.tokenCount };
+  }
+  return undefined;
 }
 
 /** A paragraph's number within its chapter (1 is the chapter's first paragraph) and its index in the whole manuscript, for a link. */
@@ -107,8 +178,49 @@ export function describeParagraphs(numbers: number[]): string {
   return `paragraphs ${sorted.slice(0, -1).join(', ')} and ${sorted[sorted.length - 1]}`;
 }
 
+/** "paragraphs 38 to 40: 14 words, from “the” to “end.”" */
+export function describeRegion(region: CoverageRegion, refs: ParagraphRef[]): string {
+  const words = region.tokenCount === 1 ? `“${region.firstWord}”` : `from “${region.firstWord}” to “${region.lastWord}”`;
+  return `${describeParagraphs(refs.map((ref) => ref.number))}: ${plural(region.tokenCount, 'word')}, ${words}`;
+}
+
+/** Where the gap sits in the audio: "Item 2 of the track, at 3:05 in its audio file". */
+export function describePosition(region: CoverageRegion): string | undefined {
+  if (!region.position) return undefined;
+  return `Item ${region.position.itemIndex + 1} of the track, at ${formatAudioTime(region.position.sourceTime)} in its audio file`;
+}
+
 /** "Checked 21 Sep 2026, 10:00" in the narrator's locale; the raw value when it is not a date. */
 export function formatWhen(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+/** MC5: "3 passages re-checked with the large-v3-turbo Whisper model" or "the whole chapter re-checked with the
+ * large-v3-turbo Whisper model", appended to a stored report's own "Checked ... with the tiny Whisper model" line.
+ * undefined for a plain, single-model check. */
+export function recheckLabel(report: CoverageReport): string | undefined {
+  if (!report.recheck) return undefined;
+  const { model, wholeChapter, windows } = report.recheck;
+  return `${wholeChapter ? 'the whole chapter' : plural(windows, 'passage')} re-checked with the ${model} Whisper model`;
+}
+
+/** The user flow's "First pass (tiny)", then "Re-checking 3 passages (large-v3-turbo)": a live check's current pass
+ * in plain words, from the model cascade's own progress fields. undefined for a plain, single-model check
+ * (state.pass is only ever set for one that asked for a re-check) or before the first live event of a new run. */
+export function passLabel(state: CoverageState): string | undefined {
+  switch (state.pass) {
+    case 'first_pass':
+      return state.firstPassModel ? `First pass (${state.firstPassModel})` : 'First pass';
+    case 'pipeline':
+      return `${state.firstPassModel ? `First pass (${state.firstPassModel})` : 'First pass'}, re-checking as it goes${state.recheckModel ? ` (${state.recheckModel})` : ''}`;
+    case 'recheck_windows':
+      return `Re-checking ${plural(state.recheckWindows ?? 0, 'passage')}${state.recheckModel ? ` (${state.recheckModel})` : ''}`;
+    case 'recheck_whole':
+      return `Re-checking the whole chapter${state.recheckModel ? ` (${state.recheckModel})` : ''}`;
+    case 'realign':
+      return 'Combining the two passes';
+    default:
+      return undefined;
+  }
 }

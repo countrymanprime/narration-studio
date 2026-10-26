@@ -35,6 +35,11 @@ describe('recordedChapters', () => {
     ];
     expect(recordedChapters(list).map((c) => c.id)).toEqual(['a', 'd']);
   });
+
+  it('offers a chapter its opener asked for while its recording is not measured, never one measured as empty', () => {
+    const list = [chapter('a', { recordedSeconds: 60 }), chapter('b', { recordedSeconds: 0 }), chapter('c')];
+    expect(recordedChapters(list, ['b', 'c']).map((c) => c.id)).toEqual(['a', 'c']);
+  });
 });
 
 describe('audioToCheck', () => {

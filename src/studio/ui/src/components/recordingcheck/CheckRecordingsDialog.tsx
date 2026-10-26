@@ -1,15 +1,22 @@
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import type { CoverageEngines, CoverageReason, CoverageResult } from '../../api/contracts/coverage';
+import { useNavigate } from 'react-router-dom';
+import type { CoverageEngines, CoverageReason, CoverageResult, CoverageStartResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
+import type { WhisperInstallJob } from '../../api/contracts/whisper';
 import { describeApiError } from '../../api/errorMessage';
+import { useAssetInstall } from '../../hooks/useAssetInstall';
+import { addressPath } from '../../navigation/address';
+import { scriptPath } from '../../navigation/scriptPath';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useCapability } from '../../useCapability';
+import { AssetFacts } from '../assets/AssetFacts';
+import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
-import { COVERAGE_REASON_TEXT, LINK_REASONS, REASON_PAGE } from '../production/recordingCheckText';
+import { creditsCheckKind } from '../production/recordingCheckText';
+import { CheckResult, ReasonBlock } from './CheckResult';
 import {
   audioToCheck,
   checkStateLabel,
@@ -24,7 +31,7 @@ import {
 } from './checkSelection';
 import { idleRun, runReducer } from './checkRun';
 import { RunOptions } from './RunOptions';
-import { runProblem, startChoices, startOptions } from './runChoices';
+import { findProblem, startChoices, startOptions } from './runChoices';
 import type { RunChoices } from './runChoices';
 import { RunningView } from './RunningView';
 
@@ -33,8 +40,8 @@ const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase
 
 const NONE: readonly ManuscriptChapter[] = [];
 
-/** A chapter with no confirmed track is linked in the audio engine panel, which the retired Tracks address opens. */
-const UNMAPPED_FIX = { path: '/tracks', label: 'Open the audio engine panel' };
+/** A start the host held because a model it needs is not installed: the first-pass model, or the larger model of a second look. */
+type ModelAsk = Extract<CoverageStartResult, { status: 'asset_required' | 'recheck_asset_required' }>;
 
 type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageResult>; engines: CoverageEngines };
 
@@ -42,7 +49,11 @@ type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageR
  * Check recordings (mock pickups/CheckRecordings.tsx), the app's one recording check: how the check is made (`RunOptions`), the recorded
  * chapters with their check state and last result, the audio to check, and a live run of up to "Chapters at once" chapters (the host runs one
  * check per chapter and allows as many at once as each start names). Every entry, on every page and for one chapter or several, opens it
- * through `openCheckRecordings`, which hands it `preselected`, `extra`, `onClosed` and `close`. What a check found is read on Proof's check card.
+ * through `openCheckRecordings`, which hands it `preselected`, `extra`, `onClosed` and `close`.
+ *
+ * A model the run needs and that is not installed is asked for here, with its facts and the real download (the host holds the start and
+ * names the model); a missing larger model can instead be skipped with "Check with <model> only". After a single chapter's run, and from a
+ * row's Show result, the dialog shows that chapter's full report (`CheckResult`); a refused chapter's row says why with the fix in place.
  */
 export function CheckRecordingsDialog({
   preselected,
@@ -58,7 +69,9 @@ export function CheckRecordingsDialog({
 }) {
   const manuscript = usePort('manuscript');
   const coverage = usePort('coverage');
+  const whisper = usePort('whisper');
   const overlay = useOverlay();
+  const navigate = useNavigate();
   const capability = useCapability('review');
   const [loaded, setLoaded] = useState<Loaded>();
   const [loadError, setLoadError] = useState('');
@@ -67,8 +80,16 @@ export function CheckRecordingsDialog({
   const [run, dispatch] = useReducer(runReducer, idleRun);
   // Why the host refused a chapter's start, by chapter id: its row says it in plain words with the page that fixes it.
   const [refusedWhy, setRefusedWhy] = useState<Record<string, CoverageReason>>({});
+  // Refused rows whose cause was fixed in place (a track linked): their block goes.
+  const [cleared, setCleared] = useState<ReadonlySet<string>>(() => new Set());
+  // The chapter whose full result is shown instead of the form, and why its result could not be read again.
+  const [viewing, setViewing] = useState<string>();
+  const [viewError, setViewError] = useState('');
+  const [ask, setAsk] = useState<ModelAsk>();
   const requested = useRef(new Set<string>());
   const reported = useRef(false);
+  // The chapters of the last run, started again after a download or a "first pass only".
+  const lastIds = useRef<readonly string[]>([]);
 
   // However the dialog goes (Cancel, Escape, a finished run), the opener hears once.
   const closed = useRef(onClosed);
@@ -79,7 +100,7 @@ export function CheckRecordingsDialog({
     void (async () => {
       try {
         const [allChapters, engines] = await Promise.all([manuscript.manuscriptChapters(), coverage.coverageEngines()]);
-        const chapters = [...extra.filter((chapter) => !allChapters.some((listed) => listed.id === chapter.id)), ...recordedChapters(allChapters)];
+        const chapters = [...extra.filter((chapter) => !allChapters.some((listed) => listed.id === chapter.id)), ...recordedChapters(allChapters, preselected)];
         const results = Object.fromEntries(
           await Promise.all(chapters.map(async (chapter) => [chapter.id, await coverage.coverageResult(chapter.id)] as const)),
         );
@@ -94,7 +115,7 @@ export function CheckRecordingsDialog({
     return () => {
       active = false;
     };
-  }, [manuscript, coverage, extra]);
+  }, [manuscript, coverage, extra, preselected]);
 
   // The host's live progress and the end of each run.
   useEffect(
@@ -117,6 +138,12 @@ export function CheckRecordingsDialog({
       requested.current.add(id);
       void coverage.coverageStart(id, startOptions(choices)).then(
         (answer) => {
+          if (answer.status === 'asset_required' || answer.status === 'recheck_asset_required') {
+            // Nothing started: the run goes back to the form and the dialog asks for the model.
+            setAsk((current) => current ?? answer);
+            dispatch({ type: 'halt' });
+            return;
+          }
           if (answer.status === 'refused') setRefusedWhy((current) => ({ ...current, [id]: answer.reason }));
           dispatch({ type: 'answered', answer, id });
         },
@@ -133,13 +160,58 @@ export function CheckRecordingsDialog({
       const finished = await Promise.all(run.finished.map((id) => coverage.coverageResult(id)));
       if (run.step === 'stopped') overlay.toast(stoppedToast(finished.length, run.interrupted));
       else overlay.toast(finishedToast(runTotals(finished)));
+      const merged = (current: Loaded | undefined) =>
+        current && { ...current, results: { ...current.results, ...Object.fromEntries(run.finished.map((id, i) => [id, finished[i]])) } };
+      // One chapter checked: its full result, in place of the form.
+      if (run.step === 'done' && run.ids.length === 1 && run.finished.length === 1) {
+        setLoaded(merged);
+        setViewing(run.finished[0]);
+        return;
+      }
       if (run.step === 'stopped' || Object.keys(run.messages).length === 0) close();
-      else
-        setLoaded(
-          (current) => current && { ...current, results: { ...current.results, ...Object.fromEntries(run.finished.map((id, i) => [id, finished[i]])) } },
-        );
+      else setLoaded(merged);
     })();
-  }, [run.step, run.finished, run.messages, run.interrupted, coverage, overlay, close]);
+  }, [run.step, run.ids, run.finished, run.messages, run.interrupted, coverage, overlay, close]);
+
+  const choicesRef = useRef(choices);
+  choicesRef.current = choices;
+  const begin = useCallback((runIds: readonly string[]) => {
+    reported.current = false;
+    requested.current = new Set();
+    lastIds.current = runIds;
+    setRefusedWhy({});
+    setCleared(new Set());
+    setViewing(undefined);
+    dispatch({ type: 'begin', ids: runIds, limit: choicesRef.current?.chapters ?? 1 });
+  }, []);
+
+  // The model's download, asked for when a start was held for it; once installed, the same chapters start again.
+  const install = useAssetInstall<WhisperInstallJob>({
+    start: () => (ask ? whisper.whisperInstall(ask.model.id) : Promise.reject(new Error('Check a recording first.'))),
+    state: (jobId) => whisper.whisperInstallState(jobId),
+    cancel: (jobId) => whisper.whisperInstallCancel(jobId),
+    onSuccess: async () => {
+      setAsk(undefined);
+      overlay.toast('Whisper model installed.');
+      // The installed model's line drops its "not installed"; a failed read keeps the old list, and the run starts either way.
+      const engines = await coverage.coverageEngines().catch(() => undefined);
+      if (engines) setLoaded((current) => current && { ...current, engines });
+      begin(lastIds.current);
+    },
+  });
+
+  const reload = useCallback(
+    async (id: string) => {
+      try {
+        setViewError('');
+        const result = await coverage.coverageResult(id);
+        setLoaded((current) => current && { ...current, results: { ...current.results, [id]: result } });
+      } catch (error) {
+        setViewError(describeApiError(error));
+      }
+    },
+    [coverage],
+  );
 
   const running = run.step === 'running';
 
@@ -171,7 +243,9 @@ export function CheckRecordingsDialog({
   const chapters = useMemo(() => loaded?.chapters ?? [], [loaded]);
   const model = choices?.model ?? '';
   const engine = loaded?.engines.engines.find((candidate) => candidate.id === model);
-  const problem = loaded && choices ? runProblem(choices, loaded.engines) : undefined;
+  // A model that is not installed does not stop Check: the start asks to download it.
+  const blocker = loaded && choices ? findProblem(choices, loaded.engines) : undefined;
+  const blocked = !!blocker && !blocker.needsInstall;
   const ids = useMemo(() => selectedIds(chapters, ticked), [chapters, ticked]);
   const audio = audioToCheck(chapters, ticked);
   const note = unmeasuredNote(audio.unmeasured);
@@ -180,6 +254,95 @@ export function CheckRecordingsDialog({
   if (loadError) return <p role="alert">{loadError}</p>;
   if (!loaded || !choices) return <p aria-live="polite">Loading…</p>;
   if (running) return <RunningView chapters={chapters} run={run} model={engine?.label ?? model} onStop={stop} />;
+
+  const firstLabel = engine?.label ?? model;
+  const prompt = ask ? (
+    <AssetInstallPrompt
+      ask={
+        ask.status === 'asset_required'
+          ? {
+              title: 'Download local Whisper model?',
+              body: `The ${ask.model.displayName} Whisper model is needed to transcribe these recordings. It is not bundled with the app and will be stored in your per-user asset cache.`,
+              confirmLabel: 'Download model',
+            }
+          : {
+              title: 'Download the re-check model?',
+              body: `The ${ask.model.displayName} Whisper model looks again at what the first pass (${firstLabel}) reports missing or unsure. It is not bundled with the app and will be stored in your per-user asset cache.`,
+              confirmLabel: 'Download model',
+              alternative: {
+                label: `Check with ${firstLabel} only`,
+                action: () => {
+                  setAsk(undefined);
+                  install.reset();
+                  setChoices((current) => current && { ...current, recheck: false });
+                  begin(lastIds.current);
+                },
+              },
+            }
+      }
+      workTitle="Downloading Whisper model"
+      install={install}
+      dismiss={() => {
+        setAsk(undefined);
+        install.reset();
+      }}
+    >
+      <AssetFacts
+        label="Model"
+        name={ask.model.displayName}
+        version={ask.model.version}
+        publisher={ask.model.publisher}
+        license={ask.model.license}
+        licenseUrl={ask.model.licenseUrl}
+        modelCardUrl={ask.model.modelCardUrl}
+        provenanceUrl={ask.model.provenanceUrl}
+        downloadSize={ask.downloadSize}
+        diskSize={ask.diskSize}
+        installPath={ask.installPath}
+      />
+    </AssetInstallPrompt>
+  ) : null;
+
+  const shown = viewing ? chapters.find((chapter) => chapter.id === viewing) : undefined;
+  if (shown) {
+    const result = loaded.results[shown.id];
+    const checked = result?.state === 'current' || result?.state === 'stale';
+    const credits = creditsCheckKind(shown.id) !== undefined;
+    const leave = (path: string) => {
+      close();
+      navigate(path);
+    };
+    return (
+      <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3">
+        <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3 overflow-y-auto">
+          <h3 className={`m-0 ${SECTION_LABEL}`}>{headingName(shown)}</h3>
+          <CheckResult
+            chapter={shown}
+            result={result}
+            loadError={viewError}
+            retry={() => reload(shown.id)}
+            // A credits row's result opens its Script credits entry, never a paragraph or the Editing page.
+            goToParagraph={(index) => leave(credits ? scriptPath(shown.id) : scriptPath(shown.id, index))}
+            openWorkspace={credits ? undefined : () => leave(addressPath({ page: 'editing', chapter: shown.id }))}
+            actions={
+              <Button disabled={blocked || blockedByDaw} onClick={() => begin([shown.id])}>
+                {checked ? 'Check again' : 'Check recording'}
+              </Button>
+            }
+          />
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <Button variant="secondary" onClick={() => setViewing(undefined)}>
+            Back to chapters
+          </Button>
+          <Button variant="primary" onClick={close}>
+            Done
+          </Button>
+        </div>
+        {prompt}
+      </div>
+    );
+  }
 
   const change = (patch: Partial<RunChoices>) => setChoices((current) => current && { ...current, ...patch });
   const label = `Check ${ids.length} ${ids.length === 1 ? 'chapter' : 'chapters'}`;
@@ -217,26 +380,44 @@ export function CheckRecordingsDialog({
                 {chapters.map((chapter) => {
                   const result = loaded.results[chapter.id];
                   const last = lastResultSentence(result);
-                  const refused = run.messages[chapter.id];
+                  const refused = cleared.has(chapter.id) ? undefined : run.messages[chapter.id];
                   const why = refusedWhy[chapter.id];
-                  const fix = why && (LINK_REASONS.has(why) ? UNMAPPED_FIX : REASON_PAGE[why]);
+                  const hasResult = !!result && (result.state !== 'never' || result.reasons.length > 0);
                   return (
-                    <li key={chapter.id}>
-                      <Checkbox checked={ticked.has(chapter.id)} onChange={(on) => toggle(chapter.id, on)}>
-                        <span className="block">{headingName(chapter)}</span>
-                        <span className="block text-[var(--text-muted)]">{checkStateLabel(result)}</span>
-                        {last ? <span className="block text-[var(--text-muted)]">{last}</span> : null}
-                      </Checkbox>
-                      {refused ? (
-                        <div role="alert" className="m-0 pl-6">
-                          <p className="m-0 text-[var(--danger-text)]">{(why && COVERAGE_REASON_TEXT[why]) ?? refused}</p>
-                          {why && COVERAGE_REASON_TEXT[why] ? <p className="m-0 text-sm break-words text-[var(--text-muted)]">Details: {refused}</p> : null}
-                          {fix ? (
-                            <Link to={fix.path} onClick={close} className="text-sm font-semibold underline">
-                              {fix.label}
-                            </Link>
-                          ) : null}
+                    <li key={chapter.id} className="flex flex-col gap-1">
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <Checkbox checked={ticked.has(chapter.id)} onChange={(on) => toggle(chapter.id, on)}>
+                            <span className="block">{headingName(chapter)}</span>
+                            <span className="block text-[var(--text-muted)]">{checkStateLabel(result)}</span>
+                            {last ? <span className="block text-[var(--text-muted)]">{last}</span> : null}
+                          </Checkbox>
                         </div>
+                        {hasResult ? (
+                          <Button variant="ghost" size="sm" aria-label={`Show result: ${headingName(chapter)}`} onClick={() => setViewing(chapter.id)}>
+                            Show result
+                          </Button>
+                        ) : null}
+                      </div>
+                      {refused && why ? (
+                        <div className="pl-6">
+                          <ReasonBlock
+                            tone="alert"
+                            title="The recording could not be checked"
+                            reasons={[why]}
+                            detail={refused}
+                            chapter={chapter}
+                            onNavigate={close}
+                            onLinked={async () => {
+                              setCleared((current) => new Set([...current, chapter.id]));
+                              await reload(chapter.id);
+                            }}
+                          />
+                        </div>
+                      ) : refused ? (
+                        <p role="alert" className="m-0 pl-6 text-[var(--danger-text)]">
+                          {refused}
+                        </p>
                       ) : null}
                     </li>
                   );
@@ -260,16 +441,7 @@ export function CheckRecordingsDialog({
         <Button variant="secondary" onClick={close}>
           Cancel
         </Button>
-        <Button
-          variant="primary"
-          disabled={ids.length === 0 || !!problem || blockedByDaw}
-          onClick={() => {
-            reported.current = false;
-            requested.current = new Set();
-            setRefusedWhy({});
-            dispatch({ type: 'begin', ids, limit: choices.chapters });
-          }}
-        >
+        <Button variant="primary" disabled={ids.length === 0 || blocked || blockedByDaw} onClick={() => begin(ids)}>
           {label}
         </Button>
       </div>
@@ -278,6 +450,7 @@ export function CheckRecordingsDialog({
           {capability.message}
         </p>
       ) : null}
+      {prompt}
     </div>
   );
 }

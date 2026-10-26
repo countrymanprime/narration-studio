@@ -71,14 +71,14 @@ describe('runProblem', () => {
   });
 
   it('names a first-pass model that is not installed', () => {
-    expect(runProblem({ ...base, model: 'large-v3' }, engines)).toBe('Download Large v3 in Settings first.');
+    expect(runProblem({ ...base, model: 'large-v3' }, engines)).toBe('Large v3 is not installed yet: Check asks before downloading it.');
     expect(runProblem({ ...base, model: 'gone' }, engines)).toBe('Choose a speech model.');
   });
 
   it('names a larger model that is not installed, only when the second pass is on', () => {
     const choices: RunChoices = { ...base, recheckModel: 'large-v3' };
     expect(runProblem(choices, engines)).toBeUndefined();
-    expect(runProblem({ ...choices, recheck: true }, engines)).toBe('Download Large v3 in Settings first.');
+    expect(runProblem({ ...choices, recheck: true }, engines)).toBe('Large v3 is not installed yet: Check asks before downloading it.');
   });
 
   it('refuses a second pass by the same model as the first, which would find nothing new', () => {

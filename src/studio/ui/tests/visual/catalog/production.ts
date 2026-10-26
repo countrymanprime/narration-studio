@@ -149,8 +149,8 @@ export const productionStates: StateEntry[] = [
   },
 
   // The recording check (docs/utilities/recording-coverage.md) from a chapter's row menu: Check recordings, the one dialog every page opens,
-  // with the row's chapter ticked. What a check found is Proof's check card (catalog/proof.ts, check-*). The mock's chapters 1-3 have a
-  // current check with every word, 4-6 a current check with a third of the text missing, the rest were never checked.
+  // with the row's chapter ticked; a row's Show result (and a single chapter's finished run) shows that chapter's full result in it. The mock's
+  // chapters 1-3 have a current check with every word, 4-6 a current check with a third of the text missing, the rest were never checked.
   {
     page: 'production',
     state: 'recording-check-never',
@@ -163,6 +163,36 @@ export const productionStates: StateEntry[] = [
     description:
       'Production, a recording check running (?mockCoverage=hold) in the Check recordings dialog: the chapter with the real percent from the host, and Stop checking',
     ...LIVE_PROGRESS_MOVES_ON,
+  },
+  {
+    page: 'production',
+    state: 'recording-check-complete',
+    description:
+      'Production, Check recordings showing the result of a chapter read in full (Show result): the chapter summary (text present, paragraphs, audio checked), no pickups, the paragraph detail folded, Check again, Back to chapters and Done',
+  },
+  {
+    page: 'production',
+    state: 'recording-check-incomplete',
+    description:
+      'Production, Check recordings showing the result of a chapter not finished: the summary states "Recorded to paragraph N of M" rather than listing the unread end as a pickup, with no pickups from this check',
+  },
+  {
+    page: 'production',
+    state: 'recording-check-pickups',
+    description:
+      'Production, Check recordings showing a result with interior gaps (?mockCoverage=pickups): a skip and a short read listed one per line under Pickups, each with Go to paragraph, alongside a small unread tail stated in the summary, not listed',
+  },
+  {
+    page: 'production',
+    state: 'recording-check-stale',
+    description:
+      'Production, Check recordings showing a stored check that is out of date (?mockCoverage=stale): the plain-language reason and the old counts labelled as from then',
+  },
+  {
+    page: 'production',
+    state: 'recording-check-cascade',
+    description:
+      'Production, Check recordings showing a result from the model cascade (?mockCoverage=cascade): the summary names both models and the re-checked passage, and each pickup it confirmed missing says so (MC5)',
   },
   {
     page: 'production',
@@ -186,7 +216,13 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'recording-check-model-required',
     description:
-      'Production, Check recordings when the chosen speech model is not installed (?mockAssets=missing): the dialog says to download it in Settings and Check stays off, never a silent download',
+      "Production, Check recordings started with a speech model that is not installed (?mockAssets=missing): the first-use download question with the model's facts, over the dialog, never a silent download",
+  },
+  {
+    page: 'production',
+    state: 'recording-check-recheck-model-required',
+    description:
+      'Production, Check recordings started with a second look whose larger model needs downloading first (?mockCoverage=recheck-required): the same first-use question as the first-pass model, with "Check with <first model> only" beside the download',
   },
   // Stage suggestions, on `?mockStages=mixed`: Chapter 4 read in
   // full (suggested), Chapter 5 with no track linked (can't tell), Chapter 6 short (not ready), Chapter 7 confirmed into Editing and since

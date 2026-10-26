@@ -10,6 +10,7 @@ import {
   openImportReview,
   openProduction,
   openRecordingCheck,
+  showResult,
   openStageEvidence,
   openTrackPanel,
   productionLoaded,
@@ -181,6 +182,34 @@ export const productionDrivers: Record<string, Driver> = {
     // The mock holds the run at its last transcribing step, so the percent is the same at every viewport.
     await dialog.getByRole('button', { name: 'Stop checking' }).waitFor();
   },
+  // A chapter's full result in Check recordings, from its row's Show result: the dialog's one result view.
+  'recording-check-complete': async (page) => {
+    const dialog = await showResult(page, 'Chapter 1');
+    await dialog.getByText('Passes the check').waitFor();
+  },
+  // A chapter that is simply unfinished states it in the summary
+  // ("Recorded to paragraph N of M") rather than listing its unread end as a pickup.
+  'recording-check-incomplete': async (page) => {
+    const dialog = await showResult(page, 'Chapter 4');
+    await dialog.getByText(/^Recorded to paragraph \d+ of \d+/).waitFor();
+    await dialog.getByText('Pickups (0)').waitFor();
+  },
+  'recording-check-pickups': async (page) => {
+    const dialog = await showResult(page, 'Chapter 4', 'mockCoverage=pickups');
+    await dialog.getByText('Pickups (2)').waitFor();
+    await dialog.getByText('Skipped').waitFor();
+    await dialog.getByText('Read short').waitFor();
+  },
+  'recording-check-stale': async (page) => {
+    const dialog = await showResult(page, 'Chapter 4', 'mockCoverage=stale');
+    await dialog.getByText('This result is out of date').waitFor();
+  },
+  // The model cascade's own result: both models named, and the pickups it confirmed still missing.
+  'recording-check-cascade': async (page) => {
+    const dialog = await showResult(page, 'Chapter 4', 'mockCoverage=cascade');
+    await dialog.getByText(/passage.*re-checked with the large-v3-turbo Whisper model/).waitFor();
+    await dialog.getByText('Confirmed missing by the large-v3-turbo Whisper model.').first().waitFor();
+  },
   // The report dialog on a book with an amount: the form beside the live preview.
   'report-dialog': async (page) => {
     await openProduction(page, '?mockProduction=on-pace');
@@ -205,11 +234,25 @@ export const productionDrivers: Record<string, Driver> = {
   'recording-check-refused': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7', 'mockCoverageRefusal=unmapped');
     await dialog.getByRole('button', { name: 'Check 1 chapter' }).click();
-    await dialog.getByRole('alert').getByRole('link', { name: 'Open the audio engine panel' }).waitFor();
+    await dialog
+      .getByRole('alert')
+      .getByRole('combobox', { name: /^Track for Chapter 7/ })
+      .waitFor();
   },
   'recording-check-model-required': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7', 'mockAssets=missing');
-    await dialog.getByText(/in Settings first\.$/).waitFor();
+    await dialog.getByRole('button', { name: 'Check 1 chapter' }).click();
+    await confirmDialog(page, 'Download local Whisper model?').waitFor();
+  },
+  // The re-check model's own missing-model gate: "Check with <first model> only" beside the download.
+  'recording-check-recheck-model-required': async (page) => {
+    const dialog = await openRecordingCheck(page, 'Chapter 7', 'mockCoverage=recheck-required');
+    const second = dialog.getByRole('checkbox', { name: /^Look again with a larger model/ });
+    if ((await second.getAttribute('aria-checked')) !== 'true') await second.click();
+    await dialog.getByRole('button', { name: 'Check 1 chapter' }).click();
+    const ask = confirmDialog(page, 'Download the re-check model?');
+    await ask.waitFor();
+    await ask.getByRole('button', { name: / only$/ }).waitFor();
   },
   // The stage board's own options, opened from the jump menu: the switch and the signals, down to the last of them.
   'stage-suggestion-options': async (page) => {

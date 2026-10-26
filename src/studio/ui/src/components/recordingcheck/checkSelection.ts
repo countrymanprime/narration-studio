@@ -1,12 +1,16 @@
 import type { CoverageEngine, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 
-/** The chapters the dialog offers: the ones with a recording. A length the host measured counts; so does a stored share when no length is known. */
-export function recordedChapters(chapters: readonly ManuscriptChapter[]): ManuscriptChapter[] {
+/**
+ * The chapters the dialog offers: the ones with a recording. A length the host measured counts; so does a stored share when no length is known.
+ * A chapter the opener asked for (`asked`: a chapter's own Check recordings) is offered too while nothing has measured its recording, since
+ * not measured is not empty; a recording measured as empty is still left out.
+ */
+export function recordedChapters(chapters: readonly ManuscriptChapter[], asked: readonly string[] = []): ManuscriptChapter[] {
   return chapters.filter((chapter) => {
     if (chapter.removedFromRecording) return false;
     if (chapter.recordedSeconds !== undefined) return chapter.recordedSeconds > 0;
-    return (chapter.recordedFraction ?? 0) > 0;
+    return (chapter.recordedFraction ?? 0) > 0 || asked.includes(chapter.id);
   });
 }
 
@@ -78,5 +82,4 @@ export function stoppedToast(finished: number, interrupted = 1): string {
   return finished === 0 ? 'Stopped. Nothing was stored.' : `Stopped. ${plural(finished, 'chapter', 'chapters')} finished and kept; ${left}.`;
 }
 
-export const engineOptionLabel = (engine: CoverageEngine): string =>
-  engine.installState === 'installed' ? engine.label : `${engine.label} (Download it in Settings)`;
+export const engineOptionLabel = (engine: CoverageEngine): string => (engine.installState === 'installed' ? engine.label : `${engine.label} (not installed)`);
