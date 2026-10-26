@@ -5,16 +5,12 @@ import {
   MAX_EXTRAPOLATE_MS,
   MIN_BAR_HEIGHT,
   PEAK_HEADROOM,
-  PULSE,
   barLayout,
   barPosition,
-  barScale,
   DISPLAY_RANGE_DB,
-  grownHalf,
   halfHeight,
   levelOf,
   playheadAt,
-  pulseEnvelope,
 } from './ribbonBars';
 
 describe('barLayout', () => {
@@ -104,89 +100,6 @@ describe('levelOf, the display scale', () => {
   it('keeps a reference of 1 or less from dividing by nothing', () => {
     expect(levelOf(2, { ref: 1 })).toBe(1);
     expect(levelOf(2, { ref: 0 })).toBe(1);
-  });
-});
-
-describe('pulseEnvelope', () => {
-  it('is 1 under the playhead and 0 at and beyond the reach on both sides', () => {
-    expect(pulseEnvelope(0)).toBe(1);
-    expect(pulseEnvelope(PULSE.ahead)).toBe(0);
-    expect(pulseEnvelope(-PULSE.behind)).toBe(0);
-    expect(pulseEnvelope(100)).toBe(0);
-    expect(pulseEnvelope(-100)).toBe(0);
-  });
-  it('decays monotonically with distance on each side', () => {
-    for (const sign of [1, -1]) {
-      let last = 1;
-      for (let d = 0.25; d < 12; d += 0.25) {
-        const v = pulseEnvelope(sign * d);
-        expect(v).toBeLessThanOrEqual(last);
-        last = v;
-      }
-    }
-  });
-  it('trails further behind the playhead than it leads ahead', () => {
-    expect(pulseEnvelope(-3)).toBeGreaterThan(pulseEnvelope(3));
-    expect(pulseEnvelope(-3)).toBeGreaterThan(0.2);
-    expect(pulseEnvelope(PULSE.ahead - 0.1)).toBeLessThan(0.01);
-  });
-  it('eases: half way to the reach is half the height', () => {
-    expect(pulseEnvelope(PULSE.ahead / 2)).toBeCloseTo(0.5, 6);
-    expect(pulseEnvelope(-PULSE.behind / 2)).toBeCloseTo(0.5, 6);
-  });
-  it('is 0 for NaN rather than a NaN height', () => {
-    expect(pulseEnvelope(Number.NaN)).toBe(0);
-  });
-});
-
-describe('barScale', () => {
-  it('grows the bar under the playhead by PULSE.grow, 50% taller', () => {
-    expect(PULSE.grow).toBe(0.5);
-    expect(barScale(0, false)).toBeCloseTo(1.5, 9);
-  });
-  it('is 1 for a bar out of reach', () => {
-    expect(barScale(50, false)).toBe(1);
-    expect(barScale(-50, false)).toBe(1);
-  });
-  it('is always 1 when motion is reduced', () => {
-    for (const d of [-5, -1, 0, 1, 2.5]) expect(barScale(d, true)).toBe(1);
-  });
-  it('is never below 1 and never above 1 + grow', () => {
-    for (let d = -12; d <= 12; d += 0.25) {
-      const s = barScale(d, false);
-      expect(s).toBeGreaterThanOrEqual(1);
-      expect(s).toBeLessThanOrEqual(1 + PULSE.grow + 1e-9);
-    }
-  });
-});
-
-// A wave that passes: nothing oscillates in time. The bump sits on the playhead and moves with it, so a bar grows as the playhead approaches,
-// is tallest as it is under it, and shrinks again as the playhead leaves.
-describe('the wave that passes with the playhead', () => {
-  it('lets the bars around the playhead grow by smaller amounts, the further the smaller, on each side', () => {
-    expect(barScale(1, false)).toBeLessThan(barScale(0, false));
-    expect(barScale(2.5, false)).toBeLessThan(barScale(1, false));
-    expect(barScale(-1, false)).toBeLessThan(barScale(0, false));
-    expect(barScale(-4, false)).toBeLessThan(barScale(-1, false));
-    expect(barScale(2.5, false)).toBeGreaterThan(1);
-  });
-  it('grows a bar as the playhead comes up to it and shrinks it as the playhead goes by', () => {
-    // d is the bar's distance ahead of the playhead; the playhead moving on makes d fall from the reach ahead to minus the reach behind.
-    const passing: number[] = [];
-    for (let d = PULSE.ahead; d >= -PULSE.behind; d -= 0.25) passing.push(barScale(d, false));
-    const top = passing.indexOf(Math.max(...passing));
-    for (let i = 1; i <= top; i += 1) expect(passing[i]).toBeGreaterThanOrEqual(passing[i - 1]);
-    for (let i = top + 1; i < passing.length; i += 1) expect(passing[i]).toBeLessThanOrEqual(passing[i - 1]);
-    expect(passing[top]).toBeCloseTo(1 + PULSE.grow, 9);
-    expect(passing[0]).toBe(1);
-    expect(passing[passing.length - 1]).toBe(1);
-  });
-  it('grows the bar under the playhead half way to the lane edge, and never past it, however tall it was', () => {
-    expect(grownHalf(10, 30, 0, false)).toBeCloseTo(20, 9);
-    for (let half = 0; half <= 40; half += 2.5)
-      for (let d = -PULSE.behind; d <= PULSE.ahead; d += 0.5) expect(grownHalf(half, 30, d, false)).toBeLessThanOrEqual(30 + 1e-9);
-    expect(grownHalf(10, 30, 50, false)).toBe(10);
-    expect(grownHalf(10, 30, 0, true)).toBe(10);
   });
 });
 

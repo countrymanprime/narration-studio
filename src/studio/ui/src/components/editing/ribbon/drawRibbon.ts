@@ -1,5 +1,6 @@
 import type { PeakColumn } from './peaksWindow';
-import { BAR_RADIUS, barLayout, barPosition, FULL_SCALE, grownHalf, halfHeight, playheadAt, type PeakScale } from './ribbonBars';
+import { BAR_RADIUS, barLayout, barPosition, FULL_SCALE, halfHeight, playheadAt, type PeakScale } from './ribbonBars';
+import { barSwell, crestAt, swelledHalf } from './waveSwell';
 import type { RibbonLayout } from './ribbonLayout';
 
 import { kindColour, type KindId } from '../../../kinds/kindMap';
@@ -48,17 +49,26 @@ export interface RibbonSize {
 /** A cut word has no length in the document; the gap marker is at least this wide (CSS pixels). */
 const MIN_GAP = 6;
 
-/** What moves in one frame. Without `animate` the bars are drawn at rest and the playhead where the host last said it was. */
+/** What moves in one frame. Without `animate` the playhead is where the host last said it was; without `swell` the bars are at rest. */
 export interface RibbonFrame {
-  /** The frame clock in milliseconds, the beat's phase. */
+  /** The frame clock in milliseconds. */
   nowMs: number;
   /** Milliseconds since the host last published the playhead, to move it on between updates. */
   sinceUpdateMs: number;
   animate: boolean;
+  /**
+   * Null for bars at rest. Otherwise the swell is on: its crest rides the playhead when there is one, and on placeholder columns (or with no
+   * playhead) it is this phase (0..1) of the way through a loop (`crestAt`).
+   */
+  swell: number | null;
 }
-export const STILL_FRAME: RibbonFrame = { nowMs: 0, sinceUpdateMs: 0, animate: false };
+export const STILL_FRAME: RibbonFrame = { nowMs: 0, sinceUpdateMs: 0, animate: false, swell: null };
 
-/** Draws the line's window: tints, selection band, rounded bars from the peaks columns (grown near the playhead), ticks, hatched cut gaps, then the playhead. Sizes the canvas to the device pixel ratio. */
+/**
+ * Draws the line's window: tints, selection band, rounded bars from the peaks columns (scaled by the swell when the frame has one), ticks,
+ * hatched cut gaps, then the playhead. Sizes the canvas to the device pixel ratio. `placeholder` columns stand in while the peaks are read and
+ * are drawn in the unplayed colour.
+ */
 export function drawRibbon(
   canvas: HTMLCanvasElement,
   size: RibbonSize,
@@ -67,6 +77,7 @@ export function drawRibbon(
   colors: RibbonColors,
   frame: RibbonFrame = STILL_FRAME,
   scale: PeakScale = FULL_SCALE,
+  placeholder = false,
 ): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -97,7 +108,9 @@ export function drawRibbon(
   }
 
   const head = layout.playhead == null ? null : frame.animate ? playheadAt(layout.playhead, frame.sinceUpdateMs, layout.t1) : layout.playhead;
-  drawBars(ctx, width, height, columns, colors, head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length), frame, scale);
+  const headBar = head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length);
+  const crest = frame.swell == null ? null : headBar != null && !placeholder ? headBar : crestAt(frame.swell, columns.length);
+  drawBars(ctx, width, height, columns, placeholder ? { ...colors, bars: colors.unplayed } : colors, headBar, crest, scale);
 
   ctx.save();
   ctx.globalAlpha = 0.7;
@@ -140,8 +153,9 @@ export function drawRibbon(
 }
 
 /**
- * The bars, centred on the middle line. With a playhead (`headBar`, in bars) the played bars are `colors.bars` and the rest `colors.unplayed`, and, while
- * animating, the bars near it grow toward the lane's edge (`grownHalf`). Each colour is one path, filled once. Without one every bar is `colors.bars`.
+ * The bars, centred on the middle line. With a playhead (`headBar`, in bars) the played bars are `colors.bars` and the rest `colors.unplayed`;
+ * without one every bar is `colors.bars`. With a `crest` (in bars) each bar is scaled on its own height (`barSwell`), never past the lane's edge.
+ * Each colour is one path, filled once.
  */
 function drawBars(
   ctx: CanvasRenderingContext2D,
@@ -150,7 +164,7 @@ function drawBars(
   columns: PeakColumn[],
   colors: RibbonColors,
   headBar: number | null,
-  frame: RibbonFrame,
+  crest: number | null,
   scale: PeakScale,
 ): void {
   const mid = height / 2;
@@ -158,7 +172,7 @@ function drawBars(
   const radius = Math.min(BAR_RADIUS, barWidth / 2);
   const halfAt = (i: number): number => {
     const half = halfHeight(columns[i], mid, scale);
-    return headBar == null ? half : grownHalf(half, mid - 0.5, i + 0.5 - headBar, !frame.animate);
+    return crest == null ? half : swelledHalf(half, barSwell(i, columns.length, crest), mid - 0.5);
   };
   // One path and one fill for each colour, not one stroke for each bar.
   const fillBars = (colour: string, from: number, to: number): void => {

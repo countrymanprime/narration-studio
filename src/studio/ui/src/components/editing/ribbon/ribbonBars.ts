@@ -15,7 +15,7 @@ export const BAR_GAP = 1;
 export const MIN_BAR_HEIGHT = 1;
 /** Never more than half the bar's width. */
 export const BAR_RADIUS = 1;
-/** A bar at the chapter's reference level fills this much of the height, so a bar near the playhead has a little room to grow. */
+/** A bar at the chapter's reference level fills this much of the height, so a bar under the swell (waveSwell.ts) has a little room to grow. */
 export const PEAK_HEADROOM = 0.9;
 
 /**
@@ -73,42 +73,6 @@ export function barLayout(width: number, fixedCount?: number): BarLayout {
 export function halfHeight(column: PeakColumn, mid: number, scale: PeakScale = FULL_SCALE): number {
   const level = levelOf(Math.max(Math.abs(column[0]), Math.abs(column[1])), scale);
   return Math.max(MIN_BAR_HEIGHT / 2, level * mid * PEAK_HEADROOM);
-}
-
-/**
- * The wave that rides the playhead. Distances are in bars so the look is the same for a one second window and a one minute window. Nothing
- * oscillates in time: the bump sits on the playhead and moves with it, so a bar grows as the playhead comes up to it, is tallest while it is
- * under it, and shrinks again as the playhead leaves.
- */
-export const PULSE = {
-  /** The bump reaches this many bars behind the playhead (already played) and ahead of it (about to play). */
-  behind: 18,
-  ahead: 14,
-  /** The bar under the playhead grows this share of the way from its height at rest to the lane's edge (`grownHalf`). */
-  grow: 0.5,
-} as const;
-
-/** The bump's shape at `d` bars from the playhead (positive ahead of it): 1 under the playhead, easing to 0 at the reach by a half cosine. */
-export function pulseEnvelope(d: number): number {
-  const reach = d >= 0 ? PULSE.ahead : PULSE.behind;
-  const x = Math.abs(d);
-  if (!(x < reach)) return 0;
-  return 0.5 * (1 + Math.cos((Math.PI * x) / reach));
-}
-
-/** The factor a bar `d` bars from the playhead is taller by. 1 for a bar out of reach and always 1 when motion is reduced. */
-export function barScale(d: number, reduced: boolean): number {
-  if (reduced) return 1;
-  return 1 + PULSE.grow * pulseEnvelope(d);
-}
-
-/**
- * A bar's half height `d` bars from the playhead: it grows by `barScale` of the way that is left to `room` (the lane's edge), so the bar under the
- * playhead goes half way to the edge and no bar ever passes it, however tall it was at rest.
- */
-export function grownHalf(half: number, room: number, d: number, reduced: boolean): number {
-  if (!(half < room)) return Math.min(half, room);
-  return half + (barScale(d, reduced) - 1) * (room - half);
 }
 
 /** The host publishes the position a few times a second; between updates the drawing moves the playhead on at the playing rate, but never further than this. */
