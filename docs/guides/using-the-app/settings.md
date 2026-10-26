@@ -16,7 +16,7 @@ offers **Back to** the page you came from.
 
 ## Every setting says whose it is and who uses it
 
-Each row has a name, a line on what it does, and under it:
+Each row has a name, one line on what it does (a **?** beside the name opens the details, where there are more), and under it:
 
 - **This computer**, **This project** or **All projects**. A setting for **All projects** is one value for the
   computer that a project may override: under the control it says **This project uses the computer setting.** with
@@ -38,7 +38,7 @@ says how many it holds.
 
 ## Find a setting
 
-At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description, its details and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
 whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
@@ -72,7 +72,7 @@ With **Audacity** chosen, **Connection** is **Audacity connection** instead: a s
 
 Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
 one); with REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
-for Audacity or the built-in recorder); and, under Advanced for any recorder, **Experimental DAW actions**,
+for Audacity or the built-in recorder); and, under Advanced for any recorder,
 **Capabilities** and, for REAPER, **Sync activity**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
@@ -95,8 +95,7 @@ you chose elsewhere, and the row does not check whether a take is recording.
 
 ### Choose REAPER
 
-Each radio says whether that program was found on this computer, or what stops it. When the Experimental switch keeps
-recorders off, one line under the radios says so (**Experimental: switched off in Settings.**, with the switch under Advanced, below). A project folder holding a REAPER
+Each radio says whether that program was found on this computer, or what stops it. A project folder holding a REAPER
 project file (`.rpp`) starts on REAPER; pick another radio to change it.
 
 ### Link your REAPER project
@@ -126,11 +125,10 @@ the last 5 seconds, and the card says whether its open project matches the linke
 - **Start the launcher script with REAPER** (on by default): the app keeps its bridge in REAPER's Scripts folder and
   REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off, the app writes nothing into
   REAPER and REAPER does not connect.
-- **Experimental DAW actions** (Advanced, off by default, for REAPER and Audacity alike): the DAW actions not yet verified
-  stay refused while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
-- **Capabilities** (Advanced): a table, across the row under its name, of what the app can ask the recording tool to do, each with **Auto**, **On** or
-  **Off** and a **Now** column: **Available**, **Experimental** or **Unavailable**,
-  with the tool's own reason beside an unavailable one, and a warning on any action that replaces audio that cannot be brought back.
+- **Capabilities** (Advanced): a table, titled with the linked tool's name ("What REAPER can do"), of what the app can ask the
+  recording tool to do, each with a **Now** column: **Available**, or **Unavailable** with the tool's own reason beside it
+  (REAPER not answering, or something that DAW cannot do, such as "Audacity cannot set an audio interface's input gain").
+  Nothing in it turns a capability on or off: what the linked DAW can do is on, all the time.
 - **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
   chapter a later sync linked when you saved in REAPER, and each new track that isn't a chapter. A link sync made has **Undo**
   while the chapter still holds it; Undo removes that link and sync never makes the same one again.
@@ -150,7 +148,7 @@ or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Rec
 **Background checks** holds **Check recordings in the background**, the **Model for background checks** (`tiny`) and the
 **Double-check model for background checks** (`small`, or **None (one model)**), and under Advanced the **Processors for background
 checks** (0 lets the app choose half of this computer's). These apply only to checks the app starts on its own
-([Checking what you recorded](booth.md#checking-what-you-recorded)); your own **Check recording** keeps the models above. A larger
+([Checking what you recorded](booth.md#checking-what-you-recorded)); a check you start in **Check recordings** keeps the models above. A larger
 model, or more than half of the processors, shows a warning under the choice: it makes each check slower and keeps the computer busy
 for longer.
 
@@ -182,7 +180,7 @@ Each row says what it is, its type and size, its **Status**, **Used by** (pages)
 - **Download failed**: the reason (no connection, not enough disk space) is in the row, with **Retry** and **Dismiss**.
 - **Not available yet**: the app lists the asset but does not offer it in this version. The row says why and has no buttons.
 
-With nothing downloaded, the page offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large, and a local language model), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. BookNLP, small and large, can be downloaded: **Download** asks first, and a Story Bible scan then uses the one you have, the large first. GLiNER and the local language model are not offered yet and say why. A tool whose download failed says why in its row, with **Try again** and **Dismiss**; when the files arrived and matched but could not be unpacked or saved, **Details** under the reason names the file and what went wrong, which is what to quote in a report. The download dialog that other pages open shows the same line under **Live activity**.
+With nothing downloaded, the page offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. GLiNER (about 730 MB) finds the names of characters, places and things, including invented ones; BookNLP groups the ways a character is named and works out who speaks each line. **Download** asks first; a Story Bible scan then runs the basic rules and each tool you have (with both BookNLP sizes, the large one). **Remove** deletes a tool, and the scan goes back to the rules and whatever else is installed. A tool whose download failed says why in its row, with **Try again** and **Dismiss**; when the files arrived and matched but could not be unpacked or saved, **Details** under the reason names the file and what went wrong, which is what to quote in a report. The download dialog that other pages open shows the same line under **Live activity**.
 
 ## Delivery
 
@@ -255,7 +253,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 - **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
 - **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
-- **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
+- **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font and column width chosen here; its **Text settings** change the same font and width.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
 - **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.

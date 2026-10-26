@@ -155,8 +155,6 @@ func placeRefusal(name string, moving bool, err error) string {
 		return readAloudConnectionRefusal(name, reaperNotRunning).Message
 	case errors.Is(err, bridge.ErrUnavailable):
 		return readAloudConnectionRefusal(name, reaperStandalone).Message
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return err.Error()
 	case errors.Is(err, context.DeadlineExceeded):
 		return fmt.Sprintf(placeNoAnswerSentence, name, int(placeTimeout.Seconds()))
 	case moving:

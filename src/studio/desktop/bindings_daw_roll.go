@@ -26,7 +26,7 @@ const (
 // keeping the earlier audio as a take (SND-6a, docs/reference/daw/capabilities.md; the Studio Next mock's roll). The page sends the chapter
 // id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
 // (docs/architecture/threat-model.md, row 5f). The answer is a DawResult: the punch capability's own sentence
-// when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off),
+// when the resolver refuses it (a standalone launch, a DAW not answering),
 // checked first; a time that is not a number of seconds or is past where the DAW records now; the confirmation sentence
 // when the capability is destructive and confirmed is false; and a gone track as the role's stale refusal. Nothing is sent
 // to the DAW on any refusal. A chapter the manuscript does not have is an error.

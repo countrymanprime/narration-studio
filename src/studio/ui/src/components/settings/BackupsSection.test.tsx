@@ -36,7 +36,7 @@ const defaults = (): Layers => ({
 });
 
 function renderSection({
-  setup = 'audacity-backups',
+  setup = 'audacity',
   caps,
   daw,
   layers = defaults(),
@@ -124,16 +124,23 @@ describe('BackupsSection', () => {
   });
 
   it("the-reason-comes-from-the-capability: present but unavailable shows the capability's own sentence instead of the rows", async () => {
-    renderSection({ setup: 'audacity' });
+    const quiet = 'Audacity is not answering. Open the Audacity chip at the top for the steps.';
+    renderSection({
+      caps: {
+        ...DAW_SETUPS.audacity,
+        reachable: false,
+        capabilities: { ...DAW_SETUPS.audacity.capabilities, backups: { level: 'experimental', available: false, reason: 'not_running', message: quiet } },
+      },
+    });
     expect(await screen.findByRole('heading', { name: 'Backups' })).toBeTruthy();
-    expect(await screen.findByText(DAW_SETUPS.audacity.capabilities.backups!.message!)).toBeTruthy();
+    expect(await screen.findByText(quiet)).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
   });
 
   it('the-wording-names-the-daw-from-the-report', async () => {
     // A report from another DAW that has backups: the help names that DAW, never Audacity.
     const reaper = DAW_SETUPS.reaper;
-    const caps: DawCapabilities = { ...reaper, capabilities: { ...reaper.capabilities, backups: DAW_SETUPS['audacity-backups'].capabilities.backups! } };
+    const caps: DawCapabilities = { ...reaper, capabilities: { ...reaper.capabilities, backups: DAW_SETUPS.audacity.capabilities.backups! } };
     renderSection({ caps });
     expect(await screen.findByText(/^REAPER keeps a copy of the audio around an edit/)).toBeTruthy();
     expect(screen.queryByText(/Audacity/)).toBeNull();
@@ -141,7 +148,7 @@ describe('BackupsSection', () => {
 
   it('a failed capability read says why and reads again on Retry', async () => {
     let fail = true;
-    const capabilities = vi.fn(() => (fail ? Promise.reject(new Error('the DAW did not answer')) : Promise.resolve(DAW_SETUPS['audacity-backups'])));
+    const capabilities = vi.fn(() => (fail ? Promise.reject(new Error('the DAW did not answer')) : Promise.resolve(DAW_SETUPS.audacity)));
     renderSection({ daw: { capabilities } });
     expect((await screen.findByRole('alert')).textContent).toContain('the DAW did not answer');
     fail = false;
@@ -151,7 +158,7 @@ describe('BackupsSection', () => {
 
   it('keeps focus on the page when Retry succeeds and its error line goes away, and on Retry when the read fails again', async () => {
     let fail = true;
-    const capabilities = vi.fn(() => (fail ? Promise.reject(new Error('the DAW did not answer')) : Promise.resolve(DAW_SETUPS['audacity-backups'])));
+    const capabilities = vi.fn(() => (fail ? Promise.reject(new Error('the DAW did not answer')) : Promise.resolve(DAW_SETUPS.audacity)));
     renderSection({ daw: { capabilities } });
     await screen.findByRole('alert');
     const retry = screen.getByRole('button', { name: 'Retry' });
@@ -168,7 +175,7 @@ describe('BackupsSection', () => {
     const Section = BackupsSection;
     render(
       <ApiProvider api={createMockApi({ settingsForScope: async (scope) => ({ DAW: defaults()[scope] }) })}>
-        <PortOverrides clients={{ daw: createMockDawClient(DAW_SETUPS['audacity-backups']) }}>
+        <PortOverrides clients={{ daw: createMockDawClient(DAW_SETUPS.audacity) }}>
           <Section />
         </PortOverrides>
       </ApiProvider>,

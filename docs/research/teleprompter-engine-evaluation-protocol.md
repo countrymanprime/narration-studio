@@ -30,9 +30,10 @@ input device, whether that device is a live microphone or an audio-loopback
 device fed by a real-time playback of a recording:
 
 1. **Accuracy pass (`--wav`, no lag claim).** Fast, hardware-free, safe to run
-   anywhere. Replays a recording through `--wav` (or through
-   `src/studio/sidecars/manuscript-teleprompter/core/replay.py` against a printed
-   session's NDJSON, `--stream`) and reports `coverage`, `backward_moves`,
+   anywhere. Replays a recording through `--wav` (or through the host's tracker,
+   `go run ./cmd/booth-replay --stream session.ndjson --script script.txt` from `src/studio/desktop`, against a
+   printed session's NDJSON; a Moonshine probe recording goes through
+   `src/studio/sidecars/manuscript-teleprompter/core/replay.py --events X` piped into it) and reports `coverage`, `backward_moves`,
    `jumps`, `waiting_events` and flag counts — never `speculation_lead_seconds`
    as a lag figure, and never the Moonshine spike's old position-matched lag
    metric (rejected: it matched words by position). Use this to confirm the tracker behaves

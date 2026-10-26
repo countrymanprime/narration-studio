@@ -17,18 +17,13 @@ afterEach(() => {
 });
 
 // The DAW's own meters under the Levels menu's sliders (#2251 item 11): the record-armed track's input under Input level, the output under
-// Monitor level, read while the menu is open. The meters only read, so they are Supported and on by default (the owner's decision on #2251);
-// only the monitor slider, which writes, keeps a way to turn Experimental on.
+// Monitor level, read while the menu is open. No setting turns them, or the monitor slider, on: what the DAW reports is what shows.
 
 const ON: DawCapabilitySupport = { level: 'experimental', available: true };
 const METERS_ON: DawCapabilitySupport = { level: 'supported', available: true };
-const METERS_TURNED_OFF: DawCapabilitySupport = { level: 'supported', available: false, reason: 'turned_off', message: 'Turned off in Settings.' };
-const EXPERIMENTAL_OFF: DawCapabilitySupport = {
-  level: 'experimental',
-  available: false,
-  reason: 'experimental_off',
-  message: 'Experimental: switched off in Settings.',
-};
+const NOT_ANSWERING = 'REAPER is not answering. Check that REAPER is open, then try again.';
+const METERS_QUIET: DawCapabilitySupport = { level: 'supported', available: false, reason: 'not_running', message: NOT_ANSWERING };
+const MONITOR_QUIET: DawCapabilitySupport = { level: 'experimental', available: false, reason: 'not_running', message: NOT_ANSWERING };
 const ARMED: DawMeters = { ok: true, output: -18, input: -24, inputTrack: 'Chapter 1 Narration', message: '', reason: '' };
 
 function menu(
@@ -37,7 +32,6 @@ function menu(
   setup: keyof typeof DAW_SETUPS = 'reaper',
 ) {
   const reads: number[] = [];
-  const onOpenSettings = vi.fn();
   const api = createMockApi({
     dawMonitorLevel: async (): Promise<DawMonitorLevel> => ({ ok: true, level: 60, message: '' }),
     dawMeters: async () => (reads.push(Date.now()), answers()),
@@ -55,7 +49,7 @@ function menu(
           reachable,
           device: 'USB Mic',
           onDevice: vi.fn(),
-          levels: { monitor, input: caps.input_level, meters, onOpenSettings },
+          levels: { monitor, input: caps.input_level, meters },
         }}
         roomTone="Room not measured yet"
         keymap={defaultKeymap()}
@@ -64,7 +58,6 @@ function menu(
   );
   return {
     reads,
-    onOpenSettings,
     open: () => userEvent.click(screen.getByRole('button', { name: 'Levels' })),
     close: () => userEvent.keyboard('{Escape}'),
   };
@@ -140,43 +133,21 @@ describe("the DAW's meters in the Levels menu", () => {
     expect(await within(popup()).findByText('This REAPER version cannot read its meters.')).toBeTruthy();
   });
 
-  it('with the meters turned off, says why once and reads nothing', async () => {
-    const { open, reads } = menu(() => ARMED, { meters: METERS_TURNED_OFF });
+  it('with the meters unavailable, says why once in the DAW’s sentence and reads nothing', async () => {
+    const { open, reads } = menu(() => ARMED, { meters: METERS_QUIET });
     await open();
-    expect(within(popup()).getByText('REAPER’s own input and output levels: Turned off in Settings.')).toBeTruthy();
+    expect(within(popup()).getByText(`REAPER’s own input and output levels: ${NOT_ANSWERING}`)).toBeTruthy();
     expect(within(popup()).queryByRole('meter', { name: 'REAPER input level' })).toBeNull();
     expect(reads).toEqual([]);
   });
 
-  it("shows the meters with Experimental off: the one Turn on in Settings is the monitor slider's", async () => {
-    const { open, onOpenSettings } = menu(() => ARMED, { monitor: EXPERIMENTAL_OFF });
+  it('offers no Settings switch anywhere in the menu: the monitor slider off says only the DAW’s reason', async () => {
+    const { open } = menu(() => ARMED, { monitor: MONITOR_QUIET });
     await open();
     expect(await within(popup()).findByText('Heard on “Chapter 1 Narration” in REAPER.')).toBeTruthy();
-    expect(meter('REAPER output level')).toBeTruthy();
-    const buttons = within(popup()).getAllByRole('button', { name: 'Turn on in Settings' });
-    expect(buttons).toHaveLength(1);
-    await userEvent.click(buttons[0]);
-    expect(onOpenSettings).toHaveBeenCalledTimes(1);
-  });
-
-  it('never offers a switch for the meters, even from a host that still says Experimental keeps them off', async () => {
-    const { open } = menu(() => ARMED, { meters: EXPERIMENTAL_OFF });
-    await open();
-    expect(within(popup()).getByText('REAPER’s own input and output levels: Experimental: switched off in Settings.')).toBeTruthy();
+    expect(within(popup()).getByText(NOT_ANSWERING)).toBeTruthy();
     expect(within(popup()).queryByRole('button', { name: 'Turn on in Settings' })).toBeNull();
-  });
-
-  it('offers no way to turn Experimental on while the DAW is not answering: turning it on would not help', async () => {
-    const { open } = menu(() => ARMED, { meters: EXPERIMENTAL_OFF, monitor: EXPERIMENTAL_OFF, reachable: false });
-    await open();
-    expect(within(popup()).queryByRole('button', { name: 'Turn on in Settings' })).toBeNull();
-  });
-
-  it('offers no way to turn on what Experimental does not keep off', async () => {
-    const turnedOff: DawCapabilitySupport = { level: 'experimental', available: false, reason: 'turned_off', message: 'Turned off in Settings.' };
-    const { open } = menu(() => ARMED, { meters: turnedOff, monitor: { ...turnedOff } }, 'reaper');
-    await open();
-    expect(within(popup()).queryByRole('button', { name: 'Turn on in Settings' })).toBeNull();
+    expect(within(popup()).queryByText(/experimental/i)).toBeNull();
   });
 
   it('a track name with emoji and right-to-left text wraps inside the menu', async () => {

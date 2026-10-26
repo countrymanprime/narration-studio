@@ -2,9 +2,9 @@
   "result": {
     "ok": false,
     "changed": false,
-    "message": "Experimental: switched off in Settings.",
+    "message": "REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.",
     "undoSteps": 0,
-    "refused": "Experimental: switched off in Settings."
+    "refused": "REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself."
   },
   "settings": [],
   "truncated": false,

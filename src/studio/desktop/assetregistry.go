@@ -96,7 +96,7 @@ type assetRegistry struct {
 	dictionary *dictionary.Manager
 	// encoder is the FFmpeg build catalog the MP3 encoder runs; nil when its catalog is unreadable.
 	encoder *ffmpeg.Manager
-	// analysis is the optional Story Bible analysis tools' catalog (GLiNER, BookNLP, a local language model); nil when it is unreadable.
+	// analysis is the optional Story Bible analysis tools' catalog (GLiNER and BookNLP); nil when it is unreadable.
 	analysis *analysistools.Manager
 }
 

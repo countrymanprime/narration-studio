@@ -567,7 +567,8 @@ segment length (capped by `MAX_BUFFER_SECONDS`).
 
 **Third source: Autocue's script-tracking design.** The script tracker that
 turns the recognised words into a reading position,
-[`src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py`](../../src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py),
+[`src/studio/desktop/internal/scripttrack`](../../src/studio/desktop/internal/scripttrack/tracker.go)
+(the sidecar's `script_tracker.py` until 2026-10-25),
 follows the design of [Autocue](https://github.com/EdNutting/autocue): a
 forward-only speculative cursor driven by every partial hypothesis, a
 committed position driven by confirmed words, and fuzzy matching that ignores

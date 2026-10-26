@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"desktop/internal/brand"
+	"desktop/internal/contractfile"
 	"desktop/internal/settings"
 )
 
@@ -57,11 +58,14 @@ type buildParityResult struct {
 	Ambiguous      bool     `json:"ambiguous"`
 }
 
-// recordedModel answers a build's model work from a recorded case, and keeps the words it was asked for.
+// recordedModel answers a build's model work from a recorded case, and keeps the words it was asked for. byWord, when set, answers
+// each word with the answer recorded for it, and a word the recording never asked with the recorder's own stub (the word reversed,
+// from espeak): a rules build asks for other names since #2251, and which names it asks is what is under test, not their answers.
 type recordedModel struct {
 	kind    string
 	spans   [][][3]any
 	answers []string
+	byWord  map[string]string
 	asked   []string
 }
 
@@ -88,6 +92,19 @@ func (m *recordedModel) entities(ctx context.Context, _, _, log string, paragrap
 
 func (m *recordedModel) pronunciations(_ context.Context, words []string, _ string) ([]*pyObject, error) {
 	m.asked = append(m.asked, words...)
+	if m.byWord != nil {
+		answers := make([]string, len(words))
+		for i, word := range words {
+			answer, ok := m.byWord[word]
+			if !ok {
+				reversed := []rune(word)
+				slices.Reverse(reversed)
+				answer = `{"ipa": ` + jsonText(string(reversed)) + `, "source": "espeak", "confidence": "low"}`
+			}
+			answers[i] = answer
+		}
+		return parsePronunciationObjects(strings.Join(answers, "\n"), len(words))
+	}
 	if len(words) > len(m.answers) {
 		return nil, fmt.Errorf("asked %d words, %d recorded", len(words), len(m.answers))
 	}
@@ -185,12 +202,17 @@ func readBuildParity(t *testing.T) (string, []buildParityCase, []buildParityResu
 // wrong type, where the host refuses in its own words.
 var refusedInWords = []string{"ValueError", "ManuscriptError"}
 
-// TestBuildMatchesTheSidecar replays every build the sidecar's build recorded before it was deleted (#2251 step 3; the files are frozen):
-// the same Story Bible file byte for byte, the same names asked for pronunciations in the same order, the same progress lines, log
-// messages and stdout line, and an error exactly where it exited 1, in its words where it refused rather than crashed.
+// TestBuildMatchesTheSidecar replays every build the sidecar's build recorded before it was deleted (#2251 step 3; the files are frozen).
+// A build with the language model's spans is the sidecar's byte for byte: the same Story Bible file, the same names asked for
+// pronunciations in the same order, the same progress lines, log messages and stdout line. Every build fails exactly where the
+// sidecar's exited 1, in its words where it refused rather than crashed. A build that read the names with the rules (no model, or
+// one that could not be loaded) reads them with the scan's name finder since #2251 (scanCandidates): it refuses a manuscript or a
+// Story Bible as the sidecar did, and what else it did is pinned in testdata/build-rules.json instead (its stdout line or error, the
+// names it asked pronunciations for, and its file's SHA-256; UPDATE_CONTRACTS=1 rewrites it).
 func TestBuildMatchesTheSidecar(t *testing.T) {
 	root, cases, results, rules, cues := readBuildParity(t)
 	built, refused, ambiguous, names, spacy := 0, 0, 0, 0, 0
+	byRules := map[string]rulesBuild{}
 	for i, c := range cases {
 		want := results[i]
 		if want.Name != c.Name {
@@ -198,6 +220,15 @@ func TestBuildMatchesTheSidecar(t *testing.T) {
 		}
 		s, guidePath := writeBuildCase(t, root, c, rules, cues)
 		model := &recordedModel{kind: c.Model.Kind, spans: c.Model.Spans, answers: want.Pronunciations}
+		withRules := c.Model.Kind != "spacy"
+		if withRules {
+			model.byWord = map[string]string{}
+			for j, word := range want.Words {
+				if j < len(want.Pronunciations) {
+					model.byWord[word] = want.Pronunciations[j]
+				}
+			}
+		}
 		s.buildModel = model
 		run := &buildRun{}
 		modelArgument := "model-folder"
@@ -208,6 +239,20 @@ func TestBuildMatchesTheSidecar(t *testing.T) {
 		inWords := want.ErrorType != nil && slices.Contains(refusedInWords, *want.ErrorType)
 		if err != nil {
 			run.fail(err)
+		}
+		if withRules && !inWords {
+			// Which names the rules find decides whether a crash the sidecar had on a damaged previous file is reached, so a rules
+			// build is pinned whole, refusal included, unless the refusal is of the manuscript or the Story Bible themselves.
+			got := rulesBuild{Words: model.asked, SHA256: writtenSHA256(t, guidePath)}
+			if err != nil {
+				got.Error = err.Error()
+				refused++
+			} else {
+				got.Stdout = strings.Replace(out, guidePath, "@OUT@", 1)
+				built++
+			}
+			byRules[c.Name] = got
+			continue
 		}
 		switch {
 		case want.Exit != 0 && err == nil:
@@ -237,7 +282,7 @@ func TestBuildMatchesTheSidecar(t *testing.T) {
 		} else if len(run.stages) != len(want.Progress) || !slices.Equal(run.stages[:len(run.stages)-1], want.Progress[:len(want.Progress)-1]) {
 			t.Errorf("%s: progress %q, want %q", c.Name, run.stages, want.Progress)
 		}
-		if (want.Exit == 0 || inWords) && !slices.Equal(model.asked, want.Words) {
+		if (want.Exit == 0 || inWords) && !withRules && !slices.Equal(model.asked, want.Words) {
 			t.Errorf("%s: asked for %d pronunciations, want %d (%q, want %q)", c.Name, len(model.asked), len(want.Words), first(model.asked, 6), first(want.Words, 6))
 		}
 		checkBuilt(t, c.Name, guidePath, want.Written, want.WrittenSHA256)
@@ -250,9 +295,33 @@ func TestBuildMatchesTheSidecar(t *testing.T) {
 		}
 	}
 	t.Logf("%d builds: %d written, %d refused, %d with spaCy's spans, %d ambiguous in Python, %d names", len(cases), built, refused, spacy, ambiguous, names)
-	if len(cases) < 1800 || built < 1400 || refused < 250 || spacy < 600 || names < 12000 {
-		t.Errorf("%d builds: %d written, %d refused, %d with spaCy's spans, %d names", len(cases), built, refused, spacy, names)
+	if len(cases) < 1800 || built < 1400 || refused < 250 || spacy < 600 || len(byRules) < 700 {
+		t.Errorf("%d builds: %d written, %d refused, %d with spaCy's spans, %d with the rules", len(cases), built, refused, spacy, len(byRules))
 	}
+	contractfile.CheckIn(t, "testdata", "build-rules", byRules)
+}
+
+// rulesBuild is what a build that read the names with the rules did: its stdout line (the file's path as @OUT@), the names it asked
+// pronunciations for, in order, and its Story Bible file's SHA-256, read as on Linux; or the error it failed with.
+type rulesBuild struct {
+	Stdout string   `json:"stdout,omitempty"`
+	Error  string   `json:"error,omitempty"`
+	Words  []string `json:"words"`
+	SHA256 string   `json:"sha256"`
+}
+
+// writtenSHA256 is the SHA-256 of the Story Bible at path, its line ends as on Linux, or "" when there is none.
+func writtenSHA256(t *testing.T, path string) string {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return ""
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256([]byte(strings.ReplaceAll(string(raw), pyLineEnd, "\n")))
+	return hex.EncodeToString(digest[:])
 }
 
 // isSidecarLogLine is a message the sidecar now logs itself, into the same log: that the language model could not be loaded.

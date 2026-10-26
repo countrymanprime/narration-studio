@@ -71,21 +71,12 @@ const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
  */
 export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged';
 
-/** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (each status, plus the experimental switch being off). */
-export const MOCK_REAPER_SEEDS = [
-  'ready',
-  'not_armed',
-  'other_armed',
-  'several_armed',
-  'no_link',
-  'recording_elsewhere',
-  'unavailable',
-  'experimental_off',
-] as const;
+/** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (each status). */
+export const MOCK_REAPER_SEEDS = ['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable'] as const;
 export type MockReaperSeed = (typeof MOCK_REAPER_SEEDS)[number];
 
 /** `?mockReaperInput=`: what `teleprompterReaperInput` answers (unset: REAPER records from the first microphone listed). */
-export const MOCK_REAPER_INPUT_SEEDS = ['matched', 'uncertain', 'no_match', 'reaper_no_device', 'experimental_off'] as const;
+export const MOCK_REAPER_INPUT_SEEDS = ['matched', 'uncertain', 'no_match', 'reaper_no_device'] as const;
 export type MockReaperInputSeed = (typeof MOCK_REAPER_INPUT_SEEDS)[number];
 
 // The host's answers (src/studio/desktop/teleprompterinput.go), in the same words, over the mock's own microphone list.
@@ -114,13 +105,6 @@ function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): Teleprom
         reason: 'reaper_no_device',
         candidates: [],
         message: 'REAPER did not say which input device it has open. Choose the microphone yourself.',
-      };
-    case 'experimental_off':
-      return {
-        status: 'unavailable',
-        reason: 'experimental_off',
-        candidates: [],
-        message: "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
       };
   }
 }
@@ -163,7 +147,7 @@ type Deps = {
   dawRecording?: () => boolean;
   /** Whether the chapter has a link now (the narrator linked or created its track during the session): `no_link` then answers as `ready`. */
   linked?: (chapterId: string) => boolean;
-  dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'experimental_off' | 'unlinked' | 'unavailable'; message: string } | null;
+  dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
 };
 
 const MOCK_REAPER_TRACK = '{11111111-1111-4111-8111-111111111111}';
@@ -205,14 +189,6 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
         playing: false,
         recording: false,
       };
-    case 'experimental_off':
-      return {
-        status: 'unavailable',
-        reason: 'experimental_off',
-        message: "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
-        playing: false,
-        recording: false,
-      };
   }
 }
 
@@ -224,12 +200,6 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 's
       outcome: 'refused',
       reason: 'standalone',
       message: 'REAPER is not connected to this app. To record with reading, open REAPER; the app connects to it by itself.',
-    };
-  if (seed === 'experimental_off')
-    return {
-      outcome: 'refused',
-      reason: 'experimental_off',
-      message: "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
     };
   // ReadAloudRecordStop takes no chapter id (it stops whatever this app is recording), so no_link only refuses arm and start.
   if (kind !== 'stop' && seed === 'no_link')
@@ -259,7 +229,7 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 's
     case 'recording_elsewhere':
       return { outcome: 'refused', reason: 'already_recording', message: 'REAPER is already recording.' };
     default:
-      // Unreachable: 'unavailable', 'experimental_off' and (for start) 'no_link' all returned above.
+      // Unreachable: 'unavailable' and (for start) 'no_link' all returned above.
       return { outcome: 'refused', reason: 'unlinked', message: `"${title}" has no linked track. Link it to its REAPER track in the audio engine panel.` };
   }
 }
@@ -292,9 +262,9 @@ const idle: TeleprompterState = {
 };
 
 function buildScript(chapter: ManuscriptChapter, paragraphs: ManuscriptParagraph[]): { script: TeleprompterScript; words: string[] } {
-  // The title span counts the title's own words only - the same as the
-  // real sidecar (chapter_script.py); the subtitle is shown but never tracked, so it must not shift word positions.
-  const titleWords = tokenize(chapter.title);
+  // The title span is the heading read aloud, the title's words and then the subtitle's - the same as the real sidecar
+  // (chapter_script.py, #2251 item 7), so the Booth's heading lines follow the mock's reading as they follow the host's.
+  const titleWords = [...tokenize(chapter.title), ...tokenize(chapter.subtitle ?? '')];
   const words = [...titleWords];
   const spans: TeleprompterScript['spans'] = [{ kind: 'title', id: chapter.id, index: null, start: 0, count: titleWords.length }];
   for (const paragraph of paragraphs.filter((item) => item.chapterId === chapter.id)) {

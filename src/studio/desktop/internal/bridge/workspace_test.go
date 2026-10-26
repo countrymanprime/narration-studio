@@ -13,16 +13,16 @@ func TestTheWorkspaceAndRegionCommandsAreExperimentalAndRefusedWhileTheSettingIs
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
 	ctx := context.Background()
-	if _, err := actions.SetActiveTake(ctx, testItem, testTake); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.SetActiveTake(ctx, testItem, testTake); !errors.Is(err, errGateRefused) {
 		t.Errorf("SetActiveTake: %v", err)
 	}
-	if _, err := actions.ListFXChains(ctx); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ListFXChains(ctx); !errors.Is(err, errGateRefused) {
 		t.Errorf("ListFXChains: %v", err)
 	}
-	if _, err := actions.ApplyFXChain(ctx, testTrack, "A.RfxChain"); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ApplyFXChain(ctx, testTrack, "A.RfxChain"); !errors.Is(err, errGateRefused) {
 		t.Errorf("ApplyFXChain: %v", err)
 	}
-	if _, err := actions.CreateRegions(ctx, []Region{{Start: 0, End: 30, Title: "Chapter 1"}}, "", false); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.CreateRegions(ctx, []Region{{Start: 0, End: 30, Title: "Chapter 1"}}, "", false); !errors.Is(err, errGateRefused) {
 		t.Errorf("CreateRegions: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

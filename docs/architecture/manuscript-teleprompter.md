@@ -159,16 +159,31 @@ fuzzy matching against the script is the ordinary open-source pattern.
    time, not engine timestamps. Karaoke-style word animation should pace
    itself instead of trusting per-word times.
 
-   The script tracker is implemented (`script_tracker.py`, enabled with
-   `live_asr.py --script FILE`, which adds `position` events to the stream:
+   **Who follows the read.** The host does
+   ([Go versus Python for the sidecars](../research/sidecar-go-vs-python.md), step 2): a session's sidecar runs with
+   `--clock`, still reading the chapter as the engine's context and still acting on pause and resume, but printing no
+   `script`, `position` or `flag` events. Instead it prints `{"type": "clock", "t": seconds}` before its first chunk
+   and as each chunk arrives, and `{"type": "clock", "t": seconds, "event": true}` just before each engine event: the
+   stream time the tracker reads at that moment (wall time less pauses for a microphone, audio consumed for a file). The host builds the script (`internal/scripttrack`, a Go port of the deleted
+   `script_tracker.py` and `flags.py`, held to their recorded answers in `tests/fixtures/booth-parity/`), sends its `script` event once the session runs, places a start word at the
+   first clock line, applies each Seek at the next one (where the sidecar read it from the control file), and runs
+   the tracker on every engine event it relays at that event's own time, sending the position and flag events right
+   after it. A clock line
+   is never relayed. A start word that is not a word of the script is refused before anything starts; a session whose
+   script the host cannot build stops at its first clock line with "Could not follow the read: …" and ends in the
+   error phase. The sidecar has no tracker any more.
+
+   The tracker's `position` events carry
    `read` = index of the next script word, `committed`, `status` of
    listening / waiting / done, and `jump` restart / skip with the skipped
    span). It keeps a forward-only speculative cursor driven by partials and a
    committed position driven by confirmed words, ignores heard words that fit
    nothing nearby, and jumps elsewhere in the script only when 3 or more words
-   match and beat the nearby alignment by 2. `replay.py` runs recorded
-   Moonshine spike output through the real adapter, event layer and tracker
-   offline. Replaying three real mic readings of a 55-word script (Small with
+   match and beat the nearby alignment by 2. The replay tools run recorded
+   Moonshine spike output offline: `replay.py --events FILE` puts it through the
+   real adapter and event layer and prints the tracker calls, and
+   `go run ./cmd/booth-replay --script FILE --calls -` (in `src/studio/desktop`)
+   runs them through the host's tracker. Replaying three real mic readings of a 55-word script (Small with
    context, Small without, Tiny): the cursor reached the end every time, with
    no false restarts or skips, 0 or 1 backward moves, and the speculative
    cursor reached each word a median of about 0.5s (p90 0.5 to 1.1s) before
@@ -200,7 +215,7 @@ fuzzy matching against the script is the ordinary open-source pattern.
 
 ## Flags
 
-With a script, the sidecar also reports suspected reading errors as `flag`
+The host's tracker also reports suspected reading errors as `flag`
 events:
 
 ```json
@@ -211,7 +226,7 @@ events:
 (passed over), `extra` (`heard` said between two script words; zero-width,
 `start == end` is the word after them) or `restart` (words read again, the
 narrator's recovery after a flub). Indices are `script_words()` positions, the
-space of `read`. `flags.py` wraps the tracker (`FlaggingTracker`) and reads its
+space of `read`. `scripttrack.FlaggingTracker` wraps the tracker and reads its
 alignment of a segment's confirmed words once the segment closes, so a flag
 arrives after that segment's `position` events. Every flag is only suspected:
 a wrong engine word looks exactly like a misread, and Transcript Compare over
@@ -219,7 +234,7 @@ the recorded take stays authoritative. The rules therefore favour precision:
 confirmed words only; a discrepancy only between two matched script words,
 never among a segment's first two words or at its ragged end; nothing a
 spelling difference explains (numbers, hyphenation, homophones and
-possessives from `narration_common.spoken_forms`, the same forms Transcript
+possessives from `internal/compare`'s spoken forms, the same forms Transcript
 Compare forgives, plus the tracker's own 0.8 spelling tolerance on the run, and
 a word the engine split across a matched neighbour); no hesitation as an
 extra, no single dropped article as a skip, no re-read under three words as a
@@ -233,9 +248,10 @@ The Go host relays flags like any other event and keeps none in its snapshot:
 `internal/liveflags` persists each flag as a suspected finding (`transcript_discrepancy`,
 or `pickup` for a restart) when the session ends. Only a misread has a confidence: how
 alike the script's and the heard words sound (`internal/soundalike`, as for Transcript Compare) ([`docs/architecture/findings-contract.md`](findings-contract.md)), and that store, not the snapshot, is what a view
-opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
-printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
-words by kind, which on a clean read is the false-flag rate. Nothing confirms a
+opened mid-session reads. The host's `cmd/booth-replay` replays a printed `live_asr.py` session (`--stream`), or a
+Moonshine probe recording through `replay.py --events X`, through the host's own tracker
+(`internal/boothreplay`, held to the reports Python's replay wrote before its tracking was deleted), and reports flags per 100 heard words by kind, which on a
+clean read is the false-flag rate. Nothing confirms a
 flag after the session.
 
 ## Streaming subprocess support
@@ -304,13 +320,17 @@ sequenceDiagram
   B->>B: first-use model gate, modelDir from the installed model
   B->>S: Start(options)
   S->>S: plan: argv slice, stop file in the session folder
+  S->>S: build the chapter's script and tracker (scripttrack), add --clock
+  S-->>UI: teleprompter:event, the script event
   S->>P: StartStream(onLine, program, args)
   P->>T: exec, no shell, assigned to the Job Object
   S-->>UI: teleprompter:state starting, then running
-  T-->>P: stdout NDJSON: script, then level, partial, word, position, segment_end, flag
+  T-->>P: stdout NDJSON: clock, level, partial, word, segment_end
   P->>S: onLine(line) on its own goroutine
   S->>S: valid JSON object with a string type, else dropped and counted
-  S-->>UI: teleprompter:event, the line verbatim (emitTeleprompterEvent)
+  S-->>UI: teleprompter:event, the line verbatim (emitTeleprompterEvent), never a clock line
+  S->>S: the tracker reads each clock and engine event
+  S-->>UI: teleprompter:event, the position and flag events it caused
   UI->>UI: Zod schema per event, a wrong one is dropped and counted
   N->>UI: Stop
   UI->>B: TeleprompterStop()
@@ -321,7 +341,7 @@ sequenceDiagram
   S-->>UI: teleprompter:state stopping, then stopped
 ```
 
-*Verified 2026-09-21 against `bindings.go` (`TeleprompterStart`), `app.go` (`emitTeleprompterEvent`, `emitTeleprompterState`, `Shutdown`), `internal/teleprompter/service.go` (`plan`, `Start`, `onLine`, `Stop`, `watch`, `defaultGrace`), `internal/process/stream.go` (`StartStream`), `src/studio/sidecars/manuscript-teleprompter/core/live_asr.py` (`--stop-file`) and `src/studio/ui/src/api/wailsClient.ts`. `Shutdown` stops a live session first and waits up to 12 s. A page opened mid-session catches up from the last `script` and `position` events the service keeps. The threats at each step are rows 4a to 4d of the [threat model](threat-model.md#4-the-go-host-to-the-sidecars-securitymd-bullet-4).*
+*Verified 2026-09-21 against `bindings.go` (`TeleprompterStart`), `app.go` (`emitTeleprompterEvent`, `emitTeleprompterState`, `Shutdown`), `internal/teleprompter/service.go` (`plan`, `Start`, `onLine`, `Stop`, `watch`, `defaultGrace`), and on 2026-10-25 against `internal/teleprompter/follow.go`, `internal/process/stream.go` (`StartStream`), `src/studio/sidecars/manuscript-teleprompter/core/live_asr.py` (`--stop-file`) and `src/studio/ui/src/api/wailsClient.ts`. `Shutdown` stops a live session first and waits up to 12 s. A page opened mid-session catches up from the last `script` and `position` events the service keeps. The threats at each step are rows 4a to 4d of the [threat model](threat-model.md#4-the-go-host-to-the-sidecars-securitymd-bullet-4).*
 
 **Packaging.** The sidecar is frozen as `manuscript-teleprompter` by
 `scripts/release/prepare-resources.py` and required by
@@ -452,7 +472,7 @@ redirects here keeping its query and hash. What the narrator sees and does on it
   (`components/script/page/reader/Para.tsx`), which renders character-offset layers, not words
   ([usePacedCursor.ts](../../src/studio/ui/src/components/booth/usePacedCursor.ts)).
 - **Mock mode.** In the browser mock, Start replays a position stream recorded from the real tracker
-  (`spikes/record_mock_stream.py`), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
+  (`spikes/record_mock_stream.py | go run ./cmd/booth-replay --mock …`, the host's tracker), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
   a chapter for the visual suite (`ended` is a session that already stopped itself at the end of the chapter).
 
 ## Resume: where REAPER is and where the prompter was
@@ -471,9 +491,9 @@ keep going").
   takes included (`resumelive.go`,
   Resume: where REAPER is and where the prompter was).
   Otherwise it is the end of the recorded audio in the saved `.rpp`. The 30 s
-  before that time are transcribed by the sidecar (`--locate --words-only`) and placed in the chapter by the host
-  (`internal/scripttrack` `LocateEvent`, held byte for byte to `core/locate.py`); a chapter the host cannot read as
-  the sidecar does is left to the sidecar to place, as before.
+  before that time are transcribed by the sidecar (`--locate`, which prints one `heard` line of timed words) and placed in the chapter by
+  the host (`internal/scripttrack` `LocateEvent`, held to the deleted Python placement's recorded answers); a chapter
+  the host cannot read is an error, not a guess.
   While REAPER records onto the track, nothing is located (`recording`).
 - **Where the prompter was.** The last word the tracker read, kept per chapter in
   `<project>/<app>/teleprompter/<chapter>.reading.json` when a session
@@ -513,8 +533,8 @@ Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-rol
 - **`alignment`**: when no anchor brackets the word, the word is timed from the chapter's recording
   (`teleprompterpunchalign.go`): the resume prompt's track, REAPER's live items or the saved `.rpp`, the item holding
   the anchors' pace estimate (else the item that ends last), at most 120 s of it, and one run of the sidecar's
-  `--align-word --words-only` mode, which decodes the stretch; the host places the words (`internal/scripttrack`
-  `WordTimeEvent`, held byte for byte to `core/align_word.py`: the locate's placement, then a matching-blocks pass that
+  `--align-word` mode, which decodes the stretch and prints a `heard` line; the host places the words
+  (`internal/scripttrack` `WordTimeEvent`, held to the deleted Python alignment's recorded answers: the locate's placement, then a matching-blocks pass that
   maps each heard word to a script word). The answer is mapped back through the item's offset and rate. Nothing runs while
   REAPER records onto the track, and nothing is downloaded
 .
@@ -589,18 +609,17 @@ the exact commit ported from. The LocalAgreement policy added later comes from
 
 ## Tracker placement and limits
 
-- Script tracker placement and source: decided. The sidecar hosts it and reads
+- Script tracker placement and source: decided. The host runs it and reads
   the script from a chapter of the project's canonical `manuscript.json`
   (`--manuscript FILE --chapter ID_OR_TITLE`, narration chapters only): the
   chapter heading (the title, then the subtitle, as one `title` span), then each
   paragraph, split on whitespace. A one-off `script`
   event first carries the token count and each paragraph's span, and with
-  Moonshine the chapter text is also used as biasing context. `--script FILE`
-  remains for plain text; named with `--script-id ID --script-title TITLE` it
-  also emits a `script` event, one paragraph span per line with words and no
-  title span. That is how the opening and closing credits are read: the host
-  renders them with the one credits renderer, writes them to a session file and
-  starts the sidecar on it, and the UI sends only which credits
+  Moonshine the sidecar uses the chapter text as biasing context. A plain-text
+  script (`--script FILE` for the sidecar's context) gets a `script` event with
+  one paragraph span per line with words and no title span. That is how the
+  opening and closing credits are read: the host renders them with the one
+  credits renderer, writes them to a session file and starts the sidecar on it, and the UI sends only which credits
 .
   The frontend maps `read` onto words by tokenizing each
   paragraph exactly as `chapter_script.py` does and checking itself against the
@@ -610,6 +629,6 @@ the exact commit ported from. The LocalAgreement policy added later comes from
 - Tracker limits: word matching is normalization plus
   a close-spelling check, without Transcript Compare's homophone, number-word
   and hyphenation handling; invented names and spoken numbers are the likely
-  misses. Flags forgive those forms (`narration_common.spoken_forms`, see
+  misses. Flags forgive those forms (`internal/compare`'s spoken forms, see
   "Flags" above), but position matching still does not; flags reach the
   findings contract through `internal/liveflags`.

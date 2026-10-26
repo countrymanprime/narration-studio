@@ -116,18 +116,6 @@ func depth(c dawport.Capability) dawport.Depth {
 	}
 }
 
-// explainRequirement is the one sentence for a capability refused because backups are turned off, by the narrator's toggle or by
-// the Experimental switch. Any other refusal of backups is worded by the resolver from backups' own sentence.
-func explainRequirement(c, required dawport.Capability, r dawport.Reason) string {
-	if required != dawport.CapBackups || (r != dawport.ReasonTurnedOff && r != dawport.ReasonExperimentalOff) {
-		return ""
-	}
-	if _, ok := needBackups[c]; ok {
-		return backupsSentence(c)
-	}
-	return ""
-}
-
 // The sentences a refusal shows the narrator.
 const (
 	// messageNotConnected: the project does not record with Audacity, so the host holds no pipe to it.
@@ -147,11 +135,10 @@ type Adapter struct {
 }
 
 var (
-	_ dawport.Adapter              = (*Adapter)(nil)
-	_ dawport.Explainer            = (*Adapter)(nil)
-	_ dawport.Requirer             = (*Adapter)(nil)
-	_ dawport.Describer            = (*Adapter)(nil)
-	_ dawport.RequirementExplainer = (*Adapter)(nil)
+	_ dawport.Adapter   = (*Adapter)(nil)
+	_ dawport.Explainer = (*Adapter)(nil)
+	_ dawport.Requirer  = (*Adapter)(nil)
+	_ dawport.Describer = (*Adapter)(nil)
 )
 
 // Factory is the registry's Audacity factory: the Windows scripting pipe, opened on the first request. It never touches REAPER's
@@ -208,11 +195,6 @@ func (a *Adapter) Requires(c dawport.Capability) []dawport.Capability { return r
 // Depth is a destructive roll and the edits made in steps.
 func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depth(c) }
 
-// ExplainRequirement words a capability refused because backups are off.
-func (a *Adapter) ExplainRequirement(c, required dawport.Capability, r dawport.Reason) string {
-	return explainRequirement(c, required, r)
-}
-
 // Session is the Audacity-only operations over the same client.
 func (a *Adapter) Session() *Session { return a.session }
 
@@ -249,9 +231,6 @@ func (declaration) Declares() map[dawport.Capability]dawport.Level     { return 
 func (declaration) Role(dawport.Capability) any                        { return nil }
 func (declaration) Requires(c dawport.Capability) []dawport.Capability { return requires(c) }
 func (declaration) Depth(c dawport.Capability) dawport.Depth           { return depth(c) }
-func (declaration) ExplainRequirement(c, required dawport.Capability, r dawport.Reason) string {
-	return explainRequirement(c, required, r)
-}
 func (declaration) Explain(_ dawport.Capability, r dawport.Reason) string {
 	switch r {
 	case dawport.ReasonNotRunning:

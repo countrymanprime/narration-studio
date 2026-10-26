@@ -16,7 +16,6 @@ const choice = (over: Partial<DawChoice>): DawChoice => ({
   linkedFile: 'Alice.rpp',
   foundFiles: ['Alice.rpp'],
   launcherAutoStart: false,
-  experimental: false,
   options: [],
   starting: null,
   bridge: null,

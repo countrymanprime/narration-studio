@@ -34,7 +34,7 @@ const (
 // mode, fade, pad and room-tone choice, never a GUID or a time: the item and its project seconds are resolved here from the
 // stored alignment and the saved project (threat model row 5f), and one request is one item. The answer is
 // a DawResult: the cut_range capability's own sentence when the resolver refuses it (a standalone launch, a DAW not
-// answering, Experimental actions off, the toggle off, an engine that cannot cut yet), checked first; then a mode, fade or pad
+// answering, an engine that cannot cut yet), checked first; then a mode, fade or pad
 // delete_range does not take, or room tone with "close"; then the range's own refusals (passagetakes.ResolveRange: words not
 // heard, two items, and a range or item that is stale with code stale); words every one of which the edit log already holds as
 // cut are a no-op, changed false. Nothing is sent to the DAW on any of them. A chapter the manuscript does not have has no

@@ -7,8 +7,8 @@ public domain) up to a known word: a Piper voice speaks the last couple of minut
 twist (a retake of the last sentence, a filler and a false start, a stop mid-sentence, a passage the chapter
 repeats), and the tail is run through the same path the sidecar's `--locate` takes: `locate.read_audio_range`
 cuts the last seconds out of the WAV and `live_asr.make_decoder(..., vad_filter=True)` transcribes them with a
-real faster-whisper model. What Whisper heard is committed, not the audio, so the accuracy test runs offline with
-no model:
+real faster-whisper model. What Whisper heard is committed, not the audio, so the accuracy test (the host's
+internal/scripttrack locate_test.go) runs offline with no model:
 
     uv run python src/studio/sidecars/manuscript-teleprompter/spikes/record_locate_tails.py \\
         --piper-model %LOCALAPPDATA%/<data>/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx \\
@@ -71,8 +71,15 @@ class Case:
     note: str = ""
 
 
+# A token that ends a sentence, as the host's placement reads it (internal/scripttrack's sentenceEnd).
+_SENTENCE_END_RE = re.compile(r"[.!?…][\"'”’)\]]*$")
+
+
 def _sentence_start(tokens: list[str], index: int) -> int:
-    start, _end = locate.sentence_bounds(tokens, index, set())
+    """The first token of the sentence holding token `index`."""
+    start = index
+    while start > 0 and not _SENTENCE_END_RE.search(tokens[start - 1]):
+        start -= 1
     return start
 
 
@@ -132,10 +139,9 @@ def record(case: Case, tokens: list[str], voice, decode, work: Path) -> dict:
     audio = locate.read_audio_range(str(wav), max(0.0, length - case.tail), length)
     heard = [text for text, _start, _end in decode(audio)]
     decode_seconds = time.perf_counter() - started
-    event = locate.locate_event(heard, tokens)
+    # The host places what was heard (internal/scripttrack's locate_test.go reads this fixture and checks the word).
     print(
-        f"{case.name:28s} expected {case.end:5d} got {event['word']!s:>5} confidence {event['confidence']:.3f} "
-        f"confident {event['confident']!s:5s} ({len(audio) / locate.SAMPLE_RATE:.1f}s decoded in {decode_seconds:.1f}s)",
+        f"{case.name:28s} expected {case.end:5d}, heard {len(heard)} words ({len(audio) / locate.SAMPLE_RATE:.1f}s decoded in {decode_seconds:.1f}s)",
         file=sys.stderr,
     )
     return {

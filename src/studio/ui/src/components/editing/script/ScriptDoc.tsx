@@ -110,7 +110,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
           {reason ? <span className="text-sm text-[var(--text-muted)]">{reason}</span> : null}
           {onCheckRecording ? (
             <Button variant="secondary" size="sm" onClick={onCheckRecording}>
-              Check recording
+              Check recordings…
             </Button>
           ) : null}
         </div>

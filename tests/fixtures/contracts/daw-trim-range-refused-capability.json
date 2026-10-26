@@ -1,7 +1,7 @@
 {
   "ok": false,
   "changed": false,
-  "message": "Experimental DAW actions are off. Turn them on in Settings to cut words and audio.",
+  "message": "REAPER is not answering. Check that REAPER is open, then try again.",
   "undoSteps": 0,
-  "refused": "Experimental DAW actions are off. Turn them on in Settings to cut words and audio."
+  "refused": "REAPER is not answering. Check that REAPER is open, then try again."
 }

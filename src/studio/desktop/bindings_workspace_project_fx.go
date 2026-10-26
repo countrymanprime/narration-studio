@@ -12,7 +12,7 @@ import (
 // preview reads (master_chain_read, dawport.CapMasterChainRead) and changes nothing.
 
 // masterChainReaderFrom is svc's master chain role, or nil exactly as fxManagerFrom is nil (bindings_workspace.go): no DAW
-// port resolver, no adapter, the capability toggled off, or the DAW unreachable right now.
+// port resolver, no adapter, a DAW that does not declare the capability, or the DAW unreachable right now.
 func masterChainReaderFrom(svc hostServices) dawport.MasterChainReader {
 	if svc.dawPortResolver == nil {
 		return nil

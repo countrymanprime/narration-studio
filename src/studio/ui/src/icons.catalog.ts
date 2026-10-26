@@ -337,6 +337,13 @@ const hasIcon = (name: string): name is IconName => Object.hasOwn(CATALOG, name)
 /** An icon by a name that comes from data (a source list); an unknown name falls back to the neutral key. */
 export const iconNamed = (name: string): IconName => (hasIcon(name) ? name : NEUTRAL);
 
+/**
+ * The one icon for hearing a name or word said (owner, 2026-10-26: the Story Bible's list and its entry drew two): the speaker of
+ * `hear`, as the Studio Next mock draws it in the entry editor and the Words tab, and `stop` while it plays. Every button that speaks
+ * a name asks this for its `action` (`hearName.test.ts` fails one that draws its own glyph).
+ */
+export const hearNameAction = (playing = false): IconName => (playing ? 'stop' : 'hear');
+
 /** The Font Awesome definition a key draws. */
 export const iconFor = (name: IconName): IconDefinition => CATALOG[name].icon;
 

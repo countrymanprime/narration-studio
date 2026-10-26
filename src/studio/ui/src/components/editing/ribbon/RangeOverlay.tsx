@@ -89,12 +89,12 @@ function partialText(covered: Covered, words: readonly DocItem[]): string {
     .join(' ');
 }
 
-/** The lines under the waveform: how to make a range when there is none, else its time and words, the words an edge cuts through, and the sub-word preview. */
+/**
+ * The lines under the waveform: the range's time and words, the words an edge cuts through, and the sub-word preview. With no range they are
+ * empty: how to make one is behind the "?" above the waveform, never a line here (#2251).
+ */
 export function RangeNotes({ shown, covered, words }: { shown: Span | null; covered: Covered; words: readonly DocItem[] }) {
-  if (!shown)
-    return (
-      <p className="m-0 px-3 text-xs text-[var(--text-muted)]">Drag to choose a range; right-drag, the wheel or two fingers scroll; right-click for more.</p>
-    );
+  if (!shown) return null;
   const partial = partialText(covered, words);
   const sub = subWordNote(shown, covered.applied);
   return (

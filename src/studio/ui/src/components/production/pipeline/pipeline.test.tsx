@@ -55,10 +55,21 @@ describe('PipelineTable', () => {
     // Every stage column holds its cell and 4 px either side; the last also holds the card's 16 px edge (alignment audit XPR2-10).
     expect(widths.slice(2, 8)).toEqual(Array(6).fill('3.75rem'));
     expect(widths[8]).toBe('4.5rem');
-    expect(widths[1]).toBe('4rem');
+    // Rec. / Est. holds "10:42" or a two-word state over "of 10:42", and its info mark (the "i" in the header's text).
+    expect(widths[1]).toBe('4.75rem');
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
-      expect.arrayContaining(['Chapter', 'Prep', 'Record', 'Edit', 'Proof', 'Pickups', 'Master', 'QC']),
+      expect.arrayContaining(['Chapter', 'Rec. / Est.i', 'Prep', 'Record', 'Edit', 'Proof', 'Pickups', 'Master', 'QC']),
     );
+    // The estimate was headed "Fin." (finished), which read as a measurement.
+    expect(screen.queryByText('Fin.')).toBeNull();
+  });
+
+  it("shows each row's recorded length beside its estimate, or a word saying why there is none", () => {
+    table();
+    const c4 = screen.getByRole('img', { name: 'Chapter 4: 0:30 recorded of about 1:00 estimated' });
+    expect(c4.textContent).toBe('0:30of 1:00');
+    const c5 = screen.getByRole('img', { name: 'Chapter 5: recorded not read' });
+    expect(c5.textContent).toBe('Not readof 1:00');
   });
 
   it('draws an under-way stage as a mark that needs no font, never the half-circle glyph', () => {
@@ -286,15 +297,8 @@ describe('PageHeader', () => {
     expect(screen.getByText('No recorder is connected.')).toBeTruthy();
   });
 
-  it('offers the settings that switch recording on when that is the reason Start session is off', async () => {
-    const onOpenSettings = vi.fn();
-    header({ record: { ok: false, reason: 'Experimental: switched off in Settings.', inSettings: true }, onOpenSettings });
-    await userEvent.click(screen.getByRole('button', { name: 'Open DAW settings' }));
-    expect(onOpenSettings).toHaveBeenCalledOnce();
-  });
-
-  it('offers no settings link for a reason Settings cannot fix', () => {
-    header({ record: { ok: false, reason: 'No recorder is connected.' }, onOpenSettings: vi.fn() });
+  it('offers no settings link beside the reason Start session is off: no setting switches recording on', () => {
+    header({ record: { ok: false, reason: 'No recorder is connected.' } });
     expect(screen.queryByRole('button', { name: 'Open DAW settings' })).toBeNull();
   });
 

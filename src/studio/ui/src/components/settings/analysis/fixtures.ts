@@ -15,10 +15,7 @@ const tool = (row: Omit<AssetItem, 'kind' | 'kindLabel' | 'path' | 'installState
   ...row,
 });
 
-/**
- * The four analysis tools as the host lists them (tests/fixtures/contracts/assets-list.json), with GLiNER and both BookNLP sizes
- * downloadable, as they will be once their files are pinned. The local model stays unavailable with the host's sentence.
- */
+/** The three analysis tools as the host lists them (tests/fixtures/contracts/assets-list.json): GLiNER and both BookNLP sizes, downloadable. */
 export const ANALYSIS_TOOLS: AssetItem[] = [
   tool({
     id: 'gliner',
@@ -80,24 +77,6 @@ export const ANALYSIS_TOOLS: AssetItem[] = [
     source: 'booknlp',
     rank: 2,
     recommended: false,
-  }),
-  tool({
-    id: 'local-llm',
-    displayName: 'Local language model',
-    description: 'Reads the manuscript like a person would and writes descriptions, relationships and what each character says, does and knows.',
-    version: 'none',
-    publisher: 'Not chosen',
-    license: 'To be confirmed',
-    licenseUrl: `${brand.repository.url}`,
-    modelCardUrl: `${brand.repository.url}`,
-    provenanceUrl: `${brand.repository.url}`,
-    attribution: 'Licence to be confirmed before it is offered.',
-    downloadSize: 0,
-    diskSize: 0,
-    ramGB: 11,
-    rank: 0,
-    recommended: false,
-    unavailableReason: 'A model small enough for this computer takes many hours per book. It will be offered once that is practical.',
   }),
 ];
 

@@ -19,7 +19,7 @@ async function openUpdates(page: Page, seed: string): Promise<void> {
  * whole output listing when the page boots, so the names come from it, not from a script of the suite's own.
  */
 async function openSampleOutput(page: Page, outputs: 'usual' | 'long', choose: string): Promise<void> {
-  await openSettings(page, undefined, `?mockDawExperimentalOn=1${outputs === 'long' ? '&mockAudioOutputs=long' : ''}`);
+  await openSettings(page, undefined, outputs === 'long' ? '?mockAudioOutputs=long' : '');
   await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
   // REAPER is linked, so the switch asks first.
   await page.getByRole('alertdialog', { name: 'Stop recording with REAPER?' }).getByRole('button', { name: 'Switch to the built-in recorder' }).click();
@@ -101,8 +101,7 @@ export const settingsDrivers: Record<string, Driver> = {
 
   // ---- Recording & DAW
   'recording-builtin': async (page) => {
-    // The host refuses the built-in recorder while the Experimental switch is off, so this state turns it on.
-    await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+    await openSettings(page);
     await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
     // REAPER is linked, so the switch asks first.
     await page.getByRole('alertdialog', { name: 'Stop recording with REAPER?' }).getByRole('button', { name: 'Switch to the built-in recorder' }).click();
@@ -150,7 +149,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await showConnection(page);
   },
   'recording-builtin-confirm': async (page) => {
-    await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+    await openSettings(page);
     await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
     await page.getByRole('alertdialog', { name: 'Stop recording with REAPER?' }).waitFor();
   },
@@ -164,7 +163,7 @@ export const settingsDrivers: Record<string, Driver> = {
   'recording-advanced': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);
-    await page.getByRole('table', { name: 'What the recording tool can do' }).waitFor();
+    await page.getByRole('table', { name: /^What .* can do$/ }).waitFor();
     await page.getByLabel('REAPER program', { exact: true }).waitFor();
   },
   'recording-sync-activity': async (page) => {
@@ -363,6 +362,11 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Appearance & keys');
     await page.getByRole('radiogroup', { name: 'Theme' }).waitFor();
   },
+  'help-open': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    await page.getByRole('button', { name: 'About Record with' }).click();
+    await page.getByRole('dialog', { name: 'About Record with' }).waitFor();
+  },
   'reader-text': async (page) => {
     await openSettings(page, 'Appearance & keys');
     await showSettingsRow(page, 'look.reader');
@@ -507,7 +511,7 @@ export const settingsDrivers: Record<string, Driver> = {
   'deep-link': async (page) => {
     // From the Booth's credits notice, which links to /settings#credits. The row's light fades on a real 2.2 s timer, so the clock stops
     // before the link is followed.
-    await page.goto('/booth?mockRecordCapabilityOn=1&credits=closing');
+    await page.goto('/booth?credits=closing');
     await settlePage(page);
     await page.getByRole('button', { name: /Fill them in Settings$/ }).waitFor();
     await freezeClock(page);

@@ -15,9 +15,9 @@
       - paragraph: /Chapter 1 track · as of the project's last save, Sep \d+, \d+, \d+:\d+ AM/
       - paragraph: "Continuing where your recording ends:"
       - blockquote:
-        - text: “How she longed to get out of that dark hall, and wander about among those beds of bright flowers and those cool fountains, but she could
-        - strong: not
-        - text: even get her head through the doorway; ‘and even if my head would go through,’ thought poor Alice, ‘it would be of very little use without my shoulders.”
+        - text: “How she longed to get out of that dark hall, and wander about among those beds of bright flowers and those cool fountains, but she
+        - strong: could
+        - text: not even get her head through the doorway; ‘and even if my head would go through,’ thought poor Alice, ‘it would be of very little use without my shoulders.”
       - button "Resume from here"
       - button "Start from the top"
       - button "Pick a word"

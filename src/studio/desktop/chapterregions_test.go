@@ -227,9 +227,9 @@ func TestChapterRegionsCreateSendsNothingWhenNoRowIsPlanned(t *testing.T) {
 func TestChapterRegionsCreateReportsREAPERsRefusal(t *testing.T) {
 	host, ids, _ := newTestHostForChapterRegions(t)
 	linkChapter(t, host, ids[0], chapterLinksTrack)
-	fake := &fakeRegionCreator{err: bridge.ErrExperimentalOff}
-	if _, err := createChapterRegions(context.Background(), host.services(), fake, "", "", false); !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Fatalf("err = %v, want the experimental switch's refusal", err)
+	fake := &fakeRegionCreator{err: bridge.ErrNoAnswer}
+	if _, err := createChapterRegions(context.Background(), host.services(), fake, "", "", false); !errors.Is(err, bridge.ErrNoAnswer) {
+		t.Fatalf("err = %v, want REAPER's refusal", err)
 	}
 	if _, err := createChapterRegions(context.Background(), host.services(), nil, "", "", false); !errors.Is(err, bridge.ErrUnavailable) {
 		t.Fatalf("err = %v with no bridge, want ErrUnavailable", err)

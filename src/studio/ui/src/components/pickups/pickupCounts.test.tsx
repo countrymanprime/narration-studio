@@ -76,7 +76,6 @@ describe('every pickup count comes from the Pickups list', () => {
           go={() => undefined}
           notify={() => undefined}
           goToScript={() => undefined}
-          goToEditing={() => undefined}
           goToBooth={() => undefined}
           refreshBootstrap={async () => {}}
         />
@@ -134,7 +133,6 @@ describe('every pickup count comes from the Pickups list', () => {
           go={() => undefined}
           notify={() => undefined}
           goToScript={() => undefined}
-          goToEditing={() => undefined}
           goToBooth={() => undefined}
           refreshBootstrap={async () => {}}
         />

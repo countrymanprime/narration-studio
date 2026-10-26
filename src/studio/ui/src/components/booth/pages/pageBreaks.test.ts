@@ -23,6 +23,17 @@ describe('pageBreaks', () => {
     expect(first.wcur).toBe(0);
   });
 
+  it('counts the chapter heading as the first words of the first page (#2251 item 7)', () => {
+    const body = [para('p1', words(3)), para('p2', words(4, 3)), para('p3', words(2, 7))];
+    const heading: ReadingParagraph[] = [
+      { id: 'chapter-heading-title', text: 'Chapter 7', heading: 'title' },
+      { id: 'chapter-heading-subtitle', text: 'The Road', heading: 'subtitle' },
+    ];
+    // Without the heading, p1 and p2 make the first page (7 words); with it, the title and subtitle bring the count to 7 by p1's end.
+    expect(at(body, 6).map((b) => b.paragraphId)).toEqual(['p3']);
+    expect(at([...heading, ...body], 6).map((b) => b.paragraphId)).toEqual(['p2']);
+  });
+
   it('breaks right after a paragraph whose last word is the page’s last', () => {
     const paragraphs = [para('p1', words(3)), para('p2', words(2, 3)), para('p3', words(4, 5))];
     expect(at(paragraphs, 5).map((b) => b.paragraphId)).toEqual(['p3']);

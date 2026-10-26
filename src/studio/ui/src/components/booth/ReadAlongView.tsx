@@ -82,7 +82,7 @@ export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, a
           <div className="py-2">{text}</div>
         ) : (
           <Panel>
-            {!aside && !hideKey && <ReaderKey seekable={t.active} />}
+            {!aside && !hideKey && <ReaderKey />}
             <div className={aside || hideKey ? '' : 'mt-3'}>{text}</div>
           </Panel>
         ))}

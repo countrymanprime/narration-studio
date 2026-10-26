@@ -11,8 +11,8 @@
   },
   "no_puncher": {
     "outcome": "refused",
-    "reason": "experimental_off",
-    "message": "Recording in REAPER is an experimental action. Turn on Experimental DAW actions, or Record alone, in Settings to use it."
+    "reason": "unsupported",
+    "message": "REAPER cannot record from this app. Record in REAPER itself."
   },
   "started": {
     "outcome": "started",

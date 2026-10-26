@@ -1,5 +1,5 @@
-// Package analysistools owns the approved catalog of the optional Story Bible analysis tools (GLiNER, BookNLP small and large, and a
-// local language model), each one a catalog entry of the one asset registry, installed through the same download, verify and install
+// Package analysistools owns the approved catalog of the optional Story Bible analysis tools (GLiNER, BookNLP small and large), each
+// one a catalog entry of the one asset registry, installed through the same download, verify and install
 // flow as the spaCy models (internal/spacy) and only when the narrator asks. A tool's weights are data files; its wheels are archives
 // that are checked against their SHA-256, unpacked into the install folder and deleted, and are code only once a sidecar loads them.
 // Nothing here runs or imports what it downloads.

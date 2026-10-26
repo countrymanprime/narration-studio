@@ -43,21 +43,17 @@ async function linkProject(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
 }
 
-// Record switched off is a chip, not a notice card: a press of Record opens the dialog that turns it on.
-async function turnOnRecord(page: Page): Promise<void> {
-  await expect(notice(page).getByRole('button', { name: 'Record is switched off. Show details' })).toBeVisible();
+// Nothing to switch on: on a fresh machine Record is off only because REAPER is not connected, and the connect steps are up.
+async function connectStepsShown(page: Page): Promise<void> {
   await expect(record(page)).toBeDisabled();
-  // Off but pressable: the press is answered by the dialog (aria-disabled, so the click is forced past Playwright's enabled check).
-  await record(page).click({ force: true });
-  const turnOn = page.getByRole('dialog', { name: 'Recording in REAPER is experimental' });
-  await turnOn.getByRole('button', { name: 'Turn on Record' }).click();
+  await expect(page.getByRole('button', { name: /Record is switched off/ })).toHaveCount(0);
   await expect(dialog(page)).toBeVisible();
 }
 
-// The owner's exact sequence: Record on, link, set up the launcher, the heartbeat arrives, the notice clears, Record enables.
+// The owner's exact sequence: link, set up the launcher, the heartbeat arrives, the notice clears, Record enables.
 async function toRecordReady(page: Page): Promise<void> {
   await openLive(page, 'live');
-  await turnOnRecord(page);
+  await connectStepsShown(page);
   await linkProject(page);
   await startReaper(page);
   await expect(notice(page)).toHaveCount(0, { timeout: 15_000 });
@@ -97,7 +93,7 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('a REAPER that opens its bridge but never answers keeps the notice up, says so, and Check again does not fake it', async ({ page }) => {
     await openLive(page, 'quiet');
-    await turnOnRecord(page);
+    await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
     await expect(dialog(page).getByRole('alert')).toContainText('was started and has not answered yet', { timeout: 20_000 });
@@ -112,7 +108,7 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('a launch that is refused says so and leaves a way to try again', async ({ page }) => {
     await openLive(page, 'refuse');
-    await turnOnRecord(page);
+    await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
     await expect(page.getByText(/REAPER could not be started/)).toBeVisible();
@@ -121,7 +117,7 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('REAPER hands its project to an app that is busy: the refusal is shown, with what to do, and Record stays off', async ({ page }) => {
     await openLive(page, 'busy');
-    await turnOnRecord(page);
+    await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
     // The host's own sentence as a message that stays until it is dismissed, and the notice says what it means for Record.
@@ -199,8 +195,7 @@ test.describe('Booth with a moving mock DAW', () => {
   });
 
   test('choosing the built-in recorder moves the DAW port: the REAPER notice goes', async ({ page }) => {
-    // The built-in recorder is refused while Experimental is off, so this run turns it on.
-    await page.goto('/?mockDaw=live&mockDawExperimentalOn=1');
+    await page.goto('/?mockDaw=live');
     await settlePage(page);
     await goToPage(page, 'Settings');
     await page.getByRole('radio', { name: /Built-in/ }).check();
@@ -214,7 +209,7 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('another project open: the notice says so with a way to link the open one and to check again, and the right project clears it', async ({ page }) => {
     await openLive(page, 'different');
-    await turnOnRecord(page);
+    await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
     await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
@@ -231,7 +226,7 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('link the open project: one press opens the picker once, says it linked, and the notice goes', async ({ page }) => {
     await openLive(page, 'different');
-    await turnOnRecord(page);
+    await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
     await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
@@ -274,7 +269,7 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('a toast never covers the setup notice, and Space while Record cannot start opens the dialog that fixes it', async ({ page }) => {
     await openLive(page, 'quiet');
-    await turnOnRecord(page);
+    await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
     const toasts = page.getByRole('status').filter({ hasText: /./ });
@@ -311,7 +306,7 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('the "starting" message goes once REAPER answers', async ({ page }) => {
     await openLive(page, 'live');
-    await turnOnRecord(page);
+    await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
     await expect(page.getByText(/REAPER is starting/).first()).toBeVisible();

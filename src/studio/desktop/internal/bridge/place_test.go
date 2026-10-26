@@ -89,10 +89,10 @@ func TestGoToOnAGoneTrackIsAStaleError(t *testing.T) {
 func TestPlaceCommandsAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.ReadPlace(context.Background()); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.ReadPlace(context.Background()); !errors.Is(err, errGateRefused) {
 		t.Fatalf("ReadPlace err = %v", err)
 	}
-	if _, err := actions.GoTo(context.Background(), "{G}", PlaceTarget{End: true}); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.GoTo(context.Background(), "{G}", PlaceTarget{End: true}); !errors.Is(err, errGateRefused) {
 		t.Fatalf("GoTo err = %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)
