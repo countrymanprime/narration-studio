@@ -38,7 +38,7 @@ func TestTheBuiltEntriesMatchTheContractFile(t *testing.T) {
 	for i, text := range contractParagraphs {
 		paragraphs[i] = ruleParagraph{chapter: "Chapter 1", chapterID: fmt.Sprintf("legacy-chapter-%d", i), paragraphID: fmt.Sprintf("legacy-paragraph-%d", i), text: []rune(text)}
 	}
-	sorted, made := buildEntities(paragraphs, ruleCandidates(paragraphs))
+	sorted, made := buildEntities(paragraphs, scanCandidates(paragraphs))
 	said := map[string]*pyObject{
 		"Council of Ash": newPyObject("ipa", "k aʊ n s ʌ l ʌ v æ ʃ", "source", "cmu", "confidence", "medium"),
 	}
@@ -64,7 +64,8 @@ func TestTheBuiltEntriesMatchTheContractFile(t *testing.T) {
 
 // TestTheAliceStoryBibleIsByteIdentical is test_build_golden.py's: the Story Bible a rules-only build writes for tests/fixtures/alice.md
 // (each chapter of it, a paragraph per line), with no pronunciations, pinned by the SHA-256 of the file without its time and
-// manuscript path, sorted. It has not moved since the sidecar's build wrote it.
+// manuscript path, sorted. #2251 moved it once, when the build began reading names with the scan's name finder: 24 entries where the
+// sidecar's rules wrote 48, none of them I’m, Do I, That’s Bill or KING AND QUEEN.
 func TestTheAliceStoryBibleIsByteIdentical(t *testing.T) {
 	var chapters []testChapter
 	for _, line := range strings.Split(readText(t, filepath.Join(repoRoot(t), "tests", "fixtures", "alice.md")), "\n") {
@@ -97,7 +98,7 @@ func TestTheAliceStoryBibleIsByteIdentical(t *testing.T) {
 	source := document.values["source"].(*pyObject)
 	source.keys = slices.DeleteFunc(source.keys, func(key string) bool { return key == "path" })
 	sum := sha256.Sum256([]byte(pyDumps(sortedKeys(document))))
-	if got := hex.EncodeToString(sum[:]); got != "d3d875c914434f57201f04559fef776e3113ceac67d1f6028c47364bb5f32731" {
+	if got := hex.EncodeToString(sum[:]); got != "5f61da79d1fc3b490f7af96785ec36dca2409dd97659fbc01742167b127160d1" {
 		t.Fatalf("the Alice Story Bible hashes to %s", got)
 	}
 }
@@ -159,14 +160,17 @@ func aliceManuscript(chapters []testChapter) string {
 }
 
 // TestEveryRecordedBuildWritesTheFileThatKeepsTheCues replays the builds of tests/fixtures/guide-cues (frozen) as test_build_golden.py
-// did: the file each writes, keeping the previous dialogue cues, with no pronunciations, is the one the sidecar wrote (cut), byte for byte,
-// and a build that failed there fails here. TestBuildThenRefreshIsTodaysBuild refreshes each of these files.
+// did, with no pronunciations: a build that failed there fails here, and each file keeps the previous dialogue cues as the sidecar's
+// (cut) did. These builds read the names with the rules, which are the scan's name finder since #2251, so each file's SHA-256 (after
+// untied) is pinned in testdata/build-cues.json rather than compared with the sidecar's (UPDATE_CONTRACTS=1 rewrites it).
+// TestBuildThenRefreshIsTodaysBuild refreshes each of these files.
 func TestEveryRecordedBuildWritesTheFileThatKeepsTheCues(t *testing.T) {
 	root := repoRoot(t)
 	folder := filepath.Join(root, "tests", "fixtures", "guide-cues")
 	cases := readJSONLines[buildCase](t, filepath.Join(folder, "builds.jsonl"))
 	results := readJSONFile[[]buildResult](t, filepath.Join(folder, "builds.golden.json"))
 	written := 0
+	files := map[string]string{}
 	for i, c := range cases {
 		want := results[i]
 		parity := buildParityCase{Name: c.Name, CueBuild: c.Name}
@@ -185,14 +189,27 @@ func TestEveryRecordedBuildWritesTheFileThatKeepsTheCues(t *testing.T) {
 			continue
 		}
 		got := strings.ReplaceAll(readText(t, guidePath), pyLineEnd, "\n")
-		if untied(t, got) != untied(t, *want.Cut) {
-			t.Errorf("%s: the file differs from the sidecar's", c.Name)
+		if cues, wantCues := cuesOf(t, got), cuesOf(t, *want.Cut); !jsonEqual(cues, wantCues) {
+			t.Errorf("%s: the dialogue cues differ from the sidecar's", c.Name)
 		}
+		sum := sha256.Sum256([]byte(untied(t, got)))
+		files[c.Name] = hex.EncodeToString(sum[:])
 		written++
 	}
 	if written < 140 {
 		t.Errorf("%d builds written", written)
 	}
+	contractfile.CheckIn(t, "testdata", "build-cues", files)
+}
+
+// cuesOf is the dialogue_cues of a Story Bible file's text, as plain JSON values.
+func cuesOf(t *testing.T, text string) any {
+	t.Helper()
+	var document map[string]any
+	if err := json.Unmarshal([]byte(text), &document); err != nil {
+		t.Fatal(err)
+	}
+	return document["dialogue_cues"]
 }
 
 // untied is test_build_golden.py's _untied: the file with vocabulary_candidates in code point order where two fold to the same case,
