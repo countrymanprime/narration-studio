@@ -48,8 +48,8 @@ export function readingParagraphsOf(
 }
 
 /** The ids of the heading lines; no manuscript paragraph has one. */
-export const HEADING_TITLE_ID = 'chapter-heading-title';
-export const HEADING_SUBTITLE_ID = 'chapter-heading-subtitle';
+const HEADING_TITLE_ID = 'chapter-heading-title';
+const HEADING_SUBTITLE_ID = 'chapter-heading-subtitle';
 
 /**
  * The chapter heading as the Booth's first lines (#2251 item 7): the title, then the subtitle when there is one, in source casing, each a
