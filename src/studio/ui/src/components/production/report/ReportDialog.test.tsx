@@ -74,7 +74,7 @@ describe('ReportDialog', () => {
     const { preview, write } = mount();
     await screen.findByTitle('Preview of the report');
     for (const name of [
-      'Words and finished audio',
+      'Words and recorded audio',
       'Hours by stage',
       'Deadline and milestones',
       'Open pickups and chapters held back',
@@ -82,7 +82,7 @@ describe('ReportDialog', () => {
     ]) {
       expect(screen.getByRole('checkbox', { name }).getAttribute('aria-checked')).toBe('true');
     }
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Words and finished audio' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Words and recorded audio' }));
     await waitFor(() => expect(preview).toHaveBeenLastCalledWith({ ...DEFAULTS, words: false }));
     await waitFor(() => expect((screen.getByTitle('Preview of the report') as HTMLIFrameElement).getAttribute('srcdoc')).not.toContain('Words'));
     await userEvent.click(screen.getByRole('button', { name: 'Export' }));

@@ -35,6 +35,11 @@ describe('recordedChapters', () => {
     ];
     expect(recordedChapters(list).map((c) => c.id)).toEqual(['a', 'd']);
   });
+
+  it('offers a chapter its opener asked for while its recording is not measured, never one measured as empty', () => {
+    const list = [chapter('a', { recordedSeconds: 60 }), chapter('b', { recordedSeconds: 0 }), chapter('c')];
+    expect(recordedChapters(list, ['b', 'c']).map((c) => c.id)).toEqual(['a', 'c']);
+  });
 });
 
 describe('audioToCheck', () => {
@@ -46,7 +51,7 @@ describe('audioToCheck', () => {
       chapter('d', { recordedSeconds: 999 }),
     ];
     expect(audioToCheck(list, new Set(['a', 'b', 'c']))).toEqual({ seconds: 900, unmeasured: 1 });
-    expect(unmeasuredNote(1)).toBe('1 chapter left out: length not measured');
+    expect(unmeasuredNote(1)).toBe('1 ticked chapter has no measured length, so the total leaves it out');
     expect(unmeasuredNote(0)).toBe('');
   });
   it('formats a duration', () => {

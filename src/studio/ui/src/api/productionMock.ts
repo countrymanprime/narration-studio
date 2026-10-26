@@ -5,7 +5,7 @@
 // arithmetic and "Next up" order as the host (src/studio/desktop/internal/production/overview.go) over the mock's own
 // chapters, stage recommendations and plan, and the stage timer. `?mockProduction=on-pace|at-risk` seeds a time log and a plan
 // (PRODUCTION_SCENARIOS); with no seed nothing is logged or set, which is what a narrator sees first.
-import type { ChapterStatus, ManuscriptChapter } from './contracts/manuscript';
+import type { ChapterStatus, ManuscriptChapter, RecordedUnavailable } from './contracts/manuscript';
 import type {
   ProductionApi,
   ProductionBurndownPoint,
@@ -24,7 +24,7 @@ import type {
 import type { StageRecommendations } from './contracts/stages';
 import { brand } from '../brand.gen';
 
-type SeedLog = 'on-pace' | 'at-risk';
+type SeedLog = 'on-pace' | 'at-risk' | 'linked';
 
 /** A plan to start from, and optionally a seeded time log (`log`). */
 export type ProductionSeed = Partial<ProductionPlan> & {
@@ -43,6 +43,7 @@ type Deps = {
 export const PRODUCTION_SCENARIOS: Record<SeedLog, ProductionSeed> = {
   'on-pace': { log: 'on-pace', deadline: '2026-10-14', contractedAmount: 2400 },
   'at-risk': { log: 'at-risk', deadline: '2026-09-29', contractedAmount: 2400 },
+  linked: { log: 'linked' },
 };
 
 // The mock's today, so the days left to a seeded deadline are the same on every run (the host counts from the real date).
@@ -93,6 +94,25 @@ const SEED_RECORDED: Record<string, number> = {
   'chapter-10': 802,
 };
 
+// `linked`: every chapter linked to a track and its audio measured, but no stage moved on (the owner's book of 2026-10-26, 16 linked
+// chapters with audio and every row blank for recorded): recorded in full, part-way, linked with nothing yet, and four that measure nothing.
+const LINKED_RECORDED: Record<string, number> = {
+  'chapter-1': 790,
+  'chapter-2': 725,
+  'chapter-3': 640,
+  'chapter-4': 512,
+  'chapter-5': 311,
+  'chapter-6': 45,
+  'chapter-7': 0,
+  'chapter-8': 0,
+};
+const LINKED_UNAVAILABLE: Record<string, RecordedUnavailable> = {
+  'chapter-9': 'unlinked',
+  'chapter-10': 'multiple_tracks',
+  'chapter-11': 'track_missing',
+  'chapter-12': 'no_project',
+};
+
 // Hours per stage logged on each seeded chapter.
 const SEED_HOURS: Record<string, Partial<Record<ChapterStatus, number>>> = {
   'chapter-1': { recording: 1.5, editing: 1, proofing: 0.5 },
@@ -112,11 +132,16 @@ type SeededLog = {
   hoursScale: number;
   /** The chapter a timer is running on, recording; none when nothing runs. */
   running?: string;
+  /** Why a chapter with no `recorded` entry has none; absent means not linked. */
+  unavailable?: Record<string, RecordedUnavailable>;
+  /** Every chapter's stage, in place of the manuscript's. */
+  status?: ChapterStatus;
 };
 
 const LOGS: Record<SeedLog, SeededLog> = {
   'on-pace': { hours: SEED_HOURS, recorded: SEED_RECORDED, hoursScale: 1, running: 'chapter-6' },
   'at-risk': { hours: SEED_HOURS, recorded: SEED_RECORDED, hoursScale: 1.6 },
+  linked: { hours: {}, recorded: LINKED_RECORDED, hoursScale: 1, unavailable: LINKED_UNAVAILABLE, status: 'not_started' },
 };
 
 function checkDate(value: string): string {
@@ -308,10 +333,10 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         title: chapter.title,
         ...(chapter.subtitle ? { subtitle: chapter.subtitle } : {}),
         contentKind: chapter.contentKind ?? '',
-        status: chapter.status,
+        status: log?.status ?? chapter.status,
         wordCount: chapter.wordCount,
         recordedSeconds: measured ?? null,
-        ...(measured === undefined ? { recordedUnavailable: chapter.recordedUnavailable ?? 'unlinked' } : {}),
+        ...(measured === undefined ? { recordedUnavailable: log?.unavailable?.[chapter.id] ?? chapter.recordedUnavailable ?? 'unlinked' } : {}),
         hoursLogged,
         pfh: measured === undefined ? null : perFinishedHour(hoursLogged, measured),
         readiness: readiness.get(chapter.id) ?? null,

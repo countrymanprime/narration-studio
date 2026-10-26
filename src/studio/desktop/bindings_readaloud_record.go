@@ -293,7 +293,7 @@ func puncherFrom(svc hostServices) dawport.Puncher {
 }
 
 // ReadAloudRecordStartAt is Record from a punch the narrator chose: chapterID and a time in project seconds, never a
-// track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, keeps starting at the end of the last item.
+// track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, starts where the last take stopped, or else at the end of the last item.
 func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, error) {
 	svc := h.services()
 	if h.recordsInApp(svc) {
