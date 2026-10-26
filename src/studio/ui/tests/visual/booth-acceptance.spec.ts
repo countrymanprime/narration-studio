@@ -295,8 +295,17 @@ test('row 26: Resume at ¶ n moves the reading position to where the recording e
   await expect.poll(() => wordIndex(page)).not.toBe(before);
 });
 
+// The Booth opens on the chapter title, which is no manuscript paragraph a bookmark can name (#2251 item 7): the reading moves onto
+// the first paragraph's first word first.
+const toFirstParagraph = (page: Page) => page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
+
 test('row 27: B bookmarks the word: a ribbon in the margin, and the toast offers Undo', async ({ page }) => {
   await open(page);
+  // On the title, B says why it adds nothing.
+  await page.keyboard.press('b');
+  await expect(page.getByText('A bookmark goes on a line of the text, not on the chapter title.')).toBeVisible();
+  await expect(page.locator('[data-bmk-margin] [data-bm]')).toHaveCount(0);
+  await toFirstParagraph(page);
   await page.keyboard.press('b');
   await expect(page.locator('[data-bmk-margin] [data-bm]').first()).toBeVisible();
   await expect(page.getByText('Bookmark added.')).toBeVisible();
@@ -305,6 +314,7 @@ test('row 27: B bookmarks the word: a ribbon in the margin, and the toast offers
 
 test('row 28: Alt+[ and Alt+] step between bookmarks', async ({ page }) => {
   await open(page);
+  await toFirstParagraph(page);
   await page.keyboard.press('b');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
@@ -366,10 +376,13 @@ test('row 32: Escape with no take leaves the Booth', async ({ page }) => {
 
 test('row 33: the chapter stepper changes the chapter and the text', async ({ page }) => {
   await open(page);
-  const first = await page.locator('[data-booth-text] [data-word]').first().innerText();
+  // The first paragraph's words: every chapter opens with its heading ("Chapter 1", "Chapter 2"), whose first word is the same.
+  const firstWord = () => page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word]').first().innerText();
+  const first = await firstWord();
   await page.getByRole('button', { name: 'Next chapter' }).click();
   await expect(chapterButton(page)).toHaveAccessibleName(/Chapter 2/);
-  await expect.poll(() => page.locator('[data-booth-text] [data-word]').first().innerText()).not.toBe(first);
+  await expect.poll(firstWord).not.toBe(first);
+  await expect(page.locator('[data-booth-text] [data-heading="title"]')).toHaveText(/Chapter 2/);
 });
 
 test('row 34: a pickup session from Pickups marks the line and lists the pickups', async ({ page }) => {

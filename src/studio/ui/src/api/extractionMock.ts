@@ -404,7 +404,11 @@ function withText(p: SuggestionPayload, text: string): SuggestionPayload {
   }
 }
 
-export function createExtractionMock(publish: (event: JobEnded) => void = () => undefined): ExtractionApi {
+/** The mock's suggestions, and `clearSuggestions`, the host's first step of Delete Story Bible data (`guideDeleteAll`): it empties the
+ * suggestions and the mock's copy of the entries, answers how many suggestions there were, and refuses while a scan runs. */
+export type ExtractionMock = ExtractionApi & { clearSuggestions(): number };
+
+export function createExtractionMock(publish: (event: JobEnded) => void = () => undefined): ExtractionMock {
   const seeds = seeded();
   let suggestions = seeds.suggestions;
   let entries = wireClone(ENTRIES);
@@ -607,6 +611,13 @@ export function createExtractionMock(publish: (event: JobEnded) => void = () => 
   }
 
   return {
+    clearSuggestions: () => {
+      if (scan.phase === 'running') throw new Error('Wait for the Story Bible build or the manuscript scan to finish, then delete the Story Bible data.');
+      const count = suggestions.length;
+      suggestions = [];
+      entries = [];
+      return count;
+    },
     extractionImportPreview: (text, hint) => Promise.resolve(wireClone(planImport(text, hint).plan)),
     extractionImportCommit: (text, hint) => {
       const { plan, offers } = planImport(text, hint);

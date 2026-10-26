@@ -4,6 +4,7 @@ import type {
   GuideAppearance,
   GuideDialogueCue,
   GuideDialogueCueEvidence,
+  GuideDeleted,
   GuideEntity,
   GuideEvidence,
   GuideMergeResult,
@@ -122,6 +123,11 @@ export const guideCreatedSchema = z.object({ id: z.string() });
 
 /** What GuideMerge answers: the undo id, in the form the host and the sidecar check. */
 export const guideMergeResultSchema = z.object({ undoId: z.string().regex(/^[0-9a-f]{16}$/) }).strict() satisfies z.ZodType<GuideMergeResult>;
+
+/** What GuideDeleteAll answers: two counts. */
+export const guideDeletedSchema = z
+  .object({ entries: z.number().int().nonnegative(), suggestions: z.number().int().nonnegative() })
+  .strict() satisfies z.ZodType<GuideDeleted>;
 
 export const guidePreviewSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('ready'), audioBase64: z.string(), mimeType: z.string() }),

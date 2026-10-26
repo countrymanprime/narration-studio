@@ -609,8 +609,8 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   {
     name: 'record-start-at-a-punch-starts-there',
     check: async (daw) => {
-      expect(await daw.recordStart('chapter-1', 30)).toEqual({ ok: true, changed: true, message: recordingFromAnswer(30), undoSteps: 0 });
-      expect(await daw.recordStart('chapter-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+      expect(await daw.recordStart('chapter-1', 30)).toEqual({ ok: true, changed: true, message: recordingFromAnswer(30), undoSteps: 0, position: 30 });
+      expect(await daw.recordStart('chapter-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0, position: 0 });
     },
   },
   { name: 'record-start-at-a-punch-starts-there: a start at a punch is answered alike', observe: (daw) => daw.recordStart('chapter-1', 30) },
@@ -977,7 +977,7 @@ describe('the host adapter maps each existing golden', () => {
     const taken = read('workspace-use-take-done.json', workspaceUseTakeResultSchema);
     expect(await daw.useTake('chapter-1', 0, 4, 'take-1')).toEqual({ ok: true, changed: true, message: taken.message, undoSteps: 1 });
     expect(await daw.addMarker('finding-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 1 });
-    expect(await daw.recordStart('chapter-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await daw.recordStart('chapter-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0, position: 0 });
   });
 
   it('record-start-at-a-punch-starts-there: the host adapter sends a time to ReadAloudRecordStartAt and none to ReadAloudRecordStart', async () => {
@@ -1119,6 +1119,7 @@ describe('the mock setups', () => {
       changed: true,
       message: recordingFromAnswer(12.25),
       undoSteps: 0,
+      position: 12.25,
     });
   });
 

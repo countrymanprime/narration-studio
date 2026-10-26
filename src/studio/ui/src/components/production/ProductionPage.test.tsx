@@ -49,7 +49,6 @@ async function renderPage({
             go={go}
             notify={notify}
             goToScript={vi.fn()}
-            goToEditing={vi.fn()}
             goToBooth={goToBooth}
             refreshBootstrap={async () => {}}
             onManuscriptChanged={onManuscriptChanged}
@@ -377,7 +376,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
     const labels = (contextItemsFor(row) ?? []).map((item) => item.label);
-    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Recording check…', 'Editing check…']) {
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Check recordings…', 'Editing check…']) {
       expect(labels).toContain(label);
     }
     expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
@@ -398,7 +397,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     await waitFor(() => expect(onManuscriptChanged.mock.calls.length).toBeGreaterThan(baseline));
   });
 
-  it('opens the recording check from the row menu', async () => {
+  it("opens Check recordings from the row menu with the row's chapter ticked, the one recording check every page opens", async () => {
     await renderPage();
     const table = await pipeline();
     // The rows after the header: the opening credits, then chapter 1.
@@ -409,7 +408,8 @@ describe('the row menu keeps the features the mock has none for', () => {
         ?.find((item) => item.key === 'recording')
         ?.onSelect(),
     );
-    expect(await screen.findByRole('dialog', { name: /^Recording check: / })).toBeTruthy();
+    const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
+    expect(await within(dialog).findByRole('button', { name: 'Check 1 chapter' })).toBeTruthy();
   });
 
   // REAPER with Select a track switched on.

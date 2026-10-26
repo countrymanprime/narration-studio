@@ -184,7 +184,7 @@ export function createMockApi(
   });
   const merges = createMergeEvents();
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
-  const extraction = createExtractionMock(endJob);
+  const { clearSuggestions, ...extraction } = createExtractionMock(endJob);
   const character = createCharacterMock(s);
   const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
   const mockStartedAt = Date.now();
@@ -442,6 +442,12 @@ export function createMockApi(
         if (waiting) throw new Error('Verify or reject its suggestions first.');
       }
       return storyBible.bindings.guideMarkReviewed(id, aliasIndex);
+    },
+    // As the host's GuideDeleteAll: the suggestions first (refused while a scan runs), then the Story Bible.
+    guideDeleteAll: async () => {
+      const suggestions = clearSuggestions();
+      const deleted = await storyBible.bindings.guideDeleteAll();
+      return { ...deleted, suggestions };
     },
     ...createEditCutsMock(
       manuscriptReady,

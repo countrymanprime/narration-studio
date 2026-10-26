@@ -27,6 +27,6 @@ describe('CreditsRowPanel', () => {
     panel();
     expect(screen.getByText('about 3s').className).toContain('whitespace-nowrap');
     const script = screen.getByRole('link', { name: 'Open in Script' });
-    expect(script.parentElement).toBe(screen.getByRole('button', { name: 'Recording check' }).parentElement);
+    expect(script.parentElement).toBe(screen.getByRole('button', { name: 'Check recordings…' }).parentElement);
   });
 });

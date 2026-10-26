@@ -196,8 +196,8 @@ export function createChapterTracksMock(
     chapterTrackMapConfirm: async (trackGuid, chapterId) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
-      // A credits id is never a manuscript chapter, so its recording check's "link a track" flow
-      // (RecordingCheck.tsx's TrackLink, generic over chapter.id) needs this to accept it too, mirroring the host's
+      // A credits id is never a manuscript chapter, so its "link a track" flow
+      // (the audio engine panel's link, generic over chapter.id) needs this to accept it too, mirroring the host's
       // own chapterTitle fix: one chapter-track-map.json, a real title stamped either way.
       const creditsTitle = CREDITS_CHECK_TITLE[chapterId];
       if (!chapter && !creditsTitle) throw new Error('that chapter is not part of the current manuscript');

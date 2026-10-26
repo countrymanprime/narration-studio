@@ -6,7 +6,6 @@ import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
 import { formatWhen } from '../production/recordingCheckText';
-import { RecordingCheck } from '../production/RecordingCheck';
 import { LoadErrorPanel } from '../layout/LoadError';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
@@ -15,7 +14,7 @@ import { LoadingRegion, Skeleton } from '../primitives/Skeleton';
 import { SectionLabel } from '../primitives/SectionLabel';
 import type { Notify } from '../primitives/Toast';
 import type { ManuscriptChapter, TranscriptState } from '../../types';
-import { useCoverageRuns } from '../recordingcheck/useCoverageRuns';
+import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import type { WorkspaceAlignmentResult } from '../../api/contracts/workspace';
 import { CommandScope } from '../../input/router';
 import { CompareRun } from './CompareRun';
@@ -62,7 +61,6 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [loadError, setLoadError] = useState('');
   // False until the chapters and track links have been read, so "no such chapter" is told apart from "still reading".
   const [read, setRead] = useState(false);
-  const [checking, setChecking] = useState(false);
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
   const [reload, setReload] = useState(0);
@@ -77,9 +75,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       .catch(() => {});
   }, [api]);
 
-  const runs = useCoverageRuns();
-
-  // The check's state for the header; read again after Check again closes.
+  // The check's state for the header; read again after Check recordings closes.
   useEffect(() => {
     let live = true;
     api
@@ -218,25 +214,12 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
           onStatusChanged={(status) => setChapter((current) => (current ? { ...current, status } : current))}
           onOpenFinding={(findingId) => goToEditing(chapterId, findingId)}
         />
-        {checking && (
-          <RecordingCheck
-            chapter={chapter}
-            coverage={runs.forChapter(chapterId)}
-            othersRunning={runs.othersRunning(chapterId)}
-            notify={notify}
-            close={() => {
-              setChecking(false);
-              setReload((n) => n + 1);
-            }}
-            goToParagraph={(index) => goToManuscript(chapterId, index)}
-          />
-        )}
       </>,
       <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
         {alignment && <SectionLabel>{CHECK_STATE_LABEL[alignment.state]}</SectionLabel>}
         {alignment?.basis && <span>as of last save {formatWhen(alignment.basis.modifiedAt)}</span>}
-        <Button variant="secondary" onClick={() => setChecking(true)}>
-          {alignment?.state === 'never' ? 'Check recording' : 'Check again'}
+        <Button variant="secondary" onClick={() => openCheckRecordings([chapterId], { onClosed: () => setReload((n) => n + 1) })}>
+          Check recordings…
         </Button>
       </div>,
     );

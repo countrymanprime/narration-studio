@@ -65,7 +65,7 @@ import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
-import { creditsParagraphs, entityAtWord, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
+import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
@@ -302,7 +302,11 @@ function BoothSession({
     () =>
       source.kind === 'credits'
         ? creditsParagraphs(source.credits, source.preview.text)
-        : readingParagraphsOf(session.paragraphs ?? [], cues, cueSpeakerEntries(entities, types)),
+        : // The chapter's title and subtitle are its first lines, read like any other (#2251 item 7); the credits' name is not read. They
+          // come with the paragraphs, so the text is empty until it has loaded and a place waiting for it (the last place, a line from Script) still waits.
+          session.paragraphs?.length
+          ? [...headingParagraphs(source.chapter), ...readingParagraphsOf(session.paragraphs, cues, cueSpeakerEntries(entities, types))]
+          : [],
     [source, session.paragraphs, cues, entities, types],
   );
   const recordId = source.kind === 'credits' ? `credits-${source.credits}` : source.chapter.id;
@@ -557,7 +561,14 @@ function BoothSession({
 
   const words = paragraphs.reduce((sum, paragraph) => sum + wordCount(paragraph.text), 0);
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;
-  const progress = progressLine({ paragraph: (units[at.cur]?.paragraphIndex ?? 0) + 1, paragraphs: paragraphs.length, wordsRead, words });
+  // The heading's words count toward the chapter's, but the paragraph numbers are the manuscript's: the heading is on paragraph 1.
+  const lastParagraph = Math.max(0, paragraphs.length - 1);
+  const progress = progressLine({
+    paragraph: bodyParagraphIndex(paragraphs, units[at.cur]?.paragraphIndex ?? 0) + 1,
+    paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
+    wordsRead,
+    words,
+  });
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
@@ -659,7 +670,14 @@ function BoothSession({
               panelOpen={side.open}
               onTogglePanel={side.toggle}
               panelId="booth-side"
-              text={{ font: page.text.font, size: page.text.size, onFont: page.text.setFont, onSize: page.text.setSize }}
+              text={{
+                font: page.text.font,
+                size: page.text.size,
+                width: page.text.width,
+                onFont: page.text.setFont,
+                onSize: page.text.setSize,
+                onWidth: page.text.setWidth,
+              }}
             />
           </div>
           <BoothSamplesProvider value={samples}>
@@ -692,6 +710,7 @@ function BoothSession({
                   pickupLines={pickups.bars}
                   size={page.text.size}
                   font={page.text.fontFamily}
+                  width={page.text.column}
                   viewRef={page.view}
                   margin={
                     chapter ? (

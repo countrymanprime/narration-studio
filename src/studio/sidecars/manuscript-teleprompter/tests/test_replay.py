@@ -172,3 +172,19 @@ def test_loaded_as_a_script_it_puts_its_own_folder_on_the_import_path(monkeypatc
     spec.loader.exec_module(fresh)
 
     assert sys.path[0] == core
+
+
+@pytest.mark.parametrize("source", ["--events", "--stream"])
+def test_with_calls_the_cli_prints_a_tick_then_a_feed_per_engine_event_for_the_hosts_tool(tmp_path, capsys, monkeypatch, source):
+    records = [_record("LineCompleted", 2.0, 5, "the old lighthouse")]
+    if source == "--stream":
+        records = [event for _, event in replay.replay_events(records)]
+    recording = tmp_path / "recording.jsonl"
+    recording.write_text("\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+    monkeypatch.setattr("sys.argv", ["replay.py", source, str(recording), "--script", "unused.txt", "--calls"])
+
+    replay.main()
+
+    calls = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert [next(iter(call)) for call in calls[:4]] == ["tick", "feed", "tick", "feed"]
+    assert [call["feed"]["type"] for call in calls if "feed" in call][-1] == "segment_end"

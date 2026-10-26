@@ -356,7 +356,7 @@ const MOCK_EDITING_SIGNAL_SEED: Record<NonNullable<typeof mockEditingSignal>, { 
 // (Not ready), so the panel's summary and its evidence view can be seen without a host.
 const mockProofingStages = mockParams.get('mockProofingStages') === 'mixed';
 // `?mockProofingSignal=unmapped-track` seeds Chapter 9's pickups signal directly with an unknown cause that needs a track link, so
-// the evidence view's cause action ("Open Tracks", never "Open recording check" - stageText.ts's `PROOFING_CAUSE_TEXT`) can be seen
+// the evidence view's cause action ("Open Tracks", never "Check recordings…" - stageText.ts's `PROOFING_CAUSE_TEXT`) can be seen
 // without a host.
 const mockProofingSignal = mockParams.get('mockProofingSignal') === 'unmapped-track';
 // `?mockProofingRender=chapter-9-stale` seeds Chapter 9's chosen render as stale, so the "Rendered file" section's
@@ -415,8 +415,8 @@ const mockDeliveryProfile = mockParams.get('mockDeliveryProfile') === 'custom' ?
 // `fails` ends it with the host's refusal, `quiet` holds it running and then stops answering the job's reads.
 const mockDelivery = (['ready', 'building', 'fails', 'quiet'] as const).find((seed) => seed === mockParams.get('mockDelivery'));
 // `?mockProduction=on-pace|at-risk` seeds the Production page with a time log, a running timer (on-pace only), a deadline and a
-// contracted amount; with none, nothing is logged or set yet.
-const mockProduction = (['on-pace', 'at-risk'] as const).find((seed) => seed === mockParams.get('mockProduction'));
+// contracted amount; `linked` measures every chapter's linked track with no stage moved on; with none, nothing is logged or set yet.
+const mockProduction = (['on-pace', 'at-risk', 'linked'] as const).find((seed) => seed === mockParams.get('mockProduction'));
 // `?mockFidelity=05` draws the mock backend as benchmark mock 05 draws Master & QC, for the pixel-match tool (mockHost/mockFidelity.ts).
 const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 

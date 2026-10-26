@@ -76,3 +76,43 @@ test('voice-samples-panel at 1440: Coming up is a column and the samples toggle 
   expect(new Set(g.says).size, 'every pronunciation starts at one x').toBe(1);
   expect(g.toggle, 'the toggle is as wide as a sample row').toBeCloseTo(g.row, 0);
 });
+
+// The owner's report against #2256: paragraphs are left-aligned with no first-line indent, and the narrator sets the column's width
+// (Text settings › Column width, the same choice as Settings › Reader text).
+test('setup: every paragraph is left-aligned with no first-line indent and no balanced or justified lines', async ({ page }) => {
+  await drive(page, 'setup', { width: 1440, height: 900 });
+  const looks = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[data-booth-text] [data-paragraph]')].map((p) => {
+      const style = getComputedStyle(p);
+      return { indent: style.textIndent, align: style.textAlign, wrap: style.textWrap || style.getPropertyValue('text-wrap'), hyphens: style.hyphens };
+    }),
+  );
+  expect(looks.length).toBeGreaterThan(1);
+  for (const look of looks) {
+    expect(look.indent).toBe('0px');
+    expect(['start', 'left']).toContain(look.align);
+    expect(look.wrap).not.toMatch(/balance|pretty/);
+    expect(look.hyphens).not.toBe('auto');
+  }
+});
+
+// The Booth reads the Script's own setting in the Script's unit, `ch` of the text, so Medium is 64 characters a line on both pages; the
+// text area caps it. At 40 px, 1920 wide leaves room for every width; 1440 caps Medium and Full alike, still wider than the old 26em (1040 px).
+for (const { size, roomForFull } of [
+  { size: { width: 1920, height: 1080 }, roomForFull: true },
+  { size: { width: 1440, height: 900 }, roomForFull: false },
+]) {
+  test(`at ${size.width}: the Reader text column width changes how wide the Booth's text column is`, async ({ page }) => {
+    const width = async (state: string): Promise<number> => {
+      await drive(page, state, size);
+      return page.evaluate(() => document.querySelector('[data-booth-text] > div')!.getBoundingClientRect().width);
+    };
+    const medium = await width('setup');
+    const narrow = await width('text-width-narrow');
+    const full = await width('text-width-full');
+    expect(narrow).toBeLessThan(medium);
+    expect(medium).toBeGreaterThanOrEqual(26 * 40);
+    if (roomForFull) expect(full).toBeGreaterThan(medium);
+    else expect(full).toBe(medium);
+  });
+}

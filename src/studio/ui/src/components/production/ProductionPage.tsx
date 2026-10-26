@@ -118,7 +118,6 @@ export function ProductionPage({
   go,
   notify,
   goToScript,
-  goToEditing,
   goToBooth,
   refreshBootstrap,
   onManuscriptChanged,
@@ -128,8 +127,6 @@ export function ProductionPage({
   go: (page: string) => void;
   notify: Notify;
   goToScript: (chapter: string, paragraph?: number) => void;
-  /** Opens the Editing page at a chapter (the recording check's Open in Editing). */
-  goToEditing: (chapterId: string) => void;
   /** Opens the Booth, on a chapter when one is given. */
   goToBooth: (chapterId?: string) => void;
   refreshBootstrap: () => Promise<void>;
@@ -245,8 +242,6 @@ export function ProductionPage({
     credits,
     notify,
     go: { script: (id) => goToScript(id), booth: (id) => goToBooth(id), proof: (id) => go(proofAt(id)), master: () => go('/master') },
-    goToScript,
-    goToEditing,
     active: found,
     refreshKey: manuscriptKey,
     onChanged,

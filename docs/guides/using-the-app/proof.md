@@ -253,17 +253,15 @@ takes are on [Editing](editing.md).
 The view runs the full width of the page, like Proof, with its breadcrumb and title in the same place in every state.
 While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
-If the chapter hasn't been checked yet, the title row says **Not checked yet** and offers **Check recording**, the same check
-[Production](production.md#checking-a-chapters-recording) runs. A chapter with no linked REAPER track says so in a line
+If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings…** beside it opens
+[Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. A chapter with no linked REAPER track says so in a line
 under the title, with the way to the audio engine panel.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)
 
 Under the heading "Proof · <chapter name>" the header names the check's state (current, or stale if an item changed
 since) and **as of last save**: the check reads the DAW project as it was last saved, not whatever is open live in
-the DAW right now. **Check again** runs the check once more.
-The check panel has a closed **Check options** section with the same choices as [Check recordings](production.md#checking-a-chapters-recording): the speech
-model, a second look with a larger model, chunk length, parallel processes, crossover and **Chapters at once**. **Check again** runs exactly what they show.
+the DAW right now. **Check recordings…** checks it again; when the dialog closes the state is read again.
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 

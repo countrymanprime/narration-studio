@@ -10,6 +10,10 @@ and reports how the cursor behaved and what was flagged:
 
     python replay.py --events moonshine-mic-small.jsonl --script my-script.txt [--timeline]
     python replay.py --stream session.ndjson --script my-script.txt [--timeline]
+    python replay.py --events moonshine-mic-small.jsonl --calls | go run ./cmd/booth-replay --script my-script.txt
+
+The last form runs the same calls through the host's own tracker (src/studio/desktop/cmd/booth-replay), which also
+reads a printed session itself (`--stream`).
 
 The numbers to look at: `speculation_lead_seconds` (how much earlier the
 cursor reached each word than confirmed words alone would have), `backward_moves`
@@ -109,6 +113,14 @@ def stream_events(lines: list[dict]) -> Iterator[tuple[float, dict]]:
         yield clock, event
 
 
+def tracker_calls(timed_events: Iterator[tuple[float, dict]]) -> Iterator[dict]:
+    """The tracker calls `track_events` makes, one JSON object each: `{"tick": wall}`, then `{"feed": event, "t": wall}`,
+    for the host's replay tool (`go run ./cmd/booth-replay`, src/studio/desktop) to run through its own tracker."""
+    for wall, event in timed_events:
+        yield {"tick": wall}
+        yield {"feed": event, "t": wall}
+
+
 def track_events(timed_events: Iterator[tuple[float, dict]], tokens: list[str]) -> tuple[list[tuple[float, dict]], int]:
     """The position and flag events a live run would have produced, with arrival
     times, and how many confirmed words were heard. The clock is advanced
@@ -186,6 +198,17 @@ def summarize_timeline(timeline: list[tuple[float, dict]], token_count: int, hea
     }
 
 
+def timeline_lines(timeline: list[tuple[float, dict]], tokens: list[str]) -> Iterator[str]:
+    """--timeline: one line per position and flag event."""
+    for wall, event in timeline:
+        if event["type"] == "flag":
+            yield f"[{wall:7.2f}s] FLAG {event['kind']:8s} {event['start']}-{event['end']} script={' '.join(tokens[event['start'] : event['end']])!r} heard={event['heard']!r}"
+            continue
+        upcoming = tokens[event["read"]] if event["read"] < len(tokens) else "(end)"
+        note = f"  {event['jump'].upper()}" if event["jump"] else ""
+        yield f"[{wall:7.2f}s] read={event['read']:4d} committed={event['committed']:4d} {event['status']:9s} next={upcoming!r}{note}"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Replay recorded live-ASR output through the script tracker and its flags")
     source = ap.add_mutually_exclusive_group(required=True)
@@ -193,21 +216,24 @@ def main() -> None:
     source.add_argument("--stream", help="NDJSON a live_asr.py session printed (its engine events are replayed)")
     ap.add_argument("--script", required=True, help="Plain-text script that was read aloud")
     ap.add_argument("--timeline", action="store_true", help="Also print every position and flag event")
+    ap.add_argument(
+        "--calls",
+        action="store_true",
+        help="Print the tracker calls instead (one JSON object a line), for the host's tool: "
+        "python replay.py --events X --calls | go run ./cmd/booth-replay --script S",
+    )
     args = ap.parse_args()
+    if args.calls:
+        for call in tracker_calls(replay_events(load_records(args.events)) if args.events else stream_events(load_records(args.stream))):
+            print(json.dumps(call))
+        return
 
     tokens = script_words(Path(args.script).read_text(encoding="utf-8"))
     timed = replay_events(load_records(args.events)) if args.events else stream_events(load_records(args.stream))
     timeline, heard_words = track_events(timed, tokens)
     if args.timeline:
-        for wall, event in timeline:
-            if event["type"] == "flag":
-                print(
-                    f"[{wall:7.2f}s] FLAG {event['kind']:8s} {event['start']}-{event['end']} script={' '.join(tokens[event['start'] : event['end']])!r} heard={event['heard']!r}"
-                )
-                continue
-            upcoming = tokens[event["read"]] if event["read"] < len(tokens) else "(end)"
-            note = f"  {event['jump'].upper()}" if event["jump"] else ""
-            print(f"[{wall:7.2f}s] read={event['read']:4d} committed={event['committed']:4d} {event['status']:9s} next={upcoming!r}{note}")
+        for line in timeline_lines(timeline, tokens):
+            print(line)
     print(json.dumps(summarize_timeline(timeline, len(tokens), heard_words, tokens), indent=2))
 
 

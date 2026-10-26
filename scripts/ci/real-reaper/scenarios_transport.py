@@ -577,3 +577,160 @@ def daw_meters(env: Env) -> str:
         f"stopped and unarmed: -100.0 and no input; armed with no signal: {quiet[3]} dB on Chapter 2; playing: output {heard[2]} dB, "
         f"input {heard[3]} dB on Chapter 2; {fallen[2]} dB after the stop; arms and undo unchanged"
     )
+
+
+# -- where Stop leaves the edit cursor -------------------------------------------------------------------------------------------
+
+
+def cursor(env: Env) -> float:
+    return env.lua("return reaper.GetCursorPosition()")
+
+
+def recorded_from(env: Env, start: float) -> dict:
+    """Chapter 1's item that REAPER made from a recording begun at `start`, once its take has its file."""
+
+    def ready():
+        items = [i for i in items_on(env.snapshot(), "Chapter 1") if abs(i["position"] - start) < 1e-3 and all(t["file"] for t in i["takes"])]
+        return items[-1] if items else None
+
+    return env.wait_for(ready, what=f"the item recorded from {start} s")
+
+
+@scenario(
+    "record",
+    "record_stop",
+    "record: Stop leaves the edit cursor at the end of what was just recorded, not where recording began (REAPER's own Stop leaves it at the start)",
+    needs_audio=True,
+)
+def record_stop_keeps_cursor(env: Env) -> str:
+    fx = book(env)
+    # REAPER on its own, for the record: a recording the app did not start, stopped in REAPER.
+    arm_by_hand(env, "Chapter 2")
+    env.lua("reaper.SetEditCurPos(20, false, false) reaper.CSurf_OnRecord() return true")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 20.8, timeout=8, what="REAPER's own recording to run")
+    stop_by_hand(env)
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    reaper_own = cursor(env)
+    env.lua("reaper.SetMediaTrackInfo_Value(ci.track_by_name('Chapter 2'), 'I_RECARM', 0) return true")
+    # The app's take.
+    env.lua("reaper.SetEditCurPos(6, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 7.2, timeout=8, what="the recording to run for over a second")
+    stopped = env.ok("record_stop", until="RECORD_STOPPED")
+    assert stopped[4] == "1", f"record_stop reported undo points {stopped[4:]} (REAPER's one Recorded media point; the cursor adds none)"
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    item = recorded_from(env, 6.0)
+    end = item["position"] + item["length"]
+    near(cursor(env), end, 1e-3, "the edit cursor after record_stop")
+    assert end > 7.0, f"the recorded item ends at {end}"
+    assert env.lua("return reaper.Undo_CanUndo2(0)") == "Recorded media", "the top undo point is not the take"
+    return f"REAPER's own Stop left the cursor at {reaper_own:.3f} s (recording began at 20 s); after record_stop it is at {end:.3f} s, the end of the take begun at 6 s"
+
+
+@scenario(
+    "record",
+    "record_stop, record_start, punch_to",
+    "record: the cycle record, stop, record, stop, punch, record, stop; each take starts where the last stopped unless the narrator punched",
+    needs_audio=True,
+)
+def record_stop_cycle(env: Env) -> str:
+    fx = book(env)
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    ends = []
+    for run in range(2):
+        rule = ("end",) if run == 0 else ()
+        started = env.ok("record_start", fx["ch1"], *rule, until="RECORD_STARTED")
+        begin = float(started[3])
+        if run == 1:
+            near(begin, ends[0], 1e-3, "take B begins where take A stopped")
+        env.wait_for(lambda b=begin: env.lua("return reaper.GetPlayPosition()") > b + 1.0, timeout=8, what="the take to run")
+        env.ok("record_stop", until="RECORD_STOPPED")
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        item = recorded_from(env, begin)
+        ends.append(item["position"] + item["length"])
+        near(cursor(env), ends[-1], 1e-3, f"the cursor after take {run + 1}")
+        env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("punch_to", "3", "0", until="PUNCHED")
+    started = env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    near(float(started[3]), 3.0, 1e-6, "the punch begins where the narrator chose")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 3.8, timeout=8, what="the punch to run")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    item = recorded_from(env, 3.0)
+    punch_end = item["position"] + item["length"]
+    near(cursor(env), punch_end, 1e-3, "the cursor after the punch")
+    return f"take A 5.000-{ends[0]:.3f} s, take B {ends[0]:.3f}-{ends[1]:.3f} s, punch 3.000-{punch_end:.3f} s; the cursor ended each at its end"
+
+
+@scenario(
+    "record",
+    "record_stop",
+    "record: a take stopped in REAPER (RECORD_ENDED) also leaves the edit cursor at its end",
+    needs_audio=True,
+)
+def record_stopped_in_reaper_keeps_cursor(env: Env) -> str:
+    fx = book(env)
+    env.lua("reaper.SetEditCurPos(8, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    run = env.start("record_start", fx["ch1"])
+    env.wait_event(run, "RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 9.0, timeout=8, what="the take to run")
+    stop_by_hand(env)
+    env.wait_event(run, "RECORD_ENDED")
+    item = recorded_from(env, 8.0)
+    end = item["position"] + item["length"]
+    near(cursor(env), end, 1e-3, "the edit cursor after a Stop in REAPER")
+    return f"stopped in REAPER; the cursor is at {end:.3f} s, the end of the take begun at 8 s"
+
+
+@scenario("punch", "roll, record_stop", "roll: a take stopped after a roll leaves the edit cursor at the end of the rolled pass", needs_audio=True)
+def roll_stop_keeps_cursor(env: Env) -> str:
+    fx = book(env)
+    env.lua("reaper.SetEditCurPos(10, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 12.0, timeout=8, what="the take to run")
+    env.ok("roll", fx["ch1"], "11", until="ROLLED", timeout=20)
+    env.wait_for(lambda: play_state(env) & 4 == 4, what="REAPER to record again")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 12.0, timeout=8, what="the rolled pass to run")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    item = recorded_from(env, 11.0)
+    end = item["position"] + item["length"]
+    near(cursor(env), end, 1e-3, "the edit cursor after a roll and Stop")
+    return f"rolled at 11 s; the cursor is at {end:.3f} s, the end of the rolled pass, not back at 11 s"
+
+
+@scenario(
+    "record",
+    "record_start, record_stop, punch_to",
+    "record: after a pickup over earlier audio, the next plain take (end rule) starts where the pickup stopped, not after the later audio",
+    needs_audio=True,
+)
+def record_end_rule_after_stop(env: Env) -> str:
+    fx = book(env)
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("punch_to", "1", "0", until="PUNCHED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 2.0, timeout=8, what="the pickup to run")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    item = recorded_from(env, 1.0)
+    stop = item["position"] + item["length"]
+    assert stop < 5.0, f"the pickup ran past the earlier read ({stop} s)"
+    near(cursor(env), stop, 1e-3, "the cursor after the pickup")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    started = env.ok("record_start", fx["ch1"], "end", until="RECORD_STARTED")
+    near(float(started[3]), stop, 1e-3, "the next take starts where the pickup stopped")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > stop + 0.5, timeout=8, what="the take to run")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    # A cursor the narrator moved is not where a take stopped: the end rule goes after the track's last item again.
+    env.lua("reaper.SetEditCurPos(0.5, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    moved = env.ok("record_start", fx["ch1"], "end", until="RECORD_STARTED")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    assert float(moved[3]) >= 5.0 - 1e-3, f"a moved cursor started at {moved[3]}, not after the last item"
+    return f"pickup 1.000-{stop:.3f} s over the 0-5 s read; the next plain take began at {float(started[3]):.3f} s; with the cursor moved it began at {float(moved[3]):.3f} s"
