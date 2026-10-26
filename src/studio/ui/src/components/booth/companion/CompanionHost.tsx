@@ -14,6 +14,7 @@ import { CREDITS_LABEL, readerMarks, type ReaderMark } from '../readerModel';
 import { loadFlagVisibility } from '../readerPreferences';
 import { useFollowCursor } from '../useFollowCursor';
 import { useRecordInReaper } from '../useRecordInReaper';
+import { useListeningMic } from '../listening/useListeningMic';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 
 const NO_ENTITIES: GuideEntity[] = [];
@@ -50,6 +51,16 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
     chapterId: chapter?.id ?? '',
     chapter,
     credits: source.kind === 'credits' ? { kind: source.credits, text: source.preview.text } : undefined,
+  });
+  // The Companion records in the DAW, so it listens on the DAW's own input as the Booth does (useListeningMic).
+  useListeningMic({
+    dawRecords: true,
+    chapterId: chapter?.id ?? '',
+    chosen: session.chosenDevice,
+    source: session.inputSource,
+    settingsLoaded: session.settingsLoaded,
+    devices: session.devices,
+    listenOn: session.listenOn,
   });
   const follow = useFollowCursor({ active: session.active, cursor: session.cursor });
   const record = useCapability('record');
