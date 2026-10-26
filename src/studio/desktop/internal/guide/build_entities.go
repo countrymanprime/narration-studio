@@ -9,9 +9,11 @@ import (
 )
 
 // This file is the extraction half of the Story Bible build (build.go): manuscript_guide.py build_entities and what it called
-// (spacy_candidates after the model, rule_candidates, classify, trait_notes, direct_description, assign_scene_indices,
-// appearance_map, evidence_entries), which #2251 step 3 moved here and deleted. The sidecar only runs the language model, and its
-// spans come here as they were (entitySpan). tests/fixtures/guide-build (frozen) pins it byte for byte (TestBuildMatchesTheSidecar).
+// (spacy_candidates after the model, classify, trait_notes, direct_description, assign_scene_indices, appearance_map,
+// evidence_entries), which #2251 step 3 moved here and deleted. The sidecar only runs the language model, and its spans come here as
+// they were (entitySpan). Without the model the names are the scan's (scanCandidates), not rule_candidates', since #2251.
+// tests/fixtures/guide-build (frozen) pins a build with the model's spans byte for byte (TestBuildMatchesTheSidecar), and
+// testdata/build-rules.json and testdata/build-cues.json pin the builds without it.
 
 // entitySpan is one entity the language model found in a paragraph: spaCy's ent.start_char, ent.end_char and ent.label_, in code points.
 type entitySpan struct {
@@ -55,13 +57,15 @@ func taggedCommonWord(name string, stats wordStats) bool {
 	return stats.lowercase[compare.PyLower(name)] || hasCommonSuffix(name)
 }
 
-// buildGroups is the grouping of build_entities: the candidates by normalized name, with a name folded into a longer one that ends
-// with it and starts with a title (Arelian into Captain Arelian). Unlike the rules' grouped, a longer name of one word counts when that
-// word is a title, as there.
+// buildGroups is the grouping of build_entities: the language model's candidates by normalized name, with a name folded into a longer
+// one that ends with it and starts with a title (Arelian into Captain Arelian), a longer name of one word counting when that word is
+// a title. The rules' candidates come grouped already (scanCandidates), and keep their groups.
 func buildGroups(candidates []ruleCandidate) *orderedGroups {
 	g := &orderedGroups{groups: map[string][]ruleCandidate{}}
 	for _, candidate := range candidates {
-		if key := normalizeName(candidate.name); len(key) >= 2 && !ruleStopwords[candidate.name] {
+		if candidate.group != "" {
+			g.add("\x00"+candidate.group, candidate) // \x00 is never a normalized name's, so these never fold
+		} else if key := normalizeName(candidate.name); len(key) >= 2 && !ruleStopwords[candidate.name] {
 			g.add(key, candidate)
 		}
 	}
@@ -70,11 +74,11 @@ func buildGroups(candidates []ruleCandidate) *orderedGroups {
 		return len(words) > 0 && titleWords[strings.Trim(words[0], ".")]
 	}
 	for _, short := range slices.Clone(g.keys) {
-		if _, ok := g.groups[short]; !ok {
+		if _, ok := g.groups[short]; !ok || strings.HasPrefix(short, "\x00") {
 			continue
 		}
 		for _, long := range slices.Clone(g.keys) {
-			if long == short || !strings.HasSuffix(long, short) {
+			if long == short || strings.HasPrefix(long, "\x00") || !strings.HasSuffix(long, short) {
 				continue
 			}
 			if startsWithTitle(g.groups[long][0].name) {
