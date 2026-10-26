@@ -26,6 +26,9 @@
 
 **Rules-only fallback (`rule_candidates`, used when the spaCy model is unavailable).** A cleaned candidate is accepted only if it is multi-word, or a single word that passes the common-word test (no spaCy override here) **and** either appears capitalized mid-sentence at least twice or is the short form of an accepted title-prefixed name ("Arelian" after "Captain Arelian"). Sentence-initial-only words are therefore rejected.
 
+The Story Bible scan does not use these candidate rules for names: its name finder is `src/studio/desktop/internal/guide/rules_scan.go`
+([manuscript-guide.md](../utilities/manuscript-guide.md#rules-suggestions)). The build still does.
+
 **Classification (`classify`).** The explicit rules (ORG_WORDS, PLACE_WORDS, TITLE_WORDS, spaCy labels) come first. The `PERSON_WORDS`/`PLACE_WORDS` proximity guess applies only to multi-word names. Anything else returns `"Needs Review"` instead of defaulting toward Character. When an entity's occurrences vote for several categories, a confident category beats "Needs Review" votes.
 
 **Build filter (`build_entities`).** A `"Needs Review"` entity is dropped unless it has at least 3 occurrences.
