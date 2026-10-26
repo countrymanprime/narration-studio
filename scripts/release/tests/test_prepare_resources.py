@@ -296,6 +296,9 @@ def test_the_guide_freeze_carries_what_the_optional_tools_import_that_the_guide_
     assert set(script.OPTIONAL_TOOL_IMPORTS) <= set(flag_values(guide, "--hidden-import"))
     assert {"pickletools", "filecmp", "plistlib", "mmap", "sysconfig", "tqdm.auto"} <= set(script.OPTIONAL_TOOL_IMPORTS)
     assert ("ctypes.wintypes" in script.OPTIONAL_TOOL_IMPORTS) == (sys.platform == "win32")
+    # huggingface_hub (which transformers imports) imports httpx at import time, and neither BookNLP row downloads it: the freeze
+    # carried it only because spaCy imports weasel, which imports httpx. It is named, so a spaCy without weasel cannot drop it (#2251).
+    assert {"httpx", "httpcore", "h11", "anyio", "idna", "certifi"} <= set(script.OPTIONAL_TOOL_IMPORTS)
     # transformers checks these versions on import, and the freeze strips package metadata ("No package metadata was found").
     assert {"tqdm", "packaging", "numpy", "pyyaml"} <= set(flag_values(guide, "--copy-metadata"))
     for other in (call for call in fake.calls if call["name"] != "manuscript-guide"):
