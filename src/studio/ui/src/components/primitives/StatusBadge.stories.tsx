@@ -28,12 +28,11 @@ export const Progress: Story = { args: { tone: 'progress', label: '41%' } };
 export const Success: Story = { args: { tone: 'success', label: 'PASS' } };
 export const Warning: Story = { args: { tone: 'warning', label: '3 open' } };
 export const Danger: Story = { args: { tone: 'danger', label: 'FLOOR' } };
-export const Experimental: Story = { args: { tone: 'experimental', label: 'Experimental' } };
 // The two tones the benchmark mocks add: the accent (a proofer, a query, "Author ✓") and org (PACING).
 export const Accent: Story = { args: { tone: 'accent', label: 'Author ✓' } };
 export const Org: Story = { args: { tone: 'org', label: 'Pacing', shape: 'tag' } };
 
-const TONES: StatusTone[] = ['neutral', 'info', 'progress', 'accent', 'success', 'warning', 'danger', 'org', 'experimental'];
+const TONES: StatusTone[] = ['neutral', 'info', 'progress', 'accent', 'success', 'warning', 'danger', 'org'];
 
 // Every tone in each shape and look, as mocks 01, 02 and 04 draw them side by side: one row per shape, so a tone that
 // drifts from the others shows here first.

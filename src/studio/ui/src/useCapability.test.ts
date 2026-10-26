@@ -14,7 +14,7 @@ function wrapper(api: Pick<NarrationApi, 'dawCapabilities' | 'subscribeDawCapabi
 
 describe('useCapability', () => {
   it('reads the entry for a known capability from the first dawCapabilities() answer', async () => {
-    const api = createDawMock({ daw: 'REAPER', toggles: { punch: 'on' }, experimentalOn: true });
+    const api = createDawMock({ daw: 'REAPER' });
     const { result } = renderHook(() => useCapability('punch'), { wrapper: wrapper(api) });
     await waitFor(() => expect(result.current.available).toBe(true));
     expect(result.current.level).toBe('experimental');
@@ -22,7 +22,7 @@ describe('useCapability', () => {
 
   it('follows a daw_capabilities_changed update for the same capability', async () => {
     let onUpdate: ((state: DawCapabilities) => void) | undefined;
-    const seed: DawMockSeed = { daw: 'REAPER', toggles: { punch: 'off' } };
+    const seed: DawMockSeed = { daw: 'REAPER', reachable: false };
     const base = createDawMock(seed);
     const api: Pick<NarrationApi, 'dawCapabilities' | 'subscribeDawCapabilities'> = {
       dawCapabilities: base.dawCapabilities,
@@ -34,7 +34,7 @@ describe('useCapability', () => {
     const { result } = renderHook(() => useCapability('punch'), { wrapper: wrapper(api) });
     await waitFor(() => expect(result.current.level).toBe('experimental'));
     expect(result.current.available).toBe(false);
-    expect(result.current.message).toBe('Turned off in Settings.');
+    expect(result.current.message).toMatch(/^REAPER is not answering/);
 
     act(() => {
       onUpdate?.({

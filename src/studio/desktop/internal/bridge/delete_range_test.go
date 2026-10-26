@@ -15,7 +15,7 @@ const cutItem = "{00000002-0000-4000-8000-000000000002}"
 func TestDeleteRangeIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.DeleteRange(context.Background(), cutItem, 14, 16, CutClose, 10, 0, false); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.DeleteRange(context.Background(), cutItem, 14, 16, CutClose, 10, 0, false); !errors.Is(err, errGateRefused) {
 		t.Fatalf("DeleteRange: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

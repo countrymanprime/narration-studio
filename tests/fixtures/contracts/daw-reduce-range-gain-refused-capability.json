@@ -1,7 +1,7 @@
 {
   "ok": false,
   "changed": false,
-  "message": "Experimental DAW actions are off. Turn them on in Settings to lower stretches of a take.",
+  "message": "REAPER is not answering. Check that REAPER is open, then try again.",
   "undoSteps": 0,
-  "refused": "Experimental DAW actions are off. Turn them on in Settings to lower stretches of a take."
+  "refused": "REAPER is not answering. Check that REAPER is open, then try again."
 }

@@ -27,9 +27,6 @@ const RECHECK_MS = 10_000;
 /** The DAW-neutral name the banner uses: the DAW's own, or "The DAW" when the launch names none. */
 const nameOf = (caps: DawCapabilities | null): string => (!caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'the DAW' : caps.daw);
 
-/** The reasons a capability is off because of a setting, not because the DAW is quiet: the edit notice says them, the banner never does. */
-const SETTING_REASONS: ReadonlySet<string> = new Set(['experimental_off', 'turned_off']);
-
 /** The reasons a capability is off because the engine is not connected or not answering. */
 const CONNECTION_REASONS: ReadonlySet<string> = new Set(['standalone', 'not_running']);
 
@@ -38,8 +35,7 @@ const NOT_BUILT_REASONS: ReadonlySet<string> = new Set(['not_yet', 'unsupported'
 
 /**
  * Whether the DAW answers, from `DawClient.capabilities`, asked again on Check again and on each capabilities event. When it does not, the sentence
- * is the record capability's own message, unless that is a setting being off (then the DAW is simply "not answering"), else "<DAW> is not
- * running." An engine that has no recording yet (Audacity's `record` is "not available yet") says nothing about the connection there, so the
+ * is the record capability's own message, else "<DAW> is not running." An engine that has no recording yet (Audacity's `record` is "not available yet") says nothing about the connection there, so the
  * sentence is the first capability that does. The built-in recorder always answers.
  */
 export function useDawStatus(): DawStatus {
@@ -84,9 +80,8 @@ export function useDawStatus(): DawStatus {
     caps && recordRow?.reason && NOT_BUILT_REASONS.has(recordRow.reason)
       ? Object.values(caps.capabilities).find((c) => c.reason && CONNECTION_REASONS.has(c.reason))
       : recordRow;
-  const aSetting = record?.reason !== undefined && SETTING_REASONS.has(record.reason);
   const name = !caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'The DAW' : caps.daw;
-  const off = caps && !caps.reachable ? ((aSetting ? undefined : record?.message) ?? `${name} is ${aSetting ? 'not answering' : 'not running'}.`) : null;
+  const off = caps && !caps.reachable ? (record?.message ?? `${name} is not running.`) : null;
   // While the DAW is off the page asks again on its own: when the window is focused again (the narrator just started it) and every few seconds.
   const isOff = off !== null;
   useEffect(() => {

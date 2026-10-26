@@ -176,7 +176,7 @@ export const workspaceTakesResultSchema = z.object({
 
 export const workspaceUseTakeResultSchema = z.object({
   outcome: z.enum(['done', 'started', 'refused']),
-  reason: z.enum(['not_offered', 'unusable', 'stale', 'recording', 'script_outdated', 'standalone', 'not_running', 'experimental_off', 'failed']).optional(),
+  reason: z.enum(['not_offered', 'unusable', 'stale', 'recording', 'script_outdated', 'standalone', 'not_running', 'failed']).optional(),
   message: z.string(),
   changed: z.boolean(),
 }) satisfies z.ZodType<WorkspaceUseTakeResult>;

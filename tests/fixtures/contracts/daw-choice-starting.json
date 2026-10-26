@@ -6,7 +6,6 @@
   },
   "chosen": "REAPER",
   "daw": "REAPER",
-  "experimental": false,
   "foundFiles": [
     "Book.rpp"
   ],
@@ -20,8 +19,8 @@
       "record": {
         "available": false,
         "level": "experimental",
-        "message": "Experimental: switched off in Settings.",
-        "reason": "experimental_off"
+        "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+        "reason": "standalone"
       }
     },
     {
@@ -38,10 +37,8 @@
       "daw": "Built-in",
       "installed": true,
       "record": {
-        "available": false,
-        "level": "experimental",
-        "message": "Experimental: switched off in Settings.",
-        "reason": "experimental_off"
+        "available": true,
+        "level": "experimental"
       }
     }
   ],

@@ -102,67 +102,26 @@ func TestTheCapabilitiesThatNeedBackupsSaySo(t *testing.T) {
 	}
 }
 
-// audacityWith is the resolver of a connected, answering Audacity with every capability switched on and backups as given.
-func audacityWith(adapter dawport.Adapter, backups dawport.Toggle) *dawport.Resolver {
+// audacityWith is the resolver of a connected, answering Audacity.
+func audacityWith(adapter dawport.Adapter) *dawport.Resolver {
 	return dawport.NewResolver(dawport.ResolverConfig{
 		Adapter: adapter,
 		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
-		Toggle: func(c dawport.Capability) dawport.Toggle {
-			if c == dawport.CapBackups {
-				return backups
-			}
-			return dawport.ToggleOn
-		},
 	})
 }
 
-// resolver-refuses-with-the-required-capabilitys-reason and destructive-and-mode-follow-the-requirement, over the real adapter.
+// destructive-and-mode-follow-the-requirement, over the real adapter: with Audacity answering, backups are available, so every row
+// that needs them is too, in steps, and a roll is not destructive. No setting turns backups off.
 func TestBackupsDecideWhatAudacityCanDo(t *testing.T) {
-	off := audacityWith(closedAdapter(t), dawport.ToggleOff)
-	want := map[dawport.Capability]dawport.Support{
-		dawport.CapTakes: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
-			Message: "Keeping takes needs Audacity backups. Turn on Audio backups in Settings."},
-		dawport.CapStackTakes: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
-			Message: "Stacking takes needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
-		dawport.CapCutRange: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
-			Message: "Cutting words and their audio needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
-		dawport.CapFXRange: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
-			Message: "Adding an effect to words needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
-		dawport.CapRangeGain: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
-			Message: "Lowering stretches of a take needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
-		dawport.CapClickRepair: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
-			Message: "Repairing clicks in a take needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
-		dawport.CapPunch: {Level: dawport.Experimental, Available: true, Destructive: true},
-	}
-	for c, w := range want {
-		if got := off.Support(c); got != w {
-			t.Errorf("backups off: %s = %+v, want %+v", c, got, w)
-		}
-	}
-
-	on := audacityWith(closedAdapter(t), dawport.ToggleOn)
+	on := audacityWith(closedAdapter(t))
+	modes := map[dawport.Capability]dawport.Mode{dawport.CapStackTakes: dawport.ModeSteps, dawport.CapCutRange: dawport.ModeSteps,
+		dawport.CapFXRange: dawport.ModeSteps, dawport.CapRangeGain: dawport.ModeSteps, dawport.CapClickRepair: dawport.ModeSteps}
 	for _, c := range backupRows {
 		got := on.Support(c)
-		w := dawport.Support{Level: dawport.Experimental, Available: true, Mode: want[c].Mode}
+		w := dawport.Support{Level: dawport.Experimental, Available: true, Mode: modes[c]}
 		if got != w {
 			t.Errorf("backups on: %s = %+v, want %+v", c, got, w)
 		}
-	}
-
-	// Backups that are themselves Experimental and switched off by the old switch give the same sentence: turning them on is
-	// what the narrator can change.
-	experimental := dawport.NewResolver(dawport.ResolverConfig{
-		Adapter: closedAdapter(t),
-		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
-		Toggle: func(c dawport.Capability) dawport.Toggle {
-			if c == dawport.CapBackups {
-				return dawport.ToggleAuto
-			}
-			return dawport.ToggleOn
-		},
-	})
-	if s := experimental.Support(dawport.CapStackTakes); s.Reason != dawport.ReasonExperimentalOff || s.Message != want[dawport.CapStackTakes].Message {
-		t.Errorf("backups experimental_off: stack_takes = %+v", s)
 	}
 }
 
@@ -223,19 +182,18 @@ func TestTheRolesThatNeedBackupsAreTheSteps(t *testing.T) {
 	refused("RepairClick", backupsSentence(dawport.CapClickRepair), r, err)
 }
 
-func resolverFor(adapter dawport.Adapter, rt dawport.Runtime, toggle dawport.Toggle) *dawport.Resolver {
+func resolverFor(adapter dawport.Adapter, rt dawport.Runtime) *dawport.Resolver {
 	return dawport.NewResolver(dawport.ResolverConfig{
 		Adapter: adapter,
 		Runtime: func() dawport.Runtime { return rt },
-		Toggle:  func(dawport.Capability) dawport.Toggle { return toggle },
 	})
 }
 
-// What is not built still refuses with docs/architecture/daw-integration.md#audacity-boundary's sentence, whatever the runtime and settings say.
+// What is not built still refuses with docs/architecture/daw-integration.md#audacity-boundary's sentence, whatever the runtime says.
 func TestWhatIsNotBuiltKeepsTheNotYetSentence(t *testing.T) {
 	for _, adapter := range []dawport.Adapter{closedAdapter(t), Declaration()} {
 		for _, rt := range []dawport.Runtime{{}, {Bridge: true}, {Bridge: true, Reachable: true}} {
-			resolver := resolverFor(adapter, rt, dawport.ToggleOn)
+			resolver := resolverFor(adapter, rt)
 			for c, s := range resolver.All() {
 				if built(c) {
 					continue
@@ -256,30 +214,26 @@ func TestWhatIsNotBuiltKeepsTheNotYetSentence(t *testing.T) {
 	}
 }
 
-func TestExperimentalCapabilitiesAreOffUntilTurnedOnAndThenNeedAudacity(t *testing.T) {
+// What is built is on with no setting, and needs only Audacity answering.
+func TestBuiltCapabilitiesAreOnAndNeedOnlyAudacity(t *testing.T) {
 	cases := []struct {
 		name    string
 		adapter dawport.Adapter
 		rt      dawport.Runtime
-		toggle  dawport.Toggle
 		reason  dawport.Reason
 		message string
 	}{
-		{"off by default", closedAdapter(t), dawport.Runtime{Bridge: true, Reachable: true}, dawport.ToggleAuto, dawport.ReasonExperimentalOff, ""},
-		{"on, Audacity not answering", closedAdapter(t), dawport.Runtime{Bridge: true}, dawport.ToggleOn, dawport.ReasonNotRunning, messageNotReachable},
-		{"on, no pipe opened by the host", Declaration(), dawport.Runtime{}, dawport.ToggleOn, dawport.ReasonStandalone, messageNotConnected},
+		{"Audacity answering", closedAdapter(t), dawport.Runtime{Bridge: true, Reachable: true}, "", ""},
+		{"Audacity not answering", closedAdapter(t), dawport.Runtime{Bridge: true}, dawport.ReasonNotRunning, messageNotReachable},
+		{"no pipe opened by the host", Declaration(), dawport.Runtime{}, dawport.ReasonStandalone, messageNotConnected},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			s := resolverFor(tc.adapter, tc.rt, tc.toggle).Support(dawport.CapNavigate)
-			if s.Available || s.Reason != tc.reason || (tc.message != "" && s.Message != tc.message) {
-				t.Errorf("navigate = %+v, want %s %q", s, tc.reason, tc.message)
+			s := resolverFor(tc.adapter, tc.rt).Support(dawport.CapNavigate)
+			if s.Available != (tc.reason == "") || s.Reason != tc.reason || s.Message != tc.message {
+				t.Errorf("navigate = %+v, want reason %q message %q", s, tc.reason, tc.message)
 			}
 		})
-	}
-	s := resolverFor(closedAdapter(t), dawport.Runtime{Bridge: true, Reachable: true}, dawport.ToggleOn).Support(dawport.CapMarkers)
-	if !s.Available {
-		t.Errorf("markers, turned on with Audacity answering = %+v, want available", s)
 	}
 }
 
@@ -351,11 +305,11 @@ func TestBackupsIsExperimentalWithTheRealRole(t *testing.T) {
 	if _, ok := adapter.Role(dawport.CapBackups).(*Backups); !ok {
 		t.Fatalf("backups role is %T, want *Backups", adapter.Role(dawport.CapBackups))
 	}
-	if s := resolverFor(adapter, adapter.Runtime(), dawport.ToggleOn).Support(dawport.CapBackups); s.Available ||
+	if s := resolverFor(adapter, adapter.Runtime()).Support(dawport.CapBackups); s.Available ||
 		s.Reason != dawport.ReasonNotRunning || s.Message != messageNotReachable {
 		t.Errorf("backups with no pipe (Audacity 4.0) = %+v, want not_running with %q", s, messageNotReachable)
 	}
-	if s := resolverFor(Declaration(), dawport.Runtime{}, dawport.ToggleOn).Support(dawport.CapBackups); s.Reason != dawport.ReasonStandalone ||
+	if s := resolverFor(Declaration(), dawport.Runtime{}).Support(dawport.CapBackups); s.Reason != dawport.ReasonStandalone ||
 		s.Message != messageNotConnected {
 		t.Errorf("backups on a launch that opened no pipe = %+v", s)
 	}

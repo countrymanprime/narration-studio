@@ -33,15 +33,15 @@ func trackStateAnswer(command []string) [][]string {
 	}
 }
 
-func TestChapterTrackStateIsRefusedWhileTheExperimentalSettingIsOff(t *testing.T) {
+func TestChapterTrackStateIsRefusedWhenTheGateRefuses(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, trackStateAnswer)
-	if _, err := actions.ChapterTrackState(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
-		t.Fatalf("err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.ChapterTrackState(context.Background(), testTrack); !errors.Is(err, errGateRefused) {
+		t.Fatalf("err = %v, want errGateRefused", err)
 	}
 	time.Sleep(20 * time.Millisecond)
 	if got := fake.commands(); len(got) != 0 {
-		t.Fatalf("a command was written while the setting is off: %v", got)
+		t.Fatalf("a command was written while the gate refuses: %v", got)
 	}
 	if !Experimental("chapter_track_state") {
 		t.Fatal("chapter_track_state must stay experimental until the verification pass has confirmed it")
@@ -50,8 +50,8 @@ func TestChapterTrackStateIsRefusedWhileTheExperimentalSettingIsOff(t *testing.T
 
 func TestChapterTrackStateWithANilGateIsOff(t *testing.T) {
 	actions := NewActions(nil, nil)
-	if _, err := actions.ChapterTrackState(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
-		t.Fatalf("err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.ChapterTrackState(context.Background(), testTrack); !errors.Is(err, ErrNotGated) {
+		t.Fatalf("err = %v, want ErrNotGated", err)
 	}
 }
 

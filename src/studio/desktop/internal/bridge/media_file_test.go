@@ -38,18 +38,18 @@ func TestTheFileCommandsAreRefusedWhileTheirSettingIsOff(t *testing.T) {
 	fake := startFakeReaper(t, client, dir, mediaFileAnswer)
 	path := mediaFile(t, "Chapter 01.wav")
 	ctx := context.Background()
-	if _, err := actions.PreviewFileRange(ctx, FilePreview{Path: path, Start: 1, Length: 5}); !errors.Is(err, ErrExperimentalOff) {
-		t.Errorf("preview: err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.PreviewFileRange(ctx, FilePreview{Path: path, Start: 1, Length: 5}); !errors.Is(err, errGateRefused) {
+		t.Errorf("preview: err = %v, want errGateRefused", err)
 	}
-	if _, err := actions.StopFilePreview(ctx); !errors.Is(err, ErrExperimentalOff) {
-		t.Errorf("stop: err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.StopFilePreview(ctx); !errors.Is(err, errGateRefused) {
+		t.Errorf("stop: err = %v, want errGateRefused", err)
 	}
-	if _, err := actions.RevealFile(ctx, path); !errors.Is(err, ErrExperimentalOff) {
-		t.Errorf("reveal: err = %v, want ErrExperimentalOff", err)
+	if _, err := actions.RevealFile(ctx, path); !errors.Is(err, errGateRefused) {
+		t.Errorf("reveal: err = %v, want errGateRefused", err)
 	}
 	time.Sleep(20 * time.Millisecond)
 	if got := fake.commands(); len(got) != 0 {
-		t.Fatalf("a command was written while the setting is off: %v", got)
+		t.Fatalf("a command was written while the gate refuses: %v", got)
 	}
 	for _, command := range []string{"preview_file_range", "stop_file_preview", "reveal_file"} {
 		if !Experimental(command) {

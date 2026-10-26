@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -221,7 +222,8 @@ func TestStartLaunchesTheSidecarWithTheHostContractFlags(t *testing.T) {
 	}
 }
 
-func TestStartPassesStartWordOnlyWhenGiven(t *testing.T) {
+// The start word is the host's to place (follow.go): the sidecar is never told it, given or not.
+func TestTheStartWordNeverReachesTheSidecar(t *testing.T) {
 	f := newFixture(t, "stream")
 	options := validOptions()
 	options["startWord"] = "42"
@@ -229,25 +231,8 @@ func TestStartPassesStartWordOnlyWhenGiven(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	args := echoedArgs(t, f)
-
-	if got := flagValue(args, "--start-word"); got != "42" {
-		t.Errorf("--start-word = %q, want 42 (args %v)", got, args)
-	}
-}
-
-func TestStartOmitsStartWordWhenNotGiven(t *testing.T) {
-	f := newFixture(t, "stream")
-	if err := f.service.Start(validOptions()); err != nil {
-		t.Fatal(err)
-	}
-
-	args := echoedArgs(t, f)
-
-	for _, arg := range args {
-		if arg == "--start-word" {
-			t.Fatalf("--start-word should be omitted when no startWord option was given, args = %v", args)
-		}
+	if args := echoedArgs(t, f); slices.Contains(args, "--start-word") || !slices.Contains(args, "--clock") {
+		t.Fatalf("args %v", args)
 	}
 }
 
@@ -258,7 +243,7 @@ func scriptOptions() map[string]string {
 var closingCredits = Script{ID: "credits-closing", Title: "Closing credits", Text: "You have been listening to Alice.\nThe End."}
 
 // The credits are not a manuscript chapter: the host hands the
-// sidecar the text it rendered as a --script file named with --script-id/--script-title, and no --manuscript/--chapter.
+// sidecar the text it rendered as a --script file (the engine's context), and no --manuscript/--chapter.
 func TestStartScriptLaunchesTheSidecarOnAScriptFileHoldingTheText(t *testing.T) {
 	f := newFixture(t, "stream")
 	if err := f.service.StartScript(closingCredits, scriptOptions()); err != nil {
@@ -267,12 +252,6 @@ func TestStartScriptLaunchesTheSidecarOnAScriptFileHoldingTheText(t *testing.T) 
 
 	args := echoedArgs(t, f)
 
-	if got := flagValue(args, "--script-id"); got != "credits-closing" {
-		t.Errorf("--script-id = %q (args %v)", got, args)
-	}
-	if got := flagValue(args, "--script-title"); got != "Closing credits" {
-		t.Errorf("--script-title = %q (args %v)", got, args)
-	}
 	if script := flagValue(args, "--script"); !strings.HasPrefix(script, f.session) {
 		t.Errorf("--script = %q, want a file inside the session dir", script)
 	}

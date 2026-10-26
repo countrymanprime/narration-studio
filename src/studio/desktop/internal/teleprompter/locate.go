@@ -120,14 +120,10 @@ func (s *Service) recordingArgs(mode []string, manuscript string, request Locate
 // ctx. It never downloads a model and never touches a running session. A refused request, a sidecar failure, a
 // timeout and output without a `locate` line are all errors; a tail that cannot be placed is not (Word is nil).
 func (s *Service) Locate(ctx context.Context, request LocateRequest) (Located, error) {
-	var placement hostPlacement
-	placed := false
+	var manuscriptPath string
 	code, out, stderr, err := s.runOverRecording(ctx, request, func(manuscript string) []string {
-		args := s.locateArgs(manuscript, request)
-		if placement, placed = placementFor(manuscript, request.Chapter); placed {
-			args = append(args, "--words-only")
-		}
-		return args
+		manuscriptPath = manuscript
+		return s.locateArgs(manuscript, request)
 	})
 	if err != nil {
 		return Located{}, err
@@ -138,18 +134,15 @@ func (s *Service) Locate(ctx context.Context, request LocateRequest) (Located, e
 	if code != 0 {
 		return Located{}, errors.New(failureMessage(code, stderr, "Could not find where the recording stops"))
 	}
-	if placed {
-		heard, err := parseHeard(out)
-		if err != nil {
-			return Located{}, err
-		}
-		texts := make([]string, len(heard))
-		for k, word := range heard {
-			texts[k] = word.Text
-		}
-		out = placedLine(scripttrack.LocateEvent(texts, placement.tokens, placement.breaks))
+	placement, heard, err := placed(manuscriptPath, request.Chapter, out)
+	if err != nil {
+		return Located{}, err
 	}
-	return parseLocated(out)
+	texts := make([]string, len(heard))
+	for k, word := range heard {
+		texts[k] = word.Text
+	}
+	return parseLocated(placedLine(scripttrack.LocateEvent(texts, placement.tokens, placement.breaks)))
 }
 
 // runOverRecording is what Locate and AlignWord share: the project's manuscript and the sidecar must be there and the

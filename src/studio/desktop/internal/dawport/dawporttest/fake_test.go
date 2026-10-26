@@ -68,9 +68,8 @@ func TestFakeRolesSatisfyEveryRoleInterface(t *testing.T) {
 func TestFakeWorksThroughTheResolver(t *testing.T) {
 	f := NewFake(dawport.KindREAPER, map[dawport.Capability]dawport.Level{dawport.CapPunch: dawport.Experimental})
 	r := dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      f,
-		Runtime:      func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
-		Experimental: func() bool { return true },
+		Adapter: f,
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
 	})
 	p, err := dawport.Role[dawport.Puncher](r, dawport.CapPunch)
 	if err != nil {

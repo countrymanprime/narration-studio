@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -11,26 +12,31 @@ import (
 	"desktop/internal/scripttrack"
 )
 
-// The host places the words a `--words-only` run decoded (`--locate`, `--align-word`) in the chapter itself
-// (internal/scripttrack, a port held byte for byte to locate.py and align_word.py); the sidecar only decodes.
+// The host places the words a `--locate` or `--align-word` run decoded in the chapter itself (internal/scripttrack, held
+// byte for byte to what the sidecar's locate.py and align_word.py placed); the sidecar only decodes.
 
-// hostPlacement is the chapter's script as the sidecar's locate.load_script reads it: its tokens and the first token of
-// each span. ok is false when the host cannot build it as the sidecar would; the sidecar then places the words itself.
+// hostPlacement is the chapter's script: its tokens and the first token of each span.
 type hostPlacement struct {
 	tokens []string
 	breaks map[int]bool
 }
 
-func placementFor(manuscript, chapter string) (hostPlacement, bool) {
+// placed is the chapter's script and the words a run printed. The sidecar checked the chapter before decoding, so a
+// chapter the host cannot read here is one it read differently: that is an error, never a guess.
+func placed(manuscript, chapter, out string) (hostPlacement, []scripttrack.TimedWord, error) {
 	script, err := scripttrack.LoadChapterScript(manuscript, chapter)
 	if err != nil {
-		return hostPlacement{}, false
+		return hostPlacement{}, nil, fmt.Errorf("could not read the chapter to place what was heard: %w", err)
+	}
+	heard, err := parseHeard(out)
+	if err != nil {
+		return hostPlacement{}, nil, err
 	}
 	breaks := map[int]bool{}
 	for _, span := range script.Spans {
 		breaks[span.Start] = true
 	}
-	return hostPlacement{tokens: script.Tokens, breaks: breaks}, true
+	return hostPlacement{tokens: script.Tokens, breaks: breaks}, heard, nil
 }
 
 // parseHeard finds the one `heard` line among the sidecar's stdout lines: each decoded word's text, start and end.

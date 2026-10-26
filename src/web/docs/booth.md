@@ -18,9 +18,8 @@ The Booth shows the chapter's text large and follows your voice through it with 
 
 When Record cannot start, the footer says why. A box above the footer shows the steps for a reason you can fix from the Booth.
 
-1. If the box says recording is experimental, press **Turn on Record**.
-2. If it says **Connect REAPER to record**, load the launcher once in REAPER: choose **Actions > Show action list > New action > Load ReaScript** and pick the file the box shows (**Copy path** copies it).
-3. With the chapter's project open in REAPER, run the launcher you loaded (its action starts with **Script:**). Or press **Open in REAPER and connect** to do both in one go.
+1. If it says **Connect REAPER to record**, load the launcher once in REAPER: choose **Actions > Show action list > New action > Load ReaScript** and pick the file the box shows (**Copy path** copies it).
+2. With the chapter's project open in REAPER, run the launcher you loaded (its action starts with **Script:**). Or press **Open in REAPER and connect** to do both in one go.
 
 > **Note:** Load the launcher again after you update the app, because the file moves with each update.
 

@@ -81,7 +81,6 @@ func TestWhenTheInputCannotBeKnownItSaysWhyAndListsNothing(t *testing.T) {
 		{"standalone", func(h *Host) { h.navigation = &findingNavigation{standalone: true} }, &fakeTrackStates{}, &fakeDevices{}, reaperStandalone},
 		{"REAPER quiet", func(h *Host) { h.reachability = nil }, &fakeTrackStates{}, &fakeDevices{}, reaperNotRunning},
 		{"no answer", nil, &fakeTrackStates{err: bridge.ErrNoAnswer}, &fakeDevices{}, reaperNotRunning},
-		{"experimental actions off", nil, &fakeTrackStates{err: bridge.ErrExperimentalOff}, &fakeDevices{}, readAloudExperimentalOff},
 		{"anything else", nil, &fakeTrackStates{err: errors.New("disk full")}, &fakeDevices{}, refusedFailed},
 		{"REAPER has no device open", nil, &fakeTrackStates{}, &fakeDevices{names: inputDevices}, inputReaperNoDevice},
 		{"the microphones cannot be listed", nil, &fakeTrackStates{state: bridge.TrackState{InputDevice: "Shure MV7"}}, &fakeDevices{message: "Could not list input devices: no dshow backend"}, inputDevicesFailed},
@@ -128,7 +127,6 @@ func TestContractTeleprompterReaperInputs(t *testing.T) {
 		"uncertain":        readInput(t, connectedHost(), &fakeTrackStates{state: bridge.TrackState{InputDevice: "Focusrite USB ASIO"}}, &fakeDevices{names: inputDevices}),
 		"no_match":         readInput(t, connectedHost(), &fakeTrackStates{state: bridge.TrackState{InputDevice: "ASIO4ALL v2"}}, &fakeDevices{names: inputDevices}),
 		"reaper_no_device": readInput(t, connectedHost(), &fakeTrackStates{}, &fakeDevices{names: inputDevices}),
-		"experimental_off": readInput(t, connectedHost(), &fakeTrackStates{err: bridge.ErrExperimentalOff}, &fakeDevices{}),
 	}
 	contractfile.Check(t, "teleprompter-reaper-inputs", answers)
 }

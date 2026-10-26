@@ -91,8 +91,6 @@ func refusal(name string, err error) string {
 		return fmt.Sprintf(notAnswering, name, name)
 	case errors.Is(err, bridge.ErrUnavailable):
 		return fmt.Sprintf(notConnected, name, name)
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return err.Error()
 	case errors.Is(err, context.DeadlineExceeded):
 		return fmt.Sprintf(noAnswer, name, int(Timeout.Seconds()))
 	}

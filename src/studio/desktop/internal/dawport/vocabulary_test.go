@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	"desktop/internal/bridge"
 	"desktop/internal/port"
 )
 
@@ -27,22 +26,14 @@ func TestTheVocabularyIsPortsOwn(t *testing.T) {
 }
 
 func TestARefusalReadsAsPortsRefusal(t *testing.T) {
-	support := Support{Level: Experimental, Reason: ReasonExperimentalOff, Message: "Punch and roll is switched off in Settings."}
+	support := Support{Level: Experimental, Reason: ReasonNotRunning, Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	err := fmt.Errorf("punch: %w", &NotSupportedError{Capability: CapPunch, Support: support})
 
 	var ns *port.NotSupportedError
 	if !errors.As(err, &ns) || ns.Capability != string(CapPunch) || ns.Support != support || ns.Error() != support.Message {
 		t.Fatalf("errors.As(*port.NotSupportedError) = %+v", ns)
 	}
-	if !errors.Is(err, port.ErrNotSupported) || !errors.Is(err, bridge.ErrExperimentalOff) {
-		t.Fatal("an experimental_off refusal matches both port.ErrNotSupported and bridge.ErrExperimentalOff")
-	}
-
-	turnedOff := &NotSupportedError{Capability: CapPunch, Support: Support{Level: Experimental, Reason: ReasonTurnedOff, Message: "Off."}}
-	if errors.Is(turnedOff, bridge.ErrExperimentalOff) {
-		t.Fatal("only an experimental_off refusal matches bridge.ErrExperimentalOff")
-	}
-	if !errors.Is(turnedOff, ErrNotSupported) {
-		t.Fatal("every refusal matches ErrNotSupported")
+	if !errors.Is(err, port.ErrNotSupported) || !errors.Is(err, ErrNotSupported) {
+		t.Fatal("a refusal matches port.ErrNotSupported and dawport.ErrNotSupported")
 	}
 }

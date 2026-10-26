@@ -38,8 +38,8 @@ func cutInREAPER() dawport.Result {
 	return dawport.OK("Deleted 1 word and their audio in REAPER.", true).WithUndoSteps(1)
 }
 
-// deleteRangeHost is hideTakesHost's coverage-backed launch over coverageProject, with the cut_range role and toggle.
-func deleteRangeHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.RangeCutter, toggle string) *Host {
+// deleteRangeHost is hideTakesHost's coverage-backed launch over coverageProject, with the cut_range role.
+func deleteRangeHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.RangeCutter) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
@@ -58,11 +58,6 @@ func deleteRangeHost(t *testing.T, kind string, reach *daw.Reachability, role da
 	host.services().coverage.Wait()
 	// The finished check starts a chaptersync:state read of the project folder; Windows cannot remove the folder while it runs.
 	host.chapterSyncEmits.Wait()
-	if toggle != "" {
-		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapCutRange): &toggle}); err != nil {
-			t.Fatal(err)
-		}
-	}
 	client, err := bridge.New(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -81,7 +76,7 @@ func deleteRangeHost(t *testing.T, kind string, reach *daw.Reachability, role da
 func TestDawDeleteRangeSendsTheResolvedItemAndSecondsAndAnswersADawResult(t *testing.T) {
 	for _, mode := range []dawport.CutMode{dawport.CutClose, dawport.CutGap} {
 		role := &fakeRangeCutter{answer: cutInREAPER()}
-		host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+		host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 
 		got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, string(mode), 12, 0, false))
 
@@ -104,17 +99,14 @@ func TestDawDeleteRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeRangeCutter{answer: cutInREAPER()}
-			host := deleteRangeHost(t, c.kind, c.reach, role, c.toggle)
+			host := deleteRangeHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			support := resolver.Support(dawport.CapCutRange)
 			if support.Available || support.Reason != c.reason {
@@ -132,7 +124,7 @@ func TestDawDeleteRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing
 
 // An engine whose cut_range the resolver refuses for its own reason (Audacity before backups) answers that sentence.
 func TestDawDeleteRangeAnswersAnEnginesOwnCutRangeReason(t *testing.T) {
-	host := deleteRangeHost(t, "REAPER", liveReachability(), nil, "on")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), nil)
 	support := dawport.Support{Message: "Turn on backups before cutting audio in Audacity."}
 	role := &fakeRangeCutter{answer: cutInREAPER()}
 	got, err := dawDeleteRangeIn(t.Context(), host.services(), support, role, host.editLog(), "c-0001", 0, 0, "close", 0, 0, false)
@@ -145,7 +137,7 @@ func TestDawDeleteRangeAnswersAnEnginesOwnCutRangeReason(t *testing.T) {
 // sentences otherwise; a chapter id that is a GUID, a time or a path is refused as a chapter with no alignment.
 func TestDawDeleteRangeTakesAChapterTokensAModeAndAFadeOnly(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 	for _, mode := range []string{"", "Close", "{ITEM-1}", "1.5", "C:/Projects/Alice/Alice.rpp", "delete"} {
 		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, mode, 0, 0, false)); !reflect.DeepEqual(got, dawport.Refused(cutBadModeSentence)) {
 			t.Errorf("mode %q: %+v", mode, got)
@@ -174,7 +166,7 @@ func TestDawDeleteRangeTakesAChapterTokensAModeAndAFadeOnly(t *testing.T) {
 // words-without-audio-are-not-cut, and a stale token range: refused on the host with nothing sent; the stale one with code stale.
 func TestDawDeleteRangeRefusesUnheardWordsAndAStaleRange(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 
 	unheard := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 1, "close", 0, 0, false))
 	if unheard.OK || unheard.Code != "" || unheard.Refused != "These words weren't heard in the recording, so there's no audio to cut. Run the check again if the chapter has changed." {
@@ -194,7 +186,7 @@ func TestDawDeleteRangeRefusesUnheardWordsAndAStaleRange(t *testing.T) {
 // words-without-audio-are-not-cut: words the edit log already holds as cut are a no-op, changed false, with nothing sent.
 func TestDawDeleteRangeOfWordsAlreadyCutChangesNothing(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 	one := 1
 	if _, err := host.editLog().CutRecord("c-0001", editlog.CutRequest{
 		ParagraphID: "p-000001", Keys: []string{"p-000001:0"}, Text: "Alice.", A: 1, B: 1.5, Off0: 1, Off1: 1.5,
@@ -214,41 +206,45 @@ func TestDawDeleteRangeOfWordsAlreadyCutChangesNothing(t *testing.T) {
 func TestDawDeleteRangePassesOnTheRolesAnswers(t *testing.T) {
 	stale := dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again.")
 	role := &fakeRangeCutter{answer: stale}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 	if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false)); !reflect.DeepEqual(got, stale) {
 		t.Fatalf("stale = %+v", got)
 	}
 	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, errors.New("boom")} {
 		failing := &fakeRangeCutter{err: err}
-		host := deleteRangeHost(t, "REAPER", liveReachability(), failing, "on")
+		host := deleteRangeHost(t, "REAPER", liveReachability(), failing)
 		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false)); got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, want a refusal", err, got)
 		}
 	}
-	none := deleteRangeHost(t, "REAPER", liveReachability(), nil, "on")
+	none := deleteRangeHost(t, "REAPER", liveReachability(), nil)
 	if got := decodeDawResult(t)(none.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false)); got.OK || got.Refused == "" {
 		t.Fatalf("no role: %+v, want a refusal", got)
 	}
 }
 
 // TestDawDeleteRangeContractGoldenIsCurrent pins DawDeleteRange's answer: a close cut (one undo step), a gap cut, a stale
-// token range, and the capability's refusal. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-delete-range-*.json.
+// token range, and the capability's refusal (REAPER not answering). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-delete-range-*.json.
 func TestDawDeleteRangeContractGoldenIsCurrent(t *testing.T) {
 	cases := map[string]struct {
-		toggle      string
+		quiet       bool
 		mode        string
 		first, last int
 	}{
-		"daw-delete-range-done":               {"on", "close", 0, 0},
-		"daw-delete-range-gap":                {"on", "gap", 0, 0},
-		"daw-delete-range-refused-stale":      {"on", "close", 0, 5},
-		"daw-delete-range-refused-capability": {"", "close", 0, 0},
+		"daw-delete-range-done":               {false, "close", 0, 0},
+		"daw-delete-range-gap":                {false, "gap", 0, 0},
+		"daw-delete-range-refused-stale":      {false, "close", 0, 5},
+		"daw-delete-range-refused-capability": {true, "close", 0, 0},
 	}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {
 		c := cases[name]
 		t.Run(name, func(t *testing.T) {
+			reach := liveReachability()
+			if c.quiet {
+				reach = daw.NewReachability(nil)
+			}
 			role := &fakeRangeCutter{answer: cutInREAPER()}
-			host := deleteRangeHost(t, "REAPER", liveReachability(), role, c.toggle)
+			host := deleteRangeHost(t, "REAPER", reach, role)
 			contractfile.Check(t, name, decodeDawResult(t)(host.DawDeleteRange("c-0001", c.first, c.last, c.mode, 12, 0, false)))
 		})
 	}
@@ -260,7 +256,7 @@ func TestDawDeleteRangeContractGoldenIsCurrent(t *testing.T) {
 // src/studio/integrations/reaper/tests/range_test.lua.
 func TestDeleteRangeSendsPadAndRoomToneAndAudacityRefusesRoomTone(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
-	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 	got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "gap", 12, 100, true))
 	if !reflect.DeepEqual(got, cutInREAPER()) {
 		t.Fatalf("DawDeleteRange = %+v", got)
@@ -310,7 +306,7 @@ func TestDawDeleteRangePadContractGoldenIsCurrent(t *testing.T) {
 		c := cases[name]
 		t.Run(name, func(t *testing.T) {
 			role := &fakeRangeCutter{answer: c.answer}
-			host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+			host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 			contractfile.Check(t, name, decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, c.mode, 12, 100, true)))
 		})
 	}
@@ -394,7 +390,7 @@ func TestDawTrimRangePassesOnTheRolesAnswers(t *testing.T) {
 	if got := trimGap(t, &fakeRangeCutter{answer: unchanged}, splitItem, 12, 13, 6); !reflect.DeepEqual(got, unchanged) {
 		t.Fatalf("unchanged = %+v", got)
 	}
-	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrExperimentalOff, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
+	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
 		if got := trimGap(t, &fakeRangeCutter{err: err}, splitItem, 12, 13, 6); got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, want a refusal", err, got)
 		}
@@ -424,17 +420,14 @@ func TestDawTrimRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeRangeCutter{answer: trimInREAPER()}
-			host := deleteRangeHost(t, c.kind, c.reach, role, c.toggle)
+			host := deleteRangeHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			support := resolver.Support(dawport.CapCutRange)
 			if support.Available || support.Reason != c.reason {
@@ -452,7 +445,7 @@ func TestDawTrimRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T
 // a gap no longer in its item, and the cut_range capability's refusal. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-trim-range-*.json.
 func TestDawTrimRangeContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to cut words and audio."}
+	refusedCapability := dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	cases := map[string]struct {
 		support dawport.Support
 		start   float64

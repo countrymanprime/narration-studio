@@ -15,16 +15,16 @@
     "click_repair": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "mode": "native",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "cut_range": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "mode": "native",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "daw_meters": {
       "available": false,
@@ -35,33 +35,33 @@
     "file_preview": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "file_reveal": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "follow_position": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "fx_chains": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "fx_range": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "mode": "native",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "heartbeat": {
       "available": false,
@@ -78,8 +78,8 @@
     "item_gain": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "line_identity": {
       "available": false,
@@ -102,14 +102,14 @@
     "master_chain_read": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "monitor_level": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "navigate": {
       "available": false,
@@ -136,9 +136,9 @@
     "punch": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "mode": "native",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "punch_preroll": {
       "available": false,
@@ -149,21 +149,21 @@
     "range_gain": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "mode": "native",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "record": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "regions": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "render_config": {
       "available": false,
@@ -174,15 +174,15 @@
     "render_with_fx": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "replace_range": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "mode": "native",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "retake_lanes": {
       "available": false,
@@ -199,9 +199,9 @@
     "stack_takes": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "mode": "native",
-      "reason": "experimental_off"
+      "reason": "standalone"
     },
     "take_create": {
       "available": false,
@@ -212,38 +212,38 @@
     "takes": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "track_create": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "track_select": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "track_state": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "transport_sync": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "undo_last": {
       "available": false,
       "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     }
   },
   "daw": "REAPER",

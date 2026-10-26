@@ -1,7 +1,7 @@
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { dawConnectGuide, type DawConnectGuide } from '../../engine/dawConnectGuide';
 import type { OpenProject } from './recordCheck';
-import { recorderName, recordsInApp } from '../../../studio/dawNames';
+import { recorderName } from '../../../studio/dawNames';
 
 /** What the Booth's setup steps need from the host's bootstrap: whether the DAW's project file is linked, and the launcher's file. */
 export type RecordSetupFacts = {
@@ -13,16 +13,13 @@ export type RecordSetupFacts = {
 
 /**
  * The one-time setup Record is waiting for, or null when Record is available or nothing the narrator can do here would make it so.
- * `turn-on`: the record capability is Experimental and switched off, or turned off by its own toggle; one click turns it on.
  * `connect`: the DAW's bridge is not connected to this app, or has stopped answering, and the DAW has a guide to connect it
  * (`dawConnectGuide`): link the project, put the bridge in the DAW once, and run it.
  * `other-project`: Record could start, but the DAW has a different project open than the one linked here, so a take would land in the
  * wrong project; the narrator links the open one, or opens the linked one in the DAW.
  */
 export type RecordSetupPlan =
-  | { kind: 'turn-on'; dawName: string; inApp: boolean }
-  | { kind: 'connect'; guide: DawConnectGuide; notAnswering: boolean; linked: boolean; launcherPath: string }
-  | { kind: 'other-project'; dawName: string };
+  { kind: 'connect'; guide: DawConnectGuide; notAnswering: boolean; linked: boolean; launcherPath: string } | { kind: 'other-project'; dawName: string };
 
 export function recordSetupFor(capabilities: DawCapabilities, facts: RecordSetupFacts): RecordSetupPlan | null {
   const record = capabilities.capabilities.record;
@@ -32,9 +29,6 @@ export function recordSetupFor(capabilities: DawCapabilities, facts: RecordSetup
   }
   if (!record || record.available) return null;
   switch (record.reason) {
-    case 'experimental_off':
-    case 'turned_off':
-      return { kind: 'turn-on', dawName: recorderName(capabilities.daw), inApp: recordsInApp(capabilities.daw) };
     case 'standalone':
     case 'not_running': {
       const guide = dawConnectGuide(capabilities.daw);

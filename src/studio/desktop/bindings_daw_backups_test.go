@@ -62,20 +62,15 @@ func restoredInAudacity() dawport.Result {
 }
 
 // backupHost is deleteRangeHost (a project whose chapter c-0001 has a stored alignment) on a launch of kind, with role as the
-// backups role and the backups toggle set. bridge says whether the host reports a connection, which on an Audacity launch stands
+// backups role. bridge says whether the host reports a connection, which on an Audacity launch stands
 // for the pipe the host does not open from a page yet.
-func backupHost(t *testing.T, kind string, bridge bool, role dawport.BackupKeeper, toggle string) *Host {
+func backupHost(t *testing.T, kind string, bridge bool, role dawport.BackupKeeper) *Host {
 	t.Helper()
 	reach := liveReachability()
 	if !bridge {
 		reach = daw.NewReachability(nil)
 	}
-	host := deleteRangeHost(t, kind, reach, nil, "")
-	if toggle != "" {
-		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapBackups): &toggle}); err != nil {
-			t.Fatal(err)
-		}
-	}
+	host := deleteRangeHost(t, kind, reach, nil)
 	host.mu.Lock()
 	if !bridge {
 		host.bridge = nil
@@ -94,7 +89,7 @@ func fixedTrack(string) (string, *dawport.Result, error) { return "Chapter 1", n
 // the role is sent those with the label; the answer is the role's DawResult.
 func TestDawBackupAroundSendsTheResolvedWindowAndAnswersADawResult(t *testing.T) {
 	role := &fakeBackupKeeper{answer: backedUpInAudacity()}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	sources := backupSourcesIn(host.services())
 	sources.track = fixedTrack
 
@@ -112,7 +107,7 @@ func TestDawBackupAroundSendsTheResolvedWindowAndAnswersADawResult(t *testing.T)
 // Through the binding, the chapter's track is its one link in the audio engine panel.
 func TestDawBackupAroundOnTheHostSendsTheChaptersLinkedTrack(t *testing.T) {
 	role := &fakeBackupKeeper{answer: backedUpInAudacity()}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	linked, refused, err := readAloudTrackGUID(host.services(), "c-0001")
 	if err != nil || refused != nil || linked == "" {
 		t.Fatalf("the fixture's link = %q, %+v, %v", linked, refused, err)
@@ -127,7 +122,7 @@ func TestDawBackupAroundOnTheHostSendsTheChaptersLinkedTrack(t *testing.T) {
 
 func TestDawRestoreBackupSendsTheIdAndAnswersADawResult(t *testing.T) {
 	role := &fakeBackupKeeper{answer: restoredInAudacity()}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	const id = "{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}"
 	if got := decodeDawResult(t)(host.DawRestoreBackup(id)); !reflect.DeepEqual(got, restoredInAudacity()) {
 		t.Fatalf("DawRestoreBackup = %+v", got)
@@ -143,18 +138,15 @@ func TestDawBackupsRefuseWithTheResolversSentenceAndCreateNothing(t *testing.T) 
 	for name, c := range map[string]struct {
 		kind   string
 		bridge bool
-		toggle string
 		reason dawport.Reason
 	}{
-		"REAPER": {"REAPER", true, "on", dawport.ReasonNotYet},
-		"no --daw, the folder's .rpp makes it REAPER": {"", true, "on", dawport.ReasonNotYet},
-		"Audacity, not connected":                     {"Audacity", false, "on", dawport.ReasonStandalone},
-		"experimental off":                            {"Audacity", true, "", dawport.ReasonExperimentalOff},
-		"backups turned off":                          {"Audacity", true, "off", dawport.ReasonTurnedOff},
+		"REAPER": {"REAPER", true, dawport.ReasonNotYet},
+		"no --daw, the folder's .rpp makes it REAPER": {"", true, dawport.ReasonNotYet},
+		"Audacity, not connected":                     {"Audacity", false, dawport.ReasonStandalone},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeBackupKeeper{answer: backedUpInAudacity()}
-			host := backupHost(t, c.kind, c.bridge, role, c.toggle)
+			host := backupHost(t, c.kind, c.bridge, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			support := resolver.Support(dawport.CapBackups)
 			if support.Available || support.Reason != c.reason {
@@ -179,7 +171,7 @@ func TestDawRestoreBackupOfAnUnknownIDIsTheRolesRefusal(t *testing.T) {
 	}), audacitybridge.Options{})
 	project := t.TempDir()
 	role := audacity.NewBackups(pipe, audacity.BackupsConfig{Project: func() string { return project }})
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	for _, id := range []string{"{11111111-1111-4111-8111-111111111111}", "../backups.json", ""} {
 		got := decodeDawResult(t)(host.DawRestoreBackup(id))
 		if got.OK || got.Changed || got.Refused != "Audacity has no backup with that id." || got.Code != "" {
@@ -193,7 +185,7 @@ func TestDawRestoreBackupOfAnUnknownIDIsTheRolesRefusal(t *testing.T) {
 
 func TestDawBackupAroundRefusesALabelThatIsNotPlainText(t *testing.T) {
 	role := &fakeBackupKeeper{answer: backedUpInAudacity()}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	for _, label := range []string{"", "Roll\u0007", strings.Repeat("x", 257), "\xff"} {
 		if got := decodeDawResult(t)(host.DawBackupAround("c-0001", 0, 0, label)); got.Refused != backupLabelSentence {
 			t.Errorf("label %q: %+v", label, got)
@@ -207,7 +199,7 @@ func TestDawBackupAroundRefusesALabelThatIsNotPlainText(t *testing.T) {
 // The range's own refusals (a token not in the alignment is stale) and the role's errors are answered as a refusal.
 func TestDawBackupAroundPassesOnTheRangesAndTheRolesRefusals(t *testing.T) {
 	role := &fakeBackupKeeper{answer: backedUpInAudacity()}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	if got := decodeDawResult(t)(host.DawBackupAround("c-0001", 5, 99, backupLabelRoll)); got.Code != dawport.CodeStale || role.sent() != 0 {
 		t.Fatalf("a range outside the alignment = %+v, sent %d", got, role.sent())
 	}
@@ -266,7 +258,7 @@ func TestDawBackupsListsTheTableNewestFirst(t *testing.T) {
 
 // settings-are-bounded-and-default: the two settings save only inside the mock's ranges and steps, and read back their defaults.
 func TestTheBackupsSettingsAreBoundedAndDefault(t *testing.T) {
-	host := backupHost(t, "Audacity", true, nil, "")
+	host := backupHost(t, "Audacity", true, nil)
 	store := host.services().settings
 	if got := backupWindowSeconds(store); got != 120 {
 		t.Errorf("the default window = %v, want 120", got)
@@ -307,7 +299,7 @@ func TestTheBackupsSettingsAreBoundedAndDefault(t *testing.T) {
 // and never for a role a later project replaced.
 func TestThePruneOnOpenUsesTheRetentionOnlyWhileBackupsCanBeUsed(t *testing.T) {
 	role := &fakeBackupKeeper{}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	days := "3"
 	if err := host.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days}); err != nil {
 		t.Fatal(err)
@@ -325,7 +317,7 @@ func TestThePruneOnOpenUsesTheRetentionOnlyWhileBackupsCanBeUsed(t *testing.T) {
 	}
 
 	off := &fakeBackupKeeper{}
-	notConnected := backupHost(t, "Audacity", false, off, "on")
+	notConnected := backupHost(t, "Audacity", false, off)
 	notConnected.pruneBackupsOnOpen(notConnected.services(), off)
 	if len(off.pruned) != 0 {
 		t.Fatalf("pruned while Audacity is not connected")
@@ -335,7 +327,7 @@ func TestThePruneOnOpenUsesTheRetentionOnlyWhileBackupsCanBeUsed(t *testing.T) {
 // An Audacity launch with a project builds the backups role; REAPER and a launch with no project do not.
 func TestOnlyAnAudacityLaunchWithAProjectHasABackupsRole(t *testing.T) {
 	for kind, want := range map[string]bool{"Audacity": true, "REAPER": false, "": false} {
-		host := deleteRangeHost(t, kind, liveReachability(), nil, "")
+		host := deleteRangeHost(t, kind, liveReachability(), nil)
 		if got := host.services().backupKeeper != nil; got != want {
 			t.Errorf("%q: backups role %v, want %v", kind, got, want)
 		}
@@ -357,18 +349,18 @@ func TestDawBackupsContractGoldenIsCurrent(t *testing.T) {
 		return value
 	}
 	t.Run("daw-backup-done", func(t *testing.T) {
-		host := backupHost(t, "Audacity", true, &fakeBackupKeeper{answer: backedUpInAudacity()}, "on")
+		host := backupHost(t, "Audacity", true, &fakeBackupKeeper{answer: backedUpInAudacity()})
 		sources := backupSourcesIn(host.services())
 		sources.track = fixedTrack
 		result, err := dawBackupAroundIn(t.Context(), "Audacity", available(), &fakeBackupKeeper{answer: backedUpInAudacity()}, sources, "c-0001", 0, 0, backupLabelRoll)
 		contractfile.Check(t, "daw-backup-done", decode(encodeBinding(result, err)))
 	})
 	t.Run("daw-backup-restored", func(t *testing.T) {
-		host := backupHost(t, "Audacity", true, &fakeBackupKeeper{answer: restoredInAudacity()}, "on")
+		host := backupHost(t, "Audacity", true, &fakeBackupKeeper{answer: restoredInAudacity()})
 		contractfile.Check(t, "daw-backup-restored", decode(host.DawRestoreBackup("{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}")))
 	})
 	t.Run("daw-backup-refused", func(t *testing.T) {
-		host := backupHost(t, "REAPER", true, nil, "")
+		host := backupHost(t, "REAPER", true, nil)
 		contractfile.Check(t, "daw-backup-refused", decode(host.DawBackupAround("c-0001", 0, 0, backupLabelRoll)))
 	})
 	t.Run("daw-backups-list", func(t *testing.T) {
@@ -388,14 +380,14 @@ func TestAReplacedAudacityBackupsRoleIsNotPruned(t *testing.T) {
 	if !role.replaced() {
 		t.Fatalf("a closed role does not read as replaced")
 	}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	host.pruneBackupsOnOpen(host.services(), role)
 }
 
 // SN-E99: saving a shorter retention prunes at once with the new rule; a longer one, an unchanged one, or a refused value prunes nothing.
 func TestShorterRetentionPrunesAtOnceAndALongerOneKeepsEverything(t *testing.T) {
 	role := &fakeBackupKeeper{}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	save := func(days string) {
 		t.Helper()
 		if err := host.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days}); err != nil {
@@ -422,7 +414,7 @@ func TestShorterRetentionPrunesAtOnceAndALongerOneKeepsEverything(t *testing.T) 
 		t.Fatalf("pruned %v after a refused value and another setting", role.pruned)
 	}
 	off := &fakeBackupKeeper{}
-	notConnected := backupHost(t, "Audacity", false, off, "on")
+	notConnected := backupHost(t, "Audacity", false, off)
 	days := "1"
 	if err := notConnected.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days}); err != nil {
 		t.Fatal(err)
@@ -459,7 +451,7 @@ func (l *lockedKeeper) Prune(context.Context, time.Duration) ([]string, error) {
 
 func TestRetentionPruneWaitsForARestoreInFlight(t *testing.T) {
 	role := &lockedKeeper{started: make(chan struct{}), release: make(chan struct{})}
-	host := backupHost(t, "Audacity", true, role, "on")
+	host := backupHost(t, "Audacity", true, role)
 	restored := make(chan struct{})
 	go func() {
 		defer close(restored)

@@ -111,7 +111,7 @@ func TestDawSplitTakePassesOnTheRolesAnswers(t *testing.T) {
 	if got := split(t, &fakeSplitter{answer: stale}, splitTake, 15.5); !reflect.DeepEqual(got, stale) {
 		t.Fatalf("stale = %+v", got)
 	}
-	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrExperimentalOff, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
+	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
 		if got := split(t, &fakeSplitter{err: err}, splitTake, 15.5); got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, want a refusal", err, got)
 		}
@@ -137,17 +137,14 @@ func TestDawSplitTakeRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &splittingSelector{fakeSplitter: fakeSplitter{answer: splitInREAPER()}}
-			host := splitHost(t, c.kind, c.reach, role, c.toggle)
+			host := splitHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			support := resolver.Support(dawport.CapTakes)
 			if support.Available || support.Reason != c.reason {
@@ -174,15 +171,10 @@ func (*splittingSelector) HideTakes(context.Context, string, string) (dawport.Re
 	return dawport.Result{}, errors.New("not asked")
 }
 
-// splitHost is deleteRangeHost with a takes role that splits and the takes toggle.
-func splitHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.TakeSelector, toggle string) *Host {
+// splitHost is deleteRangeHost with a takes role that splits.
+func splitHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.TakeSelector) *Host {
 	t.Helper()
-	host := deleteRangeHost(t, kind, reach, nil, "")
-	if toggle != "" {
-		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapTakes): &toggle}); err != nil {
-			t.Fatal(err)
-		}
-	}
+	host := deleteRangeHost(t, kind, reach, nil)
 	host.mu.Lock()
 	host.takeSelector = role
 	host.mu.Unlock()
@@ -192,7 +184,7 @@ func splitHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.
 // TestDawSplitTakeContractGoldenIsCurrent pins the binding's answers: a cut in REAPER (one undo step), REAPER's stale refusal and
 // the takes capability's refusal. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-split-take-*.json.
 func TestDawSplitTakeContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to choose takes."}
+	refusedCapability := dawport.Support{Message: "REAPER is not answering. Check that REAPER is open, then try again."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

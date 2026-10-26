@@ -94,12 +94,6 @@ const PAIRS: PairSpec[] = [
   text('warn-on-accent-soft', 'SKIPPED word in the inline diff: warn text on accent-soft', 'var(--warn-text)', ['surface-2'], 'var(--accent-soft)'),
   text('info', 'the text-safe info colour on the page', 'var(--info-text)', PAGE_SURFACES),
   text('ok', 'a rule met on Master & QC: the text-safe ok colour', 'var(--ok-text)', PAGE_SURFACES),
-  text(
-    'experimental',
-    'the text-safe experimental colour: an docs/architecture/daw-integration.md#the-daw-port capability the host reports as experimental',
-    'var(--experimental-text)',
-    PAGE_SURFACES,
-  ),
   text('info-on-place-soft', 'EXTRA word in the inline diff: info text on place-soft', 'var(--info-text)', ['surface-2'], 'var(--place-soft)'),
   ...KINDS.map((kind) =>
     text(
@@ -147,14 +141,6 @@ const PAIRS: PairSpec[] = [
   mark('meter-body', 'LevelMeter: the safe recording zone', 'var(--meter-body)', ['surface']),
   mark('meter-hot', 'LevelMeter: the zone approaching the peak ceiling', 'var(--meter-hot)', ['surface']),
   mark('meter-over', 'LevelMeter: the zone at or over the peak ceiling', 'var(--meter-over)', ['surface']),
-  // The 14% badge tint left: the tone's -text colour on its own tint of that tone.
-  text(
-    'badge-experimental-fill',
-    "StatusBadge (experimental): experimental text on the badge's own 14% tint",
-    'var(--experimental-text)',
-    ['surface'],
-    'var(--badge-experimental-fill)',
-  ),
   // The status soft fills (Studio Next token batch)
   // are opaque, so a pill in a selected row is measured there as well as on the card.
   ...(

@@ -85,6 +85,9 @@ test.describe('Editing: the cursor is announced', () => {
     await page.clock.install();
     await openEditing(page);
     await page.locator(WORDS).nth(0).click();
+    // With the DAW's transport sync live (#2251), the page takes the DAW's first answer and writes the click's cursor to it; let that settle
+    // before the keys go in, so they move from the clicked word.
+    await page.clock.runFor(1000);
     await page.clock.pauseAt(new Date(Date.now() + 60_000));
     await page.evaluate(() => {
       const w = window as unknown as { __said: string[] };

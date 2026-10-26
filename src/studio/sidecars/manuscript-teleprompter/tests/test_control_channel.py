@@ -64,22 +64,7 @@ def test_poll_only_reads_what_was_appended_since_the_last_poll(tmp_path):
     assert channel.poll() == [{"cmd": "seek", "word": 2}]
 
 
-def test_seek_word_reads_a_seek_commands_word():
-    assert control_channel.seek_word({"cmd": "seek", "word": 7}) == 7
-
-
-def test_seek_word_is_none_for_a_different_command():
-    assert control_channel.seek_word({"cmd": "stop"}) is None
-
-
-def test_seek_word_is_none_when_word_is_missing_or_not_an_integer():
-    assert control_channel.seek_word({"cmd": "seek"}) is None
-    assert control_channel.seek_word({"cmd": "seek", "word": "12"}) is None
-    assert control_channel.seek_word({"cmd": "seek", "word": 1.5}) is None
-    assert control_channel.seek_word({"cmd": "seek", "word": True}) is None
-
-
-# Pause: {"cmd": "pause"} and {"cmd": "resume"} on the same channel as seek.
+# Pause: {"cmd": "pause"} and {"cmd": "resume"}, the commands the sidecar acts on.
 def test_pause_state_reads_pause_and_resume():
     assert control_channel.pause_state({"cmd": "pause"}) is True
     assert control_channel.pause_state({"cmd": "resume"}) is False

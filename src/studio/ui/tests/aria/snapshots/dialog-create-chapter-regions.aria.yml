@@ -36,4 +36,3 @@
       - listitem: /^No track is linked to this chapter\. Chapter 2, Chapter 3/
   - button "Cancel"
   - button "Create 2 regions"
-  - text: Experimental

@@ -37,8 +37,8 @@ export const EveryLevelAndMode: Story = {
         record: {
           level: 'experimental',
           available: false,
-          reason: 'experimental_off',
-          message: 'Recording is experimental. Turn it on in the list above.',
+          reason: 'not_running',
+          message: 'REAPER is not answering. Check that REAPER is open, then try again.',
           mode: 'app',
         },
         punch: { level: 'experimental', available: true, destructive: true, mode: 'steps' },
@@ -53,12 +53,13 @@ export const EveryLevelAndMode: Story = {
     await expect(canvas.getAllByRole('listitem')).toHaveLength(6);
     await expect(canvas.getByText('Replaces audio that cannot be brought back')).toBeTruthy();
     await expect(canvas.getByText('newer_capability')).toBeTruthy();
+    await expect(canvas.queryByText(/experimental/i)).toBeNull();
   },
 };
 
 // The edit rows (SND-3) REAPER still reports not yet available, each with the host's sentence. `cut_range` left this list
 // when delete_range landed (SN-D62), `fx_range` when apply_fx_range did (SN-D63) and `stack_takes` when stack_takes did
-// (SN-D71): REAPER reports them Experimental.
+// (SN-D71): REAPER reports them available.
 const EDIT_ROWS = ['backups'] as const;
 
 export const EditCapabilitiesNotYetAvailable: Story = {

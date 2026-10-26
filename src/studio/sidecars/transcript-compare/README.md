@@ -43,11 +43,9 @@ on request, take markers) plus a unified diff file of the script text against wh
   are in the module docstring; [Alignment and confidence](../../../../docs/utilities/transcript-compare.md#alignment-and-confidence)
   explains why ASR word timestamps are precise enough. `tests/divergence_harness.py` scores the host's
   alignment (through `tests/go_divergence.py`) against the constructed takes in `tests/fixtures/divergence/`.
-- `src/studio/libs/python/narration_common/spoken_forms.py` — the built-in homophone list (your/you're,
-  its/it's, etc.), the number words and the filler words, shared with the teleprompter's live
-  flags so both forgive the same spellings (`src/studio/ui/tests/visual/lib/capture.ts`). It is Python data rather than a file next
-  to the script so a frozen build always carries it. Add a globally-useful pair to
-  `HOMOPHONE_GROUPS` there (for something manuscript-specific, use the per-project equivalence
+- `src/studio/desktop/internal/compare/spoken.go` and `homophones.csv` beside it — the built-in homophone
+  list (your/you're, its/it's, etc.), the number words and the filler words, shared with the Booth's live
+  flags so both forgive the same spellings. Add a globally-useful pair to `homophones.csv` (for something manuscript-specific, use the per-project equivalence
   list instead - see "Handling invented names/words" below).
 - The desktop app owns the workflow and settings (`src/studio/desktop/internal/transcript`). Python runs from the
   checkout `.venv` that `pnpm run bootstrap` creates.
@@ -107,7 +105,7 @@ pick when no heading matches confidently. The pickup and duplicate scan chooses 
   MISREAD.
 - A trailing possessive-'s is treated the same as a plain plural -s for any word ("sentinel's"
   and "sentinels" sound identical, so there's no way to actually misread one as the other).
-- Common homophones (`HOMOPHONE_GROUPS` in `narration_common/spoken_forms.py` - your/you're, their/there/they're, its/it's,
+- Common homophones (`src/studio/desktop/internal/compare/homophones.csv` - your/you're, their/there/they're, its/it's,
   miner/minor, vane/vein, and several dozen more) are treated as equivalent, so Whisper
   transcribing a correctly-spoken word with the "wrong" spelling doesn't get flagged. Excludes
   any homophone that's also a number word (one/won, to/too/two, for/four, ate/eight), since

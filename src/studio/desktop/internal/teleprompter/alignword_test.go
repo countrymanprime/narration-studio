@@ -27,16 +27,16 @@ func runFakeAligner(mode string) bool {
 		os.Exit(2)
 	case "align-silent":
 		fmt.Println("a library printed this")
-	case "align-outside":
-		fmt.Printf(`{"type":"word_time","word":%s,"time":12.5,"exact":true,"matched":30,"heard":32,"tokens":900}`+"\n", os.Args[2])
+	case "align-outside": // a decoder that times a word past the stretch it was given
+		fmt.Println(`{"type": "heard", "words": [["Ada", 90.5, 90.8], ["climbed", 90.9, 91.3], ["the", 91.6, 91.7], ["stairs", 91.8, 92.2]]}`)
 	case "align-missing":
-		fmt.Printf(`{"type":"word_time","word":%s,"time":null,"exact":false,"matched":0,"heard":0,"tokens":900}`+"\n", os.Args[2])
+		fmt.Println(`{"type": "heard", "words": [["zebra", 0.1, 0.3], ["quokka", 0.4, 0.6]]}`)
 	case "align-hang":
 		time.Sleep(time.Minute)
 	default:
 		args, _ := json.Marshal(os.Args[1:])
 		fmt.Printf(`{"type":"args","args":%s}`+"\n", args)
-		fmt.Printf(`{"type":"word_time","word":%s,"time":820.125,"exact":true,"matched":30,"heard":32,"tokens":900}`+"\n", os.Args[2])
+		fmt.Println(`{"type": "heard", "words": [["Ada", 0.5, 0.8], ["climbed", 0.9, 1.3], ["the", 1.6, 1.7], ["stairs", 1.8, 2.2]]}`)
 	}
 	return true
 }
@@ -48,12 +48,13 @@ func (f locateFixture) alignRequest(word int) AlignRequest {
 func TestAlignWordRunsTheSidecarOnceAndReturnsItsWordTime(t *testing.T) {
 	f := newLocateFixture(t, "align-ok")
 
-	timed, err := f.service.AlignWord(context.Background(), f.alignRequest(412))
+	timed, err := f.service.AlignWord(context.Background(), f.alignRequest(5))
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if timed.Word != 412 || timed.Time == nil || *timed.Time != 820.125 || !timed.Exact || timed.Tokens != 900 {
+	// Word 5, "climbed", heard 0.9 s into the stretch that starts 812.4 s into the file.
+	if timed.Word != 5 || timed.Time == nil || *timed.Time != 813.3 || !timed.Exact || timed.Tokens != 8 {
 		t.Fatalf("timed = %+v", timed)
 	}
 }
@@ -97,7 +98,7 @@ func TestAlignWordRefusesARequestTheSidecarShouldNeverSee(t *testing.T) {
 func TestAlignWordAnswersAWordTheStretchDoesNotHoldWithNoTime(t *testing.T) {
 	f := newLocateFixture(t, "align-missing")
 
-	timed, err := f.service.AlignWord(context.Background(), f.alignRequest(412))
+	timed, err := f.service.AlignWord(context.Background(), f.alignRequest(5))
 
 	if err != nil || timed.Time != nil {
 		t.Fatalf("timed = %+v, err = %v", timed, err)
@@ -112,7 +113,7 @@ func TestAlignWordFailures(t *testing.T) {
 	} {
 		t.Run(mode, func(t *testing.T) {
 			f := newLocateFixture(t, mode)
-			if _, err := f.service.AlignWord(context.Background(), f.alignRequest(412)); err == nil || !strings.Contains(err.Error(), want) {
+			if _, err := f.service.AlignWord(context.Background(), f.alignRequest(5)); err == nil || !strings.Contains(err.Error(), want) {
 				t.Fatalf("err = %v, want %q", err, want)
 			}
 		})
@@ -148,8 +149,8 @@ func TestParseWordTimeRefusesInconsistentLines(t *testing.T) {
 	}
 }
 
-// The sidecar's own `word_time` lines, pinned by its Python contract test (teleprompter-word-time.json), parse here:
-// the two halves of the boundary read the same file.
+// The `word_time` lines the host's placement makes, pinned by scripttrack's contract test (teleprompter-word-time.json),
+// pass the same checks.
 func TestContractTheSidecarsWordTimeLinesParse(t *testing.T) {
 	dir, err := contractfile.Dir()
 	if err != nil {

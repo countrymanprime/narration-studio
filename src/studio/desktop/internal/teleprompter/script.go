@@ -82,8 +82,8 @@ func (script ChapterScript) SentenceAt(index int) Sentence {
 	return Sentence{Start: start, End: end, Text: strings.Join(script.Tokens[start:end], " ")}
 }
 
-// WordsLeft reports whether any token from index on is a word the tracker reads: one that script_tracker's
-// normalize_word does not reduce to nothing (it keeps letters, digits, underscores and apostrophes).
+// WordsLeft reports whether any token from index on is a word the tracker reads: one that scripttrack's
+// NormalizeWord does not reduce to nothing (it keeps letters, digits, underscores and apostrophes).
 func (script ChapterScript) WordsLeft(index int) bool {
 	for i := max(index, 0); i < len(script.Tokens); i++ {
 		if strings.IndexFunc(script.Tokens[i], isWordRune) >= 0 {

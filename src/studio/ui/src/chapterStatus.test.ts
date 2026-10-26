@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { STATUS_ORDER, STATUS_TONE } from './chapterStatus';
 import type { StatusTone } from './components/primitives/StatusBadge';
 
-const TONES: readonly StatusTone[] = ['neutral', 'info', 'progress', 'success', 'warning', 'danger', 'experimental'];
+const TONES: readonly StatusTone[] = ['neutral', 'info', 'progress', 'success', 'warning', 'danger'];
 
 describe('STATUS_TONE', () => {
   it("gives every chapter status a tone from StatusBadge's closed set", () => {

@@ -25,10 +25,10 @@ func newTestHostForDawCapabilities(t *testing.T, daw string) *Host {
 
 // TestDawCapabilitiesGoldenIsCurrent pins DawCapabilities' payload for the three launch kinds a unit test can build
 // without a real REAPER session: no DAW at all (every capability unsupported, standalone), REAPER declared but not
-// connected (its Supported/Experimental declaration, refused standalone or experimental_off, except the offline
+// connected (its Supported/Experimental declaration, refused standalone, except the offline
 // project_read capability, which needs no bridge, and the edit rows cut_range, fx_range, stack_takes and backups, not_yet_available
-// until their commands land), and Audacity (navigate, markers, macro_render and backups experimental and switched off, docs/architecture/daw-integration.md#the-daw-port,
-// docs/reference/daw/capabilities.md#macro_render, docs/reference/daw/audacity-3.md; takes, punch, stack_takes, cut_range and fx_range experimental and switched off too, each requiring backups,
+// until their commands land), and Audacity (navigate, markers, macro_render and backups declared, docs/architecture/daw-integration.md#the-daw-port,
+// docs/reference/daw/capabilities.md#macro_render, docs/reference/daw/audacity-3.md; takes, punch, stack_takes, cut_range and fx_range too, each requiring backups,
 // punch destructive while backups are unavailable and the three edits in steps, SN-D83; every other capability
 // not_yet_available, docs/architecture/daw-integration.md#audacity-boundary's sentence). UPDATE_CONTRACTS=1
 // rewrites tests/fixtures/contracts/daw-capabilities-*.json.
@@ -64,7 +64,7 @@ func builtinCapabilitiesHost(t *testing.T) *Host {
 }
 
 // capabilities-golden-for-built-in: the built-in recorder's row of DawCapabilities, written from a launch whose project chose it
-// (record and takes Experimental and switched off by default, project_read "keeps no saved project", the rest worded for the
+// (record and takes available with no setting, project_read "keeps no saved project", the rest worded for the
 // built-in recorder). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-capabilities-builtin.json.
 func TestDawCapabilitiesBuiltInGoldenIsCurrent(t *testing.T) {
 	raw, err := builtinCapabilitiesHost(t).DawCapabilities()
@@ -174,43 +174,52 @@ func TestDawCapabilitiesOfflineReadingWorksWithNoBridge(t *testing.T) {
 	}
 }
 
-// TestSaveSettingsAcceptsACapabilityToggle: the capability row in config/defaults.json is now exposed by
-// settingsForScope and saveable, not only readable through Store.Effective.
-func TestSaveSettingsAcceptsACapabilityToggle(t *testing.T) {
-	host := newTestHostForDawCapabilities(t, "REAPER")
-	key := dawport.ToggleKey(dawport.CapPunch)
-	on := "on"
-	if err := host.saveSettings("DAW", "global", map[string]*string{key: &on}); err != nil {
-		t.Fatalf("saveSettings(%s) = %v, want it accepted", key, err)
+// The owner's rule (2026-10-26, #2251): once a project is linked to a DAW, what the DAW reports is live, and no setting turns it
+// on or off. A settings file written by an older version still holds the removed gates, DAW.experimental_reaper_actions = false
+// and DAW.capability.<name> = off, at both scopes; with REAPER connected they are never read, so record, punch and the rest stay
+// available.
+func TestAnOldSettingsFilesGatesNeverTurnADawCapabilityOff(t *testing.T) {
+	host := deleteRangeHost(t, "REAPER", liveReachability(), nil)
+	old := map[string]*string{}
+	for _, row := range []struct{ key, value string }{
+		{"experimental_reaper_actions", "false"},
+		{"capability.record", "off"},
+		{"capability.punch", "off"},
+		{"capability.cut_range", "off"},
+	} {
+		value := row.value
+		old[row.key] = &value
 	}
-	effective, source := host.settings.Effective("DAW", key, "auto")
-	if effective != "on" || source != "global" {
-		t.Fatalf("Effective(%s) = (%q, %q), want (%q, %q)", key, effective, source, "on", "global")
+	for _, scope := range []string{"global", "project"} {
+		// The store itself, not saveSettings: the host no longer accepts these rows, but an old file still has them.
+		if err := host.settings.Save("DAW", scope, old); err != nil {
+			t.Fatal(err)
+		}
 	}
-	fields, err := host.settingsForScope("global")
+	raw, err := host.DawCapabilities()
 	if err != nil {
 		t.Fatal(err)
 	}
-	found := false
-	for _, field := range fields["DAW"].([]map[string]any) {
-		if field["key"] == key {
-			found = true
-			if field["value"] != "on" {
-				t.Fatalf("field %s value = %v, want on", key, field["value"])
-			}
+	var decoded struct {
+		Capabilities map[string]struct {
+			Level     string `json:"level"`
+			Available bool   `json:"available"`
+			Reason    string `json:"reason"`
+		} `json:"capabilities"`
+	}
+	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []dawport.Capability{dawport.CapRecord, dawport.CapPunch, dawport.CapCutRange} {
+		if got := decoded.Capabilities[string(c)]; !got.Available || got.Reason != "" {
+			t.Errorf("%s = %+v with an old file's gates, want available", c, got)
 		}
 	}
-	if !found {
-		t.Fatalf("settingsForScope('DAW') has no row for %s", key)
-	}
-}
-
-func TestSaveSettingsRejectsAnUnknownCapabilityToggleValue(t *testing.T) {
-	host := newTestHostForDawCapabilities(t, "REAPER")
-	key := dawport.ToggleKey(dawport.CapPunch)
-	bogus := "sometimes"
-	if err := host.saveSettings("DAW", "global", map[string]*string{key: &bogus}); err == nil {
-		t.Fatalf("saveSettings(%s, %q) = nil, want a refusal", key, bogus)
+	for _, key := range []string{"experimental_reaper_actions", "capability.record"} {
+		value := "true"
+		if err := host.saveSettings("DAW", "global", map[string]*string{key: &value}); err == nil {
+			t.Errorf("saveSettings(DAW.%s) accepted a removed gate", key)
+		}
 	}
 }
 
