@@ -6,12 +6,11 @@ import { BackupsTab, type BackupsTabProps } from './BackupsTab';
 const BACKUPS_SECTION_ORDER = 10;
 
 /**
- * Whether the DAW keeps backups at all (the Studio Next mock's `tabsFor`): it has them now, or the narrator turned them off and can turn them back
- * on in the tab. A DAW that has no backups (REAPER, the built-in recorder: not yet, or unsupported) has no Backups tab.
+ * Whether the DAW keeps backups now (the Studio Next mock's `tabsFor`). A DAW that has no backups (REAPER, the built-in recorder: not yet, or unsupported) has no Backups tab.
  */
 export function keepsBackups(caps: DawCapabilities | null): boolean {
   const support = caps?.capabilities['backups'];
-  return !!support && (support.available || support.reason === 'turned_off');
+  return !!support?.available;
 }
 
 /**

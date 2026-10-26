@@ -55,9 +55,9 @@ describe('CreateChapterRegionsDialog', () => {
     expect(within(screen.getByRole('table', { name: 'Chapter regions' })).getByText('Opening credits')).toBeTruthy();
   });
 
-  it('swallows the click and shows why while the regions capability is off (the default)', async () => {
+  it('swallows the click and shows why while REAPER is not answering', async () => {
     const user = userEvent.setup();
-    const { api } = renderDialog({}, CONFIRMED_CHAPTER_1);
+    const { api } = renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { reachable: false } });
     const create = vi.spyOn(api, 'chapterRegionsCreate');
 
     const button = await screen.findByRole('button', { name: 'Create 1 region' });
@@ -67,9 +67,9 @@ describe('CreateChapterRegionsDialog', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('creates the planned regions once the regions capability is on, and shows the counts', async () => {
+  it('creates the planned regions with REAPER answering, with nothing to turn on, and shows the counts', async () => {
     const user = userEvent.setup();
-    const { api } = renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { toggles: { regions: 'on' } } });
+    const { api } = renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: {} });
     const create = vi.spyOn(api, 'chapterRegionsCreate');
 
     const button = await screen.findByRole('button', { name: 'Create 1 region' });
@@ -86,17 +86,15 @@ describe('CreateChapterRegionsDialog', () => {
     expect(table.querySelector('thead')?.className).toContain('sticky');
   });
 
-  it('draws the Experimental badge ahead of the primary, so the primary ends the action row (alignment audit R3EN1-8)', async () => {
-    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { toggles: { regions: 'on' } } });
-    const button = await screen.findByRole('button', { name: 'Create 1 region' });
-    const gate = button.parentElement as HTMLElement;
-    expect(within(gate).getByText('Experimental')).toBeTruthy();
-    expect(gate.className).toContain('flex-row-reverse');
+  it('draws no badge beside the primary: the primary ends the action row (alignment audit R3EN1-8)', async () => {
+    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: {} });
+    await screen.findByRole('button', { name: 'Create 1 region' });
+    expect(screen.queryByText(/experimental/i)).toBeNull();
   });
 
   it('shows a REAPER error state and creates nothing', async () => {
     const user = userEvent.setup();
-    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { toggles: { regions: 'on' } }, regionsCreateAlwaysErrors: true });
+    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: {}, regionsCreateAlwaysErrors: true });
 
     await user.click(await screen.findByRole('button', { name: 'Create 1 region' }));
 
@@ -133,7 +131,7 @@ describe('CreateChapterRegionsDialog', () => {
   // ENX-28: the primary stayed full strength after the run; Close is the next step.
   it('makes Close the primary once regions have been created', async () => {
     const user = userEvent.setup();
-    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { toggles: { regions: 'on' } } });
+    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: {} });
     await user.click(await screen.findByRole('button', { name: 'Create 1 region' }));
     expect(await screen.findByRole('status')).toBeTruthy();
     const footerClose = screen.getAllByRole('button', { name: 'Close' }).find((button) => button.closest('[data-dialog-actions]'));
@@ -143,7 +141,7 @@ describe('CreateChapterRegionsDialog', () => {
 
   it('relabels Cancel to Close once regions have been created', async () => {
     const user = userEvent.setup();
-    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: { toggles: { regions: 'on' } } });
+    renderDialog({}, { ...CONFIRMED_CHAPTER_1, daw: {} });
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
     await user.click(await screen.findByRole('button', { name: 'Create 1 region' }));

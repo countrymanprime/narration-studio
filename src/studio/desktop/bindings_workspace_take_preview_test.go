@@ -9,6 +9,7 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
+	"desktop/internal/daw"
 	"desktop/internal/dawport"
 	"desktop/internal/passagetakes"
 )
@@ -16,13 +17,10 @@ import (
 // WorkspacePreviewTake: a take the Takes panel offers, heard through the DAW's preview so a linked DAW's output is the only one
 // (#2251 item 32). The file and range come from the saved project, never from the page.
 
-// previewTakeHost is useTakeHost with the file_preview capability set to toggle and role standing in for the DAW's file role.
-func previewTakeHost(t *testing.T, role *fakeFiles, toggle string) *Host {
+// previewTakeHost is useTakeHost with role standing in for the DAW's file role.
+func previewTakeHost(t *testing.T, role *fakeFiles) *Host {
 	t.Helper()
-	host := useTakeHost(t, &fakeTakeSelector{}, "on")
-	if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapFilePreview): &toggle}); err != nil {
-		t.Fatal(err)
-	}
+	host := useTakeHost(t, &fakeTakeSelector{})
 	host.mu.Lock()
 	host.filePreviewer = role
 	host.mu.Unlock()
@@ -31,7 +29,7 @@ func previewTakeHost(t *testing.T, role *fakeFiles, toggle string) *Host {
 
 func TestWorkspacePreviewTakePlaysTheOfferedTakesOwnRangeThroughTheDaw(t *testing.T) {
 	role := &fakeFiles{}
-	host := previewTakeHost(t, role, "on")
+	host := previewTakeHost(t, role)
 
 	got := decodeDawResult(t)(host.WorkspacePreviewTake("c-0001", 0, 0, hideKeepA))
 
@@ -49,7 +47,7 @@ func TestWorkspacePreviewTakePlaysTheOfferedTakesOwnRangeThroughTheDaw(t *testin
 
 func TestWorkspacePreviewTakeRefusesATakeItDidNotOfferAndSendsNothing(t *testing.T) {
 	role := &fakeFiles{}
-	host := previewTakeHost(t, role, "on")
+	host := previewTakeHost(t, role)
 
 	got := decodeDawResult(t)(host.WorkspacePreviewTake("c-0001", 0, 0, "take:{NOT-OFFERED}:{TAKE}"))
 
@@ -58,9 +56,12 @@ func TestWorkspacePreviewTakeRefusesATakeItDidNotOfferAndSendsNothing(t *testing
 	}
 }
 
-func TestWorkspacePreviewTakeWithFilePreviewOffRefusesWithTheResolversSentence(t *testing.T) {
+func TestWorkspacePreviewTakeWithREAPERQuietRefusesWithTheResolversSentence(t *testing.T) {
 	role := &fakeFiles{}
-	host := previewTakeHost(t, role, "off")
+	host := previewTakeHost(t, role)
+	host.mu.Lock()
+	host.reachability = daw.NewReachability(nil)
+	host.mu.Unlock()
 
 	got := decodeDawResult(t)(host.WorkspacePreviewTake("c-0001", 0, 0, hideKeepA))
 
@@ -96,7 +97,7 @@ func TestWorkspacePreviewTakeContractGoldenIsCurrent(t *testing.T) {
 	cases := map[string]string{"workspace-preview-take-playing": hideKeepA, "workspace-preview-take-refused-not-offered": "take:{NOT-OFFERED}:{TAKE}"}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {
 		t.Run(name, func(t *testing.T) {
-			host := previewTakeHost(t, &fakeFiles{}, "on")
+			host := previewTakeHost(t, &fakeFiles{})
 			contractfile.Check(t, name, decodeDawResult(t)(host.WorkspacePreviewTake("c-0001", 0, 0, cases[name])))
 		})
 	}

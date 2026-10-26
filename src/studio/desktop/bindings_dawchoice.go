@@ -11,6 +11,9 @@ import (
 	"desktop/internal/dawport"
 )
 
+// dawSettingsTool is the settings section of the DAW rows the choice reads (DAW.auto_start_launcher, DAW.reaper_path).
+const dawSettingsTool = "DAW"
+
 // The project's DAW choice (projectdaw.go): DawChoice answers what the project records with, why, and every engine the narrator
 // can choose with its honest state; DawChoose saves the narrator's choice in the project's own Recording.engine row (the row
 // RecorderChooseEngine writes too); DawLinkFound links the one REAPER project file the host found in the folder. The page sends
@@ -46,10 +49,8 @@ type DawChoice struct {
 	// FoundFiles names the REAPER project files directly in the project folder.
 	FoundFiles []string `json:"foundFiles"`
 	// LauncherAutoStart is DAW.auto_start_launcher: whether Start REAPER also runs the launcher that connects the bridge.
-	LauncherAutoStart bool `json:"launcherAutoStart"`
-	// Experimental is DAW.experimental_reaper_actions, the global switch Experimental capabilities wait on.
-	Experimental bool              `json:"experimental"`
-	Options      []DawChoiceOption `json:"options"`
+	LauncherAutoStart bool              `json:"launcherAutoStart"`
+	Options           []DawChoiceOption `json:"options"`
 	// Starting is set while a REAPER start the app made has not answered yet (reaperbridge.go); null otherwise.
 	Starting *dawStarting `json:"starting"`
 	// Bridge is where the app's bridge in REAPER stands; null for a project that does not record with REAPER, or before the app
@@ -162,9 +163,8 @@ func (h *Host) dawChoice(svc hostServices) DawChoice {
 				choice.Chosen = &name
 			}
 		}
-		autoStart, _ := svc.settings.Effective(dawport.SettingsTool, "auto_start_launcher", "true")
+		autoStart, _ := svc.settings.Effective(dawSettingsTool, "auto_start_launcher", "true")
 		choice.LauncherAutoStart = autoStart == "true"
-		choice.Experimental = dawport.SettingsExperimental(svc.settings.Effective)()
 	}
 	if project.folder.linkedPath != "" {
 		name := filepath.Base(project.folder.linkedPath)
@@ -222,7 +222,7 @@ func (h *Host) dawInstalled(svc hostServices, kind dawport.Kind) *bool {
 	case kind.LinksProjectFile():
 		override := ""
 		if svc.settings != nil {
-			override, _ = svc.settings.Effective(dawport.SettingsTool, "reaper_path", "")
+			override, _ = svc.settings.Effective(dawSettingsTool, "reaper_path", "")
 		}
 		locate := h.reaperLocate
 		if locate == nil {

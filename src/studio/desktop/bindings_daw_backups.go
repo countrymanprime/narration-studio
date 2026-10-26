@@ -43,7 +43,7 @@ const (
 // Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
 // stored alignment (passagetakes.ResolveRange) and the track is the chapter's one linked track, and the DAW adds the narrator's
 // window either side (DAW.backups.window_seconds). The answer is a DawResult: the backups capability's own sentence when
-// the resolver refuses it (REAPER, the built-in recorder, a standalone launch, Audacity not connected, the toggle off), checked
+// the resolver refuses it (REAPER, the built-in recorder, a standalone launch, Audacity not connected), checked
 // first; then a label that is not plain text; then the range's and the link's own refusals. Nothing is sent to the DAW on any of
 // them. A backup changes no audio, so it answers changed false and no undo step.
 func (h *Host) DawBackupAround(chapterID string, firstToken int, lastToken int, label string) (string, error) {

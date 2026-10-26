@@ -102,8 +102,6 @@ func monitorLevelRefusal(name string, setting bool, err error) string {
 		return readAloudConnectionRefusal(name, reaperStandalone).Message
 	case errors.Is(err, bridge.ErrScriptOutdated):
 		return fmt.Sprintf(monitorLevelOutdatedSentence, name, name)
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return err.Error()
 	case errors.Is(err, context.DeadlineExceeded):
 		return fmt.Sprintf(monitorLevelNoAnswerSentence, name, int(monitorLevelTimeout.Seconds()))
 	case setting:

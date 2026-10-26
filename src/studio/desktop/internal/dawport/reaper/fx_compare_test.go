@@ -94,9 +94,9 @@ func TestCompareFXRangeRefusals(t *testing.T) {
 }
 
 func TestCompareFXRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental DAW actions are off. Turn them on in Settings to add an effect to words."
+	sentence := "REAPER cannot add an effect to words from this app."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
-		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonUnsupported, Message: sentence}}
 	})
 	comparer := adapter.Role(dawport.CapFXRange).(dawport.RangeFXComparer)
 	if got, err := comparer.CompareFXRange(t.Context(), fxTarget()); err != nil || !reflect.DeepEqual(got, dawport.FXRangeCompare{Result: dawport.Refused(sentence)}) {

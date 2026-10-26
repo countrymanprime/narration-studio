@@ -77,10 +77,10 @@ function mount(daw: DawClient, api = withBackupSettings(createMockApi())) {
 const backUp = (daw: DawClient, label: string, firstToken = 0, lastToken = 1) => daw.backupAround({ chapterId: CHAPTER, firstToken, lastToken, label });
 
 describe('the Backups tab', () => {
-  it('tab-only-for-daws-with-the-capability: the section registers only where the DAW keeps backups (Audacity, on or turned off); REAPER and the recorder never', () => {
-    const ids: DawSetupId[] = ['reaper', 'builtin', 'audacity', 'audacity-backups'];
+  it('tab-only-for-daws-with-the-capability: the section registers only where the DAW keeps backups (Audacity); REAPER and the recorder never', () => {
+    const ids: DawSetupId[] = ['reaper', 'builtin', 'audacity'];
     const offered = ids.map((id) => keepsBackups(DAW_SETUPS[id]));
-    expect(offered).toEqual([false, false, true, true]);
+    expect(offered).toEqual([false, false, true]);
     expect(tabsFor(offered[0]!, true).map(([k]) => k)).toEqual(['cleanup', 'effects']);
     expect(tabsFor(offered[2]!, true).map(([k]) => k)).toEqual(['cleanup', 'effects', 'backups']);
     const props = { chapterName: 'Chapter 1', total: 600, journal };
@@ -90,14 +90,14 @@ describe('the Backups tab', () => {
       expect(drawSections('backups', context)).toHaveLength(0);
       off();
     }
-    const remove = registerBackupsSection(DAW_SETUPS['audacity-backups'], props);
+    const remove = registerBackupsSection(DAW_SETUPS.audacity, props);
     expect(drawSections('backups', context).map((d) => d.section.label)).toEqual(['Backups']);
     remove();
     expect(drawSections('backups', context)).toHaveLength(0);
   });
 
   it('list-newest-first-with-label-range-and-date: each row has its label, the stretch it cloned, when, and Put this back; none says so', async () => {
-    const daw = spyDaw(DAW_SETUPS['audacity-backups']);
+    const daw = spyDaw(DAW_SETUPS.audacity);
     mount(daw);
     await flush();
     expect(screen.getByRole('heading', { name: 'No backups yet.' })).toBeTruthy();
@@ -116,7 +116,7 @@ describe('the Backups tab', () => {
   });
 
   it('restore-is-one-undo-step-or-a-reason: Put this back is one history entry the app cannot undo; a clone the DAW no longer holds is refused and shown missing', async () => {
-    const daw = spyDaw(DAW_SETUPS['audacity-backups']);
+    const daw = spyDaw(DAW_SETUPS.audacity);
     await backUp(daw, 'Roll at ¶ 3');
     mount(daw);
     await flush();
@@ -132,7 +132,7 @@ describe('the Backups tab', () => {
 
     cleanup();
     const gone = 'Audacity has no backup with that id.';
-    const refusing = spyDaw(DAW_SETUPS['audacity-backups'], {
+    const refusing = spyDaw(DAW_SETUPS.audacity, {
       backups: daw.backups,
       restoreBackup: async (): Promise<DawResult> => ({ ok: false, changed: false, message: gone, undoSteps: 0, refused: gone }),
     });
@@ -153,7 +153,7 @@ describe('the Backups tab', () => {
       return { ...fields, DAW: fields.DAW!.map((f) => (f.key === WINDOW_KEY ? { ...f, number: { min: 10, max: 200, step: 10, unit: 's' } } : f)) };
     };
     const save = vi.spyOn(api, 'saveSettings');
-    mount(spyDaw(DAW_SETUPS['audacity-backups']), api);
+    mount(spyDaw(DAW_SETUPS.audacity), api);
     await flush();
     const win = document.querySelector('[data-bkwin]') as HTMLInputElement;
     const keep = document.querySelector('[data-bkkeep]') as HTMLInputElement;
@@ -164,12 +164,12 @@ describe('the Backups tab', () => {
     expect(save).toHaveBeenLastCalledWith('DAW', 'project', { [WINDOW_KEY]: '200' });
     fireEvent.change(keep, { target: { value: '3' } });
     expect(save).toHaveBeenLastCalledWith('DAW', 'project', { [RETENTION_KEY]: '3' });
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Keep backups' }));
-    expect(save).toHaveBeenLastCalledWith('DAW', 'project', { 'capability.backups': 'off' });
+    // Whether backups are kept is not a setting: there is no Keep backups box to untick.
+    expect(screen.queryByRole('checkbox', { name: 'Keep backups' })).toBeNull();
   });
 
   it('shortening the retention prunes at once: after the retention is saved the list reads the table again, so a pruned backup leaves it', async () => {
-    const daw = spyDaw(DAW_SETUPS['audacity-backups']);
+    const daw = spyDaw(DAW_SETUPS.audacity);
     await backUp(daw, 'Delete words', 130, 131);
     await backUp(daw, 'Roll at ¶ 3', 200, 210);
     const all = await daw.backups();
@@ -180,7 +180,7 @@ describe('the Backups tab', () => {
       if (args[2][RETENTION_KEY] === '1') pruned = true; // the host prunes before it answers the save
       return save(...args);
     };
-    mount(spyDaw(DAW_SETUPS['audacity-backups'], { backups: async () => (pruned ? all.slice(0, 1) : all) }), api);
+    mount(spyDaw(DAW_SETUPS.audacity, { backups: async () => (pruned ? all.slice(0, 1) : all) }), api);
     await flush();
     expect(rows()).toHaveLength(2);
     await act(async () => void fireEvent.change(document.querySelector('[data-bkkeep]') as HTMLInputElement, { target: { value: '1' } }));
@@ -189,13 +189,13 @@ describe('the Backups tab', () => {
   });
 
   it('opening-the-tab-only-reads: the tab reads the table and asks the DAW to change nothing; the host prunes on project open', async () => {
-    mount(spyDaw(DAW_SETUPS['audacity-backups']));
+    mount(spyDaw(DAW_SETUPS.audacity));
     await flush();
     expect(new Set(calls)).toEqual(new Set(['capabilities', 'backups']));
   });
 
   it('atlas-and-axe: the tab with backups has no violations', async () => {
-    const daw = spyDaw(DAW_SETUPS['audacity-backups']);
+    const daw = spyDaw(DAW_SETUPS.audacity);
     await backUp(daw, 'Roll at ¶ 3');
     const { container } = mount(daw);
     await flush();
@@ -238,7 +238,7 @@ describe('a backup before each edit', () => {
     );
 
   it('backup-first-for-each-edit: with backups the delete, the effect and the stack back up before the DAW is asked, and the dialog says so', async () => {
-    const daw = spyDaw(DAW_SETUPS['audacity-backups'], { deleteRange: async () => ok, applyFxToRange: async () => ok, stackTakes: async () => ok });
+    const daw = spyDaw(DAW_SETUPS.audacity, { deleteRange: async () => ok, applyFxToRange: async () => ok, stackTakes: async () => ok });
     const off = installBackupSteps(daw, places);
     for (const [command, edit] of [
       [cut, 'deleteRange'],
@@ -255,7 +255,7 @@ describe('a backup before each edit', () => {
   });
 
   it('a failed backup stops the edit with nothing changed, and a DAW without backups is refused with its own sentence', async () => {
-    const broken = spyDaw(DAW_SETUPS['audacity-backups'], {
+    const broken = spyDaw(DAW_SETUPS.audacity, {
       backupAround: async () => ({ ok: false, changed: false, message: 'Audacity did not answer.', undoSteps: 0, refused: 'Audacity did not answer.' }),
     });
     installBackupSteps(broken, places);
@@ -265,10 +265,14 @@ describe('a backup before each edit', () => {
     [beforeCut, beforeFx, beforeStack].forEach((l) => (l.length = 0));
 
     calls = [];
-    const without = spyDaw(DAW_SETUPS.audacity);
+    const quiet = 'Audacity is not answering.';
+    const without = spyDaw({
+      ...DAW_SETUPS.audacity,
+      capabilities: { ...DAW_SETUPS.audacity.capabilities, backups: { level: 'experimental', available: false, reason: 'not_running', message: quiet } },
+    });
     installBackupSteps(without, places);
     const refused = await fx(without).run();
-    expect(refused).toMatchObject({ ok: false, refusal: { reason: `${NO_BACKUP} Turned off in Settings.` } });
+    expect(refused).toMatchObject({ ok: false, refusal: { reason: `${NO_BACKUP} ${quiet}` } });
     expect(calls).toEqual(['backupAround']);
   });
 
@@ -291,7 +295,7 @@ describe('a backup before each edit', () => {
   });
 
   it('window-never-passes-the-audio-there-is: the page sends only the words, and the DAW adds the window inside the audio there is', async () => {
-    const daw = spyDaw(DAW_SETUPS['audacity-backups'], { deleteRange: async () => ok, stackTakes: async () => ok });
+    const daw = spyDaw(DAW_SETUPS.audacity, { deleteRange: async () => ok, stackTakes: async () => ok });
     const sent = vi.spyOn(daw, 'backupAround');
     installBackupSteps(daw, places);
     await cut(daw).run();

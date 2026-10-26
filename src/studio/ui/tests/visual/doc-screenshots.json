@@ -281,13 +281,6 @@
   },
   {
     "page": "booth",
-    "state": "builtin-refusal",
-    "viewport": "desktop",
-    "docName": "booth-builtin-refusal",
-    "caption": "Booth - the built-in recorder with Experimental actions off: Record off, and the Record is switched off chip under the text"
-  },
-  {
-    "page": "booth",
     "state": "builtin-recording",
     "viewport": "desktop",
     "docName": "booth-builtin-listening",
@@ -341,13 +334,6 @@
     "viewport": "desktop",
     "docName": "booth-credits-missing",
     "caption": "Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters"
-  },
-  {
-    "page": "booth",
-    "state": "refusal-pressed",
-    "viewport": "desktop",
-    "docName": "booth-record-refused",
-    "caption": "Booth - Record pressed while switched off: the Recording in REAPER is experimental dialog with Turn on Record, DAW settings and Check again"
   },
   {
     "page": "booth",
@@ -1223,13 +1209,6 @@
     "viewport": "desktop",
     "docName": "booth-levels-menu-preroll-about",
     "caption": "Booth - the pre-roll's info note: what REAPER's pre-roll does and where to change it"
-  },
-  {
-    "page": "booth",
-    "state": "levels-menu-daw-meters",
-    "viewport": "desktop",
-    "docName": "booth-levels-menu-daw-meters",
-    "caption": "Booth - the Levels menu showing REAPER's own input level (the armed track) and output level under the two sliders"
   },
   {
     "page": "booth",

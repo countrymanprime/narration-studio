@@ -16,8 +16,7 @@ The header names the book's chapters, words and due date ("12 chapters · 29,189
 due Oct 14 (18 days)"). The pill beside them is the verdict for the due date in a word and a mark
 (on track, tight or behind, or "No due date set"); it opens [Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
-being recorded. When the audio engine cannot record, one line under the buttons says why, and when
-recording is switched off, **Open DAW settings** on that line opens the section that turns it on.
+being recorded. When the audio engine cannot record, one line under the buttons says why in the DAW's own words.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
@@ -130,7 +129,7 @@ shows its figures as last known and offers no playback.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings the track into
-view in REAPER itself. Selecting is an experimental REAPER action ([Settings](settings.md)) and
+view in REAPER itself. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)

@@ -74,8 +74,6 @@ func punchPrerollRefusal(name string, err error) string {
 		return readAloudConnectionRefusal(name, reaperStandalone).Message
 	case errors.Is(err, bridge.ErrScriptOutdated):
 		return fmt.Sprintf(punchPrerollOutdatedSentence, name, name)
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return err.Error()
 	case errors.Is(err, context.DeadlineExceeded):
 		return fmt.Sprintf(punchPrerollNoAnswerSentence, name, int(punchPrerollTimeout.Seconds()))
 	}

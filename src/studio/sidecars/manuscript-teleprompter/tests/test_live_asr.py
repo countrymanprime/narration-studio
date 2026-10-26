@@ -1,9 +1,7 @@
 import importlib.util
-import io
 import json
 import sys
 import threading
-from contextlib import redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -458,28 +456,6 @@ def test_the_cli_accepts_exactly_the_flags_the_desktop_host_passes():
     assert replay.wav == "r.wav"
 
 
-def test_start_word_and_control_file_parse_from_the_cli():
-    parsed = live_asr.build_parser().parse_args(["--manuscript", "m.json", "--chapter", "c1", "--mic", "Mic", "--start-word", "40", "--control-file", "c.ctl"])
-
-    assert (parsed.start_word, parsed.control_file) == (40, "c.ctl")
-
-
-def test_start_word_defaults_to_none():
-    parsed = live_asr.build_parser().parse_args(["--manuscript", "m.json", "--chapter", "c1", "--mic", "Mic"])
-
-    assert parsed.start_word is None
-
-
-def test_start_word_needs_a_script_or_a_manuscript(capsys):
-    ap = live_asr.build_parser()
-    args = ap.parse_args(["--mic", "Mic", "--start-word", "5"])
-
-    with pytest.raises(SystemExit):
-        live_asr._check_engine_args(ap, args)
-
-    assert "--start-word needs --script or --manuscript" in capsys.readouterr().err
-
-
 def test_control_file_needs_a_script_or_a_manuscript(capsys):
     ap = live_asr.build_parser()
     args = ap.parse_args(["--mic", "Mic", "--control-file", "c.ctl"])
@@ -490,60 +466,11 @@ def test_control_file_needs_a_script_or_a_manuscript(capsys):
     assert "--control-file needs --script or --manuscript" in capsys.readouterr().err
 
 
-def test_start_word_and_control_file_are_accepted_together_with_a_script():
+def test_control_file_is_accepted_with_a_script():
     ap = live_asr.build_parser()
-    args = ap.parse_args(["--mic", "Mic", "--script", "s.txt", "--start-word", "5", "--control-file", "c.ctl"])
+    args = ap.parse_args(["--mic", "Mic", "--script", "s.txt", "--control-file", "c.ctl"])
 
     live_asr._check_engine_args(ap, args)  # must not raise
-
-
-def test_a_session_with_a_script_prints_flags_after_the_segment_that_raised_them(tmp_path, capsys, monkeypatch):
-    # A frozen or `python live_asr.py` run has the core directory on sys.path already; a spec-loaded module does not.
-    monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
-    script = tmp_path / "script.txt"
-    script.write_text("The old lighthouse keeper climbed the spiral stairs each evening.", encoding="utf-8")
-    ap = live_asr.build_parser()
-    args = ap.parse_args(["--wav", "r.wav", "--script", str(script)])
-    tracker, _script_event, _text = live_asr._load_script(ap, args)
-    heard = ["the", "old", "lighthouse", "keeper", "climbed", "the", "spiral", "chairs", "each", "evening"]
-
-    def stream(chunks):
-        list(chunks)
-        yield from ({"type": "word", "segment": 0, "word": word, "start": 0.0, "end": 0.1} for word in heard)
-        yield {"type": "segment_end", "segment": 0}
-
-    live_asr._run(args, stream, iter(_chunks(1)), tracker)
-
-    printed = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
-    assert printed[-1] == {"type": "flag", "id": 1, "kind": "misread", "start": 7, "end": 8, "heard": "chairs"}
-    assert printed[-2] == {"type": "segment_end", "segment": 0}
-
-
-def test_tracker_commits_are_recorded_at_debug_level_and_deduped(tmp_path, monkeypatch):
-    monkeypatch.setenv("NARRATION_LOG_LEVEL", "debug")
-    monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
-    script = tmp_path / "script.txt"
-    script.write_text("The old lighthouse keeper climbed the spiral stairs each evening.", encoding="utf-8")
-    ap = live_asr.build_parser()
-    args = ap.parse_args(["--wav", "r.wav", "--script", str(script)])
-    tracker, _script_event, _text = live_asr._load_script(ap, args)
-    heard = ["the", "old", "lighthouse", "keeper", "climbed"]
-
-    def stream(chunks):
-        list(chunks)
-        yield from ({"type": "word", "segment": 0, "word": word, "start": 0.0, "end": 0.1} for word in heard)
-        yield {"type": "segment_end", "segment": 0}
-
-    buffer = io.StringIO()
-    with redirect_stderr(buffer):
-        live_asr._run(args, stream, iter(_chunks(1)), tracker)
-
-    records = [json.loads(line) for line in buffer.getvalue().splitlines() if line]
-    commits = [r for r in records if r.get("event") == "teleprompter.tracker_commit"]
-    assert commits
-    committed_values = [r["committed"] for r in commits]
-    assert committed_values == sorted(set(committed_values))  # each logged commit strictly advances: no repeats
-    assert all("heard" not in r for r in records)
 
 
 def test_stoppable_passes_every_chunk_through_when_no_stop_file_is_given():
@@ -639,7 +566,7 @@ def test_an_ordinary_value_is_taken_as_the_option_value():
 # --list-devices is a one-shot mode: it must short-circuit before the "one of --wav or --mic is required" check (it needs
 # neither) and print exactly one JSON line, the shape the Go host binding (src/studio/desktop/internal/teleprompter) parses.
 # devices.py itself is unit-tested in test_devices.py; here only the CLI wiring is under test, so `devices` is faked via
-# sys.modules (main() does `from devices import list_input_devices` as a local import, same pattern as script_tracker).
+# sys.modules (main() does `from devices import list_input_devices` as a local import).
 def _fake_devices_module(result):
     return SimpleNamespace(list_input_devices=lambda: result)
 
@@ -799,41 +726,22 @@ def test_verify_needs_capabilities(monkeypatch, capsys):
     assert "--verify needs --capabilities" in capsys.readouterr().err
 
 
-def test_script_id_and_title_go_together_and_need_a_script(capsys):
-    ap = live_asr.build_parser()
-    for argv, message in [
-        (["--mic", "Mic", "--script", "s.txt", "--script-id", "credits-opening"], "--script-id and --script-title go together"),
-        (["--mic", "Mic", "--script-id", "credits-opening", "--script-title", "Opening credits"], "--script-id needs --script"),
-    ]:
-        with pytest.raises(SystemExit):
-            live_asr._check_engine_args(ap, ap.parse_args(argv))
-        assert message in capsys.readouterr().err
-
-
-def test_a_named_script_emits_a_script_event_with_spans_and_is_the_moonshine_context(tmp_path, monkeypatch):
+def test_a_script_is_the_engines_context(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
     script = tmp_path / "credits.txt"
     script.write_text("Alice, written by Lewis Carroll.\nThe End.", encoding="utf-8")
     ap = live_asr.build_parser()
-    args = ap.parse_args(["--wav", "r.wav", "--script", str(script), "--script-id", "credits-closing", "--script-title", "Closing credits"])
 
-    tracker, script_event, text = live_asr._load_script(ap, args)
+    text = live_asr._load_script(ap, ap.parse_args(["--wav", "r.wav", "--script", str(script)]))
 
-    assert script_event["chapter"] == {"id": "credits-closing", "title": "Closing credits"}
-    assert [(span["id"], span["start"], span["count"]) for span in script_event["spans"]] == [("credits-closing-1", 0, 5), ("credits-closing-2", 5, 2)]
     assert text == "Alice, written by Lewis Carroll.\nThe End."
-    assert tracker is not None
 
 
-def test_a_plain_script_still_emits_no_script_event(tmp_path, monkeypatch):
+def test_a_session_without_a_script_has_no_context(monkeypatch):
     monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
-    script = tmp_path / "script.txt"
-    script.write_text("Some words.", encoding="utf-8")
     ap = live_asr.build_parser()
 
-    _tracker, script_event, text = live_asr._load_script(ap, ap.parse_args(["--wav", "r.wav", "--script", str(script)]))
-
-    assert (script_event, text) == (None, None)
+    assert live_asr._load_script(ap, ap.parse_args(["--wav", "r.wav"])) is None
 
 
 # Input level: a session reports `level` events beside its words, and --meter reports only
@@ -851,7 +759,7 @@ def test_a_session_reports_the_level_of_what_it_hears(capsys):
         list(chunks)
         yield {"type": "segment_end", "segment": 0}
 
-    live_asr._run(args, stream, _loud_chunks(2), None)
+    live_asr._run(args, stream, _loud_chunks(2))
 
     printed = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     levels = [event for event in printed if event["type"] == "level"]
@@ -915,7 +823,7 @@ def test_meter_mode_needs_a_microphone_and_takes_no_session_options(extra, monke
 
 
 # Pause: while paused the device stays open and its level still shows, but the
-# engine hears nothing and the tracker's clock stands still, so it never reports `waiting` for the pause itself.
+# engine hears nothing and the stream clock stands still, so the host never counts the pause itself.
 def test_a_paused_stream_clock_stands_still_and_resumes_without_the_pause():
     wall = [10.0]
     clock = live_asr.StreamClock(capture_started=10.0, time_fn=lambda: wall[0])
@@ -951,7 +859,7 @@ def test_gated_drops_chunks_while_paused():
     assert len(passed) == 2
 
 
-def test_a_paused_session_hears_nothing_keeps_its_levels_and_does_not_wait(tmp_path, capsys, monkeypatch):
+def test_a_paused_session_hears_nothing_and_keeps_its_levels(tmp_path, capsys, monkeypatch):
     monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
     script = tmp_path / "script.txt"
     script.write_text("one two three four", encoding="utf-8")
@@ -959,7 +867,6 @@ def test_a_paused_session_hears_nothing_keeps_its_levels_and_does_not_wait(tmp_p
     control.write_text("")
     ap = live_asr.build_parser()
     args = ap.parse_args(["--wav", "r.wav", "--script", str(script), "--control-file", str(control)])
-    tracker, _script_event, _text = live_asr._load_script(ap, args)
     heard_chunks = []
 
     def chunks():
@@ -978,12 +885,11 @@ def test_a_paused_session_hears_nothing_keeps_its_levels_and_does_not_wait(tmp_p
                 yield {"type": "word", "segment": 0, "word": "one", "start": 0.0, "end": 0.1}
         yield {"type": "segment_end", "segment": 0}
 
-    live_asr._run(args, stream, chunks(), tracker)
+    live_asr._run(args, stream, chunks())
 
     printed = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     assert heard_chunks == [0, 1, 12, 13]
     assert len([event for event in printed if event["type"] == "level"]) == 14 * 5
-    assert all(event["status"] != "waiting" for event in printed if event["type"] == "position")
 
 
 @pytest.mark.parametrize("engine", ["whisper", "moonshine"])
@@ -991,7 +897,7 @@ def test_main_loads_the_engine_the_flag_names_with_the_chapter_as_default_contex
     # One lookup by --engine, no per-engine branch; Moonshine reads the chapter as its context and
     # Whisper, which takes none, ignores the key.
     loaded = []
-    monkeypatch.setattr(live_asr, "_load_script", lambda ap, args: (None, None, "Call me Ishmael."))
+    monkeypatch.setattr(live_asr, "_load_script", lambda ap, args: "Call me Ishmael.")
     monkeypatch.setattr(live_asr, "_load_engine", lambda args: loaded.append((args.engine, args.context_text)) or (lambda chunks: iter(())))
     monkeypatch.setattr(live_asr, "iter_wav_chunks", lambda path: iter(()))
     monkeypatch.setattr(sys, "argv", ["live_asr.py", "--engine", engine, "--model", "tiny", "--wav", "r.wav"])
@@ -1176,3 +1082,83 @@ def test_chunk_seconds_and_no_context_parse_from_the_cli_and_default_to_the_ship
 
     assert (default.chunk_seconds, default.no_context) == (live_asr.CHUNK_SECONDS, False)
     assert (tuned.chunk_seconds, tuned.no_context) == (0.1, True)
+
+
+def test_a_clock_session_prints_its_clock_before_the_first_chunk_as_each_arrives_and_before_each_event(tmp_path, capsys, monkeypatch):
+    # The host follows the read on these (src/studio/desktop/internal/teleprompter, follow.go): a file's clock is the audio
+    # consumed so far, so chunk k of 0.5 s arrives at (k + 1) * 0.5.
+    monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
+    script = tmp_path / "script.txt"
+    script.write_text("one two", encoding="utf-8")
+    args = live_asr.build_parser().parse_args(["--wav", "r.wav", "--script", str(script), "--clock"])
+
+    def stream(chunks):
+        for _chunk in chunks:
+            yield {"type": "word", "segment": 0, "word": "one", "start": 0.0, "end": 0.1}
+
+    live_asr._run(args, stream, _chunks(2))
+
+    printed = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    clocks = [(event["t"], event.get("event", False)) for event in printed if event["type"] == "clock"]
+    assert clocks == [(0.0, False), (0.5, False), (0.5, True), (1.0, False), (1.0, True)]
+    kinds = [event["type"] for event in printed if event["type"] != "level"]
+    assert kinds == ["clock", "clock", "clock", "word", "clock", "clock", "word"]
+
+
+def test_without_clock_a_session_prints_no_clock_line(capsys):
+    args = live_asr.build_parser().parse_args(["--wav", "r.wav"])
+
+    live_asr._run(args, lambda chunks: iter([{"type": "segment_end", "segment": 0}]), _chunks(1))
+
+    assert all(json.loads(line)["type"] != "clock" for line in capsys.readouterr().out.splitlines())
+
+
+def test_clock_needs_a_script_or_a_manuscript(capsys):
+    ap = live_asr.build_parser()
+    args = ap.parse_args(["--mic", "Mic", "--clock"])
+
+    with pytest.raises(SystemExit):
+        live_asr._check_engine_args(ap, args)
+
+    assert "--clock needs --script or --manuscript" in capsys.readouterr().err
+
+
+def test_a_manuscript_and_a_chapter_go_together(capsys):
+    ap = live_asr.build_parser()
+    args = ap.parse_args(["--mic", "Mic", "--manuscript", "m.json"])
+
+    with pytest.raises(SystemExit):
+        live_asr._check_engine_args(ap, args)
+
+    assert "--manuscript and --chapter go together" in capsys.readouterr().err
+
+
+def _one_chapter(tmp_path):
+    data = {
+        "schemaVersion": 1,
+        "documentId": "d",
+        "chapters": [{"id": "c1", "title": "Chapter One"}],
+        "paragraphs": [{"id": "p1", "chapterId": "c1", "index": 0, "text": "Ada climbed the stairs."}],
+    }
+    path = tmp_path / "manuscript.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+def test_a_manuscript_chapter_is_the_engines_context(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
+    ap = live_asr.build_parser()
+    args = ap.parse_args(["--mic", "Mic", "--manuscript", str(_one_chapter(tmp_path)), "--chapter", "c1"])
+
+    assert live_asr._load_script(ap, args) == "Chapter One\nAda climbed the stairs."
+
+
+def test_an_unknown_chapter_is_refused_with_the_chapters_there_are(tmp_path, monkeypatch, capsys):
+    monkeypatch.syspath_prepend(str(LIVE_ASR_PATH.parent))
+    ap = live_asr.build_parser()
+    args = ap.parse_args(["--mic", "Mic", "--manuscript", str(_one_chapter(tmp_path)), "--chapter", "c9"])
+
+    with pytest.raises(SystemExit):
+        live_asr._load_script(ap, args)
+
+    assert "Chapter 'c9' was not found among the narration chapters. Choose one of: Chapter One" in capsys.readouterr().err

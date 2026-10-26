@@ -1,10 +1,4 @@
 {
-  "experimental_off": {
-    "status": "unavailable",
-    "reason": "experimental_off",
-    "message": "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
-    "candidates": []
-  },
   "matched": {
     "status": "matched",
     "message": "REAPER records from \"Shure MV7\", so \"Microphone (2- Shure MV7)\" is selected.",

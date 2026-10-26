@@ -102,7 +102,7 @@ the same way, a phrase at a time. Every other key does its job once, however lon
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. In a narrow window the bar keeps them at the right of the transport and moves what is
 selected to a line of its own under it. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
-the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
+the change (it is not answering, or it cannot do that edit); a line above the bar then says so
 and why, the same sentence is in each button's hint, and the key hints leave out Delete and Add FX. The chapter's audio is the waveform docked above the bar, always in view (see [The waveform](#the-waveform)). Right-click a word for its
 menu, in groups under headings: the word count over play the selection; **Edit** (**Add FX**, which opens a list beside it,
 mute, delete or replace the words, remove an effect); **Mark** (**Mark as**, add a note, mark them for a pickup, **Mark as
@@ -255,8 +255,7 @@ old answer.
 
 An effect chosen in REAPER works like any other in the Effects tab: Compare, bypass, its settings and **Remove this
 effect** act on the plug-ins you chose, not on any the item already had. Undo in the app takes it off and joins the words
-back. Removing it can only be undone in REAPER (Edit > Undo), because only REAPER knows the plug-in and its settings. This
-is an Experimental REAPER action: turn on Experimental DAW actions in [Settings](settings.md) to use it.
+back. Removing it can only be undone in REAPER (Edit > Undo), because only REAPER knows the plug-in and its settings.
 
 ![Editing - Choose in REAPER: REAPER's FX window is open for the selected words, and the panel names what is chosen there, with Keep it, Cancel and Check again](../../images/ui/editing-drawer-effects-choose.webp)
 
@@ -266,7 +265,7 @@ is an Experimental REAPER action: turn on Experimental DAW actions in [Settings]
 
 In a duet, or where a stand-in read a line, you can play another narrator's audio in place of some of your words. Select the
 words and choose **Replace with another narrator's audio** on the toolbar, or **Replace with another narrator's audio…** in the
-word menu. This is an Experimental REAPER action: turn on Experimental DAW actions in [Settings](settings.md) to use it.
+word menu. It needs REAPER linked and answering; with another DAW the action is off and says why.
 
 The first time in a project, the dialog asks for the other narrator's name. You name each one once for the project; their name
 is what the script shows on the words their audio replaces. **Add a file of theirs…** opens a file dialog for their recording
@@ -371,8 +370,8 @@ Backups tab counts this chapter's backups.
 The kinds sit in three equal columns; under them, the chosen kind's heading says how many are left to fix, then its
 findings. Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
 the findings you selected. **Preview** and **Apply** stay at the foot of the drawer while the settings above them scroll. A gap reads **Fixed** once the chapter's cuts hold its trim (from here or from **Trim the gap**
-on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** or **Fix in edit** on Proof is still to be fixed, so it stays in the list. Clean-up actions that are still
-experimental stay off until you turn them on in [Settings](settings.md).
+on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** or **Fix in edit** on Proof is still to be fixed, so it stays in the list. A clean-up action
+the DAW cannot do is off, with the DAW's reason.
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
 
@@ -380,7 +379,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 **Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed under their source, each name with a **Favourite** button at its right. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list; with words selected in the text, the effect on them is the one shown, and its row is marked. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name), beside **Preview** and **Compare**, moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
-stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the takes of the line the cursor is on, one lane each,
+stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (the window either side of an edit, and **Keep backups for (days)**; Audacity keeps backups whenever it answers). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the takes of the line the cursor is on, one lane each,
 on one time axis (the line's audio is the waveform above the bar). On a window 1360 px wide or more it is a strip under the text, which the header's
 timeline button (S) shows and hides; on a narrower window it is a tab of the drawer. Each lane names its take with
 the take's state (**Active** or **Muted**) under the name.
@@ -397,7 +396,7 @@ the take's state (**Active** or **Muted**) under the name.
 
 ## Playing with REAPER
 
-With **Play and follow the project's transport** on (Settings > DAW; it is an experimental action, so it also needs Experimental DAW actions, or its own switch set to On) and REAPER open on this book's project, the page and REAPER's transport follow each other:
+With REAPER linked and open on this book's project, the page and REAPER's transport follow each other (no setting turns this on):
 
 - Clicking a word, or moving the cursor to it, puts REAPER's edit cursor at that word. Moving REAPER's edit cursor puts the page's cursor on the word there.
 - **Play** (Space) starts REAPER from the cursor and the app stays silent: the sound comes through REAPER's output and level. The lit word and the waveform follow REAPER's play head, about four times a second. **Stop** stops both.

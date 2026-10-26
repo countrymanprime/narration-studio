@@ -1,6 +1,6 @@
 // The built-in recorder: the Booth records with REAPER or with the built-in
 // recorder, which records a take of the chosen input device into the project's Recordings folder through the capture port's
-// wasapi row (Experimental). Mirrors src/studio/desktop/bindings_recording.go's RecorderState exactly.
+// wasapi row. Mirrors src/studio/desktop/bindings_recording.go's RecorderState exactly.
 import type { DawCapabilitySupport } from './daw';
 
 /** Which engine the project records with: REAPER (the default) or the built-in recorder. It sets the engine chip. */
@@ -54,7 +54,7 @@ export type RecorderLastTake = {
 export type RecorderState = {
   hasProject: boolean;
   engine: RecordingEngine;
-  /** The wasapi capture row's support here: Experimental, and unavailable off Windows. */
+  /** The wasapi capture row's support here: available on Windows, unavailable off it. */
   support: DawCapabilitySupport;
   phase: RecorderPhase;
   /** The device recording or metering, else the one the project last recorded with ("" for none). */

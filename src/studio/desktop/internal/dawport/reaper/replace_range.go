@@ -46,8 +46,6 @@ func (r rangeReplacer) ImportTheirAudio(ctx context.Context, name, path string) 
 		return dawport.TheirAudio{Result: dawport.Refused(messageReplaceScriptOutdated)}, nil
 	case errors.As(err, &refusal):
 		return dawport.TheirAudio{Result: dawport.Refused(refusal.Sentence)}, nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.TheirAudio{Result: dawport.Refused(err.Error())}, nil
 	case err != nil:
 		return dawport.TheirAudio{}, err
 	}
@@ -56,7 +54,7 @@ func (r rangeReplacer) ImportTheirAudio(ctx context.Context, name, path string) 
 }
 
 // ReplaceRange plays the request's stretch of their item in place of the narrator's words, in one undo step (bridge's
-// replace_range). It asks allowed itself first, so a refusal is the capability's own sentence rather than bridge's ErrExperimentalOff.
+// replace_range). It asks allowed itself first, so a refusal is the capability's own sentence rather than the gate's error.
 func (r rangeReplacer) ReplaceRange(ctx context.Context, request dawport.ReplaceRangeRequest) (dawport.RangeReplaced, error) {
 	if r.allowed != nil {
 		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapReplaceRange)); ok {
@@ -81,8 +79,6 @@ func (r rangeReplacer) ReplaceRange(ctx context.Context, request dawport.Replace
 		return dawport.RangeReplaced{Result: dawport.Refused(messageReplaceScriptOutdated)}, nil
 	case errors.As(err, &refusal):
 		return dawport.RangeReplaced{Result: dawport.Refused(refusal.Sentence)}, nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.RangeReplaced{Result: dawport.Refused(err.Error())}, nil
 	case err != nil:
 		return dawport.RangeReplaced{}, err
 	}
@@ -111,8 +107,6 @@ func (r rangeReplacer) RestoreReplacement(ctx context.Context, request dawport.R
 		return dawport.Refused(messageReplaceScriptOutdated), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
-	case errors.Is(err, bridge.ErrExperimentalOff):
-		return dawport.Refused(err.Error()), nil
 	case err != nil:
 		return dawport.Result{}, err
 	}

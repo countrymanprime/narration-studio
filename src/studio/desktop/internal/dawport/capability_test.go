@@ -75,8 +75,8 @@ func TestLevelsAreOrderedAndNamed(t *testing.T) {
 func TestReasonsKeepTodaysWireValues(t *testing.T) {
 	// The first four are already on the wire (readaloudreaper.go, bindings_navigation.go); the UI switches on them.
 	for reason, want := range map[Reason]string{
-		ReasonStandalone: "standalone", ReasonNotRunning: "not_running", ReasonExperimentalOff: "experimental_off",
-		ReasonFailed: "failed", ReasonTurnedOff: "turned_off", ReasonNotYet: "not_yet", ReasonUnsupported: "unsupported",
+		ReasonStandalone: "standalone", ReasonNotRunning: "not_running",
+		ReasonFailed: "failed", ReasonNotYet: "not_yet", ReasonUnsupported: "unsupported",
 	} {
 		if string(reason) != want {
 			t.Errorf("reason %q, want %q", reason, want)

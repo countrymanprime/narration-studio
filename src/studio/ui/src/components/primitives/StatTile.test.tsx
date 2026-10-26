@@ -47,7 +47,6 @@ describe('StatTile', () => {
     ['warning', 'var(--warn-text)'],
     ['danger', 'var(--danger-text)'],
     ['info', 'var(--info-text)'],
-    ['experimental', 'var(--experimental-text)'],
   ] as const)('tints the value %s with its tone colour', (tone, color) => {
     render(<StatTile label="Delivery check" value="7 of 12" tone={tone} />);
     expect(screen.getByText('7 of 12').style.color).toBe(color);

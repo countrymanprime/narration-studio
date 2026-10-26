@@ -74,12 +74,6 @@ const mockDawMismatch = mockParams.has('mockDawMismatch');
 // `?mockDawNotDetected=1` makes the DAW catalog panel (Settings > DAW Integration, docs/architecture/
 // daw-integration.md) report REAPER as not detected, so its "Get REAPER" button can be seen without a host.
 const mockDawNotDetected = mockParams.has('mockDawNotDetected');
-// `?mockDawExperimentalOn=1` turns every Experimental DAW capability on (the old `DAW.experimental_reaper_actions`
-// setting's own effect), so a `CapabilityGate('item_gain')` control's live,
-// clickable state can be seen without a host - it still carries the "Experimental" badge.
-// The public site (src/web) also boots with Experimental REAPER actions on (its extension's `experimentalDaw`) and shows a "Simulated DAW" panel, so a
-// visitor's Show in REAPER, markers, pickups and recording all get an answer from the mock DAW and the panel shows what they did.
-const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn') || appExtension().experimentalDaw === true;
 // `?mockDaw=Audacity` boots the app talking to Audacity instead of REAPER: Proof's finding detail
 // leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
 // Audacity analog, while everything else about a finding works the same.
@@ -130,10 +124,10 @@ const mockRoomTone = Number.isFinite(mockRoomToneParam) && mockRoomToneParam >= 
 // suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
 const mockZoom = Number.isFinite(mockZoomParam) && mockZoomParam > 0 ? mockZoomParam / 100 : undefined;
-// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_elsewhere|unavailable|experimental_off` makes
+// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_elsewhere|unavailable` makes
 // the read-aloud dialog's REAPER state answer that for every chapter.
 const mockReaperState = MOCK_REAPER_SEEDS.find((seed) => seed === mockParams.get('mockReaperState'));
-// `?mockReaperInput=matched|uncertain|no_match|reaper_no_device|experimental_off` makes the microphone REAPER records from
+// `?mockReaperInput=matched|uncertain|no_match|reaper_no_device` makes the microphone REAPER records from
 // answer that.
 const mockReaperInput = MOCK_REAPER_INPUT_SEEDS.find((seed) => seed === mockParams.get('mockReaperInput'));
 // `?mockResume=agree|disagree|prompter_only|low_confidence|complete|not_found|ambiguous|none|no_recording|source_missing|source_unsupported|error`
@@ -304,24 +298,12 @@ const mockChapterTagsEmbedError = mockParams.has('mockChapterTagsEmbedError');
 // `?mockRegionsCreateError=1` makes the audio engine panel's "Create chapter regions…" dialog always fail to create, so its
 // error state can be seen without a real REAPER round trip.
 const mockRegionsCreateError = mockParams.has('mockRegionsCreateError');
-// `?mockRegionsCapabilityOn=1` turns the 'regions' DAW capability on directly (bypassing the default Experimental-off
-// gate, DAW.experimental_reaper_actions), so "Create chapter regions…"'s enabled Create button can be captured
-// without also exercising the Settings toggle.
-const mockRegionsCapabilityOn = mockParams.has('mockRegionsCapabilityOn');
 // `?mockDawMeters=unarmed`: the DAW's meters answer with no track armed, so the Levels menu says so instead of an input level.
 const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
-// `?mockPunchCapabilityOn=1` turns the 'punch' DAW capability on directly (the same bypass as mockRegionsCapabilityOn),
-// so "Punch from here"'s enabled state - the confirm dialog in the read-aloud rail, the pickup list's own button - can
-// be captured without also exercising the Settings toggle.
-const mockPunchCapabilityOn = mockParams.has('mockPunchCapabilityOn');
-// `?mockRecordCapabilityOn=1` turns the 'record' DAW capability on directly (the same bypass), so the Booth's Record in
-// REAPER toggle, its first-time confirm and a recording's "REC 06:42" can be captured.
-const mockRecordCapabilityOn = mockParams.has('mockRecordCapabilityOn');
 // `?mockDawConnected=0` boots with REAPER declared but its bridge not connected (the app opened on its own, not from REAPER's
-// launcher action): every capability that needs the bridge answers 'standalone' once its settings allow it. With
-// `mockRecordCapabilityOn=1` too, the Booth shows its REAPER connection steps.
+// launcher action): every capability that needs the bridge answers 'standalone', and the Booth shows its REAPER connection steps.
 const mockDawDisconnected = mockParams.get('mockDawConnected') === '0';
-// `?mockRollReplaces=1` turns 'record' and 'punch' on and declares REAPER's punch destructive, the way a DAW that replaces audio on a
+// `?mockRollReplaces=1` declares REAPER's punch destructive, the way a DAW that replaces audio on a
 // roll declares it (Audacity without backups), so the Booth's roll asks first: the visual suite's `booth/roll-confirm`.
 const mockRollReplaces = mockParams.has('mockRollReplaces');
 // `?mockDawPlayhead=134.6` seeds the DAW port's live transport (daw_transport_changed) as playing at that project time, for
@@ -457,8 +439,8 @@ const mockScenario = scenarioFromParams(mockParams);
 // The chapter link the mock boots with: the seed, else Chapter 1 linked to its track. The consent and suggestion seeds show the flow that makes the
 // first link, so they start from none.
 const chapterLink = mockChapterLinkSeed ?? (mockChapterSync || mockChapterSuggestion ? 'none' : 'confirmed');
-/** The DAW seed every `mockDaw*` and `mock*CapabilityOn` param adds to, merged: a later param adds to what an earlier one set (their toggles and
- * depths together) instead of replacing it. */
+/** The DAW seed every `mockDaw*` param adds to, merged: a later param adds to what an earlier one set (their depths together) instead of
+ * replacing it. */
 function mergeDawSeeds(...parts: Array<DawMockSeed | undefined>): DawMockSeed | undefined {
   const present = parts.filter((part): part is DawMockSeed => part !== undefined);
   if (present.length === 0) return undefined;
@@ -466,7 +448,6 @@ function mergeDawSeeds(...parts: Array<DawMockSeed | undefined>): DawMockSeed | 
     (merged, part) => ({
       ...merged,
       ...part,
-      toggles: { ...merged.toggles, ...part.toggles },
       depth: { ...merged.depth, ...part.depth },
     }),
     {},
@@ -649,16 +630,12 @@ const mockInitial = {
   ...(mockAudacityLink ? { audacityLink: AUDACITY_LINK_MOCK_SEEDS[mockAudacityLink] } : {}),
   daw: mergeDawSeeds(
     mockScenario?.seed.daw,
-    mockDawExperimentalOn ? { experimentalOn: true } : undefined,
     mockDawAudacity || mockAudacityLink ? { daw: 'Audacity' } : undefined,
     mockDawScript ? { connected: false } : undefined,
     mockAudacityLink ? { connected: true, reachable: mockAudacityLink === 'answering' || mockAudacityLink === 'linked' } : undefined,
-    mockRegionsCapabilityOn ? { toggles: { regions: 'on' } } : undefined,
     mockDawMetersUnarmed ? { meters: 'unarmed' as const } : undefined,
-    mockPunchCapabilityOn ? { toggles: { punch: 'on' } } : undefined,
-    mockRecordCapabilityOn ? { toggles: { record: 'on' } } : undefined,
     mockDawDisconnected ? { connected: false } : undefined,
-    mockRollReplaces ? { toggles: { record: 'on', punch: 'on' }, depth: { punch: { destructive: true } } } : undefined,
+    mockRollReplaces ? { depth: { punch: { destructive: true } } } : undefined,
     mockDawChoice ? (mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false }) : undefined,
     Number.isFinite(mockDawPlayhead) ? { transport: { playing: true, recording: false, position: mockDawPlayhead } } : undefined,
     mockDawRecording ? { transport: { playing: true, recording: true, position: 12 } } : undefined,

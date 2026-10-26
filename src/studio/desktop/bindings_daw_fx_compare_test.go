@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"desktop/internal/contractfile"
+	"desktop/internal/daw"
 	"desktop/internal/dawport"
 )
 
@@ -56,14 +57,14 @@ func decodeFxCompare(t *testing.T) func(string, error) dawport.FXRangeCompare {
 	}
 }
 
-func fxCompareHost(t *testing.T, comparer *fakeRangeFXComparer, toggle string) *Host {
+func fxCompareHost(t *testing.T, comparer *fakeRangeFXComparer) *Host {
 	t.Helper()
-	return fxRangeHost(t, "REAPER", liveReachability(), comparer, toggle)
+	return fxRangeHost(t, "REAPER", liveReachability(), comparer)
 }
 
 func TestDawCompareFxRangeSendsTheResolvedRangeAndChainAndAnswersEachPassesLength(t *testing.T) {
 	comparer := &fakeRangeFXComparer{compare: comparing()}
-	host := fxCompareHost(t, comparer, "on")
+	host := fxCompareHost(t, comparer)
 	if got := decodeFxCompare(t)(host.DawCompareFxRange("c-0001", 0, 0, fxRangeChain)); !reflect.DeepEqual(got, comparing()) || got.Result.UndoSteps != 0 {
 		t.Fatalf("DawCompareFxRange = %+v", got)
 	}
@@ -78,19 +79,20 @@ func TestDawCompareFxRangeSendsTheResolvedRangeAndChainAndAnswersEachPassesLengt
 }
 
 func TestDawCompareFxRangeRefusesWhatTheOtherEditsRefuseAndSendsNothing(t *testing.T) {
-	for _, toggle := range []string{"", "off"} {
+	// REAPER not answering is the refusal every range edit shares.
+	{
 		comparer := &fakeRangeFXComparer{compare: comparing()}
-		host := fxCompareHost(t, comparer, toggle)
+		host := fxRangeHost(t, "REAPER", daw.NewReachability(nil), comparer)
 		want := dawport.Refused(fxRangeSupport(t, host).Message)
 		if got := decodeFxCompare(t)(host.DawCompareFxRange("c-0001", 0, 0, fxRangeChain)); !reflect.DeepEqual(got, dawport.FXRangeCompare{Result: want}) {
-			t.Errorf("toggle %q: %+v", toggle, got)
+			t.Errorf("not answering: %+v", got)
 		}
 		if got := decodeDawResult(t)(host.DawStopFxCompare()); !reflect.DeepEqual(got, want) || comparer.stops != 0 {
-			t.Errorf("toggle %q: stop %+v", toggle, got)
+			t.Errorf("not answering: stop %+v", got)
 		}
 	}
 	comparer := &fakeRangeFXComparer{compare: comparing()}
-	host := fxCompareHost(t, comparer, "on")
+	host := fxCompareHost(t, comparer)
 	if got := decodeFxCompare(t)(host.DawCompareFxRange("c-0001", 0, 2, fxRangeChain)); got.Result.Code != dawport.CodeStale || got.Pass != 0 {
 		t.Errorf("stale range: %+v", got)
 	}
@@ -105,7 +107,7 @@ func TestDawCompareFxRangeRefusesWhatTheOtherEditsRefuseAndSendsNothing(t *testi
 // An engine whose fx_range role cannot compare refuses in a sentence; a role's error is worded as a refusal; a stale answer
 // passes on with its code.
 func TestDawCompareFxRangePassesOnTheRolesAnswers(t *testing.T) {
-	editOnly := fxRangeHost(t, "REAPER", liveReachability(), &fakeRangeFXEditor{}, "on")
+	editOnly := fxRangeHost(t, "REAPER", liveReachability(), &fakeRangeFXEditor{})
 	if got := decodeFxCompare(t)(editOnly.DawCompareFxRange("c-0001", 0, 0, fxRangeChain)); got.Result.OK || got.Result.Refused != "REAPER cannot play an effect on words to compare it." {
 		t.Errorf("no comparer: %+v", got)
 	}
@@ -113,11 +115,11 @@ func TestDawCompareFxRangePassesOnTheRolesAnswers(t *testing.T) {
 		t.Errorf("no comparer, stop: %+v", got)
 	}
 	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
-	stale := fxCompareHost(t, &fakeRangeFXComparer{compare: dawport.FXRangeCompare{Result: gone}}, "on")
+	stale := fxCompareHost(t, &fakeRangeFXComparer{compare: dawport.FXRangeCompare{Result: gone}})
 	if got := decodeFxCompare(t)(stale.DawCompareFxRange("c-0001", 0, 0, fxRangeChain)); !reflect.DeepEqual(got.Result, gone) {
 		t.Errorf("stale: %+v", got)
 	}
-	failing := fxCompareHost(t, &fakeRangeFXComparer{fakeRangeFXEditor: fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{err: errors.New("boom")}}}, "on")
+	failing := fxCompareHost(t, &fakeRangeFXComparer{fakeRangeFXEditor: fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{err: errors.New("boom")}}})
 	if got := decodeFxCompare(t)(failing.DawCompareFxRange("c-0001", 0, 0, fxRangeChain)); got.Result.OK || got.Result.Refused == "" || got.Pass != 0 {
 		t.Errorf("error: %+v", got)
 	}
@@ -132,16 +134,16 @@ func TestDawCompareFxRangeContractGoldenIsCurrent(t *testing.T) {
 	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
 	cases := map[string]func(t *testing.T) any{
 		"daw-fx-range-compare-done": func(t *testing.T) any {
-			return decodeFxCompare(t)(fxCompareHost(t, &fakeRangeFXComparer{compare: comparing()}, "on").DawCompareFxRange("c-0001", 0, 0, fxRangeChain))
+			return decodeFxCompare(t)(fxCompareHost(t, &fakeRangeFXComparer{compare: comparing()}).DawCompareFxRange("c-0001", 0, 0, fxRangeChain))
 		},
 		"daw-fx-range-compare-refused-stale": func(t *testing.T) any {
 			comparer := &fakeRangeFXComparer{compare: dawport.FXRangeCompare{Result: gone}}
-			return decodeFxCompare(t)(fxCompareHost(t, comparer, "on").DawCompareFxRange("c-0001", 0, 0, fxRangeChain))
+			return decodeFxCompare(t)(fxCompareHost(t, comparer).DawCompareFxRange("c-0001", 0, 0, fxRangeChain))
 		},
 		"daw-fx-range-compare-stopped": func(t *testing.T) any {
 			comparer := &fakeRangeFXComparer{}
 			comparer.answer = dawport.OK("Stopped comparing in REAPER. The effect is as it was.", true).WithUndoSteps(0)
-			return decodeDawResult(t)(fxCompareHost(t, comparer, "on").DawStopFxCompare())
+			return decodeDawResult(t)(fxCompareHost(t, comparer).DawStopFxCompare())
 		},
 	}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {

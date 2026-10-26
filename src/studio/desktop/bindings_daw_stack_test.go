@@ -215,7 +215,7 @@ func TestDawStackTakesPassesOnTheRolesAnswers(t *testing.T) {
 	if got := restack(t, &fakeStacker{answer: stale}, newFakeStackSources(), []string{stackPassage}, false); !reflect.DeepEqual(got, stale) {
 		t.Fatalf("stale = %+v", got)
 	}
-	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrExperimentalOff, context.DeadlineExceeded, errors.New("boom")} {
+	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, errors.New("boom")} {
 		if got := restack(t, &fakeStacker{err: err}, newFakeStackSources(), []string{stackPassage}, false); got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, want a refusal", err, got)
 		}
@@ -231,15 +231,10 @@ func TestDawStackTakesPassesOnTheRolesAnswers(t *testing.T) {
 	}
 }
 
-// stackHost is deleteRangeHost with the stack_takes role and toggle.
-func stackHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.TakeStacker, toggle string) *Host {
+// stackHost is deleteRangeHost with the stack_takes role.
+func stackHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.TakeStacker) *Host {
 	t.Helper()
-	host := deleteRangeHost(t, kind, reach, nil, "")
-	if toggle != "" {
-		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapStackTakes): &toggle}); err != nil {
-			t.Fatal(err)
-		}
-	}
+	host := deleteRangeHost(t, kind, reach, nil)
 	host.mu.Lock()
 	host.takeStacker = role
 	host.mu.Unlock()
@@ -252,17 +247,14 @@ func TestDawStackTakesRefusesWithTheResolversSentenceAndSendsNothing(t *testing.
 	for name, c := range map[string]struct {
 		kind   string
 		reach  *daw.Reachability
-		toggle string
 		reason dawport.Reason
 	}{
-		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
-		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
-		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+		"standalone":    {"", liveReachability(), dawport.ReasonStandalone},
+		"not answering": {"REAPER", daw.NewReachability(nil), dawport.ReasonNotRunning},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeStacker{answer: stackedInREAPER()}
-			host := stackHost(t, c.kind, c.reach, role, c.toggle)
+			host := stackHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			support := resolver.Support(dawport.CapStackTakes)
 			if support.Available || support.Reason != c.reason {
@@ -296,7 +288,7 @@ func TestDawStackTakesAnswersAnEnginesOwnReason(t *testing.T) {
 // With the capability on, a chapter whose passage map holds no passage refuses the id stale and asks REAPER nothing.
 func TestDawStackTakesOnTheHostLooksTheIdUpInThePassageMap(t *testing.T) {
 	role := &fakeStacker{answer: stackedInREAPER()}
-	host := stackHost(t, "REAPER", liveReachability(), role, "on")
+	host := stackHost(t, "REAPER", liveReachability(), role)
 	if got := decodeDawResult(t)(host.DawStackTakes("c-0001", []string{stackPassage})); got.Code != dawport.CodeStale || role.sent() != 0 {
 		t.Fatalf("DawStackTakes = %+v, sent %d", got, role.sent())
 	}

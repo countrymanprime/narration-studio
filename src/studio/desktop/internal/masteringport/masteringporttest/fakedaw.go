@@ -60,9 +60,8 @@ func NewFakeDAW(project string) *FakeDAW {
 func (f *FakeDAW) Session() masteringport.Session {
 	return masteringport.Session{
 		Resolver: dawport.NewResolver(dawport.ResolverConfig{
-			Adapter:      f,
-			Runtime:      func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
-			Experimental: func() bool { return true },
+			Adapter: f,
+			Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
 		}),
 		ProjectFolder: f.project,
 	}

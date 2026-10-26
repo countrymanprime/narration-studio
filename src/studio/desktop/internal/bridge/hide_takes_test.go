@@ -55,7 +55,7 @@ func TestHideTakesReportsAStaleItemOrTakeAndRefusesAnswersForOthers(t *testing.T
 func TestHideTakesIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	if _, err := actions.HideTakes(context.Background(), testItem, testTake); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.HideTakes(context.Background(), testItem, testTake); !errors.Is(err, errGateRefused) {
 		t.Fatalf("HideTakes: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)

@@ -300,7 +300,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'editing-check-gain-match-confirm',
     description:
-      "Production, editing check panel: \"Match levels…\" (CapabilityGate('item_gain')) opened, its ConfirmDialog previewing the linked track's one gain candidate (?mockEditingSignal=met&mockDawExperimentalOn=1)",
+      "Production, editing check panel: \"Match levels…\" (CapabilityGate('item_gain')) opened, its ConfirmDialog previewing the linked track's one gain candidate (?mockEditingSignal=met)",
   },
   {
     page: 'production',

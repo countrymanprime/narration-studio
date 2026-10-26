@@ -82,15 +82,6 @@ func TestAudacityPickupsRunThroughTheHostsPickupService(t *testing.T) {
 
 func TestAudacityPickupsAreGatedAndNameAudacity(t *testing.T) {
 	f := newAudacityReviewHost(t)
-	off := "false"
-	if err := f.host.saveSettings("DAW", "global", map[string]*string{"experimental_reaper_actions": &off}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.host.PickupsImport("start,note\n1,x\n"); err == nil || !strings.Contains(err.Error(), "Experimental") {
-		t.Fatalf("with the switch off: %v", err)
-	}
-	on := "true"
-	_ = f.host.saveSettings("DAW", "global", map[string]*string{"experimental_reaper_actions": &on})
 	f.server.SetDown(true)
 	f.check(t)
 	if _, err := f.host.PickupsCount(); err != nil {

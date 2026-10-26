@@ -3,5 +3,5 @@
   "onRecord": false,
   "measures": 0,
   "measureSeconds": 0,
-  "message": "Experimental DAW actions are off. Turn them on in Settings to use REAPER's pre-roll."
+  "message": "REAPER is not answering. Check that REAPER is open, then try again."
 }

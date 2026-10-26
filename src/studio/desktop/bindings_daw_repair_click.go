@@ -29,7 +29,7 @@ type DawClick struct {
 // the take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
 // checks every click is inside the part of the file the take plays, and sends the item and take it read itself, so an id is never
 // sent to the DAW as given (threat model row 5f). The answer is a DawResult: the click_repair capability's own sentence
-// when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first;
+// when the resolver refuses it (a standalone launch, a DAW not answering), checked first;
 // no live adapter is refused in a sentence; clicks out of bounds are refused; a take the track no longer holds or a click outside
 // it is refused with code stale. Nothing is sent to the DAW on any of them. A take that changed between the read and the DAW's own
 // check is the DAW's stale refusal, and nothing changes.

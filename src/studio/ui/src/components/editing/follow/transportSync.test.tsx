@@ -62,11 +62,7 @@ function Harness({ caps, items = ITEMS, read }: { caps: DawCapabilities | null; 
   );
 }
 
-const mount = (
-  caps: DawCapabilities | null = DAW_SETUPS.reaper,
-  seed: Parameters<typeof createMockApi>[1] = { daw: { toggles: { transport_sync: 'on' } } },
-  items?: WorkspaceItem[],
-) => {
+const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper, seed: Parameters<typeof createMockApi>[1] = { daw: {} }, items?: WorkspaceItem[]) => {
   const api = createMockApi({}, seed);
   daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
   return render(
@@ -179,7 +175,7 @@ describe('daw-to-app', () => {
     expect(lit()).toBe('p-2:1');
   });
   it('ignores a DAW that has another project open', async () => {
-    mount(DAW_SETUPS.reaper, { daw: { toggles: { transport_sync: 'on' } }, dawScript: 'different' });
+    mount(DAW_SETUPS.reaper, { daw: {}, dawScript: 'different' });
     await wait(LEASE_RENEW_MS + 10);
     act(() => daw.moveInDaw({ cursor: at(1.3) }));
     expect(state().cursor).toBeNull();
@@ -311,7 +307,7 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     expect(notices.join(' ')).toMatch(/not in REAPER's project\. Played in the app instead\./);
   });
   it('keeps the room quiet while the DAW records: nothing plays, in the DAW or the app', async () => {
-    await ready(DAW_SETUPS.reaper, { daw: { toggles: { transport_sync: 'on' }, transport: { playing: true, recording: true, position: 100 } } });
+    await ready(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: true, position: 100 } } });
     daw.refuseNextSync('REAPER is recording. Stop recording first.');
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
@@ -357,15 +353,15 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
   it.each([
     ['a DAW that is not running', DAW_SETUPS['reaper-off'], /REAPER is not answering/],
     [
-      'a DAW whose transport switch is off',
+      'a DAW whose transport could not be read',
       {
         ...DAW_SETUPS.reaper,
         capabilities: {
           ...DAW_SETUPS.reaper.capabilities,
-          transport_sync: { level: 'experimental', available: false, reason: 'experimental_off', message: 'Off in Settings > DAW.' },
+          transport_sync: { level: 'experimental', available: false, reason: 'failed', message: 'REAPER could not report its transport.' },
         },
       } satisfies DawCapabilities,
-      /Off in Settings > DAW/,
+      /REAPER could not report its transport/,
     ],
   ])('with %s, asks it for nothing, plays the app and says why', async (_, caps, why) => {
     await ready(caps);
@@ -405,7 +401,7 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
   });
   it('says a failed read of the DAW, asks again, and plays the app rather than checking for ever', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);
-    const api = createMockApi({}, { daw: { toggles: { transport_sync: 'on' } } });
+    const api = createMockApi({}, { daw: {} });
     render(
       <ApiProvider api={api}>
         <EditingPageProvider doc={doc}>

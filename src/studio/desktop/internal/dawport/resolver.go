@@ -14,21 +14,17 @@ type Runtime struct {
 	Reachable bool
 }
 
-// ResolverConfig is the Resolver's three inputs. Each is read on every call, never cached, so a heartbeat, a settings save or a
-// project switch is reflected in the next answer. Every field may be nil.
+// ResolverConfig is the Resolver's inputs. Each is read on every call, never cached, so a heartbeat or a project switch is reflected
+// in the next answer. Every field may be nil. No setting is an input: what the engine declares, and whether it is answering, decide
+// what is available.
 type ResolverConfig struct {
 	// Adapter is the launch's engine; nil is a standalone launch with no engine, where every capability is unavailable.
 	Adapter Adapter
 	// Runtime is the engine's live state; nil reads as Runtime{} (no bridge).
 	Runtime func() Runtime
-	// Toggle is the narrator's DAW.capability.<name> setting; nil reads as ToggleAuto for every capability.
-	Toggle func(Capability) Toggle
-	// Experimental is the old DAW.experimental_reaper_actions switch: while it is on, every Experimental capability left on
-	// ToggleAuto is on. nil reads as off.
-	Experimental func() bool
 }
 
-// Resolver combines an adapter's declaration, the runtime state and the per-capability toggles into what is available now. It holds
+// Resolver combines an adapter's declaration and the runtime state into what is available now. It holds
 // no state of its own, so it is safe for concurrent use as long as its inputs are.
 type Resolver struct{ cfg ResolverConfig }
 
@@ -53,8 +49,7 @@ func (r *Resolver) All() map[Capability]Support {
 }
 
 // Support is whether c can be used now and, when not, why. The checks run in a fixed order, so the narrator is told the first thing
-// to change: what the engine declares, then the settings (as bridge.Actions refuses an experimental command before checking the
-// connection), then the declaration and settings of each capability c requires (Requirer), then the runtime.
+// to change: what the engine declares, then the declaration of each capability c requires (Requirer), then the runtime.
 func (r *Resolver) Support(c Capability) Support { return r.support(c, nil) }
 
 // support is Support with trail, the capabilities whose requirements led here: a requirement already on it is skipped, so a cycle
@@ -84,10 +79,9 @@ func (r *Resolver) support(c Capability, trail []Capability) Support {
 	return r.withDepth(c, Support{Level: level, Available: true}, trail)
 }
 
-// Allowed is nil when the engine's declaration and the narrator's settings permit c, whatever the runtime state, and otherwise the
-// *NotSupportedError Support would give. It is the gate bridge.Actions asks before it sends a command: the
-// settings are decided here and nowhere else, and a command that is permitted still goes out and fails on its own terms while the
-// engine is not answering, as it did before the port.
+// Allowed is nil when the engine's declaration permits c, whatever the runtime state, and otherwise the *NotSupportedError Support
+// would give. It is the gate bridge.Actions asks before it sends a command: a command that is permitted still goes out and fails on
+// its own terms while the engine is not answering.
 func (r *Resolver) Allowed(c Capability) error {
 	if _, _, refusal, ok := r.permitted(c, nil); !ok {
 		return &NotSupportedError{Capability: c, Support: refusal}
@@ -95,8 +89,8 @@ func (r *Resolver) Allowed(c Capability) error {
 	return nil
 }
 
-// permitted is the first three of Support's checks: the declaration, the settings, then the declaration and settings of each
-// requirement. ok is false with the refusal when any refuses c. A capability declared destructive is not refused for a
+// permitted is the first two of Support's checks: the declaration, then the declaration of each requirement. Experimental is
+// permitted exactly as Supported is: the level records what the verification pass has still to confirm, and gates nothing. ok is false with the refusal when any refuses c. A capability declared destructive is not refused for a
 // requirement: the requirement only makes it safe (withDepth).
 func (r *Resolver) permitted(c Capability, trail []Capability) (spec Spec, level Level, refusal Support, ok bool) {
 	if r.cfg.Adapter == nil {
@@ -115,16 +109,6 @@ func (r *Resolver) permitted(c Capability, trail []Capability) (spec Spec, level
 		return spec, Unsupported, r.refuse(c, Unsupported, ReasonUnsupported, trail), false
 	}
 
-	switch r.toggle(c) {
-	case ToggleOff:
-		return spec, level, r.refuse(c, level, ReasonTurnedOff, trail), false
-	case ToggleOn:
-	default:
-		if level == Experimental && (r.cfg.Experimental == nil || !r.cfg.Experimental()) {
-			return spec, level, r.refuse(c, level, ReasonExperimentalOff, trail), false
-		}
-	}
-
 	if !r.depth(c).Destructive {
 		for _, req := range r.requires(c, trail) {
 			if _, _, refused, ok := r.permitted(req, with(trail, c)); !ok {
@@ -133,13 +117,6 @@ func (r *Resolver) permitted(c Capability, trail []Capability) (spec Spec, level
 		}
 	}
 	return spec, level, Support{}, true
-}
-
-func (r *Resolver) toggle(c Capability) Toggle {
-	if r.cfg.Toggle == nil {
-		return ToggleAuto
-	}
-	return r.cfg.Toggle(c)
 }
 
 // requires is what c needs, from the catalogue and from the adapter, less c itself and the capabilities already on trail.
@@ -174,16 +151,10 @@ func (r *Resolver) refuse(c Capability, level Level, reason Reason, trail []Capa
 	return r.withDepth(c, Support{Level: level, Reason: reason, Message: r.message(c, reason)}, trail)
 }
 
-// refuseFor refuses c because its requirement required is refused: the same reason, in the adapter's sentence for the pair or, without
-// one, a sentence naming both followed by the requirement's own.
+// refuseFor refuses c because its requirement required is refused: the same reason, in a sentence naming both followed by the
+// requirement's own.
 func (r *Resolver) refuseFor(c Capability, level Level, required Capability, refused Support, trail []Capability) Support {
-	message := ""
-	if e, ok := r.cfg.Adapter.(RequirementExplainer); ok {
-		message = e.ExplainRequirement(c, required, refused.Reason)
-	}
-	if message == "" {
-		message = fmt.Sprintf("%s needs %s. %s", labelOf(c), labelOf(required), refused.Message)
-	}
+	message := fmt.Sprintf("%s needs %s. %s", labelOf(c), labelOf(required), refused.Message)
 	return r.withDepth(c, Support{Level: level, Reason: refused.Reason, Message: message}, trail)
 }
 
@@ -212,9 +183,7 @@ func labelOf(c Capability) string {
 
 // The resolver's own wording, used when the adapter has none. Each is a whole sentence for the narrator.
 const (
-	messageTurnedOff       = "Turned off in Settings."
-	messageExperimentalOff = "Experimental: switched off in Settings."
-	messageNoEngine        = "No DAW is connected to this app. Open this app from your DAW to use it."
+	messageNoEngine = "No DAW is connected to this app. Open this app from your DAW to use it."
 	// messageNoInputLevel is input_level's refusal on every engine, %s being the engine's name: an interface's input gain is its
 	// driver's, not the DAW's.
 	messageNoInputLevel = "%s cannot set an audio interface's input gain. Set it in your interface's own control panel."
@@ -229,10 +198,6 @@ func (r *Resolver) message(c Capability, reason Reason) string {
 	label := labelOf(c)
 	daw := r.Kind().String()
 	switch reason {
-	case ReasonTurnedOff:
-		return messageTurnedOff
-	case ReasonExperimentalOff:
-		return messageExperimentalOff
 	case ReasonStandalone:
 		if r.cfg.Adapter == nil {
 			return messageNoEngine

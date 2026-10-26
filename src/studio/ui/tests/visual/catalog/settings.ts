@@ -21,7 +21,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-builtin',
     description:
-      'Settings, Recording & DAW with the built-in recorder chosen (?mockDawExperimentalOn=1) after its confirm: "Built-in recorder. Recordings live in the app." is the checked radio and the connection card says nothing needs connecting',
+      'Settings, Recording & DAW with the built-in recorder chosen after its confirm: "Built-in recorder. Recordings live in the app." is the checked radio and the connection card says nothing needs connecting',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -37,7 +37,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-sample-output-builtin',
     description:
-      'Settings, Recording & DAW with the built-in recorder chosen (?mockDawExperimentalOn=1) on a computer with two named outputs: the Voice sample output row with Headphones chosen, Refresh the list, Test sound and what the choice changes',
+      'Settings, Recording & DAW with the built-in recorder chosen on a computer with two named outputs: the Voice sample output row with Headphones chosen, Refresh the list, Test sound and what the choice changes',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -101,7 +101,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-advanced',
     description:
-      'Settings, Recording & DAW with Advanced open: the REAPER program path box, Experimental DAW actions and the Capabilities table (each capability with its Auto / On / Off setting and what the recording tool reports now)',
+      'Settings, Recording & DAW with Advanced open: the REAPER program path box and the Capabilities table (each capability and what the linked recording tool reports now, with no control to turn one on or off)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
