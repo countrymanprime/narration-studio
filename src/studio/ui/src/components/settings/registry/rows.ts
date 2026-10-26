@@ -327,7 +327,7 @@ export const ROWS: readonly SettingMeta[] = [
     field: { tool: 'RecordingCoverage', key: 'background_first_pass_model' },
     options: WHISPER,
     desc: 'The model background checks listen with.',
-    more: 'Listens to everything a background check covers. Your own Check recording keeps the models set above.',
+    more: 'Listens to everything a background check covers. A check you start in Check recordings keeps the models set above.',
     used: ['booth', 'editing'],
     heavy: heavyModel,
   },

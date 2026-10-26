@@ -146,7 +146,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'This computer would not list its outputs, so the choice is off. Sound plays on the system default.',
     class: 'error',
   },
-  { file: 'components/editing/range/cut/CutDialog.tsx', text: 'Includes …: ….', class: 'overlay' },
   {
     file: 'components/editing/range/replace/ReplaceDialog.tsx',
     text: 'Name the other narrator once for this project (a duet partner, a stand-in, or one of a cast). Their name is shown on the words their audio replaces.',
@@ -351,7 +350,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Nothing checked yet. Check the files you measured, or choose rendered chapters or raw recordings (WAV) to check.',
     class: 'empty',
   },
-  { file: 'components/master/FileRulesPanel.tsx', text: 'Advice: ….', class: 'state' },
   {
     file: 'components/master/FileRulesPanel.tsx',
     text: 'Book rules (channels the same across files, credits files, retail sample, one section per file, consistency) judge the book as a whole, not this one file: see the Delivery package beside the files.',
@@ -400,17 +398,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/production/ImportReview.tsx', text: 'Checked names become reviewable Character entries after import.', class: 'explanation' },
-  {
-    file: 'components/production/RecordingCheck.tsx',
-    text: 'Check this one when one finishes, or raise Chapters at once under Check options.',
-    class: 'overlay',
-  },
-  { file: 'components/production/RecordingCheck.tsx', text: 'The check options could not be read (…); the check runs your settings.', class: 'overlay' },
-  {
-    file: 'components/production/RecordingCheck.tsx',
-    text: 'Not checked yet. A check transcribes this chapter&rsquo;s audio from the saved project and compares it with the text, so you can see what is still to record. It changes nothing in the project.',
-    class: 'empty',
-  },
   {
     file: 'components/production/RecordingCheckReport.tsx',
     text: 'heard (retakes, asides, a spoken title); extra words never count against the reading.',
@@ -478,6 +465,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
+    file: 'components/recordingcheck/CheckResult.tsx',
+    text: 'Not checked yet. A check transcribes this chapter&rsquo;s audio from the saved project and compares it with the text, so you can see what is still to record. It changes nothing in the project.',
+    class: 'empty',
+  },
+  {
     file: 'components/recordingcheck/RunOptions.tsx',
     text: 'Only the passages that are missing or that Whisper was unsure of are transcribed a second time.',
     class: 'explanation',
@@ -485,16 +477,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/recordingcheck/RunOptions.tsx',
     text: 'Chapters share the processors, so more chapters at once means fewer workers for each.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/recordingcheck/RunOptions.tsx',
-    text: 'Chapters share the processors, so more at once means fewer processes for each.',
     class: 'explanation',
   },
   {
@@ -531,8 +513,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/script/page/rail/threads/ThreadsPanel.tsx', text: 'No notes in this chapter yet. Select text and choose Mark.', class: 'empty' },
   { file: 'components/script/page/rail/words/DefinitionBlock.tsx', text: 'cannot be reached. The web links below still work.', class: 'error' },
-  { file: 'components/script/page/rail/words/DefinitionBlock.tsx', text: ': no entry for “…”.', class: 'error' },
-  { file: 'components/script/page/rail/words/DefinitionBlock.tsx', text: ': no entry for “…”.', class: 'error' },
   {
     file: 'components/settings/AboutPanel.tsx',
     text: 'This is a development build, not a release, so it has no version to compare with a newer one.',

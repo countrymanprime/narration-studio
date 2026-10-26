@@ -34,15 +34,15 @@ describe('KpiRow', () => {
     const strip = screen.getByRole('list', { name: 'Production figures' });
     expect(strip).toBeTruthy();
     // 3600 + 3500 + 3700 + 1800 s recorded (3.5 h) over 5 chapters of one hour each at the standard rate.
-    expect(screen.getByRole('button', { name: /Finished audio/ }).textContent).toContain('3:30');
-    expect(screen.getByRole('button', { name: /Finished audio/ }).textContent).toContain('/ 5:00');
+    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3:30');
+    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5:00');
     expect(screen.getByRole('button', { name: /Recording/ }).textContent).toMatch(/of 15:00 est\./);
     expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toMatch(/of 15:12 est\./);
   });
 
   it('lets every tile button fill its whole cell, so the hover highlight covers the card and not a patch of it', () => {
     row();
-    for (const name of [/Finished audio/, /Recording/, /Editing \+ proof/, /Open pickups/]) {
+    for (const name of [/Recorded audio/, /Recording/, /Editing \+ proof/, /Open pickups/]) {
       const button = screen.getByRole('button', { name });
       // The hint wrapper sits between the cell and the button: it has to fill the cell too, or the button's `size-full` has nothing to fill.
       expect(button.parentElement!.className).toContain('size-full');
@@ -108,7 +108,7 @@ describe('KpiRow', () => {
   it('tiles-navigate-by-callback', async () => {
     const { onGo } = row();
     const goes: Array<[RegExp, string]> = [
-      [/Finished audio/, 'script'],
+      [/Recorded audio/, 'script'],
       [/Recording/, 'booth'],
       [/Editing \+ proof/, 'editing'],
       [/Open pickups/, 'pickups'],
@@ -166,7 +166,7 @@ describe('StageBar', () => {
 describe('stageSegments', () => {
   const hoursOf = (segments: ReturnType<typeof stageSegments>) => Object.fromEntries(segments.map((s) => [s.key, s.hours]));
 
-  it('weights a chapter still in recording by the share of its audio measured, so the bar agrees with the Finished audio tile', () => {
+  it('weights a chapter still in recording by the share of its audio measured, so the bar agrees with the Recorded audio tile', () => {
     const half = MID_BOOK.filter((c) => c.id === 'c4');
     expect(hoursOf(stageSegments(half, WPH, {}))).toMatchObject({ recorded: 0.5, unrecorded: 0.5 });
   });

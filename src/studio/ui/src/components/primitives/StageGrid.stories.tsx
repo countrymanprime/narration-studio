@@ -144,7 +144,7 @@ export const RowsMatchTheMock: Story = {
 // Mock 01's board: a named Chapter column, a length drawn as a mono figure (FIN.), and every stage cell the
 // 58×20 board cell on a 66 px pitch, so a column's cells line up whatever they say.
 const MOCK_ROWS = ['Opening credits', '1 · Down the Rabbit-Hole', '3 · A Caucus-Race'];
-const MOCK_COLUMNS = ['Fin.', 'Prep', 'Record', 'Edit', 'Proof'];
+const MOCK_COLUMNS = ['Est.', 'Prep', 'Record', 'Edit', 'Proof'];
 const MOCK_CELLS: StageGridCell[][] = [
   [{ tone: 'neutral', label: '0:12', look: 'text' }, ...Array.from({ length: 4 }, (): StageGridCell => ({ tone: 'success', label: '✓' }))],
   [{ tone: 'neutral', label: '11:48', look: 'text' }, ...Array.from({ length: 4 }, (): StageGridCell => ({ tone: 'success', label: '✓' }))],

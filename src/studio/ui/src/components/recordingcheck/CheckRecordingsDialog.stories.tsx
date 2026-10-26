@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MemoryRouter } from 'react-router-dom';
 import { expect, within } from 'storybook/test';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -7,8 +8,8 @@ import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { NarrationApi } from '../../types';
 import { CheckRecordingsDialog } from './CheckRecordingsDialog';
 
-// The Check recordings dialog body (docs/research/mockups/studio-next/src/pages/pickups/CheckRecordings.tsx). It has no opener yet: the Proof,
-// Pickups and Production swaps call `openCheckRecordings`.
+// The Check recordings dialog body (docs/research/mockups/studio-next/src/pages/pickups/CheckRecordings.tsx), the app's one recording check:
+// every page's entry opens it through `openCheckRecordings`.
 const chapter = (index: number, extra: Partial<ManuscriptChapter> = {}): ManuscriptChapter => ({
   id: `c${index}`,
   title: `Chapter ${index}`,
@@ -61,11 +62,13 @@ const meta = {
   args: { preselected: ['c1', 'c2'], close: () => undefined },
   decorators: [
     (Story, { parameters }) => (
-      <ApiProvider api={parameters.api}>
-        <div className="max-w-[60rem] bg-[var(--bg)] p-4">
-          <Story />
-        </div>
-      </ApiProvider>
+      <MemoryRouter>
+        <ApiProvider api={parameters.api}>
+          <div className="max-w-[60rem] bg-[var(--bg)] p-4">
+            <Story />
+          </div>
+        </ApiProvider>
+      </MemoryRouter>
     ),
   ],
 } satisfies Meta<typeof CheckRecordingsDialog>;
@@ -100,7 +103,20 @@ export const RefusedChapter: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     (await canvas.findByRole('button', { name: 'Check 1 chapter' })).click();
-    await expect(await canvas.findByText('Link a REAPER track to this chapter first.')).toBeTruthy();
+    // The reason in plain words, and the chapter-track link made right in the row.
+    await expect(await canvas.findByText('The recording could not be checked')).toBeTruthy();
+    await expect(await canvas.findByRole('combobox', { name: /^Track for Chapter 1/ })).toBeTruthy();
+  },
+};
+
+/** A credits row's check: the synthetic chapter the manuscript does not list, offered ticked beside the recorded chapters. */
+export const CreditsRowChapter: Story = {
+  args: { preselected: ['credits-opening'], extra: [{ id: 'credits-opening', title: 'Opening credits', index: 0, wordCount: 0, status: 'recording' }] },
+  parameters: { api: host() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole('checkbox', { name: /Opening credits/ })).toBeTruthy();
+    await expect(canvas.getByRole('button', { name: 'Check 1 chapter' })).toBeTruthy();
   },
 };
 

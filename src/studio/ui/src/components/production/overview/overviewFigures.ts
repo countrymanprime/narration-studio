@@ -98,13 +98,14 @@ export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinu
         { key: 'due', target: 'schedule', label: 'Due', value: 'Not set', hint: 'Set it on the Schedule', tip: 'No delivery date is set yet', tone: 'neutral' };
   return [
     {
-      key: 'finished',
+      key: 'recorded',
       target: 'script',
-      label: 'Finished audio',
+      // Raw audio on the chapters' linked tracks: nothing here knows whether it is edited, proofed or mastered, so it is not "finished".
+      label: 'Recorded audio',
       value: hm(recordedSeconds / 3600),
       unit: `/ ${hm(finished)}`,
-      hint: 'recorded',
-      tip: 'Recorded so far, out of the whole book (estimate)',
+      hint: 'before editing',
+      tip: 'Audio on the chapters’ linked tracks in the saved project, before editing, out of the whole book’s estimated finished length',
       tone: 'neutral',
     },
     {
