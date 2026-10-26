@@ -8,7 +8,7 @@ Tick a box only after you have seen it. Report a failure on [#992](https://githu
 
 Booth guide: [page breaks](../guides/using-the-app/booth.md#pages-and-your-stopping-place).
 
-- [ ] **1.1 Page marks.** Open a chapter of more than 250 words in the Booth. Expect a faint dashed line across the text and **Page 2**, **Page 3** down the right margin. Wrong: a mark that moves while you scroll, record or change the text size, or marks in a chapter of one page.
+- [ ] **1.1 Page marks.** Open a chapter of more than 250 words in the Booth. Expect a faint dashed line across the text and **Page 2**, **Page 3** down the right margin, each line between two paragraphs. Wrong: a line through the middle of a paragraph, a mark that moves while you scroll, record or change the text size, or marks in a chapter of one page.
 - [ ] **1.2 Words per page.** In Settings › Project change **Words per page**. Expect the marks to move to the new count. Wrong: the old marks stay.
 - [ ] **1.3 Read to here.** Right-click a word, choose **Read to here**. Expect a chequered-flag ribbon, a message with **Undo**, and the same flag in the Script and the jump menu. Set a second place: the first flag moves. Press **Undo**: it goes back. Wrong: two flags in one chapter, or anything that stops or pauses a take when you reach the flag.
 

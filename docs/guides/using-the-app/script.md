@@ -73,7 +73,8 @@ Select words in the reader and a dark toolbar appears over them:
 
 - **Mark** puts one of your marks on them, with a note (a question for the author is a note you can reply to), marks a word for its
   pronunciation (**Pronunciation (a word)**), or opens **Define marks…**, where you name your marks and choose each
-  one's colour and line.
+  one's colour, its line and whether it **Asks** (tracks a reply), and **Add a mark** adds one. The note dialog is titled
+  **Mark** and the words you selected.
 - **Story Bible** makes a new entry of the kind you choose from the words; the kinds are the Story Bible's own types,
   including any you added there.
 - **Bookmark here** (the bookmark button).
@@ -83,17 +84,18 @@ Select words in the reader and a dark toolbar appears over them:
 
 ![Script - Define how you mark up: each mark type with its name, colour and line](../../images/ui/script-define-marks.webp)
 
-Right-click the text for the same actions, in labelled groups: **Mark as** (your marks and **Pronunciation (a word)**),
-**Add to the Story Bible as** (left out when the words are already an entry's name or alias, where the entry's own row finds them),
+Right-click the text for the same actions. The menu opens just under the words you clicked (above them when there is no room
+below), so it never hides them. **Mark as** (your marks and **Pronunciation (a word)**) and
+**Add to the Story Bible as** open their choices beside the menu (left out when the words are already an entry's name or alias, where the entry's own row finds them),
 then **Look up**, **Find** (lights the matches in the text), **Copy**, **Bookmark here** and **Record from here**. Where you click adds more: on a speaker's line, **Speaker: …** to change who
-speaks it; on one of your marks, open it, change its type, resolve or reopen its thread, or delete it; on a marked word,
+speaks it; on one of your marks, open it, change its type (**Change type** opens the types beside it), resolve or reopen its thread, or delete it; on a marked word,
 **Show in Words** or **Remove from my words**. Right-click a chapter in the list or its card in the reader to go to it,
-record it in the Booth or set its prep state, and a word on the **Words** tab to show it or remove it. Click a marked
+record it in the Booth or set its prep state (**My prep** opens the states beside it), and a word on the **Words** tab to show it or remove it. Click a marked
 word in the text to open it on the **Words** tab.
 
 ![Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here, Record from here and Look up](../../images/ui/script-selection-popup.webp)
 
-![Script - the right-click menu on a selected word, in labelled groups](../../images/ui/script-context-menu.webp)
+![Script - the right-click menu on a selected word, opened under it, with Mark as and Add to the Story Bible as as submenus](../../images/ui/script-context-menu.webp)
 
 ![Script - the mark composer after selecting text](../../images/ui/script-add-note.webp)
 
@@ -128,7 +130,7 @@ Press **B** to bookmark the line you are on (or use **Bookmark here** on the sel
 
 A stopping place you set in the [Booth](booth.md#pages-and-your-stopping-place) with **Read to here** shows here too, as a chequered-flag ribbon, and in the jump menu as **Read to here: …**. Press it to give it a label and note, like any bookmark.
 
-![Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added toast with Undo](../../images/ui/script-bookmark.webp)
+![Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added message](../../images/ui/script-bookmark.webp)
 
 ## First-use tips
 
@@ -165,7 +167,7 @@ chapter's), then the credits text with the project's values filled in. A token w
 brackets, in the amber of an entry still to review, and the card lists the unresolved tokens with a **Fill in** that opens the same "Set up
 the credits" dialog Production offers — see [Production](production.md#importing-the-manuscript) for what it asks
 and when. A banner above Opening credits does the same while any token stays unresolved and setup has not been
-dismissed for the project. The credits are read-only and are not chapters: the search does not look in them. Record the
+dismissed for the project; while it shows, the Opening credits card leaves its own list out, so the values are asked for once. The credits are read-only and are not chapters: the search does not look in them. Record the
 credits as their own files, as ACX expects, not inside a chapter file: a chapter's Proof view compares a
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
 words. Each credits card has a **Record in Booth** button once it has anything to read (see below).

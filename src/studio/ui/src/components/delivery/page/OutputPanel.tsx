@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DeliveryProfile } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { ProgressBar } from '../../primitives/ProgressBar';
@@ -9,11 +10,42 @@ import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { DeliveryBuild } from './useDeliveryBuild';
 import { askedText, checkedText, heardText } from './useHostRead';
+import { NOTHING_MEASURED } from './chapterStates';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 const MUTED = { color: 'var(--text-muted)' };
-const DANGER = { color: 'var(--danger-text)' };
 const WHY_ID = 'delivery-build-why';
+
+/** A host's error as a sentence: its first letter a capital ("could not create …" reads "Could not create …", R3DL-2). */
+const sentence = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/**
+ * One message under the build row. Every message of the panel is one of these, in one column at one 8 px pitch (XDL-8, R3DL-3): a
+ * problem is framed on `--danger-soft` with a warning icon, a note is muted text; the one button a message offers sits on its own line
+ * under it, at the message's left edge, at every width (R3DL-7).
+ */
+function BuildMessage({ tone, role, action, children }: { tone: 'problem' | 'note'; role?: 'alert' | 'status'; action?: ReactNode; children: ReactNode }) {
+  if (tone === 'note')
+    return (
+      <div role={role} className="flex flex-col items-start gap-2">
+        <p dir="auto" className="text-sm text-pretty" style={MUTED}>
+          {children}
+        </p>
+        {action}
+      </div>
+    );
+  return (
+    <div role={role} className="flex flex-col items-start gap-2 rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2">
+      <p dir="auto" className="flex gap-2 text-sm text-pretty text-[var(--danger-text)]">
+        <span className="mt-[0.1875rem] flex-none">
+          <Icon name="problem" />
+        </span>
+        <span className="min-w-0 [overflow-wrap:anywhere]">{children}</span>
+      </p>
+      {action}
+    </div>
+  );
+}
 
 /**
  * The mock's second panel: the folder the package goes to, "Build <profile> package" (`aria-disabled` until every chapter passes, so it stays
@@ -28,6 +60,7 @@ export function OutputPanel({
   failure,
   build,
   showBuilt,
+  onOpenMaster,
 }: {
   profile: DeliveryProfile;
   ready: boolean;
@@ -37,6 +70,8 @@ export function OutputPanel({
   build: DeliveryBuild;
   /** False after a profile change or while the chapters stop passing: the built list goes away. */
   showBuilt: boolean;
+  /** Opens Master & QC: offered when nothing is measured yet (R4DL-2). */
+  onOpenMaster?: () => void;
 }) {
   const built = showBuilt && ready ? build.built : undefined;
   // Busy is shown with `pending`, not `disabled`, so the Build button keeps keyboard focus while it works.
@@ -44,15 +79,21 @@ export function OutputPanel({
   const buildButton = useRef<HTMLButtonElement>(null);
   // While a build runs and the host has stopped answering, "Every chapter passes." would be a stale fact; the alert below says what is known.
   const stale = build.running && build.quiet !== undefined;
+  const lastFailed = showBuilt && Boolean(build.problem || build.failed);
+  // Once a build starts, the pre-build verdict ("Every chapter passes.") gives way to what the build is doing (R3DL-2, R4DL-5).
   const why = stale
     ? ''
-    : !ready
-      ? waiting
-      : build.encoded === 0
-        ? 'Master all to spec in Master & QC first.'
-        : build.exportRunning
-          ? 'Master & QC is still preparing the files.'
-          : waiting;
+    : build.running
+      ? 'Building the package…'
+      : ready && lastFailed
+        ? 'The last build did not finish.'
+        : !ready
+          ? waiting
+          : build.encoded === 0
+            ? 'Master all to spec in Master & QC first.'
+            : build.exportRunning
+              ? 'Master & QC is still preparing the files.'
+              : waiting;
   // A press on a blocked Build builds nothing; this says so, with the reason, to a screen reader as well as the eye. It goes when Build is live.
   const [refused, setRefused] = useState(false);
   useEffect(() => {
@@ -63,7 +104,8 @@ export function OutputPanel({
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <SectionLabel>Folder</SectionLabel>
-          <p dir="auto" className="font-mono text-sm [overflow-wrap:anywhere]" style={build.folder ? undefined : MUTED}>
+          {/* A path is mono; the words said before there is one are sans and muted, so they do not read as code (alignment audit XDL-3). */}
+          <p dir="auto" className={`text-sm [overflow-wrap:anywhere] ${build.folder ? 'font-mono' : ''}`} style={build.folder ? undefined : MUTED}>
             {build.starting ? 'Choose a folder in the window that opened…' : (build.folder ?? 'Chosen when you build')}
           </p>
         </div>
@@ -99,64 +141,85 @@ export function OutputPanel({
             Nothing was built{why ? `: ${why}` : ''}
           </p>
         )}
-        {!ready && failure && !stale && (
-          <p dir="auto" className="text-sm" style={DANGER}>
-            {failure}
-          </p>
-        )}
         {build.running && <ProgressBar label="Building the package" value={null} running />}
-        {build.quiet !== undefined && (
-          <p role="alert" className="text-sm" style={DANGER}>
-            Can't tell how the build is going, {heardText(build.lastHeard)}: {build.quiet} ({askedText(build.lastAsked)}).{' '}
-            <Button variant="ghost" size="sm" onClick={build.checkAgain}>
-              Check again
-            </Button>
-          </p>
+        {/* Why Build is off: the first failing or unready chapter, or that nothing is measured at all, with the way to Master & QC (R4DL-2). */}
+        {!ready && failure && !stale && (
+          <BuildMessage
+            tone="problem"
+            action={
+              failure === NOTHING_MEASURED && onOpenMaster ? (
+                <Button variant="secondary" size="sm" onClick={onOpenMaster}>
+                  Open Master & QC
+                </Button>
+              ) : undefined
+            }
+          >
+            {failure}
+          </BuildMessage>
         )}
-        {build.quiet !== undefined && build.checkedAt !== undefined && build.lastAsked !== undefined && build.lastAsked >= build.checkedAt && (
-          <p role="status" className="text-sm" style={MUTED}>
-            {checkedText(build.checkedAt)}: the host still did not answer.
-          </p>
+        {/* A quiet host is one message: the warning with its age said once (a press of Check again names itself there rather than in a
+            second line, R4DL-4); Check again under it is Cancel's variant, so the two are one kind of control (R4DL-3). */}
+        {build.quiet !== undefined && (
+          <BuildMessage
+            tone="problem"
+            role="alert"
+            action={
+              <Button variant="secondary" size="sm" onClick={build.checkAgain}>
+                Check again
+              </Button>
+            }
+          >
+            Can't tell how the build is going, {heardText(build.lastHeard)}: {build.quiet} (
+            {build.checkedAt !== undefined && build.lastAsked !== undefined && build.lastAsked >= build.checkedAt
+              ? checkedText(build.checkedAt).replace(/^You/, 'you')
+              : askedText(build.lastAsked)}
+            ).
+          </BuildMessage>
         )}
         {build.cancelUnconfirmed && (
-          <p role="status" className="text-sm" style={MUTED}>
+          <BuildMessage tone="note" role="status">
             Cancel was sent, but the host did not confirm it, so the build may still be running.
-          </p>
+          </BuildMessage>
         )}
         {/* What the last attempt came to belongs to the profile and limits it was made with: a change drops it, as it drops the built list. */}
-        {showBuilt && (build.problem || build.failed) && (
-          <p role="alert" className="text-sm" style={DANGER}>
-            {build.problem ?? build.failed?.error ?? build.failed?.message}
-          </p>
+        {lastFailed && (
+          <BuildMessage tone="problem" role="alert">
+            {sentence(build.problem ?? build.failed?.error ?? build.failed?.message ?? '')}
+          </BuildMessage>
         )}
         {showBuilt && (build.notice || build.cancelled) && (
-          <p role="status" className="text-sm" style={MUTED}>
+          <BuildMessage tone="note" role="status">
             {build.notice ?? build.cancelled?.message}
-          </p>
+          </BuildMessage>
         )}
         {built && (
           <div className={`flex flex-col gap-1.5 ${ARRIVE_CLASSES}`}>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <StatusBadge tone={statusTone('done')} label="Built" />
-              <b>{built.files.length} files</b>
-              <span dir="auto" style={MUTED}>
-                in {built.outputDir}
+            {/* The summary and the folder button share the first line at every width: the button never drops to a row of its own (XDL-9). */}
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm">
+              <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <StatusBadge tone={statusTone('done')} label="Built" />
+                <b>{built.files.length} files</b>
+                <span dir="auto" className="[overflow-wrap:anywhere]" style={MUTED}>
+                  in {built.outputDir}
+                </span>
               </span>
-              <span className="flex-1" />
               <IconButton action="openFolder" onClick={build.openFolder} pending={build.opening} />
             </div>
             {build.openProblem && (
-              <p role="alert" className="text-sm" style={DANGER}>
+              <BuildMessage tone="problem" role="alert">
                 {build.openProblem}
-              </p>
+              </BuildMessage>
             )}
-            <ul className="flex flex-col gap-1">
+            {/* Each file's Written pill sits after the longest name, not at the card's far edge (XDL-9). */}
+            <ul className="grid grid-cols-[minmax(0,max-content)_auto] items-center gap-x-4 gap-y-1">
               {built.files.map((file) => (
-                <li key={file.destPath} className="flex items-center justify-between gap-2 text-sm">
+                <li key={file.destPath} className="col-span-2 grid grid-cols-subgrid items-center text-sm">
                   <span dir="auto" title={file.name} className="min-w-0 truncate">
                     {file.name}
                   </span>
-                  <StatusBadge tone={statusTone('done')} label="Written" />
+                  <span className="justify-self-start">
+                    <StatusBadge tone={statusTone('done')} label="Written" />
+                  </span>
                 </li>
               ))}
             </ul>

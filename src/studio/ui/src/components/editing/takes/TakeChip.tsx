@@ -46,6 +46,7 @@ export function TakeChip({
       aria-expanded={open}
       aria-controls={controls}
       data-tchip={passage.id}
+      className="max-w-full overflow-hidden [&>*]:whitespace-nowrap"
       tabIndex={tabbable ? undefined : -1}
       onClick={onToggle}
       onKeyDown={onKeyDown}
@@ -54,7 +55,7 @@ export function TakeChip({
       <b>
         {n} {n === 1 ? 'take' : 'takes'}
       </b>
-      <span aria-hidden="true" className="inline-flex gap-0.5">
+      <span aria-hidden="true" className="inline-flex gap-0.5 max-[30rem]:hidden">
         {passage.takes.map((t) => (
           <i
             key={t.id}
@@ -62,7 +63,7 @@ export function TakeChip({
           />
         ))}
       </span>
-      {active ? <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{active.label}</span> : null}
+      {active ? <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] max-[30rem]:hidden">{active.label}</span> : null}
       {keptId ? (
         <StatusBadge tone={statusTone('kept_take')} label={statusLabel('kept_take')} shape="tag" />
       ) : stacked ? (

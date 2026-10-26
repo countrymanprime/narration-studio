@@ -4,6 +4,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import type { ReactNode } from 'react';
 import { useReturnFocusTarget } from './focusReturn';
 import { IconButton } from './IconButton';
+import { OVERLAY_TITLE_CLASS } from './panelStyles';
 
 // Right-edge panel with a transparent click-away backdrop, on Base UI's Drawer. It is a real modal
 // panel: the page behind is hidden and unreachable, Tab loops inside, Escape and a press on the backdrop close it, and
@@ -56,7 +57,7 @@ export function SlideOver({
       }}
     >
       <Drawer.Portal>
-        <Drawer.Backdrop data-slide-over-backdrop className="fixed inset-0 z-[var(--z-slide-over-scrim)] bg-transparent" />
+        <Drawer.Backdrop data-slide-over-backdrop className="fixed inset-0 z-[var(--z-slide-over-scrim)] bg-[var(--panel-scrim)]" />
         <Drawer.Viewport className="fixed inset-0 z-[var(--z-slide-over)] flex items-stretch justify-end">
           <Drawer.Popup
             data-slide-over
@@ -65,9 +66,15 @@ export function SlideOver({
           >
             {/* Content: a mouse drag inside the panel selects text instead of starting a swipe-to-dismiss (touch still swipes). */}
             <Drawer.Content className="flex min-h-0 flex-1 flex-col">
-              {/* 59 px and a 1 px divider, the same header as Dialog's (chapter-track-link-control/02). */}
-              <div className="flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-[0.85rem]">
-                <Drawer.Title render={headingLevel === 2 ? <h2 /> : <h3 />} className="text-sm font-semibold">
+              {/* 52 px with its divider, the app's top bar (AppShell's h-13), so the panel's rule meets the bar's where they touch (alignment audit
+                  XSL-13, R4SM-19), at that height whatever the title: a long title ("Editing check: Chapter 1 — Down the Rabbit-Hole") keeps to
+                  one line with an ellipsis and names itself in full on hover, rather than growing the header (ENX-11). */}
+              <div className="flex h-13 flex-none items-center justify-between gap-3 border-b border-[var(--border)] px-[1.1rem]">
+                <Drawer.Title
+                  render={headingLevel === 2 ? <h2 /> : <h3 />}
+                  title={typeof title === 'string' ? title : undefined}
+                  className={`flex-1 truncate ${OVERLAY_TITLE_CLASS}`}
+                >
                   {title}
                 </Drawer.Title>
                 <IconButton label={closeLabel} onClick={onClose}>

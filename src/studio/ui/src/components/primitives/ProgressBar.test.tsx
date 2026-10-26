@@ -54,4 +54,14 @@ describe('ProgressBar', () => {
     const { container } = render(<ProgressBar label="Voice rest" value={38} tone="warn" />);
     expect((container.querySelector('.progressbar > div') as HTMLElement).className).toContain('bg-[var(--warn)]');
   });
+
+  // R4DL-5: with reduced motion the sliding fill stood still at 4% and read as a job stuck at 4%.
+  it('fills the whole track faintly when nothing is measured and motion is reduced, instead of a still 4% stub', () => {
+    const { container } = render(<ProgressBar label="Building" value={null} running />);
+    const fill = container.querySelector('.progressbar > div') as HTMLElement;
+    expect(fill.style.width).toBe('');
+    expect(fill.className).toContain('w-[4%]');
+    expect(fill.className).toContain('motion-still:w-full');
+    expect(fill.className).toContain('motion-still:opacity-35');
+  });
 });

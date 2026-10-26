@@ -35,6 +35,29 @@ const table = () => screen.getByRole('table', { name: 'Relationships' });
 const rowOf = (label: string) => within(table()).getByText(label).closest('tr')!;
 
 describe('the Relationships table', () => {
+  it("starts its first column at the card's text edge, level with Properties and the labels above it (alignment audit SBX-13)", async () => {
+    await renderAlice();
+    expect(table().className).toContain('[&_tr>:first-child]:pl-0');
+  });
+
+  it('marks the incoming rows in edit view too, so editing one is not mistaken for the other direction (R3SB1-1)', async () => {
+    await renderAlice();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    expect(within(table()).getAllByRole('img', { name: 'Incoming' })).toHaveLength(3);
+  });
+
+  it('opens the picker as a dialog named for the relationship, and shows an untyped entry as "Type not set" (R4SB-2)', async () => {
+    await renderAlice();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    // Alice's own rows come first: "follows White Rabbit" is the first.
+    fireEvent.click(within(table()).getAllByRole('button', { name: 'To: White Rabbit' })[0]);
+    const picker = await screen.findByRole('dialog', { name: 'Related entry for “follows”' });
+    const hare = within(picker).getByRole('option', { name: /March Hare/ });
+    expect(hare.textContent).toContain('Type not set');
+    fireEvent.keyDown(within(picker).getByRole('combobox', { name: 'Search entries' }), { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Related entry for “follows”' })).toBeNull());
+  });
+
   it('shows the relationship and the other entry, and marks the ones written from the other entry', async () => {
     await renderAlice();
     const outgoing = rowOf('follows');
@@ -52,7 +75,7 @@ describe('the Relationships table', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));
     const rows = within(table()).getAllByRole('row');
-    const blank = rows[rows.length - 2];
+    const blank = rows[rows.length - 1];
     fireEvent.change(within(blank).getByRole('combobox', { name: 'Relationship' }), { target: { value: 'pours tea for' } });
     fireEvent.blur(within(blank).getByRole('combobox', { name: 'Relationship' }));
     expect(relate).not.toHaveBeenCalled();

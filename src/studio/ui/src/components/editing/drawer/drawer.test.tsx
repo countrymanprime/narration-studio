@@ -45,6 +45,7 @@ function Harness({ width, onReview = () => {}, children }: { width: number; onRe
       {children}
       <DrawerLayout
         open={d.open}
+        onClose={d.close}
         drawer={
           <Drawer
             doc={doc}
@@ -168,6 +169,39 @@ describe('layout-by-width', () => {
     mount(1440);
     await open();
     expect(document.querySelector('[data-drawer-open]')!.className).toContain(' min-[1281px]:grid-cols-[minmax(0,1fr)_352px]');
+  });
+
+  // Alignment audit cause O: over the text the drawer cut lines mid-word with nothing to say they were behind it.
+  it('dims the text under the overlay drawer, and a press on the dim closes it', async () => {
+    mount(1280);
+    await open();
+    const scrim = document.querySelector<HTMLElement>('[data-scrim]')!;
+    expect(scrim.className).toContain('bg-[var(--panel-scrim)]');
+    expect(scrim.className).toContain('min-[1281px]:hidden');
+    expect(scrim.getAttribute('aria-hidden')).toBe('true');
+    await userEvent.setup().click(scrim);
+    expect(document.querySelector('[data-drawer-slot]')).toBeNull();
+    expect(document.querySelector('[data-scrim]')).toBeNull();
+  });
+});
+
+describe('the drawer frame', () => {
+  // Alignment audit XED-15: the last section's rule floated in the empty half of the panel.
+  it('draws no rule under the last section', async () => {
+    const off = registerDrawerSection({ tab: 'cleanup', order: 99, label: 'Probe', render: () => <p>probe</p> });
+    mount(1440);
+    await open();
+    expect(screen.getByRole('region', { name: 'Probe' }).className).toContain('last:border-b-0');
+    off();
+  });
+
+  // Alignment audit XED-34: the drawer's header sat 4 px above the page card's header beside it.
+  it('pads its header 12 px at the top, as the page card does', async () => {
+    mount(1440);
+    await open();
+    const head = document.querySelector('#drawer h2')!.parentElement!;
+    expect(head.className).toContain('pt-3');
+    expect(head.className).not.toContain('py-2');
   });
 });
 

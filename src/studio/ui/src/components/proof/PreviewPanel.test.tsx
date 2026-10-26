@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PreviewPanel } from './PreviewPanel';
 import { ApiProvider } from '../../api/ApiContext';
@@ -40,10 +42,13 @@ function apiWith(result: PreviewResult, chapters: ManuscriptChapter[] = [CHAPTER
   });
 }
 
+/** The panel's no-manuscript state links to Production, so it is drawn inside a router. */
+const renderInRouter = (ui: ReactElement) => render(ui, { wrapper: MemoryRouter });
+
 describe('PreviewPanel', () => {
   it('shows a computing message while the read is in flight', async () => {
     const hang = vi.fn(() => new Promise<PreviewResult>(() => {}));
-    render(
+    renderInRouter(
       <ApiProvider api={createMockApi({ previewCandidates: hang })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
@@ -52,7 +57,7 @@ describe('PreviewPanel', () => {
   });
 
   it('says so when there is no manuscript', async () => {
-    render(
+    renderInRouter(
       <ApiProvider api={apiWith({ outcome: 'no_manuscript', candidates: [] })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
@@ -61,7 +66,7 @@ describe('PreviewPanel', () => {
   });
 
   it('says so when nothing is eligible', async () => {
-    render(
+    renderInRouter(
       <ApiProvider api={apiWith({ outcome: 'nothing_eligible', candidates: [] })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
@@ -70,13 +75,13 @@ describe('PreviewPanel', () => {
   });
 
   it('lists each candidate with its chapter, paragraph range, length, word count and reasons', async () => {
-    render(
+    renderInRouter(
       <ApiProvider api={apiWith({ outcome: 'ok', candidates: [CANDIDATE] })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
     );
     await screen.findByText('Chapter One');
-    screen.getByText('paragraphs 1 to 3');
+    screen.getByText('1–3');
     screen.getByText('5:02');
     screen.getByText('780');
     screen.getByText(/Mixes narration and dialogue/);
@@ -84,7 +89,7 @@ describe('PreviewPanel', () => {
 
   it('shows a warning in text and an icon, never by colour alone', async () => {
     const warned: PreviewCandidate = { ...CANDIDATE, shorter: true, warnings: ['This chapter is shorter than the target length even in full.'] };
-    render(
+    renderInRouter(
       <ApiProvider api={apiWith({ outcome: 'ok', candidates: [warned] })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
@@ -96,7 +101,7 @@ describe('PreviewPanel', () => {
 
   it('opens a candidate in the reader at its first paragraph', async () => {
     const goToManuscript = vi.fn();
-    render(
+    renderInRouter(
       <ApiProvider api={apiWith({ outcome: 'ok', candidates: [CANDIDATE] })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={goToManuscript} />
       </ApiProvider>,
@@ -108,7 +113,7 @@ describe('PreviewPanel', () => {
   it('copies the range and length, then shows it was copied', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    render(
+    renderInRouter(
       <ApiProvider api={apiWith({ outcome: 'ok', candidates: [CANDIDATE] })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
@@ -133,7 +138,7 @@ describe('PreviewPanel', () => {
   });
 
   it('reports a failed read instead of an unhandled rejection', async () => {
-    render(
+    renderInRouter(
       <ApiProvider api={createMockApi({ previewCandidates: () => Promise.reject(new Error('the host is busy')) })}>
         <PreviewPanel notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
@@ -159,7 +164,7 @@ describe('PreviewPanel pin and adjust', () => {
 
   it('pins a candidate, showing the pinned section and switching the row to Unpin', async () => {
     const previewPinSet = vi.fn().mockResolvedValue(PINNED);
-    render(
+    renderInRouter(
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
@@ -181,7 +186,7 @@ describe('PreviewPanel pin and adjust', () => {
   it('shows the pinned window, its stale reason with text and an icon, and clears it', async () => {
     const staleReason: PinnedPreview = { ...PINNED, stale: true, staleReason: 'text_changed' };
     const previewPinClear = vi.fn().mockResolvedValue(NOT_PINNED);
-    render(
+    renderInRouter(
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
@@ -212,7 +217,7 @@ describe('PreviewPanel pin and adjust', () => {
       canExtendEnd: false,
       canShrinkEnd: false,
     };
-    render(
+    renderInRouter(
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [] }),
@@ -229,7 +234,7 @@ describe('PreviewPanel pin and adjust', () => {
 
   it('extends and shrinks the pinned range by one paragraph', async () => {
     const previewPinAdjust = vi.fn().mockResolvedValue({ ...PINNED, canExtendEnd: false });
-    render(
+    renderInRouter(
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
@@ -252,7 +257,7 @@ describe('PreviewPanel pin and adjust', () => {
 
   it('reports a failed pin action without crashing', async () => {
     const notify = vi.fn();
-    render(
+    renderInRouter(
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
@@ -271,7 +276,7 @@ describe('PreviewPanel pin and adjust', () => {
   it('offers its options from the jump menu and reads the candidates again when one is saved', async () => {
     const read = vi.fn(() => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] } as PreviewResult));
     const save = vi.fn(async () => ({}) as Bootstrap);
-    render(
+    renderInRouter(
       <ApiProvider
         api={createMockApi({ previewCandidates: read, manuscriptChapters: () => Promise.resolve([CHAPTER]), saveSettings: save } as Parameters<
           typeof createMockApi

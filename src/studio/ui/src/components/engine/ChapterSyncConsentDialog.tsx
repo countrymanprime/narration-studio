@@ -2,21 +2,24 @@ import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
 import { SectionLabel } from '../primitives/SectionLabel';
-import { chapterSyncNotChaptersText, chapterSyncReasonText } from './chapterSyncText';
+import { chapterSyncNotChaptersText, chapterSyncProjectName, chapterSyncReasonText, type ChapterSyncDaw } from './chapterSyncText';
 
 /**
  * "Sync chapters to tracks?" shown once per project, the
  * moment `chapterSyncState().ask` is true (a manuscript and a linked DAW project, consent undecided), from every
- * link path. `preview` is `chapterSyncPreview()`'s answer, loaded by the caller; undefined while it is still loading.
+ * link path. `preview` is `chapterSyncPreview()`'s answer, loaded by the caller; undefined while it is still loading. `daw` is the DAW
+ * the project records with: the text names it and, for Audacity, the linked .aup3 rather than `projectFile`.
  */
 export function ChapterSyncConsentDialog({
   projectFile,
+  daw,
   preview,
   busy,
   onSync,
   onNotNow,
 }: {
   projectFile: string;
+  daw: ChapterSyncDaw;
   preview: ChapterSyncPreview | undefined;
   busy: boolean;
   onSync: () => void;
@@ -28,7 +31,11 @@ export function ChapterSyncConsentDialog({
       dismissOnOutsidePress={false}
       title="Sync chapters to tracks?"
       variant="alert"
-      description={`${projectFile} is now linked. The app can tie each chapter to its REAPER track by name, and keep them in step as you add tracks. It only reads the saved project; nothing in REAPER changes. Chapters you linked yourself are kept.`}
+      description={
+        daw.daw === 'Audacity'
+          ? `${chapterSyncProjectName(projectFile, daw)} is now linked. The app can tie each chapter to its Audacity track by name, and keep them in step as you add tracks. It only reads what Audacity reports; nothing in Audacity changes. Chapters you linked yourself are kept.`
+          : `${projectFile} is now linked. The app can tie each chapter to its REAPER track by name, and keep them in step as you add tracks. It only reads the saved project; nothing in REAPER changes. Chapters you linked yourself are kept.`
+      }
       onClose={busy ? undefined : onNotNow}
       escapeCloses={!busy}
       actions={
@@ -44,7 +51,7 @@ export function ChapterSyncConsentDialog({
     >
       {!preview ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Reading the saved project…
+          {daw.daw === 'Audacity' ? 'Reading the Audacity project…' : 'Reading the saved project…'}
         </p>
       ) : (
         <div className="space-y-3 text-sm">
@@ -103,7 +110,7 @@ export function ChapterSyncConsentDialog({
             </section>
           )}
           <p style={{ color: 'var(--text-muted)' }}>
-            You can turn chapter sync on or off later in the audio engine panel (the REAPER chip at the top of the window).
+            You can turn chapter sync on or off later in the audio engine panel (the {daw.daw} chip at the top of the window).
           </p>
         </div>
       )}

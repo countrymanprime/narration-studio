@@ -19,8 +19,8 @@ describe('lists-chapters-with-a-go-to-button', () => {
     const onGo = vi.fn();
     render(<AppearsIn entity={at('c1', 'c2')} manuscript={manuscript} onGo={onGo} />);
     expect(screen.getByText('Appears in · 2 chapters')).toBeTruthy();
-    expect(screen.getByText('Two — Later')).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Go to Two — Later' }));
+    expect(screen.getByText('Two: Later')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Go to Two: Later' }));
     expect(onGo).toHaveBeenCalledWith('c2');
   });
   it('says "1 chapter" for one', () => {
@@ -43,7 +43,7 @@ describe("chapter names follow the manuscript's heading style", () => {
           const chapter = book[n - 1]!;
           // The manuscript's own label and title, joined as every chapter name is, never a number counted here.
           expect(chapterHeading(chapter).label).toBe(HEADING_LABELS[style](n));
-          // #2251 item 24: the one display standard — a numbered heading keeps its separator, a plain one the em dash.
+          // #2251 item 24: the one display standard — a numbered heading keeps its separator, a plain one "Title: Subtitle".
           expect(rows[n - 1]!.textContent).toContain(headingName(chapter));
           expect(screen.getByRole('button', { name: `Go to ${headingName(chapter)}` })).toBeTruthy();
         }

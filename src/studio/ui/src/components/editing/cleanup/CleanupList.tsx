@@ -32,12 +32,12 @@ export function CleanupList({
   onPlay?: (row: CleanupRow) => void;
   playReason?: string;
 }) {
-  if (!rows.length) return <p className="m-0 p-3 text-[var(--text-muted)]">{NO_FINDINGS}</p>;
+  if (!rows.length) return <p className="m-0 pt-2 text-[var(--text-muted)]">{NO_FINDINGS}</p>;
   const open = rows.filter((r) => !r.done);
   const on = selectedRows(rows, skip);
   return (
     <>
-      <div className="px-3 pt-2">
+      <div className="pt-2">
         <Checkbox
           checked={!!open.length && on.length === open.length}
           disabled={!open.length}

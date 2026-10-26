@@ -87,46 +87,49 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
           ) : (
             <span className="min-w-0 flex-1 basis-48 text-sm break-words">{summaryOf(suggestion.payload)}</span>
           )}
-          <ConfidenceChip suggestion={suggestion} context={context} />
-          <span className="inline-flex gap-1.5">
-            {editing ? (
-              <>
-                <IconButton action="saveAndAccept" size="sm" pending={busy} data-sug-save onClick={save} />
-                <IconButton action="cancelEdit" size="sm" onClick={() => setEditing(false)} />
-              </>
-            ) : (
-              <>
-                {verify ? (
-                  <IconButton action="accept" size="sm" pending={busy} data-sug-accept onClick={() => void decide(() => decisions.accept(suggestion.id))} />
-                ) : (
+          {/* The confidence and the decisions are one group at the card's end, at one gap, the mock's 36 px buttons (SBX-14). */}
+          <span className="ml-auto inline-flex items-center gap-2">
+            <ConfidenceChip suggestion={suggestion} context={context} />
+            <span className="inline-flex gap-1.5">
+              {editing ? (
+                <>
+                  <IconButton action="saveAndAccept" pending={busy} data-sug-save onClick={save} />
+                  <IconButton action="cancelEdit" onClick={() => setEditing(false)} />
+                </>
+              ) : (
+                <>
+                  {verify ? (
+                    <IconButton action="accept" pending={busy} data-sug-accept onClick={() => void decide(() => decisions.accept(suggestion.id))} />
+                  ) : (
+                    <IconButton
+                      action="markReviewed"
+                      label="Mark this suggestion reviewed"
+
+                      pending={busy}
+                      data-sug-reviewed
+                      onClick={() => void decide(() => decisions.review(suggestion.id))}
+                    />
+                  )}
                   <IconButton
-                    action="markReviewed"
-                    label="Mark this suggestion reviewed"
-                    size="sm"
-                    pending={busy}
-                    data-sug-reviewed
-                    onClick={() => void decide(() => decisions.review(suggestion.id))}
+                    action="editSuggestion"
+
+                    data-sug-edit
+                    onClick={() => {
+                      setText(editableText(suggestion.payload));
+                      setEditing(true);
+                    }}
                   />
-                )}
-                <IconButton
-                  action="editSuggestion"
-                  size="sm"
-                  data-sug-edit
-                  onClick={() => {
-                    setText(editableText(suggestion.payload));
-                    setEditing(true);
-                  }}
-                />
-                <IconButton
-                  action="reject"
-                  variant="danger"
-                  size="sm"
-                  pending={busy}
-                  data-sug-reject
-                  onClick={() => void decide(() => decisions.reject(suggestion.id))}
-                />
-              </>
-            )}
+                  <IconButton
+                    action="reject"
+                    variant="danger"
+
+                    pending={busy}
+                    data-sug-reject
+                    onClick={() => void decide(() => decisions.reject(suggestion.id))}
+                  />
+                </>
+              )}
+            </span>
           </span>
         </div>
         <Quotes suggestion={suggestion} onGoToEvidence={onGoToEvidence} lineLabel={lineLabel} />

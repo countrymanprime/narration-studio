@@ -33,7 +33,7 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'reader-context-menu',
     description:
-      'Script, the right-click menu on a selected word: Mark as, Add to the Story Bible as, then Look up, Find, Copy, Bookmark here and Record from here, each group under its heading',
+      'Script, the right-click menu on a selected word, opened under the word: Mark as and Add to the Story Bible as as submenus, then Look up, Find, Copy, Bookmark here and Record from here',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
@@ -48,6 +48,9 @@ export const scriptStates: StateEntry[] = [
     state: 'bookmark-added',
     description: 'Script, B pressed in the reader: the "Bookmark added." toast with Undo, and the bookmark ribbon beside its line',
     ...TOAST_FADES_OUT,
+    // Each width loads the Script with its manuscript, drives the bookmark and its editor, and runs axe in one test: 15 to 20 s under
+    // UI_CPU_THROTTLE=6 on a fast runner, past the 30 s default on a slower one (4 of 15 runs).
+    timeoutFactor: 2,
   },
   {
     page: 'script',
@@ -106,7 +109,7 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'invalid-payload',
     description:
-      'Script, the inline error with Retry when the data it loads could not be read, beside the notice Home raised for the same data; navigation still works',
+      'Script, the inline error with Retry when the data it loads could not be read; the error toast Home raised for the same data is taken away, since the page says it; navigation still works',
   },
   {
     page: 'script',

@@ -1,9 +1,10 @@
 // The Script page's right-click menus (the mock's `pages/script/context.ts`): reader text (a selection, a mark, a name), the
 // chapter list and boundary cards, and the words of the side panel. One provider answers for those targets and for nothing else,
 // the first matching target wins, and every item runs a SN-B70 command or a handler the page passes, so it holds no state. A mark
-// type or a Story Bible kind is never written here: both come from the lists passed in. The menu primitive draws one list, so the
-// mock's submenus ("Mark as", "Add to the Story Bible as", "Change type", "My prep") are labelled groups of it. An item whose handler the
-// page did not pass (Bookmark here, Record from here before the Booth swap) is left out.
+// type or a Story Bible kind is never written here: both come from the lists passed in. The mock's submenus ("Mark as", "Add to the
+// Story Bible as", "Change type", "My prep") are submenus of the menu primitive, so a selection's menu is a handful of rows rather than
+// a 25-row wall that filled the window (alignment audit XSC-19). An item whose handler the page did not pass (Bookmark here, Record from
+// here before the Booth swap) is left out.
 
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { PrepState } from '../../../../api/contracts/scriptPrep';
@@ -75,13 +76,15 @@ export type ScriptMenuDeps = { lists: () => MenuLists; commands: MenuCommands; h
 const PREP_ORDER = Object.keys(PREP_LABELS) as PrepState[];
 const QUOTE_SHOWN = 28;
 
-const item = (key: string, label: string, onSelect: () => void, unavailable?: string, group?: string): ContextMenuItem => ({
+const item = (key: string, label: string, onSelect: () => void, unavailable?: string): ContextMenuItem => ({
   key,
   label,
   onSelect,
   ...(unavailable ? { unavailable } : {}),
-  ...(group ? { group } : {}),
 });
+/** A row that opens its choices beside it; one with no choices is left out. */
+const submenu = (key: string, label: string, items: ContextMenuItem[]): ContextMenuItem[] =>
+  items.length > 0 ? [{ key, label, onSelect: () => undefined, submenu: items }] : [];
 const attr = (target: Element, selector: string, name: string): string | undefined => target.closest<HTMLElement>(selector)?.getAttribute(name) ?? undefined;
 const shortQuote = (text: string): string => (text.length > QUOTE_SHOWN ? `${text.slice(0, QUOTE_SHOWN)}…` : text);
 
@@ -98,32 +101,34 @@ function markItems(mark: Mark, lists: MenuLists, commands: MenuCommands, handler
     const resolved = mark.status === 'resolved';
     out.push(item('mark-status', resolved ? 'Reopen' : 'Mark resolved', () => void commands.setStatus(mark.id, resolved ? 'open' : 'resolved')));
   }
-  for (const type of lists.types) {
-    out.push(
-      item(
-        `mark-type-${type.key}`,
-        type.name,
-        () => void commands.setMarkType(mark.id, type.key),
-        type.key === mark.type ? 'Already this type' : undefined,
-        'Change type',
+  out.push(
+    ...submenu(
+      'mark-type',
+      'Change type',
+      lists.types.map((type) =>
+        item(`mark-type-${type.key}`, type.name, () => void commands.setMarkType(mark.id, type.key), type.key === mark.type ? 'Already this type' : undefined),
       ),
-    );
-  }
-  out.push(item('mark-delete', 'Delete mark', () => void commands.removeMark(mark.id)));
+    ),
+    item('mark-delete', 'Delete mark', () => void commands.removeMark(mark.id)),
+  );
   return out;
 }
 
 function selectionItems(selection: ReaderSelection, lists: MenuLists, commands: MenuCommands, handlers: MenuHandlers, findShown: boolean): ContextMenuItem[] {
   const q = shortQuote(selection.quote);
   const out: ContextMenuItem[] = [
-    ...lists.types.map((type) => item(`mark-as-${type.key}`, type.name, () => handlers.composeMark(type.key, selection), undefined, 'Mark as')),
-    item('mark-as-word', 'Pronunciation (a word)', () => void commands.flagWord(selection), undefined, 'Mark as'),
+    ...submenu('mark-as', 'Mark as', [
+      ...lists.types.map((type) => item(`mark-as-${type.key}`, type.name, () => handlers.composeMark(type.key, selection))),
+      item('mark-as-word', 'Pronunciation (a word)', () => void commands.flagWord(selection)),
+    ]),
     // A name the Story Bible already has is opened, not added again.
-    ...(namesAnEntry(selection.quote, lists.entries)
-      ? []
-      : lists.kinds.map((kind) =>
-          item(`bible-as-${kind}`, kind, () => void commands.createEntryFrom(kind, selection.quote), undefined, 'Add to the Story Bible as'),
-        )),
+    ...submenu(
+      'bible-as',
+      'Add to the Story Bible as',
+      namesAnEntry(selection.quote, lists.entries)
+        ? []
+        : lists.kinds.map((kind) => item(`bible-as-${kind}`, kind, () => void commands.createEntryFrom(kind, selection.quote))),
+    ),
     item('look-up', `Look up “${q}”`, () => handlers.lookUp(selection.quote, selection)),
     // The entry's own menu row already finds its name.
     ...(findShown ? [] : [item('find', `Find “${q}” in the manuscript`, () => handlers.openFind(selection.quote))]),
@@ -181,9 +186,15 @@ function chapterItems(id: string, { lists, commands, handlers: getHandlers }: Sc
   const out = [item('chapter-go', 'Go to this chapter', () => handlers.goToChapter(id))];
   const { recordChapter } = handlers;
   if (recordChapter) out.push(item('chapter-record', 'Record in Booth', () => recordChapter(id)));
-  for (const state of PREP_ORDER) {
-    out.push(item(`prep-${state}`, PREP_LABELS[state], () => void commands.setPrep(chapter, state), state === current ? 'Already set' : undefined, 'My prep'));
-  }
+  out.push(
+    ...submenu(
+      'prep',
+      'My prep',
+      PREP_ORDER.map((state) =>
+        item(`prep-${state}`, PREP_LABELS[state], () => void commands.setPrep(chapter, state), state === current ? 'Already set' : undefined),
+      ),
+    ),
+  );
   return out;
 }
 

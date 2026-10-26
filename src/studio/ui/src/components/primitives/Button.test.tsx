@@ -89,7 +89,8 @@ describe('Button look', () => {
     expect(classes(screen.getByRole('button', { name: 'Resolve' }))).toContain('min-h-[var(--button-height-sm)]');
   });
 
-  it('sets its own label type, tracking, radius and 55% disabled', () => {
+  // The behaviour changed: disabled was a 55% copy of the variant; it is now one grey look (R3EN2-14, R3MS-5).
+  it('sets its own label type, tracking, radius and the grey disabled look', () => {
     render(<Button>Save</Button>);
     const list = classes(screen.getByRole('button'));
     for (const token of [
@@ -99,7 +100,8 @@ describe('Button look', () => {
       'tracking-[var(--tracking-button)]',
       'rounded-[var(--radius-button)]',
       'uppercase',
-      'disabled:opacity-55',
+      'disabled:bg-[var(--surface-2)]',
+      'disabled:text-[var(--text-muted)]',
     ]) {
       expect(list).toContain(token);
     }

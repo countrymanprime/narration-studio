@@ -10,8 +10,8 @@ import { GuideDetail } from './GuideDetail';
 
 afterEach(cleanup);
 
-function open(notify = vi.fn()) {
-  const entity = WIRE_ENTITIES.find((row) => row.id === 'mad-hatter')!;
+function open(notify = vi.fn(), id = 'mad-hatter') {
+  const entity = WIRE_ENTITIES.find((row) => row.id === id)!;
   render(
     <ApiProvider api={createMockApi()}>
       <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={notify} goToManuscript={vi.fn()} />
@@ -21,6 +21,13 @@ function open(notify = vi.fn()) {
 }
 
 describe('the entry header', () => {
+  it('calls an entry the host could not type "Type not set", as the list does (SBX-21)', () => {
+    open(vi.fn(), 'march-hare');
+    const header = screen.getByRole('heading', { name: 'March Hare' }).closest('section')!;
+    expect(within(header).getByText('Type not set')).toBeTruthy();
+    expect(within(header).queryByText('Needs Review')).toBeNull();
+  });
+
   it('swaps the heading for a bare name input in the header while editing, with no labelled field in the body', () => {
     const entity = open();
     expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();

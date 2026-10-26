@@ -26,6 +26,9 @@ import { runProblem, startChoices, startOptions } from './runChoices';
 import type { RunChoices } from './runChoices';
 import { RunningView } from './RunningView';
 
+/** The dialog's section labels: the Chapters column, Audio to check. */
+const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
+
 type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageResult>; engines: CoverageEngines };
 
 /**
@@ -161,16 +164,17 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
       return next;
     });
 
+  // The dialog's 80dvh less its header and the body's padding (6.75rem) and its border: one scroll area for the form, the footer always shown.
   return (
-    <div className="flex max-h-[calc(80dvh-8rem)] min-h-0 flex-col gap-3">
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+    <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3">
+      <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-4 overflow-y-auto">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
             <RunOptions engines={loaded.engines} choices={choices} onChange={change} sliders />
           </div>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="flex-1 text-[length:var(--font-size-sm)] font-semibold uppercase">Chapters</span>
+              <span className={`flex-1 ${SECTION_LABEL}`}>Chapters</span>
               <Button variant="ghost" size="sm" onClick={() => setTicked(new Set(chapters.map((chapter) => chapter.id)))}>
                 All
               </Button>
@@ -181,7 +185,8 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
             {chapters.length === 0 ? (
               <p className="m-0 text-[var(--text-muted)]">No chapter has a recording to check yet.</p>
             ) : (
-              <ul className="m-0 flex list-none flex-col gap-2 overflow-y-auto p-0">
+              // No scroller of its own: the dialog's one scroll area holds it (alignment audit XPF-2).
+              <ul className="m-0 flex list-none flex-col gap-2 p-0">
                 {chapters.map((chapter) => {
                   const result = loaded.results[chapter.id];
                   const last = lastResultSentence(result);
@@ -207,14 +212,16 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
         </div>
       </div>
       <div className="shrink-0 border-t border-[var(--border)] pt-3">
-        <dl className="m-0 flex justify-between gap-3">
-          <dt>Audio to check</dt>
+        <dl className="m-0 flex items-baseline justify-between gap-3">
+          {/* The form's one label style (alignment audit XPF-20). */}
+          <dt className={SECTION_LABEL}>Audio to check</dt>
           <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
         </dl>
-        {note ? <p className="m-0 mt-1 text-[var(--text-muted)]">{note}</p> : null}
+        {note ? <p className="m-0 mt-1 text-sm text-[var(--text-muted)]">{note}</p> : null}
+        <p className="m-0 mt-1 text-sm text-[var(--text-muted)]">Skipped, changed or unclear lines become pickups.</p>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <span className="mr-auto text-[var(--text-muted)]">Skipped, changed or unclear lines become pickups.</span>
+      {/* Cancel and Check on one row at the right at every width (alignment audit XPF-19). */}
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
         <Button variant="secondary" onClick={close}>
           Cancel
         </Button>

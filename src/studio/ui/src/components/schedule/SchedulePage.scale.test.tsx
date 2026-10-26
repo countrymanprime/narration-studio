@@ -7,6 +7,10 @@ import { installKit, mountSchedule, stored } from './scheduleKit.test';
 
 installKit();
 
+// How long a large plan may take to draw. The wait for it uses the same budget, so a slow machine fails on the budget
+// itself, not on the shorter default wait of `findBy*` (5 s in test-setup.ts).
+const BUDGET_MS = 8000;
+
 const many = (n: number): ProductionMilestone[] =>
   Array.from({ length: n }, (_, i) => ({
     name: `Milestone ${i}`,
@@ -23,7 +27,11 @@ describe('how many', () => {
   it('keeps the Milestone column readable beside a 200-character name', async () => {
     await mountSchedule({ seed: { milestones: [{ name: 'x'.repeat(200), dueDate: '2026-10-25' }] } });
     await screen.findByText('Final delivery');
-    expect(screen.getByRole('columnheader', { name: 'Milestone' }).className).toContain('min-w-[10rem]');
+    // The columns are fixed (only Milestone takes what is left, on a table with a floor), and the name stops at two lines.
+    const table = screen.getByRole('table', { name: 'Milestones' });
+    expect(table.className).toContain('table-fixed');
+    expect(table.className).toContain('min-w-[34.5rem]');
+    expect(document.querySelector('[data-name="0"]')!.className).toContain('line-clamp-2');
   });
 
   it('scrolls the table inside its own card, with a keyboard stop and the edge cue', async () => {
@@ -37,9 +45,9 @@ describe('how many', () => {
   it('draws five hundred milestones read from a hand-edited plan, in a few seconds (the host saves at most a hundred; a plan edited by hand can hold more)', async () => {
     const started = Date.now();
     await mountSchedule({ seed: { milestones: many(500) } });
-    await screen.findByText('Final delivery');
+    await screen.findByText('Final delivery', undefined, { timeout: BUDGET_MS });
     expect(document.querySelectorAll('[data-name]')).toHaveLength(500);
-    expect(Date.now() - started).toBeLessThan(8000);
+    expect(Date.now() - started).toBeLessThan(BUDGET_MS);
   });
 
   it("refuses the hundred-and-first milestone with the host's sentence in the dialog and keeps the list", async () => {
@@ -56,8 +64,8 @@ describe('how many', () => {
   it('adds up five thousand chapters without freezing', async () => {
     const started = Date.now();
     await mountSchedule({ statuses: Array.from({ length: 5000 }, () => 'not_started' as const) });
-    await screen.findByText('Work left');
-    expect(Date.now() - started).toBeLessThan(8000);
+    await screen.findByText('Work left', undefined, { timeout: BUDGET_MS });
+    expect(Date.now() - started).toBeLessThan(BUDGET_MS);
     expect(document.body.textContent).not.toMatch(/Infinity|NaN/);
   });
 });

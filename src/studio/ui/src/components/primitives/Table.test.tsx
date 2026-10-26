@@ -375,3 +375,21 @@ describe('the spacer that holds the place of undrawn rows', () => {
     expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 });
+
+describe('a table on the text edge of a padded card', () => {
+  it("starts its first column and ends its last on the card's text edge, not 10 px in (SBX-13)", () => {
+    render(
+      <Table label="Properties" textEdges>
+        <TableBody>
+          <TableRow>
+            <TableCell>Age</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const table = screen.getByRole('table', { name: 'Properties' });
+    expect(table.className).toContain('[&_tr>:first-child]:pl-0');
+    expect(table.className).toContain('[&_tr>:last-child]:pr-0');
+    expect(table.className).not.toContain('pl-[max(0.625rem');
+  });
+});

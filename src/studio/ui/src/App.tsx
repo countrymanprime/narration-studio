@@ -25,6 +25,7 @@ import { StartupScreen, type StartupState } from './components/layout/StartupScr
 import { ToastRegion, type ToastTone } from './components/primitives/Toast';
 import { useProjectPicker } from './hooks/useProjectPicker';
 import { useToasts } from './hooks/useToasts';
+import { attachRefusalClaimed } from './components/connection/attachRefusal';
 import { useChapterSync } from './hooks/useChapterSync';
 import { BackgroundChecks } from './components/recordingcheck/background/BackgroundChecks';
 import { usePendingAction } from './hooks/usePendingAction';
@@ -453,7 +454,10 @@ function AppRoutes() {
         overlay.dismissUndo();
         history.resetFloor();
         void refreshBootstrap();
-      } else if (state.reason) setNotice(state.reason, 'error');
+      } else if (state.reason && !attachRefusalClaimed()) {
+        // A dialog that writes the reason in its own alert (the Booth's connect dialog) claims it, so it is not toasted over the page as well.
+        setNotice(state.reason, 'error');
+      }
     });
   }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice]);
 
@@ -607,7 +611,7 @@ function AppRoutes() {
   useCommand('companion.open', () => {
     if (!isModalOpen()) guardedNavigateRef.current('/companion');
   });
-  // The History panel says "Ctrl Z undoes the last one", so it is the one layer Ctrl+Z reaches through; any other dialog keeps it out.
+  // The History panel says Ctrl Z "undoes the newest change", so it is the one layer Ctrl+Z reaches through; any other dialog keeps it out.
   const onlyHistoryOpen = () => {
     const { dialogs } = overlay.getSnapshot();
     return dialogs.length > 0 && dialogs.every((entry) => entry.kind === 'slideOver' && entry.spec.kind === 'slideOver' && entry.spec.title === HISTORY_TITLE);
@@ -1074,6 +1078,7 @@ function AppRoutes() {
             {chapterSync?.ask && (
               <ChapterSyncConsentDialog
                 projectFile={chapterSync.projectFile}
+                daw={audacityLink.link?.chosen ? { daw: 'Audacity', linkedFile: audacityLink.link.linkedFile } : { daw: 'REAPER' }}
                 preview={syncPreview}
                 busy={syncBusy}
                 onSync={() => {

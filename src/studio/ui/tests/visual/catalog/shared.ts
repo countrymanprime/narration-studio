@@ -1,4 +1,5 @@
 // The row metadata (extra viewports, reloadPerViewport reasons) the page files under catalog/ share.
+import type { StateEntry } from '../lib/types';
 import { COMPANION_VIEWPORT, MEDIUM_ONLY_VIEWPORT, RAIL_ONLY_VIEWPORT, REFLOW_VIEWPORT, WIDE_VIEWPORT } from '../viewports';
 
 // The Settings row stacks below `md`, so every Settings state is also captured at the reflow width and the
@@ -33,3 +34,20 @@ export const FREEZES_THE_CLOCK = { reloadPerViewport: true } as const;
 // the way the width shows it (resizing one load would keep the panel open where the column shows), and its rows are also captured
 // at the wide width, the one where its three columns show.
 export const RAIL_DEPENDS_ON_WIDTH = { reloadPerViewport: true as const, extraViewports: [WIDE_VIEWPORT] };
+
+// A long page's whole height (alignment audit cause U: a window-sized capture hides the lower half of every long page). The row is
+// `state` grown to its full height (`fullPage`), driven the same way: its page file's drivers give `whole-page` the same driver. At a
+// width where the page already fits, the picture is the base row's, and `sameAs` (checked) says so.
+export function wholePage(rows: readonly StateEntry[], state: string, fits: string[] = []): StateEntry {
+  const base = rows.find((row) => row.state === state);
+  if (!base) throw new Error(`wholePage: no row "${state}"`);
+  return {
+    ...base,
+    state: 'whole-page',
+    description: `${base.description} - the whole page, the window grown to its full height`,
+    fullPage: true,
+    ...(fits.length > 0
+      ? { sameAs: { of: `${base.page}/${state}`, reason: 'The page fits the window at this width, so its whole height is the window.', viewports: fits } }
+      : {}),
+  };
+}

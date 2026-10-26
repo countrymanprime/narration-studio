@@ -19,5 +19,7 @@ export const TABLE_TEXT_CLASS = 'text-[0.875rem]';
 // goes, since the card's border is the line there. Outside any panel the fallback (1rem) gives the ordinary cell.
 export const TABLE_EDGES =
   '[&_tr>:first-child]:pl-[max(0.625rem,calc(1rem-var(--panel-pad,1rem)))] [&_tr>:last-child]:pr-[max(0.625rem,calc(1rem-var(--panel-pad,1rem)))] [&>tbody>tr:last-child>*]:border-b-[min(1px,var(--panel-pad,1rem))]';
+// A `Table textEdges` puts its outer cells' text on the padded body's own text edge, keeping the last row's rule as a padded table does.
+export const TABLE_TEXT_EDGES = '[&_tr>:first-child]:pl-0 [&_tr>:last-child]:pr-0 [&>tbody>tr:last-child>*]:border-b-[min(1px,var(--panel-pad,1rem))]';
 // A `Table flush` spans the body's padding, so it is always at the card's edges.
 export const TABLE_FLUSH_EDGES = '[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-4 [&>tbody>tr:last-child>*]:border-b-0';

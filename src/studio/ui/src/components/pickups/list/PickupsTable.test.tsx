@@ -49,6 +49,10 @@ function setup(over: Partial<Props> = {}) {
   return { ...fns, service, toasts, user: userEvent.setup() };
 }
 
+/** The From cell's source: its name and, on the line under it, a speech check's score, read as one ("Speech · 0.91"). */
+const source = (text: string): HTMLElement =>
+  screen.getByText((_, element) => element?.hasAttribute('data-pickup-source') === true && element.textContent === text);
+
 const rowOf = (time: string): HTMLElement => screen.getByText(time, { selector: 'td' }).closest('tr')!;
 
 // Issue 1718: a narrow window scrolls the table sideways inside its panel instead of cutting Status and the row buttons off.
@@ -106,8 +110,10 @@ describe('the-pickups-table-scrolls-instead-of-clipping', () => {
     setup();
     const region = screen.getByRole('group', { name: 'Pickups scroll area' });
     expect(region.tabIndex).toBe(0);
-    expect(region.className).toContain('overflow-auto');
-    expect(within(region).getByRole('table', { name: 'Pickups' }).className).toMatch(/min-w-\[\d+rem\]/);
+    expect(region.className).toContain('overflow-x-auto');
+    // Fixed columns (XPK-3): one width per column, the line's the rest, so no state moves a heading.
+    const cols = [...within(region).getByRole('table', { name: 'Pickups' }).querySelectorAll('col')].map((col) => col.style.width || 'auto');
+    expect(cols).toEqual(['2.625rem', '4.75rem', '6.5rem', 'auto', '4.5rem', '6.25rem', '12rem']);
   });
 });
 
@@ -127,8 +133,8 @@ describe('PickupsTable', () => {
 
   it('columns-show-the-source-honestly', () => {
     setup();
-    expect(screen.getByText('Speech · 0.91')).toBeTruthy();
-    expect(screen.getByText('Speech · no score').getAttribute('title')).toBe(NO_SCORE.confReason);
+    expect(source('Speech · 0.91')).toBeTruthy();
+    expect(source('Speech · no score').getAttribute('title')).toBe(NO_SCORE.confReason);
     expect(screen.getByText('Audio')).toBeTruthy();
     expect(screen.getByText('Proof note')).toBeTruthy();
     expect(screen.getByText('You')).toBeTruthy();
@@ -396,5 +402,66 @@ describe('PickupsTable', () => {
     await user.click(screen.getByRole('button', { name: 'Add a pickup by hand' }));
     expect(await screen.findByRole('textbox', { name: 'Time in the recording' })).toBeTruthy();
     expect(screen.getByText('Chapter 1 · The Orchard', { selector: 'span' })).toBeTruthy();
+  });
+});
+
+// Alignment audit (#2251), Pickups: what the DOM can show of the table's fixes; the geometry is measured in the real app
+// (tests/visual/pickups-alignment.spec.ts).
+describe('pickups-table-alignment', () => {
+  it('removals in a row with no Undo are one toast that counts them, not a stack of the same sentence (R3PK-2, XPK-11)', async () => {
+    const { onRemove, user, toasts } = setup();
+    onRemove.mockResolvedValue(undefined);
+    for (const time of ['05:12.0', '05:40.5', '01:01.0']) {
+      await user.click(within(rowOf(time)).getByRole('button', { name: 'Remove from pickups' }));
+      await waitFor(() => expect(toasts().at(-1)?.text).toMatch(/^Removed/));
+    }
+    expect(toasts()).toHaveLength(1);
+    expect(toasts()[0].text).toBe('Removed 3 lines from pickups. A line from a check or a note stays off the list, so there is no Undo.');
+  });
+
+  it('a line left out of the session is drawn muted, an included one is not (R3PK-7)', () => {
+    setup({ pickups: [{ ...SPEECH, included: false }, AUDIO] });
+    const out = rowOf('05:12.0');
+    expect(out.hasAttribute('data-left-out')).toBe(true);
+    expect(within(out).getByText('05:12.0').className).toContain('text-[var(--text-muted)]');
+    expect(rowOf('01:35.2').hasAttribute('data-left-out')).toBe(false);
+  });
+
+  it('every cell of a row starts at its top, so the controls sit on the first line of a tall line (XPK-1)', () => {
+    setup();
+    for (const cell of within(rowOf('05:12.0')).getAllByRole('cell')) expect(cell.className).toContain('align-top');
+  });
+
+  it('the table runs to the card edges: the scroll box zeroes the panel padding (R3PK-1, XPK-13)', () => {
+    setup();
+    expect(screen.getByRole('group', { name: 'Pickups scroll area' }).className).toContain('[--panel-pad:0px]');
+  });
+
+  it('the chapter band counts in the page face, not monospace (XPK-12)', () => {
+    setup();
+    const count = screen.getAllByText(/· \d+ open$/)[0]!;
+    expect(count.className).not.toMatch(/Mono/);
+  });
+
+  it('the empty list offers a labelled Go to Proof (XPK-10)', async () => {
+    const { user, onGoToProof } = setup({ pickups: [] });
+    const go = screen.getByRole('button', { name: 'Go to Proof' });
+    expect(go.textContent).toBe('Go to Proof');
+    await user.click(go);
+    expect(onGoToProof).toHaveBeenCalled();
+  });
+
+  it('while the list is read, Add is off and the blocks are shaped as the table rows (XPK-15)', () => {
+    setup({ read: { kind: 'loading' } });
+    expect(screen.getByRole('button', { name: 'Add a pickup by hand' }).getAttribute('aria-disabled')).toBe('true');
+    const rows = screen.getByRole('group', { name: 'Loading the pickups' }).querySelectorAll('.h-\\[57px\\]');
+    expect(rows).toHaveLength(3);
+  });
+
+  it('Remove is set apart from the three actions before it (XPK-16)', () => {
+    setup();
+    const remove = within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' });
+    const rule = remove.closest('span[data-base-ui-tooltip-trigger]')?.previousElementSibling ?? remove.previousElementSibling;
+    expect(rule?.getAttribute('aria-hidden')).toBe('true');
   });
 });

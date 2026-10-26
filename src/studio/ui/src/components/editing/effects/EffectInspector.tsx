@@ -10,11 +10,12 @@ import { EffectSettings, OffControls, useEffectHost } from './EffectSettings';
 import { fmtPct, shareOf } from './effectsMath';
 import { useShowEffectInDaw } from './useShowEffectInDaw';
 
+// A label column and the value beside it, left-aligned, so a short value does not sit 190 px from its name (alignment audit XED-14).
 const Fact = ({ name, children }: { name: string; children: ReactNode }) => (
-  <div className="flex justify-between gap-2">
-    <span className="text-[var(--text-muted)]">{name}</span>
-    <span>{children}</span>
-  </div>
+  <>
+    <dt className="text-[var(--text-muted)]">{name}</dt>
+    <dd className="m-0 min-w-0 [overflow-wrap:anywhere]">{children}</dd>
+  </>
 );
 
 /**
@@ -42,9 +43,12 @@ export function EffectInspector({
   const show = useShowEffectInDaw(fx);
   const at = fxSpan(fx, cuts);
   const host = useEffectHost();
+  // Show in the DAW acts on the same effect as Preview and Compare, so it sits in their row (XED-14).
+  const showInDaw = <IconButton action="showInReaper" label={`Show in ${dawName}`} size="sm" disabledReason={show.reason ?? undefined} onClick={show.go} />;
   return (
     <section aria-label="Effect" className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
+      {/* The section's header, not a row like the Preview and Compare row under it, whose cells do not line up with its arrows (rule A3). */}
+      <header className="flex items-center gap-2">
         <h3 className="m-0 flex-1 font-['Barlow_Condensed',sans-serif] text-lg font-semibold">{fx.chainName}</h3>
         <IconButton
           action="previous"
@@ -60,27 +64,25 @@ export function EffectInspector({
           disabledReason={!step || step.at >= step.of - 1 ? 'This is the last effect.' : undefined}
           onClick={() => step?.to(1)}
         />
-      </div>
-      <div className="flex flex-col gap-1 text-sm">
-        <Fact name="Chain">{fx.chainName}</Fact>
+      </header>
+      {/* The chain is the heading above, so it is not a fact again. */}
+      <dl className="m-0 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
         <Fact name="Words">“{fx.text}”</Fact>
         <Fact name="Time">
           {clock(at.start)}–{clock(at.end)}
         </Fact>
         <Fact name="Covers">{fx.stale ? 'nothing: the words changed' : `${fmtPct(shareOf(fx, cuts, total))} of this chapter`}</Fact>
         <Fact name="From">{fx.source}</Fact>
-      </div>
+      </dl>
       {host ? (
-        <EffectSettings fx={fx} cuts={cuts} total={total} dawName={dawName} host={host} />
+        <EffectSettings fx={fx} cuts={cuts} total={total} dawName={dawName} host={host} listen={showInDaw} />
       ) : (
         <>
           <SectionLabel>Settings</SectionLabel>
-          <OffControls dawName={dawName} />
+          <OffControls dawName={dawName} listen={showInDaw} />
         </>
       )}
-      <div className="flex items-center gap-2">
-        <IconButton action="showInReaper" label={`Show in ${dawName}`} size="sm" disabledReason={show.reason ?? undefined} onClick={show.go} />
-        <span className="flex-1" />
+      <div className="flex justify-end">
         <Button variant="danger" size="sm" onClick={() => onRemove(fx)}>
           Remove this effect
         </Button>

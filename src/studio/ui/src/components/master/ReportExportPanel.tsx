@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DeliveryReportExport } from '../../types';
@@ -24,6 +24,7 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
   const [pending, setPending] = useState(false);
   const [written, setWritten] = useState<DeliveryReportExport>();
   const [problem, setProblem] = useState<string>();
+  const reasonId = useId();
 
   const exportReport = async () => {
     setPending(true);
@@ -38,29 +39,32 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
     }
   };
 
+  // The option, the button and why it is off sit together at the foot of the card, in the order they are used (R4TB-4, R4MS1-11,
+  // R4MS2-3): the reason is the line beside the dead button, and the option that only changes what it writes is off with it.
+  const off = busy || !measured;
+  const reason = busy ? 'Wait for the running check to end.' : !measured ? 'Check some files first: the report covers the files measured here.' : undefined;
   return (
-    <Panel
-      title="Report"
-      actions={
-        <Button onClick={() => void exportReport()} pending={pending} disabled={busy || !measured}>
-          Export report
-        </Button>
-      }
-    >
-      <p className="text-sm" style={MUTED}>
-        Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s
-        {brand.identity.projectFolder}/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s
-        approval, and your audio is never changed.
+    <Panel title="Report">
+      <p className="max-w-[80ch] text-sm" style={MUTED}>
+        Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s{' '}
+        {/* One unbroken name: it broke at its hyphen into "narration-" and "studio/delivery" (R4MS2-2). */}
+        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] whitespace-nowrap">{brand.identity.projectFolder}/delivery</span>{' '}
+        folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed.
       </p>
-      {!measured && (
-        <p className="mt-2 text-sm" style={MUTED}>
-          Check some files first: the report covers the files measured here.
-        </p>
-      )}
-      <div className="mt-2">
-        <Checkbox checked={includePaths} onChange={setIncludePaths}>
+      <div className="mt-3">
+        <Checkbox checked={includePaths} onChange={setIncludePaths} disabled={off}>
           Include each file’s full location (otherwise only file names are written)
         </Checkbox>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Button onClick={() => void exportReport()} pending={pending} disabled={off} aria-describedby={reason ? reasonId : undefined}>
+          Export report
+        </Button>
+        {reason && (
+          <span id={reasonId} className="text-sm" style={MUTED}>
+            {reason}
+          </span>
+        )}
       </div>
       {problem && (
         <p role="alert" className="mt-2 text-sm" style={DANGER}>

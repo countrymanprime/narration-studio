@@ -52,7 +52,7 @@ function footer(a: ReturnType<typeof api>, over: Partial<Parameters<typeof Booth
 }
 
 function top(over: Partial<Parameters<typeof BoothTop>[0]> = {}) {
-  return render(<BoothTop progress="¶ 1 of 2 · 0% · ~1:00 finished left" recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
+  return render(<BoothTop progress="¶ 1 of 2 · 0% · ~1:00 of audio left" recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
 }
 
 describe('rec-shows-only-while-recording', () => {
@@ -102,7 +102,7 @@ describe('the-resume-and-setup-slots', () => {
   });
   it('shows the progress line', () => {
     top();
-    expect(screen.getByText('¶ 1 of 2 · 0% · ~1:00 finished left')).toBeTruthy();
+    expect(screen.getByText('¶ 1 of 2 · 0% · ~1:00 of audio left')).toBeTruthy();
   });
 });
 
@@ -147,7 +147,8 @@ describe('the-bars-follow-the-mock-at-narrow-widths', () => {
   it("the meter and the room tone sit at the right of the footer as a chip (the mock's .lvl-inline)", () => {
     footer(api());
     const group = screen.getByRole('group', { name: 'Input' });
-    expect(group.className).toContain('ml-auto');
+    // The footer places the group: its slot is pushed to the right (`ml-auto`), last on the row from 1024 px.
+    expect(group.parentElement?.className).toContain('ml-auto');
     expect(screen.getByText('Room tone −58 dBFS').className).toContain('rounded-full');
   });
 });

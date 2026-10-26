@@ -90,7 +90,7 @@ export const Checking: Story = {
   parameters: { api: host(stored('never'), { phase: 'running', chapterId: 'c1', percent: 42, message: '' }) },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByRole('progressbar', { name: 'Checking' })).toBeTruthy();
-    await expect(within(canvasElement).getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    await expect(within(canvasElement).getByRole('button', { name: 'Stop checking' })).toBeTruthy();
   },
 };
 

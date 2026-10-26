@@ -10,6 +10,8 @@ export function openCheckRecordings(preselected: readonly string[] = [], service
     kind: 'dialog',
     dismissOnOutsidePress: false,
     title: 'Check recordings',
+    // Two columns, the options and the chapters, each wide enough that the form shows whole at a 900 px tall window (alignment audit XPF-2).
+    size: 'wide',
     render: ({ close }) => <CheckRecordingsDialog preselected={preselected} close={close} />,
   });
 }

@@ -51,6 +51,10 @@ function useTakePlayer() {
   };
 }
 
+/** A take's name column: one width in every row, so each row's buttons start beside its take and line up down the list, never a screen
+ * away (alignment audit XPC-6); it never shrinks below a readable name, so at 390 the select and Assign wrap under it instead (XPC-21). */
+const TAKE_NAME = 'w-48 max-w-full min-w-0 truncate';
+
 /**
  * Native takes: the built-in recorder's takes
  * already assigned to a line of this chapter, grouped by line, next to REAPER-sourced take review on the same Proof
@@ -122,24 +126,18 @@ export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
             {takes.map((take) => {
               const playing = player.playing === take.path;
               return (
-                <li key={take.name} className="flex items-center gap-2 py-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`}
-                    aria-pressed={playing}
-                    onClick={() => player.toggle(take)}
-                  >
+                <li key={take.name} className="flex flex-wrap items-center gap-2 py-1">
+                  <Button variant="ghost" aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`} aria-pressed={playing} onClick={() => player.toggle(take)}>
                     <FontAwesomeIcon icon={playing ? faStop : faPlay} />
                   </Button>
-                  <span className="min-w-0 flex-1 truncate">{take.name}</span>
+                  <span className={TAKE_NAME}>{take.name}</span>
                   <Button
                     variant="ghost"
                     aria-pressed={take.keeper}
                     pending={busy === take.name}
                     onClick={() => run(take.name, () => api.recorderSetTakeKeeper(take.name, !take.keeper))}
                   >
-                    {take.keeper ? 'Keeper ✓ (undo)' : 'Mark keeper'}
+                    <span className="inline-block min-w-[7.5rem] text-center">{take.keeper ? 'Keeper ✓ (undo)' : 'Mark keeper'}</span>
                   </Button>
                 </li>
               );
@@ -155,16 +153,10 @@ export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
               const playing = player.playing === take.path;
               return (
                 <li key={take.name} className="flex flex-wrap items-center gap-2 py-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`}
-                    aria-pressed={playing}
-                    onClick={() => player.toggle(take)}
-                  >
+                  <Button variant="ghost" aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`} aria-pressed={playing} onClick={() => player.toggle(take)}>
                     <FontAwesomeIcon icon={playing ? faStop : faPlay} />
                   </Button>
-                  <span className="min-w-0 flex-1 truncate">{take.name}</span>
+                  <span className={TAKE_NAME}>{take.name}</span>
                   <Select
                     label={`${take.name}'s line`}
                     value={pendingAssign[take.name] ?? ''}

@@ -9,6 +9,9 @@ import { computerValue } from '../data/values';
 import { rowOf } from '../registry/rows';
 import { ValueControl } from '../row/ValueControl';
 
+/** The settings' one width for a select or a text box (row/ValueControl.tsx), so this row's select lines up with the rest of the category. */
+export const FIELD_WIDTH = 'w-80 max-w-full';
+
 type Listing = { phase: 'loading' } | { phase: 'ready'; devices: TeleprompterDevice[]; problem?: string };
 
 /**
@@ -35,16 +38,28 @@ export function MicBody() {
 
   const controlId = `set-${row.id}`;
   const choose = (next: string) => void store.write(row, 'global', next === row.def ? null : next);
-  if (!global) return null;
+  // Settings that cannot be read leave the row its control, off like the rest of the page, not an empty row (alignment audit R3SE2-19).
+  if (!global)
+    return (
+      <Select
+        label="Microphone"
+        id={controlId}
+        className={FIELD_WIDTH}
+        value=""
+        disabled
+        onChange={() => undefined}
+        options={[{ value: '', label: 'System default' }]}
+      />
+    );
 
   // While the list is read the picker is already there with the current choice (a deep link focuses it at once).
   const devices = listing.phase === 'ready' ? listing.devices : [];
   const problem = listing.phase === 'ready' ? listing.problem : undefined;
   if (listing.phase === 'ready' && devices.length === 0) {
     return (
-      <div className="flex flex-col items-start gap-1.5">
+      <div className="flex w-full min-w-0 flex-col items-start gap-1.5">
         <ValueControl row={row} field={global} id={controlId} value={value} onChange={choose} />
-        <span className="max-w-[52ch] text-[0.8125rem] text-[var(--text-muted)]">
+        <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">
           {problem ? `The microphones could not be listed: ${problem} ` : 'No microphone was found. '}
           Type the device name the Booth should use, or leave it empty for the system input.
         </span>
@@ -55,12 +70,14 @@ export function MicBody() {
     );
   }
   const known = value === '' || devices.some((device) => device.name === value);
+  // The select takes the settings' one field width and the button goes on its own line under it, as in Voice sample output, so the two rows
+  // line up at every width (alignment audit R3SE1-4, XSE2-8, R4SE2-4).
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full min-w-0 flex-col items-start gap-2">
       <Select
         label="Microphone"
         id={controlId}
-        className="max-w-full"
+        className={FIELD_WIDTH}
         value={value}
         onChange={choose}
         options={[
@@ -69,11 +86,13 @@ export function MicBody() {
           ...(known ? [] : [{ value, label: `${value} (not found)` }]),
         ]}
       />
-      <Button variant="secondary" size="sm" onClick={load}>
-        Refresh the list
-      </Button>
-      {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for microphones…</span>}
-      {problem && <span className="text-[0.8125rem] text-[var(--text-muted)]">{problem}</span>}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="secondary" onClick={load}>
+          Refresh the list
+        </Button>
+        {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for microphones…</span>}
+      </div>
+      {problem && <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">{problem}</span>}
     </div>
   );
 }

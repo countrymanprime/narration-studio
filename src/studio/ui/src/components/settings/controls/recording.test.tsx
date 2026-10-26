@@ -340,6 +340,57 @@ describe('Recording & DAW: REAPER program', () => {
   });
 });
 
+// Alignment audit (R3SE1-4, XSE2-8): the Microphone select is the settings' field width with Refresh under it, not beside it.
+describe('Recording & DAW: Microphone layout', () => {
+  it('draws the select at the field width and Refresh on its own line under it', async () => {
+    await renderPage({ category: 'Recording & DAW' });
+    const select = await within(row('daw.mic')).findByRole('combobox', { name: 'Microphone' });
+    expect(select.className).toContain('w-80');
+    const refresh = within(row('daw.mic')).getByRole('button', { name: 'Refresh the list' });
+    expect(refresh.parentElement).not.toBe(select.parentElement);
+  });
+});
+
+// Alignment audit (R3SE2-19): with the settings unreadable the Microphone row keeps a control, off like the rest, not an empty column.
+describe('Recording & DAW: Microphone, settings unreadable', () => {
+  it('draws the picker switched off', async () => {
+    const api = createMockApi();
+    api.settingsForScope = async () => {
+      throw new Error('the settings file is damaged');
+    };
+    await renderPage({ api, category: 'Recording & DAW' });
+    await screen.findByRole('alert');
+    const select = await within(row('daw.mic')).findByRole('combobox', { name: 'Microphone' });
+    expect((select as HTMLSelectElement).disabled).toBe(true);
+  });
+});
+
+// Alignment audit (XSE2-4, XSE2-6, XSE2-7, R4SE2-11, R3SE2-14).
+describe('Recording & DAW: layout', () => {
+  it('fixes the Capabilities columns and does not repeat the row description under the table', async () => {
+    await renderPage({ category: 'Recording & DAW', advanced: true });
+    const table = await within(row('daw.capabilities')).findByRole('table', { name: 'What the recording tool can do' });
+    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '6.5rem', '8.5rem']);
+    expect(row('daw.capabilities').textContent).not.toContain('Auto follows what the recording tool reports.');
+  });
+
+  it('says the Experimental switch is off once, under the radios, not under each option', async () => {
+    await renderPage({ api: createMockApi({}, foundSeed), category: 'Recording & DAW' });
+    await screen.findByRole('group', { name: 'Connection' });
+    expect(screen.getAllByText(/Turn on Experimental DAW actions under Advanced, below\./)).toHaveLength(1);
+  });
+
+  it('draws the connection card on the card surface with its buttons in one row, Test connection last', async () => {
+    await renderPage({ category: 'Recording & DAW' });
+    const card = await screen.findByRole('group', { name: 'Connection' });
+    expect(card.style.background).toBe('var(--surface)');
+    const test = within(card).getByRole('button', { name: 'Test connection' });
+    const buttons = [...test.parentElement!.querySelectorAll('button')];
+    expect(buttons.at(-1)).toBe(test);
+    expect(buttons.length).toBeGreaterThan(1);
+  });
+});
+
 describe('Recording & DAW: Capabilities', () => {
   it('lists every capability with its setting and what the tool reports now, in the host’s words', async () => {
     const api = createMockApi({}, { daw: { connected: false } });
@@ -422,6 +473,15 @@ describe('Voice & pronunciation', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith('Script', 'global', { definition_source: 'api' }));
     fireEvent.click(screen.getByRole('radio', { name: /^Web page/ }));
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('Script', 'global', { definition_source: null }));
+  });
+
+  // Alignment audit (XSE2-15, XSE2-16): each option's badge and button keep a cell at the right; the key's note is the row's note size.
+  it('keeps each definition source badge in a cell at the right of its radio', async () => {
+    await renderPage({ category: 'Voice & pronunciation' });
+    const local = await screen.findByRole('radio', { name: /^Local dictionary/ });
+    const option = local.closest('[class*="grid-cols-[minmax(0,1fr)_auto]"]');
+    expect(option).toBeTruthy();
+    expect(option!.lastElementChild!.className).toContain('justify-end');
   });
 
   it('shows the local dictionary as installed or not, and removes then downloads it', async () => {
@@ -539,6 +599,26 @@ describe('Delivery', () => {
     fireEvent.click(within(ask).getByRole('button', { name: 'Delete profile' }));
     await waitFor(() => expect(within(list).queryByText(name)).toBeNull());
     expect(notify).toHaveBeenCalledWith(`Deleted "${name}".`);
+  });
+
+  // Alignment audit (XSE1-9, XSE1-8): a custom profile's three buttons are one group at the right, and the editor centres every cell.
+  it('keeps the three profile buttons as one group beside the name, and the editor centres its cells', async () => {
+    const api = createMockApi({}, { deliveryProfile: 'custom' });
+    await renderPage({ api, category: 'Delivery', advanced: true });
+    const list = row('delivery.custom');
+    const name = 'My ACX, tighter peak';
+    await within(list).findByText(name);
+    const item = within(list).getByRole('listitem');
+    expect(item.className).toContain('grid-cols-[minmax(0,1fr)_auto]');
+    const del = within(item).getByRole('button', { name: `Delete ${name}` });
+    expect(
+      within(item)
+        .getByRole('button', { name: `Edit ${name}` })
+        .closest('span.flex-none'),
+    ).toBe(del.closest('span.flex-none'));
+    fireEvent.click(within(list).getByRole('button', { name: `Edit ${name}` }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('table').querySelector('td.align-top')).toBeNull();
   });
 
   it('says there are no custom profiles and offers to duplicate the built-in one', async () => {

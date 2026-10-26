@@ -74,8 +74,8 @@ Method: these are the ten mock test files no page owns. Each mock case is a row 
 | foundations.test.ts | `derive stage values from the data behind them` | covered | src/studio/ui/src/components/proof/proof.selectors.test.ts::counts an open pickup as open and keeps the percent below 100 | GAP F7: covers the Proof percent only. ProductionPage.tsx gives `buildPipelineRows` only `checks`, so the proof, master and QC cells read "Not measured yet" (pipelineRows.test.ts "reads a cell with no chapter-level source as not measured yet"). |
 | foundations.test.ts | `totals the book` | covered | src/studio/ui/src/components/production/overview/overview.test.tsx::stage-bar-sums-to-the-book | GAP F7: asserts the stage segments add up to the book; there is no book pass and fail count, and the delivery check tile reads Not measured yet (overview.test.tsx "delivery check reads Not measured yet where the host has no chapter-level source"). |
 | foundations.test.ts | `checks master rows against the limits` | ported | src/studio/desktop/internal/deliveryprofile/profile_test.go::TestAMissIsNotMetWithAnErrorFindingNamingTheRuleAndTheBound | Room tone at the start: TestRoomToneIsJudgedFromTheMeasuredEdges. UI: fileVerdict.test.ts "says which rule a file missed, by how much, and what to do about it". |
-| foundations.test.ts | `suggests speakers from "said X"` | covered | src/studio/sidecars/manuscript-guide/tests/test_character_cues.py::test_a_tag_after_the_quote_attributes_the_cue | One quote with its tag after it. No test gives both halves of a quote split around one "said X" tag the speaker, as the mock does. |
-| foundations.test.ts | `counts where an entry appears` | ported | src/studio/sidecars/manuscript-guide/tests/test_character_cues.py::test_entities_record_which_chapter_and_scene_they_appear_in | The UI count: entryList.test.ts "counts distinct chapters of the appearances". |
+| foundations.test.ts | `suggests speakers from "said X"` | covered | src/studio/desktop/internal/guide/cues_test.go::TestATagAfterOrBeforeTheQuoteAttributesTheCue | One quote with its tag after it. No test gives both halves of a quote split around one "said X" tag the speaker, as the mock does. |
+| foundations.test.ts | `counts where an entry appears` | ported | src/studio/desktop/internal/guide/build_merge_test.go::TestAnEntryRecordsTheChaptersAndScenesItAppearsIn | The UI count: entryList.test.ts "counts distinct chapters of the appearances". |
 | foundations.test.ts | `records an undoable change and undoes it` | ported | src/studio/ui/src/studio/journal/createJournal.test.ts::act then undo of UI-only commands, newest first, leaves the value equal to the original | `docs/architecture/ui-state-and-journal.md#the-journal-and-undo`. |
 | foundations.test.ts | `refuses to undo a DAW change that is no longer last` | ported | src/studio/ui/src/studio/journal/createJournal.test.ts::daw-entry-only-if-last: an entry followed by any entry refuses "came after this", naming the newest | `docs/architecture/ui-state-and-journal.md#the-journal-and-undo`. |
 | foundations.test.ts | `refuses when REAPER’s own last action is something else` | ported | src/studio/ui/src/studio/journal/createJournal.test.ts::refuses the DAW's own Edit > Undo sentence when the DAW reports '%s' | An `it.each` over `unknown` and `other`. |
@@ -274,9 +274,9 @@ pnpm --dir src/studio/ui exec vitest run \
   src/sampleLiterals.test.ts \
   src/studio/journal/createJournal.test.ts \
   src/test/scenarioMatrix.test.tsx
-cd src/studio/desktop && go test . ./internal/dawport/... ./internal/pickuplist/ ./internal/deliveryprofile/
+cd src/studio/desktop && go test . ./internal/dawport/... ./internal/pickuplist/ ./internal/deliveryprofile/ ./internal/guide/
 uv run --locked python src/studio/integrations/reaper/tests/run_lua_tests.py
-cd src/studio/sidecars/manuscript-guide && uv run --frozen python -m pytest tests/test_character_cues.py
+cd src/studio/sidecars/manuscript-guide && uv run --frozen python -m pytest tests/test_character_continuity.py
 node scripts/ci/adr-index.mjs && node scripts/ci/adr-topics.mjs
 pnpm lint:md && node scripts/ci/docs-slop.mjs && node scripts/ci/docs-references.mjs
 ```

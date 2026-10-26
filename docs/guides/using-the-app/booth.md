@@ -12,12 +12,14 @@ While the chapters are being read, the Booth draws its top bar, text, side panel
 ## The page
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
-where you are (`¶ 1 of 24 · 0% · ~13:48 finished left`), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens [Settings](settings.md). The chapter is named as the manuscript heads it
-(`CHAPTER I. Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
+where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and a chip naming the recording setup (the DAW, or the
+built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
+(`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), and the Booth's text size, 24 to 72 px; **+** and **-** change the size too, and the Booth opens at the size
 you last chose. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
-drawer that starts closed, the chapter picker is narrower, and the top bar wraps onto a second row when it runs out of room.
+drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
+side-panel button move together and stay at the right edge. The chapter picker is as wide as the chapter's name, up to 340 pixels.
+The resume line is not offered while you are already in the paragraph it would take you to.
 
 ![Booth - the Text settings: the font and size of the text you read](../../images/ui/booth-text-settings.webp)
 
@@ -49,10 +51,14 @@ Clicking a Story Bible name, a marked word or a note shows it in the side panel'
 mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has the suspected
 lines of this take, **Last punch**, **In this chapter** (the characters the chapter names or gives lines to, in the order they first appear, with their voice notes and their
 [voice samples](#voice-samples)), **Coming up** (the next names with a pronunciation) and **This session** (how long you have recorded and
-how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first.
+how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first. Where the panel is a drawer, the text
+behind it is dimmed while it is open, and a click on the dimmed text closes it; in a window under 480 pixels wide the drawer
+takes the whole width.
 
-The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), a level bar, the room tone of
-that microphone, and the keys the Booth answers, drawn from your keymap.
+The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), **Cold read**, a level bar and the
+room tone of that microphone at the right, and the keys the Booth answers, drawn from your keymap. One sentence at a time sits
+between the controls and the level bar: why the text cannot follow your voice, or else why Record cannot start. In a window
+narrower than 1024 pixels the sentence moves to its own line under **Record**; the level bar stays on Record's line.
 
 The room tone is the level of the room when nobody speaks. The app measures it whenever it listens to the microphone: during a
 take, and while the **Levels** menu is open. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
@@ -106,7 +112,8 @@ REAPER not confirming in time) is a message with **Check again** too.
 
 ![Booth - six seconds into a take: the text follows the voice](../../images/ui/booth-following.webp)
 
-A chip above the footer names each problem the Booth can fix and opens its dialog again:
+A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
+footer does not repeat the reason, and the setup chip on the top bar warns too:
 
 - **Not linked to a track.** The chapter has no track in the DAW project (or several). The dialog opens by itself the first
   time you open the chapter, and again each time you press Record. It offers two fixes:
@@ -122,7 +129,7 @@ A chip above the footer names each problem the Booth can fix and opens its dialo
 
   ![Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again](../../images/ui/booth-record-unlinked.webp)
 
-  ![Booth - the dialog closed: the Not linked to a track chip above the footer, and the footer saying the chapter has no track to record on](../../images/ui/booth-record-unlinked-closed.webp)
+  ![Booth - the dialog closed: the Not linked to a track chip under the text, which reopens it](../../images/ui/booth-record-unlinked-closed.webp)
 
 - **Record is switched off.** Recording in a DAW starts switched off until it has been checked in that DAW. Press Record (or the
   chip) and the dialog explains it; **Turn on Record** turns it on for this computer (Settings > Recording & DAW > Capabilities >
@@ -157,7 +164,7 @@ A chip above the footer names each problem the Booth can fix and opens its dialo
 - **REAPER has a different project open.** REAPER answers, but the project it has open is not the one linked here, so a take
   would not land where the book expects it. The dialog opens by itself, and again when you press Record. **Link the open
   project** opens the project picker (choose the file REAPER has open); or open the linked project in REAPER and press **Check
-  again**. The Booth also asks again every few seconds while the chip is up, and by itself every 15 seconds otherwise, because
+  again**. **DAW settings** shows which file is linked. The setup chip on the top bar reads **REAPER · other project**. The Booth also asks again every few seconds while the chip is up, and by itself every 15 seconds otherwise, because
   REAPER sends no message when another project is opened. The dialog says what it waits for and when the app last looked.
 
   ![Booth - REAPER has a different project open: the dialog offers Link the open project, DAW settings and Check again](../../images/ui/booth-record-other-project.webp)
@@ -179,9 +186,10 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 - **Experimental.** Like recording in a DAW, it starts switched off until it has been checked on your microphone. The **Record
   is switched off** chip above the footer says so; it, or a press of Record, opens the dialog whose **Turn on Record** turns it
-  on, the same switch as in Settings > Recording & DAW > Capabilities > Record.
+  on, the same switch as in Settings > Recording & DAW > Capabilities > Record. The switch is this app's own, so the dialog waits
+  for nothing outside it: its other button is **Recording settings**.
 
-  ![Booth - the built-in recorder with Experimental actions off: Record off with the reason, and the Record is switched off chip above the footer](../../images/ui/booth-builtin-refusal.webp)
+  ![Booth - the built-in recorder with Experimental actions off: Record off, and the Record is switched off chip under the text](../../images/ui/booth-builtin-refusal.webp)
 
 - **The microphone.** The take records on the microphone you chose in **Levels**. With none chosen it uses the one the project
   last recorded with, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
@@ -341,7 +349,7 @@ into another chapter when needed; during a take they move only within the chapte
 
 ## Pages and your stopping place
 
-The Booth marks where a page breaks: a faint dashed line across the text above the line that holds the page's first word, and **Page 2**, **Page 3** and so on written down the right margin beside the ribbons. A page is 250 words, counted from the start of the chapter; change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size, and a chapter of one page has none.
+The Booth marks where a page breaks: a faint dashed line across the text above the page's first line, and **Page 2**, **Page 3** and so on written down the right margin beside the ribbons. A page is at least 250 words, counted from the start of the chapter, and never breaks inside a paragraph: when the count reaches 250 partway through a paragraph, the page runs on to that paragraph's last word and the next page starts with the next paragraph, counting again from there. A paragraph longer than a page makes one long page. The last page of a chapter has no break after it, so a chapter of one page, or of a single paragraph, has none. Change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size.
 
 To mark where you mean to stop, right-click a word, or a page's label, and choose **Read to here**. The place gets a chequered-flag ribbon, also shown in the Script and in the jump menu (**Read to here: …**), with **Undo** on the message. A chapter has one stopping place: setting another moves it, and **Undo** puts it back where it was. It only marks the place: nothing stops, pauses or ends a take when you reach it. Right-click the flag for **Edit stopping place** and **Remove stopping place**.
 
@@ -351,7 +359,8 @@ To mark where you mean to stop, right-click a word, or a page's label, and choos
 
 **Open N in Booth** on [Pickups](pickups.md#pickup-session) opens the Booth on the chosen lines, at the first line's chapter. A
 **Pickups · N open** chip on the top bar counts the lines still open, and the side panel lists them first, each with its chapter
-and time on a card of its own: a chip says **Open** or **Recorded**, and the line you are on is framed. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
+and time on a card of its own: a chip says **Open** or **Recorded**, and the line you are on is framed. In the text, each pickup
+line has a bar down its left side and starts a little further in. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
 chapter when needed (not during a take). A line the recording check found is tagged **Automatic**; dismissing it removes it from
 [Pickups](pickups.md) as well.
 
@@ -396,7 +405,8 @@ The Companion is a narrow panel pinned beside your DAW. Open it with **Open Comp
 reading session, with REAPER's playhead in its header, the script in its own scroll box, the reading controls and the hotkeys
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
-place in the panel and is coming later.
+place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
+scroll.
 While its chapters are being read, the panel shows its title and grey blocks, and if the credits you asked for have no text it opens the Booth instead.
 
 ![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)

@@ -1,7 +1,7 @@
 // How to reach each `engine` state in STATE_CATALOG (see app.drivers.ts): the engine panel, opened from the header's engine chip,
 // and the REAPER tools' dialogs opened from it.
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, openEditingCheckFromEngine, openEnginePanel } from './shared';
+import { type Driver, clickVisible, openAdvanced, openEditingCheckFromEngine, openEnginePanel, openSettings, showSettingsRow } from './shared';
 
 export const engineDrivers: Record<string, Driver> = {
   default: async (page) => {
@@ -25,7 +25,37 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockChapterSync=background');
     await settlePage(page);
     await openEnginePanel(page);
-    await page.getByText(/Background checks: waiting/).waitFor();
+    await page.getByText(/Waiting: REAPER is recording/).waitFor();
+  },
+  // Chapter sync's "Needs you" list: undoing an automatic link in the sync activity log (Settings > Recording & DAW > Advanced) leaves that
+  // chapter for the narrator to link, and no seed starts there.
+  'sync-needs-you': async (page) => {
+    await openSettings(page, 'Recording & DAW', '?mockChapterSync=activity');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'daw.syncActivity');
+    await row
+      .getByRole('button', { name: /^Undo: Linked/ })
+      .first()
+      .click();
+    await openEnginePanel(page);
+    await page.getByRole('heading', { name: /^Needs you \(\d+\)$/ }).waitFor();
+    // The undo answers with "Link undone." over the Tracks table: the picture is the panel.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
+  },
+  // An Audacity project: its card replaces the REAPER project section.
+  'audacity-linked': async (page) => {
+    await page.goto('/?mockAudacityLink=linked');
+    await settlePage(page);
+    await openEnginePanel(page, 'Audacity');
+    await page.getByText("Audacity is open and answering, with this project's Audacity project.").waitFor();
+    await page.getByText(/, from Book One\.aup3 in Audacity$/).waitFor();
+  },
+  'audacity-not-running': async (page) => {
+    await page.goto('/?mockAudacityLink=not-running');
+    await settlePage(page);
+    await openEnginePanel(page, 'Audacity');
+    await page.getByText('Audacity is not running. Start it here and the app connects.').waitFor();
   },
   'rpp-picker': async (page) => {
     // Reload with the mock's two-.rpp seam (see main.tsx) - the outer
@@ -33,7 +63,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockMultipleRpp=1');
     await settlePage(page);
     await openEnginePanel(page);
-    await page.getByText('Choose a REAPER project file').waitFor();
+    await page.getByRole('list', { name: 'REAPER project files' }).waitFor();
   },
   'no-rpp': async (page) => {
     await page.goto('/?mockNoRpp=1');
@@ -43,11 +73,11 @@ export const engineDrivers: Record<string, Driver> = {
   },
   'no-daw-link': async (page) => {
     // Reload with the mock's no-linked-DAW seam (see main.tsx): the panel still reads its own .rpp discovery, but its
-    // own DAW-link control switches from "Link a different REAPER project file" to "Link a REAPER project file".
+    // own DAW-link control switches from "Change file…" to "Link file…".
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await openEnginePanel(page);
-    await page.getByRole('button', { name: 'Link a REAPER project file' }).waitFor();
+    await page.getByRole('button', { name: 'Link file…' }).waitFor();
   },
   'wrong-project': async (page) => {
     // The mock's live heartbeat whose open project disagrees with the linked file (see main.tsx): the card says when it last checked.
@@ -68,7 +98,7 @@ export const engineDrivers: Record<string, Driver> = {
     // The first body row, by position: filtering by "has a combobox" would stop matching this same row the
     // instant Confirm turns it into the linked view (no combobox), so `waitFor` below would wait forever.
     const firstRow = table.locator('tbody tr').first();
-    await firstRow.getByRole('combobox').selectOption({ index: 0 });
+    await firstRow.getByRole('combobox').selectOption({ index: 1 });
     await firstRow.getByRole('button', { name: 'Confirm' }).click();
     await firstRow.getByRole('button', { name: 'Change' }).waitFor();
   },
@@ -208,7 +238,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Embed chapter tags…');
-    await page.getByText('not rendered yet').waitFor();
+    await page.getByText('Not rendered yet', { exact: true }).waitFor();
   },
   'chapter-tags-success': async (page) => {
     await page.goto('/?mockChapterTags=ready');

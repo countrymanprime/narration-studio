@@ -14,7 +14,9 @@ const ITEM =
 
 const ROUND = 'rounded-lg';
 const CURRENT = 'rounded-[0_6px_6px_0] bg-[var(--surface-2)] text-[var(--text)] shadow-[inset_3px_0_0_var(--accent)]';
-const HOVER = 'hover:bg-[var(--surface-2)] hover:text-[var(--text)]';
+// A hovered item takes `--row-alt`, a step lighter than the current page's `--surface-2`, so hover and the current page do not look alike (alignment
+// audit XSL-17).
+const HOVER = 'hover:bg-[var(--row-alt)] hover:text-[var(--text)]';
 
 export function NavButton({
   active,
@@ -64,13 +66,15 @@ export function NavButton({
         <span
           aria-hidden="true"
           data-nav-count
-          className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--surface-2)] px-[0.3125rem] text-[length:var(--font-size-label)] tracking-normal text-[var(--text-muted)]"
+          // `--surface-3`, a step deeper than the rail and the current page's fill, so the pill shows on both (alignment audit XSL-18).
+          className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--surface-3)] px-[0.3125rem] text-[length:var(--font-size-label)] tracking-normal text-[var(--text-muted)]"
         >
           {count}
         </span>
       )}
       {off && !iconOnly && (
-        <span aria-hidden="true" data-nav-lock className="ml-auto inline-flex text-[0.6875rem] text-[var(--text-muted)]">
+        // In a 16 px box like a one-digit count, so a lock and a count end at one x down the rail (XSL-18).
+        <span aria-hidden="true" data-nav-lock className="ml-auto inline-flex w-4 justify-center text-[0.6875rem] text-[var(--text-muted)]">
           <FontAwesomeIcon icon={faLock} />
         </span>
       )}
@@ -80,7 +84,8 @@ export function NavButton({
     // The hint shows the reason on hover and keyboard focus; a press opens the note, which also works on touch and in the drawer, where no hint opens.
     return (
       <TooltipTarget text={disabledReason || children} className="w-full">
-        <Popover trigger={button} label={`${children} is unavailable`} side="right" align="start">
+        {/* A one-sentence note 8 px from its item, as wide as its words (alignment audit XSL-22). */}
+        <Popover trigger={button} label={`${children} is unavailable`} side="right" align="start" sideOffset={8} compact>
           <p className="m-0 text-sm text-[var(--text)]">{disabledReason}</p>
         </Popover>
         {/* Outside the button: inside it, the reason would become part of the item's name. Clipped, not `sr-only`: that is absolutely

@@ -97,6 +97,15 @@ describe('coverage is the union of the effects that are on', () => {
     expect(screen.getByText('Effects cover 0.0% of this chapter')).toBeTruthy();
     expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
+  // Alignment audit R3ED-17: the 1-effect shade alone was all but invisible on the dark surface; every swatch now has a rim.
+  it('draws each legend swatch with a rim, None included', () => {
+    render(<CoverageStrip effects={ONE} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
+    for (const n of ['0', '1', '2']) {
+      const swatch = document.querySelector<HTMLElement>(`[data-swatch="${n}"]`)!;
+      expect(swatch.className).toContain('border');
+      expect(swatch.style.borderColor).not.toBe('');
+    }
+  });
   it('shows the cap with its source and a stronger state when it is crossed far', () => {
     const view = render(<CoverageStrip effects={ONE} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
     expect((screen.getByRole('textbox', { name: FX_CAP_LABEL }) as HTMLInputElement).value).toBe('10');
@@ -135,6 +144,16 @@ describe('the list, the words and the inspector', () => {
     expect(rows[1].getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText('Effects · 3')).toBeTruthy();
   });
+  // Alignment audit R3ED-7, XED-13: the inspected row was not marked, and a long name wrapped the row to two lines.
+  it('marks the row the inspector shows, cuts a long name to one line with the name as its hint, and scrolls sideways', () => {
+    render(<EffectsList effects={MANY} cuts={[]} total={TOTAL} selectedId="fx2" onSelect={() => {}} />);
+    const rows = [...document.querySelectorAll('[data-fxr]')].map((b) => b.closest('tr')!);
+    expect(rows.map((r) => r.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false']);
+    const name = within(rows[1]).getByText('Warmth');
+    expect(name.className).toContain('truncate');
+    expect(name.getAttribute('title')).toBe('Warmth');
+    expect(screen.getByRole('table').parentElement!.className).toContain('overflow-x-auto');
+  });
   it('says so when there are none', () => {
     render(<EffectsList effects={[]} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
     expect(screen.getByText('No effects on this chapter yet.')).toBeTruthy();
@@ -147,6 +166,12 @@ describe('the list, the words and the inspector', () => {
       </ApiProvider>,
     );
     expect(screen.getByText('Podcast Voice', { selector: 'h3' })).toBeTruthy();
+    // Alignment audit XED-14: the chain is the heading, not a fact again; Show in REAPER sits in the Preview and Compare row.
+    expect(screen.getAllByText('Podcast Voice')).toHaveLength(1);
+    expect(screen.queryByText('Chain')).toBeNull();
+    const previewRow = (screen.getByRole('button', { name: 'Preview' }) as HTMLElement).parentElement!;
+    expect(within(previewRow).getByRole('button', { name: 'Show in REAPER' })).toBeTruthy();
+    expect(within(previewRow).queryByRole('button', { name: 'Remove this effect' })).toBeNull();
     expect(screen.getByText('“The first”')).toBeTruthy();
     expect(screen.getByText('6.0% of this chapter')).toBeTruthy();
     for (const name of ['Settings', 'Preview', 'Compare']) {
@@ -316,6 +341,16 @@ describe('the tab', () => {
     expect(within(inspector()).getByText('“Second”')).toBeTruthy();
     expect(within(inspector()).getByText('1:40–1:44')).toBeTruthy();
     expect(within(inspector()).getByText('2.0% of this chapter')).toBeTruthy();
+  });
+  // Alignment audit R3ED-7: with words selected the inspector showed the first effect, not the one on the selection.
+  it('inspects the effect on the selected words, and a row picked after that wins until the selection changes', () => {
+    const view = render(withApi(<EffectsTab {...base({ selected: ['p-2:0'] })} />));
+    const inspector = () => screen.getByRole('region', { name: 'Effect' });
+    expect(within(inspector()).getByText('De-ess', { selector: 'h3' })).toBeTruthy();
+    fireEvent.click(document.querySelector('[data-fxr="fx1"]') as HTMLElement);
+    expect(within(inspector()).getByText('Podcast Voice', { selector: 'h3' })).toBeTruthy();
+    view.rerender(withApi(<EffectsTab {...base({ selected: ['p-1:2'] })} />));
+    expect(within(inspector()).getByText('Warmth', { selector: 'h3' })).toBeTruthy();
   });
   it('Select the words and Remove the effect go through the page', () => {
     render(withApi(<EffectsTab {...base()} />));

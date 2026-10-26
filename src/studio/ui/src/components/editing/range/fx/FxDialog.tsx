@@ -3,12 +3,13 @@ import type { FxChoice, FxList } from '../../../../ports/daw';
 import { Button } from '../../../primitives/Button';
 import { Icon } from '../../../primitives/Icon';
 import { Select } from '../../../primitives/Select';
-import { SectionLabel } from '../../../primitives/SectionLabel';
 import { clock } from '../../bar/clock';
 import { summarize, type ChapterDoc, type CutSpan, type SelSummary } from '../../model';
 import { snapText, type RangeLocator, type SnappedEnd } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';
 import { SubWordRow } from '../common/SubWordRow';
+import { DialogFooter } from '../common/DialogFooter';
+import { FACTS, Fact, FACT_VALUE_MONO } from '../common/Facts';
 import type { Span } from '../../ribbon/rangeMath';
 import { FxPieces } from './FxPieces';
 import { FX_JOINS, fxButton, fxPlanText } from './fxText';
@@ -83,55 +84,37 @@ export function FxDialog({
   const over = useMemo(() => (snapped ? overOf(sum) : null), [snapped, overOf, sum]);
   const n = sum.audible.length;
   const abWhy = choice ? compareReason(sum, choice) : '';
-  const facts = 'm-0 grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-1.5';
   return (
-    <div className="flex flex-col gap-3" data-fx-dialog>
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <SectionLabel>Words</SectionLabel>
-        <div className="inline-block max-w-full rounded bg-[var(--info-soft)] px-2 py-0.5 font-serif text-lg" data-fx-words>
-          {sum.words}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <SectionLabel>{list.source}</SectionLabel>
-        <Select label="Effect" className="max-w-full" value={chain} onChange={setChain} options={list.choices.map((c) => ({ value: c.id, label: c.name }))} />
-      </div>
+    <div className="@container flex flex-col gap-3" data-fx-dialog>
+      <dl className={FACTS}>
+        <Fact label="Words">
+          <span className="inline-block max-w-full rounded bg-[var(--info-soft)] px-2 py-0.5 font-serif text-lg" data-fx-words>
+            {sum.words}
+          </span>
+        </Fact>
+        <Fact label="Effect" align="center">
+          <Select label="Effect" className="max-w-full" value={chain} onChange={setChain} options={list.choices.map((c) => ({ value: c.id, label: c.name }))} />
+        </Fact>
+      </dl>
       {r && choice ? <FxPieces items={doc.items.filter((i) => i.pid === r.pid)} keys={r.keys} start={r.start} end={r.end} chain={choice.name} /> : null}
-      <dl className={facts}>
-        <dt className="pt-0.5">
-          <SectionLabel>Splits at</SectionLabel>
-        </dt>
-        <dd className="m-0 font-mono" data-fx-split-at>
+      <dl className={FACTS}>
+        <Fact label="Splits at" className={FACT_VALUE_MONO} data-fx-split-at>
           {r ? `${clock(r.start)} and ${clock(r.end)} · ${sec(r.end - r.start)} in the middle` : '—'}
-        </dd>
+        </Fact>
         <SubWordRow span={span} items={sum.audible} attr="data-fx-subword" />
         {ends ? (
-          <>
-            <dt className="pt-0.5">
-              <SectionLabel>Ends</SectionLabel>
-            </dt>
-            <dd className="m-0" data-fx-snap>
-              {ends}
-            </dd>
-          </>
+          <Fact label="Ends" data-fx-snap>
+            {ends}
+          </Fact>
         ) : null}
-        <dt className="pt-0.5">
-          <SectionLabel>In</SectionLabel>
-        </dt>
-        <dd className="m-0" data-fx-in>
+        <Fact label="In" data-fx-in>
           {chapterName}
           {r ? ` · ${r.takeId ? `take ${r.takeId} · ` : ''}${locator.place(r)}` : ''}
-        </dd>
-        <dt className="pt-0.5">
-          <SectionLabel>{plan.kind === 'backup-then-daw' ? 'Applies' : 'Adds'}</SectionLabel>
-        </dt>
-        <dd className="m-0" data-fx-chain>
+        </Fact>
+        <Fact label={plan.kind === 'backup-then-daw' ? 'Applies' : 'Adds'} data-fx-chain>
           {choice ? `${choice.name} · from “${list.source}”` : '—'}
-        </dd>
-        <dt className="pt-0.5">
-          <SectionLabel>Joins</SectionLabel>
-        </dt>
-        <dd className="m-0">{FX_JOINS}</dd>
+        </Fact>
+        <Fact label="Joins">{FX_JOINS}</Fact>
       </dl>
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -156,15 +139,14 @@ export function FxDialog({
       <p className="m-0 rounded-lg bg-[var(--info-soft)] px-3 py-2.5 text-sm" data-fx-plan>
         {fxPlanText(plan)}
       </p>
-      {/* The footer stays in view, so Cancel taking the focus never scrolls the question away. */}
-      <div className="sticky bottom-[-1.1rem] mx-[-1.1rem] mb-[-1.1rem] flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--surface)] px-[1.1rem] py-3">
+      <DialogFooter>
         <Button type="button" variant="secondary" autoFocus onClick={onCancel}>
           Cancel
         </Button>
         <Button type="button" variant="primary" disabled={!snapped || !r || !choice || n === 0} onClick={() => choice && onConfirm(sum, choice, over)}>
           {fxButton(over !== null, plan)}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   );
 }

@@ -55,4 +55,26 @@ describe('StatStrip', () => {
     expect(list.className).toContain('@min-[36rem]:[--strip-cols:var(--strip-half)]');
     expect(list.className).toContain('@min-[22rem]:[--strip-cols:2]');
   });
+
+  // XPR2-16, XPR1-11, R4SM-6: three tiles in two columns left "Effective rate" alone under a rule that stopped mid-card.
+  it('keeps three tiles in one row at the half step, and spans an odd last tile across the two-column step', () => {
+    const three = Array.from({ length: 3 }, (_, index) => ({ key: `k${index}`, label: `Figure ${index}`, value: `${index}` }));
+    const { container } = render(<StatStrip items={three} />);
+    const list = container.querySelector('ul') as HTMLElement;
+    expect(list.style.getPropertyValue('--strip-half')).toBe('3');
+    expect(list.className).toContain('@min-[22rem]:[--strip-odd:2]');
+    expect(list.className).toContain('@min-[36rem]:[--strip-odd:1]');
+    for (const li of Array.from(list.querySelectorAll('li'))) expect(li.className).toContain('last:odd:col-span-(--strip-odd)');
+  });
+
+  // R4TA-6: a label that wraps to two lines put its value lower than the value beside it.
+  it("lays each tile on its row's subgrid, label, value, hint and bar each in its own row", () => {
+    const { container } = render(<StatStrip items={[{ key: 'a', label: 'Hours per finished hour', value: '12.3 : 1', hint: 'this week', progress: 0.5 }]} />);
+    const li = container.querySelector('li') as HTMLElement;
+    expect(li.className).toContain('grid-rows-subgrid');
+    expect(li.className).toContain('row-span-4');
+    expect(screen.getByText('Hours per finished hour').className).toContain('row-start-1');
+    expect(screen.getByText('12.3 : 1').parentElement!.className).toContain('row-start-2');
+    expect(screen.getByText('this week').className).toContain('row-start-3');
+  });
 });

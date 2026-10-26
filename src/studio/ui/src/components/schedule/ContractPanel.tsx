@@ -49,27 +49,27 @@ export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse, onAc
   };
   return (
     <Panel title="Contract">
-      <dl className="flex flex-col gap-2.5 text-[0.88rem]">
-        <div className="flex items-center justify-between gap-3">
-          <dt>Paid</dt>
-          <dd>
-            <Select
-              label="How you are paid"
-              value={payment}
-              onChange={(v) => onPayment(v as ProductionPayment)}
-              options={PAYMENT_TYPES.map((t) => ({ value: t.id, label: t.label }))}
-            />
-          </dd>
-        </div>
+      {/* One label column and one control column (XSH-1): the select and the rate box start at the same x and are the same width. */}
+      <dl className="grid grid-cols-[7rem_minmax(0,18rem)] items-center gap-x-4 gap-y-2.5 text-[0.88rem]">
+        <dt>Paid</dt>
+        <dd>
+          <Select
+            label="How you are paid"
+            value={payment}
+            onChange={(v) => onPayment(v as ProductionPayment)}
+            options={PAYMENT_TYPES.map((t) => ({ value: t.id, label: t.label }))}
+            fullWidth
+          />
+        </dd>
         {payment === 'per_finished_hour' && (
-          <div className="flex items-center justify-between gap-3">
+          <>
             <dt>Amount</dt>
-            <dd className="flex items-center gap-2">
+            {/* The select above already says "Per finished hour", so the box carries no unit of its own; its name keeps it for a screen reader. */}
+            <dd>
               <TextField
                 label="Rate per finished hour"
                 mono
                 inputMode="decimal"
-                className="w-[7.5rem]!"
                 value={typed ?? (plan.contractedAmount === null ? '' : plainNumber(plan.contractedAmount))}
                 onChange={setTyped}
                 onBlur={commit}
@@ -77,17 +77,16 @@ export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse, onAc
                   if (event.key === 'Enter') event.currentTarget.blur();
                 }}
               />
-              <span className="text-[var(--text-muted)]">per finished hour</span>
             </dd>
-          </div>
+          </>
         )}
         {value !== null && (
-          <div className="flex items-center justify-between gap-3">
+          <>
             <dt>Value at this rate</dt>
             <dd className="font-mono" data-contract-value>
               {num(Math.round(value))}
             </dd>
-          </div>
+          </>
         )}
       </dl>
     </Panel>

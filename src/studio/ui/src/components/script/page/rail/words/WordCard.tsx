@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { overlay } from '../../../../../overlay/overlayService';
 import { Button } from '../../../../primitives/Button';
+import { Icon } from '../../../../primitives/Icon';
 import { IconButton } from '../../../../primitives/IconButton';
+import { hearNameAction } from '../../../../../icons.catalog';
 import { InsetCard } from '../../../../primitives/InsetCard';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { StatusBadge } from '../../../../primitives/StatusBadge';
@@ -60,7 +62,7 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
         <h3 className="m-0 text-base font-semibold">{word}</h3>
         <StatusBadge tone={statusTone(status)} label={statusLabel(status)} />
         <span className="flex-1" />
-        <IconButton action="hear" onClick={() => hearReference(word)} />
+        <IconButton action={hearNameAction()} onClick={() => hearReference(word)} />
         <IconButton action="record" onClick={() => overlay.toast('Recording your own pronunciation')} />
       </div>
       <RailOptionRow label="How I will say it">
@@ -94,9 +96,11 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
       <SectionLabel as="div">Look up on the web</SectionLabel>
       <ExternalLinks word={word} open={(source, w) => void host.openLookup(source, w)} />
       {status === 'not_flagged' && selection && (
-        <div>
-          <IconButton action="add" label="Add to my words" onClick={() => void commands.flagWord(selection)} />
-        </div>
+        // A labelled button, not a lone `+` under the look-ups that reads as one of them (XSC-12).
+        <Button variant="secondary" size="sm" onClick={() => void commands.flagWord(selection)}>
+          <Icon name="add" />
+          Add to my words
+        </Button>
       )}
     </InsetCard>
   );
