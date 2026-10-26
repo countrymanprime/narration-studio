@@ -458,8 +458,8 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
       const [chapter] = await api.manuscriptChapters();
       const state = await api.readAloudReaperState(chapter.id);
       expectMatches(readAloudReaperStateSchema, state, `mock reaper state ${seed}`);
-      const host = golden[seed === 'unavailable' ? 'experimental_off' : seed];
-      if (seed !== 'unavailable') expect([state.status, state.reason]).toEqual([host.status, host.reason]);
+      // "unavailable" is the mock's own standalone case; the host's golden has no record for it.
+      if (seed !== 'unavailable') expect([state.status, state.reason]).toEqual([golden[seed].status, golden[seed].reason]);
     }
   });
 
@@ -488,8 +488,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
       expectMatches(readAloudRecordingSchema, armed, `mock arm ${seed}`);
       expectMatches(readAloudRecordingSchema, started, `mock record start ${seed}`);
       expectMatches(readAloudRecordingSchema, stopped, `mock record stop ${seed}`);
-      // "unavailable" is its own reason (standalone) in the mock, unlike "experimental_off"'s golden key - the same
-      // case the read-aloud-reaper-states check above skips for the same reason.
+      // "unavailable" is the mock's own standalone case, which the read-aloud-reaper-states check above skips too.
       if (seed === 'unavailable') continue;
       expect([armed.outcome, armed.reason]).toEqual([golden[`${seed}.arm`].outcome, golden[`${seed}.arm`].reason]);
       expect([started.outcome, started.reason]).toEqual([golden[`${seed}.start`].outcome, golden[`${seed}.start`].reason]);
