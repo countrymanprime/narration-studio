@@ -7,9 +7,6 @@ import { ApiProvider } from '../../../api/ApiContext';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
-import type { DocItem } from '../model';
-import { RangeNotes } from './RangeOverlay';
-import { wordsCovered } from './rangeMath';
 import { rangeDoc } from './rangeFixtures';
 import { WaveDock } from './WaveDock';
 
@@ -91,7 +88,6 @@ describe('the range on the waveform', () => {
     expect(screen.queryByRole('slider')).toBeNull();
     act(() => state.dispatch({ type: 'select', anchor: 'p-1:2', head: 'p-1:3' }));
     expect(screen.queryByRole('slider')).toBeNull();
-    expect(screen.queryByTestId('range-partial')).toBeNull();
     expect(screen.queryByText(/^Range /)).toBeNull();
   });
 
@@ -109,8 +105,8 @@ describe('the range on the waveform', () => {
     act(() => state.dispatch({ type: 'play', t: 5.1 }));
     await ready();
     expect(screen.queryByRole('slider', { name: 'Start of range' })).toBeNull();
-    // How to make one is behind the "?", not a line under the waveform (#2251): the notes slot is empty.
-    expect(document.querySelector('[data-ribbon-notes]')?.textContent).toBe('');
+    // How to make one is behind the "?", not a line under the waveform (#2251).
+    expect(document.querySelector('[data-ribbon-notes]')).toBeNull();
     expect(screen.getByRole('button', { name: 'Waveform gestures' }).getAttribute('aria-description')).toMatch(/^Drag: select\./);
   });
 
@@ -328,43 +324,22 @@ describe('what a screen reader hears', () => {
   });
 });
 
-describe('partial words are shown as they are', () => {
-  it('names the word an edge cuts through and how much of it the range covers, and previews the sub-word edge', async () => {
+describe('a drawn range writes nothing under the waveform', () => {
+  it('a range ending inside words is its drawn body and a tooltip: no readout, partial-word or sub-word text on the page (#2251)', async () => {
     mount();
     await ready();
     drag(surface(), xAt(5.54), xAt(6.296));
-    const note = await screen.findByText(/Sub-word edge, shown as a preview/);
-    expect(note.textContent).toContain('0:05.54 to 0:06.30');
-    expect(note.textContent).toContain('0:05.60 to 0:06.20');
-    const partial = screen.getByTestId('range-partial');
-    expect(partial.textContent).toBe(' Start: covers the last 20% of “was” (not selected). End: covers the first 32% of “sitting” (not selected).');
-  });
-
-  it('says nothing about sub-word edges when the range sits on whole words', async () => {
-    mount();
-    await ready();
-    select('p-1:2', 'p-1:3');
     await waitFor(() => expect(startHandle()).toBeTruthy());
-    expect(screen.queryByText(/Sub-word edge/)).toBeNull();
+    const body = document.querySelector<HTMLElement>('[data-range-body]');
+    expect(body?.title).toMatch(/^0:05\.5/);
+    expect(document.querySelector('[data-ribbon-notes]')).toBeNull();
+    expect(document.querySelector('[data-range-notes]')).toBeNull();
     expect(screen.queryByTestId('range-partial')).toBeNull();
-  });
-
-  it('a range inside one word selects that word and says how little of it the range covers', async () => {
-    mount();
-    await ready();
-    drag(surface(), xAt(7.5), xAt(7.55));
-    await waitFor(() => expect(state.state.sel).toEqual({ anchor: 'p-1:8', head: 'p-1:8' }));
-    expect(screen.getByTestId('range-partial').textContent).toBe(' Covers 14% of “sister” (selected).');
-  });
-
-  it('says so when a range covers no words, which a gap between words allows', () => {
-    const words = [
-      { key: 'g:0', text: 'one', t0: 0, t1: 1, st: 'ok' },
-      { key: 'g:1', text: 'two', t0: 2, t1: 3, st: 'ok' },
-    ] as unknown as DocItem[];
-    const span = { start: 1.2, end: 1.8 };
-    render(<RangeNotes shown={span} covered={wordsCovered(words, span)} words={words} />);
-    expect(screen.getByText(/This range covers no words\./)).toBeTruthy();
+    expect(screen.queryByText(/Sub-word edge|Covers \d+%|covers the (last|first)|This range covers no words/)).toBeNull();
+    // Nothing the dock draws in flow is a sentence: its own text is the controls' and the tooltip's.
+    const dock = document.querySelector<HTMLElement>('[data-wave-dock]');
+    const flow = [...(dock?.querySelectorAll('p:not(.sr-only)') ?? [])].map((p) => p.textContent);
+    expect(flow).toEqual([]);
   });
 });
 
