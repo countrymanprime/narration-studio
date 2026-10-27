@@ -33,7 +33,7 @@ const cellStatus = (cell: PipelineCell): StatusId => {
  * it scrolls inside its card with the names pinned at the left (R4TA-1).
  */
 const STAGE_WIDTH = '3.75rem';
-const COLUMNS = ['auto', '4.25rem', '3rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
+const COLUMNS = ['auto', '4rem', '3.5rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
 const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'proof', 'pickups', 'master', 'qc'];
 // Important: the cell's own 10 px padding is the same specificity and comes later in the stylesheet. The last column keeps its 16 px card edge.
 const STAGE_CELL = 'px-1! last:pr-4!';
