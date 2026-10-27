@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WPH } from '../../schedule/estimates';
-import { buildPipelineRows, cellName, currentColumn, NOT_MEASURED, NOT_STARTED_PREP, UNDER_WAY } from './pipelineRows';
+import { buildPipelineRows, cellName, currentColumn, NOT_MEASURED, UNDER_WAY } from './pipelineRows';
 import { chapter, MID_BOOK, MID_BOOK_SOURCES } from './pipelineFixtures';
 
 const rowsOf = (...args: Parameters<typeof buildPipelineRows>) => buildPipelineRows(...args);
@@ -41,11 +41,11 @@ describe('one-row-per-chapter-with-stage-cells', () => {
 });
 
 describe('prep-cell-reads-the-prep-record', () => {
-  it('draws prepped as a tick, in progress as a half disc and not started as an empty circle, never a dash (the mock)', () => {
+  it('draws prepped as a tick, in progress as a half disc and not started as a dash, as before the empty circle (#1748) that read as a checkbox', () => {
     const rows = rowsOf([chapter('a'), chapter('b'), chapter('c')], { prep: { a: 'prepped', b: 'progress', c: 'none' } });
     expect(rows[0]!.cells.prep).toMatchObject({ kind: 'done', text: '✓', tip: 'Prepped' });
     expect(rows[1]!.cells.prep).toMatchObject({ kind: 'progress', text: UNDER_WAY, tip: 'Prep in progress' });
-    expect(rows[2]!.cells.prep).toMatchObject({ kind: 'none', text: NOT_STARTED_PREP, state: 'not started', tip: 'Prep not started' });
+    expect(rows[2]!.cells.prep).toMatchObject({ kind: 'none', text: '—', state: 'not started', tip: 'Prep not started' });
   });
 });
 

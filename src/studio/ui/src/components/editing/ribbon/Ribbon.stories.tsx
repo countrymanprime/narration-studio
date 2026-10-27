@@ -18,7 +18,7 @@ const frame = (node: React.ReactNode) => <div className="bg-[var(--surface)] p-4
 const peaks = [shiftPeaks(peaksOf(30), 0)];
 
 // Light and dark: the atlas renders every story in both themes, so the bars, the played split and the overlays are checked against each.
-const base = ribbonLayout(doc, 'p-1', [], null)!;
+const base = ribbonLayout(doc, 'p-1', null)!;
 
 const meta = { title: 'Editing/Ribbon', component: RibbonView, parameters: { layout: 'fullscreen' } } satisfies Meta<typeof RibbonView>;
 export default meta;
@@ -32,12 +32,12 @@ export const Default: Story = {
   },
 };
 
-// Words selected: the blue band over their span.
+// Words selected: the waveform draws nothing for them; the range the narrator drew is the one selection on it.
 export const Selection: Story = {
   args: { layout: base, peaks },
-  render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', ['p-1:1', 'p-1:2', 'p-1:3'], null)!} peaks={peaks} />),
+  render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', null)!} peaks={peaks} />),
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.textContent).toMatch(/Selection from/);
+    await expect(canvasElement.textContent).not.toMatch(/Selection from/);
   },
 };
 
@@ -45,7 +45,7 @@ export const Selection: Story = {
 // swell runs over the bars on the frame loop only while a line plays (waveSwell.ts, Ribbon.test.tsx).
 export const Playing: Story = {
   args: { layout: base, peaks },
-  render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', [], (base.t0 + base.t1) / 2)!} peaks={peaks} />),
+  render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', (base.t0 + base.t1) / 2)!} peaks={peaks} />),
   play: async ({ canvasElement }) => {
     await expect(canvasElement.textContent).toMatch(/Playing at/);
   },
@@ -58,7 +58,7 @@ export const PlayingAtSeveralPositions: Story = {
     frame(
       <>
         {[0.1, 0.5, 0.9].map((share) => (
-          <RibbonView key={share} layout={ribbonLayout(doc, 'p-1', [], base.t0 + share * (base.t1 - base.t0))!} peaks={peaks} />
+          <RibbonView key={share} layout={ribbonLayout(doc, 'p-1', base.t0 + share * (base.t1 - base.t0))!} peaks={peaks} />
         ))}
       </>,
     ),
@@ -72,8 +72,8 @@ export const FlaggedAndCutWhilePlaying: Story = {
   args: { layout: base, peaks },
   render: () => {
     const cutDoc = marksDoc({ cuts: [{ id: 'c1', a: 4.2, b: 4.3, mode: 'gap', keys: ['p-2:1'], off0: 0, off1: 0.1 }] });
-    const line = ribbonLayout(cutDoc, 'p-2', [], null)!;
-    const l = ribbonLayout(cutDoc, 'p-2', ['p-2:0'], line.t0 + 0.6 * (line.t1 - line.t0))!;
+    const line = ribbonLayout(cutDoc, 'p-2', null)!;
+    const l = ribbonLayout(cutDoc, 'p-2', line.t0 + 0.6 * (line.t1 - line.t0))!;
     return frame(<RibbonView layout={l} peaks={peaks} />);
   },
   play: async ({ canvasElement }) => {
@@ -87,7 +87,7 @@ export const Flagged: Story = {
   args: { layout: base, peaks },
   render: () => {
     const cutDoc = marksDoc({ cuts: [{ id: 'c1', a: 6, b: 6.2, mode: 'gap', keys: ['p-1:3'], off0: 0, off1: 0.2 }] });
-    return frame(<RibbonView layout={ribbonLayout(cutDoc, 'p-1', [], null)!} peaks={peaks} />);
+    return frame(<RibbonView layout={ribbonLayout(cutDoc, 'p-1', null)!} peaks={peaks} />);
   },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.textContent).toMatch(/flagged words/);
@@ -98,7 +98,7 @@ export const Flagged: Story = {
 // to 1.5 times their own height, a longer rise ahead of it than the settle behind, and the far ones at rest.
 export const SwellWhilePlaying: Story = {
   args: { layout: base, peaks },
-  render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', [], base.t0 + 0.5 * (base.t1 - base.t0))!} peaks={peaks} swellPhase={0.5} />),
+  render: () => frame(<RibbonView layout={ribbonLayout(doc, 'p-1', base.t0 + 0.5 * (base.t1 - base.t0))!} peaks={peaks} swellPhase={0.5} />),
 };
 
 // While the peaks are read: a flat row of placeholder bars, the lane its usual height, with the looping swell held mid-pass over them.

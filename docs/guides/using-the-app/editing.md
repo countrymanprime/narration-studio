@@ -148,7 +148,7 @@ Proof lists the same words as **Said twice** with an **Open in Editing** link, w
 
 ![Editing - words said again found by the recording check: the Read twice card with Stack as 2 takes, Hear both reads, Leave in place and Delete second read](../../images/ui/editing-read-twice.webp)
 
-![Editing - four words selected: the floating toolbar over them, the bar naming the selection with its times, and their band on the waveform](../../images/ui/editing-selection.webp)
+![Editing - four words selected: the floating toolbar over them, the bar naming the selection with its times, and the waveform below](../../images/ui/editing-selection.webp)
 
 ## The waveform
 

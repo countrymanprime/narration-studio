@@ -15,7 +15,6 @@ const RIBBON_TOKENS = {
   /** The bars not yet played while a playhead is drawn. The played ones keep `bars`. */
   unplayed: '--non-text',
   tick: '--line-strong',
-  band: '--info',
   playhead: '--accent',
 } as const;
 export type RibbonColors = Record<keyof typeof RIBBON_TOKENS, string> & {
@@ -65,8 +64,9 @@ export interface RibbonFrame {
 export const STILL_FRAME: RibbonFrame = { nowMs: 0, sinceUpdateMs: 0, animate: false, swell: null };
 
 /**
- * Draws the line's window: tints, selection band, rounded bars from the peaks columns (scaled by the swell when the frame has one), ticks,
- * hatched cut gaps, then the playhead. Sizes the canvas to the device pixel ratio. `placeholder` columns stand in while the peaks are read and
+ * Draws the line's window: tints, rounded bars from the peaks columns (scaled by the swell when the frame has one), hatched cut gaps, then
+ * the playhead. It draws no word ticks and no selection band: the waveform is one wave, and the range the narrator drew (`RangeOverlay`) is
+ * the one selection on it (owner rule, #2251). Sizes the canvas to the device pixel ratio. `placeholder` columns stand in while the peaks are read and
  * are drawn in the unplayed colour.
  */
 export function drawRibbon(
@@ -99,29 +99,11 @@ export function drawRibbon(
     ctx.fillStyle = colors.bar[f.kind];
     ctx.fillRect(x(f.t0), 0, Math.max(2, x(f.t1) - x(f.t0)), 3);
   }
-  if (layout.band) {
-    ctx.save();
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = colors.band;
-    ctx.fillRect(x(layout.band.t0), 0, Math.max(2, x(layout.band.t1) - x(layout.band.t0)), height);
-    ctx.restore();
-  }
 
   const head = layout.playhead == null ? null : frame.animate ? playheadAt(layout.playhead, frame.sinceUpdateMs, layout.t1) : layout.playhead;
   const headBar = head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length);
   const crest = frame.swell == null ? null : headBar != null && !placeholder ? headBar : crestAt(frame.swell, columns.length);
   drawBars(ctx, width, height, columns, placeholder ? { ...colors, bars: colors.unplayed } : colors, headBar, crest, scale);
-
-  ctx.save();
-  ctx.globalAlpha = 0.7;
-  ctx.strokeStyle = colors.tick;
-  for (const t of layout.ticks) {
-    ctx.beginPath();
-    ctx.moveTo(Math.round(x(t)) + 0.5, 0);
-    ctx.lineTo(Math.round(x(t)) + 0.5, height);
-    ctx.stroke();
-  }
-  ctx.restore();
 
   // A cut: a hatched gap, so it does not read as silence.
   for (const g of layout.cuts) {
