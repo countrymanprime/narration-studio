@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { Button } from '../../primitives/Button';
 import type { VoiceSample, VoiceSamples } from '../../../api/contracts/voiceSamples';
 import type { Notify } from '../../primitives/Toast';
@@ -54,6 +55,13 @@ export function VoiceSamplesBody({
   openEditing?: (chapterId?: string) => void;
 }) {
   const { read, refresh } = source;
+  useErrorToast(
+    read.status !== 'failed'
+      ? undefined
+      : read.samples
+        ? `Couldn't read the voice samples again, so this list may be out of date. ${read.message}`
+        : `Couldn't read the voice samples. ${read.message}`,
+  );
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [checking, setChecking] = useState(false);
   const pendingFocus = useRef<string | undefined>(undefined);
@@ -135,13 +143,6 @@ export function VoiceSamplesBody({
       {read.status === 'loading' ? (
         <p aria-busy="true" className="m-0 text-sm text-[var(--text-muted)]">
           Reading voice samples…
-        </p>
-      ) : null}
-      {read.status === 'failed' ? (
-        <p role="alert" className="m-0 mb-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {read.samples
-            ? `Couldn't read the voice samples again, so this list may be out of date. ${read.message}`
-            : `Couldn't read the voice samples. ${read.message}`}
         </p>
       ) : null}
       {list && mine.length === 0 ? (

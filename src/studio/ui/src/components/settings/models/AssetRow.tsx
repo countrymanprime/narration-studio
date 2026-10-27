@@ -1,3 +1,4 @@
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { ProgressBar } from '../../primitives/ProgressBar';
@@ -50,6 +51,7 @@ export type AssetRowProps = {
 /** One asset of the Models & downloads list: what it is, where it stands, who reads it, and the one action its status allows. Props only. */
 export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss }: AssetRowProps) {
   const { item, status } = view;
+  useErrorToast(status === 'failed' ? view.failure : undefined);
   const name = item.displayName;
   const { tone, label } = installPill(status);
   const busy = status === 'downloading' || status === 'verifying';
@@ -79,11 +81,6 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
               valueText={status === 'verifying' ? 'Checking' : undefined}
             />
             {status === 'verifying' && <span className="text-[0.75rem] text-[var(--text-muted)]">Checking…</span>}
-          </span>
-        )}
-        {status === 'failed' && view.failure && (
-          <span role="alert" className="block text-[0.75rem] text-[var(--danger-text)]">
-            {view.failure}
           </span>
         )}
         {status === 'repair' && <span className="block text-[0.75rem] text-[var(--text-muted)]">A file failed its check.</span>}

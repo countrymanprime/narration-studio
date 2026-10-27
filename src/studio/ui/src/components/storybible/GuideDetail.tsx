@@ -59,6 +59,7 @@ import { TextField } from '../primitives/TextField';
 import { PANEL_BODY_CLASS, PANEL_ENTRY_TITLE_CLASS, PANEL_FRAME_CLASS, PANEL_HEADER_CLASS, PANEL_SUBTITLE_CLASS } from '../primitives/panelStyles';
 import { Relationships, type RelationRow } from './Relationships';
 import type { Notify } from '../primitives/Toast';
+import { useErrorToast } from '../../hooks/useErrorToast';
 
 // What the form holds while an entry is being edited: the entry's own values, until the narrator changes them.
 // The says, does and knows properties of an entry whose type can speak are fields of their own (`talk`), so `properties` holds the rest.
@@ -264,6 +265,7 @@ export function GuideDetail({
   // A name the narrator asked to add that the entry or another entry already has: the Names box says so, and for another entry's offers to merge it in.
   const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string }>();
   const [nameError, setNameError] = useState<string>();
+  useErrorToast(nameError);
   const [confirmation, setConfirmation] = useState<'delete'>();
   const nameField = useRef<HTMLInputElement>(null);
   const [ttsPrompt, setTtsPrompt] = useState<{ preview: Extract<GuidePreview, { status: 'asset_required' }>; aliasIndex?: number }>();
@@ -791,11 +793,6 @@ export function GuideDetail({
         {entity.category === 'Draft' && (
           <p className="rounded px-3 py-1.5 text-xs" style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}>
             Choose a category above to finish setting up this entry.
-          </p>
-        )}
-        {nameError && (
-          <p role="alert" className="text-xs" style={{ color: 'var(--danger-text)' }}>
-            {nameError}
           </p>
         )}
 

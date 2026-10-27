@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { overlay } from '../../../overlay/overlayService';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { AssetItem, NarrationApi } from '../../../types';
@@ -10,7 +11,14 @@ import { SettingsPage } from '../page/SettingsPage';
 import { AnalysisToolsSection } from './AnalysisToolsSection';
 import { ANALYSIS_TOOLS, createFakeTools, type FakeInstall } from './fixtures';
 
-afterEach(cleanup);
+let toast: MockInstance<typeof overlay.toast>;
+beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
+});
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 // The install loop polls every 400 ms and a download takes three polls, so a state that arrives by polling is waited for, not faked.
 // A retry also re-queues the job and reloads the list; on a loaded CI runner that has run past 4 s, so the wait gets 10 s (under
@@ -117,11 +125,11 @@ describe('AnalysisToolsSection', () => {
     const gliner = await row('gliner');
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
     expect(within(gliner).getByText('Download failed')).toBeTruthy();
-    expect(gliner.querySelector('[data-comp-error]')!.textContent).toBe('Could not reach huggingface.co.');
+    expect(toast).toHaveBeenCalledWith('Could not reach huggingface.co.', { tone: 'error' });
+    expect(gliner.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     fake.plan('gliner', 'completes');
     fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
-    expect(gliner.querySelector('[data-comp-error]')).toBeNull();
     // One loop: every state read went through the one poller, one job at a time.
     const jobs = new Set(port.assetsInstallState.mock.calls.map(([id]) => id));
     expect(jobs.size).toBe(3);
@@ -165,7 +173,7 @@ describe('AnalysisToolsSection', () => {
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
     fireEvent.click(within(gliner).getByRole('button', { name: 'Remove GLiNER' }));
     fireEvent.click(within(await screen.findByRole('alertdialog', { name: 'Remove GLiNER?' })).getByRole('button', { name: 'Remove' }));
-    await waitFor(() => expect(gliner.querySelector('[data-comp-error]')?.textContent).toMatch(/Could not remove GLiNER: .*in use by a scan/));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/Could not remove GLiNER: .*in use by a scan/), { tone: 'error' }));
     expect(gliner.getAttribute('data-status')).toBe('installed');
   });
 
@@ -191,7 +199,8 @@ describe('AnalysisToolsSection', () => {
     await download('gliner', 'GLiNER');
     const gliner = await row('gliner');
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
-    expect(gliner.querySelector('[data-comp-error]')!.textContent).toBe(shortfall);
+    expect(toast).toHaveBeenCalledWith(shortfall, { tone: 'error' });
+    expect(gliner.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     fake.plan('gliner', 'completes');
     fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
@@ -206,7 +215,8 @@ describe('AnalysisToolsSection', () => {
     await download('booknlp-small', 'BookNLP (small)');
     const booknlp = await row('booknlp-small');
     await waitFor(() => expect(booknlp.getAttribute('data-status')).toBe('failed'), SLOW);
-    expect(booknlp.querySelector('[data-comp-error]')!.textContent).toBe(sentence);
+    expect(toast).toHaveBeenCalledWith(sentence, { tone: 'error' });
+    expect(booknlp.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     const details = booknlp.querySelector<HTMLDetailsElement>('[data-comp-error-detail]')!;
     expect(details.open).toBe(false);
     expect(within(details).getByText('Details').tagName).toBe('SUMMARY');

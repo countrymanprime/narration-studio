@@ -1,13 +1,19 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { overlay } from '../../overlay/overlayService';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { GuideEntity } from '../../types';
 import { GuideDetail } from './GuideDetail';
 
+let toast: MockInstance<typeof overlay.toast>;
+beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
+});
 afterEach(() => cleanup());
+afterEach(() => vi.restoreAllMocks());
 
 const character = (properties: GuideEntity['properties']): GuideEntity => ({ ...WIRE_ENTITIES[0], category: 'Character', locked: false, properties });
 const place = (): GuideEntity => ({ ...WIRE_ENTITIES[0], category: 'Place', locked: false, properties: [{ key: 'says', value: 'kept as a property' }] });
@@ -134,7 +140,7 @@ describe('Story Bible: how they talk, act and know', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 1 name' }), { target: { value: 'Knows' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 1 value' }), { target: { value: 'x' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('“Knows” is the What they know field above. Write it there.');
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“Knows” is the What they know field above. Write it there.', { tone: 'error' }));
     expect(guideEdit).not.toHaveBeenCalled();
   });
 });

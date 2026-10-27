@@ -4,7 +4,7 @@
 import { act, cleanup, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState, type ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
 import type { ExtractionScanJob } from '../../../../api/contracts/extraction';
 import type { JobEnded } from '../../../../api/contracts/system';
@@ -257,7 +257,7 @@ describe('scan-cancel-keeps-what-finished', () => {
 });
 
 describe('scan-failure-names-the-reason', () => {
-  let toast: ReturnType<typeof vi.spyOn<typeof overlay, 'toast'>>;
+  let toast: MockInstance<typeof overlay.toast>;
   beforeEach(() => {
     toast = vi.spyOn(overlay, 'toast');
   });
