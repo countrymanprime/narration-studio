@@ -11,7 +11,7 @@ export const DAW_METERS_QUIET_MS = 2_000;
 
 /** How often a capability report that has never been heard is asked for again; an off DAW is asked again every `DAW_OFF_RECHECK_MS`. */
 export const DAW_RETRY_MS = 4_000;
-export const DAW_OFF_RECHECK_MS = 10_000;
+const DAW_OFF_RECHECK_MS = 10_000;
 
 export type DawMetersState =
   /** No answer yet. */
