@@ -273,7 +273,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-width-full',
     description:
-      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100% of the text area at any width, so it is wider than Narrow (64%) and runs between the gutters, left-aligned, no paragraph indent',
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow at any width and runs up to the gutters, left-aligned, no paragraph indent',
     ...REFLOW,
   },
   {
