@@ -1,3 +1,4 @@
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { assetOfOption } from '../registry/rows';
 import { useAssetsStore } from '../models/AssetsStore';
 import { Button } from '../../primitives/Button';
@@ -17,6 +18,7 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
   const { showCategory } = useSettingsNav();
   const ref = assetOfOption(row.options?.[value], kindOf);
   const view = ref ? store.viewOf(ref) : undefined;
+  useErrorToast(view?.status === 'failed' ? view.failure : undefined);
   if (!view || view.status === 'installed') return null;
   const { item } = view;
   const name = row.options?.[value]?.label ?? item.displayName;
@@ -30,12 +32,7 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
             <span className="text-[var(--text-muted)]">{view.status === 'verifying' ? 'Checking…' : `${view.percent}%`}</span>
           </>
         ) : view.status === 'failed' ? (
-          <>
-            <StatusBadge tone="danger" label="Download failed" />
-            <span role="alert" className="text-[var(--text-muted)]">
-              {view.failure}
-            </span>
-          </>
+          <StatusBadge tone="danger" label="Download failed" />
         ) : view.status === 'unavailable' ? (
           <>
             <StatusBadge tone="neutral" label="Not available yet" />

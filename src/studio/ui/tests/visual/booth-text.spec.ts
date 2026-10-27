@@ -96,11 +96,12 @@ test('setup: every paragraph is left-aligned with no first-line indent and no ba
   }
 });
 
-// The Booth reads the Script's own setting in the Script's unit, `ch` of the text, so Medium is 64 characters a line on both pages; the
-// text area caps it. At 40 px, 1920 wide leaves room for every width; 1440 caps Medium and Full alike, still wider than the old 26em (1040 px).
-for (const { size, roomForFull } of [
-  { size: { width: 1920, height: 1080 }, roomForFull: true },
-  { size: { width: 1440, height: 900 }, roomForFull: false },
+// The Booth reads the Script's own setting through the same rule (`readerColumn`: the characters a line or the share of the container,
+// whichever is less), so Narrow, Medium and Full stay three different widths at any window size. tests/visual/reader-column-width.spec.ts
+// holds both pages at three window widths.
+for (const size of [
+  { width: 1920, height: 1080 },
+  { width: 1440, height: 900 },
 ]) {
   test(`at ${size.width}: the Reader text column width changes how wide the Booth's text column is`, async ({ page }) => {
     const width = async (state: string): Promise<number> => {
@@ -111,8 +112,6 @@ for (const { size, roomForFull } of [
     const narrow = await width('text-width-narrow');
     const full = await width('text-width-full');
     expect(narrow).toBeLessThan(medium);
-    expect(medium).toBeGreaterThanOrEqual(26 * 40);
-    if (roomForFull) expect(full).toBeGreaterThan(medium);
-    else expect(full).toBe(medium);
+    expect(full).toBeGreaterThan(medium);
   });
 }

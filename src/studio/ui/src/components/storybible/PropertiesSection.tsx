@@ -7,6 +7,7 @@ import { TextField } from '../primitives/TextField';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { ENTRY_LABEL_COLUMN } from './Relationships';
 import { addDraftRow, moveDraftRow, removeDraftRow, updateDraftRow, type DraftProperty } from './propertyDraft';
+import { useErrorToast } from '../../hooks/useErrorToast';
 
 // The narrator's labelled facts about an entry ("Codename", "Abilities", "Dossier"), in the order they keep. Read view: the saved list as
 // text. Edit mode: a row of two fields per property with move and remove buttons, and Add at the foot. The rows are the parent's draft
@@ -27,6 +28,7 @@ export function PropertiesSection({
   error?: string;
   onChange: (rows: DraftProperty[]) => void;
 }) {
+  useErrorToast(editing ? error : undefined);
   const shown = editing ? rows : saved;
   return (
     <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
@@ -57,11 +59,6 @@ export function PropertiesSection({
       )}
       {editing && (
         <>
-          {error && (
-            <p role="alert" className="mt-2 text-sm text-[var(--danger-text)]">
-              {error}
-            </p>
-          )}
           <div className="mt-3">
             <TooltipTarget text="Add a property">
               <IconButton label="Add property" onClick={() => onChange(addDraftRow(rows))}>

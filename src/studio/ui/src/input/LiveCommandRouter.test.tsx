@@ -77,7 +77,7 @@ describe('LiveCommandRouter', () => {
           <Registrar id={NOISY_COMMAND.id} onFire={vi.fn()} />
         </LiveCommandRouter>,
       ),
-    ).toThrow('useApi() called outside an <ApiProvider>.');
+    ).toThrow('called outside an <ApiProvider>.');
   });
 
   it('router-gets-the-narrators-keymap: a command bound by an override fires on its new gesture and not on the old one', async () => {

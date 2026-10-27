@@ -1,13 +1,19 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { overlay } from '../../overlay/overlayService';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { GuideEntity } from '../../types';
 import { GuideDetail } from './GuideDetail';
 
+let toast: MockInstance<typeof overlay.toast>;
+beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
+});
 afterEach(() => cleanup());
+afterEach(() => vi.restoreAllMocks());
 
 const fixture = (pick: (row: GuideEntity) => boolean): GuideEntity => {
   const row = WIRE_ENTITIES.find(pick);
@@ -123,11 +129,9 @@ describe('Story Bible entry properties', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add property' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 3 value' }), { target: { value: 'Wren' } });
     save();
-    expect((await screen.findByRole('alert')).textContent).toBe('Give property 3 a name, or clear its value.');
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give property 3 a name, or clear its value.', { tone: 'error' }));
     expect(guideEdit).not.toHaveBeenCalled();
-    // Typing in a property clears the message.
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 3 name' }), { target: { value: 'Codename' } });
-    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('refuses two properties with one name', async () => {
@@ -135,7 +139,7 @@ describe('Story Bible entry properties', () => {
     startEditing();
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 2 name' }), { target: { value: 'age' } });
     save();
-    expect((await screen.findByRole('alert')).textContent).toBe('Two properties are named “age”. Give each a different name.');
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Two properties are named “age”. Give each a different name.', { tone: 'error' }));
     expect(guideEdit).not.toHaveBeenCalled();
   });
 

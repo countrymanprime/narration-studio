@@ -71,7 +71,9 @@ describe('every page renders in every chapter shape and DAW setup', () => {
     const scenario = makeScenario({ shape, chapters: SCENARIO_SIZES[0], daw });
     renderScenarioApp(scenario, route, <App />);
     // The page's own level-one heading appears once the app has booted (Booth's is screen-reader only), and nothing throws.
-    await screen.findByRole('heading', { level: 1, name: new RegExp(page.replace(/[&]/g, '.')) }, { timeout: 5000 });
+    // With the DAW off the page's connection dialog is open (the app's DAW session already knows by the time the page mounts), and a modal
+    // dialog hides the page from the accessibility tree, so the heading is looked for there too.
+    await screen.findByRole('heading', { level: 1, name: new RegExp(page.replace(/[&]/g, '.')), hidden: daw === 'reaper-off' }, { timeout: 5000 });
     expect(screen.queryByText(/Something went wrong/i)).toBeNull();
     // A shape that carries no subtitle shows none of another scenario's.
     if (shape === 'titleOnly') {

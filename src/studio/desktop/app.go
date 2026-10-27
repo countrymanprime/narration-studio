@@ -827,7 +827,9 @@ func (h *Host) configureLocked(next config) {
 	// dawResolverFor makes the same tradeoff for DawCapabilities).
 	var retakePicker dawport.RetakeLanePicker
 	var projectStateReader dawport.ProjectStateReader
+	var restAdapter dawport.Adapter
 	if dawAdapter, err := reaper.New(client, dawResolver.Allowed); err == nil {
+		restAdapter = dawAdapter
 		retakePicker, _ = dawAdapter.Role(dawport.CapRetakeLanes).(dawport.RetakeLanePicker)
 		projectStateReader, _ = dawAdapter.Role(dawport.CapProjectState).(dawport.ProjectStateReader)
 		h.takeCreator, _ = dawAdapter.Role(dawport.CapTakeCreate).(dawport.TakeCreator)
@@ -875,7 +877,7 @@ func (h *Host) configureLocked(next config) {
 	// client above was never built) has no adapter, which the resolver reports as every capability unsupported.
 	var dawPortAdapter dawport.Adapter
 	if client != nil {
-		dawPortAdapter = p5aAdapter{navigator: bridge.NewNavigator(client), actions: h.actions, puncher: h.puncher}
+		dawPortAdapter = p5aAdapter{navigator: bridge.NewNavigator(client), actions: h.actions, puncher: h.puncher, rest: restAdapter}
 	}
 	// reach is this project's reachability tracker, captured here rather than read as h.reachability from inside the
 	// closure below: the closure outlives configureLocked's lock and a later project switch reassigns h.reachability,

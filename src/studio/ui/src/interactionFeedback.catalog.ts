@@ -110,10 +110,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The background read of the other chapters only warms the shared read; a failure is dropped there and not kept, and the chapter's own ribbon asks again and says why it has no waveform.",
   'src/hooks/useChapterSync.ts#1':
     "Seeds useChapterSync's state before the next chaptersync:state event; a failed seed just leaves the state undefined a moment longer.",
-  'src/useCapability.ts#1':
-    "Seeds useCapability's entry before the next daw_capabilities_changed event; a failed seed just leaves the capability unsupported/unavailable a moment longer, same as an unknown capability key.",
-  'src/useDawKind.ts#1':
-    "Seeds useDawKind's kind before the next daw_capabilities_changed event; a failed seed just leaves the kind unknown a moment longer, the same as before the first answer, so a caller gating on 'Audacity' keeps today's REAPER-shaped behaviour rather than guessing.",
   // useZoom's three call sites, none of which has anywhere better to send a failure -
   // the header's readout is the only surface, and every one leaves the level exactly where it was, corrected by the next resize.
   'src/input/useUserKeymap.ts#1':

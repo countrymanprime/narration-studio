@@ -26,6 +26,15 @@ export const READER_WIDTHS: ReadonlyArray<readonly [name: string, percent: numbe
   ['Full', 100],
 ];
 
+/**
+ * The reader column's CSS max-width for a width choice, the one rule both the Script and the Booth use: the choice's characters a line (`ch`
+ * of the text) or its share of the container, whichever is less. The share is what keeps Narrow narrower than Full when the window, or the
+ * Booth's larger text, leaves less room than the characters ask for.
+ */
+export const readerColumn = (width: number): string => `min(${width}ch, ${width}%)`;
+/** The same rule reading the choice from the `--rw` custom property that `readerVars` sets. */
+export const READER_COLUMN_VAR = 'min(calc(var(--rw, 64) * 1ch), calc(var(--rw, 64) * 1%))';
+
 export const DEFAULT_TEXT_PREFS: TextPrefs = { font: 'Georgia', size: 20, spacing: 1.7, width: 64 };
 
 export const fontStack = (name: string): string => (READER_FONTS.find(([font]) => font === name) ?? READER_FONTS[0]!)[1];

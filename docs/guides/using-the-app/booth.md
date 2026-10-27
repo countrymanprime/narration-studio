@@ -16,7 +16,7 @@ where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
-the same choice as **Column width** in [Settings › Reader text](settings.md); **+** and **-** change the size too, and the Booth opens at the size
+the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the same rule as the Script's: the width's characters a line or its share of the window, whichever is less, so **Narrow** stays narrow in a half-width window; **+** and **-** change the size too, and the Booth opens at the size
 and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
 **Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
@@ -71,10 +71,10 @@ between the controls and the level bar: why the text cannot follow your voice, o
 narrower than 1024 pixels the sentence moves to its own line under **Record**; the level bar stays on Record's line.
 
 The room tone is the level of the room when nobody speaks. The app measures it whenever it listens to the microphone: during a
-take, and while the **Levels** menu is open. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
+take, and for as long as the Booth shows, with **Levels** closed or open. The level bar beside it follows the microphone the same way. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
 which is the pauses between your phrases while you read and the room itself while you are silent. It keeps the last value for each
 microphone, so the chip still shows it after you close **Levels**, record nothing for a while, or restart the app. It reads
-**Room not measured yet** until something has measured that microphone; open **Levels** and stay quiet for five seconds to measure
+**Room not measured yet** until something has measured that microphone; stay quiet for five seconds with the Booth open to measure
 it. Point at the chip to see why it has no value. A muted or unplugged input (digital silence) is not counted as a room. If the app cannot read the value, the chip says
 **Room tone unavailable**.
 
@@ -83,7 +83,7 @@ it. Point at the chip to see why it has no value. A muted or unplugged input (di
 In **Levels**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
 level; REAPER's first hardware output, so the files you render are not changed). **Input level** is shown but off, with the reason:
 no DAW can set an audio interface's input gain, so set it in your interface's own control panel.
-With REAPER, each slider has REAPER's own meter under it, read four times a second while the menu is open. Under **Input level** is
+With REAPER, each slider has REAPER's own meter under it, read four times a second for as long as the Booth shows, so they are already moving when you open the menu. Under **Input level** is
 the level of the first track armed for recording in REAPER, with that track's name; with no track armed the menu says so, because
 the app never arms a track just to measure it. Under **Monitor level (output)** is what REAPER plays out, which moves while it plays,
 records with monitoring on, or monitors the armed track. If REAPER stops answering for two seconds, the meters say how long ago
