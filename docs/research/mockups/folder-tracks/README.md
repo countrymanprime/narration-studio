@@ -38,6 +38,17 @@ A wire contract change, so walk [wire-contract-change](../../../../.claude/skill
 6. Audacity has no folders: both fields are `0` and `false`, and the tree draws as the flat list ([DAW capabilities](../../../reference/daw/capabilities.md)).
 7. Docs: `docs/utilities/tracks.md`, the Engine guide and its screenshots (`doc-screenshot-sync`). No new persisted file (the open and closed state is not saved), so no `data-files.md` row. No new trust boundary: the `.rpp` is already read.
 
+## Primitives for a real build
+
+From the UX review of this draft ([frontend-primitives](../../../../.claude/skills/frontend-primitives/SKILL.md)):
+
+- **The tree table.** No primitive draws one. Extend `Table` with a `tree` mode (`role="treegrid"`, `aria-level`, caret, guides, roving tab stop) with a story, a test and a design-system row, rather than a per-page copy. The picker's tree (`role="tree"`) shares the row pieces (caret, guides, folder icon, colour dot, count): extract them once.
+- **Pills** (Muted, child count, Empty): `StatusBadge`. **Caret, expand all, close all, Up one folder:** `IconButton` with `TooltipTarget`. **Breadcrumb (layout B only):** none exists; B would add one.
+- **The height cap is unconditional:** the card always scrolls inside itself (the mock caps at `min(70vh, 560px)`) and keeps its header while it does.
+- **Under 640 px the column header goes.** A real build keeps it as a visually hidden row so the second-line chapter stays labelled. The count pill drops on a narrow tree card, because the Chapter roll-up line says it.
+- **The picker** renders in `Popover` or `Listbox`, repositions and never extends past the viewport. Still to settle there: `aria-activedescendant` from the search box, and `aria-posinset` / `aria-setsize` on its items.
+- A track name drawn as "Ch 4 · Title" is REAPER's own text; if the app ever builds that label it comes from `headingName`.
+
 ## Decisions for the owner
 
 1. **Layout.** A (recommended), B or C.

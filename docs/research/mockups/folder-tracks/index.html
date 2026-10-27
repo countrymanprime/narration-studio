@@ -79,10 +79,10 @@ svg.i{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .srch{position:relative;display:flex;align-items:center;flex:0 1 200px;min-width:0}
 .srch svg{position:absolute;left:9px;color:var(--muted);pointer-events:none}
 .srch input{width:100%;height:30px;border:1px solid var(--btn-line);border-radius:6px;background:var(--bg);padding:0 8px 0 28px}
-.tc-sc{overflow:auto;overscroll-behavior:contain;border-radius:0 0 10px 10px}
+.tc-sc{overflow:auto;overscroll-behavior:contain;border-radius:0 0 10px 10px;max-height:min(70vh,560px)}
 .tc-sc.capped{max-height:min(56vh,340px)}
 .tg{min-width:0;position:relative}
-.tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,26%) 124px;align-items:center;min-height:38px;border-bottom:1px solid var(--line);position:relative}
+.tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,26%) 150px;align-items:center;min-height:38px;border-bottom:1px solid var(--line);position:relative}
 .tr:last-child{border-bottom:0}
 .tr:not(.th):hover{background:var(--raised)}
 .tr:focus-visible{outline-offset:-2px}
@@ -117,7 +117,8 @@ svg.i{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke
 @container (max-width:640px){
   .tr{grid-template-columns:minmax(0,1fr) auto;padding-bottom:6px}
   .th{display:none}
-  .tn{flex-wrap:wrap;row-gap:2px;padding-top:4px}
+  .nm{min-width:0}
+  .tree .pill.cnt{display:none}
   .tc-ch{grid-column:1;grid-row:2;padding-left:calc(var(--pad,10px) + 52px);margin-top:-2px}
   .tc-pl{grid-column:2;grid-row:1;padding-right:12px}
 }
@@ -387,7 +388,7 @@ Inst.prototype.render=function(){
   if(mode==='picker'){
     var best=cfg.bestId?this.byId(cfg.bestId):null;
     h+='<div class="pick">'+this.searchBox()+'<div class="sc" role="tree" aria-label="Tracks">';
-    if(best&&!this.q)h+='<div class="gl" role="presentation">Best match</div>'+this.pickItem(best,true)+'<div class="gl" role="presentation">Other tracks</div>';
+    if(best&&!this.q)h+='<div role="group" aria-label="Best match"><div class="gl" aria-hidden="true">Best match</div>'+this.pickItem(best,true)+'</div><div class="gl" aria-hidden="true">Other tracks</div>';
     h+=vis.map(function(n){return self.pickItem(n,false)}).join('');
     if(!vis.length)h+='<div class="none-row">No tracks match “'+esc(this.q)+'”.</div>';
     h+='</div></div>';
@@ -418,7 +419,7 @@ Inst.prototype.render=function(){
       head='<div class="tc-h"><h3>Tracks</h3>'+tools+'</div>';
     }
     var colhead='<div class="tr th" role="row"><div role="columnheader">Track</div><div role="columnheader">Chapter</div><div role="columnheader">Playable items</div></div>';
-    h+='<div class="tc'+(state.delta?'':' nodelta')+'">'+head+'<div class="tc-sc'+(cfg.capped?' capped':'')+'"><div class="tg" role="'+(mode==='grid'?'treegrid':'grid')+'" aria-label="Tracks">'+colhead+rows+'</div></div></div>';
+    h+='<div class="tc'+(mode==='grid'?' tree':'')+(state.delta?'':' nodelta')+'">'+head+'<div class="tc-sc'+(cfg.capped?' capped':'')+'"><div class="tg" role="'+(mode==='grid'?'treegrid':'grid')+'" aria-label="Tracks">'+colhead+rows+'</div></div></div>';
   }
   this.el.innerHTML=h;
   var items=sel(this.el,'[data-id]');
@@ -451,7 +452,7 @@ Inst.prototype.row=function(n,grouped){
   }
   var ic=isF?folderIcon(n,tree&&open):dotIcon(n);
   var badges='';
-  if(isF&&n.kids.length)badges+='<span class="pill n">'+n.kids.length+(n.kids.length===1?' track':' tracks')+'</span>';
+  if(isF&&n.kids.length)badges+='<span class="pill n cnt">'+n.kids.length+(n.kids.length===1?' track':' tracks')+'</span>';
   if(isF&&!n.kids.length)badges+='<span class="pill n">Empty</span>';
   if(n.muted)badges+='<span class="pill n">'+P.mute+'Muted</span>';
   var delta='<span class="delta" title="REAPER’s folder depth change after this track">'+(n.delta>0?'+'+n.delta:n.delta)+'</span>';
