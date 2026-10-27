@@ -57,7 +57,7 @@ describe('PipelineTable', () => {
     expect(widths.slice(3, 9)).toEqual(Array(6).fill('3.75rem'));
     expect(widths[9]).toBe('4.5rem');
     // Recorded and estimated are two columns (owner report, #2251), each on one line.
-    expect(widths.slice(1, 3)).toEqual(['4rem', '3.5rem']);
+    expect(widths.slice(1, 3)).toEqual(['4.5rem', '4rem']);
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
       expect.arrayContaining(['Chapter', 'Rec.i', 'Est.i', 'Prep', 'Record', 'Edit', 'Proof', 'Pickups', 'Master', 'QC']),
     );
@@ -72,13 +72,11 @@ describe('PipelineTable', () => {
     }
   });
 
-  it('keeps the board to a fixed height that scrolls inside, however many chapters there are', () => {
+  it('keeps the board at its natural height: it grows with the chapter list (owner report, #2251)', () => {
     table();
     const region = screen.getByRole('group', { name: 'Chapter pipeline scroll area' });
-    expect(region.className).toContain('overflow-auto');
-    expect(region.className).toMatch(/max-h-/);
-    // The header row stays in view while the rows scroll under it.
-    expect(screen.getByRole('columnheader', { name: 'Prep' }).className).toContain('sticky');
+    expect(region.className).toContain('overflow-x-auto');
+    expect(region.className).not.toMatch(/max-h-|overflow-auto|overflow-y/);
   });
 
   it("shows each row's recorded length beside its estimate, or a word saying why there is none", () => {
@@ -130,7 +128,7 @@ describe('PipelineTable', () => {
     table();
     const region = screen.getByRole('group', { name: 'Chapter pipeline scroll area' });
     expect(region.tabIndex).toBe(0);
-    expect(region.className).toContain('overflow-auto');
+    expect(region.className).toContain('overflow-x-auto');
     // It says it scrolls: a shadow on the side with more (R4TA-1), and the names stay pinned while the stages move.
     expect(region.className).toContain('scroll-x-edges');
     expect(screen.getByRole('columnheader', { name: 'Chapter' }).className).toContain('sticky');

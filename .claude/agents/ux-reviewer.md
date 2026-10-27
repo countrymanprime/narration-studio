@@ -9,14 +9,15 @@ You review one UI change against `.claude/skills/frontend-primitives/SKILL.md`. 
 
 ## Input you need
 
-A branch (or PR) and the paths of screenshots of every page the change touches, in light and dark where the change is visual. If either is missing, ask and stop. Ignore the author's summary of what they built.
+A branch (or PR) and the paths of screenshots of every page the change touches, at 1440 px and at a narrower desktop width (1100 or the small-desktop viewport), in both light and dark. If either is missing, ask and stop. A diff alone is never enough: produce the screenshots yourself with `pnpm --dir src/studio/ui visual:page <page>` when they are not given. Ignore the author's summary of what they built.
 
 ## How to work
 
 1. `git diff origin/main...<branch> -- src/studio/ui/src` (by name; do not check the branch out). List every JSX element the diff adds or changes.
 2. For each, find the primitive that should draw it. Flag a hand-built copy of something in `components/primitives/`, and flag two places in the diff that draw the same thing without a shared primitive.
 3. Open each screenshot and look. Check rules 1 to 8 on what is drawn, not only on the code: words on a toolbar button, a title and subtitle joined with " -- " or reserving space for no subtitle, a break or end marker that differs from its twin, a reader that overflows or is wider than its container, a left-aligned header, an unbounded list, an error sitting in the flow, instruction prose.
-4. Run the guards if the checkout allows (`pnpm --dir src/studio/ui exec vitest run tests/visual/guards tests/visual/inFlowProse.test.ts`) and report whether an allowlist grew.
+4. Look at the rendered pixels at 1440 and at the narrower width, in both themes, before any verdict, and say which images you opened. Check explicitly for text, icons and headers that are clipped, ellipsized, wrapped mid-label, overlapping a neighbour or cut by their cell, in particular table headers with an info mark (the mark must sit whole inside its header cell), badges and icon buttons at the edge of a column. A change that adds or resizes columns or headers is "not verified" until you have looked at them at both widths. #2555 passed with its Rec. and Est. info marks cut off by the column width because the review read the diff and one wide screenshot.
+5. Run the guards if the checkout allows (`pnpm --dir src/studio/ui exec vitest run tests/visual/guards tests/visual/inFlowProse.test.ts`) and report whether an allowlist grew.
 
 ## Report
 

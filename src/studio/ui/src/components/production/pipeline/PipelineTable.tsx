@@ -36,16 +36,14 @@ const cellStatus = (cell: PipelineCell): StatusId => {
  * it scrolls inside its card with the names pinned at the left (R4TA-1).
  */
 const STAGE_WIDTH = '3.75rem';
-const COLUMNS = ['auto', '4rem', '3.5rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
+const COLUMNS = ['auto', '4.5rem', '4rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
+// The Rec. and Est. headers hold a label and its info mark on one line (never clipped by the cell): 4 px of padding either side, not 10.
+const FIGURE_HEAD = 'px-1!';
 const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'proof', 'pickups', 'master', 'qc'];
 // Important: the cell's own 10 px padding is the same specificity and comes later in the stylesheet. The last column keeps its 16 px card edge.
 const STAGE_CELL = 'px-1! last:pr-4!';
 /** The names stay in view while the stages scroll under them, on the card's own colour. */
 const STICKY_NAME = 'sticky left-0 z-[1] bg-[var(--surface)]';
-/** The column headers stay in view while the rows scroll under them; the name header holds both corners. */
-const STICKY_HEAD = 'sticky top-0 z-[2] bg-[var(--surface)]';
-/** The board's height: about ten rows, then it scrolls inside its card, so a long chapter list never stretches the page. */
-const BOARD_MAX_HEIGHT = 'max-h-[34rem]';
 
 /** A disc half filled, drawn with CSS so it reads the same in every font. */
 const underWayMark = (
@@ -141,29 +139,29 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
   return (
     // The table scrolls inside its panel at a narrow width, never the page, with a shadow on the side that has more (`scroll-x-edges`);
     // the region is a tab stop so the keyboard can scroll it.
-    <div className={`scroll-x-edges overflow-auto ${BOARD_MAX_HEIGHT}`} tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
-      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[44.75rem]">
+    <div className="scroll-x-edges overflow-x-auto" tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
+      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[45.75rem]">
         <TableHead>
           <TableRow>
-            <TableHeader align="center" className={`${STICKY_HEAD} left-0 z-[3]`}>
+            <TableHeader align="center" className={STICKY_NAME}>
               Chapter
             </TableHeader>
             <TableHeader
               align="center"
-              className={STICKY_HEAD}
+              className={FIGURE_HEAD}
               info="The audio on the chapter's linked track in the saved project, before editing, or a word saying why there is none. The cell's tip also says how far the chapter is recorded: through which paragraph, or to the end."
             >
               Rec.
             </TableHeader>
             <TableHeader
               align="center"
-              className={STICKY_HEAD}
+              className={FIGURE_HEAD}
               info="The chapter's finished length estimated from its words at the planning rate, not a measurement."
             >
               Est.
             </TableHeader>
             {STAGE_COLUMNS.map((column) => (
-              <TableHeader key={column} align="center" className={`${STAGE_CELL} ${STICKY_HEAD}`}>
+              <TableHeader key={column} align="center" className={STAGE_CELL}>
                 {COLUMN_LABEL[column]}
               </TableHeader>
             ))}
