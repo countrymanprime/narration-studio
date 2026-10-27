@@ -765,7 +765,6 @@ function BoothSession({
                             bookmarks={bookmarks.bookmarks}
                             paragraphs={paragraphs}
                             units={units}
-                            pages={breaks}
                             flashId={bookmarks.flashId}
                             onUpdate={bookmarks.update}
                             onRemove={bookmarks.remove}
