@@ -227,7 +227,7 @@ every sample in the project, with its audio, after you confirm, and says how man
 
 ## Deleting the Story Bible
 
-The Story Bible page deletes nothing in bulk. To delete a project's Story Bible, use [Settings, Clear derived data](settings.md#project), which asks first and also removes the imported manuscript, proofing artifacts, reader notes and saved comparison results. To delete one entry, use **Delete** in its edit mode or **Delete entry** in its right-click menu.
+The Story Bible page deletes nothing in bulk. To delete this project's Story Bible and nothing else, use [Settings, Delete Story Bible data](settings.md#project); to delete one entry, use **Delete** in its edit mode or **Delete entry** in its right-click menu.
 
 | Message | What it means | What to do |
 | --- | --- | --- |

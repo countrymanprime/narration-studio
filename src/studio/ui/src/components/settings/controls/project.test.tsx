@@ -128,6 +128,29 @@ describe('Settings: Project', () => {
     await waitFor(() => expect(onProjectDataCleared).toHaveBeenCalled());
   });
 
+  it('deleting the Story Bible asks first, counts what goes, and deletes only the Story Bible', async () => {
+    const api = createMockApi();
+    const deleteAll = vi.spyOn(api, 'guideDeleteAll');
+    const clear = vi.spyOn(api, 'clearProjectData');
+    const entries = (await api.guideEntities()).length;
+    await renderPage({ api });
+    await open('Project');
+    await openAdvanced();
+    const button = () => within(row('project.bibleData')).getByRole('button', { name: 'Delete Story Bible data…' });
+    await userEvent.click(button());
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Story Bible data' });
+    expect(within(dialog).getByText(/Delete the Story Bible of/).textContent).toContain(entries === 1 ? 'one entry' : `${entries.toLocaleString()} entries`);
+    expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(deleteAll).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(deleteAll).not.toHaveBeenCalled();
+    await userEvent.click(button());
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete Story Bible data' }));
+    await waitFor(() => expect(deleteAll).toHaveBeenCalledTimes(1));
+    expect(clear).not.toHaveBeenCalled();
+    expect(await api.guideEntities()).toEqual([]);
+  });
+
   describe('credits', () => {
     it('summarises the opening and closing credits and the retail sample, and edits them in place', async () => {
       const api = createMockApi();
