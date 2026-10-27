@@ -15,7 +15,7 @@ const NARROW = [
   { width: 768, height: 1024 },
 ];
 
-// XBO-18: below the width where the text column is centred with room to spare, the text starts at the page gutter, as the bars do.
+// XBO-18: the text column is left-aligned at the page gutter at any width (the width control narrows it from the right), as the bars are.
 for (const size of NARROW) {
   test(`setup at ${size.width}: the text starts at the page gutter`, async ({ page }) => {
     await drive(page, 'setup', size);
