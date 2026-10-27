@@ -52,7 +52,7 @@ export function CreditsSetupBanner({
             — {tokens.join(', ')} will be read as written, in brackets.
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-none gap-2 [&>button]:whitespace-nowrap">
           <Button variant="secondary" type="button" disabled={busy} onClick={() => void dontAsk()}>
             Don&rsquo;t ask for this project
           </Button>
