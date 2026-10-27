@@ -30,10 +30,11 @@ narrator, never a traceback.
 from __future__ import annotations
 
 import argparse
+import builtins
 import contextlib
 import csv
+import io
 import json
-import locale
 import os
 import re
 import sys
@@ -328,6 +329,24 @@ def _local_encoders(install: Path) -> Iterator[None]:
                 cls.from_pretrained = attribute
 
 
+@contextlib.contextmanager
+def _utf8_text_files() -> Iterator[None]:
+    """Makes a text-mode ``open`` that names no encoding use UTF-8, whatever the locale."""
+    real_open = io.open
+
+    def utf8_open(file: Any, mode: str = "r", buffering: int = -1, encoding: str | None = None, *args: Any, **kwargs: Any) -> Any:
+        if encoding is None and "b" not in mode:
+            encoding = "utf-8"
+        return real_open(file, mode, buffering, encoding, *args, **kwargs)
+
+    saved = builtins.open, io.open
+    builtins.open = io.open = utf8_open
+    try:
+        yield
+    finally:
+        builtins.open, io.open = saved
+
+
 class BookNlpModel:
     """A loaded BookNLP and the variant of its weights."""
 
@@ -340,11 +359,12 @@ class BookNlpModel:
         with tempfile.TemporaryDirectory(prefix="booknlp-") as temporary:
             folder = Path(temporary)
             book = folder / "book.txt"
-            # BookNLP opens the book in the locale's encoding; a character it cannot write becomes "?", one for one, so
-            # the offsets it reports are offsets into ``text``.
-            book.write_text(text, encoding=locale.getpreferredencoding(False), errors="replace")
+            # BookNLP opens the book and its own output files with a bare open(), which on Windows decodes with cp1252
+            # and fails on any UTF-8 byte it lacks ("'charmap' codec can't decode byte 0x9d"). Everything is UTF-8 here, so
+            # the offsets it reports are offsets into ``text``, with nothing replaced.
+            book.write_text(text, encoding="utf-8")
             # BookNLP prints its timings; stdout carries only suggestion lines, which the host reads one by one.
-            with contextlib.redirect_stdout(sys.stderr):
+            with _utf8_text_files(), contextlib.redirect_stdout(sys.stderr):
                 self.nlp.process(str(book), str(folder / "out"), "book")
             return read_output(folder / "out", "book")
 
