@@ -7,6 +7,8 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
 import { openReadiness } from '../readiness/openReadiness';
 import { ReadinessChip } from '../readiness/ReadinessChip';
+import { VERDICT_LABEL, verdictOf } from '../readiness/verdict';
+import { stageLabel } from '../../stages/stageText';
 import {
   cellName,
   COLUMN_LABEL,
@@ -59,13 +61,17 @@ function StageCell({
   cell,
   onGo,
   beside = false,
+  verdict,
 }: {
   row: PipelineRow;
   cell: PipelineCell;
   onGo: (target: GoTarget, chapterId: string) => void;
   /** The readiness chip shares the cell: the stage cell gives up its 52 px minimum and takes what the chip leaves. */
   beside?: boolean;
+  /** The readiness verdict the cell carries in its tip and description instead of a chip (the Prep column draws none). */
+  verdict?: string;
 }) {
+  const tip = verdict ? `${cell.tip} · ${verdict}` : cell.tip;
   const colors = toneColors(statusTone(cellStatus(cell)));
   // The mock fills an empty cell (`.cell`, --raised) rather than outlining it.
   const look = 'soft';
@@ -73,7 +79,7 @@ function StageCell({
   const classes = `${badgeClass('cell')} w-full ${beside ? 'min-w-0! px-0!' : ''}`;
   if (!cell.go) {
     return (
-      <TooltipTarget text={cell.tip} className={beside ? 'min-w-0' : 'w-full'}>
+      <TooltipTarget text={tip} className={beside ? 'min-w-0' : 'w-full'}>
         <span className={classes} style={badgeStyle(colors, look)} aria-label={cellName(row.name, cell)} role="img">
           {textOf(cell)}
         </span>
@@ -81,12 +87,13 @@ function StageCell({
     );
   }
   return (
-    <TooltipTarget text={cell.tip} className={beside ? 'min-w-0' : 'w-full'}>
+    <TooltipTarget text={tip} className={beside ? 'min-w-0' : 'w-full'}>
       {/* native-control-ok: a flat cell-shaped badge that is a button; Button's padded uppercase chrome and IconButton's square do not draw the mock's cell. */}
       <button
         type="button"
         data-cell={cell.column}
         aria-label={cellName(row.name, cell)}
+        aria-description={verdict}
         className={`${classes} cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]`}
         style={badgeStyle(colors, look)}
         onClick={() => onGo(cell.target, row.id)}
@@ -107,6 +114,10 @@ function RecordedCell({ figure }: { figure: RecordedFigure }) {
     </TooltipTarget>
   );
 }
+
+/** "Readiness: Ready, Editing": what the chip would say, for a cell that draws none. */
+const readinessSentence = (recommendation: StageChapterRecommendation): string =>
+  `Readiness: ${VERDICT_LABEL[verdictOf(recommendation)]}, ${stageLabel(recommendation.from)}`;
 
 type TableProps = {
   rows: readonly PipelineRow[];
@@ -173,7 +184,8 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                   {row.estimate}
                 </TableCell>
                 {STAGE_COLUMNS.map((column) => {
-                  const chip = recommendation && row.current === column;
+                  const chip = recommendation && row.current === column && column !== 'prep';
+                  const verdict = recommendation && row.current === column && column === 'prep' ? readinessSentence(recommendation) : undefined;
                   return (
                     <TableCell key={column} className={STAGE_CELL}>
                       {chip ? (
@@ -189,7 +201,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                           />
                         </span>
                       ) : (
-                        <StageCell row={row} cell={row.cells[column]} onGo={onGo} />
+                        <StageCell row={row} cell={row.cells[column]} onGo={onGo} verdict={verdict} />
                       )}
                     </TableCell>
                   );

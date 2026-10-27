@@ -107,7 +107,7 @@ read says "Not measured yet". A cell's colour is the colour of its status everyw
 amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
 check, Proof, Pickups or Master & QC. The board is about ten rows tall: with more chapters it scrolls inside its card, with the column headers kept in view, and the table scrolls sideways in a narrow window.
 
-The round chip inside the chapter's current-stage cell, beside the stage, is its [readiness](#stage-readiness).
+The round chip inside the chapter's current-stage cell, beside the stage, is its [readiness](#stage-readiness). A chapter that has not started has no chip: its Prep cell's tip says the verdict instead.
 
 Right-click a row (or press the Menu key or Shift+F10 on one of its cells) for the chapter's menu:
 **Open prep in Script**, **Open in Booth**, **Open Proof**, **Open Master & QC**, **Go to this

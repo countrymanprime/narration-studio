@@ -13,6 +13,7 @@ import { PipelineTable } from './PipelineTable';
 import { buildPipelineRows } from './pipelineRows';
 import { calcFor, MID_BOOK, MID_BOOK_RECOMMENDATIONS, MID_BOOK_SOURCES, NEXT_UP_BUSY, NEXT_UP_EMPTY, STORY_DUE, STORY_TODAY } from './pipelineFixtures';
 import { useStageTimer } from './useStageTimer';
+import { recommendation } from '../readiness/readinessFixtures';
 
 const opened = vi.hoisted(() => vi.fn());
 vi.mock('../readiness/openReadiness', () => ({ openReadiness: opened }));
@@ -143,6 +144,24 @@ describe('PipelineTable', () => {
     expect(chip.closest('.absolute')).toBeNull();
     expect(chip.parentElement!.parentElement).toBe(cell.parentElement!.parentElement);
     expect(cell.className).toContain('min-w-0!');
+  });
+});
+
+describe('PipelineTable, the Prep column', () => {
+  // Owner report, #2251: the "?" box beside Prep was not asked for. A chapter whose stage is Prep draws no chip; the verdict is in the cell's tip.
+  it('draws no readiness chip in the Prep column and puts the verdict in the cell tip', () => {
+    const recommendations = new Map([
+      ...MID_BOOK_RECOMMENDATIONS,
+      ['c5', recommendation({ chapterId: 'c5', title: 'Chapter 5', from: 'not_started', target: 'recording' })],
+    ]);
+    table({ recommendations });
+    expect(document.querySelector('[data-rchip="c5"]')).toBeNull();
+    expect(document.querySelectorAll('[data-rchip]')).toHaveLength(2);
+    const cell = screen.getByRole('button', { name: /^Chapter 5: Prep/ });
+    expect(cell.closest('td')!.querySelector('[data-rchip]')).toBeNull();
+    expect(cell.getAttribute('aria-label')).toMatch(/not started/);
+    // The verdict stays reachable without the chip: it is the cell's description.
+    expect(cell.getAttribute('aria-description')).toMatch(/Ready/);
   });
 });
 
