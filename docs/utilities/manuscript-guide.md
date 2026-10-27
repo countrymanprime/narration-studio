@@ -142,7 +142,8 @@ It prints an `entry` per character with a name (its other proper names as aliase
 `duplicate` with a note when two of BookNLP's groups share a name, a `speaker` per attributed quote with the confidence
 `SPEAKER_CONFIDENCE` gives a tagged or an implicit attribution on those weights (an implicit one is always under 0.75),
 and a `Gender` property (Female or Male) with BookNLP's own probability, or `null` when it gives none. Each quote is cut
-from its paragraph by the model's offsets. The host runs it through `src/studio/desktop/internal/extractionport/booknlp`,
+from its paragraph by the model's offsets. The book goes to BookNLP as a UTF-8 file, and BookNLP runs with every text-mode `open` that names no encoding
+defaulting to UTF-8: on Windows its own opens would otherwise use cp1252 and fail on a curly quote (`'charmap' codec can't decode byte 0x9d`). The host runs it through `src/studio/desktop/internal/extractionport/booknlp`,
 which picks the large install over the small one and checks the line format pinned by
 `booknlp/testdata/suggest-lines.json`. `self-check --booknlp-install DIR` (repeatable, best first) adds a `booknlp`
 line: the version and weights of the first folder that is there, or "not installed", which passes.
