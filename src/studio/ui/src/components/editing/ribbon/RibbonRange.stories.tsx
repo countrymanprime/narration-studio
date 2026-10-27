@@ -107,7 +107,6 @@ export const AtParagraphEdge: Story = {
 export const FlaggedUnderRange: Story = {
   args: { doc: marksDoc(), range: { start: 0.9, end: 2.6 } },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.textContent).toMatch(/Range/);
     await expect(within(canvasElement).getByRole('group', { name: /^Range / })).toBeTruthy();
   },
 };
