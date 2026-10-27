@@ -2,14 +2,20 @@
 // The entry editor's state matrix (docs/research/story-bible-page-state-matrix.md): Save, Delete and the lists in awkward states.
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { overlay } from '../../overlay/overlayService';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { GuideEntity } from '../../types';
 import { GuideDetail } from './GuideDetail';
 
+let toast: MockInstance<typeof overlay.toast>;
+beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
+});
 afterEach(cleanup);
+afterEach(() => vi.restoreAllMocks());
 
 const hatter = () => WIRE_ENTITIES.find((row) => row.id === 'mad-hatter')!;
 
@@ -36,7 +42,7 @@ describe('Save', () => {
     for (const text of ['', '   ', '\t\n']) {
       fireEvent.change(name(), { target: { value: text } });
       fireEvent.click(save());
-      expect((await screen.findByRole('alert')).textContent).toBe('Give this entry a name.');
+      await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give this entry a name.', { tone: 'error' }));
     }
     expect(write).not.toHaveBeenCalled();
   });
@@ -47,7 +53,7 @@ describe('Save', () => {
     edit();
     fireEvent.change(name(), { target: { value: 'aLiCe' } });
     fireEvent.click(save());
-    expect((await screen.findByRole('alert')).textContent).toBe('“aLiCe” is already a name of Alice.');
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“aLiCe” is already a name of Alice.', { tone: 'error' }));
     expect(write).not.toHaveBeenCalled();
   });
 

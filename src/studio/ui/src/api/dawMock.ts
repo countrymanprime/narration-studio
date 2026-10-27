@@ -426,8 +426,9 @@ export interface DawMockControl {
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
   moves(): { chapterId: string; where: 'end' | 'at'; seconds: number }[];
   /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
-  syncCalls(): { action: string; seconds: number }[];
-  /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease. */
+  syncCalls(): { action: string; seconds: number; until?: number }[];
+  /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease.
+   * A stretch played with `playRange` stops itself when the head passes its end, as the DAW's own script does. */
   moveInDaw(change: { cursor?: number; head?: number; playing?: boolean; recording?: boolean }): void;
   /** The next transport action is refused with this sentence, as a recording or a stale REAPER would. */
   refuseNextSync(sentence: string): void;
@@ -484,7 +485,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     cursor: number;
     watching: boolean;
     refuse: string | null;
-    calls: { action: string; seconds: number }[];
+    /** The project second a `playRange` stops itself at, while it plays; null for an open play. */
+    stopAt: number | null;
+    calls: { action: string; seconds: number; until?: number }[];
   } = {
     playing: false,
     recording: false,
@@ -492,6 +495,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     cursor: 0,
     watching: false,
     refuse: null,
+    stopAt: null,
     calls: [],
   };
   const positionSubs = new Set<(position: DawPosition) => void>();
@@ -639,6 +643,10 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       if (cursor !== undefined) sync.cursor = cursor;
       if (head !== undefined) sync.head = head;
       if (playing !== undefined) sync.playing = playing;
+      if (playing === false || (sync.stopAt !== null && sync.head >= sync.stopAt)) {
+        if (sync.stopAt !== null && sync.head >= sync.stopAt) sync.playing = false;
+        sync.stopAt = null;
+      }
       streamPosition();
     },
     refuseNextSync: (sentence) => {
@@ -680,6 +688,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         return { reason, message: record?.message ?? MESSAGE_NO_ENGINE };
       }
       live.transport = { playing: true, recording: true, position: 0 };
+      // The transport is pushed on the change, not at the next heartbeat: a screen that subscribes once the take has begun still hears it.
+      publish();
       later(HEARTBEAT_MS, publish);
       return null;
     },
@@ -733,11 +743,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.
-    dawTransportSync: async (action, seconds) => {
+    dawTransportSync: async (action, seconds, until = 0) => {
       const support = currentCapabilities(live).capabilities.transport_sync;
       if (!support?.available) return refusedMove(support?.message ?? MESSAGE_NO_ENGINE);
-      if ((action === 'cursor' || action === 'play') && (!Number.isFinite(seconds) || seconds < 0))
+      if ((action === 'cursor' || action === 'play' || action === 'playRange') && (!Number.isFinite(seconds) || seconds < 0))
         return refusedMove('That place is not a usable number of seconds.');
+      if (action === 'playRange' && (!Number.isFinite(until) || until <= seconds)) return refusedMove('That stretch is not a usable pair of times.');
       if (sync.refuse !== null) {
         const sentence = sync.refuse;
         sync.refuse = null;
@@ -745,14 +756,18 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       }
       if (action !== 'stop' && open !== 'linked')
         return refusedMove("REAPER does not have this book's project open, so its transport was left alone. Open the project in REAPER, then try again.");
-      sync.calls.push({ action, seconds });
+      sync.calls.push(action === 'playRange' ? { action, seconds, until } : { action, seconds });
       if (action === 'cursor') sync.cursor = seconds;
-      if (action === 'play') {
+      if (action === 'play' || action === 'playRange') {
         sync.playing = true;
         sync.cursor = seconds;
         sync.head = seconds;
+        sync.stopAt = action === 'playRange' ? until : null;
       }
-      if (action === 'stop') sync.playing = false;
+      if (action === 'stop') {
+        sync.playing = false;
+        sync.stopAt = null;
+      }
       if (action === 'watch') sync.watching = true;
       streamPosition();
       return { ok: true, changed: action !== 'watch', message: '', undoSteps: 0 };

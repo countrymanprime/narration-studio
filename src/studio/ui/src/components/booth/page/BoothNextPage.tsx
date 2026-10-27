@@ -74,7 +74,6 @@ import type { StoppedTake } from '../pickups/usePickupSession';
 import { loadChapterPlace, loadLastPlace, saveLastPlace, type LastPlace } from './lastPlace';
 import { resumeStart } from '../resume/resumeStart';
 import { RecordedThroughChip } from '../resume/RecordedThroughChip';
-import { RecordedExtent } from '../reading/RecordedExtent';
 import { chapterRecordedDetail, recordedThroughLabel } from '../../../recordedThrough';
 import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
@@ -431,14 +430,6 @@ function BoothSession({
     wasListening.current = session.active;
   }, [session.active, refreshRecorded]);
   const recordedLabel = recordedThroughLabel(recordedThrough, paragraphs);
-  const recordedTo = useMemo(() => {
-    if (!recordedThrough || units.length === 0) return null;
-    if (recordedThrough.complete) {
-      const last = units[units.length - 1]!;
-      return { cur: units.length - 1, wcur: Math.max(0, last.words - 1) };
-    }
-    return unitAtPosition(paragraphs, units, { paragraphId: recordedThrough.paragraphId, word: recordedThrough.word });
-  }, [recordedThrough, paragraphs, units]);
   const placeParagraph = page.position?.paragraphId;
   const placeWord = page.position?.word;
   useEffect(() => {
@@ -757,7 +748,6 @@ function BoothSession({
                   margin={
                     chapter ? (
                       <>
-                        <RecordedExtent to={recordedTo} />
                         <PageBreaks breaks={breaks} />
                         {bookmarks.bookmarks ? (
                           <BookmarkRibbons
@@ -765,7 +755,6 @@ function BoothSession({
                             bookmarks={bookmarks.bookmarks}
                             paragraphs={paragraphs}
                             units={units}
-                            pages={breaks}
                             flashId={bookmarks.flashId}
                             onUpdate={bookmarks.update}
                             onRemove={bookmarks.remove}

@@ -321,6 +321,17 @@ export function useScriptCommands() {
       removeWord: async (word: string) => said(await commands.removeWord(env, word)) !== null,
       /** Saves how a word is said; with no source the narrator typed it. */
       saveSay: async (word: string, say: string, source?: string) => said(await commands.saveSay(env, word, say, source))?.value ?? null,
+      /** Finds who speaks the quoted lines and says what moved, with Undo when something did. Answers whether the run finished. */
+      async attributeSpeakers() {
+        const done = said(await commands.attributeSpeakers(env));
+        if (!done) return false;
+        const { filled, changed, keptConfirmed } = done.value;
+        const moved = filled + changed;
+        const kept = keptConfirmed ? ` ${keptConfirmed} confirmed ${keptConfirmed === 1 ? 'line' : 'lines'} left as they were.` : '';
+        if (moved === 0) overlay.toast(`No new speakers found.${kept}`);
+        else undoOffer(`Attributed ${moved} ${moved === 1 ? 'line' : 'lines'}.${kept}`, done.entryId);
+        return true;
+      },
       confirmSpeaker: async (cueId: string, entryId: string) => said(await commands.confirmSpeaker(env, cueId, entryId)) !== null,
       /** Makes (or finds) the Story Bible entry for a selected name and says which, as the mock does. Answers the entry's id. */
       async createEntryFrom(category: string, text: string) {

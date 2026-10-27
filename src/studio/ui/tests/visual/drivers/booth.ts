@@ -346,7 +346,6 @@ export const boothDrivers: Record<string, Driver> = {
       await page.getByRole('menuitemradio').filter({ hasText: '65%' }).first().click();
     }
     await page.getByRole('group', { name: /^Recorded through “.*” \(65%\)$/ }).waitFor();
-    await page.locator('[data-recorded-rail]').waitFor();
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'levels-menu': async (page) => {
@@ -447,7 +446,7 @@ export const boothDrivers: Record<string, Driver> = {
   // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
   'page-break-stop': async (page) => {
     await readyToRecord(page);
-    const label = page.locator('[data-bmk-margin] [data-page-break="2"]');
+    const label = page.locator('[data-page-breaks] [data-page-break="2"]');
     const height = page.viewportSize()?.height ?? 800;
     for (let step = 0; step < 80; step++) {
       const box = await label.boundingBox();

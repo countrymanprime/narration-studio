@@ -1,6 +1,17 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_TEXT_PREFS, fontStack, loadTextPrefs, readerVars, saveTextPrefs, TEXT_PREFS_STORAGE_KEY, widthName, type TextPrefs } from './readerText';
+import {
+  DEFAULT_TEXT_PREFS,
+  READER_COLUMN_VAR,
+  readerColumn,
+  fontStack,
+  loadTextPrefs,
+  readerVars,
+  saveTextPrefs,
+  TEXT_PREFS_STORAGE_KEY,
+  widthName,
+  type TextPrefs,
+} from './readerText';
 
 afterEach(() => {
   window.localStorage.clear();
@@ -73,5 +84,17 @@ describe('storage', () => {
     window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ ...DEFAULT_TEXT_PREFS, spacing: 1.9 }));
     expect(loadTextPrefs().spacing).toBe(1.9);
     expect(readerVars(loadTextPrefs())['--rl']).toBe(1.9);
+  });
+});
+
+describe('readerColumn', () => {
+  it('is the characters a line or the share of the container, whichever is less', () => {
+    expect(readerColumn(48)).toBe('min(48ch, 48%)');
+    expect(readerColumn(100)).toBe('min(100ch, 100%)');
+  });
+
+  it('is the same rule the Script reads from --rw', () => {
+    expect(READER_COLUMN_VAR).toContain('var(--rw, 64) * 1ch');
+    expect(READER_COLUMN_VAR).toContain('var(--rw, 64) * 1%');
   });
 });

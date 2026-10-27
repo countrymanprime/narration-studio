@@ -9,6 +9,8 @@ import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvi
 
 /** Seconds of the recording heard before and after the line's place. */
 const ORIGINAL_AROUND = 3;
+/** Milliseconds past the stretch's end before the button goes back to Hear: the DAW stops itself at the end, this only resets the list. */
+const RESET_MARGIN_MS = 300;
 /** Why a line cannot be heard: the host gave it no place in the recording. */
 const NO_PLACE = 'This line has no place in the recording yet.';
 const NO_AUDIO = 'The recording of this chapter is not in the project, so the original cannot be played.';
@@ -94,7 +96,8 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
           const from = Math.max(0, p.at! - ORIGINAL_AROUND);
           let why: string;
           try {
-            const result = await sync.dawTransportSync('play', from);
+            // The DAW plays the stretch and stops itself at its end (play_range), so the end is the DAW's and the timer below only puts the button back.
+            const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND);
             if (result.ok) {
               if (asked.current !== mine) {
                 stopDaw();
@@ -105,11 +108,10 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
               timer.current = window.setTimeout(
                 () => {
                   if (asked.current !== mine) return;
-                  stopDaw();
                   setInDaw(false);
                   setPlayingId(null);
                 },
-                (p.at! - from + ORIGINAL_AROUND) * 1000,
+                (p.at! - from + ORIGINAL_AROUND) * 1000 + RESET_MARGIN_MS,
               );
               return { played: true };
             }

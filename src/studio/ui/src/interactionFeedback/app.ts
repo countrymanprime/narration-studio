@@ -3,6 +3,18 @@ import { type FeedbackRow, row, startup, subscription } from './row';
 
 // prettier-ignore
 export const appFeedback: Record<string, FeedbackRow> = {
+  // daw/dawSession.ts: the app's one DAW session
+  'src/daw/dawSession.ts::dawCapabilities#1': row('mount', 'file-io', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'The one read of the DAW capability report, at app start, on focus, while the DAW has not answered and on Check again; a failed read is kept as capsReadFailed/capsError and every screen that shows the DAW says it cannot tell.'),
+  'src/daw/dawSession.ts::dawCapabilities#2': row('event', 'file-io', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'A fresh read a caller gates an action on (the DAW client port); a failure rejects to that caller and is also kept in the session.'),
+  'src/daw/dawSession.ts::dawMeters#1': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the DAW\'s own meters four times a second while any screen holds a lease (the Booth footer does while it shows), one read at a time; a refusal or failure is the meters\' off state in the DAW\'s own sentence, and an answer older than two seconds says it cannot tell and when the levels were last heard.'),
+  'src/daw/dawSession.ts::workspaceProjectFx#1': row('mount', 'file-io', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'The FX on the DAW\'s tracks, read at app start, when the DAW starts or stops answering, on focus and on Check again; a failed read keeps its sentence and no stale list.'),
+  'src/daw/dawSession.ts::subscribeDawCapabilities#1': subscription('The DAW port\'s capability report: the session\'s one subscription, which every screen that shows the DAW (the banner, gates, Settings, the Booth) reads, without a reload.'),
+  'src/daw/dawSession.ts::subscribeDawTransport#1': subscription('The DAW port\'s live transport state (daw_transport_changed): the session\'s one subscription, read by the Booth\'s no-sound rule, the companion\'s playhead badge, the resume prompt and the command router.'),
+  'src/daw/dawSession.ts::dawCapabilities#3': row('event', 'file-io', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'A fresh read a caller gates an action on (the DAW client port); a failure rejects to that caller and is also kept in the session.'),
+  'src/daw/dawSession.ts::dawMeters#2': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The meters\' read loop (see dawMeters#1): the same call, one at a time.'),
+  'src/daw/dawSession.ts::subscribeDawCapabilities#2': subscription('The session\'s start attaches the one capability subscription (see #1).'),
+  'src/daw/dawSession.ts::subscribeDawTransport#2': subscription('The session\'s start attaches the one transport subscription (see #1).'),
+  'src/daw/dawSession.ts::workspaceProjectFx#2': row('mount', 'file-io', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'The session\'s FX read (see workspaceProjectFx#1).'),
   // App.tsx
   'src/App.tsx::bootstrap#1': row('event', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'refreshBootstrap catches its own failure and says so; every caller runs it from an event or a `void`.'),
   'src/App.tsx::ready#1': startup('Startup: the startup screen shows the error and Retry.'),
@@ -17,7 +29,6 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/App.tsx::subscribeUpdate#1': subscription('The update check finding a newer release becomes one toast.'),
   'src/App.tsx::subscribeLiveUpdateHealth#1': subscription('Degraded live updates become one toast.'),
   'src/App.tsx::subscribeAudacityLink#1': subscription('An Audacity project\'s three facts (linked, reachable, open project matches) are the Audacity link\'s, so a change in the link re-reads the DAW facts bootstrap holds and the navigation chip, Settings and the Booth tell one story.'),
-  'src/App.tsx::subscribeDawCapabilities#1': subscription('The DAW starting or stopping answering re-reads the DAW facts bootstrap holds (reachable, open project), so the navigation chip, Settings and the Booth tell one story.'),
   'src/App.tsx::subscribeProjectAttach#1': subscription('A project attach refreshes the bootstrap or shows why it was refused.'),
   'src/studio/slots.ts::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The jump menu\'s "Go to <chapter>" list, the store\'s chapters slot, loaded from App when a manuscript arrives: a failed read leaves the chapter rows out while every page still shows, and the pages that need the chapters report the real error.'),
   'src/studio/slots.ts::subscribeJobEnded#1': subscription('A job that ends marks the store\'s chapters slot stale, so the jump menu\'s chapter list reloads after an import or a re-split.'),
@@ -67,12 +78,8 @@ export const appFeedback: Record<string, FeedbackRow> = {
 
   // useCapability.ts: one capability's live entry from the DAW port's capability report, for any
   // caller wrapping a control in CapabilityGate.
-  'src/useCapability.ts::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'event', 'silent', 'na', 'exempt', 'Seeds the entry useCapability exposes before the very next daw_capabilities_changed event takes over; a failed seed leaves the capability unsupported/unavailable and is retried on a timer and on window focus until the DAW answers or an event arrives.'),
-  'src/useCapability.ts::subscribeDawCapabilities#1': subscription("The DAW port's capability report: every caller of useCapability for the same or a different capability reads this one subscription."),
 
   // useDawKind.ts: the session's DAW kind, for the take-management gating.
-  'src/useDawKind.ts::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'event', 'silent', 'na', 'exempt', "Seeds the kind useDawKind exposes before the very next daw_capabilities_changed event takes over; a failed seed just leaves the kind unknown a moment longer, the same as before the first answer."),
-  'src/useDawKind.ts::subscribeDawCapabilities#1': subscription("The DAW port's capability report, the same event useCapability reads: a second subscription, since useDawKind wants the whole payload's daw field rather than one capability's entry."),
 
   // useZoom.ts: the zoom behind the header's zoom chip. The chip (off 100%) is the only feedback surface
   // every call here is instant (the binding sets/reads a number on the window, no file or network,
@@ -89,7 +96,6 @@ export const appFeedback: Record<string, FeedbackRow> = {
   // by LiveCommandRouter to silence `noisy` commands while REAPER records. Not narrator-facing on its own -
   // the router's own status region, not a toast, is how a failed press is explained - so this is a background feed,
   // exempt like every other subscribe-based hook.
-  'src/input/useDawRecording.ts::subscribeDawTransport#1': subscription('The DAW port\'s live transport state (daw_transport_changed): every gesture the router resolves reads this one subscription\'s current value.'),
 
   // Studio bookmarks: the commands return the host's sentence as a refusal; no screen calls them yet.
   'src/studio/slots.ts::bookmarksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'na', 'na', 'exempt', 'The bookmarks slot load, on focus and after each command; the store records a failed load and the change that was made stands.'),

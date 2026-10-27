@@ -169,6 +169,38 @@ export class FindingsQuery {
 }
 
 /**
+ * GuideCueSpeaker is one line's earlier suggested speaker, as GuideAttributeSpeakers returned it and GuideRestoreSpeakers takes it back.
+ */
+export class GuideCueSpeaker {
+    "cueId": string;
+    "speakerEntityId": string | null;
+    "speakerSource": string;
+
+    /** Creates a new GuideCueSpeaker instance. */
+    constructor($$source: Partial<GuideCueSpeaker> = {}) {
+        if (!("cueId" in $$source)) {
+            this["cueId"] = "";
+        }
+        if (!("speakerEntityId" in $$source)) {
+            this["speakerEntityId"] = null;
+        }
+        if (!("speakerSource" in $$source)) {
+            this["speakerSource"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GuideCueSpeaker instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GuideCueSpeaker {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GuideCueSpeaker($$parsedSource as Partial<GuideCueSpeaker>);
+    }
+}
+
+/**
  * LineIdentityStampRow is one row of LineIdentityStamp's input: an item GUID, the manuscript entity ID it
  * should carry (a paragraph or chapter ID), and that entity's current text.
  */

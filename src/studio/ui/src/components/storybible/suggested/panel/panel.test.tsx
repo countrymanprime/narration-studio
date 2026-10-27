@@ -4,7 +4,7 @@
 import { act, cleanup, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState, type ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
 import type { ExtractionScanJob } from '../../../../api/contracts/extraction';
 import type { JobEnded } from '../../../../api/contracts/system';
@@ -18,6 +18,8 @@ import { ActionsMenu } from '../../ActionsMenu';
 import { Table, TableBody } from '../../../primitives/Table';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
 import { Select } from '../../../primitives/Select';
+import { overlay } from '../../../../overlay/overlayService';
+import { TOAST_ERROR_MAX_CHARS } from '../../../../hooks/useErrorToast';
 import { ScanStatus } from './ScanStatus';
 import { filterEntries } from './selectors';
 import { useSuggestions } from './useSuggestions';
@@ -50,7 +52,7 @@ function Panel({ pollMs = 10, entries = [] as { id: string; name: string }[] }) 
   const picked = loose.find((s) => s.id === chosen);
   return (
     <div>
-      <ActionsMenu scan={scan} onImport={() => {}} onVoiceData={() => {}} onDeleteData={() => {}} />
+      <ActionsMenu scan={scan} onImport={() => {}} onVoiceData={() => {}} />
       <ScanStatus scan={scan} />
       <Select
         label="Show"
@@ -256,6 +258,28 @@ describe('scan-cancel-keeps-what-finished', () => {
 });
 
 describe('scan-failure-names-the-reason', () => {
+  let toast: MockInstance<typeof overlay.toast>;
+  beforeEach(() => {
+    toast = vi.spyOn(overlay, 'toast');
+  });
+
+  it('cuts a very long failure message in the toast and draws nothing in the list', async () => {
+    const h = steppedHost();
+    api = h.host;
+    render(wrap(<Panel />));
+    const u = userEvent.setup();
+    await startScan(u);
+    await screen.findByRole('button', { name: 'Cancel scan' });
+    h.set({ phase: 'error', percent: 100, message: `BookNLP failed: ${'Traceback line. '.repeat(200)}`, logs: [] });
+    act(() => h.end('error'));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    const text = toast.mock.calls[0]![0] as string;
+    expect(text.length).toBeLessThanOrEqual(TOAST_ERROR_MAX_CHARS + 1);
+    expect(text.startsWith('BookNLP failed:')).toBe(true);
+    expect(document.querySelector('[data-scan="incomplete"]'), 'a fixed cue is left on the page').not.toBeNull();
+    expect(document.querySelector('[data-scan="incomplete"]')!.textContent).toBe('Scan incomplete');
+  });
+
   it('shows the sentence of a source that failed and keeps the others’ results', async () => {
     const h = steppedHost();
     api = h.host;
@@ -271,37 +295,29 @@ describe('scan-failure-names-the-reason', () => {
       logs: ['Scanning the manuscript.', 'Skipped GLiNER: the model could not be loaded.', 'Rules offered 4 suggestions.'],
     });
     act(() => h.end('success'));
-    await screen.findByText('GLiNER: the model could not be loaded.');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('GLiNER: the model could not be loaded.', { tone: 'error' }));
+    expect(screen.queryByText('GLiNER: the model could not be loaded.'), 'the sentence is a toast, never in the page').toBeNull();
     expect(screen.getByRole('option', { name: /^Needs verification/ })).toBeTruthy();
   });
 });
 
 describe('the-actions-menu-offers-scan-import-and-voice-data', () => {
-  it('has one icon button that opens the four, and each item calls its own handler and closes the menu', async () => {
+  it('has one icon button that opens the three, and each item calls its own handler and closes the menu', async () => {
     const onImport = vi.fn();
     const onVoiceData = vi.fn();
-    const onDeleteData = vi.fn();
     const scan = { job: null, starting: false, running: false, start: vi.fn(async () => {}), cancel: vi.fn(async () => {}) };
-    render(wrap(<ActionsMenu scan={scan} onImport={onImport} onVoiceData={onVoiceData} onDeleteData={onDeleteData} />));
+    render(wrap(<ActionsMenu scan={scan} onImport={onImport} onVoiceData={onVoiceData} />));
     const u = userEvent.setup();
     const trigger = screen.getByRole('button', { name: 'More actions' });
     expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
     await u.click(trigger);
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
-      'Scan the manuscript',
-      'Import entries',
-      'Voice data',
-      'Delete Story Bible data…',
-    ]);
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Scan the manuscript', 'Import entries', 'Voice data']);
     await u.click(screen.getByRole('menuitem', { name: 'Import entries' }));
     expect(onImport).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await u.click(trigger);
     await u.click(await screen.findByRole('menuitem', { name: 'Voice data' }));
     expect(onVoiceData).toHaveBeenCalledTimes(1);
-    await u.click(trigger);
-    await u.click(await screen.findByRole('menuitem', { name: 'Delete Story Bible data…' }));
-    await waitFor(() => expect(onDeleteData).toHaveBeenCalledTimes(1));
     expect(scan.start).not.toHaveBeenCalled();
   });
 });

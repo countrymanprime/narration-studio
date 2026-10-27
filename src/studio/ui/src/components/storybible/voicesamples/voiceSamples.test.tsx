@@ -9,7 +9,7 @@
 //   huge                       not tested: a character holds at most 20 samples of at most 30 s and a project 200 MiB (the host's, tested in voicesample); the sizes are voiceSampleModel.test.ts
 //   loading                    'says it is reading before the first answer'
 //   refused                    'Rename shows the host\'s sentence and stays open', 'Move shows the host\'s sentence when the other character is full'
-//   failed (the read)          'a failed read is an alert with Check again, and a failed re-read keeps the list'
+//   failed (the read)          'a failed read is a toast beside Check again, and a failed re-read keeps the list'
 //   failed (an action)         'a failed Make primary is a toast', 'a failed Delete is a toast and the row stays', 'a failed Rename stays in the dialog'
 //   stale (passage)            'a passage that changed still plays, says so, and says so again on the way to Editing', 'a chapter that left is named and has no link'
 //   stale (clip)               'a missing clip cannot play and says what to do', 'a changed clip says so', 'Check again reads the list again'
@@ -29,6 +29,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { VoiceSamples } from '../../../api/contracts/voiceSamples';
 import { createMockApi } from '../../../api/mockApi';
+import { overlay } from '../../../overlay/overlayService';
 import type { NarrationApi } from '../../../types';
 import type { SamplePlayer } from '../../voicesamples/useSamplePlayer';
 import { useVoiceSamples } from '../../voicesamples/useVoiceSamples';
@@ -292,7 +293,8 @@ describe('a clip that is not as it was saved', () => {
 });
 
 describe('the host, and the other window', () => {
-  it('a failed read is an alert with Check again, and a failed re-read keeps the list', async () => {
+  it('a failed read is a toast beside Check again, and a failed re-read keeps the list', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
     const api = createMockApi({}, { voiceSamples: 'bible' });
     const real = api.voiceSamplesList.bind(api);
     let fail = true;
@@ -301,20 +303,18 @@ describe('the host, and the other window', () => {
       return real();
     };
     const { user } = setup({}, api);
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain("Couldn't read the voice samples.");
-    expect(alert.textContent).toContain('the project is busy');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining("Couldn't read the voice samples. "), { tone: 'error' }));
+    expect(toast.mock.calls[0]![0]).toContain('the project is busy');
+    expect(screen.queryByRole('alert'), 'nothing in the page flow').toBeNull();
     expect(screen.queryByText(NO_SAMPLES_YET)).toBeNull();
 
     fail = false;
     await user.click(screen.getByRole('button', { name: 'Check again' }));
     await screen.findByText('Furious, to the court');
-    expect(screen.queryByRole('alert')).toBeNull();
 
     fail = true;
     await user.click(screen.getByRole('button', { name: 'Check again' }));
-    const stale = await screen.findByRole('alert');
-    expect(stale.textContent).toContain('may be out of date');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('may be out of date'), { tone: 'error' }));
     expect(screen.getByText('Furious, to the court')).toBeTruthy();
   });
 

@@ -38,6 +38,7 @@ import type { RangeLocator } from '../range/common/locate';
 import { useCutWords } from '../range/cut/useCutWords';
 import { useFxWords } from '../range/fx/useFxWords';
 import { itemClocks } from '../ribbon/docClock';
+import { useChapterSound } from '../ribbon/useChapterSound';
 import { WaveDock } from '../ribbon/WaveDock';
 import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
@@ -192,8 +193,10 @@ export function EditingBody(props: EditingBodyProps) {
   const clocks = useMemo(() => itemClocks(doc, read.answer), [doc, read.answer]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
+  const sound = useChapterSound(chapterId, clocks);
   const playback = useScriptPlayback({
     playlist,
+    sound,
     mediaUrl: tracks.mediaUrl,
     sync: { items: read.workspace.items, cuts: closedCuts, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,

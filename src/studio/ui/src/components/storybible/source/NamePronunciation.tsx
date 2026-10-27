@@ -11,6 +11,7 @@ import { OnlinePronunciationLookup } from '../OnlinePronunciationLookup';
 import { PronSourceTag } from './PronSourceTag';
 import type { NameRow } from './pronunciationRows';
 import type { PronunciationSources } from './usePronunciationSources';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 
 const OWN_SOURCES: readonly string[] = ['manual', 'user'];
 
@@ -66,6 +67,7 @@ export function NamePronunciation({
   const api = useApi();
   const port = usePort('pronunciationSources');
   const mutation = usePendingAction();
+  useErrorToast(sources.error);
   const { name, aliasIndex, pronunciation } = row;
   const [text, setText] = useState(pronunciation.ipa);
   const [shown, setShown] = useState(pronunciation.ipa);
@@ -183,11 +185,6 @@ export function NamePronunciation({
         )}
         {badge}
       </div>
-      {sources.error && (
-        <p role="alert" className={`${BELOW} text-xs text-[var(--danger-text)]`}>
-          {sources.error}
-        </p>
-      )}
       {note && <div className={BELOW}>{note}</div>}
       {editing && (
         <Disclosure title="Look up elsewhere" open={detailsOpen} onOpenChange={setDetailsOpen} className={BELOW}>

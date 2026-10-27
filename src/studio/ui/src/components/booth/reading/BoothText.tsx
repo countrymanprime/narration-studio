@@ -271,7 +271,7 @@ export function BoothText({
           } as CSSProperties
         }
         // Left-aligned (start-aligned for a right-to-left paragraph), never justified, balanced or hyphenated: the lines break where they did.
-        className="relative mx-auto py-[30vh] text-start leading-[1.5] [overflow-wrap:anywhere] motion-ok:transition-transform motion-ok:duration-(--motion-slow)"
+        className="relative py-[30vh] text-start leading-[1.5] [overflow-wrap:anywhere] motion-ok:transition-transform motion-ok:duration-(--motion-slow)"
       >
         {paragraphs.map((paragraph, paragraphIndex) => {
           const pickup = pickupLines.find((line) => line.paragraphId === paragraph.id);

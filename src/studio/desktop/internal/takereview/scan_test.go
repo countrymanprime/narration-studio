@@ -468,3 +468,60 @@ func TestManifestPathIsUnderATempDirectory(t *testing.T) {
 		t.Fatalf("want a recognisable manifest filename, got %q", path)
 	}
 }
+
+// A pickup's finding carries the time of the read it names, so Proof and the Pickups page can play it: the adapter alone cannot place a read
+// (it never sees the project), so Scan does.
+func TestScanGivesAPickupFindingTheProjectTimeOfItsPrimaryRead(t *testing.T) {
+	store := findings.NewStore(t.TempDir())
+	runner := &fakeRunner{output: strings.Join([]string{
+		"SUMMARY|Found 1 repeated-span group(s) across 2 segment(s)",
+		"SPAN_GROUP|0|3|7|2",
+		"SPAN_MEMBER|0|0|{ITEM-1}|{TAKE-1}|a.wav|0.000|4.500|3|7|0.500|0.500|",
+		"SPAN_MEMBER|0|3|{ITEM-3}|{TAKE-4}|pickup.wav|0.000|1.500|3|7|1.000|0.900|",
+		"",
+	}, "\n")}
+	scanner := &Scanner{Runner: runner, Store: store}
+
+	result, err := scanner.Scan(context.Background(), Request{
+		Project:     chapterTrackFixture(),
+		ProjectPath: "P", ManuscriptPath: "manuscript.json", ChapterID: "c1", ChapterTitle: "Chapter One",
+		Scope:      Scope{ChapterTrackName: "Chapter 1", PickupTrackName: "Pickups"},
+		Thresholds: repeats.DefaultThresholds(),
+	})
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	if len(result) != 1 || result[0].TimeRange == nil {
+		t.Fatalf("want one finding with a time range, got %+v", result)
+	}
+	got := result[0].TimeRange
+	if got.Start != 100 || got.End != 101.5 {
+		t.Fatalf("want project seconds 100..101.5 (the pickup item), got %v..%v", got.Start, got.End)
+	}
+	if got.SourceStart == nil || *got.SourceStart != 0 || got.SourceEnd == nil || *got.SourceEnd != 1.5 {
+		t.Fatalf("want source offsets 0..1.5, got %v..%v", got.SourceStart, got.SourceEnd)
+	}
+}
+
+func TestScanLeavesAFindingWithoutATimeWhenItsItemIsNotInTheProject(t *testing.T) {
+	store := findings.NewStore(t.TempDir())
+	runner := &fakeRunner{output: strings.Join([]string{
+		"SUMMARY|Found 1 repeated-span group(s) across 2 segment(s)",
+		"SPAN_GROUP|0|3|7|2",
+		"SPAN_MEMBER|0|0|{ITEM-1}|{TAKE-1}|a.wav|0.000|4.500|3|7|1.000|0.500|",
+		"SPAN_MEMBER|0|1|{GONE}|{TAKE-X}|x.wav|0.000|4.500|3|7|1.000|0.900|",
+		"",
+	}, "\n")}
+	scanner := &Scanner{Runner: runner, Store: store}
+	result, err := scanner.Scan(context.Background(), Request{
+		Project: chapterTrackFixture(), ProjectPath: "P", ManuscriptPath: "m.json", ChapterID: "c1", Scope: Scope{ChapterTrackName: "Chapter 1"},
+		Thresholds: repeats.DefaultThresholds(),
+	})
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	// The primary read is the better one, {GONE}, which the project no longer holds: no time is invented for it.
+	if len(result) != 1 || result[0].TimeRange != nil {
+		t.Fatalf("want no time range for an item that is not in the project, got %+v", result)
+	}
+}

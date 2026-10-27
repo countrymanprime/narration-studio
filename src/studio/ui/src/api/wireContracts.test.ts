@@ -188,6 +188,7 @@ import {
   guideCreatedSchema,
   guideDeletedSchema,
   guideDialogueCuesSchema,
+  speakerAttributionSchema,
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
@@ -1102,6 +1103,28 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const cleared = (await api.guideDialogueCues()).find((cue) => cue.id === unknown?.id);
     expect(cleared).toMatchObject({ speaker_entity_id: null, speaker_source: 'correction', corrected: true });
     await expect(api.guideCorrectCue('not-a-real-cue', 'alice')).rejects.toThrow();
+  });
+
+  it('attributing speakers fills only unconfirmed lines, reports what moved, and a re-run changes nothing', async () => {
+    const api = createMockApi();
+    const cueOf = async (id: string) => (await api.guideDialogueCues()).find((cue) => cue.id === id);
+    // Blank the machine's suggestion on cue-1 (an undo does this), then confirm cue-2 as the narrator's own choice.
+    await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }]);
+    await api.guideCorrectCue('cue-2', 'alice');
+    const first = await api.guideAttributeSpeakers();
+    expectMatches(speakerAttributionSchema, first, 'mock speaker attribution');
+    expect(first).toMatchObject({ filled: 1, changed: 0, keptConfirmed: 1 });
+    expect(first.previous).toEqual([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }]);
+    expect(await cueOf('cue-1')).toMatchObject({ speaker_entity_id: 'mad-hatter', corrected: false });
+    // The confirmed line is exactly as the narrator left it.
+    expect(await cueOf('cue-2')).toMatchObject({ speaker_entity_id: 'alice', speaker_source: 'correction', corrected: true });
+    // A re-run with nothing new changes nothing and says so.
+    const again = await api.guideAttributeSpeakers();
+    expect(again).toMatchObject({ filled: 0, changed: 0, keptConfirmed: 1, previous: [] });
+    // Undo puts the suggestion back; it never overwrites a line confirmed since.
+    await api.guideCorrectCue('cue-1', 'alice');
+    expect(await api.guideRestoreSpeakers(first.previous)).toBe(0);
+    expect(await cueOf('cue-1')).toMatchObject({ speaker_entity_id: 'alice', corrected: true });
   });
 
   it('the Story Bible review flags and speaker colour', async () => {
@@ -3742,6 +3765,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(heard.at(-1)).toEqual({ playing: true, recording: false, playPosition: 12.5, editCursor: 12.5, sameProject: true });
     for (const position of heard) expectMatches(dawPositionSchema, position, 'mock daw_position_changed');
     expect((await api.dawTransportSync('cursor', -1)).refused).toBe('That place is not a usable number of seconds.');
+    // playRange: the host answers as for a play, refuses an empty or backwards stretch, and the DAW stops itself at the end (the mock's head passing it).
+    expect(await api.dawTransportSync('playRange', 20, 24)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect((await api.dawTransportSync('playRange', 20, 20)).refused).toBe('That stretch is not a usable pair of times.');
+    expect((await api.dawTransportSync('playRange', 24, 20)).refused).toBe('That stretch is not a usable pair of times.');
+    expect((await api.dawTransportSync('playRange', -1, 3)).refused).toBe('That place is not a usable number of seconds.');
     stop();
 
     const off = createMockApi({}, { daw: { reachable: false } });
@@ -4422,6 +4450,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideDeleteAll',
       'guidePreview',
       'guideDialogueCues',
+      'guideAttributeSpeakers',
+      'guideRestoreSpeakers',
       'guideTypes',
       'characterListRegions',
       'characterApprove',

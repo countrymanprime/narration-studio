@@ -25,12 +25,15 @@ const Lease = 6 * time.Second
 const (
 	ActionCursor = "cursor"
 	ActionPlay   = "play"
-	ActionStop   = "stop"
-	ActionWatch  = "watch"
+	// ActionPlayRange plays the stretch from seconds to until and has the DAW stop itself at until.
+	ActionPlayRange = "playRange"
+	ActionStop      = "stop"
+	ActionWatch     = "watch"
 )
 
 const (
 	badTime      = "That place is not a usable number of seconds."
+	badRange     = "That stretch is not a usable pair of times."
 	unknown      = "Unknown transport action."
 	notConnected = "%s is not connected to this app. Open this app from its launcher action in %s."
 	notAnswering = "%s is not answering. Check that %s is open and the app's launcher action is running, then try again."
@@ -43,17 +46,20 @@ const (
 // Do runs one action on syncer. support is the transport_sync capability's answer and is checked first, with nothing asked of the DAW when it
 // refuses; sameProject says whether the DAW has this book's project open, and a cursor, play or watch is left alone when it does not (a stop is
 // never refused for it, so a transport the app started can always be stopped). A refusal is a Result with one sentence in Refused and Message.
-func Do(ctx context.Context, name string, support dawport.Support, syncer dawport.TransportSyncer, sameProject func() bool, action string, seconds float64) dawport.Result {
+func Do(ctx context.Context, name string, support dawport.Support, syncer dawport.TransportSyncer, sameProject func() bool, action string, seconds, until float64) dawport.Result {
 	if !support.Available {
 		return dawport.Refused(support.Message)
 	}
 	switch action {
-	case ActionCursor, ActionPlay, ActionStop, ActionWatch:
+	case ActionCursor, ActionPlay, ActionPlayRange, ActionStop, ActionWatch:
 	default:
 		return dawport.Refused(unknown)
 	}
-	if (action == ActionCursor || action == ActionPlay) && (math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds < 0) {
+	if (action == ActionCursor || action == ActionPlay || action == ActionPlayRange) && (math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds < 0) {
 		return dawport.Refused(badTime)
+	}
+	if action == ActionPlayRange && (math.IsNaN(until) || math.IsInf(until, 0) || until <= seconds) {
+		return dawport.Refused(badRange)
 	}
 	if syncer == nil {
 		return dawport.Refused(fmt.Sprintf(notConnected, name, name))
@@ -67,6 +73,8 @@ func Do(ctx context.Context, name string, support dawport.Support, syncer dawpor
 		_, err = syncer.SetCursor(ctx, seconds)
 	case ActionPlay:
 		_, err = syncer.PlayFrom(ctx, seconds)
+	case ActionPlayRange:
+		_, _, err = syncer.PlayRange(ctx, seconds, until)
 	case ActionStop:
 		_, err = syncer.Stop(ctx)
 	case ActionWatch:

@@ -142,6 +142,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"go_to":               dawport.CapFollowPosition,
 	"set_cursor":          dawport.CapTransportSync,
 	"play_from":           dawport.CapTransportSync,
+	"play_range":          dawport.CapTransportSync,
 	"stop_play":           dawport.CapTransportSync,
 	"watch_transport":     dawport.CapTransportSync,
 	"fx_range_params":     dawport.CapFXRange,

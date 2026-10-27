@@ -1,0 +1,19 @@
+{
+  "attributed": 2,
+  "changed": 0,
+  "cues": 2,
+  "filled": 2,
+  "keptConfirmed": 0,
+  "previous": [
+    {
+      "cueId": "cue-bea0bab1ac6f",
+      "speakerEntityId": null,
+      "speakerSource": "unknown"
+    },
+    {
+      "cueId": "cue-b7e41a756972",
+      "speakerEntityId": null,
+      "speakerSource": "unknown"
+    }
+  ]
+}

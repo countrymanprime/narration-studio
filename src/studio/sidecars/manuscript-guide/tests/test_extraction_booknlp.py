@@ -731,6 +731,44 @@ class NoNetworkAtRunTimeTests(unittest.TestCase):
         self.assertIn("BookNLP could not be loaded", refused.exception.message)
         self.assertIn("no transformers", refused.exception.message)
 
+    def test_non_ascii_text_survives_a_windows_cp1252_default_codec(self):
+        # BookNLP opens its book and its own output files with a bare open(), which on Windows decodes with cp1252: the
+        # byte 0x9d of a UTF-8 right double quote ("\u201d" is E2 80 9D) has no cp1252 character, so the scan failed with
+        # "'charmap' codec can't decode byte 0x9d". The fake process below does what BookNLP does, under that default.
+        text = "\u201cWho are you?\u201d said the Caterpillar. \u201cCaf\u00e9 \u2014 na\u00efve \u0101\u201d"
+        seen: dict[str, str] = {}
+
+        def process(book_path: str, out: str, idd: str) -> None:
+            with open(book_path) as handle:
+                seen["text"] = handle.read()
+            os.makedirs(out, exist_ok=True)
+            tokens = "token_ID_within_document\tbyte_onset\tbyte_offset\n0\t0\t1\n"
+            for name, content in (
+                ("tokens", tokens),
+                ("entities", "COREF\tstart_token\tend_token\tprop\tcat\n"),
+                ("quotes", "quote_start\tquote_end\tmention_start\tmention_end\tmention_phrase\tchar_id\tquote\n"),
+            ):
+                with open(os.path.join(out, f"{idd}.{name}"), "w", newline="") as handle:
+                    handle.write(content)
+            with open(os.path.join(out, f"{idd}.book"), "w") as handle:
+                json.dump(
+                    {"characters": [{"id": 1, "count": 2, "mentions": {"proper": [{"n": "Caf\u00e9 na\u00efve \u0101", "c": 2}]}}]}, handle, ensure_ascii=False
+                )
+
+        real_open = io.open
+
+        def windows_open(file, mode="r", buffering=-1, encoding=None, *args, **kwargs):
+            if encoding is None and "b" not in str(mode):
+                encoding = "cp1252"
+            return real_open(file, mode, buffering, encoding, *args, **kwargs)
+
+        model = booknlp.BookNlpModel(type("Nlp", (), {"process": staticmethod(process)})(), "small")
+        with patch("builtins.open", windows_open), patch("io.open", windows_open):
+            analysis = model.analyse(text)
+
+        self.assertEqual(text, seen["text"], "the book reached BookNLP unchanged, not with '?' for what cp1252 lacks")
+        self.assertEqual("Caf\u00e9 na\u00efve \u0101", analysis["characters"][0]["mentions"]["proper"][0]["n"])
+
     def test_a_model_that_fails_on_the_book_is_a_sentence(self):
         class Broken(FakeModel):
             def analyse(self, text):

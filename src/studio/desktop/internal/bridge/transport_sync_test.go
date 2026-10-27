@@ -124,3 +124,59 @@ func TestTheTransportCommandsAreExperimentalUntilTheOwnerSeesThemInREAPER(t *tes
 		}
 	}
 }
+
+func TestPlayRangeSendsBothTimesAndReturnsTheStretchREAPERTook(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"RANGE_PLAYING", run(command), "40.250000", "41.500000"}}
+	})
+	from, to, err := actions.PlayRange(context.Background(), 40.25, 41.5)
+	if err != nil || from != 40.25 || to != 41.5 {
+		t.Fatalf("PlayRange = %v, %v, %v", from, to, err)
+	}
+	if command := fake.commands()[0]; command[1] != "play_range" || len(command) != 5 || command[3] != "40.25" || command[4] != "41.5" {
+		t.Fatalf("command = %q, want play_range with 40.25 and 41.5", command)
+	}
+}
+
+func TestPlayRangeRefusesAStretchThatIsNotUsableBeforeAnythingIsSent(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
+	for _, bad := range [][2]float64{{5, 5}, {6, 5}, {-1, 5}, {math.NaN(), 5}, {1, math.NaN()}, {0, math.Inf(1)}, {0, maxRangeSeconds + 1}, {0, maxPlaceSeconds + 1}} {
+		if _, _, err := actions.PlayRange(context.Background(), bad[0], bad[1]); err == nil {
+			t.Errorf("PlayRange(%v) must be refused", bad)
+		}
+	}
+	time.Sleep(20 * time.Millisecond)
+	if len(fake.commands()) != 0 {
+		t.Fatalf("commands were written: %v", fake.commands())
+	}
+}
+
+func TestPlayRangeIsRefusedWhileREAPERRecordsAndSaysWhy(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ERROR", run(command), "REAPER is recording. Stop recording first."}}
+	})
+	if _, _, err := actions.PlayRange(context.Background(), 1, 2); !errors.Is(err, ErrRecording) {
+		t.Fatalf("err = %v, want ErrRecording", err)
+	}
+}
+
+// The wire table refuses the answer before play_range reads it, so a time that is not a number is an error, never a 0.
+func TestPlayRangeAnswerThatIsNotANumberIsAnErrorNotAZero(t *testing.T) {
+	for name, answer := range map[string][]string{
+		"the start": {"RANGE_PLAYING", "", "soon", "41.500000"},
+		"the end":   {"RANGE_PLAYING", "", "40.250000", "later"},
+	} {
+		actions, client, dir := newActionsSession(t, true)
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			fields := append([]string(nil), answer...)
+			fields[1] = run(command)
+			return [][]string{fields}
+		})
+		if _, _, err := actions.PlayRange(context.Background(), 40.25, 41.5); err == nil {
+			t.Errorf("%s: an unreadable answer must be an error", name)
+		}
+	}
+}

@@ -26,14 +26,14 @@ func TestTransportSyncIsExperimentalAndEveryCommandBelongsToIt(t *testing.T) {
 	if declares[dawport.CapTransportSync] != dawport.Experimental || depthOf(dawport.CapTransportSync).Destructive {
 		t.Fatal("transport_sync must be an Experimental, non-destructive capability")
 	}
-	for _, command := range []string{"set_cursor", "play_from", "stop_play", "watch_transport"} {
+	for _, command := range []string{"set_cursor", "play_from", "play_range", "stop_play", "watch_transport"} {
 		if commandCapability[command] != dawport.CapTransportSync || !bridge.Experimental(command) {
 			t.Errorf("%s must be an Experimental command of transport_sync", command)
 		}
 	}
 }
 
-func TestTransportSyncTranslatesTheFourCalls(t *testing.T) {
+func TestTransportSyncTranslatesTheFiveCalls(t *testing.T) {
 	var seen []string
 	syncer := syncerAnswering(t, func(command []string) [][]string {
 		seen = append(seen, command[0])
@@ -42,6 +42,8 @@ func TestTransportSyncTranslatesTheFourCalls(t *testing.T) {
 			return [][]string{{"CURSOR_SET", command[1], command[2]}}
 		case "play_from":
 			return [][]string{{"TRANSPORT_PLAYING", command[1], command[2]}}
+		case "play_range":
+			return [][]string{{"RANGE_PLAYING", command[1], command[2], command[3]}}
 		case "stop_play":
 			return [][]string{{"TRANSPORT_STOPPED", command[1], "7.000000"}}
 		default:
@@ -54,13 +56,16 @@ func TestTransportSyncTranslatesTheFourCalls(t *testing.T) {
 	if got, err := syncer.PlayFrom(t.Context(), 40); err != nil || got != 40 {
 		t.Fatalf("PlayFrom = %v, %v", got, err)
 	}
+	if from, to, err := syncer.PlayRange(t.Context(), 40, 41.5); err != nil || from != 40 || to != 41.5 {
+		t.Fatalf("PlayRange = %v, %v, %v", from, to, err)
+	}
 	if got, err := syncer.Stop(t.Context()); err != nil || got != 7 {
 		t.Fatalf("Stop = %v, %v", got, err)
 	}
 	if got, err := syncer.Watch(t.Context(), 4*time.Second); err != nil || got != 4*time.Second {
 		t.Fatalf("Watch = %v, %v", got, err)
 	}
-	if len(seen) != 4 {
+	if len(seen) != 5 {
 		t.Fatalf("commands = %v", seen)
 	}
 }
@@ -74,6 +79,7 @@ func TestTransportSyncRefusesWithTheCapabilitysOwnSentenceBeforeAnythingIsSent(t
 	calls := map[string]func() error{
 		"SetCursor": func() error { _, err := syncer.SetCursor(t.Context(), 1); return err },
 		"PlayFrom":  func() error { _, err := syncer.PlayFrom(t.Context(), 1); return err },
+		"PlayRange": func() error { _, _, err := syncer.PlayRange(t.Context(), 1, 2); return err },
 		"Stop":      func() error { _, err := syncer.Stop(t.Context()); return err },
 		"Watch":     func() error { _, err := syncer.Watch(t.Context(), time.Second); return err },
 	}

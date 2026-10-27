@@ -353,3 +353,32 @@ func TestP5aAdapterServesRecordAndPunchAtREAPERsLevel(t *testing.T) {
 		t.Errorf("punch role: %v", err)
 	}
 }
+
+// The resolver behind every binding serves every capability REAPER declares, not only the seven p5aAdapter owns: the Effects tab's FX list
+// (workspaceProjectFx, master_chain_read) once answered "REAPER is not connected" on a connected REAPER because its role was not handed out.
+func TestP5aAdapterServesEveryCapabilityREAPERDeclares(t *testing.T) {
+	client, err := bridge.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	full, err := reaper.New(client, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter := p5aAdapter{navigator: bridge.NewNavigator(client), actions: bridge.NewActions(client, nil), rest: full}
+	for capability, level := range reaper.Declaration().Declares() {
+		if level < dawport.Experimental {
+			continue
+		}
+		if adapter.Role(capability) == nil {
+			t.Errorf("%s: REAPER declares %v but the host's resolver hands out no role", capability, level)
+		}
+	}
+	resolver := dawport.NewResolver(dawport.ResolverConfig{
+		Adapter: adapter,
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
+	})
+	if got := masterChainReaderFrom(hostServices{dawPortResolver: resolver}); got == nil {
+		t.Error("masterChainReaderFrom: no role on a connected REAPER, so the FX list says REAPER is not connected")
+	}
+}

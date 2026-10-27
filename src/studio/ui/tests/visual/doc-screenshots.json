@@ -669,7 +669,7 @@
     "state": "range",
     "viewport": "desktop",
     "docName": "editing-range",
-    "caption": "Editing - a range drawn on the waveform with an edge inside a word, zoomed in: the two handles, the arrows at its ends, the partly covered word and the sub-word preview"
+    "caption": "Editing - a range drawn on the waveform with an edge inside a word, zoomed in: the two handles and the arrows at its ends, with no text under the waveform"
   },
   {
     "page": "editing",

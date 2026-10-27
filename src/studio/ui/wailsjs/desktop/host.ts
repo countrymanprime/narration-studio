@@ -1030,12 +1030,13 @@ export function DawStopFxCompare(): $CancellablePromise<string> {
 
 /**
  * DawTransportSync runs one action on the DAW's transport: "cursor" puts the edit cursor at seconds, "play" starts the transport at seconds, "stop"
- * stops it, and "watch" takes or renews the lease on the daw_position_changed stream (seconds is ignored by the last two). The answer is a DawResult:
+ * stops it, "playRange" plays from seconds to until and has the DAW stop itself at until, and "watch" takes or renews the lease on the
+ * daw_position_changed stream (seconds is ignored by "stop" and "watch", until by all but "playRange"). The answer is a DawResult:
  * the capability's own sentence when the resolver refuses it, a DAW that has another project open, a recording in progress, or a time that is not
  * usable, each with nothing changed. It adds no undo step.
  */
-export function DawTransportSync(action: string, seconds: number): $CancellablePromise<string> {
-    return $Call.ByID(388325684, action, seconds);
+export function DawTransportSync(action: string, seconds: number, until: number): $CancellablePromise<string> {
+    return $Call.ByID(388325684, action, seconds, until);
 }
 
 /**
@@ -1610,6 +1611,14 @@ export function FindingsThread(id: string, op: string, messageID: string, who: s
 }
 
 /**
+ * GuideAttributeSpeakers attributes every unconfirmed quoted line and returns {cues, attributed, filled, changed, keptConfirmed,
+ * previous}. It runs under the same deadline as a refresh after an import, and a failure writes nothing.
+ */
+export function GuideAttributeSpeakers(): $CancellablePromise<string> {
+    return $Call.ByID(3642666976);
+}
+
+/**
  * GuideCorrectCue records the narrator's own attribution for one dialogue
  * cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
  * rebuild never overwrites a correction (mirroring src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
@@ -1697,6 +1706,14 @@ export function GuideRelate(id: string, otherID: string, label: string): $Cancel
 
 export function GuideRescan(id: string): $CancellablePromise<string> {
     return $Call.ByID(2984124370, id);
+}
+
+/**
+ * GuideRestoreSpeakers undoes an attribution run: it puts each listed line back to its earlier suggestion unless the narrator has
+ * confirmed or edited it since. It returns the number of lines restored.
+ */
+export function GuideRestoreSpeakers(previous: $models.GuideCueSpeaker[]): $CancellablePromise<string> {
+    return $Call.ByID(4031021706, previous);
 }
 
 export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise<string> {

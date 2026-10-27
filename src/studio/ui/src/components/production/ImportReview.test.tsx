@@ -319,7 +319,7 @@ describe('ImportReview subtitles', () => {
     renderReview();
     const line = screen.getByText('The Pool of Tears');
     expect(line.className).toContain('block');
-    expect(line.className).toContain('text-xs');
+    expect(line.className).toContain('text-[0.8em]');
     expect(line.className).toContain('text-[var(--text-muted)]');
     expect(line.previousElementSibling?.textContent).toContain('Chapter Two');
     expect(chapterSwitch(/^Chapter Two/).closest('label')!.textContent).not.toContain('—');

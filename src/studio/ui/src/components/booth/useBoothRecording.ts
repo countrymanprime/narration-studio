@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useApi } from '../../api/ApiContext';
+import { useDawState } from '../../daw/useDawSession';
 
 /**
  * Whether the Booth is showing *and* the DAW reports recording: the
@@ -10,8 +9,6 @@ import { useApi } from '../../api/ApiContext';
  * half clears, to release whatever toast it queued while this was true.
  */
 export function useBoothRecording(boothShowing: boolean): boolean {
-  const api = useApi();
-  const [recording, setRecording] = useState(false);
-  useEffect(() => api.subscribeDawTransport((transport) => setRecording(transport.recording)), [api]);
+  const recording = useDawState((state) => state.transport.recording);
   return boothShowing && recording;
 }
