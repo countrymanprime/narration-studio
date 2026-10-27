@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
 
@@ -27,17 +28,30 @@ import (
 // dawport/reaper.Adapter over the same client, which would race its own run IDs against h.actions' (bridge/actions.go).
 // Punch, for the Booth's punch and roll (puncherFrom), is the puncher configureLocked already took from its
 // dawport/reaper.Adapter for DawRoll. Its declaration mirrors dawport/reaper's for exactly these seven capabilities
-// (TestP5aAdapterServesRecordAndPunchAtREAPERsLevel); the other REAPER capabilities stay off dawPortResolver's map
-// until a later phase moves their own consumers onto it.
+// (TestP5aAdapterServesRecordAndPunchAtREAPERsLevel); every other REAPER capability resolves through `rest`, so
+// dawPortResolver is one view of the DAW for every binding.
 type p5aAdapter struct {
 	navigator *bridge.Navigator
 	actions   *bridge.Actions
 	puncher   dawport.Puncher
+	// rest is the full REAPER adapter over the same client: every capability the seven above do not cover (master chain read, FX chains,
+	// the meters, the transport) resolves through it, so a consumer asking dawPortResolver for a role REAPER declares gets it instead of
+	// "REAPER is not connected" (the Effects tab's FX list). Nil with no session.
+	rest dawport.Adapter
 }
 
 func (p5aAdapter) Kind() dawport.Kind { return dawport.KindREAPER }
 
-func (p5aAdapter) Declares() map[dawport.Capability]dawport.Level {
+func (a p5aAdapter) Declares() map[dawport.Capability]dawport.Level {
+	declared := map[dawport.Capability]dawport.Level{}
+	if a.rest != nil {
+		maps.Copy(declared, a.rest.Declares())
+	}
+	maps.Copy(declared, a.ownDeclares())
+	return declared
+}
+
+func (p5aAdapter) ownDeclares() map[dawport.Capability]dawport.Level {
 	return map[dawport.Capability]dawport.Level{
 		dawport.CapNavigate:    dawport.Supported,
 		dawport.CapMarkers:     dawport.Supported,
@@ -57,11 +71,17 @@ func (a p5aAdapter) Role(c dawport.Capability) any {
 		return a.actions
 	case dawport.CapPunch:
 		if a.puncher == nil {
-			return nil
+			if a.rest == nil {
+				return nil
+			}
+			return a.rest.Role(c)
 		}
 		return a.puncher
 	default:
-		return nil
+		if a.rest == nil {
+			return nil
+		}
+		return a.rest.Role(c)
 	}
 }
 
