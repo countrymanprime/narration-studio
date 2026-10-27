@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"sync"
 	"testing"
 	"time"
 )
@@ -289,12 +290,25 @@ func TestBypassFXRangeSendsTheSwitchAndReadsRANGE_FX_BYPASSED(t *testing.T) {
 
 func TestFXRangeEditsReportAStaleEffectAndCheckTheirArgumentsFirst(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
-	var answer func([]string) [][]string
-	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return answer(command) })
+	// The fake answers on its own goroutine, so the script it plays is swapped under a lock, not by assignment.
+	var mu sync.Mutex
+	var script func([]string) [][]string
+	answer := func(command []string) [][]string {
+		mu.Lock()
+		current := script
+		mu.Unlock()
+		return current(command)
+	}
+	play := func(next func([]string) [][]string) {
+		mu.Lock()
+		script = next
+		mu.Unlock()
+	}
+	fake := startFakeReaper(t, client, dir, answer)
 	for _, reason := range []string{"item", "take", "fx"} {
-		answer = func(command []string) [][]string {
+		play(func(command []string) [][]string {
 			return [][]string{{"ITEM_STALE", run(command), fxRangePiece, reason}}
-		}
+		})
 		_, errParams := actions.FXRangeParams(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain)
 		_, errSet := actions.SetFXRangeParam(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, 0, 0, 1)
 		_, errBypass := actions.BypassFXRange(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, true)
@@ -321,9 +335,9 @@ func TestFXRangeEditsReportAStaleEffectAndCheckTheirArgumentsFirst(t *testing.T)
 	if len(fake.commands()) != sent {
 		t.Fatalf("a refused request was sent: %v", fake.commands()[sent:])
 	}
-	answer = func(command []string) [][]string {
+	play(func(command []string) [][]string {
 		return [][]string{{"ERROR", run(command), "That value is outside what the setting takes."}}
-	}
+	})
 	_, err := actions.SetFXRangeParam(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, 0, 0, 99)
 	var refusal *RefusalError
 	if !errors.As(err, &refusal) || refusal.Sentence != "That value is outside what the setting takes." {
