@@ -1887,7 +1887,7 @@ describe('App page change signal', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
     await screen.findByRole('heading', { level: 1, name: 'Script' });
-    await screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 4000 });
+    await screen.findByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }, { timeout: 4000 });
     fireEvent.keyDown(document.body, { key: 'f', code: 'KeyF', ctrlKey: true });
     const field = await screen.findByRole('combobox', { name: 'Jump menu' });
     expect(document.getElementById(field.getAttribute('aria-describedby')!)!.textContent).toMatch(/Script page. Searching this page only/);
@@ -1905,7 +1905,7 @@ describe('App page change signal', () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
-    await screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 4000 });
+    await screen.findByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }, { timeout: 4000 });
     fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
     await screen.findByRole('combobox', { name: 'Jump menu' });
     const headings = () => Array.from(document.querySelectorAll('[role="listbox"] [role="presentation"]')).map((node) => node.textContent);
