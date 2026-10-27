@@ -297,7 +297,7 @@ export function ReaderText({
           // per-word tracked markup and its subtitle in view but not tracked; the size is the heading's, the primitive scales its two lines.
           <h2
             key={row.key}
-            className={`font-['Barlow_Condensed',sans-serif] tracking-[0.02em] ${dense ? 'text-base' : 'text-[1.4rem]'} ${gutter ? 'lg:pl-[8.25rem]' : ''}`}
+            className={`font-['Barlow_Condensed',sans-serif] tracking-[0.02em] ${dense ? 'text-[1.05rem]' : 'text-[1.4rem]'} ${gutter ? 'lg:pl-[8.25rem]' : ''}`}
           >
             <TitleSubtitle layout="stacked" title={content} subtitle={row.subtitle} />
           </h2>
