@@ -31,12 +31,17 @@ export function TitleSubtitle({
   className?: string;
 }) {
   if (layout === 'stacked') {
+    // The hidden colon is the title's last child, so a browser that puts a space between two blocks reads "Title: Subtitle",
+    // not "Title : Subtitle"; the bare space keeps the join in a renderer that does not.
     return (
       <span className={`normal-case ${className}`}>
-        <span className={`block text-[1.2em] leading-tight font-semibold ${truncate ? 'truncate' : ''}`}>{title}</span>
+        <span className={`block text-[1.2em] leading-tight font-semibold ${truncate ? 'truncate' : ''}`}>
+          {title}
+          {subtitle && <span className="text-[0px] select-none">:</span>}
+        </span>
         {subtitle && (
           <>
-            <span className="sr-only">:</span>{' '}
+            {' '}
             <span className={`block text-[0.8em] leading-tight font-normal text-[var(--text-muted)] ${truncate ? 'truncate' : ''}`}>{subtitle}</span>
           </>
         )}
