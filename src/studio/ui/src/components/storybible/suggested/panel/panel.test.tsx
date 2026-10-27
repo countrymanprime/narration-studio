@@ -18,7 +18,8 @@ import { ActionsMenu } from '../../ActionsMenu';
 import { Table, TableBody } from '../../../primitives/Table';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
 import { Select } from '../../../primitives/Select';
-import { ScanStatus } from './ScanStatus';
+import { overlay } from '../../../../overlay/overlayService';
+import { SCAN_FAILURE_TOAST_CHARS, ScanStatus } from './ScanStatus';
 import { filterEntries } from './selectors';
 import { useSuggestions } from './useSuggestions';
 
@@ -256,6 +257,27 @@ describe('scan-cancel-keeps-what-finished', () => {
 });
 
 describe('scan-failure-names-the-reason', () => {
+  let toast: ReturnType<typeof vi.spyOn<typeof overlay, 'toast'>>;
+  beforeEach(() => {
+    toast = vi.spyOn(overlay, 'toast');
+  });
+
+  it('cuts a very long failure message in the toast and draws nothing in the list', async () => {
+    const h = steppedHost();
+    api = h.host;
+    render(wrap(<Panel />));
+    const u = userEvent.setup();
+    await startScan(u);
+    await screen.findByRole('button', { name: 'Cancel scan' });
+    h.set({ phase: 'error', percent: 100, message: `BookNLP failed: ${'Traceback line. '.repeat(200)}`, logs: [] });
+    act(() => h.end('error'));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    const text = toast.mock.calls[0]![0] as string;
+    expect(text.length).toBeLessThanOrEqual(SCAN_FAILURE_TOAST_CHARS + 1);
+    expect(text.startsWith('BookNLP failed:')).toBe(true);
+    expect(document.querySelector('[data-scan]')).toBeNull();
+  });
+
   it('shows the sentence of a source that failed and keeps the others’ results', async () => {
     const h = steppedHost();
     api = h.host;
@@ -271,7 +293,8 @@ describe('scan-failure-names-the-reason', () => {
       logs: ['Scanning the manuscript.', 'Skipped GLiNER: the model could not be loaded.', 'Rules offered 4 suggestions.'],
     });
     act(() => h.end('success'));
-    await screen.findByText('GLiNER: the model could not be loaded.');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('GLiNER: the model could not be loaded.', { tone: 'error' }));
+    expect(screen.queryByText('GLiNER: the model could not be loaded.'), 'the sentence is a toast, never in the page').toBeNull();
     expect(screen.getByRole('option', { name: /^Needs verification/ })).toBeTruthy();
   });
 });
