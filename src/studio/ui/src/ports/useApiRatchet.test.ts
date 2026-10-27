@@ -14,12 +14,11 @@ const CALL = /\buseApi\(\)/g;
 // Calls to `useApi()` per file, at the time of SN-S5.
 const CEILING: Record<string, number> = {
   'src/App.tsx': 1,
-  'src/components/booth/CompanionShell.tsx': 2,
+  'src/components/booth/CompanionShell.tsx': 1,
   'src/components/booth/CompanionThisChapter.tsx': 1,
   'src/components/booth/ResumePrompt.tsx': 1,
   'src/components/booth/companion/CompanionHost.tsx': 1,
   'src/components/booth/companion/CompanionPage.tsx': 1,
-  'src/components/booth/useBoothRecording.ts': 1,
   'src/components/booth/useRecordInReaper.ts': 1,
   'src/components/booth/useRecorder.ts': 1,
   'src/components/booth/useResumeLocate.ts': 1,
@@ -72,9 +71,6 @@ const CEILING: Record<string, number> = {
   'src/components/storybible/VoiceDataPanel.tsx': 1,
   'src/components/storybible/VoiceReferencesSection.tsx': 1,
   'src/components/storybible/source/NamePronunciation.tsx': 1,
-  'src/input/useDawRecording.ts': 1,
-  'src/useCapability.ts': 1,
-  'src/useDawKind.ts': 1,
 };
 
 function sources(dir: string): string[] {

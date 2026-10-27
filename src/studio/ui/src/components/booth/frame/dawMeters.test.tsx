@@ -35,6 +35,9 @@ function menu(
   const api = createMockApi({
     dawMonitorLevel: async (): Promise<DawMonitorLevel> => ({ ok: true, level: 60, message: '' }),
     dawMeters: async () => (reads.push(Date.now()), answers()),
+    // The app's DAW session reads the meters only when the DAW declares them, so the capability report carries the test's meters.
+    subscribeDawCapabilities: () => () => undefined,
+    dawCapabilities: async () => ({ ...DAW_SETUPS[setup], capabilities: { ...DAW_SETUPS[setup].capabilities, daw_meters: meters } }),
   } as Partial<NarrationApi>);
   const caps = DAW_SETUPS[setup].capabilities;
   render(
@@ -84,7 +87,7 @@ describe("the DAW's meters in the Levels menu", () => {
     await waitFor(() => expect(meter('REAPER output level').getAttribute('aria-valuenow')).toBe('-18'));
   });
 
-  it('follows the DAW: reads again while open, one read at a time, and stops when the menu closes', async () => {
+  it('follows the DAW: reads again, one read at a time, for as long as the Booth shows, whether or not the menu is open', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     let level = -40;
     let release: (() => void) | null = null;
@@ -110,7 +113,8 @@ describe("the DAW's meters in the Levels menu", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(DAW_METERS_EVERY_MS * 8);
     });
-    expect(reads.length).toBe(after);
+    // Closing the menu does not stop the meters: the footer keeps them streaming.
+    expect(reads.length).toBeGreaterThan(after);
   });
 
   it('a DAW that goes quiet is shown as quiet, with when it was last heard, not as the last level', async () => {

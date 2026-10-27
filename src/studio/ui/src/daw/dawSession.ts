@@ -93,7 +93,15 @@ const INITIAL: DawSessionState = {
  * app start, and every screen reads them from this store. No screen subscribes to the host for DAW state by itself, so what a screen
  * shows never depends on which other screen has mounted. `ApiProvider` creates and starts it; see `useDawSession.ts` for the hooks.
  */
-export function createDawSession(api: DawSessionApi): DawSession {
+export function createDawSession(host: DawSessionApi): DawSession {
+  // A call that throws before it returns a promise (an api double without the method) is a failed read, like any other.
+  const api = {
+    dawCapabilities: () => Promise.resolve().then(() => host.dawCapabilities()),
+    dawMeters: () => Promise.resolve().then(() => host.dawMeters()),
+    workspaceProjectFx: () => Promise.resolve().then(() => host.workspaceProjectFx()),
+    subscribeDawCapabilities: (on: Parameters<DawSessionApi['subscribeDawCapabilities']>[0]) => host.subscribeDawCapabilities?.(on) ?? (() => undefined),
+    subscribeDawTransport: (on: Parameters<DawSessionApi['subscribeDawTransport']>[0]) => host.subscribeDawTransport?.(on) ?? (() => undefined),
+  };
   let state: DawSessionState = INITIAL;
   const listeners = new Set<() => void>();
   let running = false;
@@ -219,8 +227,12 @@ export function createDawSession(api: DawSessionApi): DawSession {
       teardown = [
         api.subscribeDawCapabilities((next) => {
           capsEvents += 1;
-          takeCapabilities(next);
-          void refreshFx();
+          const was = state.caps?.reachable;
+          // Any event says something changed, so a consumer that re-reads on a DAW change (capsVersion) re-reads even if the payload is empty.
+          if (next) takeCapabilities(next);
+          else set({ capsVersion: state.capsVersion + 1 });
+          // The FX in the DAW are a fact about a running DAW: read again when it starts or stops answering, not on every report.
+          if (was !== undefined && next && was !== next.reachable) void refreshFx();
         }),
         api.subscribeDawTransport((transport) => set({ transport })),
       ];
