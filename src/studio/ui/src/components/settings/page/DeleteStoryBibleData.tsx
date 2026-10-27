@@ -10,7 +10,7 @@ import type { Notify } from '../../primitives/Toast';
 const counted = (n: number, one: string, many: string) => `${n === 1 ? 'one' : n.toLocaleString()} ${n === 1 ? one : many}`;
 
 /** The toast after Delete Story Bible data: what the host says it deleted, or that there was nothing. */
-export function deletedMessage({ entries, suggestions }: GuideDeleted): string {
+function deletedMessage({ entries, suggestions }: GuideDeleted): string {
   if (entries === 0 && suggestions === 0) return 'There were no Story Bible entries or scan suggestions to delete.';
   const parts = [entries > 0 && counted(entries, 'entry', 'entries'), suggestions > 0 && counted(suggestions, 'scan suggestion', 'scan suggestions')];
   return `Story Bible data deleted: ${parts.filter(Boolean).join(' and ')}.`;
@@ -21,7 +21,7 @@ export function deletedMessage({ entries, suggestions }: GuideDeleted): string {
  * entries and the scan's suggestions, read when it opens), says what stays and that there is no undo, and opens on Cancel. It stays open and busy until the host answers; a refusal
  * (a build or a scan is running) is a toast and the dialog stays, so Cancel is still the way out.
  */
-export function DeleteStoryBibleDataDialog({
+function DeleteStoryBibleDataDialog({
   projectName,
   entries,
   suggestions,
