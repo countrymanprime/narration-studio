@@ -5,6 +5,7 @@ import { useMarks } from '../../script/page/data/useScriptData';
 import { MarksDialog } from '../../script/page/tools/select/MarksDialog';
 import { useSaveMarkTypes } from '../../script/scriptPageHost';
 import { ManuscriptBody } from '../ManuscriptSection';
+import { DeleteStoryBibleData } from '../page/DeleteStoryBibleData';
 import { ClearProjectData } from '../page/ProjectDataPanel';
 import { StoryBibleTypesList, useStoryBibleTypes } from '../page/StoryBibleTypesPanel';
 import { useSettingsHost } from '../row/SettingsHost';
@@ -44,4 +45,10 @@ export function MarksRowBody() {
 export function ProjectDataRowBody() {
   const { notify, onProjectDataCleared } = useSettingsHost();
   return <ClearProjectData notify={notify} onProjectDataCleared={onProjectDataCleared} label="Clear derived data…" />;
+}
+
+/** Delete Story Bible data…, which says what goes and asks first. The Story Bible page has no delete of its own. */
+export function StoryBibleDataRowBody() {
+  const { data, notify } = useSettingsHost();
+  return <DeleteStoryBibleData projectName={data.projectFolder ? data.projectName : undefined} notify={notify} />;
 }

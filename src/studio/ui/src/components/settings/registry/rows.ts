@@ -521,6 +521,18 @@ export const ROWS: readonly SettingMeta[] = [
     used: ['bible', 'script'],
   },
   {
+    id: 'project.bibleData',
+    cat: 'project',
+    section: 'Story Bible',
+    label: 'Delete Story Bible data',
+    scope: 'project',
+    def: '',
+    desc: 'Deletes this project’s Story Bible.',
+    more: 'Deletes every entry and the manuscript scan’s suggestions. The script, takes, recordings, settings and voice samples stay. The only place the Story Bible’s data is deleted.',
+    used: ['bible'],
+    advanced: true,
+  },
+  {
     id: 'project.marks',
     cat: 'project',
     section: 'Notes',
