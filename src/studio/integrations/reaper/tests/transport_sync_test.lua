@@ -286,3 +286,179 @@ H.test('a bridge that was never asked to watch sends no TRANSPORT event', functi
   end
   H.eq(transport_events(s), {})
 end)
+
+-- play_range -----------------------------------------------------------------------------------------------------
+-- The DAW plays one stretch and stops itself at its end, so a play of a word or a note ends where the app planned it, not when a position
+-- stream and a stop round trip get there. The play is REAPER's own transport, so the project's FX chain is what the narrator hears.
+
+local function presses(s)
+  local out = {}
+  for _, call in ipairs(s.fake.calls) do
+    if call.name == 'OnPlayButton' or call.name == 'OnStopButton' then
+      out[#out + 1] = call.name
+    end
+  end
+  return out
+end
+
+H.test('play_range puts the cursor at the start, presses Play once and answers the stretch', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40.25', '41.5')
+  H.eq(s:events(), { { 'RANGE_PLAYING', 'r1', '40.250000', '41.500000' } })
+  H.eq(names(s), { 'SetEditCurPos', 'OnPlayButton' }, 'the cursor first, then Play')
+  H.eq(s.fake.cursor, 40.25)
+  H.eq(s.fake.play_state, 1)
+  H.eq(#s.fake.undo, 0, 'playing is not an edit')
+end)
+
+H.test('play_range stops REAPER by itself once the play head reaches the end, and presses Stop only once', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40', '41')
+  s:events()
+  s.fake.play_position = 40.4
+  s:tick()
+  H.eq(s.fake.play_state, 1, 'still inside the stretch')
+  s.fake.play_position = 41.02
+  s:tick()
+  H.eq(s.fake.play_state, 0)
+  H.eq(presses(s), { 'OnPlayButton', 'OnStopButton' })
+  for _ = 1, 10 do
+    s:tick()
+  end
+  H.eq(presses(s), { 'OnPlayButton', 'OnStopButton' }, 'a second tick presses nothing')
+end)
+
+H.test('play_range does not stop on the old play head REAPER still reports just after a seek', function()
+  local s = new_session()
+  s.fake.play_state = 1
+  s.fake.play_position = 100
+  s:send('play_range', 'r1', '40', '41')
+  s:events()
+  for _ = 1, 3 do
+    s:tick()
+  end
+  H.eq(s.fake.play_state, 1, 'a play head of 100 s is not this stretch')
+  s.fake.play_position = 40.5
+  s:tick()
+  s.fake.play_position = 41.1
+  s:tick()
+  H.eq(s.fake.play_state, 0)
+end)
+
+H.test('play_range stops anyway when the play head never reaches the stretch', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40', '41')
+  s.fake.play_position = 500
+  for _ = 1, 80 do
+    s:tick()
+  end
+  H.eq(s.fake.play_state, 0, 'the deadline is the length of the stretch and a margin')
+  H.eq(presses(s), { 'OnPlayButton', 'OnStopButton' })
+end)
+
+H.test('play_range stops at once when the play head is first read just past the end', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40', '41')
+  s.fake.play_position = 41.3
+  s:tick()
+  H.eq(s.fake.play_state, 0)
+end)
+
+H.test('play_range while REAPER plays seeks the playhead and does not press Play again', function()
+  local s = new_session()
+  s.fake.play_state = 1
+  s:send('play_range', 'r1', '8', '9')
+  H.eq(s:events(), { { 'RANGE_PLAYING', 'r1', '8.000000', '9.000000' } })
+  H.eq(s.fake.cursor_seekplay, true)
+  H.eq(#calls_named(s, 'OnPlayButton'), 0)
+end)
+
+H.test('play_range on a paused REAPER stops first, so Play starts from the start and not from where it paused', function()
+  local s = new_session()
+  s.fake.play_state = 2
+  s:send('play_range', 'r1', '8', '9')
+  H.eq(names(s), { 'OnStopButton', 'SetEditCurPos', 'OnPlayButton' })
+end)
+
+H.test('a narrator who stops REAPER during the stretch ends it: a later play is not stopped at the old end', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40', '41')
+  s.fake.play_position = 40.3
+  s:tick()
+  s.fake.play_state = 0
+  s:tick()
+  s.fake.play_state, s.fake.play_position = 1, 60
+  s:tick()
+  s:tick()
+  H.eq(s.fake.play_state, 1, "the narrator's own play goes on")
+  H.eq(presses(s), { 'OnPlayButton' })
+end)
+
+H.test('play_from, stop_play and a newer play_range each end the stretch that was set', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40', '41')
+  s:send('play_from', 'p1', '70')
+  -- The play head passes through the old stretch (a seek that reads late), then beyond its end: the old end must not stop an open play.
+  s.fake.play_position = 40.5
+  s:tick()
+  s.fake.play_position = 41.5
+  s:tick()
+  H.eq(s.fake.play_state, 1, 'play_from is an open play: the old end does not stop it')
+
+  local t = new_session()
+  t:send('play_range', 'r1', '40', '41')
+  t:send('stop_play', 's1')
+  t.fake.play_state, t.fake.play_position = 1, 40.5
+  t:tick()
+  t.fake.play_position = 42
+  t:tick()
+  H.eq(t.fake.play_state, 1, 'stop_play dropped the stretch')
+
+  local u = new_session()
+  u:send('play_range', 'r1', '40', '41')
+  u:send('play_range', 'r2', '90', '95')
+  u.fake.play_position = 91
+  u:tick()
+  u.fake.play_position = 94
+  u:tick()
+  H.eq(u.fake.play_state, 1, 'the newer stretch ends at 95, not at the older 41')
+  u.fake.play_position = 95.1
+  u:tick()
+  H.eq(u.fake.play_state, 0)
+end)
+
+H.test('play_range is refused while REAPER is recording: nothing moves and nothing is pressed', function()
+  local s = new_session()
+  s.fake.play_state = 5
+  s.fake.cursor = 7
+  s:send('play_range', 'r1', '8', '9')
+  H.eq(s:events(), { { 'ERROR', 'r1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(names(s), {})
+  H.eq(s.fake.cursor, 7)
+end)
+
+for _, pair in ipairs({
+  { '', '5' },
+  { '5', '' },
+  { 'abc', '5' },
+  { '1', 'nan' },
+  { '-1', '5' },
+  { '5', '5' },
+  { '6', '5' },
+  { '1', 'inf' },
+  { '0', '601' },
+}) do
+  H.test('play_range refuses ' .. string.format('%q to %q', pair[1], pair[2]) .. ' and presses nothing', function()
+    local s = new_session()
+    s:send('play_range', 'r1', pair[1], pair[2])
+    H.eq(s:events(), { { 'ERROR', 'r1', 'The stretch to play is not a usable pair of times.' } })
+    H.eq(names(s), {})
+  end)
+end
+
+H.test('a play_range stretch with no end argument is refused, not played open-ended', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '5')
+  H.eq(s:events(), { { 'ERROR', 'r1', 'The stretch to play is not a usable pair of times.' } })
+  H.eq(names(s), {})
+end)
