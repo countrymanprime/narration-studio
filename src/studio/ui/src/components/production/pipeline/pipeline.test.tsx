@@ -65,11 +65,10 @@ describe('PipelineTable', () => {
     expect(screen.queryByText('Fin.')).toBeNull();
   });
 
-  it('centres every column header but the name over its centred cells, from one shared treatment', () => {
+  it('centres every column header, the name column included, from one shared treatment', () => {
     table();
     for (const header of screen.getAllByRole('columnheader')) {
-      const named = header.textContent === 'Chapter';
-      expect(header.className, header.textContent ?? '').toContain(named ? 'text-left' : 'text-center');
+      expect(header.className, header.textContent ?? '').toContain('text-center');
     }
   });
 

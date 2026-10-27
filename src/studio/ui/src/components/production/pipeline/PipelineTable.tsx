@@ -145,7 +145,9 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
       <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[44.75rem]">
         <TableHead>
           <TableRow>
-            <TableHeader className={`${STICKY_HEAD} left-0 z-[3]`}>Chapter</TableHeader>
+            <TableHeader align="center" className={`${STICKY_HEAD} left-0 z-[3]`}>
+              Chapter
+            </TableHeader>
             <TableHeader
               align="center"
               className={STICKY_HEAD}
