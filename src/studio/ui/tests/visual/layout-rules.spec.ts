@@ -112,6 +112,12 @@ const cases: { rule: LayoutRule; bad: string; good: string }[] = [
     bad: '<div class="card" style="width:200px;height:80px;padding:16px"><button style="height:auto">Tile</button></div>',
     good: '<div class="card" style="width:200px;height:80px;padding:0"><button style="width:100%;height:100%">Tile</button></div>',
   },
+  {
+    // The Production board's Rec. column: the label and its info mark are wider than the column's content box (owner report, #2251).
+    rule: 'C1',
+    bad: '<table style="table-layout:fixed;width:300px;border-collapse:collapse"><tr><th style="width:40px;text-align:center"><span style="white-space:nowrap">Rec. <button style="width:16px;padding:0">i</button></span></th><th>Est.</th></tr></table>',
+    good: '<table style="table-layout:fixed;width:300px;border-collapse:collapse"><tr><th style="width:80px;text-align:center"><span style="white-space:nowrap">Rec. <button style="width:16px;padding:0">i</button></span></th><th>Est.</th></tr></table>',
+  },
 ];
 
 for (const { rule, bad, good } of cases) {
