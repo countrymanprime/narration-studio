@@ -1,13 +1,10 @@
-import { useEffect } from 'react';
-import { overlay } from '../../../../overlay/overlayService';
+import { useErrorToast } from '../../../../hooks/useErrorToast';
+import { StatusBadge } from '../../../primitives/StatusBadge';
+import { TooltipTarget } from '../../../primitives/Tooltip';
 import { Button } from '../../../primitives/Button';
 import { ProgressBar } from '../../../primitives/ProgressBar';
 import { scanFailures } from './selectors';
 import type { ExtractionScan } from './useSuggestions';
-
-/** A failure sentence longer than this is cut for the toast: a tool's whole log is not a message (the host keeps it in the job's log). */
-export const SCAN_FAILURE_TOAST_CHARS = 240;
-const cut = (sentence: string): string => (sentence.length > SCAN_FAILURE_TOAST_CHARS ? `${sentence.slice(0, SCAN_FAILURE_TOAST_CHARS).trimEnd()}…` : sentence);
 
 /**
  * The scan's progress while it runs, with the host's percent and message (docs/architecture/principles.md: nothing made up) and the Cancel scan
@@ -18,11 +15,17 @@ const cut = (sentence: string): string => (sentence.length > SCAN_FAILURE_TOAST_
 export function ScanStatus({ scan }: { scan: ExtractionScan }) {
   const { job, running } = scan;
   const failures = running ? [] : scanFailures(job);
-  const key = failures.length > 0 ? `${job?.id ?? ''}|${failures.join('\n')}` : '';
-  useEffect(() => {
-    if (key) overlay.toast(failures.map(cut).join(' '), { tone: 'error' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the failures: one toast per ended scan
-  }, [key]);
+  const told = failures.join(' ');
+  useErrorToast(told);
+  // What the toast said stays on the page as a fixed-size cue, so a partial list never reads as a complete one once the toast is gone.
+  if (!running && told)
+    return (
+      <div className="flex min-w-0" data-scan="incomplete">
+        <TooltipTarget text={told.length > 240 ? `${told.slice(0, 240).trimEnd()}…` : told}>
+          <StatusBadge tone="warning" label="Scan incomplete" />
+        </TooltipTarget>
+      </div>
+    );
   if (!running) return null;
   return (
     <div className="flex min-w-0 flex-col gap-1" data-scan="running">

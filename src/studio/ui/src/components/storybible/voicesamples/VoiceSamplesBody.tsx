@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { Button } from '../../primitives/Button';
+import { StatusBadge } from '../../primitives/StatusBadge';
+import { TooltipTarget } from '../../primitives/Tooltip';
 import type { VoiceSample, VoiceSamples } from '../../../api/contracts/voiceSamples';
 import type { Notify } from '../../primitives/Toast';
 import type { SamplePlayer } from '../../voicesamples/useSamplePlayer';
@@ -128,6 +130,11 @@ export function VoiceSamplesBody({
           >
             {heading}
           </h3>
+          {read.status === 'failed' ? (
+            <TooltipTarget text={read.samples ? 'The list may be out of date. Check again.' : 'The voice samples could not be read. Check again.'}>
+              <StatusBadge tone="danger" label={read.samples ? 'May be out of date' : "Couldn't read"} />
+            </TooltipTarget>
+          ) : null}
           {mine.length > 0 ? (
             <span className="text-sm text-[var(--text-muted)]" data-voice-samples-count>
               {mine.length} · {mebibytes(bytes)}
@@ -145,7 +152,7 @@ export function VoiceSamplesBody({
           Reading voice samples…
         </p>
       ) : null}
-      {list && mine.length === 0 ? (
+      {list && mine.length === 0 && read.status !== 'failed' ? (
         <>
           <p className="m-0 mb-2 text-sm text-[var(--text-muted)]">{NO_SAMPLES_YET}</p>
           {openEditing ? (

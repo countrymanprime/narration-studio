@@ -19,7 +19,8 @@ import { Table, TableBody } from '../../../primitives/Table';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
 import { Select } from '../../../primitives/Select';
 import { overlay } from '../../../../overlay/overlayService';
-import { SCAN_FAILURE_TOAST_CHARS, ScanStatus } from './ScanStatus';
+import { TOAST_ERROR_MAX_CHARS } from '../../../../hooks/useErrorToast';
+import { ScanStatus } from './ScanStatus';
 import { filterEntries } from './selectors';
 import { useSuggestions } from './useSuggestions';
 
@@ -273,9 +274,10 @@ describe('scan-failure-names-the-reason', () => {
     act(() => h.end('error'));
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
     const text = toast.mock.calls[0]![0] as string;
-    expect(text.length).toBeLessThanOrEqual(SCAN_FAILURE_TOAST_CHARS + 1);
+    expect(text.length).toBeLessThanOrEqual(TOAST_ERROR_MAX_CHARS + 1);
     expect(text.startsWith('BookNLP failed:')).toBe(true);
-    expect(document.querySelector('[data-scan]')).toBeNull();
+    expect(document.querySelector('[data-scan="incomplete"]'), 'a fixed cue is left on the page').not.toBeNull();
+    expect(document.querySelector('[data-scan="incomplete"]')!.textContent).toBe('Scan incomplete');
   });
 
   it('shows the sentence of a source that failed and keeps the others’ results', async () => {
