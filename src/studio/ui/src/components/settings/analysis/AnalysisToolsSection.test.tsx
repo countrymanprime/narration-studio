@@ -199,7 +199,7 @@ describe('AnalysisToolsSection', () => {
     await download('gliner', 'GLiNER');
     const gliner = await row('gliner');
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
-    expect(toast).toHaveBeenCalledWith(shortfall, { tone: 'error' });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(shortfall, { tone: 'error' }), SLOW);
     expect(gliner.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     fake.plan('gliner', 'completes');
     fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));

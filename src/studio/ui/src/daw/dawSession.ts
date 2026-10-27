@@ -305,6 +305,11 @@ export function withDawSession<A extends DawSessionApi>(api: A, session: DawSess
     ...api,
     dawCapabilities: session.readCapabilities,
     subscribeDawCapabilities: onChange((state) => state.caps),
-    subscribeDawTransport: onChange((state) => state.transport),
+    subscribeDawTransport: (onUpdate) => {
+      // Like the host's first tick on subscribe: a screen that subscribes after the DAW changed (the Booth, once a take has started) hears
+      // the state the DAW is in now, so a later stop reads as a change from it.
+      onUpdate(session.getState().transport);
+      return onChange((state) => state.transport)(onUpdate);
+    },
   };
 }

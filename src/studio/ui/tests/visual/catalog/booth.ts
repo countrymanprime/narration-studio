@@ -273,14 +273,8 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-width-full',
     description:
-      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100ch, so at 40 px it runs the width of the text area between the gutters, left-aligned, no paragraph indent',
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow at any width and runs up to the gutters, left-aligned, no paragraph indent',
     ...REFLOW,
-    sameAs: {
-      of: 'booth/text-width-narrow',
-      reason:
-        'At tablet and reflow the text area is narrower than Narrow (48ch at 40 px is 960 px), so Narrow and Full both fill it and draw the same; desktop and small-desktop show them apart.',
-      viewports: ['tablet', 'reflow'],
-    },
   },
   {
     page: 'booth',

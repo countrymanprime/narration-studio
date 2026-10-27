@@ -494,7 +494,7 @@ export function Reader(props: ReaderProps) {
         <div
           data-reader=""
           // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12).
-          className="mx-auto px-6 pt-2 pb-20"
+          className="px-6 pt-2 pb-20"
           style={{
             maxWidth: READER_COLUMN_VAR,
             fontFamily: 'var(--rf, Georgia, serif)',
