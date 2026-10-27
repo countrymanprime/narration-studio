@@ -93,6 +93,22 @@ export type GuideDialogueCue = {
   corrected: boolean;
 };
 
+/** A line's suggested speaker as it stood before an attribution run changed it: what the run's undo puts back. */
+export type CueSpeaker = { cueId: string; speakerEntityId: string | null; speakerSource: GuideDialogueCueSpeakerSource };
+/**
+ * What one attribution run did to the quoted lines. `filled` lines had no speaker and now have a suggested one, `changed` lines had
+ * a suggested speaker and now have another (or none), and `keptConfirmed` lines are ones the narrator confirmed or edited, which a
+ * run never touches. `previous` holds the earlier suggestion of every filled and changed line.
+ */
+export type SpeakerAttribution = {
+  cues: number;
+  attributed: number;
+  filled: number;
+  changed: number;
+  keptConfirmed: number;
+  previous: CueSpeaker[];
+};
+
 export interface StoryBibleApi {
   /**
    * Starts the Story Bible build with the language model the narrator selected, or answers `asset_required` when that model is not
@@ -135,6 +151,13 @@ export interface StoryBibleApi {
    * the cue back to unknown. A rebuild never overwrites a correction (mirroring the entity lock guard).
    */
   guideCorrectCue(cueId: string, speakerEntityId: string): Promise<void>;
+  /**
+   * Finds who speaks the quoted lines, first run or re-run. Only lines the narrator has not confirmed or edited are filled or
+   * changed; a confirmed line keeps its speaker. A failed run writes nothing.
+   */
+  guideAttributeSpeakers(): Promise<SpeakerAttribution>;
+  /** Undoes an attribution run: each line goes back to its earlier suggestion unless the narrator has confirmed or edited it since. Resolves with the number restored. */
+  guideRestoreSpeakers(previous: CueSpeaker[]): Promise<number>;
   /** Clears the review flags of the entry and every name (`aliasIndex` omitted), or of one name; the entry is reviewed when nothing is left. Refused on a locked entry. */
   guideMarkReviewed(id: string, aliasIndex?: number): Promise<void>;
   /** Flags the entry (`aliasIndex` omitted), or one name, as needing review: the undo of `guideMarkReviewed`. A set flag stays as it is. Refused on a locked entry. */
