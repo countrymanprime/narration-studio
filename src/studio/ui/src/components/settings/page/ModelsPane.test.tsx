@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { overlay } from '../../../overlay/overlayService';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
@@ -9,6 +10,10 @@ import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { AssetCatalog, AssetItem, NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
 
+let toast: MockInstance<typeof overlay.toast>;
+beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
+});
 afterEach(() => {
   cleanup();
   localStorage.clear();
@@ -210,10 +215,10 @@ describe('Settings: Models & downloads', () => {
     const voice = await ready('tts/en_US-ljspeech-high');
     fireEvent.click(within(voice).getByRole('button', { name: /^Download LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Download failed')).toBeTruthy());
-    expect(within(asset('tts/en_US-ljspeech-high')).getByRole('alert').textContent).toContain('Not enough free disk space');
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('Not enough free disk space'), { tone: 'error' });
     assetsInstall.mockRejectedValue(new Error('Could not reach huggingface.co.'));
     fireEvent.click(within(asset('tts/en_US-ljspeech-high')).getByRole('button', { name: /^Try LJ Speech.* again$/ }));
-    await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByRole('alert').textContent).toContain('Could not reach huggingface.co'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('Could not reach huggingface.co'), { tone: 'error' }));
     expect(assetsInstall).toHaveBeenCalledTimes(2);
   });
 
@@ -222,7 +227,7 @@ describe('Settings: Models & downloads', () => {
     const voice = await ready('tts/en_US-ljspeech-high');
     fireEvent.click(within(voice).getByRole('button', { name: /^Download LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Download failed')).toBeTruthy(), SLOW);
-    expect(within(asset('tts/en_US-ljspeech-high')).getByRole('alert').textContent).toContain('did not match the approved one');
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('did not match the approved one'), { tone: 'error' });
     expect(within(asset('tts/en_US-ljspeech-high')).getByRole('button', { name: /again$/ })).toBeTruthy();
   });
 
