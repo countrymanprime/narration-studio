@@ -162,3 +162,21 @@ func TestPlayRangeIsRefusedWhileREAPERRecordsAndSaysWhy(t *testing.T) {
 		t.Fatalf("err = %v, want ErrRecording", err)
 	}
 }
+
+// The wire table refuses the answer before play_range reads it, so a time that is not a number is an error, never a 0.
+func TestPlayRangeAnswerThatIsNotANumberIsAnErrorNotAZero(t *testing.T) {
+	for name, answer := range map[string][]string{
+		"the start": {"RANGE_PLAYING", "", "soon", "41.500000"},
+		"the end":   {"RANGE_PLAYING", "", "40.250000", "later"},
+	} {
+		actions, client, dir := newActionsSession(t, true)
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			fields := append([]string(nil), answer...)
+			fields[1] = run(command)
+			return [][]string{fields}
+		})
+		if _, _, err := actions.PlayRange(context.Background(), 40.25, 41.5); err == nil {
+			t.Errorf("%s: an unreadable answer must be an error", name)
+		}
+	}
+}

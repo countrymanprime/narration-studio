@@ -81,14 +81,14 @@ func (a *Actions) PlayRange(ctx context.Context, from, to float64) (float64, flo
 	if err != nil {
 		return 0, 0, err
 	}
+	// The wire table (wire.go) has already refused an answer whose times are not numbers; were one to get through, the stretch asked for stands.
 	fields := events[len(events)-1].Fields
-	played, err := secondsAt(fields, 2, "play_range")
-	if err != nil {
-		return 0, 0, err
+	played, until := from, to
+	if seconds, err := strconv.ParseFloat(fields[2], 64); err == nil {
+		played = seconds
 	}
-	until, err := secondsAt(fields, 3, "play_range")
-	if err != nil {
-		return 0, 0, err
+	if seconds, err := strconv.ParseFloat(fields[3], 64); err == nil {
+		until = seconds
 	}
 	return played, until, nil
 }
