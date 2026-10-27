@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilityMode, type DawCapabilitySupport } from '../../api/contracts/daw';
-import { describeApiError } from '../../api/errorMessage';
-import { usePort } from '../../ports/usePort';
+import { useDawSession, useDawState } from '../../daw/useDawSession';
 import { Button } from '../primitives/Button';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { statusLabel, statusTone, type StatusId } from '../../kinds/statusTone';
@@ -68,33 +67,11 @@ export function CapabilityList({ report }: { report: DawCapabilities }) {
  * `useCapability` (an event that arrives before the first read wins). `retry` reads again after a failed read.
  */
 export function useDawCapabilityReport() {
-  const api = usePort('dawCapabilities');
-  const [report, setReport] = useState<DawCapabilities>();
-  const [loadError, setLoadError] = useState('');
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    let receivedEvent = false;
-    const unsubscribe = api.subscribeDawCapabilities((next) => {
-      receivedEvent = true;
-      setReport(next);
-      setLoadError('');
-    });
-    api
-      .dawCapabilities()
-      .then((next) => {
-        if (receivedEvent) return;
-        setReport(next);
-        setLoadError('');
-      })
-      .catch((error: unknown) => {
-        if (!receivedEvent) setLoadError(describeApiError(error));
-      });
-    return unsubscribe;
-  }, [api, attempt]);
-
-  const retry = useCallback(() => setAttempt((n) => n + 1), []);
-  return { report, loadError, retry };
+  const session = useDawSession();
+  const report = useDawState((state) => state.caps) ?? undefined;
+  const error = useDawState((state) => state.capsError);
+  const retry = useCallback(() => void session.refreshCapabilities(), [session]);
+  return { report, loadError: report ? '' : error, retry };
 }
 
 /**

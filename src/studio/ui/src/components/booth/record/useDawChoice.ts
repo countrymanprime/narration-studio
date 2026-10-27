@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { DawChoice } from '../../../api/contracts/daw';
+import { useDawState } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
 
 /**
@@ -9,7 +10,7 @@ import { usePort } from '../../../ports/usePort';
  */
 export function useDawChoice(): DawChoice | null | undefined {
   const api = usePort('dawChoice');
-  const capabilities = usePort('dawCapabilities');
+  const capsVersion = useDawState((state) => state.capsVersion);
   const [choice, setChoice] = useState<DawChoice | null>();
   useEffect(() => {
     let live = true;
@@ -19,11 +20,9 @@ export function useDawChoice(): DawChoice | null | undefined {
         () => live && setChoice(null),
       );
     void read();
-    const unsubscribe = capabilities.subscribeDawCapabilities(() => void read());
     return () => {
       live = false;
-      unsubscribe();
     };
-  }, [api, capabilities]);
+  }, [api, capsVersion]);
   return choice;
 }
