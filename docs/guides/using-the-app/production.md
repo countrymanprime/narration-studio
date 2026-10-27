@@ -309,7 +309,7 @@ file a line such as an epigraph goes back into the chapter's text so it is narra
 
 **Chapters** lists every chapter the importer found in two columns, each with a switch to the left of
 its name. Switch a chapter off to leave it out of the recording. The chapter's subtitle sits under its
-name on a smaller, dimmer line, and the number of words is at the right of the name. A heading with a label shows the
+name on a smaller, dimmer line, and the number of words is at the right, level with the name. A heading with a label shows the
 label in bold and the chapter's name after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8:
 Croquet"). The book's title pages and reference material are never listed or asked about: they stay out of the
 chapters, and the title and author in them are offered when you set up the credits. The character
