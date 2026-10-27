@@ -215,7 +215,7 @@ describe('Settings: Models & downloads', () => {
     const voice = await ready('tts/en_US-ljspeech-high');
     fireEvent.click(within(voice).getByRole('button', { name: /^Download LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Download failed')).toBeTruthy());
-    expect(toast).toHaveBeenCalledWith(expect.stringContaining('Not enough free disk space'), { tone: 'error' });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('Not enough free disk space'), { tone: 'error' }));
     assetsInstall.mockRejectedValue(new Error('Could not reach huggingface.co.'));
     fireEvent.click(within(asset('tts/en_US-ljspeech-high')).getByRole('button', { name: /^Try LJ Speech.* again$/ }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('Could not reach huggingface.co'), { tone: 'error' }));
@@ -227,7 +227,7 @@ describe('Settings: Models & downloads', () => {
     const voice = await ready('tts/en_US-ljspeech-high');
     fireEvent.click(within(voice).getByRole('button', { name: /^Download LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Download failed')).toBeTruthy(), SLOW);
-    expect(toast).toHaveBeenCalledWith(expect.stringContaining('did not match the approved one'), { tone: 'error' });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('did not match the approved one'), { tone: 'error' }));
     expect(within(asset('tts/en_US-ljspeech-high')).getByRole('button', { name: /again$/ })).toBeTruthy();
   });
 
