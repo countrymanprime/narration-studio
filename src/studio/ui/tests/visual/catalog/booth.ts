@@ -210,7 +210,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'recorded-partly',
     description:
-      'Booth, a chapter recorded two thirds of the way chosen from the chapter menu (chapter 4): it opens on the word after the recording ends, the top bar says "Recorded 65%" (its tip quotes the last recorded words), and a green rail left of the text runs from the first line to the last recorded one',
+      'Booth, a chapter recorded two thirds of the way chosen from the chapter menu (chapter 4): it opens on the word after the recording ends, the top bar says "Recorded 65%" (its tip quotes the last recorded words)',
     ...REFLOW,
   },
   {

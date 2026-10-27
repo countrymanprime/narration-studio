@@ -318,7 +318,7 @@ word you last read to, or the top. If the browser's storage is blocked, step 3 i
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
 the end. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
-figure comes from the track's length. A green rail beside the text runs from the top of the chapter to the last recorded line.
+figure comes from the track's length.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
 

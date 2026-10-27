@@ -346,7 +346,6 @@ export const boothDrivers: Record<string, Driver> = {
       await page.getByRole('menuitemradio').filter({ hasText: '65%' }).first().click();
     }
     await page.getByRole('group', { name: /^Recorded through “.*” \(65%\)$/ }).waitFor();
-    await page.locator('[data-recorded-rail]').waitFor();
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'levels-menu': async (page) => {
