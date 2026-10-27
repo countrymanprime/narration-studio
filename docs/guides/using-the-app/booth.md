@@ -438,7 +438,7 @@ reading session, with REAPER's playhead in its header, the script in its own scr
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
 place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
-scroll.
+scroll. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.
 While its chapters are being read, the panel shows its title and grey blocks, and if the credits you asked for have no text it opens the Booth instead.
 
 ![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)

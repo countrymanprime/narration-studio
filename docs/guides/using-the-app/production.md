@@ -5,7 +5,7 @@
 Production is the page a project opens on, the first item in the navigation. It answers "am I on
 pace?" for the book you have open: how much finished audio there is and how much recording,
 editing and proofing is left, the open pickups, the due date and whether the pace reaches it, and
-what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
+what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage; a chapter's name reads "Title: Subtitle" with the subtitle dimmed.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
 While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, the page says so with **Retry**.
