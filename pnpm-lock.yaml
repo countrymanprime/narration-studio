@@ -232,8 +232,8 @@ importers:
         specifier: ^6.1.2
         version: 6.1.2(vite@8.3.4(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
       '@wailsio/runtime':
-        specifier: 3.0.0-beta.30
-        version: 3.0.0-beta.30
+        specifier: 3.0.0-beta.33
+        version: 3.0.0-beta.33
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -3099,8 +3099,8 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@wailsio/runtime@3.0.0-beta.30':
-    resolution: {integrity: sha512-vmcoHbnTO3x11LvuEAdq/3JofELyoRwofEuietfXd9ghW92CspEMBVnltFhOfyHMmU28wkw1kfGKKG8/Nh3fgw==}
+  '@wailsio/runtime@3.0.0-beta.33':
+    resolution: {integrity: sha512-3fiyyS06cdiZZk3aLnu+VEY3V8+vFzPZTJMDLIBCJ0Pe8pELn/aVm73fRj7amkYhpEUg24tsuVswnLJAKcvfig==}
 
   '@webcontainer/env@1.1.1':
     resolution: {integrity: sha512-6aN99yL695Hi9SuIk1oC88l9o0gmxL1nGWWQ/kNy81HigJ0FoaoTXpytCj6ItzgyCEwA9kF1wixsTuv5cjsgng==}
@@ -7913,7 +7913,7 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@wailsio/runtime@3.0.0-beta.30': {}
+  '@wailsio/runtime@3.0.0-beta.33': {}
 
   '@webcontainer/env@1.1.1': {}
 
