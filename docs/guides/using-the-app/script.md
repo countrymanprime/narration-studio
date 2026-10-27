@@ -5,7 +5,7 @@
 The Script page is where you prep the book before recording, under **Prep** in the navigation. On a wide window it has
 three parts side by side:
 
-- **Chapters** on the left: every narration chapter, the one in view marked, each with a dot for how far its prep is
+- **Chapters** on the left: every narration chapter, the one in view marked, its title with its subtitle under it in smaller, dimmer type, each with a dot for how far its prep is
   (**Not started**, **In progress** or **Prepped**; the key is under the list). Press a chapter to go to it. When the project has opening credits, an
   **Opening credits** row comes first, and when it has closing credits, a **Closing credits** row comes last; each goes
   to those credits in the reader, and its dot is the prep state you set on them.

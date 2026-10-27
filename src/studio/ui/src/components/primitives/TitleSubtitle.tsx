@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { TooltipTarget } from './Tooltip';
 
 // A chapter's title and subtitle, drawn one way everywhere (docs/design/design-system.md's Heading
@@ -21,8 +22,9 @@ export function TitleSubtitle({
   truncate = false,
   className = '',
 }: {
-  title: string;
-  subtitle?: string;
+  // Markup is for the Booth's reading heading, whose words are tracked spans; the truncate tooltip needs plain strings.
+  title: ReactNode;
+  subtitle?: ReactNode;
   layout?: 'inline' | 'stacked';
   // Clips from the end instead of wrapping. Inline: one run, with the full name in a tooltip since the text
   // itself is cut. Stacked: each line clips on its own; the title and, when it is the one that runs out of room, the
@@ -60,7 +62,7 @@ export function TitleSubtitle({
       )}
     </span>
   );
-  if (!truncate) return inline;
+  if (!truncate || typeof title !== 'string' || (subtitle !== undefined && typeof subtitle !== 'string')) return inline;
   return (
     <TooltipTarget text={subtitle ? `${title}: ${subtitle}` : title} inline>
       {inline}
