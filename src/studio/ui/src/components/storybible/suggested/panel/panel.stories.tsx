@@ -85,7 +85,7 @@ const scanStory = (scan: ExtractionScan): Story => ({
   render: () => (
     <Surface>
       <div className="flex items-start gap-2">
-        <ActionsMenu scan={scan} onImport={fn()} onVoiceData={fn()} onDeleteData={fn()} />
+        <ActionsMenu scan={scan} onImport={fn()} onVoiceData={fn()} />
         <div className="min-w-0 flex-1">
           <ScanStatus scan={scan} />
         </div>
