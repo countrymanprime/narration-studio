@@ -688,6 +688,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         return { reason, message: record?.message ?? MESSAGE_NO_ENGINE };
       }
       live.transport = { playing: true, recording: true, position: 0 };
+      // The transport is pushed on the change, not at the next heartbeat: a screen that subscribes once the take has begun still hears it.
+      publish();
       later(HEARTBEAT_MS, publish);
       return null;
     },
