@@ -287,7 +287,7 @@ have picked one. A track another chapter already has is marked in the list with 
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
-missing** until it's relinked or cleared. These links are kept in the app's own project data and never
+missing** until it's relinked or cleared. The list starts with **Opening credits** and ends with **Closing credits** (when the Script page has them), which link, change and clear the same way; their menu has **Editing check…** only. These links are kept in the app's own project data and never
 change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
