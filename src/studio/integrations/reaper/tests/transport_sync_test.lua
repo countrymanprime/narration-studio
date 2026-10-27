@@ -345,6 +345,17 @@ H.test('play_range does not stop on the old play head REAPER still reports just 
   H.eq(s.fake.play_state, 0)
 end)
 
+H.test('play_range does not take a head from before the stretch for its arrival', function()
+  local s = new_session()
+  s.fake.play_state = 1
+  s.fake.play_position = 10
+  s:send('play_range', 'r1', '40', '41')
+  s:tick()
+  s.fake.play_position = 41.1
+  s:tick()
+  H.eq(s.fake.play_state, 1, 'a head of 10 s was not in the stretch, and 41.1 is the first reading in it: no arrival')
+end)
+
 H.test('play_range stops anyway when the play head never reaches the stretch', function()
   local s = new_session()
   s:send('play_range', 'r1', '40', '41')
@@ -356,12 +367,72 @@ H.test('play_range stops anyway when the play head never reaches the stretch', f
   H.eq(presses(s), { 'OnPlayButton', 'OnStopButton' })
 end)
 
-H.test('play_range stops at once when the play head is first read just past the end', function()
+H.test('play_range does not trust a first reading at or past the end: that is the head of the play before, so it waits for the head to arrive', function()
   local s = new_session()
   s:send('play_range', 'r1', '40', '41')
   s.fake.play_position = 41.3
   s:tick()
+  s:tick()
+  H.eq(s.fake.play_state, 1)
+  s.fake.play_position = 40.4
+  s:tick()
+  s.fake.play_position = 41.02
+  s:tick()
   H.eq(s.fake.play_state, 0)
+end)
+
+H.test('playing the same stretch again is not stopped by the head the first play left behind', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40', '41')
+  s.fake.play_position = 40.5
+  s:tick()
+  s.fake.play_position = 41.02
+  s:tick()
+  H.eq(s.fake.play_state, 0)
+  s:send('play_range', 'r2', '40', '41')
+  H.eq(s.fake.play_state, 1)
+  -- REAPER still reports where the first play stopped.
+  for _ = 1, 3 do
+    s:tick()
+  end
+  H.eq(s.fake.play_state, 1, 'the old head is past the end of the new stretch and is not its arrival')
+  s.fake.play_position = 40.2
+  s:tick()
+  s.fake.play_position = 41.01
+  s:tick()
+  H.eq(s.fake.play_state, 0)
+end)
+
+H.test('a play another feature starts (the cursor goes elsewhere) is not cut short by the stretch that was set', function()
+  local s = new_session()
+  s:send('play_range', 'r1', '40', '41')
+  -- Compare's pass or a navigation play: the cursor is set to its own start and Play is pressed.
+  s.fake.cursor, s.fake.play_state, s.fake.play_position = 500, 1, 500.2
+  for _ = 1, 80 do
+    s:tick()
+  end
+  s.fake.play_position = 40.5
+  s:tick()
+  s.fake.play_position = 41.5
+  s:tick()
+  H.eq(s.fake.play_state, 1, 'neither the deadline nor a head that passes through the old stretch stops it')
+  H.eq(presses(s), { 'OnPlayButton' })
+end)
+
+H.test('REAPER paused or recording during the stretch drops it, so the play that follows is not stopped at the old end', function()
+  for _, state in ipairs({ 2, 5 }) do
+    local s = new_session()
+    s:send('play_range', 'r1', '40', '41')
+    s.fake.play_position = 40.3
+    s:tick()
+    s.fake.play_state = state
+    s:tick()
+    s.fake.play_state, s.fake.play_position = 1, 40.6
+    s:tick()
+    s.fake.play_position = 41.5
+    s:tick()
+    H.eq(s.fake.play_state, 1, 'state ' .. state .. ' ended the stretch')
+  end
 end)
 
 H.test('play_range while REAPER plays seeks the playhead and does not press Play again', function()
@@ -397,7 +468,11 @@ end)
 H.test('play_from, stop_play and a newer play_range each end the stretch that was set', function()
   local s = new_session()
   s:send('play_range', 'r1', '40', '41')
+  -- The head is inside the old stretch when the open play is asked for, as when REAPER reads late after a seek.
+  s.fake.play_position = 40.3
+  s:tick()
   s:send('play_from', 'p1', '70')
+  s.fake.play_position = 40.4
   -- The play head passes through the old stretch (a seek that reads late), then beyond its end: the old end must not stop an open play.
   s.fake.play_position = 40.5
   s:tick()

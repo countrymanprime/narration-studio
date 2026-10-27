@@ -255,12 +255,14 @@ local function stop_play(session_dir, state, run_id)
 end
 
 -- play_range: the longest stretch the DAW is asked to play, the room around the start in which the play head counts as having arrived (REAPER still
--- reports the old head for a moment after a seek, and a head of another place is not this stretch), how far past the end a first reading still counts as
--- the stretch's, and how long past the stretch's own length the play is allowed before it is stopped anyway.
+-- reports the old head for a moment after a seek, and a head of another place is not this stretch), how far past the end a head still counts as near the
+-- stretch (for telling another feature's play from this one), and how long past the stretch's own length the play is allowed before it is stopped anyway.
 local MAX_RANGE_SECONDS = 600
 local ARRIVE_BEFORE_SECONDS = 0.25
 local ARRIVE_AFTER_SECONDS = 0.5
 local RANGE_DEADLINE_SLACK_SECONDS = 2
+-- How far the cursor may be from the stretch's start before the play is taken to be another feature's.
+local RANGE_CURSOR_EPSILON = 0.01
 
 -- Plays the project from `start` and stops it at `end`, both project seconds: the DAW's own transport, so its sound is the project's with the
 -- narrator's FX chain. The stop is range_tick's, one tick after the play head passes the end, so it does not wait on the app.
@@ -301,7 +303,16 @@ local function range_tick(state)
     return
   end
   local head = reaper.GetPlayPosition() or 0
-  if not range.arrived and head >= range.start - ARRIVE_BEFORE_SECONDS and head <= range.stop + ARRIVE_AFTER_SECONDS then
+  local near = head >= range.start - ARRIVE_BEFORE_SECONDS and head <= range.stop + ARRIVE_AFTER_SECONDS
+  -- Another feature's play (Compare's pass, a navigation play) sets the cursor to its own start and presses Play without telling this module. A cursor
+  -- that is no longer at the start, with a play head nowhere near the stretch, is that: the stretch is dropped, so it never stops a play it did not start.
+  if not near and math.abs(reaper.GetCursorPosition() - range.start) > RANGE_CURSOR_EPSILON then
+    state.range = nil
+    return
+  end
+  -- The head has arrived once it is read inside the stretch. A reading at or past the end is never an arrival: right after a seek REAPER can still
+  -- report the head of the play before, which for the same stretch played twice sits just past its end.
+  if not range.arrived and head >= range.start - ARRIVE_BEFORE_SECONDS and head < range.stop then
     range.arrived = true
   end
   if (range.arrived and head >= range.stop) or reaper.time_precise() >= range.deadline then

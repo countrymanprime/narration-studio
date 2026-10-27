@@ -2864,5 +2864,29 @@
     "file": "narration_transport.lua",
     "find": "if not start or not stop or stop <= start or stop - start > MAX_RANGE_SECONDS then",
     "replace": "if not start or not stop or stop - start > MAX_RANGE_SECONDS then"
+  },
+  {
+    "name": "play_range takes a head past the end for its arrival",
+    "file": "narration_transport.lua",
+    "find": "head >= range.start - ARRIVE_BEFORE_SECONDS and head < range.stop then",
+    "replace": "head >= range.start - ARRIVE_BEFORE_SECONDS and head <= range.stop + ARRIVE_AFTER_SECONDS then"
+  },
+  {
+    "name": "play_range takes a head from before the stretch for its arrival",
+    "file": "narration_transport.lua",
+    "find": "head >= range.start - ARRIVE_BEFORE_SECONDS and head < range.stop then",
+    "replace": "head < range.stop then"
+  },
+  {
+    "name": "play_range stops a play another feature started",
+    "file": "narration_transport.lua",
+    "find": "if not near and math.abs(reaper.GetCursorPosition() - range.start) > RANGE_CURSOR_EPSILON then",
+    "replace": "if false then"
+  },
+  {
+    "name": "a recording that starts during the stretch keeps it",
+    "file": "narration_transport.lua",
+    "find": "if play_state % 2 ~= 1 or play_state >= 4 then",
+    "replace": "if play_state % 2 ~= 1 then"
   }
 ]
