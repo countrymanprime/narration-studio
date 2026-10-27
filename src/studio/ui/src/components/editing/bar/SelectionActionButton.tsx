@@ -13,6 +13,8 @@ export function SelectionActionButton({
   label,
   hint,
   reason,
+  danger = false,
+  shortcut,
   onClick,
   children,
 }: {
@@ -21,6 +23,10 @@ export function SelectionActionButton({
   /** What the hint says when the action is available, e.g. "Mute, keep the audio (M)". */
   hint?: string;
   reason?: string;
+  /** The red, destructive look (the toolbar paints it solid). */
+  danger?: boolean;
+  /** The key that runs it, for `aria-keyshortcuts` ("Delete"). */
+  shortcut?: string;
   onClick: (element: HTMLElement) => void;
   /** Replaces the icon, e.g. the scissors with the word "Delete" beside it. */
   children?: ReactNode;
@@ -28,7 +34,15 @@ export function SelectionActionButton({
   const text = reason ? `${hint ?? label} — ${reason}` : (hint ?? label);
   return (
     <TooltipTarget text={text}>
-      <IconButton label={label} aria-description={reason ? text : undefined} disabledReason={reason} onClick={(event) => onClick(event.currentTarget)}>
+      <IconButton
+        label={label}
+        variant={danger ? 'danger' : undefined}
+        data-danger={danger ? '' : undefined}
+        aria-keyshortcuts={shortcut}
+        aria-description={reason ? text : undefined}
+        disabledReason={reason}
+        onClick={(event) => onClick(event.currentTarget)}
+      >
         {children ?? (icon ? <Icon name={icon} /> : null)}
       </IconButton>
     </TooltipTarget>

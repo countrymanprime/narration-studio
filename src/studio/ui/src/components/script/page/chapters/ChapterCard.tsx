@@ -1,11 +1,14 @@
 import { Fragment } from 'react';
 import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
+import { BoundaryMarker } from '../../../primitives/BoundaryMarker';
 import { IconButton } from '../../../primitives/IconButton';
 import { InsetCard } from '../../../primitives/InsetCard';
 import { SectionLabel } from '../../../primitives/SectionLabel';
+import { TitleSubtitle } from '../../../primitives/TitleSubtitle';
 import { WPH } from '../../../schedule/estimates';
 import { useChapterFacts } from '../data/useScriptData';
-import { cardLabel, chapterHeading, endedName, headingName } from '../../../../chapterHeading';
+import { chapterParts } from '../../../../chapterName';
+import { endedName, headingName } from '../../../../chapterHeading';
 import { PrepSegment } from './PrepSegment';
 
 const words = (n: number): string => n.toLocaleString('en-US');
@@ -37,14 +40,12 @@ export const cardFacts = (wordCount: number, chapterFacts: string): string[] => 
 /** What the boundary above a card names: the chapter (or the credits) before it and its words. */
 export type Ended = { name: string; words: number };
 
-/** The mock's dashed "End of {name} · N words" line between two chapters. */
+/** The mock's dashed "End of {name} · N words" line between two chapters, the same marker a Booth page break draws. */
 export function EndOf({ ended }: { ended: Ended }) {
   return (
-    <div className="flex items-center gap-3 pb-3.5 font-['Barlow_Condensed',sans-serif] text-xs font-semibold tracking-[0.16em] text-[var(--text-muted)] uppercase before:flex-1 before:border-t-2 before:border-dashed before:border-[var(--line-strong)] before:content-[''] after:flex-1 after:border-t-2 after:border-dashed after:border-[var(--line-strong)] after:content-['']">
-      <span>
-        End of {ended.name} · {words(ended.words)} words
-      </span>
-    </div>
+    <BoundaryMarker variant="chapterEnd" className="pb-3.5">
+      End of {ended.name} · {words(ended.words)} words
+    </BoundaryMarker>
   );
 }
 
@@ -64,7 +65,7 @@ export function ChapterCard({
   onRecord?: (chapterId: string) => void;
 }) {
   const facts = useChapterFacts();
-  const { title } = chapterHeading(chapter);
+  const parts = chapterParts(chapter);
   return (
     <div data-chapter-id={chapter.id} className="flex flex-col">
       {previous ? <EndOf ended={{ name: endedName(previous), words: previous.wordCount }} /> : ended && <EndOf ended={ended} />}
@@ -75,11 +76,12 @@ export function ChapterCard({
         aria-label={`${headingName(chapter)}, chapter card`}
         className="flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
       >
-        <div className="flex items-center justify-between gap-2">
-          <SectionLabel>{cardLabel(chapter)}</SectionLabel>
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem]">
+            <TitleSubtitle layout="stacked" {...parts} />
+          </h2>
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
         </div>
-        <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] leading-[1.45] font-semibold">{title}</h2>
         <CardFacts facts={cardFacts(chapter.wordCount, facts(chapter.id))} />
         <div className="flex flex-wrap items-center gap-3">
           <SectionLabel>My prep</SectionLabel>

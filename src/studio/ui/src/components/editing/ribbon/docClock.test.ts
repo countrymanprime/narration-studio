@@ -133,7 +133,7 @@ describe('itemClocks: where an item’s source seconds sit on the document clock
     expect(pieces[1].shift).not.toBeCloseTo(pieces[2].shift, 1);
   });
 
-  it('draws every line of the chapter where it is heard: the loud columns are the ticks of the layout', () => {
+  it('draws every line of the chapter where it is heard: the loud columns sit where the words of the line are', () => {
     const doc = docFromHeard(PARAS, DRIFT);
     const clocks = itemClocks(doc, DRIFT);
     const file = speechPeaks(0, 30, [
@@ -142,16 +142,16 @@ describe('itemClocks: where an item’s source seconds sit on the document clock
       [20, 21.5],
     ]);
     for (const pid of ['p-1', 'p-2']) {
-      const l = ribbonLayout(doc, pid, [], null)!;
+      const l = ribbonLayout(doc, pid, null)!;
       const got = pickEntries(ready(file), clocks, l.t0, l.t1, [0]);
       if (!('peaks' in got)) throw new Error(got.reason);
       const cols = peaksWindowAll(got.peaks, l.t0, l.t1, 200)!;
       expect(silent(cols)).toBe(0);
-      expect(loudAt(cols, l.t0, l.t1, (l.ticks[0] + l.ticks[l.ticks.length - 1]) / 2)).toBe(true);
-      expect(loudAt(cols, l.t0, l.t1, l.ticks[0] + 0.05)).toBe(true);
+      const first = doc.paras.find((p) => p.p.id === pid)!.start as number;
+      expect(loudAt(cols, l.t0, l.t1, first + 0.05)).toBe(true);
       // On the source clock the same window finds almost nothing of the line.
       const old = peaksWindowAll([shiftPeaks(file, 0)], l.t0, l.t1, 200)!;
-      expect(loudAt(old, l.t0, l.t1, l.ticks[0] + 0.05)).toBe(false);
+      expect(loudAt(old, l.t0, l.t1, first + 0.05)).toBe(false);
     }
   });
 
@@ -197,7 +197,7 @@ describe('a closed cut inside a line', () => {
   });
 
   it('draws the words either side of the cut where they are heard, and the cut audio nowhere', () => {
-    const l = ribbonLayout(doc, 'p-1', [], null)!;
+    const l = ribbonLayout(doc, 'p-1', null)!;
     const clocks = itemClocks(doc, answer);
     const columns = (entry: WorkspacePeaks): PeakColumn[] => {
       const got = pickEntries(ready(entry), clocks, l.t0, l.t1, [0]);

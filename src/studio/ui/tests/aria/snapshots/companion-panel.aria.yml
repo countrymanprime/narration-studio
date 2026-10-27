@@ -5,7 +5,7 @@
 - main:
   - region "Script":
     - heading "Script" [level=2]
-    - paragraph: Chapter 1 — Down the Rabbit-Hole
+    - paragraph: "Chapter 1: Down the Rabbit-Hole"
     - toolbar "Companion commands":
       - button "Space Play":
         - img "Space"
@@ -22,7 +22,7 @@
       - button "Start from the top"
       - button "Pick a word"
     - region "Chapter text":
-      - heading "Chapter 1 — Down the Rabbit-Hole" [level=2]
+      - 'heading "Chapter 1: Down the Rabbit-Hole" [level=2]'
       - paragraph:
         - mark: Alice
         - text: "was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, ‘and what is the use of a book,’ thought"

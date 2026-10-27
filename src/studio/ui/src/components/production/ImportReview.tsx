@@ -1,3 +1,4 @@
+import { TitleSubtitle } from '../primitives/TitleSubtitle';
 import { useId, useRef, useState, type ReactNode } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 import { ImportProfileField } from '../delivery/ImportProfileField';
@@ -79,11 +80,20 @@ function HeadingLines({ heading, truncate = false, trailing }: { heading: Return
       'normal-case',
     );
   }
+  // The primitive draws the two lines; the word count sits at the right of the block, top-aligned with the title.
   return (
-    <>
-      {firstLine(heading.title)}
-      {heading.subtitle && !heading.textLine && <span className={`block text-xs text-[var(--text-muted)] ${clip}`}>{heading.subtitle}</span>}
-    </>
+    <span className="flex items-start gap-2">
+      <span className={`min-w-0 flex-1 ${clip}`}>
+        <TitleSubtitle
+          layout="stacked"
+          truncate={truncate}
+          title={heading.title}
+          subtitle={heading.textLine ? undefined : heading.subtitle}
+          className="text-sm"
+        />
+      </span>
+      {trailing}
+    </span>
   );
 }
 

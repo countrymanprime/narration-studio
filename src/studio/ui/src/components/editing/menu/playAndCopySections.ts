@@ -14,6 +14,7 @@ function playItems(selection: WordMenuSelection): ContextMenuItem[] {
     {
       key: 'play-selection',
       label: 'Play selection',
+      icon: 'play',
       ...(unavailable !== undefined ? { unavailable } : {}),
       onSelect: () => selection.play(selection.summary.start, selection.summary.end),
     },
@@ -28,6 +29,7 @@ function copyItems(selection: WordMenuSelection): ContextMenuItem[] {
     {
       key: 'copy-words',
       label: 'Copy words',
+      icon: 'copy',
       onSelect: () => {
         const count = selection.summary.items.length;
         void navigator.clipboard?.writeText(copiedText(selection)).then(

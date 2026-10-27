@@ -44,6 +44,13 @@ function splitLegacyNewline(title: string): { title: string; subtitle?: string }
   return { title: squash(first ?? ''), subtitle: subtitle || undefined };
 }
 
+/** The title and subtitle a chapter draws as two parts (`TitleSubtitle`): squashed, the legacy "\\n" split applied, an empty subtitle absent. */
+export function chapterParts(chapter: ChapterNameInput): { title: string; subtitle?: string } {
+  const legacy = splitLegacyNewline(chapter.title);
+  const subtitle = chapter.subtitle !== undefined ? squash(chapter.subtitle) || undefined : legacy.subtitle;
+  return subtitle ? { title: legacy.title, subtitle } : { title: legacy.title };
+}
+
 function joinedName(title: string, subtitle: string | undefined, separator: string): string {
   if (!subtitle) return title;
   const stripped = title.replace(TRAILING_SEPARATOR, '').trim();

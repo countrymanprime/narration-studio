@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"desktop/internal/brand"
 	"desktop/internal/character"
 	"desktop/internal/guide"
 	"desktop/internal/settings"
@@ -126,4 +127,42 @@ func TestContractGuideDialogueCues(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkBindingContract(t, "guide-dialogue-cues", cues)
+}
+
+func TestContractGuideAttributeSpeakers(t *testing.T) {
+	project := t.TempDir()
+	svc := guide.New(project, "", "", settings.New(project, project), nil)
+	write := func(path string, value any) {
+		t.Helper()
+		bytes, err := json.Marshal(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, bytes, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), map[string]any{
+		"schemaVersion": 1, "documentId": "d", "chapters": []any{map[string]any{"id": "c1", "title": "One"}},
+		"paragraphs": []any{
+			map[string]any{"id": "p1", "index": 0, "chapterId": "c1", "chapterTitle": "One", "text": `"Hello," Ada said.`},
+			map[string]any{"id": "p2", "index": 1, "chapterId": "c1", "chapterTitle": "One", "text": `"Wait," Bo said.`},
+		},
+	})
+	write(filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json"), map[string]any{
+		"schema_version": 2,
+		"entities": []any{
+			map[string]any{"id": "ada", "canonical_name": "Ada", "category": "Character", "aliases": []any{}},
+			map[string]any{"id": "bo", "canonical_name": "Bo", "category": "Character", "aliases": []any{}},
+		},
+	})
+	host := &Host{guide: svc}
+	result, err := host.GuideAttributeSpeakers()
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBindingContract(t, "guide-attribute-speakers", result)
 }

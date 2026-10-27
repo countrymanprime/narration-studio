@@ -314,6 +314,10 @@ type TransportSyncer interface {
 	OnPosition(handler func(TransportPosition))
 	SetCursor(ctx context.Context, seconds float64) (float64, error)
 	PlayFrom(ctx context.Context, seconds float64) (float64, error)
+	// PlayRange plays the project from one time to another on the engine's own transport and has the engine stop itself at the end, so what is
+	// heard is the project's sound with its FX chain and the end does not wait on the app. It returns the stretch the engine took. An empty,
+	// backwards or overlong stretch is an error with nothing sent.
+	PlayRange(ctx context.Context, from, to float64) (float64, float64, error)
 	Stop(ctx context.Context) (float64, error)
 	Watch(ctx context.Context, lease time.Duration) (time.Duration, error)
 }

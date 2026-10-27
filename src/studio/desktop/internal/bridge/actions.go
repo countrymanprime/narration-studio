@@ -71,6 +71,7 @@ var experimentalCommands = map[string]bool{
 	"track_create":        true,
 	"set_cursor":          true,
 	"play_from":           true,
+	"play_range":          true,
 	"stop_play":           true,
 	"watch_transport":     true,
 	"arm_only":            true,
@@ -120,7 +121,7 @@ var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK
 	"FILE_PREVIEW_STARTED", "FILE_PREVIEW_STOPPED", "FILE_REVEALED", "RANGE_GAIN_REDUCED", "CLICKS_REPAIRED",
 	"RANGE_FX_PARAM", "RANGE_FX_PARAMS", "RANGE_FX_PARAM_SET", "RANGE_FX_BYPASSED",
 	"RANGE_FX_COMPARE", "RANGE_FX_COMPARE_STOPPED", "RANGE_FX_CHOOSING", "RANGE_FX_CHOSEN_FX", "RANGE_FX_CHOSEN", "LAST_ACTION", "UNDONE_LAST", "MONITOR_LEVEL", "PUNCH_PREROLL", "METERS", "PLACE", "PLACE_SET",
-	"CURSOR_SET", "TRANSPORT_PLAYING", "TRANSPORT_STOPPED", "TRANSPORT_WATCHING", "ERROR"}
+	"CURSOR_SET", "TRANSPORT_PLAYING", "RANGE_PLAYING", "TRANSPORT_STOPPED", "TRANSPORT_WATCHING", "ERROR"}
 
 // Gate is asked, with the command's name, before Actions sends it. nil lets the command go; an error refuses it and
 // nothing is written, and the refusal reaches the caller as it is.

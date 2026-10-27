@@ -1,13 +1,19 @@
 // @vitest-environment jsdom
 // The Name field (the mock's NameBox, SN-B92 G6): an entry cannot be saved with no name or with a name another entry already has.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { overlay } from '../../overlay/overlayService';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import { GuideDetail } from './GuideDetail';
 
+let toast: MockInstance<typeof overlay.toast>;
+beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
+});
 afterEach(() => cleanup());
+afterEach(() => vi.restoreAllMocks());
 
 const hatter = WIRE_ENTITIES.find((row) => row.id === 'mad-hatter')!;
 
@@ -30,26 +36,25 @@ describe('the Name field', () => {
     const guideEdit = editing();
     rename('   ');
     save();
-    expect((await screen.findByRole('alert')).textContent).toBe('Give this entry a name.');
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give this entry a name.', { tone: 'error' }));
     expect(guideEdit).not.toHaveBeenCalled();
 
     // Another entry's name, whatever the case, and another entry's alias.
     rename('white rabbit');
     save();
-    expect((await screen.findByRole('alert')).textContent).toBe('“white rabbit” is already a name of White Rabbit.');
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“white rabbit” is already a name of White Rabbit.', { tone: 'error' }));
     rename('Rabbit');
     save();
-    expect((await screen.findByRole('alert')).textContent).toBe('“Rabbit” is already a name of White Rabbit.');
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“Rabbit” is already a name of White Rabbit.', { tone: 'error' }));
     expect(guideEdit).not.toHaveBeenCalled();
   });
 
-  it('saves a free name, and its own name in another case, and clears the message when the name changes', async () => {
+  it('saves a free name, and its own name in another case, ', async () => {
     const guideEdit = editing();
     rename('');
     save();
-    await screen.findByRole('alert');
+    await vi.waitFor(() => expect(toast).toHaveBeenCalled());
     rename('HATTER');
-    expect(screen.queryByRole('alert')).toBeNull();
     save();
     await vi.waitFor(() => expect(guideEdit).toHaveBeenCalledWith('mad-hatter', expect.objectContaining({ canonical_name: 'HATTER' })));
   });

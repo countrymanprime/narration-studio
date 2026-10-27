@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ContextMenu, textBoxAt } from './ContextMenu';
+import { TooltipProvider } from './Tooltip';
 
 afterEach(cleanup);
 
@@ -49,6 +50,39 @@ describe('ContextMenu', () => {
     expect(screen.getByText('REAPER is not connected.')).toBeTruthy();
     await user.click(chain);
     expect(items[1].onSelect).not.toHaveBeenCalled();
+  });
+
+  it('draws an item with an icon as an icon-only menu item named by its label, with a tooltip, beside its neighbours with icons', async () => {
+    const user = userEvent.setup();
+    const play = vi.fn();
+    render(
+      <TooltipProvider>
+        <ContextMenu
+          items={[
+            { key: 'play', label: 'Play selection', icon: 'play', onSelect: play },
+            { key: 'copy', label: 'Copy words', icon: 'copy', onSelect: vi.fn() },
+            { key: 'off', label: 'Delete words and audio', icon: 'delete', unavailable: 'REAPER is not connected.', onSelect: vi.fn() },
+            { key: 'text', label: 'Mark as…', onSelect: vi.fn() },
+          ]}
+        >
+          <p>Alice was beginning to get very tired.</p>
+        </ContextMenu>
+      </TooltipProvider>,
+    );
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const playItem = await screen.findByRole('menuitem', { name: 'Play selection' });
+    expect(playItem.textContent).toBe('');
+    expect(playItem.querySelector('svg')).toBeTruthy();
+    // The three icons share one row; the row without an icon keeps its text.
+    expect(playItem.parentElement!.closest('[data-icon-row]')).toBe(screen.getByRole('menuitem', { name: 'Copy words' }).closest('[data-icon-row]'));
+    expect(screen.getByRole('menuitem', { name: 'Mark as…' }).textContent).toBe('Mark as…');
+    // A reason is not drawn under the icon: it is the hint and the description, and the item stays off.
+    const off = screen.getByRole('menuitem', { name: 'Delete words and audio' });
+    expect(off.getAttribute('aria-disabled')).toBe('true');
+    expect(off.getAttribute('aria-description')).toBe('REAPER is not connected.');
+    expect(screen.queryByText('REAPER is not connected.')).toBeNull();
+    await user.click(playItem);
+    expect(play).toHaveBeenCalledOnce();
   });
 
   it('moves with the arrow keys, chooses with Enter and closes on Escape', async () => {

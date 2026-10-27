@@ -10,7 +10,7 @@ const errorText = (reason: unknown): string => (reason instanceof Error ? reason
  * The input level the Booth's Levels menu and footer meter read: the reading the old Booth's `useInputLevel` made (deleted
  * with it in SN-O10). One subscription to the teleprompter event stream per mount. A running take already relays `level`
  * events on it (`active`), so nothing is started then; otherwise a meter-only capture runs only while `enabled` (the menu
- * is open), is stopped when the menu closes or the component unmounts, and never starts for an empty `device`.
+ * is open or the footer shows), is stopped when the footer unmounts, and never starts for an empty `device`.
  */
 export function useLevels(device: string, { active, enabled }: { active: boolean; enabled: boolean }) {
   const teleprompter = usePort('teleprompter');

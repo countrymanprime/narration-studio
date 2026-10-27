@@ -8,7 +8,7 @@ import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type Ribb
 import { peaksWindowAll } from './peaksWindow';
 import { barLayout, FULL_SCALE, type PeakScale } from './ribbonBars';
 import type { RibbonLayout } from './ribbonLayout';
-import { RangeNotes, RangeOverlay } from './RangeOverlay';
+import { RangeOverlay } from './RangeOverlay';
 import { fineClock, type Span } from './rangeMath';
 import { ScrollEnd, ZoomRow } from './RibbonControls';
 import { useRangeInteraction } from './useRangeInteraction';
@@ -20,12 +20,11 @@ import { placeholderColumns } from './waveSwell';
 /** The waveform's own height (CSS pixels): the lane, not the peaks in it. */
 const HEIGHT = 56;
 /**
- * The whole waveform's height when it is a place to choose (the bottom of the Editing page): the row above (32 px), the lane (66 px with its
- * border and padding) and three 16 px lines of notes under it, which a range's notes take at 768 px (a range, its partly covered words and
- * the sub-word preview). At 140 px the third line was cut by the dock's edge (alignment audit W3). Fixed, so a range, a note or a line
+ * The whole waveform's height when it is a place to choose (the bottom of the Editing page): the row above (32 px) and the lane (66 px with its
+ * border and padding). Nothing is written under the lane: a range is its drawn body plus a tooltip. Fixed, so a range, a note or a line
  * without audio never moves what is around it (#2251, item 29).
  */
-const DOCK_HEIGHT = 146;
+const DOCK_HEIGHT = 98;
 /** Width used where nothing can measure the canvas (a test environment without ResizeObserver). */
 const FALLBACK_WIDTH = 640;
 
@@ -119,7 +118,7 @@ export function RibbonView({
     const t0 = layout.t0 + view.start;
     const t1 = t0 + view.len;
     const inView = (s: { t0: number; t1: number }): boolean => s.t1 >= t0 && s.t0 <= t1;
-    return { ...layout, t0, t1, ticks: layout.ticks.filter((t) => t >= t0 && t <= t1), flags: layout.flags.filter(inView), cuts: layout.cuts.filter(inView) };
+    return { ...layout, t0, t1, flags: layout.flags.filter(inView), cuts: layout.cuts.filter(inView) };
   }, [choose, layout, view.start, view.len]);
   const bounds = useMemo(() => ({ start: layout.t0, end: layout.t1 }), [layout.t0, layout.t1]);
   const interaction = useRangeInteraction({
@@ -358,9 +357,6 @@ export function RibbonView({
         <ScrollEnd dir={-1} ribbon={ribbon} />
         <div className="flex min-w-0 flex-1 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">{lane}</div>
         <ScrollEnd dir={1} ribbon={ribbon} />
-      </div>
-      <div className="min-h-0 flex-1 overflow-hidden" data-ribbon-notes>
-        {bare ? null : <RangeNotes shown={interaction.shown} covered={interaction.covered} words={choose.words} />}
       </div>
       <p role="status" className="sr-only">
         {interaction.announcement}

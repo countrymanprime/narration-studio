@@ -32,8 +32,7 @@ describe('chapter card', () => {
   it('shows the boundary, label, title, words, finished minutes and the facts line', async () => {
     mount();
     expect(screen.getByText('End of Chapter 1 · 3,182 words')).toBeTruthy();
-    expect(screen.getByText('Chapter 2')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'The Salt Marsh' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Chapter 2: The Salt Marsh' })).toBeTruthy();
     const minutes = Math.round((TWO.wordCount / WPH) * 60);
     await vi.waitFor(() =>
       expect(screen.getByText(factsLine(new RegExp(`2,044 words · about ${minutes} min finished audio · 1 note`))).textContent).toContain(
@@ -43,13 +42,14 @@ describe('chapter card', () => {
   });
 
   // The mock's card text is Plex Sans (`--f-body`), its title line-height 1.45 and its card an 8 px radius (app.css:143-145).
-  it('draws the card in Plex Sans on the roomy frame, with a 1.45 title', () => {
+  it('draws the card in Plex Sans on the roomy frame, with a stacked title', () => {
     mount();
     const card = screen.getByRole('region', { name: /chapter card/ });
     expect(card.className).toContain('IBM_Plex_Sans');
     expect(card.className).not.toContain('font-sans');
     expect(card.className).toContain('rounded-lg');
-    expect(within(card).getByRole('heading', { level: 2 }).className).toContain('leading-[1.45]');
+    expect(within(card).getByText('Chapter 2').className).toContain('block');
+    expect(within(card).getByText('The Salt Marsh').className).toContain('block');
   });
 
   it('names its region by number and title, so two chapters with one title are two landmarks', () => {
@@ -60,12 +60,17 @@ describe('chapter card', () => {
     expect(screen.getByRole('region', { name: /The Salt Marsh/ }).getAttribute('aria-label')).not.toBe('The Salt Marsh');
   });
 
-  it('labels a credits chapter "Credits" and names it in lower case at the boundary after it', () => {
+  it('titles a credits chapter and names it in lower case at the boundary after it', () => {
     mount({ chapter: CREDITS, previous: undefined });
-    expect(screen.getByText('Credits')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toMatch(/^Opening Credits/);
     cleanup();
     mount({ chapter: ONE, previous: CREDITS });
     expect(screen.getByText('End of opening credits · 120 words')).toBeTruthy();
+  });
+
+  it('reserves no subtitle line for a chapter without one', () => {
+    mount({ chapter: { ...TWO, subtitle: '' }, previous: undefined });
+    expect(screen.getByRole('heading', { level: 2 }).querySelectorAll('.block')).toHaveLength(1);
   });
 
   it('has no boundary line for the first chapter', () => {

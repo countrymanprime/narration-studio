@@ -60,7 +60,7 @@ function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}
   return { api, ...handlers, ...utils };
 }
 
-const firstHeading = () => screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 3000 });
+const firstHeading = () => screen.findByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }, { timeout: 3000 });
 const columns = () => document.querySelector<HTMLElement>('[data-script-columns]')!;
 const panel = (name: 'chapters' | 'rail') => document.querySelector<HTMLElement>(`[data-panel="${name}"]`)!;
 const press = (code: string, key: string, init: KeyboardEventInit = {}) => fireEvent.keyDown(document.activeElement ?? document.body, { code, key, ...init });
@@ -340,7 +340,7 @@ describe('credits-cards-and-banner-stay', () => {
     // Each chapter's section in the reader, in book order.
     const sections = [...document.querySelectorAll<HTMLElement>('[data-reader] [data-bound]')];
     expect(sections.length).toBeGreaterThan(1);
-    const chapterOne = screen.getByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' });
+    const chapterOne = screen.getByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' });
     // The opening card comes before chapter 1's title; the closing card after the last chapter's section, not beside the opening card.
     expect(chapterOne.compareDocumentPosition(opening) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(opening.compareDocumentPosition(sections[1]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -757,7 +757,7 @@ describe('chapter-title-once-and-end-marker-after-its-chapter', () => {
   it('draws each chapter title once in the text, as the card heading', async () => {
     mount();
     await firstHeading();
-    const inText = screen.getAllByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }).filter((h) => h.closest('[data-reader]'));
+    const inText = screen.getAllByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }).filter((h) => h.closest('[data-reader]'));
     expect(inText).toHaveLength(1);
     expect(inText[0]!.closest('[data-chapter-id]')).not.toBeNull();
     expect(document.querySelectorAll('[data-reader] [data-bound] > h2')).toHaveLength(0);
@@ -772,7 +772,7 @@ describe('chapter-title-once-and-end-marker-after-its-chapter', () => {
     const chapterOne = paragraphs.filter((row) => row.dataset.ch === paragraphs[0]!.dataset.ch);
     const last = chapterOne[chapterOne.length - 1]!;
     expect(last.compareDocumentPosition(end) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const next = screen.getByRole('heading', { level: 2, name: 'The Pool of Tears' });
+    const next = screen.getByRole('heading', { level: 2, name: 'Chapter 2: The Pool of Tears' });
     expect(end.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

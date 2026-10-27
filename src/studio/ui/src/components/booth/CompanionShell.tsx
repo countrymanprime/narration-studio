@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawTransport } from '../../api/contracts/daw';
+import { useDawState } from '../../daw/useDawSession';
 import { useCommand } from '../../input/useCommand';
 import { Button } from '../primitives/Button';
 import { useWholeWindow } from './companion/useWholeWindow';
@@ -51,10 +52,7 @@ function playheadTime(seconds: number): string {
 
 /** REAPER's transport from `daw_transport_changed`. Pushed only: until the first push, stopped. */
 function useDawTransport(): DawTransport {
-  const api = useApi();
-  const [transport, setTransport] = useState<DawTransport>({ playing: false, recording: false });
-  useEffect(() => api.subscribeDawTransport(setTransport), [api]);
-  return transport;
+  return useDawState((state) => state.transport);
 }
 
 function playheadBadge({ playing, recording, position }: DawTransport): { tone: StatusTone; label: string } {

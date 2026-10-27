@@ -1,3 +1,4 @@
+import { audioTail, type Envelope } from './audioTail';
 import type { ChapterDoc } from './doc';
 
 /** Seconds of audio kept after the last word of a paragraph. The aligner's end time for a word can fall before the sound has died away. */
@@ -28,6 +29,8 @@ export const WORD_TAIL_SECONDS = 0.2;
  * boundary that sits early, so the next word's start is no more trustworthy than this word's end; this much of the tail is kept, never past the
  * middle of the next word. */
 export const MIN_TAIL_SECONDS = 0.12;
+/** The most a play runs past a word's end to carry its sound to the end; the room the next word leaves can be less. */
+export const MAX_TAIL_SECONDS = 0.6;
 /** A next word that starts at least this long after a word's end was heard after a pause, and the play stops before it. */
 const TOUCHING_SECONDS = 0.05;
 /** Seconds a play may start before the first word's aligned start, for a plosive or breath the aligner put after its onset. */
@@ -57,17 +60,31 @@ const previousHeard = (doc: ChapterDoc, word: ChapterDoc['items'][number]): Chap
  * `MIN_TAIL_SECONDS` (never past the middle of the next word) when that start touches this word's end. The next word is the heard one that starts soonest after this one, so a
  * re-read or an extra word laid out of order is found by its time. An unknown word, or one with no time, ends where it did.
  */
-function tailEnd(doc: ChapterDoc, lastKey: string, end: number): number {
+function tailEnd(doc: ChapterDoc, lastKey: string, end: number, sound?: Envelope): number {
   const at = doc.index.get(lastKey);
   const word = at == null ? undefined : doc.items[at];
   if (!word || word.t0 == null) return end;
   const next = nextHeard(doc, word);
   const tail = next && next.pid === word.pid ? WORD_TAIL_SECONDS : RUNWAY_SECONDS;
-  if (!next) return end + tail;
-  const t0 = next.t0 as number;
-  if (t0 - end >= TOUCHING_SECONDS) return Math.min(end + tail, Math.max(end, t0 - BEFORE_NEXT_SECONDS));
-  const middle = t0 + Math.max(0, (next.t1 as number) - t0) / 2;
-  return Math.max(end, Math.min(end + MIN_TAIL_SECONDS, middle));
+  const t0 = next?.t0 as number | undefined;
+  const pause = next !== undefined && (t0 as number) - end >= TOUCHING_SECONDS;
+  const middle = next ? (t0 as number) + Math.max(0, (next.t1 as number) - (t0 as number)) / 2 : 0;
+  // The fixed rule: a guess at how far the sound runs past the recognizer's end, used when the audio is not at hand.
+  const fixed = !next
+    ? end + tail
+    : pause
+      ? Math.min(end + tail, Math.max(end, (t0 as number) - BEFORE_NEXT_SECONDS))
+      : Math.max(end, Math.min(end + MIN_TAIL_SECONDS, middle));
+  if (!sound) return fixed;
+  // The audio's rule: on to where the sound has died away, within the room the next word leaves (a pause), or up to the middle of a touching one.
+  const limit = !next
+    ? end + MAX_TAIL_SECONDS
+    : pause
+      ? Math.min(end + MAX_TAIL_SECONDS, Math.max(end, (t0 as number) - BEFORE_NEXT_SECONDS))
+      : Math.max(end, middle);
+  const heardEnd = audioTail(sound, word.t0, end, limit);
+  if (heardEnd === null) return fixed;
+  return Math.max(heardEnd, Math.min(end + MIN_TAIL_SECONDS, limit));
 }
 
 /** Where a play that starts on the word `firstKey` at `start` should start: up to `WORD_LEAD_SECONDS` earlier, never before the previous heard
@@ -81,7 +98,8 @@ export function leadStart(doc: ChapterDoc, firstKey: string, start: number): num
   return Math.max(0, start - WORD_LEAD_SECONDS, limit);
 }
 
-/** The stretch a play of the words `firstKey`..`lastKey`, aligned at `start`..`end`, hears: every Editing play of words goes through it. */
-export function heardWindow(doc: ChapterDoc, firstKey: string, lastKey: string, start: number, end: number): [number, number] {
-  return [leadStart(doc, firstKey, start), tailEnd(doc, lastKey, end)];
+/** The stretch a play of the words `firstKey`..`lastKey`, aligned at `start`..`end`, hears: every Editing play of words goes through it. With `sound` (the
+ * chapter's levels on the document clock) the end is where the last word's sound dies away; without it, a fixed tail. */
+export function heardWindow(doc: ChapterDoc, firstKey: string, lastKey: string, start: number, end: number, sound?: Envelope): [number, number] {
+  return [leadStart(doc, firstKey, start), tailEnd(doc, lastKey, end, sound)];
 }

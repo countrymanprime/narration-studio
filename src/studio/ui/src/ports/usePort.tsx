@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useApi } from '../api/ApiContext';
+import { withDawSession } from '../daw/dawSession';
+import { DawSessionContext } from '../daw/useDawSession';
 import type { NarrationApi } from '../types';
 import { createHostDawClient } from './daw';
 import { createHostMeasurements } from './measurements';
@@ -36,7 +38,12 @@ export function usePort<N extends PortName>(name: N): PortOf<N> {
     throw new Error(`usePort('${name}') called outside an <ApiProvider>.`);
   }
   const overrides = useContext(OverridesContext);
-  const client = useMemo(() => (isClientPort(name) ? (overrides[name] ?? CLIENT_BUILDERS[name](api)) : undefined), [api, name, overrides]);
+  const session = useContext(DawSessionContext);
+  // A client port reads the DAW through the app's one session, never by a subscription of its own.
+  const client = useMemo(
+    () => (isClientPort(name) ? (overrides[name] ?? CLIENT_BUILDERS[name](session ? withDawSession(api, session) : api)) : undefined),
+    [api, name, overrides, session],
+  );
   // The conditional return type cannot be narrowed from a generic `name`, so this is the one place the choice is asserted.
   return (client ?? api) as PortOf<N>;
 }

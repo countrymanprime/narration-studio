@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type {
   GuideAlias,
   GuideAppearance,
+  CueSpeaker,
   GuideDialogueCue,
   GuideDialogueCueEvidence,
   GuideDeleted,
@@ -16,6 +17,7 @@ import type {
   GuideProperty,
   GuideRelationship,
   GuideType,
+  SpeakerAttribution,
 } from '../contracts/storyBible';
 import { GUIDE_TYPE_COLOURS } from '../contracts/storyBible';
 import { listFromNull, optionalFromNull } from './base';
@@ -163,3 +165,22 @@ const guideDialogueCueSchema = z.object({
 
 /** The dialogue cue list: the host sends an empty list for a guide with none, and older guide a missing key. */
 export const guideDialogueCuesSchema = listFromNull(guideDialogueCueSchema);
+
+const cueSpeakerSchema = z.object({
+  cueId: z.string(),
+  speakerEntityId: z.string().nullable(),
+  speakerSource: z.enum(['tag', 'continuation', 'proximity', 'unknown', 'correction']),
+}) satisfies z.ZodType<CueSpeaker>;
+
+/** What an attribution run did; `previous` is every filled or changed line's earlier suggestion. */
+export const speakerAttributionSchema = z.object({
+  cues: z.number(),
+  attributed: z.number(),
+  filled: z.number(),
+  changed: z.number(),
+  keptConfirmed: z.number(),
+  previous: listFromNull(cueSpeakerSchema),
+}) satisfies z.ZodType<SpeakerAttribution>;
+
+/** How many lines an undo restored. */
+export const restoredSpeakersSchema = z.number();

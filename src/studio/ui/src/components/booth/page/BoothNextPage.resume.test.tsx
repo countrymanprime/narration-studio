@@ -84,6 +84,8 @@ describe('a chapter with a recording', () => {
     await waitFor(() => expect(reading()).toBe('said'));
     const chip = screen.getByRole('group', { name: 'Recorded through ““Off with her head,”” (45%)' });
     expect(chip.textContent).toBe('Recorded 45%');
+    // The chip says how far it is recorded; no green rail runs down the page beside the text (owner report, #2251).
+    expect(document.querySelector('[data-recorded-extent], [data-recorded-rail]')).toBeNull();
   });
 
   it('lets a link to a line win over the recording', async () => {

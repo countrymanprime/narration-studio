@@ -97,8 +97,9 @@ describe('the FX in the DAW now', () => {
     mount(() => new Promise<WorkspaceProjectFxResult>((resolve) => (answer = resolve)));
     expect(within(section()).getByText(READING_PROJECT_FX)).toBeTruthy();
     await act(async () => {
+      await Promise.resolve(); // the session's read has reached the host
       answer(CHAIN);
     });
-    expect(within(section()).queryByText(READING_PROJECT_FX)).toBeNull();
+    await waitFor(() => expect(within(section()).queryByText(READING_PROJECT_FX)).toBeNull());
   });
 });

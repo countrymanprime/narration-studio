@@ -1,3 +1,4 @@
+import { useDawState } from '../../daw/useDawSession';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faArrowRightArrowLeft, faCircleCheck, faCircleNotch, faClockRotateLeft, faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
@@ -497,12 +498,10 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   // the narrator is working in REAPER. The heartbeat's transport push says so within a tick, with no request;
   // the host's follow below says so too when that push is not there (an older bridge script). Nothing is chosen, so Start
   // reading keeps whatever it had.
+  const dawBusy = useDawState((state) => state.transport.playing || state.transport.recording);
   useEffect(() => {
-    if (!shown) return;
-    return api.subscribeDawTransport((transport) => {
-      if (transport.playing || transport.recording) setSettled(true);
-    });
-  }, [api, shown]);
+    if (shown && dawBusy) setSettled(true);
+  }, [shown, dawBusy]);
 
   // While the prompt shows for a track, the host follows REAPER (a bounded poll, never during a session) and says when it
   // plays or records, or when its edit cursor settles on the recording: then the prompt looks again, and may preset
