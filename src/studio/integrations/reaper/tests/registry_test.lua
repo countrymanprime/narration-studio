@@ -72,6 +72,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'ping',
     'play_from',
     'play_position',
+    'play_range',
     'prepare_compare',
     'preview_file_range',
     'project_state',
