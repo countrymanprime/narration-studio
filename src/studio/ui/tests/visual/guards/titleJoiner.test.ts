@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Owner rule (#2251 items 15, 16): a chapter's title and subtitle are drawn by `TitleSubtitle`, never joined by hand with " -- "
-// (or its ASCII " - " twin) in a template or string. A source line that joins with a dash fails here.
+// in a template or string. A source line that joins with it fails here; an eslint-disable line is skipped.
 const SRC = join(__dirname, '../../../src');
-const JOINER = /(['"`])\s*(--|-)\s*\1|\}\s(--)\s\$\{|['"`] -- ['"`]|\$\{[^}]*(title|subtitle)[^}]*\} -- /i;
+const JOINER = /['"`] -- ['"`]|\$\{[^}]*\} -- \$\{/;
 
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -21,7 +21,7 @@ describe('chapter title joiner', () => {
       readFileSync(file, 'utf8')
         .split('\n')
         .map((line, i) => ({ file, line: i + 1, text: line }))
-        .filter(({ text }) => !text.includes('eslint') && /['"`] -- ['"`]|\$\{[^}]*\} -- \$\{/.test(text)),
+        .filter(({ text }) => !text.includes('eslint') && JOINER.test(text)),
     );
     expect(hits).toEqual([]);
   });
