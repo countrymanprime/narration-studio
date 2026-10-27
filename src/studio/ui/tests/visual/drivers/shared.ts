@@ -492,7 +492,20 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
         // A real selection is always on screen already (a narrator can only drag-select what they can see); this programmatic one is
         // not, so it scrolls the words into view first, or the selection toolbar (`fixed`, placed from the selection's own rect)
         // would draw off-screen.
-        paragraph.scrollIntoView({ block: 'center' });
+        // The reader holds the position of its first draw until the narrator scrolls (a wheel, a key or a press), and puts it back after any
+        // programmatic scroll, so the wheel event says the narrator scrolled; then the words themselves are centred, not the paragraph (a
+        // narrow reader column makes a paragraph taller than the window, and its middle is not where the words are).
+        let scroller: HTMLElement | null = paragraph.parentElement;
+        while (scroller && !(/auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight))
+          scroller = scroller.parentElement;
+        scroller?.dispatchEvent(new WheelEvent('wheel', { bubbles: true }));
+        paragraph.scrollIntoView({ block: 'center', behavior: 'instant' });
+        const at = range.getBoundingClientRect();
+        if (scroller)
+          scroller.scrollTo({
+            top: scroller.scrollTop + at.top + at.height / 2 - (scroller.getBoundingClientRect().top + scroller.clientHeight / 2),
+            behavior: 'instant',
+          });
         const selection = window.getSelection();
         selection?.removeAllRanges();
         selection?.addRange(range);
