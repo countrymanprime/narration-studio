@@ -222,8 +222,8 @@ export const CATALOG = {
   record: { ...action(faCircle, 'record', 'Record my own clip'), tint: 'rec' },
   zoomIn: action(faMagnifyingGlassPlus, 'zoom in', 'Zoom in'),
   zoomOut: action(faMagnifyingGlassMinus, 'zoom out', 'Zoom out'),
-  scrollWaveBack: action(faCaretLeft, 'scroll the waveform back', 'Scroll the waveform back a window'),
-  scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward a window'),
+  scrollWaveBack: action(faCaretLeft, 'scroll the waveform back', 'Scroll the waveform back'),
+  scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
   problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
 

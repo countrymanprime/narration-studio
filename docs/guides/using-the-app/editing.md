@@ -168,7 +168,11 @@ swell crossing it from left to right about every second and a half. With **Motio
 it), nothing moves.
 
 **Scrolling.** Hold the right button and drag to move the audio along, or use the wheel or two fingers on a trackpad or touch screen. The
-arrows at either end move a whole window back or forward; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
+arrows at either end move what shows back or forward by one step, 20 seconds unless you change it in
+[Settings](settings.md#appearance--keys) (**Waveform arrow step**, 15 to 30 seconds). A click moves exactly one step, easing into place,
+and never a whole window. Hold an arrow and the waveform scrolls on smoothly at one step a second until you let go; with Motion set to
+Reduce, a press jumps and a hold repeats whole steps. The arrow turns off at the start or end of the chapter, and a selected range stays on
+its audio while the view moves; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
 brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps

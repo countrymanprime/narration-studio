@@ -620,6 +620,19 @@ export const ROWS: readonly SettingMeta[] = [
     used: ['production', 'script', 'booth', 'editing', 'proof', 'master'],
     syn: 'animation reduce reduced motion movement accessibility',
   },
+  {
+    id: 'look.waveScrollStep',
+    cat: 'appearance',
+    section: 'Editing',
+    label: 'Waveform arrow step',
+    scope: 'browser',
+    def: '20',
+    unit: 's',
+    desc: 'How far an arrow at the end of the waveform moves it.',
+    more: 'A click on an arrow at either end of the Editing waveform moves what shows by this many seconds, from 15 to 30. Hold it to scroll on smoothly at that many seconds a second; Reduce motion repeats whole steps instead.',
+    used: ['editing'],
+    syn: 'ribbon scroll arrows increment seconds hold speed pan',
+  },
   // Reader text is four rows, one per choice (alignment audit XSE2-13); `look.reader` keeps its id for the font, so a link to it still lands.
   {
     id: 'look.reader',
