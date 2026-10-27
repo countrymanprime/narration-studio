@@ -5,7 +5,7 @@
 - main:
   - region "Script":
     - heading "Script" [level=2]
-    - paragraph: Chapter 1 — Down the Rabbit-Hole
+    - paragraph: "Chapter 1: Down the Rabbit-Hole"
     - toolbar "Companion commands":
       - button "Space Play":
         - img "Space"
