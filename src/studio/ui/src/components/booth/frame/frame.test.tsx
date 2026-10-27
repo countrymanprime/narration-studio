@@ -11,6 +11,7 @@ import { BOOTH_SIZE_STORAGE_KEY, useTextChoices } from '../page/useTextChoices';
 import { BoothFooter } from './BoothFooter';
 import { BoothTop } from './BoothTop';
 import type { ListenProps } from './LevelsMenu';
+import { readerColumn } from '../../script/page/tools/text/readerText';
 
 afterEach(() => {
   cleanup();
@@ -377,25 +378,25 @@ describe('the text popover', () => {
     window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ font: 'Georgia', size: 18, spacing: 1.6, width: 64 }));
     render(<WithChoices />);
     // The Script's own setting and unit: Medium is 64 characters a line on both pages.
-    expect(screen.getByTestId('column').textContent).toBe('64ch');
+    expect(screen.getByTestId('column').textContent).toBe(readerColumn(64));
     await userEvent.click(screen.getByRole('button', { name: 'Text settings' }));
     const width = await screen.findByRole('slider', { name: 'Column width' });
     expect([width.getAttribute('min'), width.getAttribute('max')]).toEqual(['0', '3']);
     expect(screen.getByText('Medium')).toBeTruthy();
     fireEvent.keyDown(width, { key: 'ArrowLeft' });
     expect(screen.getByText('Narrow')).toBeTruthy();
-    expect(screen.getByTestId('column').textContent).toBe('48ch');
+    expect(screen.getByTestId('column').textContent).toBe(readerColumn(48));
     expect(JSON.parse(window.localStorage.getItem(TEXT_PREFS_STORAGE_KEY)!)).toEqual({ font: 'Georgia', size: 18, spacing: 1.6, width: 48 });
     fireEvent.keyDown(width, { key: 'End' });
     expect(screen.getByText('Full')).toBeTruthy();
-    expect(screen.getByTestId('column').textContent).toBe('100ch');
+    expect(screen.getByTestId('column').textContent).toBe(readerColumn(100));
     expect(JSON.parse(window.localStorage.getItem(TEXT_PREFS_STORAGE_KEY)!).width).toBe(100);
   });
 
   it('opens on the width Settings › Reader text saved', () => {
     window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ font: 'Georgia', size: 18, spacing: 1.6, width: 80 }));
     render(<WithChoices />);
-    expect(screen.getByTestId('column').textContent).toBe('80ch');
+    expect(screen.getByTestId('column').textContent).toBe(readerColumn(80));
   });
 
   it('is not drawn without the choices', () => {

@@ -16,6 +16,7 @@ import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/con
 import { chapterHeading, headingName } from '../../../../chapterHeading';
 import { overlay } from '../../../../overlay/overlayService';
 import { measureLineTop } from '../../bookmarks/ui/ribbonTops';
+import { READER_COLUMN_VAR } from '../tools/text/readerText';
 import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from './layers';
 import { Para, type FindRange } from './Para';
 import { loadReaderPosition, READER_POSITION_KEY, saveReaderPosition } from './readerPosition';
@@ -495,7 +496,7 @@ export function Reader(props: ReaderProps) {
           // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12).
           className="mx-auto px-6 pt-2 pb-20"
           style={{
-            maxWidth: 'calc(var(--rw, 64) * 1ch)',
+            maxWidth: READER_COLUMN_VAR,
             fontFamily: 'var(--rf, Georgia, serif)',
             fontSize: 'calc(var(--rs, 18) * 1px)',
             lineHeight: 'var(--rl, 1.7)',
