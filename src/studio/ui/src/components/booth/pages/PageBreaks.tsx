@@ -43,7 +43,7 @@ export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
         const top = tops[pageBreak.page];
         if (top === undefined) return null;
         return (
-          // The marker sits in the leading above the break word's line, so it crosses no letters; it takes no room.
+          // The marker sits in the leading above the break word's line, so it crosses no letters; it takes no room. Its left padding keeps the rule clear of a bookmark's triangle above the break word.
           <BoundaryMarker
             key={pageBreak.page}
             variant="page"
@@ -51,7 +51,7 @@ export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
             data-page-break={pageBreak.page}
             data-paragraph-id={pageBreak.paragraphId}
             data-offset={pageBreak.offset}
-            className="pointer-events-auto absolute inset-x-0 -translate-y-full leading-none"
+            className="pointer-events-auto absolute inset-x-0 -translate-y-full pl-10 leading-none"
             style={{ top }}
           >
             Page {pageBreak.page.toLocaleString()}
