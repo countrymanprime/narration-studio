@@ -381,11 +381,11 @@ into another chapter when needed; during a take they move only within the chapte
 
 ## Pages and your stopping place
 
-The Booth marks where a page breaks: a faint dashed line across the text above the page's first line, and **Page 2**, **Page 3** and so on written down the right margin beside the ribbons. A page is at least 250 words, counted from the start of the chapter (the title and subtitle included), and never breaks inside a paragraph: when the count reaches 250 partway through a paragraph, the page runs on to that paragraph's last word and the next page starts with the next paragraph, counting again from there. A paragraph longer than a page makes one long page. The last page of a chapter has no break after it, so a chapter of one page, or of a single paragraph, has none. Change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size.
+The Booth marks where a page breaks: a dashed line across the text above the page's first line with **Page 2**, **Page 3** and so on in its middle, drawn the same way as the "End of chapter" line on the [Script](script.md) page. A page is at least 250 words, counted from the start of the chapter (the title and subtitle included), and never breaks inside a paragraph: when the count reaches 250 partway through a paragraph, the page runs on to that paragraph's last word and the next page starts with the next paragraph, counting again from there. A paragraph longer than a page makes one long page. The last page of a chapter has no break after it, so a chapter of one page, or of a single paragraph, has none. Change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size.
 
 To mark where you mean to stop, right-click a word, or a page's label, and choose **Read to here**. The place gets a chequered-flag ribbon, also shown in the Script and in the jump menu (**Read to here: …**), with **Undo** on the message. A chapter has one stopping place: setting another moves it, and **Undo** puts it back where it was. It only marks the place: nothing stops, pauses or ends a take when you reach it. Right-click the flag for **Edit stopping place** and **Remove stopping place**.
 
-![Booth - a page break: the dashed line and Page 2 in the margin, with the stopping place set there by Read to here](../../images/ui/booth-page-break.webp)
+![Booth - a page break: the dashed line with Page 2 in its middle, and the stopping place set there by Read to here](../../images/ui/booth-page-break.webp)
 
 ## A pickup session
 
