@@ -180,7 +180,13 @@ export const dawFor = (setup: DawSetupId): DawClient =>
 export const newJournal = (): Journal => createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'unknown' });
 
 /** The page's surroundings in the app shell, the router included: the app's overlays (Check recordings) sit inside it, as in App.tsx. */
-export function EditingHost({ api, daw, journal, children }: { api: NarrationApi; daw: DawClient; journal: Journal; children: ReactNode }) {
+export function EditingHost({ api: base, daw, journal, children }: { api: NarrationApi; daw: DawClient; journal: Journal; children: ReactNode }) {
+  // The app's DAW session reads the DAW through the api, so the test's DAW client is also what the api's capability report answers.
+  const api: NarrationApi = {
+    ...base,
+    dawCapabilities: () => daw.capabilities(),
+    subscribeDawCapabilities: (onUpdate) => daw.subscribeCapabilities?.(onUpdate) ?? (() => undefined),
+  };
   return (
     <MemoryRouter>
       <ApiProvider api={api}>

@@ -298,17 +298,19 @@ describe('with-a-daw-levels-names-the-microphone-the-booth-listens-to', () => {
 });
 
 describe('levels-are-read-without-a-second-capture', () => {
-  it('subscribes once, holds the microphone only while the menu is open, and stops on unmount', async () => {
+  it('subscribes once, holds the microphone for as long as the footer shows (menu open or not), and stops on unmount', async () => {
     const a = api();
     const { unmount } = footer(a);
     expect(a.subscribeTeleprompterEvent).toHaveBeenCalledTimes(1);
-    expect(a.teleprompterMeterStart).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    // The meter beside the room tone follows the microphone without the Levels menu being opened.
     await waitFor(() => expect(a.teleprompterMeterStart).toHaveBeenCalledWith('USB Mic'));
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(a.teleprompterMeterStop).toHaveBeenCalled());
+    expect(a.teleprompterMeterStart).toHaveBeenCalledTimes(1);
+    expect(a.teleprompterMeterStop).not.toHaveBeenCalled();
     expect(a.subscribeTeleprompterEvent).toHaveBeenCalledTimes(1);
     unmount();
+    expect(a.teleprompterMeterStop).toHaveBeenCalled();
     expect(a.unsubscribe).toHaveBeenCalled();
   });
   it('starts no second capture while a take runs, and reads the take’s own levels', async () => {

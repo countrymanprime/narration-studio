@@ -301,7 +301,7 @@ function MonitorLevelRow() {
  */
 function LevelSliders({ levels, dawName }: { levels: NonNullable<LevelsMenuProps['levels']>; dawName: string }) {
   const { monitor, input, meters } = levels;
-  const state = useDawMeters(meters?.available === true);
+  const state = useDawMeters();
   const reading = meters?.available === true;
   const inputMeter = reading ? meterFor(state, 'input', dawName) : null;
   const outputMeter = reading ? meterFor(state, 'output', dawName) : null;

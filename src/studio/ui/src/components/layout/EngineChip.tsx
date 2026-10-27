@@ -26,7 +26,7 @@ export function EngineChip({
   onOpenEnginePanel,
   linkingDawFile = false,
 }: {
-  /** Which DAW backs the session (`dawCapabilities().daw`); undefined until the first answer, when the chip names none. */
+  /** Which DAW backs the session (the capability report's `daw`); undefined until the first answer, when the chip names none. */
   daw?: DawKind;
   /** Which engine backs this project; the UI defaults to 'daw' until native recording picks 'builtin'. */
   engine?: EngineState;

@@ -28,6 +28,7 @@ import { useToasts } from './hooks/useToasts';
 import { attachRefusalClaimed } from './components/connection/attachRefusal';
 import { useChapterSync } from './hooks/useChapterSync';
 import { BackgroundChecks } from './components/recordingcheck/background/BackgroundChecks';
+import { useDawSession } from './daw/useDawSession';
 import { usePendingAction } from './hooks/usePendingAction';
 import { ChapterSyncConsentDialog } from './components/engine/ChapterSyncConsentDialog';
 import type { ChapterSyncPreview } from './api/contracts/chapterSync';
@@ -170,6 +171,7 @@ type PendingMove = { kind: 'path'; path: string } | { kind: 'delta'; direction: 
 
 function AppRoutes() {
   const api = useApi();
+  const dawSession = useDawSession();
   const navigate = useNavigate();
   const location = useLocation();
   useEffect(() => logUi('ui.nav', location.pathname), [location.pathname]);
@@ -279,7 +281,12 @@ function AppRoutes() {
       lastRead = Date.now();
       void refreshBootstrap();
     };
-    const unsubscribe = api.subscribeDawCapabilities((caps) => {
+    // The app's DAW session is the one reader of the capability report; this follows its reports, each one once.
+    let seen = dawSession.getState().caps;
+    const unsubscribe = dawSession.subscribe(() => {
+      const caps = dawSession.getState().caps;
+      if (!caps || caps === seen) return;
+      seen = caps;
       const held = bootstrapRef.current;
       if (held && caps.daw === 'REAPER' && caps.reachable !== held.dawReachable) again();
     });
@@ -303,7 +310,7 @@ function AppRoutes() {
       unsubscribeAudacity();
       window.removeEventListener('focus', onFocus);
     };
-  }, [api, refreshBootstrap]);
+  }, [api, dawSession, refreshBootstrap]);
 
   // The one shared "link a REAPER project file" action behind the engine panel and Settings' DAW
   // category. Cancelling the dialog does nothing. Any .rpp links, in the project folder or elsewhere (the host's note says
