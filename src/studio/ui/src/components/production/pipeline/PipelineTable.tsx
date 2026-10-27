@@ -8,10 +8,11 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
 import { openReadiness } from '../readiness/openReadiness';
 import { ReadinessChip } from '../readiness/ReadinessChip';
+import { VERDICT_LABEL, verdictOf } from '../readiness/verdict';
+import { stageLabel } from '../../stages/stageText';
 import {
   cellName,
   COLUMN_LABEL,
-  NOT_STARTED_PREP,
   UNDER_WAY,
   type CellKind,
   type GoTarget,
@@ -28,19 +29,23 @@ const cellStatus = (cell: PipelineCell): StatusId => {
   return cell.kind === 'open' ? (cell.column === 'pickups' ? 'open_pickup' : 'fail') : byKind[cell.kind];
 };
 /**
- * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge, and
- * Rec. / Est. holds the recorded length over "of" the estimate, "10:42" or a two-word state on top (the mock's 80 px stage columns left
- * 28 px of air around each cell and squeezed the chapter names to two to five lines, alignment audit XPR2-10; one stacked column
- * rather than two keeps the names their 300 px at 1440). Chapter takes the rest, and the table never goes below a 10 rem name column:
- * under that it scrolls inside its card with the names pinned at the left (R4TA-1).
+ * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge. Rec.
+ * holds "10:42" or a two-word state on one line and Est. its "0:14" (owner report, #2251: two columns, not one stacked), each with its
+ * info mark under a centred header. The mock's 80 px stage columns left 28 px of air around each cell and squeezed the chapter names to
+ * two to five lines (alignment audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that
+ * it scrolls inside its card with the names pinned at the left (R4TA-1).
  */
 const STAGE_WIDTH = '3.75rem';
-const COLUMNS = ['auto', '4.75rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
+const COLUMNS = ['auto', '4rem', '3.5rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
 const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'proof', 'pickups', 'master', 'qc'];
 // Important: the cell's own 10 px padding is the same specificity and comes later in the stylesheet. The last column keeps its 16 px card edge.
 const STAGE_CELL = 'px-1! last:pr-4!';
 /** The names stay in view while the stages scroll under them, on the card's own colour. */
 const STICKY_NAME = 'sticky left-0 z-[1] bg-[var(--surface)]';
+/** The column headers stay in view while the rows scroll under them; the name header holds both corners. */
+const STICKY_HEAD = 'sticky top-0 z-[2] bg-[var(--surface)]';
+/** The board's height: about ten rows, then it scrolls inside its card, so a long chapter list never stretches the page. */
+const BOARD_MAX_HEIGHT = 'max-h-[34rem]';
 
 /** A disc half filled, drawn with CSS so it reads the same in every font. */
 const underWayMark = (
@@ -50,22 +55,24 @@ const underWayMark = (
     className="inline-block size-2.5 rounded-full border border-current [background:linear-gradient(90deg,currentColor_50%,transparent_50%)]"
   />
 );
-/** An empty circle, for prep not started. */
-const notStartedMark = <span data-not-started="" aria-hidden="true" className="inline-block size-2.5 rounded-full border border-current" />;
-const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark : cell.text === NOT_STARTED_PREP ? notStartedMark : cell.text);
+const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark : cell.text);
 
 function StageCell({
   row,
   cell,
   onGo,
   beside = false,
+  verdict,
 }: {
   row: PipelineRow;
   cell: PipelineCell;
   onGo: (target: GoTarget, chapterId: string) => void;
   /** The readiness chip shares the cell: the stage cell gives up its 52 px minimum and takes what the chip leaves. */
   beside?: boolean;
+  /** The readiness verdict the cell carries in its tip and description instead of a chip (the Prep column draws none). */
+  verdict?: string;
 }) {
+  const tip = verdict ? `${cell.tip} · ${verdict}` : cell.tip;
   const colors = toneColors(statusTone(cellStatus(cell)));
   // The mock fills an empty cell (`.cell`, --raised) rather than outlining it.
   const look = 'soft';
@@ -73,7 +80,7 @@ function StageCell({
   const classes = `${badgeClass('cell')} w-full ${beside ? 'min-w-0! px-0!' : ''}`;
   if (!cell.go) {
     return (
-      <TooltipTarget text={cell.tip} className={beside ? 'min-w-0' : 'w-full'}>
+      <TooltipTarget text={tip} className={beside ? 'min-w-0' : 'w-full'}>
         <span className={classes} style={badgeStyle(colors, look)} aria-label={cellName(row.name, cell)} role="img">
           {textOf(cell)}
         </span>
@@ -81,12 +88,13 @@ function StageCell({
     );
   }
   return (
-    <TooltipTarget text={cell.tip} className={beside ? 'min-w-0' : 'w-full'}>
+    <TooltipTarget text={tip} className={beside ? 'min-w-0' : 'w-full'}>
       {/* native-control-ok: a flat cell-shaped badge that is a button; Button's padded uppercase chrome and IconButton's square do not draw the mock's cell. */}
       <button
         type="button"
         data-cell={cell.column}
         aria-label={cellName(row.name, cell)}
+        aria-description={verdict}
         className={`${classes} cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]`}
         style={badgeStyle(colors, look)}
         onClick={() => onGo(cell.target, row.id)}
@@ -97,19 +105,20 @@ function StageCell({
   );
 }
 
-/** The Rec. / Est. cell: the measured clock (or a muted state word, never a 0 for unknown) over "of" the estimate. One image, named in full. */
-function RecordedCell({ figure, estimate }: { figure: RecordedFigure; estimate: string }) {
+/** The Rec. cell: the measured clock (or a muted state word, never a 0 for unknown). One image, named in full. */
+function RecordedCell({ figure }: { figure: RecordedFigure }) {
   return (
     <TooltipTarget text={figure.tip}>
-      <span role="img" aria-label={figure.label} data-recorded={figure.kind} className="flex flex-col items-end leading-[1.2]">
-        <span className={figure.kind === 'none' ? 'font-sans text-[0.75rem] whitespace-normal text-[var(--text-muted)]' : undefined}>{figure.text}</span>
-        <span data-estimate="" className="text-[0.6875rem] text-[var(--text-muted)]">
-          {estimate === '—' ? 'no est.' : `of ${estimate}`}
-        </span>
+      <span role="img" aria-label={figure.label} data-recorded={figure.kind} className="inline-block whitespace-nowrap">
+        <span className={figure.kind === 'none' ? 'font-sans text-[0.75rem] text-[var(--text-muted)]' : undefined}>{figure.text}</span>
       </span>
     </TooltipTarget>
   );
 }
+
+/** "Readiness: Ready, Editing": what the chip would say, for a cell that draws none. */
+const readinessSentence = (recommendation: StageChapterRecommendation): string =>
+  `Readiness: ${VERDICT_LABEL[verdictOf(recommendation)]}, ${stageLabel(recommendation.from)}`;
 
 type TableProps = {
   rows: readonly PipelineRow[];
@@ -132,19 +141,29 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
   return (
     // The table scrolls inside its panel at a narrow width, never the page, with a shadow on the side that has more (`scroll-x-edges`);
     // the region is a tab stop so the keyboard can scroll it.
-    <div className="scroll-x-edges overflow-x-auto" tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
-      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[41.75rem]">
+    <div className={`scroll-x-edges overflow-auto ${BOARD_MAX_HEIGHT}`} tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
+      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[44.75rem]">
         <TableHead>
           <TableRow>
-            <TableHeader className={STICKY_NAME}>Chapter</TableHeader>
+            <TableHeader align="center" className={`${STICKY_HEAD} left-0 z-[3]`}>
+              Chapter
+            </TableHeader>
             <TableHeader
-              align="right"
-              info="Rec.: the audio on the chapter's linked track in the saved project, before editing, or a word saying why there is none. Est.: its finished length estimated from its words at the planning rate, not a measurement. The cell's tip also says how far the chapter is recorded: through which paragraph, or to the end."
+              align="center"
+              className={STICKY_HEAD}
+              info="The audio on the chapter's linked track in the saved project, before editing, or a word saying why there is none. The cell's tip also says how far the chapter is recorded: through which paragraph, or to the end."
             >
-              Rec. / Est.
+              Rec.
+            </TableHeader>
+            <TableHeader
+              align="center"
+              className={STICKY_HEAD}
+              info="The chapter's finished length estimated from its words at the planning rate, not a measurement."
+            >
+              Est.
             </TableHeader>
             {STAGE_COLUMNS.map((column) => (
-              <TableHeader key={column} className={STAGE_CELL}>
+              <TableHeader key={column} align="center" className={`${STAGE_CELL} ${STICKY_HEAD}`}>
                 {COLUMN_LABEL[column]}
               </TableHeader>
             ))}
@@ -163,11 +182,15 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                 <TableCell className={`font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
                   <TitleSubtitle {...row.parts} />
                 </TableCell>
-                <TableCell numeric>
-                  <RecordedCell figure={row.recorded} estimate={row.estimate} />
+                <TableCell numeric align="center">
+                  <RecordedCell figure={row.recorded} />
+                </TableCell>
+                <TableCell numeric align="center">
+                  {row.estimate}
                 </TableCell>
                 {STAGE_COLUMNS.map((column) => {
-                  const chip = recommendation && row.current === column;
+                  const chip = recommendation && row.current === column && column !== 'prep';
+                  const verdict = recommendation && row.current === column && column === 'prep' ? readinessSentence(recommendation) : undefined;
                   return (
                     <TableCell key={column} className={STAGE_CELL}>
                       {chip ? (
@@ -183,7 +206,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                           />
                         </span>
                       ) : (
-                        <StageCell row={row} cell={row.cells[column]} onGo={onGo} />
+                        <StageCell row={row} cell={row.cells[column]} onGo={onGo} verdict={verdict} />
                       )}
                     </TableCell>
                   );

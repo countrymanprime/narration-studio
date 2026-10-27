@@ -1,6 +1,6 @@
 // The Script's chapter list and chapter cards (#2251, alignment audit docs/research/alignment-audit/findings/script.md R3SC-1,
 // XSC-10, XSC-15, XSC-16, XSC-17, XSC-23, XSC-31, XSC-44): list titles never leave one word on a line, each prep dot sits on its
-// title's line, credits rows are chapter rows' height and the key to the dots is two columns on the dots' x; a card's facts wrap
+// title's line, credits rows are one title line tall (no empty line for a subtitle) and the key to the dots is two columns on the dots' x; a card's facts wrap
 // between facts, its prep options are one width, the credits card is the chapter card's frame, its text starts at the card's edge
 // under a gap, and the credits ask for their values once.
 import { expect, test, type Page } from '@playwright/test';
@@ -18,15 +18,14 @@ async function drive(page: Page, state: string, size: { width: number; height: n
 
 const DESKTOP = { width: 1440, height: 900 };
 
-test('chapter list at 1440: balanced titles, dots on the title line, credits rows a chapter row tall, a two-column key', async ({ page }) => {
+test('chapter list at 1440: balanced titles, dots on the title line, credits rows one title line tall, a two-column key', async ({ page }) => {
   await drive(page, 'reader', DESKTOP);
   const g = await page.evaluate(() => {
     const list = document.querySelector('ul[aria-label="Chapters"]')!;
     const rows = [...list.querySelectorAll<HTMLButtonElement>('button[data-jump]')].map((button) => {
       const dot = button.querySelector('[data-prep]')!.getBoundingClientRect();
-      // The title is the button's last text-bearing span.
-      const spans = [...button.querySelectorAll('span')].filter((span) => span.children.length === 0 && span.textContent!.trim());
-      const title = spans[spans.length - 1]!;
+      // The title is the stacked TitleSubtitle's title line, over its muted subtitle.
+      const title = button.querySelector('[data-title]')!;
       const range = document.createRange();
       range.selectNodeContents(title);
       const lines = [...range.getClientRects()].filter((r) => r.width > 0);
@@ -49,8 +48,11 @@ test('chapter list at 1440: balanced titles, dots on the title line, credits row
   for (const row of g.rows) {
     expect.soft(Math.abs(row.dotMiddle - row.firstLineMiddle), `${row.name}: the dot is on the title's first line`).toBeLessThanOrEqual(1);
     if (row.lines > 1) expect.soft(row.lastShare, `${row.name}: no word left alone on the last line`).toBeGreaterThan(0.4);
-    if (row.credits) expect.soft(row.height, `${row.name}: a credits row is a chapter row tall`).toBe(oneLine[0]);
   }
+  // A credits row has no subtitle and leaves no empty line for one (#2251): both are one title line tall, under a chapter row's two.
+  const credits = g.rows.filter((row) => row.credits).map((row) => row.height);
+  expect.soft(new Set(credits).size, 'the credits rows are one height').toBe(1);
+  expect.soft(credits[0]!, 'a credits row is shorter than a chapter row, which holds a subtitle line').toBeLessThan(oneLine[0]!);
   expect.soft(g.legendRows, 'the key takes two rows').toBeLessThanOrEqual(2);
   expect.soft(g.legendLeft, "the key's dots are on the list's dot column").toBe(g.rows[0]!.dotLeft);
 });

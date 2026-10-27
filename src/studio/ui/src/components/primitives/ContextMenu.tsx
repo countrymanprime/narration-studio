@@ -3,7 +3,10 @@ import { useId, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import type { IconName } from '../../icons.catalog';
+import { Icon } from './Icon';
 import { KeyChord } from './KeyCap';
+import { TooltipTarget } from './Tooltip';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type ContextMenuItem = {
@@ -17,6 +20,11 @@ export type ContextMenuItem = {
   // Makes the item a submenu: its row opens these items beside it (Right arrow or hover) and `onSelect` is not used. A submenu with a
   // `unavailable` reason is off like any item; its items are plain rows or groups, and may nest.
   submenu?: ContextMenuItem[];
+  /**
+   * Draws the item as an icon only, with its label as the tooltip and the accessible name and its reason (if off) as the description.
+   * Neighbouring items with an icon share one row. Not for a submenu or a checked item.
+   */
+  icon?: IconName;
   /** The keys that run it from anywhere, drawn at the row's end ("Ctrl", "K"). */
   shortcut?: string[];
   /** Draws a check before the label (the page you are on) and reads as a checked menu item that closes the menu when chosen. Absent: no check, no state. */
@@ -60,6 +68,26 @@ function RowText({ item, reasonId }: { item: ContextMenuItem; reasonId: string }
         </span>
       )}
     </>
+  );
+}
+
+const iconed = (item: ContextMenuItem): boolean => item.icon !== undefined && item.submenu === undefined && item.checked === undefined;
+
+/** An icon-only item: the label is its name and its tooltip, and a reason takes the label's place in the hint and is the description. */
+function IconRow({ item }: { item: ContextMenuItem }) {
+  const hint = item.unavailable === undefined ? item.label : `${item.label} — ${item.unavailable}`;
+  return (
+    <TooltipTarget text={hint}>
+      <BaseContextMenu.Item
+        disabled={item.unavailable !== undefined}
+        aria-label={item.label}
+        aria-description={item.unavailable}
+        onClick={item.onSelect}
+        className="flex size-8 cursor-pointer items-center justify-center rounded-[0.3rem] text-[0.85rem] outline-none data-[disabled]:cursor-default data-[disabled]:text-[var(--text-muted)] data-[highlighted]:bg-[var(--surface-2)]"
+      >
+        <Icon name={item.icon!} />
+      </BaseContextMenu.Item>
+    </TooltipTarget>
   );
 }
 
@@ -112,7 +140,24 @@ function Row({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
 /** The items as runs of neighbours that share a group: a labelled group, or an unlabelled run, with a rule between two runs. */
 function Runs({ items, reasonId }: { items: ContextMenuItem[]; reasonId: string }) {
   return runsOf(items).map((run, at) => {
-    const rows = run.items.map((item) => <Row key={item.key} item={item} reasonId={reasonId} />);
+    const rows: ReactNode[] = [];
+    for (let i = 0; i < run.items.length; i++) {
+      const item = run.items[i]!;
+      if (!iconed(item)) {
+        rows.push(<Row key={item.key} item={item} reasonId={reasonId} />);
+        continue;
+      }
+      // The neighbours that have an icon share one row of icons.
+      const row = [item];
+      while (i + 1 < run.items.length && iconed(run.items[i + 1]!)) row.push(run.items[++i]!);
+      rows.push(
+        <div key={`icons-${item.key}`} data-icon-row="" className="flex flex-wrap gap-0.5 p-0.5">
+          {row.map((entry) => (
+            <IconRow key={entry.key} item={entry} />
+          ))}
+        </div>,
+      );
+    }
     const rule = at > 0 ? 'mt-1 border-t border-[var(--line-strong)] pt-1' : undefined;
     return run.group === undefined ? (
       <div key={`run-${at}`} className={rule}>

@@ -13,6 +13,7 @@ import { PipelineTable } from './PipelineTable';
 import { buildPipelineRows } from './pipelineRows';
 import { calcFor, MID_BOOK, MID_BOOK_RECOMMENDATIONS, MID_BOOK_SOURCES, NEXT_UP_BUSY, NEXT_UP_EMPTY, STORY_DUE, STORY_TODAY } from './pipelineFixtures';
 import { useStageTimer } from './useStageTimer';
+import { recommendation } from '../readiness/readinessFixtures';
 
 const opened = vi.hoisted(() => vi.fn());
 vi.mock('../readiness/openReadiness', () => ({ openReadiness: opened }));
@@ -53,23 +54,40 @@ describe('PipelineTable', () => {
     expect(within(grid).getAllByRole('row')).toHaveLength(MID_BOOK.length + 1);
     const widths = Array.from(grid.querySelectorAll('col')).map((col) => col.style.width);
     // Every stage column holds its cell and 4 px either side; the last also holds the card's 16 px edge (alignment audit XPR2-10).
-    expect(widths.slice(2, 8)).toEqual(Array(6).fill('3.75rem'));
-    expect(widths[8]).toBe('4.5rem');
-    // Rec. / Est. holds "10:42" or a two-word state over "of 10:42", and its info mark (the "i" in the header's text).
-    expect(widths[1]).toBe('4.75rem');
+    expect(widths.slice(3, 9)).toEqual(Array(6).fill('3.75rem'));
+    expect(widths[9]).toBe('4.5rem');
+    // Recorded and estimated are two columns (owner report, #2251), each on one line.
+    expect(widths.slice(1, 3)).toEqual(['4rem', '3.5rem']);
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
-      expect.arrayContaining(['Chapter', 'Rec. / Est.i', 'Prep', 'Record', 'Edit', 'Proof', 'Pickups', 'Master', 'QC']),
+      expect.arrayContaining(['Chapter', 'Rec.i', 'Est.i', 'Prep', 'Record', 'Edit', 'Proof', 'Pickups', 'Master', 'QC']),
     );
     // The estimate was headed "Fin." (finished), which read as a measurement.
     expect(screen.queryByText('Fin.')).toBeNull();
   });
 
+  it('centres every column header, the name column included, from one shared treatment', () => {
+    table();
+    for (const header of screen.getAllByRole('columnheader')) {
+      expect(header.className, header.textContent ?? '').toContain('text-center');
+    }
+  });
+
+  it('keeps the board to a fixed height that scrolls inside, however many chapters there are', () => {
+    table();
+    const region = screen.getByRole('group', { name: 'Chapter pipeline scroll area' });
+    expect(region.className).toContain('overflow-auto');
+    expect(region.className).toMatch(/max-h-/);
+    // The header row stays in view while the rows scroll under it.
+    expect(screen.getByRole('columnheader', { name: 'Prep' }).className).toContain('sticky');
+  });
+
   it("shows each row's recorded length beside its estimate, or a word saying why there is none", () => {
     table();
     const c4 = screen.getByRole('img', { name: 'Chapter 4: 0:30 recorded of about 1:00 estimated' });
-    expect(c4.textContent).toBe('0:30of 1:00');
+    expect(c4.textContent).toBe('0:30');
+    expect(within(c4.closest('tr')!).getByRole('cell', { name: '1:00' })).toBeTruthy();
     const c5 = screen.getByRole('img', { name: 'Chapter 5: recorded not read' });
-    expect(c5.textContent).toBe('Not readof 1:00');
+    expect(c5.textContent).toBe('Not read');
   });
 
   it('draws an under-way stage as a mark that needs no font, never the half-circle glyph', () => {
@@ -83,7 +101,7 @@ describe('PipelineTable', () => {
     table();
     const chips = document.querySelectorAll('[data-rchip]');
     expect(Array.from(chips).map((chip) => chip.getAttribute('data-rchip'))).toEqual(['c3', 'c4']);
-    expect(chips[0]!.closest('td')).toBe(within(screen.getByRole('button', { name: 'Chapter 3: Edit in progress' }).closest('tr')!).getAllByRole('cell')[4]);
+    expect(chips[0]!.closest('td')).toBe(within(screen.getByRole('button', { name: 'Chapter 3: Edit in progress' }).closest('tr')!).getAllByRole('cell')[5]);
     expect(chips[1]!.closest('td')).toBe(screen.getByRole('button', { name: /^Chapter 4: Record 50% recorded$/ }).closest('td'));
     await userEvent.click(chips[1] as HTMLElement);
     expect(opened).toHaveBeenCalledWith(expect.objectContaining({ chapterId: 'c4' }));
@@ -112,7 +130,7 @@ describe('PipelineTable', () => {
     table();
     const region = screen.getByRole('group', { name: 'Chapter pipeline scroll area' });
     expect(region.tabIndex).toBe(0);
-    expect(region.className).toContain('overflow-x-auto');
+    expect(region.className).toContain('overflow-auto');
     // It says it scrolls: a shadow on the side with more (R4TA-1), and the names stay pinned while the stages move.
     expect(region.className).toContain('scroll-x-edges');
     expect(screen.getByRole('columnheader', { name: 'Chapter' }).className).toContain('sticky');
@@ -125,6 +143,24 @@ describe('PipelineTable', () => {
     expect(chip.closest('.absolute')).toBeNull();
     expect(chip.parentElement!.parentElement).toBe(cell.parentElement!.parentElement);
     expect(cell.className).toContain('min-w-0!');
+  });
+});
+
+describe('PipelineTable, the Prep column', () => {
+  // Owner report, #2251: the "?" box beside Prep was not asked for. A chapter whose stage is Prep draws no chip; the verdict is in the cell's tip.
+  it('draws no readiness chip in the Prep column and puts the verdict in the cell tip', () => {
+    const recommendations = new Map([
+      ...MID_BOOK_RECOMMENDATIONS,
+      ['c5', recommendation({ chapterId: 'c5', title: 'Chapter 5', from: 'not_started', target: 'recording' })],
+    ]);
+    table({ recommendations });
+    expect(document.querySelector('[data-rchip="c5"]')).toBeNull();
+    expect(document.querySelectorAll('[data-rchip]')).toHaveLength(2);
+    const cell = screen.getByRole('button', { name: /^Chapter 5: Prep/ });
+    expect(cell.closest('td')!.querySelector('[data-rchip]')).toBeNull();
+    expect(cell.getAttribute('aria-label')).toMatch(/not started/);
+    // The verdict stays reachable without the chip: it is the cell's description.
+    expect(cell.getAttribute('aria-description')).toMatch(/Ready/);
   });
 });
 

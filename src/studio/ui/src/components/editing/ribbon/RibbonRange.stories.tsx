@@ -5,7 +5,7 @@ import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { SPEECH_PEAKS_MINMAX, SPEECH_PEAKS_PER_SECOND } from '../../../api/fixtures/speechPeaks';
 import type { ChapterDoc } from '../model';
 import { marksDoc } from '../script/scriptFixtures';
-import { wordsCovered, type Span } from './rangeMath';
+import { type Span } from './rangeMath';
 import { rangeDoc } from './rangeFixtures';
 import { shiftPeaks } from './docClock';
 import { RibbonView } from './Ribbon';
@@ -33,7 +33,7 @@ function Chooser({
   const [range, setRange] = useState<Span | null>(first);
   const words = doc.paras.find((p) => p.p.id === pid)?.items ?? [];
   // The canvas band is the whole words the range selects, which is what a cut or an effect works on.
-  const layout = ribbonLayout(doc, pid, range ? wordsCovered(words, range).keys : [], null)!;
+  const layout = ribbonLayout(doc, pid, null)!;
   return (
     <div className="bg-[var(--surface)] p-4 text-[var(--text)]">
       <RibbonView

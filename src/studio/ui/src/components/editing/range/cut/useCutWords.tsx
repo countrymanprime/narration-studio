@@ -5,6 +5,7 @@ import { usePort } from '../../../../ports/usePort';
 import type { Journal } from '../../../../studio/journal/createJournal';
 import { registerSelectionAction } from '../../bar/selectionActions';
 import { registerFlagAction } from '../../flags/flagActions';
+import type { ContextMenuItem } from '../../../primitives/ContextMenu';
 import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { summarize, type SelSummary } from '../../model';
 import { useEditingPage } from '../../script/EditingPageState';
@@ -195,10 +196,9 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
         id: 'cut.delete',
         order: 30,
         where: 'both',
-        render: ({ keys, summary, allCut, place, narrow }) =>
+        render: ({ keys, summary, allCut, place }) =>
           allCut ? null : (
             <DeleteButton
-              short={place === 'toolbar' || narrow === true}
               separated={place === 'toolbar'}
               reason={latest.current.refusalOf(summary) || undefined}
               onClick={() => latest.current.ask(keys, false)}
@@ -207,14 +207,14 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
       }),
       registerWordMenuSection({
         order: 100,
-        items: ({ keys, summary }) => {
+        items: ({ keys, summary }): ContextMenuItem[] => {
           const why = latest.current.refusalOf(summary);
           const off = why ? { unavailable: why } : {};
           const allCut = summary.items.length > 0 && summary.items.every((i) => i.cut);
           return [
-            { key: 'cut-mute', label: 'Mute these words (keep the audio)', ...off, onSelect: () => latest.current.ask(keys, true) },
-            { key: 'cut-delete', label: 'Delete words and audio…', ...off, onSelect: () => latest.current.ask(keys, false) },
-            ...(allCut ? [{ key: 'cut-restore', label: 'Restore these words', onSelect: () => void latest.current.restore(keys) }] : []),
+            { key: 'cut-mute', label: 'Mute these words (keep the audio)', icon: 'hideExample', ...off, onSelect: () => latest.current.ask(keys, true) },
+            { key: 'cut-delete', label: 'Delete words and audio…', icon: 'delete', ...off, onSelect: () => latest.current.ask(keys, false) },
+            ...(allCut ? [{ key: 'cut-restore', label: 'Restore these words', icon: 'undo' as const, onSelect: () => void latest.current.restore(keys) }] : []),
           ];
         },
       }),
