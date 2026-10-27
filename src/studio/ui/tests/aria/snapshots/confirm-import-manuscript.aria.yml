@@ -24,19 +24,19 @@
   - group "Review what was found":
     - text: Review what was found
     - button "Chapters 5 of 5 chapters included" [expanded]
-    - switch "Chapter One 1,862 words Down the Rabbit-Hole" [checked]
-    - text: Chapter One 1,862 words Down the Rabbit-Hole
-    - switch "Chapter Two 1,655 words The Pool of Tears" [checked]
-    - text: Chapter Two 1,655 words The Pool of Tears
+    - 'switch "Chapter One: Down the Rabbit-Hole 1,862 words" [checked]'
+    - text: "Chapter One: Down the Rabbit-Hole 1,862 words"
+    - 'switch "Chapter Two: The Pool of Tears 1,655 words" [checked]'
+    - text: "Chapter Two: The Pool of Tears 1,655 words"
     - switch "Chapter Three 1,410 words" [checked]
     - text: Chapter Three 1,410 words
-    - switch "Chapter Four 1,733 words In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling" [checked]
-    - text: Chapter Four 1,733 words In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling
+    - 'switch "Chapter Four: In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling 1,733 words" [checked]'
+    - text: "Chapter Four: In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling 1,733 words"
     - switch "Chapter Five 1,980 words" [checked]
     - text: Chapter Five 1,980 words
     - button "Character suggestions 3 of 3 checked"
   - region "Preview of the selected heading":
-    - heading "Chapter One Down the Rabbit-Hole" [level=3]
+    - 'heading "Chapter One: Down the Rabbit-Hole" [level=3]'
     - paragraph: "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading…"
   - button "Back"
   - checkbox "Close when the import finishes" [checked]

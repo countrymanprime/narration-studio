@@ -265,18 +265,6 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Remove voice data…');
     await confirmDialog(page, 'Remove voice data').waitFor();
   },
-  'delete-story-bible-confirm': async (page) => {
-    await goToPage(page, 'Story Bible');
-    await chooseAction(page, 'Delete Story Bible data…');
-    await confirmDialog(page, 'Delete Story Bible data').getByRole('button', { name: 'Cancel' }).waitFor();
-  },
-  'story-bible-deleted': async (page) => {
-    await goToPage(page, 'Story Bible');
-    await chooseAction(page, 'Delete Story Bible data…');
-    await confirmDialog(page, 'Delete Story Bible data').getByRole('button', { name: 'Delete Story Bible data' }).click();
-    await page.getByText('No entries yet. Add one, or scan the manuscript from More actions.').waitFor();
-    await page.getByText(/^Story Bible data deleted: /).waitFor();
-  },
   'voice-samples-entry': async (page) => {
     await openWithSamples(page, 'bible');
     await entryRows(page).filter({ hasText: 'Queen of Hearts' }).click();

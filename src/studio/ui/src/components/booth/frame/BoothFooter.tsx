@@ -5,6 +5,7 @@ import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
 import { Button } from '../../primitives/Button';
 import { KeyHints } from '../../primitives/KeyHints';
+import { useDawMeterLease } from '../../../daw/useDawSession';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
 import { useLevels } from './useLevels';
@@ -103,8 +104,10 @@ export function BoothFooter({
   coldRead?: ColdReadToggle;
 }) {
   const [open, setOpen] = useState(false);
-  // One reading for the menu and the inline meter; the capture runs only while the menu is open or a take runs.
-  const { level, error } = useLevels(mic.device, { active: recording, enabled: open });
+  // One reading for the menu and the inline meter, running for as long as the Booth shows: the meter beside the room tone follows the
+  // microphone without the Levels menu being opened, and the DAW's own meters are read for as long as the footer is mounted too.
+  useDawMeterLease();
+  const { level, error } = useLevels(mic.device, { active: recording, enabled: true });
   const hints = footerHints('booth', keymap, undefined, undefined, new Set(pickupSession ? ['pickupSession' as const] : []));
   // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
   const bar = useRef<HTMLDivElement>(null);

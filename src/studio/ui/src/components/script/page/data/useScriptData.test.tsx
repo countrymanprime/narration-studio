@@ -340,6 +340,56 @@ describe('confirm-a-speaker', () => {
   });
 });
 
+describe('attribute-speakers', () => {
+  const blankFirstSuggestion = () => api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }]);
+
+  it('fills the unconfirmed lines, leaves a confirmed one alone, says the count with an Undo, and a re-run is a no-op', async () => {
+    const hook = setup();
+    await ready(hook);
+    await blankFirstSuggestion();
+    await act(async () => void (await hook.result.current.commands.confirmSpeaker('cue-2', 'alice')));
+    const confirmed = (await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2');
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    expect(toastUndo).toHaveBeenCalledWith('Attributed 1 line. 1 confirmed line left as they were.', expect.any(Function), { entry: expect.any(Number) });
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2')).toEqual(confirmed);
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-1')).toMatchObject({ speaker_entity_id: 'mad-hatter', corrected: false });
+    toastUndo.mockClear();
+    const entries = (await hook.result.current.journal.entries()).length;
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    expect(toast).toHaveBeenLastCalledWith('No new speakers found. 1 confirmed line left as they were.');
+    expect(toastUndo).not.toHaveBeenCalled();
+    expect(await hook.result.current.journal.entries()).toHaveLength(entries);
+  });
+
+  it('Undo puts the earlier suggestion back but never overwrites a line confirmed since', async () => {
+    const hook = setup();
+    await ready(hook);
+    await blankFirstSuggestion();
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    await undoLast(hook);
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-1')).toMatchObject({ speaker_entity_id: null, corrected: false });
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    await act(async () => void (await hook.result.current.commands.confirmSpeaker('cue-1', 'alice')));
+    // The narrator confirmed cue-1 after the run; an undo of that run must not take the confirmation back.
+    await act(async () => void (await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }])));
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-1')).toMatchObject({ speaker_entity_id: 'alice', corrected: true });
+  });
+
+  it('a refused run is a toast, journals nothing and leaves the confirmed lines as they were', async () => {
+    api = host({ guideAttributeSpeakers: refusing('The Story Bible could not be read.') });
+    const hook = setup();
+    await ready(hook);
+    await act(async () => void (await hook.result.current.commands.confirmSpeaker('cue-2', 'alice')));
+    const entries = (await hook.result.current.journal.entries()).length;
+    let finished: boolean | undefined;
+    await act(async () => void (finished = await hook.result.current.commands.attributeSpeakers()));
+    expect(finished).toBe(false);
+    expect(toast).toHaveBeenCalledWith('The Story Bible could not be read.', { tone: 'error' });
+    expect(await hook.result.current.journal.entries()).toHaveLength(entries);
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2')).toMatchObject({ speaker_entity_id: 'alice', corrected: true });
+  });
+});
+
 describe('entities-and-mentions', () => {
   it('reads the entries once and offers the lookups', async () => {
     const entities = vi.spyOn(api, 'guideEntities');

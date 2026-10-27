@@ -2828,5 +2828,65 @@
     "file": "narration_transport.lua",
     "find": "    if guard.cycles <= 0 then",
     "replace": "    if false then"
+  },
+  {
+    "name": "play_range stops on the old play head REAPER still reports after a seek",
+    "file": "narration_transport.lua",
+    "find": "if (range.arrived and head >= range.stop) or reaper.time_precise() >= range.deadline then",
+    "replace": "if head >= range.stop or reaper.time_precise() >= range.deadline then"
+  },
+  {
+    "name": "play_range has no deadline, so a play head that never arrives plays on",
+    "file": "narration_transport.lua",
+    "find": "if (range.arrived and head >= range.stop) or reaper.time_precise() >= range.deadline then",
+    "replace": "if (range.arrived and head >= range.stop) or false then"
+  },
+  {
+    "name": "play_range plays over a recording",
+    "file": "narration_transport.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)"
+  },
+  {
+    "name": "play_from keeps the stretch an earlier play_range set",
+    "file": "narration_transport.lua",
+    "find": "local function play_from(session_dir, state, run_id, text)\n  state.range = nil",
+    "replace": "local function play_from(session_dir, state, run_id, text)"
+  },
+  {
+    "name": "a REAPER the narrator stopped keeps the stretch, so their next play is stopped at its end",
+    "file": "narration_transport.lua",
+    "find": "  if play_state % 2 ~= 1 or play_state >= 4 then\n    state.range = nil\n    return\n  end",
+    "replace": "  if false then\n    state.range = nil\n    return\n  end"
+  },
+  {
+    "name": "play_range accepts an end before its start",
+    "file": "narration_transport.lua",
+    "find": "if not start or not stop or stop <= start or stop - start > MAX_RANGE_SECONDS then",
+    "replace": "if not start or not stop or stop - start > MAX_RANGE_SECONDS then"
+  },
+  {
+    "name": "play_range takes a head past the end for its arrival",
+    "file": "narration_transport.lua",
+    "find": "head >= range.start - ARRIVE_BEFORE_SECONDS and head < range.stop then",
+    "replace": "head >= range.start - ARRIVE_BEFORE_SECONDS and head <= range.stop + ARRIVE_AFTER_SECONDS then"
+  },
+  {
+    "name": "play_range takes a head from before the stretch for its arrival",
+    "file": "narration_transport.lua",
+    "find": "head >= range.start - ARRIVE_BEFORE_SECONDS and head < range.stop then",
+    "replace": "head < range.stop then"
+  },
+  {
+    "name": "play_range stops a play another feature started",
+    "file": "narration_transport.lua",
+    "find": "if not near and math.abs(reaper.GetCursorPosition() - range.start) > RANGE_CURSOR_EPSILON then",
+    "replace": "if false then"
+  },
+  {
+    "name": "a recording that starts during the stretch keeps it",
+    "file": "narration_transport.lua",
+    "find": "if play_state % 2 ~= 1 or play_state >= 4 then",
+    "replace": "if play_state % 2 ~= 1 then"
   }
 ]

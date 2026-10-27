@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { docAt, projectAt, type ClosedCut } from './clockMap';
+import { docAt, projectAt, projectEndAt, type ClosedCut } from './clockMap';
 
 const seg = (itemGuid: string, sourceStart: number, sourceEnd: number, elapsedStart: number): PlaylistSegment => ({
   itemGuid,
@@ -244,5 +244,37 @@ describe('clock-map', () => {
     const map = { playlist: [seg('a', 0, 10, 0)], items: [item('a', 100, 0, 10, 0)] };
     near(projectAt(map, 3), 103);
     near(docAt(map, 103), 3);
+  });
+});
+
+// A play ends past the last word of a paragraph (the tail of its sound), which is past the playlist segment that ends on the word: the DAW is told
+// the project second the play ends at, so `projectEndAt` carries the end on from the segment's last second at the item's rate.
+describe('projectEndAt', () => {
+  const items = [item('a', 100, 10, 8, 2)];
+  const playlist = [seg('a', 10, 14, 0)];
+
+  it('is the project second a play that ends inside a segment ends at', () => {
+    near(projectEndAt({ playlist, items }, 2), projectAt({ playlist, items }, 2));
+  });
+  it("is the project second of the segment's end for a play that ends exactly on it", () => {
+    // 4 document seconds at twice the speed are 2 project seconds.
+    near(projectEndAt({ playlist, items }, 4), 102);
+  });
+  it("carries on past the end of the last segment at the item's rate (the tail of the last word)", () => {
+    near(projectEndAt({ playlist, items }, 4.4), 102.2);
+  });
+  it('carries on past a segment into the room before the next one, never into the next', () => {
+    // A gap of one document second between the two paragraphs: 4.3 is 0.3 s into it.
+    const two = [seg('a', 10, 14, 0), seg('a', 16, 18, 5)];
+    near(projectEndAt({ playlist: two, items }, 4.3), 102.15);
+  });
+  it('gives up beyond a second past the end, where nothing is known to play', () => {
+    expect(projectEndAt({ playlist, items }, 6)).toBeNull();
+  });
+  it('maps nothing for an item the project does not hold live, or a time that is not usable', () => {
+    expect(projectEndAt({ playlist, items: [item('a', 100, 10, 8, 2, false)] }, 4)).toBeNull();
+    expect(projectEndAt({ playlist, items }, -1)).toBeNull();
+    expect(projectEndAt({ playlist, items }, Number.NaN)).toBeNull();
+    expect(projectEndAt({ playlist: [], items }, 4)).toBeNull();
   });
 });

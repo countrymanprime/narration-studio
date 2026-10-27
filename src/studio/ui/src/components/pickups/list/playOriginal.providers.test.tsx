@@ -60,7 +60,7 @@ class FakeAudio extends EventTarget {
   });
 }
 let audio: FakeAudio;
-let transport: ReturnType<typeof vi.fn<(action: string, seconds: number) => Promise<DawResult>>>;
+let transport: ReturnType<typeof vi.fn<(action: string, seconds: number, until?: number) => Promise<DawResult>>>;
 const refused: string[] = [];
 const notices: string[] = [];
 
@@ -68,7 +68,7 @@ function mount(caps: DawCapabilities, client: Partial<DawClient> = {}) {
   const api = createMockApi({
     chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ trackGuid: 'tr', chapterId: 'chapter-1', chapterTitle: 'One', confirmedAt: '' }] }),
     tracksList: async () => ({ path: 'book.rpp', tracks: [{ guid: 'tr', index: 0, name: 'One', color: '', muted: false, soloed: false, items: [ITEM] }] }),
-    dawTransportSync: (action, seconds) => transport(action, seconds),
+    dawTransportSync: (action, seconds, ...until) => transport(action, seconds, ...until),
   });
   const daw: DawClient = { ...createMockDawClient(caps), capabilities: async () => caps, ...client };
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -107,16 +107,17 @@ afterEach(() => {
 });
 
 describe('a-daw-that-can-play-plays-the-original', () => {
-  it('plays the DAW from 3 s before the pickup, keeps the app silent, and stops it after the stretch', async () => {
+  // Changed from "stops it after the stretch" (#2251 item 22): the DAW is told the stretch and stops itself at its end, so the list sends no stop.
+  it('plays the stretch 3 s either side of the pickup in the DAW, which stops itself at the end; the app stays silent', async () => {
     const { result } = mount(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(15)));
-    expect(transport).toHaveBeenCalledWith('play', 12);
+    expect(transport).toHaveBeenCalledWith('playRange', 12, 18);
     expect(audio.play).not.toHaveBeenCalled();
     expect(result.current.playingId).toBe('p1');
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(6000);
+      await vi.advanceTimersByTimeAsync(6500);
     });
-    expect(transport).toHaveBeenLastCalledWith('stop', 0);
+    expect(transport).toHaveBeenCalledTimes(1);
     expect(result.current.playingId).toBeNull();
   });
   it('a second press stops the DAW', async () => {

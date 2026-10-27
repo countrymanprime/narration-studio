@@ -104,7 +104,7 @@ describe('one waveform, docked', () => {
     expect(document.querySelectorAll('[data-ribbon-pid]')).toHaveLength(1);
     expect(document.querySelectorAll('canvas')).toHaveLength(1);
     expect(pidShown()).toBe('p-1');
-    expect(viewLabel()).toBe(`${fine(doc.paras[0].start ?? 0)} to ${fine(ribbonLayout(doc, 'p-1', [], null)!.t1)}`);
+    expect(viewLabel()).toBe(`${fine(doc.paras[0].start ?? 0)} to ${fine(ribbonLayout(doc, 'p-1', null)!.t1)}`);
   });
 
   it('follows the cursor line: its window comes into view', async () => {
@@ -112,7 +112,7 @@ describe('one waveform, docked', () => {
     page(doc, withPeaks(peaks(0, 20)), (d) => d({ type: 'place', key: 'p-2:1' }));
     click();
     await waitFor(() => expect(pidShown()).toBe('p-2'));
-    expect(viewLabel()).toBe(`${fine(doc.paras[1].start ?? 0)} to ${fine(ribbonLayout(doc, 'p-2', [], null)!.t1)}`);
+    expect(viewLabel()).toBe(`${fine(doc.paras[1].start ?? 0)} to ${fine(ribbonLayout(doc, 'p-2', null)!.t1)}`);
   });
 
   it('follows the selection head when nothing is playing', async () => {
@@ -140,7 +140,7 @@ describe('one waveform, docked', () => {
     await waitFor(() => expect(document.querySelector('[data-ribbon-surface]')).not.toBeNull());
     const dock = () => document.querySelector('[data-wave-dock]') as HTMLElement;
     const height = dock().style.height;
-    expect(height).toBe('146px');
+    expect(height).toBe('98px');
     cleanup();
     page(doc, withPeaks(undefined, 'No waveform: the source is not a WAV.'));
     await waitFor(() => expect(screen.getByText(/No audio to draw/)).toBeTruthy());
@@ -150,7 +150,7 @@ describe('one waveform, docked', () => {
 
 describe('RibbonView drawing', () => {
   const doc = marksDoc();
-  const layout = (sel: string[] = [], t: number | null = null) => ribbonLayout(doc, 'p-1', sel, t)!;
+  const layout = (t: number | null = null) => ribbonLayout(doc, 'p-1', t)!;
   const l = layout();
 
   it('draws-the-lines-window-of-the-peaks, at the device pixel ratio, and redraws when the span changes', async () => {
@@ -175,30 +175,29 @@ describe('RibbonView drawing', () => {
     expect(screen.getByText(/No audio to draw/)).toBeTruthy();
   });
 
-  it('ticks-at-every-word-boundary-and-a-tint-where-flagged, with a cue beyond colour', async () => {
+  it('a-tint-where-flagged-with-a-cue-beyond-colour, and no tick at the word boundaries', async () => {
     render(<RibbonView layout={l} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(calls.length).toBeGreaterThan(0));
-    const lines = calls.filter((c) => c.op === 'lineTo').length;
-    expect(lines).toBeGreaterThanOrEqual(l.ticks.length);
+    // The only lines drawn are cut hatching and the playhead: none at the word boundaries.
+    expect(calls.filter((c) => c.op === 'lineTo')).toHaveLength(0);
     // a tint fill plus a 3px bar per flagged span
     expect(calls.filter((c) => c.op === 'fillRect' && c.args[3] === 3)).toHaveLength(l.flags.length);
     expect(screen.getByRole('img').getAttribute('aria-describedby')).toBeTruthy();
     expect(document.body.textContent).toMatch(/4 flagged words/);
   });
 
-  it('selection-band-and-playhead are clipped to the line window', async () => {
+  it('the playhead is clipped to the line window and a chosen word draws no band', async () => {
     const mid = (l.t0 + l.t1) / 2;
-    const withBoth = layout(['p-1:0', 'p-2:1'], mid);
-    expect(withBoth.band!.t1).toBeLessThanOrEqual(l.t1);
+    const withBoth = layout(mid);
     render(<RibbonView layout={withBoth} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(calls.some((c) => c.op === 'fillRect')).toBe(true));
-    expect(document.body.textContent).toMatch(/Selection from/);
+    expect(document.body.textContent).not.toMatch(/Selection from/);
     expect(document.body.textContent).toMatch(/Playing at/);
   });
 
   it('cut-words-leave-a-gap-marker: a hatched gap', async () => {
     const cutDoc = marksDoc({ cuts: [{ id: 'c1', a: 4.2, b: 4.3, mode: 'gap', keys: ['p-2:1'], off0: 0, off1: 0.1 }] });
-    const cl = ribbonLayout(cutDoc, 'p-2', [], null)!;
+    const cl = ribbonLayout(cutDoc, 'p-2', null)!;
     render(<RibbonView layout={cl} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(calls.some((c) => c.op === 'clip')).toBe(true));
     expect(document.body.textContent).toMatch(/1 cut span, drawn hatched/);
@@ -284,7 +283,7 @@ describe('the waveform header', () => {
 
 describe('RibbonView animation', () => {
   const doc = marksDoc();
-  const l = ribbonLayout(doc, 'p-1', [], null)!;
+  const l = ribbonLayout(doc, 'p-1', null)!;
   const playingAt = (t: number | null) => ({ ...l, playhead: t });
   const mid = (l.t0 + l.t1) / 2;
   let frames: Map<number, FrameRequestCallback>;

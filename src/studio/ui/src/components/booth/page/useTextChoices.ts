@@ -3,7 +3,7 @@
 // missing, full or blocked, so every access is guarded and the Booth reads with the defaults when it fails.
 
 import { useCallback, useState } from 'react';
-import { READER_WIDTHS, fontStack, loadTextPrefs, saveTextPrefs } from '../../script/page/tools/text/readerText';
+import { READER_WIDTHS, fontStack, readerColumn, loadTextPrefs, saveTextPrefs } from '../../script/page/tools/text/readerText';
 import { textSizePx } from '../reading/BoothText';
 
 export const BOOTH_SIZE_STORAGE_KEY = 'narration.booth.textSize';
@@ -26,12 +26,6 @@ function saveBoothSize(size: number): void {
     /* storage unavailable: the size lasts for this visit only */
   }
 }
-
-/**
- * The Booth column for a Reader text column width: the same value the Script reads (`readerVars`' `--rw`), in the same unit, `ch` of the
- * text, so one setting gives the same characters a line on both pages. The text area's own width caps it at a large size or a narrow window.
- */
-const boothColumn = (width: number): string => `${width}ch`;
 
 export type TextChoices = {
   /** Px, 24 to 72 in steps of 4. */
@@ -71,5 +65,5 @@ export function useTextChoices(): TextChoices {
     saveTextPrefs({ ...loadTextPrefs(), width: next });
     setWidthState(loadTextPrefs().width);
   }, []);
-  return { size, font, fontFamily: fontStack(font), width, column: boothColumn(width), setSize, setFont, setWidth };
+  return { size, font, fontFamily: fontStack(font), width, column: readerColumn(width), setSize, setFont, setWidth };
 }

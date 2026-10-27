@@ -1,3 +1,4 @@
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import type { AssetInstallJob, AssetItem } from '../../../types';
 import { formatSize } from '../../assets/AssetFacts';
 import { IconButton } from '../../primitives/IconButton';
@@ -31,6 +32,7 @@ export function ToolRow({ tool, status, job, failure, failureDetail, download, c
   const { tone, label } = installPill(status === 'not-installed' ? 'missing' : status);
   const name = tool.displayName;
   const busy = status === 'downloading' || status === 'verifying';
+  useErrorToast(failure);
   return (
     <li data-component={tool.id} data-status={status} className="flex min-w-0 flex-col gap-1 border-t border-[var(--border)] py-3 first:border-t-0 first:pt-0">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -74,11 +76,6 @@ export function ToolRow({ tool, status, job, failure, failureDetail, download, c
             {status === 'verifying' ? 'Checking…' : `${job?.percent ?? 0}% of ${formatSize(tool.downloadSize)}`}
           </span>
         </div>
-      )}
-      {failure && (
-        <span role="alert" data-comp-error className="text-xs text-[var(--danger-text)]">
-          {failure}
-        </span>
       )}
       {failure && failureDetail && (
         <details data-comp-error-detail className="text-xs text-[var(--text-muted)]">

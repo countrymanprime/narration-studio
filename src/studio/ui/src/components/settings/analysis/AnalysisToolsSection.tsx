@@ -1,3 +1,4 @@
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { AssetItem } from '../../../types';
@@ -20,6 +21,7 @@ import { useAnalysisTools, useComponentsPort } from './useAnalysisTools';
 export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
   const tools = useAnalysisTools(useComponentsPort());
   const prompt = useAnalysisPrompt();
+  useErrorToast(prompt.error);
   const [consent, setConsent] = useState<AssetItem[]>();
   const [removing, setRemoving] = useState<AssetItem>();
   const [removePending, setRemovePending] = useState(false);
@@ -91,11 +93,6 @@ export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
           <Checkbox checked={prompt.ask ?? false} disabled={prompt.ask === undefined} onChange={(checked) => void prompt.change(checked)}>
             Offer better analysis when scanning
           </Checkbox>
-          {prompt.error && (
-            <p role="alert" className="m-0 text-xs text-[var(--danger-text)]">
-              {prompt.error}
-            </p>
-          )}
           {consent && (
             <ConsentDialog
               tools={consent}

@@ -9,7 +9,6 @@ const colors: RibbonColors = {
   bars: 'played',
   unplayed: 'unplayed',
   tick: 'tick',
-  band: 'band',
   playhead: 'head',
   tint: { extra: 'tint-extra', mis: 'tint-mis', low: 'tint-low' },
   bar: { extra: 'bar-extra', mis: 'bar-mis', low: 'bar-low' },
@@ -83,10 +82,8 @@ const layout = (over: Partial<RibbonLayout> = {}): RibbonLayout => ({
   pid: 'p',
   t0: 0,
   t1: 10,
-  ticks: [],
   flags: [],
   cuts: [],
-  band: null,
   playhead: null,
   flagged: 0,
   description: '',
@@ -252,15 +249,13 @@ describe('drawRibbon swell', () => {
 });
 
 describe('drawRibbon overlays', () => {
-  it('still draws flagged tints with their top bar, the selection band, ticks, the cut hatching and the playhead around the new bars', () => {
+  it('still draws flagged tints with their top bar, the cut hatching and the playhead around the new bars', () => {
     const r = recorder();
     drawRibbon(
       r.canvas,
       r.size,
       layout({
         flags: [{ t0: 1, t1: 2, kind: 'mis' }],
-        band: { t0: 3, t1: 4 },
-        ticks: [1, 2, 3],
         cuts: [{ t0: 6, t1: 6 }],
         playhead: 5,
       }),
@@ -269,8 +264,8 @@ describe('drawRibbon overlays', () => {
     );
     expect(r.ops).toContain('fillRect tint-mis 56');
     expect(r.ops).toContain('fillRect bar-mis 3');
-    expect(r.ops).toContain('fillRect band 56');
-    expect(r.ops.filter((o) => o === 'stroke tick').length).toBeGreaterThanOrEqual(3);
+    // No band for chosen words and no tick per word.
+    expect(r.ops.some((o) => o.includes('band'))).toBe(false);
     expect(r.ops).toContain('clip');
     expect(r.ops).toContain('stroke head');
     // the tints are under the bars and the playhead over them

@@ -206,17 +206,21 @@ describe('Delete words and audio', () => {
     expect(log.cuts).toEqual([]);
   });
 
-  it('is the mock\'s red text button: "Delete words and audio" in the wide bar, "Delete" in the toolbar and a narrow bar', () => {
+  it('is an icon-only danger button named "Delete words and audio", in the bar and the toolbar alike (owner rule, #2251)', () => {
     const onClick = vi.fn();
     const { rerender } = render(<DeleteButton onClick={onClick} />);
-    const wide = button('Delete words and audio');
-    expect(wide.textContent).toBe('Delete words and audio');
-    expect(wide.className).toContain('text-[var(--danger-text)]');
-    fireEvent.click(wide);
+    const del = button('Delete words and audio');
+    // No visible text: the trash icon alone, with the name and the shortcut on the button.
+    expect(del.textContent).toBe('');
+    expect(del.querySelector('svg')).toBeTruthy();
+    expect(del.hasAttribute('data-danger')).toBe(true);
+    expect(del.className).toContain('text-[var(--danger-text)]');
+    expect(del.getAttribute('aria-keyshortcuts')).toBe('Delete');
+    fireEvent.click(del);
     expect(onClick).toHaveBeenCalledTimes(1);
-    rerender(<DeleteButton short separated onClick={onClick} />);
-    expect(button('Delete words and audio').textContent).toBe('Delete');
-    rerender(<DeleteButton short reason={NO_AUDIO} onClick={onClick} />);
+    rerender(<DeleteButton separated onClick={onClick} />);
+    expect(button('Delete words and audio').textContent).toBe('');
+    rerender(<DeleteButton reason={NO_AUDIO} onClick={onClick} />);
     fireEvent.click(button('Delete words and audio'));
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(button('Delete words and audio').getAttribute('aria-disabled')).toBe('true');

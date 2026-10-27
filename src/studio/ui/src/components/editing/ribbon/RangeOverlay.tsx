@@ -1,15 +1,15 @@
-import type { DocItem } from '../model';
-import { subWordNote } from '../range/common/spanRequest';
-import { MIN_RANGE, fineClock, rangeLabel, type Covered, type Span } from './rangeMath';
+import { MIN_RANGE, fineClock, rangeLabel, type Span } from './rangeMath';
 import type { RangeInteraction } from './useRangeInteraction';
 
 /** The width of a handle, in pixels. It hangs outside the edge it moves, so the two never cover each other. */
 const HANDLE = 6;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
-const pct = (n: number): string => `${Math.round(n * 100)}%`;
 
-/** The range drawn over the waveform: its body, which moves all of it, and a slider handle on each edge. */
+/**
+ * The range drawn over the waveform: its body, which moves all of it, and a slider handle on each edge. What the range comes to (its time and
+ * words) is the body's tooltip; nothing is written under the waveform (#2251).
+ */
 export function RangeOverlay({
   interaction,
   t0,
@@ -61,6 +61,7 @@ export function RangeOverlay({
         <div
           role="group"
           aria-label={`Range ${label}`}
+          title={label}
           data-range-body
           className="absolute top-0 h-full cursor-grab touch-none border-x-2 border-[var(--accent)] bg-[var(--accent-soft)] opacity-60 active:cursor-grabbing"
           style={{ left: `${x0}%`, width: `${x1 - x0}%` }}
@@ -70,42 +71,5 @@ export function RangeOverlay({
       {handle('start')}
       {handle('end')}
     </>
-  );
-}
-
-const textOf = (words: readonly DocItem[], key: string): string => words.find((w) => w.key === key)?.text ?? key;
-
-/** What the range comes to in words, for the line under the waveform: its length, which words it takes, and an edge that passes through a word. */
-function partialText(covered: Covered, words: readonly DocItem[]): string {
-  const part = (cover: NonNullable<Covered['start']>): string =>
-    `“${textOf(words, cover.key)}” (${covered.keys.includes(cover.key) ? 'selected' : 'not selected'})`;
-  const { start, end } = covered;
-  if (start && end && start.key === end.key) return `Covers ${pct(start.fraction)} of ${part(start)}.`;
-  return [
-    start ? `Start: covers the last ${pct(start.fraction)} of ${part(start)}.` : '',
-    end ? `End: covers the first ${pct(end.fraction)} of ${part(end)}.` : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
-/**
- * The lines under the waveform: the range's time and words, the words an edge cuts through, and the sub-word preview. With no range they are
- * empty: how to make one is behind the "?" above the waveform, never a line here (#2251).
- */
-export function RangeNotes({ shown, covered, words }: { shown: Span | null; covered: Covered; words: readonly DocItem[] }) {
-  if (!shown) return null;
-  const partial = partialText(covered, words);
-  const sub = subWordNote(shown, covered.applied);
-  return (
-    // One wrapping paragraph, so the notes take only the lines they need in the waveform's fixed height.
-    <p className="m-0 px-3 text-xs text-[var(--text-muted)]" data-range-notes>
-      <span>
-        Range <span className="font-mono text-[var(--text)]">{rangeLabel(shown, covered.keys.length)}</span>
-        {covered.keys.length ? '.' : '. This range covers no words.'}
-      </span>
-      {partial ? <span data-testid="range-partial"> {partial}</span> : null}
-      {sub ? <span data-subword> {sub}</span> : null}
-    </p>
   );
 }

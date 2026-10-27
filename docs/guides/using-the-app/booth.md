@@ -16,7 +16,7 @@ where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
-the same choice as **Column width** in [Settings › Reader text](settings.md); **+** and **-** change the size too, and the Booth opens at the size
+the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the same rule as the Script's: the width's characters a line or its share of the window, whichever is less, so **Narrow** stays narrow in a half-width window; **+** and **-** change the size too, and the Booth opens at the size
 and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
 **Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
@@ -71,10 +71,10 @@ between the controls and the level bar: why the text cannot follow your voice, o
 narrower than 1024 pixels the sentence moves to its own line under **Record**; the level bar stays on Record's line.
 
 The room tone is the level of the room when nobody speaks. The app measures it whenever it listens to the microphone: during a
-take, and while the **Levels** menu is open. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
+take, and for as long as the Booth shows, with **Levels** closed or open. The level bar beside it follows the microphone the same way. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
 which is the pauses between your phrases while you read and the room itself while you are silent. It keeps the last value for each
 microphone, so the chip still shows it after you close **Levels**, record nothing for a while, or restart the app. It reads
-**Room not measured yet** until something has measured that microphone; open **Levels** and stay quiet for five seconds to measure
+**Room not measured yet** until something has measured that microphone; stay quiet for five seconds with the Booth open to measure
 it. Point at the chip to see why it has no value. A muted or unplugged input (digital silence) is not counted as a room. If the app cannot read the value, the chip says
 **Room tone unavailable**.
 
@@ -83,7 +83,7 @@ it. Point at the chip to see why it has no value. A muted or unplugged input (di
 In **Levels**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
 level; REAPER's first hardware output, so the files you render are not changed). **Input level** is shown but off, with the reason:
 no DAW can set an audio interface's input gain, so set it in your interface's own control panel.
-With REAPER, each slider has REAPER's own meter under it, read four times a second while the menu is open. Under **Input level** is
+With REAPER, each slider has REAPER's own meter under it, read four times a second for as long as the Booth shows, so they are already moving when you open the menu. Under **Input level** is
 the level of the first track armed for recording in REAPER, with that track's name; with no track armed the menu says so, because
 the app never arms a track just to measure it. Under **Monitor level (output)** is what REAPER plays out, which moves while it plays,
 records with monitoring on, or monitors the armed track. If REAPER stops answering for two seconds, the meters say how long ago
@@ -318,7 +318,7 @@ word you last read to, or the top. If the browser's storage is blocked, step 3 i
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
 the end. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
-figure comes from the track's length. A green rail beside the text runs from the top of the chapter to the last recorded line.
+figure comes from the track's length.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
 
@@ -381,11 +381,11 @@ into another chapter when needed; during a take they move only within the chapte
 
 ## Pages and your stopping place
 
-The Booth marks where a page breaks: a faint dashed line across the text above the page's first line, and **Page 2**, **Page 3** and so on written down the right margin beside the ribbons. A page is at least 250 words, counted from the start of the chapter (the title and subtitle included), and never breaks inside a paragraph: when the count reaches 250 partway through a paragraph, the page runs on to that paragraph's last word and the next page starts with the next paragraph, counting again from there. A paragraph longer than a page makes one long page. The last page of a chapter has no break after it, so a chapter of one page, or of a single paragraph, has none. Change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size.
+The Booth marks where a page breaks: a dashed line across the text above the page's first line with **Page 2**, **Page 3** and so on in its middle, drawn the same way as the "End of chapter" line on the [Script](script.md) page. A page is at least 250 words, counted from the start of the chapter (the title and subtitle included), and never breaks inside a paragraph: when the count reaches 250 partway through a paragraph, the page runs on to that paragraph's last word and the next page starts with the next paragraph, counting again from there. A paragraph longer than a page makes one long page. The last page of a chapter has no break after it, so a chapter of one page, or of a single paragraph, has none. Change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size.
 
 To mark where you mean to stop, right-click a word, or a page's label, and choose **Read to here**. The place gets a chequered-flag ribbon, also shown in the Script and in the jump menu (**Read to here: …**), with **Undo** on the message. A chapter has one stopping place: setting another moves it, and **Undo** puts it back where it was. It only marks the place: nothing stops, pauses or ends a take when you reach it. Right-click the flag for **Edit stopping place** and **Remove stopping place**.
 
-![Booth - a page break: the dashed line and Page 2 in the margin, with the stopping place set there by Read to here](../../images/ui/booth-page-break.webp)
+![Booth - a page break: the dashed line with Page 2 in its middle, and the stopping place set there by Read to here](../../images/ui/booth-page-break.webp)
 
 ## A pickup session
 
@@ -438,7 +438,7 @@ reading session, with REAPER's playhead in its header, the script in its own scr
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
 place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
-scroll.
+scroll. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.
 While its chapters are being read, the panel shows its title and grey blocks, and if the credits you asked for have no text it opens the Booth instead.
 
 ![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)

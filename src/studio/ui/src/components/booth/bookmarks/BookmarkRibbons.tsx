@@ -5,7 +5,6 @@ import { BookmarkEditor } from '../../script/bookmarks/ui/BookmarkEditor';
 import { BookmarkRibbon } from '../../script/bookmarks/ui/BookmarkRibbon';
 import { RIBBON_HEIGHT } from '../../script/bookmarks/ui/ribbonTops';
 import { TooltipTarget } from '../../primitives/Tooltip';
-import type { PageBreak } from '../pages/pageBreaks';
 import type { BoothUnit, ReadingParagraph } from '../reading/boothUnits';
 import { unitAtPosition } from '../reading/readingPosition';
 import { positionOfBookmark } from './boothSpot';
@@ -16,8 +15,6 @@ export type BookmarkRibbonsProps = {
   bookmarks: readonly Bookmark[];
   paragraphs: readonly ReadingParagraph[];
   units: readonly BoothUnit[];
-  /** The chapter's page breaks: each has a "Page N" label in this margin, stacked with the ribbons so none covers another. */
-  pages?: readonly PageBreak[];
   /** The bookmark just gone to; its ribbon pulses once. */
   flashId?: string | null;
   onUpdate: (id: string, label: string, note: string) => unknown;
@@ -26,9 +23,6 @@ export type BookmarkRibbonsProps = {
 
 /** The word under `[data-unit]` and `[data-word]` is the Booth text's own markup (`BoothText`). */
 const wordSelector = (cur: number, wcur: number): string => `[data-unit="${cur}"] [data-word="${wcur}"]`;
-
-/** The height a vertical "Page N" label takes in the margin. */
-const PAGE_LABEL_HEIGHT = 52;
 
 /** Tops in the order given, pushed down so none sits closer to the one above it than that one's height. */
 function stacked(tops: readonly number[], heights: readonly number[], floor: number): number[] {
@@ -41,24 +35,6 @@ function stacked(tops: readonly number[], heights: readonly number[], floor: num
       limit = out[i] + heights[i];
     });
   return out;
-}
-
-/**
- * A page break's label, "Page N" in small mono, written down the margin. It carries the break's spot for the page's
- * right-click menu ("Read to here").
- */
-function PageLabel({ pageBreak, top }: { pageBreak: PageBreak; top: number }) {
-  return (
-    <span
-      data-page-break={pageBreak.page}
-      data-paragraph-id={pageBreak.paragraphId}
-      data-offset={pageBreak.offset}
-      className="absolute left-0 flex w-4 justify-center font-mono text-[0.5625rem] leading-none tracking-wide whitespace-nowrap text-[var(--text-muted)] [writing-mode:vertical-rl]"
-      style={{ top }}
-    >
-      Page {pageBreak.page.toLocaleString()}
-    </span>
-  );
 }
 
 /** The mark of a bookmark whose line changed: a warning triangle, drawn at the head of the margin because there is no word to put it on. */
@@ -108,13 +84,13 @@ function StaleMark({
 }
 
 /**
- * The ribbons of the chapter's bookmarks, and the labels of its page breaks, in the right margin of the Booth's text (the Studio Next mock's `Ribbons`): one per bookmark,
+ * The ribbons of the chapter's bookmarks in the right margin of the Booth's text (the Studio Next mock's `Ribbons`): one per bookmark,
  * level with the line of its word, away from the speaker chips, the label and note in the tooltip. A bookmark whose line changed (the
  * host says `stale`) is not placed on a guessed word: it is a warning shape at the head of the margin. Mount it inside the text
  * column, which is `relative` and moves with the text, so a ribbon stays beside its word as the view scrolls; it measures the column's
  * words and measures again when the column is resized (text size, window).
  */
-export function BookmarkRibbons({ chapterId, bookmarks, paragraphs, units, pages = [], flashId = null, onUpdate, onRemove }: BookmarkRibbonsProps) {
+export function BookmarkRibbons({ chapterId, bookmarks, paragraphs, units, flashId = null, onUpdate, onRemove }: BookmarkRibbonsProps) {
   const marginRef = useRef<HTMLDivElement>(null);
   const lineText = useMemo<LineText>(() => (bookmark) => paragraphs.find((p) => p.id === bookmark.paragraphId)?.text, [paragraphs]);
   const here = useMemo(() => bookmarks.filter((b) => b.chapterId === chapterId), [bookmarks, chapterId]);
@@ -130,14 +106,8 @@ export function BookmarkRibbons({ chapterId, bookmarks, paragraphs, units, pages
     [here, paragraphs, units],
   );
 
-  // What the margin holds beside the text: the live bookmarks' ribbons and the page labels, each level with its word.
-  const items = useMemo(
-    () => [
-      ...placed.map((item) => ({ key: item.bookmark.id, cur: item.cur, wcur: item.wcur, ribbon: true })),
-      ...pages.map((page) => ({ key: `page-${page.page}`, cur: page.cur, wcur: page.wcur, ribbon: false })),
-    ],
-    [placed, pages],
-  );
+  // What the margin holds beside the text: the live bookmarks' ribbons, each level with its word.
+  const items = useMemo(() => [...placed.map((item) => ({ key: item.bookmark.id, cur: item.cur, wcur: item.wcur }))], [placed]);
 
   const [measured, setMeasured] = useState<Record<string, number>>({});
   // A ribbon's icon is as tall as the Booth's text is big, so it takes at least RIBBON_HEIGHT and more at a large text size.
@@ -170,10 +140,10 @@ export function BookmarkRibbons({ chapterId, bookmarks, paragraphs, units, pages
   const staleFloor = stale.length * RIBBON_HEIGHT;
   const tops = stacked(
     items.map(({ key }) => measured[key] ?? 0),
-    items.map(({ ribbon }) => (ribbon ? ribbonHeight : PAGE_LABEL_HEIGHT)),
+    items.map(() => ribbonHeight),
     staleFloor,
   );
-  if (here.length === 0 && pages.length === 0) return null;
+  if (here.length === 0) return null;
   return (
     <div ref={marginRef} data-bmk-margin="" className="absolute top-0 left-full ml-1 h-0 w-6">
       {stale.map((bookmark, i) => (
@@ -196,9 +166,6 @@ export function BookmarkRibbons({ chapterId, bookmarks, paragraphs, units, pages
           onUpdate={onUpdate}
           onRemove={onRemove}
         />
-      ))}
-      {pages.map((pageBreak, i) => (
-        <PageLabel key={pageBreak.page} pageBreak={pageBreak} top={tops[placed.length + i]} />
       ))}
     </div>
   );

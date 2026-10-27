@@ -173,9 +173,9 @@ export function TableSpacer({ height, columns }: { height: number; columns: numb
   );
 }
 
-const CELL_ALIGN = { left: 'text-left', right: 'text-right' } as const;
+const CELL_ALIGN = { left: 'text-left', center: 'text-center', right: 'text-right' } as const;
 
-// A column header, muted (4.5:1 or better on the panel and page backgrounds; the faint text token missed it). `align="right"` for a numeric column, and the cells under it say so too. With `onSort` it is a sortable
+// A column header, muted (4.5:1 or better on the panel and page backgrounds; the faint text token missed it). `align="right"` for a numeric column, `align="center"` over cells that are centred, and the cells under it say so too. With `onSort` it is a sortable
 // column: a button sorts by it and the header announces its state (`aria-sort`, `sorted` says which way, and it is `none` when
 // the table is sorted by another column). The arrow beside the label repeats it for the eye; the button is named by the label.
 export function TableHeader({
@@ -217,10 +217,15 @@ export function TableHeader({
           {children} {arrow}
         </button>
       ) : children ? (
-        <>
-          {children}
-          {info && <Tooltip text={info} label={`About the ${children} column`} />}
-        </>
+        info ? (
+          // The label and its mark are one unit: a mark that is the cell's only element would read as a control spanning the cell (H2).
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+            {children}
+            <Tooltip text={info} label={`About the ${children} column`} />
+          </span>
+        ) : (
+          children
+        )
       ) : (
         <span className="sr-only">{hiddenLabel}</span>
       )}
@@ -251,11 +256,11 @@ export function TableCell({
   style?: CSSProperties;
   children?: ReactNode;
 }) {
-  const right = align === 'right' || (numeric && align !== 'left');
+  const right = align === 'right' || (numeric && align !== 'left' && align !== 'center');
   return (
     <td
       colSpan={colSpan}
-      className={`${TABLE_CELL_CLASS} ${valign === 'top' ? 'align-top' : 'align-middle'} ${right ? CELL_ALIGN.right : ''} ${numeric ? "font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] whitespace-nowrap" : ''} ${muted ? 'text-[0.75rem] text-[var(--text-muted)]' : ''} ${className}`}
+      className={`${TABLE_CELL_CLASS} ${valign === 'top' ? 'align-top' : 'align-middle'} ${right ? CELL_ALIGN.right : align === 'center' ? CELL_ALIGN.center : ''} ${numeric ? "font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] whitespace-nowrap" : ''} ${muted ? 'text-[0.75rem] text-[var(--text-muted)]' : ''} ${className}`}
       style={style}
     >
       {children}

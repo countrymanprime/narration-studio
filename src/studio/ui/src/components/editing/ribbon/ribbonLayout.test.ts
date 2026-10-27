@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { itemAt, RUNWAY_SECONDS, selKeys } from '../model';
+import { itemAt, RUNWAY_SECONDS } from '../model';
 import { marksDoc } from '../script/scriptFixtures';
 import { activePid, ribbonLayout } from './ribbonLayout';
 import type { PageState } from '../script/scriptState';
@@ -30,7 +30,7 @@ describe('ribbonLayout runway', () => {
   it('runs a little past the last word of the line, so the ramp-down is drawn, and stops before the next line', () => {
     const para = doc.paras[0];
     const next = doc.paras[1];
-    const layout = ribbonLayout(doc, para.p.id, [], null)!;
+    const layout = ribbonLayout(doc, para.p.id, null)!;
     expect(layout.t1).toBeGreaterThan(para.end as number);
     expect(layout.t1).toBeLessThan(next.start as number);
   });
@@ -39,36 +39,35 @@ describe('ribbonLayout runway', () => {
 describe('ribbonLayout', () => {
   const doc = marksDoc();
   const para = doc.paras[0];
-  it('spans the paragraph and ticks every heard word boundary', () => {
-    const l = ribbonLayout(doc, 'p-1', [], null)!;
+  it('spans the paragraph, with no word ticks or selection band in its data', () => {
+    const l = ribbonLayout(doc, 'p-1', null)!;
     expect(l.t0).toBe(para.start);
     // The window runs the runway past the last word (the ramp-down), and no further.
     expect(l.t1).toBeGreaterThan(para.end as number);
     expect(l.t1 - (para.end as number)).toBeLessThanOrEqual(RUNWAY_SECONDS + 1e-9);
-    // one tick per heard word, and one closing the last
-    expect(l.ticks.length).toBe(para.items.filter((i) => i.t0 != null && !i.cut && i.st !== 'miss').length + 1);
+    // The waveform is one wave: no division per word and no band for chosen words (owner rule, #2251).
+    expect(l).not.toHaveProperty('ticks');
+    expect(l).not.toHaveProperty('band');
   });
   it('tints flagged words and counts them', () => {
-    const l = ribbonLayout(doc, 'p-1', [], null)!;
+    const l = ribbonLayout(doc, 'p-1', null)!;
     // the extra word, the misread and the low-confidence word are timed, each tinted as its own kind; the word not read is counted
     expect(l.flags.map((f) => f.kind).sort()).toEqual(['extra', 'low', 'mis']);
     expect(l.flagged).toBe(4);
     expect(l.description).toMatch(/flagged/);
   });
-  it('clips the selection band and the playhead to the window', () => {
-    const keys = selKeys(doc, { anchor: 'p-1:0', head: 'p-2:2' });
-    const l = ribbonLayout(doc, 'p-1', keys, 1e9)!;
-    expect(l.band!.t1).toBeLessThanOrEqual(l.t1);
+  it('keeps the playhead inside the window', () => {
+    const l = ribbonLayout(doc, 'p-1', 1e9)!;
     expect(l.playhead).toBeNull();
-    const m = ribbonLayout(doc, 'p-1', [], (l.t0 + l.t1) / 2)!;
+    const m = ribbonLayout(doc, 'p-1', (l.t0 + l.t1) / 2)!;
     expect(m.playhead).toBeCloseTo((l.t0 + l.t1) / 2);
   });
   it('marks a cut word as a gap', () => {
     const cutDoc = marksDoc({ cuts: [{ id: 'c1', a: 4.2, b: 4.3, mode: 'gap', keys: ['p-2:1'], off0: 0, off1: 0.1 }] });
-    const l = ribbonLayout(cutDoc, 'p-2', [], null)!;
+    const l = ribbonLayout(cutDoc, 'p-2', null)!;
     expect(l.cuts.length).toBe(1);
   });
   it('is null for a paragraph with no audio', () => {
-    expect(ribbonLayout(doc, 'nope', [], null)).toBeNull();
+    expect(ribbonLayout(doc, 'nope', null)).toBeNull();
   });
 });

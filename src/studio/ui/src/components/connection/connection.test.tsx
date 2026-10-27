@@ -157,9 +157,9 @@ describe('the not-connected dialog', () => {
       order.push('launch');
       return { launched: true, path: 'C:/REAPER/reaper.exe', source: 'registry' };
     });
-    // The first read after Start is still quiet; the second answers.
+    // The app's DAW session makes the first read at start; the first read after Start is still quiet, and the second answers.
     let reads = 0;
-    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS[++reads > 1 ? 'reaper' : 'reaper-off']));
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS[++reads > 2 ? 'reaper' : 'reaper-off']));
     const onCaps = vi.fn();
     const onLaunched = vi.fn();
     view(<ConnectionResolveDialog {...off} onCaps={onCaps} onLaunched={onLaunched} pollMs={5} />, {

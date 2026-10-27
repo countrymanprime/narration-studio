@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
+import { useDawState } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
@@ -128,7 +129,7 @@ function BridgeLine({ choice }: { choice: DawChoice }) {
  */
 export function EngineBody() {
   const dawChoice = usePort('dawChoice');
-  const dawEvents = usePort('dawCapabilities');
+  const capsVersion = useDawState((state) => state.capsVersion);
   const project = usePort('project');
   const catalog = usePort('dawCatalog');
   const { data, notify, onLinkDawFile } = useSettingsHost();
@@ -162,12 +163,10 @@ export function EngineBody() {
   useEffect(() => {
     live.current = true;
     void read();
-    const unsubscribe = dawEvents.subscribeDawCapabilities(() => void read());
     return () => {
       live.current = false;
-      unsubscribe();
     };
-  }, [read, dawEvents, data.dawFileLinked]);
+  }, [read, capsVersion, data.dawFileLinked]);
 
   const act = useCallback(async (call: () => Promise<DawChoice>) => {
     setBusy(true);

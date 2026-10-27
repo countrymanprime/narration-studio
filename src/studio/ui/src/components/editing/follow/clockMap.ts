@@ -100,3 +100,34 @@ export function docAt(map: ClockMap, projectT: number): number | null {
   }
   return null;
 }
+
+/** Seconds of room taken off a play's end to find the segment it ends in: an end on a segment's last second belongs to that segment. */
+const END_EPS = 1e-3;
+/** The most a play's end may run past the last segment it ends after, for the tail of a word's sound. */
+const MAX_PAST_SEGMENT_SECONDS = 1;
+
+/**
+ * The project second a play that ends at the document second `docT` ends at. A play ends past the last word of a paragraph, on the tail of its sound,
+ * which falls just past the paragraph's segment; the end is carried on from the segment's last second at the item's rate (the tail is silence or
+ * the start of the room before the next paragraph, in the same item). Null when the second is not usable, the item is not live, or the end is more
+ * than `MAX_PAST_SEGMENT_SECONDS` past every segment.
+ */
+export function projectEndAt(map: ClockMap, docT: number): number | null {
+  if (!usable(docT)) return null;
+  const inside = projectAt(map, docT - END_EPS);
+  const seg = map.playlist.find((s) => docT - END_EPS >= s.elapsedStart - EPS && docT - END_EPS < s.elapsedEnd - EPS);
+  if (inside !== null && seg) return inside + END_EPS / (placedRate(map, seg.itemGuid) ?? 1);
+  // Past a segment: the nearest one that ends before `docT`.
+  let before: PlaylistSegment | undefined;
+  for (const s of map.playlist) if (s.elapsedEnd <= docT + EPS && (!before || s.elapsedEnd > before.elapsedEnd)) before = s;
+  if (!before || docT - before.elapsedEnd > MAX_PAST_SEGMENT_SECONDS) return null;
+  const last = projectAt(map, before.elapsedEnd - END_EPS);
+  const rate = placedRate(map, before.itemGuid);
+  if (last === null || rate === null) return null;
+  return last + END_EPS / rate + (docT - before.elapsedEnd) / rate;
+}
+
+const placedRate = (map: ClockMap, itemGuid: string): number | null => {
+  const found = map.items.find((it) => it.itemGuid === itemGuid);
+  return found ? (placed(found)?.rate ?? null) : null;
+};

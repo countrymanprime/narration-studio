@@ -13,10 +13,11 @@ import (
 // src/studio/ui/src/api (docs/architecture/wire-contracts.md).
 
 // DawTransportSync runs one action on the DAW's transport: "cursor" puts the edit cursor at seconds, "play" starts the transport at seconds, "stop"
-// stops it, and "watch" takes or renews the lease on the daw_position_changed stream (seconds is ignored by the last two). The answer is a DawResult:
+// stops it, "playRange" plays from seconds to until and has the DAW stop itself at until, and "watch" takes or renews the lease on the
+// daw_position_changed stream (seconds is ignored by "stop" and "watch", until by all but "playRange"). The answer is a DawResult:
 // the capability's own sentence when the resolver refuses it, a DAW that has another project open, a recording in progress, or a time that is not
 // usable, each with nothing changed. It adds no undo step.
-func (h *Host) DawTransportSync(action string, seconds float64) (string, error) {
+func (h *Host) DawTransportSync(action string, seconds, until float64) (string, error) {
 	svc := h.services()
 	resolver, _ := h.dawResolverFor(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), transportsync.Timeout)
@@ -25,7 +26,7 @@ func (h *Host) DawTransportSync(action string, seconds float64) (string, error) 
 		path := h.rememberSyncProject(svc)
 		return path != "" && svc.reachability != nil && svc.reachability.Matches(path)
 	}
-	result := transportsync.Do(ctx, readAloudAdapterName(svc), resolver.Support(dawport.CapTransportSync), svc.transportSyncer, same, action, seconds)
+	result := transportsync.Do(ctx, readAloudAdapterName(svc), resolver.Support(dawport.CapTransportSync), svc.transportSyncer, same, action, seconds, until)
 	return encodeBinding(result, nil)
 }
 
