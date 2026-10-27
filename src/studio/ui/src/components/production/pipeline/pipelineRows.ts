@@ -77,8 +77,6 @@ const DASH = '—';
 const TICK = '✓';
 /** The text of an under-way cell (a stage with no measured percent): the table draws it as a shape, not as this glyph, which many fonts lack. */
 export const UNDER_WAY = '◐';
-/** The text of a chapter whose prep is not started (the mock's empty circle), drawn as a shape like `UNDER_WAY`. */
-export const NOT_STARTED_PREP = '○';
 
 const ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
 const past = (status: ChapterStatus, at: ChapterStatus): boolean => ORDER.indexOf(status) >= ORDER.indexOf(at);
@@ -215,7 +213,7 @@ function proofCell(chapter: ProductionChapter, notes: { cleared: number; total: 
 function prepCell(prep: 'prepped' | 'progress' | 'none' | undefined): PipelineCell {
   if (prep === 'prepped') return done('prep', 'script', 'Prepped');
   if (prep === 'progress') return underWay('prep', 'script', 'Prep in progress');
-  if (prep === 'none') return cell('prep', 'script', 'none', NOT_STARTED_PREP, 'not started', 'Prep not started');
+  if (prep === 'none') return cell('prep', 'script', 'none', DASH, 'not started', 'Prep not started');
   return unknown('prep', 'script');
 }
 

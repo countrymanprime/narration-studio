@@ -87,10 +87,10 @@ measured file fails the delivery check, with each failed check, its value and it
 ## Chapter pipeline
 
 The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
-on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** under it (`of 1:20`) is the
-chapter's finished length estimated from its words. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
+on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
+chapter's finished length estimated from its words. Every column header is centred over its cells. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **Not linked**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
-project** (no saved project could be read) or **Not read**. The Rec. / Est. cell's tip and its name for a screen reader also say how far the
+project** (no saved project could be read) or **Not read**. The Rec. cell's tip and its name for a screen reader also say how far the
 chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
 the end*, with *about* when the figure comes only from the track's length.
 
@@ -100,12 +100,12 @@ circle for the stage under way and a dash for one not started. Record is the one
 it shows the share recorded, even while the stage still says not started, and its tip says so. The share is how far the chapter is
 recorded, the same figure as the Booth's, when the app knows it; otherwise it is the track's audio against the estimate.
 **Prep** is the chapter's prep state from [Script](script.md): a check mark when prepped, a half
-circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
+circle while in progress and a dash when not started. **Pickups** counts the chapter's
 open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
 the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
 read says "Not measured yet". A cell's colour is the colour of its status everywhere in the app: green for done or passing, blue for under way,
 amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
-check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
+check, Proof, Pickups or Master & QC. The board is about ten rows tall: with more chapters it scrolls inside its card, with the column headers kept in view, and the table scrolls sideways in a narrow window.
 
 The round chip inside the chapter's current-stage cell, beside the stage, is its [readiness](#stage-readiness).
 

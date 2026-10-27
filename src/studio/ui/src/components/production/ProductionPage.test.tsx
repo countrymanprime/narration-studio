@@ -479,7 +479,7 @@ describe('the pipeline lists the credits as the mock does (issue 1705)', () => {
     await renderPage();
     const table = await pipeline();
     const opening = await within(table).findByRole('row', { name: /Opening credits/ });
-    expect(within(opening).getAllByRole('cell')).toHaveLength(9);
+    expect(within(opening).getAllByRole('cell')).toHaveLength(10);
     expect(within(opening).getByRole('button', { name: /^Opening credits: Prep / })).toBeTruthy();
     expect(within(opening).getByRole('button', { name: /^Opening credits: Record / })).toBeTruthy();
   });
