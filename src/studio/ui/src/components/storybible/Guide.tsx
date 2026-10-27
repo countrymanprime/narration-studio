@@ -48,7 +48,6 @@ import { addressPath, readAddress } from '../../navigation/address';
 import { SamplePlayerAnnouncement } from '../voicesamples/SamplePlayButton';
 import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
-import { DeleteStoryBibleDataDialog } from './DeleteStoryBibleData';
 import { Icon } from '../primitives/Icon';
 import { SearchField } from '../primitives/SearchField';
 import type { Notify } from '../primitives/Toast';
@@ -83,15 +82,13 @@ type GuideProps = {
   onImport?: () => void;
   /** The ask for a manuscript when the page draws it itself (with the import in place); else `onImport` goes to the import. */
   needManuscript?: ReactNode;
-  /** The open project's name, which the Delete Story Bible data confirm names. */
-  projectName?: string;
 };
 
 export function Guide({ hasManuscript = true, onImport, needManuscript, ...rest }: GuideProps) {
   return hasManuscript ? <GuideLoaded {...rest} /> : (needManuscript ?? <NeedManuscript title="Story Bible" onImport={onImport} />);
 }
 
-function GuideLoaded({ notify, goToManuscript, projectName }: Pick<GuideProps, 'notify' | 'goToManuscript' | 'projectName'>) {
+function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
   const api = useApi();
   const location = useLocation();
   const routerNavigate = useNavigate();
@@ -117,7 +114,6 @@ function GuideLoaded({ notify, goToManuscript, projectName }: Pick<GuideProps, '
   const detailRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<EntryTableHandle>(null);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
-  const [deleteDataOpen, setDeleteDataOpen] = useState(false);
   // The page's one voice-sample player: every entry's Voice samples section and the Voice data panel share it, so only one sample plays.
   const samplePlayer = useSamplePlayer();
   const [sort, setSort] = useState<EntrySort>(loadEntrySort);
@@ -385,12 +381,7 @@ function GuideLoaded({ notify, goToManuscript, projectName }: Pick<GuideProps, '
             <Button onClick={addEntity}>
               <Icon name="add" /> Add entry
             </Button>
-            <ActionsMenu
-              scan={scanWithStart}
-              onImport={() => openImportDialog({ onChanged: () => void load() })}
-              onVoiceData={() => setVoiceDataOpen(true)}
-              onDeleteData={() => setDeleteDataOpen(true)}
-            />
+            <ActionsMenu scan={scanWithStart} onImport={() => openImportDialog({ onChanged: () => void load() })} onVoiceData={() => setVoiceDataOpen(true)} />
           </div>
         </div>
         <div className="grid min-h-0 flex-1 gap-4 max-lg:h-auto lg:grid-cols-[minmax(16rem,30%)_minmax(0,1fr)] [&>*]:max-lg:min-h-96">
@@ -536,21 +527,6 @@ function GuideLoaded({ notify, goToManuscript, projectName }: Pick<GuideProps, '
         </div>
         {scanStart.dialogs}
         <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} entities={rows} types={types} player={samplePlayer} />
-        {deleteDataOpen && (
-          <DeleteStoryBibleDataDialog
-            projectName={projectName}
-            entries={rows.length}
-            suggestions={suggestions.length}
-            notify={notify}
-            onClose={() => setDeleteDataOpen(false)}
-            onDeleted={() => {
-              // The empty state follows: the entries, the types and the suggestions are read again.
-              void load();
-              void found.reload();
-              setReadNonce((nonce) => nonce + 1);
-            }}
-          />
-        )}
         <SamplePlayerAnnouncement text={samplePlayer.announcement} />
       </div>
     </CommandScope>
