@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import {
   guideDeletedSchema,
   guideDialogueCuesSchema,
+  speakerAttributionSchema,
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
@@ -23,6 +24,7 @@ export const storyBibleGoldens: Record<string, z.ZodType> = {
   'guide-review-flagged.json': guideEntitiesSchema,
   'guide-preview-asset-required.json': guidePreviewSchema,
   'guide-dialogue-cues.json': guideDialogueCuesSchema,
+  'guide-attribute-speakers.json': speakerAttributionSchema,
   'guide-types-default.json': guideTypesSchema,
   'guide-types-default-sidecar.json': guideTypesSchema,
   'guide-types.json': guideTypesSchema,

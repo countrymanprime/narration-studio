@@ -477,6 +477,16 @@ function ScriptWorkspace({
     };
   }, [picking, speakers, entries.entries, entries.types, paragraphs]);
 
+  const [attributing, setAttributing] = useState(false);
+  const attributeSpeakers = useCallback(async () => {
+    setAttributing(true);
+    try {
+      await commands.attributeSpeakers();
+    } finally {
+      setAttributing(false);
+    }
+  }, [commands]);
+
   const toolbar: ReactNode = (
     <>
       <IconButton action="chapters" label="Chapters" className="min-[1180px]:hidden" aria-expanded={drawer === 'ch'} onClick={() => toggleDrawer('ch')} />
@@ -487,6 +497,7 @@ function ScriptWorkspace({
         aria-expanded={drawer === 'rail'}
         onClick={() => toggleDrawer('rail')}
       />
+      <IconButton action="attributeSpeakers" pending={attributing} onClick={attributeSpeakers} />
       <TextSettingsPopover prefs={prefs} onChange={setPrefs} />
     </>
   );

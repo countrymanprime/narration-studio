@@ -81,6 +81,7 @@ import {
   faComment,
   faUpRightAndDownLeftFromCenter,
   faUpload,
+  faUserTag,
   faVolumeHigh,
   faVolumeXmark,
   faWandMagicSparkles,
@@ -303,6 +304,8 @@ export const CATALOG = {
   // The mock draws a wave for it, which is the Proof page's icon (audit rule 1), so a voice sample wears the speech bubble.
   primarySample: action(faStar, 'primary sample', 'Mark the primary sample'),
   moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
+  // Script: finds who speaks the quoted lines; a line the narrator confirmed is never changed.
+  attributeSpeakers: action(faUserTag, 'attribute speakers', 'Find who speaks each line'),
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),
   // The mock's wave is the Proof page's icon (audit rule 1), so the takes of a line wear the layers.
   showTakes: action(faLayerGroup, 'takes', 'Show the takes of this line', 'T'),
