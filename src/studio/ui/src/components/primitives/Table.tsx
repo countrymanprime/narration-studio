@@ -217,10 +217,15 @@ export function TableHeader({
           {children} {arrow}
         </button>
       ) : children ? (
-        <>
-          {children}
-          {info && <Tooltip text={info} label={`About the ${children} column`} />}
-        </>
+        info ? (
+          // The label and its mark are one unit: a mark that is the cell's only element would read as a control spanning the cell (H2).
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+            {children}
+            <Tooltip text={info} label={`About the ${children} column`} />
+          </span>
+        ) : (
+          children
+        )
       ) : (
         <span className="sr-only">{hiddenLabel}</span>
       )}
