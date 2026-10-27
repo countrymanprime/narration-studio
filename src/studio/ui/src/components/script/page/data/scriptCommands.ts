@@ -10,7 +10,7 @@
 
 import type { Mark, MarksApi, MarkThreadAuthor, ThreadMessage } from '../../../../api/contracts/marks';
 import { SCRIPT_SAY_MANUAL_SOURCE, type PrepState, type ScriptPrepApi, type ScriptWord } from '../../../../api/contracts/scriptPrep';
-import type { StoryBibleApi } from '../../../../api/contracts/storyBible';
+import type { SpeakerAttribution, StoryBibleApi } from '../../../../api/contracts/storyBible';
 import { apiErrorMessage } from '../../../../api/errorMessage';
 import { chapterName, type ChapterNameInput } from '../../../../chapterName';
 import type { Command, Journal, Result } from '../../../../studio/journal/createJournal';
@@ -20,7 +20,7 @@ export type ScriptCommandEnv = {
   journal: Pick<Journal, 'act'>;
   marks: Pick<MarksApi, 'marksAdd' | 'marksRemove' | 'marksReply' | 'marksEditMessage' | 'marksDeleteMessage' | 'marksRestoreMessage' | 'marksSetStatus'>;
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepSetChapter' | 'scriptWordFlag' | 'scriptWordSay' | 'scriptWordUnflag'>;
-  storyBible: Pick<StoryBibleApi, 'guideCorrectCue' | 'guideCreate' | 'guideDelete'>;
+  storyBible: Pick<StoryBibleApi, 'guideAttributeSpeakers' | 'guideCorrectCue' | 'guideCreate' | 'guideDelete' | 'guideRestoreSpeakers'>;
   data: Pick<ScriptData, 'getState' | 'load'>;
   /** Says a change aloud (the overlay service's live region). */
   announce: (text: string) => void;
@@ -335,6 +335,27 @@ export async function confirmSpeaker(env: ScriptCommandEnv, cueId: string, entry
     touches: [`storyBible/cues/${cueId}`],
     run: correct(entryId),
     undo: correct(cue.speaker_entity_id ?? 'unknown'),
+  });
+}
+
+/**
+ * Finds who speaks the quoted lines, first run or re-run. The host fills only lines the narrator has not confirmed or edited, so a
+ * confirmed line is never touched. A run that moved nothing journals nothing; otherwise Undo puts each moved line back to its earlier
+ * suggestion (the host skips any line confirmed since).
+ */
+export async function attributeSpeakers(env: ScriptCommandEnv): Promise<Result<Done<SpeakerAttribution>>> {
+  const ran = await attempt(() => env.storyBible.guideAttributeSpeakers());
+  if (!ran.ok) return ran;
+  const result = ran.value;
+  if (result.previous.length === 0) {
+    await reload(env, 'cues');
+    return { ok: true, value: { value: result, entryId: null } };
+  }
+  return journalled<SpeakerAttribution>(env, ['cues'], {
+    label: 'Attributed speakers',
+    touches: ['storyBible/cues'],
+    run: async () => ({ ok: true, value: result }),
+    undo: () => attempt(() => env.storyBible.guideRestoreSpeakers(result.previous)),
   });
 }
 
