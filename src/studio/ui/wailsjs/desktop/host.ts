@@ -1611,6 +1611,14 @@ export function FindingsThread(id: string, op: string, messageID: string, who: s
 }
 
 /**
+ * GuideAttributeSpeakers attributes every unconfirmed quoted line and returns {cues, attributed, filled, changed, keptConfirmed,
+ * previous}. It runs under the same deadline as a refresh after an import, and a failure writes nothing.
+ */
+export function GuideAttributeSpeakers(): $CancellablePromise<string> {
+    return $Call.ByID(3642666976);
+}
+
+/**
  * GuideCorrectCue records the narrator's own attribution for one dialogue
  * cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
  * rebuild never overwrites a correction (mirroring src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
@@ -1698,6 +1706,14 @@ export function GuideRelate(id: string, otherID: string, label: string): $Cancel
 
 export function GuideRescan(id: string): $CancellablePromise<string> {
     return $Call.ByID(2984124370, id);
+}
+
+/**
+ * GuideRestoreSpeakers undoes an attribution run: it puts each listed line back to its earlier suggestion unless the narrator has
+ * confirmed or edited it since. It returns the number of lines restored.
+ */
+export function GuideRestoreSpeakers(previous: $models.GuideCueSpeaker[]): $CancellablePromise<string> {
+    return $Call.ByID(4031021706, previous);
 }
 
 export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise<string> {
