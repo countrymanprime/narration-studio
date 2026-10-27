@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
+import { BoundaryMarker } from '../../../primitives/BoundaryMarker';
 import { IconButton } from '../../../primitives/IconButton';
 import { InsetCard } from '../../../primitives/InsetCard';
 import { SectionLabel } from '../../../primitives/SectionLabel';
@@ -39,14 +40,12 @@ export const cardFacts = (wordCount: number, chapterFacts: string): string[] => 
 /** What the boundary above a card names: the chapter (or the credits) before it and its words. */
 export type Ended = { name: string; words: number };
 
-/** The mock's dashed "End of {name} · N words" line between two chapters. */
+/** The mock's dashed "End of {name} · N words" line between two chapters, the same marker a Booth page break draws. */
 export function EndOf({ ended }: { ended: Ended }) {
   return (
-    <div className="flex items-center gap-3 pb-3.5 font-['Barlow_Condensed',sans-serif] text-xs font-semibold tracking-[0.16em] text-[var(--text-muted)] uppercase before:flex-1 before:border-t-2 before:border-dashed before:border-[var(--line-strong)] before:content-[''] after:flex-1 after:border-t-2 after:border-dashed after:border-[var(--line-strong)] after:content-['']">
-      <span>
-        End of {ended.name} · {words(ended.words)} words
-      </span>
-    </div>
+    <BoundaryMarker variant="chapterEnd" className="pb-3.5">
+      End of {ended.name} · {words(ended.words)} words
+    </BoundaryMarker>
   );
 }
 

@@ -447,7 +447,7 @@ export const boothDrivers: Record<string, Driver> = {
   // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
   'page-break-stop': async (page) => {
     await readyToRecord(page);
-    const label = page.locator('[data-bmk-margin] [data-page-break="2"]');
+    const label = page.locator('[data-page-breaks] [data-page-break="2"]');
     const height = page.viewportSize()?.height ?? 800;
     for (let step = 0; step < 80; step++) {
       const box = await label.boundingBox();

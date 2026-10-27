@@ -10,7 +10,7 @@ three parts side by side:
   **Opening credits** row comes first, and when it has closing credits, a **Closing credits** row comes last; each goes
   to those credits in the reader, and its dot is the prep state you set on them.
 - **The reader** in the middle: the whole book as one scrolling text. Each chapter starts with a dashed line that ends
-  the one before ("End of chapter 1 · 2,140 words"), then a card with the chapter's title in larger type and its subtitle under it, smaller and dimmer (a chapter with no subtitle has no empty line), its word count,
+  the one before ("End of chapter 1 · 2,140 words", the same dashed line the [Booth](booth.md) draws at each page break), then a card with the chapter's title in larger type and its subtitle under it, smaller and dimmer (a chapter with no subtitle has no empty line), its word count,
   its finished audio, its notes, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours and lines. A Story Bible name is tinted and underlined in its
   type's colour, the same as in the Booth, and a name still marked Needs Review or Draft is amber. A word flagged for
