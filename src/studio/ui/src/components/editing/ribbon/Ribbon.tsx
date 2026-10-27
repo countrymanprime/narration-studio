@@ -119,7 +119,7 @@ export function RibbonView({
     const t0 = layout.t0 + view.start;
     const t1 = t0 + view.len;
     const inView = (s: { t0: number; t1: number }): boolean => s.t1 >= t0 && s.t0 <= t1;
-    return { ...layout, t0, t1, ticks: layout.ticks.filter((t) => t >= t0 && t <= t1), flags: layout.flags.filter(inView), cuts: layout.cuts.filter(inView) };
+    return { ...layout, t0, t1, flags: layout.flags.filter(inView), cuts: layout.cuts.filter(inView) };
   }, [choose, layout, view.start, view.len]);
   const bounds = useMemo(() => ({ start: layout.t0, end: layout.t1 }), [layout.t0, layout.t1]);
   const interaction = useRangeInteraction({
