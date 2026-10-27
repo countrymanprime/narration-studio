@@ -3,6 +3,7 @@ import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
+import { TitleSubtitle } from '../../primitives/TitleSubtitle';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
 import { openReadiness } from '../readiness/openReadiness';
@@ -176,7 +177,9 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                 className={row.id === justChanged ? CHANGE_HIGHLIGHT_CLASSES : ''}
               >
                 {/* Broken between words, never inside one ("Caterpill / ar", R4SM-3). */}
-                <TableCell className={`font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>{row.name}</TableCell>
+                <TableCell className={`font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
+                  <TitleSubtitle {...row.parts} />
+                </TableCell>
                 <TableCell numeric align="center">
                   <RecordedCell figure={row.recorded} />
                 </TableCell>

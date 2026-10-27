@@ -1,6 +1,6 @@
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
-import { chapterName } from '../../../chapterName';
+import { chapterName, chapterParts } from '../../../chapterName';
 import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
@@ -39,6 +39,8 @@ export type RecordedFigure = {
 export type PipelineRow = {
   id: string;
   name: string;
+  /** The name's two parts, drawn by `TitleSubtitle`; `name` stays the plain text for accessible names. */
+  parts: { title: string; subtitle?: string };
   /** What is recorded on the chapter's linked track in the saved project: a measurement, not a stage. */
   recorded: RecordedFigure;
   /** The estimated finished length of the chapter from its words at the planning rate, or a dash. */
@@ -265,6 +267,7 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
     return {
       id: chapter.id,
       name,
+      parts: chapterParts(chapter),
       recorded: recordedFigure(name, chapter, estimate),
       estimate,
       current: currentColumn(chapter.status, open),

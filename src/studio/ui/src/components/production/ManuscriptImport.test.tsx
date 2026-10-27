@@ -256,7 +256,7 @@ describe('the subtitle of each chapter in the review', () => {
     const { dialog } = await openReview();
     // The subtitle is the muted line under the title; the word count under it is a muted line of its own.
     const row = (title: string) => dialog.getByRole('switch', { name: new RegExp(`^${title}`) }).closest('label')!;
-    const second = (title: string) => row(title).querySelector('.block.text-xs:not(.tabular-nums)');
+    const second = (title: string) => row(title).querySelector('.block[class*="text-[0.8em]"]');
     expect(second('Chapter One')?.textContent).toBe('Down the Rabbit-Hole');
     expect(second('Chapter Two')?.textContent).toBe('The Pool of Tears');
     expect(second('Chapter Three')).toBeNull();
@@ -636,10 +636,10 @@ describe('the sample under the review', () => {
     const { dialog } = await openReview();
     const sample = within(dialog.getByRole('region', { name: 'Preview of the selected heading' }));
     const heading = sample.getByRole('heading');
-    expect(heading.textContent).toBe('Chapter OneDown the Rabbit-Hole');
-    const subtitle = heading.querySelector('span.block');
+    expect(heading.textContent).toBe('Chapter One: Down the Rabbit-Hole');
+    const subtitle = heading.querySelectorAll('span.block')[1];
     expect(subtitle!.textContent).toBe('Down the Rabbit-Hole');
-    expect(subtitle!.className).toContain('text-xs');
+    expect(subtitle!.className).toContain('text-[0.8em]');
     expect(subtitle!.className).toContain('text-[var(--text-muted)]');
   });
 
@@ -661,6 +661,6 @@ describe('the sample under the review', () => {
     const { dialog } = await openReview();
     const sample = within(dialog.getByRole('region', { name: 'Preview of the selected heading' }));
     fireEvent.mouseEnter(dialog.getByRole('switch', { name: /^Chapter Two/ }).closest('div')!);
-    expect(sample.getByRole('heading').textContent).toBe('Chapter TwoThe Pool of Tears');
+    expect(sample.getByRole('heading').textContent).toBe('Chapter Two: The Pool of Tears');
   });
 });

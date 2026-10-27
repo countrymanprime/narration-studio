@@ -5,19 +5,19 @@ import { IconButton } from '../../../primitives/IconButton';
 import { PanelHeader } from '../../../primitives/Panel';
 import { PANEL_FRAME_CLASS } from '../../../primitives/panelStyles';
 import { useScriptPrep } from '../data/useScriptData';
-import { chapterHeading } from '../../../../chapterHeading';
+import { chapterParts } from '../../../../chapterName';
 import { CREDITS_LABEL, type CreditsKind } from '../../../booth/readerModel';
+import { TitleSubtitle } from '../../../primitives/TitleSubtitle';
 import { PrepDot } from './PrepDot';
 import { PrepLegend } from './PrepLegend';
 import { CREDITS_STOP, chapterListStops } from '../../../credits/creditsRows';
 
-// A row is a grid: the eyebrow over the title in the second column, the prep dot in the first on the title's first line (not
+// A row is a grid: the stacked title and subtitle in the second column, the prep dot in the first on the title's first line (not
 // between the two lines), and the title balanced over its lines so a long one never leaves one word alone (XSC-44, R3SC-1).
 const ROW_CLASS = 'grid w-full grid-cols-[0.75rem_minmax(0,1fr)] gap-x-2 rounded-lg px-2.5 py-2 text-left text-sm';
-const EYEBROW_CLASS = "col-start-2 font-['Barlow_Condensed',sans-serif] text-[0.6875rem] font-semibold tracking-[0.12em] text-[var(--text-muted)] uppercase";
 /** The dot sits on the middle of the title's first 20 px line. */
-const DOT_CELL = 'col-start-1 row-start-2 flex h-5 items-center';
-const TITLE_CELL = 'col-start-2 row-start-2 min-w-0 [text-wrap:balance]';
+const DOT_CELL = 'col-start-1 row-start-1 flex h-5 items-center';
+const TITLE_CELL = 'col-start-2 row-start-1 min-w-0 [text-wrap:balance]';
 const CURRENT_CLASS = (current: boolean) =>
   current ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]';
 
@@ -82,7 +82,7 @@ export function ChapterList({
         {openingCredits && <CreditsItem kind="opening" row={openingCredits} {...rowProps} />}
         {chapters.map((chapter) => {
           const current = chapter.id === currentId;
-          const { label, title } = chapterHeading(chapter);
+          const parts = chapterParts(chapter);
           return (
             <li key={chapter.id}>
               {/* native-control-ok: a roving-focus list row (prep dot, two lines, pill) that Button's padded chrome does not fit */}
@@ -105,8 +105,9 @@ export function ChapterList({
                 <span className={DOT_CELL}>
                   <PrepDot state={prep.prepOf(chapter.id)} />
                 </span>
-                {label && <span className={`${EYEBROW_CLASS} row-start-1`}>{label}</span>}
-                <span className={TITLE_CELL}>{title}</span>
+                <span className={TITLE_CELL}>
+                  <TitleSubtitle layout="stacked" {...parts} />
+                </span>
               </button>
             </li>
           );
@@ -162,11 +163,9 @@ function CreditsItem({
         <span className={DOT_CELL}>
           <PrepDot state={row.state} />
         </span>
-        {/* The card's own eyebrow, so a credits row is a chapter row's height; the name already says credits. */}
-        <span aria-hidden="true" className={`${EYEBROW_CLASS} row-start-1`}>
-          Credits
+        <span className={TITLE_CELL}>
+          <TitleSubtitle layout="stacked" title={CREDITS_LABEL[kind]} />
         </span>
-        <span className={TITLE_CELL}>{CREDITS_LABEL[kind]}</span>
       </button>
     </li>
   );

@@ -1,13 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { BoundaryMarker } from '../../primitives/BoundaryMarker';
 import type { PageBreak } from './pageBreaks';
 
 /** The word under `[data-unit]` and `[data-word]` is the Booth text's own markup (`BoothText`). */
 const wordSelector = (cur: number, wcur: number): string => `[data-unit="${cur}"] [data-word="${wcur}"]`;
 
 /**
- * The chapter's page breaks over the Booth's text: a dashed hairline across the column above the line that holds each break's first word.
- * It is drawn over the text and takes no room, so the text never moves for it; the "Page N" labels are in the ribbon margin
- * (`BookmarkRibbons`). Mount it inside the text column, which is `relative` and moves with the text; it measures the break words and
+ * The chapter's page breaks over the Booth's text: a `BoundaryMarker` across the column above the line that holds each break's first word.
+ * It is drawn over the text and takes no room, so the text never moves for it; each line carries its "Page N" in the chapter-end marker's format (`BoundaryMarker`) and the right-click spot for "Read to here". Mount it inside the text column, which is `relative` and moves with the text; it measures the break words and
  * measures again when the column is resized (text size, window).
  */
 export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
@@ -43,14 +43,19 @@ export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
         const top = tops[pageBreak.page];
         if (top === undefined) return null;
         return (
-          // The line sits in the leading above the break word's line, so it crosses no letters.
-          <div
+          // The marker sits in the leading above the break word's line, so it crosses no letters; it takes no room. Its left padding keeps the rule clear of a bookmark's triangle above the break word.
+          <BoundaryMarker
             key={pageBreak.page}
+            variant="page"
             data-page-line={pageBreak.page}
-            aria-hidden="true"
-            className="absolute inset-x-0 h-0 translate-y-[-0.12em] border-t border-dashed border-[var(--text-muted)] opacity-50"
+            data-page-break={pageBreak.page}
+            data-paragraph-id={pageBreak.paragraphId}
+            data-offset={pageBreak.offset}
+            className="pointer-events-auto absolute inset-x-0 -translate-y-full pl-10 leading-none"
             style={{ top }}
-          />
+          >
+            Page {pageBreak.page.toLocaleString()}
+          </BoundaryMarker>
         );
       })}
     </div>

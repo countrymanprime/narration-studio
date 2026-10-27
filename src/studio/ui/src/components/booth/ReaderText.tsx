@@ -1,3 +1,4 @@
+import { TitleSubtitle } from '../primitives/TitleSubtitle';
 import { Fragment, memo, useEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react';
 import { NOTE_COLOUR } from '../../kinds/narratorMark';
 import { kindMarkStyle } from '../../kinds/markStyle';
@@ -292,17 +293,13 @@ export function ReaderText({
             </div>
           );
         return row.kind === 'title' ? (
-          // Source casing, never CSS capitals: what is read aloud is
-          // what is shown. Stacked, like TitleSubtitle's own layout: the subtitle is a muted line under the title,
-          // with a visually hidden " — " between them so the two lines still read as one name to a screen reader.
-          <h2 key={row.key} className={`font-['Barlow_Condensed',sans-serif] leading-tight tracking-[0.02em] normal-case ${gutter ? 'lg:pl-[8.25rem]' : ''}`}>
-            <span className={`block font-semibold ${dense ? 'text-[1.15rem]' : 'text-[1.7rem]'}`}>{content}</span>
-            {row.subtitle && (
-              <>
-                <span className="sr-only"> — </span>
-                <span className={`block font-normal text-[var(--text-muted)] ${dense ? 'text-base' : 'text-[1.2rem]'}`}>{row.subtitle}</span>
-              </>
-            )}
+          // Source casing, never CSS capitals: what is read aloud is what is shown. The one stacked title primitive, its title the
+          // per-word tracked markup and its subtitle in view but not tracked; the size is the heading's, the primitive scales its two lines.
+          <h2
+            key={row.key}
+            className={`font-['Barlow_Condensed',sans-serif] tracking-[0.02em] ${dense ? 'text-[1.05rem]' : 'text-[1.4rem]'} ${gutter ? 'lg:pl-[8.25rem]' : ''}`}
+          >
+            <TitleSubtitle layout="stacked" title={content} subtitle={row.subtitle} />
           </h2>
         ) : (
           <p key={row.key} className="whitespace-pre-line">

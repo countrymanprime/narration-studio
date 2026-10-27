@@ -53,7 +53,7 @@ type Story = StoryObj<typeof meta>;
 
 const doc = rangeDoc();
 
-// No range yet: the notes slot is empty, and the "?" above the waveform says how to make one.
+// No range yet: nothing is written under the waveform, and the "?" above the waveform says how to make one.
 export const NoRange: Story = {
   args: { doc },
   play: async ({ canvasElement }) => {
@@ -62,15 +62,15 @@ export const NoRange: Story = {
   },
 };
 
-// A range with a handle on each edge, ending inside two words: the partial words are named and the sub-word edge is a labelled preview.
+// A range with a handle on each edge, ending inside two words: drawn on the waveform, with its time and words in a tooltip and no text under it.
 export const Range: Story = {
   args: { doc, range: { start: 5.54, end: 6.3 } },
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
     await expect(c.getByRole('slider', { name: 'Start of range' })).toBeTruthy();
     await expect(c.getByRole('slider', { name: 'End of range' })).toBeTruthy();
-    await expect(c.getByTestId('range-partial').textContent).toMatch(/covers the last 20% of “was”/);
-    await expect(canvasElement.textContent).toMatch(/Sub-word edge, shown as a preview/);
+    await expect(canvasElement.querySelector('[data-range-body]')?.getAttribute('title')).toMatch(/^0:05\.5/);
+    await expect(canvasElement.textContent).not.toMatch(/Sub-word edge/);
   },
 };
 
@@ -107,7 +107,6 @@ export const AtParagraphEdge: Story = {
 export const FlaggedUnderRange: Story = {
   args: { doc: marksDoc(), range: { start: 0.9, end: 2.6 } },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.textContent).toMatch(/Range/);
     await expect(within(canvasElement).getByRole('group', { name: /^Range / })).toBeTruthy();
   },
 };

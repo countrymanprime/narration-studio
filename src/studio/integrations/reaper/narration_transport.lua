@@ -4,11 +4,14 @@
 -- as the chunk argument. The read side (which tracks are armed, whether REAPER records) is chapter_track_state in
 -- narration_track_state.lua; this file holds only the commands that change the transport or the arms.
 --
--- The same file holds the four commands of the Editing page's transport sync (docs/design/editing-daw-transport-sync.md):
--- set_cursor, play_from, stop_play and watch_transport. None adds an undo point or selects a track, and none touches a
+-- The same file holds the five commands of the Editing page's transport sync (docs/design/editing-daw-transport-sync.md and
+-- docs/design/play-a-range-in-the-daw.md): set_cursor, play_from, play_range, stop_play and watch_transport. None adds an undo point or selects a track, and none touches a
 -- recording (each answers 'REAPER is recording. Stop recording first.'). set_cursor moves the edit cursor and never seeks
 -- playback. play_from puts the cursor at a time and starts the transport from it (a playing REAPER is seeked, a paused one
--- is stopped first so Play starts at the time). stop_play stops a playing or paused transport. watch_transport takes a
+-- is stopped first so Play starts at the time). play_range does the same for a stretch (start, end, project seconds) and stops REAPER
+-- itself once the play head has reached the end, from the tick loop, so a word or a note ends where the app planned it and the
+-- project's FX chain is what plays; a deadline of the stretch's length plus two seconds stops it if the head never arrives, and any
+-- other play, a stop, or the narrator stopping REAPER drops the stretch. stop_play stops a playing or paused transport. watch_transport takes a
 -- lease of 1 to 10 seconds and, while it holds, makes the tick loop send TRANSPORT|<empty run>|playState|playPosition|
 -- editCursor: at once when the play state changes or the cursor moves by more than a millisecond, and about four times a
 -- second while REAPER plays. A lease that is not renewed runs out, so a host that closed leaves no stream behind.
@@ -212,7 +215,10 @@ local function set_cursor(session_dir, run_id, text)
   event(session_dir, 'CURSOR_SET', run_id, string.format('%.6f', seconds))
 end
 
-local function play_from(session_dir, run_id, text)
+-- The stretch play_range is playing, or nil (kept in the module's state, which the registered handlers share): any other play, a stop or a newer
+-- stretch replaces it, and REAPER stopped by the narrator drops it.
+local function play_from(session_dir, state, run_id, text)
+  state.range = nil
   local seconds = seconds_from(text)
   if not seconds then
     event(session_dir, 'ERROR', run_id, 'The place to play from is not a usable number of seconds.')
@@ -236,7 +242,8 @@ local function play_from(session_dir, run_id, text)
   event(session_dir, 'TRANSPORT_PLAYING', run_id, string.format('%.6f', seconds))
 end
 
-local function stop_play(session_dir, run_id)
+local function stop_play(session_dir, state, run_id)
+  state.range = nil
   if recording() then
     event(session_dir, 'ERROR', run_id, RECORDING)
     return
@@ -245,6 +252,73 @@ local function stop_play(session_dir, run_id)
     reaper.OnStopButton()
   end
   event(session_dir, 'TRANSPORT_STOPPED', run_id, string.format('%.6f', reaper.GetCursorPosition()))
+end
+
+-- play_range: the longest stretch the DAW is asked to play, the room around the start in which the play head counts as having arrived (REAPER still
+-- reports the old head for a moment after a seek, and a head of another place is not this stretch), how far past the end a head still counts as near the
+-- stretch (for telling another feature's play from this one), and how long past the stretch's own length the play is allowed before it is stopped anyway.
+local MAX_RANGE_SECONDS = 600
+local ARRIVE_BEFORE_SECONDS = 0.25
+local ARRIVE_AFTER_SECONDS = 0.5
+local RANGE_DEADLINE_SLACK_SECONDS = 2
+-- How far the cursor may be from the stretch's start before the play is taken to be another feature's.
+local RANGE_CURSOR_EPSILON = 0.01
+
+-- Plays the project from `start` and stops it at `end`, both project seconds: the DAW's own transport, so its sound is the project's with the
+-- narrator's FX chain. The stop is range_tick's, one tick after the play head passes the end, so it does not wait on the app.
+local function play_range(session_dir, state, run_id, start_text, end_text)
+  local start, stop = seconds_from(start_text), seconds_from(end_text)
+  if not start or not stop or stop <= start or stop - start > MAX_RANGE_SECONDS then
+    event(session_dir, 'ERROR', run_id, 'The stretch to play is not a usable pair of times.')
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local play_state = reaper.GetPlayState()
+  if play_state % 2 == 1 then
+    reaper.SetEditCurPos(start, true, true)
+  else
+    if play_state ~= 0 then
+      reaper.OnStopButton()
+    end
+    reaper.SetEditCurPos(start, true, false)
+    reaper.OnPlayButton()
+  end
+  state.range = { start = start, stop = stop, arrived = false, deadline = reaper.time_precise() + (stop - start) + RANGE_DEADLINE_SLACK_SECONDS }
+  event(session_dir, 'RANGE_PLAYING', run_id, string.format('%.6f', start), string.format('%.6f', stop))
+end
+
+-- One tick of a stretch being played: stops REAPER once the play head has arrived in it and passed its end (or the deadline passed), and drops
+-- the stretch when REAPER is not playing any more (the narrator stopped it) or is recording.
+local function range_tick(state)
+  local range = state.range
+  if not range then
+    return
+  end
+  local play_state = reaper.GetPlayState()
+  if play_state % 2 ~= 1 or play_state >= 4 then
+    state.range = nil
+    return
+  end
+  local head = reaper.GetPlayPosition() or 0
+  local near = head >= range.start - ARRIVE_BEFORE_SECONDS and head <= range.stop + ARRIVE_AFTER_SECONDS
+  -- Another feature's play (Compare's pass, a navigation play) sets the cursor to its own start and presses Play without telling this module. A cursor
+  -- that is no longer at the start, with a play head nowhere near the stretch, is that: the stretch is dropped, so it never stops a play it did not start.
+  if not near and math.abs(reaper.GetCursorPosition() - range.start) > RANGE_CURSOR_EPSILON then
+    state.range = nil
+    return
+  end
+  -- The head has arrived once it is read inside the stretch. A reading at or past the end is never an arrival: right after a seek REAPER can still
+  -- report the head of the play before, which for the same stretch played twice sits just past its end.
+  if not range.arrived and head >= range.start - ARRIVE_BEFORE_SECONDS and head < range.stop then
+    range.arrived = true
+  end
+  if (range.arrived and head >= range.stop) or reaper.time_precise() >= range.deadline then
+    state.range = nil
+    reaper.OnStopButton()
+  end
 end
 
 -- The watch: the longest lease a host can take, how often a playing position is sent, and how far the cursor must move to count as moved.
@@ -488,16 +562,20 @@ return function(registry)
     set_cursor(ctx.session_dir, args[1] or '', args[2] or '')
   end)
   registry.register('play_from', function(ctx, args)
-    play_from(ctx.session_dir, args[1] or '', args[2] or '')
+    play_from(ctx.session_dir, state, args[1] or '', args[2] or '')
+  end)
+  registry.register('play_range', function(ctx, args)
+    play_range(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '')
   end)
   registry.register('stop_play', function(ctx, args)
-    stop_play(ctx.session_dir, args[1] or '')
+    stop_play(ctx.session_dir, state, args[1] or '')
   end)
   registry.register('watch_transport', function(ctx, args)
     watch_transport(ctx.session_dir, state, args[1] or '', args[2] or '')
   end)
   -- Called by the tick loop (narration_ui_bridge.lua) once a tick after the commands.
   registry.transport_watch_tick = function(ctx)
+    range_tick(state)
     watch_tick(ctx.session_dir, state)
   end
   -- The recording this bridge started, or nil: narration_roll.lua restarts only that one (docs/reference/daw/capabilities.md).

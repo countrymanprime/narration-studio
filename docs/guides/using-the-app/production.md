@@ -5,7 +5,7 @@
 Production is the page a project opens on, the first item in the navigation. It answers "am I on
 pace?" for the book you have open: how much finished audio there is and how much recording,
 editing and proofing is left, the open pickups, the due date and whether the pace reaches it, and
-what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
+what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage; a chapter's name reads "Title: Subtitle" with the subtitle dimmed.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
 While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, the page says so with **Retry**.
@@ -309,7 +309,7 @@ file a line such as an epigraph goes back into the chapter's text so it is narra
 
 **Chapters** lists every chapter the importer found in two columns, each with a switch to the left of
 its name. Switch a chapter off to leave it out of the recording. The chapter's subtitle sits under its
-name on a smaller, dimmer line, and the number of words is at the right of the name. A heading with a label shows the
+name on a smaller, dimmer line, and the number of words is at the right, level with the name. A heading with a label shows the
 label in bold and the chapter's name after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8:
 Croquet"). The book's title pages and reference material are never listed or asked about: they stay out of the
 chapters, and the title and author in them are offered when you set up the credits. The character

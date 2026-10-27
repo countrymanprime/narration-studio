@@ -48,7 +48,7 @@ The file may carry `types`, the narrator's ordered list of `{name, colour, speak
 
 ## Delete Story Bible data
 
-`GuideDeleteAll` (More actions on the Story Bible page) deletes the project's Story Bible data and nothing else: it counts the scan's suggestions, deletes the `ManuscriptGuide` folder with `suggestions.json` in it (`guide.Service.DeleteAll`, `src/studio/desktop/internal/guide/deleteall.go`) and the `story-bible` findings (`findings.Store.RemoveAnalyzer`), and answers `{entries, suggestions}`, the counts before the delete. It refuses unless confirmed and while a build or a scan runs. Voice samples and references stay: they name an entry by id, and an entry's id is a hash of its name (`entityID`), so an entry added again under the same name has them again. There is no undo.
+`GuideDeleteAll` (Settings, Delete Story Bible data; the Story Bible page has no delete) deletes the project's Story Bible data and nothing else: it counts the scan's suggestions, deletes the `ManuscriptGuide` folder with `suggestions.json` in it (`guide.Service.DeleteAll`, `src/studio/desktop/internal/guide/deleteall.go`) and the `story-bible` findings (`findings.Store.RemoveAnalyzer`), and answers `{entries, suggestions}`, the counts before the delete. It refuses unless confirmed and while a build or a scan runs. Voice samples and references stay: they name an entry by id, and an entry's id is a hash of its name (`entityID`), so an entry added again under the same name has them again. There is no undo.
 
 ## Pronunciation: generate and replace
 
@@ -142,7 +142,8 @@ It prints an `entry` per character with a name (its other proper names as aliase
 `duplicate` with a note when two of BookNLP's groups share a name, a `speaker` per attributed quote with the confidence
 `SPEAKER_CONFIDENCE` gives a tagged or an implicit attribution on those weights (an implicit one is always under 0.75),
 and a `Gender` property (Female or Male) with BookNLP's own probability, or `null` when it gives none. Each quote is cut
-from its paragraph by the model's offsets. The host runs it through `src/studio/desktop/internal/extractionport/booknlp`,
+from its paragraph by the model's offsets. The book goes to BookNLP as a UTF-8 file, and BookNLP runs with every text-mode `open` that names no encoding
+defaulting to UTF-8: on Windows its own opens would otherwise use cp1252 and fail on a curly quote (`'charmap' codec can't decode byte 0x9d`). The host runs it through `src/studio/desktop/internal/extractionport/booknlp`,
 which picks the large install over the small one and checks the line format pinned by
 `booknlp/testdata/suggest-lines.json`. `self-check --booknlp-install DIR` (repeatable, best first) adds a `booknlp`
 line: the version and weights of the first folder that is there, or "not installed", which passes.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { chapterName } from '../../../chapterName';
+import { headingName } from '../../../chapterHeading';
 import { useApi } from '../../../api/ApiContext';
 import { useCapability } from '../../../useCapability';
 import { CommandScope } from '../../../input/router';
@@ -65,7 +65,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   const follow = useFollowCursor({ active: session.active, cursor: session.cursor });
   const record = useCapability('record');
   const recording = useRecordInReaper(chapter?.id, record.available);
-  const chapterTitle = source.kind === 'chapter' ? chapterName(source.chapter, 'full') : CREDITS_LABEL[source.credits];
+  const chapterTitle = source.kind === 'chapter' ? headingName(source.chapter) : CREDITS_LABEL[source.credits];
   const { paragraphs, rows } = session;
   const { flags } = session.session;
 

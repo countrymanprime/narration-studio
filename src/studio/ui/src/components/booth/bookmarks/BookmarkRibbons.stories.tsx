@@ -4,7 +4,6 @@ import type { Bookmark } from '../../../api/contracts/bookmarks';
 import { BoothText } from '../reading/BoothText';
 import { boothUnits } from '../reading/boothUnits';
 import { sampleColour, sampleParagraphs, sampleSpeakers } from '../reading/fixture';
-import { pageBreaks } from '../pages/pageBreaks';
 import { BookmarkRibbons } from './BookmarkRibbons';
 
 // The Studio Next mock's Booth ribbons (`pages/booth/Teleprompter.tsx`, `Ribbons`): a ribbon per bookmark in the margin to the right of
@@ -85,12 +84,11 @@ export const WithAStaleOne: Story = {
 
 export const FlashingAfterAJump: Story = { args: { bookmarks: THREE, flashId: 'b2' } };
 
-/** A stopping place ("Read to here") wears a chequered flag; a page break's "Page N" label shares the margin and is never covered by a ribbon. */
-export const StoppingPlaceAndPages: Story = {
-  args: { bookmarks: [THREE[0], STOP], pages: pageBreaks(sampleParagraphs, units, 8) },
+/** A stopping place ("Read to here") wears a chequered flag; a page break is no longer in this margin (`PageBreaks` draws it as a `BoundaryMarker`). */
+export const StoppingPlace: Story = {
+  args: { bookmarks: [THREE[0], STOP] },
   play: ({ canvasElement }) => {
     expect(within(canvasElement).getByRole('button', { name: /^Read to here/ })).toBeTruthy();
     expect(canvasElement.querySelector('[data-bm-kind="stop"]')).not.toBeNull();
-    expect(within(canvasElement).getAllByText(/^Page \d+$/).length).toBeGreaterThan(0);
   },
 };

@@ -175,6 +175,9 @@ func (s *Scanner) Scan(ctx context.Context, req Request) ([]findings.Finding, er
 	project := findings.Project{Path: req.ProjectPath}
 	manuscript := findings.Manuscript{ChapterID: req.ChapterID, ChapterTitle: req.ChapterTitle}
 	fresh := repeats.ToFindings(groups, project, manuscript, req.Thresholds)
+	for i := range fresh {
+		placeInProject(&fresh[i], req.Project)
+	}
 	for _, f := range fresh {
 		if err := f.Validate(); err != nil {
 			return nil, fmt.Errorf("takereview: the repeated-span detector produced an invalid finding: %w", err)
@@ -182,6 +185,36 @@ func (s *Scanner) Scan(ctx context.Context, req Request) ([]findings.Finding, er
 	}
 
 	return s.Store.SaveAnalyzerFindings(repeats.AnalyzerName, req.ChapterID, fresh)
+}
+
+// placeInProject gives a finding the time of the read it names. The adapter never sees the project, so a pickup or duplicate read came out
+// without one and could not be played or marked ("no time in its audio"). A read is a whole item, so its project range is the item's own
+// position and length and its source range is the take's start and the item's length at the take's rate (what the manifest sent the sidecar).
+// An item or take the project no longer holds stays untimed: a time is never invented.
+func placeInProject(f *findings.Finding, project tracks.Project) {
+	if f.TimeRange != nil || f.Source.ItemGUID == "" {
+		return
+	}
+	for _, track := range project.Tracks {
+		for _, item := range track.Items {
+			if item.GUID != f.Source.ItemGUID {
+				continue
+			}
+			start, end := item.Position, item.Position+item.Length
+			if !(end > start) || start < 0 {
+				return
+			}
+			f.TimeRange = &findings.TimeRange{Start: start, End: end}
+			for _, take := range item.Takes {
+				if take.GUID == f.Source.TakeGUID {
+					from := take.SOFFS
+					to := from + item.Length*playRateOrOne(take.PlayRate)
+					f.TimeRange.SourceStart, f.TimeRange.SourceEnd = &from, &to
+				}
+			}
+			return
+		}
+	}
 }
 
 // buildManifest resolves scope against project into the segments to scan:

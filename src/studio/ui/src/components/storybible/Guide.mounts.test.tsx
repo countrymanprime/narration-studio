@@ -54,18 +54,13 @@ const chooseAction = async (name: string) => {
 };
 
 describe('story-bible-route-mounts-the-new-pieces', () => {
-  it('the header has one primary action and one menu, which holds Scan, Import, Voice data and Delete Story Bible data, and no pronunciation queries button', async () => {
+  it('the header has one primary action and one menu, which holds Scan, Import and Voice data (no Delete Story Bible data: that is Settings only), and no pronunciation queries button', async () => {
     await renderGuide();
     expect(screen.getByRole('button', { name: 'Add entry' })).toBeTruthy();
     // Only the menu button is there until it is opened: the secondary actions are not a row of icon buttons.
     expect(screen.queryByRole('button', { name: /Scan the manuscript|Import entries|Voice data|Delete Story Bible data/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
-      'Scan the manuscript',
-      'Import entries',
-      'Voice data',
-      'Delete Story Bible data…',
-    ]);
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Scan the manuscript', 'Import entries', 'Voice data']);
     expect(screen.queryByRole('button', { name: 'Pronunciation queries' })).toBeNull();
   });
 

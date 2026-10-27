@@ -228,6 +228,8 @@ var eventSpecs = map[string]eventSpec{
 	// the time the transport plays from, the edit cursor after a stop, and the lease granted in whole seconds. TRANSPORT is the stream a lease
 	// buys: a broadcast with an empty run, like PROJECT_STATUS, sent when the play state changes or the cursor moves and about four times a second
 	// while REAPER plays: playState is GetPlayState's bit field and the times are project seconds.
+	// play_range (narration_transport.lua): the stretch REAPER now plays and will stop itself at the end of, in project seconds.
+	"RANGE_PLAYING":      {required: []fieldSpec{text("run"), number("start"), number("end")}},
 	"CURSOR_SET":         {required: []fieldSpec{text("run"), number("cursor")}},
 	"TRANSPORT_PLAYING":  {required: []fieldSpec{text("run"), number("position")}},
 	"TRANSPORT_STOPPED":  {required: []fieldSpec{text("run"), number("cursor")}},

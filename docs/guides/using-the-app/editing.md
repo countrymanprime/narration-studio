@@ -155,7 +155,7 @@ Proof lists the same words as **Said twice** with an **Open in Editing** link, w
 The page has one waveform, docked above the bar so it is always in view. It shows the chapter's audio and opens on the line the cursor is on;
 when the cursor moves to a line that is not on screen, or playback reaches one, the waveform moves to it. Its first row names the take that
 plays (or "Recording"), the stretch it shows, a **?** that lists the waveform's gestures when you point at it or Tab to it, and **Zoom out**
-and **Zoom in**. The line under the waveform shows a range's time and words; with no range it is blank, not a set of instructions.
+and **Zoom in**. Nothing is written under the waveform: a range is the shaded stretch with a handle on each edge, and pointing at it shows its time, length and word count.
 
 Each thin bar is how loud that moment is, drawn from the middle line. The height is in decibels against the chapter's own loud level (the
 level 99 in 100 of its sounding moments stay under), over 30 dB: a loud syllable fills the lane, a quiet one is still a clear bar, and a pause
@@ -198,8 +198,7 @@ and its words, and the range is announced when it is set.
 pointer. The view follows the playhead; scrolling it by hand while the chapter plays stops that until playback stops. One second is the
 closest view because the host keeps 50 peaks a second, 20 ms each: closer, the picture would only get bigger.
 
-**Delete** and **Add FX** still work on whole words, because the DAW takes a range as its first and last word. When an edge is inside a word, the line under the
-waveform names the word and how much of it the range covers, and the question before a cut or an effect shows "Sub-word edge, shown as a preview" with
+**Delete** and **Add FX** still work on whole words, because the DAW takes a range as its first and last word. When an edge is inside a word, the question before a cut or an effect shows "Sub-word edge, shown as a preview" with
 both ranges; the cut or effect goes on the whole words. Making it exact needs a time-based command in the DAW bridge, which is not built.
 
 ![Editing - a range drawn on the waveform with an edge inside a word, zoomed in: the two handles, the arrows at its ends, the partly covered word and the sub-word preview](../../images/ui/editing-range.webp)
