@@ -222,6 +222,10 @@ Help text lives in a tooltip, a "?" overlay or the page's guide. Nothing instruc
 
 **The guard.** `src/studio/ui/tests/visual/inFlowProse.test.ts` reads every non-test `.tsx` with the TypeScript parser (`tests/visual/prose/extract.ts`) and finds every run of prose: JSX text over 60 characters or two sentences, and text-bearing props. Each must be listed in `tests/visual/prose/prose-inventory.ts` with its class (`overlay`, `error`, `empty`, `state`, `instruction`, `explanation`), an entry whose text is gone fails, and the `instruction` and `explanation` entries are capped by `MAX_IN_FLOW_INSTRUCTIONS`, which may only go down. It also fails a hint over the length rule, a category blurb over one line, and any Settings description over 60 characters (`MAX_LONG_SETTING_DESCRIPTIONS` is 0). It reads source, not the rendered page: text built in a variable and passed to JSX (`{note}`) is not seen. The inventory, page by page, is in [the in-flow prose inventory](../research/in-flow-prose-inventory.md).
 
+## Errors
+
+An error shows as a `Toast`, in a modal, or in a result box that is always on the page at a fixed size. It never appears as text in the page's flow, because that moves the layout when it shows (owner, 2026-10-27). `src/studio/ui/tests/visual/guards/inlineErrors.test.ts` counts `role="alert"` elements outside dialogs, menus, popovers and the toast, per file, against `inline-errors-allowlist.ts`; the list may only shrink. `tests/visual/guards/toolbarButtons.test.ts` does the same for a `Button` with words inside a toolbar or ribbon (`toolbar-text-buttons-allowlist.ts`): a toolbar holds icon buttons with a tooltip and an `aria-label`. The rest of the checklist is the `frontend-primitives` skill.
+
 ## Settings rows
 
 The Settings page always keeps every setting. A working page may also offer a compact entry for one (a menu, a modal or a drawer tab, hidden until opened) that edits the same keys, but it never replaces the Settings control; `registry/pageSettings.test.ts` fails when a page-owned setting has no Settings panel.
