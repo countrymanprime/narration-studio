@@ -4,7 +4,8 @@ import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { WorkspaceItem } from '../../../api/contracts/workspace';
-import { firstFrom, heardWindow, leadStart, summarize, type ChapterDoc } from '../model';
+import { firstFrom, heardWindow, leadStart, MAX_TAIL_SECONDS, summarize, type ChapterDoc } from '../model';
+import type { SoundAt } from '../ribbon/useChapterSound';
 import type { ClosedCut } from '../follow/clockMap';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
 import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
@@ -20,11 +21,13 @@ const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
 const selectedFrom = (d: ChapterDoc, s: PageState): string[] => selectedKeysOf(d, s);
 
 /** The stretch the selected words are heard over, or null when none of them was recorded. */
-const selectionWindow = (d: ChapterDoc, s: PageState): [number, number] | null => {
+const selectionWindow = (d: ChapterDoc, s: PageState, sound?: SoundAt): [number, number] | null => {
   const keys = selectedFrom(d, s);
   const sum = summarize(d, keys, [], (x) => x);
   if (!sum.audible.length) return null;
-  return heardWindow(d, sum.audible[0].key, sum.audible[sum.audible.length - 1].key, sum.start, sum.end);
+  // The levels from the first word to as far past the last as a play may run: the end is where the last word's sound dies away.
+  const levels = sound?.(sum.start, sum.end + MAX_TAIL_SECONDS + 0.1);
+  return heardWindow(d, sum.audible[0].key, sum.audible[sum.audible.length - 1].key, sum.start, sum.end, levels);
 };
 
 /** Seconds early a stop timer may fire and still count as the stop: timers are not exact. */
@@ -56,6 +59,8 @@ export interface ScriptPlaybackOptions {
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
    * do. Null `caps` (not answered yet) plays nothing unless the read failed; absent `sync` plays in the app. */
   sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null; read?: DawRead };
+  /** The chapter's audio levels, so a play of words ends where the last word's sound dies away; absent keeps the fixed tail. */
+  sound?: SoundAt;
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
   output?: OutputPrefs;
   /** Hears why the chosen output could not be used, or null when it took, each time the choice changes. */
@@ -73,6 +78,7 @@ export function useScriptPlayback({
   mediaUrl,
   notify = (text) => overlay.toast(text),
   sync,
+  sound,
   output,
   onOutputDevice,
 }: ScriptPlaybackOptions): ScriptPlayback {
@@ -89,9 +95,9 @@ export function useScriptPlayback({
   // Undefined: no DAW was given, so the app plays. Null: the DAW has not answered yet.
   const caps = sync ? sync.caps : undefined;
   const read = sync?.read;
-  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch, caps, read });
+  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch, caps, read, sound });
   useEffect(() => {
-    live.current = { doc, state, playlist, mediaUrl, notify, dispatch, caps, read };
+    live.current = { doc, state, playlist, mediaUrl, notify, dispatch, caps, read, sound };
   });
 
   const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
@@ -320,7 +326,7 @@ export function useScriptPlayback({
     }
     if (!d.aligned) return say('Nothing has been transcribed yet.');
     if (s.sel) {
-      const heard = selectionWindow(d, s);
+      const heard = selectionWindow(d, s, live.current.sound);
       if (heard) return playFrom(...heard);
     }
     const from = firstFrom(d, s.cursor);
@@ -330,7 +336,7 @@ export function useScriptPlayback({
 
   const playSelection = useCallback(() => {
     const { doc: d, state: s, notify: say } = live.current;
-    const heard = selectionWindow(d, s);
+    const heard = selectionWindow(d, s, live.current.sound);
     if (heard) playFrom(...heard);
     else say('Nothing was recorded for these words.');
   }, [playFrom]);
