@@ -6,7 +6,7 @@ import { totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import { useEditingPage } from '../script/EditingPageState';
 import { playable, playingKey } from '../script/playing';
 import type { ChapterDoc } from '../model';
-import { docAt, projectAt, type ClosedCut } from './clockMap';
+import { docAt, projectAt, projectEndAt, type ClosedCut } from './clockMap';
 import { EchoGuard } from './echoGuard';
 import { useVisible } from './useDawPlayPosition';
 
@@ -18,17 +18,22 @@ export const SILENT_MS = 3000;
 const WRITE_DEBOUNCE_MS = 80;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
+/** A DAW that stopped within this many seconds before the end of the stretch it was asked to play stopped itself there: its play head is read about four
+ * times a second, so the last reading can be a quarter second short of the end. */
+const END_SLACK_SECONDS = 0.4;
 
 /**
  * What `useScriptPlayback` asks of the DAW's transport. `refusal` is a plain read: null when the DAW can be asked to play the second, `pending`
  * until the watch lease is first answered, `not_ready` while it is refused (another project open, a recording; `refusedWith` is the DAW's sentence),
  * `not_placed` when the second has no project time. `start` resolves null when the DAW took the play and the DAW's sentence when it did not
- * (nothing was left running), and `stop` stops a DAW play the app started or the DAW's own that the page is showing.
+ * (nothing was left running); given the document second the play ends at, it asks the DAW to play that stretch and stop itself at its end
+ * (docs/design/play-a-range-in-the-daw.md), so the end does not wait on the position stream and a stop round trip. `stop` stops a DAW play the
+ * app started or the DAW's own that the page is showing.
  */
 export interface RemotePlayer {
   refusal(docT: number): 'pending' | 'not_ready' | 'not_placed' | null;
   refusedWith(): string | null;
-  start(docT: number): Promise<string | null>;
+  start(docT: number, endDocT?: number): Promise<string | null>;
   stop(): void;
 }
 
@@ -94,6 +99,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   /** The cursor key this hook placed from the DAW, so the page's cursor effect does not write it back. */
   const fromDaw = useRef<string | null>(null);
   const lastHeard = useRef(0);
+  /** The stretch the DAW was asked to play and stop itself at: the document second the page's play ends at and the project second the DAW's does, and the
+   * last play head heard while it played. */
+  const range = useRef<{ docEnd: number; projectEnd: number; head: number } | null>(null);
   const epoch = useRef(0);
 
   // The lease: taken now and renewed while the window is visible. A refusal (another project open, a recording, the capability off) is not ready.
@@ -155,6 +163,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         const started = !dawPlaying.current;
         dawPlaying.current = true;
         const docT = docAt(map, pos.playPosition);
+        if (range.current) range.current.head = pos.playPosition;
         if (owns.current) {
           const end = projectAt(map, Math.max(0, totalDuration([...l.playlist]) - 0.001));
           l.onHead(docT, end !== null && pos.playPosition >= end);
@@ -172,7 +181,12 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         dawPlaying.current = false;
         if (owns.current) {
           owns.current = false;
-          l.onStopped();
+          // A stretch the DAW stopped itself at the end of is the end of the page's play, as the page's own stop at a time is; a DAW the narrator
+          // stopped short of it is the narrator's stop.
+          const done = range.current && range.current.head >= range.current.projectEnd - END_SLACK_SECONDS ? range.current.docEnd : null;
+          range.current = null;
+          if (done !== null) l.onHead(done, false);
+          else l.onStopped();
         }
       }
     });
@@ -242,10 +256,15 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       return projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
-    start: async (docT) => {
+    start: async (docT, endDocT) => {
       const l = live.current;
-      const project = projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT);
+      const map = { playlist: l.playlist, items: l.items, cuts: l.cuts };
+      const project = projectAt(map, docT);
       if (project === null) return 'That part has no place in the DAW project.';
+      // A stretch that ends where nothing is known to play (or before it starts) is played open, and the page stops it as it always did.
+      const projectEnd = endDocT === undefined ? null : projectEndAt(map, endDocT);
+      const stretch = endDocT !== undefined && projectEnd !== null && projectEnd > project ? { docEnd: endDocT, projectEnd } : null;
+      range.current = stretch ? { ...stretch, head: project } : null;
       const mineEpoch = ++epoch.current;
       owns.current = true;
       lastHeard.current = Date.now();
@@ -253,7 +272,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       let ok = false;
       let why: string;
       try {
-        const result = await sync.dawTransportSync('play', project);
+        const result = stretch ? await sync.dawTransportSync('playRange', project, stretch.projectEnd) : await sync.dawTransportSync('play', project);
         ok = result.ok;
         why = result.message;
       } catch {
@@ -261,7 +280,10 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       }
       guard.settled(generation, ok);
       if (!ok) {
-        if (epoch.current === mineEpoch) owns.current = false;
+        if (epoch.current === mineEpoch) {
+          owns.current = false;
+          range.current = null;
+        }
         return why || 'The DAW did not play it.';
       }
       if (epoch.current !== mineEpoch) stopDaw(); // stopped while the DAW was being asked
@@ -269,6 +291,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     },
     stop: () => {
       epoch.current += 1;
+      range.current = null;
       const was = owns.current || dawPlaying.current;
       owns.current = false;
       dawPlaying.current = false;

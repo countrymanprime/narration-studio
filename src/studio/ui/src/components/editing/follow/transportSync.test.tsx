@@ -267,14 +267,52 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     expect(state().playing).toBe(false);
     expect(calls('stop')).toHaveLength(0);
   });
-  it('stops the DAW at the end of a selection it was asked to play', async () => {
+  // Changed from "stops the DAW at the end of a selection" (#2251 item 22): the DAW is told the whole stretch and stops itself at its end, so the page
+  // sends no stop of its own and the end does not wait on a position stream and a round trip.
+  it('plays a selection as one stretch the DAW stops itself at, and sends no stop of its own', async () => {
     await ready();
     act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
     await wait(10);
-    act(() => daw.moveInDaw({ head: at(t0('p-2:1') + 0.05) }));
+    expect(calls('play')).toHaveLength(0);
+    expect(calls('playRange').map(({ seconds, until }) => [seconds, until])).toEqual([[at(t0('p-1:3')), expect.closeTo(at(t0('p-2:1')), 2)]]);
+    act(() => daw.moveInDaw({ head: at(t0('p-2:1')) + 0.05 }));
+    await wait(10);
+    expect(calls('stop')).toHaveLength(0);
+    expect(state().playing).toBe(false);
+  });
+  it('ends a stretch the DAW stopped itself at as the end of the play: the selection stays, the cursor does not jump', async () => {
+    await ready();
+    act(() => page.dispatch({ type: 'place', key: 'p-1:3' }));
+    const before = state().cursor;
+    act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
+    await wait(10);
+    act(() => daw.moveInDaw({ head: at(t0('p-2:1')) + 0.05 }));
+    await wait(10);
+    expect(state().playing).toBe(false);
+    expect(state().cursor).toBe(before);
+  });
+  it('carries a stretch that ends past the last word of a paragraph, on its tail, to the DAW', async () => {
+    await ready();
+    // 7.9 is inside the fixture's one segment (0 to 8): the tail is still the item's audio.
+    act(() => playback.playFrom(t0('p-1:3'), 7.9));
+    await wait(10);
+    expect(calls('playRange')[0].until).toBeCloseTo(at(7.9), 2);
+  });
+  it('stops the page when the narrator stops the DAW in the middle of a stretch, without asking the DAW to stop', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
+    await wait(10);
+    act(() => daw.moveInDaw({ playing: false }));
+    expect(state().playing).toBe(false);
+    expect(calls('stop')).toHaveLength(0);
+  });
+  it('stops the DAW when the app stops in the middle of a stretch', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
+    await wait(10);
+    act(() => playback.stop());
     await wait(10);
     expect(calls('stop')).toHaveLength(1);
-    expect(state().playing).toBe(false);
   });
   it('stops the DAW at the end of the chapter', async () => {
     await ready();

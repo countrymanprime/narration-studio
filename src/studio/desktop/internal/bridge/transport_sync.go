@@ -13,6 +13,9 @@ import (
 // watch lease buys. All four commands are experimental (actions.go) until the verification pass has run them in a real REAPER, and none adds an undo
 // point, selects a track or touches a recording (each is refused with the script's own sentence while REAPER records).
 
+// maxRangeSeconds is the longest stretch play_range plays (narration_transport.lua's MAX_RANGE_SECONDS).
+const maxRangeSeconds = 600
+
 // secondsArgument writes a time the way narration_transport.lua reads it: plain decimal digits, never an exponent. A time that is not a
 // usable number, or is past maxPlaceSeconds, is refused before anything is sent.
 func secondsArgument(what string, seconds float64) (string, error) {
@@ -56,6 +59,38 @@ func (a *Actions) PlayFrom(ctx context.Context, seconds float64) (float64, error
 		return 0, err
 	}
 	return secondsAt(events[len(events)-1].Fields, 2, "play_from")
+}
+
+// PlayRange plays the project from `from` to `to` (seconds) on REAPER's own transport and has REAPER stop itself at `to`, so the sound is the
+// project's with the narrator's FX chain and the end does not wait on this app. It returns the stretch REAPER took, which is what it was told.
+// A stretch that is empty, backwards or longer than REAPER's ten minutes is refused with nothing sent. Like play_from it does not wait for the
+// first sound; the TRANSPORT stream says when REAPER plays and when it stopped.
+func (a *Actions) PlayRange(ctx context.Context, from, to float64) (float64, float64, error) {
+	start, err := secondsArgument("play from", from)
+	if err != nil {
+		return 0, 0, err
+	}
+	end, err := secondsArgument("play to", to)
+	if err != nil {
+		return 0, 0, err
+	}
+	if !(to > from) || to-from > maxRangeSeconds {
+		return 0, 0, fmt.Errorf("the stretch to play is not a usable pair of times")
+	}
+	events, err := a.request(ctx, "play_range", []string{"RANGE_PLAYING"}, start, end)
+	if err != nil {
+		return 0, 0, err
+	}
+	fields := events[len(events)-1].Fields
+	played, err := secondsAt(fields, 2, "play_range")
+	if err != nil {
+		return 0, 0, err
+	}
+	until, err := secondsAt(fields, 3, "play_range")
+	if err != nil {
+		return 0, 0, err
+	}
+	return played, until, nil
 }
 
 // StopPlay stops REAPER's transport when it is playing or paused and returns the edit cursor afterwards. It never stops a recording.

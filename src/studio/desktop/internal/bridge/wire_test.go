@@ -119,6 +119,7 @@ var realEvents = map[string][]string{
 	// src/studio/integrations/reaper/tests/transport_sync_test.lua (set_cursor, play_from, stop_play, watch_transport). TRANSPORT is a broadcast: its run is empty.
 	"CURSOR_SET":         {"CURSOR_SET", "c1", "12.500000"},
 	"TRANSPORT_PLAYING":  {"TRANSPORT_PLAYING", "p1", "40.250000"},
+	"RANGE_PLAYING":      {"RANGE_PLAYING", "r1", "40.250000", "41.500000"},
 	"TRANSPORT_STOPPED":  {"TRANSPORT_STOPPED", "s1", "5.000000"},
 	"TRANSPORT_WATCHING": {"TRANSPORT_WATCHING", "w1", "5"},
 	"TRANSPORT":          {"TRANSPORT", "", "1", "2.000000", "9.500000"},

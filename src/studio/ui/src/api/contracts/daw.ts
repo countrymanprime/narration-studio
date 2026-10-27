@@ -568,15 +568,16 @@ export type DawPosition = {
   sameProject: boolean;
 };
 
-/** The actions `dawTransportSync` takes: put the DAW's cursor at `seconds`, play from `seconds`, stop, and take or renew the lease on the position stream
- * (`seconds` is ignored by the last two). */
-export type DawSyncAction = 'cursor' | 'play' | 'stop' | 'watch';
+/** The actions `dawTransportSync` takes: put the DAW's cursor at `seconds`, play from `seconds`, play the stretch `seconds` to `until` and have the DAW
+ * stop itself at `until` (`playRange`), stop, and take or renew the lease on the position stream (`seconds` is ignored by the last two, `until` by all
+ * but `playRange`). */
+export type DawSyncAction = 'cursor' | 'play' | 'playRange' | 'stop' | 'watch';
 
 /** DawTransportSync and the daw_position_changed event (src/studio/desktop/bindings_daw_transportsync.go): the Editing page and the DAW's transport follow
  * each other, behind the `transport_sync` capability (docs/design/editing-daw-transport-sync.md). A refusal (the capability's own sentence, a DAW with
  * another project open, a recording, a time that is not usable) is `ok` false with the sentence and nothing changed; none adds an undo step. */
 export interface DawTransportSyncApi {
-  dawTransportSync(action: DawSyncAction, seconds: number): Promise<DawResult>;
+  dawTransportSync(action: DawSyncAction, seconds: number, until?: number): Promise<DawResult>;
   /** Each position the DAW streams while a `watch` lease holds. Returns the unsubscribe. */
   subscribeDawPosition(onUpdate: (position: DawPosition) => void): () => void;
 }

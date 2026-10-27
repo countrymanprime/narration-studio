@@ -191,7 +191,7 @@ export function useScriptPlayback({
           play: async (at) => {
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
-            const why = await remoteRef.current?.start(at);
+            const why = await remoteRef.current?.start(at, stopAt.current ?? undefined);
             return why === null ? { played: true } : { played: false, why: `${name} could not play it: ${why ?? 'it is not answering.'}` };
           },
         });

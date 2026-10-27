@@ -3742,6 +3742,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(heard.at(-1)).toEqual({ playing: true, recording: false, playPosition: 12.5, editCursor: 12.5, sameProject: true });
     for (const position of heard) expectMatches(dawPositionSchema, position, 'mock daw_position_changed');
     expect((await api.dawTransportSync('cursor', -1)).refused).toBe('That place is not a usable number of seconds.');
+    // playRange: the host answers as for a play, refuses an empty or backwards stretch, and the DAW stops itself at the end (the mock's head passing it).
+    expect(await api.dawTransportSync('playRange', 20, 24)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect((await api.dawTransportSync('playRange', 20, 20)).refused).toBe('That stretch is not a usable pair of times.');
+    expect((await api.dawTransportSync('playRange', 24, 20)).refused).toBe('That stretch is not a usable pair of times.');
+    expect((await api.dawTransportSync('playRange', -1, 3)).refused).toBe('That place is not a usable number of seconds.');
     stop();
 
     const off = createMockApi({}, { daw: { reachable: false } });

@@ -441,6 +441,15 @@ func (r transportSyncRole) PlayFrom(_ context.Context, seconds float64) (float64
 	}
 	return seconds, nil
 }
+func (r transportSyncRole) PlayRange(_ context.Context, from, to float64) (float64, float64, error) {
+	if err := r.do("PlayRange"); err != nil {
+		return 0, 0, err
+	}
+	if from != from || to != to || from < 0 || !(to > from) {
+		return 0, 0, errTime
+	}
+	return from, to, nil
+}
 func (r transportSyncRole) Stop(context.Context) (float64, error) {
 	if err := r.do("Stop"); err != nil {
 		return 0, err
