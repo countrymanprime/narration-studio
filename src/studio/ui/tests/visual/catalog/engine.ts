@@ -73,6 +73,20 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'folder-tracks',
+    description:
+      'The engine panel for a project whose tracks sit in REAPER folders (?mockTrackFolders=1): the Tracks card as an indented tree - guides, caret, folder icon, child count and an "N of M linked" roll-up on each folder, Co-narrator\'s empty folder, the search box and open/close all - scrolling inside its own card',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'folder-tracks-picker',
+    description:
+      "The engine panel with REAPER folders, a Chapter links row's track picker open: the same tree in a popover with its search box, a folder with no audio of its own shown but not choosable (?mockTrackFolders=1&mockChapterLink=none)",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
     state: 'chapter-link-confirmed',
     description:
       'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear',
