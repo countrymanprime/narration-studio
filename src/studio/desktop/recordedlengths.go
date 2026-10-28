@@ -31,7 +31,7 @@ func recordedLengths(folder string, store *settings.Store, service *manuscript.S
 			return nil
 		}
 		project, readable := cache.read(folder, store)
-		return recordedLengthsFor(chapterIDs(data), mappings, project, readable)
+		return recordedLengthsFor(append(chapterIDs(data), manuscript.OpeningCreditsID, manuscript.ClosingCreditsID), mappings, project, readable)
 	}
 }
 

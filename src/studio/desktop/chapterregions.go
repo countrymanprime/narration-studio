@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/manuscript"
 	"errors"
 	"fmt"
 	"math"
@@ -142,6 +143,9 @@ func chapterRegionPlanIn(svc hostServices, openingTrackGUID, closingTrackGUID st
 		add("opening", "", openingCreditsRegion, openingTrackGUID)
 	}
 	for _, chapter := range links.Chapters {
+		if manuscript.IsCreditsID(chapter.ChapterID) {
+			continue // the credits regions come from the tracks picked above and below
+		}
 		switch len(chapter.Links) {
 		case 0:
 			plan.Skipped = append(plan.Skipped, chapterRegionSkip{Kind: "chapter", ChapterID: chapter.ChapterID, Title: chapter.ChapterTitle, Reason: "No track is linked to this chapter."})

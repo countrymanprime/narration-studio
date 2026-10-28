@@ -168,6 +168,8 @@ export function createMockApi(
   const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
   const { manuscriptReady } = manuscript;
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
+  // Every read of the chapter list holds the credits (a credits file is a chapter): the Production overview, the pages and the host agree.
+  const chaptersWithCredits = async () => credits.withCreditsChapters(await manuscript.bindings.manuscriptChapters());
   const assets = createAssetsMock(initial);
   const proofing = createProofingMock(s, assets);
   // The findings mock is built further down; the pickup list reads its accepted notes through this once it exists.
@@ -300,7 +302,7 @@ export function createMockApi(
     ];
   };
   const { applyProfileDefaultPayment, ...production } = createProductionMock({
-    chapters: manuscript.bindings.manuscriptChapters,
+    chapters: chaptersWithCredits,
     recommendations: stages.stageRecommendations,
     seed: initial.production,
   });
@@ -374,6 +376,15 @@ export function createMockApi(
   const base: NarrationApi = {
     ...system.bindings,
     ...manuscript.bindings,
+    manuscriptChapters: chaptersWithCredits,
+    // A credits entry's status lives on the project manifest, not in the manuscript's notes (host: Service.SetChapterStatus).
+    manuscriptSetChapterStatus: async (chapter, status) => {
+      if (chapter !== 'credits-opening' && chapter !== 'credits-closing') return manuscript.bindings.manuscriptSetChapterStatus(chapter, status);
+      await credits.bindings.setCreditsStatus(chapter === 'credits-opening' ? 'opening' : 'closing', status);
+      const found = (await chaptersWithCredits()).find((item) => item.id === chapter);
+      if (!found) throw new Error(`Unknown chapter: ${chapter}`);
+      return found;
+    },
     ...settings.bindings,
     ...storyBible.bindings,
     ...character.bindings,

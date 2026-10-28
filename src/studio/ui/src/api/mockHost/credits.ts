@@ -8,6 +8,7 @@ import type {
   CreditsSetupState,
   CreditsStatuses,
   DetectedCandidate,
+  ManuscriptChapter,
   ManuscriptParagraph,
   NarrationApi,
   RetailSampleAnswer,
@@ -340,5 +341,33 @@ export function createCreditsMock(
       };
     },
   } satisfies Partial<NarrationApi>;
-  return { bindings, mockCreditsText };
+  // The chapter list with the credits around it, as the host's manuscript.Service.Chapters lists them: opening first, closing last, a kind
+  // with no template left out, and the opening left out when the manuscript imported its own "Opening Credits" chapter.
+  const withCreditsChapters = (chapters: ManuscriptChapter[]): ManuscriptChapter[] => {
+    const readable = Boolean(s.tracksDiscovery.selected);
+    const entry = (kind: 'opening' | 'closing'): ManuscriptChapter[] => {
+      const template = creditTemplates.find((item) => item.kind === kind);
+      if (!template) return [];
+      const id = `credits-${kind}`;
+      const words = renderMockCredits(template.body, resolveMockCreditValues(creditValues, mockNarratorGlobal())).words;
+      return [
+        {
+          id,
+          title: kind === 'opening' ? 'Opening credits' : 'Closing credits',
+          index: -2,
+          wordCount: words,
+          status: (creditsStatuses[kind] as ManuscriptChapter['status'] | undefined) ?? 'not_started',
+          contentKind: 'narration',
+          isCredits: true,
+          paragraphIds: [],
+          ...mockRecordedLength(id, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
+        },
+      ];
+    };
+    const ownsOpening = s.chapters.some(
+      (chapter) => chapter.contentKind === 'opening' && /^(opening|intro)\s+credits$/i.test(chapter.title.replace(/[^\p{L}\p{N}\s]/gu, '').trim()),
+    );
+    return [...(ownsOpening ? [] : entry('opening')), ...chapters, ...entry('closing')];
+  };
+  return { bindings, mockCreditsText, withCreditsChapters };
 }

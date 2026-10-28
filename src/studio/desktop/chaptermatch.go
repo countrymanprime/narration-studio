@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/manuscript"
 	"fmt"
 	"os"
 	"time"
@@ -209,6 +210,10 @@ func manuscriptChapters(svc hostServices) ([]chaptermatch.Chapter, error) {
 	}
 	chapters := make([]chaptermatch.Chapter, 0, len(raw))
 	for _, chapter := range raw {
+		// The credits are linked by hand: a track is never matched to one by its name.
+		if manuscript.IsCredits(chapter) {
+			continue
+		}
 		id, _ := chapter["id"].(string)
 		title, _ := chapter["title"].(string)
 		chapters = append(chapters, chaptermatch.Chapter{ID: id, Title: title})

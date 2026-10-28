@@ -236,6 +236,17 @@ func (s *Service) chapterParagraphs(chapterID string) ([]AlignmentParagraph, err
 	if err != nil {
 		return nil, unknown(ReasonNoManuscript, err.Error())
 	}
+	// A credits file's text is its rendered template, one paragraph: the same stand-in its recording check reads (credits.go).
+	if kind, isCredits := CreditsKind(chapterID); isCredits {
+		if s.config.LoadCredits == nil {
+			return nonNil[AlignmentParagraph](nil), nil
+		}
+		_, rendered, err := s.config.LoadCredits(kind)
+		if err != nil {
+			return nil, unknown(ReasonCreditsNotSetUp, err.Error())
+		}
+		return []AlignmentParagraph{{ID: creditsParagraphID(chapterID), Text: rendered}}, nil
+	}
 	var paragraphs []AlignmentParagraph
 	rawParagraphs, _ := data["paragraphs"].([]any)
 	for _, raw := range rawParagraphs {

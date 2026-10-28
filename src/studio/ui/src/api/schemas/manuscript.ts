@@ -51,6 +51,7 @@ export const chapterSchema = z.object({
   contentKind: contentKindFromWire,
   kindChangedAt: z.string().optional(),
   removedFromRecording: z.literal(true).optional(),
+  isCredits: z.literal(true).optional(),
   paragraphIds: z.array(z.object({ id: z.string(), index: z.number() })).optional(),
 }) satisfies z.ZodType<ManuscriptChapter>;
 

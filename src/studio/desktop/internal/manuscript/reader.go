@@ -105,7 +105,7 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 		}
 		result = append(result, payload)
 	}
-	return result, nil
+	return s.withCredits(data, result, measure, lengths, recorded), nil
 }
 
 // isFrontMatter is a chapter an earlier import wrote for the book's front matter (contentKind "opening"). Front matter is never shown as a
@@ -210,6 +210,9 @@ const maxSearchResults = 200
 func (s *Service) SetChapterStatus(chapterID, status string) (map[string]any, error) {
 	if !validChapterStatus(status) {
 		return nil, fmt.Errorf("unknown chapter status: %s", status)
+	}
+	if IsCreditsID(chapterID) {
+		return s.setCreditsStatus(chapterID, status)
 	}
 	s.notesMu.Lock()
 	defer s.notesMu.Unlock()

@@ -289,6 +289,9 @@ func previewInput(service *manuscript.Service, resolved preview.Settings) (previ
 	chapters := make([]preview.Chapter, 0, len(chapterPayloads))
 	var paragraphs []preview.Paragraph
 	for _, payload := range chapterPayloads {
+		if manuscript.IsCredits(payload) {
+			continue // a template, not text to pick a preview window from
+		}
 		id := previewString(payload, "id")
 		order, _ := previewOrder(payload["index"])
 		chapters = append(chapters, preview.Chapter{

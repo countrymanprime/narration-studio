@@ -783,6 +783,9 @@ func (h *Host) configureLocked(next config) {
 	// A chapter's recordedSeconds is its one confirmed track's recorded length in the saved .rpp, and a reason otherwise;
 	// never an estimate.
 	h.manuscript.SetRecordedLengths(recordedLengths(projectFolder, settingsStore, h.manuscript))
+	// The opening and closing credits are chapters of the list too, opening first and closing last (internal/manuscript/credits.go).
+	h.manuscript.SetCredits(h.creditsChapters)
+	h.manuscript.SetCreditsStatusWriter(func(kind, status string) error { _, err := h.setCreditsStatus(kind, status); return err })
 	// A chapter's recordedThrough is how far it is recorded, from its current Proof result, the Booth's takes and that length.
 	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore))
 	h.editing = editing.New(editing.Config{

@@ -38,20 +38,30 @@ func (h *Host) CreditsStatuses() (string, error) {
 // CreditsSetStatus sets kind ("opening" or "closing") to status (one of the five chapter statuses), refusing either an
 // unknown kind or an unknown status without writing anything.
 func (h *Host) CreditsSetStatus(kind, status string) (string, error) {
+	statuses, err := h.setCreditsStatus(kind, status)
+	if err != nil {
+		return "", err
+	}
+	return encodeBinding(statuses, nil)
+}
+
+// setCreditsStatus is CreditsSetStatus's write, shared with the chapter list: a credits entry is set through ManuscriptSetChapterStatus
+// and the stage Confirm and Revert like any chapter, and lands here.
+func (h *Host) setCreditsStatus(kind, status string) (map[string]string, error) {
 	if !creditsStatusKinds[kind] {
-		return "", fmt.Errorf("credits status kind must be opening or closing, not %q", kind)
+		return nil, fmt.Errorf("credits status kind must be opening or closing, not %q", kind)
 	}
 	if !credits.ValidStatus(status) {
-		return "", fmt.Errorf("unknown credits status: %s", status)
+		return nil, fmt.Errorf("unknown credits status: %s", status)
 	}
 	svc := h.services()
 	projectFolder := svc.config.projectFolder
 	if projectFolder == "" {
-		return "", fmt.Errorf("open a project before setting its credits statuses")
+		return nil, fmt.Errorf("open a project before setting its credits statuses")
 	}
 	manifest, ok, err := project.Load(h.persist, projectFolder)
 	if err != nil {
-		return "", fmt.Errorf("could not read the project manifest: %w", err)
+		return nil, fmt.Errorf("could not read the project manifest: %w", err)
 	}
 	if !ok || manifest == nil {
 		manifest = project.New(svc.config.projectName, time.Now())
@@ -61,7 +71,7 @@ func (h *Host) CreditsSetStatus(kind, status string) (string, error) {
 	}
 	manifest.CreditsStatus[kind] = status
 	if err := manifest.Save(projectFolder); err != nil {
-		return "", fmt.Errorf("could not save the credits status: %w", err)
+		return nil, fmt.Errorf("could not save the credits status: %w", err)
 	}
-	return encodeBinding(manifest.CreditsStatus, nil)
+	return manifest.CreditsStatus, nil
 }

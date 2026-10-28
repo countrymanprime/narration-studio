@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/manuscript"
 	"errors"
 	"fmt"
 	"os"
@@ -191,8 +192,8 @@ func (h *Host) readChapterSyncInputs() (chapterSyncInputs, error) {
 			return chapterSyncInputs{}, err
 		}
 		for _, chapter := range raw {
-			if kind, _ := chapter["contentKind"].(string); kind != "" && kind != "narration" {
-				continue
+			if kind, _ := chapter["contentKind"].(string); kind != "" && kind != "narration" || manuscript.IsCredits(chapter) {
+				continue // sync names regions and links chapters by title; the credits are linked by hand
 			}
 			id, _ := chapter["id"].(string)
 			title, _ := chapter["title"].(string)
