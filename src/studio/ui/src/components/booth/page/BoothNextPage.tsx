@@ -59,7 +59,7 @@ import type { BoothReference } from '../side/sections';
 import { useBoothMarks } from '../side/useBoothMarks';
 import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
-import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
+import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothChapterTarget } from './boothQuery';
 import { LoadError } from '../../layout/LoadError';
 import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
@@ -145,16 +145,14 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const [shown, setShown] = useState(asked);
   const data = useBoothData(shown);
   // The Booth opens on the chapter the DAW is on when the address names none, and moves the DAW to the chapter the address names.
-  const openedByAddress = useRef(asked !== null && 'chapter' in asked);
+  const openedByAddress = useRef(asked !== null);
   const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
   // With no chapter asked for, the Booth opens on the chapter the narrator last left in this project, at the place they left; the DAW's chapter
   // is the way in only when none is kept (or the chapter is gone). The place is read once, when the Booth opens.
   const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
   const [returning, setReturning] = useState<LastPlace | null>(null);
   // A reload (or a link naming the chapter with no line) keeps the chapter in the address: the place kept for that chapter is still where it opens.
-  const [reloaded, setReloaded] = useState<LastPlace | null>(() =>
-    asked && 'chapter' in asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null,
-  );
+  const [reloaded, setReloaded] = useState<LastPlace | null>(() => (asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null));
   // Known once the chapters are read: the kept place, when its chapter is still in the book. Until then the Booth cannot say, and holds its save.
   const planned = asked === null && kept && chapterIds?.includes(kept.chapterId) ? kept : null;
   const undecided = asked === null && kept !== null && chapterIds === undefined;
@@ -177,7 +175,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const measurements = usePort('measurements');
   // A chapter is changed in the address (replacing it, so Back leaves the Booth rather than stepping through chapters).
   const choose = useCallback(
-    (target: BoothTarget) => setParams(new URLSearchParams(boothQuery(target, pickupIds).slice(1)), { replace: true }),
+    (target: BoothChapterTarget) => setParams(new URLSearchParams(boothQuery(target, pickupIds).slice(1)), { replace: true }),
     [setParams, pickupIds],
   );
 
@@ -216,13 +214,13 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
       />
     );
   }
-  const key = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
+  const key = source.chapter.id;
   return (
     <>
       <BoothSession
         key={key}
         source={source}
-        from={shown && 'chapter' in shown ? shown.from : undefined}
+        from={shown?.from}
         requested={asked}
         moveDaw={openedByAddress.current}
         projectFolder={projectFolder}
@@ -249,7 +247,7 @@ type SessionProps = {
   source: BoothSource;
   from?: BoothStart;
   /** What the address asks for now, and how the page takes it on. */
-  requested: BoothTarget | null;
+  requested: BoothChapterTarget | null;
   /** The Booth was opened at a chapter: the DAW is moved to it too. */
   moveDaw: boolean;
   /** The project the place is kept under, and the place to go back to (the Booth opened on the chapter the narrator left). */
@@ -257,9 +255,9 @@ type SessionProps = {
   returnTo?: LastPlace;
   /** The place is back (or there was none): the page stops offering it, so a later visit to this chapter in the same Booth opens where it is. */
   onReturned: () => void;
-  adopt: (target: BoothTarget) => void;
+  adopt: (target: BoothChapterTarget) => void;
   data: ReturnType<typeof useBoothData>;
-  choose: (target: BoothTarget) => void;
+  choose: (target: BoothChapterTarget) => void;
   navigate: (next: string) => void;
   exitTo: string;
   /** The pickup session's lines (empty: none), the line it is on, and how the page is told it moved. */
@@ -270,7 +268,7 @@ type SessionProps = {
   measurements: Pick<MeasurementsPort, 'roomTone'>;
 };
 
-/** One chapter (or the credits) in the Booth. Keyed by it, so a new chapter starts with a clean take, position and session. */
+/** One chapter in the Booth (the credits are chapters, read from their rendered text). Keyed by it, so a new chapter starts with a clean take, position and session. */
 function BoothSession({
   source,
   from,
@@ -293,7 +291,9 @@ function BoothSession({
   const journal = useJournal();
   const keymap = useUserKeymap();
   const daw = usePort('daw');
+  // The chapter whose paragraphs are read; the credits chapters have none, so everything that works on paragraphs of the manuscript is off for them.
   const chapter = source.kind === 'chapter' ? source.chapter : undefined;
+  const chapterId = source.chapter.id;
   const session = useTeleprompterSession({
     chapterId: chapter?.id ?? '',
     chapter,
@@ -312,7 +312,7 @@ function BoothSession({
           : [],
     [source, session.paragraphs, cues, entities, types],
   );
-  const recordId = source.kind === 'credits' ? `credits-${source.credits}` : source.chapter.id;
+  const recordId = chapterId;
   // The pickup session and the bookmarks need the page's reading position, and the page tells them of takes and right-clicks.
   const parts = useRef<{
     takeStopped?: (take: StoppedTake) => Promise<number>;
@@ -345,7 +345,7 @@ function BoothSession({
   const { seek } = page;
   const jumpToLine = (line: PickupItem) => {
     onPick(line.id);
-    if (line.chapterId !== chapter?.id) choose({ chapter: line.chapterId });
+    if (line.chapterId !== chapterId) choose({ chapter: line.chapterId });
     else if (line.paragraphId) seek(line.paragraphId, 0);
   };
   const pickups = usePickupSession({
@@ -384,7 +384,7 @@ function BoothSession({
     chapters: chapterLabels,
     paragraphs,
     units,
-    // The credits are not a chapter of the manuscript: nothing there can be bookmarked.
+    // The credits chapters have no paragraphs: nothing there can be bookmarked.
     position: chapter ? page.position : undefined,
     recording: control.recording,
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
@@ -392,7 +392,7 @@ function BoothSession({
     goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
-  // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits are not a chapter and have none.
+  // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits chapters have no paragraphs and so none.
   const wordsPerPage = useWordsPerPage();
   const breaks = useMemo(() => (chapter ? pageBreaks(paragraphs, units, wordsPerPage) : []), [chapter, paragraphs, units, wordsPerPage]);
 
@@ -454,14 +454,15 @@ function BoothSession({
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMemo(() => {
-    if (!chapter || units.length === 0) return null;
-    const position = from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
+    if (units.length === 0) return null;
+    // The credits have no line to start from: the DAW goes to the end of their track.
+    const position = chapter && from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
     const unit = position && unitAtPosition(paragraphs, units, position);
     return unit ? ({ where: 'at', seconds: secondsBefore(units, unit.cur) } as const) : ({ where: 'end' } as const);
   }, [chapter, from, paragraphs, units]);
   useMoveDawOnOpen({
     enabled: moveDaw,
-    chapterId: chapter?.id ?? '',
+    chapterId,
     canFollow: !!control.capabilities?.capabilities.follow_position?.available,
     target: moveTarget,
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
@@ -469,7 +470,7 @@ function BoothSession({
 
   // A chapter asked for in the address while a take runs: leaving this one is asked about like any other way out; staying puts the
   // address back. The picker is disabled during a take, so this is a link from elsewhere (a Script card, a bookmark, a pickup).
-  const current: BoothTarget = source.kind === 'credits' ? { credits: source.credits } : { chapter: source.chapter.id };
+  const current: BoothChapterTarget = { chapter: chapterId };
   const requestedQuery = requested ? boothQuery(requested) : null;
   const followed = useRef({ requested, current, recording: control.recording, leave: page.leave, adopt, choose });
   followed.current = { requested, current, recording: control.recording, leave: page.leave, adopt, choose };
@@ -478,7 +479,7 @@ function BoothSession({
     if (!now.requested || requestedQuery === null) return;
     const target = now.requested;
     if (sameSource(target, now.current)) {
-      if ('chapter' in target && target.from) now.adopt(target);
+      if (target.from) now.adopt(target);
       return;
     }
     if (!now.recording) {
@@ -498,14 +499,14 @@ function BoothSession({
   // The chapter last asked for and not shown yet: a second press of Next lands one past it, so presses made while a chapter loads are
   // queued in order instead of every one stepping from the chapter still on screen and all but the first being lost.
   const asked = useRef<{ id: string; at: number } | null>(null);
-  const changeChapter = (target: BoothTarget) => {
+  const changeChapter = (target: BoothChapterTarget) => {
     // Back onto the chapter on screen while another is still loading is a request too: the address has to go back to it.
     if (sameSource(target, current) && !asked.current) return;
     if (control.recording) {
       overlay.toast('Stop recording first.');
       return;
     }
-    asked.current = { id: 'credits' in target ? `credits:${target.credits}` : target.chapter, at: Date.now() };
+    asked.current = { id: target.chapter, at: Date.now() };
     choose(target);
   };
 
@@ -551,28 +552,23 @@ function BoothSession({
     data.correctCue(cueId, entity.id).catch((reason) => overlay.toast(reason instanceof Error ? reason.message : String(reason), { tone: 'error' }));
   };
 
-  const pickerChapters = [
-    ...(data.previews.opening ? [{ id: 'credits:opening', name: CREDITS_LABEL.opening }] : []),
-    ...(data.chapters ?? []).map((item) => {
-      const detail = chapterRecordedDetail({ recordedThrough: data.recorded[item.id] });
-      return { id: item.id, name: headingName(item), ...(detail ? { detail } : {}) };
-    }),
-    ...(data.previews.closing ? [{ id: 'credits:closing', name: CREDITS_LABEL.closing }] : []),
-  ];
-  const pickerValue = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
-  const targetOf = (id: string): BoothTarget =>
-    id === 'credits:opening' || id === 'credits:closing' ? { credits: id.slice(8) as 'opening' | 'closing' } : { chapter: id };
+  // The chapter list is the picker, the credits included (opening first, closing last, as the host lists them).
+  const pickerChapters = (data.chapters ?? []).map((item) => {
+    const detail = chapterRecordedDetail({ recordedThrough: data.recorded[item.id] });
+    return { id: item.id, name: headingName(item), ...(detail ? { detail } : {}) };
+  });
+  const pickerValue = chapterId;
   if (asked.current && (asked.current.id === pickerValue || Date.now() - asked.current.at > PENDING_STEP_MS)) asked.current = null;
   const step = (direction: -1 | 1) => {
     const from = asked.current?.id ?? pickerValue;
     const next = pickerChapters[pickerChapters.findIndex((item) => item.id === from) + direction];
-    if (next) changeChapter(targetOf(next.id));
+    if (next) changeChapter({ chapter: next.id });
   };
 
   useBoothPageCommands({
     chapters: pickerChapters,
     current: pickerValue,
-    choose: (id) => changeChapter(targetOf(id)),
+    choose: (id) => changeChapter({ chapter: id }),
     recording: control.recording,
     hasText: units.length > 0,
     toggleTake: page.toggleTake,
@@ -664,7 +660,7 @@ function BoothSession({
                     chapters={pickerChapters}
                     value={pickerValue}
                     disabled={control.recording ? 'Not while recording. Stop the take first.' : undefined}
-                    onChange={(id) => changeChapter(targetOf(id))}
+                    onChange={(id) => changeChapter({ chapter: id })}
                     onStep={step}
                   />
                 </fieldset>
@@ -862,8 +858,7 @@ function BoothSession({
   );
 }
 
-const sameSource = (a: BoothTarget, b: BoothTarget): boolean =>
-  'credits' in a ? 'credits' in b && a.credits === b.credits : 'chapter' in b && a.chapter === b.chapter;
+const sameSource = (a: BoothChapterTarget, b: BoothChapterTarget): boolean => a.chapter === b.chapter;
 
 /** The entry and the mark a reference target names, as the side panel draws them; nothing when neither is there any more. */
 function referenceOf(target: ReferenceTarget | null, entities: readonly GuideEntity[], marks: Marks, types: readonly GuideType[]): BoothReference | null {

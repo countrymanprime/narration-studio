@@ -1,16 +1,7 @@
 // The words of the recording check (docs/utilities/recording-coverage.md): every reason the host can give
 // for a check it refused or a result it cannot trust, in the narrator's terms, and the sentences a stored report is read
 // out as. Pure functions, so the dialog only lays them out.
-import type {
-  ChapterStatus,
-  CoverageJudgement,
-  CoverageReason,
-  CoverageRegion,
-  CoverageRegionKind,
-  CoverageReport,
-  CoverageState,
-  ManuscriptChapter,
-} from '../../types';
+import type { CoverageJudgement, CoverageReason, CoverageRegion, CoverageRegionKind, CoverageReport, CoverageState, ManuscriptChapter } from '../../types';
 import type { CreditsKind } from '../credits/useCreditsRows';
 
 /**
@@ -65,9 +56,6 @@ export const REASON_PAGE: Partial<Record<CoverageReason, { path: string; label: 
   credits_not_set_up: { path: '/settings', label: 'Open Settings' },
 };
 
-// The row labels the credits-in-chapter-table board and Manuscript's CreditsEntry both show.
-const CREDITS_CHECK_TITLE: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
-
 /** The `credits-<kind>` id a credits row's check runs and reads under, matching the host's
  * `coverage.CreditsChapterID`. */
 const creditsCheckId = (kind: CreditsKind): string => `credits-${kind}`;
@@ -79,18 +67,6 @@ export function creditsCheckKind(chapterId: string): CreditsKind | undefined {
   if (chapterId === creditsCheckId('opening')) return 'opening';
   if (chapterId === creditsCheckId('closing')) return 'closing';
   return undefined;
-}
-
-/**
- * The synthetic `ManuscriptChapter` a credits row's check hands Check recordings (`openCheckRecordings`'s `extra`): the dialog treats `chapter.id` as an opaque key for every host call, so this
- * needs nothing beyond a title and the one paragraph id the host's synthetic check manuscript gives the credits kind
- * (`coverage.creditsParagraphID`, `"<chapterId>-p0"`), so a reported gap numbers as "paragraph 1" the same way a real
- * chapter's first paragraph would. Never inserted into the real chapters array (docs/architecture/manuscript-teleprompter.md: credits are not manuscript
- * chapters) - it exists only for the seconds this dialog is open.
- */
-export function creditsCheckChapter(kind: CreditsKind, status: ChapterStatus): ManuscriptChapter {
-  const id = creditsCheckId(kind);
-  return { id, title: CREDITS_CHECK_TITLE[kind], index: 0, wordCount: 0, status, paragraphIds: [{ id: `${id}-p0`, index: 0 }] };
 }
 
 export const REGION_LABEL: Record<CoverageRegionKind, string> = {

@@ -1,8 +1,7 @@
 // The delivery package's checks on Master & QC (the Studio Next mock's `packageItems`): drawn from the profile's own rules and what was
 // measured, so a rule the profile lacks (or has turned off) has no row and nothing here is typed in by hand.
 import type { DeliveryProfile, DeliveryRule, ManuscriptChapter, MeasureFileResult } from '../../../types';
-import type { CreditsEntry } from '../../credits/creditsEntries';
-import { chapterStates, listedChapters, readinessCounts, stateOf, type ChapterState } from '../../delivery/page/chapterStates';
+import { chapterStates, readinessCounts, stateOf, type ChapterState } from '../../delivery/page/chapterStates';
 import { chapterOfFile } from '../../master/chapterFile';
 import { formatLength } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
@@ -30,9 +29,6 @@ function sampleRange(rule: DeliveryRule): string {
   if (rule.min != null && rule.max != null) return `${minutes(rule.min)} to ${minutes(rule.max)} min`;
   return rule.max != null ? `up to ${minutes(rule.max)} min` : `at least ${minutes(rule.min!)} min`;
 }
-
-/** The credits files Delivery counts as chapters, read the way its page reads them. */
-type CreditsEntries = { opening?: CreditsEntry; closing?: CreditsEntry };
 
 export function packageItems(profile: DeliveryProfile | undefined, files: readonly MeasureFileResult[]): PackageItem[] {
   if (!profile) return [];
@@ -81,18 +77,17 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
 
 /**
  * The rows Master & QC's package card counts, from the same judgement Delivery's "Before you build" list makes: one per chapter
- * (`chapterStates`), so a chapter with no file is not ready, plus a row per measured file no chapter claims (a file named for
+ * (`chapterStates`, the credits among them), so a chapter with no file is not ready, plus a row per measured file no chapter claims (a file named for
  * nothing in the manuscript still fails the package if it fails its checks).
  */
-function packageStates(chapters: readonly ManuscriptChapter[], credits: CreditsEntries, files: readonly MeasureFileResult[]): ChapterState[] {
-  const listed = listedChapters(chapters, credits);
-  const stray = files.filter((file) => !isSample(file) && !chapterOfFile(file, listed)).map((file) => stateOf({ id: file.path, name: file.name }, file));
-  return [...chapterStates(listed, files), ...stray];
+function packageStates(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): ChapterState[] {
+  const stray = files.filter((file) => !isSample(file) && !chapterOfFile(file, chapters)).map((file) => stateOf({ id: file.path, name: file.name }, file));
+  return [...chapterStates(chapters, files), ...stray];
 }
 
 /** The rows that fail, with their sentence ("Chapter 04.wav fails 2 checks"), and how many are not ready. */
-export function packageCounts(chapters: readonly ManuscriptChapter[], credits: CreditsEntries, files: readonly MeasureFileResult[]) {
-  const states = packageStates(chapters, credits, files);
+export function packageCounts(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]) {
+  const states = packageStates(chapters, files);
   const { wait } = readinessCounts(states);
   return {
     failing: states.filter((state) => state.kind === 'bad').map((state) => `${state.name} ${state.text.toLowerCase()}`),

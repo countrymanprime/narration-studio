@@ -15,8 +15,6 @@ import type { DefinitionSource, WordsHost } from './page/rail/words/wordsHost';
 export type ScriptCredits = {
   /** The first opening and the first closing template's preview; absent when the library has no template of that kind. */
   previews: { opening?: CreditsRenderResult; closing?: CreditsRenderResult };
-  hasOpening: boolean;
-  hasClosing: boolean;
   /** Whether to show the setup banner and what the dialog asks; undefined until read, or when the read failed. */
   setup: CreditsSetupState | undefined;
   setSetup: (next: CreditsSetupState) => void;
@@ -72,7 +70,7 @@ export function useScriptCredits(): ScriptCredits {
     setRound((n) => n + 1);
   }, []);
 
-  return { previews, hasOpening: opening !== undefined, hasClosing: closing !== undefined, setup, setSetup, retailSample };
+  return { previews, setup, setSetup, retailSample };
 }
 
 const DEFINITION_TOOL = 'Script';

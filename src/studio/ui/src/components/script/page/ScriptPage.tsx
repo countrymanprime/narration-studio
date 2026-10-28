@@ -10,6 +10,7 @@ import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark } from '../../../api/contracts/marks';
 import { chapterName } from '../../../chapterName';
+import { isNarrationChapter, withoutCredits } from '../../../chapterKinds';
 import { useLayoutClass } from '../../../hooks/useLayoutClass';
 import { CommandScope } from '../../../input/router';
 import { useUserKeymap } from '../../../input/useUserKeymap';
@@ -38,8 +39,8 @@ import { NeedManuscript } from '../../layout/NeedManuscript';
 import { FirstUseTip } from '../../../tips/FirstUseTip';
 import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
-import { ownsOpeningCredits } from '../../credits/creditsEntries';
-import { CREDITS_STOP, creditsRows } from '../../credits/creditsRows';
+import { CREDITS_ID } from '../../credits/creditsEntries';
+import { CREDITS_STOP } from '../../credits/creditsRows';
 import { CreditsSetupBanner } from '../../credits/CreditsSetupBanner';
 import { CreditsSection } from './chapters/CreditsSection';
 import { CREDITS_LABEL } from '../../booth/readerModel';
@@ -83,19 +84,19 @@ export type ScriptPageProps = {
 /** How long the paragraph of a bookmark just gone to stays lit, as the mock's. */
 const BOOKMARK_FLASH_MS = 1600;
 
-const isNarration = (chapter: Pick<ManuscriptChapter, 'contentKind'>) => (chapter.contentKind ?? 'narration') === 'narration';
-
 /** The page: the empty state with no manuscript, the host's sentence when the chapters cannot be read, else the three columns. */
 export function ScriptPage(props: ScriptPageProps) {
   const chapters = useChapters();
   const navigate = useNavigate();
   const listable = useMemo(() => (chapters.value ?? []).filter(isListableChapter), [chapters.value]);
+  // The credits are in the list, but the reader's text, Find, bookmarks and the empty check are about the manuscript's own chapters.
+  const manuscript = useMemo(() => withoutCredits(listable), [listable]);
   if (chapters.status === 'error' && chapters.value === undefined) return <LoadError title="Script" message={chapters.message} retry={chapters.retry} />;
   if (chapters.value === undefined) return <ScriptSkeleton />;
-  if (listable.length === 0) return <NeedManuscript title="Script" onImport={() => navigate('/')} />;
+  if (manuscript.length === 0) return <NeedManuscript title="Script" onImport={() => navigate('/')} />;
   return (
     <CommandScope kind="page">
-      <ScriptWorkspace {...props} chapters={listable} allChapters={chapters.value} />
+      <ScriptWorkspace {...props} chapters={manuscript} allChapters={chapters.value} />
     </CommandScope>
   );
 }
@@ -207,7 +208,7 @@ function ScriptWorkspace({
       update(paragraphId ? { pendingPid: paragraphId, drawer: null } : { pendingJump: chapterId, drawer: null }),
     [update],
   );
-  useDeepLink({ chapters: allChapters, goTo: goToLink, notify });
+  useDeepLink({ chapters: withoutCredits(allChapters), goTo: goToLink, notify });
 
   // `/script?find=<text>` opens Find on that text once (the Story Bible's Find button), then leaves the address as `/script`.
   const { search, hash } = useLocation();
@@ -304,19 +305,19 @@ function ScriptWorkspace({
 
   /* ---------- The chapter list's credits rows ---------- */
 
-  // The mock lists the opening credits above chapter 1 and the closing credits after the last chapter as chapters, each with its prep dot;
-  // the reader draws them as sections of their own in the same places (`chapters/CreditsSection.tsx`, `credits/creditsRows.ts`).
-  const ownsOpening = ownsOpeningCredits(chapters);
-  const { opening: openingRow, closing: closingRow } = useMemo(
-    () => creditsRows({ hasOpening: credits.hasOpening, hasClosing: credits.hasClosing, ownsOpening, previews: credits.previews }),
-    [credits.hasOpening, credits.hasClosing, credits.previews, ownsOpening],
-  );
+  // The credits are chapters of the host's list (opening first, closing last; an imported "Opening Credits" chapter replaces the opening one).
+  // The chapter list and the reader still draw them as a row and a card of their own, in the same places (`chapters/CreditsSection.tsx`),
+  // because they have no paragraphs: their text is the template's preview. Whether they are drawn, and their words, are the list's.
+  const openingChapter = useMemo(() => allChapters.find((chapter) => chapter.id === CREDITS_ID.opening), [allChapters]);
+  const closingChapter = useMemo(() => allChapters.find((chapter) => chapter.id === CREDITS_ID.closing), [allChapters]);
+  const openingRow = openingChapter !== undefined;
+  const closingRow = closingChapter !== undefined;
   const openingCredits = useMemo(
-    () => openingRow && { state: prep.prepOf(CREDITS_STOP.opening), onJump: () => goToChapter(CREDITS_STOP.opening) },
+    () => (openingRow ? { state: prep.prepOf(CREDITS_STOP.opening), onJump: () => goToChapter(CREDITS_STOP.opening) } : undefined),
     [openingRow, prep, goToChapter],
   );
   const closingCredits = useMemo(
-    () => closingRow && { state: prep.prepOf(CREDITS_STOP.closing), onJump: () => goToChapter(CREDITS_STOP.closing) },
+    () => (closingRow ? { state: prep.prepOf(CREDITS_STOP.closing), onJump: () => goToChapter(CREDITS_STOP.closing) } : undefined),
     [closingRow, prep, goToChapter],
   );
   const sectionNames = useMemo(() => new Map(Object.entries(CREDITS_STOP).map(([kind, id]) => [id, CREDITS_LABEL[kind as keyof typeof CREDITS_STOP]])), []);
@@ -404,7 +405,7 @@ function ScriptWorkspace({
   /* ---------- The reader's slots ---------- */
 
   const firstId = chapters[0]!.id;
-  const openingWords = credits.previews.opening?.words ?? 0;
+  const openingWords = openingChapter?.wordCount ?? 0;
   const renderChapterCard = useCallback(
     (chapter: ManuscriptChapter) => {
       const at = order.indexOf(chapter.id);
@@ -423,7 +424,7 @@ function ScriptWorkspace({
                 ? { name: endedName({ title: CREDITS_LABEL.opening, contentKind: 'opening' }), words: openingWords }
                 : undefined
             }
-            onRecord={goToBooth && isNarration(chapter) ? (chapterId) => goToBooth({ chapter: chapterId }) : undefined}
+            onRecord={goToBooth && isNarrationChapter(chapter) ? (chapterId) => goToBooth({ chapter: chapterId }) : undefined}
           />
         </>
       );

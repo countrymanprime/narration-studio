@@ -7,7 +7,7 @@ import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../..
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
-import { isCreditsChapter } from '../../chapterKinds';
+import { creditsCheckKind } from './recordingCheckText';
 import type { PrepState } from '../../api/contracts/scriptPrep';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
@@ -221,13 +221,8 @@ export function ProductionPage({
 
   const onGo = (target: GoTarget | OverviewTarget, chapterId?: string) => {
     // The credits are chapters of the board; only Script differs, where their row is a card of its own (their text is a template).
-    const credits = chapterId ? narrated.find((chapter) => chapter.id === chapterId && isCreditsChapter(chapter)) : undefined;
-    if (target === 'script')
-      return credits
-        ? go(addressPath({ page: 'script', credits: credits.id === 'credits-opening' ? 'opening' : 'closing' }))
-        : chapterId
-          ? goToScript(chapterId)
-          : go('/script');
+    const credits = chapterId ? creditsCheckKind(chapterId) : undefined;
+    if (target === 'script') return credits ? go(addressPath({ page: 'script', credits })) : chapterId ? goToScript(chapterId) : go('/script');
     if (target === 'booth') return goToBooth(chapterId);
     if (target === 'editing') return chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
     if (target === 'proof') return go(proofAt(chapterId));

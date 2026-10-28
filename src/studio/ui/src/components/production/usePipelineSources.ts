@@ -4,7 +4,6 @@ import type { ManuscriptChapter, MeasureFileResult } from '../../types';
 import { usePort } from '../../ports/usePort';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
-import { CREDITS_FILE_CHAPTERS } from '../credits/creditsEntries';
 import type { NextUpInputs } from './pipeline/nextUpRanking';
 import { failingChapter } from './pipeline/nextUpSources';
 import type { PipelineSources } from './pipeline/pipelineRows';
@@ -28,7 +27,7 @@ function proofByChapter(findings: readonly Finding[]): Proof {
 
 /**
  * The delivery review per chapter, from the host's per-file judgement (the one rule Delivery and Master & QC pair a file with its chapter by).
- * The two credits files are paired the same way. A chapter with no measured file has no entry; a file with no verdict is not mastered and not checked. Several failing checks read as `FAIL`,
+ * The credits files are paired the same way: the chapter list holds the credits. A chapter with no measured file has no entry; a file with no verdict is not mastered and not checked. Several failing checks read as `FAIL`,
  * not one check's name (the mock's QC cell).
  */
 export function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'title' | 'index'>[], files: readonly MeasureFileResult[]): Master {
@@ -70,9 +69,8 @@ export function usePipelineSources(
     Promise.all([measure.measureState(), manuscript.manuscriptChapters()]).then(
       ([job, chapters]) => {
         if (!live) return;
-        const paired = [...chapters, ...CREDITS_FILE_CHAPTERS];
-        setMaster(job.files.length ? masterByChapter(paired, job.files) : undefined);
-        setFailing(failingChapter(paired, job.files, job.profile ?? null));
+        setMaster(job.files.length ? masterByChapter(chapters, job.files) : undefined);
+        setFailing(failingChapter(chapters, job.files, job.profile ?? null));
       },
       () => {
         if (!live) return;
