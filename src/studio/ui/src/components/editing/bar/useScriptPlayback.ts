@@ -58,7 +58,7 @@ export interface ScriptPlaybackOptions {
   notify?: (text: string) => void;
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
    * do. Null `caps` (not answered yet) plays nothing unless the read failed; absent `sync` plays in the app. */
-  sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null; read?: DawRead };
+  sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null; read?: DawRead; chapterId?: string };
   /** The chapter's audio levels, so a play of words ends where the last word's sound dies away; absent keeps the fixed tail. */
   sound?: SoundAt;
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
@@ -268,6 +268,7 @@ export function useScriptPlayback({
     playlist,
     cuts: sync?.cuts ?? [],
     caps: sync?.caps ?? null,
+    chapterId: sync?.chapterId ?? '',
     onHead,
     onStopped,
     onLost,

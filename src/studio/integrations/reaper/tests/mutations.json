@@ -2850,14 +2850,14 @@
   {
     "name": "play_from keeps the stretch an earlier play_range set",
     "file": "narration_transport.lua",
-    "find": "local function play_from(session_dir, state, run_id, text)\n  state.range = nil",
-    "replace": "local function play_from(session_dir, state, run_id, text)"
+    "find": "local function play_from(session_dir, state, run_id, text, track_text)\n  drop_range(state)",
+    "replace": "local function play_from(session_dir, state, run_id, text, track_text)"
   },
   {
     "name": "a REAPER the narrator stopped keeps the stretch, so their next play is stopped at its end",
     "file": "narration_transport.lua",
-    "find": "  if play_state % 2 ~= 1 or play_state >= 4 then\n    state.range = nil\n    return\n  end",
-    "replace": "  if false then\n    state.range = nil\n    return\n  end"
+    "find": "  if play_state % 2 ~= 1 or play_state >= 4 then\n    drop_range(state)\n    return\n  end",
+    "replace": "  if false then\n    drop_range(state)\n    return\n  end"
   },
   {
     "name": "play_range accepts an end before its start",
@@ -2888,5 +2888,41 @@
     "file": "narration_transport.lua",
     "find": "if play_state % 2 ~= 1 or play_state >= 4 then",
     "replace": "if play_state % 2 ~= 1 then"
+  },
+  {
+    "name": "a play naming a track plays it though the track has no audio there",
+    "file": "narration_transport.lua",
+    "find": "  if not plays_at(track, at) then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "a play naming a track does not silence the other tracks",
+    "file": "narration_transport.lua",
+    "find": "    if reaper.GetMediaTrackInfo_Value(other, 'I_SOLO') ~= row.set_solo then\n      reaper.SetMediaTrackInfo_Value(other, 'I_SOLO', row.set_solo)",
+    "replace": "    if false then\n      reaper.SetMediaTrackInfo_Value(other, 'I_SOLO', row.set_solo)"
+  },
+  {
+    "name": "the narrator's selection and solos are never put back",
+    "file": "narration_transport.lua",
+    "find": "  put_back(rows)\n  os.remove(isolation_path())\n  return true",
+    "replace": "  os.remove(isolation_path())\n  return true"
+  },
+  {
+    "name": "a play with no stretch keeps the track isolated after REAPER stops",
+    "file": "narration_transport.lua",
+    "find": "  if play_state % 2 ~= 1 or play_state >= 4 then\n    release_isolation(state)",
+    "replace": "  if false then\n    release_isolation(state)"
+  },
+  {
+    "name": "a state left by a closed REAPER is never put right",
+    "file": "narration_transport.lua",
+    "find": "  if state.recovered then\n    return\n  end",
+    "replace": "  if true then\n    return\n  end"
+  },
+  {
+    "name": "a restore overwrites a change the narrator made during the play",
+    "file": "narration_transport.lua",
+    "find": "      if reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == row.set_solo then",
+    "replace": "      if true then"
   }
 ]
