@@ -177,14 +177,15 @@ describe('proof-route-draws-the-mock-page', () => {
     expect(drawn(tiles[1]).startsWith('1')).toBe(true);
   });
 
-  it('opens the credits card in Script from a credits tile, since Proof has no chapter view for them', async () => {
+  it('opens a credits chapter on Proof from its tile, with the stepper listing both', async () => {
     const { goTo } = renderPage();
     await noteRows();
     const strip = await screen.findByRole('group', { name: 'Open notes by chapter' });
     await waitFor(() => expect(within(strip).getAllByRole('button')[0].getAttribute('aria-label')).toBe('Opening credits: no notes'));
     fireEvent.click(within(strip).getAllByRole('button')[0]);
-    expect(goTo).toHaveBeenCalledWith('/script#credits-opening');
-    expect(where()).toBe('/proof');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=credits-opening'));
+    expect(goTo).not.toHaveBeenCalled();
+    expect(screen.getAllByText(/Opening credits/).length).toBeGreaterThan(0);
   });
 
   // #2251 item 35: the key hints are the shell's page footer, full width under the page, not a row inside the page.

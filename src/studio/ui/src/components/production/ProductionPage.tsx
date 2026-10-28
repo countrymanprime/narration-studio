@@ -7,7 +7,8 @@ import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../..
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
-import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
+import { isCreditsChapter } from '../../chapterKinds';
+import type { PrepState } from '../../api/contracts/scriptPrep';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
@@ -42,7 +43,6 @@ import { NoManuscript } from './pipeline/NoManuscript';
 import { pickupChapters } from './pipeline/nextUpSources';
 import { PageHeader } from './pipeline/PageHeader';
 import { PipelineTable } from './pipeline/PipelineTable';
-import { pipelineChapters } from './pipeline/pipelineChapters';
 import { buildPipelineRows, type GoTarget } from './pipeline/pipelineRows';
 import { runningTimerOf } from '../layout/TimerChip';
 import { useStageTimer } from './pipeline/useStageTimer';
@@ -220,22 +220,36 @@ export function ProductionPage({
   }, [read, refreshStages, onManuscriptChanged]);
 
   const onGo = (target: GoTarget | OverviewTarget, chapterId?: string) => {
-    // A credits row is not a chapter: Script opens its card, the Booth reads it, Editing's check is the credits panel, and Proof has no chapter for it.
-    const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
-    if (target === 'script') return credits ? go(addressPath({ page: 'script', credits })) : chapterId ? goToScript(chapterId) : go('/script');
+    // The credits are chapters of the board; only Script differs, where their row is a card of its own (their text is a template).
+    const credits = chapterId ? narrated.find((chapter) => chapter.id === chapterId && isCreditsChapter(chapter)) : undefined;
+    if (target === 'script')
+      return credits
+        ? go(addressPath({ page: 'script', credits: credits.id === 'credits-opening' ? 'opening' : 'closing' }))
+        : chapterId
+          ? goToScript(chapterId)
+          : go('/script');
     if (target === 'booth') return goToBooth(chapterId);
-    if (target === 'editing') return credits ? tools.openCredits(credits) : chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
-    if (target === 'proof') return go(proofAt(credits ? undefined : chapterId));
+    if (target === 'editing') return chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
+    if (target === 'proof') return go(proofAt(chapterId));
     if (target === 'pickups') return go('/pickups');
     if (target === 'master') return go('/master');
     return go('/schedule');
   };
 
-  // The opening and closing credits are rows of the pipeline, in the places the mock puts them and the Script list draws them.
+  // The credits are chapters of the overview, so they are rows, counts and hours like any chapter. The credits rows are read only for what a chapter
+  // does not carry: the template's Prepped dot (its preview has no [Token] left) and the credits panel.
   const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
-  const ownsOpening = ownsOpeningCredits(overview?.chapters);
-  const entries = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
-  const pipelineRows = useMemo(() => (overview ? pipelineChapters(overview.chapters, entries) : []), [overview, entries]);
+  const creditsPrep = useMemo(
+    (): Record<string, PrepState> =>
+      Object.fromEntries(
+        (['opening', 'closing'] as const).flatMap((kind) => {
+          const row = credits.rows?.[kind];
+          return row?.template ? [[`credits-${kind}`, row.preview?.unresolved.length === 0 ? 'prepped' : 'none'] as const] : [];
+        }),
+      ),
+    [credits.rows],
+  );
+  const pipelineRows = narrated;
 
   // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).
   const changedRow = useJustChanged();
@@ -321,11 +335,8 @@ export function ProductionPage({
     proof: pipelineSources.proof,
     master: pipelineSources.master,
     pickups: pickupsByChapter,
-    // A chapter's Prep is the Script page's prep record; a credits row's is its template's tokens. Absent until read: "Not measured yet".
-    prep: {
-      ...pipelineSources.prep,
-      ...Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
-    },
+    // A chapter's Prep is the Script page's prep record; a credits chapter's is its template's tokens. Absent until read: "Not measured yet".
+    prep: { ...pipelineSources.prep, ...creditsPrep },
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);

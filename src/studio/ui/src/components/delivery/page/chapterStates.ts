@@ -4,23 +4,12 @@
 // reads in the manuscript's own heading style ("CHAPTER IV. — The Rabbit Sends in a Little Bill"), as Script's list does.
 import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
-import { CREDITS_ID, CREDITS_NAME, type CreditsEntry } from '../../credits/creditsEntries';
 import { fileOf } from '../../master/chapterFile';
 import { fileVerdict, missesWithLimit } from '../../master/fileVerdict';
 
 export type ChapterState = { id: string; name: string; kind: 'ok' | 'bad' | 'wait'; text: string };
 
 type Listed = Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle' | 'index'>;
-
-/**
- * The rows' chapters in the mock's order: the opening credits, the chapters, then the closing credits. A credits file is judged like a
- * chapter's, paired with its measured file by name ("Opening credits.wav"); a manuscript's own opening-credits chapter is already in
- * `chapters` and stands in for the opening entry (`creditsEntries` leaves that one out).
- */
-export function listedChapters(chapters: readonly ManuscriptChapter[], credits: { opening?: CreditsEntry; closing?: CreditsEntry }): Listed[] {
-  const credit = (entry: CreditsEntry): Listed => ({ id: CREDITS_ID[entry.kind], title: CREDITS_NAME[entry.kind], index: -2 });
-  return [...(credits.opening ? [credit(credits.opening)] : []), ...chapters, ...(credits.closing ? [credit(credits.closing)] : [])];
-}
 
 /**
  * `pickups` is the open pickup lines per chapter id, from the Pickups list; a chapter that is not mastered says what it waits on when it

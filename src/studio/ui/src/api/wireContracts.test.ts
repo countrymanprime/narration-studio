@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { AUDACITY_LINK_MOCK_SEEDS, type AudacityLinkMockName, type AudacityLinkMockSeed } from './audacityLinkMock';
 import { createMockApi } from './mockApi';
+import type { ManuscriptChapter } from './contracts/manuscript';
 import {
   backedUpAnswer,
   backupRestoredAnswer,
@@ -265,6 +266,10 @@ function expectMatches(schema: z.ZodType, value: unknown, payload: string): void
 
 const readGolden = (file: string): unknown => JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'));
 
+/** The manuscript's own chapters: the mock's chapter list also holds the credits (opening first, closing last), which these cases are not about. */
+const ownChapters = async (api: { manuscriptChapters(): Promise<ManuscriptChapter[]> }) =>
+  (await api.manuscriptChapters()).filter((chapter) => !chapter.isCredits);
+
 describe('golden payloads written by the Go host and the Python sidecars', () => {
   it('every committed file has a schema, and every schema row has a file', () => {
     const committed = readdirSync(GOLDEN_DIR)
@@ -316,7 +321,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expectMatches(coverageEnginesSchema, mocked, 'mock coverage engines');
     expect(mocked.engines.map((engine) => engine.id)).toContain(mocked.default);
     await expect(api.coverageStart('any-chapter', { model: 'moonshine-tiny' })).rejects.toThrow('not in the approved catalog');
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const chapter = chapters.find((item) => item.recordedFraction !== undefined);
     if (!chapter) throw new Error('the mock chapters carry a measured recordedFraction');
     expect((await api.coverageStart(chapter.id, { model: mocked.default })).status).toBe('started');
@@ -330,7 +335,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(() => parseWire(coverageGapReviewsSchema, { a: 'dismissed' }, ctx('gap reviews'))).toThrow();
     expect(() => parseWire(coverageGapReviewsSchema, { a: 1 }, ctx('gap reviews'))).toThrow();
 
-    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    const measured = (await ownChapters(createMockApi())).find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     const chapterId = measured.id;
     const api = createMockApi({}, { coverage: { pickups: [chapterId] } });
@@ -473,7 +478,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), readAloudReaperStateSchema).parse(readGolden('read-aloud-reaper-states.json'));
     for (const seed of MOCK_REAPER_SEEDS) {
       const api = createMockApi({}, { reaperState: seed });
-      const [chapter] = await api.manuscriptChapters();
+      const [chapter] = await ownChapters(api);
       const state = await api.readAloudReaperState(chapter.id);
       expectMatches(readAloudReaperStateSchema, state, `mock reaper state ${seed}`);
       // "unavailable" is the mock's own standalone case; the host's golden has no record for it.
@@ -499,7 +504,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     for (const seed of MOCK_REAPER_SEEDS) {
       // Record is switched on in the mock DAW, so the seed alone decides what the host would answer.
       const api = createMockApi({}, { reaperState: seed, daw: {} });
-      const [chapter] = await api.manuscriptChapters();
+      const [chapter] = await ownChapters(api);
       const armed = await api.readAloudArmOnly(chapter.id);
       const started = await api.readAloudRecordStart(chapter.id);
       const stopped = await api.readAloudRecordStop();
@@ -533,7 +538,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     Object.entries(golden).forEach(([name, result]) => expectMatches(readAloudRecordingSchema, result, `host record start at ${name}`));
 
     const api = createMockApi({}, { daw: {} });
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = await ownChapters(api);
     const started = await api.readAloudRecordStartAt(chapter.id, 30);
     expectMatches(readAloudRecordingSchema, started, 'mock record start at');
     expect([started.outcome, started.message, started.position]).toEqual([golden.started.outcome, golden.started.message, golden.started.position]);
@@ -567,6 +572,13 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(chapters.map((chapter) => chapter.recordedFraction)).toEqual([0.75, ...chapters.slice(1).map(() => undefined)]);
     const unmeasured = parseWire(chaptersSchema, readGolden('manuscript-chapters.json'), ctx('chapters'));
     expect(unmeasured.every((chapter) => chapter.recordedFraction === undefined)).toBe(true);
+  });
+
+  it('the credits are chapters of the list: opening first, closing last, marked isCredits, with no paragraphs', () => {
+    const chapters = parseWire(chaptersSchema, readGolden('manuscript-chapters-with-credits.json'), ctx('chapters'));
+    expect(chapters.map((chapter) => chapter.id)).toEqual(['credits-opening', ...chapters.slice(1, -1).map((chapter) => chapter.id), 'credits-closing']);
+    expect(chapters.filter((chapter) => chapter.isCredits).map((chapter) => chapter.id)).toEqual(['credits-opening', 'credits-closing']);
+    expect(chapters[0]?.paragraphIds).toEqual([]);
   });
 
   it('recordedSeconds is only on a chapter with a linked track, and the others say why', () => {
@@ -734,7 +746,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     api.subscribeTeleprompterEvent((event) => events.push(event));
     api.subscribeTeleprompterState((state) => states.push(state));
     expectMatches(teleprompterStateSchema, await api.teleprompterState(), 'mock teleprompter idle');
-    const chapter = (await api.manuscriptChapters())[0];
+    const chapter = (await ownChapters(api))[0];
     await api.teleprompterStart({ chapter: chapter?.id ?? '', device: 'Microphone' });
     await vi.advanceTimersByTimeAsync(120_000);
     await api.teleprompterStop();
@@ -780,7 +792,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     const api = createMockApi();
     const events: unknown[] = [];
     api.subscribeTeleprompterEvent((event) => events.push(event));
-    const chapter = (await api.manuscriptChapters())[0];
+    const chapter = (await ownChapters(api))[0];
     await api.teleprompterStart({ chapter: chapter?.id ?? '', device: 'Microphone' });
 
     await api.teleprompterSeek(3);
@@ -792,7 +804,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
 
   it('the TeleprompterLocate answers, one per status the mock project reaches', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const found = await api.teleprompterLocate(chapters[0].id);
     expectMatches(teleprompterLocateResultSchema, found, 'mock teleprompter locate, found');
     expect(found).toMatchObject({ status: 'found', tail: { to: 612.4 } });
@@ -817,7 +829,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
 
   it('the TeleprompterResumeFollow and Unfollow answers', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const tracked = await api.teleprompterResumeFollow(chapters[0].id);
     expectMatches(teleprompterResumeFollowSchema, tracked, 'mock resume follow, a tracked chapter');
     expect(tracked).toEqual({ following: false, reason: 'unavailable' });
@@ -840,7 +852,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     ['source_unsupported', 'source_unsupported'],
   ] as const)('the ?mockResume=%s seed answers TeleprompterLocate with %s', async (resume, status) => {
     const api = createMockApi({}, { resume });
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
 
     const result = await api.teleprompterLocate(chapters[0].id);
 
@@ -850,7 +862,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
 
   it('the ambiguous seed offers the tied tracks, and reads the one the narrator picks', async () => {
     const api = createMockApi({}, { resume: 'ambiguous' });
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
 
     const offered = await api.teleprompterLocate(chapters[0].id);
     if (offered.status === 'asset_required') throw new Error('expected a track match');
@@ -864,14 +876,14 @@ describe('answers of the mock client (it must pass the schemas the real host ans
 
   it('the error seed rejects TeleprompterLocate, as a failed read of the .rpp or the sidecar does', async () => {
     const api = createMockApi({}, { resume: 'error' });
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
 
     await expect(api.teleprompterLocate(chapters[0].id)).rejects.toThrow(/could not read/);
   });
 
   it('TeleprompterLocate asks for the model before transcribing a readable track', async () => {
     const api = createMockApi({}, { assets: 'missing' });
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
 
     const required = await api.teleprompterLocate(chapters[0].id);
 
@@ -881,7 +893,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
 
   it('teleprompterSaveFlags answers one suspected finding per flag, and a dismissal is kept', async () => {
     const api = createMockApi();
-    const chapter = (await api.manuscriptChapters())[0];
+    const chapter = (await ownChapters(api))[0];
     const paragraph = (await api.manuscriptParagraphs(chapter?.id ?? ''))[0];
     const base = { paragraphId: paragraph?.id ?? '', scriptStart: 0, scriptEnd: 1, dismissed: false };
     const flags = [
@@ -926,7 +938,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
 describe('answers of the mock client for the manuscript, Story Bible and project bindings', () => {
   it('the reader, its chapters, paragraphs, notes, search and saved state', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     expectMatches(chaptersSchema, chapters, 'mock chapters');
     expectMatches(readerSchema, await api.manuscriptReader(), 'mock reader');
     expectMatches(readerStateSchema, await api.readerState(), 'mock reader state');
@@ -990,7 +1002,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
   // Remove from recording clears the chapter's links, and Restore brings it back.
   it('a chapter removed from recording and restored', async () => {
     const api = createMockApi();
-    const [first] = await api.manuscriptChapters();
+    const [first] = await ownChapters(api);
     const tracks = await api.chapterTrackLinks();
     const guid = tracks.tracks[0]?.guid ?? '';
     await api.chapterTrackSet(first.id, guid);
@@ -1345,7 +1357,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect(announcements[0].result.text).toBe('Chapter 1: Down the Rabbit-Hole.');
 
     expectMatches(retailSampleAnswerSchema, await api.creditsRetailSample(), 'mock retail sample, none');
-    const chapter = (await api.manuscriptChapters())[1];
+    const chapter = (await ownChapters(api))[1];
     const [first, , third] = chapter.paragraphIds ?? [];
     const saved = await api.saveCreditsRetailSample(first.id, third.id);
     expectMatches(retailSampleAnswerSchema, saved, 'mock saved retail sample');
@@ -1386,7 +1398,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect('recordedSeconds' in afterLink.opening).toBe(true);
 
     // The linked track went to credits-opening, never to a manuscript chapter of the same track.
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     expect(chapters.every((chapter) => chapter.recordedUnavailable === 'unlinked')).toBe(true);
   });
 
@@ -1539,13 +1551,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const gate = await api.transcriptStart({ model, chunk: '60', workers: '1', hints: '' });
     expect(gate.status).toBe('asset_required');
     expectMatches(startResultSchema, gate, 'mock transcript first-use gate');
-    const chapter = (await api.manuscriptChapters())[0]?.id ?? '';
+    const chapter = (await ownChapters(api))[0]?.id ?? '';
     expectMatches(teleprompterStartResultSchema, await api.teleprompterStart({ chapter, device: 'Microphone' }), 'mock teleprompter start');
   });
 
   it.each(['whisper', 'moonshine'] as const)('the teleprompter first-use gate names the engine whose model is missing (%s)', async (engine) => {
     const api = createMockApi({}, { assets: 'missing' });
-    const chapter = (await api.manuscriptChapters())[0]?.id ?? '';
+    const chapter = (await ownChapters(api))[0]?.id ?? '';
     const gate = await api.teleprompterStart({ chapter, device: 'Microphone', engine });
     expectMatches(teleprompterStartResultSchema, gate, `mock teleprompter first-use gate (${engine})`);
     expect(gate.status === 'asset_required' && gate.engine).toBe(engine);
@@ -1601,7 +1613,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(chapterTrackMappingSchema, empty, 'mock chapter-track map, none confirmed');
     expect(empty.mappings).toHaveLength(0);
 
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const confirmed = await api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', chapters[0].id);
     expectMatches(trackMappingSchema, confirmed, 'mock chapter-track map confirmation');
     expect(confirmed.chapterTitle).toBe(chapters[0].title);
@@ -1619,7 +1631,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
     const api = createMockApi({}, { reaperState: 'no_link' });
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('no_link');
     const created = await api.chapterTrackCreate(chapters[0].id);
     expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, created');
@@ -1641,7 +1653,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const ready = await api.chapterTrackLinks();
     expectMatches(chapterTrackLinksSchema, ready, 'mock chapter track links, ready');
     expect(ready.project).toBe('ready');
@@ -1687,7 +1699,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the ChapterRegionsPreview and ChapterRegionsCreate answers', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const [first] = WIRE_TRACKS_PROJECT.tracks;
     await api.chapterTrackSet(chapters[0].id, first.guid);
     const plan = await api.chapterRegionsPreview(first.guid, first.guid);
@@ -1705,13 +1717,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the chapter list carries recorded seconds only for a chapter with a linked track', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     expectMatches(chaptersSchema, chapters, 'mock chapters, nothing linked');
     expect(chapters.every((chapter) => chapter.recordedUnavailable === 'unlinked' && chapter.recordedSeconds === undefined)).toBe(true);
 
     const [first] = WIRE_TRACKS_PROJECT.tracks;
     await api.chapterTrackSet(chapters[0].id, first.guid);
-    const linked = await api.manuscriptChapters();
+    const linked = await ownChapters(api);
     expectMatches(chaptersSchema, linked, 'mock chapters, one linked');
     expect(linked[0].recordedSeconds).toBeGreaterThan(0);
     expect(linked[0].recordedUnavailable).toBeUndefined();
@@ -1719,7 +1731,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the ChapterTrackMatch answers', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const matched = await api.chapterTrackMatch(chapters[0].id);
     expectMatches(chapterTrackMatchSchema, matched, 'mock chapter-track match, matched by name');
     expect(matched.status).toBe('matched');
@@ -1756,7 +1768,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(ambiguous.chapter).toBeNull();
 
     const linkedApi = createMockApi({}, { armedTracks: [chapter2.guid] });
-    const chapters = await linkedApi.manuscriptChapters();
+    const chapters = await ownChapters(linkedApi);
     await linkedApi.chapterTrackMapConfirm(chapter2.guid, chapters[4].id);
     const confirmed = await linkedApi.chapterSuggestion();
     expectMatches(chapterSuggestionSchema, confirmed, 'mock chapter suggestion, confirmed link');
@@ -2863,7 +2875,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the recording coverage answers: a current, a never and a stale result, a check to its end, and every refusal', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     const current = await api.coverageResult(measured.id);
@@ -2880,7 +2892,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(coverageResultSchema, stale, 'mock coverage result, stale');
     expect(stale.state).toBe('stale');
     expect(stale.recordedFraction).toBeUndefined();
-    const staleChapter = (await staleApi.manuscriptChapters()).find((chapter) => chapter.id === measured.id);
+    const staleChapter = (await ownChapters(staleApi)).find((chapter) => chapter.id === measured.id);
     expect(staleChapter?.recordedFraction).toBeUndefined();
 
     vi.useFakeTimers();
@@ -2915,7 +2927,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the model cascade names both models, gates on the re-check model, and "Check with tiny only" skips it', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
 
@@ -2943,7 +2955,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the workspace alignment shares the coverage result state and reads the chapter as tokens', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
 
@@ -2990,7 +3002,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     // A later score needs no wire change: a number beside no reason is accepted.
     expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: 0.9, confReason: null })).success).toBe(true);
 
-    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    const measured = (await ownChapters(createMockApi())).find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     // A confirmed link to a live item, so the mock times its words (as the workspace peaks row below seeds it).
     const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
@@ -3031,7 +3043,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it("the workspace peaks answer the live item's waveform, deterministically", async () => {
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = await ownChapters(createMockApi());
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     // WIRE_TRACKS_PROJECT's own "Chapter 1" track is the only one with a supported, source-available item -
@@ -3070,7 +3082,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the workspace REAPER bindings answers, every outcome and refusal', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     const alignment = await api.workspaceAlignment(measured.id);
@@ -3103,7 +3115,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it('the Takes panel bindings answer: the passage takes, their comparison and every outcome of using one', async () => {
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = await ownChapters(createMockApi());
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
@@ -3190,7 +3202,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-hide-takes-nothing.json')).toMatchObject({ ok: true, changed: false, undoSteps: 0 });
     expect(readGolden('daw-hide-takes-refused.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
 
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = await ownChapters(createMockApi());
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
@@ -3231,7 +3243,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-roll-refused-confirm.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, refused: DAW_ANSWERS.rollConfirm });
     expect(readGolden('daw-roll-refused-stale.json')).toMatchObject({ ok: false, changed: false, code: 'stale', refused: DAW_ANSWERS.rollStale });
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const rolled = await api.dawRoll(chapter.id, 40, false);
     expectMatches(dawResultSchema, rolled, 'mock roll, done');
@@ -3265,7 +3277,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-delete-range-refused-stale.json')).toMatchObject({ ok: false, changed: false, code: 'stale', refused: DAW_ANSWERS.rangeStale });
     expect(readGolden('daw-delete-range-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     for (const mode of ['close', 'gap'] as const) {
       const cut = await api.dawDeleteRange(chapter.id, 0, 0, mode, 12, 0, false);
@@ -3293,7 +3305,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-delete-range-pad-refused-close.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.cutRoomToneNeedsGap });
     expect(readGolden('daw-delete-range-pad-refused-no-room-tone.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.cutNoRoomTone });
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const cut = await api.dawDeleteRange(chapter.id, 0, 0, 'gap', 12, 100, true);
     expectMatches(dawResultSchema, cut, 'mock cut, pad and room tone');
@@ -3325,7 +3337,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     });
     expect(readGolden('daw-apply-fx-range-refused.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const added = await api.dawApplyFxToRange(chapter.id, 0, 0, chain, 10);
     expectMatches(dawResultSchema, added, 'mock chain on a range');
@@ -3386,7 +3398,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const refused = readGolden('daw-fx-range-params-refused.json') as Record<string, unknown>;
     expect(dawFxRangeSettingsSchema.safeParse({ ...refused, settings: done.settings }).success).toBe(false);
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const settings = await api.dawFxRangeParams(chapter.id, 0, 0, chain);
     expectMatches(dawFxRangeSettingsSchema, settings, 'mock settings of a chain on a range');
@@ -3429,7 +3441,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const stale = readGolden('daw-fx-range-compare-refused-stale.json') as Record<string, unknown>;
     expect(dawFxRangeCompareSchema.safeParse({ ...stale, pass: 1 }).success).toBe(false);
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const compare = await api.dawCompareFxRange(chapter.id, 0, 0, chain);
     expectMatches(dawFxRangeCompareSchema, compare, 'mock Compare of a chain on a range');
@@ -3464,7 +3476,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawFxRangeChoiceSchema.safeParse({ ...FX_CHOSEN, label: 'C:\\x' }).success).toBe(false);
     expect(dawFxRangeChoiceSchema.safeParse({ ...FX_CHOSEN, label: '' }).success).toBe(false);
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const opened = await api.dawChooseFxForRange(chapter.id, 0, 0, 10);
     expectMatches(dawResultSchema, opened, 'mock Choose');
@@ -3492,7 +3504,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-stack-steps.json')).toMatchObject({ ok: true, undoSteps: 5, steps: expect.any(Array) });
     expect(readGolden('daw-stack-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const passage = `pm-${chapter.id}-p-1`;
     const api = createMockApi({}, { daw: {} });
     const stacked = await api.dawStackTakes(chapter.id, [passage]);
@@ -3523,7 +3535,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-split-take-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
     expect(readGolden('daw-split-take-refused-capability.json')).not.toHaveProperty('code');
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const split = await api.dawSplitTake(chapter.id, 'take-twice', 15.5);
     expectMatches(dawResultSchema, split, 'mock split');
@@ -3557,7 +3569,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       { start: 4, end: 5 },
       { start: 8, end: 8.5 },
     ];
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const lowered = await api.dawReduceRangeGain(chapter.id, 'take-twice', stretches, 9);
     expectMatches(dawResultSchema, lowered, 'mock reduce range gain');
@@ -3588,7 +3600,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-trim-range-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
     expect(readGolden('daw-trim-range-refused-capability.json')).not.toHaveProperty('code');
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const trimmed = await api.dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 6);
     expectMatches(dawResultSchema, trimmed, 'mock trim range');
@@ -3624,7 +3636,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       { start: 4, end: 4.003 },
       { start: 8.5, end: 8.502 },
     ];
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     const repaired = await api.dawRepairClick(chapter.id, 'take-twice', clicks);
     expectMatches(dawResultSchema, repaired, 'mock repair click');
@@ -3816,7 +3828,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(readGolden('daw-undo-last-refused-not-last.json')).toMatchObject({ ok: false, changed: false, refused: notLastAnswer('REAPER') });
     expect(readGolden('daw-undo-last-refused-capability.json')).not.toHaveProperty('code');
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const api = createMockApi({}, { daw: {} });
     expect(await api.dawLastAction('cut_range')).toBe('other');
     expect(await api.dawUndoLast('cut_range', 1)).toEqual(readGolden('daw-undo-last-refused-not-last.json'));
@@ -3872,7 +3884,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawBackupsFileSchema.safeParse({ ...list, backups: [{ ...row, label: 'Roll\u0007' }] }).success).toBe(false);
     expect(dawBackupsFileSchema.safeParse({ ...list, backups: [{ ...row, restored: 'yesterday' }] }).success).toBe(false);
 
-    const [chapter] = await createMockApi().manuscriptChapters();
+    const [chapter] = await ownChapters(createMockApi());
     const reaper = await createMockApi().dawBackupAround(chapter.id, 140, 159, 'Roll at ¶ 3');
     expect(reaper).toEqual(readGolden('daw-backup-refused.json'));
     expect(await createMockApi().dawRestoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')).toEqual(readGolden('daw-backup-refused.json'));
@@ -4034,7 +4046,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it('the preview pin is stale when its text changes or a paragraph disappears', async () => {
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = await ownChapters(createMockApi());
     const chapter = chapters[0];
     const paragraphs = await createMockApi().manuscriptParagraphs(chapter.id);
     const paragraphId = paragraphs[0].id;
@@ -4068,7 +4080,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       },
     );
     await api.manuscriptSetChapterStatus('chapter-11', 'recording');
-    const chapters = await api.manuscriptChapters();
+    const chapters = await ownChapters(api);
     const answer = await api.stageRecommendations();
     expectMatches(stageRecommendationsSchema, answer, 'mock stage recommendations');
     expect(answer.chapters.map((chapter) => chapter.chapterId)).toEqual(chapters.map((chapter) => chapter.id));
@@ -4101,7 +4113,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const confirmed = await api.stageConfirm('chapter-4', recommended.target, recommended.basisKey);
     expectMatches(stageDecisionResultSchema, confirmed, 'mock stage confirm');
     expect(confirmed).toMatchObject({ status: 'ok', chapter: { from: 'editing', confirmation: { from: 'recording', evidenceChanged: false } } });
-    expect((await api.manuscriptChapters()).find((chapter) => chapter.id === 'chapter-4')?.status).toBe('editing');
+    expect((await ownChapters(api)).find((chapter) => chapter.id === 'chapter-4')?.status).toBe('editing');
     const reverted = await api.stageRevert('chapter-4');
     expectMatches(stageDecisionResultSchema, reverted, 'mock stage revert');
     expect(reverted).toMatchObject({ status: 'ok', chapter: { from: 'recording', verdict: 'recommended' } });
@@ -5067,7 +5079,7 @@ describe('the take evidence binding', () => {
 describe('the bookmarks bindings', () => {
   it('the mock answers BookmarksList, Add, Update and Remove through their schemas, in reading order', async () => {
     const api = createMockApi();
-    const [first, second] = await api.manuscriptChapters();
+    const [first, second] = await ownChapters(api);
     const firstLine = (await api.manuscriptParagraphs(first?.id ?? ''))[1];
     const secondLine = (await api.manuscriptParagraphs(second?.id ?? ''))[0];
     expectMatches(bookmarksSchema, await api.bookmarksList(), 'mock bookmarks list (empty)');
@@ -5089,7 +5101,7 @@ describe('the bookmarks bindings', () => {
 
   it('the mock keeps one stopping place per chapter, beside the plain bookmarks, as BookmarksSetStop does', async () => {
     const api = createMockApi();
-    const [first, second] = await api.manuscriptChapters();
+    const [first, second] = await ownChapters(api);
     const [line, nextLine] = await api.manuscriptParagraphs(first?.id ?? '');
     const otherLine = (await api.manuscriptParagraphs(second?.id ?? ''))[0];
     const plain = await api.bookmarksAdd(first?.id ?? '', line?.id ?? '', 0);
@@ -5114,7 +5126,7 @@ describe('the bookmarks bindings', () => {
 
   it('the mock refuses what the host refuses', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = await ownChapters(api);
     const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
     await expect(api.bookmarksAdd('no-such-chapter', line?.id ?? '', 0)).rejects.toThrow('not in the manuscript');
     await expect(api.bookmarksAdd(chapter?.id ?? '', 'no-such-line', 0)).rejects.toThrow('not in this chapter');
@@ -5146,7 +5158,7 @@ describe('the bookmarks bindings', () => {
 // refuses what the host refuses for want of nothing but the request, and the schemas refuse what the host never sends.
 describe('the voice samples bindings', () => {
   const requestFor = async (api: ReturnType<typeof createMockApi>, characterId: string, from = 0, to = 1): Promise<VoiceSampleMarkRequest> => {
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = await ownChapters(api);
     const [line] = await api.manuscriptParagraphs(chapter?.id ?? '');
     return {
       chapterId: chapter?.id ?? '',
@@ -5328,7 +5340,7 @@ describe('the passage map bindings', () => {
 
   it('the mock answers PassageMapRecordRun and PassageMapList through their schema, recordings in order', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = await ownChapters(api);
     const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
     const words = (line?.text.match(/\S+/g) ?? []).length;
     expectMatches(passageMapSchema, await api.passageMapList(chapter?.id ?? ''), 'mock passage map list (empty)');
@@ -5345,7 +5357,7 @@ describe('the passage map bindings', () => {
 
   it('the mock refuses what the host refuses, and keeps nothing of a refused run', async () => {
     const api = createMockApi();
-    const [chapter, other] = await api.manuscriptChapters();
+    const [chapter, other] = await ownChapters(api);
     const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
     const otherLine = (await api.manuscriptParagraphs(other?.id ?? ''))[0];
     const words = (line?.text.match(/\S+/g) ?? []).length;
@@ -5405,7 +5417,7 @@ describe('the passage map bindings', () => {
 describe('the accepted words bindings', () => {
   const firstWords = async () => {
     const api = createMockApi();
-    const [chapter, other] = await api.manuscriptChapters();
+    const [chapter, other] = await ownChapters(api);
     const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
     const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
     return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
@@ -5465,7 +5477,7 @@ describe('the accepted words bindings', () => {
 describe('the cuts bindings', () => {
   const firstLine = async () => {
     const api = createMockApi();
-    const [chapter, other] = await api.manuscriptChapters();
+    const [chapter, other] = await ownChapters(api);
     const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
     const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
     return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
@@ -5577,7 +5589,7 @@ describe('the cuts bindings', () => {
 describe('the marks bindings', () => {
   const firstLine = async () => {
     const api = createMockApi();
-    const [chapter, other] = await api.manuscriptChapters();
+    const [chapter, other] = await ownChapters(api);
     const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
     const line = lines.find((paragraph) => paragraph.text.length >= 12) ?? { id: '', text: '', index: 0 };
     return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line };
@@ -5946,7 +5958,7 @@ describe('the extraction bindings', () => {
 describe('the word effects bindings', () => {
   const firstLine = async () => {
     const api = createMockApi();
-    const [chapter, other] = await api.manuscriptChapters();
+    const [chapter, other] = await ownChapters(api);
     const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
     const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
     return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
@@ -6052,7 +6064,7 @@ describe('the stack record and retry mode bindings', () => {
   });
   const chapterOf = async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = await ownChapters(api);
     return { api, chapterId: chapter?.id ?? '' };
   };
 
@@ -6127,7 +6139,7 @@ describe('the stack record and retry mode bindings', () => {
 describe('the script prep bindings', () => {
   const firstLines = async () => {
     const api = createMockApi();
-    const [chapter, other] = await api.manuscriptChapters();
+    const [chapter, other] = await ownChapters(api);
     const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
     const wordy = lines.filter((paragraph) => /^\S{3,}\s/.test(paragraph.text));
     return {
@@ -6212,7 +6224,7 @@ describe('the script prep bindings', () => {
 
 describe('Replace audio (bindings_replace.go): the mock answers through the schemas the host goldens pass', () => {
   async function linkedMock() {
-    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    const measured = (await ownChapters(createMockApi())).find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
     const link = {

@@ -50,6 +50,10 @@ func narrationChapters(documentID string, payloads []map[string]any) []ChapterCo
 		if kind, _ := payload["contentKind"].(string); kind != "" && kind != "narration" {
 			continue
 		}
+		// The credits are chapters of the list but not assessed: they have no text to check and no stage evidence of their own.
+		if credits, _ := payload["isCredits"].(bool); credits {
+			continue
+		}
 		id, _ := payload["id"].(string)
 		title, _ := payload["title"].(string)
 		status, _ := payload["status"].(string)

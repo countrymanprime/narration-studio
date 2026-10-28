@@ -72,3 +72,18 @@ func mustChapters(t *testing.T, read func() ([]map[string]any, error)) []map[str
 	}
 	return list
 }
+
+func TestTheChapterListWithCreditsIsPinnedForTheUI(t *testing.T) {
+	service, _, _ := importReaderFixture(t)
+	service.SetCredits(func() []CreditsChapter {
+		return []CreditsChapter{{Kind: "opening", Words: 12, Status: "finalized"}, {Kind: "closing", Words: 30}}
+	})
+	service.SetRecordedLengths(func() map[string]RecordedLength {
+		return map[string]RecordedLength{OpeningCreditsID: {Seconds: 31.5}, ClosingCreditsID: {Unavailable: RecordedUnlinked}}
+	})
+	list, err := service.Chapters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin(t, "manuscript-chapters-with-credits", list)
+}

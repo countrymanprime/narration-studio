@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { openPickups } from '../pickups/list/pickupRows';
 import { onPickupListChanged } from '../pickups/pickupListChanged';
-import { CREDITS_FILE_CHAPTERS } from '../credits/creditsEntries';
 import { masterByChapter } from '../production/usePipelineSources';
 import { proofProgress } from '../proof/proof.selectors';
 
@@ -43,7 +42,7 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
     void readPickups();
     Promise.all([api.measureState(), api.manuscriptChapters()])
       .then(([job, chapters]) => {
-        const byChapter = masterByChapter([...chapters, ...CREDITS_FILE_CHAPTERS], job.files);
+        const byChapter = masterByChapter(chapters, job.files);
         set({ master: Object.values(byChapter).filter((entry) => entry.qc === 'FAIL').length });
       })
       .catch(clear('master'));
