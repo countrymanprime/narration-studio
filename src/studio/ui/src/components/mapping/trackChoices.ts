@@ -2,7 +2,28 @@ import type { ChapterTrackMatch, TrackMapping } from '../../api/contracts/chapte
 import type { Track } from '../../types';
 
 /** One track the narrator can link a chapter to: `best` is the matcher's pick, `heldBy` the chapter the track is linked to now, if another one. */
-export type TrackChoice = { guid: string; name: string; best: boolean; heldBy?: string };
+export type TrackChoice = {
+  guid: string;
+  name: string;
+  best: boolean;
+  heldBy?: string;
+  /** The track's place in the project and its REAPER folder depth; absent on a flat list, which the picker draws as a plain select. */
+  index?: number;
+  depth?: number;
+  isFolder?: boolean;
+  /** False for a folder with no audio of its own, which cannot be a link target. */
+  hasAudio?: boolean;
+  color?: string;
+};
+
+type Placed = { index: number; depth: number; isFolder: boolean; items?: readonly unknown[]; hasAudio?: boolean; color?: string };
+const placement = (t: Placed): Pick<TrackChoice, 'index' | 'depth' | 'isFolder' | 'hasAudio' | 'color'> => ({
+  index: t.index,
+  depth: t.depth,
+  isFolder: t.isFolder,
+  color: t.color ?? '',
+  hasAudio: t.hasAudio ?? (t.items?.length ?? 0) > 0,
+});
 
 const nameOf = (track: { name: string; index: number }): string => track.name || `Track ${track.index + 1}`;
 
@@ -13,12 +34,20 @@ const nameOf = (track: { name: string; index: number }): string => track.name ||
  */
 export function trackChoices(match: ChapterTrackMatch, links: readonly TrackMapping[] = [], chapterId = match.chapterId): TrackChoice[] {
   const named = new Map(match.tracks.map((t) => [t.guid, nameOf(t)]));
+  const summaries = new Map(match.tracks.map((t) => [t.guid, t]));
   const ranked = match.candidates.filter((c) => named.has(c.trackGuid)).map((c) => c.trackGuid);
   const order = [...ranked, ...match.tracks.map((t) => t.guid).filter((g) => !ranked.includes(g))];
   const best = match.status === 'ambiguous' || match.status === 'none' ? null : (match.track?.trackGuid ?? ranked[0] ?? null);
   return order.map((guid) => {
     const holder = links.find((l) => l.trackGuid === guid && l.chapterId !== chapterId);
-    return { guid, name: named.get(guid) ?? guid, best: guid === best, ...(holder ? { heldBy: holder.chapterTitle } : {}) };
+    const summary = summaries.get(guid);
+    return {
+      guid,
+      name: named.get(guid) ?? guid,
+      best: guid === best,
+      ...(summary ? placement(summary) : {}),
+      ...(holder ? { heldBy: holder.chapterTitle } : {}),
+    };
   });
 }
 
@@ -32,7 +61,7 @@ type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'
 export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string): TrackChoice[] =>
   tracks.map((t) => {
     const holder = links.find((l) => l.trackGuid === t.guid && l.chapterId !== chapterId);
-    return { guid: t.guid, name: nameOf(t), best: false, ...(holder ? { heldBy: holder.chapterTitle } : {}) };
+    return { guid: t.guid, name: nameOf(t), best: false, ...placement(t), ...(holder ? { heldBy: holder.chapterTitle } : {}) };
   });
 
 /** The track to preselect: the matcher's best, or null. */

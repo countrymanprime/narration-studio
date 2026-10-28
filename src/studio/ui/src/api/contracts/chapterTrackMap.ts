@@ -76,7 +76,7 @@ export type ChapterTrackMatch = {
   track: ChapterTrackCandidate | null;
   candidates: ChapterTrackCandidate[];
   warnings: ChapterTrackMatchWarning[];
-  tracks: Array<{ guid: string; name: string; index: number }>;
+  tracks: Array<{ guid: string; name: string; index: number; depth: number; isFolder: boolean; hasAudio: boolean }>;
   recordedEnd: RecordedEnd | null;
 };
 

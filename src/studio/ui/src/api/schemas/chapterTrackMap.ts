@@ -108,7 +108,16 @@ export const chapterTrackMatchSchema = z.object({
   track: chapterTrackCandidateSchema.nullable(),
   candidates: z.array(chapterTrackCandidateSchema),
   warnings: z.array(matchWarningSchema),
-  tracks: z.array(z.object({ guid: z.string(), name: z.string(), index: z.number().int() })),
+  tracks: z.array(
+    z.object({
+      guid: z.string(),
+      name: z.string(),
+      index: z.number().int(),
+      depth: z.number().int().nonnegative(),
+      isFolder: z.boolean(),
+      hasAudio: z.boolean(),
+    }),
+  ),
   recordedEnd: recordedEndSchema.nullable(),
 }) satisfies z.ZodType<ChapterTrackMatch>;
 

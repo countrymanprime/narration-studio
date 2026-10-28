@@ -75,7 +75,7 @@ describe('useOpenOnce', () => {
   });
 });
 
-const track = (n: number, name: string) => ({ guid: `{T-${n}}`, name, index: n - 1 });
+const track = (n: number, name: string) => ({ guid: `{T-${n}}`, name, index: n - 1, depth: 0, isFolder: false, hasAudio: true });
 const candidate = (n: number, name: string) => ({
   trackGuid: `{T-${n}}`,
   trackName: name,
