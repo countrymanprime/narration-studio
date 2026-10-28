@@ -44,6 +44,24 @@ function chapterRow(table: HTMLElement, title: string): HTMLTableRowElement {
 }
 
 describe('ChapterLinksTable', () => {
+  // The owner could not link the opening or closing credits to a track: the table listed only the manuscript's chapters, and the credits
+  // are never in that list, though the host takes their ids (credits-opening, credits-closing) in chapterTrackSet like a chapter's.
+  it('lists the opening credits first and the closing credits last, and links them to a track', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    await waitFor(() => expect(within(table).getByRole('cell', { name: 'Opening credits' })).toBeTruthy());
+    const rows = within(table).getAllByRole('row');
+    expect(within(rows[1]).getByRole('cell', { name: 'Opening credits' })).toBeTruthy();
+    expect(within(rows[rows.length - 1]).getByRole('cell', { name: 'Closing credits' })).toBeTruthy();
+
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
+  });
+
   it('lists every narration chapter as not linked when nothing is confirmed', async () => {
     renderTable();
 

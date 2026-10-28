@@ -55,3 +55,20 @@ test('Production / the header stays on screen at 390 px and says why Start sessi
   expect(start.x + start.width).toBeLessThanOrEqual(390 - 16 + 1);
   await expect(page.getByText('REAPER is not connected to this app.', { exact: false })).toHaveCount(1);
 });
+
+for (const width of [1440, 1920]) {
+  test(`Production / a long book stretches the pipeline board, not the plan chart / ${width}`, async ({ page }) => {
+    // Owner report, #2251: the schedule chart ("Recorded vs plan", with "Open schedule") scaled with the chapter list and looked horrible on a
+    // large screen; the chapter pipeline is meant to grow with the book, so only the chart is capped.
+    await page.setViewportSize({ width, height: 1080 });
+    await openProduction(page, '?mockChapters=40&mockProduction=on-pace');
+    const chart = await box(page, 'Recorded vs plan');
+    const pipeline = await box(page, 'Chapter pipeline');
+    expect(pipeline.height, 'the pipeline board keeps its natural height: 40 chapters are far taller than a screen').toBeGreaterThan(1500);
+    expect(chart.height, 'the chart card stops growing').toBeLessThanOrEqual(28 * 16 + 1);
+    expect(chart.height, 'and is still a chart, not a strip').toBeGreaterThan(260);
+  });
+}
+
+// The Rec. and Est. headers' label and info mark inside their cells is layout rule C1 (lib/layoutScan.ts), which every catalogued
+// Production state is scanned with, light and dark, at the desktop and small-desktop widths.

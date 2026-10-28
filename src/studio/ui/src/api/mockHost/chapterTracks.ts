@@ -219,10 +219,12 @@ export function createChapterTracksMock(
     chapterTrackSet: async (chapterId, trackGuid) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
-      if (!chapter) throw new Error('that chapter is not part of the current manuscript');
+      // The host's chapterTitle takes the credits ids too (mapping.go), so Set must as well.
+      const title = chapter?.title ?? CREDITS_CHECK_TITLE[chapterId];
+      if (!title) throw new Error('that chapter is not part of the current manuscript');
       if (!trackGuid) throw new Error('choose a track before linking a chapter');
       const displaced = s.chapterTrackMappings.find((existing) => existing.trackGuid === trackGuid && existing.chapterId !== chapterId) ?? null;
-      const link: TrackMapping = { trackGuid, chapterId, chapterTitle: chapter.title, confirmedAt: new Date().toISOString(), origin: 'manual', match: null };
+      const link: TrackMapping = { trackGuid, chapterId, chapterTitle: title, confirmedAt: new Date().toISOString(), origin: 'manual', match: null };
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid && existing.chapterId !== chapterId), link];
       return wireClone({ documentId: mockDocumentId, link, displaced, mappings: s.chapterTrackMappings });
     },
@@ -254,7 +256,8 @@ export function createChapterTracksMock(
     },
     chapterTrackUnlink: async (chapterId) => {
       await manuscriptReady;
-      if (!s.chapters.some((candidate) => candidate.id === chapterId)) throw new Error('that chapter is not part of the current manuscript');
+      if (!s.chapters.some((candidate) => candidate.id === chapterId) && !CREDITS_CHECK_TITLE[chapterId])
+        throw new Error('that chapter is not part of the current manuscript');
       s.chapterTrackMappings = s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId);
       return { documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) };
     },

@@ -56,6 +56,8 @@ import { addressPath } from '../../navigation/address';
 import { useJustChanged } from '../primitives/changeHighlight';
 
 const DANGER = { color: 'var(--danger-text)' };
+/** The plan chart's tallest card (owner report, #2251): it follows the chapter pipeline's height only up to here. */
+const CHART_MAX_HEIGHT = 'max-h-[28rem]';
 
 type Load = { status: 'loading' } | { status: 'ready'; overview: ProductionOverview } | { status: 'error'; message: string };
 
@@ -475,8 +477,9 @@ export function ProductionPage({
                   timer={{ running: Boolean(overview.running), starting: timer.starting, onStart: (id, stage) => void timer.start(id, stage) }}
                 />
               </Panel>
-              {/* A grid cell that takes what the column has left, so the chart card (`fill`) ends with the pipeline beside it. */}
-              <div className="grid min-h-0 flex-1">
+              {/* A grid cell that takes what the column has left, so the chart card (`fill`) ends with the pipeline beside it, up to a
+                  height (the plan chart is not worth more room than a screenful): a book of 60 chapters on a large screen must not stretch it. */}
+              <div className={`grid min-h-0 flex-1 ${CHART_MAX_HEIGHT}`}>
                 <ProgressChart
                   k={k}
                   wph={WPH}

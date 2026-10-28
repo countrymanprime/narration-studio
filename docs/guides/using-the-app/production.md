@@ -59,7 +59,7 @@ from each chapter's own progress in five parts: **Delivered** (the chapters mast
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
-already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). Above 1280 px **Recording check** and **Next up** share the right-hand column, and the chart runs down to the foot of the pipeline. In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 640 px one; **Next up** and the chart sit side by side above the pipeline, so what to do next comes before the table.
+already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). Above 1280 px **Recording check** and **Next up** share the right-hand column, and the chart runs down to the foot of the pipeline, to at most 28 rem; a long book stretches the pipeline, not the chart. In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 640 px one; **Next up** and the chart sit side by side above the pipeline, so what to do next comes before the table.
 A figure with nothing honest to work from says "Not measured yet" and why, rather than 0.
 
 ## The stage timer
@@ -105,7 +105,7 @@ open lines once it is recorded to the end (0 when none are open). **Master** and
 the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
 read says "Not measured yet". A cell's colour is the colour of its status everywhere in the app: green for done or passing, blue for under way,
 amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
-check, Proof, Pickups or Master & QC. The board is about ten rows tall: with more chapters it scrolls inside its card, with the column headers kept in view, and the table scrolls sideways in a narrow window.
+check, Proof, Pickups or Master & QC. The board grows with the chapter list, and the table scrolls sideways in a narrow window.
 
 The round chip inside the chapter's current-stage cell, beside the stage, is its [readiness](#stage-readiness). A chapter that has not started has no chip: its Prep cell's tip says the verdict instead.
 
