@@ -67,7 +67,7 @@ const notices: string[] = [];
 function mount(caps: DawCapabilities, client: Partial<DawClient> = {}) {
   const api = createMockApi({
     chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ trackGuid: 'tr', chapterId: 'chapter-1', chapterTitle: 'One', confirmedAt: '' }] }),
-    tracksList: async () => ({ path: 'book.rpp', tracks: [{ guid: 'tr', index: 0, name: 'One', color: '', muted: false, soloed: false, items: [ITEM] }] }),
+    tracksList: async () => ({ path: 'book.rpp', tracks: [{ guid: 'tr', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [ITEM] }] }),
     dawTransportSync: (action, seconds, ...until) => transport(action, seconds, ...until),
   });
   const daw: DawClient = { ...createMockDawClient(caps), capabilities: async () => caps, ...client };

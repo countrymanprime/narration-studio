@@ -1018,6 +1018,8 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
       color: '#3F6EA6',
       muted: false,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: '{7A6B5C4D-3E2F-4190-8A1B-2C3D4E5F6071}',
@@ -1041,6 +1043,8 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
       color: '',
       muted: false,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: '{8B7C6D5E-4F30-42A1-9B2C-3D4E5F607182}',
@@ -1064,6 +1068,8 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
       color: '',
       muted: true,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: '{9C8D7E6F-5041-43B2-AC3D-4E5F60718293}',
