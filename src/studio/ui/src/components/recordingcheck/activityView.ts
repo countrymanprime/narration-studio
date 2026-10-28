@@ -16,16 +16,16 @@ export const PHASE_LABEL: Record<RunPhase, string> = {
   done: 'Done',
 };
 
-export type ActivityFigure = { value: string; hint: string };
+export type FigureText = { value: string; hint: string };
 
 export type ActivityView = {
   phase: RunPhase;
   /** The first model, and the larger one when the check asks for a second look. */
   firstModel?: string;
   recheckModel?: string;
-  chunks: ActivityFigure;
-  workers: ActivityFigure;
-  recheck: ActivityFigure;
+  chunks: FigureText;
+  workers: FigureText;
+  recheck: FigureText;
   /** Whether any activity has been reported yet; false shows the panel's figures as dashes. */
   reported: boolean;
 };
@@ -56,7 +56,7 @@ function phaseOf(entries: readonly ChapterActivity[], reported: readonly Coverag
   return 'finishing';
 }
 
-function recheckFigure(rechecks: readonly CoverageRecheckActivity[], asked: boolean): ActivityFigure {
+function recheckFigure(rechecks: readonly CoverageRecheckActivity[], asked: boolean): FigureText {
   if (!asked) return { value: 'Off', hint: 'This check does not look again with a larger model.' };
   const model = rechecks[0]?.model ?? 'the larger model';
   const total = sum(rechecks.map((recheck) => recheck.total));
