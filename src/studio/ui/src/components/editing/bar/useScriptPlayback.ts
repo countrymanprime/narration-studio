@@ -185,7 +185,7 @@ export function useScriptPlayback({
             const refusal = remote ? remote.refusal(at) : 'pending';
             if (refusal === 'pending') return { ready: false, why: CHECKING, wait: true };
             if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
-            if (refusal === 'not_placed') return { ready: false, why: `That part is not in ${name}'s project.` };
+            if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
           },
           play: async (at) => {

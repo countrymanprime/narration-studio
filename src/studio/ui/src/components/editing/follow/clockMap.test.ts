@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { docAt, projectAt, projectEndAt, type ClosedCut } from './clockMap';
+import { docAt, projectAt, projectEndAt, whyNotPlaced, type ClosedCut } from './clockMap';
 
 const seg = (itemGuid: string, sourceStart: number, sourceEnd: number, elapsedStart: number): PlaylistSegment => ({
   itemGuid,
@@ -277,4 +277,20 @@ describe('projectEndAt', () => {
     expect(projectEndAt({ playlist, items }, Number.NaN)).toBeNull();
     expect(projectEndAt({ playlist: [], items }, 4)).toBeNull();
   });
+});
+
+describe('whyNotPlaced', () => {
+  const playlist = [seg('a', 0, 10, 0)];
+  const why = (items: WorkspaceItem[], t = 5): string => whyNotPlaced({ playlist, items }, t, 'REAPER');
+  it('is never asked for an item at project second 0', () => {
+    expect(projectAt({ playlist, items: [item('a', 0, 0, 10)] }, 5)).toBe(5);
+  });
+  it('names a second with no recording', () => expect(why([item('a', 0, 0, 10)], 50)).toMatch(/no recorded audio at that time/));
+  it('names an item the project does not hold at all', () => expect(why([])).toMatch(/not in REAPER's saved project/));
+  it('names an item the saved project no longer has', () => expect(why([item('a', 0, 0, 10, 1, false)])).toMatch(/not in REAPER's saved project any more/));
+  it('names an item whose place was not read', () => {
+    const unread: WorkspaceItem = { index: 0, itemGuid: 'a', live: true, length: 10 };
+    expect(why([unread])).toMatch(/has not read where the audio item sits/);
+  });
+  it('names an item trimmed short of the part', () => expect(why([item('a', 100, 0, 3)])).toMatch(/trimmed, split or moved/));
 });

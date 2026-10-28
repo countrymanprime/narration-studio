@@ -342,7 +342,18 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     await wait(10);
     expect(calls('play')).toHaveLength(0);
     expect(audio.play).toHaveBeenCalled();
-    expect(notices.join(' ')).toMatch(/not in REAPER's project\. Played in the app instead\./);
+    expect(notices.join(' ')).toMatch(/not in REAPER's saved project any more.*Played in the app instead\./);
+  });
+  // The owner's report: a chapter whose audio starts at 0:00 of the project played in the app, saying the part was not in REAPER's project.
+  it('plays a section of an item that sits at project second 0 in the DAW, not the app', async () => {
+    mount(DAW_SETUPS.reaper, undefined, [{ ...ITEMS[0], position: 0 }]);
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:3')));
+    await wait(10);
+    expect(calls('playRange')).toHaveLength(1);
+    expect(calls('playRange')[0].seconds).toBeCloseTo(t0('p-2:1') / 2, 2);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(notices.join(' ')).not.toMatch(/not in/);
   });
   it('keeps the room quiet while the DAW records: nothing plays, in the DAW or the app', async () => {
     await ready(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: true, position: 100 } } });
