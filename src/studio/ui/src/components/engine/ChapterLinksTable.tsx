@@ -3,8 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
-import { CREDITS_ID, CREDITS_NAME, creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
-import { useCreditsRows } from '../credits/useCreditsRows';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
@@ -93,17 +91,8 @@ export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { t
       .finally(() => setBusyChapterId(''));
   };
 
-  const credits = useCreditsRows(String(refreshKey ?? 0), () => undefined);
-  // The opening and closing credits are recorded like a chapter and linked through the same bindings, but the manuscript's chapter list never
-  // holds them, so they join the rows here: opening before the first chapter, closing after the last.
-  const rows = useMemo(() => {
-    const entries = creditsEntries(credits.rows, ownsOpeningCredits(chapters));
-    const asChapter = (kind: 'opening' | 'closing', index: number): ManuscriptChapter[] =>
-      entries[kind]
-        ? [{ id: CREDITS_ID[kind], title: CREDITS_NAME[kind], index, wordCount: entries[kind].words, status: entries[kind].status, contentKind: 'narration' }]
-        : [];
-    return chapterTrackRows([...asChapter('opening', -2), ...chapters, ...asChapter('closing', chapters.length + 1)], tracks, mappings);
-  }, [credits.rows, chapters, tracks, mappings]);
+  // The chapter list holds the opening and closing credits, so they are rows like any chapter.
+  const rows = useMemo(() => chapterTrackRows(chapters, tracks, mappings), [chapters, tracks, mappings]);
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
@@ -199,8 +188,7 @@ function ChapterLinkRow({
   const showPicker = picking && choices.length > 0;
   const menu: MenuItem[] = [
     // Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels.
-    // Editing and Proof open a manuscript chapter; the credits are not in their chapter lists, so their rows offer the check only.
-    ...(row.state === 'linked' && !creditsKindOfId(row.chapter.id)
+    ...(row.state === 'linked'
       ? [
           { key: 'editing', label: 'Open in Editing', onSelect: () => navigate(addressPath({ page: 'editing', chapter: row.chapter.id })) },
           { key: 'proof', label: 'Open in Proof', onSelect: () => navigate(`/proof/${encodeURIComponent(row.chapter.id)}`) },

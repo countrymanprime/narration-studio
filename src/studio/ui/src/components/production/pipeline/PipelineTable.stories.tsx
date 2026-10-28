@@ -3,8 +3,7 @@ import { expect, fn, within } from 'storybook/test';
 import { Panel } from '../../primitives/Panel';
 import { PipelineTable } from './PipelineTable';
 import { buildPipelineRows } from './pipelineRows';
-import { pipelineChapters } from './pipelineChapters';
-import { FINISHED, LONG_NAME, MID_BOOK, MID_BOOK_RECOMMENDATIONS, MID_BOOK_SOURCES, NOTHING_RECORDED } from './pipelineFixtures';
+import { FINISHED, LONG_NAME, MID_BOOK, MID_BOOK_RECOMMENDATIONS, MID_BOOK_SOURCES, MID_BOOK_WITH_CREDITS, NOTHING_RECORDED } from './pipelineFixtures';
 
 const meta = {
   title: 'Production/PipelineTable',
@@ -43,16 +42,10 @@ export const NothingRecorded: Story = { args: { rows: buildPipelineRows(NOTHING_
 // A long name wraps in its own column; the stage columns keep their width and the table scrolls inside the panel.
 export const LongChapterName: Story = { args: { rows: buildPipelineRows(LONG_NAME), recommendations: new Map() } };
 
-// The opening credits before chapter 1 and the closing credits after the last, in the one pipeline format (a dash where nothing measures the cell).
+// The opening and closing credits are chapters: before chapter 1 and after the last, in the one pipeline format (a dash where nothing measures the cell).
 export const WithCredits: Story = {
   args: {
-    rows: buildPipelineRows(
-      pipelineChapters(MID_BOOK, {
-        opening: { kind: 'opening', id: 'credits-opening', name: 'Opening credits', prep: 'prepped', status: 'finalized', words: 40, recordedSeconds: 31 },
-        closing: { kind: 'closing', id: 'credits-closing', name: 'Closing credits', prep: 'none', status: 'not_started', words: 30 },
-      }),
-      { ...MID_BOOK_SOURCES, prep: { 'credits-opening': 'prepped', 'credits-closing': 'none' } },
-    ),
+    rows: buildPipelineRows(MID_BOOK_WITH_CREDITS, { ...MID_BOOK_SOURCES, prep: { 'credits-opening': 'prepped', 'credits-closing': 'none' } }),
   },
   play: async ({ canvasElement }) => {
     const rows = within(canvasElement).getAllByRole('row').slice(1);

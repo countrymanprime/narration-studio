@@ -109,7 +109,7 @@ type Props = {
 /**
  * The Booth (the Studio Next mock's `pages/Booth.tsx`): the top bar with the chapter, progress, resume line and setup chip, the text that
  * follows the voice, the side panel's sections, and the footer with Record, the timer, the levels and the key hints. What it reads is in
- * the address (`?chapter=`, `?credits=`, `&para=&at=` for Record from here, and `&pickups=` for a pickup session opened from Pickups).
+ * the address (`?chapter=`, which also names the credits chapters, `&para=&at=` for Record from here, and `&pickups=` for a pickup session opened from Pickups).
  */
 /** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
 const PENDING_STEP_MS = 2000;
@@ -299,7 +299,7 @@ function BoothSession({
     chapter,
     credits: source.kind === 'credits' ? { kind: source.credits, text: source.preview.text } : undefined,
   });
-  const title = chapter ? headingName(chapter) : CREDITS_LABEL[source.kind === 'credits' ? source.credits : 'opening'];
+  const title = source.kind === 'credits' ? CREDITS_LABEL[source.credits] : headingName(source.chapter);
   const { entities, types, cues } = data;
   const paragraphs = useMemo(
     () =>
@@ -633,7 +633,7 @@ function BoothSession({
   // linked DAW's own input unless the narrator chose a different one.
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
-    chapterId: chapter?.id ?? '',
+    chapterId,
     chosen: session.chosenDevice,
     source: session.inputSource,
     settingsLoaded: session.settingsLoaded,

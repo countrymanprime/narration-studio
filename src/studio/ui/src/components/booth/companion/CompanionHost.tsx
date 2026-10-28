@@ -117,9 +117,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
         header={header}
         onFullApp={onFullApp}
       />
-      {recording.confirmPending && chapter && (
-        <RecordInReaperConfirm chapterTitle={chapterTitle} confirm={recording.confirm} cancel={recording.cancelConfirm} />
-      )}
+      {recording.confirmPending && <RecordInReaperConfirm chapterTitle={chapterTitle} confirm={recording.confirm} cancel={recording.cancelConfirm} />}
     </CommandScope>
   );
 }

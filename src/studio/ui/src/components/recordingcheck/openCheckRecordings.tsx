@@ -1,4 +1,3 @@
-import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { overlay as appOverlay, type OverlayService } from '../../overlay/overlayService';
 import { CheckRecordingsDialog } from './CheckRecordingsDialog';
 

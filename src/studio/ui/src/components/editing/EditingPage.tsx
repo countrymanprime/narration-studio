@@ -1,5 +1,6 @@
 import { usePrefetchPeaks } from './ribbon/useRibbonPeaks';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { isNarrationChapter } from '../../chapterKinds';
 import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
@@ -111,7 +112,7 @@ function EditingLoaded({
   useEffect(() => {
     let live = true;
     manuscript.manuscriptChapters().then(
-      (all) => live && setChapters(all.filter((c) => (c.contentKind ?? 'narration') === 'narration')),
+      (all) => live && setChapters(all.filter(isNarrationChapter)),
       (e: unknown) => live && setError(e instanceof Error ? e.message : String(e)),
     );
     return () => {

@@ -186,7 +186,8 @@ export function PickupsTable({
   const list = inScope(pickups, scope);
   const groups = groupByChapter(list, chapters);
   const tabbable = list.some((pickup) => pickup.id === selected) ? selected : (list[0]?.id ?? null);
-  const addTo = chapters.find((chapter) => chapter.id === currentChapterId) ?? chapters[0];
+  // A pickup is added to a chapter with text to re-read, so the credits are never the target.
+  const addTo = chapters.find((chapter) => chapter.id === currentChapterId && !chapter.credits) ?? chapters.find((chapter) => !chapter.credits) ?? chapters[0];
 
   const removedRun = useRef<{ count: number; at: number } | null>(null);
   /* A press on a line whose last change has not been answered is ignored: a second Remove would be refused ("not in the list") and a second Mark recorded would flip the first back. */

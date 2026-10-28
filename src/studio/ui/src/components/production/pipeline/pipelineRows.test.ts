@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { WPH } from '../../schedule/estimates';
 import { buildPipelineRows, cellName, currentColumn, NOT_MEASURED, UNDER_WAY } from './pipelineRows';
-import { chapter, MID_BOOK, MID_BOOK_SOURCES } from './pipelineFixtures';
+import { chapter, creditsChapter, MID_BOOK, MID_BOOK_SOURCES, MID_BOOK_WITH_CREDITS } from './pipelineFixtures';
 
 const rowsOf = (...args: Parameters<typeof buildPipelineRows>) => buildPipelineRows(...args);
 
@@ -240,5 +240,22 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     expect(short!.recorded.text).toBe('<0:01');
     expect(short!.estimate).toBe('—');
     expect(short!.recorded.label).toBe('Chapter 1: <0:01 recorded, no estimate');
+  });
+
+  it('lists the credits as chapters: the opening first, the closing last, drawn through the one format', () => {
+    const rows = rowsOf(MID_BOOK_WITH_CREDITS, { ...MID_BOOK_SOURCES, prep: { 'credits-opening': 'prepped' } });
+    expect(rows.map((r) => r.id)).toEqual(['credits-opening', 'c1', 'c2', 'c3', 'c4', 'c5', 'credits-closing']);
+    expect(rows[0]!.name).toBe('Opening credits');
+    expect(rows[0]!.cells.prep.kind).toBe('done');
+    expect(rows[0]!.cells.record.kind).toBe('done');
+    expect(rows[0]!.cells.master.state).toBe('not measured yet');
+  });
+
+  it('draws a credits chapter with no logged time and no readiness as a chapter without them', () => {
+    const [credits, plain] = rowsOf([
+      creditsChapter('opening', { status: 'editing', recordedSeconds: 31 }),
+      chapter('c1', { status: 'editing', recordedSeconds: 31 }),
+    ]);
+    expect(credits!.cells.edit).toEqual({ ...plain!.cells.edit, tip: expect.any(String), label: expect.any(String) });
   });
 });

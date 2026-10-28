@@ -38,8 +38,6 @@ import { RunningView } from './RunningView';
 /** The dialog's section labels: the Chapters column, Audio to check. */
 const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
 
-const NONE: readonly ManuscriptChapter[] = [];
-
 /** A start the host held because a model it needs is not installed: the first-pass model, or the larger model of a second look. */
 type ModelAsk = Extract<CoverageStartResult, { status: 'asset_required' | 'recheck_asset_required' }>;
 
@@ -55,15 +53,7 @@ type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageR
  * names the model); a missing larger model can instead be skipped with "Check with <model> only". After a single chapter's run, and from a
  * row's Show result, the dialog shows that chapter's full report (`CheckResult`); a refused chapter's row says why with the fix in place.
  */
-export function CheckRecordingsDialog({
-  preselected,
-  onClosed,
-  close,
-}: {
-  preselected: readonly string[];
-  onClosed?: () => void;
-  close: () => void;
-}) {
+export function CheckRecordingsDialog({ preselected, onClosed, close }: { preselected: readonly string[]; onClosed?: () => void; close: () => void }) {
   const manuscript = usePort('manuscript');
   const coverage = usePort('coverage');
   const whisper = usePort('whisper');
