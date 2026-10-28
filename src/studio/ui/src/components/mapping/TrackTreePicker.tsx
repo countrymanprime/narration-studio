@@ -5,7 +5,7 @@ import { Popover } from '../primitives/Popover';
 import { SearchField } from '../primitives/SearchField';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { treeKeyHandler } from '../primitives/treeKeys';
-import { IndentGuides, TrackMark, TreeCaret } from '../tracks/TreeRowParts';
+import { IndentGuides, TREE_INDENT, TrackMark, TreeCaret } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
 import type { TrackChoice } from './trackChoices';
 
@@ -184,7 +184,8 @@ export function TrackTreePicker({
   const trigger = (
     <button
       type="button"
-      aria-label={label}
+      // The name starts with what the control is for and holds the text it shows, so the visible words are part of the name.
+      aria-label={`${label}: ${chosen >= 0 ? (shownPath ? `${shownPath} / ` : '') + shownName : 'Choose a track'}`}
       className={`box-border flex h-[var(--control-height)] min-w-0 items-center gap-1 rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 text-left text-[0.88rem] text-[var(--text)] ${fullWidth ? 'w-full' : ''}`}
     >
       <span className="min-w-0 flex-1 truncate">
@@ -203,7 +204,7 @@ export function TrackTreePicker({
 
   return (
     <Popover trigger={trigger} label={label} align="start" open={open} onOpenChange={setOpen}>
-      <div ref={popup} className="space-y-2" onKeyDown={keys}>
+      <div ref={popup} className={`space-y-2 ${TREE_INDENT}`} onKeyDown={keys}>
         <SearchField label="Search tracks" placeholder="Search tracks" value={query} onChange={setQuery} onKeyDown={fromSearch} leadingIcon autoFocus />
         <div className="max-h-[min(50vh,20rem)] overflow-auto overscroll-contain">
           {bestRow && (

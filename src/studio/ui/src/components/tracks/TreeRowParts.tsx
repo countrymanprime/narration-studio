@@ -6,15 +6,18 @@ import { TooltipTarget } from '../primitives/Tooltip';
 // The pieces a track tree row is drawn from, shared by the Tracks table and the track picker so they cannot drift: the indent guides, the
 // caret, the folder icon and the colour dot.
 
-/** 1.25 rem of indent per level, one guide line each; 1rem on a narrow card. */
-const GUIDE = 'w-4 @min-[40rem]:w-5';
+/** The indent of one level, 1 rem on a narrow card and 1.25 rem on a wide one; a card sets `--g` (`TREE_INDENT`) and the guides and rows read it. */
+export const TREE_INDENT = '[--g:1rem] @min-[40rem]:[--g:1.25rem]';
 
-/** One vertical line per level above the row, level 1 having none. */
-export function IndentGuides({ level }: { level: number }) {
+/**
+ * One vertical line per level above the row, level 1 having none. In a table cell (`fill`) the lines run the cell's whole height, from the cell's
+ * edge, so they join between rows; in a list row they sit inline.
+ */
+export function IndentGuides({ level, fill = false }: { level: number; fill?: boolean }) {
   return (
-    <span aria-hidden="true" className="flex flex-none self-stretch">
+    <span aria-hidden="true" className={fill ? 'pointer-events-none absolute inset-y-0 left-4 flex' : 'flex flex-none self-stretch'}>
       {Array.from({ length: level - 1 }, (_, at) => (
-        <span key={at} className={`${GUIDE} border-l border-[var(--line)]`} />
+        <span key={at} className="w-[var(--g,1rem)] border-l border-[var(--border)]" />
       ))}
     </span>
   );

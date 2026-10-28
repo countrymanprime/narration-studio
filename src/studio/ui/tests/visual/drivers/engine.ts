@@ -107,7 +107,7 @@ export const engineDrivers: Record<string, Driver> = {
       .first()
       .getByRole('button', { name: /^Track for / })
       .click();
-    await page.getByRole('tree', { name: 'Other tracks' }).waitFor();
+    await page.getByRole('tree').first().waitFor();
   },
   'chapter-link-confirmed': async (page) => {
     // Boots with no link, so the click through Confirm below is what makes it (an unset seed boots Chapter 1 already linked).

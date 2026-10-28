@@ -2,6 +2,9 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { Panel } from './Panel';
+import { IndentGuides, TREE_INDENT, TrackMark, TreeCaret } from '../tracks/TreeRowParts';
+import { buildTrackTree, visibleNodes } from '../tracks/trackTree';
+import { treeKeyHandler } from './treeKeys';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';
 
 const ROWS = [
@@ -259,5 +262,88 @@ export const FixedColumns: Story = {
     await expect(Math.round(a.width)).toBe(112);
     await expect(Math.round(b.width)).toBe(112);
     await expect(Math.round(a.right)).toBe(Math.round(b.right));
+  },
+};
+
+const TREE_TRACKS = [
+  { guid: 'narration', index: 0, name: 'Narration', depth: 0, isFolder: true },
+  { guid: 'chapters', index: 1, name: 'Chapters', depth: 1, isFolder: true },
+  { guid: 'ch1', index: 2, name: 'Chapter 1', depth: 2, isFolder: false },
+  { guid: 'ch2', index: 3, name: 'Chapter 2', depth: 2, isFolder: false },
+  { guid: 'intro', index: 4, name: 'Intro', depth: 0, isFolder: false },
+];
+
+function TreeTable() {
+  const nodes = buildTrackTree(TREE_TRACKS);
+  const [open, setOpen] = useState(new Set(['narration', 'chapters']));
+  const [active, setActive] = useState('narration');
+  const toggle = (id: string, wanted: boolean) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (wanted) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  return (
+    <div className={`max-w-md ${TREE_INDENT}`}>
+      <Table label="Tracks" tree>
+        <TableHead>
+          <TableRow>
+            <TableHeader>Track</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody
+          onKeyDown={treeKeyHandler(toggle)}
+          onFocus={(event) => setActive((event.target as HTMLElement).closest<HTMLElement>('[data-tree-row]')?.dataset.treeRow ?? active)}
+        >
+          {visibleNodes(nodes, open).map((node) => (
+            <TableRow
+              key={node.id}
+              tree={{
+                id: node.id,
+                level: node.level,
+                posInSet: node.posInSet,
+                setSize: node.setSize,
+                expanded: node.track.isFolder ? open.has(node.id) : undefined,
+                active: node.id === active,
+              }}
+            >
+              <TableCell className="relative">
+                <IndentGuides level={node.level} fill />
+                <span className="flex items-center gap-1.5" style={{ marginLeft: `calc(var(--g) * ${node.level - 1})` }}>
+                  <TreeCaret
+                    folderName={node.track.isFolder ? node.track.name : undefined}
+                    open={open.has(node.id)}
+                    onToggle={() => toggle(node.id, !open.has(node.id))}
+                  />
+                  <TrackMark color="" folder={node.track.isFolder} open={open.has(node.id)} />
+                  {node.track.name}
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+// `Table tree`: a treegrid whose rows say their level, place and open state, with one tab stop and the WAI-ARIA tree keys: Right opens a
+// folder and steps into it, Left closes it or steps to its parent, Home and End jump.
+export const Tree: Story = {
+  render: () => <TreeTable />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('treegrid', { name: 'Tracks' })).toBeVisible();
+    const rows = () => canvas.getAllByRole('row').slice(1);
+    await expect(rows().map((row) => row.getAttribute('aria-level'))).toEqual(['1', '2', '3', '3', '1']);
+    rows()[1].focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    await expect(rows()[1]).toHaveAttribute('aria-expanded', 'false');
+    await expect(rows()).toHaveLength(3);
+    await userEvent.keyboard('{ArrowLeft}');
+    await expect(rows()[0]).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    await expect(rows()[2]).toHaveFocus();
   },
 };

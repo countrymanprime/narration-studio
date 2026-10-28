@@ -29,7 +29,7 @@ const CHOICES: TrackChoice[] = [
 
 const open = async (value = '', onChange = vi.fn()) => {
   render(<TrackSelect label="Track for Chapter 4" choices={CHOICES} value={value} onChange={onChange} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Track for Chapter 4' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Track for Chapter 4/ }));
   return onChange;
 };
 
@@ -73,7 +73,7 @@ describe('the track picker for a project with folders', () => {
 
   it('names the pick with its path in the trigger and marks it selected', async () => {
     render(<TrackSelect label="Track" choices={CHOICES} value="g-Opening credits" onChange={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Track' }).textContent).toBe('Narration / Credits / Opening credits');
+    expect(screen.getByRole('button', { name: /^Track:/ }).textContent).toBe('Narration / Credits / Opening credits');
   });
 
   it('moves from the search box into the tree with Down, and Enter picks', async () => {
