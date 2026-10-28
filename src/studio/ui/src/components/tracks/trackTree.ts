@@ -18,7 +18,7 @@ export type TreeNode<T extends TreeTrack = TreeTrack> = {
 
 export const SMALL_PROJECT = 30;
 
-export const trackId = (track: TreeTrack): string => track.guid || `#${track.index}`;
+const trackId = (track: TreeTrack): string => track.guid || `#${track.index}`;
 export const trackLabel = (track: TreeTrack): string => track.name || `Track ${track.index + 1}`;
 
 /**
