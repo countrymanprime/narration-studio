@@ -155,7 +155,7 @@ export function TrackTreePicker({
         tabIndex={row.key === tabStop ? 0 : -1}
         onFocus={() => setActive(row.key)}
         onClick={() => (blocked ? toggle(node.id, !isOpen) : pick(node))}
-        className={`flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md pr-2 text-sm hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] aria-selected:bg-[var(--row-selected)] aria-disabled:cursor-default ${blocked ? 'text-[var(--text-muted)]' : ''}`}
+        className={`flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md pr-2 text-sm hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] aria-disabled:cursor-default aria-selected:bg-[var(--row-selected)] ${blocked ? 'text-[var(--text-muted)]' : ''}`}
       >
         {!searching && <IndentGuides level={row.level} />}
         {!searching && (
@@ -173,7 +173,7 @@ export function TrackTreePicker({
             trackLabel(node.track)
           )}
         </span>
-        {note && <span className="max-w-[45%] flex-none text-right text-xs text-[var(--text-muted)] [overflow-wrap:anywhere]">{note}</span>}
+        {note && <span className="max-w-[45%] flex-none text-right text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{note}</span>}
         {selected && <FontAwesomeIcon icon={faCheck} className="flex-none text-xs" aria-hidden="true" />}
       </li>
     );
