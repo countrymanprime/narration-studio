@@ -2448,8 +2448,8 @@
   {
     "name": "stop_play stops a recording too",
     "file": "narration_transport.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  if reaper.GetPlayState() > 0 then\n    reaper.OnStopButton()",
-    "replace": "  if reaper.GetPlayState() > 0 then\n    reaper.OnStopButton()"
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  release_isolation(state)\n  if reaper.GetPlayState() > 0 then\n    reaper.OnStopButton()",
+    "replace": "  release_isolation(state)\n  if reaper.GetPlayState() > 0 then\n    reaper.OnStopButton()"
   },
   {
     "name": "set_cursor seeks playback",
@@ -2844,13 +2844,13 @@
   {
     "name": "play_range plays over a recording",
     "file": "narration_transport.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)",
-    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)"
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local track, why = track_for_play(track_text, start)",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local track, why = track_for_play(track_text, start)"
   },
   {
     "name": "play_from keeps the stretch an earlier play_range set",
     "file": "narration_transport.lua",
-    "find": "local function play_from(session_dir, state, run_id, text, track_text)\n  drop_range(state)",
+    "find": "local function play_from(session_dir, state, run_id, text, track_text)\n  state.range = nil",
     "replace": "local function play_from(session_dir, state, run_id, text, track_text)"
   },
   {
@@ -2886,13 +2886,13 @@
   {
     "name": "a recording that starts during the stretch keeps it",
     "file": "narration_transport.lua",
-    "find": "if play_state % 2 ~= 1 or play_state >= 4 then",
-    "replace": "if play_state % 2 ~= 1 then"
+    "find": "if play_state % 2 ~= 1 or play_state >= 4 then\n    drop_range(state)",
+    "replace": "if play_state % 2 ~= 1 then\n    drop_range(state)"
   },
   {
     "name": "a play naming a track plays it though the track has no audio there",
     "file": "narration_transport.lua",
-    "find": "  if not plays_at(track, at) then",
+    "find": "  if not plays_at(track, start) then",
     "replace": "  if false then"
   },
   {
@@ -2904,7 +2904,7 @@
   {
     "name": "the narrator's selection and solos are never put back",
     "file": "narration_transport.lua",
-    "find": "  put_back(rows)\n  os.remove(isolation_path())\n  return true",
+    "find": "  local left = put_back(rows)\n  if #left > 0 then\n    save_isolation(left)\n    state.recovered = false\n  else\n    os.remove(isolation_path())\n  end\n  return true",
     "replace": "  os.remove(isolation_path())\n  return true"
   },
   {
@@ -2924,5 +2924,47 @@
     "file": "narration_transport.lua",
     "find": "      if reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == row.set_solo then",
     "replace": "      if true then"
+  },
+  {
+    "name": "a play names a track that is not in the project and plays anyway",
+    "file": "narration_transport.lua",
+    "find": "  local track = find_track(guid_text)\n  if not track then\n    return false, NO_TRACK",
+    "replace": "  local track = find_track(guid_text)\n  if false then\n    return false, NO_TRACK"
+  },
+  {
+    "name": "a muted linked track stays muted for its play",
+    "file": "narration_transport.lua",
+    "find": "      row.set_mute = 0\n",
+    "replace": "      row.set_mute = row.mute\n"
+  },
+  {
+    "name": "the narrator's track selection is not put back",
+    "file": "narration_transport.lua",
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetTrackSelected(track, row.selected)",
+    "replace": "      if false then\n        reaper.SetTrackSelected(track, row.selected)"
+  },
+  {
+    "name": "the isolation file is left behind after everything is put back",
+    "file": "narration_transport.lua",
+    "find": "  else\n    os.remove(isolation_path())\n  end\n  return true",
+    "replace": "  else\n    local _ = isolation_path()\n  end\n  return true"
+  },
+  {
+    "name": "a new isolation does not let go of the one before it",
+    "file": "narration_transport.lua",
+    "find": "  recover_isolation(state)\n  release_isolation(state)",
+    "replace": "  recover_isolation(state)"
+  },
+  {
+    "name": "a plain play_range leaves an earlier isolation in place",
+    "file": "narration_transport.lua",
+    "find": "  else\n    release_isolation(state)\n  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)",
+    "replace": "  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)"
+  },
+  {
+    "name": "an isolation that cannot be written is applied anyway",
+    "file": "narration_transport.lua",
+    "find": "  if not save_isolation(rows) then\n    return false\n  end",
+    "replace": "  save_isolation(rows)"
   }
 ]

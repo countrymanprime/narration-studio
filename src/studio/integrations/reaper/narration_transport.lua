@@ -5,7 +5,7 @@
 -- narration_track_state.lua; this file holds only the commands that change the transport or the arms.
 --
 -- The same file holds the five commands of the Editing page's transport sync (docs/design/editing-daw-transport-sync.md and
--- docs/design/play-a-range-in-the-daw.md): set_cursor, play_from, play_range, stop_play and watch_transport. None adds an undo point or selects a track, and none touches a
+-- docs/design/play-a-range-in-the-daw.md): set_cursor, play_from, play_range, stop_play and watch_transport. None adds an undo point, and none touches a
 -- recording (each answers 'REAPER is recording. Stop recording first.'). set_cursor moves the edit cursor and never seeks
 -- playback. play_from puts the cursor at a time and starts the transport from it (a playing REAPER is seeked, a paused one
 -- is stopped first so Play starts at the time). play_range does the same for a stretch (start, end, project seconds) and stops REAPER
@@ -200,6 +200,189 @@ local function seconds_from(text)
 end
 local RECORDING = 'REAPER is recording. Stop recording first.'
 
+-- Playing only the chapter's track (the Editing page names it): a play that names a track GUID selects that track, solos it in place (REAPER keeps the
+-- tracks it routes to, its folder parents and the master audible, and silences the rest, so the sound is the linked track and nothing else) and puts
+-- everything back when the play ends. The narrator's selection and solos, and the track's mute, are remembered first; a value is put back only where it
+-- is still what the isolation left, so a change the narrator made meanwhile is kept. The remembered state is also written to a file in REAPER's
+-- resource folder, so a REAPER that was closed or crashed mid-play is put right by the next bridge tick instead of staying soloed.
+local ISOLATION_FILE = 'narration_play_isolation.txt'
+local SOLO_IN_PLACE = 2
+local function isolation_path()
+  return core.join(reaper.GetResourcePath(), ISOLATION_FILE)
+end
+
+local function flag(value)
+  return value ~= 0
+end
+
+-- Puts back what the isolation changed. Answers the rows whose track REAPER could not find (the narrator switched to another project tab), which are kept
+-- on disk and tried again.
+local function put_back(rows)
+  local unresolved = {}
+  for _, row in ipairs(rows) do
+    local track = find_track(row.guid)
+    if not track then
+      unresolved[#unresolved + 1] = row
+    else
+      if reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == row.set_solo then
+        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.solo)
+      end
+      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then
+        reaper.SetTrackSelected(track, row.selected)
+      end
+      if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then
+        reaper.SetMediaTrackInfo_Value(track, 'B_MUTE', row.mute)
+      end
+    end
+  end
+  return unresolved
+end
+
+local save_isolation
+local function release_isolation(state)
+  local rows = state.isolated
+  state.isolated = nil
+  if not rows then
+    return false
+  end
+  local left = put_back(rows)
+  if #left > 0 then
+    save_isolation(left)
+    state.recovered = false
+  else
+    os.remove(isolation_path())
+  end
+  return true
+end
+
+save_isolation = function(rows)
+  local out = io.open(isolation_path(), 'w')
+  if not out then
+    return false
+  end
+  for _, row in ipairs(rows) do
+    out:write(table.concat({
+      row.guid, row.solo, row.set_solo, row.selected and 1 or 0, row.set_selected and 1 or 0, row.mute or '', row.set_mute or '',
+    }, '\t'), '\n')
+  end
+  out:close()
+  return true
+end
+
+-- Reads the file a closed or crashed REAPER left and puts those tracks back; once per bridge start.
+local function recover_isolation(state)
+  if state.recovered then
+    return
+  end
+  state.recovered = true
+  local input = io.open(isolation_path(), 'r')
+  if not input then
+    return
+  end
+  if state.isolated then
+    -- An isolation of this bridge is in place and has written its own file; that file is not a leftover.
+    input:close()
+    return
+  end
+  local rows = {}
+  for line in input:lines() do
+    local guid, solo, set_solo, selected, set_selected, mute, set_mute = line:match('^([^\t]+)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)$')
+    if guid and tonumber(solo) and tonumber(set_solo) then
+      rows[#rows + 1] = {
+        guid = guid, solo = tonumber(solo), set_solo = tonumber(set_solo), selected = selected == '1', set_selected = set_selected == '1',
+        mute = tonumber(mute), set_mute = tonumber(set_mute),
+      }
+    end
+  end
+  input:close()
+  local left = put_back(rows)
+  if #left > 0 then
+    -- Their project is not the one in front (or not open yet): keep them and look again on a later tick.
+    save_isolation(left)
+    state.recovered = false
+  else
+    os.remove(isolation_path())
+  end
+end
+
+-- Whether `track` has an item playing at project second `at`: the chapter's own audio is what the page asked for.
+local function plays_at(track, at)
+  for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+    local item = reaper.GetTrackMediaItem(track, index)
+    local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+    if position <= at + 1e-6 and at < position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH') then
+      return true
+    end
+  end
+  return false
+end
+
+local NO_TRACK = "The chapter's track is not in the REAPER project."
+local NO_ISOLATION = "The chapter's track could not be soloed because REAPER's resource folder is not writable, so nothing was played."
+local NO_AUDIO_THERE = "The chapter's track has no audio at that time in the REAPER project."
+
+-- Resolves the track a play names. Answers nil, nil for a play that names none (it plays the project as it is), the track when it is there and
+-- has audio at `start`, and false plus the sentence when it is not: nothing has been changed yet, so the page can say so and play in the app.
+local function track_for_play(guid_text, start)
+  if guid_text == nil or guid_text == '' then
+    return nil, nil
+  end
+  local track = find_track(guid_text)
+  if not track then
+    return false, NO_TRACK
+  end
+  if not plays_at(track, start) then
+    return false, NO_AUDIO_THERE
+  end
+  return track, nil
+end
+
+-- Selects `track` and silences every other track (solo in place), remembering what to put back. Replaces an isolation already in place.
+local function isolate(state, track)
+  -- A file left by an earlier REAPER is put right before this isolation writes its own.
+  recover_isolation(state)
+  release_isolation(state)
+  local rows = {}
+  for _, other in ipairs(tracks()) do
+    local chosen = other == track
+    local row = {
+      guid = track_guid(other),
+      solo = reaper.GetMediaTrackInfo_Value(other, 'I_SOLO'),
+      selected = flag(reaper.GetMediaTrackInfo_Value(other, 'I_SELECTED')),
+      set_solo = chosen and SOLO_IN_PLACE or 0,
+      set_selected = chosen,
+    }
+    if chosen then
+      row.mute = reaper.GetMediaTrackInfo_Value(other, 'B_MUTE')
+      row.set_mute = 0
+    end
+    rows[#rows + 1] = row
+  end
+  if not save_isolation(rows) then
+    return false
+  end
+  state.isolated = rows
+  for index, other in ipairs(tracks()) do
+    local row = rows[index]
+    if reaper.GetMediaTrackInfo_Value(other, 'I_SOLO') ~= row.set_solo then
+      reaper.SetMediaTrackInfo_Value(other, 'I_SOLO', row.set_solo)
+    end
+    if flag(reaper.GetMediaTrackInfo_Value(other, 'I_SELECTED')) ~= row.set_selected then
+      reaper.SetTrackSelected(other, row.set_selected)
+    end
+    if row.set_mute ~= nil and row.mute ~= row.set_mute then
+      reaper.SetMediaTrackInfo_Value(other, 'B_MUTE', row.set_mute)
+    end
+  end
+  return true
+end
+
+-- Drops the stretch being played and whatever was silenced for it.
+local function drop_range(state)
+  state.range = nil
+  release_isolation(state)
+end
+
 local function set_cursor(session_dir, run_id, text)
   local seconds = seconds_from(text)
   if not seconds then
@@ -217,7 +400,7 @@ end
 
 -- The stretch play_range is playing, or nil (kept in the module's state, which the registered handlers share): any other play, a stop or a newer
 -- stretch replaces it, and REAPER stopped by the narrator drops it.
-local function play_from(session_dir, state, run_id, text)
+local function play_from(session_dir, state, run_id, text, track_text)
   state.range = nil
   local seconds = seconds_from(text)
   if not seconds then
@@ -227,6 +410,20 @@ local function play_from(session_dir, state, run_id, text)
   if recording() then
     event(session_dir, 'ERROR', run_id, RECORDING)
     return
+  end
+  local track, why = track_for_play(track_text, seconds)
+  if track == false then
+    event(session_dir, 'ERROR', run_id, why)
+    return
+  end
+  -- The isolation of an earlier play is let go only now the new play is accepted: a refused one leaves the running play as it was.
+  if track then
+    if not isolate(state, track) then
+      event(session_dir, 'ERROR', run_id, NO_ISOLATION)
+      return
+    end
+  else
+    release_isolation(state)
   end
   local play_state = reaper.GetPlayState()
   if play_state % 2 == 1 then
@@ -248,6 +445,7 @@ local function stop_play(session_dir, state, run_id)
     event(session_dir, 'ERROR', run_id, RECORDING)
     return
   end
+  release_isolation(state)
   if reaper.GetPlayState() > 0 then
     reaper.OnStopButton()
   end
@@ -266,7 +464,7 @@ local RANGE_CURSOR_EPSILON = 0.01
 
 -- Plays the project from `start` and stops it at `end`, both project seconds: the DAW's own transport, so its sound is the project's with the
 -- narrator's FX chain. The stop is range_tick's, one tick after the play head passes the end, so it does not wait on the app.
-local function play_range(session_dir, state, run_id, start_text, end_text)
+local function play_range(session_dir, state, run_id, start_text, end_text, track_text)
   local start, stop = seconds_from(start_text), seconds_from(end_text)
   if not start or not stop or stop <= start or stop - start > MAX_RANGE_SECONDS then
     event(session_dir, 'ERROR', run_id, 'The stretch to play is not a usable pair of times.')
@@ -275,6 +473,19 @@ local function play_range(session_dir, state, run_id, start_text, end_text)
   if recording() then
     event(session_dir, 'ERROR', run_id, RECORDING)
     return
+  end
+  local track, why = track_for_play(track_text, start)
+  if track == false then
+    event(session_dir, 'ERROR', run_id, why)
+    return
+  end
+  if track then
+    if not isolate(state, track) then
+      event(session_dir, 'ERROR', run_id, NO_ISOLATION)
+      return
+    end
+  else
+    release_isolation(state)
   end
   local play_state = reaper.GetPlayState()
   if play_state % 2 == 1 then
@@ -299,7 +510,7 @@ local function range_tick(state)
   end
   local play_state = reaper.GetPlayState()
   if play_state % 2 ~= 1 or play_state >= 4 then
-    state.range = nil
+    drop_range(state)
     return
   end
   local head = reaper.GetPlayPosition() or 0
@@ -307,7 +518,7 @@ local function range_tick(state)
   -- Another feature's play (Compare's pass, a navigation play) sets the cursor to its own start and presses Play without telling this module. A cursor
   -- that is no longer at the start, with a play head nowhere near the stretch, is that: the stretch is dropped, so it never stops a play it did not start.
   if not near and math.abs(reaper.GetCursorPosition() - range.start) > RANGE_CURSOR_EPSILON then
-    state.range = nil
+    drop_range(state)
     return
   end
   -- The head has arrived once it is read inside the stretch. A reading at or past the end is never an arrival: right after a seek REAPER can still
@@ -316,8 +527,19 @@ local function range_tick(state)
     range.arrived = true
   end
   if (range.arrived and head >= range.stop) or reaper.time_precise() >= range.deadline then
-    state.range = nil
+    drop_range(state)
     reaper.OnStopButton()
+  end
+end
+
+-- One tick of a track isolated by a play with no stretch (play_from): put back once REAPER does not play any more.
+local function isolation_tick(state)
+  if not state.isolated then
+    return
+  end
+  local play_state = reaper.GetPlayState()
+  if play_state % 2 ~= 1 or play_state >= 4 then
+    release_isolation(state)
   end
 end
 
@@ -562,10 +784,10 @@ return function(registry)
     set_cursor(ctx.session_dir, args[1] or '', args[2] or '')
   end)
   registry.register('play_from', function(ctx, args)
-    play_from(ctx.session_dir, state, args[1] or '', args[2] or '')
+    play_from(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '')
   end)
   registry.register('play_range', function(ctx, args)
-    play_range(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '')
+    play_range(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
   end)
   registry.register('stop_play', function(ctx, args)
     stop_play(ctx.session_dir, state, args[1] or '')
@@ -575,7 +797,9 @@ return function(registry)
   end)
   -- Called by the tick loop (narration_ui_bridge.lua) once a tick after the commands.
   registry.transport_watch_tick = function(ctx)
+    recover_isolation(state)
     range_tick(state)
+    isolation_tick(state)
     watch_tick(ctx.session_dir, state)
   end
   -- The recording this bridge started, or nil: narration_roll.lua restarts only that one (docs/reference/daw/capabilities.md).
