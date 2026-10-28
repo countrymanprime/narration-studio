@@ -136,6 +136,8 @@ const summarizeTrack = (track: Track, mappings: TrackMapping[]): ChapterTrackSum
     color: track.color,
     muted: track.muted,
     soloed: track.soloed,
+    depth: track.depth,
+    isFolder: track.isFolder,
     itemCount: track.items.length,
     playableCount: track.items.filter((item) => item.sourceAvailable && item.supported).length,
     missingSourceCount: track.items.filter((item) => !item.sourceAvailable).length,

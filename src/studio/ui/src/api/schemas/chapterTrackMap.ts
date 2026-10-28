@@ -145,6 +145,8 @@ const chapterTrackSummarySchema = z.object({
   color: z.string(),
   muted: z.boolean(),
   soloed: z.boolean(),
+  depth: z.number().int().nonnegative(),
+  isFolder: z.boolean(),
   itemCount: z.number().int().nonnegative(),
   playableCount: z.number().int().nonnegative(),
   missingSourceCount: z.number().int().nonnegative(),

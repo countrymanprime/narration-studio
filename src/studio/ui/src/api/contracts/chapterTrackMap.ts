@@ -170,6 +170,9 @@ export type ChapterTrackSummary = {
   color: string;
   muted: boolean;
   soloed: boolean;
+  /** Folders the track sits inside, and whether it is a folder parent (see Track). */
+  depth: number;
+  isFolder: boolean;
   itemCount: number;
   playableCount: number;
   missingSourceCount: number;
