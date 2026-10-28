@@ -33,6 +33,20 @@ type AlignmentItem struct {
 	Length      float64 `json:"length,omitempty"`
 }
 
+// MarshalJSON sends Position and Length whenever the item is live. A zero is a real answer there (an item at the very start of the project),
+// and a field dropped as "empty" reads on the page as an item with no place, which sent the first stretch of a chapter to the app's own audio.
+func (a AlignmentItem) MarshalJSON() ([]byte, error) {
+	type plain AlignmentItem
+	if !a.Live {
+		return json.Marshal(plain(a))
+	}
+	return json.Marshal(struct {
+		plain
+		Position float64 `json:"position"`
+		Length   float64 `json:"length"`
+	}{plain(a), a.Position, a.Length})
+}
+
 // AlignmentView is a chapter's stored word alignment as the WorkspaceAlignment binding sends it: the same
 // state, reasons and basis CoverageResult answers (an alignment is only ever
 // as current as the coverage result it was written with), the chapter's

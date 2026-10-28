@@ -369,3 +369,23 @@ func closeWord(got, want ExtraWord) bool {
 	return got.Text == want.Text && got.Item == want.Item && near(got.Start, want.Start) && near(got.End, want.End) &&
 		got.Added == want.Added && got.Timing == want.Timing && got.Conf == nil && got.ConfReason == want.ConfReason
 }
+
+// An item at the very start of the project (position 0) is still placed: the Editing page treats a live item without a position as one the DAW
+// cannot play, so it would play the chapter's first stretch in the app and say it is not in the DAW project (the owner's report).
+func TestAlignmentItemAtProjectStartKeepsItsPosition(t *testing.T) {
+	live, err := json.Marshal(AlignmentItem{Index: 0, ItemGUID: "{A}", Live: true, Position: 0, Length: 30})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(live, &got); err != nil {
+		t.Fatal(err)
+	}
+	if pos, ok := got["position"]; !ok || pos != float64(0) {
+		t.Fatalf("a live item at 0 s lost its position: %s", live)
+	}
+	gone, _ := json.Marshal(AlignmentItem{Index: 1, ItemGUID: "{B}"})
+	if string(gone) != `{"index":1,"itemGuid":"{B}","live":false}` {
+		t.Fatalf("an item the saved project no longer has carries only its identity: %s", gone)
+	}
+}
