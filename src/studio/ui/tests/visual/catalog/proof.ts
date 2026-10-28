@@ -80,6 +80,20 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'check-checking-none',
+    description:
+      'Proof, Chapter 4 while its recording check runs with nothing in doubt (?mockCoverage=hold-none): the activity panel shows the first pass done, workers idle and the Re-check figure reading "None needed"',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'check-checking-all',
+    description:
+      'Proof, Chapter 4 while its recording check runs with so much in doubt that the larger model redoes whole recordings (?mockCoverage=hold-all): the activity panel shows the Re-check figure partway through every chunk',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'note-thread',
     description:
       "Proof, all chapters, the first note with a thread: a note of your own and a proofer's reply under Notes on this finding, with Proofer replied chosen for the next one",

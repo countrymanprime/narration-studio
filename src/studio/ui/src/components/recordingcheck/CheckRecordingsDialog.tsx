@@ -34,6 +34,8 @@ import { RunOptions } from './RunOptions';
 import { findProblem, startChoices, startOptions } from './runChoices';
 import type { RunChoices } from './runChoices';
 import { RunningView } from './RunningView';
+import { CheckActivityPanel } from './CheckActivityPanel';
+import { summarizeActivity } from './activityView';
 
 /** The dialog's section labels: the Chapters column, Audio to check. */
 const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
@@ -85,6 +87,8 @@ export function CheckRecordingsDialog({
   // The chapter whose full result is shown instead of the form, and why its result could not be read again.
   const [viewing, setViewing] = useState<string>();
   const [viewError, setViewError] = useState('');
+  // When the run that produced the shown result ended, so its activity panel's clock stops there.
+  const [endedAt, setEndedAt] = useState<number>();
   const [ask, setAsk] = useState<ModelAsk>();
   const requested = useRef(new Set<string>());
   const reported = useRef(false);
@@ -127,9 +131,9 @@ export function CheckRecordingsDialog({
     () =>
       coverage.subscribeCoverage((state) => {
         if (!state.runId) return;
-        if (state.phase === 'running') dispatch({ type: 'progress', runId: state.runId, percent: state.percent });
+        if (state.phase === 'running') dispatch({ type: 'progress', runId: state.runId, percent: state.percent, pass: state.pass, activity: state.activity });
         else if (state.phase === 'complete' || state.phase === 'cancelled' || state.phase === 'failed')
-          dispatch({ type: 'ended', runId: state.runId, phase: state.phase, message: state.message });
+          dispatch({ type: 'ended', runId: state.runId, phase: state.phase, message: state.message, activity: state.activity });
       }),
     [coverage],
   );
@@ -168,6 +172,7 @@ export function CheckRecordingsDialog({
       // One chapter checked: its full result, in place of the form, which says more than a message would.
       if (run.step === 'done' && run.ids.length === 1 && run.finished.length === 1) {
         setLoaded(merged);
+        setEndedAt(Date.now());
         setViewing(run.finished[0]);
         return;
       }
@@ -188,7 +193,7 @@ export function CheckRecordingsDialog({
     setRefusedWhy({});
     setCleared(new Set());
     setViewing(undefined);
-    dispatch({ type: 'begin', ids: runIds, limit: choicesRef.current?.chapters ?? 1 });
+    dispatch({ type: 'begin', ids: runIds, limit: choicesRef.current?.chapters ?? 1, at: Date.now() });
   }, []);
 
   // The model's download, asked for when a start was held for it; once installed, the same chapters start again.
@@ -322,6 +327,15 @@ export function CheckRecordingsDialog({
       <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3">
         <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3 overflow-y-auto">
           <h3 className={`m-0 ${SECTION_LABEL}`}>{headingName(shown)}</h3>
+          {run.seen[shown.id] && endedAt !== undefined ? (
+            <CheckActivityPanel
+              view={summarizeActivity([{ activity: run.seen[shown.id], running: false }])}
+              percent={100}
+              startedAt={run.startedAt}
+              ticking={false}
+              now={() => endedAt}
+            />
+          ) : null}
           <CheckResult
             chapter={shown}
             result={result}

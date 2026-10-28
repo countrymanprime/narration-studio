@@ -28,6 +28,24 @@ async function openChapter(page: Page, chapterTitle: string): Promise<void> {
   await page.getByText('Recording check', { exact: true }).waitFor();
 }
 
+// A recording check held at its last transcribing step (?mockCoverage=<seed>), so the dialog reads the same at every viewport; it stays open while it runs.
+async function checkHeld(page: Page, seed: 'hold' | 'hold-none' | 'hold-all'): Promise<void> {
+  await openProof(page, `mockCoverage=${seed}`);
+  await openChapter(page, 'Chapter 4');
+  await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .getByRole('button', { name: /^Check / })
+    .last()
+    .click();
+  await dialog.getByText(/^Checking with /).waitFor();
+  await dialog
+    .getByRole('region', { name: 'Check activity' })
+    .getByLabel(/^Chunks: 8 of 8/)
+    .waitFor();
+  await page.getByText('Checking the recording against the script…').waitFor({ state: 'attached' });
+}
+
 export const proofDrivers: Record<string, Driver> = {
   'address-checking': async (page) => {
     await openCheckingLink(page, '/proof?chapter=gone');
@@ -125,19 +143,9 @@ export const proofDrivers: Record<string, Driver> = {
     await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
     await page.getByRole('dialog').getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
-  'check-checking': async (page) => {
-    await openProof(page, 'mockCoverage=hold');
-    await openChapter(page, 'Chapter 4');
-    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
-    const dialog = page.getByRole('dialog');
-    await dialog
-      .getByRole('button', { name: /^Check / })
-      .last()
-      .click();
-    // The run holds at its last step (?mockCoverage=hold), so the dialog reads the same at every viewport; it stays open while it runs.
-    await dialog.getByText(/^Checking with /).waitFor();
-    await page.getByText('Checking the recording against the script…').waitFor({ state: 'attached' });
-  },
+  'check-checking': async (page) => checkHeld(page, 'hold'),
+  'check-checking-none': async (page) => checkHeld(page, 'hold-none'),
+  'check-checking-all': async (page) => checkHeld(page, 'hold-all'),
   'notes-filtered': async (page) => {
     await openProof(page, 'mockChapterLink=none');
     await notes(page)

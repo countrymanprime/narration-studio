@@ -120,3 +120,33 @@ describe('runReducer several at a time', () => {
     expect(s).toMatchObject({ step: 'stopped', active: {} });
   });
 });
+
+describe('runReducer activity', () => {
+  const activity = (done: number, busy: number) => ({
+    requested: 0,
+    items: { total: 1, done: 0 },
+    firstPass: { model: 'small', workers: 2, busy, total: 8, done, final: true },
+  });
+
+  it('keeps the latest activity of a chapter, and its last counts with nothing busy after it ends', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a'], at: 1000 }, { type: 'answered', id: 'a', answer: started('r1') });
+    s = apply(s, { type: 'progress', runId: 'r1', percent: 30, pass: 'first_pass', activity: activity(3, 2) });
+    expect(s.active.a).toMatchObject({ pass: 'first_pass', activity: { firstPass: { done: 3, busy: 2 } } });
+    expect(s.startedAt).toBe(1000);
+    s = apply(s, { type: 'ended', runId: 'r1', phase: 'complete', message: '', activity: activity(8, 2) });
+    expect(s.seen.a.firstPass).toMatchObject({ done: 8, busy: 0 });
+  });
+
+  it.each(['cancelled', 'failed'] as const)('keeps what a %s chapter had done', (phase) => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a'] }, { type: 'answered', id: 'a', answer: started('r1') });
+    s = apply(s, { type: 'progress', runId: 'r1', percent: 30, activity: activity(5, 2) }, { type: 'ended', runId: 'r1', phase, message: 'x' });
+    expect(s.seen.a.firstPass).toMatchObject({ done: 5, busy: 0 });
+    expect(s.finished).toEqual([]);
+  });
+
+  it('starts a new run with nothing seen', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a'] }, { type: 'answered', id: 'a', answer: started('r1') });
+    s = apply(s, { type: 'progress', runId: 'r1', percent: 30, activity: activity(5, 2) });
+    expect(apply(s, { type: 'begin', ids: ['a'] }).seen).toEqual({});
+  });
+});

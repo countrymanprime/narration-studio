@@ -1,10 +1,10 @@
-import type { CoverageStartResult } from '../../api/contracts/coverage';
+import type { CoverageActivity, CoveragePass, CoverageStartResult } from '../../api/contracts/coverage';
 
 /** One chapter that has been handed to the host: waiting for its start to be answered, or running with the run id that names its events. */
-type ActiveRun = { phase: 'starting' | 'running'; runId?: string; percent: number };
+type ActiveRun = { phase: 'starting' | 'running'; runId?: string; percent: number; pass?: CoveragePass; activity?: CoverageActivity };
 
 /** A run's end, kept when it arrives before the start's answer does (the host sends the state event first). */
-type EarlyEnd = { phase: 'complete' | 'cancelled' | 'failed'; message: string };
+type EarlyEnd = { phase: 'complete' | 'cancelled' | 'failed'; message: string; activity?: CoverageActivity };
 
 /**
  * The run of a set of chapters, up to `limit` at a time. The host runs one check per chapter and answers `busy` past the limit
@@ -27,18 +27,22 @@ export type RunState = {
   early: Readonly<Record<string, EarlyEnd | undefined>>;
   /** How many chapters were in progress when the run was stopped, for what the dialog says about them. */
   interrupted: number;
+  /** The last activity the host reported for each chapter of the run, kept after the chapter ends so the activity panel can total the run and the result can show what it did. */
+  seen: Readonly<Record<string, CoverageActivity>>;
+  /** When the run began (ms since the epoch, from the action), for the panel's elapsed time. */
+  startedAt?: number;
 };
 
 export type RunAction =
-  | { type: 'begin'; ids: readonly string[]; limit?: number }
+  | { type: 'begin'; ids: readonly string[]; limit?: number; at?: number }
   | { type: 'answered'; answer: CoverageStartResult; id: string }
-  | { type: 'progress'; runId: string; percent: number }
-  | { type: 'ended'; runId: string; phase: 'complete' | 'cancelled' | 'failed'; message: string }
+  | { type: 'progress'; runId: string; percent: number; pass?: CoveragePass; activity?: CoverageActivity }
+  | { type: 'ended'; runId: string; phase: 'complete' | 'cancelled' | 'failed'; message: string; activity?: CoverageActivity }
   | { type: 'stop' }
   /** A start the host held for a model download: the run goes back to idle, nothing started and nothing to report, so the dialog can ask. */
   | { type: 'halt' };
 
-export const idleRun: RunState = { ids: [], limit: 1, next: 0, step: 'idle', active: {}, messages: {}, finished: [], early: {}, interrupted: 0 };
+export const idleRun: RunState = { ids: [], limit: 1, next: 0, step: 'idle', active: {}, messages: {}, finished: [], early: {}, interrupted: 0, seen: {} };
 
 /** Hands chapters to the host while there is room, and finishes the run when none is left. */
 function fill(state: RunState): RunState {
@@ -64,7 +68,16 @@ const without = <T>(record: Readonly<Record<string, T>>, key: string): Record<st
 /** The chapter id of the active run with this run id. */
 const chapterOf = (state: RunState, runId: string): string | undefined => Object.entries(state.active).find(([, run]) => run.runId === runId)?.[0];
 
+/** What a chapter's activity says once it has ended: nothing is running. */
+const settled = (activity: CoverageActivity): CoverageActivity => ({
+  ...activity,
+  firstPass: { ...activity.firstPass, busy: 0 },
+  ...(activity.recheck ? { recheck: { ...activity.recheck, busy: 0 } } : {}),
+});
+
 function end(state: RunState, id: string, ended: EarlyEnd): RunState {
+  const last = ended.activity ?? state.active[id]?.activity;
+  if (last) state = { ...state, seen: { ...state.seen, [id]: settled(last) } };
   const active = without(state.active, id);
   if (ended.phase === 'complete') return fill({ ...state, active, finished: [...state.finished, id] });
   return fill({ ...state, active, messages: { ...state.messages, [id]: ended.message } });
@@ -73,7 +86,9 @@ function end(state: RunState, id: string, ended: EarlyEnd): RunState {
 export function runReducer(state: RunState, action: RunAction): RunState {
   switch (action.type) {
     case 'begin':
-      return action.ids.length === 0 ? state : fill({ ...idleRun, ids: action.ids, limit: Math.max(1, action.limit ?? 1), step: 'running' });
+      return action.ids.length === 0
+        ? state
+        : fill({ ...idleRun, ids: action.ids, limit: Math.max(1, action.limit ?? 1), step: 'running', startedAt: action.at });
     case 'answered': {
       // Only the start a chapter is waiting on counts; a late answer for another chapter is dropped.
       const waiting = state.active[action.id];
@@ -81,7 +96,11 @@ export function runReducer(state: RunState, action: RunAction): RunState {
       if (action.answer.status !== 'started')
         return fill({ ...state, active: without(state.active, action.id), messages: { ...state.messages, [action.id]: startMessage(action.answer) } });
       const runId = action.answer.state.runId;
-      const running = { ...state, active: { ...state.active, [action.id]: { phase: 'running' as const, runId, percent: action.answer.state.percent } } };
+      const { pass, activity } = action.answer.state;
+      const running = {
+        ...state,
+        active: { ...state.active, [action.id]: { phase: 'running' as const, runId, percent: action.answer.state.percent, pass, activity } },
+      };
       const early = runId ? state.early[runId] : undefined;
       return early ? end({ ...running, early: without(state.early, runId ?? '') }, action.id, early) : running;
     }
@@ -89,12 +108,20 @@ export function runReducer(state: RunState, action: RunAction): RunState {
       const id = chapterOf(state, action.runId);
       if (state.step !== 'running' || id === undefined) return state;
       const run = state.active[id];
-      return { ...state, active: { ...state.active, [id]: { ...run, percent: Math.max(run.percent, action.percent) } } };
+      const seen = action.activity ? { ...state.seen, [id]: action.activity } : state.seen;
+      return {
+        ...state,
+        seen,
+        active: {
+          ...state.active,
+          [id]: { ...run, percent: Math.max(run.percent, action.percent), pass: action.pass ?? run.pass, activity: action.activity ?? run.activity },
+        },
+      };
     }
     case 'ended': {
       if (state.step !== 'running') return state;
       const id = chapterOf(state, action.runId);
-      const ended = { phase: action.phase, message: action.message };
+      const ended = { phase: action.phase, message: action.message, activity: action.activity };
       if (id !== undefined) return end(state, id, ended);
       // A run no answer has named yet: keep its end for the answer, when a chapter is still waiting for one.
       return Object.values(state.active).some((run) => run.phase === 'starting') ? { ...state, early: { ...state.early, [action.runId]: ended } } : state;

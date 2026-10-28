@@ -208,6 +208,7 @@ class ChunkedTranscriber:
         plain: Callable[[ManifestItem, Callable[[float], None]], ItemWords] | None = None,
         cpus: int | None = None,
         sharers: int = 1,
+        activity=None,
     ):
         self._engine = engine
         self._model_size = model_size
@@ -225,6 +226,7 @@ class ChunkedTranscriber:
         self._plain = plain
         self._cpus = cpus
         self._sharers = max(1, sharers)
+        self._activity = activity
 
     def __call__(self, item: ManifestItem, on_seconds: Callable[[float], None]) -> ItemWords:
         """Transcribe the item's played range. `on_seconds` is told how much of it is done as chunks finish. An item that is one
@@ -266,6 +268,7 @@ class ChunkedTranscriber:
         results = [first]
         done = credit(planned[0])
         on_seconds(done)
+        self._chunk_done(item, remaining=len(planned) - 1, workers=workers)
         language = self._language or first.language
         rest = [job(chunk, language, workers == 1) for chunk in planned[1:]]
         if workers == 1 or not rest:
@@ -274,6 +277,7 @@ class ChunkedTranscriber:
                 results.append(self._chunk_fn(pending))
                 done += credit(pending.chunk)
                 on_seconds(done)
+                self._chunk_done(item, remaining=len(rest) - len(results) + 1, workers=workers)
         else:
 
             def collect(finished: ChunkWords) -> None:
@@ -281,11 +285,19 @@ class ChunkedTranscriber:
                 results.append(finished)
                 done += credit(finished.chunk)
                 on_seconds(done)
+                self._chunk_done(item, remaining=len(planned) - len(results), workers=workers)
 
             self._run_pool(rest, workers, collect)
         words, scores = merge_chunks(results)
         shifted = tuple((text, round(item.start_offset + start, 3), round(item.start_offset + end, 3)) for text, start, end in words)
         return replace(ItemWords(shifted, item.start_offset, item.end, self._model_size, language, text_hash(self._hotwords)), scores=scores)
+
+    def _chunk_done(self, item: ManifestItem, remaining: int, workers: int) -> None:
+        """Tell the activity log a chunk finished and how many of this item's chunks run at once for the rest (the item's first chunk runs alone)."""
+        if self._activity is None:
+            return
+        self._activity.unit_done()
+        self._activity.working(item.index, min(workers, remaining))
 
     def _run_pool(self, jobs: Sequence[ChunkJob], workers: int, collect: Callable[[ChunkWords], None]) -> None:
         """Hand each chunk of `jobs` to `collect` as it finishes. A cancel, a failed chunk or a failing
