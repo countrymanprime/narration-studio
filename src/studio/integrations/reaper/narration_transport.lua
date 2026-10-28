@@ -261,9 +261,18 @@ save_isolation = function(rows)
     return false
   end
   for _, row in ipairs(rows) do
-    out:write(table.concat({
-      row.guid, row.solo, row.set_solo, row.selected and 1 or 0, row.set_selected and 1 or 0, row.mute or '', row.set_mute or '',
-    }, '\t'), '\n')
+    out:write(
+      table.concat({
+        row.guid,
+        row.solo,
+        row.set_solo,
+        row.selected and 1 or 0,
+        row.set_selected and 1 or 0,
+        row.mute or '',
+        row.set_mute or '',
+      }, '\t'),
+      '\n'
+    )
   end
   out:close()
   return true
@@ -289,8 +298,13 @@ local function recover_isolation(state)
     local guid, solo, set_solo, selected, set_selected, mute, set_mute = line:match('^([^\t]+)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)$')
     if guid and tonumber(solo) and tonumber(set_solo) then
       rows[#rows + 1] = {
-        guid = guid, solo = tonumber(solo), set_solo = tonumber(set_solo), selected = selected == '1', set_selected = set_selected == '1',
-        mute = tonumber(mute), set_mute = tonumber(set_mute),
+        guid = guid,
+        solo = tonumber(solo),
+        set_solo = tonumber(set_solo),
+        selected = selected == '1',
+        set_selected = set_selected == '1',
+        mute = tonumber(mute),
+        set_mute = tonumber(set_mute),
       }
     end
   end

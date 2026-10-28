@@ -710,7 +710,7 @@ H.test('a state left by a REAPER that closed mid-play is put right by the next b
   u.c1.solo, u.c1.selected, u.c2.selected, u.c2.solo = 2, true, false, 0
   H.eq(states(again), after)
   again:tick()
-  H.eq(states(again), before, 'the narrator\'s selection and solos are back')
+  H.eq(states(again), before, "the narrator's selection and solos are back")
   H.eq(file ~= nil and #file > 0, true)
 end)
 
@@ -739,7 +739,7 @@ H.test('a play that names a track while REAPER records is refused and touches no
   H.eq(states(s), before)
 end)
 
-H.test('the same play_range twice restores the narrator\'s state, not the state the first isolation left', function()
+H.test("the same play_range twice restores the narrator's state, not the state the first isolation left", function()
   local s, t = isolated_session()
   t.c2.selected, t.c2.solo = true, 1
   local before = states(s)
