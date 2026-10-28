@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { CheckActivityPanel } from './CheckActivityPanel';
@@ -19,13 +20,13 @@ const view = summarizeActivity([
 describe('CheckActivityPanel', () => {
   it('names each figure and its meaning for a screen reader, and draws the phase, models and time', () => {
     render(<CheckActivityPanel view={view} percent={42} startedAt={0} ticking={false} now={() => 161_000} />);
-    expect(screen.getByRole('progressbar', { name: 'Overall progress' })).toBeInTheDocument();
-    expect(screen.getByText('First pass and re-check')).toBeInTheDocument();
-    expect(screen.getByText('small → large-v3-turbo')).toBeInTheDocument();
-    expect(screen.getByText('2:41')).toBeInTheDocument();
-    expect(screen.getByLabelText('Chunks: 40 of 112. Pieces of audio transcribed; a short recording is one piece.')).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Workers: 4 of 5 busy\. Automatic runs 4 at once/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Re-check: 3 of 7\+\. large-v3-turbo re-checks passages/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Overall progress' })).toBeTruthy();
+    expect(screen.getByText('First pass and re-check')).toBeTruthy();
+    expect(screen.getByText('small → large-v3-turbo')).toBeTruthy();
+    expect(screen.getByText('2:41')).toBeTruthy();
+    expect(screen.getByLabelText('Chunks: 40 of 112. Pieces of audio transcribed; a short recording is one piece.')).toBeTruthy();
+    expect(screen.getByLabelText(/^Workers: 4 of 5 busy\. Automatic runs 4 at once/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Re-check: 3 of 7\+\. large-v3-turbo re-checks passages/)).toBeTruthy();
   });
 
   it('keeps its size when nothing has been reported', () => {
