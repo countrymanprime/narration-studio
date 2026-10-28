@@ -389,3 +389,29 @@ func TestAlignmentItemAtProjectStartKeepsItsPosition(t *testing.T) {
 		t.Fatalf("an item the saved project no longer has carries only its identity: %s", gone)
 	}
 }
+
+// The owner's chapter: one 2-minute track whose first item is 60 s long from project second 0 and whose second starts at 60 s. Editing said it could
+// not find a part in REAPER for the first minute only, because the first item was sent without a position.
+func TestAlignmentOfATwoMinuteTrackSendsBothItemsPlaced(t *testing.T) {
+	project := tracks.Project{Tracks: []tracks.Track{{Items: []tracks.Item{
+		{GUID: "{A}", Position: 0, Length: 60},
+		{GUID: "{B}", Position: 60, Length: 60},
+	}}}}
+	items := alignmentItems([]ItemLine{{Index: 0, ItemGUID: "{A}"}, {Index: 1, ItemGUID: "{B}"}}, project)
+	wire, err := json.Marshal(items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []map[string]any
+	if err := json.Unmarshal(wire, &got); err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range []float64{0, 60} {
+		if pos, ok := got[i]["position"]; !ok || pos != want {
+			t.Errorf("item %d position = %v (present %v), want %v: %s", i, pos, ok, want, wire)
+		}
+		if length, ok := got[i]["length"]; !ok || length != float64(60) {
+			t.Errorf("item %d length = %v (present %v), want 60: %s", i, length, ok, wire)
+		}
+	}
+}

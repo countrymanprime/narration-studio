@@ -294,3 +294,17 @@ describe('whyNotPlaced', () => {
   });
   it('names an item trimmed short of the part', () => expect(why([item('a', 100, 0, 3)])).toMatch(/trimmed, split or moved/));
 });
+
+// The owner's chapter: one 2-minute track, its first item 60 s long from project second 0 and its second from 60 s. Every section resolves to its item,
+// the first minute included (the host once sent the first item without a position, which left that minute "not in REAPER's project").
+describe('a two-minute track of two items, 0 s and 60 s', () => {
+  const playlist = [seg('a', 0, 60, 0), seg('b', 0, 60, 60)];
+  const items = [item('a', 0, 0, 60), item('b', 60, 0, 60)];
+  it.each([5, 30, 59, 61, 90])('places the section at %s s', (t) => {
+    near(projectAt({ playlist, items }, t), t);
+    expect(whyNotPlaced({ playlist, items }, t, 'REAPER')).toBeTruthy();
+  });
+  it('ends a play inside the first item where the app planned it', () => {
+    near(projectEndAt({ playlist, items }, 30), 30);
+  });
+});
