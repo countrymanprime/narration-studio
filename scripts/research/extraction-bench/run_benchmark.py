@@ -23,7 +23,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ENGINES = {"gliner": "gliner", "booknlp-small": "booknlp", "booknlp-big": "booknlp"}
-# The large weights take about 3 GB a worker; a configuration is skipped when workers * the whole-book peak would not fit.
+# The large weights take about 3 GB a worker; a configuration is skipped when workers * the one-worker per-chapter peak would not fit.
 MEMORY_SHARE = 0.7
 LONG_BOOK_WORDS = 90_000
 
@@ -70,7 +70,8 @@ def main() -> None:
             for mode, workers, bound in configurations(book["words"], args.bounded_words):
                 out = args.runs / name_of(book["id"], row, mode, workers, bound)
                 if out.is_file():
-                    whole_peak = whole_peak or json.loads(out.read_text(encoding="utf-8")).get("peakGB", 0.0)
+                    if mode == "chapters" and workers == 1:
+                        whole_peak = json.loads(out.read_text(encoding="utf-8")).get("peakGB", 0.0)
                     continue
                 if whole_peak and workers * whole_peak > MEMORY_SHARE * total_memory_gb():
                     note = {"skipped": f"{workers} workers x {whole_peak} GB would not fit in {total_memory_gb():.0f} GB"}
@@ -90,7 +91,7 @@ def main() -> None:
                 print(f"{out.name}: exit {done.returncode} in {time.time() - began:.0f}s", flush=True)
                 if done.returncode != 0:
                     print(done.stderr[-2000:], file=sys.stderr, flush=True)
-                elif mode == "whole":
+                elif mode == "chapters" and workers == 1:
                     whole_peak = json.loads(out.read_text(encoding="utf-8"))["peakGB"]
 
 
