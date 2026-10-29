@@ -13,6 +13,7 @@ import { Tooltip } from './Tooltip';
 // Panel body's padding (`--panel-pad`), which is nothing in a `Panel flush`.
 // `rowCount` is the number of rows when the caller draws only some of them (a windowed list); each drawn row then says its place with
 // `TableRow rowIndex`, counted from 1 with the header row as row 1.
+// `tree` makes it a `treegrid`: each `TableRow tree` row says its level, place and, on a folder, whether it is open.
 // `columns` fixes the column widths, one CSS width per column in order (`'12rem'`, `'30%'`, `'auto'` for a column that takes what
 // is left): the table lays out from them (`table-fixed`), not from its content, so columns stay put between states and a long
 // cell wraps inside its own column instead of pushing the others.
@@ -28,12 +29,15 @@ export function Table({
   textEdges = false,
   rowCount,
   columns,
+  tree = false,
   className = '',
   children,
 }: {
   label: string;
   flush?: boolean;
   textEdges?: boolean;
+  /** The rows are a tree (`TableRow tree`): the table is a `treegrid` and its body takes the tree keys (`treeKeyHandler`). */
+  tree?: boolean;
   rowCount?: number;
   columns?: readonly string[];
   className?: string;
@@ -41,6 +45,7 @@ export function Table({
 }) {
   return (
     <table
+      role={tree ? 'treegrid' : undefined}
       aria-label={label}
       aria-rowcount={rowCount}
       className={`border-collapse ${TABLE_TEXT_CLASS} ${flush ? `-mx-[var(--panel-pad,1rem)] w-[calc(100%+2*var(--panel-pad,1rem))] ${TABLE_FLUSH_EDGES}` : `w-full ${textEdges ? TABLE_TEXT_EDGES : TABLE_EDGES}`} ${columns ? 'table-fixed' : ''} ${className}`}
@@ -111,12 +116,18 @@ export function TableRow({
   rowIndex,
   selected = false,
   emphasis,
+  tree,
   className = '',
   style,
   data,
   children,
 }: {
   onActivate?: () => void;
+  /**
+   * A row of a tree table: `id` keys it for the tree keys, `level` is `aria-level` (1 at the top), `posInSet` and `setSize` its place among its siblings,
+   * `expanded` is set on a folder only, and `active` is the one row in the tab order (the others are reached with the arrow keys).
+   */
+  tree?: { id: string; level: number; posInSet: number; setSize: number; expanded?: boolean; active: boolean };
   tabStop?: boolean;
   rowIndex?: number;
   /** `data-*` attributes for the row, such as the key a right-click menu reads (`data-w` on the Script page's Words rows). */
@@ -128,6 +139,24 @@ export function TableRow({
   children: ReactNode;
 }) {
   const emphasisClass = emphasis ? ROW_EMPHASIS[emphasis] : '';
+  if (tree) {
+    return (
+      <tr
+        {...data}
+        data-tree-row={tree.id}
+        data-level={tree.level}
+        aria-level={tree.level}
+        aria-posinset={tree.posInSet}
+        aria-setsize={tree.setSize}
+        aria-expanded={tree.expanded}
+        tabIndex={tree.active ? 0 : -1}
+        className={`hover:*:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${emphasisClass} ${className}`}
+        style={style}
+      >
+        {children}
+      </tr>
+    );
+  }
   if (!onActivate) {
     return (
       <tr {...data} aria-rowindex={rowIndex} className={`${emphasisClass} ${className}`} style={style}>

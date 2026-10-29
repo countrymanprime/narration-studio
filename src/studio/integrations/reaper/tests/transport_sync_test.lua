@@ -537,3 +537,266 @@ H.test('a play_range stretch with no end argument is refused, not played open-en
   H.eq(s:events(), { { 'ERROR', 'r1', 'The stretch to play is not a usable pair of times.' } })
   H.eq(names(s), {})
 end)
+
+-- Playing only the chapter's track ------------------------------------------------------------------------------------
+-- A play that names a track GUID selects that track, solos it in place so nothing else is heard, and puts the narrator's selection, solos and the
+-- track's mute back when the play ends in any way. Owner report: the page played whichever track was selected in REAPER, which was another chapter.
+
+local function isolated_session()
+  local s = new_session()
+  s.fake.resource_path = host.tmpdir()
+  os.remove(H.join(host.tmpdir(), 'narration_play_isolation.txt'))
+  local fake = s.fake
+  local chapter1 = fake.tracks[1]
+  local chapter2 = fake:add_track('Chapter 2')
+  local folder = fake:add_track('Folder')
+  local child = fake:add_track('Child of folder')
+  fake:add_item(chapter1, { position = 0, length = 100, source = 'c1.wav' })
+  fake:add_item(chapter2, { position = 0, length = 100, source = 'c2.wav' })
+  fake:add_item(child, { position = 200, length = 50, source = 'c3.wav' })
+  return s, { c1 = chapter1, c2 = chapter2, folder = folder, child = child }
+end
+
+local function states(s)
+  local out = {}
+  for _, track in ipairs(s.fake.tracks) do
+    out[#out + 1] = { solo = track.solo or 0, selected = track.selected, muted = track.muted }
+  end
+  return out
+end
+
+H.test('play_range with a track solos it in place, selects only it, and plays', function()
+  local s, t = isolated_session()
+  t.c2.selected = true -- the narrator had another chapter selected
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq(s:events(), { { 'RANGE_PLAYING', 'r1', '10.000000', '12.000000' } })
+  H.eq(t.c1.solo, 2, 'the linked track is soloed in place')
+  H.eq(t.c1.selected, true)
+  H.eq(t.c2.selected, false, 'the track that was selected is not the one played')
+  H.eq(t.c2.solo or 0, 0)
+  H.eq(s.fake.play_state, 1)
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('play_range puts the selection, solos and mute back when the stretch ends', function()
+  local s, t = isolated_session()
+  t.c2.selected, t.c2.solo, t.folder.muted, t.child.solo = true, 1, true, 2
+  t.c1.muted = true -- the narrator muted the linked track itself
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq(t.c1.muted, false, 'a muted linked track is heard while it plays')
+  s.fake.play_position = 10.5
+  s:tick()
+  s.fake.play_position = 12.1
+  s:tick()
+  s:tick()
+  H.eq(s.fake.play_state, 0)
+  H.eq(states(s), before, 'every selection, solo and mute is as the narrator left it')
+end)
+
+H.test('play_range with no track plays the project as it is and touches no track', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12')
+  H.eq(states(s), before)
+end)
+
+H.test('play_range refuses a track that is not in the project, changing nothing', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', '{00000000-0000-0000-0000-00000000DEAD}')
+  H.eq(s:events(), { { 'ERROR', 'r1', "The chapter's track is not in the REAPER project." } })
+  H.eq(states(s), before)
+  H.eq(names(s), {})
+end)
+
+H.test('play_range refuses a time the linked track has no audio at, so another chapter is never played in its place', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  local before = states(s)
+  s:send('play_range', 'r1', '150', '152', t.c1.guid)
+  H.eq(s:events(), { { 'ERROR', 'r1', "The chapter's track has no audio at that time in the REAPER project." } })
+  H.eq(states(s), before)
+  H.eq(names(s), {})
+end)
+
+H.test('play_range plays a track that is a folder child by itself', function()
+  local s, t = isolated_session()
+  s:send('play_range', 'r1', '210', '212', t.child.guid)
+  H.eq(s:events(), { { 'RANGE_PLAYING', 'r1', '210.000000', '212.000000' } })
+  H.eq(t.child.solo, 2)
+  H.eq(t.folder.solo or 0, 0, 'REAPER keeps the folder parent audible when its child is soloed, so it is not soloed itself')
+end)
+
+H.test('stop_play puts everything back', function()
+  local s, t = isolated_session()
+  t.c2.selected, t.c2.solo = true, 1
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s:events()
+  s:send('stop_play', 'r2')
+  H.eq(states(s), before)
+end)
+
+H.test('the narrator stopping REAPER puts everything back', function()
+  local s, t = isolated_session()
+  t.c2.selected, t.c2.solo = true, 1
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(states(s), before)
+end)
+
+H.test('the deadline stop puts everything back when the play head never arrives', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '11', t.c1.guid)
+  s.fake.play_position = 500
+  for _ = 1, 100 do
+    s:tick()
+  end
+  H.eq(s.fake.play_state, 0)
+  H.eq(states(s), before)
+end)
+
+H.test('a second play_range for another track replaces the isolation and still restores the original state', function()
+  local s, t = isolated_session()
+  t.c2.selected, t.c1.solo = true, 1
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s:send('play_range', 'r2', '20', '22', t.c2.guid)
+  H.eq(t.c1.solo, 0)
+  H.eq(t.c2.solo, 2)
+  s:send('stop_play', 'r3')
+  H.eq(states(s), before, 'the original state, not the state the first isolation left')
+end)
+
+H.test('a change the narrator makes during the play is kept when it ends', function()
+  local s, t = isolated_session()
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  t.folder.solo = 1 -- the narrator soloed another track meanwhile
+  t.c1.solo = 0 -- and took the solo off the played one
+  s:send('stop_play', 'r2')
+  H.eq(t.folder.solo, 1)
+  H.eq(t.c1.solo, 0)
+end)
+
+H.test('play_from with a track isolates it until REAPER stops', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  local before = states(s)
+  s:send('play_from', 'r1', '10', t.c1.guid)
+  H.eq(t.c1.solo, 2)
+  H.eq(t.c2.selected, false)
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(states(s), before)
+end)
+
+H.test('a state left by a REAPER that closed mid-play is put right by the next bridge', function()
+  local s, t = isolated_session()
+  t.c2.selected, t.c2.solo = true, 1
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  local file = H.read_file(H.join(s.fake.resource_path, 'narration_play_isolation.txt'))
+  -- REAPER closed with the project as the isolation left it (saved that way); the next REAPER starts with the same tracks and the file on disk.
+  local after = states(s)
+  local again, u = isolated_session()
+  again.fake.resource_path = s.fake.resource_path
+  u.c1.solo, u.c1.selected, u.c2.selected, u.c2.solo = 2, true, false, 0
+  H.eq(states(again), after)
+  again:tick()
+  H.eq(states(again), before, "the narrator's selection and solos are back")
+  H.eq(file ~= nil and #file > 0, true)
+end)
+
+H.test('play_from refuses a track that is not in the project or has no audio at the time, changing nothing', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  local before = states(s)
+  s:send('play_from', 'r1', '10', '{00000000-0000-0000-0000-00000000DEAD}')
+  s:send('play_from', 'r2', '150', t.c1.guid)
+  H.eq(s:events(), {
+    { 'ERROR', 'r1', "The chapter's track is not in the REAPER project." },
+    { 'ERROR', 'r2', "The chapter's track has no audio at that time in the REAPER project." },
+  })
+  H.eq(states(s), before)
+  H.eq(names(s), {})
+end)
+
+H.test('a play that names a track while REAPER records is refused and touches no track', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  local before = states(s)
+  s.fake.play_state = 5
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s:send('play_from', 'r2', '10', t.c1.guid)
+  H.eq(s:events(), { { 'ERROR', 'r1', 'REAPER is recording. Stop recording first.' }, { 'ERROR', 'r2', 'REAPER is recording. Stop recording first.' } })
+  H.eq(states(s), before)
+end)
+
+H.test("the same play_range twice restores the narrator's state, not the state the first isolation left", function()
+  local s, t = isolated_session()
+  t.c2.selected, t.c2.solo = true, 1
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s:send('play_range', 'r2', '10', '12', t.c1.guid)
+  s:send('stop_play', 'r3')
+  H.eq(states(s), before)
+end)
+
+H.test('a plain play_from or play_range after an isolated play puts everything back', function()
+  for _, command in ipairs({ 'play_from', 'play_range' }) do
+    local s, t = isolated_session()
+    t.c2.selected, t.c2.solo = true, 1
+    local before = states(s)
+    s:send('play_range', 'r1', '10', '12', t.c1.guid)
+    if command == 'play_from' then
+      s:send('play_from', 'r2', '20')
+    else
+      s:send('play_range', 'r2', '20', '22')
+    end
+    H.eq(states(s), before, command)
+  end
+end)
+
+H.test('a refused play leaves the isolation of the play that is running as it was', function()
+  local s, t = isolated_session()
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s:send('play_from', 'r2', 'abc')
+  s:send('play_range', 'r3', '10', '12', t.c2.guid .. 'x')
+  H.eq(t.c1.solo, 2, 'the narrator still hears only the chapter that plays')
+end)
+
+H.test('the isolation is written to disk before any track changes, and the file is gone once everything is back', function()
+  local s, t = isolated_session()
+  local path = H.join(s.fake.resource_path, 'narration_play_isolation.txt')
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq(H.read_file(path) ~= nil and #H.read_file(path) > 0, true)
+  s:send('stop_play', 'r2')
+  H.eq(H.read_file(path), nil)
+end)
+
+H.test('a leftover file is not allowed to undo an isolation that is in place', function()
+  local s, t = isolated_session()
+  t.c2.selected = true
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s:tick()
+  s:tick()
+  H.eq(t.c1.solo, 2, 'the first tick after the play did not restore it')
+end)
+
+H.test('a play is refused, changing nothing, when the isolation cannot be written', function()
+  local s, t = isolated_session()
+  s.fake.resource_path = H.join(host.tmpdir(), 'no', 'such', 'folder')
+  t.c2.selected = true
+  local before = states(s)
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq(s:events(), { { 'ERROR', 'r1', "The chapter's track could not be soloed because REAPER's resource folder is not writable, so nothing was played." } })
+  H.eq(states(s), before)
+  H.eq(names(s), {})
+end)

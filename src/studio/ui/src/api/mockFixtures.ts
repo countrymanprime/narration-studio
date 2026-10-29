@@ -1018,6 +1018,8 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
       color: '#3F6EA6',
       muted: false,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: '{7A6B5C4D-3E2F-4190-8A1B-2C3D4E5F6071}',
@@ -1041,6 +1043,8 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
       color: '',
       muted: false,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: '{8B7C6D5E-4F30-42A1-9B2C-3D4E5F607182}',
@@ -1064,6 +1068,8 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
       color: '',
       muted: true,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: '{9C8D7E6F-5041-43B2-AC3D-4E5F60718293}',
@@ -1093,6 +1099,40 @@ export const WIRE_LINE_IDENTITY_IDLE: LineIdentityState = {
   lines: [],
   linesRead: 0,
 };
+
+type FixtureTrack = TracksProject['tracks'][number];
+
+const folderTrack = (name: string, index: number, depth: number, color: string): FixtureTrack => ({
+  guid: `{F0LD-${index}}`,
+  index,
+  name,
+  color,
+  muted: false,
+  soloed: false,
+  depth,
+  isFolder: true,
+  items: [],
+});
+
+/**
+ * WIRE_TRACKS_PROJECT as REAPER folders hold it (`?mockTrackFolders=1`): the Alice tracks inside Narration > Chapters, a Credits folder holding a
+ * copy of the first track as "Opening credits", and an empty Co-narrator folder. Its shape is `testdata/folders-handmade.rpp`'s.
+ */
+export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
+  const inside = WIRE_TRACKS_PROJECT.tracks.map((track) => ({ ...track, depth: 2 }));
+  const opening: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{0PEN-1NG}', name: 'Opening credits', depth: 2, items: [] };
+  const guest: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{GUEST-1}', name: 'Guest', depth: 1, items: [] };
+  const list = [
+    folderTrack('Narration', 0, 0, '#B04F17'),
+    folderTrack('Chapters', 1, 1, '#2A5C86'),
+    ...inside,
+    folderTrack('Credits', inside.length + 2, 1, '#8A5A00'),
+    opening,
+    folderTrack('Co-narrator', inside.length + 4, 0, '#6B4C9A'),
+    guest,
+  ];
+  return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
+})();
 
 /** One row of every status the classifier produces, keyed to WIRE_TRACKS_PROJECT's own chapter track item GUIDs where it helps a screenshot read naturally (mirrors tests/fixtures/contracts/line-identity-read-success.json). */
 export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [

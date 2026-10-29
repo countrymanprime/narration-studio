@@ -40,19 +40,19 @@ func (s transportSyncer) SetCursor(ctx context.Context, seconds float64) (float6
 }
 
 // PlayFrom starts the transport at seconds and returns the time it was told to play from.
-func (s transportSyncer) PlayFrom(ctx context.Context, seconds float64) (float64, error) {
+func (s transportSyncer) PlayFrom(ctx context.Context, seconds float64, trackGUID string) (float64, error) {
 	if err := s.check(); err != nil {
 		return 0, err
 	}
-	return s.actions.PlayFrom(ctx, seconds)
+	return s.actions.PlayFrom(ctx, seconds, trackGUID)
 }
 
 // PlayRange plays the project from `from` to `to` and has REAPER stop itself at `to`; it returns the stretch REAPER took.
-func (s transportSyncer) PlayRange(ctx context.Context, from, to float64) (float64, float64, error) {
+func (s transportSyncer) PlayRange(ctx context.Context, from, to float64, trackGUID string) (float64, float64, error) {
 	if err := s.check(); err != nil {
 		return 0, 0, err
 	}
-	return s.actions.PlayRange(ctx, from, to)
+	return s.actions.PlayRange(ctx, from, to, trackGUID)
 }
 
 // Stop stops a playing or paused transport and returns the edit cursor after it. A recording is never stopped.

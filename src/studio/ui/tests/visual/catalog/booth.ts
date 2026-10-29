@@ -266,14 +266,14 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-width-narrow',
     description:
-      'Booth (as setup) with Text settings › Column width moved to Narrow and the popover closed: the text column 48ch wide, the Script’s Narrow (Medium is 64ch), left-aligned, each paragraph starting at the column edge with no indent and a small gap above it',
+      'Booth (as setup) with Text settings › Column width moved to Narrow and the popover closed: the text column 48ch wide, the Script’s Narrow (Medium is 64ch), centred in the text area, each paragraph starting at the column edge with no indent and a small gap above it',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'text-width-full',
     description:
-      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow at any width and runs up to the gutters, left-aligned, no paragraph indent',
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow at any width and runs up to the gutters on both sides, centred, no paragraph indent',
     ...REFLOW,
   },
   {

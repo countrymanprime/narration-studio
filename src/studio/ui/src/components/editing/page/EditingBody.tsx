@@ -198,7 +198,7 @@ export function EditingBody(props: EditingBodyProps) {
     playlist,
     sound,
     mediaUrl: tracks.mediaUrl,
-    sync: { items: read.workspace.items, cuts: closedCuts, caps, ...(dawRead ? { read: dawRead } : {}) },
+    sync: { items: read.workspace.items, cuts: closedCuts, caps, chapterId, ...(dawRead ? { read: dawRead } : {}) },
     output,
     onOutputDevice: setDeviceProblem,
   });

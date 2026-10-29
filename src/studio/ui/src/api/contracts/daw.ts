@@ -575,9 +575,11 @@ export type DawSyncAction = 'cursor' | 'play' | 'playRange' | 'stop' | 'watch';
 
 /** DawTransportSync and the daw_position_changed event (src/studio/desktop/bindings_daw_transportsync.go): the Editing page and the DAW's transport follow
  * each other, behind the `transport_sync` capability (docs/design/editing-daw-transport-sync.md). A refusal (the capability's own sentence, a DAW with
- * another project open, a recording, a time that is not usable) is `ok` false with the sentence and nothing changed; none adds an undo step. */
+ * another project open, a recording, a time that is not usable) is `ok` false with the sentence and nothing changed; none adds an undo step. For `play` and
+ * `playRange`, `chapterId` names the chapter whose linked track the DAW plays alone (the host resolves the track; the DAW selects and solos it and puts the
+ * narrator's selection, solos and mute back when the play ends); without a linked track, or with no audio on it at that time, the play is refused. */
 export interface DawTransportSyncApi {
-  dawTransportSync(action: DawSyncAction, seconds: number, until?: number): Promise<DawResult>;
+  dawTransportSync(action: DawSyncAction, seconds: number, until?: number, chapterId?: string): Promise<DawResult>;
   /** Each position the DAW streams while a `watch` lease holds. Returns the unsubscribe. */
   subscribeDawPosition(onUpdate: (position: DawPosition) => void): () => void;
 }

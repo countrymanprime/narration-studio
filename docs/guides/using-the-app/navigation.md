@@ -277,13 +277,34 @@ Nothing else changes, and one Undo in REAPER puts the previous lanes back. The a
 lanes on, converts takes to lanes or builds a comp: if a track is not in fixed-lane mode, or the retake
 has changed since you last saved, the dialog says so and changes nothing.
 
+### Tracks in folders
+
+The Tracks card lists the project's tracks with the chapter each one is linked to. When the REAPER project groups
+tracks in folders, the card draws them as REAPER does: an indented tree with a guide line for each level, a caret to
+open or close a folder, a folder icon in the track's colour and the number of tracks directly inside. A folder's
+Chapter cell says how many of the tracks below it are linked ("5 of 10 linked"), so a link inside a closed folder is still
+found without opening it. A folder with a track of its own audio shows its playable items like any track, and a
+folder with none shows a dash.
+
+Up to 30 tracks every folder starts open. Above that only the folders on the way to a linked track start open. What
+you open or close is not saved. The two icon buttons in the card's header open or close every folder, and the
+search box shows only the tracks whose name has your text, with the folders above them open. The list scrolls
+inside the card, under its header, so the page itself does not move.
+
+Click a caret, or use the keyboard: Up and Down move through the rows, Right opens a folder (or steps into an open
+one), Left closes it (or steps to the folder above), and Home and End jump to the first and last row. The whole tree is one
+stop in the Tab order. A project with no folders shows the plain list it always did, and so does an Audacity project,
+which has no folders.
+
+![The audio engine panel's Tracks card with REAPER folders drawn as a tree](../../images/ui/engine-panel-folder-tracks.webp)
+
 ### Linking chapters to tracks
 
 Below the track list, Chapter links shows every narration chapter with the track it's confirmed
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
 below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
 starts **Not linked** with its track list on **Choose a track**: pick a track, then press Confirm, which stays off until you
-have picked one. A track another chapter already has is marked in the list with the chapter that has it. A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
+have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can). A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
@@ -291,6 +312,8 @@ missing** until it's relinked or cleared. The list starts with **Opening credits
 change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
+
+![A chapter's track picker open on a project with folders: the tree, with a search box](../../images/ui/engine-panel-folder-picker.webp)
 
 The **More actions** button (**⋯**) at the end of each row holds the rest. For a linked chapter it has **Open in Editing**, which opens
 the chapter on [Editing](editing.md) to hear it against its script and edit it, and **Open in Proof**, into the chapter's

@@ -58,6 +58,8 @@ import type { VoiceSamplesSeed } from '../voiceSamplesMock';
 export type MockApiSeed = {
   projectFolder?: string;
   tracksCandidates?: string[];
+  /** The project's tracks sit in REAPER folders (`?mockTrackFolders=1`). */
+  trackFolders?: boolean;
   noManuscript?: boolean;
   /** The Pickups list cannot be read: every read is refused with a reason (`unreadable`), or never answers (`loading`). */
   pickupList?: 'unreadable' | 'loading';
