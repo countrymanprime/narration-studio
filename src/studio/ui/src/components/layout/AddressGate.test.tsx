@@ -226,6 +226,11 @@ describe('AddressGate', () => {
     expect(screen.getByText('the page')).toBeTruthy();
   });
 
+  it('lets the Booth ask for a credits file the library has no template for: the page answers with its set-up panel', () => {
+    mount({ at: '/booth?credits=closing', page: 'booth', chapters: [{ id: 'c1' }] });
+    expect(screen.getByText('the page')).toBeTruthy();
+  });
+
   it('opens Editing and Proof on a credits chapter, which the chapter list holds', () => {
     const list = [{ id: 'credits-opening', paragraphIds: [] }, { id: 'c1' }, { id: 'credits-closing', paragraphIds: [] }];
     mount({ at: '/editing/credits-opening', page: 'editing', route: '/editing/:chapterId', param: 'credits-opening', chapters: list });

@@ -2,6 +2,7 @@
 // message that says what is wrong and two ways out, in place of a blank page, a crash or a quiet landing somewhere else. It wraps a
 // page's route and reads the address with `navigation/address.ts`; the page inside keeps reading its own address as before.
 
+import { creditsKindOfId } from '../credits/creditsEntries';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { readPickupIds } from '../booth/page/boothQuery';
@@ -44,7 +45,8 @@ function askedOf(read: AddressRead): Asked | undefined {
 function missingFrom(asked: Asked | undefined, chapters: readonly ListedChapter[] | null): 'chapter' | 'line' | undefined {
   if (asked === undefined || chapters === null) return undefined;
   const chapter = chapters.find((item) => item.id === asked.chapter);
-  if (!chapter) return 'chapter';
+  // A credits file the library has no template for is not in the list; the Booth answers that with its own "not set up" panel, so the gate lets it through.
+  if (!chapter) return creditsKindOfId(asked.chapter) ? undefined : 'chapter';
   if (asked.paragraph === undefined || chapter.paragraphIds === undefined) return undefined;
   return chapter.paragraphIds.some((row) => row.id === asked.paragraph) ? undefined : 'line';
 }
