@@ -2,8 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { Panel } from './Panel';
-import { IndentGuides, TREE_INDENT, TrackMark, TreeCaret } from '../tracks/TreeRowParts';
-import { buildTrackTree, visibleNodes } from '../tracks/trackTree';
 import { treeKeyHandler } from './treeKeys';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';
 
@@ -265,16 +263,16 @@ export const FixedColumns: Story = {
   },
 };
 
-const TREE_TRACKS = [
-  { guid: 'narration', index: 0, name: 'Narration', depth: 0, isFolder: true },
-  { guid: 'chapters', index: 1, name: 'Chapters', depth: 1, isFolder: true },
-  { guid: 'ch1', index: 2, name: 'Chapter 1', depth: 2, isFolder: false },
-  { guid: 'ch2', index: 3, name: 'Chapter 2', depth: 2, isFolder: false },
-  { guid: 'intro', index: 4, name: 'Intro', depth: 0, isFolder: false },
+// Narration > (Chapters > (Chapter 1, Chapter 2)), Intro: each row's level and its folder's place, in file order.
+const TREE_ROWS = [
+  { id: 'narration', name: 'Narration', level: 1, folder: true, parent: '' },
+  { id: 'chapters', name: 'Chapters', level: 2, folder: true, parent: 'narration' },
+  { id: 'ch1', name: 'Chapter 1', level: 3, folder: false, parent: 'chapters' },
+  { id: 'ch2', name: 'Chapter 2', level: 3, folder: false, parent: 'chapters' },
+  { id: 'intro', name: 'Intro', level: 1, folder: false, parent: '' },
 ];
 
 function TreeTable() {
-  const nodes = buildTrackTree(TREE_TRACKS);
   const [open, setOpen] = useState(new Set(['narration', 'chapters']));
   const [active, setActive] = useState('narration');
   const toggle = (id: string, wanted: boolean) =>
@@ -284,8 +282,9 @@ function TreeTable() {
       else next.delete(id);
       return next;
     });
+  const shown = (row: (typeof TREE_ROWS)[number]): boolean => row.parent === '' || (open.has(row.parent) && shown(TREE_ROWS.find((r) => r.id === row.parent)!));
   return (
-    <div className={`max-w-md ${TREE_INDENT}`}>
+    <div className="max-w-md">
       <Table label="Tracks" tree>
         <TableHead>
           <TableRow>
@@ -296,29 +295,20 @@ function TreeTable() {
           onKeyDown={treeKeyHandler(toggle)}
           onFocus={(event) => setActive((event.target as HTMLElement).closest<HTMLElement>('[data-tree-row]')?.dataset.treeRow ?? active)}
         >
-          {visibleNodes(nodes, open).map((node) => (
+          {TREE_ROWS.filter(shown).map((row, at, rows) => (
             <TableRow
-              key={node.id}
+              key={row.id}
               tree={{
-                id: node.id,
-                level: node.level,
-                posInSet: node.posInSet,
-                setSize: node.setSize,
-                expanded: node.track.isFolder ? open.has(node.id) : undefined,
-                active: node.id === active,
+                id: row.id,
+                level: row.level,
+                posInSet: at + 1,
+                setSize: rows.length,
+                expanded: row.folder ? open.has(row.id) : undefined,
+                active: row.id === active,
               }}
             >
-              <TableCell className="relative">
-                <IndentGuides level={node.level} fill />
-                <span className="flex items-center gap-1.5" style={{ marginLeft: `calc(var(--g) * ${node.level - 1})` }}>
-                  <TreeCaret
-                    folderName={node.track.isFolder ? node.track.name : undefined}
-                    open={open.has(node.id)}
-                    onToggle={() => toggle(node.id, !open.has(node.id))}
-                  />
-                  <TrackMark color="" folder={node.track.isFolder} open={open.has(node.id)} />
-                  {node.track.name}
-                </span>
+              <TableCell>
+                <span style={{ paddingLeft: `${(row.level - 1) * 1.25}rem` }}>{row.name}</span>
               </TableCell>
             </TableRow>
           ))}
