@@ -273,7 +273,7 @@ export const ROWS: readonly SettingMeta[] = [
     section: 'Recording check',
     label: 'Chunk length',
     scope: 'both',
-    def: '300',
+    def: '60',
     unit: 's',
     field: { tool: 'RecordingCoverage', key: 'chunk_seconds' },
     options: {

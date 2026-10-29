@@ -1593,6 +1593,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     expectMatches(tracksDiscoverySchema, await api.tracksDiscover(), 'mock tracks discovery');
     expectMatches(tracksProjectSchema, await api.tracksList(), 'mock tracks project');
+    const folders = createMockApi({}, { trackFolders: true });
+    expectMatches(tracksProjectSchema, await folders.tracksList(), 'mock tracks project in folders');
+    expectMatches(chapterTrackLinksSchema, await folders.chapterTrackLinks(), 'mock chapter links in folders');
+    expectMatches(chapterTrackMatchSchema, await folders.chapterTrackMatch((await folders.manuscriptChapters())[0].id), 'mock chapter match in folders');
     const several = createMockApi({}, { tracksCandidates: ['C:/A/A.rpp', 'C:/A/B.rpp'] });
     expectMatches(tracksDiscoverySchema, await several.tracksSelect('C:/A/B.rpp'), 'mock tracks selection');
     expectMatches(tracksDiscoverySchema, await createMockApi({}, { tracksCandidates: [] }).tracksDiscover(), 'mock tracks discovery, none found');

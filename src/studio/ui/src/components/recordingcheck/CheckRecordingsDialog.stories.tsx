@@ -91,7 +91,8 @@ export const RunningTwoChapters: Story = {
     const canvas = within(canvasElement);
     (await canvas.findByRole('button', { name: 'Check 2 chapters' })).click();
     await expect(await canvas.findByRole('button', { name: 'Stop checking' })).toBeTruthy();
-    await expect(canvas.getAllByRole('progressbar')).toHaveLength(2);
+    // One bar per chapter and the activity panel's overall bar.
+    await expect(canvas.getAllByRole('progressbar')).toHaveLength(3);
   },
 };
 

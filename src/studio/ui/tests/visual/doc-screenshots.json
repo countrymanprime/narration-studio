@@ -155,6 +155,13 @@
   },
   {
     "page": "proof",
+    "state": "check-checking",
+    "viewport": "desktop",
+    "docName": "proof-check-recordings-running",
+    "caption": "Proof - a recording check running: the activity box with the overall bar, the phase, the chunks done, the workers busy and the larger model's re-check, and the chapter's own count under it"
+  },
+  {
+    "page": "proof",
     "state": "check-findings",
     "viewport": "desktop",
     "docName": "proof-check-findings",
@@ -411,6 +418,20 @@
     "viewport": "desktop",
     "docName": "engine-panel-wrong-project",
     "caption": "The audio engine panel - REAPER has a different project open: the card says what it waits for, when it last checked, and has Check again"
+  },
+  {
+    "page": "engine",
+    "state": "folder-tracks",
+    "viewport": "desktop",
+    "docName": "engine-panel-folder-tracks",
+    "caption": "The audio engine panel - the Tracks card with REAPER folders drawn as a tree"
+  },
+  {
+    "page": "engine",
+    "state": "folder-tracks-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-folder-picker",
+    "caption": "The audio engine panel - a chapter's track picker on a project with folders"
   },
   {
     "page": "engine",

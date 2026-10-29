@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, type ComponentProps } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
-import { Select } from './Select';
+import { Select, SelectTrigger } from './Select';
 
 const STATUS_OPTIONS = [
   { value: 'not-started', label: 'Not started' },
@@ -94,5 +94,19 @@ export const KeyboardReachesIt: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.tab();
     await expect(within(canvasElement).getByRole('combobox', { name: 'Chapter 1 status' })).toHaveFocus();
+  },
+};
+
+// `SelectTrigger` is the closed select as a button (the track picker's trigger): the same box and caret, a long value cut at the caret.
+export const Trigger: Story = {
+  render: () => (
+    <div className="max-w-sm space-y-2">
+      <SelectTrigger aria-label="Track for Chapter 4: Narration / Chapters / Ch 4 · The Rabbit Sends in a Little Bill, read at length" fullWidth>
+        <span className="min-w-0 truncate">Narration / Chapters / Ch 4 · The Rabbit Sends in a Little Bill, read at length</span>
+      </SelectTrigger>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: /^Track for Chapter 4/ })).toBeVisible();
   },
 };

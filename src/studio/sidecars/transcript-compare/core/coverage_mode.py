@@ -50,6 +50,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
 
+import coverage_activity
 import coverage_chunks
 import coverage_pipeline
 
@@ -469,7 +470,23 @@ def _chapter(engine: ModuleType, manuscript: str, chapter_id: str) -> dict:
     raise ValueError(f"Chapter '{chapter_id}' is not a narration chapter of the manuscript.")
 
 
-def _words_for(item: ManifestItem, path: Path, transcriber: Transcriber, progress: _Progress, engine: ModuleType, args, label: str) -> _ItemResult:
+def units_of(item: ManifestItem, args) -> int:
+    """How many transcriptions `item` takes: its chunks when the run cuts long items up, otherwise one (`coverage_activity`'s unit)."""
+    seconds = getattr(args, "chunk_seconds", 0) or 0
+    overlap = getattr(args, "chunk_overlap_seconds", None) or coverage_chunks.DEFAULT_OVERLAP_SECONDS
+    return max(1, len(coverage_chunks.plan_chunks(item.length, seconds, overlap)))
+
+
+def _words_for(
+    item: ManifestItem,
+    path: Path,
+    transcriber: Transcriber,
+    progress: _Progress,
+    engine: ModuleType,
+    args,
+    label: str,
+    activity: coverage_activity.ActivityLog | None = None,
+) -> _ItemResult:
     """Reuse the item's words file if it covers the item with this run's model, otherwise
     transcribe and write it. The write is atomic: a words file that exists is whole."""
     cached = read_words_file(path)
@@ -484,13 +501,31 @@ def _words_for(item: ManifestItem, path: Path, transcriber: Transcriber, progres
         done = min(max(seconds, 0.0), item.length)
         progress.update(key, done, f"Transcribing item {label}... {engine.format_time(done)} / {engine.format_time(item.length)}")
 
-    words = transcriber(item, on_seconds)
+    if activity:
+        activity.working(key)
+    try:
+        words = transcriber(item, on_seconds)
+    finally:
+        if activity:
+            activity.working(key, 0)
     write_words_file(path, words)
     progress.finish(key, item.length, f"Transcribed item {label}")
+    if activity:
+        if units_of(item, args) == 1:  # a chunked item's chunks count themselves (ChunkedTranscriber)
+            activity.unit_done()
+        activity.item_done()
     return _ItemResult(item, "transcribed", words, tuple(played_words(words, item)))
 
 
-def _collect_words(items: Sequence[ManifestItem], words_dir: Path, transcriber: Transcriber, engine: ModuleType, args, workers: int = 1) -> list[_ItemResult]:
+def _collect_words(
+    items: Sequence[ManifestItem],
+    words_dir: Path,
+    transcriber: Transcriber,
+    engine: ModuleType,
+    args,
+    workers: int = 1,
+    activity: coverage_activity.ActivityLog | None = None,
+) -> list[_ItemResult]:
     """Every playing item's words, `workers` items at a time (one is the plain loop). A cancel or a failure stops the items not yet
     started; the ones finished keep their words files."""
     playing = [item for item in items if not item.muted]
@@ -508,7 +543,7 @@ def _collect_words(items: Sequence[ManifestItem], words_dir: Path, transcriber: 
 
     def work(position: int, item: ManifestItem) -> _ItemResult:
         engine.check_cancelled(args.progress)
-        return _words_for(item, words_dir / item.words_file, transcriber, progress, engine, args, label_of(position, item))
+        return _words_for(item, words_dir / item.words_file, transcriber, progress, engine, args, label_of(position, item), activity)
 
     def landed(item: ManifestItem, result: _ItemResult) -> None:
         if item in pending and result.source == "reused":  # another item wrote its words file first
@@ -629,7 +664,14 @@ def shared_transcriber(
     return WhisperTranscriber(engine, model_size=model, language=args.language, hotwords=hotwords, model_factory=factory, serialize=shared_instance)
 
 
-def _default_transcriber(engine: ModuleType, args, budget: coverage_pipeline.ModelBudget | None = None, *, shared_instance: bool = False) -> Transcriber:
+def _default_transcriber(
+    engine: ModuleType,
+    args,
+    budget: coverage_pipeline.ModelBudget | None = None,
+    *,
+    shared_instance: bool = False,
+    activity: coverage_activity.ActivityLog | None = None,
+) -> Transcriber:
     """The first pass's transcriber. With a `budget` (an item pool), the plain transcriber is the shared one and a long item's chunk
     processes share the `budget.threads` one item worker owns, so the pool and the chunks together stay inside the processors."""
     plain = shared_transcriber(engine, args, args.model, budget, shared_instance=shared_instance)
@@ -655,6 +697,7 @@ def _default_transcriber(engine: ModuleType, args, budget: coverage_pipeline.Mod
             plain=plain,
             cpus=None if budget is None else budget.threads,
             sharers=sharers,
+            activity=activity,
         )
     return plain
 
@@ -689,7 +732,12 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None, rechec
 
     rechecked: list[dict] = []
     words_dir = Path(args.words_dir)
-    pending = sum(not item.muted and not _is_covered(words_dir, item, args) for item in items)
+    todo = [item for item in items if not item.muted and not _is_covered(words_dir, item, args)]
+    pending = len(todo)
+    units = sum(units_of(item, args) for item in todo)
+    requested = getattr(args, "parallel_workers", 0) or 0
+    chunking = (getattr(args, "chunk_seconds", 0) or 0) > 0
+    activity = coverage_activity.ActivityLog(coverage_activity.path_for(args.progress), model=args.model, workers=1, units=units, items=pending)
     if _pipelined(args):
         budget = coverage_pipeline.plan_budget(
             coverage_pipeline.cpus_for(args),
@@ -707,15 +755,21 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None, rechec
             recheck=[budget.recheck.workers, budget.recheck.threads],
             cpus=budget.cpus,
         )
-        first = transcriber or _default_transcriber(engine, args, budget.first, shared_instance=budget.shared_instance)
+        activity.set_workers(max(budget.first.workers, requested if chunking else 0))
+        activity.expect_recheck(args.recheck_model, budget.recheck.workers)
+        first = transcriber or _default_transcriber(engine, args, budget.first, shared_instance=budget.shared_instance, activity=activity)
         recheck = recheck_transcriber or shared_transcriber(
             engine, args, args.recheck_model, budget.recheck, shared_instance=budget.shared_instance, model_dir=getattr(args, "recheck_model_dir", None)
         )
-        results, rechecked = coverage_pipeline.collect(items, words_dir, first, recheck, engine, args, budget)
+        results, rechecked = coverage_pipeline.collect(items, words_dir, first, recheck, engine, args, budget, activity)
     else:
         pool = _item_workers(args, engine, args.model, max(1, pending))
-        results = _collect_words(items, words_dir, transcriber or _default_transcriber(engine, args, pool), engine, args, pool.workers)
+        activity.set_workers(max(pool.workers, requested if chunking else 0))
+        results = _collect_words(
+            items, words_dir, transcriber or _default_transcriber(engine, args, pool, activity=activity), engine, args, pool.workers, activity
+        )
 
+    activity.flush()
     engine.check_cancelled(args.progress)
     engine.write_progress(args.progress, "WRITE", WRITE_PCT, "Writing the words report...")
     below = getattr(args, "unsure_below", None) or 0.0
@@ -846,6 +900,10 @@ def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None
     pool = _item_workers(args, engine, args.model, len(by_file))
     transcribe = transcriber or _default_transcriber(engine, args, pool)
     progress = _Progress(engine, args.progress, sum(window.length for window in windows))
+    # This stage's windows are the run's only work, so they are the log's "first pass"; the host reads them as the re-check's (activity.go).
+    activity = coverage_activity.ActivityLog(
+        coverage_activity.path_for(args.progress), model=args.model, workers=pool.workers, units=len(windows), items=len(by_file)
+    )
 
     def recheck_file(words_file: str, file_windows: list[Window]) -> None:
         """One words file's windows, in order, then one atomic write: a file has a single writer however many files run at once."""
@@ -863,10 +921,16 @@ def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None
                 done = min(max(seconds, 0.0), _length)
                 progress.update(_key, done, f"Re-checking {_label}... {engine.format_time(done)} / {engine.format_time(_length)}")
 
-            result = transcribe(item, on_seconds)
+            activity.working(key)
+            try:
+                result = transcribe(item, on_seconds)
+            finally:
+                activity.working(key, 0)
             existing = splice_window(existing, window, result, args.model)
             progress.finish(key, window.length, f"Re-checked {label}")
+            activity.unit_done()
         write_words_file(path, existing)
+        activity.item_done()
 
     if pool.workers <= 1 or len(by_file) <= 1:
         for words_file, file_windows in by_file.items():
@@ -880,5 +944,6 @@ def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None
             queue.drain(lambda _tag, _outcome: None)
         finally:
             executor.shutdown(wait=True, cancel_futures=True)
+    activity.flush()
     engine.check_cancelled(args.progress)
     engine.write_progress(args.progress, "DONE", 100, "Finished")

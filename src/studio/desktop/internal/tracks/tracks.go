@@ -145,6 +145,11 @@ type Track struct {
 	Muted  bool   `json:"muted"`
 	Soloed bool   `json:"soloed"`
 	Items  []Item `json:"items"`
+	// Depth is how many folders the track sits inside (0 at the top level) and
+	// IsFolder is true for a folder parent, both from the running sum of the
+	// .rpp's ISBUS deltas. Audacity has no folders: 0 and false.
+	Depth    int  `json:"depth"`
+	IsFolder bool `json:"isFolder"`
 
 	// HasFXChain records the track's own <FXCHAIN> presence (distinct from
 	// a take's <TAKEFX>); not yet part of the wire contract (json:"-"), see

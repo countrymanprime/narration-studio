@@ -75,7 +75,28 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'check-checking',
     description:
-      "Proof, Chapter 4 while its recording check runs (?mockCoverage=hold, started from the queue's Check recordings): the Check recordings dialog running over the page, the card behind it in its checking state",
+      "Proof, Chapter 4 while its recording check runs (?mockCoverage=hold-recheck, started from the queue's Check recordings): the Check recordings dialog running over the page, the card behind it in its checking state",
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'check-checking-none',
+    description:
+      'Proof, Chapter 4 while its recording check runs with nothing in doubt (?mockCoverage=hold-none): the activity panel shows the first pass done, workers idle and the Re-check figure reading "None needed"',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'check-checking-all',
+    description:
+      'Proof, Chapter 4 while its recording check runs with so much in doubt that the larger model redoes whole recordings (?mockCoverage=hold-all): the activity panel shows the Re-check figure partway through every chunk',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'check-finished',
+    description:
+      "Proof, Chapter 4 after its recording check ran to the end: the stopped activity box (Done, the final chunk and re-check counts, the clock stopped) above the chapter's result in the Check recordings dialog",
     ...REFLOW,
   },
   {

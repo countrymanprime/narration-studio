@@ -71,3 +71,14 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
     </select>
   );
 }
+
+// The select's closed box as a button, for a picker whose list is not a native `<select>`'s (the track picker's tree in a popover). It
+// is drawn as `Select` is, with the same caret, height and edge, so the two read as one control; `children` is the shown value. It
+// forwards its props and ref, so a `Popover` trigger or any `render` can use it. The caller names it (`aria-label`).
+export function SelectTrigger({ fullWidth = false, className = '', children, ...rest }: ComponentPropsWithRef<'button'> & { fullWidth?: boolean }) {
+  return (
+    <button type="button" {...rest} className={`${SELECT_CLASSES} flex items-center overflow-hidden text-left ${fullWidth ? 'w-full' : ''} ${className}`}>
+      {children}
+    </button>
+  );
+}

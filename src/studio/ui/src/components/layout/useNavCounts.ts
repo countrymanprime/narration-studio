@@ -4,7 +4,7 @@ import { openPickups } from '../pickups/list/pickupRows';
 import { onPickupListChanged } from '../pickups/pickupListChanged';
 import { CREDITS_FILE_CHAPTERS } from '../credits/creditsEntries';
 import { masterByChapter } from '../production/usePipelineSources';
-import { proofProgress } from '../proof/proof.selectors';
+import { openPickupsBeyondNotes, proofProgress } from '../proof/proof.selectors';
 
 /** The rail's count badges (mock 05: "14" on Proof, "9" on Pickups, and on Master & QC the chapters whose file fails a delivery check). A key is absent when the host has no count to give, and the
  * rail then draws no badge: a number is never made up. Story Bible has none: the open-query count it drew went with the query list
@@ -29,10 +29,17 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
     let active = true;
     const set = (patch: NavCounts) => active && setCounts((previous) => ({ ...previous, ...patch }));
     const clear = (key: keyof NavCounts) => () => set({ [key]: undefined });
+    // The Proof page's whole-book head adds the pickups no note stands for; the badge counts the same, so the two never differ. A pickup list that
+    // fails to read leaves the notes alone (the Pickups badge reports its own failure).
     const readProof = () =>
-      api
-        .findingsSummary()
-        .then((summary) => set({ proof: proofProgress(summary, 0).open }))
+      Promise.all([
+        api.findingsSummary(),
+        api.pickupsList().then(
+          (list) => openPickupsBeyondNotes(list.pickups),
+          () => 0,
+        ),
+      ])
+        .then(([summary, beyondNotes]) => set({ proof: proofProgress(summary, beyondNotes).open }))
         .catch(clear('proof'));
     void readProof();
     const readPickups = () =>
@@ -47,7 +54,10 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
         set({ master: Object.values(byChapter).filter((entry) => entry.qc === 'FAIL').length });
       })
       .catch(clear('master'));
-    const unsubscribe = api.subscribePickups(() => void readPickups());
+    const unsubscribe = api.subscribePickups(() => {
+      void readPickups();
+      void readProof();
+    });
     // A decision saved on Proof announces too, so the rail's two badges follow it without a page move.
     const unlisten = onPickupListChanged(() => {
       void readProof();

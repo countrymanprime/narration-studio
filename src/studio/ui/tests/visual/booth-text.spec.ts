@@ -15,12 +15,19 @@ const NARROW = [
   { width: 768, height: 1024 },
 ];
 
-// XBO-18: the text column is left-aligned at the page gutter at any width (the width control narrows it from the right), as the bars are.
+// XBO-18, corrected: the Booth's text is the Script's reading column, centred in the text area with the bars' gutter (plus the ribbon
+// margin) on each side; it is never pinned to the left gutter. The width choice narrows it symmetrically (reader-column-width.spec.ts).
 for (const size of NARROW) {
-  test(`setup at ${size.width}: the text starts at the page gutter`, async ({ page }) => {
+  test(`setup at ${size.width}: the text column is centred between the gutters`, async ({ page }) => {
     await drive(page, 'setup', size);
-    const left = await page.evaluate(() => document.querySelector('[data-booth-text] > div')!.getBoundingClientRect().left);
-    expect(left).toBe(16);
+    const g = await page.evaluate(() => {
+      const area = document.querySelector('[data-booth-text]') as HTMLElement;
+      const column = area.querySelector('[data-reader-column]')!.getBoundingClientRect();
+      const box = area.getBoundingClientRect();
+      return { left: column.left - box.left, right: box.right - column.right };
+    });
+    expect(g.left, 'the column starts inside the gutter').toBeGreaterThanOrEqual(16);
+    expect(Math.abs(g.left - g.right), 'equal room each side').toBeLessThanOrEqual(1);
   });
 
   // XBO-18: the pickup line's bar stays inside the gutter, never at the window's edge.
@@ -106,7 +113,7 @@ for (const size of [
   test(`at ${size.width}: the Reader text column width changes how wide the Booth's text column is`, async ({ page }) => {
     const width = async (state: string): Promise<number> => {
       await drive(page, state, size);
-      return page.evaluate(() => document.querySelector('[data-booth-text] > div')!.getBoundingClientRect().width);
+      return page.evaluate(() => document.querySelector('[data-booth-text] [data-reader-column]')!.getBoundingClientRect().width);
     };
     const medium = await width('setup');
     const narrow = await width('text-width-narrow');

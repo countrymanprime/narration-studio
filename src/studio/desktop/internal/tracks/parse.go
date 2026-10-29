@@ -34,8 +34,14 @@ func Parse(path string) (Project, error) {
 	}
 	projectFolder := filepath.Dir(path)
 	var trackList []Track
+	depth := 0
 	for index, trackNode := range reaperProject.childrenTagged("TRACK") {
-		trackList = append(trackList, parseTrack(trackNode, index, projectFolder))
+		track := parseTrack(trackNode, index, projectFolder)
+		track.Depth = depth
+		delta := folderDelta(trackNode)
+		track.IsFolder = delta > 0
+		depth = max(depth+delta, 0)
+		trackList = append(trackList, track)
 	}
 	return Project{Path: path, Tracks: trackList, Regions: parseRegions(reaperProject), Markers: parseMarkers(reaperProject)}, nil
 }
@@ -106,6 +112,21 @@ func markerGUID(values []string) string {
 		}
 	}
 	return ""
+}
+
+// folderDelta reads the second field of a track's ISBUS line, REAPER's
+// I_FOLDERDEPTH: 1 opens a folder, 0 changes nothing, -N closes N levels. A
+// missing, short or unparsable line is 0, so a damaged file reads as flat.
+func folderDelta(n *node) int {
+	values := n.attrs["ISBUS"]
+	if len(values) < 2 {
+		return 0
+	}
+	delta, err := strconv.Atoi(values[1])
+	if err != nil {
+		return 0
+	}
+	return delta
 }
 
 func parseTrack(n *node, index int, projectFolder string) Track {

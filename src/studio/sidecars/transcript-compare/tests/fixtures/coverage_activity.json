@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "items": { "total": 6, "done": 2 },
+  "firstPass": { "model": "small", "workers": 4, "busy": 3, "total": 112, "done": 40, "final": true },
+  "recheck": { "model": "large-v3-turbo", "workers": 1, "busy": 1, "total": 7, "done": 3, "final": false, "reason": "low_confidence" }
+}

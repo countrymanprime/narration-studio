@@ -246,7 +246,7 @@ class Pending:
 # the pipelined run
 
 
-def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, budget: PipelineBudget):
+def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, budget: PipelineBudget, activity=None):
     """The pipelined `coverage_mode._collect_words`: every playing item's words, the doubtful passages re-checked by the large model as
     soon as the small model has finished each item. Returns the per-item results in manifest order, and the re-check summaries by item."""
     import coverage_mode as mode  # a sibling module; imported late because it imports this one
@@ -274,11 +274,13 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
     first_done = set()
 
     def first_job(item, label):
-        return mode._words_for(item, words_dir / item.words_file, first, progress, engine, args, label)
+        return mode._words_for(item, words_dir / item.words_file, first, progress, engine, args, label, activity)
 
     def recheck_job(item, windows, whole):
         with locks[item.index]:  # one writer per words file; the first pass's write is final before this job exists
             engine.check_cancelled(args.progress)
+            if activity:
+                activity.working(("re-check", item.index), recheck=True)
             result = current[item.index]
             words = result.words
             for number, (start, end) in enumerate(windows, 1):
@@ -294,7 +296,11 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
 
                 words = mode.splice_window(words, window, recheck(piece, on_seconds), args.recheck_model)
                 progress.finish(key, piece.length, f"Re-checked {label}")
+                if activity:
+                    activity.unit_done(recheck=True)
             mode.write_words_file(words_dir / item.words_file, words)
+            if activity:
+                activity.working(("re-check", item.index), 0, recheck=True)
             updated = replace(result, words=words, played=tuple(mode.played_words(words, item)))
             current[item.index] = updated
             return updated, windows, whole
@@ -321,6 +327,8 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
         for target, target_windows, whole in scheduled:
             seconds = sum(end - start for start, end in target_windows)
             asked["seconds"] += seconds
+            if activity:
+                activity.recheck_queued(len(target_windows), "widespread" if whole else "low_confidence")
             queue.submit(recheck_pool, "recheck", recheck_job, target, target_windows, whole)
         progress.set_total(first_seconds + max(asked["seconds"], first_seconds * DOUBT_SHARE))
 
@@ -333,6 +341,8 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
                 current[item.index] = outcome
             first_done.add(item.index)
             plan(item, outcome)
+            if activity and len(first_done) == len(playing):
+                activity.first_pass_ended()
             return
         result, windows, whole = outcome
         summary = summaries.setdefault(

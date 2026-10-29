@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
+import { useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
@@ -10,11 +11,17 @@ import type { NarrationApi } from '../../types';
 
 afterEach(cleanup);
 
+// The dialog as the engine panel mounts it: drawn from the one chapter-links reader.
+function Dialog({ onClose }: { onClose: () => void }) {
+  const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+  return <LinkChaptersDialog links={links} onClose={onClose} />;
+}
+
 function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, onClose = vi.fn()) {
   const api = createMockApi(overrides, initial);
   render(
     <ApiProvider api={api}>
-      <LinkChaptersDialog chapters={WIRE_CHAPTERS} tracks={WIRE_TRACKS_PROJECT.tracks} onClose={onClose} />
+      <Dialog onClose={onClose} />
     </ApiProvider>,
   );
   return { api, onClose };
@@ -37,7 +44,7 @@ describe('LinkChaptersDialog', () => {
     const chapter = WIRE_CHAPTERS[0];
     const track = WIRE_TRACKS_PROJECT.tracks[0];
 
-    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${chapter.title}` }), track.guid);
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${chapter.title}` }), track.guid);
 
     const expectedCount = track.items.length;
     const stampButton = await screen.findByRole('button', { name: `Stamp ${expectedCount} item${expectedCount === 1 ? '' : 's'}` });
@@ -58,7 +65,7 @@ describe('LinkChaptersDialog', () => {
     const { api } = renderDialog();
     const stamp = vi.spyOn(api, 'lineIdentityStamp');
 
-    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
 
     expect(stamp).not.toHaveBeenCalled();
   });
@@ -134,7 +141,7 @@ describe('LinkChaptersDialog', () => {
   it('disables Cancel and Close while a stamp is running', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
-    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
     const trackItemCount = WIRE_TRACKS_PROJECT.tracks[0].items.length;
 
     void api.lineIdentityStamp(

@@ -13,6 +13,8 @@ import type { EntityColour } from '../../../kinds/entityColour';
 import { kindMarkStyle } from '../../../kinds/markStyle';
 import { markToken, narratorMarkStyle } from '../../../kinds/narratorMark';
 import { positionOf, unitAtPosition, type ReadingPosition } from './readingPosition';
+import { ReaderColumn } from '../../primitives/ReaderColumn';
+import { DEFAULT_TEXT_PREFS, readerColumn } from '../../script/page/tools/text/readerText';
 import { SpeakerChip } from './SpeakerChip';
 import { useBrowseView, type BrowseView } from './useBrowseView';
 
@@ -55,7 +57,7 @@ type Props = {
   size: number;
   /** A CSS font-family for the text. */
   font?: string;
-  /** The column's CSS max-width (`useTextChoices`' column, the Reader text column width). Left out: the mock's 26em. */
+  /** The column's CSS max-width (`useTextChoices`' column, the Reader text column width). Left out: Medium, the Reader text default. */
   width?: string;
   viewRef?: Ref<BrowseView>;
   /** Drawn inside the text column, which is `relative` and moves with the text: the bookmark ribbons (`BookmarkRibbons`). */
@@ -206,7 +208,7 @@ export function BoothText({
   punchAt = null,
   size,
   font,
-  width = '26em',
+  width = readerColumn(DEFAULT_TEXT_PREFS.width),
   viewRef,
   margin,
 }: Props) {
@@ -258,19 +260,20 @@ export function BoothText({
         if (!(event.target as Element).closest('[data-unit],[data-note],button')) onBackground?.();
       }}
       data-booth-text
-      className="relative h-full overflow-hidden pr-[calc(var(--page-gutter)+1.75rem)] pl-[var(--page-gutter)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-[2] before:h-[90px] before:bg-gradient-to-b before:from-[var(--bg)] before:to-transparent before:content-[''] after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[2] after:h-[90px] after:bg-gradient-to-t after:from-[var(--bg)] after:to-transparent after:content-['']"
+      className="relative h-full overflow-hidden px-[calc(var(--page-gutter)+1.75rem)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-[2] before:h-[90px] before:bg-gradient-to-b before:from-[var(--bg)] before:to-transparent before:content-[''] after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[2] after:h-[90px] after:bg-gradient-to-t after:from-[var(--bg)] after:to-transparent after:content-['']"
     >
-      <div
+      <ReaderColumn
         ref={text}
+        width={width}
         style={
           {
             fontSize: `${textSizePx(size)}px`,
             fontFamily: font,
-            maxWidth: width,
             '--tsize': `${textSizePx(size)}px`,
           } as CSSProperties
         }
-        // Left-aligned (start-aligned for a right-to-left paragraph), never justified, balanced or hyphenated: the lines break where they did.
+        // The Script's reading column, centred in the text area. Its lines are start-aligned (for a right-to-left paragraph too), never
+        // justified, balanced or hyphenated: the lines break where they did.
         className="relative py-[30vh] text-start leading-[1.5] [overflow-wrap:anywhere] motion-ok:transition-transform motion-ok:duration-(--motion-slow)"
       >
         {paragraphs.map((paragraph, paragraphIndex) => {
@@ -332,7 +335,7 @@ export function BoothText({
           );
         })}
         {margin}
-      </div>
+      </ReaderColumn>
     </div>
   );
 }

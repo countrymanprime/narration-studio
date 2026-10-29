@@ -105,6 +105,8 @@ type trackSummary struct {
 	Color              string     `json:"color"`
 	Muted              bool       `json:"muted"`
 	Soloed             bool       `json:"soloed"`
+	Depth              int        `json:"depth"`
+	IsFolder           bool       `json:"isFolder"`
 	ItemCount          int        `json:"itemCount"`
 	PlayableCount      int        `json:"playableCount"`
 	MissingSourceCount int        `json:"missingSourceCount"`
@@ -247,7 +249,7 @@ func readLinksProject(svc hostServices) (tracks.Project, linksProjectState, stri
 func summarizeTrack(track tracks.Track, linkedChapterID string) trackSummary {
 	summary := trackSummary{
 		GUID: track.GUID, Index: track.Index, Name: track.Name, Color: track.Color,
-		Muted: track.Muted, Soloed: track.Soloed, ItemCount: len(track.Items), LinkedChapterID: linkedChapterID,
+		Muted: track.Muted, Soloed: track.Soloed, Depth: track.Depth, IsFolder: track.IsFolder, ItemCount: len(track.Items), LinkedChapterID: linkedChapterID,
 	}
 	for _, item := range track.Items {
 		switch {

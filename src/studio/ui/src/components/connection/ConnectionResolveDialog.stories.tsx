@@ -11,7 +11,7 @@ import { ConnectionResolveDialog, type ConnectionResolveDialogProps } from './Co
 // The dialog that replaces the not-connected and not-linked banners: it names the problem in the host's words, offers the fix and a Check again,
 // and the header X is the way out. Both variants are drawn over the page, as in the app; the stories open them already mounted.
 const NEVER = new Promise<never>(() => {});
-const track = (n: number, name = `Track ${n}`) => ({ guid: `{T-${n}}`, name, index: n - 1 });
+const track = (n: number, name = `Track ${n}`) => ({ guid: `{T-${n}}`, name, index: n - 1, depth: 0, isFolder: false, hasAudio: true });
 const best = { trackGuid: '{T-2}', trackName: 'Chapter 3', trackIndex: 1, score: 1, source: 'track-name' as const, region: null };
 
 const match = (over: Partial<ChapterTrackMatch> = {}): ChapterTrackMatch => ({

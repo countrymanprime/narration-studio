@@ -31,6 +31,8 @@ export const WORD_TAIL_SECONDS = 0.2;
 export const MIN_TAIL_SECONDS = 0.12;
 /** The most a play runs past a word's end to carry its sound to the end; the room the next word leaves can be less. */
 export const MAX_TAIL_SECONDS = 0.6;
+/** A next word that starts within this long after a word's end may be sounding already: the recognizer's start for it is as early as its end for this one. */
+const NEAR_SECONDS = 0.3;
 /** A next word that starts at least this long after a word's end was heard after a pause, and the play stops before it. */
 const TOUCHING_SECONDS = 0.05;
 /** Seconds a play may start before the first word's aligned start, for a plosive or breath the aligner put after its onset. */
@@ -81,10 +83,14 @@ function tailEnd(doc: ChapterDoc, lastKey: string, end: number, sound?: Envelope
     ? end + MAX_TAIL_SECONDS
     : pause
       ? Math.min(end + MAX_TAIL_SECONDS, Math.max(end, (t0 as number) - BEFORE_NEXT_SECONDS))
-      : Math.max(end, middle);
-  const heardEnd = audioTail(sound, word.t0, end, limit);
+      : Math.max(end, Math.min(end + MAX_TAIL_SECONDS, next.t1 as number));
+  const near = next && (t0 as number) - end < NEAR_SECONDS ? { start: t0 as number, end: next.t1 as number } : undefined;
+  const heardEnd = audioTail(sound, word.t0, end, near ? Math.max(end, Math.min(end + MAX_TAIL_SECONDS, next?.t1 as number)) : limit, near);
   if (heardEnd === null) return fixed;
-  return Math.max(heardEnd, Math.min(end + MIN_TAIL_SECONDS, limit));
+  // The audio decides how far past the recognizer's end the play runs, but never less than MIN_TAIL_SECONDS (an end this early is the norm, not an exception),
+  // short of the room the next word leaves.
+  const floorLimit = pause ? limit : Math.max(end, Math.min(end + MAX_TAIL_SECONDS, middle));
+  return Math.max(heardEnd, Math.min(end + MIN_TAIL_SECONDS, floorLimit));
 }
 
 /** Where a play that starts on the word `firstKey` at `start` should start: up to `WORD_LEAD_SECONDS` earlier, never before the previous heard

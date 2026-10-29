@@ -27,7 +27,6 @@ export const KEPT: Readonly<Record<string, string>> = {
   'src/components/booth/useResumeLocate.ts': COMPANION,
   'src/components/credits/CreditsSetupBanner.tsx': CREDITS,
   'src/components/credits/CreditsSetupDialog.tsx': CREDITS,
-  'src/components/engine/ChapterLinksTable.tsx': ENGINE,
   'src/components/engine/ChapterSyncPanel.tsx': ENGINE,
   'src/components/engine/ChapterTagsDialog.tsx': ENGINE,
   'src/components/engine/CleanupToolsDialog.tsx': ENGINE,

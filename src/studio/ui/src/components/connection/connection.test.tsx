@@ -75,7 +75,7 @@ describe('useOpenOnce', () => {
   });
 });
 
-const track = (n: number, name: string) => ({ guid: `{T-${n}}`, name, index: n - 1 });
+const track = (n: number, name: string) => ({ guid: `{T-${n}}`, name, index: n - 1, depth: 0, isFolder: false, hasAudio: true });
 const candidate = (n: number, name: string) => ({
   trackGuid: `{T-${n}}`,
   trackName: name,
@@ -98,12 +98,15 @@ const match = (over: Partial<ChapterTrackMatch> = {}): ChapterTrackMatch => ({
   ...over,
 });
 
+/** What a track outside any folder adds to a choice. */
+const FLAT = { color: '', depth: 0, isFolder: false, hasAudio: true };
+
 describe('trackChoices', () => {
   it('lists the matcher’s candidates first, then the rest in project order, and marks the best', () => {
     expect(trackChoices(match())).toEqual([
-      { guid: '{T-2}', name: 'Chapter 3', best: true },
-      { guid: '{T-1}', name: 'Chapter 2', best: false },
-      { guid: '{T-3}', name: 'Track 3', best: false },
+      { guid: '{T-2}', name: 'Chapter 3', best: true, ...FLAT, index: 1 },
+      { guid: '{T-1}', name: 'Chapter 2', best: false, ...FLAT, index: 0 },
+      { guid: '{T-3}', name: 'Track 3', best: false, ...FLAT, index: 2 },
     ]);
   });
 

@@ -113,6 +113,9 @@ type State struct {
 	FirstPassModel string `json:"firstPassModel,omitempty"`
 	RecheckModel   string `json:"recheckModel,omitempty"`
 	RecheckWindows int    `json:"recheckWindows,omitempty"`
+	// Activity is what the check is doing now (activity.go): the transcriptions running at once, the chunks done, the passages the larger
+	// model was asked to re-check. Nil until the sidecar has written its first count.
+	Activity *Activity `json:"activity,omitempty"`
 }
 
 // Request is one coverage run.

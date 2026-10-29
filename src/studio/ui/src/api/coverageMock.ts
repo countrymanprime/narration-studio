@@ -16,6 +16,8 @@ import type {
   CoverageGapReviews,
   CoverageStartOptions,
   CoverageStartResult,
+  CoverageActivity,
+  CoverageRecheckReason,
   CoverageState,
   CoverageWorkerPlan,
   Finding,
@@ -100,6 +102,10 @@ export type CoverageSeed = {
   /** Boots with a background check of the first chapter held at 42% (tiny with small as the double-check), as the host's own
    * background loop starts one: the progress at the bottom left can be seen without waiting for the loop. Cancel ends it. */
   backgroundRun?: boolean;
+  /** What the held check's larger model has been asked: `recheck` (default) some passages, partly done; `none` nothing in doubt;
+   * `all` the whole chapter, so the panel's "everything" and "nothing" states can be seen without a host. Naming one also turns the second look on
+   * whatever the dialog asked for; without it the mock follows the dialog's choice. */
+  activity?: 'recheck' | 'none' | 'all';
 };
 
 /** The engines the mock offers: the approved catalog, plus (when the seed stands for the cascade being on) the larger model the mock gates on, chosen from the start. */
@@ -159,6 +165,25 @@ const PROGRESS_STEPS = [
   { stage: 'TRANSCRIBE', percent: 70, message: 'Transcribing item 2 of 2…' },
   { stage: 'ALIGN', percent: 90, message: 'Aligning the text…' },
 ];
+/** The activity the mock reports at each of PROGRESS_STEPS: eight chunks (two long items) on two of four workers' worth of a small computer,
+ * then the larger model's passages. The numbers move the way the host's do: the first pass's total is known, the re-check's grows then settles. */
+function mockActivity(step: number, kind: 'recheck' | 'none' | 'all' | undefined, recheck: boolean, whole = false): CoverageActivity {
+  // Each recording whole: one transcription per recording, so the two items are the two units and one worker runs them.
+  const total = whole ? 2 : 8;
+  const done = whole ? ([0, 1, 2, 2][step] ?? 2) : ([0, 3, 8, 8][step] ?? 8);
+  const firstPass = { model: 'small', workers: whole ? 1 : 2, busy: done === total ? 0 : whole ? 1 : 2, total, done, final: true };
+  const base = { requested: 0, items: { total: 2, done: [0, 1, 2, 2][step] ?? 2 }, firstPass };
+  if (!recheck) return base;
+  const model = 'large-v3-turbo';
+  const idleSecond = { model, workers: 1, busy: 0, total: 0, done: 0, final: false, reasons: [] };
+  if (step <= 1) return { ...base, recheck: idleSecond };
+  if (kind === 'none') return { ...base, recheck: { ...idleSecond, final: true } };
+  const passages = kind === 'all' ? 8 : 7;
+  const reasons: CoverageRecheckReason[] = kind === 'all' ? ['widespread'] : ['low_confidence'];
+  const finished = step === 2 ? 3 : passages;
+  return { ...base, recheck: { model, workers: 1, busy: step === 2 ? 1 : 0, total: passages, done: finished, final: true, reasons } };
+}
+
 const MOCK_BASIS = { label: 'saved project, file modified 2026-09-21T10:00:00Z', modifiedAt: '2026-09-21T10:00:00Z', stale: false };
 const MOCK_TIME = '2026-09-21T10:00:00Z';
 /** A narration pace, for the mock's played seconds only. */
@@ -593,12 +618,17 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       };
       publish();
       const steps = deps.seed?.hold ? PROGRESS_STEPS.filter((step) => step.stage === 'TRANSCRIBE') : PROGRESS_STEPS;
+      const forced = deps.seed?.activity !== undefined;
+      const wantsRecheck = !options?.skipRecheck && (forced || (options?.recheck ?? !options?.model));
+      const whole = options?.chunkSeconds === 0;
+      state = { ...state, activity: mockActivity(0, deps.seed?.activity, wantsRecheck, whole) };
+      publish();
       steps.forEach((step, index) =>
         timers.push(
           setTimeout(
             () => {
               if (state.runId !== runId || state.phase !== 'running') return;
-              state = { ...state, ...step };
+              state = { ...state, ...step, activity: mockActivity(index + 1, deps.seed?.activity, wantsRecheck, whole) };
               publish();
             },
             STEP_MS * (index + 1),

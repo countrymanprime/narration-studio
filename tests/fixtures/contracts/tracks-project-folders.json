@@ -1,0 +1,163 @@
+{
+  "path": "C:/Projects/Alice/folders-handmade.rpp",
+  "tracks": [
+    {
+      "color": "",
+      "depth": 0,
+      "guid": "{00000000-0000-4000-8000-000000000001}",
+      "index": 0,
+      "isFolder": false,
+      "items": [
+        {
+          "guid": "{10000000-0000-4000-8000-000000000001}",
+          "length": 2,
+          "name": "Intro.wav",
+          "playRate": 1,
+          "position": 0,
+          "sourceAvailable": false,
+          "sourceFile": "C:/Projects/Alice/media/Intro.wav",
+          "sourceKind": "WAVE",
+          "sourceStart": 0,
+          "supported": true,
+          "takeGuid": ""
+        }
+      ],
+      "muted": false,
+      "name": "Intro",
+      "soloed": false
+    },
+    {
+      "color": "",
+      "depth": 0,
+      "guid": "{00000000-0000-4000-8000-000000000002}",
+      "index": 1,
+      "isFolder": true,
+      "items": null,
+      "muted": false,
+      "name": "Book",
+      "soloed": false
+    },
+    {
+      "color": "",
+      "depth": 1,
+      "guid": "{00000000-0000-4000-8000-000000000003}",
+      "index": 2,
+      "isFolder": true,
+      "items": [
+        {
+          "guid": "{10000000-0000-4000-8000-000000000003}",
+          "length": 2,
+          "name": "Part 1.wav",
+          "playRate": 1,
+          "position": 0,
+          "sourceAvailable": false,
+          "sourceFile": "C:/Projects/Alice/media/Part 1.wav",
+          "sourceKind": "WAVE",
+          "sourceStart": 0,
+          "supported": true,
+          "takeGuid": ""
+        }
+      ],
+      "muted": false,
+      "name": "Part 1",
+      "soloed": false
+    },
+    {
+      "color": "",
+      "depth": 2,
+      "guid": "{00000000-0000-4000-8000-000000000004}",
+      "index": 3,
+      "isFolder": false,
+      "items": [
+        {
+          "guid": "{10000000-0000-4000-8000-000000000004}",
+          "length": 2,
+          "name": "Ch 1.wav",
+          "playRate": 1,
+          "position": 0,
+          "sourceAvailable": false,
+          "sourceFile": "C:/Projects/Alice/media/Ch 1.wav",
+          "sourceKind": "WAVE",
+          "sourceStart": 0,
+          "supported": true,
+          "takeGuid": ""
+        }
+      ],
+      "muted": false,
+      "name": "Ch 1",
+      "soloed": false
+    },
+    {
+      "color": "",
+      "depth": 2,
+      "guid": "{00000000-0000-4000-8000-000000000005}",
+      "index": 4,
+      "isFolder": false,
+      "items": [
+        {
+          "guid": "{10000000-0000-4000-8000-000000000005}",
+          "length": 2,
+          "name": "Ch 2.wav",
+          "playRate": 1,
+          "position": 0,
+          "sourceAvailable": false,
+          "sourceFile": "C:/Projects/Alice/media/Ch 2.wav",
+          "sourceKind": "WAVE",
+          "sourceStart": 0,
+          "supported": true,
+          "takeGuid": ""
+        }
+      ],
+      "muted": false,
+      "name": "Ch 2",
+      "soloed": false
+    },
+    {
+      "color": "",
+      "depth": 0,
+      "guid": "{00000000-0000-4000-8000-000000000006}",
+      "index": 5,
+      "isFolder": true,
+      "items": null,
+      "muted": false,
+      "name": "Empty folder",
+      "soloed": false
+    },
+    {
+      "color": "",
+      "depth": 1,
+      "guid": "{00000000-0000-4000-8000-000000000007}",
+      "index": 6,
+      "isFolder": false,
+      "items": null,
+      "muted": false,
+      "name": "Spare",
+      "soloed": false
+    },
+    {
+      "color": "",
+      "depth": 0,
+      "guid": "{00000000-0000-4000-8000-000000000008}",
+      "index": 7,
+      "isFolder": false,
+      "items": [
+        {
+          "guid": "{10000000-0000-4000-8000-000000000008}",
+          "length": 2,
+          "name": "Appendix.wav",
+          "playRate": 1,
+          "position": 0,
+          "sourceAvailable": false,
+          "sourceFile": "C:/Projects/Alice/media/Appendix.wav",
+          "sourceKind": "WAVE",
+          "sourceStart": 0,
+          "supported": true,
+          "takeGuid": ""
+        }
+      ],
+      "muted": false,
+      "name": "Appendix",
+      "soloed": false
+    }
+  ]
+}
