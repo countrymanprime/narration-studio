@@ -40,7 +40,7 @@ const EPS = 1e-6;
 /** How many words before the one that starts last are looked at for one that still covers a project second (words of overlapping items). */
 const OVERLAP_LOOKBACK = 16;
 /** The most a play's end may run past the last word it ends after, for the tail of the word's sound. */
-export const MAX_PAST_WORD_SECONDS = 1;
+const MAX_PAST_WORD_SECONDS = 1;
 
 /**
  * The map for `doc`'s words over `table`. `tokenOf` says which alignment token a word of the page is (the page's locator); a word with no token, or whose
