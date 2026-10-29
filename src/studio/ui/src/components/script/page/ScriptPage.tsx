@@ -146,6 +146,7 @@ function ScriptWorkspace({
   const [pendingJump] = useScriptView((state) => state.pendingJump);
   const [pendingPid] = useScriptView((state) => state.pendingPid);
 
+  const ownChapters = useMemo(() => withoutCredits(allChapters), [allChapters]);
   const order = useMemo(() => chapters.map((chapter) => chapter.id), [chapters]);
   const paragraphs = useLoadedParagraphs(order);
   const inView = spyAt ?? chapters[0]!.id;
@@ -208,7 +209,7 @@ function ScriptWorkspace({
       update(paragraphId ? { pendingPid: paragraphId, drawer: null } : { pendingJump: chapterId, drawer: null }),
     [update],
   );
-  useDeepLink({ chapters: withoutCredits(allChapters), goTo: goToLink, notify });
+  useDeepLink({ chapters: ownChapters, goTo: goToLink, notify });
 
   // `/script?find=<text>` opens Find on that text once (the Story Bible's Find button), then leaves the address as `/script`.
   const { search, hash } = useLocation();
