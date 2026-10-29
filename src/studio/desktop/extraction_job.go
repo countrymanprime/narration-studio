@@ -74,6 +74,8 @@ type extractionScanJob struct {
 	added int
 	// +checklocks:mu
 	skipped int
+	// +checklocks:mu
+	chunks  map[int]chunkProgress
 	sources []string
 	cancel  context.CancelFunc
 }
@@ -105,13 +107,45 @@ func (j *extractionScanJob) say(message string) {
 	j.logs = append(j.logs, message)
 }
 
+// chunkProgress is how far a source reading the book in parts has got: parts read of parts in all, and the chapters that could
+// not be read.
+type chunkProgress struct {
+	done, total int
+	unread      []string
+}
+
+// chunkRead records that source i has read done of total parts, and shows it in the message and the percent. It adds no line
+// to the logs for each part (a book has dozens); the percent never goes back and never reads 100 before the job ends.
+func (j *extractionScanJob) chunkRead(i int, label string, done, total int, unread []string) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	if j.phase != "running" || total < 1 {
+		return
+	}
+	if j.chunks == nil {
+		j.chunks = map[int]chunkProgress{}
+	}
+	j.chunks[i] = chunkProgress{done: done, total: total, unread: slices.Clone(unread)}
+	j.message = fmt.Sprintf("Scanning with %s (%d of %d): read %d of %d parts.", label, i+1, len(j.sources), done, total)
+	if percent := min(99, (i*100+done*100/total)/len(j.sources)); percent > j.percent {
+		j.percent = percent
+	}
+}
+
+// unreadOf is how many parts source i could not read.
+func (j *extractionScanJob) unreadOf(i int) int {
+	j.mu.RLock()
+	defer j.mu.RUnlock()
+	return len(j.chunks[i].unread)
+}
+
 // sourceDone counts one more source as done and what it added. The percent never reads 100 before the job ends.
 func (j *extractionScanJob) sourceDone(done, added, skipped int) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	j.added += added
 	j.skipped += skipped
-	j.percent = min(99, done*100/len(j.sources))
+	j.percent = max(j.percent, min(99, done*100/len(j.sources)))
 }
 
 // finish records how the scan ended: err when a source or the ingest failed, cancelled when the narrator stopped it.
@@ -171,6 +205,8 @@ func (h *Host) startExtractionScan(ids []string) (ExtractionScanJob, error) {
 	if err != nil {
 		return ExtractionScanJob{}, err
 	}
+	plan := h.extractionWorkers(order)
+	run.input.Workers, run.input.Threads = plan.Workers, plan.Threads
 
 	ctx, cancel := context.WithCancel(context.Background())
 	id := fmt.Sprintf("extraction-scan-%d", time.Now().UnixNano())
@@ -191,6 +227,16 @@ func (h *Host) startExtractionScan(ids []string) (ExtractionScanJob, error) {
 	ctx = runlog.WithRun(ctx, h.jobRuns.begin(h.runLog, id, jobKindExtractionScan, "sources", order))
 	go h.runExtractionScan(ctx, job, run)
 	return job.snapshot(), nil
+}
+
+// extractionWorkers is how many chapters GLiNER reads at once in a scan of sources: the Parallel processes setting
+// (0: Automatic) planned against this computer's processors and free memory (planScanWorkers).
+func (h *Host) extractionWorkers(sources []string) scanWorkerPlan {
+	requested := 0
+	if store := h.services().settings; store != nil {
+		requested = coverageSettings(store).Parallel.Workers
+	}
+	return planScanWorkers(coverageMachine(), requested, sources)
 }
 
 // extractionScanOrder is the rules, then each id asked for in the registry's order, once. It refuses an id that is not
@@ -253,7 +299,29 @@ func (h *Host) extractionScanInput(registry *port.Registry[extractionport.Source
 // job:ended event.
 func (h *Host) runExtractionScan(ctx context.Context, job *extractionScanJob, run extractionScanRun) {
 	defer job.cancel()
+	// The rules run first, in the host. The sources that start a sidecar then read at the same time (GLiNER beside BookNLP is
+	// 6 to 29% faster than one after the other, docs/research/studio-next-extraction-chunking-benchmark.md), and their offers
+	// are ingested one at a time in the registry's order, so the result does not depend on which finishes first.
+	scanCtx, stop := context.WithCancel(ctx)
+	var readers sync.WaitGroup
+	defer func() {
+		stop()
+		readers.Wait()
+	}()
 	var failed error
+	waiting := map[int]<-chan extractionRead{}
+	start := func(i int, label string, extractor extractionport.Extractor) {
+		result := make(chan extractionRead, 1)
+		waiting[i] = result
+		input := run.input
+		input.Progress = func(done, total int, unread []string) { job.chunkRead(i, label, done, total, unread) }
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			raws, err := extractor.Extract(scanCtx, input)
+			result <- extractionRead{raws: raws, err: err}
+		}()
+	}
 	for i, name := range job.sources {
 		if ctx.Err() != nil {
 			break
@@ -276,21 +344,25 @@ func (h *Host) runExtractionScan(ctx context.Context, job *extractionScanJob, ru
 			job.sourceDone(i+1, 0, 0)
 			continue
 		}
-		raws, err := extractor.Extract(ctx, run.input)
-		if ctx.Err() != nil {
+		start(i, label, extractor)
+		if name == extractionport.Rules {
+			// The host's own rules finish before a sidecar starts, as they always have.
+			if !h.takeRead(ctx, job, run, i, name, label, waiting, &failed) {
+				break
+			}
+		}
+	}
+	for i, name := range job.sources {
+		if failed != nil || ctx.Err() != nil {
 			break
 		}
-		if err != nil {
-			failed = err
+		if _, ok := waiting[i]; !ok {
+			continue
+		}
+		entry, _ := run.registry.Lookup(name)
+		if !h.takeRead(ctx, job, run, i, name, entry.Descriptor.Label, waiting, &failed) {
 			break
 		}
-		added, skipped, err := ingestExtraction(run, store.Source(name), raws)
-		if err != nil {
-			failed = err
-			break
-		}
-		job.say(fmt.Sprintf("%s offered %s.", label, suggestionsCount(added)))
-		job.sourceDone(i+1, added, skipped)
 	}
 	if failed == nil && ctx.Err() == nil && run.cues != nil {
 		job.say(cuesSentence(run.cues(ctx)))
@@ -302,6 +374,49 @@ func (h *Host) runExtractionScan(ctx context.Context, job *extractionScanJob, ru
 	if ok {
 		h.publishJobEnded(event)
 	}
+}
+
+// extractionRead is what one source's extraction came to.
+type extractionRead struct {
+	raws []extractionport.Raw
+	err  error
+}
+
+// takeRead waits for source i's extraction, ingests its offers and counts the source done. It reports false when the scan
+// must stop (cancelled, or failed: *failed then holds the error).
+func (h *Host) takeRead(ctx context.Context, job *extractionScanJob, run extractionScanRun, i int, name, label string, waiting map[int]<-chan extractionRead, failed *error) bool {
+	var read extractionRead
+	select {
+	case read = <-waiting[i]:
+	case <-ctx.Done():
+		return false
+	}
+	delete(waiting, i)
+	if ctx.Err() != nil {
+		return false
+	}
+	if read.err != nil {
+		*failed = read.err
+		return false
+	}
+	added, skipped, err := ingestExtraction(run, store.Source(name), read.raws)
+	if err != nil {
+		*failed = err
+		return false
+	}
+	job.say(fmt.Sprintf("%s offered %s.", label, suggestionsCount(added)))
+	if unread := job.unreadOf(i); unread > 0 {
+		job.say(fmt.Sprintf("%s could not read %d %s of the book; what it did read was kept.", label, unread, plural(unread, "part", "parts")))
+	}
+	job.sourceDone(i+1, added, skipped)
+	return true
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
 
 // ingestExtraction stores one source's offers and applies the ones the 75% rule accepts. A suggestion that cannot be

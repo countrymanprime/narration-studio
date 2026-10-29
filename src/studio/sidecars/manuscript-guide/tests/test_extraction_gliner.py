@@ -416,6 +416,34 @@ class ChapterPoolTests(unittest.TestCase):
         contract_files.check("suggest-progress", records, testdata)
 
 
+class ThreadBudgetTests(unittest.TestCase):
+    """Two sources reading at once share the processors: the host names how many torch threads each may use."""
+
+    def threads_set(self, threads: int) -> list[int]:
+        import types
+
+        calls: list[int] = []
+        saved = sys.modules.get("torch")
+        sys.modules["torch"] = types.SimpleNamespace(set_num_threads=calls.append)  # type: ignore[assignment]
+        try:
+            root = Path(tempfile.mkdtemp())
+            args = argparse.Namespace(manuscript=str(_write_manuscript(root)), install=str(_complete_install(root / "install")), workers=1, threads=threads)
+            with contextlib.redirect_stdout(io.StringIO()):
+                gliner.suggest(args, loader=lambda path: FakeModel(dawnspire))
+        finally:
+            if saved is None:
+                del sys.modules["torch"]
+            else:
+                sys.modules["torch"] = saved
+        return calls
+
+    def test_threads_limit_torch_after_the_model_loads(self):
+        self.assertEqual([2], self.threads_set(2))
+
+    def test_no_budget_leaves_torch_alone(self):
+        self.assertEqual([], self.threads_set(0))
+
+
 class NoNetworkAtRunTimeTests(unittest.TestCase):
     def test_the_module_imports_no_http_client_and_no_socket(self):
         text = (CORE / "extraction_gliner.py").read_text(encoding="utf-8")

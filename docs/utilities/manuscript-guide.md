@@ -134,6 +134,17 @@ through `src/studio/desktop/internal/extractionport/gliner` with the same caps a
 no-alias line format, pinned by `gliner/testdata/suggest-lines.json`. `self-check --gliner-install DIR` adds a `gliner`
 line: the installed version, or "not installed", which passes.
 
+`--workers N` (2 or more) reads the manuscript chapter by chapter in a pool of N processes, each loading the model once, with a
+chapter over 1500 words cut between paragraphs (`CHAPTER_WORDS`). The results are merged in manuscript order by the whole-book
+rule (highest score per name, the first on a tie), so the offers equal a one-process read's up to float noise in the scores. A
+chunk that cannot be read is logged and left out; the rest are kept, and the scan fails only if no chunk could be read. After each
+chunk the sidecar prints a progress record, `{"progress": {"done": 3, "total": 18, "failed": ["c-0002"]}}`, before the entry
+lines, pinned by `gliner/testdata/suggest-progress.json`; the host shows it in the scan's result box and does not take it for a
+suggestion. `--threads N` (also on BookNLP) limits torch to N threads across the processes; the host sets it to half the
+processors when GLiNER and BookNLP read at once, because two sources with a thread per processor each ran more than four times
+slower than one after the other. The host plans N from **Parallel processes** (`extraction_workers.go`) and runs the sidecar
+sources together. Measurements: [the benchmark](../research/studio-next-extraction-chunking-benchmark.md).
+
 ## BookNLP suggestions
 
 `suggest --source booknlp --manuscript M --guide G --install DIR [--spacy-model S]` runs the optional BookNLP download

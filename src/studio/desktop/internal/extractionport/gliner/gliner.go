@@ -18,6 +18,7 @@ import (
 	"log/slog"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -135,7 +136,7 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 	if err != nil {
 		return nil, err
 	}
-	lines, err := s.run(ctx, command, dir)
+	lines, err := s.run(ctx, command, dir, in)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +164,7 @@ func (s Source) log(message string) {
 }
 
 // run starts the sidecar and collects its stdout lines, stopping it at the first line or byte over a cap.
-func (s Source) run(ctx context.Context, command Command, dir string) ([]string, error) {
+func (s Source) run(ctx context.Context, command Command, dir string, in extractionport.Input) ([]string, error) {
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
 	var mu sync.Mutex
@@ -174,6 +175,12 @@ func (s Source) run(ctx context.Context, command Command, dir string) ([]string,
 		mu.Lock()
 		defer mu.Unlock()
 		if refused != nil {
+			return
+		}
+		if done, count, failed, ok := parseProgress(line); ok {
+			if in.Progress != nil {
+				in.Progress(done, count, failed)
+			}
 			return
 		}
 		total += len(line) + 1
@@ -190,6 +197,12 @@ func (s Source) run(ctx context.Context, command Command, dir string) ([]string,
 	}
 	args := append(slices.Clone(command.Args), "suggest", "--source", extractionport.Gliner,
 		"--manuscript", command.Manuscript, "--guide", command.Guide, "--install", dir)
+	if in.Workers > 1 {
+		args = append(args, "--workers", strconv.Itoa(in.Workers))
+	}
+	if in.Threads > 0 {
+		args = append(args, "--threads", strconv.Itoa(in.Threads))
+	}
 	child, err := s.Supervisor.StartStream(runCtx, onLine, command.Program, args...)
 	if err != nil {
 		return nil, err
@@ -207,6 +220,32 @@ func (s Source) run(ctx context.Context, command Command, dir string) ([]string,
 		return nil, fmt.Errorf("GLiNER could not look for suggestions (exit %d): %s", code, lastMessage(child.StderrTail()))
 	}
 	return lines, nil
+}
+
+// parseProgress reads the record the sidecar prints after each chunk it reads side by side (progress_line in
+// extraction_gliner.py): {"progress":{"done":2,"total":18,"failed":["c-0003"]}}. ok is false for any other line, which is then
+// checked as a suggestion; a record with numbers out of range is not a progress record either.
+func parseProgress(line string) (done, total int, failed []string, ok bool) {
+	if !strings.HasPrefix(line, `{"progress"`) {
+		return 0, 0, nil, false
+	}
+	decoder := json.NewDecoder(strings.NewReader(line))
+	decoder.DisallowUnknownFields()
+	var w struct {
+		Progress struct {
+			Done   int      `json:"done"`
+			Total  int      `json:"total"`
+			Failed []string `json:"failed"`
+		} `json:"progress"`
+	}
+	if decoder.Decode(&w) != nil || decoder.More() {
+		return 0, 0, nil, false
+	}
+	p := w.Progress
+	if p.Total < 1 || p.Done < 0 || p.Done > p.Total || len(p.Failed) > p.Total {
+		return 0, 0, nil, false
+	}
+	return p.Done, p.Total, p.Failed, true
 }
 
 // lastMessage is the sidecar's last stderr line: the message of its JSON log record, without the "ERROR: " the sidecar puts

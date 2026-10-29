@@ -319,9 +319,17 @@ def read_chunks(
     return merge(parts)
 
 
+def limit_threads(threads: int) -> None:
+    """Limits torch to ``threads`` threads in this process. Two sources reading at once with a thread for every processor each
+    run more than four times slower than one after the other (4 processors, 2026-10-29): the host names a budget instead."""
+    import torch
+
+    torch.set_num_threads(max(1, threads))
+
+
 def suggest(args: argparse.Namespace, loader: Callable[[Path], Model] = load_model) -> None:
     """``suggest --source gliner --manuscript M --install DIR [--workers N]``: print GLiNER's suggestions as JSON lines. It writes
-    nothing. With ``--workers`` 2 or more the chapters are read side by side, each worker its own copy of the model, and a progress
+    nothing. ``--threads`` is the most torch threads all its processes use together (0: every processor). With ``--workers`` 2 or more the chapters are read side by side, each worker its own copy of the model, and a progress
     record (``progress_line``) is printed after each chunk."""
     paragraphs = _paragraphs(args.manuscript)
     workers = min(max(1, getattr(args, "workers", 1) or 1), len(chunks_of(paragraphs)))
@@ -330,10 +338,18 @@ def suggest(args: argparse.Namespace, loader: Callable[[Path], Model] = load_mod
         reason = damage(Path(args.install) if args.install else None)
         if reason:
             raise DESCRIPTOR.unavailable(reason)
-        threads = max(1, (os.cpu_count() or 1) // workers)
-        found = read_chunks(paragraphs, workers, lambda n: process_pool(n, str(args.install), threads))
+        budget = getattr(args, "threads", 0) or os.cpu_count() or 1
+        found = read_chunks(paragraphs, workers, lambda n: process_pool(n, str(args.install), max(1, budget // n)))
     else:
-        found = GlinerSource(args.install or None, loader=loader).extractor().extract({"paragraphs": paragraphs})
+        threads = getattr(args, "threads", 0) or 0
+
+        def limited(install: Path) -> Model:
+            model = loader(install)
+            if threads:
+                limit_threads(threads)
+            return model
+
+        found = GlinerSource(args.install or None, loader=limited).extractor().extract({"paragraphs": paragraphs})
     for raw in found:
         print(json.dumps(line(raw), ensure_ascii=False))
 

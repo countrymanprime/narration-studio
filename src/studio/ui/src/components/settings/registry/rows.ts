@@ -261,7 +261,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: '0',
     field: { tool: 'RecordingCoverage', key: 'parallel_workers' },
     desc: 'Transcriptions a check runs at once; 0 is Automatic.',
-    more: 'How many recordings a check transcribes side by side, or how many pieces of one long recording. Each holds its own copy of the speech model in memory. 0 is Automatic: half this computer’s processors, fewer when that many copies of the chosen model would not fit in the free memory. A number you choose is kept, up to the processors and the memory. One always runs, even when a copy of the model does not fit. Background checks plan their own from the processors set for them.',
+    more: 'How many recordings a check transcribes side by side, or how many pieces of one long recording. Each holds its own copy of the speech model in memory. 0 is Automatic: half this computer’s processors, fewer when that many copies of the chosen model would not fit in the free memory. A number you choose is kept, up to the processors and the memory. One always runs, even when a copy of the model does not fit. Background checks plan their own from the processors set for them. A Story Bible scan with GLiNER reads that many chapters at once the same way (fewer beside BookNLP, which keeps a quarter of the processors and its memory).',
     used: ['production', 'proof'],
     advanced: true,
     syn: 'transcriptions at once workers threads cpu memory ram performance automatic',

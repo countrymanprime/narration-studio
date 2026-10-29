@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -60,6 +61,28 @@ func fakeSidecar(mode string) {
 		}
 	case "sample":
 		line(`{"source":"gliner","payload":{"kind":"entry","name":"Alice","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":0.91,"quotes":[{"paragraphId":"1-1","text":"Alice was beginning to get very tired of sitting by her sister on the bank."}],"chapterId":"1"}`)
+	case "pool":
+		// What `--workers 3` prints: a progress record after each chunk, then the suggestions. The progress lines come from the
+		// committed contract file the sidecar's own test writes.
+		if argument(args, "--workers") != "3" {
+			fmt.Fprintf(os.Stderr, "expected --workers 3, got %q\n", args)
+			os.Exit(3)
+		}
+		var records []json.RawMessage
+		data, _ := os.ReadFile(filepath.Join("testdata", "suggest-progress.json"))
+		_ = json.Unmarshal(data, &records)
+		for _, r := range records {
+			compact, _ := json.Marshal(r)
+			line(string(compact))
+		}
+		line(`{"source":"gliner","payload":{"kind":"entry","name":"Alice","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":0.91,"quotes":[{"paragraphId":"1-1","text":"Alice was beginning to get very tired of sitting by her sister on the bank."}],"chapterId":"1"}`)
+	case "threads":
+		if argument(args, "--threads") != "2" || argument(args, "--workers") != "" {
+			fmt.Fprintf(os.Stderr, "expected --threads 2 and no --workers, got %q\n", args)
+			os.Exit(3)
+		}
+	case "bad-progress":
+		line(`{"progress":{"done":5,"total":2,"failed":[]}}`)
 	case "bad-quote":
 		line(`{"source":"gliner","payload":{"kind":"entry","name":"Dawnspyre","type":"Place"},"confidence":0.8,"quotes":[{"paragraphId":"p-000001","text":"meet in Dawnspyre."}],"chapterId":"c-0001"}`)
 	case "alias":
@@ -293,4 +316,65 @@ func registryOf(s Source) *port.Registry[extractionport.Source] {
 	r := &port.Registry[extractionport.Source]{Kind: "extraction source"}
 	r.Register(Entry(s))
 	return r
+}
+
+func TestWorkersArePassedOnAndProgressRecordsAreReportedNotTakenForSuggestions(t *testing.T) {
+	source, _ := fake(t, "pool")
+	extractor, err := source.Extractor()
+	if err != nil {
+		t.Fatal(err)
+	}
+	type step struct {
+		done, total int
+		failed      []string
+	}
+	var steps []step
+	in := extractionport.Input{
+		Paragraphs: []extraction.Paragraph{{ID: "1-1", ChapterID: "1", Text: "Alice was beginning to get very tired of sitting by her sister on the bank."}},
+		Workers:    3,
+		Progress:   func(done, total int, failed []string) { steps = append(steps, step{done, total, failed}) },
+	}
+	raws, err := extractor.Extract(context.Background(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(raws) != 1 || raws[0].Payload.Name != "Alice" {
+		t.Fatalf("raws = %+v", raws)
+	}
+	want := []step{{1, 3, []string{}}, {3, 3, []string{"c-0002"}}}
+	if !reflect.DeepEqual(steps, want) {
+		t.Fatalf("progress = %+v, want %+v", steps, want)
+	}
+}
+
+func TestAProgressRecordOutOfRangeIsRefusedAsABadSuggestion(t *testing.T) {
+	source, _ := fake(t, "bad-progress")
+	if _, err := extract(t, source, context.Background()); err == nil {
+		t.Fatal("a progress record with done above total was accepted")
+	}
+}
+
+func TestNoWorkersMeansNoFlag(t *testing.T) {
+	source, _ := fake(t, "sample") // the fake sidecar of this mode refuses nothing, but a flag would show in the golden arguments
+	for _, workers := range []int{0, 1} {
+		extractor, _ := source.Extractor()
+		in := book
+		in.Workers = workers
+		if _, err := extractor.Extract(context.Background(), in); err != nil {
+			t.Fatalf("workers %d: %v", workers, err)
+		}
+	}
+}
+
+func TestThreadsAreAFlagOnlyWhenTheHostNamedABudget(t *testing.T) {
+	source, _ := fake(t, "threads")
+	extractor, _ := source.Extractor()
+	in := book
+	in.Threads = 2
+	if _, err := extractor.Extract(context.Background(), in); err != nil {
+		t.Fatalf("with a budget of 2: %v", err)
+	}
+	if _, err := extractor.Extract(context.Background(), book); err == nil {
+		t.Fatal("with no budget the fake sidecar should have refused the missing --threads")
+	}
 }

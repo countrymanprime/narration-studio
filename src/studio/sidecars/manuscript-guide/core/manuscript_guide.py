@@ -527,6 +527,7 @@ def main() -> None:
     suggest_parser.add_argument("--source", choices=("gliner", "booknlp"), required=True, help="the rules run in the host, not here")
     suggest_parser.add_argument("--install", default="", help="the source's install folder (gliner, booknlp)")
     suggest_parser.add_argument("--workers", type=int, default=1, help="GLiNER: chapters read side by side, each worker its own copy of the model")
+    suggest_parser.add_argument("--threads", type=int, default=0, help="the most torch threads this source uses (0: every processor)")
     suggest_parser.add_argument("--spacy-model", default="", help="the spaCy model BookNLP parses with: an installed model's folder or a name")
     suggest_parser.add_argument("--manuscript", required=True)
     suggest_parser.add_argument("--guide", required=True)

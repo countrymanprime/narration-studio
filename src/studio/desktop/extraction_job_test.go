@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -203,8 +205,10 @@ func TestExtractionScanRunsTheInstalledSourcesInOrder(t *testing.T) {
 	}
 	nextJobEnd(t, events)
 	job = waitScan(t, host)
-	if want := []string{"rules", "gliner", "booknlp"}; !slices.Equal(ran.all(), want) {
-		t.Fatalf("ran %v, want %v", ran.all(), want)
+	// The rules run first; the sidecar sources start together, so which of them starts first is not promised (what is ingested,
+	// and in which order, is: TestExtractionScanIngestsInTheRegistrysOrderWhicheverSourceFinishesFirst).
+	if got := ran.all(); got[0] != "rules" || !slices.Equal(slices.Sorted(slices.Values(got[1:])), []string{"booknlp", "gliner"}) {
+		t.Fatalf("ran %v, want the rules, then GLiNER and BookNLP in either order", got)
 	}
 	if !slices.Contains(job.Logs, "Skipped Local model: No local model is installed.") {
 		t.Fatalf("the unavailable source's reason is not in the logs: %q", job.Logs)
@@ -582,5 +586,76 @@ func writeScanManuscript(t *testing.T, host *Host) {
 	}
 	if err := os.WriteFile(manuscript, raw, 0o600); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// SidecarSourcesReadTogetherAndAreIngestedInOrder: GLiNER waits until BookNLP has started, which only happens when they read at
+// the same time; BookNLP then finishes first, and its offers are still ingested after GLiNER's.
+func TestExtractionScanIngestsInTheRegistrysOrderWhicheverSourceFinishesFirst(t *testing.T) {
+	bookStarted, glinerMay := make(chan struct{}), make(chan struct{})
+	host, _, events := scanHost(t,
+		scanSource{name: extractionport.Rules, runs: true},
+		scanSource{name: extractionport.Gliner, runs: true, extract: func(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
+			select {
+			case <-bookStarted:
+			case <-time.After(5 * time.Second):
+				return nil, errors.New("BookNLP never started while GLiNER was reading")
+			}
+			<-glinerMay
+			return []extractionport.Raw{glinerHatter}, nil
+		}},
+		scanSource{name: extractionport.BookNLP, runs: true, extract: func(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
+			close(bookStarted)
+			defer close(glinerMay)
+			return []extractionport.Raw{rulesDodo}, nil
+		}},
+	)
+	decodeScanJob(t)(host.ExtractionScan([]string{extractionport.Gliner, extractionport.BookNLP}))
+	nextJobEnd(t, events)
+	job := waitScan(t, host)
+	if job.Phase != "success" || job.Added != 2 {
+		t.Fatalf("job = %+v", job)
+	}
+	logs := strings.Join(job.Logs, "\n")
+	if strings.Index(logs, "GLiNER offered") > strings.Index(logs, "BookNLP offered") || !strings.Contains(logs, "BookNLP offered") {
+		t.Fatalf("GLiNER's offers were not ingested before BookNLP's:\n%s", logs)
+	}
+}
+
+func TestExtractionScanShowsPartsReadAndCountsThoseThatFailed(t *testing.T) {
+	cpus, memory := coverageCPUs, coverageFreeMemoryMB
+	coverageCPUs, coverageFreeMemoryMB = func() int { return 8 }, func() int { return 32000 }
+	t.Cleanup(func() { coverageCPUs, coverageFreeMemoryMB = cpus, memory })
+	step := make(chan struct{})
+	release := make(chan struct{})
+	host, _, events := scanHost(t,
+		scanSource{name: extractionport.Rules, runs: true},
+		scanSource{name: extractionport.Gliner, runs: true, extract: func(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
+			if in.Workers != 4 {
+				return nil, fmt.Errorf("8 processors and plenty of memory planned %d workers, want 4 (half the processors)", in.Workers)
+			}
+			in.Progress(1, 4, nil)
+			close(step)
+			<-release
+			in.Progress(4, 4, []string{"c-0002", "c-0003"})
+			return []extractionport.Raw{glinerHatter}, nil
+		}},
+	)
+	decodeScanJob(t)(host.ExtractionScan([]string{extractionport.Gliner}))
+	waitGate(t, step, "the first part")
+	job := decodeScanJob(t)(host.ExtractionScanState())
+	if job.Message != "Scanning with GLiNER (2 of 2): read 1 of 4 parts." || job.Percent != 62 {
+		t.Fatalf("while reading: %d%% %q", job.Percent, job.Message)
+	}
+	close(release)
+	nextJobEnd(t, events)
+	job = waitScan(t, host)
+	if job.Phase != "success" || !slices.Contains(job.Logs, "GLiNER could not read 2 parts of the book; what it did read was kept.") {
+		t.Fatalf("ended %+v", job)
+	}
+	for _, line := range job.Logs {
+		if strings.Contains(line, "read 1 of 4") {
+			t.Fatalf("a part's progress was logged: %q", line)
+		}
 	}
 }

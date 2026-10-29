@@ -55,6 +55,14 @@ type Raw struct {
 type Input struct {
 	Paragraphs []extraction.Paragraph
 	Text       string
+	// Workers is how many chapters a source that can read them side by side may read at once; below 2 it reads the book whole.
+	Workers int
+	// Threads is the most torch threads a sidecar source may use, all its processes together; 0 is no limit. It is set when two
+	// sources read at once, which with a thread for every processor each run more than four times slower than one after the other.
+	Threads int
+	// Progress, when set, is told after each chunk a source reads: how many of how many are done, and the ids of the chapters
+	// that could not be read. A source that reads the book whole never calls it.
+	Progress func(done, total int, failed []string)
 }
 
 // Extractor is the extract role. Extract never writes the Story Bible, and returns ctx.Err() once ctx is cancelled.
