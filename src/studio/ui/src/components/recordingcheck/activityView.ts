@@ -99,18 +99,19 @@ export function summarizeActivity(entries: readonly ChapterActivity[]): Activity
     },
     workers: {
       value: live.length === 0 ? `${workers || first[0].workers}` : `${busy}/${slots} busy`,
-      hint: workersHint(requested, first[0].workers, chunkTotal),
+      hint: workersHint(requested, first[0].workers, chunkTotal, rechecks[0]?.workers ?? 0),
     },
     recheck: recheckFigure(rechecks, asked),
     reported: true,
   };
 }
 
-function workersHint(requested: number, workers: number, chunkTotal: number): string {
-  if (chunkTotal === 1) return 'One piece of audio, so one transcription runs.';
-  if (requested === 0) return `Automatic runs ${workers} at once on this computer.`;
-  if (workers < requested) return `You chose ${requested}; this check can use ${workers} at once.`;
-  return `You chose ${requested}; ${workers} run at once.`;
+function workersHint(requested: number, workers: number, chunkTotal: number, larger: number): string {
+  const plus = larger > 0 ? `, and ${larger} for the larger model` : '';
+  if (chunkTotal === 1) return `One piece of audio, so one transcription runs${plus}.`;
+  if (requested === 0) return `Automatic runs ${workers} at once${plus}.`;
+  if (workers < requested) return `You chose ${requested}; this check can use ${workers} at once${plus}.`;
+  return `You chose ${requested}; ${workers} run at once${plus}.`;
 }
 
 /** m:ss, or h:mm:ss from an hour. */

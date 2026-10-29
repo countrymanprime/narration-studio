@@ -46,9 +46,11 @@ describe('summarizeActivity', () => {
   });
 
   it('says what Automatic resolved to', () => {
-    expect(summarizeActivity([running(activity({ requested: 0 }))]).workers.hint).toBe('Automatic runs 4 at once on this computer.');
-    expect(summarizeActivity([running(activity({ requested: 8 }))]).workers.hint).toBe('You chose 8; this check can use 4 at once.');
-    expect(summarizeActivity([running(activity({ requested: 4 }))]).workers.hint).toBe('You chose 4; 4 run at once.');
+    expect(summarizeActivity([running(activity({ requested: 0 }))]).workers.hint).toBe('Automatic runs 4 at once, and 1 for the larger model.');
+    expect(summarizeActivity([running(activity({ requested: 8 }))]).workers.hint).toBe(
+      'You chose 8; this check can use 4 at once, and 1 for the larger model.',
+    );
+    expect(summarizeActivity([running(activity({ requested: 4 }))]).workers.hint).toBe('You chose 4; 4 run at once, and 1 for the larger model.');
   });
 
   it('says so when there is one chunk and nothing to run side by side', () => {

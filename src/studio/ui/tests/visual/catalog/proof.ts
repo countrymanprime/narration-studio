@@ -75,7 +75,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'check-checking',
     description:
-      "Proof, Chapter 4 while its recording check runs (?mockCoverage=hold, started from the queue's Check recordings): the Check recordings dialog running over the page, the card behind it in its checking state",
+      "Proof, Chapter 4 while its recording check runs (?mockCoverage=hold-recheck, started from the queue's Check recordings): the Check recordings dialog running over the page, the card behind it in its checking state",
     ...REFLOW,
   },
   {

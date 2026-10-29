@@ -29,7 +29,7 @@ async function openChapter(page: Page, chapterTitle: string): Promise<void> {
 }
 
 // A recording check held at its last transcribing step (?mockCoverage=<seed>), so the dialog reads the same at every viewport; it stays open while it runs.
-async function checkHeld(page: Page, seed: 'hold' | 'hold-none' | 'hold-all'): Promise<void> {
+async function checkHeld(page: Page, seed: 'hold' | 'hold-recheck' | 'hold-none' | 'hold-all'): Promise<void> {
   await openProof(page, `mockCoverage=${seed}`);
   await openChapter(page, 'Chapter 4');
   await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
@@ -143,7 +143,7 @@ export const proofDrivers: Record<string, Driver> = {
     await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
     await page.getByRole('dialog').getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
-  'check-checking': async (page) => checkHeld(page, 'hold'),
+  'check-checking': async (page) => checkHeld(page, 'hold-recheck'),
   // The mock's check runs on its own to the end: the dialog then shows that chapter's result under the stopped activity box.
   'check-finished': async (page) => {
     await openProof(page, 'mockCoverage=cascade');
