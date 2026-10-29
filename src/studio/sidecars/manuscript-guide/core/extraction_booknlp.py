@@ -119,6 +119,9 @@ FREEZE_IMPORTS = (
     "anyio",
     "idna",
     "certifi",
+    # GLiNER's chapter pool starts spawned worker processes (extraction_gliner.process_pool).
+    "concurrent.futures.process",
+    "multiprocessing.spawn",
 )
 # torch's own on Windows.
 FREEZE_IMPORTS_WINDOWS = ("ctypes.wintypes",)
@@ -643,10 +646,21 @@ def _paragraphs(manuscript: str) -> list[dict[str, str]]:
 
 
 def suggest(args: argparse.Namespace, loader: Callable[[Path, str], Model] | None = None) -> None:
-    """``suggest --source booknlp --manuscript M --install DIR [--spacy-model S]``: print BookNLP's suggestions as JSON
-    lines. It writes nothing."""
+    """``suggest --source booknlp --manuscript M --install DIR [--spacy-model S] [--threads N]``: print BookNLP's suggestions as
+    JSON lines. It writes nothing. ``--threads`` limits torch to N threads (0: every processor), for a scan that reads GLiNER
+    beside it: two sources with a thread for every processor each run more than four times slower than one after the other."""
     spacy_model = getattr(args, "spacy_model", "") or "en_core_web_sm"
-    load = loader or (lambda install, variant: load_model(install, variant, spacy_model))
+    threads = getattr(args, "threads", 0) or 0
+    base = loader or (lambda install, variant: load_model(install, variant, spacy_model))
+
+    def load(install: Path, variant: str) -> Model:
+        model = base(install, variant)
+        if threads:
+            import torch
+
+            torch.set_num_threads(threads)
+        return model
+
     extractor = BookNlpSource(args.install or None, loader=load).extractor()
     for raw in extractor.extract({"paragraphs": _paragraphs(args.manuscript)}):
         print(json.dumps(line(raw), ensure_ascii=False))
