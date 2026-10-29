@@ -98,6 +98,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'onRemoveFromRecording already shows the failure (its own toast, in useChapterTools) before rethrowing; this catch only stops that rejection from going unhandled and skips closing the confirm, so the narrator can retry.',
   'src/api/wailsClient.ts#1': 'The diagnostic report itself: a report that fails must not raise a second error over the one being reported.',
   'src/api/wailsClient.ts#2': 'The host binding is missing (not running inside the desktop app), so there is nothing to report to.',
+  'src/components/editing/bar/useScriptPlayback.ts#1':
+    'The play-stop line for host.log (reportClientDiagnostic); a failed write must not raise a second error over the play it describes.',
   'src/App.tsx#1': 'A diagnostic report while showing the startup error; it must not throw over it.',
   'src/App.tsx#2': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
   'src/App.tsx#3': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',

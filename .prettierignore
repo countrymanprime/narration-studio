@@ -4,3 +4,4 @@ obj/
 dist/
 logs/
 src/studio/ui/tests/visual/fixtures/
+src/studio/ui/src/components/editing/model/fixtures/realSpeech/*.json

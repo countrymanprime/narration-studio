@@ -76,6 +76,7 @@ export const editingFeedback: Record<string, FeedbackRow> = {
 
   // Editing ribbon
   'src/components/editing/ribbon/useRibbonPeaks.ts::workspacePeaks#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'The chapter\'s peaks for the ribbon; a refused or failed read is a state (the ribbon says there is no audio), not an error to retry.'),
+  'src/components/editing/bar/useScriptPlayback.ts::reportClientDiagnostic#1': row('effect', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'One line in host.log about how a play of words ended (word, alignment end, planned and actual stop, path), for tracing a clipped word; the narrator never waits on it and a failed write must not raise a second error over the play.'),
   'src/components/editing/bar/useScriptPlayback.ts::mediaUrl#1': row('click', 'instant', 'na', 'na', 'ui', 'na', 'na', 'exempt', "Builds the media URL of a recorded file (a string, no host call); Play starts the audio on it, and a file that will not load is the audio element's own error, which the bar reports."),
   // ports/editLog.ts: the Editing records port's host adapter. Each site forwards to the binding and passes the answer or the rejection through;
   // the screen that calls the port owns its control and failure path.
