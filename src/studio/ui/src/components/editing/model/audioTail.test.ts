@@ -58,9 +58,54 @@ describe('audioTail', () => {
 
   it('stops at the valley when the next word follows with no pause', () => {
     const touching = shape(10.0, 12.0, [...STATUES.slice(0, -2), [10.78, 0.06], [10.82, 0.04], [10.9, 0.5], [11.1, 0.7]]);
-    const got = audioTail(touching, 10.0, 10.5, 10.95)!;
+    const got = audioTail(touching, 10.0, 10.5, 10.95, { start: 10.9, end: 11.4 })!;
     expect(got).toBeGreaterThanOrEqual(10.76);
     expect(got).toBeLessThanOrEqual(10.86);
+  });
+
+  // The old rule took the first dip it saw for the end: the closure of the "t" inside "statues" (quiet for 60 ms, then the "ues"), or an "s" 25 dB under the vowel.
+  it('does not take a closure inside the word for its end', () => {
+    const closure = shape(10.0, 12.0, [
+      [10.0, 0],
+      [10.04, 0.7],
+      [10.3, 0.8],
+      [10.4, 0.01],
+      [10.46, 0.01],
+      [10.5, 0.4],
+      [10.6, 0.4],
+      [10.7, 0.05],
+      [10.8, 0.03],
+      [10.9, 0.004],
+      [11.4, 0.004],
+    ]);
+    const got = audioTail(closure, 10.0, 10.42, 11.18)!;
+    expect(got).toBeGreaterThan(10.8);
+  });
+
+  it('plays out a weak final "s" that sits well under the vowel', () => {
+    const hiss = shape(10.0, 12.0, [
+      [10.0, 0],
+      [10.04, 0.8],
+      [10.4, 0.7],
+      [10.45, 0.04],
+      [10.75, 0.035],
+      [10.8, 0.003],
+      [11.4, 0.003],
+    ]);
+    const got = audioTail(hiss, 10.0, 10.42, 11.18)!;
+    expect(got).toBeGreaterThan(10.75);
+  });
+
+  it('knows the room from the whole chapter when the window holds no pause', () => {
+    const noisy = shape(10.0, 12.0, [
+      [10.0, 0],
+      [10.04, 0.7],
+      [10.4, 0.6],
+      [10.5, 0.03],
+      [12.0, 0.03],
+    ]);
+    expect(audioTail({ ...noisy, floor: 0.03 }, 10.0, 10.42, 11.18)).toBeLessThan(10.8);
+    expect(audioTail(noisy, 10.0, 10.42, 11.18)).toBe(11.18);
   });
 
   it('never goes past the limit it is given', () => {
