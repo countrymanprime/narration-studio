@@ -219,8 +219,10 @@ REAPER starts when it opens; nothing is written until you press the dialog's act
 bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
-items that hold its recording. Choose the track for each chapter; **To stamp** shows how many of
-that track's items will carry it, and **Stamp N items** writes it. What the stamp did, or why it failed, shows at the top
+items that hold its recording. It opens with the links the **Chapter links** list shows, the opening and
+closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
+clears the link, and either shows in the other at once. **To stamp** shows how many of that track's items will
+carry the chapter's identity, and **Stamp N items** writes it. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
 of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different
 chapter**, and items REAPER no longer has are listed as stale. **Read current stamps** lists what the
