@@ -45,8 +45,9 @@ const (
 
 // Do runs one action on syncer. support is the transport_sync capability's answer and is checked first, with nothing asked of the DAW when it
 // refuses; sameProject says whether the DAW has this book's project open, and a cursor, play or watch is left alone when it does not (a stop is
-// never refused for it, so a transport the app started can always be stopped). A refusal is a Result with one sentence in Refused and Message.
-func Do(ctx context.Context, name string, support dawport.Support, syncer dawport.TransportSyncer, sameProject func() bool, action string, seconds, until float64) dawport.Result {
+// never refused for it, so a transport the app started can always be stopped). trackGUID, for "play" and "playRange", is the one track the DAW plays (see
+// dawport.TransportSyncer); "" plays the project as it is. A refusal is a Result with one sentence in Refused and Message.
+func Do(ctx context.Context, name string, support dawport.Support, syncer dawport.TransportSyncer, sameProject func() bool, action string, seconds, until float64, trackGUID string) dawport.Result {
 	if !support.Available {
 		return dawport.Refused(support.Message)
 	}
@@ -72,9 +73,9 @@ func Do(ctx context.Context, name string, support dawport.Support, syncer dawpor
 	case ActionCursor:
 		_, err = syncer.SetCursor(ctx, seconds)
 	case ActionPlay:
-		_, err = syncer.PlayFrom(ctx, seconds)
+		_, err = syncer.PlayFrom(ctx, seconds, trackGUID)
 	case ActionPlayRange:
-		_, _, err = syncer.PlayRange(ctx, seconds, until)
+		_, _, err = syncer.PlayRange(ctx, seconds, until, trackGUID)
 	case ActionStop:
 		_, err = syncer.Stop(ctx)
 	case ActionWatch:

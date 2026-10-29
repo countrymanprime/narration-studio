@@ -49,7 +49,7 @@ function Harness({ caps, items = ITEMS, read }: { caps: DawCapabilities | null; 
     playlist: PLAYLIST,
     mediaUrl: (f) => f,
     notify: (text) => notices.push(text),
-    sync: { items, cuts: [], caps, ...(read ? { read } : {}) },
+    sync: { items, cuts: [], caps, chapterId: 'chapter-1', ...(read ? { read } : {}) },
   });
   useDawPlayPosition({ items, playlist: PLAYLIST, caps: playback.syncActive ? null : caps, playback });
   return (
@@ -235,7 +235,7 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     await ready();
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
-    expect(calls('play')).toEqual([{ action: 'play', seconds: at(t0('p-2:1')) }]);
+    expect(calls('play')).toEqual([{ action: 'play', seconds: at(t0('p-2:1')), chapterId: 'chapter-1' }]);
     expect(audio.play).not.toHaveBeenCalled();
     expect(state().playing).toBe(true);
     act(() => daw.moveInDaw({ head: at(t0('p-2:3')) }));
@@ -274,6 +274,7 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
     await wait(10);
     expect(calls('play')).toHaveLength(0);
+    expect(calls('playRange').every((c) => c.chapterId === 'chapter-1')).toBe(true); // the DAW plays that chapter's linked track, not the selected one
     expect(calls('playRange').map(({ seconds, until }) => [seconds, until])).toEqual([[at(t0('p-1:3')), expect.closeTo(at(t0('p-2:1')), 2)]]);
     act(() => daw.moveInDaw({ head: at(t0('p-2:1')) + 0.05 }));
     await wait(10);

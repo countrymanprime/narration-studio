@@ -53,10 +53,10 @@ func TestTransportSyncTranslatesTheFiveCalls(t *testing.T) {
 	if got, err := syncer.SetCursor(t.Context(), 12.5); err != nil || got != 12.5 {
 		t.Fatalf("SetCursor = %v, %v", got, err)
 	}
-	if got, err := syncer.PlayFrom(t.Context(), 40); err != nil || got != 40 {
+	if got, err := syncer.PlayFrom(t.Context(), 40, ""); err != nil || got != 40 {
 		t.Fatalf("PlayFrom = %v, %v", got, err)
 	}
-	if from, to, err := syncer.PlayRange(t.Context(), 40, 41.5); err != nil || from != 40 || to != 41.5 {
+	if from, to, err := syncer.PlayRange(t.Context(), 40, 41.5, ""); err != nil || from != 40 || to != 41.5 {
 		t.Fatalf("PlayRange = %v, %v, %v", from, to, err)
 	}
 	if got, err := syncer.Stop(t.Context()); err != nil || got != 7 {
@@ -78,8 +78,8 @@ func TestTransportSyncRefusesWithTheCapabilitysOwnSentenceBeforeAnythingIsSent(t
 	syncer := adapter.Role(dawport.CapTransportSync).(dawport.TransportSyncer)
 	calls := map[string]func() error{
 		"SetCursor": func() error { _, err := syncer.SetCursor(t.Context(), 1); return err },
-		"PlayFrom":  func() error { _, err := syncer.PlayFrom(t.Context(), 1); return err },
-		"PlayRange": func() error { _, _, err := syncer.PlayRange(t.Context(), 1, 2); return err },
+		"PlayFrom":  func() error { _, err := syncer.PlayFrom(t.Context(), 1, ""); return err },
+		"PlayRange": func() error { _, _, err := syncer.PlayRange(t.Context(), 1, 2, ""); return err },
 		"Stop":      func() error { _, err := syncer.Stop(t.Context()); return err },
 		"Watch":     func() error { _, err := syncer.Watch(t.Context(), time.Second); return err },
 	}
@@ -95,7 +95,7 @@ func TestTransportSyncPassesARecordingRefusalOn(t *testing.T) {
 	syncer := syncerAnswering(t, func(command []string) [][]string {
 		return [][]string{{"ERROR", command[1], "REAPER is recording. Stop recording first."}}
 	})
-	if _, err := syncer.PlayFrom(t.Context(), 3); !errors.Is(err, bridge.ErrRecording) {
+	if _, err := syncer.PlayFrom(t.Context(), 3, ""); !errors.Is(err, bridge.ErrRecording) {
 		t.Fatalf("err = %v, want bridge.ErrRecording", err)
 	}
 }
