@@ -16,7 +16,7 @@ export const PHASE_LABEL: Record<RunPhase, string> = {
   done: 'Done',
 };
 
-export type FigureText = { value: string; hint: string };
+type FigureText = { value: string; hint: string };
 
 export type ActivityView = {
   phase: RunPhase;
