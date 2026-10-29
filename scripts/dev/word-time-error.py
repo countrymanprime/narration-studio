@@ -34,10 +34,14 @@ import paragraph_spans
 
 def transcribe(audio: Path, model_size: str) -> list[list]:
     """Words as the recording check stores them: [text, start, end]. The options are core/coverage_mode.py's."""
+    import audio as corpus_audio  # the corpus's decoder; faster-whisper's own file reader needs a PyAV that matches it
+    import numpy as np
     from faster_whisper import WhisperModel
 
+    samples, rate = corpus_audio.decode(audio)
+    pcm = np.interp(np.arange(0, len(samples) / rate, 1 / 16000) * rate, np.arange(len(samples)), samples).astype(np.float32)
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
-    segments, _ = model.transcribe(str(audio), language="en", word_timestamps=True, vad_filter=True)
+    segments, _ = model.transcribe(pcm, language="en", word_timestamps=True, vad_filter=True)
     return [[w.word.strip(), round(w.start, 3), round(w.end, 3)] for segment in segments for w in segment.words or ()]
 
 
