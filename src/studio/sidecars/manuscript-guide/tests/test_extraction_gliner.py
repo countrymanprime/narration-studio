@@ -416,6 +416,77 @@ class ChapterPoolTests(unittest.TestCase):
         contract_files.check("suggest-progress", records, testdata)
 
 
+class SpawnedPoolTests(unittest.TestCase):
+    """The pool as the packaged app runs it: worker processes started by spawn (the only start Windows has), each importing the
+    module by name, loading the model from the install folder and only then importing torch from the install's wheels."""
+
+    def install_with_spans(self) -> Path:
+        install = _complete_install(Path(tempfile.mkdtemp()) / "install")
+        (install / "wheel-gliner" / "gliner" / "__init__.py").write_text(
+            textwrap.dedent(
+                """
+                class GLiNER:
+                    @classmethod
+                    def from_pretrained(cls, path, **options):
+                        return cls()
+
+                    def predict_entities(self, text, labels, threshold=0.5):
+                        out = []
+                        for name in ("Zoë Ångström", "Łukasz"):
+                            if name in text:
+                                start = text.index(name)
+                                out.append({"start": start, "end": start + len(name), "text": name, "label": "character", "score": 0.9})
+                        return out
+                """
+            ),
+            encoding="utf-8",
+        )
+        torch = install / "wheel-torch" / "torch"
+        torch.mkdir(parents=True)
+        (torch / "__init__.py").write_text("def set_num_threads(n):\n    open(__file__ + '.threads', 'w').write(str(n))\n", encoding="utf-8")
+        return install
+
+    def test_spawned_workers_read_the_chapters_and_the_result_equals_the_whole_book(self):
+        install = self.install_with_spans()
+        book = chapter_book(4, 2)
+        sys.path.insert(0, str(CORE))
+        try:
+            lines: list[str] = []
+            pooled = gliner.read_chunks(book, 2, lambda n: gliner.process_pool(n, str(install), 1), report=lines.append)
+        finally:
+            sys.path.remove(str(CORE))
+        self.assertEqual(["Zoë Ångström", "Łukasz"], [raw["payload"]["name"] for raw in pooled])
+        self.assertEqual(4, json.loads(lines[-1])["progress"]["total"])
+        self.assertEqual("1", (install / "wheel-torch" / "torch" / "__init__.py.threads").read_text(encoding="utf-8"))
+
+    def test_workers_that_cannot_start_fall_back_to_the_whole_book_with_a_note(self):
+        root = Path(tempfile.mkdtemp())
+        args = argparse.Namespace(manuscript=str(_write_manuscript(root)), install=str(_complete_install(root / "install")), workers=2, threads=0)
+        original_chunks = gliner.chunks_of
+        original_pool = gliner.process_pool
+
+        def cannot_start(workers, install, threads):
+            raise OSError("cannot start a worker process")
+
+        gliner.process_pool = cannot_start
+        gliner.chunks_of = lambda paragraphs, max_words=gliner.CHAPTER_WORDS: [paragraphs[:1], paragraphs[1:]]
+        try:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                gliner.suggest(args, loader=lambda path: FakeModel(dawnspire))
+        finally:
+            gliner.process_pool, gliner.chunks_of = original_pool, original_chunks
+        lines = out.getvalue().splitlines()
+        self.assertEqual({"note": "GLiNER could not run its workers side by side, so it read the book in one piece."}, json.loads(lines[0]))
+        self.assertIn("Arelian", [json.loads(line)["payload"]["name"] for line in lines[1:]])
+
+    def test_the_note_record_is_pinned_by_the_committed_contract_file(self):
+        testdata = REPO / "src" / "studio" / "desktop" / "internal" / "extractionport" / "gliner" / "testdata"
+        contract_files.check(
+            "suggest-note", [json.loads(gliner.note_line("GLiNER could not run its workers side by side, so it read the book in one piece."))], testdata
+        )
+
+
 class WorkerWatchdogTests(unittest.TestCase):
     def test_a_worker_leaves_once_the_sidecar_that_started_it_is_gone(self):
         import threading

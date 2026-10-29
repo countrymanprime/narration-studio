@@ -119,6 +119,9 @@ FREEZE_IMPORTS = (
     "anyio",
     "idna",
     "certifi",
+    # GLiNER's chapter pool starts spawned worker processes (extraction_gliner.process_pool).
+    "concurrent.futures.process",
+    "multiprocessing.spawn",
 )
 # torch's own on Windows.
 FREEZE_IMPORTS_WINDOWS = ("ctypes.wintypes",)

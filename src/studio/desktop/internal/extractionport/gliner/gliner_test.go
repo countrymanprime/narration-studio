@@ -81,6 +81,14 @@ func fakeSidecar(mode string) {
 			fmt.Fprintf(os.Stderr, "expected --threads 2 and no --workers, got %q\n", args)
 			os.Exit(3)
 		}
+	case "note":
+		var records []json.RawMessage
+		data, _ := os.ReadFile(filepath.Join("testdata", "suggest-note.json"))
+		_ = json.Unmarshal(data, &records)
+		for _, r := range records {
+			compact, _ := json.Marshal(r)
+			line(string(compact))
+		}
 	case "bad-progress":
 		line(`{"progress":{"done":5,"total":2,"failed":[]}}`)
 	case "bad-quote":
@@ -376,5 +384,20 @@ func TestThreadsAreAFlagOnlyWhenTheHostNamedABudget(t *testing.T) {
 	}
 	if _, err := extractor.Extract(context.Background(), book); err == nil {
 		t.Fatal("with no budget the fake sidecar should have refused the missing --threads")
+	}
+}
+
+func TestANoteFromTheSidecarIsPassedOnAndIsNotASuggestion(t *testing.T) {
+	source, _ := fake(t, "note")
+	extractor, _ := source.Extractor()
+	var notes []string
+	in := book
+	in.Note = func(sentence string) { notes = append(notes, sentence) }
+	raws, err := extractor.Extract(context.Background(), in)
+	if err != nil || len(raws) != 0 {
+		t.Fatalf("raws = %v, err = %v", raws, err)
+	}
+	if want := []string{"GLiNER could not run its workers side by side, so it read the book in one piece."}; !reflect.DeepEqual(notes, want) {
+		t.Fatalf("notes = %q, want %q", notes, want)
 	}
 }

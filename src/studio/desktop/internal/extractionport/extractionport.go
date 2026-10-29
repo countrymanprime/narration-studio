@@ -60,6 +60,9 @@ type Input struct {
 	// Threads is the most torch threads a sidecar source may use, all its processes together; 0 is no limit. It is set when two
 	// sources read at once, which with a thread for every processor each run more than four times slower than one after the other.
 	Threads int
+	// Note, when set, receives a sentence a source wants the narrator to read (GLiNER read the book whole because its workers
+	// could not run).
+	Note func(sentence string)
 	// Progress, when set, is told after each chunk a source reads: how many of how many are done, and the ids of the chapters
 	// that could not be read. A source that reads the book whole never calls it.
 	Progress func(done, total int, failed []string)

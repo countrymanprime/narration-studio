@@ -140,7 +140,7 @@ rule (highest score per name, the first on a tie), so the offers equal a one-pro
 chunk that cannot be read is logged and left out; the rest are kept, and the scan fails only if no chunk could be read. After each
 chunk the sidecar prints a progress record, `{"progress": {"done": 3, "total": 18, "failed": ["c-0002"]}}`, before the entry
 lines, pinned by `gliner/testdata/suggest-progress.json`; the host shows it in the scan's result box and does not take it for a
-suggestion. `--threads N` (also on BookNLP) limits torch to N threads across the processes; the host sets it to half the
+suggestion. Workers are started by `spawn` (the only start Windows has) from top-level functions, `main` calls `multiprocessing.freeze_support()` for the frozen build, and each worker loads the model, which puts the install's wheels on `sys.path`, before it imports torch. If the pool cannot start or dies, the sidecar prints `{"note": "GLiNER could not run its workers side by side, so it read the book in one piece."}` (pinned by `gliner/testdata/suggest-note.json`), reads the book whole and the host shows the sentence in the result box. `--threads N` (also on BookNLP) limits torch to N threads across the processes; the host sets it to half the
 processors when GLiNER and BookNLP read at once, because two sources with a thread per processor each ran more than four times
 slower than one after the other. The host plans N from **Parallel processes** (`extraction_workers.go`) and runs the sidecar
 sources together. Measurements: [the benchmark](../research/studio-next-extraction-chunking-benchmark.md).

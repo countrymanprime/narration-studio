@@ -314,6 +314,7 @@ func (h *Host) runExtractionScan(ctx context.Context, job *extractionScanJob, ru
 		result := make(chan extractionRead, 1)
 		waiting[i] = result
 		input := run.input
+		input.Note = job.say
 		input.Progress = func(done, total int, unread []string) { job.chunkRead(i, label, done, total, unread) }
 		readers.Add(1)
 		go func() {

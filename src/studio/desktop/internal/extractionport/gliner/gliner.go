@@ -177,6 +177,12 @@ func (s Source) run(ctx context.Context, command Command, dir string, in extract
 		if refused != nil {
 			return
 		}
+		if sentence, ok := parseNote(line); ok {
+			if in.Note != nil {
+				in.Note(sentence)
+			}
+			return
+		}
 		if done, count, failed, ok := parseProgress(line); ok {
 			if in.Progress != nil {
 				in.Progress(done, count, failed)
@@ -246,6 +252,23 @@ func parseProgress(line string) (done, total int, failed []string, ok bool) {
 		return 0, 0, nil, false
 	}
 	return p.Done, p.Total, p.Failed, true
+}
+
+// parseNote reads the record the sidecar prints when it has something to tell the narrator (note_line in extraction_gliner.py):
+// {"note":"GLiNER could not run its workers side by side, so it read the book in one piece."}. ok is false for any other line.
+func parseNote(line string) (sentence string, ok bool) {
+	if !strings.HasPrefix(line, `{"note"`) {
+		return "", false
+	}
+	decoder := json.NewDecoder(strings.NewReader(line))
+	decoder.DisallowUnknownFields()
+	var w struct {
+		Note string `json:"note"`
+	}
+	if decoder.Decode(&w) != nil || decoder.More() || w.Note == "" || len(w.Note) > MaxFieldBytes {
+		return "", false
+	}
+	return w.Note, true
 }
 
 // lastMessage is the sidecar's last stderr line: the message of its JSON log record, without the "ERROR: " the sidecar puts

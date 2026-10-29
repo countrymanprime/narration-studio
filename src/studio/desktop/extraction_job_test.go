@@ -634,6 +634,7 @@ func TestExtractionScanShowsPartsReadAndCountsThoseThatFailed(t *testing.T) {
 			if in.Workers != 4 {
 				return nil, fmt.Errorf("8 processors and plenty of memory planned %d workers, want 4 (half the processors)", in.Workers)
 			}
+			in.Note("GLiNER could not run its workers side by side, so it read the book in one piece.")
 			in.Progress(1, 4, nil)
 			close(step)
 			<-release
@@ -652,6 +653,9 @@ func TestExtractionScanShowsPartsReadAndCountsThoseThatFailed(t *testing.T) {
 	job = waitScan(t, host)
 	if job.Phase != "success" || !slices.Contains(job.Logs, "GLiNER could not read 2 parts of the book; what it did read was kept.") {
 		t.Fatalf("ended %+v", job)
+	}
+	if !slices.Contains(job.Logs, "GLiNER could not run its workers side by side, so it read the book in one piece.") {
+		t.Fatalf("the source's note is not in the result box logs: %q", job.Logs)
 	}
 	for _, line := range job.Logs {
 		if strings.Contains(line, "read 1 of 4") {

@@ -287,18 +287,23 @@ def _start_worker(install: str, threads: int) -> None:
     """A pool process's start: watches the sidecar that started it, loads the model and limits torch to ``threads`` threads (the
     cores are shared by the workers)."""
     global _worker
-    import torch
-
     if (parent := multiprocessing.parent_process()) is not None:
         watch_parent(parent, lambda: os._exit(1))
-
-    torch.set_num_threads(threads)
-    _worker = GlinerExtractor(load_model(Path(install)), log)
+    # The model loads first: loading puts the install's unpacked wheels (torch among them) on sys.path, which a frozen worker needs
+    # before it can import torch.
+    model = load_model(Path(install))
+    limit_threads(threads)
+    _worker = GlinerExtractor(model, log)
 
 
 def _read_chunk(paragraphs: list[dict[str, str]]) -> list[RawSuggestion]:
     assert _worker is not None
     return _worker.extract({"paragraphs": paragraphs})
+
+
+def note_line(text: str) -> str:
+    """A sentence for the narrator, printed ahead of the suggestions: the host shows it in the scan's result box."""
+    return json.dumps({"note": text}, ensure_ascii=False)
 
 
 def progress_line(done: int, total: int, failed: list[str]) -> str:
@@ -346,6 +351,19 @@ def limit_threads(threads: int) -> None:
     torch.set_num_threads(max(1, threads))
 
 
+def read_whole(args: argparse.Namespace, paragraphs: list[dict[str, str]], loader: Callable[[Path], Model]) -> list[RawSuggestion]:
+    """The one-process read of the whole manuscript, with torch limited to ``--threads`` when the host named a budget."""
+    threads = getattr(args, "threads", 0) or 0
+
+    def limited(install: Path) -> Model:
+        model = loader(install)
+        if threads:
+            limit_threads(threads)
+        return model
+
+    return GlinerSource(args.install or None, loader=limited).extractor().extract({"paragraphs": paragraphs})
+
+
 def suggest(args: argparse.Namespace, loader: Callable[[Path], Model] = load_model) -> None:
     """``suggest --source gliner --manuscript M --install DIR [--workers N]``: print GLiNER's suggestions as JSON lines. It writes
     nothing. ``--threads`` is the most torch threads all its processes use together (0: every processor). With ``--workers`` 2 or more the chapters are read side by side, each worker its own copy of the model, and a progress
@@ -358,17 +376,14 @@ def suggest(args: argparse.Namespace, loader: Callable[[Path], Model] = load_mod
         if reason:
             raise DESCRIPTOR.unavailable(reason)
         budget = getattr(args, "threads", 0) or os.cpu_count() or 1
-        found = read_chunks(paragraphs, workers, lambda n: process_pool(n, str(args.install), max(1, budget // n)))
+        try:
+            found = read_chunks(paragraphs, workers, lambda n: process_pool(n, str(args.install), max(1, budget // n)))
+        except Exception as exc:  # noqa: BLE001 (workers that cannot start, or die: the book is read whole instead)
+            log(f"GLiNER's workers failed: {type(exc).__name__}: {exc}", level="warn")
+            print(note_line("GLiNER could not run its workers side by side, so it read the book in one piece."), flush=True)
+            found = read_whole(args, paragraphs, loader)
     else:
-        threads = getattr(args, "threads", 0) or 0
-
-        def limited(install: Path) -> Model:
-            model = loader(install)
-            if threads:
-                limit_threads(threads)
-            return model
-
-        found = GlinerSource(args.install or None, loader=limited).extractor().extract({"paragraphs": paragraphs})
+        found = read_whole(args, paragraphs, loader)
     for raw in found:
         print(json.dumps(line(raw), ensure_ascii=False))
 
