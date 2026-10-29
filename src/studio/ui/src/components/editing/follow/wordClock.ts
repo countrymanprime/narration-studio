@@ -19,6 +19,8 @@ export interface WordClock {
   wordAt(projectT: number): { key: string; t: number } | null;
   /** The project second at document second `docT`, or null when no placed word covers it. */
   projectAt(docT: number): number | null;
+  /** Like `projectAt`, and for a document second in the gap between two placed words, a place between where the first ends and the next starts (a cut made in a pause), or, when the next word of the page is not placed (words said that are not in the script), the pause carried on at the last placed word's rate for up to 15 s. Null elsewhere. */
+  projectNear(docT: number): number | null;
   /** The project second a play that ends at document second `docT` ends at: the end of the word it ends in, carried on for the tail of its sound. */
   projectEndAt(docT: number): number | null;
   /** The project second the chapter's last placed word ends, or null when no word is placed. */
@@ -43,6 +45,8 @@ const EPS = 1e-6;
 const OVERLAP_LOOKBACK = 16;
 /** The most a play's end may run past the last word it ends after, for the tail of the word's sound. */
 const MAX_PAST_WORD_SECONDS = 1;
+/** The most of a pause that is carried on from the last placed word when no placed word follows it. */
+const MAX_GAP_CARRIED_SECONDS = 15;
 
 /**
  * The map for `doc`'s words over `table`. `tokenOf` says which alignment token a word of the page is (the page's locator); a word with no token, or whose
@@ -55,9 +59,10 @@ export function buildWordClock(table: WordTimes, doc: ChapterDoc, tokenOf: (key:
   /** Every word the page times, placed or not, with what the table says of it: for saying why a second has no place. */
   const timed: Array<{ t0: number; t1: number; token: number | undefined }> = [];
   for (const item of doc.items) {
-    if (item.kind !== 'w' || item.cut || item.t0 == null || item.t1 == null || !(item.t1 > item.t0)) continue;
-    const token = tokenOf(item.key);
+    if (item.cut || item.t0 == null || item.t1 == null || !(item.t1 > item.t0)) continue;
+    const token = item.kind === 'w' ? tokenOf(item.key) : undefined;
     timed.push({ t0: item.t0, t1: item.t1, token });
+    if (item.kind !== 'w') continue;
     const row = token === undefined ? undefined : rows.get(token);
     if (row && row.end >= row.start) entries.push({ key: item.key, start: row.start, end: row.end, t0: item.t0, t1: item.t1 });
   }
@@ -106,6 +111,27 @@ export function buildWordClock(table: WordTimes, doc: ChapterDoc, tokenOf: (key:
       const word = ok(docT) ? containing(docT) : null;
       if (!word) return null;
       return word.start + ((docT - word.t0) / (word.t1 - word.t0)) * (word.end - word.start);
+    },
+    projectNear: (docT) => {
+      if (!ok(docT)) return null;
+      const inside = containing(docT);
+      if (inside) return inside.start + ((docT - inside.t0) / (inside.t1 - inside.t0)) * (inside.end - inside.start);
+      const i = lastAtOrBefore(byDoc, (e) => e.t0, docT);
+      const before = i >= 0 ? byDoc[i] : undefined;
+      if (!before || docT < before.t1 - EPS) return null;
+      const after = i + 1 < byDoc.length ? byDoc[i + 1] : undefined;
+      const unplacedIn = (from: number, to: number): boolean =>
+        timed.some((w) => w.t0 >= from - EPS && w.t0 < to - EPS && !entries.some((e) => e.t0 === w.t0 && e.t1 === w.t1));
+      // A word of the page that the project does not play between the placed word and the second leaves the second without a place.
+      if (unplacedIn(before.t1, docT)) return null;
+      if (after && docT <= after.t0 + EPS && !unplacedIn(docT, after.t0)) {
+        if (after.t0 <= before.t1 || after.start < before.end) return null;
+        return before.end + ((docT - before.t1) / (after.t0 - before.t1)) * (after.start - before.end);
+      }
+      // The next word of the page is not placed (words said that are not in the script, or one the project does not play): the pause is carried on
+      // at the placed word's own rate.
+      if (docT - before.t1 > MAX_GAP_CARRIED_SECONDS) return null;
+      return before.end + (docT - before.t1) * ((before.end - before.start) / (before.t1 - before.t0));
     },
     projectEndAt: (docT) => {
       if (!ok(docT)) return null;

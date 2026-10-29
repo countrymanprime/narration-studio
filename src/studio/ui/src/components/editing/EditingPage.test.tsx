@@ -554,6 +554,16 @@ describe('EditingPage', () => {
         const tokens = answer.tokens.map(({ heard: _heard, ...t }) => ({ ...t, status: 'read' as const }));
         return { ...answer, tokens, extras: [extra] };
       },
+      // The DAW plays the item from project second 0 at rate 1, so a token's project seconds are its source seconds.
+      workspaceWordTimes: async (id: string) => {
+        const answer = await base.workspaceAlignment(id);
+        const words = answer.tokens.map((t) =>
+          t.start !== undefined && t.end !== undefined
+            ? { i: t.i, state: 'placed' as const, start: t.start, end: t.end, item: 0, clipped: false, misread: false }
+            : { i: t.i, state: 'not_heard' as const, start: 0, end: 0, item: -1, clipped: false, misread: false },
+        );
+        return { available: true, version: 'test@1', changeCount: 1, items: ['{ITEM-1}'], words };
+      },
     } as Partial<NarrationApi>;
     const splitTake = vi.fn<DawClient['splitTake']>();
     const project = { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [], splitTakes: { t1: { start: 0, length: 12 } } };

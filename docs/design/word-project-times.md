@@ -35,6 +35,8 @@ The host's existing tick already reads the heartbeat's change counter (it makes 
 - `projectAt`: a document second inside a word to its project second, so Play from a word starts REAPER at the word's exact start.
 - `projectEndAt`: where a play that ends at a document second ends. The end of word N is the exact end of that word; a tail up to a second past the last word is carried on at the word's own rate; more than that is not placed, and the play is open and stopped by the page.
 - `end`: the project second the last placed word ends.
+- `projectNear`: like `projectAt`, and for a second in a pause it gives a place between where the word before ends and the next starts (a cut made in a pause, as Stack as 2 takes makes). When the next word of the page is not placed (a word said and not in the script) the pause is carried on at the word before's own rate, for up to 15 s. A word of the page that the project does not play between the two leaves it without a place.
+- `whyNotPlaced`: in the narrator's words, which check failed for a second with no place (no word there, the audio cut out or trimmed off or muted, no alignment token, nothing heard); a play that falls back to the app says it.
 
 The follow keeps the last lit word through a gap between words and does not jump ahead. REAPER's position arrives about four times a second; between two readings the page carries the head on every 50 ms for at most 0.6 s, so the lit word advances word by word. The page's own audio still wins over the DAW's clock when it is playing.
 
@@ -42,7 +44,7 @@ The follow keeps the last lit word through a gap between words and does not jump
 
 ## What is not in the table
 
-Words said that are not in the script (an extra run) have no row, so the DAW's play head does not light them; the page's own playback still does. Closing cuts need no separate handling: a cut is applied in REAPER, so the live items already lack it and its words are `not_in_project`.
+Words said that are not in the script (an extra run) have no row, so the DAW's play head does not light them and a cut made beside them is carried on from the last placed word; the page's own playback still lights them. Closing cuts need no separate handling: a cut is applied in REAPER, so the live items already lack it and its words are `not_in_project`.
 
 ## How it is checked
 

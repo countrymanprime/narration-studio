@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DocItem } from '../model';
+import { docFromHeard } from '../script/docFromHeard';
 import { marksDoc } from '../script/scriptFixtures';
 import { buildWordClock } from './wordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
@@ -20,6 +21,62 @@ describe('the word clock', () => {
     near(clock.projectAt(first.t0), first.t0);
     near(clock.docAt(first.t0 + 0.05), first.t0 + 0.05);
     expect(clock.wordAt(first.t0 + 0.05)?.key).toBe(first.key);
+  });
+
+  describe('projectNear', () => {
+    // Three words with a pause of 0.5 s between each, and nothing said in the pauses.
+    const paused = docFromHeard([{ id: 'p-1', text: 'Alpha beta gamma' }], {
+      heard: {
+        engine: { id: 'whisper:small', name: 'Whisper small' },
+        words: [0, 1, 2].map((k) => ({
+          text: ['Alpha', 'beta', 'gamma'][k],
+          paragraphId: 'p-1',
+          ordinal: k,
+          item: 0,
+          off0: 5 + k * 0.8,
+          off1: 5.3 + k * 0.8,
+          conf: 0.9,
+        })),
+      },
+    });
+    const [a, b, c] = paused.items.filter((i) => i.kind === 'w') as Array<DocItem & { t0: number; t1: number }>;
+    const place = (skip: string[] = []) => wordTimesFor(paused, (w) => (skip.includes(w.key) ? null : linear(100, 0, 2)(w)));
+    const clockOf = (skip: string[] = []) => {
+      const { table, tokenOf } = place(skip);
+      return buildWordClock(table, paused, tokenOf);
+    };
+
+    it('has pauses to try it on', () => {
+      expect(b.t0 - a.t1).toBeGreaterThan(0.4);
+    });
+    it('is the exact place inside a word', () => {
+      near(clockOf().projectNear(a.t0 + 0.1), 100 + (a.t0 + 0.1) / 2);
+    });
+    it('puts a second in a pause between two placed words between where the first ends and the next starts', () => {
+      const mid = (a.t1 + b.t0) / 2;
+      near(clockOf().projectNear(mid), 100 + mid / 2);
+    });
+    it('has no place in a pause when the word before or after is not in the project', () => {
+      const mid = (a.t1 + b.t0) / 2;
+      near(clockOf([a.key]).projectNear(mid), null);
+      // The word after is not placed, so the pause is carried on from the one before at its own rate: the same place, since one item plays both.
+      near(clockOf([b.key]).projectNear(mid), 100 + mid / 2);
+      near(clockOf([a.key, b.key]).projectNear((b.t1 + c.t0) / 2), null);
+    });
+    it("carries a pause past the last placed word on at that word's rate, for up to 15 s", () => {
+      near(clockOf().projectNear(c.t1 + 2), 100 + (c.t1 + 2) / 2);
+      near(clockOf().projectNear(c.t1 + 16), null);
+    });
+    it('has no place before the first word or for a time that is not a number', () => {
+      for (const t of [a.t0 - 0.5, -1, NaN]) near(clockOf().projectNear(t), null);
+    });
+    it('has no place in a pause where a word said and not in the script sits', () => {
+      const withExtra = marksDoc();
+      const { table, tokenOf } = wordTimesFor(withExtra, linear(100));
+      const um = withExtra.items.find((i) => i.kind === 'x');
+      expect(um).toBeDefined();
+      near(buildWordClock(table, withExtra, tokenOf).projectNear((um?.t0 as number) + 0.1), null);
+    });
   });
 
   describe('whyNotPlaced', () => {
