@@ -12,6 +12,9 @@ import type {
   DawCapabilitySupport,
   DawCapabilitiesApi,
   DawKind,
+  DawLiveItem,
+  DawProjectEdited,
+  WordTimes,
   DawLevelsApi,
   DawPlaceApi,
   DawPosition,
@@ -432,6 +435,12 @@ export interface DawMockControl {
   moveInDaw(change: { cursor?: number; head?: number; playing?: boolean; recording?: boolean }): void;
   /** The next transport action is refused with this sentence, as a recording or a stale REAPER would. */
   refuseNextSync(sentence: string): void;
+  /** The items the DAW has on the chapter's track now (`dawLiveItems`); null (the start) is a DAW that cannot be read, so the page follows by the saved items. */
+  setLiveItems(items: DawLiveItem[] | null): void;
+  /** The word table the DAW answers (`workspaceWordTimes`); null (the start) is a DAW that cannot make one, so the page follows nothing in it. */
+  setWordTimes(table: WordTimes | null): void;
+  /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
+  editInDaw(): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -487,6 +496,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuse: string | null;
     /** The project second a `playRange` stops itself at, while it plays; null for an open play. */
     stopAt: number | null;
+    liveItems: DawLiveItem[] | null;
+    wordTimes: WordTimes | null;
+    changeCount: number;
     calls: { action: string; seconds: number; until?: number; chapterId?: string }[];
   } = {
     playing: false,
@@ -496,9 +508,13 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     watching: false,
     refuse: null,
     stopAt: null,
+    liveItems: null,
+    wordTimes: null,
+    changeCount: 0,
     calls: [],
   };
   const positionSubs = new Set<(position: DawPosition) => void>();
+  const editSubs = new Set<(edit: DawProjectEdited) => void>();
   const streamPosition = () => {
     if (!sync.watching || dropped) return;
     const position: DawPosition = {
@@ -623,6 +639,16 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.transport = { playing: false, recording: false };
       publish();
     },
+    setWordTimes: (table) => {
+      sync.wordTimes = table === null ? null : wireClone(table);
+    },
+    editInDaw: () => {
+      sync.changeCount += 1;
+      for (const on of editSubs) on({ changeCount: sync.changeCount });
+    },
+    setLiveItems: (items) => {
+      sync.liveItems = items === null ? null : wireClone(items);
+    },
     startInDaw: () => {
       live.transport = { playing: true, recording: true, position: 0 };
       publish();
@@ -743,6 +769,21 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.
+    workspaceWordTimes: async () => {
+      const table = sync.wordTimes;
+      const off = table === null || !currentCapabilities(live).capabilities.track_state?.available;
+      return wireClone(off ? { available: false, version: '', changeCount: 0, items: [], words: [] } : { ...table, changeCount: sync.changeCount });
+    },
+    subscribeDawProjectEdited: (onUpdate) => {
+      editSubs.add(onUpdate);
+      return () => editSubs.delete(onUpdate);
+    },
+    dawLiveItems: async () => {
+      const items = sync.liveItems;
+      return wireClone(
+        items === null || !currentCapabilities(live).capabilities.track_state?.available ? { available: false, items: [] } : { available: true, items },
+      );
+    },
     dawTransportSync: async (action, seconds, until = 0, chapterId = '') => {
       const support = currentCapabilities(live).capabilities.transport_sync;
       if (!support?.available) return refusedMove(support?.message ?? MESSAGE_NO_ENGINE);

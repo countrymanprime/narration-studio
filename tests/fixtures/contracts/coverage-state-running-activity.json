@@ -1,0 +1,35 @@
+{
+  "runId": "1789970042000000000",
+  "chapterId": "c-0001",
+  "phase": "running",
+  "percent": 50,
+  "stage": "TRANSCRIBE",
+  "message": "Transcribing item 3/6… 0:41 / 1:30",
+  "background": false,
+  "activity": {
+    "requested": 4,
+    "items": {
+      "total": 6,
+      "done": 2
+    },
+    "firstPass": {
+      "model": "small",
+      "workers": 4,
+      "busy": 3,
+      "total": 112,
+      "done": 40,
+      "final": true
+    },
+    "recheck": {
+      "model": "large-v3-turbo",
+      "workers": 1,
+      "busy": 1,
+      "total": 7,
+      "done": 3,
+      "final": false,
+      "reasons": [
+        "low_confidence"
+      ]
+    }
+  }
+}

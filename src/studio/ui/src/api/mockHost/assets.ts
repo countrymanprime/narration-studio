@@ -399,7 +399,7 @@ export function createAssetsMock(initial: MockApiSeed) {
       engines: [{ id: mockWhisperIdentity.id, label: mockWhisperIdentity.displayName, family: 'whisper', installState: whisperState() }],
       default: mockWhisperIdentity.id,
       // The shipped settings (config/defaults.json): the cascade off, five-minute chunks with a six second crossover, workers chosen from the model.
-      defaults: { recheck: false, recheckModel: mockWhisperIdentity.id, recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6, chapters: 1 },
+      defaults: { recheck: false, recheckModel: mockWhisperIdentity.id, recheckBelow: 0.5, workers: 0, chunkSeconds: 60, overlapSeconds: 6, chapters: 1 },
     }),
     teleprompterAssetRequired,
     mockVoiceIdentity,

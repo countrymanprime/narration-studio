@@ -42,7 +42,11 @@ test('Proof / the running check puts Stop checking beside what runs and each bar
   const stop = (await dialog.getByRole('button', { name: 'Stop checking' }).boundingBox())!;
   const line = (await dialog.getByText(/^Checking with /).boundingBox())!;
   expect(Math.abs(stop.y + stop.height / 2 - (line.y + line.height / 2)), 'Stop checking is on the line that says what runs').toBeLessThanOrEqual(2);
-  const item = dialog.getByRole('listitem').first();
+  // The chapter's row: the list item holding its own bar (the activity box above has list items of its own).
+  const item = dialog
+    .getByRole('listitem')
+    .filter({ has: page.getByRole('progressbar', { name: /^Checking / }) })
+    .first();
   const bar = (await item.getByRole('progressbar').boundingBox())!;
   const row = (await item.boundingBox())!;
   expect(bar.width, 'the bar runs under the chapter name').toBeGreaterThan(row.width * 0.9);

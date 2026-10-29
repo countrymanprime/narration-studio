@@ -818,6 +818,17 @@ export function DawLinkFound(): $CancellablePromise<string> {
 }
 
 /**
+ * DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), for the Editing page's
+ * follow-along: where each plays in the project, from where in which source file, at what rate. The saved project the alignment was read
+ * against knows none of the narrator's edits since, and a split's right half has a GUID it never saw. Read-only; it adds no undo step.
+ * The answer is {available, items}: available is false, with no items, when the DAW cannot be read now (not running, track_state off, no
+ * linked track, the track gone or longer than one read lists), and the page then follows by the saved items. The read is never an error.
+ */
+export function DawLiveItems(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1764856264, chapterID);
+}
+
+/**
  * DawMeters reads what the DAW's own meters show: the level it plays out at and the level the record-armed track hears. It
  * changes nothing and arms nothing. The daw_meters capability's own sentence comes first when the resolver refuses it; no live
  * adapter, the DAW not answering and no answer in time are refused in a sentence.
@@ -1033,8 +1044,10 @@ export function DawStopFxCompare(): $CancellablePromise<string> {
  * stops it, "playRange" plays from seconds to until and has the DAW stop itself at until, and "watch" takes or renews the lease on the
  * daw_position_changed stream (seconds is ignored by "stop" and "watch", until by all but "playRange"). The answer is a DawResult:
  * the capability's own sentence when the resolver refuses it, a DAW that has another project open, a recording in progress, or a time that is not
- * usable, each with nothing changed. It adds no undo step. For "play" and "playRange", chapterID names the chapter whose linked track the DAW plays alone
- * (selected and soloed, then put back); a chapter with no linked track, or whose track has no audio there, is refused and nothing is changed.
+ * usable, each with nothing changed. It adds no undo step. For "play" and "playRange", chapterID names the chapter whose linked track the DAW plays
+ * alone: the host resolves the track from the chapter's link, the DAW selects it and solos it in place, and puts the narrator's selection, solos
+ * and mute back when the play ends. A chapter with no (or several) linked tracks, or whose track has no audio at the start, is refused with
+ * nothing changed and nothing played. An empty chapterID plays the project as it is.
  */
 export function DawTransportSync(action: string, seconds: number, until: number, chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(388325684, action, seconds, until, chapterID);
@@ -3465,6 +3478,20 @@ export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number
  */
 export function WorkspaceUseTake(chapterID: string, firstToken: number, lastToken: number, candidateID: string): $CancellablePromise<string> {
     return $Call.ByID(1964370133, chapterID, firstToken, lastToken, candidateID);
+}
+
+/**
+ * WorkspaceWordTimes answers where every word of chapterID's stored alignment plays in the DAW project now (docs/design/word-project-times.md):
+ * the alignment's source-file seconds for each word, pushed through the items the DAW has on the chapter's linked track (chapter_track_state),
+ * by source file and source range, so a move, a trim, a rate change, a split and a deleted section are all in it. A word whose audio no item plays
+ * is `not_in_project` and carries no time; a word the check never heard is `not_heard`. `version` and `changeCount` say which project state the table
+ * was made from: a page holding an older count than the one daw_project_edited last reported has a stale table and asks again.
+ * 
+ * `available` is false, with no words, when the table cannot be made now (no stored alignment, no DAW answering, `track_state` off, no linked
+ * track, the track gone or longer than one read lists). That is an answer, not an error: the page then follows nothing in the DAW. Read-only.
+ */
+export function WorkspaceWordTimes(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(4009464051, chapterID);
 }
 
 // Private type creation functions

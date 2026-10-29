@@ -22,7 +22,7 @@ const COVERED: Record<string, readonly string[]> = {
   'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
   'components/production/useChapterTools.tsx': ['components/production/ProductionPage.test.tsx'],
   'components/masterqc/page/MasterPage.tsx': ['components/masterqc/page/Page.test.tsx'],
-  'components/engine/ChapterLinksTable.tsx': ['components/engine/ChapterLinksTable.test.tsx'],
+  'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],
   'studio/slots.ts': ['components/layout/useGoToCommands.test.tsx', 'components/layout/AddressGate.test.tsx', 'components/delivery/page/DeliveryPage.test.tsx'],
@@ -30,7 +30,6 @@ const COVERED: Record<string, readonly string[]> = {
 
 /** Source file -> why the credits are left out of what it reads (a chapter's own text, or nothing to list). */
 const EXEMPT: Record<string, string> = {
-  'components/engine/EnginePanel.tsx': 'only decides whether the "Link chapters…" button shows',
   'components/settings/RetailSamplePanel.tsx': "the retail sample is picked from the book's text; the credits have none (CreditsPanel tests)",
   'components/proof/PreviewPanel.tsx': "resolves a preview candidate's paragraph ids to an index; the credits have no paragraphs",
   'components/storybible/Guide.tsx': 'Appears in and evidence links name entities in the text; the credits have none (withoutCredits)',

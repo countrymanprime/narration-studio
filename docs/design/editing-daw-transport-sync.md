@@ -8,7 +8,7 @@ Status: built, and on whenever REAPER is linked and answering (capability `trans
 | --- | --- | --- |
 | Heartbeat | Every 1.5 s, and at once when the play state changes, REAPER appends `PROJECT_STATUS` with the project path, edit counter, `GetPlayState` and `GetPlayPosition`. It carries no edit cursor. | `src/studio/integrations/reaper/narration_ui_bridge.lua`, `daw.Reachability.Transport` |
 | Heartbeat to the UI | `daw_transport_changed` (play, record, position) and `daw_project_state_changed`, pushed by the host loop on a change; `DawProjectState` reads the same. The position moves only with the heartbeat. | `bindings_daw_transport.go`, `bindings_daw_projectstate.go` |
-| Editing follow of REAPER's play | `useDawPlayPosition` reads `projectState` four times a second while the page is visible, maps the position to a word through `sourceAt` and `docTimeAt`, and lights it. Playing only; no cursor; the position still steps every 1.5 s. | `follow/useDawPlayPosition.ts`, `follow/dawPosition.ts` |
+| Editing follow of REAPER's play | `useDawPlayPosition` reads `projectState` four times a second while the page is visible, maps the position to a word and lights it. Playing only; no cursor; the position still steps every 1.5 s. It read the saved project's items; it now reads the word table (below). | `follow/useDawPlayPosition.ts` |
 | Booth follow | `useFollowDawOnOpen` asks `DawPlace` once on open, `useMoveDawOnOpen` sends `DawGoToChapter` once. Neither follows afterwards. | `booth/page/useDawFollow.ts`, `bindings_daw_place.go` |
 | Transport commands | `arm_only`, `record_start`, `record_stop` (recording), `go_to` and `read_place` (cursor, with a track), `navigate_item`, `loop_context`, `stop_loop` (a finding), `preview_file_range`. None plays the project from a time. | `narration_transport.lua`, `narration_track_select.lua`, `narration_navigation.lua` |
 | App playback | One `Audio` element over the playlist's source files, driving `state.playT`. REAPER's sound, level and routing play no part. | `bar/useScriptPlayback.ts` |
@@ -26,16 +26,9 @@ That is why Play in the app sounds different from Play in REAPER and does not mo
 
 ## The clock mapping
 
-The document's clock (`state.playT`, the ribbon, every word's `t0`) is the chapter's elapsed time over the played stretches. `playlistOf` makes one `PlaylistSegment` for each heard paragraph, `elapsedStart..elapsedEnd` over `sourceStart..sourceEnd` of one item's file. REAPER's clock is project seconds. `follow/clockMap.ts` is the pure two-way map:
+The document's clock (`state.playT`, the ribbon, every word's `t0`) is the chapter's elapsed time over the played stretches; REAPER's clock is project seconds. The two are mapped word by word through one table the host makes from the alignment's source times and the items REAPER has now ([word-project-times.md](word-project-times.md)): `follow/wordClock.ts` is the pure two-way map, and `useWordClock` asks the host for the table on opening, when the window is shown and after each `daw_project_edited`.
 
-1. Document second to segment (`elapsedStart <= t < elapsedEnd`); the offset into the segment.
-2. Closing cuts: the document has the cut's source seconds removed, so the offset is put back past each cut in the segment (`ClosedCut`, from `closedCutsOf`).
-3. Source second = segment `sourceStart` + offset. Item = the live alignment item with the segment's GUID.
-4. Project second = item `position` + (source second − item `sourceStart` − the cuts before it) / `playRate` (a rate of 0 reads as 1, as the bridge does). A source second before the item's `sourceStart` (trimmed off the head), or a project second at or past `position + length` (trimmed off the tail), has no project time.
-
-Project to document runs the same steps backwards. When items overlap, the one that starts latest plays (REAPER's rule, and `sourceAt`'s).
-
-What the map returns null for, and the page then does nothing visible: a gap between paragraphs; an item that is not live or whose place was not read; a trimmed-off stretch; a project second no item covers. Two limits, not tested in REAPER: a cut inside a take (offsets from the take's start) and a wordless cut (a trimmed gap) are not given to the map, and after a closing cut REAPER splits the item, so words after the cut inside that paragraph have no project time until the alignment is read again. The map is tested with takes, a take laid over another, a trimmed item, play rates 2, 0.5 and 0, closing cuts (one, two, at the segment's start, with a rate of 2, of another item) and a round trip ([`clockMap.test.ts`](../../src/studio/ui/src/components/editing/follow/clockMap.test.ts)). A shadowed take's words have a project time where another take plays; that is REAPER's own answer.
+What the map returns null for, and the page then does nothing visible: a gap between words; a word whose audio no item plays now (cut out, trimmed off, muted, its file not on the track); a word the check did not hear; and every second while the DAW cannot make a table. The earlier mapping through the saved project's items, playlist segments and closing cuts is gone; the guard in `wordClock.guard.test.ts` keeps it gone.
 
 ## Behaviour
 
@@ -73,7 +66,7 @@ The rule, which replaces "a linked DAW is the only player" of #2251 item 32 by t
 
 `follow/echoGuard.ts`. Each cursor write gets a generation and is remembered for 2.5 s with its project second. A cursor REAPER reports is **unchanged** (within a millisecond of the last one: a reading from before the write cannot undo it), an **echo** (within 20 ms of a remembered write: nothing happens, and older writes are forgotten) or **moved**. A move forgets every pending write: a move the narrator made in REAPER while the page's write was on its way is not lost, and a write that lands afterwards is then reported as the move it has become, so the page ends where REAPER is. A failed write is forgotten. The page does not write a cursor REAPER put there (`fromDaw`).
 
-Drift. While REAPER plays for the page, the app's audio is silent, so there is one sound clock. The page's playhead is REAPER's last reading, at most 0.25 s old plus the host's 150 ms loop, and is not extrapolated: the lit word can trail the sound by up to one word. When readings stop for 3 s during a play the app started, the page stops, says REAPER stopped answering, and does not guess. When the app plays itself (no DAW that can play) there is no second clock to drift against.
+Drift. While REAPER plays for the page, the app's audio is silent, so there is one sound clock. The page's playhead is REAPER's last reading, at most 0.25 s old plus the host's 150 ms loop, carried on every 50 ms for at most 0.6 s (`useDawTransportSync`), so the lit word advances word by word; it can still trail the sound by up to one word. When readings stop for 3 s during a play the app started, the page stops, says REAPER stopped answering, and does not guess. When the app plays itself (no DAW that can play) there is no second clock to drift against.
 
 ## State matrix
 
@@ -84,7 +77,7 @@ Drift. While REAPER plays for the page, the app's audio is silent, so there is o
 | Wrong project open | The watch is refused (`sameProject` false), nothing is moved in REAPER, the page follows nothing, and Play plays in the app and says why; events carry `sameProject` | `transportsync_test.go`, `transportSync.test.tsx` |
 | Restarted mid-session | The next renewal (within 3 s) takes a new lease from the restarted script, and its opening event adopts REAPER's cursor. A play the app started stops after 3 s without readings | `transportSync.test.tsx` (goes quiet); the reconnect is not tested |
 | Playing while the page opens | The lease's first event carries the play state, and the word lights | `transportSync.test.tsx` |
-| Chapter not linked, or no audio | No segment or no live item: every second maps to null; Play plays in the app and says the part is not in REAPER's project; nothing is written | `clockMap.test.ts`, `transportSync.test.tsx` (item not live) |
+| Chapter not linked, or no audio | No table or no placed word: every second maps to null; Play plays in the app and says the part is not in REAPER's project; nothing is written | `wordClock.test.ts`, `transportSync.test.tsx` (no word placed) |
 | Recording | Reads are ignored, writes are refused with REAPER's sentence; Play plays nothing, in REAPER or the app | Lua and `transportsync_test.go`; the page's toast on a refusal is `transportSync.test.tsx` |
 | Capability unavailable (the DAW does not report it) | No lease; Play plays in the app and says the capability's sentence | `transportSync.test.tsx` |
 | DAW not answered yet | Play plays nothing and says the page is checking | `transportSync.test.tsx` |
@@ -107,6 +100,7 @@ The harness drives a fake `reaper`. These are pending with the owner:
 6. The lit word trails the sound by no more than a word. `GetPlayPosition` while stopped and while paused.
 7. Moving REAPER's cursor with the transport running, and a Play from a paused REAPER (stopped first, then played).
 8. Four events a second are not felt in REAPER while it plays.
+9. Without saving: move the chapter's item, trim its start, change its rate, delete a pause and ripple, then play from REAPER. The lit word is the word heard each time. Then split an item mid-chapter and play across the split: the lit word carries on past it. The table's places are checked in a real REAPER by audio (`scenarios_wordtimes.py`); the lit word on the page, by ear, is the owner's. The page reads a new table when REAPER reports the edit, so the first moments after an edit made during a play may still light by the old one.
 
 ## Not exercised here
 

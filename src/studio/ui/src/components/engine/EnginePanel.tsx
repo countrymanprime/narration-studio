@@ -18,10 +18,11 @@ import { ChapterTagsDialog } from './ChapterTagsDialog';
 import { CleanupToolsDialog } from './CleanupToolsDialog';
 import { CreateChapterRegionsDialog } from './CreateChapterRegionsDialog';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
+import { useChapterLinks } from './useChapterLinks';
 import { RenderConfigDialog } from './RenderConfigDialog';
 import { RetakeLanesDialog } from './RetakeLanesDialog';
 import { useAudacityLink } from './useAudacityLink';
-import type { ManuscriptChapter, TrackMapping, TracksDiscovery, TracksProject } from '../../types';
+import type { Track, TracksDiscovery, TracksProject } from '../../types';
 
 function basename(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
@@ -32,6 +33,8 @@ function folderOf(path: string): string {
   const cut = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
   return cut > 0 ? path.slice(0, cut) : '';
 }
+
+const NO_TRACKS: Track[] = [];
 
 type Tool = 'link-chapters' | 'render-config' | 'create-regions' | 'chapter-tags' | 'cleanup-tools' | 'retake-lanes';
 
@@ -77,50 +80,18 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   const [discovery, setDiscovery] = useState<TracksDiscovery>();
   const [project, setProject] = useState<TracksProject>();
   const [error, setError] = useState('');
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  const [mappings, setMappings] = useState<TrackMapping[]>([]);
   // Bumped by the chapter-sync panel's own actions (toggle, Link, Undo), so the track list and the Chapter links table re-read
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
   const [tool, setTool] = useState<Tool>();
+  // The one reader of the chapter links: the Link chapters button and dialog, the Tracks card and the Chapter links section all use it.
+  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1));
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
   const stages = useStageRecommendations({ refreshKey: String(refresh), notify, onStatus: () => {} });
   const unmappedCount = Array.from(stages.state.byChapter.values()).filter(
     (chapter) => chapter.causes.includes('unmapped_track') || chapter.causes.includes('unconfirmed_mapping'),
   ).length;
-
-  useEffect(() => {
-    let active = true;
-    void api
-      .manuscriptChapters()
-      .then((next) => {
-        if (active) setChapters(next);
-      })
-      .catch(() => {
-        // Link chapters is an optional tool: a failed chapter load just leaves its button out (chapters stays empty) instead of
-        // raising the panel's error line, which is for the REAPER project the panel exists to show.
-      });
-    return () => {
-      active = false;
-    };
-  }, [api]);
-
-  useEffect(() => {
-    let active = true;
-    void api
-      .chapterTrackMapList()
-      .then((next) => {
-        if (active) setMappings(next.mappings);
-      })
-      .catch(() => {
-        // Only names each track's chapter in the list below; without it the column reads "Not linked", and the Chapter links
-        // table under it reports its own read failure.
-      });
-    return () => {
-      active = false;
-    };
-  }, [api, refresh]);
 
   useEffect(() => {
     let active = true;
@@ -192,7 +163,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
           {/* Equal cells on a grid, three across, two below 36rem and one below 26rem, so the buttons share their edges whatever their labels (ENX-9). */}
           <div className="@container">
             <Toolbar label="REAPER tools" className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
-              {chapters.length > 0 && <ToolButton onClick={() => setTool('link-chapters')}>Link chapters…</ToolButton>}
+              {links.chapters.length > 0 && <ToolButton onClick={() => setTool('link-chapters')}>Link chapters…</ToolButton>}
               <ToolButton onClick={() => setTool('render-config')}>Prepare chapter render…</ToolButton>
               <ToolButton onClick={() => setTool('create-regions')}>Create chapter regions…</ToolButton>
               <ToolButton onClick={() => setTool('chapter-tags')}>Embed chapter tags…</ToolButton>
@@ -214,7 +185,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             : 'This REAPER project has no tracks yet.'}
         </p>
       )}
-      {hasTracks && <TrackList tracks={project.tracks} mappings={mappings} />}
+      {hasTracks && <TrackList tracks={project.tracks} mappings={links.mappings} />}
       {project && unmappedCount > 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           {unmappedCount === 1
@@ -222,8 +193,8 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
         </p>
       )}
-      {project && <ChapterLinksTable tracks={project.tracks} refreshKey={refresh} notify={notify} onChanged={() => setRefresh((count) => count + 1)} />}
-      {tool === 'link-chapters' && project && <LinkChaptersDialog chapters={chapters} tracks={project.tracks} onClose={closeTool} />}
+      {project && <ChapterLinksTable links={links} notify={notify} />}
+      {tool === 'link-chapters' && project && <LinkChaptersDialog links={links} onClose={closeTool} />}
       {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} onCreateRegions={() => setTool('create-regions')} />}
       {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}
       {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}

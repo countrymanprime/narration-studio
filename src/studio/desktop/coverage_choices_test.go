@@ -171,7 +171,7 @@ func TestACheckWithNoOptionsSendsTheSettingsParallelRunToTheSidecar(t *testing.T
 
 	args, _ := startArgs(t, host, launches, nil)
 
-	if !hasFlag(args, "--chunk-seconds", "300") || !hasFlag(args, "--chunk-overlap-seconds", "6") {
+	if !hasFlag(args, "--chunk-seconds", "60") || !hasFlag(args, "--chunk-overlap-seconds", "6") {
 		t.Fatalf("args = %v, want the shipped five-minute chunks with a six second crossover", args)
 	}
 	if !hasFlag(args, "--parallel-workers", "4") {
@@ -317,7 +317,7 @@ func TestABackgroundCheckRunsItsOwnPairWithTheNarratorsChunkingAndDoubtLine(t *t
 	if !ready || !request.Background || request.Transcription.Model != "tiny" || request.Recheck.Model != "small" {
 		t.Fatalf("request = %+v, ready = %v: the background pair, not the cascade's", request, ready)
 	}
-	if request.Parallel.Workers != 0 || request.CPUs < 1 || request.Parallel.ChunkSeconds != 300 || request.UnsureBelow != 0.5 {
+	if request.Parallel.Workers != 0 || request.CPUs < 1 || request.Parallel.ChunkSeconds != 60 || request.UnsureBelow != 0.5 {
 		t.Fatalf("request = %+v: the settings' chunking and doubt line, on the background's share of the processors", request)
 	}
 }

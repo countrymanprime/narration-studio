@@ -155,6 +155,13 @@
   },
   {
     "page": "proof",
+    "state": "check-checking",
+    "viewport": "desktop",
+    "docName": "proof-check-recordings-running",
+    "caption": "Proof - a recording check running: the activity box with the overall bar, the phase, the chunks done, the workers busy and the larger model's re-check, and the chapter's own count under it"
+  },
+  {
+    "page": "proof",
     "state": "check-findings",
     "viewport": "desktop",
     "docName": "proof-check-findings",

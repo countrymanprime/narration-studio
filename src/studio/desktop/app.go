@@ -119,6 +119,11 @@ type Host struct {
 	// same way, and dawUnsavedTracker the edit-counter baseline its unsavedChanges is read against.
 	// +checklocks:mu
 	dawProjectStateSnapshot string
+	// dawEditCount is the change count the last daw_project_edited carried (bindings_daw_projectedited.go), and dawEditSeen whether one was sent.
+	// +checklocks:mu
+	dawEditCount int
+	// +checklocks:mu
+	dawEditSeen bool
 	// +checklocks:mu
 	dawUnsavedTracker dawport.UnsavedTracker
 	// readAloudRecordingChapter is the chapter id of a REAPER recording this app started with ReadAloudRecordStart and
@@ -1308,6 +1313,7 @@ func (h *Host) pollTranscript() {
 	h.pollDawCapabilities()
 	h.pollDawTransport()
 	h.pollDawProjectState()
+	h.pollDawProjectEdited()
 	h.pollAudacityLink()
 }
 

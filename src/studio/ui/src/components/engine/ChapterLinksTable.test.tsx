@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable } from './ChapterLinksTable';
+import { useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
@@ -13,12 +14,18 @@ afterEach(cleanup);
 
 const notify = vi.fn();
 
+// The table as the engine panel mounts it: drawn from the one chapter-links reader.
+function Table({ onChanged = () => {} }: { onChanged?: () => void }) {
+  const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, onChanged);
+  return <ChapterLinksTable links={links} notify={notify} />;
+}
+
 function renderTable(onChanged?: () => void) {
   const api = createMockApi();
   render(
     <ApiProvider api={api}>
       <MemoryRouter initialEntries={['/production']}>
-        <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} onChanged={onChanged} />
+        <Table onChanged={onChanged} />
         <Routes>
           <Route path="*" element={<Where />} />
         </Routes>
@@ -139,7 +146,7 @@ describe('ChapterLinksTable', () => {
     render(
       <ApiProvider api={api}>
         <MemoryRouter>
-          <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} />
+          <Table />
         </MemoryRouter>
       </ApiProvider>,
     );
@@ -246,7 +253,7 @@ describe('ChapterLinksTable', () => {
     render(
       <ApiProvider api={api}>
         <MemoryRouter>
-          <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} />
+          <Table />
         </MemoryRouter>
       </ApiProvider>,
     );
@@ -267,7 +274,7 @@ describe('ChapterLinksTable', () => {
     render(
       <ApiProvider api={api}>
         <MemoryRouter>
-          <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} />
+          <Table />
         </MemoryRouter>
       </ApiProvider>,
     );

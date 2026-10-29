@@ -28,7 +28,6 @@ const CEILING: Record<string, number> = {
   'src/components/editing/CleanupAction.tsx': 1,
   'src/components/editing/EditingCheckPanel.tsx': 2,
   'src/components/editing/takes/prep/usePrepSteps.tsx': 1,
-  'src/components/engine/ChapterLinksTable.tsx': 1,
   'src/components/engine/ChapterSyncPanel.tsx': 1,
   'src/components/engine/ChapterTagsDialog.tsx': 1,
   'src/components/engine/CleanupToolsDialog.tsx': 1,
