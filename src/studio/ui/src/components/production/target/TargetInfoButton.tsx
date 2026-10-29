@@ -5,6 +5,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { Popover, POPOVER_POPUP_SELECTOR } from '../../primitives/Popover';
 import { useMeasured } from '../measured/useMeasured';
 import { MIN_OWN_RATE_CHAPTERS, WPH } from '../../schedule/estimates';
+import { announceRateBasis } from '../../schedule/useEffectiveWph';
 import { basisOf, ownRate, targetHours, type PaceChapter } from './pace.selectors';
 import { TargetPopover } from './TargetPopover';
 
@@ -68,7 +69,13 @@ export function TargetInfoButton() {
   };
   const choose = useCallback(
     (next: ProductionRateBasis): void => {
-      void production.setProductionRateBasis(next).then(setPlan, () => undefined);
+      void production.setProductionRateBasis(next).then(
+        (saved) => {
+          setPlan(saved);
+          announceRateBasis(saved.rateBasis);
+        },
+        () => undefined,
+      );
     },
     [production],
   );

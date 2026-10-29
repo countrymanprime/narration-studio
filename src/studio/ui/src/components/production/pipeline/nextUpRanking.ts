@@ -14,6 +14,8 @@ export type NextUpInputs = {
   pickups: { lines: number; chapters: readonly string[] } | null;
   /** The first chapter that fails the delivery check, and what failed. */
   failing: { chapterId: string; tag: string; fails: readonly string[] } | null;
+  /** Words per finished hour of the schedule's basis (`useEffectiveWph`); the standard when absent. */
+  wph?: number;
 };
 
 export type NextItem =
@@ -39,7 +41,7 @@ export function rankNextUp(inputs: NextUpInputs): NextItem[] {
   const items: NextItem[] = [];
   const rec = inputs.recording;
   if (rec) {
-    const finishedLeft = (rec.words / WPH) * (1 - (rec.share ?? 0));
+    const finishedLeft = (rec.words / (inputs.wph ?? WPH)) * (1 - (rec.share ?? 0));
     items.push({
       kind: 'rec',
       group: 1,

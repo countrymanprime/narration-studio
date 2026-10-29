@@ -13,8 +13,8 @@ export const paymentOf = (plan: { payment?: ProductionPayment; contractedAmount:
   plan.payment ?? (plan.contractedAmount === null ? 'none' : 'per_finished_hour');
 
 /** What a contracted amount is worth: the rate times the finished hours. There is no value without a per-finished-hour rate. */
-export const contractValue = (plan: ProductionPlan, words: number): number | null =>
-  paymentOf(plan) === 'per_finished_hour' && plan.contractedAmount !== null ? plan.contractedAmount * (words / WPH) : null;
+export const contractValue = (plan: ProductionPlan, words: number, wph: number = WPH): number | null =>
+  paymentOf(plan) === 'per_finished_hour' && plan.contractedAmount !== null ? plan.contractedAmount * (words / wph) : null;
 
 /**
  * An amount as typed: digits with an optional decimal part, thousands commas only in groups of three ("1,250.50"). Anything else is null:

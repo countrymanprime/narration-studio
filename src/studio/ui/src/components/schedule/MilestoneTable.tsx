@@ -31,6 +31,8 @@ export type MilestoneTableProps = {
   milestones: readonly ProductionMilestone[];
   chapters: readonly ScheduleChapter[];
   today: Date;
+  /** Words per finished hour of the schedule's basis (`useEffectiveWph`); the standard when absent. */
+  wph?: number;
   /** The book's due date, "YYYY-MM-DD", or null while none is set. */
   due: string | null;
   onToggleDone: (index: number) => void;
@@ -45,11 +47,11 @@ export type MilestoneTableProps = {
  * carries its state, and a note, edit and remove button. Rows run by date; a row is named by its place in the stored list, which is what
  * the host saves. The last row is the book's own due date. Nothing in a milestone row is an input: the dialog edits.
  */
-export function MilestoneTable({ milestones, chapters, today, due, onToggleDone, onEdit, onRemove, onDueChange }: MilestoneTableProps) {
+export function MilestoneTable({ milestones, chapters, today, wph, due, onToggleDone, onEdit, onRemove, onDueChange }: MilestoneTableProps) {
   const rows = milestones
     .map((m, index) => ({ m, index }))
     .sort((a, b) => (a.m.dueDate < b.m.dueDate ? -1 : a.m.dueDate > b.m.dueDate ? 1 : a.index - b.index));
-  const final = due ? milestoneStatus({ dueDate: due, measure: 'all' }, chapters, today) : null;
+  const final = due ? milestoneStatus({ dueDate: due, measure: 'all' }, chapters, today, wph) : null;
   return (
     /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, instead of spilling out of the card on a narrow window. */
     <div className={`scroll-x-edges overflow-x-auto ${MEASURES_WIDTH}`} tabIndex={0} role="group" aria-label="Milestones scroll area">
@@ -76,7 +78,7 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
                 {fmtIso(m.dueDate, today)}
               </TableCell>
               <TableCell>
-                <StatusCell status={milestoneStatus(m, chapters, today)} />
+                <StatusCell status={milestoneStatus(m, chapters, today, wph)} />
               </TableCell>
               <TableCell align="right">
                 {/* The done toggle leads the row's buttons, 8 px apart, so the Milestone column starts at the card title for every row, the Final one too. */}

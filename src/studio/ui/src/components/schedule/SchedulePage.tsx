@@ -20,7 +20,7 @@ import { milestoneFromDraft } from './draft';
 import { maxMinutes } from './measures';
 import { MilestoneTable } from './MilestoneTable';
 import { openMilestoneDialog } from './openMilestoneDialog';
-import { WPH } from './estimates';
+import { useEffectiveWph } from './useEffectiveWph';
 import { calc } from './progress';
 import { useScheduleReading } from './useScheduleReading';
 import { saveMilestonesCommand, setAmountCommand, setDueDateCommand, setPaymentCommand } from './scheduleCommands';
@@ -55,6 +55,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   const production = usePort('production');
   const openLines = useOpenPickups();
   const { state, refreshFailure, day, reload, keepPlan, now } = useScheduleReading(today, journal);
+  const wph = useEffectiveWph(state.phase === 'ready' ? state.plan.rateBasis : undefined);
   // Writes go one after another, each built from the newest plan, so two quick changes never start from the same old list.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   // The rows whose change is on its way to the host: a second press on the same row while one is pending is the same press.
@@ -133,8 +134,8 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
 
   // A plan edited by hand can hold a date that is not one; the page treats it as no due date and says so.
   const due = plan.deadline && isIsoDate(plan.deadline) ? parseIso(plan.deadline) : null;
-  const k = calc(chapters, day, due, openLines?.length ?? 0);
-  const bounds = { chapters: chapters.filter((c) => c.kind === 'narration').length, minutes: maxMinutes(k.words) };
+  const k = calc(chapters, day, due, openLines?.length ?? 0, wph);
+  const bounds = { chapters: chapters.filter((c) => c.kind === 'narration').length, minutes: maxMinutes(k.words, wph) };
   const same = (a: ProductionMilestone | undefined, b: ProductionMilestone | undefined) => JSON.stringify(a) === JSON.stringify(b);
   const sameList = (a: readonly ProductionMilestone[], b: readonly ProductionMilestone[]) => a.length === b.length && a.every((m, i) => same(m, b[i]));
   const CHANGED = 'The milestones changed since this was shown. Look at them again and redo it.';
@@ -195,7 +196,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     if (refusal !== undefined) return false;
     // The header and the pill change silently: say the saved date and what it makes the verdict.
     const saved = date === '' ? null : parseIso(date);
-    const verdict = verdictLabel(calc(chapters, day, saved, openLines?.length ?? 0), day, saved);
+    const verdict = verdictLabel(calc(chapters, day, saved, openLines?.length ?? 0, wph), day, saved);
     overlay.announce(saved ? `Due date saved: ${fmtDY(saved, day)}. ${verdict}.` : `Due date cleared. ${verdict}.`);
     return true;
   };
@@ -236,7 +237,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
           height={280}
           fill
           k={k}
-          wph={WPH}
+          wph={wph}
           start={planStart(day)}
           today={day}
           due={due}
@@ -246,17 +247,19 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
         <div className={SCHEDULE_SIDE}>
           <ContractPanel
             plan={plan}
+            wph={wph}
             words={k.words}
             onPayment={(payment: ProductionPayment) => void run((latest) => setPaymentCommand(production, latest, payment))}
             onRefuse={(sentence) => overlay.toast(sentence, { tone: 'error', topic: REFUSAL })}
             onAccepted={() => overlay.dismissTopic(REFUSAL)}
             onAmount={(amount) => void run((latest) => setAmountCommand(production, latest, amount))}
           />
-          <WorkedOut k={k} />
+          <WorkedOut k={k} wph={wph} />
         </div>
       </div>
       <Panel title="Milestones" flush actions={<IconButton action="add" label="Add milestone" onClick={() => edit(null)} />}>
         <MilestoneTable
+          wph={wph}
           milestones={plan.milestones}
           chapters={chapters}
           today={day}
