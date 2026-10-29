@@ -65,7 +65,8 @@ export function CompanionPage({ onFixCredits }: Props) {
     };
   }, [api]);
 
-  const chosen = readBoothQuery(params)?.chapter ?? fallback;
+  const asked = readBoothQuery(params)?.chapter;
+  const chosen = asked ?? fallback;
   const chapter = chapters?.find((item) => item.id === chosen);
   // A credits chapter has no paragraphs; it reads the credits' rendered text.
   const creditsKind = chapter && isCreditsChapter(chapter) ? creditsKindOf(chapter) : undefined;
@@ -91,7 +92,8 @@ export function CompanionPage({ onFixCredits }: Props) {
   }, [api, creditsKind]);
 
   if (!chapters) return <CompanionSkeleton />;
-  if (!chapter) return <Navigate to="/booth" replace />;
+  // A chapter the book does not list (a credits file with no template included) goes to the Booth with its id, which says so in its own panel.
+  if (!chapter) return <Navigate to={asked ? addressPath({ page: 'booth', target: { chapter: asked } }) : '/booth'} replace />;
   const source: BoothSource | undefined = creditsKind
     ? credits && { kind: 'credits', credits: creditsKind, chapter, preview: credits }
     : { kind: 'chapter', chapter };

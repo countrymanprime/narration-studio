@@ -155,10 +155,16 @@ describe('CompanionPage', () => {
     expect(spies.shellProps.mock.calls.at(-1)![0].chapterId).toBe(expected.id);
   });
 
-  it('an unknown chapter redirects to /booth', async () => {
+  it('an unknown chapter redirects to the Booth with its id, which answers in its own panel', async () => {
     await renderCompanion('/companion?chapter=no-such-chapter');
-    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth'));
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?chapter=no-such-chapter'));
     expect(screen.getByText('the booth')).toBeTruthy();
+  });
+
+  it('a credits file with no template goes to the Booth with its id, not to another chapter', async () => {
+    const base = createMockApi();
+    await renderCompanion('/companion?chapter=credits-closing', { manuscriptChapters: async () => withoutCredits(await base.manuscriptChapters()) });
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?chapter=credits-closing'));
   });
 });
 

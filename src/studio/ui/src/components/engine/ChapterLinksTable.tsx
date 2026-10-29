@@ -1,5 +1,5 @@
 import { headingName } from '../../chapterHeading';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
@@ -46,6 +46,8 @@ export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { t
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
+  // The state above reaches a second press only after a re-render; this one answers at once, so a double click links (or clears) once.
+  const inFlight = useRef(false);
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
 
   const reload = useCallback(async () => {
@@ -69,6 +71,9 @@ export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { t
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it
   // so a Change never leaves the chapter linked to two tracks.
   const confirm = (chapterId: string, trackGuid: string) => {
+    // Pressing Confirm again for the pair already linked changes nothing (and must not reach the host twice).
+    if (inFlight.current || mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
+    inFlight.current = true;
     setBusyChapterId(chapterId);
     setError('');
     api
@@ -76,11 +81,16 @@ export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { t
       .then(() => reload())
       .then(() => onChanged?.())
       .catch((reason) => setError(String(reason)))
-      .finally(() => setBusyChapterId(''));
+      .finally(() => {
+        inFlight.current = false;
+        setBusyChapterId('');
+      });
   };
 
   // Clears every link the chapter holds, including a second one an older Change left behind.
   const clear = (chapterId: string) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusyChapterId(chapterId);
     setError('');
     api
@@ -88,7 +98,10 @@ export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { t
       .then(() => reload())
       .then(() => onChanged?.())
       .catch((reason) => setError(String(reason)))
-      .finally(() => setBusyChapterId(''));
+      .finally(() => {
+        inFlight.current = false;
+        setBusyChapterId('');
+      });
   };
 
   // The chapter list holds the opening and closing credits, so they are rows like any chapter.

@@ -231,6 +231,11 @@ describe('AddressGate', () => {
     expect(screen.getByText('the page')).toBeTruthy();
   });
 
+  it('an unlisted credits id is a missing chapter for Editing, which would otherwise open another chapter (Proof has its own chapter route)', async () => {
+    mount({ at: '/editing/credits-closing', page: 'editing', route: '/editing/:chapterId', param: 'credits-closing', chapters: [{ id: 'c1' }] });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Editing link points to a chapter'));
+  });
+
   it('opens Editing and Proof on a credits chapter, which the chapter list holds', () => {
     const list = [{ id: 'credits-opening', paragraphIds: [] }, { id: 'c1' }, { id: 'credits-closing', paragraphIds: [] }];
     mount({ at: '/editing/credits-opening', page: 'editing', route: '/editing/:chapterId', param: 'credits-opening', chapters: list });

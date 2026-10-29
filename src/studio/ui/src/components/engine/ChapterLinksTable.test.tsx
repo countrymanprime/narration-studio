@@ -62,6 +62,21 @@ describe('ChapterLinksTable', () => {
     expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
   });
 
+  // The breaker double-clicked Confirm: the second press arrived before the row re-rendered busy and unlinked both rows.
+  it('links once when Confirm is pressed twice in a row', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    const confirm = within(opening).getByRole('button', { name: 'Confirm' });
+    await user.dblClick(confirm);
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    expect(set).toHaveBeenCalledTimes(1);
+    expect((await api.chapterTrackMapList()).mappings.filter((m) => m.chapterId === 'credits-opening')).toHaveLength(1);
+  });
+
   it('opens a linked credits chapter in Editing or Proof like any chapter', async () => {
     const user = userEvent.setup();
     renderTable();
