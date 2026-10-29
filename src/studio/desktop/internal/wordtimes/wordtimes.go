@@ -17,12 +17,12 @@ import (
 type State string
 
 const (
-	// Placed: Start and End are the word's seconds in the project.
+	// Placed means Start and End are the word's seconds in the project.
 	Placed State = "placed"
-	// NotInProject: the word was heard, and no item on the track plays that stretch of its source now (cut out, trimmed off, muted, or its
+	// NotInProject means the word was heard, and no item on the track plays that stretch of its source now (cut out, trimmed off, muted, or its
 	// source is not on the track). Start and End are zero.
 	NotInProject State = "not_in_project"
-	// NotHeard: the check heard nothing for the word (a missing word), so it has no audio to place.
+	// NotHeard means the check heard nothing for the word (a missing word), so it has no audio to place.
 	NotHeard State = "not_heard"
 )
 
