@@ -183,6 +183,47 @@ describe('play the selection', () => {
       vi.useRealTimers();
     }
   });
+  it('after a play of words ends by itself, a late timeupdate does not bring the play back', () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:1' });
+      const end = base.items[base.index.get('p-1:1') ?? -1].t1 as number;
+      act(() => playback.toggle());
+      tick(t0('p-1:1'));
+      tick(end + MIN_TAIL_SECONDS);
+      // The element reports a last time right after it was paused, before the page has re-rendered (one batch, as the browser delivers it).
+      act(() => {
+        vi.advanceTimersByTime((STOP_FADE_SECONDS + OUTPUT_DRAIN_SECONDS) * 1000 + 20);
+        audio().currentTime = end + MIN_TAIL_SECONDS + 0.001;
+        audio().dispatchEvent(new Event('timeupdate'));
+      });
+      expect(state().playT).toBeNull();
+      expect(playback.playing).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('a play started during the fade-out is not faded out', () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:1' });
+      const end = base.items[base.index.get('p-1:1') ?? -1].t1 as number;
+      act(() => playback.toggle());
+      tick(t0('p-1:1'));
+      tick(end + MIN_TAIL_SECONDS);
+      act(() => vi.advanceTimersByTime(STOP_FADE_SECONDS * 500));
+      act(() => playback.playFrom(t0('p-1:1')));
+      audio().pause.mockClear();
+      act(() => vi.advanceTimersByTime(1000));
+      expect(audio().volume).toBe(1);
+      expect(audio().pause).not.toHaveBeenCalled();
+      expect(diagnostic).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('a stop by the narrator during the fade-out ends the play at once and puts the volume back', () => {
     vi.useFakeTimers();
     try {

@@ -97,6 +97,8 @@ export function useScriptPlayback({
   const played = useRef<{ word: PlayedWord; planned: number; path: string } | null>(null);
   /** Cancels the fade-out of the app's audio at the end of a play, while one runs. */
   const fading = useRef<(() => void) | null>(null);
+  /** True from a halt until the next play starts: the element can still report a time or an end after it was paused, before the page has re-rendered. */
+  const halted = useRef(true);
   /** Fires at `stopAt`: `timeupdate` comes only every 250 ms or so, which would stop a play anywhere up to that much late. No output latency is
    * added: Chromium's `currentTime` is already the frame being heard (its audio clock counts the output delay). */
   const stopTimer = useRef<number | undefined>(undefined);
@@ -131,6 +133,7 @@ export function useScriptPlayback({
     fading.current?.();
     fading.current = null;
     played.current = null;
+    halted.current = true;
     asks.current += 1;
     remoteRef.current?.stop();
     audioRef.current?.pause();
@@ -191,6 +194,9 @@ export function useScriptPlayback({
   const go = useCallback(
     (t: number): void => {
       const { caps: now, read: dawRead, notify: say } = live.current;
+      fading.current?.();
+      fading.current = null;
+      halted.current = false;
       const ask = ++asks.current;
       const wanted = (): boolean => asks.current === ask;
       // A read that failed is asked again, so the DAW plays the next press once it answers.
@@ -322,7 +328,7 @@ export function useScriptPlayback({
     const el = audio();
     const onTime = (ended: boolean): void => {
       const { playlist: list, state: s, dispatch: send } = live.current;
-      if (s.playT == null) return;
+      if (s.playT == null || halted.current) return;
       const seg = list[segment.current];
       if (!seg) return;
       if (ended || el.currentTime >= seg.sourceEnd) {

@@ -12,4 +12,13 @@ describe('playStopLine', () => {
     expect(line).toContain('word="a b c"');
     expect(line).toContain('actual_stop=unknown actual_minus_planned_ms=unknown path=daw');
   });
+  it('strips what could break a log line: direction marks, line and paragraph separators, a trailing backslash', () => {
+    const line = playStopLine({ word: { text: 'a\u202Eb\u2028c\u0085d\\', end: 1 }, planned: 1.1, actual: 1.1, path: 'app' });
+    expect(line).toContain('word="a b c d "');
+  });
+  it('cuts a very long word so the numbers after it stay in the line', () => {
+    const line = playStopLine({ word: { text: 'x'.repeat(5000), end: 1 }, planned: 1.1, actual: 1.1, path: 'app' });
+    expect(line.length).toBeLessThan(400);
+    expect(line).toContain('path=app');
+  });
 });

@@ -4,6 +4,15 @@ export interface PlayedWord {
   end: number;
 }
 
+/** The most of a word the line carries: the host cuts a message at 2000 characters, and the numbers after the word must not be what is lost. */
+const MAX_WORD_CHARS = 40;
+/** The word as one safe token: no quote, backslash, control, format (direction marks) or separator (line and paragraph) character, and cut short. */
+const safeWord = (text: string): string => {
+  const clean = text.replace(/[\p{C}\p{Z}"\\]/gu, ' ');
+  const chars = [...clean];
+  return chars.length > MAX_WORD_CHARS ? `${chars.slice(0, MAX_WORD_CHARS).join('')}...` : clean;
+};
+
 const seconds = (t: number | null): string => (t === null ? 'unknown' : t.toFixed(3));
 
 /**
@@ -15,5 +24,5 @@ const seconds = (t: number | null): string => (t === null ? 'unknown' : t.toFixe
 export function playStopLine({ word, planned, actual, path }: { word: PlayedWord; planned: number; actual: number | null; path: string }): string {
   const tail = Math.round((planned - word.end) * 1000);
   const late = actual === null ? 'unknown' : String(Math.round((actual - planned) * 1000));
-  return `word="${word.text.replace(/["\n\r]/g, ' ')}" alignment_end=${seconds(word.end)} planned_stop=${seconds(planned)} tail_ms=${tail} actual_stop=${seconds(actual)} actual_minus_planned_ms=${late} path=${path}`;
+  return `word="${safeWord(word.text)}" alignment_end=${seconds(word.end)} planned_stop=${seconds(planned)} tail_ms=${tail} actual_stop=${seconds(actual)} actual_minus_planned_ms=${late} path=${path}`;
 }
