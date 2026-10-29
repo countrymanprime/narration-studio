@@ -274,7 +274,7 @@ def main() -> None:
     books = {b["id"]: b for b in json.loads((args.books / "books.json").read_text(encoding="utf-8"))}
     runs: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for path in sorted(args.runs.glob("*.json")):
-        if path.name.endswith(".skipped.json"):
+        if path.name.endswith(".skipped.json") or ".pipeline." in path.name:
             continue
         run = json.loads(path.read_text(encoding="utf-8"))
         row = path.name.split(".")[1]
@@ -327,6 +327,19 @@ def main() -> None:
                 f"| {books[book]['title'].split(' by ')[0]} | {row.split('-')[1]} | {label(run)} | {c['wholeCharacters']} / {c['chunkedCharacters']} | "
                 f"{c['recall']:.3f} ({c['recallMajor']:.3f}) | {c['precision']:.3f} | {c['splitCharacters']} ({c['splitMajor']}) | {c['conflatedCharacters']} | "
                 f"{c['wholeQuotes']} / {c['chunkedQuotes']} | {c['speakerAgreement']} ({c['quotesInBoth']} shared, {c['speakerUnmapped']} unmapped) | {c['genderAgreement']} ({c['genderJudged']}) |"
+            )
+    pipes = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(args.runs.glob("*.pipeline.*.json"))]
+    if pipes:
+        out("")
+        out("### GLiNER alongside BookNLP, against one after the other")
+        out("")
+        out("| Book (words) | Weights | One after the other s | Together s | Speed-up | Peak GB (GLiNER / BookNLP) |")
+        out("| - | - | - | - | - | - |")
+        for p in sorted(pipes, key=lambda p: books[p["book"]]["words"]):
+            b = books[p["book"]]
+            peaks = p["peakGBEach"]
+            out(
+                f"| {b['title'].split(' by ')[0]} ({b['words']:,}) | {p['weights']} | {p['sequentialSeconds']} | {p['wallSeconds']} | {p['speedup']}x | {peaks.get('gliner')} / {peaks.get('booknlp')} |"
             )
     text = "\n".join(lines) + "\n"
     if args.out:

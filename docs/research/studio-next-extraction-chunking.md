@@ -1,6 +1,6 @@
 # Extraction scans: whole book or per chapter
 
-Owner question (#18): why does the BookNLP import take so long, and why not run BookNLP or GLiNER in parallel on chunks and merge the results? This page records how a scan runs today, where the time goes, what the earlier research said, and a design for chunking. Nothing in the code changed.
+Owner question (#18): why does the BookNLP import take so long, and why not run BookNLP or GLiNER in parallel on chunks and merge the results? This page records how a scan runs today, where the time goes, what the earlier research said, and a design for chunking. The measurements are in the page linked under Measured.
 
 ## How a scan runs today
 
@@ -53,6 +53,6 @@ Not measured here: this container (4 vCPU, 16 GB) has no torch, `booknlp` or `gl
 - **Which setting.** **Parallel processes** is labelled and described for Recording check only. Either a second row in a Scan section or a rename is needed; the Automatic wording must be shared.
 - **GLiNER first.** It has no cross-chunk state, so chunking it loses nothing, but it takes about 1.5 minutes per book, so the gain is small. It is the right first slice to prove the pool, ordering and failure handling.
 
-## Measure before building
+## Measured
 
-On the owner's machine, with `measure_booknlp.py` from the spike: whole book against per-chapter with 1, 2 and 4 workers, large and small weights, recording wall time and peak memory. The pool is worth building for BookNLP only if 2 workers give a clear gain over one process.
+The benchmark ran (4 vCPU Linux, five public-domain novels from 19k to 168k words) and is in [studio-next-extraction-chunking-benchmark.md](studio-next-extraction-chunking-benchmark.md). In short: GLiNER chunked per chapter is identical to whole-book and runs up to 1.9x faster at 4 workers (2.1 GB each); BookNLP small runs 1.5 to 2.3x faster at 4 workers but its output differs from the whole-book run (88 to 97% speaker agreement, minor characters lost or split), and the large weights barely gain. So GLiNER gets the pool, and BookNLP stays whole-book and runs alongside GLiNER.

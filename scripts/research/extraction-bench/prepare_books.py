@@ -19,7 +19,7 @@ PARQUET_URL = "https://huggingface.co/datasets/emozilla/pg19/resolve/main/data/t
 
 # (Gutenberg ebook number, what the book is for in the benchmark)
 BOOKS = (
-    ("56410", "short novel, curly quotes and accents in the source"),
+    ("56410", "short novel, curly quotes in the source"),
     ("34467", "few characters, much dialogue"),
     ("53345", "mid novel, dialogue-heavy, large cast"),
     ("9931", "about 90k words, the size the earlier trial extrapolated to"),
