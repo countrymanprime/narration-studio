@@ -54,7 +54,7 @@ The six figures are one card; each opens the page it counts.
 - **Due**: the due date and what the pace says about it, or **Not set** ("Set it on the Schedule") before one is set. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
-from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery), **Proofed**, **Edited**,
+from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery whose checks pass; a master that fails counts as Proofed until it is fixed), **Proofed**, **Edited**,
 **Recorded** and **Not recorded yet**. A chapter still being recorded counts for the share of its audio measured so far, **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
