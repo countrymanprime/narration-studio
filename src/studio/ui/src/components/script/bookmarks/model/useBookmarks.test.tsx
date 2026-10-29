@@ -4,6 +4,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
+import { withoutCredits } from '../../../../chapterKinds';
 import type { Bookmark } from '../../../../api/contracts/bookmarks';
 import { createMockApi } from '../../../../api/mockApi';
 import { providedCommands } from '../../../../input/commandProviders';
@@ -69,7 +70,7 @@ const spot = (n: number, offset: number) => ({ chapterId: chapter.id, paragraphI
 
 beforeEach(async () => {
   api = createMockApi();
-  const [first] = await api.manuscriptChapters();
+  const [first] = withoutCredits(await api.manuscriptChapters());
   chapter = first!;
   lines = new Map((await api.manuscriptParagraphs(chapter.id)).map((p) => [p.id, p.text]));
 });

@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { withoutCredits } from '../../../chapterKinds';
 import { providedCommands } from '../../../input/commandProviders';
 import { currentPageContext } from '../../../input/pageCommands';
 import { overlay } from '../../../overlay/overlayService';
@@ -220,7 +221,7 @@ describe('right-click-menus-reach-what-the-page-draws', () => {
 
   it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
     const api = createMockApi({ creditsTemplates: async () => [] });
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const types = await api.marksList();
     await api.marksAdd(chapter!.id, line!.id, 0, 5, types.types[0]!.key, 'Check this');
@@ -272,7 +273,7 @@ describe('record-from-here-and-flagged-words', () => {
 
   it('a click on a flagged word opens it in the Words tab', async () => {
     const api = createMockApi({ creditsTemplates: async () => [] });
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const found = /\p{L}{6,}/u.exec(line!.text)!;
     await api.scriptWordFlag(chapter!.id, line!.id, found.index, found.index + found[0].length);
@@ -441,7 +442,7 @@ describe('credits-cards-and-banner-stay', () => {
 
   it('marks the chapter that holds the retail sample and exactly its lines', async () => {
     const base = createMockApi();
-    const chapter = (await base.manuscriptChapters())[0]!;
+    const chapter = withoutCredits(await base.manuscriptChapters())[0]!;
     const ids = chapter.paragraphIds ?? [];
     const sample = {
       startParagraphId: ids[1]!.id,
@@ -594,7 +595,7 @@ describe('dictionary-download-in-place', () => {
     const api = createMockApi({ creditsTemplates: async () => [] }, { dictionary: 'missing' });
     const install = vi.spyOn(api, 'assetsInstall');
     // A flagged word in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
-    for (const chapter of await api.manuscriptChapters()) {
+    for (const chapter of withoutCredits(await api.manuscriptChapters())) {
       const [line] = await api.manuscriptParagraphs(chapter.id);
       const found = /\p{L}+/u.exec(line!.text)!;
       await api.scriptWordFlag(chapter.id, line!.id, found.index, found.index + found[0].length);

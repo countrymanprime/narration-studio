@@ -324,6 +324,26 @@ describe('narrator-walkthrough-fixes', () => {
     await screen.findByRole('button', { name: /^Chapter: Chapter 1/ });
   });
 
+  // The host's list skips the credits (a credits file has no line to re-read), but they are chapters: the stepper reaches them, with an empty list.
+  it('steps to the credits chapters by their titles, and keeps hand-added pickups off them', async () => {
+    const credits = (id: string, title: string) => ({ id, title, index: -2, wordCount: 6, status: 'recording', isCredits: true });
+    const chapters = [
+      credits('credits-opening', 'Opening credits'),
+      ...CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })),
+      credits('credits-closing', 'Closing credits'),
+    ];
+    renderPage(undefined, chapters);
+    await screen.findAllByRole('button', { name: 'Open in Booth at this line' });
+    const user = userEvent.setup();
+    await user.keyboard('{Alt>}{ArrowDown}{/Alt}');
+    await screen.findByRole('button', { name: /^Chapter: Chapter 1/ });
+    await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
+    await screen.findByRole('button', { name: /^Chapter: Opening credits/ });
+    expect(screen.queryByText('credits-opening')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Add a pickup by hand' }));
+    expect(await screen.findByText('Chapter 1 · The Orchard')).toBeTruthy();
+  });
+
   it('tells the rail when the list changes, so its badge follows the page', async () => {
     const heard = vi.fn();
     const stop = onPickupListChanged(heard);
