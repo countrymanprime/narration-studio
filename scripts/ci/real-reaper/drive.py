@@ -35,6 +35,7 @@ SUITES = [
     "scenarios_takes",
     "scenarios_range",
     "scenarios_transport",
+    "scenarios_play_range",
     "scenarios_resilience",
     "scenarios_replace",
 ]  # modules that register scenarios with scenario.scenario()
