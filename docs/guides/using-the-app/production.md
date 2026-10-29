@@ -45,7 +45,8 @@ The six figures are one card; each opens the page it counts.
   app does not know from the audio whether it is edited, proofed or mastered.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
   words still to do. The info icon on **Recording** opens the target pace: the standard rate or
-  your own, once enough chapters are measured.
+  your own, once enough chapters are measured. The basis you choose there sets the hours on this page and on
+  [Schedule](schedule.md).
 - **Open pickups**: the open lines of the [Pickups](pickups.md) list, and the booth time to redo
   them once a pickup session has been timed. Each chapter's **Pickups** cell in the pipeline counts
   the same lines, so the cells add up to the tile.
