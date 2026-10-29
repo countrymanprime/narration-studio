@@ -2,7 +2,7 @@
   "default": "small",
   "defaults": {
     "chapters": 1,
-    "chunkSeconds": 300,
+    "chunkSeconds": 60,
     "overlapSeconds": 6,
     "recheck": false,
     "recheckBelow": 0.5,

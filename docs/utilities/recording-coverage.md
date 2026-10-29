@@ -364,8 +364,7 @@ flowchart LR
   row's Show result). A start the host holds for a missing model (`asset_required`, `recheck_asset_required`) is asked for in the dialog
   (`useAssetInstall` on the `whisper` port), with "Check with <model> only" for a missing larger model. A page's entry hands it the
   chapters to tick and nothing else. Proof's `CheckCard` is the findings triage on Proof (accept or ignore each).
-- **What is not measured.** The chunked path is tested with real spawned processes and a fake model; no real-speech timing or accuracy was measured, so the
-  shipped 5 min, 6 s and 0.5 are provisional like the other numbers. The words files made before scores are made again once (cache version 3).
+- **What is measured.** [The benchmark](../research/recording-check-benchmark.md) timed the real sidecar on LibriVox narration: 60 s chunks run as threads on one model were 2.3 times faster than the whole file on a 10-minute item with no loss of accuracy, so 60 s is the shipped chunk length (it was 5 min). The 6 s crossover and the 0.5 score line are still provisional. The words files made before scores are made again once (cache version 3).
 
 ## Decisions
 

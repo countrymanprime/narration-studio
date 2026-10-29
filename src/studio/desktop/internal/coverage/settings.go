@@ -97,7 +97,7 @@ var DefaultSettings = Settings{
 	Alignment:  DefaultAlignmentParams,
 	Thresholds: DefaultThresholds,
 	Cascade:    CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5, Pipeline: true},
-	Parallel:   Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1},
+	Parallel:   Parallel{Workers: 0, ChunkSeconds: 60, OverlapSeconds: 6, Chapters: 1},
 }
 
 func (t Thresholds) validate() error {
