@@ -57,7 +57,7 @@ describe('summarizeActivity', () => {
     const one = activity({ firstPass: first({ workers: 1, busy: 1, total: 1, done: 0 }), recheck: undefined });
     const view = summarizeActivity([running(one)]);
     expect(view.chunks).toEqual({ value: '0 of 1', hint: 'One piece of audio, so nothing to run side by side.' });
-    expect(view.workers).toEqual({ value: '1/1 busy', hint: 'One piece of audio, so one transcription runs.' });
+    expect(view.workers).toEqual({ value: '1/1 busy', hint: 'Automatic found one piece of audio, so one transcription runs.' });
   });
 
   it('shows the re-check as off when the check did not ask for one', () => {

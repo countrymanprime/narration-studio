@@ -108,7 +108,7 @@ export function summarizeActivity(entries: readonly ChapterActivity[]): Activity
 
 function workersHint(requested: number, workers: number, chunkTotal: number, larger: number): string {
   const plus = larger > 0 ? `, and ${larger} for the larger model` : '';
-  if (chunkTotal === 1) return `One piece of audio, so one transcription runs${plus}.`;
+  if (chunkTotal === 1) return `${requested === 0 ? 'Automatic found' : 'There is'} one piece of audio, so one transcription runs${plus}.`;
   if (requested === 0) return `Automatic runs ${workers} at once${plus}.`;
   if (workers < requested) return `You chose ${requested}; this check can use ${workers} at once${plus}.`;
   return `You chose ${requested}; ${workers} run at once${plus}.`;
