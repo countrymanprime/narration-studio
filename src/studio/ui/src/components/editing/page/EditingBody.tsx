@@ -237,7 +237,7 @@ export function EditingBody(props: EditingBodyProps) {
   const current = activePid(doc, state);
   const currentLine = current ? (lines.byId.get(current) ?? null) : null;
   const dockTake = currentLine?.takes.find((t) => t.active)?.label ?? null;
-  const keep = useKeepTakes(journal);
+  const keep = useKeepTakes(journal, lines.byId);
   const passageOf = useCallback((sel: WordMenuSelection) => lineOfKey(sel.doc, lines.byId, sel.keys[0]), [lines.byId]);
   const currentRef = useRef(currentLine);
   currentRef.current = currentLine;
@@ -362,7 +362,9 @@ export function EditingBody(props: EditingBodyProps) {
         id: 'undo-choice',
         order: 2,
         render: ({ passage, keptId }) =>
-          keptId !== null ? <IconButton action="undo" label="Undo choice" size="sm" onClick={() => void latest.current.keep.undoKeep(passage.id)} /> : null,
+          keptId !== null && latest.current.keep.undoable[passage.id] ? (
+            <IconButton action="undo" label="Undo choice" size="sm" onClick={() => void latest.current.keep.undoKeep(passage.id)} />
+          ) : null,
       }),
     [],
   );
