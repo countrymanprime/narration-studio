@@ -24,7 +24,7 @@ import { useTabCounts } from '../drawer/useTabCounts';
 import { effectsCount } from '../effects/EffectsTab';
 import { registerEffectsSection } from '../effects/registerEffectsSection';
 import { FlagCard } from '../flags/FlagCard';
-import { useLiveFollowMap } from '../follow/useLiveFollowMap';
+import { useWordClock } from '../follow/useWordClock';
 import { useDawPlayPosition } from '../follow/useDawPlayPosition';
 import { useFollowScroll } from '../follow/useFollowScroll';
 import { Legend } from '../flags/Legend';
@@ -65,7 +65,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { closedCutsOf, doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
+import { doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -189,26 +189,25 @@ export function EditingBody(props: EditingBodyProps) {
   const checkRecording = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread });
 
   // Playback: the chapter on the document's clock, and a take on its own.
-  const closedCuts = useMemo(() => closedCutsOf(read), [read]);
   // The host's peaks are in source seconds and the page's axis is the document's: this puts each item's peaks where its audio is heard.
   const clocks = useMemo(() => itemClocks(doc, read.answer), [doc, read.answer]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const sound = useChapterSound(chapterId, clocks);
-  // The DAW's clock is mapped through the items the DAW has now, not the ones the saved project had when the alignment was read.
-  const follow = useLiveFollowMap(chapterId, { playlist, items: read.workspace.items, cuts: closedCuts }, caps);
+  // Where each word plays in the DAW project now (the host's word table): the one map the follow-along, play-from-a-word and play-a-range read.
+  const { clock, pending: clockPending } = useWordClock(chapterId, doc, locator.token, caps);
   const playback = useScriptPlayback({
     playlist,
     sound,
     mediaUrl: tracks.mediaUrl,
-    sync: { items: follow.items, cuts: follow.cuts, playlist: follow.playlist, caps, chapterId, ...(dawRead ? { read: dawRead } : {}) },
+    sync: { clock, clockPending, chapterId, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
     onOutputDevice: setDeviceProblem,
   });
   useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
   // play head itself (useDawTransportSync), so the heartbeat read stands down.
-  useDawPlayPosition({ items: follow.items, playlist: follow.playlist, caps: playback.syncActive ? null : caps, playback });
+  useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
   useFollowScroll(root, playback);
   // A take under a line: through the DAW's preview while a DAW plays the chapter, else the app's range player (useTakeAudition).
   const passageOfTake = useCallback(

@@ -3,7 +3,6 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DawCapabilities, DawProjectState } from '../../../api/contracts/daw';
-import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
@@ -15,41 +14,37 @@ import { useScriptPlayback, type ScriptPlayback } from '../bar/useScriptPlayback
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { ScriptDoc } from '../script/ScriptDoc';
 import { marksDoc } from '../script/scriptFixtures';
-import { docTimeAt, sourceAt, wordAtProject } from './dawPosition';
+import { buildWordClock } from './wordClock';
+import { linear, wordTimesFor } from './wordTimesFixtures';
 import { POLL_MS, useDawPlayPosition } from './useDawPlayPosition';
 import { useFollowScroll } from './useFollowScroll';
 
 const doc = marksDoc();
 
-// One item at 100 s in the project, its source from 10 s, at twice the speed: project 100 + x is source 10 + 2x, which the page plays as
-// document time 2x.
-const ITEMS: WorkspaceItem[] = [{ index: 0, itemGuid: 'g', live: true, position: 100, sourceStart: 10, playRate: 2, length: 4 }];
+// One item at 100 s in the project playing the page at twice the speed: document time 2x is project 100 + x. It holds the first 8 document seconds; the
+// words after them are not in the project (the host's table marks them so).
 const PLAYLIST: PlaylistSegment[] = [
   { itemGuid: 'g', sourceFile: 'a.wav', sourceStart: 10, sourceEnd: 18, elapsedStart: 0, elapsedEnd: 8, overlapsPrevious: false },
 ];
+const placed = wordTimesFor(doc, (w) => (w.t1 <= 8 ? linear(100, 0, 2)(w) : null));
+const CLOCK = buildWordClock(placed.table, doc, placed.tokenOf);
 /** The project time at which the page's clock reads `docT`. */
 const at = (docT: number): number => 100 + docT / 2;
 const t0 = (key: string): number => doc.items[doc.index.get(key) ?? -1].t0 as number;
 
 describe('position-maps-to-a-word', () => {
-  it("maps a project time to the item's source time (position, source start, play rate) and then to the word it falls in", () => {
-    expect(sourceAt(ITEMS, 101)).toEqual({ itemGuid: 'g', sourceTime: 12 });
-    expect(docTimeAt(PLAYLIST, { itemGuid: 'g', sourceTime: 12 })).toBe(2);
-    expect(wordAtProject(doc, ITEMS, PLAYLIST, at(1.3))?.key).toBe('p-1:3');
-    expect(wordAtProject(doc, ITEMS, PLAYLIST, at(4.2))?.key).toBe('p-2:1');
+  it('maps a project time to the word it falls in', () => {
+    expect(CLOCK.wordAt(at(1.3))?.key).toBe('p-1:3');
+    expect(CLOCK.wordAt(at(4.2))?.key).toBe('p-2:1');
+    expect(CLOCK.docAt(at(1.3))).toBeCloseTo(1.3, 6);
   });
-  it('lights nothing in a gap, before the first word, after the last, outside every item or on an item that is not live', () => {
-    expect(wordAtProject(doc, ITEMS, PLAYLIST, at(3.6))).toBeNull();
-    expect(wordAtProject(doc, ITEMS, PLAYLIST, at(0.3))).toBeNull();
-    expect(wordAtProject(doc, ITEMS, PLAYLIST, at(7))).toBeNull();
-    expect(wordAtProject(doc, ITEMS, PLAYLIST, 50)).toBeNull();
-    expect(wordAtProject(doc, [{ ...ITEMS[0], live: false }], PLAYLIST, at(1.3))).toBeNull();
-    expect(docTimeAt(PLAYLIST, { itemGuid: 'other', sourceTime: 12 })).toBeNull();
-  });
-  it('takes the item that starts latest where two overlap', () => {
-    const later: WorkspaceItem = { index: 1, itemGuid: 'h', live: true, position: 101, sourceStart: 0, playRate: 1, length: 4 };
-    expect(sourceAt([...ITEMS, later], 101.5)).toEqual({ itemGuid: 'h', sourceTime: 0.5 });
-    expect(sourceAt([later, ...ITEMS], 101.5)).toEqual({ itemGuid: 'h', sourceTime: 0.5 });
+  it('lights nothing in a gap, before the first word, after the last, outside the item or for a word the project does not play', () => {
+    expect(CLOCK.wordAt(at(3.6))).toBeNull();
+    expect(CLOCK.wordAt(at(0.3))).toBeNull();
+    expect(CLOCK.wordAt(at(7))).toBeNull();
+    expect(CLOCK.wordAt(50)).toBeNull();
+    const none = wordTimesFor(doc, () => null);
+    expect(buildWordClock(none.table, doc, none.tokenOf).wordAt(at(1.3))).toBeNull();
   });
 });
 
@@ -69,7 +64,7 @@ function Harness({ caps }: { caps: DawCapabilities | null }) {
   const root = useRef<HTMLDivElement>(null);
   page = useEditingPage();
   playback = useScriptPlayback({ playlist: PLAYLIST, mediaUrl: (f) => f, notify: () => {} });
-  useDawPlayPosition({ items: ITEMS, playlist: PLAYLIST, caps, playback });
+  useDawPlayPosition({ clock: CLOCK, caps, playback });
   useFollowScroll(root, playback);
   return (
     <div ref={root}>

@@ -232,6 +232,8 @@ import {
   dawPlaceSchema,
   dawPositionSchema,
   dawLiveItemsSchema,
+  dawProjectEditedSchema,
+  wordTimesSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -3789,6 +3791,24 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawLiveItemsSchema.safeParse({ available: true, items: null }).success).toBe(false);
     expect(await api.dawLiveItems('c1')).toEqual({ available: false, items: [] });
 
+    // workspaceWordTimes and daw_project_edited: the host goldens parse, every key is required, and the mock answers unavailable until the DAW has a table.
+    expectMatches(wordTimesSchema, readGolden('workspace-word-times.json'), 'workspace-word-times.json');
+    expectMatches(wordTimesSchema, readGolden('workspace-word-times-unavailable.json'), 'workspace-word-times-unavailable.json');
+    expectMatches(dawProjectEditedSchema, readGolden('daw-project-edited.json'), 'daw-project-edited.json');
+    const row = { i: 0, state: 'placed', start: 1, end: 2, item: 0, clipped: false, misread: false };
+    const wholeTimes = { available: true, version: 'r@1', changeCount: 1, items: ['{A}'], words: [row] };
+    expect(wordTimesSchema.safeParse(wholeTimes).success).toBe(true);
+    for (const key of Object.keys(wholeTimes))
+      expect(wordTimesSchema.safeParse(Object.fromEntries(Object.entries(wholeTimes).filter(([k]) => k !== key))).success, key).toBe(false);
+    for (const key of Object.keys(row))
+      expect(wordTimesSchema.safeParse({ ...wholeTimes, words: [Object.fromEntries(Object.entries(row).filter(([k]) => k !== key))] }).success, key).toBe(
+        false,
+      );
+    expect(wordTimesSchema.safeParse({ ...wholeTimes, words: [{ ...row, state: 'guessed' }] }).success).toBe(false);
+    expect(wordTimesSchema.safeParse({ ...wholeTimes, words: null }).success).toBe(false);
+    expect(dawProjectEditedSchema.safeParse({}).success).toBe(false);
+    expect(await api.workspaceWordTimes('c1')).toEqual({ available: false, version: '', changeCount: 0, items: [], words: [] });
+
     const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawTransportSync('play', 3);
     expectMatches(dawResultSchema, refused, 'mock transport sync, REAPER not answering');
@@ -4612,6 +4632,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawGoToChapter',
       'dawTransportSync',
       'dawLiveItems',
+      'workspaceWordTimes',
+      'subscribeDawProjectEdited',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
