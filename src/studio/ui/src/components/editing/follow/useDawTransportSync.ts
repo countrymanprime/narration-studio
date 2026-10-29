@@ -186,6 +186,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         return;
       }
       heard = null;
+      // A DAW that jumps to the end of its stretch and stops between two readings is heard stopping there: its play position is kept while stopped.
+      if (range.current && owns.current && pos.playPosition > range.current.head) range.current.head = pos.playPosition;
       if (dawPlaying.current) {
         dawPlaying.current = false;
         if (owns.current) {

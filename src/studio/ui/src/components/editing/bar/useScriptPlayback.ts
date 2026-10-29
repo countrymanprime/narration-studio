@@ -101,6 +101,8 @@ export function useScriptPlayback({
   const stopAt = useRef<number | null>(null);
   /** The word the current play ends on, for the line that tells how it ended; null for a play that ends nowhere in particular. */
   const played = useRef<{ word: PlayedWord; planned: number; path: string } | null>(null);
+  /** The selection the current play was started for, so a selection changed mid-play is told from the one being played. */
+  const playedSel = useRef<{ anchor: string; head: string } | null>(null);
   /** Cancels the fade-out of the app's audio at the end of a play, while one runs. */
   const fading = useRef<(() => void) | null>(null);
   /** True from a halt until the next play starts: the element can still report a time or an end after it was paused, before the page has re-rendered. */
@@ -258,6 +260,7 @@ export function useScriptPlayback({
     (from: number, to?: number, word?: PlayedWord) => {
       stopAt.current = to ?? null;
       played.current = to !== undefined && word ? { word, planned: to, path: 'unknown' } : null;
+      playedSel.current = null;
       setFollowState(true);
       go(from);
     },
@@ -309,7 +312,8 @@ export function useScriptPlayback({
     if (s.playT == null) return;
     const key = playingKey(playable(d), s.playT);
     halt();
-    if (key) send({ type: 'place', key });
+    // A play of a selection leaves the selection; placing the cursor would drop it.
+    if (key && !s.sel) send({ type: 'place', key });
   }, [halt]);
   const onLost = useCallback((): void => {
     audioRef.current?.pause();
@@ -370,30 +374,49 @@ export function useScriptPlayback({
     };
   }, [audio, reached, endRange, fail, start]);
 
+  /** Plays the selected words; false when none of them was recorded. */
+  const playSelected = useCallback((): boolean => {
+    const { doc: d, state: s } = live.current;
+    const heard = selectionWindow(d, s, live.current.sound);
+    if (!heard) return false;
+    playFrom(...heard.window, heard.last);
+    playedSel.current = s.sel ? { anchor: s.sel.anchor, head: s.sel.head } : null;
+    return true;
+  }, [playFrom]);
+
   const toggle = useCallback(() => {
     const { doc: d, state: s, notify: say, dispatch: send } = live.current;
     if (s.playT != null) {
       const key = playingKey(playable(d), s.playT);
       halt();
-      if (key) send({ type: 'place', key });
+      // Space on a play of a selection pauses it and keeps the selection; placing the cursor would drop it.
+      if (key && !s.sel) send({ type: 'place', key });
       return;
     }
     if (!d.aligned) return say('Nothing has been transcribed yet.');
     if (s.sel) {
-      const heard = selectionWindow(d, s, live.current.sound);
-      if (heard) return playFrom(...heard.window, heard.last);
+      if (playSelected()) return;
     }
     const from = firstFrom(d, s.cursor);
     if (!from || from.t0 == null) return say(NOTHING_FROM_HERE);
     playFrom(leadStart(d, from.key, from.t0));
-  }, [halt, playFrom]);
+  }, [halt, playFrom, playSelected]);
 
   const playSelection = useCallback(() => {
-    const { doc: d, state: s, notify: say } = live.current;
-    const heard = selectionWindow(d, s, live.current.sound);
-    if (heard) playFrom(...heard.window, heard.last);
-    else say('Nothing was recorded for these words.');
-  }, [playFrom]);
+    if (!playSelected()) live.current.notify('Nothing was recorded for these words.');
+  }, [playSelected]);
+
+  // A selection changed while a play runs plays the new words, in the DAW as in the app: the old range does not play on.
+  const selection = state.sel;
+  useEffect(() => {
+    const now = live.current.state;
+    if (!selection || now.playT == null) return;
+    const was = playedSel.current;
+    if (was && was.anchor === selection.anchor && was.head === selection.head) return;
+    playSelection();
+    // The selection is the trigger; the rest is read from the latest render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection]);
 
   const skip = useCallback(
     (d: 1 | -1) => {
