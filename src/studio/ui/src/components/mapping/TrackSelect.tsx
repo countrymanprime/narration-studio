@@ -1,4 +1,5 @@
 import { Select } from '../primitives/Select';
+import { TrackTreePicker } from './TrackTreePicker';
 import type { TrackChoice } from './trackChoices';
 
 /**
@@ -18,6 +19,9 @@ export function TrackSelect({
   onChange: (guid: string) => void;
   fullWidth?: boolean;
 }) {
+  // A project with REAPER folders picks from its tree; a flat one keeps the native select.
+  if (choices.some((c) => c.isFolder || (c.depth ?? 0) > 0))
+    return <TrackTreePicker label={label} choices={choices} value={value} onChange={onChange} fullWidth={fullWidth} />;
   const grouped = choices.some((c) => c.best);
   return (
     <Select

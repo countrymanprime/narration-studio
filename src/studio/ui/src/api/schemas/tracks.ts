@@ -24,6 +24,8 @@ const trackSchema = z.object({
   muted: z.boolean(),
   soloed: z.boolean(),
   items: listFromNull(trackItemSchema),
+  depth: z.number().int().nonnegative(),
+  isFolder: z.boolean(),
 }) satisfies z.ZodType<Track>;
 
 export const tracksProjectSchema = z.object({ path: z.string(), tracks: listFromNull(trackSchema) }) satisfies z.ZodType<TracksProject>;

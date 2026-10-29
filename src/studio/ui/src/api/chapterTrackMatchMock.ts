@@ -103,7 +103,14 @@ export function mockChapterTrackMatch(chapterId: string, chapters: ManuscriptCha
     chapterTitle: chapter.title,
     projectFile: project.path,
     savedAt: '2026-09-21T10:00:00Z',
-    tracks: project.tracks.map((track) => ({ guid: track.guid, name: track.name, index: track.index })),
+    tracks: project.tracks.map((track) => ({
+      guid: track.guid,
+      name: track.name,
+      index: track.index,
+      depth: track.depth,
+      isFolder: track.isFolder,
+      hasAudio: track.items.length > 0,
+    })),
   };
   const withTrack = (track: Track, chosen: ChapterTrackCandidate, status: ChapterTrackMatch['status']): ChapterTrackMatch => ({
     ...base,
@@ -136,6 +143,8 @@ const summarizeTrack = (track: Track, mappings: TrackMapping[]): ChapterTrackSum
     color: track.color,
     muted: track.muted,
     soloed: track.soloed,
+    depth: track.depth,
+    isFolder: track.isFolder,
     itemCount: track.items.length,
     playableCount: track.items.filter((item) => item.sourceAvailable && item.supported).length,
     missingSourceCount: track.items.filter((item) => !item.sourceAvailable).length,

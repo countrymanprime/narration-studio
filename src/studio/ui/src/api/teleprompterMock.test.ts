@@ -27,6 +27,8 @@ const project = {
       color: '',
       muted: false,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: '{I1}',

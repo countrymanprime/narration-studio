@@ -173,7 +173,7 @@ describe('EditingPage', () => {
       fireEvent.click(within(open).getByRole('button', { name: 'Close' }));
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     };
-    const track = (guid: string, name: string, index: number) => ({ guid, name, index });
+    const track = (guid: string, name: string, index: number) => ({ guid, name, index, depth: 0, isFolder: false, hasAudio: true });
     const match = (over: Partial<Awaited<ReturnType<NarrationApi['chapterTrackMatch']>>> = {}) => ({
       chapterId: 'c1',
       chapterTitle: 'Chapter One',

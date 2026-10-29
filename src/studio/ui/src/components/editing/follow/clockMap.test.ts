@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { docAt, projectAt, projectEndAt, type ClosedCut } from './clockMap';
+import { docAt, projectAt, projectEndAt, whyNotPlaced, type ClosedCut } from './clockMap';
 
 const seg = (itemGuid: string, sourceStart: number, sourceEnd: number, elapsedStart: number): PlaylistSegment => ({
   itemGuid,
@@ -276,5 +276,35 @@ describe('projectEndAt', () => {
     expect(projectEndAt({ playlist, items }, -1)).toBeNull();
     expect(projectEndAt({ playlist, items }, Number.NaN)).toBeNull();
     expect(projectEndAt({ playlist: [], items }, 4)).toBeNull();
+  });
+});
+
+describe('whyNotPlaced', () => {
+  const playlist = [seg('a', 0, 10, 0)];
+  const why = (items: WorkspaceItem[], t = 5): string => whyNotPlaced({ playlist, items }, t, 'REAPER');
+  it('is never asked for an item at project second 0', () => {
+    expect(projectAt({ playlist, items: [item('a', 0, 0, 10)] }, 5)).toBe(5);
+  });
+  it('names a second with no recording', () => expect(why([item('a', 0, 0, 10)], 50)).toMatch(/no recorded audio at that time/));
+  it('names an item the project does not hold at all', () => expect(why([])).toMatch(/not in REAPER's saved project/));
+  it('names an item the saved project no longer has', () => expect(why([item('a', 0, 0, 10, 1, false)])).toMatch(/not in REAPER's saved project any more/));
+  it('names an item whose place was not read', () => {
+    const unread: WorkspaceItem = { index: 0, itemGuid: 'a', live: true, length: 10 };
+    expect(why([unread])).toMatch(/has not read where the audio item sits/);
+  });
+  it('names an item trimmed short of the part', () => expect(why([item('a', 100, 0, 3)])).toMatch(/trimmed, split or moved/));
+});
+
+// The owner's chapter: one 2-minute track, its first item 60 s long from project second 0 and its second from 60 s. Every section resolves to its item,
+// the first minute included (the host once sent the first item without a position, which left that minute "not in REAPER's project").
+describe('a two-minute track of two items, 0 s and 60 s', () => {
+  const playlist = [seg('a', 0, 60, 0), seg('b', 0, 60, 60)];
+  const items = [item('a', 0, 0, 60), item('b', 60, 0, 60)];
+  it.each([5, 30, 59, 61, 90])('places the section at %s s', (t) => {
+    near(projectAt({ playlist, items }, t), t);
+    expect(whyNotPlaced({ playlist, items }, t, 'REAPER')).toBeTruthy();
+  });
+  it('ends a play inside the first item where the app planned it', () => {
+    near(projectEndAt({ playlist, items }, 30), 30);
   });
 });

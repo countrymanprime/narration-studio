@@ -80,6 +80,22 @@ export function projectAt(map: ClockMap, docT: number): number | null {
   return project < item.position + item.length - EPS ? project : null;
 }
 
+/**
+ * Why `projectAt` has no project second for `docT`, in the narrator's words, so a play that falls back to the app can say which check failed.
+ * `daw` is the DAW's name. Only meaningful when `projectAt` returned null.
+ */
+export function whyNotPlaced(map: ClockMap, docT: number, daw: string): string {
+  const seg = usable(docT) ? map.playlist.find((s) => docT >= s.elapsedStart - EPS && docT < s.elapsedEnd - EPS) : undefined;
+  if (!seg) return 'There is no recorded audio at that time in this chapter.';
+  const found = map.items.find((it) => it.itemGuid === seg.itemGuid);
+  if (!found) return `The audio item this was heard on is not in ${daw}'s saved project.`;
+  if (!found.live) {
+    return `The audio item this was heard on is not in ${daw}'s saved project any more (it was deleted or replaced, or the chapter's track was relinked). Save the project in ${daw}, or check the chapter again.`;
+  }
+  if (!placed(found)) return `The app has not read where the audio item sits in ${daw}'s project. Save the project in ${daw}.`;
+  return `The audio item on ${daw}'s track no longer reaches that part (it was trimmed, split or moved since the project was saved). Save the project in ${daw}, or check the chapter again.`;
+}
+
 /** The document second that plays at the project second `projectT`, or null when no item plays there or the page has no segment for what does. */
 export function docAt(map: ClockMap, projectT: number): number | null {
   if (!usable(projectT)) return null;

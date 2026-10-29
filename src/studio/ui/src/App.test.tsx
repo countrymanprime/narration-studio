@@ -8,6 +8,7 @@ import { ApiProvider } from './api/ApiContext';
 import { createMockApi } from './api/mockApi';
 import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
+import { commandsFor } from './input/surfaces';
 import { createJournal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
@@ -1254,6 +1255,48 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(window.location.pathname).toBe('/');
   });
+});
+
+// Connect test: every app-wide command the jump menu lists does something when its row is run. "Open Settings" listed a row the shell never
+// handled, so choosing it did nothing while Ctrl+, worked (docs/research/ui-function-audit.md, cluster 4).
+describe('App jump-menu rows', () => {
+  // What each app-wide row must do. `null` marks a row another suite already drives (Back and Forward need history; the zoom rows call the host).
+  const EFFECT: Record<string, (() => Promise<unknown>) | null> = {
+    'nav.back': null,
+    'nav.forward': null,
+    'nav.settings': () => screen.findByRole('heading', { name: 'Settings' }),
+    'zoom.in': null,
+    'zoom.out': null,
+    'zoom.reset': null,
+    'help.shortcuts': () => screen.findByRole('dialog', { name: /shortcuts/i }),
+    'history.open': () => screen.findByRole('dialog', { name: /history/i }),
+    'companion.open': null,
+  };
+  const globalRows = commandsFor('jumpMenu').filter((command) => command.scope === 'global');
+
+  // The overlay service is the app's one module-level store: a dialog a row opened would still be up in the next test.
+  afterEach(async () => {
+    const { overlay } = await import('./overlay/overlayService');
+    for (const entry of overlay.getSnapshot().dialogs) {
+      if (entry.kind === 'confirm') entry.answer(false);
+      else entry.close();
+    }
+  });
+
+  it('has a case for every app-wide row, so a new one cannot ship unwired', () => {
+    expect(globalRows.map((command) => command.id).sort()).toEqual(Object.keys(EFFECT).sort());
+  });
+
+  for (const command of globalRows) {
+    const effect = EFFECT[command.id];
+    if (!effect) continue;
+    it(`runs "${command.label}"`, async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      await runFromJump(command.label);
+      await effect();
+    });
+  }
 });
 
 // Page-level Back and Forward (jump-menu commands and Alt+Left / Alt+Right, no header buttons), their shortcuts, and the two guards they share with

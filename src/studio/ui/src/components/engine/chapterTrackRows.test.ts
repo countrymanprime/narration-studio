@@ -7,7 +7,7 @@ function chapter(overrides: Partial<ManuscriptChapter> = {}): ManuscriptChapter 
 }
 
 function track(overrides: Partial<Track> = {}): Track {
-  return { guid: 'guid-1', index: 0, name: 'Chapter 1', color: '', muted: false, soloed: false, items: [], ...overrides };
+  return { guid: 'guid-1', index: 0, name: 'Chapter 1', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [], ...overrides };
 }
 
 function mapping(overrides: Partial<TrackMapping> = {}): TrackMapping {

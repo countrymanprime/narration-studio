@@ -102,6 +102,7 @@ These rows were observed on 2026-10-23 in REAPER 7.82 on Linux, scripted under X
 
 | Subject | Page |
 | --- | --- |
+| Folder tracks: the `.rpp` line `ISBUS <state> <delta>` (the delta is `I_FOLDERDEPTH`: 1 opens a folder, 0 stays, -N closes N levels) as the track parser reads it. **Not yet seen in a file REAPER wrote**: the fixtures under `testdata/reaper/` hold only `ISBUS 0 0`, and `testdata/folders-handmade.rpp` is written by hand from the documented format. Record a nested project and check it (#992) | [Tracks](../../utilities/tracks.md) |
 | How far the play position the narrator hears trails the position REAPER processes: what the scripting community knows, to be measured by row A9b of the verification pass | [Transport timing](../../research/reaper-transport-timing.md) |
 | The ReaScript calls behind each planned command, from the documentation and cross-checked against five third-party REAPER MCP servers read for approach only | [ReaScript calls](../../research/reaper-api-for-planned-commands.md) |
 | A survey of the wider automation surface | [Automation surface](../../research/reaper-automation-surface.md) |

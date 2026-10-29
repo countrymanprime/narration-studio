@@ -3,7 +3,7 @@
   "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx", "**/fixtures/**", "**/__snapshots__/**"],
   "rules": [
     { "id": "project", "paths": ["src/studio/ui/src/components/project/**"], "guide": ["getting-started.md"] },
-    { "id": "navigation", "paths": ["src/studio/ui/src/components/layout/**", "src/studio/ui/src/components/engine/**", "src/studio/ui/src/components/help/**"], "guide": ["navigation.md"] },
+    { "id": "navigation", "paths": ["src/studio/ui/src/components/layout/**", "src/studio/ui/src/components/engine/**", "src/studio/ui/src/components/tracks/**", "src/studio/ui/src/components/help/**"], "guide": ["navigation.md"] },
     { "id": "production", "paths": ["src/studio/ui/src/components/production/**"], "guide": ["production.md"] },
     { "id": "schedule", "paths": ["src/studio/ui/src/components/schedule/**"], "guide": ["schedule.md"] },
     { "id": "script", "paths": ["src/studio/ui/src/components/script/**"], "guide": ["script.md"] },
