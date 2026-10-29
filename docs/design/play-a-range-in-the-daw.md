@@ -28,7 +28,7 @@ Status: built (harness, Go and UI tests; not yet run in a real REAPER, see the e
 
 ## The app's own stop, and the log line
 
-When the app plays (the range is not placed in the DAW, or the DAW cannot play), the audio element runs on past the planned stop: it fades out over the last 12 ms before it (`bar/playbackStop.ts`) and is paused 60 ms after it, because the element's clock counts what it has handed to the output, and pausing drops what the output device still holds. Every play of words writes one `play_stop` line to `host.log` (the folder `System > Open log folder` shows): the word, the aligner's end, the planned stop, the stop seen, and the path (`app` or `daw`). For the DAW the stop seen is the last play head it sent (about four a second), so it is only good to a quarter of a second.
+When the app plays (the range is not placed in the DAW, or the DAW cannot play), the audio element runs on past the planned stop: it fades out over the last 12 ms before it (`bar/playbackStop.ts`) and is paused 60 ms after it, because the element's clock counts what it has handed to the output, and pausing drops what the output device still holds. Every play of words writes one `play_stop` line to `logs/host.log` (`docs/reference/data-files.md` says where the folder is): the word, the aligner's end, the planned stop, the stop seen, and the path (`app` or `daw`). For the DAW the stop seen is the last play head it sent (about four a second), so it is only good to a quarter of a second.
 
 ## What a fake cannot prove (pending, owner's REAPER)
 
