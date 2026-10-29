@@ -10,7 +10,11 @@ const meta = {
   component: MasterPage,
   args: { hasManuscript: true, projectFolder: '/p', onImport: fn(), onOpenDelivery: fn(), openSettings: fn() },
   render: (args, { parameters }) => (
-    <PageHost api={apiOf(jobOf(parameters.files ?? []), acx, { manuscriptChapters: async () => (parameters.chapters ? CHAPTERS_WITH_CREDITS : []) })}>
+    <PageHost
+      api={apiOf(jobOf(parameters.files ?? []), acx, {
+        manuscriptChapters: async () => (parameters.chapters ? CHAPTERS_WITH_CREDITS : CHAPTERS_WITH_CREDITS.filter((chapter) => chapter.isCredits)),
+      })}
+    >
       <div className="bg-[var(--bg)] p-4">
         <MasterPage {...args} />
       </div>

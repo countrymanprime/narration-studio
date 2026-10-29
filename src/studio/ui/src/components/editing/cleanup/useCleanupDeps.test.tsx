@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { withoutCredits } from '../../../chapterKinds';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -123,7 +124,7 @@ describe('useCleanupDeps', () => {
 
   it("record writes an accepted trim into the chapter's cuts", async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = withoutCredits(await api.manuscriptChapters());
     const chapterId = chapter!.id;
     const { wrapper } = wrapperFor('reaper', undefined, [chapterId], api);
     // A close cut of 1 s before the gap already moved it up: the record is in the recording's time before any cut.

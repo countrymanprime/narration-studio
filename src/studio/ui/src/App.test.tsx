@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { withoutCredits } from './chapterKinds';
 import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -1528,7 +1529,7 @@ describe('App shell mounts', () => {
   it('refreshes-after-an-import: a job:ended event makes the jump menu list the new chapters', async () => {
     const listeners = new Set<(event: never) => void>();
     const ended = (event: never) => listeners.forEach((l) => l(event));
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = withoutCredits(await createMockApi().manuscriptChapters());
     let list = chapters.slice(0, 1);
     const extra = { ...chapters[0]!, id: 'chapter-new', index: 99, title: 'Zzyzx Afterword' };
     onSchedule();

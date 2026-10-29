@@ -48,7 +48,7 @@ describe('chapters-and-headings-reach-the-seed', () => {
     const scenario = scenarioFromParams(new URLSearchParams('?mockChapters=40&mockHeadings=legacyNewline'));
     expect(scenario?.shape).toBe('legacyNewline');
     const chapters = await createMockApi({}, scenario!.seed).manuscriptChapters();
-    expect(chapters).toHaveLength(40);
+    expect(chapters.filter((chapter) => !chapter.isCredits)).toHaveLength(40);
     expect(main).toContain('scenarioFromParams(mockParams)');
   });
 

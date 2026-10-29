@@ -133,6 +133,8 @@ function measureMockRetailSample(paragraphs: ManuscriptParagraph[], startId: str
   };
 }
 
+const CHAPTER_STATUSES: readonly ManuscriptChapter['status'][] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
+
 /** The credits bindings: the template library, the project's values, the setup prompt and the retail sample. */
 export function createCreditsMock(
   s: MockState,
@@ -356,7 +358,7 @@ export function createCreditsMock(
           title: kind === 'opening' ? 'Opening credits' : 'Closing credits',
           index: -2,
           wordCount: words,
-          status: (creditsStatuses[kind] as ManuscriptChapter['status'] | undefined) ?? 'not_started',
+          status: CHAPTER_STATUSES.find((known) => known === creditsStatuses[kind]) ?? 'not_started',
           contentKind: 'narration',
           isCredits: true,
           paragraphIds: [],
