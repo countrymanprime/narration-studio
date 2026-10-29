@@ -83,7 +83,10 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
     const key = e.button === 0 ? keyAt(e.target) : null;
     if (!key) return;
     if (e.detail >= 2) {
-      dispatch({ type: 'select', anchor: key, head: key });
+      // A double click is the word; a triple click, the line (paragraph) it is in.
+      const line = e.detail >= 3 ? doc.paras.find((dp) => dp.items.some((i) => i.key === key))?.items : undefined;
+      if (line?.length) dispatch({ type: 'select', anchor: line[0].key, head: line[line.length - 1].key });
+      else dispatch({ type: 'select', anchor: key, head: key });
       drag.current = null;
     } else if (e.shiftKey) dispatch({ type: 'extend', key });
     else {
