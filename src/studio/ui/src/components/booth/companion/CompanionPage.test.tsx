@@ -126,7 +126,9 @@ describe('CompanionPage', () => {
       creditsPreview: async () => CREDITS,
     });
     await screen.findByTestId('header-slot');
-    await waitFor(() => expect(spies.shellProps).toHaveBeenCalledWith(expect.objectContaining({ chapterId: 'credits-closing', chapterTitle: 'Closing credits' })));
+    await waitFor(() =>
+      expect(spies.shellProps).toHaveBeenCalledWith(expect.objectContaining({ chapterId: 'credits-closing', chapterTitle: 'Closing credits' })),
+    );
   });
 
   it('full-app-goes-back-to-the-booth: Full app navigates to /booth with the same chapter', async () => {
@@ -149,7 +151,7 @@ describe('CompanionPage', () => {
     await renderCompanion('/companion');
     await screen.findByRole('heading', { level: 1, name: 'Companion' });
     const chapters = await api.manuscriptChapters();
-    const expected = chapters.find((item) => item.id === reader.activeChapter || item.title === reader.activeChapter) ?? chapters[0];
+    const expected = chapters.find((item) => item.id === reader.activeChapter || item.title === reader.activeChapter) ?? withoutCredits(chapters)[0]!;
     expect(spies.shellProps.mock.calls.at(-1)![0].chapterId).toBe(expected.id);
   });
 

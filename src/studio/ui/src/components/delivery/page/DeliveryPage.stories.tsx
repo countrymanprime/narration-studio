@@ -3,7 +3,7 @@ import { expect, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { StudioProvider } from '../../../studio/StudioProvider';
-import type { CreditTemplate, ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, PackageJob } from '../../../types';
+import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, PackageJob } from '../../../types';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
 import { DeliveryPage } from './DeliveryPage';
 
@@ -27,11 +27,22 @@ const builtJob: PackageJob = {
 };
 const all = ['01', '02', '03', '04'].map((n) => passing(`Chapter ${n}.wav`));
 
-// No credits templates unless a story brings them: the rows are the chapters'.
-const host = (files: MeasureFileResult[], job: PackageJob = idle, creditsTemplates: () => Promise<CreditTemplate[]> = async () => []) =>
+const credits = (kind: 'opening' | 'closing'): ManuscriptChapter =>
+  ({
+    id: `credits-${kind}`,
+    title: kind === 'opening' ? 'Opening credits' : 'Closing credits',
+    index: -2,
+    wordCount: 40,
+    status: 'not_started',
+    contentKind: 'narration',
+    isCredits: true,
+    paragraphIds: [],
+  }) as unknown as ManuscriptChapter;
+
+// The rows are the chapter list's: a story brings the credits by putting them in it.
+const host = (files: MeasureFileResult[], job: PackageJob = idle, list: ManuscriptChapter[] = chapters) =>
   createMockApi({
-    manuscriptChapters: async () => chapters,
-    creditsTemplates,
+    manuscriptChapters: async () => list,
     measureState: async () => measured(files),
     exportState: async () => encoded,
     packageState: async () => job,
@@ -93,7 +104,6 @@ export const NumberedHeadings: Story = {
   parameters: {
     api: createMockApi({
       manuscriptChapters: async () => numbered,
-      creditsTemplates: async () => [],
       measureState: async () => measured([]),
       exportState: async () => encoded,
       packageState: async () => idle,
@@ -109,10 +119,7 @@ export const NumberedHeadings: Story = {
 // The opening credits before chapter 1 and the closing credits after the last, each judged by its own file ("Opening credits.wav"), counted in "n of N".
 export const WithCredits: Story = {
   parameters: {
-    api: host([...all, passing('Opening credits.wav')], idle, async () => [
-      { id: 'o', kind: 'opening', name: 'Standard opening', body: 'x' },
-      { id: 'c', kind: 'closing', name: 'Standard closing', body: 'x' },
-    ]),
+    api: host([...all, passing('Opening credits.wav')], idle, [credits('opening'), ...chapters, credits('closing')]),
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -166,7 +173,6 @@ export const CannotTell: Story = {
   parameters: {
     api: createMockApi({
       manuscriptChapters: async () => chapters,
-      creditsTemplates: async () => [],
       measureState: async () => Promise.reject(new Error('the host did not answer')),
       exportState: async () => encoded,
       packageState: async () => idle,
