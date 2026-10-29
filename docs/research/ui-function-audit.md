@@ -74,8 +74,32 @@ Each is a class-wide test: render every location from one mocked project and ass
 | Cluster | State |
 | - | - |
 | 1 Chapter linked | Sibling worker owns it |
-| 4 Open Settings row | Fixed in #2583, with the jump-menu connect test |
-| 2 Proof badge | Fixed in #2584, with the badge-versus-page comparison |
-| 5 Rate basis, 7 Mastered includes FAIL, 3 Kept take | Not started (next, in that order); each is a small change with a clear single source |
-| 6, 8 Narrated-chapter set and recorded figures | Need an owner decision on what "narrated" means before any fix |
+| 4 Open Settings row | Fixed and merged in #2583, with the jump-menu connect test |
+| 2 Proof badge | Fixed in #2584 (CI green), with the badge-versus-page comparison |
+| 5 Rate basis | Not fixed; options below |
+| 7 Mastered includes FAIL | Not fixed; options below |
+| 3 Kept take | Not started |
+| 6, 8 Chapter set, recorded figures | Owned by #2573 (credits are chapters everywhere). Connect tests 6 and 8 go on top of its list once it merges |
 | 9–25 | Follow-up issues; not started |
+
+## Clusters held for a decision
+
+**Cluster 5: the Schedule basis toggle changes nothing.**
+`TargetInfoButton` saves `rateBasis`, and `basisOf`/`wphOf` (`target/pace.selectors.ts`) say which rate the schedule "really uses", but `wphOf` has no caller. Every hours figure divides by the fixed `WPH` in about eight modules (`ProductionPage`, `SchedulePage`, `pipelineRows`, `nextUpRanking`, `payment`, `measures`, the overview fixtures). The narrator's own rate is computed only inside the popover button.
+
+| Option | What it costs | |
+| - | - | - |
+| A. One `useEffectiveWph()` hook (own rate when chosen and measured, else `WPH`) used by every figure above | A 6–8 file change; every hours figure shifts when the narrator picks Own | **Recommended**: it is what the toggle and its doc comment promise |
+| B. Remove the toggle and show the own rate as information only | Small; drops a saved setting | Right if the owner never wants the schedule to follow the narrator's pace |
+
+Connect test either way: switch the basis, assert Production and Schedule show the same hours (A) or that no basis control exists (B).
+
+**Cluster 7: does a chapter whose master fails QC count as "Delivered"?**
+`masterByChapter` sets `mastered = verdict !== 'none'`, so a failing file is mastered. The pipeline row already shows Mastered in the Master cell and FAIL in the QC cell, which is consistent. The stage bar (`stageSegments`, `overviewFigures.ts:189`) counts `mastered` as the Delivered segment, and Delivery says "Fails N checks" for the same chapter.
+
+| Option | |
+| - | - |
+| A. Delivered segment counts `mastered && qc !== 'FAIL'` | **Recommended**: "Delivered" should not include a file Delivery says fails |
+| B. Leave as is and rename the segment "Mastered" | Honest to the data, but the stage bar then disagrees with the word on Delivery |
+
+Connect test: a project with one FAIL file, assert the stage bar, the pipeline row and Delivery agree on whether that chapter is delivered.
