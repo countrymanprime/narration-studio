@@ -18,9 +18,11 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import multiprocessing
 import os
 import sys
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
+from concurrent.futures import Executor, ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -45,6 +47,10 @@ SCORE_FLOOR = 0.5
 # GLiNER reads at most a few hundred tokens at once; a longer paragraph is read in windows of this many words, as the
 # trial chunked its chapters.
 CHUNK_WORDS = 180
+
+# A chapter longer than this many words is read in pieces cut between paragraphs when a scan reads chapters side by side: the
+# pieces keep the workers evenly loaded (docs/research/studio-next-extraction-chunking-benchmark.md: 1.9x against 1.6x on a 60k-word book).
+CHAPTER_WORDS = 1500
 
 # The encoder gliner_config.json names. GLiNER builds it from its config and its tokenizer by that name; the install carries the
 # encoder's config.json, SentencePiece vocabulary and tokenizer config under Hugging Face's own names (no weights: pytorch_model.bin
@@ -164,17 +170,56 @@ class GlinerExtractor:
             for item, start, end in self._spans(paragraph):
                 name = paragraph["text"][start:end].strip()
                 score = None if item.get("score") is None else float(item["score"])
-                key = guide.normalize_name(name) or name.lower()
-                held = best.get(key)
-                if held is not None and (score is None or (held["confidence"] is not None and held["confidence"] >= score)):
-                    continue
-                best[key] = {
+                offered: RawSuggestion = {
                     "payload": {"kind": "entry", "name": name, "type": LABELS[item["label"]], "aliases": [], "description": "", "appearsIn": []},
                     "confidence": score,
                     "quotes": [{"paragraphId": paragraph["id"], "text": guide.sentence_around(paragraph["text"], start, end)}],
                     "chapterId": paragraph.get("chapterId", ""),
                 }
+                keep_better(best, offered)
         return list(best.values())
+
+
+def name_key(raw: RawSuggestion) -> str:
+    """The key a name is offered once under: its letters and digits, lower case."""
+    name = raw["payload"]["name"]
+    return guide.normalize_name(name) or name.lower()
+
+
+def keep_better(best: dict[str, RawSuggestion], raw: RawSuggestion) -> None:
+    """Holds ``raw`` under its name unless the name is held with a score at least as high (the first one holds on a tie, and a
+    held score is never replaced by none)."""
+    key, held, score = name_key(raw), best.get(name_key(raw)), raw["confidence"]
+    if held is not None and (score is None or (held["confidence"] is not None and held["confidence"] >= score)):
+        return
+    best[key] = raw
+
+
+def merge(parts: Iterable[list[RawSuggestion]]) -> list[RawSuggestion]:
+    """Per-chunk results, in manuscript order, as the one result a whole-book read would give: a name is offered once, from the
+    highest score, and the names stay in the order they were first met. GLiNER keeps nothing between paragraphs, so this is
+    exactly the whole-book result."""
+    best: dict[str, RawSuggestion] = {}
+    for part in parts:
+        for raw in part:
+            keep_better(best, raw)
+    return list(best.values())
+
+
+def chunks_of(paragraphs: list[dict[str, str]], max_words: int = CHAPTER_WORDS) -> list[list[dict[str, str]]]:
+    """The paragraphs grouped by chapter in manuscript order; a chapter over ``max_words`` is cut between paragraphs (one
+    paragraph is never split, so a suggestion's quote stays inside its paragraph)."""
+    out: list[list[dict[str, str]]] = []
+    size = 0
+    for paragraph in paragraphs:
+        words = len(paragraph["text"].split())
+        new_chapter = not out or out[-1][0].get("chapterId", "") != paragraph.get("chapterId", "")
+        if new_chapter or size + words > max_words:
+            out.append([])
+            size = 0
+        out[-1].append(paragraph)
+        size += words
+    return out
 
 
 class GlinerSource:
@@ -215,10 +260,81 @@ def _paragraphs(manuscript: str) -> list[dict[str, str]]:
     return [{"id": p["paragraphId"], "chapterId": p.get("chapterId", ""), "text": p["text"]} for p in guide.load_manuscript(manuscript)]
 
 
+def process_pool(workers: int, install: str, threads: int) -> Executor:
+    """A pool of ``workers`` processes, each loading the model from ``install`` once and limited to ``threads`` torch threads."""
+    return ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("spawn"), initializer=_start_worker, initargs=(install, threads))
+
+
+_worker: GlinerExtractor | None = None
+
+
+def _start_worker(install: str, threads: int) -> None:
+    """A pool process's start: loads the model and limits torch to ``threads`` threads (the cores are shared by the workers)."""
+    global _worker
+    import torch
+
+    torch.set_num_threads(threads)
+    _worker = GlinerExtractor(load_model(Path(install)), log)
+
+
+def _read_chunk(paragraphs: list[dict[str, str]]) -> list[RawSuggestion]:
+    assert _worker is not None
+    return _worker.extract({"paragraphs": paragraphs})
+
+
+def progress_line(done: int, total: int, failed: list[str]) -> str:
+    """The record printed after each chunk is read, ahead of the suggestions: ``done`` of ``total`` chunks, and the ids of the
+    chapters whose chunk could not be read. The host shows it in the scan's result box and does not take it for a suggestion."""
+    return json.dumps({"progress": {"done": done, "total": total, "failed": failed}}, ensure_ascii=False)
+
+
+def read_chunks(
+    paragraphs: list[dict[str, str]],
+    workers: int,
+    pool: Callable[[int], Executor],
+    reader: Callable[[list[dict[str, str]]], list[RawSuggestion]] = _read_chunk,
+    report: Callable[[str], None] = lambda text: print(text, flush=True),
+) -> list[RawSuggestion]:
+    """Reads the manuscript chapter by chapter with ``workers`` processes at once and merges the results in manuscript order, so
+    the answer does not depend on which worker finishes first. A chunk that cannot be read is logged and left out; the others are
+    kept. Raises only when no chunk could be read."""
+    chunks = chunks_of(paragraphs)
+    parts: list[list[RawSuggestion]] = []
+    failed: list[str] = []
+    problems: list[str] = []
+    with pool(min(workers, len(chunks))) as executor:
+        futures = [executor.submit(reader, chunk) for chunk in chunks]
+        for done, (chunk, future) in enumerate(zip(chunks, futures, strict=True), 1):
+            try:
+                parts.append(future.result())
+            except Exception as exc:  # noqa: BLE001 (any reader failure costs one chunk, not the scan)
+                chapter = chunk[0].get("chapterId", "")
+                problems.append(f"{type(exc).__name__}: {exc}")
+                log(f"GLiNER could not read a part of chapter {chapter!r}: {exc}", level="warn")
+                if chapter not in failed:
+                    failed.append(chapter)
+            report(progress_line(done, len(chunks), failed))
+    if len(problems) == len(chunks):
+        raise ValueError(f"GLiNER could not read the book: {problems[0]}")
+    return merge(parts)
+
+
 def suggest(args: argparse.Namespace, loader: Callable[[Path], Model] = load_model) -> None:
-    """``suggest --source gliner --manuscript M --install DIR``: print GLiNER's suggestions as JSON lines. It writes nothing."""
-    extractor = GlinerSource(args.install or None, loader=loader).extractor()
-    for raw in extractor.extract({"paragraphs": _paragraphs(args.manuscript)}):
+    """``suggest --source gliner --manuscript M --install DIR [--workers N]``: print GLiNER's suggestions as JSON lines. It writes
+    nothing. With ``--workers`` 2 or more the chapters are read side by side, each worker its own copy of the model, and a progress
+    record (``progress_line``) is printed after each chunk."""
+    paragraphs = _paragraphs(args.manuscript)
+    workers = min(max(1, getattr(args, "workers", 1) or 1), len(chunks_of(paragraphs)))
+    if workers > 1:
+        # The source checks the install first, as the one-process read does, so a missing download is the same sentence.
+        reason = damage(Path(args.install) if args.install else None)
+        if reason:
+            raise DESCRIPTOR.unavailable(reason)
+        threads = max(1, (os.cpu_count() or 1) // workers)
+        found = read_chunks(paragraphs, workers, lambda n: process_pool(n, str(args.install), threads))
+    else:
+        found = GlinerSource(args.install or None, loader=loader).extractor().extract({"paragraphs": paragraphs})
+    for raw in found:
         print(json.dumps(line(raw), ensure_ascii=False))
 
 

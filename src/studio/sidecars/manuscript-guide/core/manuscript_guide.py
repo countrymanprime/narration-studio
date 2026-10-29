@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing
 import re
 import sys
 import time
@@ -486,6 +487,7 @@ def use_utf8_stdio() -> None:
 
 
 def main() -> None:
+    multiprocessing.freeze_support()  # a frozen build's GLiNER worker processes start here, and must not run main()
     use_utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__)
     command = parser.add_subparsers(dest="command", required=True)
@@ -524,6 +526,7 @@ def main() -> None:
     suggest_parser = command.add_parser("suggest", help="print one source's Story Bible suggestions, one JSON line each; writes nothing")
     suggest_parser.add_argument("--source", choices=("gliner", "booknlp"), required=True, help="the rules run in the host, not here")
     suggest_parser.add_argument("--install", default="", help="the source's install folder (gliner, booknlp)")
+    suggest_parser.add_argument("--workers", type=int, default=1, help="GLiNER: chapters read side by side, each worker its own copy of the model")
     suggest_parser.add_argument("--spacy-model", default="", help="the spaCy model BookNLP parses with: an installed model's folder or a name")
     suggest_parser.add_argument("--manuscript", required=True)
     suggest_parser.add_argument("--guide", required=True)

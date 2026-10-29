@@ -338,6 +338,84 @@ class ConformanceTests(unittest.TestCase):
         contract_files.check("suggest-lines", lines, testdata)
 
 
+def chapter_book(chapters: int, per_chapter: int, words: int = 40) -> list[dict]:
+    """``chapters`` chapters of ``per_chapter`` paragraphs, each ``words`` words ending in a name the fake model finds."""
+    out = []
+    for c in range(chapters):
+        for n in range(per_chapter):
+            out.append({"id": f"p-{c:02d}{n:02d}", "chapterId": f"c-{c:04d}", "text": " ".join(["word"] * words) + f" Arelian{c} Zoë Ångström Łukasz."})
+    return out
+
+
+def accented(text: str) -> list[dict]:
+    spans = []
+    for at, (name, score) in enumerate((("Zoë Ångström", 0.9), ("Łukasz", 0.7))):
+        if name in text:
+            spans.append(span(text, name, "character", score + (len(text) % 7) / 100))
+    for c in range(40):
+        name = f"Arelian{c}"
+        if name in text:
+            spans.append(span(text, name, "character", 0.8))
+    return spans
+
+
+class ChapterPoolTests(unittest.TestCase):
+    def pool(self, workers: int):
+        from concurrent.futures import ThreadPoolExecutor
+
+        return ThreadPoolExecutor(workers)
+
+    def reader(self, fail: set[str] | None = None):
+        extractor = gliner.GlinerExtractor(FakeModel(accented), lambda line: None)
+
+        def read(chunk):
+            if fail and chunk[0]["chapterId"] in fail:
+                raise RuntimeError("worker died")
+            return extractor.extract({"paragraphs": chunk})
+
+        return read
+
+    def test_chunks_are_chapters_and_a_long_chapter_is_cut_between_paragraphs(self):
+        book = chapter_book(3, 5, words=400)
+        chunks = gliner.chunks_of(book, max_words=1000)
+        self.assertEqual(book, [p for chunk in chunks for p in chunk], "no paragraph lost, none reordered")
+        self.assertTrue(all(len({p["chapterId"] for p in chunk}) == 1 for chunk in chunks), "a chunk never spans two chapters")
+        self.assertEqual([2, 2, 1] * 3, [len(chunk) for chunk in chunks])
+
+    def test_reading_chapters_side_by_side_gives_the_whole_book_result_with_accented_names(self):
+        book = chapter_book(6, 4)
+        whole = gliner.GlinerExtractor(FakeModel(accented), lambda line: None).extract({"paragraphs": book})
+        lines: list[str] = []
+        pooled = gliner.read_chunks(book, 3, self.pool, self.reader(), lines.append)
+        self.assertEqual(whole, pooled)
+        self.assertIn("Zoë Ångström", [raw["payload"]["name"] for raw in pooled])
+        self.assertIn("Łukasz", [raw["payload"]["name"] for raw in pooled])
+        text = "\n".join(json.dumps(gliner.line(raw), ensure_ascii=False) for raw in pooled)
+        self.assertIn("Zoë Ångström", text)
+
+    def test_a_chunk_that_fails_is_reported_and_the_others_are_kept(self):
+        book = chapter_book(4, 2)
+        lines: list[str] = []
+        pooled = gliner.read_chunks(book, 2, self.pool, self.reader(fail={"c-0001"}), lines.append)
+        names = {raw["payload"]["name"] for raw in pooled}
+        self.assertIn("Arelian0", names)
+        self.assertNotIn("Arelian1", names)
+        self.assertIn("Arelian3", names)
+        last = json.loads(lines[-1])["progress"]
+        self.assertEqual({"done": 4, "total": 4, "failed": ["c-0001"]}, last)
+        self.assertEqual([1, 2, 3, 4], [json.loads(line)["progress"]["done"] for line in lines])
+
+    def test_when_every_chunk_fails_the_scan_fails_with_the_reason(self):
+        book = chapter_book(2, 1)
+        with self.assertRaisesRegex(ValueError, "worker died"):
+            gliner.read_chunks(book, 2, self.pool, self.reader(fail={"c-0000", "c-0001"}), lambda text: None)
+
+    def test_the_progress_record_is_pinned_by_the_committed_contract_file(self):
+        records = [json.loads(gliner.progress_line(1, 3, [])), json.loads(gliner.progress_line(3, 3, ["c-0002"]))]
+        testdata = REPO / "src" / "studio" / "desktop" / "internal" / "extractionport" / "gliner" / "testdata"
+        contract_files.check("suggest-progress", records, testdata)
+
+
 class NoNetworkAtRunTimeTests(unittest.TestCase):
     def test_the_module_imports_no_http_client_and_no_socket(self):
         text = (CORE / "extraction_gliner.py").read_text(encoding="utf-8")
