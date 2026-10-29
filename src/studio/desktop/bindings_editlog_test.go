@@ -142,3 +142,18 @@ func hostOverProject(t *testing.T, project string) *Host {
 	}
 	return host
 }
+
+// The credits are chapters of the list: a word of their one paragraph (`<id>-p0`) is accepted like any chapter's.
+func TestEditLogBindingsAcceptAWordOfTheCredits(t *testing.T) {
+	host, _ := editLogHost(t)
+	if list := decodeChaptersAndCredits(t, host); list[0]["id"] != "credits-opening" {
+		t.Fatalf("the chapter list does not start with the opening credits: %v", list[0]["id"])
+	}
+	words := decodeAcceptedWords(t)(host.EditingAccept("credits-opening", []string{"credits-opening-p0:0"}))
+	if acceptedKeys(words.Words) != "credits-opening-p0:0" {
+		t.Fatalf("accepted = %+v", words)
+	}
+	if _, err := host.EditingAccept("credits-opening", []string{"credits-opening-p0:9999"}); err == nil {
+		t.Fatal("a word the credits do not have is refused")
+	}
+}

@@ -1,3 +1,4 @@
+import { withoutCredits } from '../../chapterKinds';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect } from 'vitest';
@@ -66,7 +67,7 @@ async function build(api: BookmarksApi, spot: Port['spot']): Promise<Port> {
 
 const mockPort = async (): Promise<Port> => {
   const api = createMockApi();
-  const [chapter] = await api.manuscriptChapters();
+  const [chapter] = withoutCredits(await api.manuscriptChapters());
   const [line] = await api.manuscriptParagraphs(chapter!.id);
   return build(api, (offset = 2) => ({ chapterId: chapter!.id, paragraphId: line!.id, offset }));
 };

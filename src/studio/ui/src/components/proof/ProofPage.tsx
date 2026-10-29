@@ -19,8 +19,7 @@ import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
-import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
-import { useCreditsRows } from '../credits/useCreditsRows';
+import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { LoadError } from '../layout/LoadError';
 import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
@@ -52,7 +51,6 @@ import { useProofKeys } from './useProofKeys';
 import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { hasRecording } from './checkcard/cardSelectors';
-import { addressPath } from '../../navigation/address';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
 
 /** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
@@ -81,7 +79,7 @@ function saveLastChapter(projectFolder: string, chapterId: string): void {
   }
 }
 
-const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
+const isNarration = (chapter: ManuscriptChapter) => isCreditsChapter(chapter) || isNarrationChapter(chapter);
 const chapterOf = (finding: Finding) => finding.manuscript?.chapter_id ?? '';
 /** A note as the page holds it: its review copied, so Undo knows the decision before, whatever the client does with the object it returned. */
 const held = (finding: Finding): Finding => ({ ...finding, review: { ...finding.review } });
@@ -118,10 +116,6 @@ export function ProofPage({
   const review = useCapability('review');
   const [params, setParams] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  // The credits tiles of the strip: the same entries the Script list draws, the opening left out when the manuscript brought its own.
-  const [ownsOpening, setOwnsOpening] = useState(false);
-  const credits = useCreditsRows(projectFolder, (error) => overlay.toast(describeApiError(error), { tone: 'error' }));
-  const creditsTiles = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
   const [listed, setFindings] = useState<Finding[]>([]);
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
@@ -169,7 +163,7 @@ export function ProofPage({
     [all, listed, chapters],
   );
   const chapter = all ? undefined : chapters.find((c) => c.id === scope);
-  const fallback = chapters.find((c) => c.id === current) ?? chapters[0];
+  const fallback = chapters.find((c) => c.id === current) ?? chapters.find((c) => !isCreditsChapter(c)) ?? chapters[0];
 
   useEffect(() => {
     if (!hasManuscript) return;
@@ -182,7 +176,6 @@ export function ProofPage({
         setFirstRead((now) => (now.chapters ? now : { ...now, chapters: true }));
         setChaptersProblem(undefined);
         setChapters(list.filter(isNarration));
-        setOwnsOpening(ownsOpeningCredits(list));
       })
       .catch((error: unknown) => {
         if (!live) return;
@@ -383,26 +376,14 @@ export function ProofPage({
     [active, activeAt],
   );
 
+  // The credits are chapters in the list (opening first, closing last); their tiles are the unnumbered ends and the chapters count from 1.
   const strip = useMemo<StripChapter[]>(() => {
-    const tile = (id: string, name: string, number: number | null): StripChapter => {
-      const rows = findings.filter((f) => chapterOf(f) === id).map(noteRow);
-      return { id, name, number, total: rows.length, open: rows.filter((r) => r.open).length };
-    };
-    return [
-      ...(creditsTiles.opening ? [tile(creditsTiles.opening.id, creditsTiles.opening.name, null)] : []),
-      ...chapters.map((c, i) => tile(c.id, headingName(c), i + 1)),
-      ...(creditsTiles.closing ? [tile(creditsTiles.closing.id, creditsTiles.closing.name, null)] : []),
-    ];
-  }, [chapters, findings, creditsTiles]);
-  // Proof has no chapter view for the credits (its notes and recording are the manuscript chapters'), so their tiles open the credits card on Script.
-  const chooseTile = useCallback(
-    (id: string) => {
-      const kind = creditsKindOfId(id);
-      if (kind) goTo(addressPath({ page: 'script', credits: kind }));
-      else choose(id);
-    },
-    [goTo, choose],
-  );
+    let number = 0;
+    return chapters.map((c) => {
+      const rows = findings.filter((f) => chapterOf(f) === c.id).map(noteRow);
+      return { id: c.id, name: headingName(c), number: isCreditsChapter(c) ? null : ++number, total: rows.length, open: rows.filter((r) => r.open).length };
+    });
+  }, [chapters, findings]);
   const progress = useMemo(() => {
     if (all) return proofProgress(summary ?? { total: 0, decided: 0, cleared: 0 }, openPickupsBeyondNotes(pickups));
     const rows = findings.map(noteRow);
@@ -480,7 +461,7 @@ export function ProofPage({
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
                 <SectionLabel>Open notes, by chapter</SectionLabel>
-                <ChapterStrip chapters={strip} current={current} onChooseChapter={chooseTile} />
+                <ChapterStrip chapters={strip} current={current} onChooseChapter={choose} />
               </div>
             ) : (
               <>

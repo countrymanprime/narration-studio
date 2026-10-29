@@ -99,11 +99,11 @@ function open(api: NarrationApi, preselected: string[] = [], opener = true, opti
 const toasts = (service: ReturnType<typeof createOverlayService>) => service.getSnapshot().toasts.map((t) => t.text);
 
 describe('CheckRecordingsDialog', () => {
-  it('offers-a-chapter-the-manuscript-does-not-list-ticked-and-checks-it', async () => {
-    // A credits row's synthetic chapter: no recording measured, never in the manuscript, still checked by its own id.
-    const { api, starts } = host();
-    const credits = chapter('credits-opening', { title: 'Opening credits', recordedSeconds: undefined, wordCount: 0 });
-    open(api, ['credits-opening'], true, { extra: [credits] });
+  it('offers-the-credits-chapter-ticked-and-checks-it', async () => {
+    // The credits are chapters of the manuscript's list: no recording measured, still offered when asked for, checked by their own id.
+    const credits = chapter('credits-opening', { title: 'Opening credits', recordedSeconds: undefined, wordCount: 0, isCredits: true, index: -2 });
+    const { api, starts } = host({ manuscriptChapters: async () => [credits, chapter('a')] });
+    open(api, ['credits-opening']);
     const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
     expect(
       within(dialog)

@@ -11,7 +11,7 @@ import { PortOverrides } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { MeasureFileResult, MeasureJob, NarrationApi } from '../../../types';
 import { MasterPage } from './MasterPage';
-import { acx, apiOf, jobOf, passing } from './testPage';
+import { acx, apiOf, jobOf, passing, withCredits } from './testPage';
 
 afterEach(() => {
   cleanup();
@@ -183,7 +183,7 @@ describe('Master & QC: what the narrator can name and how many', () => {
   it('300 files list, with spaces, Unicode, emoji, right-to-left and a 250-character name, each selectable by its own path', async () => {
     const odd = ['my chapter  with spaces.wav', '書籍 📚.wav', 'פרק 1 🎧 كتاب.wav', `${'x'.repeat(246)}.wav`];
     const files = [...odd.map((name) => passing(name)), ...Array.from({ length: 296 }, (_, i) => passing(`Chapter ${String(i + 5).padStart(3, '0')}.wav`))];
-    mount(files);
+    mount(files, { manuscriptChapters: async () => withCredits([]) });
     const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
     // The 300 files, the opening and closing credits and the retail sample, each with a row of its own.
     expect(grid.querySelectorAll('tbody tr').length).toBe(303);

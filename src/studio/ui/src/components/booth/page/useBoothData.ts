@@ -1,18 +1,25 @@
+import { creditsKindOfId } from '../../credits/creditsEntries';
 import { useCallback, useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { CreditsKind } from '../readerModel';
-import type { BoothTarget } from './boothQuery';
+import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
+import type { BoothChapterTarget } from './boothQuery';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 const NONE: never[] = [];
 
-/** What the Booth reads now: a chapter, or the credits with their rendered text. */
-export type BoothSource =
-  { kind: 'chapter'; chapter: Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle'> } | { kind: 'credits'; credits: CreditsKind; preview: CreditsRenderResult };
+type SourceChapter = Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle'>;
 
-/** Why the page has nothing to read: the credits asked for have no text, or the chapter asked for is not in the book. */
+/** What the Booth reads now: a chapter, or a credits chapter, which has no paragraphs and reads the rendered credits text instead. */
+export type BoothSource =
+  { kind: 'chapter'; chapter: SourceChapter } | { kind: 'credits'; credits: CreditsKind; chapter: SourceChapter; preview: CreditsRenderResult };
+
+/** Which credits a credits chapter is. */
+export const creditsKindOf = (chapter: Pick<ManuscriptChapter, 'id'>): CreditsKind => (chapter.id === 'credits-closing' ? 'closing' : 'opening');
+
+/** Why the page has nothing to read: the credits chapter asked for has no text to render, or the chapter asked for is not in the book. */
 export type BoothUnavailable = { kind: 'credits'; credits: CreditsKind } | { kind: 'chapter' };
 
 /** The opening and closing credits as the host renders them; a failure leaves them out rather than blocking the chapters. `loaded` is false until the read ends. */
@@ -47,7 +54,7 @@ function useCreditsPreviews(): { previews: Partial<Record<CreditsKind, CreditsRe
  * secondary, so a failure leaves them out. With no target in the address the page opens on the chapter a running session reads, else
  * the first. `correctCue` records the narrator's speaker for a quote and reads the cues again.
  */
-export function useBoothData(target: BoothTarget | null) {
+export function useBoothData(target: BoothChapterTarget | null) {
   const manuscript = usePort('manuscript');
   const storyBible = usePort('storyBible');
   const teleprompter = usePort('teleprompter');
@@ -75,11 +82,12 @@ export function useBoothData(target: BoothTarget | null) {
     void Promise.all([manuscript.manuscriptChapters(), teleprompter.teleprompterState().catch(() => undefined)])
       .then(([all, host]) => {
         if (!live) return;
-        const narration = all.filter((item) => (item.contentKind ?? 'narration') === 'narration');
+        const narration = all.filter(isNarrationChapter);
         setChapters(narration);
         setRecorded(recordedOf(narration));
         const running = host && host.phase !== 'idle' && host.phase !== 'stopped' ? narration.find((item) => item.id === host.chapter)?.id : undefined;
-        setFallback(running ?? narration[0]?.id ?? '');
+        // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
+        setFallback(running ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '');
       })
       .catch((reason) => live && setError(reason instanceof Error ? reason.message : String(reason)));
     return () => {
@@ -113,8 +121,7 @@ export function useBoothData(target: BoothTarget | null) {
     setAttempt((n) => n + 1);
   }, []);
 
-  const credits = target && 'credits' in target ? target.credits : undefined;
-  const chapterId = credits ? '' : target && 'chapter' in target ? target.chapter : fallback;
+  const chapterId = target ? target.chapter : fallback;
   const chapter = chapters?.find((item) => item.id === chapterId);
 
   const correctCue = useCallback(
@@ -125,23 +132,31 @@ export function useBoothData(target: BoothTarget | null) {
     [storyBible],
   );
 
+  // A credits chapter has no paragraphs; its text is the credits preview.
+  const credits = chapter && isCreditsChapter(chapter) ? creditsKindOf(chapter) : undefined;
   const preview = credits ? previews[credits] : undefined;
-  const source: BoothSource | undefined = credits ? preview && { kind: 'credits', credits, preview } : chapter && { kind: 'chapter', chapter };
+  const source: BoothSource | undefined =
+    chapter && credits ? preview && { kind: 'credits', credits, chapter, preview } : chapter && { kind: 'chapter', chapter };
   // Nothing to show once what it waits for has been read: the credits have no text, or the chapter asked for is not there. (No chapters at all is its own panel.)
+  // A credits file the library has no template for is not in the list; asked for by its id it is still the credits' own panel (set one up), not "not in this book".
+  const unlisted = !chapter ? creditsKindOfId(chapterId) : undefined;
   const unavailable: BoothUnavailable | undefined = source
     ? undefined
     : credits
       ? creditsLoaded
         ? { kind: 'credits', credits }
         : undefined
-      : chapters && chapters.length > 0
-        ? { kind: 'chapter' }
-        : undefined;
+      : unlisted
+        ? chapters
+          ? { kind: 'credits', credits: unlisted }
+          : undefined
+        : chapters && chapters.length > 0
+          ? { kind: 'chapter' }
+          : undefined;
   return {
     chapters,
     recorded,
     refreshRecorded,
-    previews,
     source,
     unavailable,
     error,

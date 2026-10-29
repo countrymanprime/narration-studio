@@ -36,6 +36,13 @@ export const editingDrivers: Record<string, Driver> = {
   default: async (page) => {
     await openEditing(page, LINKED);
   },
+  // The credits are chapters of the list: the Opening credits open at their own address, as a chapter does.
+  'credits-opening': async (page) => {
+    await page.goto('/editing/credits-opening');
+    await settlePage(page);
+    // No track is linked to them, so the page asks for one, as it does for any unlinked chapter.
+    await page.getByRole('dialog', { name: 'Opening credits is not linked to a track' }).waitFor();
+  },
   // Issue #2251 item 30: the next flag key steps to the mock's line said twice and opens its Read twice card.
   'read-twice': async (page) => {
     await openEditing(page, LINKED);

@@ -105,6 +105,13 @@ describe('useNavCounts: Master & QC', () => {
     await waitFor(() => expect(result.current.master).toBe(2));
   });
 
+  it('counts a credits chapter whose file fails like any other chapter, paired by its title', async () => {
+    const credits = { id: 'credits-opening', index: -2, title: 'Opening credits', isCredits: true } as ManuscriptChapter;
+    const api = withMeasurement([file('Opening credits.wav', 'not_met'), file('One.wav', 'met')], [credits, chapter('c1', 0, 'One')]);
+    const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
+    await waitFor(() => expect(result.current.master).toBe(1));
+  });
+
   it('counts nothing failing as 0, which draws no badge', async () => {
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(withMeasurement([file('One.wav', 'met')], [chapter('c1', 0, 'One')])) });
     await waitFor(() => expect(result.current.master).toBe(0));

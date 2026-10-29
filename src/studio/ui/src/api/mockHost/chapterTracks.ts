@@ -9,6 +9,7 @@ import type {
   ChapterSyncTrigger,
   NarrationApi,
   TrackMapping,
+  ManuscriptChapter,
 } from '../../types';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, WIRE_TRACKS_PROJECT_FOLDERS, wireClone } from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
@@ -27,7 +28,14 @@ export function createChapterTracksMock(
     manuscriptReady,
     dawFileLinked,
     peekCoverage,
-  }: { manuscriptReady: Promise<void>; dawFileLinked: () => boolean; peekCoverage: (chapterId: string) => CoverageResult },
+    chaptersWithCredits,
+  }: {
+    manuscriptReady: Promise<void>;
+    dawFileLinked: () => boolean;
+    peekCoverage: (chapterId: string) => CoverageResult;
+    /** The chapter list as the host sends it: the credits around the manuscript's chapters. */
+    chaptersWithCredits: () => ManuscriptChapter[];
+  },
 ) {
   // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
   const project = initial.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
@@ -265,7 +273,8 @@ export function createChapterTracksMock(
     chapterTrackLinks: async () => {
       await manuscriptReady;
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-      return wireClone(mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state));
+      // Unlike chapter sync and the region plan (which come from the picked tracks), the links list holds the credits, as the host's does.
+      return wireClone(mockChapterTrackLinks(chaptersWithCredits(), project, s.chapterTrackMappings, state));
     },
     chapterSyncState: async () => {
       await manuscriptReady;
@@ -345,7 +354,7 @@ export function createChapterTracksMock(
     },
     chapterTrackMatch: async (chapterId) => {
       await manuscriptReady;
-      return wireClone(mockChapterTrackMatch(chapterId, s.chapters, project, s.chapterTrackMappings));
+      return wireClone(mockChapterTrackMatch(chapterId, chaptersWithCredits(), project, s.chapterTrackMappings));
     },
     chapterSuggestion: async () => {
       await manuscriptReady;

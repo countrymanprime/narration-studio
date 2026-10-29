@@ -4,7 +4,7 @@
 //
 // Each feature area's bindings live in their own file under mockHost/ (the state they share is mockHost/state.ts);
 // this file only puts them together, with the per-feature mocks beside it (teleprompterMock.ts, coverageMock.ts, ...).
-import type { Finding, MeasureFileResult, NarrationApi } from '../types';
+import type { Finding, ManuscriptParagraph, MeasureFileResult, NarrationApi } from '../types';
 import { WIRE_FINDINGS, WIRE_TELEPROMPTER_DEVICES, WIRE_TRACKS_PROJECT } from './mockFixtures';
 import { mockChapterTrackMatch } from './chapterTrackMatchMock';
 import { createTeleprompterMock } from './teleprompterMock';
@@ -168,6 +168,8 @@ export function createMockApi(
   const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
   const { manuscriptReady } = manuscript;
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
+  // Every read of the chapter list holds the credits (a credits file is a chapter): the Production overview, the pages and the host agree.
+  const chaptersWithCredits = async () => credits.withCreditsChapters(await manuscript.bindings.manuscriptChapters());
   const assets = createAssetsMock(initial);
   const proofing = createProofingMock(s, assets);
   // The findings mock is built further down; the pickup list reads its accepted notes through this once it exists.
@@ -179,6 +181,7 @@ export function createMockApi(
   });
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
+    chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
   });
@@ -194,7 +197,7 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     creditsText: credits.mockCreditsText,
     assetRequired: assets.teleprompterAssetRequired,
-    trackMatch: (chapterId) => mockChapterTrackMatch(chapterId, s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings),
+    trackMatch: (chapterId) => mockChapterTrackMatch(chapterId, credits.withCreditsChapters(s.chapters), WIRE_TRACKS_PROJECT, s.chapterTrackMappings),
     tracksProject: WIRE_TRACKS_PROJECT,
     seed: initial.teleprompter,
     devices: initial.teleprompterDevices ?? WIRE_TELEPROMPTER_DEVICES,
@@ -225,9 +228,15 @@ export function createMockApi(
     },
     seed: initial.backgroundChecks === 'running' ? { ...initial.coverage, backgroundRun: true } : initial.coverage,
   });
+  // A credits file is a chapter of the list with one paragraph, its rendered template (`<id>-p0`, as the host's alignment answers).
+  const creditsParagraphs = (): ManuscriptParagraph[] =>
+    credits.withCreditsChapters([]).flatMap((chapter) => {
+      const text = credits.mockCreditsText(chapter.id === 'credits-opening' ? 'opening' : 'closing');
+      return text ? [{ id: `${chapter.id}-p0`, chapterId: chapter.id, chapter: chapter.title, index: 0, text, entityIds: [] }] : [];
+    });
   const workspaceDeps = {
-    chapters: () => s.chapters,
-    paragraphs: () => s.paragraphs,
+    chapters: () => credits.withCreditsChapters(s.chapters),
+    paragraphs: () => [...s.paragraphs, ...creditsParagraphs()],
     coverageResult: peekCoverage,
     project: WIRE_TRACKS_PROJECT,
     mappings: () => s.chapterTrackMappings,
@@ -300,7 +309,7 @@ export function createMockApi(
     ];
   };
   const { applyProfileDefaultPayment, ...production } = createProductionMock({
-    chapters: manuscript.bindings.manuscriptChapters,
+    chapters: chaptersWithCredits,
     recommendations: stages.stageRecommendations,
     seed: initial.production,
   });
@@ -374,6 +383,15 @@ export function createMockApi(
   const base: NarrationApi = {
     ...system.bindings,
     ...manuscript.bindings,
+    manuscriptChapters: chaptersWithCredits,
+    // A credits entry's status lives on the project manifest, not in the manuscript's notes (host: Service.SetChapterStatus).
+    manuscriptSetChapterStatus: async (chapter, status) => {
+      if (chapter !== 'credits-opening' && chapter !== 'credits-closing') return manuscript.bindings.manuscriptSetChapterStatus(chapter, status);
+      await credits.bindings.setCreditsStatus(chapter === 'credits-opening' ? 'opening' : 'closing', status);
+      const found = (await chaptersWithCredits()).find((item) => item.id === chapter);
+      if (!found) throw new Error(`Unknown chapter: ${chapter}`);
+      return found;
+    },
     ...settings.bindings,
     ...storyBible.bindings,
     ...character.bindings,

@@ -18,6 +18,7 @@ import { contextItemsFor } from '../../registries/context';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { resetOpenOnce } from '../connection/useOpenOnce';
+import { addressPath } from '../../navigation/address';
 import { ProductionPage } from './ProductionPage';
 
 afterEach(() => {
@@ -484,14 +485,31 @@ describe('the pipeline lists the credits as the mock does (issue 1705)', () => {
     expect(within(opening).getByRole('button', { name: /^Opening credits: Record / })).toBeTruthy();
   });
 
-  it('offers the credits row its own row menu: Script, Booth, the credits panel and the status override', async () => {
+  it('offers the credits row the same row menu as a chapter, with the credits panel besides', async () => {
     await renderPage();
     const table = await pipeline();
     const opening = await within(table).findByRole('row', { name: /Opening credits/ });
     const labels = (contextItemsFor(opening) ?? []).map((item) => item.label);
-    for (const label of ['Open prep in Script', 'Open in Booth', 'Credits…']) expect(labels).toContain(label);
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Editing check…', 'Check recordings…', 'Chapter track…', 'Credits…'])
+      expect(labels).toContain(label);
     expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
-    expect(labels).not.toContain('Chapter track…');
+  });
+
+  it('counts the credits among the chapters', async () => {
+    await renderPage();
+    const table = await pipeline();
+    const rows = within(table).getAllByRole('row').length - 1;
+    await waitFor(() => expect(screen.getByText(new RegExp(`^${rows} chapters ·`))).toBeTruthy());
+  });
+
+  it('opens a credits row in Proof like a chapter', async () => {
+    const { go } = await renderPage();
+    const table = await pipeline();
+    const opening = await within(table).findByRole('row', { name: /Opening credits/ });
+    contextItemsFor(opening)
+      ?.find((item) => item.key === 'proof')
+      ?.onSelect();
+    expect(go).toHaveBeenLastCalledWith(addressPath({ page: 'proof', chapter: 'credits-opening' }));
   });
 
   it('opens a credits row in Script and the Booth at the credits, not at a chapter', async () => {

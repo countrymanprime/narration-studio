@@ -16,6 +16,17 @@ afterEach(cleanup);
 const chapter = (index: number, title: string): ManuscriptChapter =>
   ({ id: `c${index}`, title, index, wordCount: 100, status: 'not_started' }) as unknown as ManuscriptChapter;
 const CHAPTERS = [chapter(1, 'Chapter 01'), chapter(2, 'Chapter 02'), chapter(3, 'Chapter 03'), chapter(4, 'Chapter 04')];
+const credits = (kind: 'opening' | 'closing'): ManuscriptChapter =>
+  ({
+    id: `credits-${kind}`,
+    title: kind === 'opening' ? 'Opening credits' : 'Closing credits',
+    index: -2,
+    wordCount: 40,
+    status: 'not_started',
+    contentKind: 'narration',
+    isCredits: true,
+    paragraphIds: [],
+  }) as unknown as ManuscriptChapter;
 const PASSING = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), passing('Chapter 03.wav'), passing('Chapter 04.wav')];
 const BLOCKED = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), waiting('Chapter 03.wav'), failingTwo('Chapter 04.wav')];
 
@@ -42,8 +53,6 @@ function mount(
 ) {
   const api = createMockApi({
     manuscriptChapters: async () => CHAPTERS,
-    // No credits templates unless a test brings them: the rows below are the chapters'.
-    creditsTemplates: async () => [],
     measureState: async () => measureJob(files),
     exportState: async () => exported,
     packageState: async () => IDLE,
@@ -181,16 +190,13 @@ describe('DeliveryPage', () => {
     }
   });
 
-  // Issue 1705: the credits are deliverable files, listed with the chapters and counted in "n of N" as the mock does.
+  // The credits are chapters of the host's list: the opening first, the closing last, each judged by its measured file and counted in "n of N".
   describe('the credits rows', () => {
-    const TEMPLATES = [
-      { id: 'o', kind: 'opening', name: 'Standard opening', body: 'x' },
-      { id: 'c', kind: 'closing', name: 'Standard closing', body: 'x' },
-    ];
     const rowNames = () => screen.getAllByRole('button', { name: /Open in Master & QC/ }).map((row) => row.getAttribute('aria-label')?.split(':')[0]);
+    const both = { manuscriptChapters: async () => [credits('opening'), ...CHAPTERS, credits('closing')] };
 
     it('lists the opening credits first and the closing credits last, and counts them', async () => {
-      mount([...PASSING, passing('Opening credits.wav')], { creditsTemplates: async () => TEMPLATES });
+      mount([...PASSING, passing('Opening credits.wav')], both);
       await screen.findByText('5 of 6');
       expect(rowNames()).toEqual(['Opening credits', 'Chapter 01', 'Chapter 02', 'Chapter 03', 'Chapter 04', 'Closing credits']);
       expect(screen.getByRole('button', { name: 'Opening credits: Pass. Open in Master & QC' })).toBeTruthy();
@@ -198,14 +204,14 @@ describe('DeliveryPage', () => {
     });
 
     it('holds the build until the credits files pass too', async () => {
-      mount(PASSING, { creditsTemplates: async () => TEMPLATES });
+      mount(PASSING, both);
       await screen.findByText('4 of 6');
       expect(await screen.findByText('0 failing, 2 not ready')).toBeTruthy();
       expect(screen.getByRole('button', { name: /Build .* package/ }).getAttribute('aria-disabled')).toBe('true');
     });
 
-    it('draws a kind the library has no template for as no row', async () => {
-      mount(PASSING, { creditsTemplates: async () => [TEMPLATES[1]!] });
+    it('draws a kind the list lacks as no row', async () => {
+      mount(PASSING, { manuscriptChapters: async () => [...CHAPTERS, credits('closing')] });
       await screen.findByText('4 of 5');
       expect(rowNames().at(-1)).toBe('Closing credits');
       expect(rowNames()[0]).toBe('Chapter 01');

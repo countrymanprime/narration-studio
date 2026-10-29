@@ -1,3 +1,4 @@
+import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -9,7 +10,8 @@ import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
 
-const isNarrationChapter = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
+// The sample is a stretch of the book's own text: the credits are narration but have no lines to pick.
+const isSampleChapter = (chapter: ManuscriptChapter) => isNarrationChapter(chapter) && !isCreditsChapter(chapter);
 const lineOptions = (chapter?: ManuscriptChapter) =>
   (chapter?.paragraphIds ?? []).map((_, index) => ({ value: String(index + 1), label: `Line ${index + 1}` }));
 
@@ -46,7 +48,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
   const load = useCallback(async () => {
     try {
       const [nextChapters, nextAnswer] = await Promise.all([api.manuscriptChapters(), api.creditsRetailSample()]);
-      const narration = nextChapters.filter(isNarrationChapter);
+      const narration = nextChapters.filter(isSampleChapter);
       setChapters(narration);
       setAnswer(nextAnswer);
       const first = narration[0]?.id ?? '';

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import { createMockApi } from '../../../api/mockApi';
+import { withoutCredits } from '../../../chapterKinds';
 import { providedCommands } from '../../../input/commandProviders';
 import { gesture } from '../../../input/gestures';
 import type { GestureEvent, InputSource } from '../../../input/InputSource';
@@ -82,7 +83,9 @@ const press = (code: string, modifiers: Parameters<typeof gesture>[2] = [], targ
 beforeEach(async () => {
   api = createMockApi();
   const all = await api.manuscriptChapters();
-  chapters = all.slice(0, 2).map((c) => ({ id: c.id, name: c.title }));
+  chapters = withoutCredits(all)
+    .slice(0, 2)
+    .map((c) => ({ id: c.id, name: c.title }));
   const rows = await api.manuscriptParagraphs(chapters[0].id);
   paragraphs = rows.slice(0, 3).map((p) => ({ id: p.id, text: p.text }));
   indexes = new Map(rows.map((p) => [p.id, p.index]));

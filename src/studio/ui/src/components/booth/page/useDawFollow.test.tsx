@@ -136,7 +136,7 @@ describe('useMoveDawOnOpen', () => {
     await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
   });
 
-  it('moves nothing for a Booth that followed the DAW, or the credits', async () => {
+  it('moves nothing for a Booth that followed the DAW, or one with no chapter', async () => {
     const dawGoToChapter = vi.fn();
     renderHook(() => useMoveDawOnOpen({ ...base, enabled: false, say: vi.fn() }), { wrapper: wrapperFor({ dawGoToChapter }) });
     renderHook(() => useMoveDawOnOpen({ ...base, chapterId: '', say: vi.fn() }), { wrapper: wrapperFor({ dawGoToChapter }) });

@@ -5,6 +5,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
+import { withoutCredits } from '../../../../chapterKinds';
 import type { JobEnded } from '../../../../api/contracts/system';
 import { createMockApi } from '../../../../api/mockApi';
 import { overlay } from '../../../../overlay/overlayService';
@@ -113,7 +114,7 @@ describe('chapters-and-paragraphs-load-once-and-follow-a-change', () => {
     expect(second.result.current.value).toBe(hook.result.current.paragraphs.value);
     expect(chapters).toHaveBeenCalledTimes(1);
     expect(paragraphs).toHaveBeenCalledTimes(1);
-    expect(hook.result.current.chapters.value?.[0]?.id).toBe('chapter-1');
+    expect(withoutCredits(hook.result.current.chapters.value ?? [])[0]?.id).toBe('chapter-1');
 
     act(() => jobEnded.forEach((onEnded) => onEnded({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 })));
     await waitFor(() => expect(paragraphs).toHaveBeenCalledTimes(2));
@@ -258,7 +259,7 @@ describe('prep-state-is-journalled-and-announced', () => {
   it('sets, steps within the ends, announces "{chapter}: {state}" and undoes to the earlier state', async () => {
     const hook = setup();
     await ready(hook);
-    const chapter = hook.result.current.chapters.value![0]!;
+    const chapter = withoutCredits(hook.result.current.chapters.value!)[0]!;
     await act(async () => void (await hook.result.current.commands.setPrep(chapter, 'prepped')));
     expect(hook.result.current.prep.prepOf(chapter.id)).toBe('prepped');
     expect(announce).toHaveBeenLastCalledWith(`${chapter.title}: ${PREP_LABELS.prepped}`);

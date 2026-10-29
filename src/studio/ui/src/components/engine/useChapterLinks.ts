@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
-import { CREDITS_ID, CREDITS_NAME, creditsEntries, ownsOpeningCredits } from '../credits/creditsEntries';
-import { useCreditsRows } from '../credits/useCreditsRows';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 
 export type ChapterLinks = {
   /** The tracks in the project the links are read against. */
   tracks: Track[];
-  /** The manuscript's own chapters; the credits are not among them. */
+  /** The chapter list as the host sends it: the opening and closing credits are the first and last of them. */
   chapters: ManuscriptChapter[];
   /** Every confirmed chapter-to-track link the host holds. */
   mappings: TrackMapping[];
@@ -37,6 +35,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
+  // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
+  const inFlight = useRef(false);
 
   const reload = useCallback(async () => {
     const [nextChapters, mapping] = await Promise.all([manuscript.manuscriptChapters(), chapterTrackMap.chapterTrackMapList()]);
@@ -56,29 +56,29 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   }, [reload, refreshKey]);
 
   const change = (chapterId: string, write: () => Promise<unknown>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusyChapterId(chapterId);
     setError('');
     write()
       .then(() => reload())
       .then(() => onChanged())
       .catch((reason) => setError(String(reason)))
-      .finally(() => setBusyChapterId(''));
+      .finally(() => {
+        inFlight.current = false;
+        setBusyChapterId('');
+      });
   };
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
-  const set = (chapterId: string, trackGuid: string) => change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
+  // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice.
+  const set = (chapterId: string, trackGuid: string) => {
+    if (mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
+    change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
+  };
   const unlink = (chapterId: string) => change(chapterId, () => chapterTrackMap.chapterTrackUnlink(chapterId));
 
-  const credits = useCreditsRows(String(refreshKey), () => undefined);
-  // The credits are recorded like a chapter and linked through the same bindings, but the manuscript's chapter list never holds them, so
-  // they join the rows here: opening before the first chapter, closing after the last.
-  const rows = useMemo(() => {
-    const entries = creditsEntries(credits.rows, ownsOpeningCredits(chapters));
-    const asChapter = (kind: 'opening' | 'closing', index: number): ManuscriptChapter[] =>
-      entries[kind]
-        ? [{ id: CREDITS_ID[kind], title: CREDITS_NAME[kind], index, wordCount: entries[kind].words, status: entries[kind].status, contentKind: 'narration' }]
-        : [];
-    return chapterTrackRows([...asChapter('opening', -2), ...chapters, ...asChapter('closing', chapters.length + 1)], tracks, mappings);
-  }, [credits.rows, chapters, tracks, mappings]);
+  // The chapter list holds the credits, so they are rows like any chapter.
+  const rows = useMemo(() => chapterTrackRows(chapters, tracks, mappings), [chapters, tracks, mappings]);
 
   return { tracks, chapters, mappings, rows, error, busyChapterId, set, unlink };
 }

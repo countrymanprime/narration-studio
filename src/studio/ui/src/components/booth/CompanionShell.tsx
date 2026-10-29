@@ -26,7 +26,7 @@ type Props = {
   session: TeleprompterSession;
   follow: FollowCursor;
   chapterTitle?: string;
-  /** The chapter being read, for "This chapter"; absent in credits mode. */
+  /** The chapter being read, for "This chapter"; the credits chapters included. */
   chapterId?: string;
   /** The Record-in-REAPER orchestration `CompanionHost` owns, so Play and Stop here arm and stop exactly as the Booth's do. */
   recording: RecordInReaperState;

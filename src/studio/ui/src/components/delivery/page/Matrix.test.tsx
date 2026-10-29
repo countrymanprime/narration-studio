@@ -13,6 +13,17 @@ import { DeliveryPage } from './DeliveryPage';
 
 const chapter = (index: number, title = `Chapter ${String(index).padStart(2, '0')}`): ManuscriptChapter =>
   ({ id: `c${index}`, title, index: index - 1, wordCount: 100, status: 'not_started' }) as unknown as ManuscriptChapter;
+const credits = (kind: 'opening' | 'closing'): ManuscriptChapter =>
+  ({
+    id: `credits-${kind}`,
+    title: kind === 'opening' ? 'Opening credits' : 'Closing credits',
+    index: -2,
+    wordCount: 40,
+    status: 'not_started',
+    contentKind: 'narration',
+    isCredits: true,
+    paragraphIds: [],
+  }) as unknown as ManuscriptChapter;
 const CHAPTERS = [1, 2, 3, 4].map((n) => chapter(n));
 const PASSING = CHAPTERS.map((c) => passing(`${c.title}.wav`));
 const measureJob = (files: MeasureFileResult[], extra: Partial<MeasureJob> = {}) =>
@@ -52,7 +63,6 @@ function mount(overrides: Overrides = {}, props: { onOpenInMaster?: (id: string)
   const ended: Array<(event: JobEnded) => void> = [];
   const api = createMockApi({
     manuscriptChapters: async () => CHAPTERS,
-    creditsTemplates: async () => [],
     measureState: async () => measureJob(PASSING),
     exportState: async () => exportJob(),
     packageState: async () => IDLE,
@@ -533,36 +543,16 @@ describe('D10 Check again and the host events', () => {
     act(() => jobEnded());
     expect(await screen.findByText('4 of 4')).toBeTruthy();
   });
-
-  it('the credits cannot be read: the page says it cannot tell, builds nothing and recovers on Check again', async () => {
-    let fail = true;
-    mount({ creditsTemplates: async () => (fail ? Promise.reject(new Error('templates locked')) : []) });
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('The credits could not be read: templates locked');
-    // Nothing is judged without them: no "4 of 4", and Build stays off.
-    expect(screen.queryByText('4 of 4')).toBeNull();
-    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
-    fail = false;
-    await userEvent.click(within(alert).getByRole('button', { name: 'Check again' }));
-    expect(await screen.findByText('4 of 4')).toBeTruthy();
-  });
 });
 
 describe('D8 and D9 the aside', () => {
-  it('a chapter row opens that chapter in Master & QC, a credits row opens its own id', async () => {
+  it('a chapter row opens that chapter in Master & QC, a credits row opens its own chapter id', async () => {
     const onOpenInMaster = vi.fn();
-    mount(
-      {
-        creditsTemplates: async () => [
-          { id: 'o', kind: 'opening', name: 'Opening', body: 'x' },
-          { id: 'c', kind: 'closing', name: 'Closing', body: 'x' },
-        ],
-      },
-      { onOpenInMaster },
-    );
+    mount({ manuscriptChapters: async () => [credits('opening'), ...CHAPTERS, credits('closing')] }, { onOpenInMaster });
     await userEvent.click(await screen.findByRole('button', { name: /^Chapter 02: Pass/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Opening credits: / }));
     await userEvent.click(await screen.findByRole('button', { name: /^Closing credits: / }));
-    expect(onOpenInMaster.mock.calls).toEqual([['c2'], ['credits-closing']]);
+    expect(onOpenInMaster.mock.calls).toEqual([['c2'], ['credits-opening'], ['credits-closing']]);
   });
 
   it('the header button opens Master & QC itself; without a handler there is no button', async () => {

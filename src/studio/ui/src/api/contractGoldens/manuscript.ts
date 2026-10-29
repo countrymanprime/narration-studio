@@ -33,5 +33,6 @@ export const manuscriptGoldens: Record<string, z.ZodType> = {
   'manuscript-reader.json': readerSchema,
   'manuscript-chapters-measured.json': chaptersSchema,
   'manuscript-chapters-recorded.json': chaptersSchema,
+  'manuscript-chapters-with-credits.json': chaptersSchema,
   'manuscript-chapters-recorded-through.json': chaptersSchema,
 };

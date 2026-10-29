@@ -128,6 +128,11 @@ func passageMapBook(service *manuscript.Service) func() (passagemap.Book, error)
 			text, _ := paragraph["text"].(string)
 			book.Lines = append(book.Lines, passagemap.Line{ChapterID: chapterID, ID: id, Words: len(strings.Fields(text))})
 		}
+		creditIDs, creditLines := service.CreditsBook()
+		book.Chapters = append(book.Chapters, creditIDs...)
+		for _, line := range creditLines {
+			book.Lines = append(book.Lines, passagemap.Line{ChapterID: line.ChapterID, ID: line.ID, Words: len(strings.Fields(line.Text))})
+		}
 		return book, nil
 	}
 }

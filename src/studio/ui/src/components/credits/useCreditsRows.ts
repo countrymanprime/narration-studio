@@ -28,7 +28,7 @@ export type CreditsRow = {
   words?: number;
   estimatedSeconds?: number;
   unresolved: string[];
-  /** The template rendered: the Prepped dot of the chapter lists reads its unresolved tokens (`creditsRows`). */
+  /** The template rendered: its text and the [Tokens] still to fill in. */
   preview?: CreditsRenderResult;
   status: ChapterStatus;
   /** The row's confirmed track's recorded audio in the saved project, in seconds: the same never-an-estimate measurement a manuscript chapter's own Recorded column shows. */

@@ -1,11 +1,9 @@
+import { isNarrationChapter } from '../../../chapterKinds';
 import { headingName } from '../../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
-import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
-import { useCreditsRows } from '../../credits/useCreditsRows';
-import { listedChapters } from '../../delivery/page/chapterStates';
 import { chapterOfFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
@@ -90,8 +88,6 @@ function sayOnce(prefix: string, reason: string): string {
   return /delivery profiles? could not be read/i.test(reason) ? reason : `${prefix}: ${reason}`;
 }
 
-const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
-
 function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, focusFile }: BodyProps & { projectFolder: string }) {
   const manuscript = usePort('manuscript');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
@@ -99,9 +95,6 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const [chaptersRead, setChaptersRead] = useState(false);
   const profilesPort = usePort('deliveryProfiles');
   const run = useMeasureRun();
-  // The credits files count toward the package like a chapter, as Delivery's list counts them, so the two pages say the same number.
-  const creditRows = useCreditsRows('master', () => undefined);
-  const credits = useMemo(() => creditsEntries(creditRows.rows, ownsOpeningCredits(chapters)), [creditRows.rows, chapters]);
   const jobs = useExportJobs();
   const mastering = useMasteringProviders();
   const [all, setAll] = useState<DeliveryProfile[]>([]);
@@ -165,7 +158,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
 
   // The profile a measurement was judged against wins over the project's current choice until it is measured again.
   const profile = run.job?.profile ?? chosen;
-  // One row per chapter, the credits and the retail sample, with a file or without; the open pickups come from the Pickups page's own list.
+  // One row per chapter (the credits are chapters) and the retail sample, with a file or without; the open pickups come from the Pickups page's own list.
   const openLines = useOpenPickups();
   const openPickups = useMemo(() => {
     if (!openLines) return undefined;
@@ -173,8 +166,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     for (const line of openLines) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
     return counts;
   }, [openLines]);
-  const slots = useMemo(() => listedChapters(chapters, credits), [chapters, credits]);
-  const rows = useMemo(() => (profile ? buildChapterRows(run.files, profile, slots, openPickups) : []), [run.files, profile, slots, openPickups]);
+  const rows = useMemo(() => (profile ? buildChapterRows(run.files, profile, chapters, openPickups) : []), [run.files, profile, chapters, openPickups]);
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
@@ -206,7 +198,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     },
     [run.files, chapters, remember],
   );
-  const bar = useMemo(() => chapters.filter(isNarration).map((chapter) => ({ id: chapter.id, name: headingName(chapter) })), [chapters]);
+  const bar = useMemo(() => chapters.filter(isNarrationChapter).map((chapter) => ({ id: chapter.id, name: headingName(chapter) })), [chapters]);
   const goToChapter = (id: string) => {
     const chapter = chapters.find((candidate) => candidate.id === id);
     if (!chapter) return;
@@ -294,7 +286,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               <FilesTable
                 files={run.files}
                 profile={profile && chaptersRead ? profile : undefined}
-                slots={slots}
+                slots={chapters}
                 openPickups={openPickups}
                 heading={heading}
                 controls={controls}
@@ -330,7 +322,6 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           <PackageChecks
             profile={profile}
             chapters={chapters}
-            credits={credits}
             files={run.files}
             loading={!chaptersRead || (!profile && !profileProblem)}
             onOpenDelivery={onOpenDelivery}

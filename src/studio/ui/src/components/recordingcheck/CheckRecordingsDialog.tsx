@@ -15,7 +15,7 @@ import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
-import { creditsCheckKind } from '../production/recordingCheckText';
+import { isCreditsChapter } from '../../chapterKinds';
 import { CheckResult, ReasonBlock } from './CheckResult';
 import {
   audioToCheck,
@@ -40,8 +40,6 @@ import { summarizeActivity } from './activityView';
 /** The dialog's section labels: the Chapters column, Audio to check. */
 const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
 
-const NONE: readonly ManuscriptChapter[] = [];
-
 /** A start the host held because a model it needs is not installed: the first-pass model, or the larger model of a second look. */
 type ModelAsk = Extract<CoverageStartResult, { status: 'asset_required' | 'recheck_asset_required' }>;
 
@@ -51,24 +49,13 @@ type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageR
  * Check recordings (mock pickups/CheckRecordings.tsx), the app's one recording check: how the check is made (`RunOptions`), the recorded
  * chapters with their check state and last result, the audio to check, and a live run of up to "Chapters at once" chapters (the host runs one
  * check per chapter and allows as many at once as each start names). Every entry, on every page and for one chapter or several, opens it
- * through `openCheckRecordings`, which hands it `preselected`, `extra`, `onClosed` and `close`.
+ * through `openCheckRecordings`, which hands it `preselected`, `onClosed` and `close`.
  *
  * A model the run needs and that is not installed is asked for here, with its facts and the real download (the host holds the start and
  * names the model); a missing larger model can instead be skipped with "Check with <model> only". After a single chapter's run, and from a
  * row's Show result, the dialog shows that chapter's full report (`CheckResult`); a refused chapter's row says why with the fix in place.
  */
-export function CheckRecordingsDialog({
-  preselected,
-  extra = NONE,
-  onClosed,
-  close,
-}: {
-  preselected: readonly string[];
-  /** Chapters the manuscript does not list (a credits row's), offered first whatever their recording reads. */
-  extra?: readonly ManuscriptChapter[];
-  onClosed?: () => void;
-  close: () => void;
-}) {
+export function CheckRecordingsDialog({ preselected, onClosed, close }: { preselected: readonly string[]; onClosed?: () => void; close: () => void }) {
   const manuscript = usePort('manuscript');
   const coverage = usePort('coverage');
   const whisper = usePort('whisper');
@@ -104,7 +91,7 @@ export function CheckRecordingsDialog({
     void (async () => {
       try {
         const [allChapters, engines] = await Promise.all([manuscript.manuscriptChapters(), coverage.coverageEngines()]);
-        const chapters = [...extra.filter((chapter) => !allChapters.some((listed) => listed.id === chapter.id)), ...recordedChapters(allChapters, preselected)];
+        const chapters = recordedChapters(allChapters, preselected);
         const results = Object.fromEntries(
           await Promise.all(chapters.map(async (chapter) => [chapter.id, await coverage.coverageResult(chapter.id)] as const)),
         );
@@ -124,7 +111,7 @@ export function CheckRecordingsDialog({
     return () => {
       active = false;
     };
-  }, [manuscript, coverage, extra, preselected]);
+  }, [manuscript, coverage, preselected]);
 
   // The host's live progress and the end of each run.
   useEffect(
@@ -325,7 +312,7 @@ export function CheckRecordingsDialog({
   if (shown) {
     const result = loaded.results[shown.id];
     const checked = result?.state === 'current' || result?.state === 'stale';
-    const credits = creditsCheckKind(shown.id) !== undefined;
+    const credits = isCreditsChapter(shown);
     const leave = (path: string) => {
       close();
       navigate(path);
@@ -348,9 +335,9 @@ export function CheckRecordingsDialog({
             result={result}
             loadError={viewError}
             retry={() => reload(shown.id)}
-            // A credits row's result opens its Script credits entry, never a paragraph or the Editing page.
+            // The credits have no paragraphs: a result's paragraph link opens their Script credits entry. Editing opens them like any chapter.
             goToParagraph={(index) => leave(credits ? scriptPath(shown.id) : scriptPath(shown.id, index))}
-            openWorkspace={credits ? undefined : () => leave(addressPath({ page: 'editing', chapter: shown.id }))}
+            openWorkspace={() => leave(addressPath({ page: 'editing', chapter: shown.id }))}
             actions={
               <Button disabled={blocked || blockedByDaw} onClick={() => begin([shown.id])}>
                 {checked ? 'Check again' : 'Check recording'}

@@ -62,13 +62,15 @@ type Service struct {
 	// +checklocks:mu
 	project string
 	// +checklocks:mu
-	jobs     map[string]*ImportJob
-	persist  atomic.Pointer[persist.Reporter]
-	onEnd    atomic.Pointer[func(ImportJob)]
-	manCache atomic.Pointer[manuscriptCache]
-	recorded atomic.Pointer[RecordedFractions]
-	lengths  atomic.Pointer[RecordedLengths]
-	through  atomic.Pointer[RecordedThroughs]
+	jobs          map[string]*ImportJob
+	persist       atomic.Pointer[persist.Reporter]
+	onEnd         atomic.Pointer[func(ImportJob)]
+	manCache      atomic.Pointer[manuscriptCache]
+	recorded      atomic.Pointer[RecordedFractions]
+	lengths       atomic.Pointer[RecordedLengths]
+	through       atomic.Pointer[RecordedThroughs]
+	credits       atomic.Pointer[CreditsProvider]
+	creditsStatus atomic.Pointer[CreditsStatusWriter]
 }
 
 // RecordedFractions supplies the measured share of each chapter's words present, by chapter id: what fills a chapter

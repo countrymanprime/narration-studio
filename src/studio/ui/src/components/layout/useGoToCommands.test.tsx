@@ -29,6 +29,16 @@ describe('useGoToCommands', () => {
     expect(commands.filter((c) => c.group === 'Go to').map((c) => c.label)).toEqual(['Go to Proof', 'Go to Production']);
   });
 
+  it('lists the credits chapters like any other, opening first and closing last', () => {
+    const list: GoToChapter[] = [{ id: 'credits-opening', title: 'Opening credits' }, ...chapters, { id: 'credits-closing', title: 'Closing credits' }];
+    render(<Harness go={() => {}} chapterList={list} />);
+    const labels = providedCommands()
+      .filter((c) => c.group === 'Chapters')
+      .map((c) => c.label);
+    expect(labels[0]).toBe('Go to Opening credits');
+    expect(labels.at(-1)).toBe('Go to Closing credits');
+  });
+
   it('running a command calls go with its target once', () => {
     const go = vi.fn();
     render(<Harness go={go} />);

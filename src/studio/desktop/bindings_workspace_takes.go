@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/coverage"
 	"errors"
 	"fmt"
 
@@ -69,6 +70,9 @@ func (h *Host) workspaceTakesResolved(svc hostServices, chapterID string, firstT
 
 // manuscriptChapterTitle is the display title of the manuscript's narration chapter chapterID.
 func manuscriptChapterTitle(svc hostServices, chapterID string) (string, error) {
+	if kind, ok := coverage.CreditsKind(chapterID); ok {
+		return creditsScriptTitles[kind], nil
+	}
 	data, err := svc.manuscript.Load()
 	if err != nil {
 		return "", err

@@ -4,7 +4,7 @@ import measureSuccess from '../../../../../../../tests/fixtures/contracts/measur
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { measureJobSchema } from '../../../api/schemas/measure';
-import type { DeliveryProfile, DeliveryProfilesState, MeasureFileResult, MeasureJob, NarrationApi } from '../../../types';
+import type { DeliveryProfile, DeliveryProfilesState, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi } from '../../../types';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
@@ -12,6 +12,21 @@ import { PortOverrides } from '../../../ports/usePort';
 import { ALL_PASS, CHAPTERS, TWO_FAIL, failingTwo, passing } from '../files/testFiles';
 
 export { ALL_PASS, CHAPTERS, TWO_FAIL, failingTwo, passing };
+
+const creditsChapter = (kind: 'opening' | 'closing'): ManuscriptChapter => ({
+  id: `credits-${kind}`,
+  title: kind === 'opening' ? 'Opening credits' : 'Closing credits',
+  index: -2,
+  wordCount: 40,
+  status: 'not_started',
+  contentKind: 'narration',
+  isCredits: true,
+  paragraphIds: [],
+});
+
+/** The chapter list as the host gives it: the opening credits first, the closing credits last, around the manuscript's chapters. */
+export const withCredits = (chapters: readonly ManuscriptChapter[]): ManuscriptChapter[] => [creditsChapter('opening'), ...chapters, creditsChapter('closing')];
+export const CHAPTERS_WITH_CREDITS = withCredits(CHAPTERS);
 
 // Imported, not read from disk: the stories run in the browser, where there is no `fs`.
 const success = measureJobSchema.parse(measureSuccess);

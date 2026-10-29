@@ -2,6 +2,7 @@
 // message that says what is wrong and two ways out, in place of a blank page, a crash or a quiet landing somewhere else. It wraps a
 // page's route and reads the address with `navigation/address.ts`; the page inside keeps reading its own address as before.
 
+import { creditsKindOfId } from '../credits/creditsEntries';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { readPickupIds } from '../booth/page/boothQuery';
@@ -26,7 +27,11 @@ const TITLE: Record<AddressPage, string> = {
   settings: 'Settings',
 };
 
-type Asked = { chapter: string; paragraph?: string };
+type Asked = {
+  chapter: string;
+  paragraph?: string;
+  /** The page answers an unlisted credits file with its own panel (the Booth), so the gate does not. */ ownsCreditsPanel?: boolean;
+};
 type ListedChapter = { id: string; paragraphIds?: readonly { id: string }[] };
 
 /** The chapter (and the line in it) an address asks for, if it asks for ones the manuscript must have. */
@@ -35,7 +40,7 @@ function askedOf(read: AddressRead): Asked | undefined {
   const address = read.address;
   if (address.page === 'editing' || address.page === 'proof') return address.chapter === undefined ? undefined : { chapter: address.chapter };
   if (address.page === 'booth' && address.target && 'chapter' in address.target) {
-    return { chapter: address.target.chapter, paragraph: address.target.from?.paragraphId };
+    return { chapter: address.target.chapter, paragraph: address.target.from?.paragraphId, ownsCreditsPanel: true };
   }
   return undefined;
 }
@@ -44,7 +49,8 @@ function askedOf(read: AddressRead): Asked | undefined {
 function missingFrom(asked: Asked | undefined, chapters: readonly ListedChapter[] | null): 'chapter' | 'line' | undefined {
   if (asked === undefined || chapters === null) return undefined;
   const chapter = chapters.find((item) => item.id === asked.chapter);
-  if (!chapter) return 'chapter';
+  // A credits file the library has no template for is not in the list; the Booth answers that with its own "not set up" panel, so the gate lets it through there only.
+  if (!chapter) return asked.ownsCreditsPanel && creditsKindOfId(asked.chapter) ? undefined : 'chapter';
   if (asked.paragraph === undefined || chapter.paragraphIds === undefined) return undefined;
   return chapter.paragraphIds.some((row) => row.id === asked.paragraph) ? undefined : 'line';
 }

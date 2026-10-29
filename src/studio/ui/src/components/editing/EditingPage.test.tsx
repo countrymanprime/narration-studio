@@ -18,7 +18,7 @@ import { useFlagActions } from './flags/flagActions';
 import { EditingPage, type EditingPageProps } from './EditingPage';
 import { PageFooterProvider } from '../primitives/KeyHints';
 import { useTakeControls } from './takes/takeControls';
-import { dawFor, EditingHost, FINDING, newJournal, noAudioApi, pageApi } from './page/testPage';
+import { CHAPTERS_WITH_CREDITS, dawFor, EditingHost, FINDING, newJournal, noAudioApi, pageApi } from './page/testPage';
 import { buildDoc } from './model';
 import { finding } from './cleanup/cleanupFixtures';
 import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
@@ -686,6 +686,39 @@ describe('EditingPage', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: /Change chapter/ }));
     const items = await screen.findAllByRole('menuitemradio');
     expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent ?? null)).toEqual(['Complete', ...items.slice(1).map(() => '~40%')]);
+  });
+
+  // Owner rule: the credits are chapters, so the picker lists both (opening first, closing last), the stepper walks to them, and each opens.
+  describe('the credits are chapters', () => {
+    const withCredits = { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS };
+
+    // Credits are not linked to a track, so the link dialog opens by itself over the page: the queries look behind it.
+    it('lists the opening credits first and the closing credits last in the chapter picker', async () => {
+      mount({ api: withCredits });
+      await script();
+      await userEvent.setup().click(screen.getByRole('button', { name: /Change chapter/, hidden: true }));
+      const names = (await screen.findAllByRole('menuitemradio', { hidden: true })).map((item) => item.textContent ?? '');
+      expect(names).toHaveLength(4);
+      expect(names[0]).toMatch(/Opening credits/);
+      expect(names[3]).toMatch(/Closing credits/);
+    });
+
+    it.each(['credits-opening', 'credits-closing'])('opens %s with its text as one paragraph and nothing heard', async (id) => {
+      mount({ chapterId: id, api: withCredits });
+      await script();
+      expect(word(`${id}-p0:0`).textContent).toBe('This');
+      expect(document.querySelector(`[data-k^="${id}-p0:"]`)).not.toBeNull();
+    });
+
+    it('opens on the first chapter with text, and steps to the opening credits and back with Alt+Up and Alt+Down', async () => {
+      mount({ api: withCredits });
+      await script();
+      expect(word('p1:0')).toBeTruthy();
+      press('ArrowUp', { altKey: true });
+      await waitFor(() => expect(word('credits-opening-p0:0')).toBeTruthy());
+      press('ArrowDown', { altKey: true });
+      await waitFor(() => expect(word('p1:0')).toBeTruthy());
+    });
   });
 
   describe('the Enter hint names what Enter does here', () => {

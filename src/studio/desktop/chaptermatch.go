@@ -1,6 +1,8 @@
 package main
 
 import (
+	"desktop/internal/coverage"
+	"desktop/internal/manuscript"
 	"fmt"
 	"os"
 	"time"
@@ -62,6 +64,11 @@ func chapterTrackMatchIn(svc hostServices, chapterID string) (chapterTrackMatch,
 		return chapterTrackMatch{}, tracks.Project{}, err
 	}
 
+	// The credits are not matched to tracks by name (manuscriptChapters leaves them out), but one asked about still answers: its
+	// confirmed link if it has one, else no match and every track to pick from.
+	if kind, isCredits := coverage.CreditsKind(chapterID); isCredits {
+		chapters = append(chapters, chaptermatch.Chapter{ID: chapterID, Title: creditsScriptTitles[kind]})
+	}
 	result, err := chaptermatch.ForChapter(chapterID, chapters, project, confirmed)
 	if err != nil {
 		return chapterTrackMatch{}, tracks.Project{}, fmt.Errorf("that chapter is not part of the current manuscript")
@@ -222,6 +229,10 @@ func manuscriptChapters(svc hostServices) ([]chaptermatch.Chapter, error) {
 	}
 	chapters := make([]chaptermatch.Chapter, 0, len(raw))
 	for _, chapter := range raw {
+		// The credits are linked by hand: a track is never matched to one by its name.
+		if manuscript.IsCredits(chapter) {
+			continue
+		}
 		id, _ := chapter["id"].(string)
 		title, _ := chapter["title"].(string)
 		chapters = append(chapters, chaptermatch.Chapter{ID: id, Title: title})

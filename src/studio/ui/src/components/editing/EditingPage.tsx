@@ -1,5 +1,6 @@
 import { usePrefetchPeaks } from './ribbon/useRibbonPeaks';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
@@ -111,7 +112,7 @@ function EditingLoaded({
   useEffect(() => {
     let live = true;
     manuscript.manuscriptChapters().then(
-      (all) => live && setChapters(all.filter((c) => (c.contentKind ?? 'narration') === 'narration')),
+      (all) => live && setChapters(all.filter(isNarrationChapter)),
       (e: unknown) => live && setError(e instanceof Error ? e.message : String(e)),
     );
     return () => {
@@ -133,7 +134,9 @@ function EditingLoaded({
       }),
     [chapters],
   );
-  const chapter = list.find((c) => c.id === chosen) ?? list[0];
+  // With none asked for, the page opens on the first chapter with text; the credits (first in the list) are one step away.
+  const landing = list.find((c) => !chapters?.find((item) => item.id === c.id && isCreditsChapter(item))) ?? list[0];
+  const chapter = list.find((c) => c.id === chosen) ?? landing;
   // The other chapters' waveforms are read in the background, in order, and kept until the app closes.
   usePrefetchPeaks(
     list.map((c) => c.id),
@@ -160,7 +163,7 @@ function EditingLoaded({
   const stepper = chapter ? <ChapterStepper chapters={list} value={chapter.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={choose} onStep={step} /> : null;
   const dawIndicator = daw.off ? <ConnectionIndicator id="dawoff" label={`${daw.dawName} not connected`} onOpen={dawDialog.reopen} /> : null;
   // A deep link applies to the chapter it was given for, until the narrator moves on.
-  const link: DeepLink = !moved && chapter && chapter.id === (asked ?? list[0]?.id) ? { passageId, findingId, t } : {};
+  const link: DeepLink = !moved && chapter && chapter.id === (asked ?? landing?.id) ? { passageId, findingId, t } : {};
 
   return (
     <CommandScope kind="page">

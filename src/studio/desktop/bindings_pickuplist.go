@@ -139,8 +139,8 @@ func pickupChapters(service *manuscript.Service) func() ([]pickuplist.Chapter, e
 		chapters := make([]pickuplist.Chapter, 0, len(rows))
 		for _, row := range rows {
 			id, _ := row["id"].(string)
-			if id == "" {
-				continue
+			if id == "" || manuscript.IsCredits(row) {
+				continue // a pickup is a line of text to re-read; a credits file has none
 			}
 			chapter := pickuplist.Chapter{ID: id}
 			if seconds, ok := row["recordedSeconds"].(float64); ok {

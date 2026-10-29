@@ -51,8 +51,8 @@ function chapterRow(table: HTMLElement, title: string): HTMLTableRowElement {
 }
 
 describe('ChapterLinksTable', () => {
-  // The owner could not link the opening or closing credits to a track: the table listed only the manuscript's chapters, and the credits
-  // are never in that list, though the host takes their ids (credits-opening, credits-closing) in chapterTrackSet like a chapter's.
+  // The owner could not link the opening or closing credits to a track: the table listed only the manuscript's chapters. The credits are
+  // chapters of that list, and the host takes their ids (credits-opening, credits-closing) in chapterTrackSet like a chapter's.
   it('lists the opening credits first and the closing credits last, and links them to a track', async () => {
     const user = userEvent.setup();
     const api = renderTable();
@@ -67,6 +67,36 @@ describe('ChapterLinksTable', () => {
     await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
     expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
+  });
+
+  // The breaker double-clicked Confirm: the second press arrived before the row re-rendered busy and unlinked both rows.
+  it('links once when Confirm is pressed twice in a row', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    const confirm = within(opening).getByRole('button', { name: 'Confirm' });
+    await user.dblClick(confirm);
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    expect(set).toHaveBeenCalledTimes(1);
+    expect((await api.chapterTrackMapList()).mappings.filter((m) => m.chapterId === 'credits-opening')).toHaveLength(1);
+  });
+
+  it('opens a linked credits chapter in Editing or Proof like any chapter', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+
+    await user.click(within(chapterRow(table, 'Opening credits')).getByRole('button', { name: /^More actions for / }));
+    expect(await screen.findByRole('menuitem', { name: 'Open in Editing' })).toBeTruthy();
+    await user.click(screen.getByRole('menuitem', { name: 'Open in Proof' }));
+    expect(screen.getByRole('status', { name: 'Location' }).textContent).toBe('/proof/credits-opening');
   });
 
   it('lists every narration chapter as not linked when nothing is confirmed', async () => {

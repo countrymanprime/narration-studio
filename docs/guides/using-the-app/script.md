@@ -8,7 +8,7 @@ three parts side by side:
 - **Chapters** on the left: every narration chapter, the one in view marked, its title with its subtitle under it in smaller, dimmer type, each with a dot for how far its prep is
   (**Not started**, **In progress** or **Prepped**; the key is under the list). Press a chapter to go to it. When the project has opening credits, an
   **Opening credits** row comes first, and when it has closing credits, a **Closing credits** row comes last; each goes
-  to those credits in the reader, and its dot is the prep state you set on them.
+  to those credits in the reader, and its dot is the prep state you set on them. The credits are chapters of the book everywhere else in the app (Editing, Proof, the Booth, Production), but here they are drawn once, as these cards, and Find and bookmarks cover the manuscript's text only.
 - **The reader** in the middle: the whole book as one scrolling text. Each chapter starts with a dashed line that ends
   the one before ("End of chapter 1 · 2,140 words", the same dashed line the [Booth](booth.md) draws at each page break), then a card with the chapter's title in larger type and its subtitle under it, smaller and dimmer (a chapter with no subtitle has no empty line), its word count,
   its finished audio, its notes, and **My prep**, where you set the chapter's prep state.

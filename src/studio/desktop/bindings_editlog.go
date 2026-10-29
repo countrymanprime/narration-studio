@@ -58,6 +58,12 @@ func editLogBook(service *manuscript.Service) func() (editlog.Book, error) {
 			text, _ := paragraph["text"].(string)
 			book.Lines = append(book.Lines, editlog.Line{ChapterID: chapterID, ID: id, Index: paragraphIndex(paragraph["index"]), Text: text})
 		}
+		// The credits are chapters of the list: a cut or an effect on one is recorded like any other.
+		creditIDs, creditLines := service.CreditsBook()
+		book.Chapters = append(book.Chapters, creditIDs...)
+		for _, line := range creditLines {
+			book.Lines = append(book.Lines, editlog.Line{ChapterID: line.ChapterID, ID: line.ID, Index: 0, Text: line.Text})
+		}
 		return book, nil
 	}
 }

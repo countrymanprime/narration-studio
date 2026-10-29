@@ -35,7 +35,7 @@ import type { NarrationApi, TeleprompterState } from '../../../types';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { BoothNextPage } from './BoothNextPage';
 import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
-import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
+import { BoothHost, creditsChapter, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 
@@ -781,7 +781,7 @@ describe('credits-are-readable-and-recordable', () => {
   };
 
   it('open as a source with the unresolved-token warning, and record to their own region', async () => {
-    const page = renderPage({ search: '?credits=opening', api: credits as Partial<NarrationApi> });
+    const page = renderPage({ search: '?chapter=credits-opening', api: credits as Partial<NarrationApi> });
     await screen.findByText('Read', { exact: false });
     expect(screen.getByRole('button', { name: /token has no value: Title/ })).toBeTruthy();
     await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
@@ -797,16 +797,69 @@ describe('credits-are-readable-and-recordable', () => {
       ),
     );
   });
+
+  it('the old ?credits=opening address opens the same chapter', async () => {
+    renderPage({ search: '?credits=opening', api: credits as Partial<NarrationApi> });
+    await screen.findByText('Read', { exact: false });
+    expect(screen.getByRole('button', { name: /token has no value: Title/ })).toBeTruthy();
+  });
+
+  it('are in the chapter picker as chapters: opening first, closing last, each one opens in the page', async () => {
+    const both = {
+      creditsTemplates: async () => [
+        { id: 'o', kind: 'opening', name: 'Opening', body: 'Opening.' },
+        { id: 'c', kind: 'closing', name: 'Closing', body: 'Closing.' },
+      ],
+      creditsPreview: async (body: string) => ({ text: body, words: 1, unresolved: [] }),
+    } as Partial<NarrationApi>;
+    renderPage({ search: '?chapter=c2', api: both });
+    const next = await screen.findByRole('button', { name: 'Next chapter' });
+    await waitFor(() => expect(next.getAttribute('aria-disabled')).not.toBe('true'));
+    // Chapter Two is followed by the closing credits, the last chapter.
+    await userEvent.click(next);
+    await screen.findByText('Closing.', { exact: false });
+    expect(screen.getByRole('button', { name: 'Next chapter' }).getAttribute('aria-disabled') ?? 'true').toBe('true');
+    // And three steps back are Chapter Two, Chapter One and the opening credits, the first.
+    for (let step = 0; step < 3; step++) {
+      await userEvent.click(screen.getByRole('button', { name: 'Previous chapter' }));
+      await settle();
+    }
+    await screen.findByText('Opening.', { exact: false });
+  });
+
+  it('with only credits in the book the Booth reads them, not "no chapters to read"', async () => {
+    renderPage({
+      search: '',
+      api: {
+        manuscriptChapters: async () => [creditsChapter('opening')],
+        creditsTemplates: credits.creditsTemplates,
+        creditsPreview: credits.creditsPreview,
+      } as Partial<NarrationApi>,
+    });
+    await screen.findByText('Read', { exact: false });
+    expect(screen.queryByText(/no chapters to read/)).toBeNull();
+  });
+
+  it('draw no bookmark ribbons or page breaks: the margin is left out', async () => {
+    renderPage({ search: '?chapter=credits-opening', api: credits as Partial<NarrationApi> });
+    await screen.findByText('Read', { exact: false });
+    expect(screen.queryByRole('button', { name: /bookmark/i })).toBeNull();
+    expect(document.querySelector('[data-page-breaks]')).toBeNull();
+  });
 });
 
 describe('a page that has nothing to show says so and leaves a way out', () => {
-  const openingOnly = {
-    creditsTemplates: async () => [{ id: 'o', kind: 'opening', name: 'Opening', body: 'Hello.' }],
-    creditsPreview: async () => ({ text: 'Hello.', words: 1, unresolved: [] }),
+  // The closing credits are a chapter, but the template renders to no words.
+  const closingEmpty = {
+    creditsTemplates: async () => [
+      { id: 'o', kind: 'opening', name: 'Opening', body: 'Hello.' },
+      { id: 'c', kind: 'closing', name: 'Closing', body: '' },
+    ],
+    creditsPreview: async (body: string) => ({ text: body, words: body ? 1 : 0, unresolved: [] }),
   } as Partial<NarrationApi>;
 
-  it('credits with no template: a panel names what is missing and offers Settings, the chapters, and Escape', async () => {
-    const page = renderPage({ search: '?credits=closing', api: openingOnly });
+  it('credits with no text: a panel names what is missing and offers Settings, the chapters, and Escape', async () => {
+    const page = renderPage({ search: '?chapter=credits-closing', api: closingEmpty });
     expect(await screen.findByRole('heading', { name: 'The closing credits are not set up' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Set up credits in Settings' }));
@@ -816,10 +869,15 @@ describe('a page that has nothing to show says so and leaves a way out', () => {
   });
 
   it('Back to the chapters goes to the chapter list (Script), not into a Booth already reading chapter 1', async () => {
-    const page = renderPage({ search: '?credits=closing', api: openingOnly });
+    const page = renderPage({ search: '?credits=closing', api: closingEmpty });
     await userEvent.click(await screen.findByRole('button', { name: 'Back to the chapters' }));
     expect(page.navigate).toHaveBeenCalledWith('/script');
     expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
+  });
+
+  it('credits with no template are not in the list, yet asked for they get the credits panel (set one up), not "not in this book"', async () => {
+    renderPage({ search: '?credits=closing' });
+    expect(await screen.findByRole('heading', { name: 'The closing credits are not set up' })).toBeTruthy();
   });
 
   it('a chapter the book does not have says so too, and the way back works', async () => {
@@ -829,8 +887,11 @@ describe('a page that has nothing to show says so and leaves a way out', () => {
     expect(page.navigate).toHaveBeenCalledWith('/script');
   });
 
-  it('while the credits are still being read there is no panel yet', async () => {
-    renderPage({ search: '?credits=closing', api: { ...openingOnly, creditsTemplates: () => new Promise(() => {}) } });
+  it('while the credits text is still being read there is no panel yet', async () => {
+    renderPage({
+      search: '?chapter=credits-closing',
+      api: { ...closingEmpty, creditsPreview: () => new Promise(() => {}) },
+    });
     await settle();
     expect(screen.queryByRole('heading', { name: /not set up/ })).toBeNull();
   });
@@ -1196,7 +1257,7 @@ describe('the Levels menu', () => {
     const setup = DAW_SETUPS.reaper;
     const daw = createMockDawClient(
       { ...setup, capabilities: { ...setup.capabilities, monitor_level: off } },
-      { chapterIds: ['c1', 'c2', 'credits-opening'], candidateIds: [], findingIds: [] },
+      { chapterIds: ['c1', 'c2', 'credits-opening', 'credits-closing'], candidateIds: [], findingIds: [] },
     );
     const page = renderPage({ daw });
     await ready();

@@ -20,6 +20,10 @@ the recogniser that heard the words (**Flagged by**, written out when the card i
 wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
+The chapter list starts with **Opening credits** and ends with **Closing credits** (when your credit templates have them): they are chapters like
+any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the first
+chapter with text. A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
+
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
 track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped).
 

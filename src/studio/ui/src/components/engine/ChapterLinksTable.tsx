@@ -2,7 +2,6 @@ import { headingName } from '../../chapterHeading';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chapterName } from '../../chapterName';
-import { creditsKindOfId } from '../credits/creditsEntries';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
@@ -139,8 +138,7 @@ function ChapterLinkRow({
   const showPicker = picking && choices.length > 0;
   const menu: MenuItem[] = [
     // Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels.
-    // Editing and Proof open a manuscript chapter; the credits are not in their chapter lists, so their rows offer the check only.
-    ...(row.state === 'linked' && !creditsKindOfId(row.chapter.id)
+    ...(row.state === 'linked'
       ? [
           { key: 'editing', label: 'Open in Editing', onSelect: () => navigate(addressPath({ page: 'editing', chapter: row.chapter.id })) },
           { key: 'proof', label: 'Open in Proof', onSelect: () => navigate(`/proof/${encodeURIComponent(row.chapter.id)}`) },

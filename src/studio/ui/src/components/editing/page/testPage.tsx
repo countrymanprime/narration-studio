@@ -21,6 +21,32 @@ const chapter = (id: string, title: string, index: number): ManuscriptChapter =>
 
 const CHAPTERS: ManuscriptChapter[] = [chapter('c1', 'Chapter One', 0), chapter('c2', 'Chapter Two', 1)];
 
+const CREDITS_TEXT = 'This is the opening credits text.';
+/** A project with credits: the host lists them as chapters, the opening first and the closing last (`index` -2, no paragraph ids of their own). */
+export const CHAPTERS_WITH_CREDITS: ManuscriptChapter[] = [
+  {
+    id: 'credits-opening',
+    title: 'Opening credits',
+    index: -2,
+    wordCount: 6,
+    status: 'not_started',
+    contentKind: 'narration',
+    isCredits: true,
+    paragraphIds: [],
+  },
+  ...CHAPTERS,
+  {
+    id: 'credits-closing',
+    title: 'Closing credits',
+    index: -2,
+    wordCount: 6,
+    status: 'not_started',
+    contentKind: 'narration',
+    isCredits: true,
+    paragraphIds: [],
+  },
+] as ManuscriptChapter[];
+
 const ITEM_GUID = '{ITEM-1}';
 const TRACK_GUID = '{TRACK-1}';
 
@@ -32,6 +58,8 @@ const PARAS = [
 
 function alignmentOf(chapterId: string, heard: boolean): WorkspaceAlignmentResult {
   const base = { chapterId, reasons: [], needsAlignAgain: false, extras: [], items: [] };
+  // A credits chapter's text is its rendered template as one paragraph, `<chapterId>-p0`, with no heading and nothing heard.
+  if (chapterId.startsWith('credits-')) return { ...base, state: 'never', paragraphs: [{ id: `${chapterId}-p0`, text: CREDITS_TEXT }], tokens: [] };
   if (chapterId !== 'c1') return { ...base, state: 'current', paragraphs: [], tokens: [], engine: { id: 'whisper:small', name: 'Whisper small' } };
   if (!heard) return { ...base, state: 'never', paragraphs: PARAS, tokens: [] };
   let i = 0;
