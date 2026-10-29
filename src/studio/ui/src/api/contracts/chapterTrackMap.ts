@@ -76,7 +76,7 @@ export type ChapterTrackMatch = {
   track: ChapterTrackCandidate | null;
   candidates: ChapterTrackCandidate[];
   warnings: ChapterTrackMatchWarning[];
-  tracks: Array<{ guid: string; name: string; index: number }>;
+  tracks: Array<{ guid: string; name: string; index: number; depth: number; isFolder: boolean; hasAudio: boolean }>;
   recordedEnd: RecordedEnd | null;
 };
 
@@ -170,6 +170,9 @@ export type ChapterTrackSummary = {
   color: string;
   muted: boolean;
   soloed: boolean;
+  /** Folders the track sits inside, and whether it is a folder parent (see Track). */
+  depth: number;
+  isFolder: boolean;
   itemCount: number;
   playableCount: number;
   missingSourceCount: number;

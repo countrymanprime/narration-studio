@@ -3,8 +3,10 @@
   "tracks": [
     {
       "color": "#0BCB11",
+      "depth": 0,
       "guid": "{0E4D1D7F-D039-674D-87E6-719376DE95EC}",
       "index": 0,
+      "isFolder": false,
       "items": [
         {
           "guid": "{4DA91027-F908-FE46-98A0-950A8D5A4661}",
@@ -26,8 +28,10 @@
     },
     {
       "color": "",
+      "depth": 0,
       "guid": "{DA2D209F-D10F-5E46-93E7-098D96499ED0}",
       "index": 1,
+      "isFolder": false,
       "items": [
         {
           "guid": "{816A96BA-02D1-214C-BB0F-A3D2FCD96160}",
@@ -49,8 +53,10 @@
     },
     {
       "color": "",
+      "depth": 0,
       "guid": "{C33A3BE7-8F84-7940-9610-65C6ED6CED7A}",
       "index": 2,
+      "isFolder": false,
       "items": [
         {
           "guid": "{0A607125-0D79-C34E-8E66-054BC8FE3AFD}",

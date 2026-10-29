@@ -118,6 +118,8 @@ const PROJECT = {
       color: '',
       muted: false,
       soloed: false,
+      depth: 0,
+      isFolder: false,
       items: [
         {
           guid: ITEM_GUID,

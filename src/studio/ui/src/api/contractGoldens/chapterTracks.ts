@@ -18,6 +18,7 @@ import { tracksDiscoverySchema, tracksProjectSchema } from '../schemas/tracks';
 
 export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'tracks-project.json': tracksProjectSchema,
+  'tracks-project-folders.json': tracksProjectSchema,
   'tracks-discovery-none.json': tracksDiscoverySchema,
   'tracks-discovery-several.json': tracksDiscoverySchema,
   'tracks-discovery-selected.json': tracksDiscoverySchema,

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { Panel } from './Panel';
+import { treeKeyHandler } from './treeKeys';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';
 
 const ROWS = [
@@ -259,5 +260,80 @@ export const FixedColumns: Story = {
     await expect(Math.round(a.width)).toBe(112);
     await expect(Math.round(b.width)).toBe(112);
     await expect(Math.round(a.right)).toBe(Math.round(b.right));
+  },
+};
+
+// Narration > (Chapters > (Chapter 1, Chapter 2)), Intro: each row's level and its folder's place, in file order.
+const TREE_ROWS = [
+  { id: 'narration', name: 'Narration', level: 1, folder: true, parent: '' },
+  { id: 'chapters', name: 'Chapters', level: 2, folder: true, parent: 'narration' },
+  { id: 'ch1', name: 'Chapter 1', level: 3, folder: false, parent: 'chapters' },
+  { id: 'ch2', name: 'Chapter 2', level: 3, folder: false, parent: 'chapters' },
+  { id: 'intro', name: 'Intro', level: 1, folder: false, parent: '' },
+];
+
+function TreeTable() {
+  const [open, setOpen] = useState(new Set(['narration', 'chapters']));
+  const [active, setActive] = useState('narration');
+  const toggle = (id: string, wanted: boolean) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (wanted) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const shown = (row: (typeof TREE_ROWS)[number]): boolean => row.parent === '' || (open.has(row.parent) && shown(TREE_ROWS.find((r) => r.id === row.parent)!));
+  return (
+    <div className="max-w-md">
+      <Table label="Tracks" tree>
+        <TableHead>
+          <TableRow>
+            <TableHeader>Track</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody
+          onKeyDown={treeKeyHandler(toggle)}
+          onFocus={(event) => setActive((event.target as HTMLElement).closest<HTMLElement>('[data-tree-row]')?.dataset.treeRow ?? active)}
+        >
+          {TREE_ROWS.filter(shown).map((row, at, rows) => (
+            <TableRow
+              key={row.id}
+              tree={{
+                id: row.id,
+                level: row.level,
+                posInSet: at + 1,
+                setSize: rows.length,
+                expanded: row.folder ? open.has(row.id) : undefined,
+                active: row.id === active,
+              }}
+            >
+              <TableCell>
+                <span style={{ paddingLeft: `${(row.level - 1) * 1.25}rem` }}>{row.name}</span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+// `Table tree`: a treegrid whose rows say their level, place and open state, with one tab stop and the WAI-ARIA tree keys: Right opens a
+// folder and steps into it, Left closes it or steps to its parent, Home and End jump.
+export const Tree: Story = {
+  render: () => <TreeTable />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('treegrid', { name: 'Tracks' })).toBeVisible();
+    const rows = () => canvas.getAllByRole('row').slice(1);
+    await expect(rows().map((row) => row.getAttribute('aria-level'))).toEqual(['1', '2', '3', '3', '1']);
+    rows()[1].focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    await expect(rows()[1]).toHaveAttribute('aria-expanded', 'false');
+    await expect(rows()).toHaveLength(3);
+    await userEvent.keyboard('{ArrowLeft}');
+    await expect(rows()[0]).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    await expect(rows()[2]).toHaveFocus();
   },
 };

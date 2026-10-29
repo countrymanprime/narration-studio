@@ -8,8 +8,8 @@ import type { Track } from '../../types';
 afterEach(cleanup);
 
 const tracks: Track[] = [
-  { guid: 'guid-1', index: 0, name: 'Chapter 1', color: '', muted: false, soloed: false, items: [] },
-  { guid: 'guid-2', index: 1, name: 'Chapter 2', color: '', muted: false, soloed: false, items: [] },
+  { guid: 'guid-1', index: 0, name: 'Chapter 1', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [] },
+  { guid: 'guid-2', index: 1, name: 'Chapter 2', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [] },
 ];
 
 describe('MappingConfirm', () => {

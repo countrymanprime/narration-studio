@@ -27,6 +27,10 @@ export type Track = {
   muted: boolean;
   soloed: boolean;
   items: TrackItem[];
+  /** How many folders the track sits inside; 0 at the top level and in a DAW with no folders. */
+  depth: number;
+  /** True for a folder parent. The children are the tracks after it with a greater depth. */
+  isFolder: boolean;
 };
 
 export type TracksProject = {
