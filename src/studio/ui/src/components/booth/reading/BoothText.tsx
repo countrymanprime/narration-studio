@@ -13,7 +13,7 @@ import type { EntityColour } from '../../../kinds/entityColour';
 import { kindMarkStyle } from '../../../kinds/markStyle';
 import { markToken, narratorMarkStyle } from '../../../kinds/narratorMark';
 import { positionOf, unitAtPosition, type ReadingPosition } from './readingPosition';
-import { ReaderColumn } from '../../script/page/tools/text/ReaderColumn';
+import { ReaderColumn } from '../../primitives/ReaderColumn';
 import { DEFAULT_TEXT_PREFS, readerColumn } from '../../script/page/tools/text/readerText';
 import { SpeakerChip } from './SpeakerChip';
 import { useBrowseView, type BrowseView } from './useBrowseView';

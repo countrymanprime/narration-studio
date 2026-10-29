@@ -16,7 +16,7 @@ import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/con
 import { chapterHeading, headingName } from '../../../../chapterHeading';
 import { overlay } from '../../../../overlay/overlayService';
 import { measureLineTop } from '../../bookmarks/ui/ribbonTops';
-import { ReaderColumn } from '../tools/text/ReaderColumn';
+import { ReaderColumn } from '../../../primitives/ReaderColumn';
 import { READER_COLUMN_VAR } from '../tools/text/readerText';
 import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from './layers';
 import { Para, type FindRange } from './Para';
