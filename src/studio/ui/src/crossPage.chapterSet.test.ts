@@ -8,8 +8,8 @@ import { isNarrationChapter } from './chapterKinds';
 import { chapterTrackRows } from './components/engine/chapterTrackRows';
 import { stageSegments } from './components/production/overview/overviewFigures';
 import { buildPipelineRows } from './components/production/pipeline/pipelineRows';
-import { scheduleChapters } from './components/schedule/progress';
-import { WPH } from './components/schedule/estimates';
+import { remainFor, scheduleChapters } from './components/schedule/progress';
+import { RATIO, WPH } from './components/schedule/estimates';
 import { chapterRecordedDetail, recordedShare } from './recordedThrough';
 
 const chapter = (id: string, patch: Partial<ProductionChapter> = {}): ProductionChapter => ({
@@ -35,6 +35,16 @@ describe('which chapters the book totals count', () => {
     const stageWords = stageSegments(book, WPH).reduce((sum, segment) => sum + segment.words, 0);
     expect(stageWords).toBe(narrated.length * 9300);
     expect(chapterTrackRows(book as unknown as ManuscriptChapter[], [], []).map((row) => row.chapter.id)).toEqual(narrated);
+  });
+});
+
+describe('the opening of the book', () => {
+  it('is the opening credits for the Schedule milestone: Front Matter is out, the credits and the first N chapters are in', () => {
+    const book = [chapter('credits-opening'), chapter('front', { contentKind: 'opening' }), chapter('c1'), chapter('c2')];
+    const work = remainFor(scheduleChapters(book), 'ch1');
+    // Two chapters (the credits and c1) at edit + proof; not Front Matter, not c2.
+    expect(work).toBeCloseTo((RATIO.edit + RATIO.proof) * 2);
+    expect(scheduleChapters(book.filter((c) => c.id !== 'credits-opening'))).toHaveLength(2);
   });
 });
 

@@ -2,18 +2,23 @@ import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/m
 import type { ProductionMilestone } from '../../api/contracts/production';
 import type { StatusId } from '../../kinds/statusTone';
 import { isNarrationChapter } from '../../chapterKinds';
+import { creditsKindOfId } from '../credits/creditsEntries';
+import type { CreditsKind } from '../credits/useCreditsRows';
 import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
 
 /** A chapter as the estimates see it: its words and the stage it is in. Only real progress goes in; a stage in progress is not yet done. */
-export type ScheduleChapter = { words: number; status: ChapterStatus; kind: ManuscriptContentKind | '' };
+export type ScheduleChapter = { words: number; status: ChapterStatus; kind: ManuscriptContentKind | ''; credits?: CreditsKind };
 
 /** The chapters that are narrated: a reference chapter is not recorded, so it is no work. */
 export function scheduleChapters(
-  chapters: readonly { status: ChapterStatus; wordCount: number; contentKind: ManuscriptContentKind | '' }[],
+  chapters: readonly { id?: string; status: ChapterStatus; wordCount: number; contentKind: ManuscriptContentKind | '' }[],
 ): ScheduleChapter[] {
-  return chapters.filter(isNarrationChapter).map((c) => ({ words: c.wordCount, status: c.status, kind: c.contentKind }));
+  return chapters.filter(isNarrationChapter).map((c) => {
+    const credits = c.id === undefined ? undefined : creditsKindOfId(c.id);
+    return { words: c.wordCount, status: c.status, kind: c.contentKind, ...(credits ? { credits } : {}) };
+  });
 }
 
 const STAGE_ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
@@ -113,12 +118,13 @@ export function remainFor(chapters: readonly ScheduleChapter[], stored: string):
     return hours;
   }
   if (measure === 'chN') {
-    // The opening, then the first N numbered chapters.
+    // The opening credits, then the first N numbered chapters. Front Matter is not the opening, and the closing credits are not numbered.
     const n = chaptersOf(stored);
     let numbered = 0;
     return chapters.reduce((a, c) => {
-      if (c.kind === 'narration') numbered += 1;
-      return c.kind === 'opening' || numbered <= n ? a + stagesLeft(c, ['edit', 'proof']) : a;
+      if (c.credits === 'opening') return a + stagesLeft(c, ['edit', 'proof']);
+      if (c.kind === 'narration' && !c.credits) numbered += 1;
+      return !c.credits && c.kind === 'narration' && numbered <= n ? a + stagesLeft(c, ['edit', 'proof']) : a;
     }, 0);
   }
   const stages: Record<string, readonly (keyof typeof DONE_AT)[]> = {
