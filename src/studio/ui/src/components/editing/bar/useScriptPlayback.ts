@@ -8,6 +8,7 @@ import type { SoundAt } from '../ribbon/useChapterSound';
 import type { WordClock } from '../follow/wordClock';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
 import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { usePort } from '../../../ports/usePort';
 import { fadeOutAndPause, STOP_FADE_SECONDS } from './playbackStop';
 import { playStopLine, type PlayedWord } from './playStopLine';
@@ -18,6 +19,8 @@ import { selectedKeysOf, type PageState } from '../script/scriptState';
 
 export const AUDIO_FAILED = "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.";
 const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
+const NOTHING_FOR_HEADING = 'Nothing was recorded for the heading.';
+const NOTHING_FOR_WORD = 'Nothing was recorded for this word.';
 
 const selectedFrom = (d: ChapterDoc, s: PageState): string[] => selectedKeysOf(d, s);
 
@@ -397,6 +400,10 @@ export function useScriptPlayback({
     if (s.sel) {
       if (playSelected()) return;
     }
+    // A word with no recording under the cursor (the chapter heading, read by no one) is said, not skipped over: playing on from the next heard word
+    // would start at the top of the chapter as if the heading had been played.
+    const here = s.cursor ? d.items[d.index.get(s.cursor) ?? -1] : undefined;
+    if (here && (here.t0 == null || here.st === 'miss')) return say(here.pid === HEADING_PARAGRAPH ? NOTHING_FOR_HEADING : NOTHING_FOR_WORD);
     const from = firstFrom(d, s.cursor);
     if (!from || from.t0 == null) return say(NOTHING_FROM_HERE);
     playFrom(leadStart(d, from.key, from.t0));

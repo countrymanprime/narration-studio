@@ -11,6 +11,7 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import { MIN_TAIL_SECONDS } from '../model';
+import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { clock } from './clock';
 import { SelectionActionButton } from './SelectionActionButton';
 import { SelectionBar } from './SelectionBar';
@@ -146,6 +147,21 @@ describe('play from the cursor', () => {
     // The providers answer on a microtask (playback/providers.ts).
     await act(async () => {});
     expect(notify).toHaveBeenCalledWith('Nothing was recorded from here.');
+    expect(state().playT).toBeNull();
+    expect(audio().play).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['the heading', true, 'Nothing was recorded for the heading.'],
+    ['a word', false, 'Nothing was recorded for this word.'],
+  ])('says nothing was recorded for %s under the cursor, and does not play on from the next heard word', async (_name, heading, said) => {
+    const first = base.items[0];
+    const unheard = { ...first, t0: null, t1: null, st: 'miss' as const, ...(heading ? { pid: HEADING_PARAGRAPH } : {}) };
+    const doc = { ...base, items: [unheard, ...base.items.slice(1)] };
+    mount(null, doc);
+    dispatch({ type: 'place', key: first.key });
+    act(() => playback.toggle());
+    await act(async () => {});
+    expect(notify).toHaveBeenCalledWith(said);
     expect(state().playT).toBeNull();
     expect(audio().play).not.toHaveBeenCalled();
   });
