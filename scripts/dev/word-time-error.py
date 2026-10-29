@@ -95,6 +95,8 @@ def main() -> int:
         words = json.loads(args.words.read_text(encoding="utf-8"))["words"]
     else:
         words = transcribe(args.audio, args.model)
+    if args.json:
+        args.json.write_text(json.dumps({"words": words}), encoding="utf-8")  # kept first: the transcription is the slow part
     mine, first = token_times(chapter, words)
     reference, _ = paragraph_spans.match_words(source, chapter)
     markers = json.loads((CORPUS / "alignment" / f"{args.source}.markers.json").read_text(encoding="utf-8"))
@@ -133,7 +135,7 @@ def main() -> int:
             boundaries += 1
             leak = max(0.0, before[1] - cut, cut - after[0])
             worst = max(worst, leak)
-            leaks += leak > 0.1
+            leaks += int(leak > 0.1)
         # A word whose middle is on the far side of a sentence cut is in another sentence than the script's.
         for k, part in enumerate(parts):
             lo_cut, hi_cut = cuts[k], cuts[k + 1]
@@ -141,15 +143,15 @@ def main() -> int:
                 if mine[i]:
                     tokens_in_sentences += 1
                     mid = (mine[i][0] + mine[i][1]) / 2
-                    misplaced += not (lo_cut - 0.05 <= mid <= hi_cut + 0.05)
+                    misplaced += int(not (lo_cut - 0.05 <= mid <= hi_cut + 0.05))
     out["sentence_boundaries_checked"] = boundaries
     out["boundaries_a_word_crosses_by_over_100ms"] = leaks
     out["worst_crossing_ms"] = round(worst * 1000)
     out["words_in_another_sentence"] = misplaced
     out["words_checked_against_cuts"] = tokens_in_sentences
-    print(json.dumps(out, indent=2))
+    print(json.dumps(out, indent=2, default=float))
     if args.json:
-        args.json.write_text(json.dumps({**out, "words": words}), encoding="utf-8")
+        args.json.write_text(json.dumps({**out, "words": words}, default=float), encoding="utf-8")
     return 0
 
 
