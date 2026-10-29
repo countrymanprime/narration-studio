@@ -875,9 +875,9 @@ describe('a page that has nothing to show says so and leaves a way out', () => {
     expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
   });
 
-  it('credits with no template are not a chapter: the page says the chapter is not in the book', async () => {
+  it('credits with no template are not in the list, yet asked for they get the credits panel (set one up), not "not in this book"', async () => {
     renderPage({ search: '?credits=closing' });
-    expect(await screen.findByRole('heading', { name: 'That chapter is not in this book' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'The closing credits are not set up' })).toBeTruthy();
   });
 
   it('a chapter the book does not have says so too, and the way back works', async () => {

@@ -700,14 +700,14 @@ describe('EditingPage', () => {
       expect(document.querySelector(`[data-k^="${id}-p0:"]`)).not.toBeNull();
     });
 
-    it('steps from the opening credits to the first chapter and back, with Alt+Down and Alt+Up', async () => {
+    it('opens on the first chapter with text, and steps to the opening credits and back with Alt+Up and Alt+Down', async () => {
       mount({ api: withCredits });
       await script();
-      expect(word('credits-opening-p0:0')).toBeTruthy();
-      press('ArrowDown', { altKey: true });
-      await waitFor(() => expect(word('p1:0')).toBeTruthy());
+      expect(word('p1:0')).toBeTruthy();
       press('ArrowUp', { altKey: true });
       await waitFor(() => expect(word('credits-opening-p0:0')).toBeTruthy());
+      press('ArrowDown', { altKey: true });
+      await waitFor(() => expect(word('p1:0')).toBeTruthy());
     });
   });
 

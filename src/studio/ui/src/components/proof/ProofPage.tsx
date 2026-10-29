@@ -163,7 +163,7 @@ export function ProofPage({
     [all, listed, chapters],
   );
   const chapter = all ? undefined : chapters.find((c) => c.id === scope);
-  const fallback = chapters.find((c) => c.id === current) ?? chapters[0];
+  const fallback = chapters.find((c) => c.id === current) ?? chapters.find((c) => !isCreditsChapter(c)) ?? chapters[0];
 
   useEffect(() => {
     if (!hasManuscript) return;

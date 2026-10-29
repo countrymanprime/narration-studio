@@ -1,3 +1,4 @@
+import { creditsKindOfId } from '../../credits/creditsEntries';
 import { useCallback, useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
@@ -137,15 +138,21 @@ export function useBoothData(target: BoothChapterTarget | null) {
   const source: BoothSource | undefined =
     chapter && credits ? preview && { kind: 'credits', credits, chapter, preview } : chapter && { kind: 'chapter', chapter };
   // Nothing to show once what it waits for has been read: the credits have no text, or the chapter asked for is not there. (No chapters at all is its own panel.)
+  // A credits file the library has no template for is not in the list; asked for by its id it is still the credits' own panel (set one up), not "not in this book".
+  const unlisted = !chapter ? creditsKindOfId(chapterId) : undefined;
   const unavailable: BoothUnavailable | undefined = source
     ? undefined
     : credits
       ? creditsLoaded
         ? { kind: 'credits', credits }
         : undefined
-      : chapters && chapters.length > 0
-        ? { kind: 'chapter' }
-        : undefined;
+      : unlisted
+        ? chapters
+          ? { kind: 'credits', credits: unlisted }
+          : undefined
+        : chapters && chapters.length > 0
+          ? { kind: 'chapter' }
+          : undefined;
   return {
     chapters,
     recorded,
