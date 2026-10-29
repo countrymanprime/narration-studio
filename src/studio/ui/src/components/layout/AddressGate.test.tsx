@@ -226,6 +226,15 @@ describe('AddressGate', () => {
     expect(screen.getByText('the page')).toBeTruthy();
   });
 
+  it('opens Editing and Proof on a credits chapter, which the chapter list holds', () => {
+    const list = [{ id: 'credits-opening', paragraphIds: [] }, { id: 'c1' }, { id: 'credits-closing', paragraphIds: [] }];
+    mount({ at: '/editing/credits-opening', page: 'editing', route: '/editing/:chapterId', param: 'credits-opening', chapters: list });
+    expect(screen.getByText('the page')).toBeTruthy();
+    cleanup();
+    mount({ at: '/proof/credits-closing', page: 'proof', route: '/proof/:chapterId', param: 'credits-closing', chapters: list });
+    expect(screen.getByText('the page')).toBeTruthy();
+  });
+
   it('asks again for a chapter that is stale a second time after A-B-A navigation', async () => {
     const reload = vi.fn().mockResolvedValue(undefined);
     const view = mount({ at: '/booth?chapter=gone', page: 'booth', reload });
