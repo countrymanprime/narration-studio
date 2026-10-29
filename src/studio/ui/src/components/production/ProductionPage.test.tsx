@@ -18,6 +18,7 @@ import { contextItemsFor } from '../../registries/context';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { resetOpenOnce } from '../connection/useOpenOnce';
+import { addressPath } from '../../navigation/address';
 import { ProductionPage } from './ProductionPage';
 
 afterEach(() => {
@@ -508,7 +509,7 @@ describe('the pipeline lists the credits as the mock does (issue 1705)', () => {
     contextItemsFor(opening)
       ?.find((item) => item.key === 'proof')
       ?.onSelect();
-    expect(go).toHaveBeenLastCalledWith('/proof/credits-opening');
+    expect(go).toHaveBeenLastCalledWith(addressPath({ page: 'proof', chapter: 'credits-opening' }));
   });
 
   it('opens a credits row in Script and the Booth at the credits, not at a chapter', async () => {
