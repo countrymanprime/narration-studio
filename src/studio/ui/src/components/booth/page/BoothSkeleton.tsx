@@ -29,8 +29,8 @@ export function BoothSkeleton({
         {exit ? <span className="ml-auto">{exit}</span> : <Skeleton className="ml-auto h-9 w-40" />}
       </div>
       <div className="flex min-h-0 flex-1">
-        {/* The text box's gutters and its 26 em column at the default 40 px. */}
-        <div className="min-w-0 flex-1 pr-[calc(var(--page-gutter)+1.75rem)] pl-[var(--page-gutter)]">
+        {/* The text box's gutters (a page gutter and the ribbon margin a side) and its centred reading column. */}
+        <div className="min-w-0 flex-1 px-[calc(var(--page-gutter)+1.75rem)]">
           <div className="mx-auto flex max-w-[65rem] flex-col gap-6 py-[30vh]">
             <Skeleton className="h-9 w-full" />
             <Skeleton className="h-9 w-11/12" />

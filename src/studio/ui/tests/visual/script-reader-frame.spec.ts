@@ -1,5 +1,5 @@
 // The Script reader's frame (#2251, alignment audit docs/research/alignment-audit/findings/script.md XSC-9, XSC-11, XSC-18, XSC-21,
-// XSC-28, XSC-35, R3SC-12 and booth.md XBO-24): the header shares the text's left edge and the rail strip's rule, the title is not cut
+// XSC-28, XSC-35, R3SC-12 and booth.md XBO-24): the reader column is centred in the panel (the owner's rule: Script and Booth draw one centred column) and the header shares the rail strip's rule, the title is not cut
 // at 390 while it fits two lines, a bookmark ribbon is a fixed 16 px glyph clear of the panel edge and the first letter with a 24 px
 // press area, the retail sample's bar is drawn inside the panel as one line, and Skip to the side panel has its padding.
 import { expect, test, type Page } from '@playwright/test';
@@ -18,22 +18,26 @@ async function drive(page: Page, drivers: typeof scriptDrivers, state: string, s
 
 const DESKTOP = { width: 1440, height: 900 };
 
-test('reader at 1440: the header title on the card edge, and the rail strip rule on the header rule', async ({ page }) => {
+test('reader at 1440: the text column centred in the panel, and the rail strip rule on the header rule', async ({ page }) => {
   await drive(page, scriptDrivers, 'reader', DESKTOP);
   const g = await page.evaluate(() => {
     const reader = document.querySelector('section[aria-label="Reader"]')!;
     const header = reader.firstElementChild!;
-    const title = header.querySelector('b')!.getBoundingClientRect();
     const card = document.querySelector('section[aria-label$="chapter card"]')!.getBoundingClientRect();
+    const column = document.querySelector('[data-reader-column]')!;
+    const parent = column.parentElement!.getBoundingClientRect();
     const strip = document.querySelector('[data-panel="rail"] [role="tablist"]')!.getBoundingClientRect();
     return {
-      titleLeft: Math.round(title.left),
-      cardLeft: Math.round(card.left),
+      cardLeft: Math.round(card.left - parent.left),
+      // The scroller's scrollbar sits at the right; the column is centred in the room the scrollbar leaves.
+      cardRight: Math.round(parent.left + column.parentElement!.clientWidth - card.right),
       headerBottom: Math.round(header.getBoundingClientRect().bottom),
       stripBottom: Math.round(strip.bottom),
     };
   });
-  expect.soft(g.titleLeft, 'the title and the card share a left edge').toBe(g.cardLeft);
+  // Replaces "the title and the card share a left edge", true only while the column was left-aligned (#2562): the column is the
+  // Booth's too, centred, so the card has equal room on both sides (its 24 px padding sits inside the column).
+  expect.soft(Math.abs(g.cardLeft - g.cardRight), 'the card is centred in the reader panel').toBeLessThanOrEqual(2);
   expect.soft(g.stripBottom, 'the rail strip and the reader header end on one line').toBe(g.headerBottom);
 });
 
