@@ -69,6 +69,13 @@ Each is a class-wide test: render every location from one mocked project and ass
 | 8 | Same project: every recorded figure is derived from one value. |
 | 9–10 | A DAW event sequence: every reader of recording and can-record flips together. |
 
-## Fix plan
+## Fix status
 
-Fixed in separate small PRs, each deleting the duplicate logic and adding the connect test: clusters 2, 4, 5, 7 and 3, in that order (clear single sources, small diffs). Cluster 1 belongs to the sibling worker. Everything else is listed above for follow-up issues; clusters 6 and 8 need an owner call on the narrated-chapter definition first.
+| Cluster | State |
+| - | - |
+| 1 Chapter linked | Sibling worker owns it |
+| 4 Open Settings row | Fixed in #2583, with the jump-menu connect test |
+| 2 Proof badge | Fixed in #2584, with the badge-versus-page comparison |
+| 5 Rate basis, 7 Mastered includes FAIL, 3 Kept take | Not started (next, in that order); each is a small change with a clear single source |
+| 6, 8 Narrated-chapter set and recorded figures | Need an owner decision on what "narrated" means before any fix |
+| 9–25 | Follow-up issues; not started |
