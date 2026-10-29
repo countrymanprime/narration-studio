@@ -3,6 +3,7 @@
 # LibriVox chapter is fetched, and drive.py drives the real bridge. Run on 2026-10-19 against REAPER 7.82 (docs/research/real-reaper-ci-integration.md).
 #
 #   run-linux-check.sh <out-dir> [reaper-tarball-sha256]
+# NARRATION_CI_ONLY=word_times runs only the scenarios of that capability or name (a comma-separated list, as drive.py --only).
 # Needs xvfb-run, python3, curl and REAPER's GTK3 runtime (libgtk-3-0), and jackd2 for the rows that play or record (NARRATION_CI_JACK=0
 # leaves those rows SKIPped and runs with the audio device closed). Everything is written under <out-dir>.
 #
@@ -46,7 +47,7 @@ REAPER_PID=$!
 trap 'pkill -f "$OUT/cfg/reaper.ini" || true; kill "$REAPER_PID" "${JACK_PID:-}" 2>/dev/null || true' EXIT
 
 set +e
-python3 "$HERE/drive.py" run --session "$OUT/session" --out "$OUT/out" --target real --timeout 90 --suite
+python3 "$HERE/drive.py" run --session "$OUT/session" --out "$OUT/out" --target real --timeout 90 --suite ${NARRATION_CI_ONLY:+--only "$NARRATION_CI_ONLY"}
 RC=$?
 set -e
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ] && [ -f "$OUT/out/results.md" ]; then
