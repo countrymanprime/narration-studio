@@ -24,6 +24,29 @@ type CreditsChapter struct {
 	Kind   string // "opening" or "closing"
 	Words  int
 	Status string
+	// Text is the rendered template: the credits' one paragraph, for the books that need a line to attach a word to (the edit log, the passage map).
+	Text string
+}
+
+// CreditsLine is a credits file's one paragraph as the edit log and the passage map see it.
+type CreditsLine struct {
+	ChapterID string
+	ID        string
+	Text      string
+}
+
+// CreditsBook is what the books built from the manuscript add for the credits: their chapter ids and one line each (`<chapter id>-p0`, the
+// id the alignment gives the same paragraph).
+func (s *Service) CreditsBook() (chapterIDs []string, lines []CreditsLine) {
+	for _, c := range s.creditsChapters() {
+		id := OpeningCreditsID
+		if c.Kind == "closing" {
+			id = ClosingCreditsID
+		}
+		chapterIDs = append(chapterIDs, id)
+		lines = append(lines, CreditsLine{ChapterID: id, ID: id + "-p0", Text: c.Text})
+	}
+	return chapterIDs, lines
 }
 
 // CreditsProvider lists the credits files the project has a template for. Empty when there is none, or the project has no manuscript.

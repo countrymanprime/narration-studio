@@ -53,6 +53,14 @@ describe('ChapterStrip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Chapter 2: 0 open of 4' }));
     expect(onChoose).toHaveBeenCalledWith('c2');
   });
+  it('says which end a credits tile is by its id, so a book with only the closing credits still says Close', () => {
+    const only: StripChapter[] = [
+      { id: 'credits-closing', name: 'Closing credits', number: null, total: 0, open: 0 },
+      { id: 'c1', name: 'One', number: 1, total: 4, open: 1 },
+    ];
+    render(<ChapterStrip chapters={only} current="c1" onChooseChapter={() => {}} />);
+    expect(drawn(screen.getByRole('button', { name: /^Closing credits/ })).startsWith('Close')).toBe(true);
+  });
   it('goes dense above the threshold: a dot per tile and every fifth number labelled', () => {
     render(<ChapterStrip chapters={chapters(24)} current="c1" onChooseChapter={() => {}} />);
     const labels = screen.getAllByRole('button').map((b) => b.querySelector('span')!.getAttribute('data-text'));

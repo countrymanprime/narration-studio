@@ -1,3 +1,5 @@
+import { creditsKindOfId } from '../../credits/creditsEntries';
+
 /** One chapter's tile: `number` is null for the unnumbered first and last (Open / Close). `open` of `total` notes are still open. */
 export type StripChapter = { id: string; name: string; number: number | null; total: number; open: number };
 
@@ -10,7 +12,9 @@ const stripIsDense = (chapters: readonly StripChapter[]): boolean => chapters.le
  * unnumbered ends. */
 function stripLabel(chapters: readonly StripChapter[], chapter: StripChapter, dense: boolean, short = false): string {
   if (chapter.number != null) return !dense || chapter.number % 5 === 0 ? String(chapter.number) : '';
-  const first = chapters[0]?.id === chapter.id;
+  // Which end a tile is follows its credits id, not its place: a book with only the closing credits still says Close.
+  const kind = creditsKindOfId(chapter.id);
+  const first = kind ? kind === 'opening' : chapters[0]?.id === chapter.id;
   return dense || short ? (first ? 'In' : 'Out') : first ? 'Open' : 'Close';
 }
 

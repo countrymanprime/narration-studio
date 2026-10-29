@@ -28,7 +28,8 @@ func (h *Host) creditsChapters() []manuscript.CreditsChapter {
 	for _, kind := range []string{"opening", "closing"} {
 		for _, template := range templates {
 			if template.Kind == kind {
-				listed = append(listed, manuscript.CreditsChapter{Kind: kind, Words: credits.Render(template.Body, tokens).Words, Status: statuses[kind]})
+				rendered := credits.Render(template.Body, tokens)
+				listed = append(listed, manuscript.CreditsChapter{Kind: kind, Words: rendered.Words, Status: statuses[kind], Text: rendered.Text})
 				break
 			}
 		}
