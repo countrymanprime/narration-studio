@@ -127,6 +127,7 @@ class ActivityLog:
             self._write()
 
     def item_done(self) -> None:
+        """One item's words are final."""
         with self._lock:
             self._items_done += 1
             self._write()
@@ -134,6 +135,7 @@ class ActivityLog:
     # --- the file -----------------------------------------------------------------------------------------------------------------------
 
     def snapshot(self) -> dict:
+        """The counts as the file holds them (the host's `activityFile`)."""
         with self._lock:
             body: dict = {
                 "schemaVersion": SCHEMA_VERSION,
@@ -145,6 +147,7 @@ class ActivityLog:
             return body
 
     def flush(self) -> None:
+        """Write the counts now, however recently they were last written."""
         with self._lock:
             self._write(force=True)
 
