@@ -248,7 +248,7 @@ credits rows on [Production](production.md#the-credits).
 
 ### Retail sample
 
-**Retail sample** is the stretch of the book you pick for the retailer's sample: up to 5 minutes, from
+**Retail sample** is the stretch of the book you pick for the retailer's sample (from the book's text, so the opening and closing credits are not offered): up to 5 minutes, from
 anywhere in the book. Choose the chapter and line it **starts in** and **ends in** (the line numbers the
 [Script](script.md) reader shows) and **Save sample**. The panel says where it runs ("Chapter 3: A Caucus-Race and a Long Tale, lines 1 to 3", naming a chapter once) and how long it
 is at about 155 words a minute; a range longer than 5 minutes is refused with its length, and the sample

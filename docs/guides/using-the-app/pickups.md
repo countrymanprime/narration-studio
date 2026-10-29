@@ -25,7 +25,7 @@ exported on [Proof](proof.md#the-notes).
 
 ![Pickups - all chapters: the chapter stepper, Check recordings and Add a pickup by hand in the head, the lines grouped by chapter, and the Pickup session panel](../../images/ui/pickups-list.webp)
 
-The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it). Chapters are named by number and
+The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it); the opening and closing credits are chapters in it too, named by title, and show no pickup lines because a credits file has no text to re-read. Chapters are named by number and
 title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by chapter, each group with how many lines are open, and each line has:
 
 - a box that includes it in the next session, or leaves it out (Space on a selected line does the same); a line left out has its time and words greyed;
