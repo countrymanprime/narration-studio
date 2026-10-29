@@ -12,6 +12,7 @@ import type {
   DawCapabilitySupport,
   DawCapabilitiesApi,
   DawKind,
+  DawLiveItem,
   DawLevelsApi,
   DawPlaceApi,
   DawPosition,
@@ -432,6 +433,8 @@ export interface DawMockControl {
   moveInDaw(change: { cursor?: number; head?: number; playing?: boolean; recording?: boolean }): void;
   /** The next transport action is refused with this sentence, as a recording or a stale REAPER would. */
   refuseNextSync(sentence: string): void;
+  /** The items the DAW has on the chapter's track now (`dawLiveItems`); null (the start) is a DAW that cannot be read, so the page follows by the saved items. */
+  setLiveItems(items: DawLiveItem[] | null): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -487,6 +490,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuse: string | null;
     /** The project second a `playRange` stops itself at, while it plays; null for an open play. */
     stopAt: number | null;
+    liveItems: DawLiveItem[] | null;
     calls: { action: string; seconds: number; until?: number; chapterId?: string }[];
   } = {
     playing: false,
@@ -496,6 +500,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     watching: false,
     refuse: null,
     stopAt: null,
+    liveItems: null,
     calls: [],
   };
   const positionSubs = new Set<(position: DawPosition) => void>();
@@ -623,6 +628,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.transport = { playing: false, recording: false };
       publish();
     },
+    setLiveItems: (items) => {
+      sync.liveItems = items === null ? null : wireClone(items);
+    },
     startInDaw: () => {
       live.transport = { playing: true, recording: true, position: 0 };
       publish();
@@ -743,6 +751,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.
+    dawLiveItems: async () => {
+      const items = sync.liveItems;
+      return wireClone(
+        items === null || !currentCapabilities(live).capabilities.track_state?.available ? { available: false, items: [] } : { available: true, items },
+      );
+    },
     dawTransportSync: async (action, seconds, until = 0, chapterId = '') => {
       const support = currentCapabilities(live).capabilities.transport_sync;
       if (!support?.available) return refusedMove(support?.message ?? MESSAGE_NO_ENGINE);

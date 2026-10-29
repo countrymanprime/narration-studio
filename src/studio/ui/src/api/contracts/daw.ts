@@ -568,6 +568,22 @@ export type DawPosition = {
   sameProject: boolean;
 };
 
+/** One media item of the chapter's track as the DAW has it now: where it plays in the project, from where in which source file, at what rate.
+ * `sourceFile` is empty for an item with no audio take. */
+export type DawLiveItem = {
+  guid: string;
+  sourceFile: string;
+  position: number;
+  length: number;
+  sourceStart: number;
+  playRate: number;
+  muted: boolean;
+};
+
+/** DawLiveItems' answer. `available` is false, with no items, when the DAW cannot be read now (not running, `track_state` off, no linked track, the
+ * track gone or longer than one read lists): the Editing page then follows by the items the saved project had. The read is never an error. */
+export type DawLiveItems = { available: boolean; items: DawLiveItem[] };
+
 /** The actions `dawTransportSync` takes: put the DAW's cursor at `seconds`, play from `seconds`, play the stretch `seconds` to `until` and have the DAW
  * stop itself at `until` (`playRange`), stop, and take or renew the lease on the position stream (`seconds` is ignored by the last two, `until` by all
  * but `playRange`). */
@@ -580,6 +596,8 @@ export type DawSyncAction = 'cursor' | 'play' | 'playRange' | 'stop' | 'watch';
  * narrator's selection, solos and mute back when the play ends); without a linked track, or with no audio on it at that time, the play is refused. */
 export interface DawTransportSyncApi {
   dawTransportSync(action: DawSyncAction, seconds: number, until?: number, chapterId?: string): Promise<DawResult>;
+  /** The media items on the chapter's linked track as the DAW has them now (DawLiveItems, src/studio/desktop/bindings_daw_liveitems.go). */
+  dawLiveItems(chapterId: string): Promise<DawLiveItems>;
   /** Each position the DAW streams while a `watch` lease holds. Returns the unsubscribe. */
   subscribeDawPosition(onUpdate: (position: DawPosition) => void): () => void;
 }

@@ -231,6 +231,7 @@ import {
   dawPunchPrerollSchema,
   dawPlaceSchema,
   dawPositionSchema,
+  dawLiveItemsSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -3776,6 +3777,18 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawTransportSync('playRange', -1, 3)).refused).toBe('That place is not a usable number of seconds.');
     stop();
 
+    // dawLiveItems: the host goldens parse, every key is required, and the mock answers unavailable until the DAW has items to read.
+    expectMatches(dawLiveItemsSchema, readGolden('daw-live-items.json'), 'daw-live-items.json');
+    expectMatches(dawLiveItemsSchema, readGolden('daw-live-items-unavailable.json'), 'daw-live-items-unavailable.json');
+    const item = { guid: 'g', sourceFile: 'a.wav', position: 1, length: 2, sourceStart: 0, playRate: 1, muted: false };
+    expect(dawLiveItemsSchema.safeParse({ available: true, items: [item] }).success).toBe(true);
+    for (const key of Object.keys(item))
+      expect(dawLiveItemsSchema.safeParse({ available: true, items: [Object.fromEntries(Object.entries(item).filter(([k]) => k !== key))] }).success, key).toBe(
+        false,
+      );
+    expect(dawLiveItemsSchema.safeParse({ available: true, items: null }).success).toBe(false);
+    expect(await api.dawLiveItems('c1')).toEqual({ available: false, items: [] });
+
     const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawTransportSync('play', 3);
     expectMatches(dawResultSchema, refused, 'mock transport sync, REAPER not answering');
@@ -4598,6 +4611,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawPlace',
       'dawGoToChapter',
       'dawTransportSync',
+      'dawLiveItems',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
