@@ -818,6 +818,17 @@ export function DawLinkFound(): $CancellablePromise<string> {
 }
 
 /**
+ * DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), for the Editing page's
+ * follow-along: where each plays in the project, from where in which source file, at what rate. The saved project the alignment was read
+ * against knows none of the narrator's edits since, and a split's right half has a GUID it never saw. Read-only; it adds no undo step.
+ * The answer is {available, items}: available is false, with no items, when the DAW cannot be read now (not running, track_state off, no
+ * linked track, the track gone or longer than one read lists), and the page then follows by the saved items. The read is never an error.
+ */
+export function DawLiveItems(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1764856264, chapterID);
+}
+
+/**
  * DawMeters reads what the DAW's own meters show: the level it plays out at and the level the record-armed track hears. It
  * changes nothing and arms nothing. The daw_meters capability's own sentence comes first when the resolver refuses it; no live
  * adapter, the DAW not answering and no answer in time are refused in a sentence.

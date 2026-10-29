@@ -53,6 +53,7 @@ import {
   dawPositionSchema,
   dawProjectStateSchema,
   dawResultSchema,
+  dawLiveItemsSchema,
   dawTransportSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
@@ -754,6 +755,7 @@ export const wailsClient: NarrationApi = {
   dawMeters: () => decode(dawMetersSchema, 'DawMeters', host.DawMeters()),
   dawPlace: () => decode(dawPlaceSchema, 'DawPlace', host.DawPlace()),
   dawGoToChapter: (chapterId, where, seconds) => decode(dawResultSchema, 'DawGoToChapter', host.DawGoToChapter(chapterId, where, seconds)),
+  dawLiveItems: (chapterId) => decode(dawLiveItemsSchema, 'DawLiveItems', host.DawLiveItems(chapterId)),
   dawTransportSync: (action, seconds, until = 0) => decode(dawResultSchema, 'DawTransportSync', host.DawTransportSync(action, seconds, until)),
   subscribeDawPosition: (onUpdate) => subscribeChecked('daw_position_changed', dawPositionSchema, onUpdate),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>

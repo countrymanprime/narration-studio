@@ -24,6 +24,7 @@ import { useTabCounts } from '../drawer/useTabCounts';
 import { effectsCount } from '../effects/EffectsTab';
 import { registerEffectsSection } from '../effects/registerEffectsSection';
 import { FlagCard } from '../flags/FlagCard';
+import { useLiveFollowMap } from '../follow/useLiveFollowMap';
 import { useDawPlayPosition } from '../follow/useDawPlayPosition';
 import { useFollowScroll } from '../follow/useFollowScroll';
 import { Legend } from '../flags/Legend';
@@ -194,18 +195,20 @@ export function EditingBody(props: EditingBodyProps) {
   const { prefs: output, change: changeOutput } = useOutputPrefs();
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const sound = useChapterSound(chapterId, clocks);
+  // The DAW's clock is mapped through the items the DAW has now, not the ones the saved project had when the alignment was read.
+  const follow = useLiveFollowMap(chapterId, { playlist, items: read.workspace.items, cuts: closedCuts }, caps);
   const playback = useScriptPlayback({
     playlist,
     sound,
     mediaUrl: tracks.mediaUrl,
-    sync: { items: read.workspace.items, cuts: closedCuts, caps, ...(dawRead ? { read: dawRead } : {}) },
+    sync: { items: follow.items, cuts: follow.cuts, playlist: follow.playlist, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
     onOutputDevice: setDeviceProblem,
   });
   useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
   // play head itself (useDawTransportSync), so the heartbeat read stands down.
-  useDawPlayPosition({ items: read.workspace.items, playlist, caps: playback.syncActive ? null : caps, playback });
+  useDawPlayPosition({ items: follow.items, playlist: follow.playlist, caps: playback.syncActive ? null : caps, playback });
   useFollowScroll(root, playback);
   // A take under a line: through the DAW's preview while a DAW plays the chapter, else the app's range player (useTakeAudition).
   const passageOfTake = useCallback(

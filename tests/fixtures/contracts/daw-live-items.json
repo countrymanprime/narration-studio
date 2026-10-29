@@ -1,0 +1,23 @@
+{
+  "available": true,
+  "items": [
+    {
+      "guid": "{4F1C0A3E-0000-4000-8000-000000000001}",
+      "sourceFile": "C:/Book/chapter-01.wav",
+      "position": 12.5,
+      "length": 40,
+      "sourceStart": 3,
+      "playRate": 1.25,
+      "muted": false
+    },
+    {
+      "guid": "{4F1C0A3E-0000-4000-8000-000000000002}",
+      "sourceFile": "C:/Book/chapter-01.wav",
+      "position": 52.5,
+      "length": 10,
+      "sourceStart": 43,
+      "playRate": 1,
+      "muted": true
+    }
+  ]
+}

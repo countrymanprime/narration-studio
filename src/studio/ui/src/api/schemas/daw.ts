@@ -36,6 +36,8 @@ import type {
   DawPunchPreroll,
   DawPlace,
   DawPosition,
+  DawLiveItem,
+  DawLiveItems,
   DawPlayState,
   DawProjectState,
   DawResult,
@@ -135,6 +137,22 @@ export const dawPositionSchema = z.strictObject({
   editCursor: z.number().nonnegative(),
   sameProject: z.boolean(),
 }) satisfies z.ZodType<DawPosition>;
+
+const dawLiveItemSchema = z.strictObject({
+  guid: z.string(),
+  sourceFile: z.string(),
+  position: z.number(),
+  length: z.number().nonnegative(),
+  sourceStart: z.number(),
+  playRate: z.number().positive(),
+  muted: z.boolean(),
+}) satisfies z.ZodType<DawLiveItem>;
+
+/** DawLiveItems: every key always present, the list never null. */
+export const dawLiveItemsSchema = z.strictObject({
+  available: z.boolean(),
+  items: z.array(dawLiveItemSchema),
+}) satisfies z.ZodType<DawLiveItems>;
 
 const DAW_PLAY_STATES = ['stopped', 'playing', 'recording'] as const satisfies readonly DawPlayState[];
 

@@ -24,7 +24,9 @@ export interface LiveItem {
 
 const EPS = 1e-6;
 
-const same = (a: string, b: string): boolean => a.replace(/\\/g, '/').toLowerCase() === b.replace(/\\/g, '/').toLowerCase();
+const norm = (path: string): string => path.replace(/\\/g, '/').toLowerCase();
+const same = (a: string, b: string): boolean => norm(a) === norm(b);
+const base = (path: string): string => norm(path).slice(norm(path).lastIndexOf('/') + 1);
 
 const sourceEnd = (it: LiveItem): number => it.sourceStart + it.length * (it.playRate || 1);
 
@@ -47,8 +49,11 @@ export function relocate(playlist: readonly PlaylistSegment[], live: readonly Li
   }));
   const out: PlaylistSegment[] = [];
   for (const seg of playlist) {
-    const pieces = live
-      .filter((it) => same(it.sourceFile, seg.sourceFile) && it.sourceStart < seg.sourceEnd - EPS && sourceEnd(it) > seg.sourceStart + EPS)
+    const covering = (it: LiveItem): boolean => it.sourceStart < seg.sourceEnd - EPS && sourceEnd(it) > seg.sourceStart + EPS;
+    // The file by its whole path; only when no item plays that path, by its name (the saved project may spell a path the DAW spells otherwise).
+    const named = live.filter((it) => it.sourceFile !== '' && same(it.sourceFile, seg.sourceFile));
+    const pieces = (named.length ? named : live.filter((it) => it.sourceFile !== '' && base(it.sourceFile) === base(seg.sourceFile)))
+      .filter(covering)
       .sort((a, b) => a.sourceStart - b.sourceStart);
     for (const piece of pieces) {
       const from = Math.max(seg.sourceStart, piece.sourceStart);
@@ -70,7 +75,7 @@ export function relocate(playlist: readonly PlaylistSegment[], live: readonly Li
     const file = files.get(cut.itemGuid);
     if (file === undefined) continue;
     for (const piece of live) {
-      if (!same(piece.sourceFile, file)) continue;
+      if (piece.sourceFile === '' || (!same(piece.sourceFile, file) && base(piece.sourceFile) !== base(file))) continue;
       const from = Math.max(cut.from, piece.sourceStart);
       const to = Math.min(cut.to, sourceEnd(piece));
       if (to > from + EPS) moved.push({ itemGuid: piece.guid, from, to });

@@ -52,6 +52,15 @@ describe('relocate: the follow lands on the spoken sentence whatever the DAW has
     expect(relocate(playlistFor('A'), [l]).playlist.length).toBeGreaterThan(0);
   });
 
+  it('a path spelled otherwise by the DAW is found by its name, when nothing plays the saved spelling', () => {
+    const l = { ...live(whole(10)), sourceFile: 'D:\\Other\\' + FILE_NAME };
+    expect(relocate(playlistFor('A'), [l]).playlist.length).toBeGreaterThan(0);
+  });
+
+  it('an item with no audio file plays nothing', () => {
+    expect(relocate(playlistFor('A'), [{ ...live(whole(10)), sourceFile: '' }]).playlist).toEqual([]);
+  });
+
   it('closing cuts follow the piece that plays their seconds', () => {
     const r = relocate(playlistFor('A'), split(40, 0).map(live), [{ itemGuid: 'A', from: 38, to: 43 }]);
     expect(r.cuts).toEqual([
