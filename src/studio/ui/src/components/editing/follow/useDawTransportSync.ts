@@ -6,7 +6,7 @@ import { totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import { useEditingPage } from '../script/EditingPageState';
 import { playable, playingKey } from '../script/playing';
 import type { ChapterDoc } from '../model';
-import { docAt, projectAt, projectEndAt, type ClosedCut } from './clockMap';
+import { docAt, projectAt, projectEndAt, whyNotPlaced, type ClosedCut } from './clockMap';
 import { EchoGuard } from './echoGuard';
 import { useVisible } from './useDawPlayPosition';
 
@@ -33,6 +33,8 @@ const END_SLACK_SECONDS = 0.4;
 export interface RemotePlayer {
   refusal(docT: number): 'pending' | 'not_ready' | 'not_placed' | null;
   refusedWith(): string | null;
+  /** The narrator's words for why `refusal` said `not_placed` for this second: which check failed. */
+  notPlacedWhy(docT: number, daw: string): string;
   start(docT: number, endDocT?: number): Promise<string | null>;
   stop(): void;
 }
@@ -43,6 +45,8 @@ export interface DawTransportSyncOptions {
   /** The closing cuts, in the source seconds of their items. */
   cuts: readonly ClosedCut[];
   caps: DawCapabilities | null;
+  /** The chapter the page edits: the DAW plays that chapter's linked track alone, whatever track is selected in it. Empty plays the project as it is. */
+  chapterId?: string;
   /** The DAW's play head while the app's play is the DAW's: a document second (null in a gap) and whether it passed the chapter's end. */
   onHead(docT: number | null, ended: boolean): void;
   /** The narrator stopped the DAW while the app's play was the DAW's. */
@@ -256,6 +260,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       return projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
+    notPlacedWhy: (docT, daw) => whyNotPlaced({ playlist: live.current.playlist, items: live.current.items, cuts: live.current.cuts }, docT, daw),
     start: async (docT, endDocT) => {
       const l = live.current;
       const map = { playlist: l.playlist, items: l.items, cuts: l.cuts };
@@ -272,7 +277,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       let ok = false;
       let why: string;
       try {
-        const result = stretch ? await sync.dawTransportSync('playRange', project, stretch.projectEnd) : await sync.dawTransportSync('play', project);
+        const result = stretch
+          ? await sync.dawTransportSync('playRange', project, stretch.projectEnd, l.chapterId ?? '')
+          : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
         ok = result.ok;
         why = result.message;
       } catch {

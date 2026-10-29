@@ -313,11 +313,13 @@ type TransportSyncer interface {
 	// bridge loop, so it must not block or make a request of the engine.
 	OnPosition(handler func(TransportPosition))
 	SetCursor(ctx context.Context, seconds float64) (float64, error)
-	PlayFrom(ctx context.Context, seconds float64) (float64, error)
+	PlayFrom(ctx context.Context, seconds float64, trackGUID string) (float64, error)
 	// PlayRange plays the project from one time to another on the engine's own transport and has the engine stop itself at the end, so what is
 	// heard is the project's sound with its FX chain and the end does not wait on the app. It returns the stretch the engine took. An empty,
-	// backwards or overlong stretch is an error with nothing sent.
-	PlayRange(ctx context.Context, from, to float64) (float64, float64, error)
+	// backwards or overlong stretch is an error with nothing sent. trackGUID, for PlayFrom and PlayRange, names the one track to hear (the engine
+	// selects and solos it and restores the narrator's state when the play ends); "" plays the project as it is. A track the project does not hold, or
+	// that has no audio at the start, is a refusal with nothing changed.
+	PlayRange(ctx context.Context, from, to float64, trackGUID string) (float64, float64, error)
 	Stop(ctx context.Context) (float64, error)
 	Watch(ctx context.Context, lease time.Duration) (time.Duration, error)
 }
