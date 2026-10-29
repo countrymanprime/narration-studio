@@ -64,6 +64,8 @@ The bar at the foot plays the chapter in the app, from its recorded audio with e
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
 
+**Play** is off, with its reason in the hint, on a chapter that has no audio to play (no linked track, a track that is gone or empty, or nothing recorded yet). With the cursor on a word that was not recorded, such as the chapter heading, Space says so instead of playing on from the next word. Space on a play of a selection pauses it and keeps the selection; selecting other words while it plays plays them instead. If the DAW stops answering during a play, the bar goes back to **Play** and the DAW dialog says why.
+
 Beside the clock, the **Output** group sets what you hear, not what is recorded. **Silence output** mutes the app's sound; it is not the
 **Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
 default, or one of this computer's outputs. A speed other than 1× is also written beside the buttons. The choices apply to the chapter and to a take you play on this page, and are kept for this
@@ -103,7 +105,7 @@ words it heard show the next time you open the chapter.
 
 ## Selecting words
 
-Click a word to place the cursor there. Shift+click another, drag across the text or press Shift+← and Shift+→ to
+Click a word to place the cursor there. Double-click selects the word and triple-click the whole line it is in. Shift+click another, drag across the text or press Shift+← and Shift+→ to
 select a run of words. Hold ← or → (with Shift to select) and the cursor keeps travelling along the text; Up and Down hold
 the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats over the first line of the selection (under it when the selection starts at the top of the view) with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
