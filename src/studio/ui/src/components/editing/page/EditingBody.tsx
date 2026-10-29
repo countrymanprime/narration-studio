@@ -273,11 +273,15 @@ export function EditingBody(props: EditingBodyProps) {
       const take = line?.takes.find((t) => t.active) ?? line?.takes[0];
       const cut = doubledCut(read, id);
       const start = doc.paras.find((p) => p.p.id === id)?.start;
-      // The cut is seconds into the paragraph; the DAW wants the project's time, so it goes through the item the paragraph was heard on.
+      // The cut is seconds into the paragraph's take, which is a second of the item's source; the DAW wants the project's time. The word table says where
+      // the paragraph's words play, so the cut is carried from its first word to the project (a cut in a pause between two words included).
       const heard = cut !== null && start != null ? locator.source(start + cut) : null;
-      const item = heard ? read.workspace.items.find((it) => it.itemGuid === heard.itemGuid) : undefined;
-      if (!line || !take || !heard || item?.position === undefined || item.sourceStart === undefined || !item.playRate) return null;
-      const at = item.position + (heard.sourceTime - item.sourceStart) / item.playRate;
+      const first = doc.items.find((i) => i.pid === id && i.kind === 'w' && !i.cut && i.t0 != null);
+      const token = first ? locator.token(first.key) : undefined;
+      const firstStart = token === undefined ? undefined : read.workspace.tokens.find((t) => t.i === token)?.start;
+      const docCut = heard && first && first.t0 != null && firstStart !== undefined ? first.t0 + (heard.sourceTime - firstStart) : null;
+      const at = docCut === null ? null : (clock?.projectNear(docCut) ?? null);
+      if (!line || !take || at === null) return null;
       return { chapterId, takeId: take.id, label: take.label, at: Math.round(at * 1000) / 1000 };
     },
   });
