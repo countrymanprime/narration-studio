@@ -1,5 +1,6 @@
 import { headingName } from '../../chapterHeading';
 import { useEffect, useMemo, useState } from 'react';
+import { creditsKindOfId } from '../credits/creditsEntries';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
@@ -10,7 +11,9 @@ import { Select } from '../primitives/Select';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToolResult } from './ToolResult';
-import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, ManuscriptChapter, Track } from '../../types';
+import type { ChapterTrackRow } from './chapterTrackRows';
+import type { ChapterLinks } from './useChapterLinks';
+import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track } from '../../types';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -35,31 +38,16 @@ const STATUS_TONE: Record<LineIdentityRowStatus, StatusTone> = {
 const MAPPING_COLUMNS = ['auto', '13rem', '6rem'] as const;
 const STAMPED_COLUMNS = ['15rem', '5.5rem', '13rem', 'auto'] as const;
 
-/** One chapter mapped to a track: every one of the track's items will be stamped with this chapter's identity
- * (chapter-level granularity). The narrator picks each track by hand here; no automatic chapter-to-track matcher feeds it. */
-type ChapterMapping = Record<string, string>;
-
-function rowsFor(
-  chapters: ManuscriptChapter[],
-  tracks: Track[],
-  mapping: ChapterMapping,
-): { row: LineIdentityStampRow; trackName: string; chapterTitle: string }[] {
+/** Every item on a linked chapter's track, stamped with that chapter's identity (chapter-level granularity). The opening and closing credits are
+ * linked here but not stamped: they are not in the manuscript, so a stamp with their id would read back as a chapter that is no longer in it. */
+function stampRows(rows: ChapterTrackRow[], tracks: Track[]): LineIdentityStampRow[] {
   const byGuid = new Map(tracks.map((track) => [track.guid, track]));
-  const rows: { row: LineIdentityStampRow; trackName: string; chapterTitle: string }[] = [];
-  for (const chapter of chapters) {
-    const trackGuid = mapping[chapter.id];
-    if (!trackGuid) continue;
-    const track = byGuid.get(trackGuid);
-    if (!track) continue;
-    for (const item of track.items) {
-      rows.push({
-        row: { itemGuid: item.guid, lineId: chapter.id, text: chapter.title },
-        trackName: track.name || `Track ${track.index + 1}`,
-        chapterTitle: chapter.title,
-      });
-    }
+  const stamped: LineIdentityStampRow[] = [];
+  for (const { chapter, mapping, state } of rows) {
+    const track = mapping && state === 'linked' && !creditsKindOfId(chapter.id) ? byGuid.get(mapping.trackGuid) : undefined;
+    for (const item of track?.items ?? []) stamped.push({ itemGuid: item.guid, lineId: chapter.id, text: chapter.title });
   }
-  return rows;
+  return stamped;
 }
 
 function LineStatusRow({ line }: { line: LineIdentityLine }) {
@@ -127,9 +115,9 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
   );
 }
 
-export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: ManuscriptChapter[]; tracks: Track[]; onClose: () => void }) {
+export function LinkChaptersDialog({ links, onClose }: { links: ChapterLinks; onClose: () => void }) {
   const api = useApi();
-  const [mapping, setMapping] = useState<ChapterMapping>({});
+  const { tracks, rows } = links;
   const [overwrite, setOverwrite] = useState(false);
   const [state, setState] = useState<LineIdentityState>({
     phase: 'idle',
@@ -157,19 +145,14 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
   const stampError = lastAction === 'stamp' ? failure : '';
   const readError = lastAction === 'read' ? failure : '';
 
-  const preview = useMemo(() => rowsFor(chapters, tracks, mapping), [chapters, tracks, mapping]);
+  const preview = useMemo(() => stampRows(rows, tracks), [rows, tracks]);
   const running = state.phase === 'stamping';
   const trackOptions = [{ value: '', label: 'Not linked' }, ...tracks.map((track) => ({ value: track.guid, label: track.name || `Track ${track.index + 1}` }))];
 
   const approve = () => {
     setLastAction('stamp');
     setRequestError('');
-    api
-      .lineIdentityStamp(
-        preview.map((entry) => entry.row),
-        overwrite,
-      )
-      .catch((reason: unknown) => setRequestError(String(reason)));
+    api.lineIdentityStamp(preview, overwrite).catch((reason: unknown) => setRequestError(String(reason)));
   };
   const read = () => {
     setLastAction('read');
@@ -202,6 +185,11 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
           <ToolResult tone="danger" message={stampError} />
         </div>
       )}
+      {links.error && (
+        <div className="mb-3">
+          <ToolResult tone="danger" message={links.error} />
+        </div>
+      )}
       {state.phase === 'stamping' && (
         <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
           {state.message}
@@ -229,22 +217,24 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
           </TableRow>
         </TableHead>
         <TableBody>
-          {chapters.map((chapter) => {
-            const trackGuid = mapping[chapter.id] ?? '';
-            const track = tracks.find((candidate) => candidate.guid === trackGuid);
+          {rows.map(({ chapter, mapping, state }) => {
+            const track = state === 'linked' ? tracks.find((candidate) => candidate.guid === mapping?.trackGuid) : undefined;
+            // A link whose track is gone is shown as the section shows it, not as "Not linked".
+            const options = state === 'missing_track' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: 'Track missing' }] : trackOptions;
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>
                 <TableCell>
                   <Select
                     label={`Track for ${chapterName(chapter, 'short')}`}
-                    value={trackGuid}
-                    onChange={(value) => setMapping((current) => ({ ...current, [chapter.id]: value }))}
-                    options={trackOptions}
+                    value={mapping?.trackGuid ?? ''}
+                    onChange={(value) => (value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
+                    options={options}
+                    disabled={links.busyChapterId === chapter.id}
                     fullWidth
                   />
                 </TableCell>
-                <TableCell numeric>{track ? track.items.length : '–'}</TableCell>
+                <TableCell numeric>{track && !creditsKindOfId(chapter.id) ? track.items.length : '–'}</TableCell>
               </TableRow>
             );
           })}
