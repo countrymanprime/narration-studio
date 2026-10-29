@@ -21,9 +21,9 @@ const ROOM_RATIO = 2.5;
 /** Whatever the word's peak, a level under this is the room, not a word's tail. */
 const QUIET_FLOOR = 0.012;
 /** The sound must stay gone this long to count as over. A stop closure inside a word ("statues": the /t/ before the "ues") is quiet for up to about 80 ms. */
-export const GONE_HOLD_SECONDS = 0.1;
+const GONE_HOLD_SECONDS = 0.1;
 /** Seconds kept past the moment the sound is gone, for the last of its decay. */
-export const DECAY_MARGIN_SECONDS = 0.06;
+const DECAY_MARGIN_SECONDS = 0.06;
 
 /**
  * Where the sound of the word that starts at `wordStart` and that the recognizer ends at `end` has died away, for a play that must not cut it.
