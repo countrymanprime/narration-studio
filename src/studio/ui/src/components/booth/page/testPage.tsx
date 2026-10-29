@@ -21,6 +21,26 @@ export const CHAPTERS: ManuscriptChapter[] = [
   { id: 'c2', title: 'Chapter Two', index: 1, wordCount: 6, status: 'not_started', contentKind: 'narration' } as ManuscriptChapter,
 ];
 
+/** A credits chapter as the host lists it: no paragraphs of its own, `isCredits`, a fixed id. */
+export const creditsChapter = (kind: 'opening' | 'closing'): ManuscriptChapter =>
+  ({
+    id: `credits-${kind}`,
+    title: kind === 'opening' ? 'Opening credits' : 'Closing credits',
+    index: -2,
+    wordCount: 7,
+    status: 'not_started',
+    contentKind: 'narration',
+    isCredits: true,
+    paragraphIds: [],
+  }) as unknown as ManuscriptChapter;
+
+/** The chapters with the credits of the kinds that have a template around them: opening first, closing last. */
+export const withCredits = (kinds: readonly ('opening' | 'closing')[], chapters: ManuscriptChapter[] = CHAPTERS): ManuscriptChapter[] => [
+  ...(kinds.includes('opening') ? [creditsChapter('opening')] : []),
+  ...chapters,
+  ...(kinds.includes('closing') ? [creditsChapter('closing')] : []),
+];
+
 const paragraph = (id: string, chapterId: string, index: number, text: string): ManuscriptParagraph => ({
   id,
   chapterId,
@@ -87,7 +107,11 @@ export function pageApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
       () => CHAPTERS,
       () => Object.values(PARAGRAPHS).flat(),
     ),
-    manuscriptChapters: async () => CHAPTERS,
+    // The credits are chapters of the list when the project has a template for them, as the host lists them.
+    manuscriptChapters: async () => {
+      const templates = await (overrides.creditsTemplates ?? (async () => []))();
+      return withCredits(templates.flatMap((item) => (item.kind === 'opening' || item.kind === 'closing' ? [item.kind] : [])));
+    },
     manuscriptParagraphs: async (chapterId: string) => PARAGRAPHS[chapterId] ?? [],
     teleprompterState: async () => ({ phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null }),
     // Listening starts before a take does, so a page under test has a session that starts unless a test says otherwise.
@@ -106,7 +130,7 @@ export function pageApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
 }
 
 export const dawFor = (setup: DawSetupId): DawClient =>
-  createMockDawClient(DAW_SETUPS[setup], { chapterIds: ['c1', 'c2', 'credits-opening'], candidateIds: [], findingIds: [] });
+  createMockDawClient(DAW_SETUPS[setup], { chapterIds: ['c1', 'c2', 'credits-opening', 'credits-closing'], candidateIds: [], findingIds: [] });
 
 export const newJournal = (): Journal => createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'unknown' });
 

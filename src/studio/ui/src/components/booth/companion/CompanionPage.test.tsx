@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { CommandRouter } from '../../../input/router';
+import { withoutCredits } from '../../../chapterKinds';
 import type { CreditsRenderResult, NarrationApi } from '../../../types';
 import { CompanionPage } from './CompanionPage';
 
@@ -56,6 +57,11 @@ function Probe() {
   return <p data-testid="where">{location.pathname + location.search}</p>;
 }
 
+/** The first chapter of the book's text; the list opens with the opening credits. */
+async function firstChapter() {
+  return withoutCredits(await createMockApi().manuscriptChapters())[0]!;
+}
+
 async function renderCompanion(entry: string, overrides: Partial<NarrationApi> = {}) {
   const api = createMockApi(overrides);
   const chapters = await api.manuscriptChapters();
@@ -77,15 +83,16 @@ async function renderCompanion(entry: string, overrides: Partial<NarrationApi> =
 
 describe('CompanionPage', () => {
   it('the-companion-renders-from-its-own-route: /companion?chapter=<id> mounts CompanionShell with the host-built props', async () => {
-    const { chapters } = await renderCompanion('/companion?chapter=' + encodeURIComponent((await createMockApi().manuscriptChapters())[0].id));
+    const first = await firstChapter();
+    await renderCompanion('/companion?chapter=' + encodeURIComponent(first.id));
     expect(await screen.findByRole('heading', { level: 1, name: 'Companion' })).toBeTruthy();
     const props = spies.shellProps.mock.calls.at(-1)![0];
-    expect(props.chapterId).toBe(chapters[0].id);
+    expect(props.chapterId).toBe(first.id);
     for (const key of ['session', 'follow', 'chapterTitle', 'recording', 'marks', 'header', 'onFullApp']) expect(props, key).toHaveProperty(key);
   });
 
   it('play-and-stop-still-arm-and-stop-reaper: the host passes useRecordInReaper(chapterId, record.available)', async () => {
-    const [first] = await createMockApi().manuscriptChapters();
+    const first = await firstChapter();
     await renderCompanion(`/companion?chapter=${encodeURIComponent(first.id)}`);
     await screen.findByRole('heading', { level: 1, name: 'Companion' });
     const [chapterId, available] = spies.useRecordInReaper.mock.calls.at(-1)!;
@@ -97,14 +104,14 @@ describe('CompanionPage', () => {
   });
 
   it('the-resume-notice-and-the-unresolved-credits-warning-are-kept: the header holds ResumePrompt for a chapter', async () => {
-    const [first] = await createMockApi().manuscriptChapters();
+    const first = await firstChapter();
     await renderCompanion(`/companion?chapter=${encodeURIComponent(first.id)}`);
     expect((await screen.findAllByText('resume-prompt')).length).toBeGreaterThan(0);
     expect(spies.resume).toHaveBeenCalledWith(first.id);
   });
 
   it('the-resume-notice-and-the-unresolved-credits-warning-are-kept: the header holds the warning for credits with unresolved tokens', async () => {
-    await renderCompanion('/companion?credits=opening', {
+    await renderCompanion('/companion?chapter=credits-opening', {
       creditsTemplates: async () => [{ kind: 'opening', body: 'x' }] as Awaited<ReturnType<NarrationApi['creditsTemplates']>>,
       creditsPreview: async () => CREDITS,
     });
@@ -113,8 +120,17 @@ describe('CompanionPage', () => {
     expect(screen.queryByText('resume-prompt')).toBeNull();
   });
 
+  it('the old ?credits=closing address opens the closing credits chapter, and This chapter names it', async () => {
+    await renderCompanion('/companion?credits=closing', {
+      creditsTemplates: async () => [{ kind: 'closing', body: 'x' }] as Awaited<ReturnType<NarrationApi['creditsTemplates']>>,
+      creditsPreview: async () => CREDITS,
+    });
+    await screen.findByTestId('header-slot');
+    await waitFor(() => expect(spies.shellProps).toHaveBeenCalledWith(expect.objectContaining({ chapterId: 'credits-closing', chapterTitle: 'Closing credits' })));
+  });
+
   it('full-app-goes-back-to-the-booth: Full app navigates to /booth with the same chapter', async () => {
-    const [first] = await createMockApi().manuscriptChapters();
+    const first = await firstChapter();
     await renderCompanion(`/companion?chapter=${encodeURIComponent(first.id)}`);
     await userEvent.setup().click(await screen.findByRole('button', { name: /full app/i }));
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe(`/booth?chapter=${encodeURIComponent(first.id)}`));
@@ -189,10 +205,10 @@ describe('CompanionPage loading state', () => {
 
   it('shows the skeleton while credits are read, and goes to the Booth for credits with no text', async () => {
     let release: (value: []) => void = () => {};
-    open('/companion?credits=opening', { creditsTemplates: () => new Promise((resolve) => (release = resolve as typeof release)) });
+    open('/companion?chapter=credits-opening', { creditsTemplates: () => new Promise((resolve) => (release = resolve as typeof release)) });
     expect(await screen.findByRole('group', { name: 'Loading the Companion' })).toBeTruthy();
     release([]);
-    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?credits=opening'));
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?chapter=credits-opening'));
     expect(region()).toBeNull();
   });
 });
