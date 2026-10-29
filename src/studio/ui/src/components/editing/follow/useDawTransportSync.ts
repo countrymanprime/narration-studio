@@ -6,7 +6,7 @@ import { totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import { useEditingPage } from '../script/EditingPageState';
 import { playable, playingKey } from '../script/playing';
 import type { ChapterDoc } from '../model';
-import { docAt, projectAt, projectEndAt, type ClosedCut } from './clockMap';
+import { docAt, projectAt, projectEndAt, whyNotPlaced, type ClosedCut } from './clockMap';
 import { EchoGuard } from './echoGuard';
 import { useVisible } from './useDawPlayPosition';
 
@@ -33,6 +33,8 @@ const END_SLACK_SECONDS = 0.4;
 export interface RemotePlayer {
   refusal(docT: number): 'pending' | 'not_ready' | 'not_placed' | null;
   refusedWith(): string | null;
+  /** The narrator's words for why `refusal` said `not_placed` for this second: which check failed. */
+  notPlacedWhy(docT: number, daw: string): string;
   start(docT: number, endDocT?: number): Promise<string | null>;
   stop(): void;
 }
@@ -256,6 +258,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       return projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
+    notPlacedWhy: (docT, daw) => whyNotPlaced({ playlist: live.current.playlist, items: live.current.items, cuts: live.current.cuts }, docT, daw),
     start: async (docT, endDocT) => {
       const l = live.current;
       const map = { playlist: l.playlist, items: l.items, cuts: l.cuts };

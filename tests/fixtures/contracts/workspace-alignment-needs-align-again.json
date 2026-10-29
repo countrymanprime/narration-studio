@@ -13,6 +13,7 @@
       "length": 10,
       "live": true,
       "playRate": 1,
+      "position": 0,
       "sourceStart": 5,
       "takeGuid": "{ITEM-A-take"
     },
