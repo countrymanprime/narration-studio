@@ -915,6 +915,10 @@ function Fake:add_item_api(api)
   end
   -- Deselects every track, then selects the one named (select_track, narration_track_select.lua). Real REAPER opens no
   -- undo point for a selection change; the fake records nothing in self.undo either.
+  function api.SetTrackSelected(track, selected)
+    fake.calls[#fake.calls + 1] = { name = 'SetTrackSelected', selected = selected }
+    track.selected = selected
+  end
   function api.SetOnlyTrackSelected(track)
     for _, other in ipairs(fake.tracks) do
       other.selected = false
@@ -1720,6 +1724,10 @@ function Fake:add_lane_api(api)
       return track.rec_input or 0
     elseif key == 'B_MUTE' then
       return track.muted and 1 or 0
+    elseif key == 'I_SOLO' then
+      return track.solo or 0
+    elseif key == 'I_SELECTED' then
+      return track.selected and 1 or 0
     end
     local lane = key:match('^C_LANEPLAYS:(%d+)$')
     if lane then
@@ -1740,6 +1748,8 @@ function Fake:add_lane_api(api)
       track.armed = value ~= 0
     elseif key == 'B_MUTE' then
       track.muted = value ~= 0
+    elseif key == 'I_SOLO' then
+      track.solo = value
     elseif not lane then
       error('fake reaper: unmodelled track value setter ' .. tostring(key))
     end

@@ -63,6 +63,7 @@ export interface ScriptPlaybackOptions {
     clockPending?: boolean;
     caps: DawCapabilities | null;
     read?: DawRead;
+    chapterId?: string;
   };
   /** The chapter's audio levels, so a play of words ends where the last word's sound dies away; absent keeps the fixed tail. */
   sound?: SoundAt;
@@ -190,7 +191,7 @@ export function useScriptPlayback({
             const refusal = remote ? remote.refusal(at) : 'pending';
             if (refusal === 'pending') return { ready: false, why: CHECKING, wait: true };
             if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
-            if (refusal === 'not_placed') return { ready: false, why: `That part is not in ${name}'s project.` };
+            if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
           },
           play: async (at) => {
@@ -272,6 +273,7 @@ export function useScriptPlayback({
     clock: sync?.clock ?? null,
     clockPending: sync?.clockPending ?? false,
     caps: sync?.caps ?? null,
+    chapterId: sync?.chapterId ?? '',
     onHead,
     onStopped,
     onLost,

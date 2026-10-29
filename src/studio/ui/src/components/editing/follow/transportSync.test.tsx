@@ -29,6 +29,8 @@ const PLAYLIST: PlaylistSegment[] = [
 ];
 const placed = wordTimesFor(doc, (w) => (w.t1 <= 8 ? linear(100, 0, 2)(w) : null));
 const CLOCK = buildWordClock(placed.table, doc, placed.tokenOf);
+const atZero = wordTimesFor(doc, (w) => (w.t1 <= 8 ? linear(0, 0, 2)(w) : null));
+const ZERO_CLOCK = buildWordClock(atZero.table, doc, atZero.tokenOf);
 const NOTHING_PLACED = wordTimesFor(doc, () => null);
 const NO_CLOCK = buildWordClock(NOTHING_PLACED.table, doc, NOTHING_PLACED.tokenOf);
 /** The project time at which the page's clock reads `docT`. */
@@ -63,7 +65,7 @@ function Harness({
     playlist: PLAYLIST,
     mediaUrl: (f) => f,
     notify: (text) => notices.push(text),
-    sync: { clock, clockPending: pending, caps, ...(read ? { read } : {}) },
+    sync: { clock, clockPending: pending, caps, chapterId: 'chapter-1', ...(read ? { read } : {}) },
   });
   useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
   return (
@@ -254,7 +256,7 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     await ready();
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
-    expect(calls('play')).toEqual([{ action: 'play', seconds: at(t0('p-2:1')) }]);
+    expect(calls('play')).toEqual([{ action: 'play', seconds: at(t0('p-2:1')), chapterId: 'chapter-1' }]);
     expect(audio.play).not.toHaveBeenCalled();
     expect(state().playing).toBe(true);
     act(() => daw.moveInDaw({ head: at(t0('p-2:3')) }));
@@ -293,6 +295,7 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
     await wait(10);
     expect(calls('play')).toHaveLength(0);
+    expect(calls('playRange').every((c) => c.chapterId === 'chapter-1')).toBe(true); // the DAW plays that chapter's linked track, not the selected one
     expect(calls('playRange').map(({ seconds, until }) => [seconds, until])).toEqual([[at(t0('p-1:3')), expect.closeTo(at(t0('p-2:1')), 2)]]);
     act(() => daw.moveInDaw({ head: at(t0('p-2:1')) + 0.05 }));
     await wait(10);
@@ -362,7 +365,18 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     await wait(10);
     expect(calls('play')).toHaveLength(0);
     expect(audio.play).toHaveBeenCalled();
-    expect(notices.join(' ')).toMatch(/not in REAPER's project\. Played in the app instead\./);
+    expect(notices.join(' ')).toMatch(/not in REAPER's project now.*Played in the app instead\./);
+  });
+  // The owner's report: a chapter whose audio starts at 0:00 of the project played in the app, saying the part was not in REAPER's project.
+  it('plays a section of an item that sits at project second 0 in the DAW, not the app', async () => {
+    mount(DAW_SETUPS.reaper, undefined, ZERO_CLOCK);
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:3')));
+    await wait(10);
+    expect(calls('playRange')).toHaveLength(1);
+    expect(calls('playRange')[0].seconds).toBeCloseTo(t0('p-2:1') / 2, 2);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(notices.join(' ')).not.toMatch(/not in/);
   });
   it('keeps the room quiet while the DAW records: nothing plays, in the DAW or the app', async () => {
     await ready(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: true, position: 100 } } });

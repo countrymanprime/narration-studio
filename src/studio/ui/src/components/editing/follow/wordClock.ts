@@ -23,6 +23,8 @@ export interface WordClock {
   projectEndAt(docT: number): number | null;
   /** The project second the chapter's last placed word ends, or null when no word is placed. */
   end(): number | null;
+  /** Why `projectAt` has no project second for `docT`, in the narrator's words, so a play that falls back to the app can say which check failed. `daw` is the DAW's name. */
+  whyNotPlaced(docT: number, daw: string): string;
 }
 
 /** One placed word on both clocks. */
@@ -48,10 +50,14 @@ const MAX_PAST_WORD_SECONDS = 1;
  */
 export function buildWordClock(table: WordTimes, doc: ChapterDoc, tokenOf: (key: string) => number | undefined): WordClock {
   const rows = new Map(table.words.filter((w) => w.state === 'placed').map((w) => [w.i, w]));
+  const states = new Map(table.words.map((w) => [w.i, w.state]));
   const entries: Entry[] = [];
+  /** Every word the page times, placed or not, with what the table says of it: for saying why a second has no place. */
+  const timed: Array<{ t0: number; t1: number; token: number | undefined }> = [];
   for (const item of doc.items) {
     if (item.kind !== 'w' || item.cut || item.t0 == null || item.t1 == null || !(item.t1 > item.t0)) continue;
     const token = tokenOf(item.key);
+    timed.push({ t0: item.t0, t1: item.t1, token });
     const row = token === undefined ? undefined : rows.get(token);
     if (row && row.end >= row.start) entries.push({ key: item.key, start: row.start, end: row.end, t0: item.t0, t1: item.t1 });
   }
@@ -112,5 +118,15 @@ export function buildWordClock(table: WordTimes, doc: ChapterDoc, tokenOf: (key:
       return word.end + (docT - word.t1) * rate;
     },
     end: () => (byProject.length ? last : null),
+    whyNotPlaced: (docT, daw) => {
+      const word = ok(docT) ? timed.find((w) => docT >= w.t0 - EPS && docT < w.t1 - EPS) : undefined;
+      if (!word) return 'There is no recorded word at that time in this chapter.';
+      const state = word.token === undefined ? undefined : states.get(word.token);
+      if (state === 'not_in_project')
+        return `That word's audio is not in ${daw}'s project now: it was cut out, trimmed off or muted there, or moved off the chapter's track.`;
+      if (state === 'not_heard') return 'The recording check heard nothing for that word.';
+      if (state === undefined) return `That word is not in the recording check's alignment, so ${daw} has no place for it.`;
+      return `${daw} has no place for that word.`;
+    },
   };
 }

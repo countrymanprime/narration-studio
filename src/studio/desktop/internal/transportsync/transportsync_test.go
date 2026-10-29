@@ -20,6 +20,7 @@ import (
 type fakeSyncer struct {
 	calls   []string
 	times   []float64
+	tracks  []string
 	err     error
 	handler func(dawport.TransportPosition)
 }
@@ -29,11 +30,13 @@ func (f *fakeSyncer) SetCursor(_ context.Context, seconds float64) (float64, err
 	f.calls, f.times = append(f.calls, "cursor"), append(f.times, seconds)
 	return seconds, f.err
 }
-func (f *fakeSyncer) PlayFrom(_ context.Context, seconds float64) (float64, error) {
+func (f *fakeSyncer) PlayFrom(_ context.Context, seconds float64, trackGUID string) (float64, error) {
+	f.tracks = append(f.tracks, trackGUID)
 	f.calls, f.times = append(f.calls, "play"), append(f.times, seconds)
 	return seconds, f.err
 }
-func (f *fakeSyncer) PlayRange(_ context.Context, from, to float64) (float64, float64, error) {
+func (f *fakeSyncer) PlayRange(_ context.Context, from, to float64, trackGUID string) (float64, float64, error) {
+	f.tracks = append(f.tracks, trackGUID)
 	f.calls, f.times = append(f.calls, "playRange"), append(f.times, from, to)
 	return from, to, f.err
 }
@@ -53,7 +56,7 @@ func run(t *testing.T, syncer dawport.TransportSyncer, support dawport.Support, 
 
 func runRange(t *testing.T, syncer dawport.TransportSyncer, support dawport.Support, same bool, action string, seconds, until float64) dawport.Result {
 	t.Helper()
-	return Do(t.Context(), "REAPER", support, syncer, func() bool { return same }, action, seconds, until)
+	return Do(t.Context(), "REAPER", support, syncer, func() bool { return same }, action, seconds, until, "")
 }
 
 func TestTransportSyncAnswersOKAndChangesNothingInTheProject(t *testing.T) {
@@ -196,5 +199,15 @@ func TestTransportSyncPlayRangeFollowsTheCapabilityAndTheProject(t *testing.T) {
 	}
 	if got := runRange(t, nil, available(), true, "playRange", 1, 2); got.OK || !strings.Contains(got.Message, "not connected") {
 		t.Fatalf("no adapter: %+v", got)
+	}
+}
+
+func TestTransportSyncHandsTheTrackToThePlay(t *testing.T) {
+	for _, action := range []string{"play", "playRange"} {
+		role := &fakeSyncer{}
+		got := Do(t.Context(), "REAPER", available(), role, func() bool { return true }, action, 1, 2, "{TRACK-1}")
+		if !got.OK || len(role.tracks) != 1 || role.tracks[0] != "{TRACK-1}" {
+			t.Errorf("%s: %+v, tracks = %v, want the chapter's track handed on", action, got, role.tracks)
+		}
 	}
 }

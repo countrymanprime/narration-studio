@@ -1044,10 +1044,13 @@ export function DawStopFxCompare(): $CancellablePromise<string> {
  * stops it, "playRange" plays from seconds to until and has the DAW stop itself at until, and "watch" takes or renews the lease on the
  * daw_position_changed stream (seconds is ignored by "stop" and "watch", until by all but "playRange"). The answer is a DawResult:
  * the capability's own sentence when the resolver refuses it, a DAW that has another project open, a recording in progress, or a time that is not
- * usable, each with nothing changed. It adds no undo step.
+ * usable, each with nothing changed. It adds no undo step. For "play" and "playRange", chapterID names the chapter whose linked track the DAW plays
+ * alone: the host resolves the track from the chapter's link, the DAW selects it and solos it in place, and puts the narrator's selection, solos
+ * and mute back when the play ends. A chapter with no (or several) linked tracks, or whose track has no audio at the start, is refused with
+ * nothing changed and nothing played. An empty chapterID plays the project as it is.
  */
-export function DawTransportSync(action: string, seconds: number, until: number): $CancellablePromise<string> {
-    return $Call.ByID(388325684, action, seconds, until);
+export function DawTransportSync(action: string, seconds: number, until: number, chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(388325684, action, seconds, until, chapterID);
 }
 
 /**

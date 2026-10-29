@@ -29,7 +29,7 @@ func TestTransportCommandsRefuseATimeThatIsNotUsableBeforeAnythingIsSent(t *test
 		if _, err := actions.SetCursor(context.Background(), seconds); err == nil {
 			t.Errorf("SetCursor(%v) must be refused", seconds)
 		}
-		if _, err := actions.PlayFrom(context.Background(), seconds); err == nil {
+		if _, err := actions.PlayFrom(context.Background(), seconds, ""); err == nil {
 			t.Errorf("PlayFrom(%v) must be refused", seconds)
 		}
 	}
@@ -44,7 +44,7 @@ func TestPlayFromSendsTheTimeAndReturnsWhereREAPERPlaysFrom(t *testing.T) {
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{{"TRANSPORT_PLAYING", run(command), "40.250000"}}
 	})
-	got, err := actions.PlayFrom(context.Background(), 40.25)
+	got, err := actions.PlayFrom(context.Background(), 40.25, "")
 	if err != nil || got != 40.25 {
 		t.Fatalf("PlayFrom = %v, %v", got, err)
 	}
@@ -97,7 +97,7 @@ func TestTransportCommandsAreRefusedWhileREAPERRecordsAndSayWhy(t *testing.T) {
 	})
 	for name, call := range map[string]func() error{
 		"set_cursor": func() error { _, err := actions.SetCursor(context.Background(), 3); return err },
-		"play_from":  func() error { _, err := actions.PlayFrom(context.Background(), 3); return err },
+		"play_from":  func() error { _, err := actions.PlayFrom(context.Background(), 3, ""); return err },
 		"stop_play":  func() error { _, err := actions.StopPlay(context.Background()); return err },
 	} {
 		err := call()
@@ -130,7 +130,7 @@ func TestPlayRangeSendsBothTimesAndReturnsTheStretchREAPERTook(t *testing.T) {
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{{"RANGE_PLAYING", run(command), "40.250000", "41.500000"}}
 	})
-	from, to, err := actions.PlayRange(context.Background(), 40.25, 41.5)
+	from, to, err := actions.PlayRange(context.Background(), 40.25, 41.5, "")
 	if err != nil || from != 40.25 || to != 41.5 {
 		t.Fatalf("PlayRange = %v, %v, %v", from, to, err)
 	}
@@ -143,7 +143,7 @@ func TestPlayRangeRefusesAStretchThatIsNotUsableBeforeAnythingIsSent(t *testing.
 	actions, client, dir := newActionsSession(t, true)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
 	for _, bad := range [][2]float64{{5, 5}, {6, 5}, {-1, 5}, {math.NaN(), 5}, {1, math.NaN()}, {0, math.Inf(1)}, {0, maxRangeSeconds + 1}, {0, maxPlaceSeconds + 1}} {
-		if _, _, err := actions.PlayRange(context.Background(), bad[0], bad[1]); err == nil {
+		if _, _, err := actions.PlayRange(context.Background(), bad[0], bad[1], ""); err == nil {
 			t.Errorf("PlayRange(%v) must be refused", bad)
 		}
 	}
@@ -158,7 +158,7 @@ func TestPlayRangeIsRefusedWhileREAPERRecordsAndSaysWhy(t *testing.T) {
 	startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{{"ERROR", run(command), "REAPER is recording. Stop recording first."}}
 	})
-	if _, _, err := actions.PlayRange(context.Background(), 1, 2); !errors.Is(err, ErrRecording) {
+	if _, _, err := actions.PlayRange(context.Background(), 1, 2, ""); !errors.Is(err, ErrRecording) {
 		t.Fatalf("err = %v, want ErrRecording", err)
 	}
 }
@@ -175,8 +175,40 @@ func TestPlayRangeAnswerThatIsNotANumberIsAnErrorNotAZero(t *testing.T) {
 			fields[1] = run(command)
 			return [][]string{fields}
 		})
-		if _, _, err := actions.PlayRange(context.Background(), 40.25, 41.5); err == nil {
+		if _, _, err := actions.PlayRange(context.Background(), 40.25, 41.5, ""); err == nil {
 			t.Errorf("%s: an unreadable answer must be an error", name)
 		}
+	}
+}
+
+func TestPlayRangeAndPlayFromSendTheTrackAndRefuseOneThatIsNotAGUID(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		if command[1] == "play_from" {
+			return [][]string{{"TRANSPORT_PLAYING", run(command), "40.250000"}}
+		}
+		return [][]string{{"RANGE_PLAYING", run(command), "40.250000", "41.500000"}}
+	})
+	const guid = "{AB12CD34-0000-4000-8000-0123456789AB}"
+	if _, _, err := actions.PlayRange(context.Background(), 40.25, 41.5, guid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := actions.PlayFrom(context.Background(), 40.25, guid); err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if len(commands) != 2 || len(commands[0]) != 6 || commands[0][5] != guid || len(commands[1]) != 5 || commands[1][4] != guid {
+		t.Fatalf("commands = %q, want the track as the last argument of each", commands)
+	}
+	for _, bad := range []string{"Chapter 1", "{x|y}", "{}", "{AB12CD34-0000-4000-8000-0123456789AB}\nevil"} {
+		if _, _, err := actions.PlayRange(context.Background(), 1, 2, bad); err == nil {
+			t.Errorf("PlayRange with track %q must be refused", bad)
+		}
+		if _, err := actions.PlayFrom(context.Background(), 1, bad); err == nil {
+			t.Errorf("PlayFrom with track %q must be refused", bad)
+		}
+	}
+	if got := len(fake.commands()); got != 2 {
+		t.Errorf("%d commands were sent, a refused track sends nothing", got)
 	}
 }

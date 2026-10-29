@@ -33,6 +33,8 @@ const END_SLACK_SECONDS = 0.4;
 export interface RemotePlayer {
   refusal(docT: number): 'pending' | 'not_ready' | 'not_placed' | null;
   refusedWith(): string | null;
+  /** The narrator's words for why `refusal` said `not_placed` for this second: which check failed. */
+  notPlacedWhy(docT: number, daw: string): string;
   start(docT: number, endDocT?: number): Promise<string | null>;
   stop(): void;
 }
@@ -43,6 +45,8 @@ export interface DawTransportSyncOptions {
   /** The host has not answered for the word table yet: `refusal` says `pending` rather than `not_placed`. */
   clockPending: boolean;
   caps: DawCapabilities | null;
+  /** The chapter the page edits: the DAW plays that chapter's linked track alone, whatever track is selected in it. Empty plays the project as it is. */
+  chapterId?: string;
   /** The DAW's play head while the app's play is the DAW's: a document second (null in a gap) and whether it passed the chapter's end. */
   onHead(docT: number | null, ended: boolean): void;
   /** The narrator stopped the DAW while the app's play was the DAW's. */
@@ -266,6 +270,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       return (l.clock?.projectAt(docT) ?? null) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
+    notPlacedWhy: (docT, daw) =>
+      live.current.clock?.whyNotPlaced(docT, daw) ??
+      `The app could not read where the words sit in ${daw}'s project. Check that ${daw} is open on this book with the chapter's track linked.`,
     start: async (docT, endDocT) => {
       const l = live.current;
       const project = l.clock?.projectAt(docT) ?? null;
@@ -281,7 +288,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       let ok = false;
       let why: string;
       try {
-        const result = stretch ? await sync.dawTransportSync('playRange', project, stretch.projectEnd) : await sync.dawTransportSync('play', project);
+        const result = stretch
+          ? await sync.dawTransportSync('playRange', project, stretch.projectEnd, l.chapterId ?? '')
+          : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
         ok = result.ok;
         why = result.message;
       } catch {

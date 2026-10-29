@@ -760,7 +760,8 @@ export const wailsClient: NarrationApi = {
   workspaceWordTimes: (chapterId) => decode(wordTimesSchema, 'WorkspaceWordTimes', host.WorkspaceWordTimes(chapterId)),
   subscribeDawProjectEdited: (onUpdate) => subscribeChecked('daw_project_edited', dawProjectEditedSchema, onUpdate),
   dawLiveItems: (chapterId) => decode(dawLiveItemsSchema, 'DawLiveItems', host.DawLiveItems(chapterId)),
-  dawTransportSync: (action, seconds, until = 0) => decode(dawResultSchema, 'DawTransportSync', host.DawTransportSync(action, seconds, until)),
+  dawTransportSync: (action, seconds, until = 0, chapterId = '') =>
+    decode(dawResultSchema, 'DawTransportSync', host.DawTransportSync(action, seconds, until, chapterId)),
   subscribeDawPosition: (onUpdate) => subscribeChecked('daw_position_changed', dawPositionSchema, onUpdate),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),

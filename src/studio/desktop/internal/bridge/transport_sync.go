@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -34,6 +35,20 @@ func secondsAt(fields []string, index int, command string) (float64, error) {
 	return value, nil
 }
 
+// trackArgument is the optional last argument of play_from and play_range: the GUID of the one track the DAW plays (it is selected and soloed, and put
+// back after), or nothing to play the project as it is. A text that is not a braced GUID is refused before anything is sent.
+func trackArgument(trackGUID string) ([]string, error) {
+	if trackGUID == "" {
+		return nil, nil
+	}
+	if !trackGUIDPattern.MatchString(trackGUID) {
+		return nil, fmt.Errorf("the track to play is not a track GUID")
+	}
+	return []string{trackGUID}, nil
+}
+
+var trackGUIDPattern = regexp.MustCompile(`^\{[0-9A-Fa-f-]{8,64}\}$`)
+
 // SetCursor puts REAPER's edit cursor at seconds and returns the cursor REAPER now holds. It scrolls the view and never seeks playback.
 func (a *Actions) SetCursor(ctx context.Context, seconds float64) (float64, error) {
 	arg, err := secondsArgument("put the cursor", seconds)
@@ -47,14 +62,18 @@ func (a *Actions) SetCursor(ctx context.Context, seconds float64) (float64, erro
 	return secondsAt(events[len(events)-1].Fields, 2, "set_cursor")
 }
 
-// PlayFrom starts REAPER's transport at seconds: a stopped or paused REAPER plays from there, a playing one is seeked. It returns the time REAPER
+// PlayFrom starts REAPER's transport at seconds (with trackGUID, only that track is heard until REAPER stops): a stopped or paused REAPER plays from there, a playing one is seeked. It returns the time REAPER
 // was told to play from. It does not wait for the first sound; the TRANSPORT stream says when REAPER is playing.
-func (a *Actions) PlayFrom(ctx context.Context, seconds float64) (float64, error) {
+func (a *Actions) PlayFrom(ctx context.Context, seconds float64, trackGUID string) (float64, error) {
 	arg, err := secondsArgument("play from", seconds)
 	if err != nil {
 		return 0, err
 	}
-	events, err := a.request(ctx, "play_from", []string{"TRANSPORT_PLAYING"}, arg)
+	track, err := trackArgument(trackGUID)
+	if err != nil {
+		return 0, err
+	}
+	events, err := a.request(ctx, "play_from", []string{"TRANSPORT_PLAYING"}, append([]string{arg}, track...)...)
 	if err != nil {
 		return 0, err
 	}
@@ -64,8 +83,9 @@ func (a *Actions) PlayFrom(ctx context.Context, seconds float64) (float64, error
 // PlayRange plays the project from `from` to `to` (seconds) on REAPER's own transport and has REAPER stop itself at `to`, so the sound is the
 // project's with the narrator's FX chain and the end does not wait on this app. It returns the stretch REAPER took, which is what it was told.
 // A stretch that is empty, backwards or longer than REAPER's ten minutes is refused with nothing sent. Like play_from it does not wait for the
-// first sound; the TRANSPORT stream says when REAPER plays and when it stopped.
-func (a *Actions) PlayRange(ctx context.Context, from, to float64) (float64, float64, error) {
+// first sound; the TRANSPORT stream says when REAPER plays and when it stopped. With trackGUID REAPER selects that track, solos it in place and puts the
+// narrator's selection, solos and mute back when the play ends; a track that is not there, or has no audio at `from`, is refused with nothing changed.
+func (a *Actions) PlayRange(ctx context.Context, from, to float64, trackGUID string) (float64, float64, error) {
 	start, err := secondsArgument("play from", from)
 	if err != nil {
 		return 0, 0, err
@@ -77,7 +97,11 @@ func (a *Actions) PlayRange(ctx context.Context, from, to float64) (float64, flo
 	if !(to > from) || to-from > maxRangeSeconds {
 		return 0, 0, fmt.Errorf("the stretch to play is not a usable pair of times")
 	}
-	events, err := a.request(ctx, "play_range", []string{"RANGE_PLAYING"}, start, end)
+	track, err := trackArgument(trackGUID)
+	if err != nil {
+		return 0, 0, err
+	}
+	events, err := a.request(ctx, "play_range", []string{"RANGE_PLAYING"}, append([]string{start, end}, track...)...)
 	if err != nil {
 		return 0, 0, err
 	}

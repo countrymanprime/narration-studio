@@ -14,6 +14,36 @@ const near = (actual: number | null, expected: number | null): void => {
 };
 
 describe('the word clock', () => {
+  it('places a word of an item that sits at project second 0', () => {
+    const { table, tokenOf } = wordTimesFor(doc, linear(0));
+    const clock = buildWordClock(table, doc, tokenOf);
+    near(clock.projectAt(first.t0), first.t0);
+    near(clock.docAt(first.t0 + 0.05), first.t0 + 0.05);
+    expect(clock.wordAt(first.t0 + 0.05)?.key).toBe(first.key);
+  });
+
+  describe('whyNotPlaced', () => {
+    it('names a second with no recorded word', () => {
+      const { table, tokenOf } = wordTimesFor(doc, linear(100));
+      expect(buildWordClock(table, doc, tokenOf).whyNotPlaced(9999, 'REAPER')).toMatch(/no recorded word at that time/);
+    });
+    it('names a word whose audio the project no longer plays', () => {
+      const { table, tokenOf } = wordTimesFor(doc, (w) => (w.key === second.key ? null : linear(100)(w)));
+      expect(buildWordClock(table, doc, tokenOf).whyNotPlaced(second.t0 + 0.01, 'REAPER')).toMatch(
+        /not in REAPER's project now.*cut out, trimmed off or muted/,
+      );
+    });
+    it('names a word with no token in the alignment', () => {
+      const { table } = wordTimesFor(doc, linear(100));
+      expect(buildWordClock(table, doc, () => undefined).whyNotPlaced(first.t0 + 0.01, 'REAPER')).toMatch(/not in the recording check's alignment/);
+    });
+    it('names a word the check heard nothing for', () => {
+      const { table, tokenOf } = wordTimesFor(doc, linear(100));
+      const heardNothing = { ...table, words: table.words.map((w) => ({ ...w, state: 'not_heard' as const, start: 0, end: 0 })) };
+      expect(buildWordClock(heardNothing, doc, tokenOf).whyNotPlaced(first.t0 + 0.01, 'REAPER')).toMatch(/heard nothing for that word/);
+    });
+  });
+
   it('maps a word start to its project start and back, for an item that plays the page at twice the speed', () => {
     const { table, tokenOf } = wordTimesFor(doc, linear(100, 0, 2));
     const clock = buildWordClock(table, doc, tokenOf);

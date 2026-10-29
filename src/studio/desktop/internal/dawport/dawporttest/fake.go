@@ -432,7 +432,7 @@ func (r transportSyncRole) SetCursor(_ context.Context, seconds float64) (float6
 	}
 	return seconds, nil
 }
-func (r transportSyncRole) PlayFrom(_ context.Context, seconds float64) (float64, error) {
+func (r transportSyncRole) PlayFrom(_ context.Context, seconds float64, _ string) (float64, error) {
 	if err := r.do("PlayFrom"); err != nil {
 		return 0, err
 	}
@@ -441,7 +441,7 @@ func (r transportSyncRole) PlayFrom(_ context.Context, seconds float64) (float64
 	}
 	return seconds, nil
 }
-func (r transportSyncRole) PlayRange(_ context.Context, from, to float64) (float64, float64, error) {
+func (r transportSyncRole) PlayRange(_ context.Context, from, to float64, _ string) (float64, float64, error) {
 	if err := r.do("PlayRange"); err != nil {
 		return 0, 0, err
 	}

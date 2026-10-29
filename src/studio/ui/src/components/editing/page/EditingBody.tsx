@@ -200,7 +200,7 @@ export function EditingBody(props: EditingBodyProps) {
     playlist,
     sound,
     mediaUrl: tracks.mediaUrl,
-    sync: { clock, clockPending, caps, ...(dawRead ? { read: dawRead } : {}) },
+    sync: { clock, clockPending, chapterId, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
     onOutputDevice: setDeviceProblem,
   });
