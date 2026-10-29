@@ -109,6 +109,20 @@ export const engineDrivers: Record<string, Driver> = {
       .click();
     await page.getByRole('tree').first().waitFor();
   },
+  'folder-tracks-picker-search': async (page) => {
+    await page.goto('/?mockTrackFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.scrollIntoViewIfNeeded();
+    await table
+      .locator('tbody tr')
+      .nth(2)
+      .getByRole('button', { name: /^Track for / })
+      .click();
+    await page.getByRole('textbox', { name: 'Search tracks' }).last().fill('chap');
+    await page.getByRole('treeitem', { name: /linked to Chapter 1/ }).waitFor();
+  },
   'chapter-link-confirmed': async (page) => {
     // Boots with no link, so the click through Confirm below is what makes it (an unset seed boots Chapter 1 already linked).
     await page.goto('/?mockChapterLink=none');

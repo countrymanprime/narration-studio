@@ -87,6 +87,13 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'folder-tracks-picker-search',
+    description:
+      'The same picker with "chap" typed in its search box (?mockTrackFolders=1): the list flattens to the matching tracks, each with its folder path, and the track another chapter holds says "linked to Chapter 1"',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
     state: 'chapter-link-confirmed',
     description:
       'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear',

@@ -1,5 +1,7 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Icon } from '../primitives/Icon';
+import { SectionLabel } from '../primitives/SectionLabel';
+import { SelectTrigger } from '../primitives/Select';
 import { Popover } from '../primitives/Popover';
 import { SearchField } from '../primitives/SearchField';
 import { TooltipTarget } from '../primitives/Tooltip';
@@ -137,7 +139,7 @@ export function TrackTreePicker({
     const isOpen = !shut.has(node.id);
     const blocked = !selectable(node);
     const selected = node.id === value;
-    const note = blocked ? 'No audio of its own' : entry.heldBy ? `linked to ${entry.heldBy}` : row.path;
+    const note = blocked ? 'No audio of its own' : [row.path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ');
     return (
       <li
         key={row.key}
@@ -185,26 +187,21 @@ export function TrackTreePicker({
   const shownName = chosen >= 0 ? trackLabel(nodes[chosen].track) : '';
   const shownPath = chosen >= 0 ? pathOf(nodes, chosen) : '';
   const trigger = (
-    <button
-      type="button"
+    <SelectTrigger
       // The name starts with what the control is for and holds the text it shows, so the visible words are part of the name.
       aria-label={`${label}: ${chosen >= 0 ? (shownPath ? `${shownPath} / ` : '') + shownName : 'Choose a track'}`}
-      className={`box-border flex h-[var(--control-height)] min-w-0 items-center gap-1 rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 text-left text-[0.88rem] text-[var(--text)] ${fullWidth ? 'w-full' : ''}`}
+      fullWidth={fullWidth}
     >
-      <span className="min-w-0 flex-1 truncate">
-        {chosen >= 0 ? (
-          <>
-            {shownPath && <span className="text-[var(--text-muted)]">{shownPath} / </span>}
-            {shownName}
-          </>
-        ) : (
-          <span className="text-[var(--text-muted)]">Choose a track</span>
-        )}
-      </span>
-      <span className="flex-none text-xs text-[var(--text-muted)]">
-        <Icon name="next" />
-      </span>
-    </button>
+      {chosen >= 0 ? (
+        // The path gives way first, so a long path never cuts the track's own name.
+        <span className="flex min-w-0 flex-1">
+          {shownPath && <span className="min-w-0 shrink-[4] truncate text-[var(--text-muted)]">{shownPath}&nbsp;/&nbsp;</span>}
+          <span className="min-w-0 truncate">{shownName}</span>
+        </span>
+      ) : (
+        <span className="min-w-0 truncate text-[var(--text-muted)]">Choose a track</span>
+      )}
+    </SelectTrigger>
   );
 
   return (
@@ -214,11 +211,15 @@ export function TrackTreePicker({
         <div className="max-h-[min(50vh,20rem)] overflow-auto overscroll-contain">
           {bestRow && (
             <>
-              <div className="px-1 pb-1 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Best match</div>
+              <SectionLabel as="div" className="block px-1 pb-1">
+                Best match
+              </SectionLabel>
               <ul role="tree" aria-label="Best match">
                 {renderRow(bestRow)}
               </ul>
-              <div className="px-1 pt-2 pb-1 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Other tracks</div>
+              <SectionLabel as="div" className="block px-1 pt-2 pb-1">
+                Other tracks
+              </SectionLabel>
             </>
           )}
           {rows.length > 0 ? (
