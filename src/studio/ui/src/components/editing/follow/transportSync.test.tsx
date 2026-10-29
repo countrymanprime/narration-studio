@@ -587,4 +587,44 @@ describe('a-selection-and-the-play-of-it', () => {
     expect(state().playing).toBe(false);
     expect(state().cursor).toBe('p-1:3');
   });
+
+  describe('when the DAW stops answering', () => {
+    const mountAndLose = async () => {
+      const api = createMockApi({}, { daw: {} });
+      daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+      const tree = (caps: DawCapabilities) => (
+        <ApiProvider api={api}>
+          <EditingPageProvider doc={doc}>
+            <Harness caps={caps} />
+          </EditingPageProvider>
+        </ApiProvider>
+      );
+      const view = render(tree(DAW_SETUPS.reaper));
+      await wait(10);
+      return { lose: () => view.rerender(tree({ ...DAW_SETUPS.reaper, reachable: false })), back: () => view.rerender(tree(DAW_SETUPS.reaper)) };
+    };
+    it('puts the play bar back on Play, and keeps it there when the DAW returns', async () => {
+      const { lose, back } = await mountAndLose();
+      select('p-1:3', 'p-2:1');
+      act(() => playback.toggle());
+      await wait(10);
+      expect(state().playing).toBe(true);
+      lose();
+      await wait(10);
+      expect(state().playing).toBe(false);
+      // The DAW came back stopped (a DAW that comes back playing is followed, as any play of its own is).
+      act(() => daw.moveInDaw({ playing: false }));
+      back();
+      await wait(LEASE_RENEW_MS + 10);
+      expect(state().playing).toBe(false);
+    });
+    it('does the same for a play the DAW started itself', async () => {
+      const { lose } = await mountAndLose();
+      act(() => daw.moveInDaw({ playing: true, head: at(1.3) }));
+      expect(lit()).toBe('p-1:3');
+      lose();
+      await wait(10);
+      expect(state().playing).toBe(false);
+    });
+  });
 });
