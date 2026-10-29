@@ -539,7 +539,7 @@ describe('CheckRecordingsDialog', () => {
         percent: 90,
         activity: activity({ model: 'large-v3-turbo', workers: 1, busy: 0, total: 0, done: 0, final: true, reasons: [] }),
       });
-      await waitFor(() => expect(figure('Re-check')).toMatch(/^Re-check: None needed\./));
+      await waitFor(() => expect(figure('Re-check')).toMatch(/^Re-check: None\./));
       emit({ runId: 'run-1', phase: 'running', percent: 91, activity: activity(undefined) });
       await waitFor(() => expect(figure('Re-check')).toMatch(/^Re-check: Off\./));
     });

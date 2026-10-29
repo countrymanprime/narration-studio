@@ -34,7 +34,9 @@ export function RunningView({ chapters, run, model, onStop }: { chapters: readon
             <li key={id} className="flex flex-col gap-1.5">
               <span className="flex items-baseline gap-3">
                 <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{name}</span>
-                <span className="shrink-0 font-mono text-[var(--text-muted)]">{chapterLine(run.active[id]?.activity ?? run.seen[id])}</span>
+                <span className="shrink-0 font-mono text-[var(--text-muted)]">
+                  {run.ids.length > 1 ? chapterLine(run.active[id]?.activity ?? run.seen[id]) : ''}
+                </span>
               </span>
               {/* The card's bar (default size), so the two read as one run. */}
               <ProgressBar label={`Checking ${name}`} value={value} running={active?.phase === 'running'} />

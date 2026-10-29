@@ -144,6 +144,18 @@ export const proofDrivers: Record<string, Driver> = {
     await page.getByRole('dialog').getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
   'check-checking': async (page) => checkHeld(page, 'hold'),
+  // The mock's check runs on its own to the end: the dialog then shows that chapter's result under the stopped activity box.
+  'check-finished': async (page) => {
+    await openProof(page, 'mockCoverage=cascade');
+    await openChapter(page, 'Chapter 4');
+    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog
+      .getByRole('button', { name: /^Check / })
+      .last()
+      .click();
+    await dialog.getByRole('region', { name: 'Check activity' }).getByText('Done', { exact: true }).waitFor();
+  },
   'check-checking-none': async (page) => checkHeld(page, 'hold-none'),
   'check-checking-all': async (page) => checkHeld(page, 'hold-all'),
   'notes-filtered': async (page) => {

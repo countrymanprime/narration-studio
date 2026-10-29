@@ -64,7 +64,7 @@ function recheckFigure(rechecks: readonly CoverageRecheckActivity[], asked: bool
   const final = rechecks.length > 0 && rechecks.every((recheck) => recheck.final);
   if (total === 0) {
     return final
-      ? { value: 'None needed', hint: `Nothing was doubtful enough to send to ${model}.` }
+      ? { value: 'None', hint: `Nothing was doubtful enough to send to ${model}.` }
       : { value: 'Waiting', hint: `Doubtful passages go to ${model} as the first pass finds them.` };
   }
   const reasons = [...new Set(rechecks.flatMap((recheck) => recheck.reasons))];

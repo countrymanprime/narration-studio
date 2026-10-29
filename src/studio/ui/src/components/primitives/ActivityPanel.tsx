@@ -45,7 +45,15 @@ export function ActivityPanel({
       </div>
       <div className="flex min-h-[1.375rem] items-center gap-2">
         <StatusBadge tone={phaseTone} shape="pill" label={phase} />
-        <span className="min-w-0 flex-1 truncate text-[var(--text-muted)]">{detail ?? ''}</span>
+        <span className="min-w-0 flex-1">
+          {detail ? (
+            <TooltipTarget text={detail} className="max-w-full">
+              <span tabIndex={0} aria-label={detail} className="block max-w-full truncate rounded-sm text-[var(--text-muted)]">
+                {detail}
+              </span>
+            </TooltipTarget>
+          ) : null}
+        </span>
         {time ? (
           <span className={`shrink-0 ${MONO}`} aria-label={`Time so far ${time}`}>
             {time}
@@ -58,21 +66,23 @@ export function ActivityPanel({
         className="m-0 grid list-none gap-3 p-0"
       >
         {figures.map((figure) => (
-          <li key={figure.key} className="flex min-w-0 flex-col gap-0.5">
-            <TooltipTarget text={figure.hint} className="min-w-0 items-center gap-1.5">
-              <span tabIndex={0} aria-label={`${figure.label}: ${figure.value}. ${figure.hint}`} className="flex min-w-0 items-center gap-1.5 rounded-sm">
-                <span className="text-[var(--text-muted)]">
-                  <Icon name={figure.icon} />
+          <li key={figure.key} className="flex min-w-0">
+            <TooltipTarget text={figure.hint} className="min-w-0">
+              <span tabIndex={0} aria-label={`${figure.label}: ${figure.value}. ${figure.hint}`} className="flex min-w-0 flex-col gap-0.5 rounded-sm">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="text-[var(--text-muted)]">
+                    <Icon name={figure.icon} />
+                  </span>
+                  {/* Narrow: the icon and its tooltip name the figure; the word stays for assistive technology. */}
+                  <span className="truncate text-[length:var(--font-size-sm)] font-semibold text-[var(--text-muted)] uppercase @max-[24rem]:sr-only">
+                    {figure.label}
+                  </span>
                 </span>
-                {/* Narrow: the icon and its tooltip name the figure; the word stays for assistive technology. */}
-                <span className="truncate text-[length:var(--font-size-sm)] font-semibold text-[var(--text-muted)] uppercase @max-[24rem]:sr-only">
-                  {figure.label}
+                <span className={`truncate ${MONO}`} aria-hidden="true">
+                  {figure.value}
                 </span>
               </span>
             </TooltipTarget>
-            <span className={`truncate ${MONO}`} aria-hidden="true">
-              {figure.value}
-            </span>
           </li>
         ))}
       </ul>

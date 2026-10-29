@@ -64,9 +64,9 @@ describe('summarizeActivity', () => {
     expect(view.recheckModel).toBeUndefined();
   });
 
-  it('shows zero re-checks as "None needed" once the first pass is through, and "Waiting" before', () => {
+  it('shows zero re-checks as "None" once the first pass is through, and "Waiting" before', () => {
     const none = (final: boolean) => summarizeActivity([running(activity({ recheck: second({ total: 0, done: 0, busy: 0, final, reasons: [] }) }))]).recheck;
-    expect(none(true).value).toBe('None needed');
+    expect(none(true).value).toBe('None');
     expect(none(false).value).toBe('Waiting');
   });
 

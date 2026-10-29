@@ -94,6 +94,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'check-finished',
+    description:
+      "Proof, Chapter 4 after its recording check ran to the end: the stopped activity box (Done, the final chunk and re-check counts, the clock stopped) above the chapter's result in the Check recordings dialog",
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'note-thread',
     description:
       "Proof, all chapters, the first note with a thread: a note of your own and a proofer's reply under Notes on this finding, with Proofer replied chosen for the next one",
