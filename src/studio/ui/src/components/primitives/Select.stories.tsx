@@ -101,12 +101,12 @@ export const KeyboardReachesIt: Story = {
 export const Trigger: Story = {
   render: () => (
     <div className="max-w-sm space-y-2">
-      <SelectTrigger aria-label="Track for Chapter 4" fullWidth>
+      <SelectTrigger aria-label="Track for Chapter 4: Narration / Chapters / Ch 4 · The Rabbit Sends in a Little Bill, read at length" fullWidth>
         <span className="min-w-0 truncate">Narration / Chapters / Ch 4 · The Rabbit Sends in a Little Bill, read at length</span>
       </SelectTrigger>
     </div>
   ),
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Track for Chapter 4' })).toBeVisible();
+    await expect(within(canvasElement).getByRole('button', { name: /^Track for Chapter 4/ })).toBeVisible();
   },
 };
