@@ -390,10 +390,32 @@ describe('credits-cards-and-banner-stay', () => {
     await waitFor(() => expect(within(row).getByRole('img').getAttribute('data-prep')).toBe('prepped'));
   });
 
-  it('renders no credits cards when the library has no opening or closing template', async () => {
-    mount({ api: createMockApi({ creditsTemplates: async () => [] }) });
+  it('renders no credits cards when the chapter list has no credits chapters (the library has no opening or closing template)', async () => {
+    const base = createMockApi();
+    mount({ api: createMockApi({ manuscriptChapters: async () => withoutCredits(await base.manuscriptChapters()) }) });
     await firstHeading();
     expect(screen.queryByRole('heading', { name: 'Opening credits' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Closing credits' })).toBeNull();
+  });
+
+  it('lists each credits chapter once: one row each in the chapter list and one card each in the reader', async () => {
+    mount();
+    await firstHeading();
+    const list = screen.getAllByRole('list', { name: 'Chapters' })[0]!;
+    await waitFor(() => expect(within(list).getAllByRole('button').at(-1)!.textContent).toContain('Closing credits'));
+    const rows = within(list).getAllByRole('button');
+    expect(rows.filter((row) => /Opening credits/.test(row.textContent ?? ''))).toHaveLength(1);
+    expect(rows.filter((row) => /Closing credits/.test(row.textContent ?? ''))).toHaveLength(1);
+    expect(document.querySelectorAll('[data-credits-entry="opening"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-credits-entry="closing"]')).toHaveLength(1);
+  });
+
+  it('is the empty state when the list holds only the credits: they are not a manuscript', async () => {
+    const base = createMockApi();
+    const credits = (await base.manuscriptChapters()).filter((chapter) => chapter.isCredits);
+    expect(credits.length).toBe(2);
+    mount({ api: createMockApi({ manuscriptChapters: async () => credits }) });
+    expect(await screen.findByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
   });
 
   it('a "#credits-closing" link goes to the closing credits', async () => {

@@ -5,12 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi, ChapterTrackLink, ChapterTrackSummary } from '../../types';
+import { withoutCredits } from '../../chapterKinds';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
 
 // Confirms the first chapter to the first track (mirroring wireContracts.test.ts's own chapterTrackSet fixtures),
 // so the panel has a definite trackGuid to play and select, whatever the default demo's own link mix is.
 async function confirmedFixture(api: NarrationApi): Promise<{ link: ChapterTrackLink; track: ChapterTrackSummary }> {
-  const [chapter] = await api.manuscriptChapters();
+  const [chapter] = withoutCredits(await api.manuscriptChapters());
   const project = await api.tracksList();
   const [track] = project.tracks;
   await api.chapterTrackSet(chapter.id, track.guid);
