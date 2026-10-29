@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAnglesDown, faAnglesUp, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { Icon } from '../primitives/Icon';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { SearchField } from '../primitives/SearchField';
-import { StatusBadge } from '../primitives/StatusBadge';
+import { Dot, StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
-import { TooltipTarget } from '../primitives/Tooltip';
 import { treeKeyHandler } from '../primitives/treeKeys';
 import { IndentGuides, TREE_INDENT, TrackMark, TreeCaret, tracksWord } from '../tracks/TreeRowParts';
 import { buildTrackTree, defaultOpen, folderRollup, searchVisible, trackLabel, visibleNodes } from '../tracks/trackTree';
@@ -52,16 +50,8 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
             <span className="w-44 max-w-full">
               <SearchField label="Search tracks" placeholder="Search tracks" value={query} onChange={setQuery} leadingIcon />
             </span>
-            <TooltipTarget text="Open all folders">
-              <IconButton label="Open all folders" size="sm" onClick={() => setOpen(new Set(folderIds))}>
-                <FontAwesomeIcon icon={faAnglesDown} aria-hidden="true" />
-              </IconButton>
-            </TooltipTarget>
-            <TooltipTarget text="Close all folders">
-              <IconButton label="Close all folders" size="sm" onClick={() => setOpen(new Set())}>
-                <FontAwesomeIcon icon={faAnglesUp} aria-hidden="true" />
-              </IconButton>
-            </TooltipTarget>
+            <IconButton action="openAllFolders" size="sm" onClick={() => setOpen(new Set(folderIds))} />
+            <IconButton action="closeAllFolders" size="sm" onClick={() => setOpen(new Set())} />
           </span>
         ) : undefined
       }
@@ -132,7 +122,7 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
                           'No tracks inside'
                         ) : (
                           <span className="inline-flex items-center gap-1.5">
-                            {rollup.linked > 0 && <span className="size-[7px] flex-none rounded-full bg-[var(--ok)]" aria-hidden="true" />}
+                            {rollup.linked > 0 && <Dot color="var(--ok)" />}
                             {rollup.linked} of {rollup.total} linked
                           </span>
                         )
@@ -151,7 +141,9 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
                         <span className="inline-flex items-center gap-1.5">
                           {hasIssue && (
                             <span title="This track has an item that can't be played" style={{ color: 'var(--danger-text)' }}>
-                              <FontAwesomeIcon icon={faTriangleExclamation} aria-label="This track has an item that can't be played" />
+                              <span role="img" aria-label="This track has an item that can't be played">
+                                <Icon name="problem" />
+                              </span>
                             </span>
                           )}
                           {playable}/{track.items.length}

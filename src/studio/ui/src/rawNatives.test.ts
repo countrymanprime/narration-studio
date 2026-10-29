@@ -44,6 +44,9 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // full-width path rows (a mono file path, which Button's uppercase chrome would mangle) stay one JSX `<button>` inside the
     // candidates `.map()`; the track rows' selection buttons went with the player.
     'src/components/engine/EnginePanel.tsx': 1,
+    // The track picker's trigger for a project with REAPER folders: a select-shaped box that opens the tree popover and shows the pick with its
+    // folder path. No primitive draws it (`Select` is the native element, whose list cannot hold a tree); one JSX `<button>`.
+    'src/components/mapping/TrackTreePicker.tsx': 1,
     // The chapter workspace's clickable script words: the same case as
     // ReaderText.tsx above - one word among a chapter's worth of running prose, needing Button's bare click/keyboard
     // semantics without its padded, uppercase chrome breaking the text flow. One JSX `<button>`, written once inside

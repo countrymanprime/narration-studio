@@ -1,6 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { Icon } from '../primitives/Icon';
 import { Popover } from '../primitives/Popover';
 import { SearchField } from '../primitives/SearchField';
 import { TooltipTarget } from '../primitives/Tooltip';
@@ -174,7 +173,11 @@ export function TrackTreePicker({
           )}
         </span>
         {note && <span className="max-w-[45%] flex-none text-right text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{note}</span>}
-        {selected && <FontAwesomeIcon icon={faCheck} className="flex-none text-xs" aria-hidden="true" />}
+        {selected && (
+          <span className="flex-none text-xs">
+            <Icon name="accept" />
+          </span>
+        )}
       </li>
     );
   };
@@ -198,7 +201,9 @@ export function TrackTreePicker({
           <span className="text-[var(--text-muted)]">Choose a track</span>
         )}
       </span>
-      <FontAwesomeIcon icon={faChevronDown} className="flex-none text-xs text-[var(--text-muted)]" aria-hidden="true" />
+      <span className="flex-none text-xs text-[var(--text-muted)]">
+        <Icon name="next" />
+      </span>
     </button>
   );
 

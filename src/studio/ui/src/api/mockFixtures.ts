@@ -1100,7 +1100,9 @@ export const WIRE_LINE_IDENTITY_IDLE: LineIdentityState = {
   linesRead: 0,
 };
 
-const folderTrack = (name: string, index: number, depth: number, color: string): TracksProject['tracks'][number] => ({
+type FixtureTrack = TracksProject['tracks'][number];
+
+const folderTrack = (name: string, index: number, depth: number, color: string): FixtureTrack => ({
   guid: `{F0LD-${index}}`,
   index,
   name,
@@ -1118,13 +1120,8 @@ const folderTrack = (name: string, index: number, depth: number, color: string):
  */
 export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   const inside = WIRE_TRACKS_PROJECT.tracks.map((track) => ({ ...track, depth: 2 }));
-  const opening = {
-    ...WIRE_TRACKS_PROJECT.tracks[0],
-    guid: '{0PEN-1NG}',
-    name: 'Opening credits',
-    depth: 2,
-    items: [] as TracksProject['tracks'][number]['items'],
-  };
+  const opening: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{0PEN-1NG}', name: 'Opening credits', depth: 2, items: [] };
+  const guest: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{GUEST-1}', name: 'Guest', depth: 1, items: [] };
   const list = [
     folderTrack('Narration', 0, 0, '#B04F17'),
     folderTrack('Chapters', 1, 1, '#2A5C86'),
@@ -1132,7 +1129,7 @@ export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
     folderTrack('Credits', inside.length + 2, 1, '#8A5A00'),
     opening,
     folderTrack('Co-narrator', inside.length + 4, 0, '#6B4C9A'),
-    { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{GUEST-1}', name: 'Guest', depth: 1, items: [] as TracksProject['tracks'][number]['items'] },
+    guest,
   ];
   return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
 })();

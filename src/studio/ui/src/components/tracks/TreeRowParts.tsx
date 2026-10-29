@@ -1,5 +1,4 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronRight, faFolder, faFolderOpen } from '@fortawesome/free-solid-svg-icons';
+import { Icon } from '../primitives/Icon';
 import { IconButton } from '../primitives/IconButton';
 import { TooltipTarget } from '../primitives/Tooltip';
 
@@ -33,11 +32,9 @@ export function TreeCaret({ folderName, open, onToggle }: { folderName?: string;
   return (
     <TooltipTarget text={label}>
       <IconButton label={label} variant="ghost" size="xs" tabIndex={-1} aria-expanded={open} onClick={onToggle}>
-        <FontAwesomeIcon
-          icon={faChevronRight}
-          className={`text-xs transition-transform motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}
-          aria-hidden="true"
-        />
+        <span className={`inline-flex text-xs motion-ok:transition-transform motion-ok:duration-(--motion-fast) ${open ? 'rotate-90' : ''}`}>
+          <Icon name="folderCaret" />
+        </span>
       </IconButton>
     </TooltipTarget>
   );
@@ -46,7 +43,12 @@ export function TreeCaret({ folderName, open, onToggle }: { folderName?: string;
 /** The track's colour: a folder icon (open or closed) for a folder, a dot for a track. */
 export function TrackMark({ color, folder, open }: { color: string; folder: boolean; open?: boolean }) {
   const fill = color || 'var(--non-text)';
-  if (folder) return <FontAwesomeIcon icon={open ? faFolderOpen : faFolder} className="flex-none text-sm" style={{ color: fill }} aria-hidden="true" />;
+  if (folder)
+    return (
+      <span className="flex-none text-sm" style={{ color: fill }}>
+        <Icon name={open ? 'trackFolderOpen' : 'trackFolder'} />
+      </span>
+    );
   return <span className="mx-0.5 size-[10px] flex-none rounded-full" style={{ backgroundColor: fill }} aria-hidden="true" />;
 }
 
