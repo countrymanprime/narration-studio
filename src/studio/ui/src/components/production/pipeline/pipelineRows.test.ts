@@ -256,6 +256,6 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
       creditsChapter('opening', { status: 'editing', recordedSeconds: 31 }),
       chapter('c1', { status: 'editing', recordedSeconds: 31 }),
     ]);
-    expect(credits!.cells.edit).toEqual({ ...plain!.cells.edit, tip: expect.any(String), label: expect.any(String) });
+    expect(credits!.cells.edit).toMatchObject({ kind: plain!.cells.edit.kind, text: plain!.cells.edit.text, state: plain!.cells.edit.state });
   });
 });

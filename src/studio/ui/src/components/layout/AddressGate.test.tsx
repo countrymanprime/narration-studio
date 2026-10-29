@@ -215,14 +215,14 @@ describe('AddressGate', () => {
     expect(view.reload).not.toHaveBeenCalled();
   });
 
-  it('checks the Editing chapter from the route and the Booth credits address needs no chapter', async () => {
+  it('checks the Editing chapter from the route and the Booth credits address names the credits chapter', async () => {
     mount({ at: '/editing/zzz', page: 'editing', route: '/editing/:chapterId', param: 'zzz' });
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Editing link points to a chapter'));
     cleanup();
     mount({ at: '/editing/c2', page: 'editing', route: '/editing/:chapterId', param: 'c2' });
     expect(screen.getByText('the page')).toBeTruthy();
     cleanup();
-    mount({ at: '/booth?credits=opening', page: 'booth', chapters: [] });
+    mount({ at: '/booth?credits=opening', page: 'booth', chapters: [{ id: 'credits-opening' }] });
     expect(screen.getByText('the page')).toBeTruthy();
   });
 

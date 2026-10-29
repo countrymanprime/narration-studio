@@ -2,6 +2,7 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { withoutCredits } from '../../chapterKinds';
 import { createMockApi } from '../../api/mockApi';
 import { openHistoryPanel } from './HistoryPanel';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
@@ -19,7 +20,7 @@ describe('history-lists-it', () => {
     const api = createMockApi();
     const store = createStudioStore({ registry: createSlots(api, api), subscribe: () => () => undefined, subscribeFocus: () => () => undefined });
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     await addBookmark({ journal, port: api, store }, { chapterId: chapter!.id, paragraphId: line!.id, offset: 1 });
     expect(await api.bookmarksList()).toHaveLength(1);
