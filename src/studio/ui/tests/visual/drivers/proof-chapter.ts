@@ -33,6 +33,12 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await openLinkedProofChapter(page, 'Chapter 7');
     await page.getByRole('button', { name: 'Check recordings…', exact: true }).waitFor();
   },
+  // The credits are chapters of the list: the Closing credits open in Proof at their own address.
+  'credits-closing': async (page) => {
+    await page.goto('/proof/credits-closing');
+    await settlePage(page);
+    await page.getByRole('button', { name: 'Check recordings…', exact: true }).waitFor();
+  },
   stale: async (page) => {
     // ?mockCoverage=stale marks Chapter 4's check stale (main.tsx).
     await page.goto('/?mockCoverage=stale');

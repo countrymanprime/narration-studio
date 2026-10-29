@@ -20,6 +20,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'credits-opening',
+    description:
+      "Editing, the Opening credits opened by their address like any chapter with no track linked to them - the dialog that asks for the credits' track, with every track of the project to pick from and Create a new track",
+  },
+  {
+    page: 'editing',
     state: 'selection',
     description:
       'Editing, four words selected - the floating toolbar under them, the bar naming "4 words" with their times, and their band on the waveform docked above the bar',

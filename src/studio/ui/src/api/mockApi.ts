@@ -197,7 +197,7 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     creditsText: credits.mockCreditsText,
     assetRequired: assets.teleprompterAssetRequired,
-    trackMatch: (chapterId) => mockChapterTrackMatch(chapterId, s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings),
+    trackMatch: (chapterId) => mockChapterTrackMatch(chapterId, credits.withCreditsChapters(s.chapters), WIRE_TRACKS_PROJECT, s.chapterTrackMappings),
     tracksProject: WIRE_TRACKS_PROJECT,
     seed: initial.teleprompter,
     devices: initial.teleprompterDevices ?? WIRE_TELEPROMPTER_DEVICES,

@@ -354,7 +354,7 @@ export function createChapterTracksMock(
     },
     chapterTrackMatch: async (chapterId) => {
       await manuscriptReady;
-      return wireClone(mockChapterTrackMatch(chapterId, s.chapters, project, s.chapterTrackMappings));
+      return wireClone(mockChapterTrackMatch(chapterId, chaptersWithCredits(), project, s.chapterTrackMappings));
     },
     chapterSuggestion: async () => {
       await manuscriptReady;
