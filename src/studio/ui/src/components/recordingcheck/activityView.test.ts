@@ -39,7 +39,7 @@ describe('summarizeActivity', () => {
   it('counts chunks, the workers busy of the workers running, and the passages sent to the larger model', () => {
     const view = summarizeActivity([running(activity(), 'pipeline')]);
     expect(view.chunks.value).toBe('40 of 112');
-    expect(view.workers.value).toBe('4 of 5 busy');
+    expect(view.workers.value).toBe('4/5 busy');
     expect(view.recheck.value).toBe('3 of 7+');
     expect(view.recheck.hint).toBe('large-v3-turbo re-checks passages the first model was unsure of.');
     expect(view).toMatchObject({ phase: 'both', firstModel: 'small', recheckModel: 'large-v3-turbo' });
@@ -55,7 +55,7 @@ describe('summarizeActivity', () => {
     const one = activity({ firstPass: first({ workers: 1, busy: 1, total: 1, done: 0 }), recheck: undefined });
     const view = summarizeActivity([running(one)]);
     expect(view.chunks).toEqual({ value: '0 of 1', hint: 'One piece of audio, so nothing to run side by side.' });
-    expect(view.workers).toEqual({ value: '1 of 1 busy', hint: 'One piece of audio, so one transcription runs.' });
+    expect(view.workers).toEqual({ value: '1/1 busy', hint: 'One piece of audio, so one transcription runs.' });
   });
 
   it('shows the re-check as off when the check did not ask for one', () => {
@@ -97,7 +97,7 @@ describe('summarizeActivity', () => {
       { activity: activity({ firstPass: first({ total: 5, done: 5, workers: 2, busy: 0 }), recheck: undefined }), running: false },
     ]);
     expect(view.chunks.value).toBe('9 of 15');
-    expect(view.workers.value).toBe('2 of 2 busy');
+    expect(view.workers.value).toBe('2/2 busy');
   });
 
   it("keeps a cancelled or failed chapter's counts, with nothing busy", () => {

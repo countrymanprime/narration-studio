@@ -25,7 +25,7 @@ describe('CheckActivityPanel', () => {
     expect(screen.getByText('small → large-v3-turbo')).toBeTruthy();
     expect(screen.getByText('2:41')).toBeTruthy();
     expect(screen.getByLabelText('Chunks: 40 of 112. Pieces of audio transcribed; a short recording is one piece.')).toBeTruthy();
-    expect(screen.getByLabelText(/^Workers: 4 of 5 busy\. Automatic runs 4 at once/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Workers: 4\/5 busy\. Automatic runs 4 at once/)).toBeTruthy();
     expect(screen.getByLabelText(/^Re-check: 3 of 7\+\. large-v3-turbo re-checks passages/)).toBeTruthy();
   });
 

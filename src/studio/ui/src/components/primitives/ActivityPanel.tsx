@@ -37,7 +37,7 @@ export function ActivityPanel({
   return (
     <section
       aria-label={label}
-      className="flex h-[8.75rem] flex-col justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-2)] p-3"
+      className="@container flex h-[8.75rem] flex-col justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-2)] p-3"
     >
       <div className="flex items-center gap-3">
         <ProgressBar label="Overall progress" value={percent} running={running} valueText={`${Math.round(percent)} percent`} className="min-w-0 flex-1" />
@@ -64,7 +64,10 @@ export function ActivityPanel({
                 <span className="text-[var(--text-muted)]">
                   <Icon name={figure.icon} />
                 </span>
-                <span className="truncate text-[length:var(--font-size-sm)] font-semibold text-[var(--text-muted)] uppercase">{figure.label}</span>
+                {/* Narrow: the icon and its tooltip name the figure; the word stays for assistive technology. */}
+                <span className="truncate text-[length:var(--font-size-sm)] font-semibold text-[var(--text-muted)] uppercase @max-[24rem]:sr-only">
+                  {figure.label}
+                </span>
               </span>
             </TooltipTarget>
             <span className={`truncate ${MONO}`} aria-hidden="true">

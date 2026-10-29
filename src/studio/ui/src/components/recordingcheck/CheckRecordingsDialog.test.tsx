@@ -524,7 +524,7 @@ describe('CheckRecordingsDialog', () => {
         activity: activity({ model: 'large-v3-turbo', workers: 1, busy: 1, total: 7, done: 3, final: false, reasons: ['low_confidence'] }),
       });
       await waitFor(() => expect(figure('Chunks')).toMatch(/^Chunks: 40 of 112\./));
-      expect(figure('Workers')).toMatch(/^Workers: 4 of 5 busy\./);
+      expect(figure('Workers')).toMatch(/^Workers: 4\/5 busy\./);
       expect(figure('Re-check')).toMatch(/^Re-check: 3 of 7\+\. large-v3-turbo re-checks passages the first model was unsure of\./);
     });
 

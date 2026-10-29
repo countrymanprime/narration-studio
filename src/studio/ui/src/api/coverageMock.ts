@@ -615,7 +615,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       };
       publish();
       const steps = deps.seed?.hold ? PROGRESS_STEPS.filter((step) => step.stage === 'TRANSCRIBE') : PROGRESS_STEPS;
-      const wantsRecheck = !options?.skipRecheck && (options?.recheck ?? !options?.model);
+      const wantsRecheck = !options?.skipRecheck && (deps.seed?.hold === true || (options?.recheck ?? !options?.model));
       state = { ...state, activity: mockActivity(0, deps.seed?.activity, wantsRecheck) };
       publish();
       steps.forEach((step, index) =>

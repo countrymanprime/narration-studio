@@ -98,7 +98,7 @@ export function summarizeActivity(entries: readonly ChapterActivity[]): Activity
       hint: chunkTotal === 1 ? 'One piece of audio, so nothing to run side by side.' : 'Pieces of audio transcribed; a short recording is one piece.',
     },
     workers: {
-      value: live.length === 0 ? `${workers || first[0].workers}` : `${busy} of ${slots} busy`,
+      value: live.length === 0 ? `${workers || first[0].workers}` : `${busy}/${slots} busy`,
       hint: workersHint(requested, first[0].workers, chunkTotal),
     },
     recheck: recheckFigure(rechecks, asked),
