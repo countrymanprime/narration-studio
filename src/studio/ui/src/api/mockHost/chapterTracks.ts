@@ -9,6 +9,7 @@ import type {
   ChapterSyncTrigger,
   NarrationApi,
   TrackMapping,
+  ManuscriptChapter,
 } from '../../types';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireClone } from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
@@ -27,7 +28,14 @@ export function createChapterTracksMock(
     manuscriptReady,
     dawFileLinked,
     peekCoverage,
-  }: { manuscriptReady: Promise<void>; dawFileLinked: () => boolean; peekCoverage: (chapterId: string) => CoverageResult },
+    chaptersWithCredits,
+  }: {
+    manuscriptReady: Promise<void>;
+    dawFileLinked: () => boolean;
+    peekCoverage: (chapterId: string) => CoverageResult;
+    /** The chapter list as the host sends it: the credits around the manuscript's chapters. */
+    chaptersWithCredits: () => ManuscriptChapter[];
+  },
 ) {
   // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
   let chapterSyncConsent: ChapterSyncConsent = initial.chapterSync === 'ask' ? 'undecided' : initial.chapterSync === 'off' ? 'off' : 'on';
@@ -264,7 +272,8 @@ export function createChapterTracksMock(
     chapterTrackLinks: async () => {
       await manuscriptReady;
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-      return wireClone(mockChapterTrackLinks(s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, state));
+      // Unlike chapter sync and the region plan (which come from the picked tracks), the links list holds the credits, as the host's does.
+      return wireClone(mockChapterTrackLinks(chaptersWithCredits(), WIRE_TRACKS_PROJECT, s.chapterTrackMappings, state));
     },
     chapterSyncState: async () => {
       await manuscriptReady;

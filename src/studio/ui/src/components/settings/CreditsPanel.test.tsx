@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { withoutCredits } from '../../chapterKinds';
 import { CreditsPanel } from './CreditsPanel';
 
 afterEach(cleanup);
@@ -129,7 +130,7 @@ describe('Retail sample', () => {
 
   it('saves the range the narrator picks and shows its length, as a marker that adds no time', async () => {
     const { api } = renderPanel();
-    const chapter = (await api.manuscriptChapters())[1];
+    const chapter = withoutCredits(await api.manuscriptChapters())[1];
     await screen.findByRole('combobox', { name: 'Sample starts in' });
     pick('Sample starts in', chapter.id);
     pick('Start line', '1');
@@ -142,9 +143,17 @@ describe('Retail sample', () => {
     expect((await api.creditsRetailSample()).sample).toMatchObject({ startLine: 1, endLine: 3 });
   });
 
+  it("offers only the book's own chapters to start and end in, never the credits", async () => {
+    renderPanel();
+    const starts = await screen.findByRole('combobox', { name: 'Sample starts in' });
+    const options = [...starts.querySelectorAll('option')].map((option) => option.value);
+    expect(options.length).toBeGreaterThan(0);
+    expect(options.some((id) => id.startsWith('credits-'))).toBe(false);
+  });
+
   it('shows the refusal for a range over 5 minutes and keeps nothing', async () => {
     const { api } = renderPanel();
-    const chapters = await api.manuscriptChapters();
+    const chapters = withoutCredits(await api.manuscriptChapters());
     await screen.findByRole('combobox', { name: 'Sample starts in' });
     pick('Sample starts in', chapters[0].id);
     pick('Start line', '1');
@@ -157,7 +166,7 @@ describe('Retail sample', () => {
 
   it('clears a saved sample', async () => {
     const plain = createMockApi();
-    const chapter = (await plain.manuscriptChapters())[1];
+    const chapter = withoutCredits(await plain.manuscriptChapters())[1];
     const [first, second] = chapter.paragraphIds ?? [];
     const api = createMockApi({}, { retailSample: { startParagraphId: first.id, endParagraphId: second.id } });
     render(

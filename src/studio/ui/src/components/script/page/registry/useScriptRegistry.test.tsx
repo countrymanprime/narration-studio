@@ -5,6 +5,7 @@ import { act, cleanup, render, renderHook, waitFor } from '@testing-library/reac
 import { type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
+import { withoutCredits } from '../../../../chapterKinds';
 import { createMockApi } from '../../../../api/mockApi';
 import { gesture } from '../../../../input/gestures';
 import { currentPageContext } from '../../../../input/pageCommands';
@@ -150,7 +151,7 @@ describe('registrations', () => {
   it('the provider answers for the Script’s targets only', async () => {
     const { hook } = setup();
     await waitFor(() => expect(hook.result.current.value?.length).toBeGreaterThan(0));
-    const id = hook.result.current.value![0].id;
+    const id = withoutCredits(hook.result.current.value!)[0]!.id;
     document.body.innerHTML = `<div data-jump="${id}"><b id="in">x</b></div><div id="out">y</div>`;
     expect(contextItemsFor(document.getElementById('in')!)?.[0].label).toBe('Go to this chapter');
     expect(contextItemsFor(document.getElementById('out')!)).toBeNull();
@@ -159,7 +160,8 @@ describe('registrations', () => {
   it('keys-follow-the-mock: Alt+Down and Alt+Up go to the chapter after or before the one in view, and stop at the ends', async () => {
     const { hook, press, handlers, at } = setup();
     await waitFor(() => expect(hook.result.current.value?.length).toBeGreaterThan(1));
-    const ids = hook.result.current.value!.map((row) => row.id);
+    // Without `stops` the keys step the manuscript's own chapters; the page passes its credits rows as stops.
+    const ids = withoutCredits(hook.result.current.value!).map((row) => row.id);
     at(ids[0]);
     press('ArrowDown', ['Alt']);
     expect(handlers.goToChapter).toHaveBeenLastCalledWith(ids[1]);

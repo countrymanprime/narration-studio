@@ -4,7 +4,7 @@
 //
 // Each feature area's bindings live in their own file under mockHost/ (the state they share is mockHost/state.ts);
 // this file only puts them together, with the per-feature mocks beside it (teleprompterMock.ts, coverageMock.ts, ...).
-import type { Finding, MeasureFileResult, NarrationApi } from '../types';
+import type { Finding, ManuscriptParagraph, MeasureFileResult, NarrationApi } from '../types';
 import { WIRE_FINDINGS, WIRE_TELEPROMPTER_DEVICES, WIRE_TRACKS_PROJECT } from './mockFixtures';
 import { mockChapterTrackMatch } from './chapterTrackMatchMock';
 import { createTeleprompterMock } from './teleprompterMock';
@@ -181,6 +181,7 @@ export function createMockApi(
   });
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
+    chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
   });
@@ -227,9 +228,15 @@ export function createMockApi(
     },
     seed: initial.backgroundChecks === 'running' ? { ...initial.coverage, backgroundRun: true } : initial.coverage,
   });
+  // A credits file is a chapter of the list with one paragraph, its rendered template (`<id>-p0`, as the host's alignment answers).
+  const creditsParagraphs = (): ManuscriptParagraph[] =>
+    credits.withCreditsChapters([]).flatMap((chapter) => {
+      const text = credits.mockCreditsText(chapter.id === 'credits-opening' ? 'opening' : 'closing');
+      return text ? [{ id: `${chapter.id}-p0`, chapterId: chapter.id, chapter: chapter.title, index: 0, text, entityIds: [] }] : [];
+    });
   const workspaceDeps = {
-    chapters: () => s.chapters,
-    paragraphs: () => s.paragraphs,
+    chapters: () => credits.withCreditsChapters(s.chapters),
+    paragraphs: () => [...s.paragraphs, ...creditsParagraphs()],
     coverageResult: peekCoverage,
     project: WIRE_TRACKS_PROJECT,
     mappings: () => s.chapterTrackMappings,

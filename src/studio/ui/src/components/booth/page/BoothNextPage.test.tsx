@@ -820,11 +820,10 @@ describe('credits-are-readable-and-recordable', () => {
     await screen.findByText('Closing.', { exact: false });
     expect(screen.getByRole('button', { name: 'Next chapter' }).getAttribute('aria-disabled') ?? 'true').toBe('true');
     // And three steps back are Chapter Two, Chapter One and the opening credits, the first.
-    for (const text of ['Garden', 'Nobody']) {
+    for (let step = 0; step < 3; step++) {
       await userEvent.click(screen.getByRole('button', { name: 'Previous chapter' }));
-      if (text === 'Nobody') await screen.findByText(text, { exact: false });
+      await settle();
     }
-    await userEvent.click(screen.getByRole('button', { name: 'Previous chapter' }));
     await screen.findByText('Opening.', { exact: false });
   });
 

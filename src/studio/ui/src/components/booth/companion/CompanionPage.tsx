@@ -92,7 +92,9 @@ export function CompanionPage({ onFixCredits }: Props) {
 
   if (!chapters) return <CompanionSkeleton />;
   if (!chapter) return <Navigate to="/booth" replace />;
-  const source: BoothSource | undefined = creditsKind ? credits && { kind: 'credits', credits: creditsKind, chapter, preview: credits } : { kind: 'chapter', chapter };
+  const source: BoothSource | undefined = creditsKind
+    ? credits && { kind: 'credits', credits: creditsKind, chapter, preview: credits }
+    : { kind: 'chapter', chapter };
   // The credits asked for are still being read, or have no text: the Booth says so for them.
   if (!source)
     return creditsReadOf === creditsKind ? <Navigate to={addressPath({ page: 'booth', target: { chapter: chapter.id } })} replace /> : <CompanionSkeleton />;
