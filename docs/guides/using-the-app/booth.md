@@ -16,7 +16,7 @@ where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
-the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the same rule as the Script's: the width's characters a line or its share of the window, whichever is less, so **Narrow** stays narrow in a half-width window; **+** and **-** change the size too, and the Booth opens at the size
+the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or its share of the text area, whichever is less, so each choice narrows the text equally on both sides and **Narrow** stays narrow in a half-width window; **+** and **-** change the size too, and the Booth opens at the size
 and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
 **Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
@@ -46,7 +46,7 @@ dotted or wavy underline), as they are on Script; a mark's note shows under its 
 speaker chip takes its character's colour; a suggested speaker's chip is dashed until you confirm it, and a quote nobody is
 matched to has a grey dashed **?** chip, by the same rule as on [Script](script.md). The chip's menu lists the entries whose
 type speaks. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **In this
-chapter** chips alike. The text is left-aligned and a paragraph starts at the column's edge, with no indent and a small gap above it, so a page of short paragraphs or
+chapter** chips alike. Lines are left-aligned within the centred column and a paragraph starts at the column's edge, with no indent and a small gap above it, so a page of short paragraphs or
 back-and-forth dialogue still shows many lines at the same text size. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
