@@ -132,3 +132,12 @@ export function runReducer(state: RunState, action: RunAction): RunState {
       return state.step === 'running' ? { ...state, step: 'stopped', active: {}, interrupted: Object.keys(state.active).length } : state;
   }
 }
+
+/** The run's overall percent: the mean of the chapters that can still count, each at its own percent (full once finished). A chapter the host refused or
+ * whose run failed or was cancelled is out of the mean, so it cannot hold the bar below what the others have done. */
+export function overallPercent(state: RunState): number {
+  const counted = state.ids.filter((id) => !(id in state.messages));
+  if (counted.length === 0) return 0;
+  const total = counted.reduce((sum, id) => sum + (state.active[id] ? state.active[id].percent : state.finished.includes(id) ? 100 : 0), 0);
+  return total / counted.length;
+}

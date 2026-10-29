@@ -235,9 +235,13 @@ export function CheckRecordingsDialog({
   stopRef.current = stop;
   useEffect(() => {
     if (!running) return;
+    let asking = false;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
+      // The question is already up: Escape answers it (the confirm's own handler), it never asks a second one.
+      if (asking) return;
+      asking = true;
       void overlay
         .confirm({
           title: 'Stop checking?',
@@ -245,7 +249,10 @@ export function CheckRecordingsDialog({
           confirmLabel: 'Stop',
           confirmVariant: 'danger',
         })
-        .then((yes) => yes && stopRef.current());
+        .then((yes) => {
+          asking = false;
+          if (yes) stopRef.current();
+        });
     };
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);

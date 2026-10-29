@@ -5,7 +5,7 @@ import { Button } from '../primitives/Button';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { CheckActivityPanel } from './CheckActivityPanel';
 import { summarizeActivity } from './activityView';
-import type { RunState } from './checkRun';
+import { overallPercent, type RunState } from './checkRun';
 
 /** The run in progress: a bar per chapter under its name (the real percent for each one running, full for the ones through, empty for the ones
  * waiting) and Stop checking beside the line that says what runs (alignment audit XPF-18, R3PF-8: the card's button says the same). */
@@ -13,8 +13,7 @@ export function RunningView({ chapters, run, model, onStop }: { chapters: readon
   const view = summarizeActivity(
     run.ids.map((id) => ({ activity: run.active[id]?.activity ?? run.seen[id], pass: run.active[id]?.pass, running: id in run.active })),
   );
-  const percents = run.ids.map((id) => (run.active[id] ? run.active[id].percent : run.finished.includes(id) ? 100 : 0));
-  const overall = percents.length === 0 ? 0 : percents.reduce((a, b) => a + b, 0) / percents.length;
+  const overall = overallPercent(run);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">

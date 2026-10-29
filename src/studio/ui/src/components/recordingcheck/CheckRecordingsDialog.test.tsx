@@ -528,6 +528,15 @@ describe('CheckRecordingsDialog', () => {
       expect(figure('Re-check')).toMatch(/^Re-check: 3 of 7\+\. large-v3-turbo re-checks passages the first model was unsure of\./);
     });
 
+    it('asks "Stop checking?" once however many times Escape is pressed', async () => {
+      const { api } = host();
+      open(api, ['a']);
+      await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
+      await screen.findByRole('region', { name: 'Check activity' });
+      await userEvent.keyboard('{Escape}{Escape}{Escape}');
+      expect(await screen.findAllByText('Stop checking?')).toHaveLength(1);
+    });
+
     it('says nothing needed re-checking when the first pass left nothing in doubt, and that there is no re-check when none was asked for', async () => {
       const { api, emit } = host();
       open(api, ['a']);

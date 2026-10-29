@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CoverageStartResult } from '../../api/contracts/coverage';
-import { idleRun, runReducer, type RunAction, type RunState } from './checkRun';
+import { idleRun, overallPercent, runReducer, type RunAction, type RunState } from './checkRun';
 
 const started = (runId: string): CoverageStartResult => ({ status: 'started', state: { runId, phase: 'running', percent: 0, message: '' } });
 const apply = (state: RunState, ...actions: RunAction[]) => actions.reduce(runReducer, state);
@@ -148,5 +148,28 @@ describe('runReducer activity', () => {
     let s = apply(idleRun, { type: 'begin', ids: ['a'] }, { type: 'answered', id: 'a', answer: started('r1') });
     s = apply(s, { type: 'progress', runId: 'r1', percent: 30, activity: activity(5, 2) });
     expect(apply(s, { type: 'begin', ids: ['a'] }).seen).toEqual({});
+  });
+});
+
+describe('overallPercent', () => {
+  it('is the mean of the chapters that count: finished ones full, the running one at its percent', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a', 'b'], limit: 2 });
+    s = apply(
+      s,
+      { type: 'answered', id: 'a', answer: started('r1') },
+      { type: 'answered', id: 'b', answer: started('r2') },
+      { type: 'progress', runId: 'r2', percent: 60 },
+    );
+    expect(overallPercent(s)).toBe(30);
+    s = apply(s, { type: 'ended', runId: 'r1', phase: 'complete', message: '' });
+    expect(overallPercent(s)).toBe(80);
+  });
+
+  it('leaves a refused or failed chapter out, so it cannot hold the bar down', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a', 'b'], limit: 2 }, { type: 'answered', id: 'a', answer: refused('Link a track first.') });
+    s = apply(s, { type: 'answered', id: 'b', answer: started('r2') }, { type: 'progress', runId: 'r2', percent: 60 });
+    expect(overallPercent(s)).toBe(60);
+    s = apply(s, { type: 'ended', runId: 'r2', phase: 'failed', message: 'It broke.' });
+    expect(overallPercent(s)).toBe(0);
   });
 });
