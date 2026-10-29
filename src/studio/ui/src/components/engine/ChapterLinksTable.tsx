@@ -1,10 +1,8 @@
 import { headingName } from '../../chapterHeading';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chapterName } from '../../chapterName';
-import { useApi } from '../../api/ApiContext';
-import { CREDITS_ID, CREDITS_NAME, creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
-import { useCreditsRows } from '../credits/useCreditsRows';
+import { creditsKindOfId } from '../credits/creditsEntries';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
@@ -15,7 +13,8 @@ import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import type { Notify } from '../primitives/Toast';
-import { chapterTrackRows, type ChapterLinkState, type ChapterTrackRow } from './chapterTrackRows';
+import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
+import type { ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 
@@ -41,69 +40,10 @@ const NARROW_ROW =
 // picture" list lives here, beside the per-chapter inline prompt used wherever a check needs it). It shows every
 // narration chapter whether or not it has a confirmed link, so an unlinked chapter and a link pointing at a track
 // that no longer exists are both visible in one place, not just the one chapter a narrator happens to be checking.
-// `onChanged` tells the panel a link was made or cleared here, so the Tracks card above re-reads the same mapping (R3EN1-7).
-export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { tracks: Track[]; refreshKey?: number; notify: Notify; onChanged?: () => void }) {
-  const api = useApi();
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  const [mappings, setMappings] = useState<TrackMapping[]>([]);
-  const [error, setError] = useState('');
-  const [busyChapterId, setBusyChapterId] = useState('');
+// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the Tracks card above share (R3EN1-7).
+export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; notify: Notify }) {
+  const { tracks, chapters, mappings, rows, error, busyChapterId } = links;
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
-
-  const reload = useCallback(async () => {
-    const [nextChapters, mapping] = await Promise.all([api.manuscriptChapters(), api.chapterTrackMapList()]);
-    setChapters(nextChapters);
-    setMappings(mapping.mappings);
-  }, [api]);
-
-  useEffect(() => {
-    let active = true;
-    reload().catch((reason) => {
-      if (active) setError(String(reason));
-    });
-    return () => {
-      active = false;
-    };
-    // refreshKey has no meaning of its own: it only asks this effect to run again, for a caller (chapter sync's panel) whose own
-    // action changed the mapping this table reads.
-  }, [reload, refreshKey]);
-
-  // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it
-  // so a Change never leaves the chapter linked to two tracks.
-  const confirm = (chapterId: string, trackGuid: string) => {
-    setBusyChapterId(chapterId);
-    setError('');
-    api
-      .chapterTrackSet(chapterId, trackGuid)
-      .then(() => reload())
-      .then(() => onChanged?.())
-      .catch((reason) => setError(String(reason)))
-      .finally(() => setBusyChapterId(''));
-  };
-
-  // Clears every link the chapter holds, including a second one an older Change left behind.
-  const clear = (chapterId: string) => {
-    setBusyChapterId(chapterId);
-    setError('');
-    api
-      .chapterTrackUnlink(chapterId)
-      .then(() => reload())
-      .then(() => onChanged?.())
-      .catch((reason) => setError(String(reason)))
-      .finally(() => setBusyChapterId(''));
-  };
-
-  const credits = useCreditsRows(String(refreshKey ?? 0), () => undefined);
-  // The opening and closing credits are recorded like a chapter and linked through the same bindings, but the manuscript's chapter list never
-  // holds them, so they join the rows here: opening before the first chapter, closing after the last.
-  const rows = useMemo(() => {
-    const entries = creditsEntries(credits.rows, ownsOpeningCredits(chapters));
-    const asChapter = (kind: 'opening' | 'closing', index: number): ManuscriptChapter[] =>
-      entries[kind]
-        ? [{ id: CREDITS_ID[kind], title: CREDITS_NAME[kind], index, wordCount: entries[kind].words, status: entries[kind].status, contentKind: 'narration' }]
-        : [];
-    return chapterTrackRows([...asChapter('opening', -2), ...chapters, ...asChapter('closing', chapters.length + 1)], tracks, mappings);
-  }, [credits.rows, chapters, tracks, mappings]);
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
@@ -132,8 +72,8 @@ export function ChapterLinksTable({ tracks, refreshKey, notify, onChanged }: { t
                 tracks={tracks}
                 mappings={mappings}
                 busy={busyChapterId === row.chapter.id}
-                onConfirm={(trackGuid) => confirm(row.chapter.id, trackGuid)}
-                onClear={() => clear(row.chapter.id)}
+                onConfirm={(trackGuid) => links.set(row.chapter.id, trackGuid)}
+                onClear={() => links.unlink(row.chapter.id)}
                 onEditingCheck={() => setEditingChecking(row.chapter)}
               />
             ))}

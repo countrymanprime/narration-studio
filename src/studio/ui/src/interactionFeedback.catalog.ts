@@ -186,10 +186,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
   'src/theme/ThemeContext.tsx#1': 'Remembering the theme in localStorage; the preference just does not persist when storage is disabled.',
-  'src/components/engine/EnginePanel.tsx#1':
-    'Only decides whether the "Link chapters…" tool shows; without it the button is absent, same as a project with no chapters.',
-  'src/components/engine/EnginePanel.tsx#2':
-    'Only names each track\'s chapter in the engine panel\'s track list; without it the column reads "Not linked", and the Chapter links table under it reports its own read failure.',
   'src/components/engine/LinkChaptersDialog.tsx#1':
     'Hydrates whatever stamp or read was already in flight when the dialog reopened; the live event follows anyway.',
   'src/components/pickups/usePickupsState.ts#1':
