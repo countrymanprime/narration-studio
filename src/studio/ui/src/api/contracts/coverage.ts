@@ -53,6 +53,35 @@ export type CoveragePhase = 'idle' | 'running' | 'complete' | 'cancelled' | 'fai
  * larger model as it goes; the other three only ever follow it. */
 export type CoveragePass = 'first_pass' | 'pipeline' | 'recheck_windows' | 'recheck_whole' | 'realign';
 
+/** One model's share of a running check. A unit is the audio one transcription takes: an item, or a chunk of a long item. */
+export type CoveragePassActivity = {
+  model: string;
+  /** The transcriptions this model runs at once, as the sidecar planned them (what really runs, not what was asked for). */
+  workers: number;
+  /** How many of them are running now. */
+  busy: number;
+  total: number;
+  done: number;
+  /** False while `total` can still grow: the larger model's passages, until the first pass has handed over every item. */
+  final: boolean;
+};
+
+/** Why the larger model was asked to look at a passage. */
+export type CoverageRecheckReason = 'low_confidence' | 'missing_words' | 'widespread';
+
+export type CoverageRecheckActivity = CoveragePassActivity & { reasons: CoverageRecheckReason[] };
+
+/** What a running check is doing now, beyond its percent (host activity.go, read from the sidecar's activity file). Absent until the sidecar
+ * has written its first count, and for a state the page builds itself. */
+export type CoverageActivity = {
+  /** The worker count the narrator set; 0 is Automatic. */
+  requested: number;
+  items: { total: number; done: number };
+  firstPass: CoveragePassActivity;
+  /** Present only for a run that asked for a second look with a larger model. */
+  recheck?: CoverageRecheckActivity;
+};
+
 export type CoverageState = {
   runId?: string;
   chapterId?: string;
@@ -74,6 +103,7 @@ export type CoverageState = {
   firstPassModel?: string;
   recheckModel?: string;
   recheckWindows?: number;
+  activity?: CoverageActivity;
 };
 
 /** The re-check model's own asset gate: the same shape as asset_required, kept apart so the UI can

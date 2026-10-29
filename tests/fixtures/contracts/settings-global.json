@@ -701,7 +701,7 @@
         "900"
       ],
       "effectiveSource": "repo_default",
-      "effectiveValue": "300",
+      "effectiveValue": "60",
       "isSet": false,
       "key": "chunk_seconds",
       "kind": "choice",

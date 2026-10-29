@@ -24,7 +24,7 @@ func TestResolveSettingsWithNothingSetIsTheShippedDefaults(t *testing.T) {
 	want := Settings{
 		Alignment: AlignmentParams{MaxMisreadRun: 8, MinAnchorRun: 3}, Thresholds: Thresholds{MinParagraphPresent: 0.8, MaxMissingRun: 3},
 		Cascade:  CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5, Pipeline: true},
-		Parallel: Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1},
+		Parallel: Parallel{Workers: 0, ChunkSeconds: 60, OverlapSeconds: 6, Chapters: 1},
 	}
 	if got != want || got != DefaultSettings {
 		t.Fatalf("ResolveSettings = %+v, want the shipped defaults (MC1, MC2) %+v", got, want)
@@ -100,7 +100,7 @@ func TestResolveSettingsReadsTheParallelAndDoubtKeys(t *testing.T) {
 
 func TestTheParallelAndDoubtDefaultsAreAutoWorkersFiveMinuteChunksAndAHalf(t *testing.T) {
 	got := ResolveSettings(lookupFrom(nil))
-	if got.Parallel != (Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1}) || got.Cascade.UnsureBelow != 0.5 {
+	if got.Parallel != (Parallel{Workers: 0, ChunkSeconds: 60, OverlapSeconds: 6, Chapters: 1}) || got.Cascade.UnsureBelow != 0.5 {
 		t.Fatalf("got %+v", got)
 	}
 }

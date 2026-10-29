@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CoverageStartResult } from '../../api/contracts/coverage';
-import { idleRun, runReducer, type RunAction, type RunState } from './checkRun';
+import { idleRun, overallPercent, runReducer, type RunAction, type RunState } from './checkRun';
 
 const started = (runId: string): CoverageStartResult => ({ status: 'started', state: { runId, phase: 'running', percent: 0, message: '' } });
 const apply = (state: RunState, ...actions: RunAction[]) => actions.reduce(runReducer, state);
@@ -118,5 +118,58 @@ describe('runReducer several at a time', () => {
   it('stop ends every chapter in progress', () => {
     const s = apply(idleRun, { type: 'begin', ids: ['a', 'b'], limit: 2 }, { type: 'answered', id: 'a', answer: started('r1') }, { type: 'stop' });
     expect(s).toMatchObject({ step: 'stopped', active: {} });
+  });
+});
+
+describe('runReducer activity', () => {
+  const activity = (done: number, busy: number) => ({
+    requested: 0,
+    items: { total: 1, done: 0 },
+    firstPass: { model: 'small', workers: 2, busy, total: 8, done, final: true },
+  });
+
+  it('keeps the latest activity of a chapter, and its last counts with nothing busy after it ends', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a'], at: 1000 }, { type: 'answered', id: 'a', answer: started('r1') });
+    s = apply(s, { type: 'progress', runId: 'r1', percent: 30, pass: 'first_pass', activity: activity(3, 2) });
+    expect(s.active.a).toMatchObject({ pass: 'first_pass', activity: { firstPass: { done: 3, busy: 2 } } });
+    expect(s.startedAt).toBe(1000);
+    s = apply(s, { type: 'ended', runId: 'r1', phase: 'complete', message: '', activity: activity(8, 2) });
+    expect(s.seen.a.firstPass).toMatchObject({ done: 8, busy: 0 });
+  });
+
+  it.each(['cancelled', 'failed'] as const)('keeps what a %s chapter had done', (phase) => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a'] }, { type: 'answered', id: 'a', answer: started('r1') });
+    s = apply(s, { type: 'progress', runId: 'r1', percent: 30, activity: activity(5, 2) }, { type: 'ended', runId: 'r1', phase, message: 'x' });
+    expect(s.seen.a.firstPass).toMatchObject({ done: 5, busy: 0 });
+    expect(s.finished).toEqual([]);
+  });
+
+  it('starts a new run with nothing seen', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a'] }, { type: 'answered', id: 'a', answer: started('r1') });
+    s = apply(s, { type: 'progress', runId: 'r1', percent: 30, activity: activity(5, 2) });
+    expect(apply(s, { type: 'begin', ids: ['a'] }).seen).toEqual({});
+  });
+});
+
+describe('overallPercent', () => {
+  it('is the mean of the chapters that count: finished ones full, the running one at its percent', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a', 'b'], limit: 2 });
+    s = apply(
+      s,
+      { type: 'answered', id: 'a', answer: started('r1') },
+      { type: 'answered', id: 'b', answer: started('r2') },
+      { type: 'progress', runId: 'r2', percent: 60 },
+    );
+    expect(overallPercent(s)).toBe(30);
+    s = apply(s, { type: 'ended', runId: 'r1', phase: 'complete', message: '' });
+    expect(overallPercent(s)).toBe(80);
+  });
+
+  it('leaves a refused or failed chapter out, so it cannot hold the bar down', () => {
+    let s = apply(idleRun, { type: 'begin', ids: ['a', 'b'], limit: 2 }, { type: 'answered', id: 'a', answer: refused('Link a track first.') });
+    s = apply(s, { type: 'answered', id: 'b', answer: started('r2') }, { type: 'progress', runId: 'r2', percent: 60 });
+    expect(overallPercent(s)).toBe(60);
+    s = apply(s, { type: 'ended', runId: 'r2', phase: 'failed', message: 'It broke.' });
+    expect(overallPercent(s)).toBe(0);
   });
 });

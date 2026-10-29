@@ -560,11 +560,11 @@ def test_items_are_transcribed_in_parallel_up_to_the_workers_asked_for(tmp_path,
     [
         (3, 1, [], 1),  # one at a time: no process is started, one transcription runs
         (3, 3, [], 3),  # three items side by side, each chunk in this process on one shared model
-        (1, 3, [3], 3),  # one long item: its chunks take all three processes
-        (2, 4, [2, 2], 4),  # two items, two processes each: never more than the four asked for
+        (1, 3, [3], 3),  # one long item: its chunks take all three threads of the shared model
+        (2, 4, [2, 2], 4),  # two items, two threads each: never more than the four asked for
     ],
 )
-def test_the_parallel_count_sets_the_processes_started_and_the_transcriptions_at_once(tmp_path, progress, cpus, monkeypatch, items, workers, pools, peak):
+def test_the_parallel_count_sets_the_chunk_threads_and_the_transcriptions_at_once(tmp_path, progress, cpus, monkeypatch, items, workers, pools, peak):
     cpus(8)
     manuscript, manifest, _truth_by_item = _corpus(tmp_path, count=items, seconds=120.0)
     monkeypatch.setattr(compare, "decode_segment", lambda path, start, length: np.zeros(int(length * chunks.SAMPLE_RATE), dtype=np.float32))
@@ -588,16 +588,18 @@ def test_the_parallel_count_sets_the_processes_started_and_the_transcriptions_at
             with lock:
                 running[0] -= 1
 
-    def pool(processes):
-        started.append(processes)
-        return ThreadPool(processes)
+    def pool(threads):
+        started.append(threads)
+        return ThreadPool(threads)
 
     monkeypatch.setattr(chunks, "whisper_chunk", chunk)
     monkeypatch.setattr(chunks, "spawn_pool", pool)
+    monkeypatch.setattr(chunks, "ThreadPool", pool)
     args = _args(tmp_path, manuscript, manifest, parallel_workers=workers, chunk_seconds=30, chunk_overlap_seconds=2)
 
     mode.run(args, compare)
 
+    # A long item's chunks run as threads on the process's one model (a cold process per chunk loaded its own copy and measured barely faster).
     assert sorted(started) == pools
     assert most[0] == peak <= workers
 

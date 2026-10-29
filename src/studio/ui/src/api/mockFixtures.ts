@@ -940,7 +940,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       step: 1,
       unit: 'processes',
     }),
-    choice('chunk_seconds', 'Chunk length in seconds (0 = each item whole)', ['0', '60', '120', '300', '600', '900'], '300'),
+    choice('chunk_seconds', 'Chunk length in seconds (0 = each item whole)', ['0', '60', '120', '300', '600', '900'], '60'),
     recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
     recordingCheck('parallel_chapters', 'Chapters checked at once', '1', { min: 1, max: 8, step: 1, unit: 'chapters' }),
     // The background check's own: the first-time notice's answer, its model pair (tiny with small as the double-check) and its processors.
