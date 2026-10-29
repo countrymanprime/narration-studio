@@ -264,7 +264,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/LinkChaptersDialog.tsx',
-    text: "Choose which REAPER track holds each chapter's recording. Every item on a linked track will be stamped with that chapter's identity; nothing is written until you approve.",
+    text: "Choose which REAPER track holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve.",
     class: 'overlay',
   },
   {

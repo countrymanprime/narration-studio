@@ -112,4 +112,15 @@ describe('Chapter links section and the Link chapters modal read one mapping', (
     await waitFor(() => expect(modalState().get(headingName(target))).toBe('Not linked'));
     expect((await sectionState()).get(headingName(target))).toBe('Not linked');
   });
+
+  // A link whose track left the project reads the same on both surfaces, not "Not linked" in one of them.
+  it('shows a link to a track that is gone as "Track missing" in both', async () => {
+    const api = createMockApi({}, { chapterSync: 'activity' });
+    await api.chapterTrackMapConfirm('gone-track-guid', WIRE_CHAPTERS[2].id);
+    renderEngine(api);
+
+    await waitFor(async () => expect((await sectionState()).get(headingName(WIRE_CHAPTERS[2]))).toBe('Track missing'));
+    await openModal();
+    await waitFor(() => expect(modalState().get(headingName(WIRE_CHAPTERS[2]))).toBe('Track missing'));
+  });
 });
