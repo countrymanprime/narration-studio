@@ -414,7 +414,7 @@ The credits have no heading: their first line is checked like any other.
 
 ## The credits
 
-The chapter menu also offers **Opening credits** first and **Closing credits** last, when your credit template library
+The credits are chapters, so the chapter menu lists **Opening credits** first and **Closing credits** last, when your credit template library
 ([Settings, Credits](settings.md#credits)) has an opening or a closing template. The text is the first template of each kind filled
 in with the project's values, exactly as Settings previews it. If a value is missing, for example no narrator name yet, the
 placeholder shows in brackets (such as [Narrator]) and a chip on the top bar says how many tokens have no value; it opens the
