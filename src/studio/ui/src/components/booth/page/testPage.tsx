@@ -35,7 +35,7 @@ export const creditsChapter = (kind: 'opening' | 'closing'): ManuscriptChapter =
   }) as unknown as ManuscriptChapter;
 
 /** The chapters with the credits of the kinds that have a template around them: opening first, closing last. */
-export const withCredits = (kinds: readonly ('opening' | 'closing')[], chapters: ManuscriptChapter[] = CHAPTERS): ManuscriptChapter[] => [
+const withCredits = (kinds: readonly ('opening' | 'closing')[], chapters: ManuscriptChapter[] = CHAPTERS): ManuscriptChapter[] => [
   ...(kinds.includes('opening') ? [creditsChapter('opening')] : []),
   ...chapters,
   ...(kinds.includes('closing') ? [creditsChapter('closing')] : []),

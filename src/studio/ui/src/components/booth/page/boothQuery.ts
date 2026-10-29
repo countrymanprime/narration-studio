@@ -12,10 +12,10 @@ export type BoothChapterTarget = { chapter: string; from?: BoothStart };
 export type BoothTarget = BoothChapterTarget | { credits: CreditsKind };
 
 /** The chapter id of the credits of a kind. */
-export const creditsChapterId = (kind: CreditsKind): string => `credits-${kind}`;
+const creditsChapterId = (kind: CreditsKind): string => `credits-${kind}`;
 
 /** A target in the one form the Booth works with: the old `{ credits }` becomes the credits chapter. */
-export function toBoothTarget(target: BoothTarget): BoothChapterTarget {
+function toBoothTarget(target: BoothTarget): BoothChapterTarget {
   return 'credits' in target ? { chapter: creditsChapterId(target.credits) } : target;
 }
 
