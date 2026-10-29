@@ -416,6 +416,23 @@ class ChapterPoolTests(unittest.TestCase):
         contract_files.check("suggest-progress", records, testdata)
 
 
+class WorkerWatchdogTests(unittest.TestCase):
+    def test_a_worker_leaves_once_the_sidecar_that_started_it_is_gone(self):
+        import threading
+
+        class Parent:
+            alive = True
+
+            def is_alive(self):
+                return self.alive
+
+        parent, left = Parent(), threading.Event()
+        gliner.watch_parent(parent, left.set, interval=0.01)
+        self.assertFalse(left.wait(0.1), "left while the sidecar was alive")
+        parent.alive = False
+        self.assertTrue(left.wait(2), "did not leave after the sidecar died")
+
+
 class ThreadBudgetTests(unittest.TestCase):
     """Two sources reading at once share the processors: the host names how many torch threads each may use."""
 

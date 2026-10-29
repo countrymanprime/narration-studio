@@ -21,6 +21,7 @@ import json
 import multiprocessing
 import os
 import sys
+import threading
 from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Executor, ProcessPoolExecutor
 from pathlib import Path
@@ -268,10 +269,28 @@ def process_pool(workers: int, install: str, threads: int) -> Executor:
 _worker: GlinerExtractor | None = None
 
 
+def watch_parent(parent: Any, leave: Callable[[], None], interval: float = 1.0) -> threading.Thread:
+    """Starts a thread that calls ``leave`` once ``parent`` (a ``multiprocessing`` process) is no longer alive. A cancelled scan
+    kills the sidecar, not the workers it started; without this they run on, a chunk at a time, until the machine is restarted."""
+
+    def watch() -> None:
+        while parent.is_alive():
+            threading.Event().wait(interval)
+        leave()
+
+    thread = threading.Thread(target=watch, daemon=True)
+    thread.start()
+    return thread
+
+
 def _start_worker(install: str, threads: int) -> None:
-    """A pool process's start: loads the model and limits torch to ``threads`` threads (the cores are shared by the workers)."""
+    """A pool process's start: watches the sidecar that started it, loads the model and limits torch to ``threads`` threads (the
+    cores are shared by the workers)."""
     global _worker
     import torch
+
+    if (parent := multiprocessing.parent_process()) is not None:
+        watch_parent(parent, lambda: os._exit(1))
 
     torch.set_num_threads(threads)
     _worker = GlinerExtractor(load_model(Path(install)), log)
