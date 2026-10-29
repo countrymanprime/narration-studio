@@ -11,14 +11,22 @@ import { useVisible } from './useDawPlayPosition';
  * counter), so a move, a trim, a rate change, a split or a deleted section is in it as soon as the host reads it. A read that fails keeps the table
  * the page has; a DAW that cannot make one (not answering, `track_state` off, no linked track) leaves the page with no map, and the DAW is not followed.
  */
-export function useWordClock(chapterId: string, doc: ChapterDoc, tokenOf: (key: string) => number | undefined, caps: DawCapabilities | null): WordClock | null {
+export function useWordClock(
+  chapterId: string,
+  doc: ChapterDoc,
+  tokenOf: (key: string) => number | undefined,
+  caps: DawCapabilities | null,
+): { clock: WordClock | null; pending: boolean } {
   const sync = usePort('dawTransportSync');
   const visible = useVisible();
   const enabled = !!caps?.reachable && !!caps.capabilities['track_state']?.available;
   const [table, setTable] = useState<WordTimes | null>(null);
+  /** The host has answered for this chapter at least once (a table, or that it cannot make one). */
+  const [answered, setAnswered] = useState(false);
 
   useEffect(() => {
     setTable(null);
+    setAnswered(false);
     if (!enabled || !visible) return;
     let alive = true;
     let reading = false;
@@ -36,6 +44,7 @@ export function useWordClock(chapterId: string, doc: ChapterDoc, tokenOf: (key: 
           if (!alive) return;
           held = answer.available ? answer.changeCount : -1;
           setTable(answer.available ? answer : null);
+          setAnswered(true);
           if (again) {
             again = false;
             read();
@@ -44,6 +53,7 @@ export function useWordClock(chapterId: string, doc: ChapterDoc, tokenOf: (key: 
         () => {
           reading = false;
           again = false;
+          if (alive) setAnswered(true);
         },
       );
     };
@@ -57,5 +67,6 @@ export function useWordClock(chapterId: string, doc: ChapterDoc, tokenOf: (key: 
     };
   }, [sync, chapterId, enabled, visible]);
 
-  return useMemo(() => (table ? buildWordClock(table, doc, tokenOf) : null), [table, doc, tokenOf]);
+  const clock = useMemo(() => (table ? buildWordClock(table, doc, tokenOf) : null), [table, doc, tokenOf]);
+  return { clock, pending: enabled && visible && !answered };
 }

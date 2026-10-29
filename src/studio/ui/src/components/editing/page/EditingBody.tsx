@@ -195,12 +195,12 @@ export function EditingBody(props: EditingBodyProps) {
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const sound = useChapterSound(chapterId, clocks);
   // Where each word plays in the DAW project now (the host's word table): the one map the follow-along, play-from-a-word and play-a-range read.
-  const clock = useWordClock(chapterId, doc, locator.token, caps);
+  const { clock, pending: clockPending } = useWordClock(chapterId, doc, locator.token, caps);
   const playback = useScriptPlayback({
     playlist,
     sound,
     mediaUrl: tracks.mediaUrl,
-    sync: { clock, caps, ...(dawRead ? { read: dawRead } : {}) },
+    sync: { clock, clockPending, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
     onOutputDevice: setDeviceProblem,
   });

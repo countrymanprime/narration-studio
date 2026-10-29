@@ -40,6 +40,8 @@ export interface RemotePlayer {
 export interface DawTransportSyncOptions {
   /** Where each word plays in the project (the host's word table), or null while there is none: every second is then not placed. */
   clock: WordClock | null;
+  /** The host has not answered for the word table yet: `refusal` says `pending` rather than `not_placed`. */
+  clockPending: boolean;
   caps: DawCapabilities | null;
   /** The DAW's play head while the app's play is the DAW's: a document second (null in a gap) and whether it passed the chapter's end. */
   onHead(docT: number | null, ended: boolean): void;
@@ -260,6 +262,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       const l = live.current;
       if (l.lease.state === 'pending') return 'pending';
       if (l.lease.state === 'refused') return 'not_ready';
+      if (!l.clock && l.clockPending) return 'pending';
       return (l.clock?.projectAt(docT) ?? null) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,

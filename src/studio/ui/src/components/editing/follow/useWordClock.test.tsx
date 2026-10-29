@@ -29,10 +29,11 @@ class FakeAudio extends EventTarget {
 
 function Harness() {
   const page = useEditingPage();
-  const clock = useWordClock('c1', doc, tokens, DAW_SETUPS.reaper);
+  const { clock, pending } = useWordClock('c1', doc, tokens, DAW_SETUPS.reaper);
   useScriptPlayback({ playlist: [], mediaUrl: (f) => f, sync: { clock, caps: DAW_SETUPS.reaper } });
   return (
     <div>
+      <output data-testid="pending">{String(pending)}</output>
       <output data-testid="version">{clock?.version ?? 'none'}</output>
       <output data-testid="project">{String(clock?.projectAt(words[0].t0 as number) ?? null)}</output>
       <output data-testid="playT">{String(page.state.playT)}</output>
@@ -84,6 +85,14 @@ describe('the page asks the host for where its words play', () => {
     await wait(10);
     expect(text('version')).toBe('rec@1');
     expect(Number(text('project'))).toBeCloseTo(100 + (words[0].t0 as number), 6);
+  });
+
+  it('says it is still asking until the host has answered, then not, whether or not it made a table', async () => {
+    await mount();
+    expect(text('pending')).toBe('true');
+    await wait(10);
+    expect(text('pending')).toBe('false');
+    expect(text('version')).toBe('none');
   });
 
   it('asks again each time the DAW is edited, and takes the newer table', async () => {

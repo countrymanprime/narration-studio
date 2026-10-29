@@ -47,13 +47,23 @@ let playback: ScriptPlayback;
 let page: ReturnType<typeof useEditingPage>;
 const notices: string[] = [];
 
-function Harness({ caps, clock = CLOCK, read }: { caps: DawCapabilities | null; clock?: WordClock; read?: DawRead }) {
+function Harness({
+  caps,
+  clock = CLOCK,
+  pending = false,
+  read,
+}: {
+  caps: DawCapabilities | null;
+  clock?: WordClock | null;
+  pending?: boolean;
+  read?: DawRead;
+}) {
   page = useEditingPage();
   playback = useScriptPlayback({
     playlist: PLAYLIST,
     mediaUrl: (f) => f,
     notify: (text) => notices.push(text),
-    sync: { clock, caps, ...(read ? { read } : {}) },
+    sync: { clock, clockPending: pending, caps, ...(read ? { read } : {}) },
   });
   useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
   return (
@@ -66,13 +76,18 @@ function Harness({ caps, clock = CLOCK, read }: { caps: DawCapabilities | null; 
   );
 }
 
-const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper, seed: Parameters<typeof createMockApi>[1] = { daw: {} }, clock?: WordClock) => {
+const mount = (
+  caps: DawCapabilities | null = DAW_SETUPS.reaper,
+  seed: Parameters<typeof createMockApi>[1] = { daw: {} },
+  clock?: WordClock | null,
+  pending = false,
+) => {
   const api = createMockApi({}, seed);
   daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
   return render(
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
-        <Harness caps={caps} clock={clock} />
+        <Harness caps={caps} clock={clock} pending={pending} />
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -440,6 +455,15 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     act(() => playback.playFrom(t0('p-2:1')));
     expect(audio.play).not.toHaveBeenCalled();
     await wait(10);
+    expect(notices).toEqual([CHECKING]);
+  });
+  it('plays nothing while the host has not yet said where the words play, and says it is checking', async () => {
+    mount(DAW_SETUPS.reaper, undefined, null, true);
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(calls('play')).toHaveLength(0);
     expect(notices).toEqual([CHECKING]);
   });
   it('says a failed read of the DAW, asks again, and plays the app rather than checking for ever', async () => {
