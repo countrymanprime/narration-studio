@@ -76,7 +76,7 @@ export const asItem = (p: Piece, index = 0, live = true): WorkspaceItem => ({
 });
 
 /** The source second the DAW plays at project second `t`, or null where nothing plays. */
-export function truthSource(pieces: readonly Piece[], t: number): number | null {
+function truthSource(pieces: readonly Piece[], t: number): number | null {
   let hit: Piece | null = null;
   for (const p of pieces) if (t >= p.position && t < p.position + p.length && (!hit || p.position >= hit.position)) hit = p;
   return hit ? hit.sourceStart + (t - hit.position) * hit.rate : null;
