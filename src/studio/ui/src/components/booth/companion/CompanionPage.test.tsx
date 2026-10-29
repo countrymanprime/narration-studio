@@ -193,7 +193,7 @@ describe('CompanionPage loading state', () => {
   });
 
   it('is replaced by the Companion when the chapters arrive', async () => {
-    const first = (await createMockApi().manuscriptChapters())[0];
+    const first = await firstChapter();
     open(`/companion?chapter=${encodeURIComponent(first.id)}`);
     await screen.findAllByText('resume-prompt');
     expect(region()).toBeNull();
@@ -206,10 +206,11 @@ describe('CompanionPage loading state', () => {
   });
 
   it('shows the skeleton while credits are read, and goes to the Booth for credits with no text', async () => {
-    let release: (value: []) => void = () => {};
+    let release: ((value: []) => void) | undefined;
     open('/companion?chapter=credits-opening', { creditsTemplates: () => new Promise((resolve) => (release = resolve as typeof release)) });
     expect(await screen.findByRole('group', { name: 'Loading the Companion' })).toBeTruthy();
-    release([]);
+    await waitFor(() => expect(release).toBeDefined());
+    release!([]);
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?chapter=credits-opening'));
     expect(region()).toBeNull();
   });

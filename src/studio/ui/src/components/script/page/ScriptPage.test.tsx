@@ -39,6 +39,9 @@ afterEach(() => {
 
 type Mount = { api?: NarrationApi; at?: string; props?: Partial<ScriptPageProps> };
 
+/** The chapter list of a book whose library has no credits templates: the host lists no credits chapters then. */
+const noCreditsList = async () => withoutCredits(await createMockApi().manuscriptChapters());
+
 function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}) {
   const handlers = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const utils = render(
@@ -220,7 +223,7 @@ describe('right-click-menus-reach-what-the-page-draws', () => {
     target ? (contextItemsFor(target) ?? []).flatMap((item) => (item.submenu ? item.submenu.map((sub) => `${item.label}: ${sub.label}`) : [item.label])) : [];
 
   it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
-    const api = createMockApi({ creditsTemplates: async () => [] });
+    const api = createMockApi({ manuscriptChapters: noCreditsList });
     const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const types = await api.marksList();
@@ -257,7 +260,7 @@ describe('record-from-here-and-flagged-words', () => {
   });
 
   it('Look up on one word opens its card, and Add to my words flags the word selected', async () => {
-    const api = createMockApi({ creditsTemplates: async () => [] });
+    const api = createMockApi({ manuscriptChapters: noCreditsList });
     const flag = vi.spyOn(api, 'scriptWordFlag');
     mount({ api });
     await firstHeading();
@@ -272,7 +275,7 @@ describe('record-from-here-and-flagged-words', () => {
   });
 
   it('a click on a flagged word opens it in the Words tab', async () => {
-    const api = createMockApi({ creditsTemplates: async () => [] });
+    const api = createMockApi({ manuscriptChapters: noCreditsList });
     const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const found = /\p{L}{6,}/u.exec(line!.text)!;
@@ -391,8 +394,7 @@ describe('credits-cards-and-banner-stay', () => {
   });
 
   it('renders no credits cards when the chapter list has no credits chapters (the library has no opening or closing template)', async () => {
-    const base = createMockApi();
-    mount({ api: createMockApi({ manuscriptChapters: async () => withoutCredits(await base.manuscriptChapters()) }) });
+    mount({ api: createMockApi({ manuscriptChapters: noCreditsList }) });
     await firstHeading();
     expect(screen.queryByRole('heading', { name: 'Opening credits' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Closing credits' })).toBeNull();
@@ -614,7 +616,7 @@ describe('dictionary-download-in-place', () => {
   it('offers the dictionary download in place', async () => {
     window.localStorage.setItem('narration.script.definitions', 'local');
     // No credits, so the section at the top of the reader is a chapter, whose words the tab lists.
-    const api = createMockApi({ creditsTemplates: async () => [] }, { dictionary: 'missing' });
+    const api = createMockApi({ manuscriptChapters: noCreditsList }, { dictionary: 'missing' });
     const install = vi.spyOn(api, 'assetsInstall');
     // A flagged word in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
     for (const chapter of withoutCredits(await api.manuscriptChapters())) {
@@ -768,7 +770,7 @@ describe('opening-credits-row', () => {
   });
 
   it('lists no credits row when the library has no opening template', async () => {
-    mount({ api: createMockApi({ creditsTemplates: async () => [] }) });
+    mount({ api: createMockApi({ manuscriptChapters: noCreditsList }) });
     await firstHeading();
     expect(within(panel('chapters')).queryByRole('button', { name: /Opening credits/ })).toBeNull();
   });

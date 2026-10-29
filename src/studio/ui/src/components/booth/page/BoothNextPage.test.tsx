@@ -812,15 +812,20 @@ describe('credits-are-readable-and-recordable', () => {
       ],
       creditsPreview: async (body: string) => ({ text: body, words: 1, unresolved: [] }),
     } as Partial<NarrationApi>;
-    const page = renderPage({ search: '?chapter=c2', api: both });
-    await screen.findByText('A new day began in the court.', { exact: false });
-    await userEvent.click(screen.getByRole('button', { name: /Chapter Two/ }));
-    const names = (await screen.findAllByRole('option')).map((option) => option.textContent ?? '');
-    expect(names.indexOf(names.find((name) => /Opening credits/.test(name))!)).toBe(0);
-    expect(names.findIndex((name) => /Closing credits/.test(name))).toBe(names.length - 1);
-    await userEvent.click(screen.getByRole('option', { name: /Closing credits/ }));
+    renderPage({ search: '?chapter=c2', api: both });
+    const next = await screen.findByRole('button', { name: 'Next chapter' });
+    await waitFor(() => expect(next.getAttribute('aria-disabled')).not.toBe('true'));
+    // Chapter Two is followed by the closing credits, the last chapter.
+    await userEvent.click(next);
     await screen.findByText('Closing.', { exact: false });
-    expect(page.navigate).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Next chapter' }).getAttribute('aria-disabled') ?? 'true').toBe('true');
+    // And three steps back are Chapter Two, Chapter One and the opening credits, the first.
+    for (const text of ['Garden', 'Nobody']) {
+      await userEvent.click(screen.getByRole('button', { name: 'Previous chapter' }));
+      if (text === 'Nobody') await screen.findByText(text, { exact: false });
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'Previous chapter' }));
+    await screen.findByText('Opening.', { exact: false });
   });
 
   it('with only credits in the book the Booth reads them, not "no chapters to read"', async () => {
