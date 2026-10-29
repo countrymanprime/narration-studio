@@ -544,10 +544,13 @@ function AppRoutes() {
   const chapters = hasManuscript ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
   const guardedNavigateRef = useRef<(next: string) => void>(() => {});
   // Ctrl+, opens Settings from any page; the page then offers Back to the page the narrator left.
-  useCommand('nav.settings', () => {
-    if (isModalOpen()) return;
+  const openSettings = () => {
     settingsOrigin.markLink();
     guardedNavigateRef.current(addressPagePath('settings'));
+  };
+  useCommand('nav.settings', () => {
+    if (isModalOpen()) return;
+    openSettings();
   });
   const goToScriptRef = useRef<(chapter: string) => void>(() => {});
   useGoToCommands({
@@ -575,6 +578,7 @@ function AppRoutes() {
   shellCommands.current = {
     'nav.back': () => guardedBackRef.current(),
     'nav.forward': () => guardedForwardRef.current(),
+    'nav.settings': openSettings,
     'zoom.in': () => void zoom.zoomIn(),
     'zoom.out': () => void zoom.zoomOut(),
     'zoom.reset': () => void zoom.reset(),

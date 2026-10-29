@@ -6,8 +6,6 @@ import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { SlideOver } from '../primitives/SlideOver';
-import { StatusBadge } from '../primitives/StatusBadge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import type { Notify } from '../primitives/Toast';
 import { useStageRecommendations } from '../stages/useStageRecommendations';
@@ -15,6 +13,7 @@ import { AudacityLinkCard } from './AudacityLinkCard';
 import { CheckLine } from '../layout/CheckLine';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
+import { TrackList } from './TrackList';
 import { ChapterTagsDialog } from './ChapterTagsDialog';
 import { CleanupToolsDialog } from './CleanupToolsDialog';
 import { CreateChapterRegionsDialog } from './CreateChapterRegionsDialog';
@@ -23,7 +22,7 @@ import { useChapterLinks } from './useChapterLinks';
 import { RenderConfigDialog } from './RenderConfigDialog';
 import { RetakeLanesDialog } from './RetakeLanesDialog';
 import { useAudacityLink } from './useAudacityLink';
-import type { Track, TrackMapping, TracksDiscovery, TracksProject } from '../../types';
+import type { Track, TracksDiscovery, TracksProject } from '../../types';
 
 function basename(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
@@ -300,53 +299,4 @@ function RppPicker({ discovery, onSelect }: { discovery: TracksDiscovery; onSele
 // The tools' buttons: each fills its grid cell, so the two rows share their edges.
 function ToolButton({ onClick, children }: { onClick: () => void; children: string }) {
   return <ToolbarButton render={<Button variant="secondary" className="w-full" onClick={onClick} />}>{children}</ToolbarButton>;
-}
-
-// The project's tracks with the chapter each one is linked to. Read-only: a link is
-// made or changed in Chapter links below, or by chapter sync above.
-function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: TrackMapping[] }) {
-  return (
-    <Panel title="Tracks" flush>
-      <Table label="Tracks">
-        <TableHead>
-          <TableRow>
-            <TableHeader>Track</TableHeader>
-            <TableHeader>Chapter</TableHeader>
-            <TableHeader align="right">Playable items</TableHeader>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {tracks.map((track, index) => {
-            const playable = track.items.filter((item) => item.supported && item.sourceAvailable).length;
-            const hasIssue = track.items.some((item) => !item.supported || !item.sourceAvailable);
-            const chapterTitles = mappings.filter((mapping) => mapping.trackGuid === track.guid).map((mapping) => mapping.chapterTitle);
-            return (
-              <TableRow key={track.guid || index}>
-                <TableCell>
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="size-[10px] flex-none rounded-full" style={{ backgroundColor: track.color || 'var(--non-text)' }} aria-hidden="true" />
-                    <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{track.name || `Track ${track.index + 1}`}</span>
-                    {track.muted && <StatusBadge tone="neutral" label="Muted" />}
-                  </span>
-                </TableCell>
-                <TableCell style={{ color: chapterTitles.length > 0 ? undefined : 'var(--text-muted)' }}>
-                  {chapterTitles.length > 0 ? chapterTitles.join(', ') : 'Not linked'}
-                </TableCell>
-                <TableCell numeric>
-                  <span className="inline-flex items-center gap-1.5">
-                    {hasIssue && (
-                      <span title="This track has an item that can't be played" style={{ color: 'var(--danger-text)' }}>
-                        <FontAwesomeIcon icon={faTriangleExclamation} aria-label="This track has an item that can't be played" />
-                      </span>
-                    )}
-                    {playable}/{track.items.length}
-                  </span>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </Panel>
-  );
 }

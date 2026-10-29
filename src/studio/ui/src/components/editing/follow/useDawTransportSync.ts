@@ -45,6 +45,8 @@ export interface DawTransportSyncOptions {
   /** The closing cuts, in the source seconds of their items. */
   cuts: readonly ClosedCut[];
   caps: DawCapabilities | null;
+  /** The chapter the page edits: the DAW plays that chapter's linked track alone, whatever track is selected in it. Empty plays the project as it is. */
+  chapterId?: string;
   /** The DAW's play head while the app's play is the DAW's: a document second (null in a gap) and whether it passed the chapter's end. */
   onHead(docT: number | null, ended: boolean): void;
   /** The narrator stopped the DAW while the app's play was the DAW's. */
@@ -275,7 +277,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       let ok = false;
       let why: string;
       try {
-        const result = stretch ? await sync.dawTransportSync('playRange', project, stretch.projectEnd) : await sync.dawTransportSync('play', project);
+        const result = stretch
+          ? await sync.dawTransportSync('playRange', project, stretch.projectEnd, l.chapterId ?? '')
+          : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
         ok = result.ok;
         why = result.message;
       } catch {

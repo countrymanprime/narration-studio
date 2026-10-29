@@ -97,7 +97,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
           let why: string;
           try {
             // The DAW plays the stretch and stops itself at its end (play_range), so the end is the DAW's and the timer below only puts the button back.
-            const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND);
+            const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND, p.chapterId);
             if (result.ok) {
               if (asked.current !== mine) {
                 stopDaw();
