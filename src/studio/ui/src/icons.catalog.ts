@@ -28,6 +28,7 @@ import {
   faCheck,
   faChevronDown,
   faChevronUp,
+  faCheckDouble,
   faCircle,
   faCircleCheck,
   faClockRotateLeft,
@@ -54,9 +55,11 @@ import {
   faListOl,
   faListUl,
   faLocationCrosshairs,
+  faPuzzlePiece,
   faMagnifyingGlass,
   faMagnifyingGlassMinus,
   faMagnifyingGlassPlus,
+  faMicrochip,
   faMicrophone,
   faMicrophoneLines,
   faCircleHalfStroke,
@@ -227,6 +230,10 @@ export const CATALOG = {
   scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward a window'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
   problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
+  // The recording check's activity panel: the figures it labels, drawn with `Icon` and named by their tooltip.
+  chunksTranscribed: action(faPuzzlePiece, 'chunks transcribed', 'Show the chunks transcribed'),
+  transcriptionsAtOnce: action(faMicrochip, 'transcriptions at once', 'Show the transcriptions at once'),
+  largerModelRecheck: action(faCheckDouble, 'larger-model re-check', 'Show the larger-model re-check'),
 
   // State: outline is off, solid is on (audit rule 3).
   markDone: action(faCircleCheckRegular, 'mark done', 'Mark done'),

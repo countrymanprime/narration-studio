@@ -1,4 +1,3 @@
-import { faCheckDouble, faMicrochip, faPuzzlePiece } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
 import { ActivityPanel } from '../primitives/ActivityPanel';
 import { clock, PHASE_LABEL, type ActivityView } from './activityView';
@@ -44,9 +43,9 @@ export function CheckActivityPanel({
       detail={models}
       time={clock(elapsed)}
       figures={[
-        { key: 'chunks', icon: faPuzzlePiece, label: 'Chunks', ...view.chunks },
-        { key: 'workers', icon: faMicrochip, label: 'Workers', ...view.workers },
-        { key: 'recheck', icon: faCheckDouble, label: 'Re-check', ...view.recheck },
+        { key: 'chunks', icon: 'chunksTranscribed', label: 'Chunks', ...view.chunks },
+        { key: 'workers', icon: 'transcriptionsAtOnce', label: 'Workers', ...view.workers },
+        { key: 'recheck', icon: 'largerModelRecheck', label: 'Re-check', ...view.recheck },
       ]}
     />
   );

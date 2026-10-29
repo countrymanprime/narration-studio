@@ -1,12 +1,23 @@
-import { faCheckDouble, faMicrochip, faPuzzlePiece } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { ActivityPanel } from './ActivityPanel';
 
 const figures = [
-  { key: 'chunks', icon: faPuzzlePiece, label: 'Chunks', value: '40 of 112', hint: 'Pieces of audio transcribed; a short recording is one piece.' },
-  { key: 'workers', icon: faMicrochip, label: 'Workers', value: '3 of 4 busy', hint: 'Automatic runs 4 at once on this computer.' },
-  { key: 'recheck', icon: faCheckDouble, label: 'Re-check', value: '3 of 7+', hint: 'large-v3-turbo re-checks passages the first model was unsure of.' },
+  {
+    key: 'chunks',
+    icon: 'chunksTranscribed' as const,
+    label: 'Chunks',
+    value: '40 of 112',
+    hint: 'Pieces of audio transcribed; a short recording is one piece.',
+  },
+  { key: 'workers', icon: 'transcriptionsAtOnce' as const, label: 'Workers', value: '3 of 4 busy', hint: 'Automatic runs 4 at once on this computer.' },
+  {
+    key: 'recheck',
+    icon: 'largerModelRecheck' as const,
+    label: 'Re-check',
+    value: '3 of 7+',
+    hint: 'large-v3-turbo re-checks passages the first model was unsure of.',
+  },
 ];
 
 const meta = {

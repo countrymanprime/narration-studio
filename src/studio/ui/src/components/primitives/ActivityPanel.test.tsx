@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
-import { faMicrochip } from '@fortawesome/free-solid-svg-icons';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ActivityPanel } from './ActivityPanel';
 
-const figure = { key: 'workers', icon: faMicrochip, label: 'Workers', value: '2 of 4 busy', hint: 'Automatic runs 4 at once.' };
+const figure = { key: 'workers', icon: 'transcriptionsAtOnce' as const, label: 'Workers', value: '2 of 4 busy', hint: 'Automatic runs 4 at once.' };
 
 describe('ActivityPanel', () => {
   it('names each figure with its value and hint, and the phase, detail and time', () => {
