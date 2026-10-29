@@ -17,6 +17,8 @@ import type { Notify } from '../primitives/Toast';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { WPH } from '../schedule/estimates';
+import { isNarrationChapter } from '../../chapterKinds';
+import { recordedShare } from '../../recordedThrough';
 import { calc, scheduleChapters } from '../schedule/progress';
 import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
@@ -63,8 +65,6 @@ type Load = { status: 'loading' } | { status: 'ready'; overview: ProductionOverv
 
 /** Proof on one chapter's notes (`?chapter=`), or on all of them. */
 const proofAt = (chapterId?: string) => addressPath({ page: 'proof', chapter: chapterId });
-
-const isNarration = (chapter: { contentKind?: string }) => !chapter.contentKind || chapter.contentKind === 'narration';
 
 /**
  * The stage timer's three figures, kept as built (SN0-Q4: the mock has no timer, PFH or effective rate, so they stay). Drawn only once
@@ -202,7 +202,7 @@ export function ProductionPage({
   const timer = useStageTimer(production, read);
 
   const overview = found && load.status === 'ready' ? load.overview : undefined;
-  const narrated = useMemo(() => (overview ? overview.chapters.filter(isNarration) : []), [overview]);
+  const narrated = useMemo(() => (overview ? overview.chapters.filter(isNarrationChapter) : []), [overview]);
   const nameOf = useCallback(
     (chapterId: string) => {
       const chapter = narrated.find((c) => c.id === chapterId);
@@ -321,7 +321,6 @@ export function ProductionPage({
   const k = calc(scheduleChapters(narrated), today, due, openPickups);
   const start = planStart(today);
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
-  const finishedOf = (words: number) => (words / WPH) * 3600;
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
   // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
@@ -470,10 +469,7 @@ export function ProductionPage({
                           stage: recordingChapter.status as ChapterStatus,
                           name: headingName(recordingChapter),
                           words: recordingChapter.wordCount,
-                          share:
-                            recordingChapter.recordedSeconds !== null && recordingChapter.wordCount > 0
-                              ? Math.min(1, recordingChapter.recordedSeconds / finishedOf(recordingChapter.wordCount))
-                              : null,
+                          share: recordedShare(recordingChapter, WPH),
                         }
                       : null,
                     pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,

@@ -1,6 +1,7 @@
 import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import type { StatusId } from '../../kinds/statusTone';
+import { isNarrationChapter } from '../../chapterKinds';
 import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
@@ -12,7 +13,7 @@ export type ScheduleChapter = { words: number; status: ChapterStatus; kind: Manu
 export function scheduleChapters(
   chapters: readonly { status: ChapterStatus; wordCount: number; contentKind: ManuscriptContentKind | '' }[],
 ): ScheduleChapter[] {
-  return chapters.filter((c) => c.contentKind !== 'reference').map((c) => ({ words: c.wordCount, status: c.status, kind: c.contentKind }));
+  return chapters.filter(isNarrationChapter).map((c) => ({ words: c.wordCount, status: c.status, kind: c.contentKind }));
 }
 
 const STAGE_ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
