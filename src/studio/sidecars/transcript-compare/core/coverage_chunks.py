@@ -26,6 +26,7 @@ import threading
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
+from multiprocessing.pool import ThreadPool
 from types import ModuleType
 from typing import TYPE_CHECKING
 
@@ -222,7 +223,10 @@ class ChunkedTranscriber:
         self._progress_path = progress_path
         self._decode = decode or (lambda item: engine.decode_segment(item.source_file, item.start_offset, item.length))
         self._chunk_fn = chunk_fn or whisper_chunk
-        self._pool_factory = pool_factory or (lambda processes: spawn_pool(processes))
+        # No pool named: the chunks run as threads on this process's one model (faster-whisper's `num_workers`), as the item pool's items do. A cold
+        # process per chunk loaded its own copy of the model and measured barely faster than one (docs/research/recording-check-benchmark.md).
+        self._in_process = pool_factory is None
+        self._pool_factory = pool_factory or (lambda threads: ThreadPool(threads))
         self._plain = plain
         self._cpus = cpus
         self._sharers = max(1, sharers)
@@ -261,7 +265,7 @@ class ChunkedTranscriber:
         def job(chunk: Chunk, language: str | None, here: bool) -> ChunkJob:
             """`here`: the chunk runs in this process, whose model the other item workers share; a spawned process has its own."""
             piece = audio[int(chunk.start * SAMPLE_RATE) : int(chunk.end * SAMPLE_RATE)]
-            sharers = self._sharers if here else 1
+            sharers = max(self._sharers, workers) if here else 1
             return ChunkJob(chunk, piece, self._model_size, self._model_dir, self._device, language, self._hotwords, threads, cancel_path, sharers)
 
         first = self._chunk_fn(job(planned[0], self._language, True))
@@ -270,7 +274,7 @@ class ChunkedTranscriber:
         on_seconds(done)
         self._chunk_done(item, remaining=len(planned) - 1, workers=workers)
         language = self._language or first.language
-        rest = [job(chunk, language, workers == 1) for chunk in planned[1:]]
+        rest = [job(chunk, language, workers == 1 or self._in_process) for chunk in planned[1:]]
         if workers == 1 or not rest:
             for pending in rest:
                 self._engine.check_cancelled(self._progress_path)
