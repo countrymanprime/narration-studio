@@ -13,6 +13,8 @@ import type {
   DawCapabilitiesApi,
   DawKind,
   DawLiveItem,
+  DawProjectEdited,
+  WordTimes,
   DawLevelsApi,
   DawPlaceApi,
   DawPosition,
@@ -435,6 +437,10 @@ export interface DawMockControl {
   refuseNextSync(sentence: string): void;
   /** The items the DAW has on the chapter's track now (`dawLiveItems`); null (the start) is a DAW that cannot be read, so the page follows by the saved items. */
   setLiveItems(items: DawLiveItem[] | null): void;
+  /** The word table the DAW answers (`workspaceWordTimes`); null (the start) is a DAW that cannot make one, so the page follows nothing in it. */
+  setWordTimes(table: WordTimes | null): void;
+  /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
+  editInDaw(): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -491,6 +497,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     /** The project second a `playRange` stops itself at, while it plays; null for an open play. */
     stopAt: number | null;
     liveItems: DawLiveItem[] | null;
+    wordTimes: WordTimes | null;
+    changeCount: number;
     calls: { action: string; seconds: number; until?: number }[];
   } = {
     playing: false,
@@ -501,9 +509,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuse: null,
     stopAt: null,
     liveItems: null,
+    wordTimes: null,
+    changeCount: 0,
     calls: [],
   };
   const positionSubs = new Set<(position: DawPosition) => void>();
+  const editSubs = new Set<(edit: DawProjectEdited) => void>();
   const streamPosition = () => {
     if (!sync.watching || dropped) return;
     const position: DawPosition = {
@@ -628,6 +639,13 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.transport = { playing: false, recording: false };
       publish();
     },
+    setWordTimes: (table) => {
+      sync.wordTimes = table === null ? null : wireClone(table);
+    },
+    editInDaw: () => {
+      sync.changeCount += 1;
+      for (const on of editSubs) on({ changeCount: sync.changeCount });
+    },
     setLiveItems: (items) => {
       sync.liveItems = items === null ? null : wireClone(items);
     },
@@ -751,6 +769,15 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.
+    workspaceWordTimes: async () => {
+      const table = sync.wordTimes;
+      const off = table === null || !currentCapabilities(live).capabilities.track_state?.available;
+      return wireClone(off ? { available: false, version: '', changeCount: 0, items: [], words: [] } : { ...table, changeCount: sync.changeCount });
+    },
+    subscribeDawProjectEdited: (onUpdate) => {
+      editSubs.add(onUpdate);
+      return () => editSubs.delete(onUpdate);
+    },
     dawLiveItems: async () => {
       const items = sync.liveItems;
       return wireClone(

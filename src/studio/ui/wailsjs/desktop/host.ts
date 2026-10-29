@@ -3477,5 +3477,19 @@ export function WorkspaceUseTake(chapterID: string, firstToken: number, lastToke
     return $Call.ByID(1964370133, chapterID, firstToken, lastToken, candidateID);
 }
 
+/**
+ * WorkspaceWordTimes answers where every word of chapterID's stored alignment plays in the DAW project now (docs/design/word-project-times.md):
+ * the alignment's source-file seconds for each word, pushed through the items the DAW has on the chapter's linked track (chapter_track_state),
+ * by source file and source range, so a move, a trim, a rate change, a split and a deleted section are all in it. A word whose audio no item plays
+ * is `not_in_project` and carries no time; a word the check never heard is `not_heard`. `version` and `changeCount` say which project state the table
+ * was made from: a page holding an older count than the one daw_project_edited last reported has a stale table and asks again.
+ * 
+ * `available` is false, with no words, when the table cannot be made now (no stored alignment, no DAW answering, `track_state` off, no linked
+ * track, the track gone or longer than one read lists). That is an answer, not an error: the page then follows nothing in the DAW. Read-only.
+ */
+export function WorkspaceWordTimes(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(4009464051, chapterID);
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Map($Create.Any, $Create.Any);

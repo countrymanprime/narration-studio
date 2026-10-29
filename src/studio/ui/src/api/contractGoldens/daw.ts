@@ -17,6 +17,8 @@ import {
   dawPlaceSchema,
   dawPositionSchema,
   dawLiveItemsSchema,
+  dawProjectEditedSchema,
+  wordTimesSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -142,6 +144,9 @@ export const dawGoldens: Record<string, z.ZodType> = {
   // stopped with another project open.
   'daw-transport-sync-ok.json': dawResultSchema,
   'daw-transport-sync-refused.json': dawResultSchema,
+  'workspace-word-times.json': wordTimesSchema,
+  'workspace-word-times-unavailable.json': wordTimesSchema,
+  'daw-project-edited.json': dawProjectEditedSchema,
   'daw-live-items.json': dawLiveItemsSchema,
   'daw-live-items-unavailable.json': dawLiveItemsSchema,
   'daw-position-playing.json': dawPositionSchema,

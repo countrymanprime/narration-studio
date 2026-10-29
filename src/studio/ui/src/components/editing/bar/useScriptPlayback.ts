@@ -3,10 +3,9 @@ import { overlay } from '../../../overlay/overlayService';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import type { DawCapabilities } from '../../../api/contracts/daw';
-import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import { firstFrom, heardWindow, leadStart, MAX_TAIL_SECONDS, summarize, type ChapterDoc } from '../model';
 import type { SoundAt } from '../ribbon/useChapterSound';
-import type { ClosedCut } from '../follow/clockMap';
+import type { WordClock } from '../follow/wordClock';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
 import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
 import { usePort } from '../../../ports/usePort';
@@ -58,14 +57,7 @@ export interface ScriptPlaybackOptions {
   notify?: (text: string) => void;
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
    * do. Null `caps` (not answered yet) plays nothing unless the read failed; absent `sync` plays in the app. */
-  sync?: {
-    items: readonly WorkspaceItem[];
-    cuts: readonly ClosedCut[];
-    /** The playlist the DAW's clock is mapped through, when it is not the app's own (the follow map put onto the DAW's live items). */
-    playlist?: readonly PlaylistSegment[];
-    caps: DawCapabilities | null;
-    read?: DawRead;
-  };
+  sync?: { clock: WordClock | null; caps: DawCapabilities | null; read?: DawRead };
   /** The chapter's audio levels, so a play of words ends where the last word's sound dies away; absent keeps the fixed tail. */
   sound?: SoundAt;
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
@@ -271,9 +263,7 @@ export function useScriptPlayback({
     live.current.dispatch({ type: 'play', t: null });
   }, []);
   const syncing = useDawTransportSync({
-    items: sync?.items ?? [],
-    playlist: sync?.playlist ?? playlist,
-    cuts: sync?.cuts ?? [],
+    clock: sync?.clock ?? null,
     caps: sync?.caps ?? null,
     onHead,
     onStopped,

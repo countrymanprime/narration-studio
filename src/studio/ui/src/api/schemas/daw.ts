@@ -38,6 +38,10 @@ import type {
   DawPosition,
   DawLiveItem,
   DawLiveItems,
+  DawProjectEdited,
+  WordTimeRow,
+  WordTimeState,
+  WordTimes,
   DawPlayState,
   DawProjectState,
   DawResult,
@@ -153,6 +157,30 @@ export const dawLiveItemsSchema = z.strictObject({
   available: z.boolean(),
   items: z.array(dawLiveItemSchema),
 }) satisfies z.ZodType<DawLiveItems>;
+
+const WORD_TIME_STATES = ['placed', 'not_in_project', 'not_heard'] as const satisfies readonly WordTimeState[];
+
+const wordTimeRowSchema = z.strictObject({
+  i: z.number().int().nonnegative(),
+  state: z.enum(WORD_TIME_STATES),
+  start: z.number().nonnegative(),
+  end: z.number().nonnegative(),
+  item: z.number().int().gte(-1),
+  clipped: z.boolean(),
+  misread: z.boolean(),
+}) satisfies z.ZodType<WordTimeRow>;
+
+/** WorkspaceWordTimes: every key always present, the lists never null. */
+export const wordTimesSchema = z.strictObject({
+  available: z.boolean(),
+  version: z.string(),
+  changeCount: z.number().int().nonnegative(),
+  items: z.array(z.string()),
+  words: z.array(wordTimeRowSchema),
+}) satisfies z.ZodType<WordTimes>;
+
+/** daw_project_edited. */
+export const dawProjectEditedSchema = z.strictObject({ changeCount: z.number().int().nonnegative() }) satisfies z.ZodType<DawProjectEdited>;
 
 const DAW_PLAY_STATES = ['stopped', 'playing', 'recording'] as const satisfies readonly DawPlayState[];
 
