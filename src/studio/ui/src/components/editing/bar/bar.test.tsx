@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { useRef, type ReactNode } from 'react';
@@ -47,23 +48,25 @@ function Probe() {
   page = useEditingPage();
   return <output data-testid="state">{JSON.stringify({ cursor: page.state.cursor, sel: page.state.sel, playT: page.state.playT })}</output>;
 }
-function Harness({ playlist = [SEGMENT], children }: { playlist?: PlaylistSegment[]; children?: ReactNode }) {
+function Harness({ playlist = [SEGMENT], children, unavailable }: { playlist?: PlaylistSegment[]; children?: ReactNode; unavailable?: string }) {
   playback = useScriptPlayback({ playlist, mediaUrl: (f) => `media/${f}`, notify });
   return (
     <>
       <Probe />
-      <SelectionBar playback={playback} end={843} />
+      <SelectionBar playback={playback} end={843} {...(unavailable ? { unavailable } : {})} />
       {children}
     </>
   );
 }
 const diagnostic = vi.fn().mockResolvedValue(undefined);
-const mount = (node: ReactNode = null, doc = base, playlist = [SEGMENT]) =>
+const mount = (node: ReactNode = null, doc = base, playlist = [SEGMENT], unavailable?: string) =>
   render(
     // The playback hook reads the DAW sync port; with no DAW sync asked for it does nothing.
     <ApiProvider api={{ ...createMockApi(), reportClientDiagnostic: diagnostic }}>
       <EditingPageProvider doc={doc}>
-        <Harness playlist={playlist}>{node}</Harness>
+        <Harness playlist={playlist} {...(unavailable ? { unavailable } : {})}>
+          {node}
+        </Harness>
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -93,6 +96,20 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+
+describe('play on a chapter with nothing to play', () => {
+  it('turns Play off and says why, and a press plays nothing', async () => {
+    const why = 'Chapter 1 is not linked to a track in REAPER, so there is no audio to edit.';
+    mount(null, base, [SEGMENT], why);
+    const play = screen.getByRole('button', { name: /^Play/ });
+    expect(play.getAttribute('aria-disabled')).toBe('true');
+    dispatch({ type: 'place', key: base.items[0].key });
+    fireEvent.click(play);
+    expect(state().playT).toBeNull();
+    await userEvent.hover(play);
+    expect(await screen.findByText(why)).toBeTruthy();
+  });
 });
 
 describe('play from the cursor', () => {
