@@ -82,7 +82,7 @@ func readActivityFile(path string) (activityFile, bool) {
 	if err != nil {
 		return activityFile{}, false
 	}
-	defer handle.Close()
+	defer func() { _ = handle.Close() }()
 	raw, err := io.ReadAll(io.LimitReader(handle, maxActivityBytes+1))
 	if err != nil || len(raw) > maxActivityBytes {
 		return activityFile{}, false
