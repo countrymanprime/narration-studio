@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BoothText, TEXT_SIZE, textSizePx } from './BoothText';
 import { sampleColour, sampleDecorations, sampleNotes, sampleParagraphs, sampleSpeakers } from './fixture';
 import type { BrowseView } from './useBrowseView';
+import { readerColumn } from '../../script/page/tools/text/readerText';
 
 afterEach(() => {
   cleanup();
@@ -311,9 +312,16 @@ describe('paragraph spacing and search marks', () => {
       const { container } = setup(width === undefined ? {} : { width });
       return container.querySelector<HTMLElement>('[data-booth-text] > div')!.style.maxWidth;
     };
-    expect(column()).toBe('26em');
+    expect(column()).toBe(readerColumn(64));
     expect(column('48ch')).toBe('48ch');
     expect(column('100ch')).toBe('100ch');
+  });
+
+  it('the-column-is-the-scripts-reading-column-centred-in-the-text-area', () => {
+    const { container } = setup();
+    const column = container.querySelector<HTMLElement>('[data-booth-text] > [data-reader-column]')!;
+    expect(column, 'drawn by the shared ReaderColumn').toBeTruthy();
+    expect(column.className).toMatch(/(^|\s)mx-auto(\s|$)/);
   });
 
   it('draws-the-matches-of-a-search-and-the-one-chosen-apart', () => {

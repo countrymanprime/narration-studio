@@ -16,6 +16,7 @@ import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/con
 import { chapterHeading, headingName } from '../../../../chapterHeading';
 import { overlay } from '../../../../overlay/overlayService';
 import { measureLineTop } from '../../bookmarks/ui/ribbonTops';
+import { ReaderColumn } from '../tools/text/ReaderColumn';
 import { READER_COLUMN_VAR } from '../tools/text/readerText';
 import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from './layers';
 import { Para, type FindRange } from './Para';
@@ -491,12 +492,12 @@ export function Reader(props: ReaderProps) {
           onStepPrep?.(id, event.key === 'ArrowRight' ? 1 : -1);
         }}
       >
-        <div
+        <ReaderColumn
           data-reader=""
+          width={READER_COLUMN_VAR}
           // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12).
           className="px-6 pt-2 pb-20"
           style={{
-            maxWidth: READER_COLUMN_VAR,
             fontFamily: 'var(--rf, Georgia, serif)',
             fontSize: 'calc(var(--rs, 18) * 1px)',
             lineHeight: 'var(--rl, 1.7)',
@@ -524,7 +525,7 @@ export function Reader(props: ReaderProps) {
             />
           ))}
           {after}
-        </div>
+        </ReaderColumn>
       </div>
     </section>
   );
