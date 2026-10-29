@@ -9,42 +9,42 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from '@wailsio/runtime';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as editlog$0 from "./internal/editlog/models.js";
+import * as editlog$0 from './internal/editlog/models.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as liveflags$0 from "./internal/liveflags/models.js";
+import * as liveflags$0 from './internal/liveflags/models.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as marks$0 from "./internal/marks/models.js";
+import * as marks$0 from './internal/marks/models.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as project$0 from "./internal/project/models.js";
+import * as project$0 from './internal/project/models.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as voicesample$0 from "./internal/voicesample/models.js";
+import * as voicesample$0 from './internal/voicesample/models.js';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as $models from "./models.js";
+import * as $models from './models.js';
 
 /**
  * AssetsInstall starts installing one asset, or repairs it when it is damaged, and answers with its job. A second call for an asset that is
  * already downloading joins that job. The narrator asked for it: nothing else starts a download.
  */
 export function AssetsInstall(kind: string, id: string): $CancellablePromise<string> {
-    return $Call.ByID(3032187698, kind, id);
+  return $Call.ByID(3032187698, kind, id);
 }
 
 export function AssetsInstallCancel(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(1546584672, jobID);
+  return $Call.ByID(1546584672, jobID);
 }
 
 export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(4222710679, jobID);
+  return $Call.ByID(4222710679, jobID);
 }
 
 /**
@@ -52,7 +52,7 @@ export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
  * when, and the download that is running for it (so a page opened while one runs can follow it). It reads no file contents.
  */
 export function AssetsList(): $CancellablePromise<string> {
-    return $Call.ByID(2175855371);
+  return $Call.ByID(2175855371);
 }
 
 /**
@@ -60,7 +60,7 @@ export function AssetsList(): $CancellablePromise<string> {
  * no path: the folder is the host's own, so the page cannot name another.
  */
 export function AssetsOpenFolder(): $CancellablePromise<string> {
-    return $Call.ByID(2617467899);
+  return $Call.ByID(2617467899);
 }
 
 /**
@@ -68,14 +68,14 @@ export function AssetsOpenFolder(): $CancellablePromise<string> {
  * not a project.
  */
 export function AssetsRemove(kind: string, id: string): $CancellablePromise<string> {
-    return $Call.ByID(3574252271, kind, id);
+  return $Call.ByID(3574252271, kind, id);
 }
 
 /**
  * AssetsVerify reads every byte of one asset and answers with its state: installed, damaged (verification_failed) or absent.
  */
 export function AssetsVerify(kind: string, id: string): $CancellablePromise<string> {
-    return $Call.ByID(2412149070, kind, id);
+  return $Call.ByID(2412149070, kind, id);
 }
 
 /**
@@ -83,14 +83,14 @@ export function AssetsVerify(kind: string, id: string): $CancellablePromise<stri
  * refuses while Audacity runs; the refusal is the sentence the narrator reads.
  */
 export function AudacityEnableModule(): $CancellablePromise<string> {
-    return $Call.ByID(265736451);
+  return $Call.ByID(265736451);
 }
 
 /**
  * AudacityLink answers the link state: the last heartbeat's, or a fresh read when there is none yet.
  */
 export function AudacityLink(): $CancellablePromise<string> {
-    return $Call.ByID(2166530616);
+  return $Call.ByID(2166530616);
 }
 
 /**
@@ -98,7 +98,7 @@ export function AudacityLink(): $CancellablePromise<string> {
  * the pipe's timeout when Audacity is showing a dialog.
  */
 export function AudacityLinkCheck(): $CancellablePromise<string> {
-    return $Call.ByID(901038688);
+  return $Call.ByID(901038688);
 }
 
 /**
@@ -106,7 +106,7 @@ export function AudacityLinkCheck(): $CancellablePromise<string> {
  * Audacity for the project. Cancelling the dialog changes nothing and answers the state as it was.
  */
 export function AudacityLinkFile(): $CancellablePromise<string> {
-    return $Call.ByID(2490593198);
+  return $Call.ByID(2490593198);
 }
 
 /**
@@ -114,7 +114,7 @@ export function AudacityLinkFile(): $CancellablePromise<string> {
  * from any other. It adds one label to the app's label track and touches nothing else. It needs Audacity to answer.
  */
 export function AudacityLinkOpenProject(): $CancellablePromise<string> {
-    return $Call.ByID(684815301);
+  return $Call.ByID(684815301);
 }
 
 /**
@@ -122,7 +122,7 @@ export function AudacityLinkOpenProject(): $CancellablePromise<string> {
  * the app's label track that the narrator can delete.
  */
 export function AudacityUnlink(): $CancellablePromise<string> {
-    return $Call.ByID(1550893295);
+  return $Call.ByID(1550893295);
 }
 
 /**
@@ -130,21 +130,21 @@ export function AudacityUnlink(): $CancellablePromise<string> {
  * a bookmark returns that one.
  */
 export function BookmarksAdd(chapterID: string, paragraphID: string, offset: number): $CancellablePromise<string> {
-    return $Call.ByID(1504217234, chapterID, paragraphID, offset);
+  return $Call.ByID(1504217234, chapterID, paragraphID, offset);
 }
 
 /**
  * BookmarksList returns every bookmark in reading order, each checked against the current manuscript.
  */
 export function BookmarksList(): $CancellablePromise<string> {
-    return $Call.ByID(733127631);
+  return $Call.ByID(733127631);
 }
 
 /**
  * BookmarksRemove deletes a bookmark by id and returns the bookmarks left, in reading order.
  */
 export function BookmarksRemove(id: string): $CancellablePromise<string> {
-    return $Call.ByID(973615307, id);
+  return $Call.ByID(973615307, id);
 }
 
 /**
@@ -152,24 +152,24 @@ export function BookmarksRemove(id: string): $CancellablePromise<string> {
  * and returns every bookmark in reading order. It only marks the place: nothing stops a take there.
  */
 export function BookmarksSetStop(chapterID: string, paragraphID: string, offset: number): $CancellablePromise<string> {
-    return $Call.ByID(1567979853, chapterID, paragraphID, offset);
+  return $Call.ByID(1567979853, chapterID, paragraphID, offset);
 }
 
 /**
  * BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits docs/reference/data-files.md states.
  */
 export function BookmarksUpdate(id: string, label: string, note: string): $CancellablePromise<string> {
-    return $Call.ByID(3562503062, id, label, note);
+  return $Call.ByID(3562503062, id, label, note);
 }
 
 export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(2880307428).then(($result: any) => {
-        return $$createType0($result);
-    });
+  return $Call.ByID(2880307428).then(($result: any) => {
+    return $$createType0($result);
+  });
 }
 
 export function ChapterRegionsCreate(openingTrackGUID: string, closingTrackGUID: string, update: boolean): $CancellablePromise<string> {
-    return $Call.ByID(3672636080, openingTrackGUID, closingTrackGUID, update);
+  return $Call.ByID(3672636080, openingTrackGUID, closingTrackGUID, update);
 }
 
 /**
@@ -182,7 +182,7 @@ export function ChapterRegionsCreate(openingTrackGUID: string, closingTrackGUID:
  * only when update is true.
  */
 export function ChapterRegionsPreview(openingTrackGUID: string, closingTrackGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(2311254464, openingTrackGUID, closingTrackGUID);
+  return $Call.ByID(2311254464, openingTrackGUID, closingTrackGUID);
 }
 
 /**
@@ -192,14 +192,14 @@ export function ChapterRegionsPreview(openingTrackGUID: string, closingTrackGUID
  * other direction, track to chapter, with the same statuses. Read-only.
  */
 export function ChapterSuggestion(): $CancellablePromise<string> {
-    return $Call.ByID(677537319);
+  return $Call.ByID(677537319);
 }
 
 /**
  * ChapterSyncPreview plans a sync without writing anything: the consent dialog's preview.
  */
 export function ChapterSyncPreview(): $CancellablePromise<string> {
-    return $Call.ByID(2662742132);
+  return $Call.ByID(2662742132);
 }
 
 /**
@@ -207,14 +207,14 @@ export function ChapterSyncPreview(): $CancellablePromise<string> {
  * uses the same call) and, when on, runs the first sync. It returns the new state with the sync's batch.
  */
 export function ChapterSyncSetEnabled(on: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1374797281, on);
+  return $Call.ByID(1374797281, on);
 }
 
 /**
  * ChapterSyncState reads the consent, whether to ask, and the last sync. It only reads.
  */
 export function ChapterSyncState(): $CancellablePromise<string> {
-    return $Call.ByID(2066232613);
+  return $Call.ByID(2066232613);
 }
 
 /**
@@ -222,7 +222,7 @@ export function ChapterSyncState(): $CancellablePromise<string> {
  * manual link is refused. It returns the new state.
  */
 export function ChapterSyncUndo(trackGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(2733438718, trackGUID);
+  return $Call.ByID(2733438718, trackGUID);
 }
 
 /**
@@ -231,7 +231,7 @@ export function ChapterSyncUndo(trackGUID: string): $CancellablePromise<string> 
  * path. destPath is never modified. The narrator confirms this explicitly in the UI before it is called.
  */
 export function ChapterTagsEmbed(destPath: string): $CancellablePromise<string> {
-    return $Call.ByID(2013283223, destPath);
+  return $Call.ByID(2013283223, destPath);
 }
 
 /**
@@ -240,7 +240,7 @@ export function ChapterTagsEmbed(destPath: string): $CancellablePromise<string> 
  * since configuring), so the UI can show what will be embedded and disable the action until every file is ready.
  */
 export function ChapterTagsPreview(): $CancellablePromise<string> {
-    return $Call.ByID(800337126);
+  return $Call.ByID(800337126);
 }
 
 /**
@@ -251,19 +251,19 @@ export function ChapterTagsPreview(): $CancellablePromise<string> {
  * chapter the manuscript does not have is an error.
  */
 export function ChapterTrackCreate(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(626919906, chapterID);
+  return $Call.ByID(626919906, chapterID);
 }
 
 export function ChapterTrackLinks(): $CancellablePromise<string> {
-    return $Call.ByID(488920311);
+  return $Call.ByID(488920311);
 }
 
 export function ChapterTrackMapClear(trackGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(3648043981, trackGUID);
+  return $Call.ByID(3648043981, trackGUID);
 }
 
 export function ChapterTrackMapConfirm(trackGUID: string, chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(784242736, trackGUID, chapterID);
+  return $Call.ByID(784242736, trackGUID, chapterID);
 }
 
 /**
@@ -272,7 +272,7 @@ export function ChapterTrackMapConfirm(trackGUID: string, chapterID: string): $C
  * confirmed rows, confirm one and clear one.
  */
 export function ChapterTrackMapList(): $CancellablePromise<string> {
-    return $Call.ByID(20566568);
+  return $Call.ByID(20566568);
 }
 
 /**
@@ -282,7 +282,7 @@ export function ChapterTrackMapList(): $CancellablePromise<string> {
  * and region names. It only reads; it never creates a track or a link.
  */
 export function ChapterTrackMatch(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(963672143, chapterID);
+  return $Call.ByID(963672143, chapterID);
 }
 
 /**
@@ -294,11 +294,11 @@ export function ChapterTrackMatch(chapterID: string): $CancellablePromise<string
  * parse of the saved .rpp.
  */
 export function ChapterTrackSet(chapterID: string, trackGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(2127223998, chapterID, trackGUID);
+  return $Call.ByID(2127223998, chapterID, trackGUID);
 }
 
 export function ChapterTrackUnlink(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2391887305, chapterID);
+  return $Call.ByID(2391887305, chapterID);
 }
 
 /**
@@ -309,7 +309,7 @@ export function ChapterTrackUnlink(chapterID: string): $CancellablePromise<strin
  * Read-only.
  */
 export function ChaptersForTracks(guids: string[]): $CancellablePromise<string> {
-    return $Call.ByID(1946035715, guids);
+  return $Call.ByID(1946035715, guids);
 }
 
 /**
@@ -319,7 +319,7 @@ export function ChaptersForTracks(guids: string[]): $CancellablePromise<string> 
  * snapshot in place.
  */
 export function CharacterApprove(characterID: string, regionGUID: string, note: string): $CancellablePromise<string> {
-    return $Call.ByID(3579176758, characterID, regionGUID, note);
+  return $Call.ByID(3579176758, characterID, regionGUID, note);
 }
 
 /**
@@ -327,7 +327,7 @@ export function CharacterApprove(characterID: string, regionGUID: string, note: 
  * narrator to pick one to approve as a voice reference.
  */
 export function CharacterListRegions(): $CancellablePromise<string> {
-    return $Call.ByID(1288114066);
+  return $Call.ByID(1288114066);
 }
 
 /**
@@ -335,7 +335,7 @@ export function CharacterListRegions(): $CancellablePromise<string> {
  * whether the region it names has changed since it was approved.
  */
 export function CharacterReferences(): $CancellablePromise<string> {
-    return $Call.ByID(536905783);
+  return $Call.ByID(536905783);
 }
 
 /**
@@ -344,7 +344,7 @@ export function CharacterReferences(): $CancellablePromise<string> {
  * reference one at a time.
  */
 export function CharacterRemoveVoiceData(): $CancellablePromise<string> {
-    return $Call.ByID(1324390885);
+  return $Call.ByID(1324390885);
 }
 
 /**
@@ -352,7 +352,7 @@ export function CharacterRemoveVoiceData(): $CancellablePromise<string> {
  * not (or no longer) stored is not an error.
  */
 export function CharacterRevoke(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2254082095, id);
+  return $Call.ByID(2254082095, id);
 }
 
 /**
@@ -360,14 +360,14 @@ export function CharacterRevoke(id: string): $CancellablePromise<string> {
  * "magnolius_declick") on the selected items. It changes nothing itself; the dialog it opens is the narrator's.
  */
 export function CleanupToolsLaunch(tool: string): $CancellablePromise<string> {
-    return $Call.ByID(4285613458, tool);
+  return $Call.ByID(4285613458, tool);
 }
 
 /**
  * CleanupToolsState answers the last launch's state (idle before any).
  */
 export function CleanupToolsState(): $CancellablePromise<string> {
-    return $Call.ByID(1749389626);
+  return $Call.ByID(1749389626);
 }
 
 /**
@@ -375,7 +375,7 @@ export function CleanupToolsState(): $CancellablePromise<string> {
  * size and position so CompanionModeExit can restore them. It never opens a second window.
  */
 export function CompanionModeEnter(): $CancellablePromise<void> {
-    return $Call.ByID(3310293519);
+  return $Call.ByID(3310293519);
 }
 
 /**
@@ -383,14 +383,14 @@ export function CompanionModeEnter(): $CancellablePromise<void> {
  * CompanionModeEnter: the "Full app" action and the double-Escape rule (Open Question 5) both call this.
  */
 export function CompanionModeExit(): $CancellablePromise<void> {
-    return $Call.ByID(3684763819);
+  return $Call.ByID(3684763819);
 }
 
 /**
  * CoverageCancel asks a running check to stop; the items it finished stay cached. With nothing running it does nothing.
  */
 export function CoverageCancel(): $CancellablePromise<string> {
-    return $Call.ByID(3481046670);
+  return $Call.ByID(3481046670);
 }
 
 /**
@@ -401,7 +401,7 @@ export function CoverageCancel(): $CancellablePromise<string> {
  * open. A start may name any listed id in options["model"] (CoverageStart).
  */
 export function CoverageEngines(): $CancellablePromise<string> {
-    return $Call.ByID(2398170927);
+  return $Call.ByID(2398170927);
 }
 
 /**
@@ -409,14 +409,14 @@ export function CoverageEngines(): $CancellablePromise<string> {
  * that finding. The same gap again answers the same finding and writes nothing.
  */
 export function CoverageGapAccept(chapterID: string, gapID: string): $CancellablePromise<string> {
-    return $Call.ByID(699765656, chapterID, gapID);
+  return $Call.ByID(699765656, chapterID, gapID);
 }
 
 /**
  * CoverageGapIgnore remembers that the narrator passed on one gap of the chapter's current check. It makes no note.
  */
 export function CoverageGapIgnore(chapterID: string, gapID: string): $CancellablePromise<string> {
-    return $Call.ByID(3260799698, chapterID, gapID);
+  return $Call.ByID(3260799698, chapterID, gapID);
 }
 
 /**
@@ -424,7 +424,7 @@ export function CoverageGapIgnore(chapterID: string, gapID: string): $Cancellabl
  * review. A stale or absent result, and a gap without a review, are not in it.
  */
 export function CoverageGapReviews(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2961454629, chapterID);
+  return $Call.ByID(2961454629, chapterID);
 }
 
 /**
@@ -432,7 +432,7 @@ export function CoverageGapReviews(chapterID: string): $CancellablePromise<strin
  * reasons (coverage.ResultView). It never runs anything (Q14).
  */
 export function CoverageResult(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1771519125, chapterID);
+  return $Call.ByID(1771519125, chapterID);
 }
 
 /**
@@ -453,14 +453,14 @@ export function CoverageResult(chapterID: string): $CancellablePromise<string> {
  * sidecar that did not start) is a rejected promise.
  */
 export function CoverageStart(chapterID: string, options: { [_ in string]?: string }): $CancellablePromise<string> {
-    return $Call.ByID(2486826976, chapterID, options);
+  return $Call.ByID(2486826976, chapterID, options);
 }
 
 /**
  * CoverageState is the current check, or the last one that ended.
  */
 export function CoverageState(): $CancellablePromise<string> {
-    return $Call.ByID(2570420881);
+  return $Call.ByID(2570420881);
 }
 
 /**
@@ -470,7 +470,7 @@ export function CoverageState(): $CancellablePromise<string> {
  * page and the Check recordings dialog show it beside the count. It reads the settings and this computer, not a project.
  */
 export function CoverageWorkerPlan(options: { [_ in string]?: string }): $CancellablePromise<string> {
-    return $Call.ByID(1310535801, options);
+  return $Call.ByID(1310535801, options);
 }
 
 /**
@@ -478,7 +478,7 @@ export function CoverageWorkerPlan(options: { [_ in string]?: string }): $Cancel
  * [Chapter] and [Chapter Title]. The Settings preview shows the first; the estimate times them all.
  */
 export function CreditsChapterAnnouncements(body: string): $CancellablePromise<string> {
-    return $Call.ByID(1178349043, body);
+  return $Call.ByID(1178349043, body);
 }
 
 /**
@@ -486,7 +486,7 @@ export function CreditsChapterAnnouncements(body: string): $CancellablePromise<s
  * owns this library, so a shipped default may be deleted like any other.
  */
 export function CreditsDeleteTemplate(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2098781057, id);
+  return $Call.ByID(2098781057, id);
 }
 
 /**
@@ -494,7 +494,7 @@ export function CreditsDeleteTemplate(id: string): $CancellablePromise<string> {
  * default) as a new, editable entry.
  */
 export function CreditsDuplicateTemplate(id: string): $CancellablePromise<string> {
-    return $Call.ByID(3571604671, id);
+  return $Call.ByID(3571604671, id);
 }
 
 /**
@@ -504,7 +504,7 @@ export function CreditsDuplicateTemplate(id: string): $CancellablePromise<string
  * estimate and the teleprompter render it (one renderer, credits.Render).
  */
 export function CreditsPreview(body: string): $CancellablePromise<string> {
-    return $Call.ByID(1805286028, body);
+  return $Call.ByID(1805286028, body);
 }
 
 /**
@@ -517,7 +517,7 @@ export function CreditsPreview(body: string): $CancellablePromise<string> {
  * stays wire-compatible with what this always returned).
  */
 export function CreditsProjectValues(): $CancellablePromise<string> {
-    return $Call.ByID(1465719907);
+  return $Call.ByID(1465719907);
 }
 
 /**
@@ -528,7 +528,7 @@ export function CreditsProjectValues(): $CancellablePromise<string> {
  * through manuscript.Service's own RecordedLengths hook, which only ever sees the manuscript's own chapter ids.
  */
 export function CreditsRecordedLengths(): $CancellablePromise<string> {
-    return $Call.ByID(334169345);
+  return $Call.ByID(334169345);
 }
 
 /**
@@ -536,15 +536,26 @@ export function CreditsRecordedLengths(): $CancellablePromise<string> {
  * whose lines are gone (the manuscript was replaced) is kept and reported as a problem rather than failing the read.
  */
 export function CreditsRetailSample(): $CancellablePromise<string> {
-    return $Call.ByID(1113046541);
+  return $Call.ByID(1113046541);
 }
 
 /**
  * CreditsSaveProjectValues saves this project's own credit token values onto
  * the project manifest.
  */
-export function CreditsSaveProjectValues(title: string, subtitle: string, author: string, series: string, bookNumber: string, copyrightText: string, year: string, copyrightHolder: string, publisher: string, narrator: string): $CancellablePromise<string> {
-    return $Call.ByID(4267966884, title, subtitle, author, series, bookNumber, copyrightText, year, copyrightHolder, publisher, narrator);
+export function CreditsSaveProjectValues(
+  title: string,
+  subtitle: string,
+  author: string,
+  series: string,
+  bookNumber: string,
+  copyrightText: string,
+  year: string,
+  copyrightHolder: string,
+  publisher: string,
+  narrator: string,
+): $CancellablePromise<string> {
+  return $Call.ByID(4267966884, title, subtitle, author, series, bookNumber, copyrightText, year, copyrightHolder, publisher, narrator);
 }
 
 /**
@@ -552,7 +563,7 @@ export function CreditsSaveProjectValues(title: string, subtitle: string, author
  * over 5 minutes and keeping the previous one when it does. Two empty ids clear it.
  */
 export function CreditsSaveRetailSample(startParagraphID: string, endParagraphID: string): $CancellablePromise<string> {
-    return $Call.ByID(2705978648, startParagraphID, endParagraphID);
+  return $Call.ByID(2705978648, startParagraphID, endParagraphID);
 }
 
 /**
@@ -560,7 +571,7 @@ export function CreditsSaveRetailSample(startParagraphID: string, endParagraphID
  * (id set). kind is "opening", "closing" or "chapter_announcement".
  */
 export function CreditsSaveTemplate(id: string, kind: string, name: string, body: string): $CancellablePromise<string> {
-    return $Call.ByID(1424795947, id, kind, name, body);
+  return $Call.ByID(1424795947, id, kind, name, body);
 }
 
 /**
@@ -568,7 +579,7 @@ export function CreditsSaveTemplate(id: string, kind: string, name: string, body
  * unknown kind or an unknown status without writing anything.
  */
 export function CreditsSetStatus(kind: string, status: string): $CancellablePromise<string> {
-    return $Call.ByID(1128427018, kind, status);
+  return $Call.ByID(1128427018, kind, status);
 }
 
 /**
@@ -576,7 +587,7 @@ export function CreditsSetStatus(kind: string, status: string): $CancellableProm
  * or "project" for "Don't ask for this project" (stored on the manifest for this manuscript). It returns the new state.
  */
 export function CreditsSetupDismiss(scope: string): $CancellablePromise<string> {
-    return $Call.ByID(2480637187, scope);
+  return $Call.ByID(2480637187, scope);
 }
 
 /**
@@ -586,14 +597,14 @@ export function CreditsSetupDismiss(scope: string): $CancellablePromise<string> 
  * binding instead, with no narrator field here.
  */
 export function CreditsSetupSave(fields: { [_ in string]?: string }): $CancellablePromise<string> {
-    return $Call.ByID(829535288, fields);
+  return $Call.ByID(829535288, fields);
 }
 
 /**
  * CreditsSetupState says whether to ask for the credits values and what to ask for. It only reads.
  */
 export function CreditsSetupState(): $CancellablePromise<string> {
-    return $Call.ByID(2742126118);
+  return $Call.ByID(2742126118);
 }
 
 /**
@@ -601,7 +612,7 @@ export function CreditsSetupState(): $CancellablePromise<string> {
  * treats that the same way it treats a manuscript chapter with no note: "not_started".
  */
 export function CreditsStatuses(): $CancellablePromise<string> {
-    return $Call.ByID(4098810442);
+  return $Call.ByID(4098810442);
 }
 
 /**
@@ -609,7 +620,7 @@ export function CreditsStatuses(): $CancellablePromise<string> {
  * shipped defaults on first use.
  */
 export function CreditsTemplates(): $CancellablePromise<string> {
-    return $Call.ByID(2043422899);
+  return $Call.ByID(2043422899);
 }
 
 /**
@@ -624,7 +635,7 @@ export function CreditsTemplates(): $CancellablePromise<string> {
  * with code stale); then a chain the DAW does not list. Nothing is sent to the DAW on any of them.
  */
 export function DawApplyFxToRange(chapterID: string, firstToken: number, lastToken: number, chainName: string, fadeMs: number): $CancellablePromise<string> {
-    return $Call.ByID(279520550, chapterID, firstToken, lastToken, chainName, fadeMs);
+  return $Call.ByID(279520550, chapterID, firstToken, lastToken, chainName, fadeMs);
 }
 
 /**
@@ -638,7 +649,7 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
  * them. A backup changes no audio, so it answers changed false and no undo step.
  */
 export function DawBackupAround(chapterID: string, firstToken: number, lastToken: number, label: string): $CancellablePromise<string> {
-    return $Call.ByID(221633769, chapterID, firstToken, lastToken, label);
+  return $Call.ByID(221633769, chapterID, firstToken, lastToken, label);
 }
 
 /**
@@ -647,7 +658,7 @@ export function DawBackupAround(chapterID: string, firstToken: number, lastToken
  * A table written by a newer app, or one that cannot be read, rejects with its sentence.
  */
 export function DawBackups(): $CancellablePromise<string> {
-    return $Call.ByID(840976313);
+  return $Call.ByID(840976313);
 }
 
 /**
@@ -655,7 +666,7 @@ export function DawBackups(): $CancellablePromise<string> {
  * of the DAW's own; a chain already as asked answers changed false. The same refusals as DawFxRangeParams.
  */
 export function DawBypassFxRange(chapterID: string, firstToken: number, lastToken: number, chainName: string, bypass: boolean): $CancellablePromise<string> {
-    return $Call.ByID(3650497681, chapterID, firstToken, lastToken, chainName, bypass);
+  return $Call.ByID(3650497681, chapterID, firstToken, lastToken, chainName, bypass);
 }
 
 /**
@@ -663,7 +674,7 @@ export function DawBypassFxRange(chapterID: string, firstToken: number, lastToke
  * unavailable) reason and message.
  */
 export function DawCapabilities(): $CancellablePromise<string> {
-    return $Call.ByID(3838871320);
+  return $Call.ByID(3838871320);
 }
 
 /**
@@ -676,7 +687,7 @@ export function DawCapabilities(): $CancellablePromise<string> {
  * path is "not detected").
  */
 export function DawCatalogList(): $CancellablePromise<string> {
-    return $Call.ByID(4009222857);
+  return $Call.ByID(4009222857);
 }
 
 /**
@@ -689,14 +700,14 @@ export function DawCatalogList(): $CancellablePromise<string> {
  * openReleaseNotes, the same trusted-URL discipline for the same reason).
  */
 export function DawCatalogOpenDownloadPage(id: string): $CancellablePromise<string> {
-    return $Call.ByID(3237751086, id);
+  return $Call.ByID(3237751086, id);
 }
 
 /**
  * DawChoice answers the project's DAW choice. It changes nothing.
  */
 export function DawChoice(): $CancellablePromise<string> {
-    return $Call.ByID(3027148021);
+  return $Call.ByID(3027148021);
 }
 
 /**
@@ -706,7 +717,7 @@ export function DawChoice(): $CancellablePromise<string> {
  * another way, which the answer's source and chosen say.
  */
 export function DawChoose(engine: string): $CancellablePromise<string> {
-    return $Call.ByID(47477823, engine);
+  return $Call.ByID(47477823, engine);
 }
 
 /**
@@ -718,7 +729,7 @@ export function DawChoose(engine: string): $CancellablePromise<string> {
  * choice back with DawChosenFxForRange and records it once the narrator has chosen.
  */
 export function DawChooseFxForRange(chapterID: string, firstToken: number, lastToken: number, fadeMs: number): $CancellablePromise<string> {
-    return $Call.ByID(801729601, chapterID, firstToken, lastToken, fadeMs);
+  return $Call.ByID(801729601, chapterID, firstToken, lastToken, fadeMs);
 }
 
 /**
@@ -727,7 +738,7 @@ export function DawChooseFxForRange(chapterID: string, firstToken: number, lastT
  * as DawFxRangeParams; a refusal has no plug-ins.
  */
 export function DawChosenFxForRange(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
-    return $Call.ByID(754302154, chapterID, firstToken, lastToken);
+  return $Call.ByID(754302154, chapterID, firstToken, lastToken);
 }
 
 /**
@@ -739,7 +750,7 @@ export function DawChosenFxForRange(chapterID: string, firstToken: number, lastT
  * engine that cannot compare, in a sentence.
  */
 export function DawCompareFxRange(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
-    return $Call.ByID(3489565200, chapterID, firstToken, lastToken, chainName);
+  return $Call.ByID(3489565200, chapterID, firstToken, lastToken, chainName);
 }
 
 /**
@@ -756,8 +767,16 @@ export function DawCompareFxRange(chapterID: string, firstToken: number, lastTok
  * cut are a no-op, changed false. Nothing is sent to the DAW on any of them. A chapter the manuscript does not have has no
  * stored alignment, so it is the stale refusal too.
  */
-export function DawDeleteRange(chapterID: string, firstToken: number, lastToken: number, mode: string, fadeMs: number, padMs: number, roomTone: boolean): $CancellablePromise<string> {
-    return $Call.ByID(3764148814, chapterID, firstToken, lastToken, mode, fadeMs, padMs, roomTone);
+export function DawDeleteRange(
+  chapterID: string,
+  firstToken: number,
+  lastToken: number,
+  mode: string,
+  fadeMs: number,
+  padMs: number,
+  roomTone: boolean,
+): $CancellablePromise<string> {
+  return $Call.ByID(3764148814, chapterID, firstToken, lastToken, mode, fadeMs, padMs, roomTone);
 }
 
 /**
@@ -769,7 +788,7 @@ export function DawDeleteRange(chapterID: string, firstToken: number, lastToken:
  * same capability and range refusals as DawRemoveFxFromRange, then a chain the DAW no longer has on those words, with code stale.
  */
 export function DawFxRangeParams(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
-    return $Call.ByID(612559995, chapterID, firstToken, lastToken, chainName);
+  return $Call.ByID(612559995, chapterID, firstToken, lastToken, chainName);
 }
 
 /**
@@ -780,7 +799,7 @@ export function DawFxRangeParams(chapterID: string, firstToken: number, lastToke
  * manuscript does not have is an error. It starts and seeks no playback and adds no undo step.
  */
 export function DawGoToChapter(chapterID: string, where: string, seconds: number): $CancellablePromise<string> {
-    return $Call.ByID(2466987050, chapterID, where, seconds);
+  return $Call.ByID(2466987050, chapterID, where, seconds);
 }
 
 /**
@@ -790,7 +809,7 @@ export function DawGoToChapter(chapterID: string, where: string, seconds: number
  * changes the project. kind is a dawport.ActionKind ("cut_range"); any other is an error, and nothing is sent.
  */
 export function DawLastAction(kind: string): $CancellablePromise<string> {
-    return $Call.ByID(2436285480, kind);
+  return $Call.ByID(2436285480, kind);
 }
 
 /**
@@ -806,7 +825,7 @@ export function DawLastAction(kind: string): $CancellablePromise<string> {
  * outlives the app when the narrator closes it.
  */
 export function DawLaunch(): $CancellablePromise<string> {
-    return $Call.ByID(739370161);
+  return $Call.ByID(739370161);
 }
 
 /**
@@ -814,7 +833,7 @@ export function DawLaunch(): $CancellablePromise<string> {
  * folder holds none or several (the narrator picks one with ProjectLinkDawFile).
  */
 export function DawLinkFound(): $CancellablePromise<string> {
-    return $Call.ByID(3767148346);
+  return $Call.ByID(3767148346);
 }
 
 /**
@@ -823,7 +842,7 @@ export function DawLinkFound(): $CancellablePromise<string> {
  * adapter, the DAW not answering and no answer in time are refused in a sentence.
  */
 export function DawMeters(): $CancellablePromise<string> {
-    return $Call.ByID(958046068);
+  return $Call.ByID(958046068);
 }
 
 /**
@@ -832,7 +851,7 @@ export function DawMeters(): $CancellablePromise<string> {
  * adapter, the DAW not answering and no answer in time are refused in a sentence. It changes nothing.
  */
 export function DawMonitorLevel(): $CancellablePromise<string> {
-    return $Call.ByID(2167912414);
+  return $Call.ByID(2167912414);
 }
 
 /**
@@ -841,7 +860,7 @@ export function DawMonitorLevel(): $CancellablePromise<string> {
  * chapter-track links, so the same call serves any DAW whose follow_position role answers.
  */
 export function DawPlace(): $CancellablePromise<string> {
-    return $Call.ByID(2065151625);
+  return $Call.ByID(2065151625);
 }
 
 /**
@@ -850,7 +869,7 @@ export function DawPlace(): $CancellablePromise<string> {
  * then the stretch, then the path; nothing is sent to the DAW on any refusal.
  */
 export function DawPreviewFileRange(path: string, start: number, length: number): $CancellablePromise<string> {
-    return $Call.ByID(4279548801, path, start, length);
+  return $Call.ByID(4279548801, path, start, length);
 }
 
 /**
@@ -858,7 +877,7 @@ export function DawPreviewFileRange(path: string, start: number, length: number)
  * heartbeat capability unavailable or turned off, or a DAW not answering, it is the idle payload: stopped, 0, null, false.
  */
 export function DawProjectState(): $CancellablePromise<string> {
-    return $Call.ByID(2311648888);
+  return $Call.ByID(2311648888);
 }
 
 /**
@@ -867,7 +886,7 @@ export function DawProjectState(): $CancellablePromise<string> {
  * in time are refused in a sentence. It changes nothing: the pre-roll is the narrator's to set in the DAW.
  */
 export function DawPunchPreroll(): $CancellablePromise<string> {
-    return $Call.ByID(3261543260);
+  return $Call.ByID(3261543260);
 }
 
 /**
@@ -882,7 +901,7 @@ export function DawPunchPreroll(): $CancellablePromise<string> {
  * that changed between the read and the DAW's own check is the DAW's stale refusal, and nothing changes.
  */
 export function DawReduceRangeGain(chapterID: string, takeID: string, stretches: $models.DawGainStretch[], reduceDb: number): $CancellablePromise<string> {
-    return $Call.ByID(1055845226, chapterID, takeID, stretches, reduceDb);
+  return $Call.ByID(1055845226, chapterID, takeID, stretches, reduceDb);
 }
 
 /**
@@ -894,7 +913,7 @@ export function DawReduceRangeGain(chapterID: string, takeID: string, stretches:
  * changed false. The piece is a new item after the apply, so the alignment names it only once the chapter is checked again.
  */
 export function DawRemoveFxFromRange(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
-    return $Call.ByID(433050377, chapterID, firstToken, lastToken, chainName);
+  return $Call.ByID(433050377, chapterID, firstToken, lastToken, chainName);
 }
 
 /**
@@ -909,7 +928,7 @@ export function DawRemoveFxFromRange(chapterID: string, firstToken: number, last
  * check is the DAW's stale refusal, and nothing changes.
  */
 export function DawRepairClick(chapterID: string, takeID: string, clicks: $models.DawClick[]): $CancellablePromise<string> {
-    return $Call.ByID(3197573405, chapterID, takeID, clicks);
+  return $Call.ByID(3197573405, chapterID, takeID, clicks);
 }
 
 /**
@@ -918,8 +937,17 @@ export function DawRepairClick(chapterID: string, takeID: string, clicks: $model
  * it now and sends the DAW its own ids and seconds, never one the page gave. The later audio moves by the difference in length. Its
  * refusals are ReplacePlan's, then a fade or level out of range; nothing is sent on any of them.
  */
-export function DawReplaceRange(chapterID: string, firstToken: number, lastToken: number, fileID: string, sourceStart: number, sourceEnd: number, fadeMs: number, gainDB: number): $CancellablePromise<string> {
-    return $Call.ByID(556973567, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd, fadeMs, gainDB);
+export function DawReplaceRange(
+  chapterID: string,
+  firstToken: number,
+  lastToken: number,
+  fileID: string,
+  sourceStart: number,
+  sourceEnd: number,
+  fadeMs: number,
+  gainDB: number,
+): $CancellablePromise<string> {
+  return $Call.ByID(556973567, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd, fadeMs, gainDB);
 }
 
 /**
@@ -929,7 +957,7 @@ export function DawReplaceRange(chapterID: string, firstToken: number, lastToken
  * (docs/research/studio-next-undo-inverse-table.md row 1): it is one step in the DAW's own undo.
  */
 export function DawRestoreBackup(backupID: string): $CancellablePromise<string> {
-    return $Call.ByID(4114452298, backupID);
+  return $Call.ByID(4114452298, backupID);
 }
 
 /**
@@ -938,7 +966,7 @@ export function DawRestoreBackup(backupID: string): $CancellablePromise<string> 
  * nothing sent.
  */
 export function DawRestoreReplacement(chapterID: string, replacementID: string): $CancellablePromise<string> {
-    return $Call.ByID(3637008624, chapterID, replacementID);
+  return $Call.ByID(3637008624, chapterID, replacementID);
 }
 
 /**
@@ -946,7 +974,7 @@ export function DawRestoreReplacement(chapterID: string, replacementID: string):
  * file_reveal sentence comes first, then the path; nothing is sent to the DAW on any refusal.
  */
 export function DawRevealFile(path: string): $CancellablePromise<string> {
-    return $Call.ByID(4263544213, path);
+  return $Call.ByID(4263544213, path);
 }
 
 /**
@@ -960,7 +988,7 @@ export function DawRevealFile(path: string): $CancellablePromise<string> {
  * to the DAW on any refusal. A chapter the manuscript does not have is an error.
  */
 export function DawRoll(chapterID: string, at: number, confirmed: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2752092233, chapterID, at, confirmed);
+  return $Call.ByID(2752092233, chapterID, at, confirmed);
 }
 
 /**
@@ -968,8 +996,16 @@ export function DawRoll(chapterID: string, at: number, confirmed: boolean): $Can
  * to value, in one undo step of the DAW's own; a setting already at the value answers changed false. The same refusals as
  * DawFxRangeParams, then a setting the effect does not have and a value outside its range, each with a sentence.
  */
-export function DawSetFxRangeParam(chapterID: string, firstToken: number, lastToken: number, chainName: string, fx: number, index: number, value: number): $CancellablePromise<string> {
-    return $Call.ByID(3554935570, chapterID, firstToken, lastToken, chainName, fx, index, value);
+export function DawSetFxRangeParam(
+  chapterID: string,
+  firstToken: number,
+  lastToken: number,
+  chainName: string,
+  fx: number,
+  index: number,
+  value: number,
+): $CancellablePromise<string> {
+  return $Call.ByID(3554935570, chapterID, firstToken, lastToken, chainName, fx, index, value);
 }
 
 /**
@@ -979,7 +1015,7 @@ export function DawSetFxRangeParam(chapterID: string, firstToken: number, lastTo
  * hardware output volume, so the delivery files are not changed.
  */
 export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
-    return $Call.ByID(1071723846, level);
+  return $Call.ByID(1071723846, level);
 }
 
 /**
@@ -994,7 +1030,7 @@ export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
  * read and the DAW's own check is the DAW's stale refusal, and nothing changes.
  */
 export function DawSplitTake(chapterID: string, takeID: string, at: number): $CancellablePromise<string> {
-    return $Call.ByID(3351327653, chapterID, takeID, at);
+  return $Call.ByID(3351327653, chapterID, takeID, at);
 }
 
 /**
@@ -1010,14 +1046,14 @@ export function DawSplitTake(chapterID: string, takeID: string, at: number): $Ca
  * any of them. An item that changed between the read and REAPER's own check is REAPER's stale refusal, and nothing changes.
  */
 export function DawStackTakes(chapterID: string, passageIDs: string[]): $CancellablePromise<string> {
-    return $Call.ByID(2899813770, chapterID, passageIDs);
+  return $Call.ByID(2899813770, chapterID, passageIDs);
 }
 
 /**
  * DawStopFilePreview stops the preview this app started; with none playing it changes nothing.
  */
 export function DawStopFilePreview(): $CancellablePromise<string> {
-    return $Call.ByID(1026294444);
+  return $Call.ByID(1026294444);
 }
 
 /**
@@ -1025,7 +1061,7 @@ export function DawStopFilePreview(): $CancellablePromise<string> {
  * Refused as the Compare is when the fx_range capability is off.
  */
 export function DawStopFxCompare(): $CancellablePromise<string> {
-    return $Call.ByID(3272647503);
+  return $Call.ByID(3272647503);
 }
 
 /**
@@ -1037,7 +1073,7 @@ export function DawStopFxCompare(): $CancellablePromise<string> {
  * (selected and soloed, then put back); a chapter with no linked track, or whose track has no audio there, is refused and nothing is changed.
  */
 export function DawTransportSync(action: string, seconds: number, until: number, chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(388325684, action, seconds, until, chapterID);
+  return $Call.ByID(388325684, action, seconds, until, chapterID);
 }
 
 /**
@@ -1052,7 +1088,7 @@ export function DawTransportSync(action: string, seconds: number, until: number,
  * stale. Nothing is sent to the DAW on any of them.
  */
 export function DawTrimRange(chapterID: string, itemID: string, start: number, end: number, fadeMs: number): $CancellablePromise<string> {
-    return $Call.ByID(109845507, chapterID, itemID, start, end, fadeMs);
+  return $Call.ByID(109845507, chapterID, itemID, start, end, fadeMs);
 }
 
 /**
@@ -1064,7 +1100,7 @@ export function DawTrimRange(chapterID: string, itemID: string, start: number, e
  * other is an error, and nothing is sent.
  */
 export function DawUndoLast(kind: string, steps: number): $CancellablePromise<string> {
-    return $Call.ByID(2137077524, kind, steps);
+  return $Call.ByID(2137077524, kind, steps);
 }
 
 /**
@@ -1075,7 +1111,7 @@ export function DawUndoLast(kind: string, steps: number): $CancellablePromise<st
  * DawStackTakes.
  */
 export function DawUnstackTakes(chapterID: string, passageIDs: string[]): $CancellablePromise<string> {
-    return $Call.ByID(368811149, chapterID, passageIDs);
+  return $Call.ByID(368811149, chapterID, passageIDs);
 }
 
 /**
@@ -1083,7 +1119,7 @@ export function DawUnstackTakes(chapterID: string, passageIDs: string[]): $Cance
  * against the Global default from then on, with a notice.
  */
 export function DeliveryDeleteProfile(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2497531970, id);
+  return $Call.ByID(2497531970, id);
 }
 
 /**
@@ -1091,7 +1127,7 @@ export function DeliveryDeleteProfile(id: string): $CancellablePromise<string> {
  * answers it.
  */
 export function DeliveryDuplicateProfile(id: string, version: string): $CancellablePromise<string> {
-    return $Call.ByID(3290179432, id, version);
+  return $Call.ByID(3290179432, id, version);
 }
 
 /**
@@ -1101,7 +1137,7 @@ export function DeliveryDuplicateProfile(id: string, version: string): $Cancella
  * check runs, or when nothing has been measured or checked.
  */
 export function DeliveryExportReport(includePaths: boolean): $CancellablePromise<string> {
-    return $Call.ByID(54436238, includePaths);
+  return $Call.ByID(54436238, includePaths);
 }
 
 /**
@@ -1110,7 +1146,7 @@ export function DeliveryExportReport(includePaths: boolean): $CancellablePromise
  * job wrote, never one the UI names. It is refused with a sentence when no package was built or its folder is gone.
  */
 export function DeliveryOpenPackageFolder(): $CancellablePromise<string> {
-    return $Call.ByID(157179910);
+  return $Call.ByID(157179910);
 }
 
 /**
@@ -1118,7 +1154,7 @@ export function DeliveryOpenPackageFolder(): $CancellablePromise<string> {
  * profiles), the Global default, the current project's own choice and the profile it is judged against
  */
 export function DeliveryProfiles(): $CancellablePromise<string> {
-    return $Call.ByID(1745272024);
+  return $Call.ByID(1745272024);
 }
 
 /**
@@ -1126,7 +1162,7 @@ export function DeliveryProfiles(): $CancellablePromise<string> {
  * ({id, name, rules: [{id, off, min, max}]}), and answers it with its revision bumped. A built-in is never written.
  */
 export function DeliverySaveProfile(edit: string): $CancellablePromise<string> {
-    return $Call.ByID(1460317916, edit);
+  return $Call.ByID(1460317916, edit);
 }
 
 /**
@@ -1135,7 +1171,7 @@ export function DeliverySaveProfile(edit: string): $CancellablePromise<string> {
  * A built-in is chosen at its version; a custom profile always judges with its latest revision.
  */
 export function DeliverySelectProfile(scope: string, id: string, version: string): $CancellablePromise<string> {
-    return $Call.ByID(122359795, scope, id, version);
+  return $Call.ByID(122359795, scope, id, version);
 }
 
 /**
@@ -1144,7 +1180,7 @@ export function DeliverySelectProfile(scope: string, id: string, version: string
  * check while one runs.
  */
 export function DiagnosticsAnalyze(paths: string[], sourceKind: string): $CancellablePromise<string> {
-    return $Call.ByID(522143006, paths, sourceKind);
+  return $Call.ByID(522143006, paths, sourceKind);
 }
 
 /**
@@ -1152,7 +1188,7 @@ export function DiagnosticsAnalyze(paths: string[], sourceKind: string): $Cancel
  * nothing.
  */
 export function DiagnosticsCancel(): $CancellablePromise<string> {
-    return $Call.ByID(163956788);
+  return $Call.ByID(163956788);
 }
 
 /**
@@ -1160,7 +1196,7 @@ export function DiagnosticsCancel(): $CancellablePromise<string> {
  * ended with every file's summary and findings.
  */
 export function DiagnosticsState(): $CancellablePromise<string> {
-    return $Call.ByID(2198027203);
+  return $Call.ByID(2198027203);
 }
 
 /**
@@ -1168,14 +1204,14 @@ export function DiagnosticsState(): $CancellablePromise<string> {
  * chapter's current text, or nothing is saved; a word already accepted is not recorded twice.
  */
 export function EditingAccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
-    return $Call.ByID(2697825286, chapterID, keys);
+  return $Call.ByID(2697825286, chapterID, keys);
 }
 
 /**
  * EditingAcceptedList returns a chapter's accepted words (flagged words the narrator kept as read) in reading order.
  */
 export function EditingAcceptedList(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2965962927, chapterID);
+  return $Call.ByID(2965962927, chapterID);
 }
 
 /**
@@ -1184,7 +1220,7 @@ export function EditingAcceptedList(chapterID: string): $CancellablePromise<stri
  * it does nothing.
  */
 export function EditingCancel(): $CancellablePromise<string> {
-    return $Call.ByID(3490924300);
+  return $Call.ByID(3490924300);
 }
 
 /**
@@ -1194,7 +1230,7 @@ export function EditingCancel(): $CancellablePromise<string> {
  * one. It only reads what a scan already persisted.
  */
 export function EditingCandidates(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(435807084, chapterID);
+  return $Call.ByID(435807084, chapterID);
 }
 
 /**
@@ -1203,35 +1239,35 @@ export function EditingCandidates(chapterID: string): $CancellablePromise<string
  * app sends, or it overlaps a cut already stored on the same take.
  */
 export function EditingCutRecord(chapterID: string, cut: editlog$0.CutRequest): $CancellablePromise<string> {
-    return $Call.ByID(2579032923, chapterID, cut);
+  return $Call.ByID(2579032923, chapterID, cut);
 }
 
 /**
  * EditingCutRemove forgets a chapter's cut: the inverse the journal calls when the DAW change is undone in the session.
  */
 export function EditingCutRemove(chapterID: string, id: string): $CancellablePromise<string> {
-    return $Call.ByID(709373290, chapterID, id);
+  return $Call.ByID(709373290, chapterID, id);
 }
 
 /**
  * EditingCutsList returns a chapter's cuts in the original recording's time order, each checked against the current text.
  */
 export function EditingCutsList(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1011505999, chapterID);
+  return $Call.ByID(1011505999, chapterID);
 }
 
 /**
  * EditingReplacementRemove forgets a chapter's replacement: the inverse the journal calls once the app's Undo took the DAW edit back.
  */
 export function EditingReplacementRemove(chapterID: string, id: string): $CancellablePromise<string> {
-    return $Call.ByID(1895829750, chapterID, id);
+  return $Call.ByID(1895829750, chapterID, id);
 }
 
 /**
  * EditingReplacementsList returns a chapter's replacements, each checked against the current text: what the page shows on the words.
  */
 export function EditingReplacementsList(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(3656209467, chapterID);
+  return $Call.ByID(3656209467, chapterID);
 }
 
 /**
@@ -1239,7 +1275,7 @@ export function EditingReplacementsList(chapterID: string): $CancellablePromise<
  * else its chapter's, else the project's, else leave.
  */
 export function EditingRetryModeGet(level: string, chapterID: string, passageID: string): $CancellablePromise<string> {
-    return $Call.ByID(1242097977, level, chapterID, passageID);
+  return $Call.ByID(1242097977, level, chapterID, passageID);
 }
 
 /**
@@ -1247,7 +1283,7 @@ export function EditingRetryModeGet(level: string, chapterID: string, passageID:
  * level follows the one above.
  */
 export function EditingRetryModeSet(level: string, chapterID: string, passageID: string, mode: string): $CancellablePromise<string> {
-    return $Call.ByID(822170437, level, chapterID, passageID, mode);
+  return $Call.ByID(822170437, level, chapterID, passageID, mode);
 }
 
 /**
@@ -1258,7 +1294,7 @@ export function EditingRetryModeSet(level: string, chapterID: string, passageID:
  * binding validation failure in this file.
  */
 export function EditingSetSourceChoice(chapterID: string, choice: string): $CancellablePromise<string> {
-    return $Call.ByID(3971166288, chapterID, choice);
+  return $Call.ByID(3971166288, chapterID, choice);
 }
 
 /**
@@ -1268,7 +1304,7 @@ export function EditingSetSourceChoice(chapterID: string, choice: string): $Canc
  * is never an error" rule.
  */
 export function EditingSourceChoice(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1773421432, chapterID);
+  return $Call.ByID(1773421432, chapterID);
 }
 
 /**
@@ -1278,7 +1314,7 @@ export function EditingSourceChoice(chapterID: string): $CancellablePromise<stri
  * steps DAW its steps and the backup taken first).
  */
 export function EditingStackRecord(chapterID: string, stack: editlog$0.StackRecordRequest): $CancellablePromise<string> {
-    return $Call.ByID(3000755939, chapterID, stack);
+  return $Call.ByID(3000755939, chapterID, stack);
 }
 
 /**
@@ -1286,14 +1322,14 @@ export function EditingStackRecord(chapterID: string, stack: editlog$0.StackReco
  * the stack: some of them for a partial un-stack, and the stack goes with its last take.
  */
 export function EditingStackRemove(chapterID: string, passageID: string, takeIDs: string[]): $CancellablePromise<string> {
-    return $Call.ByID(2530893154, chapterID, passageID, takeIDs);
+  return $Call.ByID(2530893154, chapterID, passageID, takeIDs);
 }
 
 /**
  * EditingStacksList returns a chapter's stacks by passage id.
  */
 export function EditingStacksList(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(3364664983, chapterID);
+  return $Call.ByID(3364664983, chapterID);
 }
 
 /**
@@ -1306,21 +1342,21 @@ export function EditingStacksList(chapterID: string): $CancellablePromise<string
  * promise.
  */
 export function EditingStart(documentID: string, chapterID: string, chapterTitle: string): $CancellablePromise<string> {
-    return $Call.ByID(3019150774, documentID, chapterID, chapterTitle);
+  return $Call.ByID(3019150774, documentID, chapterID, chapterTitle);
 }
 
 /**
  * EditingState is the current check, or the last one that ended.
  */
 export function EditingState(): $CancellablePromise<string> {
-    return $Call.ByID(2969112107);
+  return $Call.ByID(2969112107);
 }
 
 /**
  * EditingUnaccept removes words of a chapter from the accepted list, so their flags show again (Undo of an accept).
  */
 export function EditingUnaccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
-    return $Call.ByID(4156351737, chapterID, keys);
+  return $Call.ByID(4156351737, chapterID, keys);
 }
 
 /**
@@ -1329,7 +1365,7 @@ export function EditingUnaccept(chapterID: string, keys: string[]): $Cancellable
  * the effects that are on (SN-E113). An effect that is not recorded, or already as asked, changes nothing.
  */
 export function EditingWordFxBypass(chapterID: string, id: string, bypassed: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2961154316, chapterID, id, bypassed);
+  return $Call.ByID(2961154316, chapterID, id, bypassed);
 }
 
 /**
@@ -1337,7 +1373,7 @@ export function EditingWordFxBypass(chapterID: string, id: string, bypassed: boo
  * current text.
  */
 export function EditingWordFxList(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2254069476, chapterID);
+  return $Call.ByID(2254069476, chapterID);
 }
 
 /**
@@ -1347,7 +1383,7 @@ export function EditingWordFxList(chapterID: string): $CancellablePromise<string
  * answer's over names the effects underneath.
  */
 export function EditingWordFxRecord(chapterID: string, fx: editlog$0.WordFxRequest): $CancellablePromise<string> {
-    return $Call.ByID(1820074073, chapterID, fx);
+  return $Call.ByID(1820074073, chapterID, fx);
 }
 
 /**
@@ -1355,7 +1391,7 @@ export function EditingWordFxRecord(chapterID: string, fx: editlog$0.WordFxReque
  * of the DAW taking the chain off.
  */
 export function EditingWordFxRemove(chapterID: string, id: string): $CancellablePromise<string> {
-    return $Call.ByID(3159591436, chapterID, id);
+  return $Call.ByID(3159591436, chapterID, id);
 }
 
 /**
@@ -1363,7 +1399,7 @@ export function EditingWordFxRemove(chapterID: string, id: string): $Cancellable
  * nothing.
  */
 export function ExportCancel(): $CancellablePromise<string> {
-    return $Call.ByID(2787515454);
+  return $Call.ByID(2787515454);
 }
 
 /**
@@ -1372,7 +1408,7 @@ export function ExportCancel(): $CancellablePromise<string> {
  * exported.
  */
 export function ExportPickFiles(): $CancellablePromise<string> {
-    return $Call.ByID(3772614912);
+  return $Call.ByID(3772614912);
 }
 
 /**
@@ -1380,14 +1416,14 @@ export function ExportPickFiles(): $CancellablePromise<string> {
  * path that was not picked, a request with no items, or a second export while one runs.
  */
 export function ExportStart(req: $models.ExportRequest): $CancellablePromise<string> {
-    return $Call.ByID(2735024176, req);
+  return $Call.ByID(2735024176, req);
 }
 
 /**
  * ExportState answers the export job: idle, running with real progress, or how it ended with every file's result.
  */
 export function ExportState(): $CancellablePromise<string> {
-    return $Call.ByID(3355501889);
+  return $Call.ByID(3355501889);
 }
 
 /**
@@ -1395,7 +1431,7 @@ export function ExportState(): $CancellablePromise<string> {
  * says (an entry's name, a name, a value, a relation, a claim or a speaker) and is applied as given.
  */
 export function ExtractionAccept(id: string, text: string | null): $CancellablePromise<string> {
-    return $Call.ByID(427273059, id, text);
+  return $Call.ByID(427273059, id, text);
 }
 
 /**
@@ -1405,7 +1441,7 @@ export function ExtractionAccept(id: string, text: string | null): $CancellableP
  * decision), as a scan's do. A file refused before parsing is refused with the importer's sentence.
  */
 export function ExtractionImportCommit(text: string, hint: string): $CancellablePromise<string> {
-    return $Call.ByID(4139892219, text, hint);
+  return $Call.ByID(4139892219, text, hint);
 }
 
 /**
@@ -1413,7 +1449,7 @@ export function ExtractionImportCommit(text: string, hint: string): $Cancellable
  * are now. hint is "csv", "json" or "" (worked out from the text). It writes nothing.
  */
 export function ExtractionImportPreview(text: string, hint: string): $CancellablePromise<string> {
-    return $Call.ByID(738991394, text, hint);
+  return $Call.ByID(738991394, text, hint);
 }
 
 /**
@@ -1421,7 +1457,7 @@ export function ExtractionImportPreview(text: string, hint: string): $Cancellabl
  * clipboard, with the example it contains and the byte cap.
  */
 export function ExtractionImportPrompt(format: string): $CancellablePromise<string> {
-    return $Call.ByID(1099454356, format);
+  return $Call.ByID(1099454356, format);
 }
 
 /**
@@ -1431,7 +1467,7 @@ export function ExtractionImportPrompt(format: string): $CancellablePromise<stri
  * changed.
  */
 export function ExtractionImportUndo(ids: string[]): $CancellablePromise<string> {
-    return $Call.ByID(2621429820, ids);
+  return $Call.ByID(2621429820, ids);
 }
 
 /**
@@ -1439,14 +1475,14 @@ export function ExtractionImportUndo(ids: string[]): $CancellablePromise<string>
  * order, each kind in the order it was stored.
  */
 export function ExtractionList(): $CancellablePromise<string> {
-    return $Call.ByID(3440388679);
+  return $Call.ByID(3440388679);
 }
 
 /**
  * ExtractionReject takes back what a suggestion changed and keeps it as a tombstone, so it is not offered again.
  */
 export function ExtractionReject(id: string): $CancellablePromise<string> {
-    return $Call.ByID(1685583868, id);
+  return $Call.ByID(1685583868, id);
 }
 
 /**
@@ -1455,14 +1491,14 @@ export function ExtractionReject(id: string): $CancellablePromise<string> {
  * decision applied taken back. An edited text stays as edited.
  */
 export function ExtractionReopen(id: string): $CancellablePromise<string> {
-    return $Call.ByID(1021499254, id);
+  return $Call.ByID(1021499254, id);
 }
 
 /**
  * ExtractionReview makes an automatic acceptance the narrator's and clears the Review flag it set.
  */
 export function ExtractionReview(id: string): $CancellablePromise<string> {
-    return $Call.ByID(908023175, id);
+  return $Call.ByID(908023175, id);
 }
 
 /**
@@ -1471,28 +1507,28 @@ export function ExtractionReview(id: string): $CancellablePromise<string> {
  * starts no other. An id that is not a source a scan can start is refused before anything starts.
  */
 export function ExtractionScan(sourceIds: string[]): $CancellablePromise<string> {
-    return $Call.ByID(3094866598, sourceIds);
+  return $Call.ByID(3094866598, sourceIds);
 }
 
 /**
  * ExtractionScanCancel stops the running scan and the source it is running. What the sources that finished added is kept.
  */
 export function ExtractionScanCancel(): $CancellablePromise<string> {
-    return $Call.ByID(567792956);
+  return $Call.ByID(567792956);
 }
 
 /**
  * ExtractionScanState returns the running or last scan, or an idle one.
  */
 export function ExtractionScanState(): $CancellablePromise<string> {
-    return $Call.ByID(158708443);
+  return $Call.ByID(158708443);
 }
 
 /**
  * ExtractionSources returns every extraction source in the registry's order, rules first, with whether it can run now.
  */
 export function ExtractionSources(): $CancellablePromise<string> {
-    return $Call.ByID(1031376715);
+  return $Call.ByID(1031376715);
 }
 
 /**
@@ -1501,7 +1537,7 @@ export function ExtractionSources(): $CancellablePromise<string> {
  * listening, are refused before anything is sent.
  */
 export function FindingsAddMarker(id: string): $CancellablePromise<string> {
-    return $Call.ByID(1612469037, id);
+  return $Call.ByID(1612469037, id);
 }
 
 /**
@@ -1509,7 +1545,7 @@ export function FindingsAddMarker(id: string): $CancellablePromise<string> {
  * re-run or a manuscript replacement can remove it while the page shows it).
  */
 export function FindingsGet(id: string): $CancellablePromise<string> {
-    return $Call.ByID(795298128, id);
+  return $Call.ByID(795298128, id);
 }
 
 /**
@@ -1517,7 +1553,7 @@ export function FindingsGet(id: string): $CancellablePromise<string> {
  * no time in its audio).
  */
 export function FindingsGoTo(id: string): $CancellablePromise<string> {
-    return $Call.ByID(1353036263, id);
+  return $Call.ByID(1353036263, id);
 }
 
 /**
@@ -1527,14 +1563,14 @@ export function FindingsGoTo(id: string): $CancellablePromise<string> {
  * finding does not have is an error, not a refusal: the page only offers the reads it was sent.
  */
 export function FindingsGoToRead(id: string, read: number): $CancellablePromise<string> {
-    return $Call.ByID(2921722827, id, read);
+  return $Call.ByID(2921722827, id, read);
 }
 
 /**
  * FindingsList answers one page of the findings that match query, and how many matched in all.
  */
 export function FindingsList(query: $models.FindingsQuery): $CancellablePromise<string> {
-    return $Call.ByID(2015341116, query);
+  return $Call.ByID(2015341116, query);
 }
 
 /**
@@ -1542,7 +1578,7 @@ export function FindingsList(query: $models.FindingsQuery): $CancellablePromise<
  * Play. The narrator's own selection and repeat come back with FindingsStopLoop.
  */
 export function FindingsLoop(id: string): $CancellablePromise<string> {
-    return $Call.ByID(499300970, id);
+  return $Call.ByID(499300970, id);
 }
 
 /**
@@ -1551,7 +1587,7 @@ export function FindingsLoop(id: string): $CancellablePromise<string> {
  * active take: a read that is another take of its item is heard as itself through the in-app audition instead.
  */
 export function FindingsLoopRead(id: string, read: number): $CancellablePromise<string> {
-    return $Call.ByID(3171307890, id, read);
+  return $Call.ByID(3171307890, id, read);
 }
 
 /**
@@ -1559,7 +1595,7 @@ export function FindingsLoopRead(id: string, read: number): $CancellablePromise<
  * the heartbeat REAPER's script already broadcasts (daw.Reachability), so the page can poll it.
  */
 export function FindingsReaperStatus(): $CancellablePromise<string> {
-    return $Call.ByID(1717933253);
+  return $Call.ByID(1717933253);
 }
 
 /**
@@ -1570,7 +1606,7 @@ export function FindingsReaperStatus(): $CancellablePromise<string> {
  * "unreviewed" to reopen a decision. The history stays append-only (findings.Store.RecordDecision).
  */
 export function FindingsReview(id: string, evidenceVersion: string, status: string, note: string): $CancellablePromise<string> {
-    return $Call.ByID(2720723528, id, evidenceVersion, status, note);
+  return $Call.ByID(2720723528, id, evidenceVersion, status, note);
 }
 
 /**
@@ -1581,7 +1617,7 @@ export function FindingsReview(id: string, evidenceVersion: string, status: stri
  * refuses it.
  */
 export function FindingsSetType(id: string, evidenceVersion: string, noteType: string): $CancellablePromise<string> {
-    return $Call.ByID(1148867604, id, evidenceVersion, noteType);
+  return $Call.ByID(1148867604, id, evidenceVersion, noteType);
 }
 
 /**
@@ -1589,7 +1625,7 @@ export function FindingsSetType(id: string, evidenceVersion: string, noteType: s
  * any they changed while it played. With no loop of this app's running it changes nothing.
  */
 export function FindingsStopLoop(): $CancellablePromise<string> {
-    return $Call.ByID(957107010);
+  return $Call.ByID(957107010);
 }
 
 /**
@@ -1597,7 +1633,7 @@ export function FindingsStopLoop(): $CancellablePromise<string> {
  * unreviewed count) and the analyzers, categories and chapters present, for the page's filters.
  */
 export function FindingsSummary(): $CancellablePromise<string> {
-    return $Call.ByID(2119633852);
+  return $Call.ByID(2119633852);
 }
 
 /**
@@ -1608,7 +1644,7 @@ export function FindingsSummary(): $CancellablePromise<string> {
  * evidence version: a note outlives a re-check.
  */
 export function FindingsThread(id: string, op: string, messageID: string, who: string, text: string): $CancellablePromise<string> {
-    return $Call.ByID(1945391532, id, op, messageID, who, text);
+  return $Call.ByID(1945391532, id, op, messageID, who, text);
 }
 
 /**
@@ -1616,7 +1652,7 @@ export function FindingsThread(id: string, op: string, messageID: string, who: s
  * previous}. It runs under the same deadline as a refresh after an import, and a failure writes nothing.
  */
 export function GuideAttributeSpeakers(): $CancellablePromise<string> {
-    return $Call.ByID(3642666976);
+  return $Call.ByID(3642666976);
 }
 
 /**
@@ -1625,15 +1661,15 @@ export function GuideAttributeSpeakers(): $CancellablePromise<string> {
  * rebuild never overwrites a correction (mirroring src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
  */
 export function GuideCorrectCue(cueID: string, speakerEntityID: string): $CancellablePromise<string> {
-    return $Call.ByID(2882621287, cueID, speakerEntityID);
+  return $Call.ByID(2882621287, cueID, speakerEntityID);
 }
 
 export function GuideCreate(name: string, category: string, aliases: string[]): $CancellablePromise<string> {
-    return $Call.ByID(4087272090, name, category, aliases);
+  return $Call.ByID(4087272090, name, category, aliases);
 }
 
 export function GuideDelete(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2382640937, id);
+  return $Call.ByID(2382640937, id);
 }
 
 /**
@@ -1645,7 +1681,7 @@ export function GuideDelete(id: string): $CancellablePromise<string> {
  * this removes.
  */
 export function GuideDeleteAll(confirmed: boolean): $CancellablePromise<string> {
-    return $Call.ByID(3249501808, confirmed);
+  return $Call.ByID(3249501808, confirmed);
 }
 
 /**
@@ -1653,15 +1689,15 @@ export function GuideDeleteAll(confirmed: boolean): $CancellablePromise<string> 
  * entry per quoted span, with its resolved or unknown speaker.
  */
 export function GuideDialogueCues(): $CancellablePromise<string> {
-    return $Call.ByID(1741759900);
+  return $Call.ByID(1741759900);
 }
 
 export function GuideEdit(id: string, values: { [_ in string]?: string }): $CancellablePromise<string> {
-    return $Call.ByID(275232098, id, values);
+  return $Call.ByID(275232098, id, values);
 }
 
 export function GuideEntities(): $CancellablePromise<string> {
-    return $Call.ByID(1537717617);
+  return $Call.ByID(1537717617);
 }
 
 /**
@@ -1669,7 +1705,7 @@ export function GuideEntities(): $CancellablePromise<string> {
  * flags an entry an accepted automatic suggestion changed.
  */
 export function GuideFlagReview(id: string, aliasIndex: number | null): $CancellablePromise<string> {
-    return $Call.ByID(3261446084, id, aliasIndex);
+  return $Call.ByID(3261446084, id, aliasIndex);
 }
 
 /**
@@ -1678,35 +1714,35 @@ export function GuideFlagReview(id: string, aliasIndex: number | null): $Cancell
  * one name is not.
  */
 export function GuideMarkReviewed(id: string, aliasIndex: number | null): $CancellablePromise<string> {
-    return $Call.ByID(4040741622, id, aliasIndex);
+  return $Call.ByID(4040741622, id, aliasIndex);
 }
 
 export function GuideMerge(sourceID: string, targetID: string): $CancellablePromise<string> {
-    return $Call.ByID(98047630, sourceID, targetID);
+  return $Call.ByID(98047630, sourceID, targetID);
 }
 
 export function GuidePreview(id: string, aliasIndex: number | null): $CancellablePromise<string> {
-    return $Call.ByID(2311298802, id, aliasIndex);
+  return $Call.ByID(2311298802, id, aliasIndex);
 }
 
 export function GuidePronounce(id: string, aliasIndex: number | null, source: string): $CancellablePromise<string> {
-    return $Call.ByID(1577834145, id, aliasIndex, source);
+  return $Call.ByID(1577834145, id, aliasIndex, source);
 }
 
 export function GuidePronounceUser(id: string, aliasIndex: number | null, ipa: string): $CancellablePromise<string> {
-    return $Call.ByID(867110926, id, aliasIndex, ipa);
+  return $Call.ByID(867110926, id, aliasIndex, ipa);
 }
 
 export function GuidePronunciationUseAlternate(id: string, aliasIndex: number | null): $CancellablePromise<string> {
-    return $Call.ByID(661717092, id, aliasIndex);
+  return $Call.ByID(661717092, id, aliasIndex);
 }
 
 export function GuideRelate(id: string, otherID: string, label: string): $CancellablePromise<string> {
-    return $Call.ByID(761657167, id, otherID, label);
+  return $Call.ByID(761657167, id, otherID, label);
 }
 
 export function GuideRescan(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2984124370, id);
+  return $Call.ByID(2984124370, id);
 }
 
 /**
@@ -1714,11 +1750,11 @@ export function GuideRescan(id: string): $CancellablePromise<string> {
  * confirmed or edited it since. It returns the number of lines restored.
  */
 export function GuideRestoreSpeakers(previous: $models.GuideCueSpeaker[]): $CancellablePromise<string> {
-    return $Call.ByID(4031021706, previous);
+  return $Call.ByID(4031021706, previous);
 }
 
 export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2024869160, id, locked);
+  return $Call.ByID(2024869160, id, locked);
 }
 
 /**
@@ -1726,42 +1762,42 @@ export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise
  * puts it back to automatic. A category that cannot speak is refused.
  */
 export function GuideSetSpeakerColor(id: string, index: number | null): $CancellablePromise<string> {
-    return $Call.ByID(2072746294, id, index);
+  return $Call.ByID(2072746294, id, index);
 }
 
 /**
  * GuideTypeAdd adds a type at the end, with the next colour, that does not speak. An empty, taken or reserved name is refused.
  */
 export function GuideTypeAdd(name: string): $CancellablePromise<string> {
-    return $Call.ByID(3243869917, name);
+  return $Call.ByID(3243869917, name);
 }
 
 /**
  * GuideTypeRemove removes a type no entry uses; the last type is kept.
  */
 export function GuideTypeRemove(name: string): $CancellablePromise<string> {
-    return $Call.ByID(956814906, name);
+  return $Call.ByID(956814906, name);
 }
 
 /**
  * GuideTypeRename renames a type and moves every entry of it. An empty, taken or reserved name is refused.
  */
 export function GuideTypeRename(name: string, to: string): $CancellablePromise<string> {
-    return $Call.ByID(211967224, name, to);
+  return $Call.ByID(211967224, name, to);
 }
 
 /**
  * GuideTypeSetColour sets a type's colour: green, blue, violet, amber, teal or rose.
  */
 export function GuideTypeSetColour(name: string, colour: string): $CancellablePromise<string> {
-    return $Call.ByID(1130453514, name, colour);
+  return $Call.ByID(1130453514, name, colour);
 }
 
 /**
  * GuideTypeSetSpeaks sets whether a type's entries speak: they can have a speaker colour, and the next build attributes dialogue to them.
  */
 export function GuideTypeSetSpeaks(name: string, speaks: boolean): $CancellablePromise<string> {
-    return $Call.ByID(832338841, name, speaks);
+  return $Call.ByID(832338841, name, speaks);
 }
 
 /**
@@ -1769,18 +1805,18 @@ export function GuideTypeSetSpeaks(name: string, speaks: boolean): $CancellableP
  * default types: the fixed categories, their colours, and only Character speaking.
  */
 export function GuideTypes(): $CancellablePromise<string> {
-    return $Call.ByID(975543863);
+  return $Call.ByID(975543863);
 }
 
 /**
  * GuideUnmerge takes back one GuideMerge by the undo id it answered, or rejects with the reason it cannot (an entry changed since).
  */
 export function GuideUnmerge(undoID: string): $CancellablePromise<string> {
-    return $Call.ByID(3062238351, undoID);
+  return $Call.ByID(3062238351, undoID);
 }
 
 export function GuideUnrelate(id: string, otherID: string, label: string): $CancellablePromise<string> {
-    return $Call.ByID(171684836, id, otherID, label);
+  return $Call.ByID(171684836, id, otherID, label);
 }
 
 /**
@@ -1788,7 +1824,7 @@ export function GuideUnrelate(id: string, otherID: string, label: string): $Canc
  * sends every item that still needs a change to REAPER's apply_item_gain, in one undo block.
  */
 export function LevelMatchApply(chapterID: string, metric: string, targetValueDB: number, toleranceDB: number): $CancellablePromise<string> {
-    return $Call.ByID(3552837571, chapterID, metric, targetValueDB, toleranceDB);
+  return $Call.ByID(3552837571, chapterID, metric, targetValueDB, toleranceDB);
 }
 
 /**
@@ -1798,19 +1834,19 @@ export function LevelMatchApply(chapterID: string, metric: string, targetValueDB
  * is called.
  */
 export function LevelMatchPreview(chapterID: string, metric: string, targetValueDB: number, toleranceDB: number): $CancellablePromise<string> {
-    return $Call.ByID(1028701999, chapterID, metric, targetValueDB, toleranceDB);
+  return $Call.ByID(1028701999, chapterID, metric, targetValueDB, toleranceDB);
 }
 
 export function LineIdentityRead(): $CancellablePromise<string> {
-    return $Call.ByID(113499758);
+  return $Call.ByID(113499758);
 }
 
 export function LineIdentityStamp(rows: $models.LineIdentityStampRow[], overwrite: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1181172373, rows, overwrite);
+  return $Call.ByID(1181172373, rows, overwrite);
 }
 
 export function LineIdentityState(): $CancellablePromise<string> {
-    return $Call.ByID(1026083755);
+  return $Call.ByID(1026083755);
 }
 
 /**
@@ -1818,19 +1854,19 @@ export function LineIdentityState(): $CancellablePromise<string> {
  * offered in the project folder. Only that exact file is accepted.
  */
 export function ManuscriptBeginImport(path: string): $CancellablePromise<string> {
-    return $Call.ByID(3813124518, path);
+  return $Call.ByID(3813124518, path);
 }
 
 export function ManuscriptChapters(): $CancellablePromise<string> {
-    return $Call.ByID(3512984248);
+  return $Call.ByID(3512984248);
 }
 
 export function ManuscriptClearProjectData(confirmed: boolean): $CancellablePromise<string> {
-    return $Call.ByID(3870475648, confirmed);
+  return $Call.ByID(3870475648, confirmed);
 }
 
 export function ManuscriptImportCancel(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(2367548281, jobID);
+  return $Call.ByID(2367548281, jobID);
 }
 
 /**
@@ -1838,40 +1874,46 @@ export function ManuscriptImportCancel(jobID: string): $CancellablePromise<strin
  * suggestions to seed, and, for a section with a subtitle, whether it is one (subtitleOverrides, keyed by section id; false joins
  * the line to the title or returns it to the body).
  */
-export function ManuscriptImportCommit(jobID: string, confirmedReset: boolean, sectionKinds: { [_ in string]?: string }, characterCandidateIDs: string[], subtitleOverrides: { [_ in string]?: boolean }): $CancellablePromise<string> {
-    return $Call.ByID(1010816278, jobID, confirmedReset, sectionKinds, characterCandidateIDs, subtitleOverrides);
+export function ManuscriptImportCommit(
+  jobID: string,
+  confirmedReset: boolean,
+  sectionKinds: { [_ in string]?: string },
+  characterCandidateIDs: string[],
+  subtitleOverrides: { [_ in string]?: boolean },
+): $CancellablePromise<string> {
+  return $Call.ByID(1010816278, jobID, confirmedReset, sectionKinds, characterCandidateIDs, subtitleOverrides);
 }
 
 export function ManuscriptImportPreview(jobID: string, markdownHeadingLevel: number): $CancellablePromise<string> {
-    return $Call.ByID(3597275209, jobID, markdownHeadingLevel);
+  return $Call.ByID(3597275209, jobID, markdownHeadingLevel);
 }
 
 export function ManuscriptImportState(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(1705148176, jobID);
+  return $Call.ByID(1705148176, jobID);
 }
 
 export function ManuscriptNotes(chapter: string): $CancellablePromise<string> {
-    return $Call.ByID(26775399, chapter);
+  return $Call.ByID(26775399, chapter);
 }
 
 export function ManuscriptParagraphs(chapter: string): $CancellablePromise<string> {
-    return $Call.ByID(3533633545, chapter);
+  return $Call.ByID(3533633545, chapter);
 }
 
 export function ManuscriptReader(): $CancellablePromise<string> {
-    return $Call.ByID(3976609117);
+  return $Call.ByID(3976609117);
 }
 
 export function ManuscriptReaderState(): $CancellablePromise<string> {
-    return $Call.ByID(3073538398);
+  return $Call.ByID(3073538398);
 }
 
 export function ManuscriptSearch(query: string): $CancellablePromise<string> {
-    return $Call.ByID(2029600330, query);
+  return $Call.ByID(2029600330, query);
 }
 
 export function ManuscriptSelectFile(): $CancellablePromise<string> {
-    return $Call.ByID(258840892);
+  return $Call.ByID(258840892);
 }
 
 /**
@@ -1880,11 +1922,11 @@ export function ManuscriptSelectFile(): $CancellablePromise<string> {
  * track links. See manuscriptSetChapterKind.
  */
 export function ManuscriptSetChapterKind(chapterID: string, kind: string): $CancellablePromise<string> {
-    return $Call.ByID(3035504737, chapterID, kind);
+  return $Call.ByID(3035504737, chapterID, kind);
 }
 
 export function ManuscriptSetChapterStatus(chapter: string, status: string): $CancellablePromise<string> {
-    return $Call.ByID(2496889981, chapter, status);
+  return $Call.ByID(2496889981, chapter, status);
 }
 
 /**
@@ -1892,7 +1934,7 @@ export function ManuscriptSetChapterStatus(chapter: string, status: string): $Ca
  * asks needs text (its question), and its mark starts open.
  */
 export function MarksAdd(chapterID: string, paragraphID: string, start: number, end: number, typeKey: string, text: string): $CancellablePromise<string> {
-    return $Call.ByID(2254080295, chapterID, paragraphID, start, end, typeKey, text);
+  return $Call.ByID(2254080295, chapterID, paragraphID, start, end, typeKey, text);
 }
 
 /**
@@ -1900,14 +1942,14 @@ export function MarksAdd(chapterID: string, paragraphID: string, start: number, 
  * message removed, for MarksRestoreMessage to put back.
  */
 export function MarksDeleteMessage(id: string, index: number): $CancellablePromise<string> {
-    return $Call.ByID(3641817430, id, index);
+  return $Call.ByID(3641817430, id, index);
 }
 
 /**
  * MarksEditMessage replaces the text of the thread's message at index and returns the mark.
  */
 export function MarksEditMessage(id: string, index: number, text: string): $CancellablePromise<string> {
-    return $Call.ByID(2522762815, id, index, text);
+  return $Call.ByID(2522762815, id, index, text);
 }
 
 /**
@@ -1915,14 +1957,14 @@ export function MarksEditMessage(id: string, index: number, text: string): $Canc
  * current manuscript. The first read of a project with no marks file brings the reader's old notes across once.
  */
 export function MarksList(): $CancellablePromise<string> {
-    return $Call.ByID(4070620708);
+  return $Call.ByID(4070620708);
 }
 
 /**
  * MarksRemove deletes a mark by id and returns the types and the marks left.
  */
 export function MarksRemove(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2233717324, id);
+  return $Call.ByID(2233717324, id);
 }
 
 /**
@@ -1930,14 +1972,14 @@ export function MarksRemove(id: string): $CancellablePromise<string> {
  * reply is refused.
  */
 export function MarksReply(id: string, who: string, text: string): $CancellablePromise<string> {
-    return $Call.ByID(2924112552, id, who, text);
+  return $Call.ByID(2924112552, id, who, text);
 }
 
 /**
  * MarksRestoreMessage puts a deleted message back at index (0 to the thread's length) and returns the mark.
  */
 export function MarksRestoreMessage(id: string, index: number, message: marks$0.Message): $CancellablePromise<string> {
-    return $Call.ByID(3946024165, id, index, message);
+  return $Call.ByID(3946024165, id, index, message);
 }
 
 /**
@@ -1945,14 +1987,14 @@ export function MarksRestoreMessage(id: string, index: number, message: marks$0.
  * removing a type that marks use is refused with the count unless removeUses is set, which removes those marks too.
  */
 export function MarksSaveTypes(types: marks$0.MarkType[], removeUses: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2927622342, types, removeUses);
+  return $Call.ByID(2927622342, types, removeUses);
 }
 
 /**
  * MarksSetStatus resolves or reopens a question: status is "open" or "resolved", and a mark whose kind does not ask refuses.
  */
 export function MarksSetStatus(id: string, status: string): $CancellablePromise<string> {
-    return $Call.ByID(4108478942, id, status);
+  return $Call.ByID(4108478942, id, status);
 }
 
 /**
@@ -1960,7 +2002,7 @@ export function MarksSetStatus(id: string, status: string): $CancellablePromise<
  * comes first, then a file not in the last measurement (code stale); then the file bindings' own checks and refusals.
  */
 export function MasterOpenInDaw(fileID: string): $CancellablePromise<string> {
-    return $Call.ByID(1825396369, fileID);
+  return $Call.ByID(1825396369, fileID);
 }
 
 /**
@@ -1969,7 +2011,7 @@ export function MasterOpenInDaw(fileID: string): $CancellablePromise<string> {
  * stale), then a file with no quietest window; then the file bindings' own checks and refusals.
  */
 export function MasterPlayQuietest(fileID: string): $CancellablePromise<string> {
-    return $Call.ByID(1587772586, fileID);
+  return $Call.ByID(1587772586, fileID);
 }
 
 /**
@@ -1978,14 +2020,14 @@ export function MasterPlayQuietest(fileID: string): $CancellablePromise<string> 
  * with its sentence, and nothing is saved.
  */
 export function MasteringChooseProvider(name: string): $CancellablePromise<string> {
-    return $Call.ByID(611142244, name);
+  return $Call.ByID(611142244, name);
 }
 
 /**
  * MasteringProviders answers the mastering rows and the current project's choice. It changes nothing.
  */
 export function MasteringProviders(): $CancellablePromise<string> {
-    return $Call.ByID(1713708686);
+  return $Call.ByID(1713708686);
 }
 
 /**
@@ -1993,7 +2035,7 @@ export function MasteringProviders(): $CancellablePromise<string> {
  * maxMeasureFiles files, or a second measurement while one runs.
  */
 export function MeasureAnalyze(paths: string[]): $CancellablePromise<string> {
-    return $Call.ByID(877462154, paths);
+  return $Call.ByID(877462154, paths);
 }
 
 /**
@@ -2001,7 +2043,7 @@ export function MeasureAnalyze(paths: string[]): $CancellablePromise<string> {
  * nothing.
  */
 export function MeasureCancel(): $CancellablePromise<string> {
-    return $Call.ByID(3503540504);
+  return $Call.ByID(3503540504);
 }
 
 /**
@@ -2009,7 +2051,7 @@ export function MeasureCancel(): $CancellablePromise<string> {
  * (none when the narrator closes it). Only paths chosen here can be measured.
  */
 export function MeasurePickFiles(): $CancellablePromise<string> {
-    return $Call.ByID(1366133682);
+  return $Call.ByID(1366133682);
 }
 
 /**
@@ -2017,14 +2059,14 @@ export function MeasurePickFiles(): $CancellablePromise<string> {
  * each measured file judged against the project's delivery profile as it is now.
  */
 export function MeasureState(): $CancellablePromise<string> {
-    return $Call.ByID(2552163807);
+  return $Call.ByID(2552163807);
 }
 
 /**
  * PackageCancel stops a running package build. With none running it changes nothing.
  */
 export function PackageCancel(): $CancellablePromise<string> {
-    return $Call.ByID(1117202284);
+  return $Call.ByID(1117202284);
 }
 
 /**
@@ -2032,7 +2074,7 @@ export function PackageCancel(): $CancellablePromise<string> {
  * keep their results, and a profile not yet reached stays pending. With none running it changes nothing.
  */
 export function PackageMultiCancel(): $CancellablePromise<string> {
-    return $Call.ByID(194060217);
+  return $Call.ByID(194060217);
 }
 
 /**
@@ -2041,7 +2083,7 @@ export function PackageMultiCancel(): $CancellablePromise<string> {
  * failure).
  */
 export function PackageMultiState(): $CancellablePromise<string> {
-    return $Call.ByID(3490340176);
+  return $Call.ByID(3490340176);
 }
 
 /**
@@ -2051,7 +2093,7 @@ export function PackageMultiState(): $CancellablePromise<string> {
  * answers the current (unstarted) state rather than an error.
  */
 export function PackageStart(req: $models.PackageRequest): $CancellablePromise<string> {
-    return $Call.ByID(2842461846, req);
+  return $Call.ByID(2842461846, req);
 }
 
 /**
@@ -2064,14 +2106,14 @@ export function PackageStart(req: $models.PackageRequest): $CancellablePromise<s
  * state rather than an error.
  */
 export function PackageStartMulti(req: $models.MultiPackageRequest): $CancellablePromise<string> {
-    return $Call.ByID(836237663, req);
+  return $Call.ByID(836237663, req);
 }
 
 /**
  * PackageState answers the package job: idle, running, or how it ended with the manifest and checklist it built.
  */
 export function PackageState(): $CancellablePromise<string> {
-    return $Call.ByID(2792423179);
+  return $Call.ByID(2792423179);
 }
 
 /**
@@ -2079,7 +2121,7 @@ export function PackageState(): $CancellablePromise<string> {
  * manuscript: a mark whose paragraph is gone or whose word is past its end comes back stale, never moved.
  */
 export function PassageMapList(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1224168480, chapterID);
+  return $Call.ByID(1224168480, chapterID);
 }
 
 /**
@@ -2087,7 +2129,7 @@ export function PassageMapList(chapterID: string): $CancellablePromise<string> {
  * returns the marks as stored, stamped with the DAW's ids. A run that breaks a rule is refused and nothing is saved.
  */
 export function PassageMapRecordRun(chapterID: string, run: $models.PassageMapMarkInput[]): $CancellablePromise<string> {
-    return $Call.ByID(1060330002, chapterID, run);
+  return $Call.ByID(1060330002, chapterID, run);
 }
 
 /**
@@ -2095,15 +2137,15 @@ export function PassageMapRecordRun(chapterID: string, run: $models.PassageMapMa
  * text starts like the line is found; the same line twice is one pickup.
  */
 export function PickupsAdd(chapterID: string, time: number, line: string): $CancellablePromise<string> {
-    return $Call.ByID(4104188998, chapterID, time, line);
+  return $Call.ByID(4104188998, chapterID, time, line);
 }
 
 export function PickupsCount(): $CancellablePromise<string> {
-    return $Call.ByID(3462748130);
+  return $Call.ByID(3462748130);
 }
 
 export function PickupsExport(): $CancellablePromise<string> {
-    return $Call.ByID(2172891289);
+  return $Call.ByID(2172891289);
 }
 
 /**
@@ -2112,14 +2154,14 @@ export function PickupsExport(): $CancellablePromise<string> {
  * nothing is sent and the row report is the error.
  */
 export function PickupsImport(csvText: string): $CancellablePromise<string> {
-    return $Call.ByID(2264841114, csvText);
+  return $Call.ByID(2264841114, csvText);
 }
 
 /**
  * PickupsList answers the merged list and the chapters whose recording check added nothing, and why.
  */
 export function PickupsList(): $CancellablePromise<string> {
-    return $Call.ByID(3860190859);
+  return $Call.ByID(3860190859);
 }
 
 /**
@@ -2127,18 +2169,18 @@ export function PickupsList(): $CancellablePromise<string> {
  * "pickups:state" event's markers.
  */
 export function PickupsListMarkers(): $CancellablePromise<string> {
-    return $Call.ByID(2406048942);
+  return $Call.ByID(2406048942);
 }
 
 export function PickupsNext(): $CancellablePromise<string> {
-    return $Call.ByID(1607807066);
+  return $Call.ByID(1607807066);
 }
 
 /**
  * PickupsRemove hides a pickup of any source from the list; a note or a check keeps its own record.
  */
 export function PickupsRemove(id: string): $CancellablePromise<string> {
-    return $Call.ByID(4054473327, id);
+  return $Call.ByID(4054473327, id);
 }
 
 /**
@@ -2146,11 +2188,11 @@ export function PickupsRemove(id: string): $CancellablePromise<string> {
  * position that is not a finite number of seconds, zero or more, is refused before anything is sent.
  */
 export function PickupsReopen(position: number): $CancellablePromise<string> {
-    return $Call.ByID(978522106, position);
+  return $Call.ByID(978522106, position);
 }
 
 export function PickupsResolve(position: number): $CancellablePromise<string> {
-    return $Call.ByID(695766573, position);
+  return $Call.ByID(695766573, position);
 }
 
 /**
@@ -2158,18 +2200,18 @@ export function PickupsResolve(position: number): $CancellablePromise<string> {
  * otherwise kept in the list file until the marker can be written.
  */
 export function PickupsSetDone(id: string, done: boolean): $CancellablePromise<string> {
-    return $Call.ByID(3407374573, id, done);
+  return $Call.ByID(3407374573, id, done);
 }
 
 /**
  * PickupsSetIncluded puts a pickup in or leaves it out of the next pickup session.
  */
 export function PickupsSetIncluded(id: string, included: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1817006549, id, included);
+  return $Call.ByID(1817006549, id, included);
 }
 
 export function PickupsState(): $CancellablePromise<string> {
-    return $Call.ByID(2662291732);
+  return $Call.ByID(2662291732);
 }
 
 /**
@@ -2177,14 +2219,14 @@ export function PickupsState(): $CancellablePromise<string> {
  * (preview.Suggest over this file's own adapter). It never runs anything and stores nothing.
  */
 export function PreviewCandidates(): $CancellablePromise<string> {
-    return $Call.ByID(2923797608);
+  return $Call.ByID(2923797608);
 }
 
 /**
  * PreviewPin reads the narrator's pinned window, if any, resolved against the manuscript's current text.
  */
 export function PreviewPin(): $CancellablePromise<string> {
-    return $Call.ByID(1241542001);
+  return $Call.ByID(1241542001);
 }
 
 /**
@@ -2193,14 +2235,14 @@ export function PreviewPin(): $CancellablePromise<string> {
  * is down to one paragraph (preview.AdjustRange's own rule).
  */
 export function PreviewPinAdjust(edge: string, grow: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1417233170, edge, grow);
+  return $Call.ByID(1417233170, edge, grow);
 }
 
 /**
  * PreviewPinClear removes the pin. Clearing when nothing is pinned is not an error.
  */
 export function PreviewPinClear(): $CancellablePromise<string> {
-    return $Call.ByID(3078643078);
+  return $Call.ByID(3078643078);
 }
 
 /**
@@ -2209,7 +2251,7 @@ export function PreviewPinClear(): $CancellablePromise<string> {
  * (the narrator need not have started from a suggested candidate at all).
  */
 export function PreviewPinSet(chapterID: string, paragraphIDs: string[]): $CancellablePromise<string> {
-    return $Call.ByID(3856724439, chapterID, paragraphIDs);
+  return $Call.ByID(3856724439, chapterID, paragraphIDs);
 }
 
 /**
@@ -2217,14 +2259,14 @@ export function PreviewPinSet(chapterID: string, paragraphIDs: string[]): $Cance
  * plot. It reads the same time log as ProductionOverview and adds nothing to it.
  */
 export function ProductionBurndown(): $CancellablePromise<string> {
-    return $Call.ByID(211479988);
+  return $Call.ByID(211479988);
 }
 
 /**
  * ProductionOverview is the Production page's board, KPI figures and "Next up" list.
  */
 export function ProductionOverview(): $CancellablePromise<string> {
-    return $Call.ByID(1544329002);
+  return $Call.ByID(1544329002);
 }
 
 /**
@@ -2233,7 +2275,7 @@ export function ProductionOverview(): $CancellablePromise<string> {
  * manifest; one written before the payment type reads it from its contracted amount (production.PaymentOf).
  */
 export function ProductionPlan(): $CancellablePromise<string> {
-    return $Call.ByID(564382146);
+  return $Call.ByID(564382146);
 }
 
 /**
@@ -2242,7 +2284,7 @@ export function ProductionPlan(): $CancellablePromise<string> {
  * (production.CleanMilestones). A list with any invalid milestone is refused whole and nothing is written.
  */
 export function ProductionSaveMilestones(milestones: project$0.Milestone[]): $CancellablePromise<string> {
-    return $Call.ByID(669610547, milestones);
+  return $Call.ByID(669610547, milestones);
 }
 
 /**
@@ -2251,7 +2293,7 @@ export function ProductionSaveMilestones(milestones: project$0.Milestone[]): $Ca
  * written, and so is an amount while the payment type is royalty share or none, which carry no figure.
  */
 export function ProductionSetDeadline(deadline: string, contractedAmount: number | null): $CancellablePromise<string> {
-    return $Call.ByID(3757504551, deadline, contractedAmount);
+  return $Call.ByID(3757504551, deadline, contractedAmount);
 }
 
 /**
@@ -2260,7 +2302,7 @@ export function ProductionSetDeadline(deadline: string, contractedAmount: number
  * unknown type is refused and nothing is written.
  */
 export function ProductionSetPayment(payment: string): $CancellablePromise<string> {
-    return $Call.ByID(4238984903, payment);
+  return $Call.ByID(4238984903, payment);
 }
 
 /**
@@ -2269,7 +2311,7 @@ export function ProductionSetPayment(payment: string): $CancellablePromise<strin
  * measured is the UI's. An unknown basis is refused and nothing is written.
  */
 export function ProductionSetRateBasis(basis: string): $CancellablePromise<string> {
-    return $Call.ByID(325936073, basis);
+  return $Call.ByID(325936073, basis);
 }
 
 /**
@@ -2278,7 +2320,7 @@ export function ProductionSetRateBasis(basis: string): $CancellablePromise<strin
  * promise.
  */
 export function ProductionStartTimer(chapterID: string, stage: string): $CancellablePromise<string> {
-    return $Call.ByID(4160847620, chapterID, stage);
+  return $Call.ByID(4160847620, chapterID, stage);
 }
 
 /**
@@ -2289,7 +2331,7 @@ export function ProductionStartTimer(chapterID: string, stage: string): $Cancell
  * rate. It refuses without a project.
  */
 export function ProductionStatusReport(include: $models.ProductionReportInclude): $CancellablePromise<string> {
-    return $Call.ByID(1628238977, include);
+  return $Call.ByID(1628238977, include);
 }
 
 /**
@@ -2297,7 +2339,7 @@ export function ProductionStatusReport(include: $models.ProductionReportInclude)
  * include is the same choice of sections as the export's.
  */
 export function ProductionStatusReportPreview(include: $models.ProductionReportInclude): $CancellablePromise<string> {
-    return $Call.ByID(1952080667, include);
+  return $Call.ByID(1952080667, include);
 }
 
 /**
@@ -2305,7 +2347,7 @@ export function ProductionStatusReportPreview(include: $models.ProductionReportI
  * {stopped: false, session: null} when no timer was running.
  */
 export function ProductionStopTimer(): $CancellablePromise<string> {
-    return $Call.ByID(2890834866);
+  return $Call.ByID(2890834866);
 }
 
 /**
@@ -2321,7 +2363,7 @@ export function ProductionStopTimer(): $CancellablePromise<string> {
  * under the write lock, so a lost race at worst leaves an empty folder.
  */
 export function ProjectCreateIn(parent: string, name: string): $CancellablePromise<string> {
-    return $Call.ByID(2967277492, parent, name);
+  return $Call.ByID(2967277492, parent, name);
 }
 
 /**
@@ -2330,7 +2372,7 @@ export function ProjectCreateIn(parent: string, name: string): $CancellablePromi
  * ProjectCreateIn then refuses an empty parent.
  */
 export function ProjectDefaultLocation(): $CancellablePromise<string> {
-    return $Call.ByID(3050602295);
+  return $Call.ByID(3050602295);
 }
 
 /**
@@ -2341,11 +2383,11 @@ export function ProjectDefaultLocation(): $CancellablePromise<string> {
  * the dialog is not an error: the result says so instead.
  */
 export function ProjectLinkDawFile(): $CancellablePromise<string> {
-    return $Call.ByID(3697640847);
+  return $Call.ByID(3697640847);
 }
 
 export function ProjectRecents(): $CancellablePromise<string> {
-    return $Call.ByID(535019029);
+  return $Call.ByID(535019029);
 }
 
 /**
@@ -2354,7 +2396,7 @@ export function ProjectRecents(): $CancellablePromise<string> {
  * making a second round trip.
  */
 export function ProjectRemoveRecent(path: string): $CancellablePromise<string> {
-    return $Call.ByID(614385112, path);
+  return $Call.ByID(614385112, path);
 }
 
 /**
@@ -2365,11 +2407,11 @@ export function ProjectRemoveRecent(path: string): $CancellablePromise<string> {
  * mock live in src/studio/ui/src/api (docs/architecture/wire-contracts.md).
  */
 export function ProjectRunningDaw(): $CancellablePromise<string> {
-    return $Call.ByID(2377859334);
+  return $Call.ByID(2377859334);
 }
 
 export function ProjectSelectFolder(): $CancellablePromise<string> {
-    return $Call.ByID(3945872051);
+  return $Call.ByID(3945872051);
 }
 
 /**
@@ -2377,7 +2419,7 @@ export function ProjectSelectFolder(): $CancellablePromise<string> {
  * does. A path that is not in the list changes nothing.
  */
 export function ProjectSetPinned(path: string, pinned: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1653109655, path, pinned);
+  return $Call.ByID(1653109655, path, pinned);
 }
 
 /**
@@ -2386,7 +2428,7 @@ export function ProjectSetPinned(path: string, pinned: boolean): $CancellablePro
  * fresh Check just to compare two counts it already has.
  */
 export function ProjectStateChangedSince(current: number, baseline: number): $CancellablePromise<string> {
-    return $Call.ByID(1874672174, current, baseline);
+  return $Call.ByID(1874672174, current, baseline);
 }
 
 /**
@@ -2396,11 +2438,11 @@ export function ProjectStateChangedSince(current: number, baseline: number): $Ca
  * basis without waiting.
  */
 export function ProjectStateCheck(): $CancellablePromise<string> {
-    return $Call.ByID(4248506512);
+  return $Call.ByID(4248506512);
 }
 
 export function ProjectStateState(): $CancellablePromise<string> {
-    return $Call.ByID(1931134061);
+  return $Call.ByID(1931134061);
 }
 
 /**
@@ -2409,7 +2451,7 @@ export function ProjectStateState(): $CancellablePromise<string> {
  * system:attached emission and recents-touching happen in exactly one place.
  */
 export function ProjectSwitch(path: string, name: string): $CancellablePromise<string> {
-    return $Call.ByID(633630375, path, name);
+  return $Call.ByID(633630375, path, name);
 }
 
 /**
@@ -2418,7 +2460,7 @@ export function ProjectSwitch(path: string, name: string): $CancellablePromise<s
  * with a sentence, never a thrown error. The online source is asked only here, for the one word, on the narrator's key.
  */
 export function PronunciationCandidate(word: string, source: string): $CancellablePromise<string> {
-    return $Call.ByID(3380990236, word, source);
+  return $Call.ByID(3380990236, word, source);
 }
 
 /**
@@ -2426,14 +2468,14 @@ export function PronunciationCandidate(word: string, source: string): $Cancellab
  * data (#782) names for word, in the narrator's default browser or media player: the same
  * "open externally" host path PronunciationLookupOpen and PronunciationOnlineSignUpOpen already use, never
  * fetched, streamed or cached by the app itself.
- * 
+ *
  * word crosses the Wails boundary; the address never does - it is built here from the installed Wiktextract index, the
  * same trusted-URL discipline every other open-externally binding already follows (never a UI-supplied URL). A word
  * the index has no audio for, and a Wiktextract source not installed yet, are both refused with a clear reason
  * rather than opening nothing silently.
  */
 export function PronunciationCommonsAudioOpen(word: string): $CancellablePromise<string> {
-    return $Call.ByID(209296523, word);
+  return $Call.ByID(209296523, word);
 }
 
 /**
@@ -2444,21 +2486,21 @@ export function PronunciationCommonsAudioOpen(word: string): $CancellablePromise
  * destination (mirrors DawCatalogOpenDownloadPage's same trusted-URL discipline, for the same reason).
  */
 export function PronunciationLookupOpen(source: string, word: string): $CancellablePromise<string> {
-    return $Call.ByID(1993502409, source, word);
+  return $Call.ByID(1993502409, source, word);
 }
 
 /**
  * PronunciationOnlineKeyClear removes the saved key; cached answers stay.
  */
 export function PronunciationOnlineKeyClear(): $CancellablePromise<string> {
-    return $Call.ByID(3315931556);
+  return $Call.ByID(3315931556);
 }
 
 /**
  * PronunciationOnlineKeySet saves the narrator's pasted key. An error never quotes what was pasted.
  */
 export function PronunciationOnlineKeySet(key: string): $CancellablePromise<string> {
-    return $Call.ByID(2329407561, key);
+  return $Call.ByID(2329407561, key);
 }
 
 /**
@@ -2466,7 +2508,7 @@ export function PronunciationOnlineKeySet(key: string): $CancellablePromise<stri
  * rest on this platform. Never the key.
  */
 export function PronunciationOnlineKeyStatus(): $CancellablePromise<string> {
-    return $Call.ByID(822152461);
+  return $Call.ByID(822152461);
 }
 
 /**
@@ -2475,7 +2517,7 @@ export function PronunciationOnlineKeyStatus(): $CancellablePromise<string> {
  * narrator's key.
  */
 export function PronunciationOnlineLookup(word: string): $CancellablePromise<string> {
-    return $Call.ByID(2880033266, word);
+  return $Call.ByID(2880033266, word);
 }
 
 /**
@@ -2483,7 +2525,7 @@ export function PronunciationOnlineLookup(word: string): $CancellablePromise<str
  * the adapter's, never an address the UI supplies (the same trusted-URL discipline as PronunciationLookupOpen).
  */
 export function PronunciationOnlineSignUpOpen(): $CancellablePromise<string> {
-    return $Call.ByID(1086970160);
+  return $Call.ByID(1086970160);
 }
 
 /**
@@ -2491,7 +2533,7 @@ export function PronunciationOnlineSignUpOpen(): $CancellablePromise<string> {
  * otherwise the first available source in registry order; never an unavailable one, and never manual.
  */
 export function PronunciationSources(): $CancellablePromise<string> {
-    return $Call.ByID(3097763591);
+  return $Call.ByID(3097763591);
 }
 
 /**
@@ -2501,14 +2543,14 @@ export function PronunciationSources(): $CancellablePromise<string> {
  * chapter has no one confirmed track in the saved project, or {status: "ok", render} with the render evaluated again.
  */
 export function ProofingChooseRender(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(4132274041, chapterID);
+  return $Call.ByID(4132274041, chapterID);
 }
 
 /**
  * ProofingClearRender removes the chapter's render association and answers the render state again (none).
  */
 export function ProofingClearRender(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(3281337037, chapterID);
+  return $Call.ByID(3281337037, chapterID);
 }
 
 /**
@@ -2516,7 +2558,7 @@ export function ProofingClearRender(chapterID: string): $CancellablePromise<stri
  * exactly that render. It starts nothing.
  */
 export function ProofingRenderState(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2166190973, chapterID);
+  return $Call.ByID(2166190973, chapterID);
 }
 
 /**
@@ -2524,11 +2566,11 @@ export function ProofingRenderState(chapterID: string): $CancellablePromise<stri
  * the installed count when its catalog is present) and whether it is supported on this platform.
  */
 export function ProviderCapabilities(): $CancellablePromise<string> {
-    return $Call.ByID(74377393);
+  return $Call.ByID(74377393);
 }
 
 export function ReadAloudArmOnly(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(4236043623, chapterID);
+  return $Call.ByID(4236043623, chapterID);
 }
 
 /**
@@ -2538,11 +2580,11 @@ export function ReadAloudArmOnly(chapterID: string): $CancellablePromise<string>
  * a chapter the manuscript does not have is an error. It reads, and changes nothing in REAPER.
  */
 export function ReadAloudReaperState(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1177651655, chapterID);
+  return $Call.ByID(1177651655, chapterID);
 }
 
 export function ReadAloudRecordStart(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1614763488, chapterID);
+  return $Call.ByID(1614763488, chapterID);
 }
 
 /**
@@ -2550,17 +2592,17 @@ export function ReadAloudRecordStart(chapterID: string): $CancellablePromise<str
  * track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, starts where the last take stopped, or else at the end of the last item.
  */
 export function ReadAloudRecordStartAt(chapterID: string, at: number): $CancellablePromise<string> {
-    return $Call.ByID(3456773893, chapterID, at);
+  return $Call.ByID(3456773893, chapterID, at);
 }
 
 export function ReadAloudRecordStop(): $CancellablePromise<string> {
-    return $Call.ByID(3415830820);
+  return $Call.ByID(3415830820);
 }
 
 export function Ready(): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(3393741589).then(($result: any) => {
-        return $$createType0($result);
-    });
+  return $Call.ByID(3393741589).then(($result: any) => {
+    return $$createType0($result);
+  });
 }
 
 /**
@@ -2569,7 +2611,7 @@ export function Ready(): $CancellablePromise<{ [_ in string]?: any }> {
  * changes while a take records. DawChoose (bindings_dawchoice.go) chooses a DAW by name; both write the same Recording.engine row.
  */
 export function RecorderChooseEngine(engine: string): $CancellablePromise<string> {
-    return $Call.ByID(247123031, engine);
+  return $Call.ByID(247123031, engine);
 }
 
 /**
@@ -2577,7 +2619,7 @@ export function RecorderChooseEngine(engine: string): $CancellablePromise<string
  * back as {"devices": [], "error": "..."}, never a rejected promise.
  */
 export function RecorderDevices(): $CancellablePromise<string> {
-    return $Call.ByID(3873686667);
+  return $Call.ByID(3873686667);
 }
 
 /**
@@ -2585,14 +2627,14 @@ export function RecorderDevices(): $CancellablePromise<string> {
  * refused while a take records.
  */
 export function RecorderMeterStart(device: string): $CancellablePromise<string> {
-    return $Call.ByID(1811880147, device);
+  return $Call.ByID(1811880147, device);
 }
 
 /**
  * RecorderMeterStop ends the level meter; it leaves a take alone.
  */
 export function RecorderMeterStop(): $CancellablePromise<string> {
-    return $Call.ByID(4289082273);
+  return $Call.ByID(4289082273);
 }
 
 /**
@@ -2600,7 +2642,7 @@ export function RecorderMeterStop(): $CancellablePromise<string> {
  * and always undoable by marking it again with keeper false or by marking a different take of the same line.
  */
 export function RecorderSetTakeKeeper(takeName: string, keeper: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2270425541, takeName, keeper);
+  return $Call.ByID(2270425541, takeName, keeper);
 }
 
 /**
@@ -2610,7 +2652,7 @@ export function RecorderSetTakeKeeper(takeName: string, keeper: boolean): $Cance
  * wrong one.
  */
 export function RecorderSetTakeLine(takeName: string, entityId: string): $CancellablePromise<string> {
-    return $Call.ByID(1287519481, takeName, entityId);
+  return $Call.ByID(1287519481, takeName, entityId);
 }
 
 /**
@@ -2618,21 +2660,21 @@ export function RecorderSetTakeLine(takeName: string, entityId: string): $Cancel
  * It answers once the take has started; its end arrives as "recording:state".
  */
 export function RecorderStart(device: string): $CancellablePromise<string> {
-    return $Call.ByID(1722162476, device);
+  return $Call.ByID(1722162476, device);
 }
 
 /**
  * RecorderState answers the recorder's state. It changes nothing.
  */
 export function RecorderState(): $CancellablePromise<string> {
-    return $Call.ByID(1538594405);
+  return $Call.ByID(1538594405);
 }
 
 /**
  * RecorderStop asks the take (or the meter) to end and answers at once; the take's end arrives as "recording:state".
  */
 export function RecorderStop(): $CancellablePromise<string> {
-    return $Call.ByID(925363464);
+  return $Call.ByID(925363464);
 }
 
 /**
@@ -2641,11 +2683,11 @@ export function RecorderStop(): $CancellablePromise<string> {
  * once the resulting file names (RenderConfigState's targets, once the run succeeds) look right.
  */
 export function RenderConfigConfigure(outputFolder: string): $CancellablePromise<string> {
-    return $Call.ByID(2148728528, outputFolder);
+  return $Call.ByID(2148728528, outputFolder);
 }
 
 export function RenderConfigState(): $CancellablePromise<string> {
-    return $Call.ByID(2252557001);
+  return $Call.ByID(2252557001);
 }
 
 /**
@@ -2653,7 +2695,7 @@ export function RenderConfigState(): $CancellablePromise<string> {
  * prefill; the narrator can change it before configuring.
  */
 export function RenderConfigSuggestFolder(): $CancellablePromise<string> {
-    return $Call.ByID(2955207070);
+  return $Call.ByID(2955207070);
 }
 
 /**
@@ -2662,7 +2704,7 @@ export function RenderConfigSuggestFolder(): $CancellablePromise<string> {
  * the DAW's track holds it. Cancelling changes nothing and answers the list as it is.
  */
 export function ReplaceAddFile(narratorID: string): $CancellablePromise<string> {
-    return $Call.ByID(1846457567, narratorID);
+  return $Call.ByID(1846457567, narratorID);
 }
 
 /**
@@ -2670,7 +2712,7 @@ export function ReplaceAddFile(narratorID: string): $CancellablePromise<string> 
  * (MP3 and the rest have no waveform yet, as on the chapter strip), or one that moved or changed.
  */
 export function ReplaceFilePeaks(fileID: string): $CancellablePromise<string> {
-    return $Call.ByID(723577156, fileID);
+  return $Call.ByID(723577156, fileID);
 }
 
 /**
@@ -2678,21 +2720,21 @@ export function ReplaceFilePeaks(fileID: string): $CancellablePromise<string> {
  * added twice.
  */
 export function ReplaceNarratorAdd(name: string): $CancellablePromise<string> {
-    return $Call.ByID(3231529282, name);
+  return $Call.ByID(3231529282, name);
 }
 
 /**
  * ReplaceNarratorRemove forgets another narrator who has no files in the project.
  */
 export function ReplaceNarratorRemove(id: string): $CancellablePromise<string> {
-    return $Call.ByID(1536772123, id);
+  return $Call.ByID(1536772123, id);
 }
 
 /**
  * ReplaceNarrators lists the project's other narrators and their files, each file checked against the disk.
  */
 export function ReplaceNarrators(): $CancellablePromise<string> {
-    return $Call.ByID(3536459596);
+  return $Call.ByID(3536459596);
 }
 
 /**
@@ -2700,8 +2742,15 @@ export function ReplaceNarrators(): $CancellablePromise<string> {
  * them) replaced by sourceStart..sourceEnd seconds of their file fileID. It measures their stretch's loudness against the project's
  * target (Settings > Editing) and answers the level change that gets it there. It changes nothing, in the DAW or on disk.
  */
-export function ReplacePlan(chapterID: string, firstToken: number, lastToken: number, fileID: string, sourceStart: number, sourceEnd: number): $CancellablePromise<string> {
-    return $Call.ByID(1619504105, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd);
+export function ReplacePlan(
+  chapterID: string,
+  firstToken: number,
+  lastToken: number,
+  fileID: string,
+  sourceStart: number,
+  sourceEnd: number,
+): $CancellablePromise<string> {
+  return $Call.ByID(1619504105, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd);
 }
 
 /**
@@ -2709,7 +2758,7 @@ export function ReplacePlan(chapterID: string, firstToken: number, lastToken: nu
  * on more than one fixed lane of a track, and which lane plays.
  */
 export function RetakeLanesList(): $CancellablePromise<string> {
-    return $Call.ByID(1618739891);
+  return $Call.ByID(1618739891);
 }
 
 /**
@@ -2717,14 +2766,14 @@ export function RetakeLanesList(): $CancellablePromise<string> {
  * one undo step. Only a retake RetakeLanesList lists can be picked; nothing else in the project changes.
  */
 export function RetakeLanesPick(lineID: string, itemGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(3760905438, lineID, itemGUID);
+  return $Call.ByID(3760905438, lineID, itemGUID);
 }
 
 /**
  * RetakeLanesState answers the last pick's state (idle before any).
  */
 export function RetakeLanesState(): $CancellablePromise<string> {
-    return $Call.ByID(523795916);
+  return $Call.ByID(523795916);
 }
 
 /**
@@ -2732,7 +2781,7 @@ export function RetakeLanesState(): $CancellablePromise<string> {
  * status, in reading order of its first flag.
  */
 export function ScriptPrepList(): $CancellablePromise<string> {
-    return $Call.ByID(3735153582);
+  return $Call.ByID(3735153582);
 }
 
 /**
@@ -2740,7 +2789,7 @@ export function ScriptPrepList(): $CancellablePromise<string> {
  * opening and closing credits (credits:opening, credits:closing) are kept like a chapter.
  */
 export function ScriptPrepSetChapter(chapterID: string, state: string): $CancellablePromise<string> {
-    return $Call.ByID(1526545883, chapterID, state);
+  return $Call.ByID(1526545883, chapterID, state);
 }
 
 /**
@@ -2748,7 +2797,7 @@ export function ScriptPrepSetChapter(chapterID: string, state: string): $Cancell
  * end. The word is the line's own text for the range, lower-cased as its key. It returns the word with all its flags.
  */
 export function ScriptWordFlag(chapterID: string, paragraphID: string, start: number, end: number): $CancellablePromise<string> {
-    return $Call.ByID(2540312751, chapterID, paragraphID, start, end);
+  return $Call.ByID(2540312751, chapterID, paragraphID, start, end);
 }
 
 /**
@@ -2756,28 +2805,28 @@ export function ScriptWordFlag(chapterID: string, paragraphID: string, start: nu
  * means the narrator typed it, and an empty say clears the value and keeps the word flagged.
  */
 export function ScriptWordSay(word: string, say: string, source: string): $CancellablePromise<string> {
-    return $Call.ByID(1125216296, word, say, source);
+  return $Call.ByID(1125216296, word, say, source);
 }
 
 /**
  * ScriptWordUnflag removes one flag and returns its word. The say-value is dropped with the word's last flag.
  */
 export function ScriptWordUnflag(flagID: string): $CancellablePromise<string> {
-    return $Call.ByID(2287209164, flagID);
+  return $Call.ByID(2287209164, flagID);
 }
 
 /**
  * SeriesDelete removes a series by id. Deleting an id that is not present is not an error.
  */
 export function SeriesDelete(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2391274860, id);
+  return $Call.ByID(2391274860, id);
 }
 
 /**
  * SeriesList lists every series the narrator has created, for managing series membership.
  */
 export function SeriesList(): $CancellablePromise<string> {
-    return $Call.ByID(3400757367);
+  return $Call.ByID(3400757367);
 }
 
 /**
@@ -2785,7 +2834,7 @@ export function SeriesList(): $CancellablePromise<string> {
  * project paths. The narrator adds and removes books this way; there is no separate add/remove binding.
  */
 export function SeriesSave(id: string, name: string, memberProjectPaths: string[]): $CancellablePromise<string> {
-    return $Call.ByID(2243015706, id, name, memberProjectPaths);
+  return $Call.ByID(2243015706, id, name, memberProjectPaths);
 }
 
 /**
@@ -2795,7 +2844,7 @@ export function SeriesSave(id: string, name: string, memberProjectPaths: string[
  * all: the honest empty state, never an error.
  */
 export function SeriesVoiceBible(): $CancellablePromise<string> {
-    return $Call.ByID(2231610263);
+  return $Call.ByID(2231610263);
 }
 
 /**
@@ -2803,28 +2852,28 @@ export function SeriesVoiceBible(): $CancellablePromise<string> {
  * the evidence gives. It answers {status: "ok", chapter} or {status: "refused", reason, message}.
  */
 export function StageConfirm(chapterID: string, target: string, basisKey: string): $CancellablePromise<string> {
-    return $Call.ByID(2562262688, chapterID, target, basisKey);
+  return $Call.ByID(2562262688, chapterID, target, basisKey);
 }
 
 /**
  * StageDismiss hides the chapter's suggestion of target until its basis changes; the status is untouched.
  */
 export function StageDismiss(chapterID: string, target: string, basisKey: string): $CancellablePromise<string> {
-    return $Call.ByID(962870692, chapterID, target, basisKey);
+  return $Call.ByID(962870692, chapterID, target, basisKey);
 }
 
 /**
  * StageRecommendations assesses every narration chapter of the manuscript. It reads stored evidence only.
  */
 export function StageRecommendations(): $CancellablePromise<string> {
-    return $Call.ByID(3890515400);
+  return $Call.ByID(3890515400);
 }
 
 /**
  * StageRevert returns a chapter with a live confirmation to the stage it was confirmed from.
  */
 export function StageRevert(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1764017358, chapterID);
+  return $Call.ByID(1764017358, chapterID);
 }
 
 /**
@@ -2833,24 +2882,24 @@ export function StageRevert(chapterID: string): $CancellablePromise<string> {
  * empty file with nothing to show for it.
  */
 export function SystemCopyDiagnostics(scope: string): $CancellablePromise<string> {
-    return $Call.ByID(399038062, scope);
+  return $Call.ByID(399038062, scope);
 }
 
 /**
  * SystemLookup looks one word from the manuscript reader up in the offline dictionary (docs/architecture/dictionary-thesaurus-integration.md: the Open English WordNet, read from Go in
  * this process; no cloud API and no server). The answer is one of:
- * 
+ *
  *   - "ok": the word the lookup used (normalised: lower case, surrounding punctuation removed), one entry per headword and part of speech
  *     (none when the dictionary does not have the word), and the dictionary with the attribution its licence requires the UI to show;
  *   - "asset_required": the dictionary is not installed (or did not verify), with its sizes, licence and where it would be stored, so the UI
  *     offers the standard first-use download. Nothing is downloaded here: only AssetsInstall("dictionary", id), which the narrator confirms,
  *     does that.
- * 
+ *
  * A selection that is not one word is an error the UI shows as it is. The dictionary is not project-scoped: it is read through the
  * set-once asset registry, not the project services (so there is no h.services() snapshot to take).
  */
 export function SystemLookup(word: string): $CancellablePromise<string> {
-    return $Call.ByID(3310775553, word);
+  return $Call.ByID(3310775553, word);
 }
 
 /**
@@ -2859,12 +2908,12 @@ export function SystemLookup(word: string): $CancellablePromise<string> {
  * (docs/architecture/notifications.md). Which job qualifies (the window must be unfocused and the job must have taken
  * about 10s or more) is decided in the webview, which is the only side that knows whether the window has focus
  * (N1: this is still so on Wails v3, whose window focus is not asked for here).
- * 
+ *
  * The Wails notification service is initialized lazily, on the first call that reaches here with the setting on, so a
  * narrator who has notifications off never gets the per-user registry key Windows notifications need (N2).
  */
 export function SystemNotify(kind: string, title: string, body: string): $CancellablePromise<string> {
-    return $Call.ByID(529278034, kind, title, body);
+  return $Call.ByID(529278034, kind, title, body);
 }
 
 /**
@@ -2872,26 +2921,26 @@ export function SystemNotify(kind: string, title: string, body: string): $Cancel
  * way TeleprompterStop's sibling bindings already do for the update cache (update_install.go's showDownloadedUpdate).
  */
 export function SystemOpenLogFolder(): $CancellablePromise<string> {
-    return $Call.ByID(2499200111);
+  return $Call.ByID(2499200111);
 }
 
 export function SystemReportDiagnostic(kind: string, message: string): $CancellablePromise<string> {
-    return $Call.ByID(4083438554, kind, message);
+  return $Call.ByID(4083438554, kind, message);
 }
 
 export function SystemSaveSettings(tool: string, scope: string, values: { [_ in string]?: string | null }): $CancellablePromise<string> {
-    return $Call.ByID(2824066503, tool, scope, values);
+  return $Call.ByID(2824066503, tool, scope, values);
 }
 
 export function SystemSettingsForScope(scope: string): $CancellablePromise<string> {
-    return $Call.ByID(675135303, scope);
+  return $Call.ByID(675135303, scope);
 }
 
 /**
  * TakeComparisonCancel stops a running comparison; nothing is saved. With none running it changes nothing.
  */
 export function TakeComparisonCancel(): $CancellablePromise<string> {
-    return $Call.ByID(1970715310);
+  return $Call.ByID(1970715310);
 }
 
 /**
@@ -2901,14 +2950,14 @@ export function TakeComparisonCancel(): $CancellablePromise<string> {
  * take_comparison finding, read and decided through the generic findings bindings.
  */
 export function TakeComparisonStart(findingID: string): $CancellablePromise<string> {
-    return $Call.ByID(166408064, findingID);
+  return $Call.ByID(166408064, findingID);
 }
 
 /**
  * TakeComparisonState answers the comparison job: idle, running, or how it ended (with the comparison's finding id).
  */
 export function TakeComparisonState(): $CancellablePromise<string> {
-    return $Call.ByID(250001969);
+  return $Call.ByID(250001969);
 }
 
 /**
@@ -2922,15 +2971,22 @@ export function TakeComparisonState(): $CancellablePromise<string> {
  * matched span within its own source. The previously active take and the
  * item's length are never touched.
  */
-export function TakeReviewCreateTake(findingID: string, targetItemGUID: string, candidateItemGUID: string, sourceFile: string, sourceRangeStart: number, sourceRangeEnd: number): $CancellablePromise<string> {
-    return $Call.ByID(3742993354, findingID, targetItemGUID, candidateItemGUID, sourceFile, sourceRangeStart, sourceRangeEnd);
+export function TakeReviewCreateTake(
+  findingID: string,
+  targetItemGUID: string,
+  candidateItemGUID: string,
+  sourceFile: string,
+  sourceRangeStart: number,
+  sourceRangeEnd: number,
+): $CancellablePromise<string> {
+  return $Call.ByID(3742993354, findingID, targetItemGUID, candidateItemGUID, sourceFile, sourceRangeStart, sourceRangeEnd);
 }
 
 /**
  * TakeReviewScanCancel stops a running scan; nothing it found is saved. With no scan running it changes nothing.
  */
 export function TakeReviewScanCancel(): $CancellablePromise<string> {
-    return $Call.ByID(2539611526);
+  return $Call.ByID(2539611526);
 }
 
 /**
@@ -2940,7 +2996,7 @@ export function TakeReviewScanCancel(): $CancellablePromise<string> {
  * the Review page's generic findings bindings, like every other analyzer's.
  */
 export function TakeReviewScanStart(scope: $models.TakeReviewScanScope): $CancellablePromise<string> {
-    return $Call.ByID(2149397544, scope);
+  return $Call.ByID(2149397544, scope);
 }
 
 /**
@@ -2948,7 +3004,7 @@ export function TakeReviewScanStart(scope: $models.TakeReviewScanScope): $Cancel
  * ended.
  */
 export function TakeReviewScanState(): $CancellablePromise<string> {
-    return $Call.ByID(1696107641);
+  return $Call.ByID(1696107641);
 }
 
 /**
@@ -2958,7 +3014,7 @@ export function TakeReviewScanState(): $CancellablePromise<string> {
  * always still try to start with a device the narrator picked before.
  */
 export function TeleprompterDevices(): $CancellablePromise<string> {
-    return $Call.ByID(122676926);
+  return $Call.ByID(122676926);
 }
 
 /**
@@ -2972,7 +3028,7 @@ export function TeleprompterDevices(): $CancellablePromise<string> {
  * reconciled verdict. It only reads: nothing is recorded, moved or linked.
  */
 export function TeleprompterLocate(chapterID: string, trackGUID: string, model: string): $CancellablePromise<string> {
-    return $Call.ByID(379348061, chapterID, trackGUID, model);
+  return $Call.ByID(379348061, chapterID, trackGUID, model);
 }
 
 /**
@@ -2982,14 +3038,14 @@ export function TeleprompterLocate(chapterID: string, trackGUID: string, model: 
  * session runs (the session reports its own levels) or with no microphone chosen.
  */
 export function TeleprompterMeterStart(device: string): $CancellablePromise<string> {
-    return $Call.ByID(2550739876, device);
+  return $Call.ByID(2550739876, device);
 }
 
 /**
  * TeleprompterMeterStop ends the level meter (the microphone popover closed); it does nothing when none runs.
  */
 export function TeleprompterMeterStop(): $CancellablePromise<string> {
-    return $Call.ByID(3642172832);
+  return $Call.ByID(3642172832);
 }
 
 /**
@@ -2999,7 +3055,7 @@ export function TeleprompterMeterStop(): $CancellablePromise<string> {
  * session is running.
  */
 export function TeleprompterPause(paused: boolean): $CancellablePromise<string> {
-    return $Call.ByID(3709351835, paused);
+  return $Call.ByID(3709351835, paused);
 }
 
 /**
@@ -3011,7 +3067,7 @@ export function TeleprompterPause(paused: boolean): $CancellablePromise<string> 
  * surfaced, since the punch itself already succeeded.
  */
 export function TeleprompterPunch(word: number): $CancellablePromise<string> {
-    return $Call.ByID(1321624509, word);
+  return $Call.ByID(1321624509, word);
 }
 
 /**
@@ -3022,7 +3078,7 @@ export function TeleprompterPunch(word: number): $CancellablePromise<string> {
  * recording, bounded by teleprompterLocateTimeout), so it can take a few seconds.
  */
 export function TeleprompterPunchPreview(word: number): $CancellablePromise<string> {
-    return $Call.ByID(3160914767, word);
+  return $Call.ByID(3160914767, word);
 }
 
 /**
@@ -3032,7 +3088,7 @@ export function TeleprompterPunchPreview(word: number): $CancellablePromise<stri
  * on a timer; a DAW that is not there or cannot say is an answer, and the Booth then uses the narrator's choice.
  */
 export function TeleprompterReaperInput(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(3054312412, chapterID);
+  return $Call.ByID(3054312412, chapterID);
 }
 
 /**
@@ -3042,7 +3098,7 @@ export function TeleprompterReaperInput(chapterID: string): $CancellablePromise<
  * follows: not with no track to follow or no way to ask REAPER, which is an answer, not an error.
  */
 export function TeleprompterResumeFollow(chapterID: string, trackGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(1754048677, chapterID, trackGUID);
+  return $Call.ByID(1754048677, chapterID, trackGUID);
 }
 
 /**
@@ -3050,7 +3106,7 @@ export function TeleprompterResumeFollow(chapterID: string, trackGUID: string): 
  * with nothing followed.
  */
 export function TeleprompterResumeUnfollow(): $CancellablePromise<string> {
-    return $Call.ByID(3143603774);
+  return $Call.ByID(3143603774);
 }
 
 /**
@@ -3058,7 +3114,7 @@ export function TeleprompterResumeUnfollow(): $CancellablePromise<string> {
  * level meter) and kept in room-tone.json (#2251 item 10). It reads only; nothing is measured by asking.
  */
 export function TeleprompterRoomTone(device: string): $CancellablePromise<string> {
-    return $Call.ByID(2638499092, device);
+  return $Call.ByID(2638499092, device);
 }
 
 /**
@@ -3070,7 +3126,7 @@ export function TeleprompterRoomTone(device: string): $CancellablePromise<string
  * dialog learns which flags an earlier session already dismissed.
  */
 export function TeleprompterSaveFlags(chapterID: string, flags: liveflags$0.Flag[]): $CancellablePromise<string> {
-    return $Call.ByID(3452602057, chapterID, flags);
+  return $Call.ByID(3452602057, chapterID, flags);
 }
 
 /**
@@ -3080,7 +3136,7 @@ export function TeleprompterSaveFlags(chapterID: string, flags: liveflags$0.Flag
  * failure) come back as a rejected promise, the same shape as every other teleprompter binding failure.
  */
 export function TeleprompterSeek(word: number): $CancellablePromise<string> {
-    return $Call.ByID(4028463423, word);
+  return $Call.ByID(4028463423, word);
 }
 
 /**
@@ -3094,94 +3150,94 @@ export function TeleprompterSeek(word: number): $CancellablePromise<string> {
  * never stops itself; the state's `coldRead` says so.
  */
 export function TeleprompterStart(options: { [_ in string]?: string }): $CancellablePromise<string> {
-    return $Call.ByID(2257611617, options);
+  return $Call.ByID(2257611617, options);
 }
 
 export function TeleprompterState(): $CancellablePromise<string> {
-    return $Call.ByID(1904987428);
+  return $Call.ByID(1904987428);
 }
 
 export function TeleprompterStop(): $CancellablePromise<string> {
-    return $Call.ByID(1610168667);
+  return $Call.ByID(1610168667);
 }
 
 /**
  * TrackSelectInReaper is the slide-over's "Select in REAPER" binding.
  */
 export function TrackSelectInReaper(trackGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(3045535341, trackGUID);
+  return $Call.ByID(3045535341, trackGUID);
 }
 
 export function TracksDiscover(): $CancellablePromise<string> {
-    return $Call.ByID(1450079861);
+  return $Call.ByID(1450079861);
 }
 
 export function TracksList(): $CancellablePromise<string> {
-    return $Call.ByID(3388241406);
+  return $Call.ByID(3388241406);
 }
 
 export function TracksSelect(path: string): $CancellablePromise<string> {
-    return $Call.ByID(2374312442, path);
+  return $Call.ByID(2374312442, path);
 }
 
 export function TranscriptAddEquivalence(id: string): $CancellablePromise<string> {
-    return $Call.ByID(196067889, id);
+  return $Call.ByID(196067889, id);
 }
 
 export function TranscriptCancel(): $CancellablePromise<string> {
-    return $Call.ByID(2396207262);
+  return $Call.ByID(2396207262);
 }
 
 export function TranscriptExportMarkers(): $CancellablePromise<string> {
-    return $Call.ByID(3516243881);
+  return $Call.ByID(3516243881);
 }
 
 export function TranscriptHints(): $CancellablePromise<string> {
-    return $Call.ByID(1808960066);
+  return $Call.ByID(1808960066);
 }
 
 export function TranscriptJump(id: string): $CancellablePromise<string> {
-    return $Call.ByID(275761128, id);
+  return $Call.ByID(275761128, id);
 }
 
 export function TranscriptLastCompleted(): $CancellablePromise<string> {
-    return $Call.ByID(695536997);
+  return $Call.ByID(695536997);
 }
 
 export function TranscriptReset(): $CancellablePromise<string> {
-    return $Call.ByID(626775787);
+  return $Call.ByID(626775787);
 }
 
 export function TranscriptSaveHints(accepted: string[]): $CancellablePromise<string> {
-    return $Call.ByID(1025447533, accepted);
+  return $Call.ByID(1025447533, accepted);
 }
 
 export function TranscriptStart(options: { [_ in string]?: string }): $CancellablePromise<string> {
-    return $Call.ByID(2849953296, options);
+  return $Call.ByID(2849953296, options);
 }
 
 export function TranscriptSuggestHints(): $CancellablePromise<string> {
-    return $Call.ByID(3967109440);
+  return $Call.ByID(3967109440);
 }
 
 export function TtsCatalog(): $CancellablePromise<string> {
-    return $Call.ByID(29725922);
+  return $Call.ByID(29725922);
 }
 
 export function TtsInstall(voiceID: string): $CancellablePromise<string> {
-    return $Call.ByID(689160454, voiceID);
+  return $Call.ByID(689160454, voiceID);
 }
 
 export function TtsInstallCancel(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(725365980, jobID);
+  return $Call.ByID(725365980, jobID);
 }
 
 export function TtsInstallState(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(2657027067, jobID);
+  return $Call.ByID(2657027067, jobID);
 }
 
 export function TtsRemove(voiceID: string): $CancellablePromise<string> {
-    return $Call.ByID(2665374435, voiceID);
+  return $Call.ByID(2665374435, voiceID);
 }
 
 /**
@@ -3189,7 +3245,7 @@ export function TtsRemove(voiceID: string): $CancellablePromise<string> {
  * failed says why in `failure`.
  */
 export function UpdateCheck(): $CancellablePromise<string> {
-    return $Call.ByID(3860930353);
+  return $Call.ByID(3860930353);
 }
 
 /**
@@ -3197,7 +3253,7 @@ export function UpdateCheck(): $CancellablePromise<string> {
  * action and the only thing that downloads the update; progress is polled with UpdateJobState.
  */
 export function UpdateDownload(): $CancellablePromise<string> {
-    return $Call.ByID(252013003);
+  return $Call.ByID(252013003);
 }
 
 /**
@@ -3206,7 +3262,7 @@ export function UpdateDownload(): $CancellablePromise<string> {
  * after this answers; on failure the running version is unchanged and the answer is an error to read.
  */
 export function UpdateInstall(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(408381510, jobID);
+  return $Call.ByID(408381510, jobID);
 }
 
 /**
@@ -3214,28 +3270,28 @@ export function UpdateInstall(jobID: string): $CancellablePromise<string> {
  * verified is kept, so trying again does not fetch it a second time.
  */
 export function UpdateJobCancel(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(855676764, jobID);
+  return $Call.ByID(855676764, jobID);
 }
 
 /**
  * UpdateJobState is the download's phase and its real bytes.
  */
 export function UpdateJobState(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(40937339, jobID);
+  return $Call.ByID(40937339, jobID);
 }
 
 /**
  * UpdateOpenNotes opens the release notes of the release the last check found in the narrator's browser. It takes no address.
  */
 export function UpdateOpenNotes(): $CancellablePromise<string> {
-    return $Call.ByID(2060363696);
+  return $Call.ByID(2060363696);
 }
 
 /**
  * UpdateShowDownload opens the folder that holds the downloaded update, for an install the app is not allowed to replace itself in.
  */
 export function UpdateShowDownload(): $CancellablePromise<string> {
-    return $Call.ByID(3005300290);
+  return $Call.ByID(3005300290);
 }
 
 /**
@@ -3243,7 +3299,7 @@ export function UpdateShowDownload(): $CancellablePromise<string> {
  * newer than the running version. It answers from what the last check remembered and makes no request.
  */
 export function UpdateStatus(): $CancellablePromise<string> {
-    return $Call.ByID(2410778633);
+  return $Call.ByID(2410778633);
 }
 
 /**
@@ -3252,28 +3308,28 @@ export function UpdateStatus(): $CancellablePromise<string> {
  * saved); a request that is not valid, or a file that cannot be read or written, is a rejected promise.
  */
 export function VoiceSampleMark(request: voicesample$0.MarkRequest): $CancellablePromise<string> {
-    return $Call.ByID(2094857587, request);
+  return $Call.ByID(2094857587, request);
 }
 
 /**
  * VoiceSampleRemove deletes a voice sample and its clip. A sample that is not there is not an error: removed is then 0.
  */
 export function VoiceSampleRemove(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2732941662, id);
+  return $Call.ByID(2732941662, id);
 }
 
 /**
  * VoiceSampleSetPrimary makes a voice sample its character's primary (the one the quick play uses) and returns the samples.
  */
 export function VoiceSampleSetPrimary(id: string): $CancellablePromise<string> {
-    return $Call.ByID(1335901708, id);
+  return $Call.ByID(1335901708, id);
 }
 
 /**
  * VoiceSampleUpdate changes a voice sample's label, note and character. It answers like VoiceSampleMark.
  */
 export function VoiceSampleUpdate(id: string, change: voicesample$0.Change): $CancellablePromise<string> {
-    return $Call.ByID(3828545363, id, change);
+  return $Call.ByID(3828545363, id, change);
 }
 
 /**
@@ -3281,34 +3337,34 @@ export function VoiceSampleUpdate(id: string, change: voicesample$0.Change): $Ca
  * clip and of the words it was marked on, with what they add up to and the limits.
  */
 export function VoiceSamplesList(): $CancellablePromise<string> {
-    return $Call.ByID(4079938099);
+  return $Call.ByID(4079938099);
 }
 
 /**
  * VoiceSamplesRemoveAll deletes every voice sample and every clip in the project.
  */
 export function VoiceSamplesRemoveAll(): $CancellablePromise<string> {
-    return $Call.ByID(2655911602);
+  return $Call.ByID(2655911602);
 }
 
 export function WhisperCatalog(): $CancellablePromise<string> {
-    return $Call.ByID(2492386831);
+  return $Call.ByID(2492386831);
 }
 
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {
-    return $Call.ByID(477322835, modelID);
+  return $Call.ByID(477322835, modelID);
 }
 
 export function WhisperInstallCancel(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(2313111477, jobID);
+  return $Call.ByID(2313111477, jobID);
 }
 
 export function WhisperInstallState(jobID: string): $CancellablePromise<string> {
-    return $Call.ByID(288841540, jobID);
+  return $Call.ByID(288841540, jobID);
 }
 
 export function WhisperRemove(modelID: string): $CancellablePromise<string> {
-    return $Call.ByID(1246245112, modelID);
+  return $Call.ByID(1246245112, modelID);
 }
 
 /**
@@ -3317,7 +3373,7 @@ export function WhisperRemove(modelID: string): $CancellablePromise<string> {
  * It always saves at global scope: the level belongs to this computer's window, not a project.
  */
 export function WindowSaveZoom(level: number): $CancellablePromise<string> {
-    return $Call.ByID(2654551384, level);
+  return $Call.ByID(2654551384, level);
 }
 
 /**
@@ -3328,7 +3384,7 @@ export function WindowSaveZoom(level: number): $CancellablePromise<string> {
  * never call it directly.
  */
 export function WindowSetZoom(factor: number): $CancellablePromise<string> {
-    return $Call.ByID(36100721, factor);
+  return $Call.ByID(36100721, factor);
 }
 
 /**
@@ -3336,7 +3392,7 @@ export function WindowSetZoom(factor: number): $CancellablePromise<string> {
  * own zoom change (a devicePixelRatio or resize event), since Wails v3 surfaces no zoom-changed callback on Windows.
  */
 export function WindowZoom(): $CancellablePromise<string> {
-    return $Call.ByID(1473407121);
+  return $Call.ByID(1473407121);
 }
 
 /**
@@ -3346,7 +3402,7 @@ export function WindowZoom(): $CancellablePromise<string> {
  * sidecar wrote alignment lines answers needsAlignAgain: true (align-again re-aligns from cached words only).
  */
 export function WorkspaceAlignment(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2240146208, chapterID);
+  return $Call.ByID(2240146208, chapterID);
 }
 
 /**
@@ -3355,7 +3411,7 @@ export function WorkspaceAlignment(chapterID: string): $CancellablePromise<strin
  * about and REAPER is listening.
  */
 export function WorkspaceGoTo(chapterID: string, tokenIndex: number): $CancellablePromise<string> {
-    return $Call.ByID(3177963740, chapterID, tokenIndex);
+  return $Call.ByID(3177963740, chapterID, tokenIndex);
 }
 
 /**
@@ -3369,7 +3425,7 @@ export function WorkspaceGoTo(chapterID: string, tokenIndex: number): $Cancellab
  * error, as for WorkspaceTakes.
  */
 export function WorkspaceHideTakes(chapterID: string, firstToken: number, lastToken: number, keepCandidateID: string): $CancellablePromise<string> {
-    return $Call.ByID(1030914773, chapterID, firstToken, lastToken, keepCandidateID);
+  return $Call.ByID(1030914773, chapterID, firstToken, lastToken, keepCandidateID);
 }
 
 /**
@@ -3378,7 +3434,7 @@ export function WorkspaceHideTakes(chapterID: string, firstToken: number, lastTo
  * FX chains capability is on, exactly as list_fx_chains itself already is.
  */
 export function WorkspaceListFXChains(): $CancellablePromise<string> {
-    return $Call.ByID(2672396379);
+  return $Call.ByID(2672396379);
 }
 
 /**
@@ -3389,7 +3445,7 @@ export function WorkspaceListFXChains(): $CancellablePromise<string> {
  * Reason instead of failing the whole call.
  */
 export function WorkspacePeaks(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1143383553, chapterID);
+  return $Call.ByID(1143383553, chapterID);
 }
 
 /**
@@ -3400,7 +3456,7 @@ export function WorkspacePeaks(chapterID: string): $CancellablePromise<string> {
  * longer than bridge.MaxPreviewSeconds plays its first minute. The answer is a DawResult with no undo step; DawStopFilePreview stops it.
  */
 export function WorkspacePreviewTake(chapterID: string, firstToken: number, lastToken: number, candidateID: string): $CancellablePromise<string> {
-    return $Call.ByID(3326044002, chapterID, firstToken, lastToken, candidateID);
+  return $Call.ByID(3326044002, chapterID, firstToken, lastToken, candidateID);
 }
 
 /**
@@ -3409,7 +3465,7 @@ export function WorkspacePreviewTake(chapterID: string, firstToken: number, last
  * master chain capability is on, exactly as master_chain_read itself already is.
  */
 export function WorkspaceProjectFx(): $CancellablePromise<string> {
-    return $Call.ByID(738290682);
+  return $Call.ByID(738290682);
 }
 
 /**
@@ -3420,7 +3476,7 @@ export function WorkspaceProjectFx(): $CancellablePromise<string> {
  * non-finite time is the caller's error, as is no project.
  */
 export function WorkspaceSnap(chapterID: string, itemGUID: string, sourceTime: number): $CancellablePromise<string> {
-    return $Call.ByID(4178291727, chapterID, itemGUID, sourceTime);
+  return $Call.ByID(4178291727, chapterID, itemGUID, sourceTime);
 }
 
 /**
@@ -3432,7 +3488,7 @@ export function WorkspaceSnap(chapterID: string, itemGUID: string, sourceTime: n
  * cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
  */
 export function WorkspaceTakeEvidence(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
-    return $Call.ByID(610226217, chapterID, firstToken, lastToken);
+  return $Call.ByID(610226217, chapterID, firstToken, lastToken);
 }
 
 /**
@@ -3442,7 +3498,7 @@ export function WorkspaceTakeEvidence(chapterID: string, firstToken: number, las
  * with REAPER closed.
  */
 export function WorkspaceTakes(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
-    return $Call.ByID(3010134085, chapterID, firstToken, lastToken);
+  return $Call.ByID(3010134085, chapterID, firstToken, lastToken);
 }
 
 /**
@@ -3452,7 +3508,7 @@ export function WorkspaceTakes(chapterID: string, firstToken: number, lastToken:
  * saved project. It saves one take_comparison finding whose id is computable from the passage, so the panel reads it back.
  */
 export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
-    return $Call.ByID(286927960, chapterID, firstToken, lastToken);
+  return $Call.ByID(286927960, chapterID, firstToken, lastToken);
 }
 
 /**
@@ -3464,7 +3520,7 @@ export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number
  * one action the page confirms first. Every REAPER refusal is answered as a refused outcome and changes nothing.
  */
 export function WorkspaceUseTake(chapterID: string, firstToken: number, lastToken: number, candidateID: string): $CancellablePromise<string> {
-    return $Call.ByID(1964370133, chapterID, firstToken, lastToken, candidateID);
+  return $Call.ByID(1964370133, chapterID, firstToken, lastToken, candidateID);
 }
 
 // Private type creation functions

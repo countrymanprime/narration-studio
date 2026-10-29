@@ -274,7 +274,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       let ok = false;
       let why: string;
       try {
-        const result = stretch ? await sync.dawTransportSync('playRange', project, stretch.projectEnd, l.chapterId ?? '') : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
+        const result = stretch
+          ? await sync.dawTransportSync('playRange', project, stretch.projectEnd, l.chapterId ?? '')
+          : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
         ok = result.ok;
         why = result.message;
       } catch {
