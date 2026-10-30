@@ -124,3 +124,42 @@ describe('LoadErrorPanel and the app queue', () => {
     expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['info: It failed.']);
   });
 });
+
+// Issue #2648: the technical text of a failed read is behind a Details disclosure with Copy, never in the card's visible body.
+describe('LoadErrorPanel details', () => {
+  const details = 'host.binding ManuscriptChapters did not match its schema: [0].index: Invalid input: expected number';
+
+  it.each([
+    ['LoadError', false],
+    ['LoadErrorPanel', true],
+  ])('%s keeps the technical text out of the visible body until Details is opened', async (_name, panelOnly) => {
+    const props = { message: 'The app received data it could not read.', details, retry: () => {} };
+    render(panelOnly ? <LoadErrorPanel {...props} /> : <LoadError title="Booth" {...props} />);
+    expect(screen.getByText('The app received data it could not read.')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('[0].index');
+    const toggle = screen.getByRole('button', { name: /Details/ });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    await userEvent.click(toggle);
+    expect(screen.getByText(details)).toBeTruthy();
+  });
+
+  it('copies the technical text and says so', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const service = createOverlayService();
+    render(
+      <OverlayProvider service={service}>
+        <LoadErrorPanel message="It failed." details={details} retry={() => {}} />
+      </OverlayProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Details/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Copy details' }));
+    expect(writeText).toHaveBeenCalledWith(details);
+    expect(service.getSnapshot().toasts.map((toast) => toast.text)).toContain('Copied.');
+  });
+
+  it('draws no Details disclosure when there is nothing technical to show', () => {
+    render(<LoadErrorPanel message="It failed." retry={() => {}} />);
+    expect(screen.queryByRole('button', { name: /Details/ })).toBeNull();
+  });
+});

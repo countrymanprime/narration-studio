@@ -1177,6 +1177,8 @@ describe('EditingPage loading state', () => {
     expect(await screen.findByText(USER_MESSAGE)).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/\[0\]\.index|did not match its schema|Invalid input/);
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /Details/ }));
+    expect(screen.getByText(/\[0\]\.index: Invalid input/)).toBeTruthy();
   });
 
   it('draws the skeleton in the script’s own columns, with the bar’s band under it', async () => {

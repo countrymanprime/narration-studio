@@ -1,7 +1,9 @@
-import { useEffect, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '../primitives/Button';
+import { Disclosure } from '../primitives/Disclosure';
+import { IconButton } from '../primitives/IconButton';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
@@ -30,7 +32,8 @@ export type LoadErrorExit = { label: string; onClick: () => void };
  * The panel of a failed read: the sentence as an alert and Retry. A page puts it under its own title (`LoadError`); a tab or section
  * inside a page that already has one uses it alone. It takes away an error toast that says the same sentence.
  */
-export function LoadErrorPanel({ message, retry, exit }: { message: string; retry: () => void; exit?: LoadErrorExit }) {
+export function LoadErrorPanel({ message, details, retry, exit }: { message: string; details?: string; retry: () => void; exit?: LoadErrorExit }) {
+  const [open, setOpen] = useState(false);
   // The panel says the sentence in place, so an error toast saying the same one (raised by the page the narrator came from, which read the
   // same data) goes, from the app's queue and the overlay service's: the sentence is not said twice (alignment audit R3PF-4).
   const overlay = useOverlay();
@@ -43,6 +46,14 @@ export function LoadErrorPanel({ message, retry, exit }: { message: string; retr
       <p role="alert" className="text-sm" style={{ color: 'var(--text-muted)' }}>
         {message}
       </p>
+      {details && (
+        // The technical text (failing paths and rules, never a payload value) is closed by default, so the card's body stays the one sentence.
+        <Disclosure title="Details" open={open} onOpenChange={setOpen} className="mt-3" aside={<CopyDetails text={details} />}>
+          <p className="mt-1 text-xs break-words" style={{ color: 'var(--text-muted)' }}>
+            {details}
+          </p>
+        </Disclosure>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="primary" onClick={retryAndKeepFocus(retry)}>
           <FontAwesomeIcon icon={faRotate} />
@@ -58,18 +69,42 @@ export function LoadErrorPanel({ message, retry, exit }: { message: string; retr
   );
 }
 
+function CopyDetails({ text }: { text: string }) {
+  const overlay = useOverlay();
+  const copy = () => {
+    // The text stays on screen once opened, so a narrator can still select it when the clipboard is unavailable.
+    void Promise.resolve(navigator.clipboard?.writeText(text)).then(
+      () => overlay.toast('Copied.'),
+      () => overlay.toast('The details could not be copied: select the text instead.', { tone: 'error' }),
+    );
+  };
+  return <IconButton action="copy" label="Copy details" size="sm" onClick={copy} />;
+}
+
 /**
  * What a page shows when the data it loads on opening could not be read (failure class "page data"): the page keeps its
  * title, says what happened in plain words and offers Retry, and the navigation around it keeps working. The technical text is
  * in the host log.
  */
-export function LoadError({ title, message, retry, exit }: { title: string; message: string; retry: () => void; exit?: LoadErrorExit }) {
+export function LoadError({
+  title,
+  message,
+  details,
+  retry,
+  exit,
+}: {
+  title: string;
+  message: string;
+  details?: string;
+  retry: () => void;
+  exit?: LoadErrorExit;
+}) {
   return (
     // At the page gutter like the loaded page, so the title does not jump between the loading, failed and loaded frames (alignment audit cause J),
     // and at the loaded page's size: Production's title is the hero one (XPR2-42).
     <div className="max-w-3xl space-y-4">
       <Heading title={title} size={HERO_TITLES.has(title) ? 'hero' : 'page'} />
-      <LoadErrorPanel message={message} retry={retry} exit={exit} />
+      <LoadErrorPanel message={message} details={details} retry={retry} exit={exit} />
     </div>
   );
 }

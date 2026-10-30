@@ -8,7 +8,7 @@ import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
-import { apiErrorMessage } from '../../../api/errorMessage';
+import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 const NONE: never[] = [];
@@ -65,6 +65,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [fallback, setFallback] = useState('');
   const [error, setError] = useState('');
+  const [errorDetails, setErrorDetails] = useState<string>();
   const [entities, setEntities] = useState<GuideEntity[]>(NONE);
   const [cues, setCues] = useState<GuideDialogueCue[]>(NONE);
   const [types, setTypes] = useState<GuideType[]>(NONE);
@@ -93,7 +94,11 @@ export function useBoothData(target: BoothChapterTarget | null) {
         // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
         setFallback(running ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '');
       })
-      .catch((reason) => live && setError(apiErrorMessage(reason)));
+      .catch((reason) => {
+        if (!live) return;
+        setError(apiErrorMessage(reason));
+        setErrorDetails(apiErrorDetails(reason));
+      });
     return () => {
       live = false;
     };
@@ -122,6 +127,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
   // Retry: clears the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
   const retry = useCallback(() => {
     setError('');
+    setErrorDetails(undefined);
     setAttempt((n) => n + 1);
   }, []);
 
@@ -165,6 +171,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
     source,
     unavailable,
     error,
+    errorDetails,
     retry,
     entities,
     types,

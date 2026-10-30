@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import userEvent from '@testing-library/user-event';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { USER_MESSAGE, WireError } from '../../../api/wire/WireError';
@@ -89,6 +90,8 @@ describe('Booth loading state', () => {
     expect((await screen.findByText(USER_MESSAGE)).getAttribute('role')).toBe('alert');
     expect(document.body.textContent).not.toMatch(/\[0\]\.index|did not match its schema|Invalid input/);
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /Details/ }));
+    expect(screen.getByText(/\[0\]\.index: Invalid input/)).toBeTruthy();
   });
 
   describe('a failed first read offers Retry', () => {

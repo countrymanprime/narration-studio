@@ -8,11 +8,11 @@ import type { ChapterDoc } from '../model';
 import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
-import { apiErrorMessage } from '../../../api/errorMessage';
+import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
 
 type ChapterSource =
   | { status: 'loading' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; message: string; details?: string }
   | {
       status: 'ready';
       read: ChapterRead;
@@ -53,7 +53,11 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   const fxPort = usePort('editWordFx');
   const trackMap = usePort('chapterTrackMap');
   const tracks = usePort('tracks');
-  const [state, setState] = useState<{ chapterId: string; read: ChapterRead | null; error: string | null }>({ chapterId, read: null, error: null });
+  const [state, setState] = useState<{ chapterId: string; read: ChapterRead | null; error: string | null; details?: string }>({
+    chapterId,
+    read: null,
+    error: null,
+  });
   const [reads, setReads] = useState(0);
   const speakers = useSpeakers();
   // The quotes the Story Bible found in each paragraph: the script's units follow them, and each quote opens with its speaker's chip.
@@ -99,7 +103,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
         setState({ chapterId, read, error: null });
       })
       .catch((e: unknown) => {
-        if (live) setState({ chapterId, read: null, error: why(e) });
+        if (live) setState({ chapterId, read: null, error: why(e), details: apiErrorDetails(e) });
       });
     return () => {
       live = false;
@@ -127,8 +131,9 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     return () => window.removeEventListener('focus', again);
   }, [noAudio]);
   const error = state.chapterId === chapterId ? state.error : null;
+  const details = state.chapterId === chapterId ? state.details : undefined;
   const source = useMemo((): ChapterSource => {
-    if (error) return { status: 'error', message: error };
+    if (error) return { status: 'error', message: error, details };
     if (!read) return { status: 'loading' };
     const doc = docOf(read, phrasesOf);
     return {
@@ -140,7 +145,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
       playlist: playlistOf(doc, read),
       total: lengthOf(doc),
     };
-  }, [read, error, phrasesOf]);
+  }, [read, error, details, phrasesOf]);
 
   const reread = useCallback(() => setReads((n) => n + 1), []);
   const retry = useCallback(() => {
