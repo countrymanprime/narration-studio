@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { dawShortName } from '../../studio/StudioProvider';
 import { useDawKind } from '../../useDawKind';
 import type { DiagnosticsJob, DiagnosticsSourceKind } from '../../types';
+import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
@@ -17,7 +18,6 @@ import { CheckedFilesTable, CleanupFindingsTable, FindingsTable } from './Diagno
 const POLL_MS = 500;
 
 const MUTED = { color: 'var(--text-muted)' };
-const DANGER = { color: 'var(--danger-text)' };
 
 const SOURCE_KINDS = [
   { value: 'processed_render', label: 'Rendered chapters' },
@@ -154,6 +154,10 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
   const [problem, setProblem] = useState<string>();
   const [picking, setPicking] = useState(false);
   const [sourceKind, setSourceKind] = useState<DiagnosticsSourceKind>('processed_render');
+  // What went wrong is a toast, not text that opens above the tables and pushes them down (rule 7, #2632).
+  useErrorToast(jobError && `The diagnostics could not be read: ${jobError}`);
+  useErrorToast(problem);
+  useErrorToast(job?.phase === 'error' ? `${job.message} Choose the files again to check them.` : undefined);
 
   useEffect(() => {
     let active = true;
@@ -241,16 +245,6 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
             options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running }))}
           />
         </div>
-        {jobError && (
-          <p role="alert" className="mt-2 text-sm" style={DANGER}>
-            The diagnostics could not be read: {jobError}
-          </p>
-        )}
-        {problem && (
-          <p role="alert" className="mt-2 text-sm" style={DANGER}>
-            {problem}
-          </p>
-        )}
         {job && running && (
           <div className="mt-3 flex flex-col gap-2">
             <ProgressBar label="Checking" value={job.percent} running valueText={`${job.percent}% read`} />
@@ -266,13 +260,7 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
         )}
         {job && ended && (
           <div className="mt-2 text-sm">
-            {job.phase === 'error' ? (
-              <p role="alert" style={DANGER}>
-                {job.message} Choose the files again to check them.
-              </p>
-            ) : (
-              <p aria-live="polite">{job.message}</p>
-            )}
+            {job.phase !== 'error' && <p aria-live="polite">{job.message}</p>}
             {findings.length > 0 && <p className="mt-1 font-medium">{`${plural(findings.length, 'finding', 'findings')} to listen to.`}</p>}
           </div>
         )}

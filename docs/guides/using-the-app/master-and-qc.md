@@ -9,7 +9,7 @@ the box every project is judged against **ACX (September 2026)**, ACX's audio su
 the app recorded them. Your files are only read, never changed: mastering, encoding and packaging each write
 new files. Master & QC is always in the navigation, under **Finish**, and needs no DAW project. It needs an imported
 manuscript: without one the page says **This project has no manuscript yet** and offers to import one.
-While the profile and the chapters are being read, the **Delivery package** panel shows grey blocks in place of its checks and its count of failing and not-ready chapters, so a count of zero never appears before anything has been read. If the chapters or the delivery profile cannot be read, a line under the file table says so with the reason and **Retry**; Retry reads again, and the grey blocks show while the chapters are read.
+While the profile and the chapters are being read, the **Delivery package** panel shows grey blocks in place of its checks and its count of failing and not-ready chapters, so a count of zero never appears before anything has been read. If the chapters or the delivery profile cannot be read, an error message at the corner of the window says so with the reason and **Retry**; Retry reads again, and the grey blocks show while the chapters are read.
 
 ![Master & QC before anything is checked: the ACX profile pill, Check files…, the built-in mastering chain and the delivery package](../../images/ui/master-empty.webp)
 
@@ -28,8 +28,8 @@ a file in another format, or one that cannot be read, is listed with the reason 
 others. The bar, in the table's card under the button, shows how much of the audio has been read so far,
 with the file being measured (its row reads **Measuring**), and **Cancel** stops the check: files already measured keep their results. You can leave the page while it
 runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
-the page says **Can't tell how the measurement is going, last heard N s ago** with a **Check again** button, and keeps
-trying every couple of seconds; the check itself keeps running. Once files are checked the button reads
+the page shows an error message, **Can't tell how the measurement is going**, with a **Retry** button, and keeps
+trying every couple of seconds (the message goes when the host answers); the check itself keeps running. Once files are checked the button reads
 **Re-check 3 files** and measures the same files again (after a new render, say); **Choose other files…**
 picks others.
 
@@ -53,8 +53,7 @@ short) is a dash, never a number, and never counted as met. A file not measured 
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
 measurement stopped unexpectedly on that file, and the technical error goes to the app's run log, not
 the screen. A long reason wraps inside its own columns: the columns stay where they are whatever the rows say.
-If the chapters or the delivery profile cannot be read, the card says so above the table with **Retry** at its
-right edge. The table opens on the first file that fails; the arrow keys move between files and Enter
+If the chapters or the delivery profile cannot be read, an error message at the corner of the window says so, with **Retry**. The table opens on the first file that fails; the arrow keys move between files and Enter
 selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
