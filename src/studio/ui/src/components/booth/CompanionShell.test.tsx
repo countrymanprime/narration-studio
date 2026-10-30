@@ -177,6 +177,43 @@ describe('CompanionShell', () => {
     expect(within(header).getByText('Playhead stopped')).toBeTruthy();
   });
 
+  it('does not say the playhead is stopped while the app reads aloud: it says it is reading, or paused (#2649)', () => {
+    const view = renderCompanion({ session: baseSession({ active: true }) });
+    const header = screen.getByRole('banner');
+    expect(within(header).queryByText('Playhead stopped')).toBeNull();
+    expect(within(header).getByText('Reading')).toBeTruthy();
+    view.unmount();
+    renderCompanion({ session: baseSession({ active: true, paused: true }) });
+    expect(within(screen.getByRole('banner')).queryByText('Playhead stopped')).toBeNull();
+    expect(within(screen.getByRole('banner')).getByText('Paused')).toBeTruthy();
+  });
+
+  it("keeps REAPER's own state in the badge while reading: recording wins over reading (#2649)", () => {
+    const { pushTransport } = renderCompanion({ session: baseSession({ active: true }) });
+    pushTransport({ playing: true, recording: true, position: 5 });
+    expect(within(screen.getByRole('banner')).getByText('Recording · 0:05.0')).toBeTruthy();
+  });
+
+  it('titles the page with the Heading primitive (#2649)', () => {
+    renderCompanion();
+    expect(screen.getByRole('heading', { level: 1, name: 'Companion' }).className).toContain('--font-size-page-title');
+  });
+
+  it('Play and Stop reading are icon buttons: an icon, no words, named for what they do (#2649)', () => {
+    renderCompanion({ session: baseSession({ active: true }) });
+    for (const name of ['Pause', 'Stop reading']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.textContent).toBe('');
+      expect(button.querySelector('svg')).not.toBeNull();
+    }
+  });
+
+  it('Stop reading is dimmed and takes no press once the session has ended (#2649)', () => {
+    renderCompanion({ session: baseSession({ active: false, host: { ...baseSession().host, phase: 'stopped' } }) });
+    const stop = screen.getByRole('button', { name: 'Stop reading' });
+    expect(stop.hasAttribute('disabled') || stop.getAttribute('aria-disabled') === 'true').toBe(true);
+  });
+
   it('reserves the note-at-playhead section with an honest "Coming soon", not an empty gap or a made-up note', () => {
     renderCompanion();
     const section = screen.getByRole('region', { name: 'Note at playhead' });
@@ -221,7 +258,7 @@ describe('CompanionShell', () => {
     const start = vi.fn();
     const recording = fakeRecording();
     renderCompanion({ session: baseSession({ start }), recording });
-    await user.click(screen.getByRole('button', { name: 'Space Play' }));
+    await user.click(screen.getByRole('button', { name: 'Play' }));
     await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
     expect(recording.beforeStart).toHaveBeenCalled();
     await user.keyboard(' ');
@@ -234,7 +271,7 @@ describe('CompanionShell', () => {
     const stop = vi.fn();
     const recording = fakeRecording();
     renderCompanion({ session: baseSession({ active: true, pause, stop }), recording });
-    await user.click(screen.getByRole('button', { name: 'Space Pause' }));
+    await user.click(screen.getByRole('button', { name: 'Pause' }));
     expect(pause).toHaveBeenCalledWith(true);
     await user.click(screen.getByRole('button', { name: 'Stop reading' }));
     expect(stop).toHaveBeenCalled();

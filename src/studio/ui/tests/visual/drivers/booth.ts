@@ -511,6 +511,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByText('Playhead 2:14.6').waitFor();
     await page.locator(LISTENING_WORD).waitFor();
   },
+  // Stop reading pressed in a running session: the badge goes back to REAPER's own state, Stop reading is off and the resume prompt is back (#2649).
+  'companion-stopped': async (page) => {
+    await openCompanion(page, '?mockTeleprompter=listening');
+    await page.locator(LISTENING_WORD).waitFor();
+    await page.getByRole('button', { name: 'Stop reading' }).click();
+    await page.getByRole('region', { name: 'Where you stopped' }).waitFor();
+    await page.getByText('Playhead stopped').waitFor();
+  },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Booth');
   },

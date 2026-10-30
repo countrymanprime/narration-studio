@@ -474,20 +474,31 @@ function unreadableText(result: Located): string {
  * notice, or a compact choice with the matched sentence, for where the chapter's recording ends (`TeleprompterLocate`,
  * docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was). It never starts reading by itself: a choice only sets where Start begins.
  *
- * It settles - and stays gone - the moment the narrator makes any choice or a session starts, for as long as this dialog
- * stays open: it does not come back after a session ends, so a finished session's next Start begins at the top with no
- * prompt to clear (the Booth page resets `startWord` to null on that transition). Closing and reopening the dialog
- * remounts this component and asks again.
+ * It settles the moment the narrator makes any choice or a session starts. When the session ends it comes back, asking again
+ * from a fresh lookup with the earlier choice cleared (Start begins at the top until one is made), so the narrator who
+ * stopped reading can resume from where that session left the recording (#2649).
  */
 export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   const api = useApi();
   const lookup = useResumeLocate(chapterId, model);
   const [settled, setSettled] = useState(false);
-  useEffect(() => {
-    if (active) setSettled(true);
-  }, [active]);
-  const shown = !settled && !active;
   const preset = useRef(false);
+  const wasActive = useRef(active);
+  const { retry } = lookup;
+  useEffect(() => {
+    if (active) {
+      setSettled(true);
+    } else if (wasActive.current) {
+      // The session ended: the next Start asks again, from a fresh lookup (the take it recorded moved the end of the recording)
+      // and with the earlier choice cleared, so Start never begins at a word chosen for the session that has finished (#2649).
+      preset.current = false;
+      onStartWord(null);
+      setSettled(false);
+      retry();
+    }
+    wasActive.current = active;
+  }, [active, onStartWord, retry]);
+  const shown = !settled && !active;
 
   // REAPER starting to play or record makes the prompt go away:
   // the narrator is working in REAPER. The heartbeat's transport push says so within a tick, with no request;
@@ -502,7 +513,6 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   // plays or records, or when its edit cursor settles on the recording: then the prompt looks again, and may preset
   // Start again. Unfollowed the moment the prompt goes away, a session starts, or the dialog closes.
   const followTrack = lookup.state.kind === 'answered' && lookup.state.result.status !== 'asset_required' ? (lookup.state.result.track?.guid ?? null) : null;
-  const { retry } = lookup;
   useEffect(() => {
     if (!shown || !followTrack) return;
     const unsubscribe = api.subscribeTeleprompterResumeFollow((event) => {

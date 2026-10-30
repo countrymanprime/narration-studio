@@ -10,6 +10,7 @@ import { useCommand } from '../../input/useCommand';
 import { Button } from '../primitives/Button';
 import { useWholeWindow } from './companion/useWholeWindow';
 import { CompactShell } from '../primitives/CompactShell';
+import { IconButton } from '../primitives/IconButton';
 import { Kbd } from '../primitives/Kbd';
 import { InsetCard } from '../primitives/InsetCard';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
@@ -55,10 +56,15 @@ function useDawTransport(): DawTransport {
   return useDawState((state) => state.transport);
 }
 
-function playheadBadge({ playing, recording, position }: DawTransport): { tone: StatusTone; label: string } {
+/**
+ * The header's one badge. REAPER's own state wins (recording, playing); with REAPER stopped, a session that reads aloud says so
+ * ("Reading", or "Paused") instead of "Playhead stopped", which is true of REAPER but not of what the narrator is doing (#2649).
+ */
+function playheadBadge({ playing, recording, position }: DawTransport, reading: 'reading' | 'paused' | null): { tone: StatusTone; label: string } {
   const at = position === undefined ? '' : playheadTime(position);
   if (recording) return { tone: 'danger', label: at ? `Recording · ${at}` : 'Recording' };
   if (playing) return { tone: 'info', label: at ? `Playhead ${at}` : 'Playhead moving' };
+  if (reading) return { tone: 'info', label: reading === 'paused' ? 'Paused' : 'Reading' };
   return { tone: 'neutral', label: 'Playhead stopped' };
 }
 
@@ -115,7 +121,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
   const escapeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const windowError = useCompanionWindow();
   const transport = useDawTransport();
-  const playhead = playheadBadge(transport);
+  const playhead = playheadBadge(transport, t.active ? (t.paused ? 'paused' : 'reading') : null);
   useWholeWindow(root);
 
   useEffect(() => {
@@ -124,7 +130,6 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
   useEffect(() => () => clearTimeout(escapeTimer.current), []);
 
   const listening = t.active && !t.paused;
-  const playPauseLabel = listening ? 'Pause' : 'Play';
   const playPauseDisabled = t.host.phase === 'starting' || t.host.phase === 'stopping' || (!t.active && !t.canStart);
   const onPlayPause = () => {
     if (!t.active)
@@ -188,19 +193,21 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           {chapterTitle && !t.active && <p className="mb-2 font-semibold">{chapterTitle}</p>}
           <Toolbar label="Companion commands">
             <ToolbarButton
+              // An icon with a tooltip that names the action and its key (rule 1); the catalogue's Play and Pause carry Space.
               render={
-                // Named by what it draws, the key and the action ("Space Play"): an aria-label of the action alone leaves out the key
-                // the button draws, which axe's label-content-name-mismatch fails.
-                <Button aria-pressed={listening} onClick={onPlayPause} disabled={playPauseDisabled} size="sm">
-                  <Kbd keys={['Space']} /> {playPauseLabel}
-                </Button>
+                <IconButton action={listening ? 'pause' : 'play'} aria-pressed={listening} onClick={onPlayPause} disabled={playPauseDisabled} size="sm" />
               }
             />
             <ToolbarButton
               render={
-                <Button aria-label="Stop reading" variant="danger" onClick={onStop} disabled={!t.active || t.host.phase === 'stopping'} size="sm">
-                  Stop reading
-                </Button>
+                <IconButton
+                  action="stop"
+                  label="Stop reading"
+                  variant="danger"
+                  onClick={onStop}
+                  disabled={!t.active || t.host.phase === 'stopping'}
+                  size="sm"
+                />
               }
             />
             {t.active && (
