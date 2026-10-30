@@ -238,8 +238,10 @@ recorder's take; its file stays in `Recordings`.
 
 ![Booth - a take just stopped in the DAW: Record is back and the Take saved message offers Undo](../../images/ui/booth-take-saved.webp)
 
-**R** punches and rolls from the word you are on: the DAW plays in from a little before it and records from there, keeping the
-earlier audio as a take. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
+**R** punches and rolls from the word you are on, or from the phrase you chose with **Start from here**. With no take running it
+starts one in the same press: the text moves to the word, the DAW's cursor goes there and recording starts, so you never press Record first. With a take
+running it records again from there, keeping the earlier audio as a take. The only lead-in is the DAW's own pre-roll (see **Punch** under Levels); the
+Booth adds none. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
 again from ¶ n?") and holds the take while it asks.
 
 Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, **=** and **-** change the text size, and
@@ -370,7 +372,7 @@ stops with a message.
 
 **V** plays the primary sample of whoever speaks the phrase the reading is on, with no need to open the picker; a phrase with no quotation is Narration's. Press **V**
 again to stop it. It plays nothing and says why in a message when that speaker has no sample ("No voice sample for Alice yet. Mark one in Editing."), when the phrase's
-speaker is not known yet ("Choose who speaks this line first: press its speaker chip."), or during a take. **Esc** stops a sample that is playing; the next **Esc**
+speaker is not known yet ("Choose who speaks this line first: press its speaker chip."). Choosing a speaker on a chip is a history entry you can undo, as on Script, or during a take. **Esc** stops a sample that is playing; the next **Esc**
 leaves the Booth, as it always did. The key is in the shortcut sheet and in **Settings > Keyboard** under Booth, where you can change it.
 
 When the Booth opens, it loads the primary samples of the characters who speak in the chapter, and Narration's, in the background, so the first press does not wait

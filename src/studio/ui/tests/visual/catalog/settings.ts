@@ -338,6 +338,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'wave-scroll-step',
+    description:
+      'Settings, Appearance & keys scrolled to the Editing section: Waveform arrow step, a slider from 15 to 30 seconds reading 20 s, with the rows around it',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'global-keyboard',
     description:
       'Settings, Appearance & keys scrolled to Shortcuts: every command grouped by scope (Global, Page, Booth), gestures as Kbd chips, a Find a shortcut box and Reset all to defaults',

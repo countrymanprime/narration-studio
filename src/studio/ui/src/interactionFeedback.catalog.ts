@@ -153,6 +153,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
   'src/components/engine/outputPrefs.ts#1':
     "Saving Editing's volume, mute, speed and output to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.",
+  'src/components/editing/ribbon/scrollStep.ts#1':
+    'Saving the waveform arrow step to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.',
   'src/components/booth/takeTone.ts#1':
     'Saving the start-tone choice to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.',
   'src/components/booth/takeTone.ts#2':
