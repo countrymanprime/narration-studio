@@ -423,7 +423,7 @@ knows (the project is linked but REAPER has not connected; it connected before a
 linked, so it cannot be started from here), what still works, and when the app last checked. **Start REAPER** runs the
 launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, a few seconds after the app
 opens so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
-opens it again. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
+opens it again. Every control that waits on the DAW (Delete, Mute, Add FX, Keep take, Clean up, Backups and the rest) follows the DAW's report as it changes: start the DAW with the page open and they turn on with the header, with no reload. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
 read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
 ![Editing - the dialog when the DAW (here Audacity) is not connected, with Start Audacity and Check again](../../images/ui/editing-daw-off.webp)
