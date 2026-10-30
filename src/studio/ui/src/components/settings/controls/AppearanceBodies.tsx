@@ -11,6 +11,7 @@ import { Select } from '../../primitives/Select';
 import { InsetCard } from '../../primitives/InsetCard';
 import { Slider } from '../../primitives/Slider';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
+import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
 
@@ -61,6 +62,26 @@ export function ReaderSizeBody() {
       step={1}
       value={Math.max(0, READER_SIZES.indexOf(prefs.size))}
       onValueChange={(index) => changeReaderText({ size: READER_SIZES[index] })}
+      className={READER_FIELD}
+    />
+  );
+}
+
+/** Waveform arrow step: 15 to 30 seconds, kept by this browser window and read by the Editing waveform's arrows at each press. */
+export function WaveScrollStepBody() {
+  const [seconds, setSeconds] = useState(readScrollStep);
+  return (
+    <Slider
+      aria-label="Waveform arrow step"
+      valueText={`${seconds} s`}
+      min={SCROLL_STEP_MIN}
+      max={SCROLL_STEP_MAX}
+      step={1}
+      value={seconds}
+      onValueChange={(next) => {
+        writeScrollStep(next);
+        setSeconds(next);
+      }}
       className={READER_FIELD}
     />
   );

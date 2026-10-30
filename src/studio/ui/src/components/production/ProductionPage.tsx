@@ -8,7 +8,6 @@ import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
 import { creditsCheckKind } from './recordingCheckText';
-import type { PrepState } from '../../api/contracts/scriptPrep';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
@@ -235,18 +234,8 @@ export function ProductionPage({
   };
 
   // The credits are chapters of the overview, so they are rows, counts and hours like any chapter. The credits rows are read only for what a chapter
-  // does not carry: the template's Prepped dot (its preview has no [Token] left) and the credits panel.
+  // does not carry: the credits panel.
   const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
-  const creditsPrep = useMemo(
-    (): Record<string, PrepState> =>
-      Object.fromEntries(
-        (['opening', 'closing'] as const).flatMap((kind) => {
-          const row = credits.rows?.[kind];
-          return row?.template ? [[`credits-${kind}`, row.preview?.unresolved.length === 0 ? 'prepped' : 'none'] as const] : [];
-        }),
-      ),
-    [credits.rows],
-  );
   const pipelineRows = narrated;
 
   // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).
@@ -328,8 +317,8 @@ export function ProductionPage({
     master: pipelineSources.master,
     wph,
     pickups: pickupsByChapter,
-    // A chapter's Prep is the Script page's prep record; a credits chapter's is its template's tokens. Absent until read: "Not measured yet".
-    prep: { ...pipelineSources.prep, ...creditsPrep },
+    // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
+    prep: pipelineSources.prep,
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);

@@ -166,7 +166,7 @@ describe('IconButton', () => {
   });
   it('lane is 44 px wide and stretches to its row, with a larger icon, for the end of a lane it pages', () => {
     render(<IconButton action="scrollWaveBack" size="lane" />);
-    const cls = screen.getByRole('button', { name: 'Scroll the waveform back a window' }).className;
+    const cls = screen.getByRole('button', { name: 'Scroll the waveform back' }).className;
     expect(cls).toContain('w-11');
     expect(cls).toContain('self-stretch');
     expect(cls).toContain('text-lg');

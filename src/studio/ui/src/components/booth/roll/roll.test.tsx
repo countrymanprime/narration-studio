@@ -170,19 +170,31 @@ describe('useRoll', () => {
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
-  it('r-rolls-only-while-recording', async () => {
-    const { hook, actions } = setup(SETUPS.reaper, { recording: false });
+  it('r-before-a-take-starts-one-at-the-word-in-the-same-press', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, phrase: 1 });
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith('Start recording first.');
+    expect(actions.chooseStart).toHaveBeenCalledWith(1, true);
+    expect(actions.beginTake).toHaveBeenCalledWith(10);
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
-  it('r-says-why-record-cannot-start-in-the-record-controls-own-sentence', async () => {
-    const { hook, actions } = setup(SETUPS.reaper, { recording: false, recordRefusal: 'REAPER is not answering. Check that REAPER is open, then try again.' });
+  it('r-before-a-take-starts-from-the-chosen-start-over-the-reading-position', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, phrase: 4, punchAt: 2 });
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith('REAPER is not answering. Check that REAPER is open, then try again.');
-    expect(actions.notify).not.toHaveBeenCalledWith('Start recording first.');
-    expect(actions.roll).not.toHaveBeenCalled();
+    expect(actions.beginTake).toHaveBeenCalledWith(20);
+  });
+
+  it('r-before-a-take-past-the-recorded-end-records-at-the-end', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, phrase: 5 });
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.beginTake).toHaveBeenCalledWith();
+  });
+
+  it('r-before-a-take-the-daw-cannot-punch-says-why-and-starts-nothing', async () => {
+    const { hook, actions } = setup(SETUPS.reaperOff, { recording: false, phrase: 1 });
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining(SETUPS.reaperOff.capabilities.punch.message ?? ''));
+    expect(actions.beginTake).not.toHaveBeenCalled();
   });
 
   it('r rolls from the phrase chosen with Start from here', async () => {
