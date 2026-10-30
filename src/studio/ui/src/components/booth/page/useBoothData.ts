@@ -7,7 +7,7 @@ import type { CreditsKind } from '../readerModel';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
-import { useJournal } from '../../../studio/StudioProvider';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 const NONE: never[] = [];
@@ -60,7 +60,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
   const manuscript = usePort('manuscript');
   const storyBible = usePort('storyBible');
   const teleprompter = usePort('teleprompter');
-  const journal = useJournal();
+  const journal = useJournalOrOwn();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [fallback, setFallback] = useState('');
   const [error, setError] = useState('');

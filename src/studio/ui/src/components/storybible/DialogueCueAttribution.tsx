@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { attributeCue, UNKNOWN_SPEAKER } from '../../studio/commands/attributeCue';
-import { useJournal } from '../../studio/StudioProvider';
+import { useJournalOrOwn } from '../../studio/StudioProvider';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import type { GuideDialogueCue, GuideEntity } from '../../types';
 import { InsetCard } from '../primitives/InsetCard';
@@ -28,7 +28,7 @@ export function DialogueCueAttribution({
   notify: Notify;
 }) {
   const api = useApi();
-  const journal = useJournal();
+  const journal = useJournalOrOwn();
   const mutation = usePendingAction();
   const [cues, setCues] = useState<GuideDialogueCue[]>();
   const [loadError, setLoadError] = useState<string>();
