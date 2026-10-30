@@ -155,6 +155,36 @@ describe('NewProjectDialog', () => {
     expect(await screen.findByText('Error: the desktop host is not ready')).toBeTruthy();
   });
 
+  // #2656: the mock took "Bad:name"; the host refuses it (project.ValidateName), and the dialog says so before Create.
+  it('refuses a name the host refuses, inline under the Name field, and never calls the host with it', () => {
+    const createProject = vi.fn(async () => ({ switched: true }));
+    renderDialog({ createProject });
+    const name = screen.getByLabelText('Name');
+    fireEvent.change(name, { target: { value: 'Bad:name' } });
+
+    const error = screen.getByText('a project name cannot contain any of <>:"/\\|?*');
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(name.getAttribute('aria-describedby')).toContain(error.id);
+    expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.submit(name.closest('form')!);
+    expect(createProject).not.toHaveBeenCalled();
+
+    fireEvent.change(name, { target: { value: 'Good name' } });
+    expect(screen.queryByText(/cannot contain any of/)).toBeNull();
+    expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('shows the host refusal in the same place as the name rule, and nowhere else (one error surface)', async () => {
+    const createProject = vi.fn(async () => ({ switched: false, reason: 'The app is busy.' }));
+    renderDialog({ createProject });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    const error = await screen.findByText('The app is busy.');
+    expect(screen.getByLabelText('Name').getAttribute('aria-describedby')).toContain(error.id);
+    expect(screen.queryAllByRole('alert')).toHaveLength(0);
+  });
+
   it('calls onClose when Cancel is clicked', () => {
     const { onClose } = renderDialog();
 
