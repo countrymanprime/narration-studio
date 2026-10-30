@@ -49,9 +49,9 @@ export function ProjectFx({ state, dawName }: { state: ProjectFxState; dawName: 
           <Table label={`FX in ${dawName}`}>
             <TableHead>
               <TableRow>
-                <TableHeader align="left">Where</TableHeader>
-                <TableHeader align="left">Effect</TableHeader>
-                <TableHeader align="left">State</TableHeader>
+                <TableHeader>Where</TableHeader>
+                <TableHeader>Effect</TableHeader>
+                <TableHeader>State</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>

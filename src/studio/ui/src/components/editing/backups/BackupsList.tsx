@@ -40,10 +40,10 @@ export function BackupsList({
     <Table label="Backups of this chapter">
       <TableHead>
         <TableRow>
-          <TableHeader align="left">Made</TableHeader>
-          <TableHeader align="left">What</TableHeader>
-          <TableHeader align="left">Covers</TableHeader>
-          <TableHeader align="left">Status</TableHeader>
+          <TableHeader>Made</TableHeader>
+          <TableHeader>What</TableHeader>
+          <TableHeader>Covers</TableHeader>
+          <TableHeader>Status</TableHeader>
           <TableHeader hiddenLabel="Put back" />
         </TableRow>
       </TableHead>

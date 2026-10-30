@@ -204,11 +204,11 @@ export function TableSpacer({ height, columns }: { height: number; columns: numb
 
 const CELL_ALIGN = { left: 'text-left', center: 'text-center', right: 'text-right' } as const;
 
-// A column header, muted (4.5:1 or better on the panel and page backgrounds; the faint text token missed it). `align="right"` for a numeric column, `align="center"` over cells that are centred, and the cells under it say so too. With `onSort` it is a sortable
+// A column header, muted (4.5:1 or better on the panel and page backgrounds; the faint text token missed it). Every header is centred (owner
+// rule 5): the primitive owns it, so a header takes no `align` and a page never sets one. With `onSort` it is a sortable
 // column: a button sorts by it and the header announces its state (`aria-sort`, `sorted` says which way, and it is `none` when
 // the table is sorted by another column). The arrow beside the label repeats it for the eye; the button is named by the label.
 export function TableHeader({
-  align = 'left',
   sorted,
   onSort,
   hiddenLabel,
@@ -217,7 +217,6 @@ export function TableHeader({
   style,
   children,
 }: {
-  align?: keyof typeof CELL_ALIGN;
   sorted?: 'ascending' | 'descending';
   onSort?: () => void;
   // The name of a column with no visible header (a column of buttons), for a screen reader.
@@ -230,12 +229,7 @@ export function TableHeader({
 }) {
   const arrow = sorted === 'ascending' ? '↑' : sorted === 'descending' ? '↓' : '';
   return (
-    <th
-      scope="col"
-      aria-sort={onSort ? (sorted ?? 'none') : undefined}
-      className={`relative ${TABLE_HEADER_CLASS} ${CELL_ALIGN[align]} ${className}`}
-      style={style}
-    >
+    <th scope="col" aria-sort={onSort ? (sorted ?? 'none') : undefined} className={`relative ${TABLE_HEADER_CLASS} ${className}`} style={style}>
       {onSort ? (
         <button
           type="button"

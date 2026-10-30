@@ -269,7 +269,7 @@ export const FlushTable: Story = {
           <TableHead>
             <TableRow>
               <TableHeader>File</TableHeader>
-              <TableHeader align="right">Length</TableHeader>
+              <TableHeader>Length</TableHeader>
             </TableRow>
           </TableHead>
           <TableBody>

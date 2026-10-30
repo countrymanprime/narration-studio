@@ -187,24 +187,12 @@ export function FilesTable({
             <TableHead>
               <TableRow>
                 <TableHeader className={NOWRAP}>File</TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  Length
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  RMS
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  Peak
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  Noise floor
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  Head / tail
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  Result
-                </TableHeader>
+                <TableHeader className={NOWRAP}>Length</TableHeader>
+                <TableHeader className={NOWRAP}>RMS</TableHeader>
+                <TableHeader className={NOWRAP}>Peak</TableHeader>
+                <TableHeader className={NOWRAP}>Noise floor</TableHeader>
+                <TableHeader className={NOWRAP}>Head / tail</TableHeader>
+                <TableHeader className={NOWRAP}>Result</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>

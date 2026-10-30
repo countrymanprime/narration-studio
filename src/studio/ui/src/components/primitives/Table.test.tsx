@@ -24,7 +24,7 @@ function renderTable({
           <TableHeader sorted={sorted} onSort={onSort}>
             Script
           </TableHeader>
-          <TableHeader align="right">Time</TableHeader>
+          <TableHeader>Time</TableHeader>
           <TableHeader hiddenLabel="Actions" />
         </TableRow>
       </TableHead>
@@ -122,11 +122,10 @@ describe('Table', () => {
     expect(plain.hasAttribute('aria-selected')).toBe(false);
   });
 
-  it('aligns a numeric column to the right in its header and its cells', () => {
+  it('aligns a numeric column to the right in its cells, under a centred header', () => {
     renderTable();
-    expect(screen.getByRole('columnheader', { name: 'Time' }).className).toContain('text-right');
     expect(screen.getByRole('cell', { name: '0:04' }).className).toContain('text-right');
-    expect(screen.getByRole('columnheader', { name: /^Script/ }).className).toContain('text-left');
+    expect(screen.getByRole('columnheader', { name: 'Time' }).className).toContain('text-center');
   });
 
   it('is its own containing block, so a hidden label cannot escape it', () => {
@@ -391,5 +390,13 @@ describe('a table on the text edge of a padded card', () => {
     expect(table.className).toContain('[&_tr>:first-child]:pl-0');
     expect(table.className).toContain('[&_tr>:last-child]:pr-0');
     expect(table.className).not.toContain('pl-[max(0.625rem');
+  });
+});
+
+describe('TableHeader alignment (owner rule 5, #2641)', () => {
+  it('centres every header, whatever the column holds', () => {
+    renderTable();
+    for (const th of screen.getAllByRole('columnheader')) expect(th.className).toMatch(/(^|\s)text-center(\s|$)/);
+    for (const th of screen.getAllByRole('columnheader')) expect(th.className).not.toMatch(/text-(left|right)/);
   });
 });
