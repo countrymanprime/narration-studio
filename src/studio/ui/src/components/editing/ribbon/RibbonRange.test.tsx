@@ -399,22 +399,59 @@ describe('zoom', () => {
     expect(label()).toBe('0:06.05 to 0:07.05');
   });
 
-  it('has no scrollbar: arrows at the ends page a whole window, off at either end of the recording', async () => {
+  it('has no scrollbar: the end arrows step the view, and turn off at either end of the recording', async () => {
     mount();
     await ready();
     expect(screen.queryByRole('slider', { name: 'Visible part' })).toBeNull();
     expect(document.querySelector('[data-ribbon-pan]')).toBeNull();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
-    const back = screen.getByRole('button', { name: 'Scroll the waveform back a window' });
-    const forward = screen.getByRole('button', { name: 'Scroll the waveform forward a window' });
+    const back = screen.getByRole('button', { name: 'Scroll the waveform back' });
+    const forward = screen.getByRole('button', { name: 'Scroll the waveform forward' });
     expect(forward.getAttribute('aria-disabled')).toBe('true');
+    // A step (15 to 30 s) is longer than this 8.1 s recording: one press reaches the start and stops there.
     fireEvent.click(back);
-    expect(label()).toBe('0:01.90 to 0:05.00');
-    fireEvent.click(back);
-    expect(label()).toBe('0:00.00 to 0:03.10');
-    expect(back.getAttribute('aria-disabled')).toBe('true');
+    await waitFor(() => expect(label()).toBe('0:00.00 to 0:03.10'));
+    await waitFor(() => expect(back.getAttribute('aria-disabled')).toBe('true'));
     fireEvent.click(forward);
-    expect(label()).toBe('0:03.10 to 0:06.20');
+    await waitFor(() => expect(label()).toBe('0:05.00 to 0:08.10'));
+  });
+
+  it('a press and release with the mouse steps once, not once for the press and again for the click', async () => {
+    document.documentElement.dataset.motion = 'reduce';
+    try {
+      mount();
+      await ready();
+      const label = () => document.querySelector('[data-view-label]')?.textContent;
+      fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Scroll the waveform back' }));
+      expect(label()).toBe('0:00.00 to 0:01.00');
+      const forward = screen.getByRole('button', { name: 'Scroll the waveform forward' });
+      fireEvent.pointerDown(forward, { button: 0, pointerId: 1 });
+      fireEvent.pointerUp(forward, { button: 0, pointerId: 1 });
+      fireEvent.click(forward, { detail: 1 });
+      // The end of the recording is 8.1 s and the step is 20 s by default: one step, clamped.
+      expect(label()).toBe('0:07.10 to 0:08.10');
+    } finally {
+      delete document.documentElement.dataset.motion;
+    }
+  });
+
+  it('keeps the selection where it is on the audio while the arrows scroll the view', async () => {
+    document.documentElement.dataset.motion = 'reduce';
+    try {
+      mount();
+      await ready();
+      select('p-1:0', 'p-1:1');
+      await waitFor(() => expect(startHandle()).toBeTruthy());
+      fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Scroll the waveform back' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Scroll the waveform forward' }));
+      expect(now(startHandle())).toBeCloseTo(5, 6);
+      expect(now(endHandle())).toBeCloseTo(5.6, 6);
+    } finally {
+      delete document.documentElement.dataset.motion;
+    }
   });
 
   it('on the focused waveform the arrows scroll (Shift a window), Home and End go to either end, and plus and minus zoom', async () => {
