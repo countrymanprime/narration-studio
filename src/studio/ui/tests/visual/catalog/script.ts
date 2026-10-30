@@ -38,6 +38,13 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'speaker-picker',
+    description:
+      'Script, the Change speaker menu opened from a speaker chip: a search box, "In this chapter" with a swatch per name, and the entry\'s name beneath an alias only (never repeated under its own name)',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'script',
     state: 'skip-to-side-panel',
     description:
       'Script, the "Skip to the side panel" button under the reader header, shown while it has focus: one Tab from the header past every chapter card to the rail',
