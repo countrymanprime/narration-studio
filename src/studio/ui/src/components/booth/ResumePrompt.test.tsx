@@ -8,6 +8,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { WIRE_TELEPROMPTER_DEVICES } from '../../api/mockFixtures';
+import { EnginePanelProvider } from '../engine/EnginePanelContext';
 import type { DawTransport, NarrationApi, TeleprompterLocateResult, TeleprompterResumeFollowEvent, TeleprompterState } from '../../types';
 
 // The resume prompt, as the Companion's header shows it: a compact notice or choice for where
@@ -47,17 +48,21 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
     },
     initial,
   );
+  const openEnginePanel = vi.fn();
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <CommandRouter>
-          <CompanionHost source={{ kind: 'chapter', chapter: CHAPTER }} onFullApp={vi.fn()} />
-        </CommandRouter>
+        <EnginePanelProvider value={openEnginePanel}>
+          <CommandRouter>
+            <CompanionHost source={{ kind: 'chapter', chapter: CHAPTER }} onFullApp={vi.fn()} />
+          </CommandRouter>
+        </EnginePanelProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
   return {
     api,
+    openEnginePanel,
     teleprompterLocate,
     teleprompterStart,
     setState: (state: Partial<TeleprompterState>) =>
@@ -171,36 +176,38 @@ describe('ResumePrompt', () => {
     expect(within(region).getByRole('button', { name: 'Pick a word' })).toBeTruthy();
   });
 
-  it('links to the Tracks page instead of picking a track in place when the match is uncertain', async () => {
-    renderDialog({}, { resume: 'ambiguous' });
+  it('opens the audio engine panel instead of picking a track in place when the match is uncertain', async () => {
+    const { openEnginePanel } = renderDialog({}, { resume: 'ambiguous' });
 
     const region = await prompt();
     expect(await within(region).findByText(/More than one track/)).toBeTruthy();
     expect(within(region).queryByRole('button', { name: 'Resume from here' })).toBeNull();
     expect(within(region).queryByRole('combobox', { name: 'Track' })).toBeNull();
-    expect(within(region).getByRole('link', { name: 'Link a track' }).getAttribute('href')).toBe('/tracks');
+    await userEvent.click(within(region).getByRole('button', { name: 'Link a track' }));
+    expect(openEnginePanel).toHaveBeenCalledTimes(1);
   });
 
-  it('says reading starts from the top when no track matches the chapter, with a link to link one', async () => {
+  it('says reading starts from the top when no track matches the chapter, with a button to link one', async () => {
     renderDialog({}, { resume: 'none' });
 
     const region = await prompt();
     expect(await within(region).findByText(/No track in Alice.rpp matches this chapter/)).toBeTruthy();
-    expect(within(region).getByRole('link', { name: 'Link a track' }).getAttribute('href')).toBe('/tracks');
+    expect(within(region).getByRole('button', { name: 'Link a track' })).toBeTruthy();
   });
 
-  it("shows a confirmed track's problem as one link instead of an inline warning", async () => {
+  it("shows a confirmed track's problem as one button instead of an inline warning", async () => {
     const base = createMockApi();
     const teleprompterLocate = vi.fn(async (chapterId: string, options?: object): Promise<TeleprompterLocateResult> => {
       const result = await base.teleprompterLocate(chapterId, options);
       if (result.status === 'asset_required') return result;
       return { ...result, match: { ...result.match, warnings: ['confirmed-track-renamed'] } };
     });
-    renderDialog({ teleprompterLocate });
+    const { openEnginePanel } = renderDialog({ teleprompterLocate });
 
     const region = await prompt();
     expect(await within(region).findByText(/renamed since it was linked/)).toBeTruthy();
-    expect(within(region).getByRole('link', { name: 'check the link' }).getAttribute('href')).toBe('/tracks');
+    await userEvent.click(within(region).getByRole('button', { name: 'check the link' }));
+    expect(openEnginePanel).toHaveBeenCalledTimes(1);
   });
 
   it.each([
