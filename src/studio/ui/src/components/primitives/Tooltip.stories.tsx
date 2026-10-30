@@ -128,6 +128,17 @@ export const OnButton: Story = {
   ),
 };
 
+// `hoverDelayMs` shortens the rest a hover needs, for a control whose reason is its one cue (the rail's locked items). The hover timing is pinned in the unit tests (jsdom fake timers), as a pointer in the atlas browser does not open a Base UI hint.
+export const ShortHoverDelay: Story = {
+  render: () => (
+    <TooltipTarget text="Import a manuscript to unlock this page." hoverDelayMs={200}>
+      <button className={iconButtonClass} aria-label="Script">
+        <FontAwesomeIcon icon={faFileLines} />
+      </button>
+    </TooltipTarget>
+  ),
+};
+
 // Focus (unlike hover) shows the tooltip immediately, so no timers are needed here.
 export const ShowsTooltipOnFocus: Story = {
   render: OnButton.render,

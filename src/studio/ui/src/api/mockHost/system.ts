@@ -73,6 +73,7 @@ export function createSystemMock(
     dictionaryState,
     dawFacts,
     manuscriptReady,
+    manuscriptImported,
   }: {
     version: () => string;
     project: ProjectMock;
@@ -81,6 +82,8 @@ export function createSystemMock(
     dawFacts: () => { reachable: boolean; projectMatches: boolean; bridge: boolean };
     /** Settles once the bundled manuscript has replaced the seed chapters, so the summary below counts the chapters the pages list. */
     manuscriptReady: Promise<unknown>;
+    /** Whether an import has committed in this session: a project that booted with no manuscript (`noManuscript`) has one from then on, as the host's bootstrap reports. */
+    manuscriptImported: () => boolean;
   },
 ) {
   let zoom = initial.zoom ?? 1.0;
@@ -105,7 +108,7 @@ export function createSystemMock(
         dawReachable: initial.dawEngineMismatch ?? dawFacts().reachable,
         dawProjectMatches: initial.dawEngineMismatch ? false : dawFacts().projectMatches,
         manuscript:
-          initial.noManuscript || initial.manuscriptCandidate
+          (initial.noManuscript && !manuscriptImported()) || initial.manuscriptCandidate
             ? null
             : {
                 id: 'alice',

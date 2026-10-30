@@ -63,6 +63,22 @@ function FromCell({ row }: { row: NoteRow }) {
 const NOTE_COLUMNS = ['5.25rem', '6rem', 'auto', '11rem', '8.5rem'] as const;
 
 /**
+ * Under the table's 40 rem floor (the tablet width and the 390 reflow) a note is a block instead of a row that scrolls Resolution out of
+ * sight (#2635): Time, Type and Resolution on one line, the sentence under them, its source under that. The headings go (a screen reader
+ * keeps them); a chapter's group row is one block. The body is the grid and each row a subgrid of it, so the chips line up down the list.
+ */
+const NARROW_TABLE =
+  '@max-[40rem]:block @max-[40rem]:min-w-0 @max-[40rem]:[&>colgroup]:hidden @max-[40rem]:[&>thead]:sr-only @max-[40rem]:[&>tbody]:grid @max-[40rem]:[&>tbody]:grid-cols-[auto_auto_minmax(0,1fr)] @max-[40rem]:[&>tbody]:gap-x-3 @max-[40rem]:[&_td]:h-auto! @max-[40rem]:[&_td]:border-b-0';
+const NARROW_ROW =
+  '@max-[40rem]:grid! @max-[40rem]:col-span-full @max-[40rem]:grid-cols-subgrid @max-[40rem]:border-b @max-[40rem]:border-[var(--border)] @max-[40rem]:px-4 @max-[40rem]:py-2 @max-[40rem]:[&>td]:px-0! @max-[40rem]:[&>td]:py-0!';
+const NARROW_TIME = '@max-[40rem]:row-1 @max-[40rem]:col-1';
+const NARROW_TYPE = '@max-[40rem]:row-1 @max-[40rem]:col-2';
+const NARROW_RESOLUTION = '@max-[40rem]:row-1 @max-[40rem]:col-3 @max-[40rem]:justify-self-end';
+const NARROW_SENTENCE = '@max-[40rem]:row-2 @max-[40rem]:col-[1/-1] @max-[40rem]:pt-1.5!';
+const NARROW_FROM = '@max-[40rem]:row-3 @max-[40rem]:col-[1/-1] @max-[40rem]:pt-0.5!';
+const NARROW_GROUP = '@max-[40rem]:col-span-full @max-[40rem]:block @max-[40rem]:[&>td]:block @max-[40rem]:[&>td]:border-b @max-[40rem]:[&>td]:px-4!';
+
+/**
  * The Proof notes table (Studio Next mock `NotesTable`): Time, Type, Script vs heard, From, Resolution. In all chapters it is
  * grouped by chapter with "<n> open". Type and resolution chips are as wide as their longest word so a decision never moves a cell.
  * One row is in the tab order; the rest are reached with the arrow keys the panel handles.
@@ -119,12 +135,14 @@ export function NotesTable({
   }
 
   const noteRow = (row: NoteRow) => (
-    <TableRow key={row.id} selected={row.id === selectedId} onActivate={() => onSelect(row.id)}>
-      <TableCell numeric>{row.time}</TableCell>
-      <TableCell>
+    <TableRow key={row.id} selected={row.id === selectedId} onActivate={() => onSelect(row.id)} className={NARROW_ROW}>
+      <TableCell numeric className={NARROW_TIME}>
+        {row.time}
+      </TableCell>
+      <TableCell className={NARROW_TYPE}>
         <TypeChip row={row} />
       </TableCell>
-      <TableCell>
+      <TableCell className={NARROW_SENTENCE}>
         <span className="flex items-center gap-2">
           <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
             <Headline row={row} />
@@ -132,10 +150,10 @@ export function NotesTable({
           {badge?.(row)}
         </span>
       </TableCell>
-      <TableCell muted>
+      <TableCell muted className={NARROW_FROM}>
         <FromCell row={row} />
       </TableCell>
-      <TableCell>
+      <TableCell className={NARROW_RESOLUTION}>
         <FixedChip ch={RESOLUTION_CHIP_CH}>
           <StatusBadge
             tone={row.resolution.tone}
@@ -150,8 +168,8 @@ export function NotesTable({
   );
 
   return (
-    <div ref={body}>
-      <Table label="Notes" columns={NOTE_COLUMNS} className="min-w-[40rem]">
+    <div ref={body} className="@container">
+      <Table label="Notes" columns={NOTE_COLUMNS} className={`min-w-[40rem] ${NARROW_TABLE}`}>
         <TableHead sticky>
           <TableRow>
             <TableHeader align="right">Time</TableHeader>
@@ -164,7 +182,7 @@ export function NotesTable({
         <TableBody>
           {allChapters
             ? groupByChapter(rows).flatMap((group) => [
-                <TableRow key={`g-${group.chapterId}`}>
+                <TableRow key={`g-${group.chapterId}`} className={NARROW_GROUP}>
                   <TableCell colSpan={5} className="bg-[var(--surface-2)]">
                     <b>{group.title}</b> <span className="text-[var(--text-muted)]">· {group.open} open</span>
                   </TableCell>
