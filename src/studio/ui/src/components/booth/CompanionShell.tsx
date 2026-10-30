@@ -226,13 +226,16 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
               scrolling the box, which is only a few lines tall (#2649). */}
           {header && <div className="mt-2">{header}</div>}
           <InsetCard id="companion-script" className="mt-2">
-            <div
-              tabIndex={0}
-              role="group"
-              aria-label="Script text, scrollable"
-              className="max-h-[12rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)] focus-visible:outline-2"
-            >
-              <ReadAlongView session={t} follow={follow} marks={marks} onOpenMark={onOpenMark} hideKey dense />
+            {/* The focus ring is the wrapper's outline: a mask clips its own element's outline, so the scrolling (masked) box inside can not draw it. */}
+            <div data-testid="companion-script-focus" className="has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--focus)]">
+              <div
+                tabIndex={0}
+                role="group"
+                aria-label="Script text, scrollable"
+                className="max-h-[12rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)] focus:outline-none"
+              >
+                <ReadAlongView session={t} follow={follow} marks={marks} onOpenMark={onOpenMark} hideKey dense />
+              </div>
             </div>
           </InsetCard>
         </Section>

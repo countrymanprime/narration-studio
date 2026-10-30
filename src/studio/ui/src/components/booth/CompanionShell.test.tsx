@@ -234,6 +234,17 @@ describe('CompanionShell', () => {
     expect(prompt.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('draws the scroll box focus ring on a wrapper without the fade mask, which would clip it (#2649)', () => {
+    renderCompanion();
+    const box = screen.getByRole('group', { name: 'Script text, scrollable' });
+    expect(box.className).toContain('mask-image');
+    expect(box.className).not.toContain('outline-2');
+    const ring = screen.getByTestId('companion-script-focus');
+    expect(ring.className).toContain('has-[:focus-visible]:outline-2');
+    expect(ring.className).not.toContain('mask');
+    expect(ring.contains(box)).toBe(true);
+  });
+
   it('titles the page with the Heading primitive (#2649)', () => {
     renderCompanion();
     expect(screen.getByRole('heading', { level: 1, name: 'Companion' }).className).toContain('--font-size-page-title');
