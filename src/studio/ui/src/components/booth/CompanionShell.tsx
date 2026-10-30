@@ -58,13 +58,13 @@ function useDawTransport(): DawTransport {
 
 /**
  * The header's one badge. REAPER's own state wins (recording, playing); with REAPER stopped, a session that reads aloud says so
- * ("Reading", or "Paused") instead of "Playhead stopped", which is true of REAPER but not of what the narrator is doing (#2649).
+ * ("Reading", "Paused" or "Stopping") instead of "Playhead stopped", which is true of REAPER but not of what the narrator is doing (#2649).
  */
-function playheadBadge({ playing, recording, position }: DawTransport, reading: 'reading' | 'paused' | null): { tone: StatusTone; label: string } {
+function playheadBadge({ playing, recording, position }: DawTransport, reading: 'reading' | 'paused' | 'stopping' | null): { tone: StatusTone; label: string } {
   const at = position === undefined ? '' : playheadTime(position);
   if (recording) return { tone: 'danger', label: at ? `Recording · ${at}` : 'Recording' };
   if (playing) return { tone: 'info', label: at ? `Playhead ${at}` : 'Playhead moving' };
-  if (reading) return { tone: 'info', label: reading === 'paused' ? 'Paused' : 'Reading' };
+  if (reading) return { tone: 'info', label: { reading: 'Reading', paused: 'Paused', stopping: 'Stopping' }[reading] };
   return { tone: 'neutral', label: 'Playhead stopped' };
 }
 
@@ -121,7 +121,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
   const escapeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const windowError = useCompanionWindow();
   const transport = useDawTransport();
-  const playhead = playheadBadge(transport, t.active ? (t.paused ? 'paused' : 'reading') : null);
+  const playhead = playheadBadge(transport, !t.active ? null : t.host.phase === 'stopping' ? 'stopping' : t.paused ? 'paused' : 'reading');
   useWholeWindow(root);
 
   useEffect(() => {
@@ -222,9 +222,17 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           </Toolbar>
           {/* Its own scroll box, so the sections below stay in reach however long the chapter is; the cursor follows inside it. Framed, with
               a fade at its foot, so text it cuts off reads as more to scroll, not as a cropped card (XBO-16). */}
+          {/* The resume prompt (or the credits warning) sits above the text box, not inside it: its choices must be in view without
+              scrolling the box, which is only a few lines tall (#2649). */}
+          {header && <div className="mt-2">{header}</div>}
           <InsetCard id="companion-script" className="mt-2">
-            <div className="max-h-[12rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)]">
-              <ReadAlongView session={t} follow={follow} header={header} marks={marks} onOpenMark={onOpenMark} hideKey dense />
+            <div
+              tabIndex={0}
+              role="group"
+              aria-label="Script text, scrollable"
+              className="max-h-[12rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)] focus-visible:outline-2"
+            >
+              <ReadAlongView session={t} follow={follow} marks={marks} onOpenMark={onOpenMark} hideKey dense />
             </div>
           </InsetCard>
         </Section>

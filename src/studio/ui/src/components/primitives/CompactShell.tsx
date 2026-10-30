@@ -13,7 +13,10 @@ export function CompactShell({ title, status, action, children }: { title: strin
       {/* 45 px (mock 07): `min-h` rather than a fixed `h` so a title long enough to wrap (LongTitleWraps) still grows the header instead of clipping it. */}
       <header className="flex min-h-[2.8125rem] flex-none flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-[0.85rem] py-[0.4rem]">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Heading title={title} />
+          {/* A title with no break opportunity (a long path-like name) wraps anywhere in its own box, never pushing the header sideways. */}
+          <div className="min-w-0 [overflow-wrap:anywhere]">
+            <Heading title={title} />
+          </div>
           {status}
         </div>
         {action}

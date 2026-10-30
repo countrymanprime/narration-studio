@@ -194,6 +194,46 @@ describe('CompanionShell', () => {
     expect(within(screen.getByRole('banner')).getByText('Recording · 0:05.0')).toBeTruthy();
   });
 
+  it('says Playhead moving, not Reading, when REAPER plays during a session, and Stopping while it ends (#2649)', () => {
+    const { pushTransport } = renderCompanion({ session: baseSession({ active: true }) });
+    pushTransport({ playing: true, recording: false });
+    expect(within(screen.getByRole('banner')).getByText('Playhead moving')).toBeTruthy();
+    expect(within(screen.getByRole('banner')).queryByText('Reading')).toBeNull();
+    pushTransport({ playing: false, recording: false });
+    expect(within(screen.getByRole('banner')).getByText('Reading')).toBeTruthy();
+  });
+
+  it('says Stopping while the session ends', () => {
+    renderCompanion({ session: baseSession({ active: true, host: { ...baseSession().host, phase: 'stopping' } }) });
+    expect(within(screen.getByRole('banner')).getByText('Stopping')).toBeTruthy();
+  });
+
+  it('Play, Pause and Stop reading name themselves in a tooltip, with the key where the action has one (#2649)', async () => {
+    const user = userEvent.setup();
+    const view = renderCompanion();
+    const play = screen.getByRole('button', { name: 'Play' });
+    expect(play.getAttribute('aria-keyshortcuts')).toBe('Space');
+    await user.hover(play);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Play (Space)');
+    view.unmount();
+    renderCompanion({ session: baseSession({ active: true }) });
+    const pause = screen.getByRole('button', { name: 'Pause' });
+    expect(pause.getAttribute('aria-keyshortcuts')).toBe('Space');
+    await user.hover(pause);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Pause (Space)');
+    await user.unhover(pause);
+    await user.hover(screen.getByRole('button', { name: 'Stop reading' }));
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Stop reading');
+  });
+
+  it('draws the header (the resume prompt) above the script box, not inside its scroll box (#2649)', () => {
+    renderCompanion({ header: <section aria-label="Where you stopped">Prompt</section> });
+    const prompt = screen.getByRole('region', { name: 'Where you stopped' });
+    const box = document.getElementById('companion-script')!;
+    expect(box.contains(prompt)).toBe(false);
+    expect(prompt.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('titles the page with the Heading primitive (#2649)', () => {
     renderCompanion();
     expect(screen.getByRole('heading', { level: 1, name: 'Companion' }).className).toContain('--font-size-page-title');

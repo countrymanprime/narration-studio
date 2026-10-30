@@ -508,10 +508,10 @@ keep going").
   A REAPER place reads "in REAPER now" when live and "as of the project's last
   save" otherwise.
 - **It never sits there.** The Companion's prompt settles on any choice or when a session
-  starts. When the session ends it comes back, from a fresh lookup and with the earlier
-  choice cleared, so the next Start begins at the top until one is made (#2649).
-
-  It also goes away when REAPER starts playing or recording
+  starts, so it never stays over a running session. When the session ends it comes back, from a
+  fresh lookup (the take just recorded moved the recording's end) and with the earlier choice
+  cleared, so the next Start begins at the top until one is made. This reverses the earlier rule that
+  it did not come back (#2553); #2649 names losing the prompts after Stop as the defect. It also goes away when REAPER starts playing or recording
   (`daw_transport_changed`, and the host follow below). While it shows for a
   track, the host follows REAPER: `TeleprompterResumeFollow` polls track state
   about once a second, never during a session, for at most 30 minutes, and pushes

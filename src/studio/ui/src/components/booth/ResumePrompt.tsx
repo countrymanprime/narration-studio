@@ -476,7 +476,7 @@ function unreadableText(result: Located): string {
  *
  * It settles the moment the narrator makes any choice or a session starts. When the session ends it comes back, asking again
  * from a fresh lookup with the earlier choice cleared (Start begins at the top until one is made), so the narrator who
- * stopped reading can resume from where that session left the recording (#2649).
+ * stopped reading can resume from where that session left the recording (#2649, which reverses #2553's "does not come back").
  */
 export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   const api = useApi();
