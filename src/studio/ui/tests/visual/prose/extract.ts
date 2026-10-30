@@ -18,7 +18,7 @@ export type ProseHit = {
 };
 
 /** The elements that draw over the page instead of in it. */
-const OVERLAY_TAG = /^(Dialog|ConfirmDialog|WorkDialog|SlideOver|Popover|Menu|ContextMenu|Tooltip|BaseDialog|AlertDialog)(\.|$)/;
+const OVERLAY_TAG = /^(HelpButton|Dialog|ConfirmDialog|WorkDialog|SlideOver|Popover|Menu|ContextMenu|Tooltip|BaseDialog|AlertDialog)(\.|$)/;
 /** A file whose whole output is an overlay's body (a confirm's text, a dialog). */
 const OVERLAY_FILE = /(Dialog|Confirm|Menu|Popover)\.tsx$/;
 
@@ -55,13 +55,56 @@ const classOf = (el: ts.JsxOpeningLikeElement): string => {
   return '';
 };
 
+const isStringNode = (n: ts.Node): boolean => ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n) || ts.isTemplateExpression(n);
+
+/** Every string a `{expression}` child can draw: the branches of `?:`, `&&`, `||`, `??`, and the strings a same-file constant or helper builds. */
+function drawnStrings(expr: ts.Expression, sf: ts.SourceFile, seen = new Set<string>()): ts.Node[] {
+  if (ts.isParenthesizedExpression(expr)) return drawnStrings(expr.expression, sf, seen);
+  if (isStringNode(expr)) return [expr];
+  if (ts.isConditionalExpression(expr)) return [expr.whenTrue, expr.whenFalse].flatMap((e) => drawnStrings(e, sf, seen));
+  if (ts.isBinaryExpression(expr)) {
+    const k = expr.operatorToken.kind;
+    if (k === ts.SyntaxKind.AmpersandAmpersandToken) return drawnStrings(expr.right, sf, seen);
+    if (k === ts.SyntaxKind.BarBarToken || k === ts.SyntaxKind.QuestionQuestionToken) return [expr.left, expr.right].flatMap((e) => drawnStrings(e, sf, seen));
+    return [];
+  }
+  const name = ts.isIdentifier(expr) ? expr.text : ts.isCallExpression(expr) && ts.isIdentifier(expr.expression) ? expr.expression.text : null;
+  if (!name || seen.has(name)) return [];
+  seen.add(name);
+  const found: ts.Node[] = [];
+  const scan = (n: ts.Node) => {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === name && n.initializer) found.push(...returned(n.initializer, sf, seen));
+    else if (ts.isFunctionDeclaration(n) && n.name?.text === name && n.body) found.push(...returned(n.body, sf, seen));
+    ts.forEachChild(n, scan);
+  };
+  scan(sf);
+  return found;
+}
+
+/** The strings a declaration's value can be: its expression's, or each `return` of a function body. */
+function returned(n: ts.Node, sf: ts.SourceFile, seen: Set<string>): ts.Node[] {
+  if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) return returned(n.body, sf, seen);
+  if (ts.isBlock(n)) {
+    const out: ts.Node[] = [];
+    const walk = (c: ts.Node) => {
+      if (ts.isFunctionLike(c)) return;
+      if (ts.isReturnStatement(c) && c.expression) out.push(...drawnStrings(c.expression, sf, seen));
+      ts.forEachChild(c, walk);
+    };
+    ts.forEachChild(n, walk);
+    return out;
+  }
+  return ts.isExpression(n) ? drawnStrings(n, sf, seen) : [];
+}
+
 const opening = (el: ts.JsxElement | ts.JsxSelfClosingElement): ts.JsxOpeningLikeElement => (ts.isJsxElement(el) ? el.openingElement : el);
 
 /** Every text run in one source file. */
-function extractFile(path: string, code = readFileSync(path, 'utf8')): ProseHit[] {
+export function extractFile(path: string, code = readFileSync(path, 'utf8')): ProseHit[] {
   const sf = ts.createSourceFile(path, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const file = relative(SRC, path).split('\\').join('/');
   const hits: ProseHit[] = [];
+  const extra: ProseHit[] = [];
   const lineOf = (n: ts.Node) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
   const visit = (node: ts.Node, srOnly: boolean, inOverlay: boolean) => {
     let sr = srOnly;
@@ -91,6 +134,13 @@ function extractFile(path: string, code = readFileSync(path, 'utf8')): ProseHit[
             parts.push(t);
           } else if (ts.isJsxExpression(c) && c.expression) {
             const t = literal(c.expression);
+            // A branch or helper the literal pass cannot join into this element's text is its own run.
+            if (t === null) {
+              for (const str of drawnStrings(c.expression, sf)) {
+                const text = literal(str);
+                if (text) extra.push({ file, line: lineOf(str), kind: 'text', text, srOnly: sr, overlay: over });
+              }
+            }
             if (t !== null) {
               any = true;
               parts.push(t);
@@ -108,7 +158,8 @@ function extractFile(path: string, code = readFileSync(path, 'utf8')): ProseHit[
     ts.forEachChild(node, (c) => visit(c, sr, over));
   };
   visit(sf, false, OVERLAY_FILE.test(path));
-  return hits;
+  const seenAt = new Set<string>();
+  return [...hits, ...extra].filter((h) => !seenAt.has(`${h.line}|${h.text}`) && !!seenAt.add(`${h.line}|${h.text}`));
 }
 
 /** Every text run in the app's components and pages (tests and stories excluded). */
