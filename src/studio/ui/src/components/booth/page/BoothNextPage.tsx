@@ -674,14 +674,11 @@ function BoothSession({
                 ) : (
                   <>
                     {recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}
-                    {/* A chapter recorded to the end has nothing to resume: its saved place is a place in it, not where the recording stopped. */}
-                    {recordedLabel?.complete ? null : (
-                      <ResumeOfferLine
-                        state={offerAwayFrom(page.resume, page.position)}
-                        saved={saveNote(control.project, page.dawName)}
-                        onChoose={page.chooseResume}
-                      />
-                    )}
+                    <ResumeOfferLine
+                      state={offerAwayFrom(page.resume, page.position)}
+                      saved={saveNote(control.project, page.dawName)}
+                      onChoose={page.chooseResume}
+                    />
                   </>
                 )
               }

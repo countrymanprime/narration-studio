@@ -104,16 +104,13 @@ describe('a chapter with a recording', () => {
     await waitFor(() => expect(reading()).toBe('was'));
   });
 
-  it('reads the position, not the work left, and offers no resume point, in a chapter recorded to the end (#2633)', async () => {
+  it('reads the position, not the work left, in a chapter recorded to the end (#2633)', async () => {
     renderPage({
       api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through({ paragraphId: 'p3', word: 9, percent: 100, complete: true }) }) }),
     });
     await waitFor(() => expect(screen.getByRole('group', { name: 'Recorded: complete' }).textContent).toBe('Complete'));
     await waitFor(() => expect(screen.getByText(/^At ¶ 1 of 3$/)).toBeTruthy());
     expect(document.body.textContent).not.toMatch(/of audio left/);
-    act(() => void screen.getByText('walked').click());
-    await settle();
-    expect(screen.queryByRole('button', { name: /Resume at ¶/ })).toBeNull();
   });
 
   it('says about for a chapter known only by its track’s length', async () => {
