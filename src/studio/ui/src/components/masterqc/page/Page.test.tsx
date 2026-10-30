@@ -342,6 +342,26 @@ describe('Master & QC page body', () => {
     expect(cancel).toHaveBeenCalled();
   });
 
+  it('the-toolbar-is-icon-buttons: Master all to spec, Check files and Re-check draw an icon and carry their words as the name and the tooltip (rule 1)', async () => {
+    mount([]);
+    for (const name of ['Master all to spec…', 'Check files…']) {
+      const button = await screen.findByRole('button', { name });
+      expect(button.textContent, name).toBe('');
+      expect(button.querySelector('svg'), name).not.toBeNull();
+    }
+    await userEvent.hover(screen.getByRole('button', { name: 'Check files…' }));
+    expect(await screen.findByRole('tooltip')).toBeTruthy();
+  });
+
+  it('a-measured-book-offers-Re-check-and-Choose-other-files-as-icon-buttons', async () => {
+    mount(ALL_PASS);
+    for (const name of [/^Re-check \d+ files?$/, 'Choose other files…']) {
+      const button = await screen.findByRole('button', { name });
+      expect(button.textContent).toBe('');
+      expect(button.querySelector('svg')).not.toBeNull();
+    }
+  });
+
   it('a-profile-that-lacks-a-rule-shows-no-row-for-it', async () => {
     mount(ALL_PASS, noRules);
     await screen.findByRole('complementary', { name: /Delivery package · Other/ });

@@ -116,6 +116,16 @@ describe('Settings: page frame', () => {
     expect(within(find).getByRole('textbox', { name: 'Search settings' }).closest('[class*="flex-[1_1_180px]"]')).toBeTruthy();
   });
 
+  it('has one page title: the section title is smaller than "Settings" and no breadcrumb repeats it (R25, rule 2)', async () => {
+    await renderPage();
+    const page = await screen.findByRole('heading', { level: 1, name: 'Settings' });
+    const section = await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    expect(page.className).toContain('--font-size-page-title');
+    // A section title does not wear the page title's size or face.
+    expect(section.className).not.toMatch(/Barlow|1\.875rem|font-size-page-title/);
+    expect(screen.queryByLabelText('Breadcrumb')).toBeNull();
+  });
+
   it('puts Reset to defaults in the title line as a small button, not a 16 px link', async () => {
     await renderPage();
     pick('App & updates');
@@ -551,7 +561,7 @@ describe('Settings: states', () => {
     api.settingsForScope = () => new Promise(() => undefined);
     await renderPage({ api });
     const busy = document.querySelector<HTMLElement>('[aria-busy="true"]')!;
-    expect(within(busy).getByRole('heading', { level: 2, name: 'Recording & DAW' }).className).toContain('leading-[1.1]');
+    expect(within(busy).getByRole('heading', { level: 2, name: 'Recording & DAW' }).className).toContain('text-[1.125rem]');
     expect(busy.textContent).toContain('How the app records');
     expect(busy.querySelectorAll('.rounded-\\[var\\(--radius-card\\)\\]').length).toBeGreaterThan(1);
     expect(busy.querySelector('[class*="grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"]')).toBeTruthy();
@@ -568,9 +578,6 @@ describe('Settings: states', () => {
     await renderPage({ api });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Your settings could not be read.');
-    // The banner sits above the breadcrumb, so the breadcrumb stays on its title (R4SE2-7).
-    const crumb = screen.getByLabelText('Breadcrumb');
-    expect(alert.compareDocumentPosition(crumb) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     failing = false;
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
