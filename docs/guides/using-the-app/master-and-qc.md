@@ -99,6 +99,7 @@ format is checked on the MP3 you upload") instead of showing a tick. A check not
 where a tick or a cross will go. **Open Delivery** goes on to build the package; it waits while the profile and the
 chapters are still being read. The card stays in view at the top of the right column as you scroll the page; in a
 narrower window, where the page is one column, it comes straight after the files and their checks.
+On a very wide window the page stays one centred column about 1,500 px wide, the same as Pickups and Delivery.
 
 A link from another page can name a file. If that file is not in the check (or nothing is measured yet), the page
 says so in a **Link not found** note with **Show the first file instead**, and a link followed while the page is open
