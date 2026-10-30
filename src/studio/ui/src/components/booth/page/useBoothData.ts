@@ -6,6 +6,8 @@ import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { CreditsKind } from '../readerModel';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
+import { attributeCue } from '../../../studio/commands/attributeCue';
+import { useJournal } from '../../../studio/StudioProvider';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 const NONE: never[] = [];
@@ -58,6 +60,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
   const manuscript = usePort('manuscript');
   const storyBible = usePort('storyBible');
   const teleprompter = usePort('teleprompter');
+  const journal = useJournal();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [fallback, setFallback] = useState('');
   const [error, setError] = useState('');
@@ -126,10 +129,11 @@ export function useBoothData(target: BoothChapterTarget | null) {
 
   const correctCue = useCallback(
     async (cueId: string, entityId: string) => {
-      await storyBible.guideCorrectCue(cueId, entityId);
+      const done = await attributeCue(journal, storyBible, cues.find((cue) => cue.id === cueId) ?? { id: cueId }, entityId);
+      if (!done.ok) throw new Error(done.refusal.reason);
       setCues(await storyBible.guideDialogueCues());
     },
-    [storyBible],
+    [storyBible, journal, cues],
   );
 
   // A credits chapter has no paragraphs; its text is the credits preview.
