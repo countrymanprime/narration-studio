@@ -7,6 +7,7 @@ import { RIBBON_HEIGHT } from '../../script/bookmarks/ui/ribbonTops';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { BoothUnit, ReadingParagraph } from '../reading/boothUnits';
 import { unitAtPosition } from '../reading/readingPosition';
+import { wordElements } from '../reading/wordElements';
 import { positionOfBookmark } from './boothSpot';
 
 export type BookmarkRibbonsProps = {
@@ -22,7 +23,6 @@ export type BookmarkRibbonsProps = {
 };
 
 /** The word under `[data-unit]` and `[data-word]` is the Booth text's own markup (`BoothText`). */
-const wordSelector = (cur: number, wcur: number): string => `[data-unit="${cur}"] [data-word="${wcur}"]`;
 
 /** Tops in the order given, pushed down so none sits closer to the one above it than that one's height. */
 function stacked(tops: readonly number[], heights: readonly number[], floor: number): number[] {
@@ -121,10 +121,11 @@ export function BookmarkRibbons({ chapterId, bookmarks, paragraphs, units, flash
       setRibbonHeight(Number.isFinite(size) ? Math.max(RIBBON_HEIGHT, Math.ceil(size * 1.1)) : RIBBON_HEIGHT);
       const base = margin.getBoundingClientRect().top;
       const next: Record<string, number> = {};
-      for (const { key, cur, wcur } of items) {
-        const word = column.querySelector<HTMLElement>(wordSelector(cur, wcur));
+      const words = wordElements(column, items);
+      items.forEach(({ key }, i) => {
+        const word = words[i];
         if (word) next[key] = Math.round(word.getBoundingClientRect().top - base);
-      }
+      });
       setMeasured((current) => {
         const same = Object.keys(next).length === Object.keys(current).length && Object.entries(next).every(([id, top]) => current[id] === top);
         return same ? current : next;
