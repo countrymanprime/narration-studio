@@ -31,7 +31,8 @@ then, a **REAPER not connected** mark takes its place, and a dialog opens once: 
 that progress that comes from it may be out of date until it is running again, and when the app last checked.
 **Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
-switching recorders is a choice in [Settings > Recording & DAW](settings.md).
+switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
+is one answer on Production, the Booth and the Companion: the DAW's own sentence when it cannot.
 
 If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
 be loaded" with the reason and a **Retry** button, which reads it again.

@@ -343,6 +343,8 @@ in chapter 19 as in chapter 3.
   speaker button at the right, **Hear the reference clip**, which plays the primary sample. A voice with a sample also has a count below the row; press the count to list every
   sample with its length, and press one to hear it. A voice with none keeps the button, switched off, and its hint says "No voice sample yet. Mark one in Editing." Press the button, or a sample, again to stop it.
 
+A sample does not play while the DAW is recording, on this page or on any other: it says "Not while recording. Stop the take first.", and one already playing stops when a take starts, so it never reaches the microphone.
+
 ![Booth - the speaker picker with a count and a play button on each character who has voice samples](../../images/ui/booth-voice-samples-picker.webp)
 
 ![Booth - In this chapter with voice samples: a play button and count on each voice, one opened to list its samples](../../images/ui/booth-voice-samples-panel.webp)
