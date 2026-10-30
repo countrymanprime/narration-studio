@@ -26,23 +26,23 @@ export const masterDrivers: Record<string, Driver> = {
     await goToPage(page, 'Master & QC');
     await page.getByRole('group', { name: 'Loading the delivery package checks' }).waitFor();
   },
-  // The chapters read fails: the page works and a line in the file table's card says so with Retry.
+  // The chapters read fails: the page works and an error toast says so with Retry (rule 7, #2632); it stays up for the capture.
   'chapters-load-failed': async (page) => {
     await page.goto('/?mockChapters=fails');
     await settlePage(page);
     await goToPage(page, 'Master & QC');
-    await page.getByRole('button', { name: 'Retry reading the chapters' }).waitFor();
-    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    await page.getByRole('alert').filter({ hasText: 'The chapters could not be read' }).getByRole('button', { name: 'Retry' }).waitFor();
   },
-  // The delivery profiles read fails: the same line and Retry for the profile.
+  // The delivery profiles read fails: the same toast and Retry for the profile.
   'profile-load-failed': async (page) => {
     await page.goto('/?mockProfileRead=fails');
     await settlePage(page);
     await goToPage(page, 'Master & QC');
-    await page.getByRole('button', { name: 'Retry reading the delivery profile' }).waitFor();
-    // The line sits in the file table's card, under its controls: bring it up, so the picture is this state's and not `empty`'s.
-    await scrollToTop(page, page.getByRole('alert').filter({ hasText: /delivery profiles? could not be read/ }));
+    await page
+      .getByRole('alert')
+      .filter({ hasText: /delivery profiles? could not be read/ })
+      .getByRole('button', { name: 'Retry' })
+      .waitFor();
   },
   empty: async (page) => {
     await openMaster(page);
