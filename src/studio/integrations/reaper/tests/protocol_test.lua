@@ -121,7 +121,7 @@ H.test('a command written after an earlier one is picked up: the listing is refr
   H.eq(runs, { 'first', 'second', 'third' })
 end)
 
--- A session that counts how often events.log is opened from the moment a command's handler is called until the tick
+-- A session that counts the appends to events.log, other than the heartbeat's, from the moment a command's handler is called until the tick
 -- moves on to the next command or the heartbeat (#2251: one open per line made a 1000-item read hold REAPER for about 40 ms
 -- in REAPER 7.82, docs/research/reaper-bridge-performance.md). `extra(registry)` registers test commands.
 local function counting_session(options, extra)
@@ -138,11 +138,23 @@ local function counting_session(options, extra)
       return handler
         and function(ctx, args)
           counter.opens = 0
+          -- An append that writes only the heartbeat is not the command's: it falls due on alternate ticks of the fake clock.
           io.open = function(path, mode)
-            if tostring(path):match('events%.log$') then
-              counter.opens = counter.opens + 1
+            local handle = real_open(path, mode)
+            if handle and tostring(path):match('events%.log$') then
+              return setmetatable({
+                write = function(_, text)
+                  if not tostring(text):match('^PROJECT_STATUS|') then
+                    counter.opens = counter.opens + 1
+                  end
+                  return handle:write(text)
+                end,
+                close = function()
+                  return handle:close()
+                end,
+              }, { __index = handle })
             end
-            return real_open(path, mode)
+            return handle
           end
           handler(ctx, args)
         end
@@ -172,8 +184,7 @@ H.test("a command's events reach events.log in one append, in the order it sent 
     s:send('emit_many', 'r1')
   end)
   local events = s:events()
-  -- At most one more: the heartbeat, when it falls due in the same tick.
-  H.eq(opens <= 2, true, 'events.log opened ' .. opens .. ' times for one command')
+  H.eq(opens, 1)
   H.eq(#events, 501)
   for index = 1, 500 do
     H.eq(events[index], { 'ROW', 'r1', tostring(index) })
@@ -192,10 +203,34 @@ H.test('chapter_track_state of a track with 300 items appends its answer in one 
     s:send('chapter_track_state', 't1', retakes.guid)
   end)
   local events = s:events()
-  H.eq(opens <= 2, true, 'events.log opened ' .. opens .. ' times for one read')
+  H.eq(opens, 1)
   H.eq(#events, 302)
   H.eq(events[1][1], 'TRACK_STATE')
   H.eq(events[302], { 'TRACK_STATE_END', 't1', '300', '300' })
+end)
+
+H.test('a batch inside a batch joins the outer one: one append, nothing written early or lost', function()
+  H.session()
+  local core = dofile(H.join(host.reaper_dir, 'narration_bridge_core.lua'))
+  local dir = host.tmpdir()
+  local real_open, appends = io.open, 0
+  io.open = function(path, mode)
+    if tostring(path):match('events%.log$') then
+      appends = appends + 1
+    end
+    return real_open(path, mode)
+  end
+  local ok, err = pcall(core.batched, function()
+    core.event(dir, 'BEFORE', 'r1')
+    core.batched(function()
+      core.event(dir, 'INNER', 'r1')
+    end)
+    core.event(dir, 'AFTER', 'r1')
+  end)
+  io.open = real_open
+  assert(ok, err)
+  H.eq(appends, 1)
+  H.eq(H.lines(H.read_text(H.join(dir, 'events.log'))), { 'BEFORE|r1', 'INNER|r1', 'AFTER|r1' })
 end)
 
 H.test('the events a command sent before it failed are written before the error ends the tick', function()

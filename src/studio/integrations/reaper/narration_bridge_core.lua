@@ -73,9 +73,10 @@ local function event(session_dir, tag, ...)
   lines[#lines + 1] = line
 end
 -- Runs fn(...) with the events it sends held, then appends them to events.log in one write, also when fn raises (the
--- error is raised again after the write). Opening the file once per line made a 1000-item chapter_track_state hold
--- REAPER's main thread for about 40 ms in REAPER 7.82 (docs/research/reaper-bridge-performance.md). The host reads
--- events.log only as REAPER writes it, and nothing in REAPER runs while fn does, so it sees the same lines in the same order.
+-- error is raised again after the write). Opening the file once per line cost a 1000-item chapter_track_state about 4000
+-- file system calls and 13 ms of REAPER's main thread in REAPER 7.82 (docs/research/reaper-bridge-performance.md). The lines and their
+-- order are unchanged; the host may read a long write half-way, and its reader keeps a partial last line for the next read
+-- (events.go, newEventLines). A batch inside a batch joins the outer one.
 local function batched(fn, ...)
   if held then
     return fn(...)
