@@ -181,7 +181,8 @@ function M.run(session_dir, registry)
             for index = 3, #command do
               args[#args + 1] = command[index]
             end
-            handler(ctx, args)
+            -- One append for everything the command answers (narration_bridge_core.lua, batched).
+            core.batched(handler, ctx, args)
           else
             ctx.event('ERROR', command[3] or '', 'Unsupported workspace command')
           end
