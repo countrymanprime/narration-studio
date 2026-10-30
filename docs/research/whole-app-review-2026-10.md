@@ -177,7 +177,7 @@ At 1920 px:
 
 ### R16 Recording-check wire contract (#2576) (Medium) — #2644
 
-- **One field, two meanings.** In the re-check stage, `sidecars/transcript-compare/core/coverage_mode.py` writes its windows under `firstPass`. The host (`desktop/internal/coverage/activity.go`) then reinterprets that field according to `j.stage`.
+- **One field, two meanings.** In the re-check stage, `src/studio/sidecars/transcript-compare/core/coverage_mode.py` writes its windows under `firstPass`. The host (`src/studio/desktop/internal/coverage/activity.go`) then reinterprets that field according to `j.stage`.
 - **Missing data-files row.** `<progress>.activity.json` is written by the sidecar and read back by the host, but has no row in `docs/reference/data-files.md`.
 - **Fix.** Have the re-check write `recheck`, merge by field, and add the data-files row.
 
