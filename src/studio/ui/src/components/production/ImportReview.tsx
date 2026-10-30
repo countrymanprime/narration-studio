@@ -253,7 +253,7 @@ export function ImportReview({
       )}
       {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
         // The label stays in view, and so does every group's header: the box is a column in which the one open group scrolls.
-        <div role="group" aria-labelledby={labelId} className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
+        <div role="group" aria-labelledby={labelId} className="flex min-h-[10.5rem] min-w-0 flex-1 flex-col gap-1">
           <SectionLabel as="div" id={labelId} className="flex-none">
             Review what was found
           </SectionLabel>
@@ -338,7 +338,7 @@ export function ImportReview({
         // The first lines of the chapter the pointer is over (or the one focused last), in the same title and subtitle lines as the list.
         <section
           aria-label="Preview of the selected heading"
-          className="h-[8.5rem] flex-none overflow-hidden rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
+          className="h-[clamp(4.5rem,14vh,8.5rem)] min-h-0 shrink overflow-hidden rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
           style={{ borderColor: 'var(--border)' }}
         >
           <h3 className="text-sm font-semibold">

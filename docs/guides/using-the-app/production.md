@@ -326,8 +326,8 @@ story; **Select all** and **Select none** change them at once. **Review what was
 view, and under it **Chapters**, **Character suggestions** and, when the importer repaired a heading,
 **Repairs** are an accordion in one bordered box: every group's header is always in view, and opening one
 closes the others, so the open group takes the room and scrolls (the only scroll bar), with the closed
-headers above and below it. Resting the pointer on a chapter shows how it begins in the sample
-pinned under the box, a fixed size so it never jumps, set in the same title and subtitle lines.
+headers above and below it. When more chapters lie below the edge of the open group, its last line fades out, so a cut card reads as more to scroll to. Resting the pointer on a chapter shows how it begins in the sample
+pinned under the box, a fixed size so it never jumps (smaller in a short window, so the chapters keep their room), set in the same title and subtitle lines.
 
 The footer has one secondary action, **Back**, and the import itself. The Close button at the top
 cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &

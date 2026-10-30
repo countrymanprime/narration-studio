@@ -25,7 +25,7 @@ Hover the rail (or tab into it) and it opens over the page with every label; not
 
 With no manuscript yet, the pages that need one are shown off, with a small lock: **Schedule, Script, Story Bible, Booth, Editing,
 Proof, Pickups, Master & QC** and **Delivery**. **Production** (where the import is), the theme item and **Settings** stay on.
-Hover an off item, or tab to it, and a hint says "Import a manuscript to unlock this page." Press it (or press Enter on it) and a
+Rest the pointer on an off item for under half a second, or tab to it, and a hint says "Import a manuscript to unlock this page." Press it (or press Enter on it) and a
 small note opens beside it with the same reason; nothing on the page moves, and Escape closes the note. An off item is still in
 the tab order and keeps its name, so a screen reader reads "Proof, Import a manuscript to unlock this page." The jump menu lists the
 same pages off, with the reason under each, and choosing one does nothing.

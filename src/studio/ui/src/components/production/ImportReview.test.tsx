@@ -203,7 +203,8 @@ describe('ImportReview', () => {
     expect(scroller.contains(options)).toBe(false);
     expect(scroller.contains(sample)).toBe(false);
     expect(scroller.compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(sample.className).toContain('flex-none');
+    // It sizes by the window (never by its text) and gives way before the groups do: in a short window the chapters keep their room (#2656).
+    expect(sample.className).toContain('shrink');
     expect(sample.className).not.toContain('sticky');
   });
 
@@ -216,7 +217,7 @@ describe('ImportReview', () => {
     expect(label.closest('.overflow-y-auto')).toBeNull();
     const sample = screen.getByRole('region', { name: 'Preview of the selected heading' });
     // A fixed height, so a longer first line never changes the box (and the scroll bar above it) while the pointer moves down the list.
-    expect(sample.className).toContain('h-[8.5rem]');
+    expect(sample.className).toContain('h-[clamp(4.5rem,14vh,8.5rem)]');
     expect(sample.className).toContain('overflow-hidden');
   });
 
