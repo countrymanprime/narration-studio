@@ -176,7 +176,7 @@ describe('Voice sample output: layout', () => {
 
   it('with a DAW the sentence is behind a "?" beside Test sound, not drawn in the row', async () => {
     await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
-    const help = await within(row()).findByRole('button', { name: 'About voice sample output' });
+    const help = await within(row()).findByRole('button', { name: 'About where samples play' });
     const test = within(row()).getByRole('button', { name: 'Test sound' });
     expect(test.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(row()).queryByText(DAW_SENTENCE)).toBeNull();
@@ -185,7 +185,7 @@ describe('Voice sample output: layout', () => {
   });
 });
 
-const openHelp = async () => userEvent.setup().click(await within(row()).findByRole('button', { name: 'About voice sample output' }));
+const openHelp = async () => userEvent.setup().click(await within(row()).findByRole('button', { name: 'About where samples play' }));
 
 describe('Voice sample output: no project', () => {
   it('with no project open the choice is off and says to open one', async () => {
@@ -199,7 +199,7 @@ describe('Voice sample output: following "Record with"', () => {
   it('changing the recorder on this page changes the row, in both directions', async () => {
     const api = createMockApi({}, { daw: {} });
     await renderRow(api);
-    await within(row()).findByRole('button', { name: 'About voice sample output' });
+    await within(row()).findByRole('button', { name: 'About where samples play' });
     const group = await screen.findByRole('radiogroup', { name: 'Record with' });
     fireEvent.click(within(group).getByRole('radio', { name: /^Built-in recorder/ }));
     // The project's REAPER file is linked, so the switch waits on the confirm that says what changes.
@@ -207,7 +207,7 @@ describe('Voice sample output: following "Record with"', () => {
     fireEvent.click(within(confirm).getByRole('button', { name: 'Switch to the built-in recorder' }));
     expect(await picker()).toBeTruthy();
     fireEvent.click(within(group).getByRole('radio', { name: /^REAPER/ }));
-    await within(row()).findByRole('button', { name: 'About voice sample output' });
+    await within(row()).findByRole('button', { name: 'About where samples play' });
   });
 });
 
@@ -251,7 +251,7 @@ describe('Voice sample output: device changes', () => {
 describe('Voice sample output: a DAW is connected', () => {
   it('with a DAW the row is a sentence and a test sound, and has no choice', async () => {
     await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
-    await within(row()).findByRole('button', { name: 'About voice sample output' });
+    await within(row()).findByRole('button', { name: 'About where samples play' });
     expect(within(row()).queryByRole('combobox')).toBeNull();
     expect(within(row()).getByRole('button', { name: 'Test sound' })).toBeTruthy();
   });
@@ -298,7 +298,7 @@ describe('Voice sample output: test sound', () => {
   it('with a DAW the test sound is on the default output', async () => {
     await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
     // The row first draws before the project's recorder is known; the button that matters is the one under the sentence.
-    await within(row()).findByRole('button', { name: 'About voice sample output' });
+    await within(row()).findByRole('button', { name: 'About where samples play' });
     fireEvent.click(within(row()).getByRole('button', { name: 'Test sound' }));
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     expect(setSinkId).toHaveBeenCalledWith('');

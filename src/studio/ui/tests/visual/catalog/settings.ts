@@ -29,7 +29,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-sample-output-daw',
     description:
-      'Settings, Recording & DAW with REAPER chosen: the Voice sample output row is a sentence saying samples play on this computer’s default output and REAPER’s own audio device is not changed, with Test sound and no choice',
+      'Settings, Recording & DAW with REAPER chosen: the Voice sample output row is Test sound with a "?" open, saying samples play on this computer’s default output and REAPER’s own audio device is not changed, and no choice',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

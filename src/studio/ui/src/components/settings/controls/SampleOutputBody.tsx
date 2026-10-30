@@ -25,7 +25,7 @@ const NOTE_CLASS = 'max-w-[60ch] text-[0.8125rem] break-words text-[var(--text-m
 /** The words behind the control's "?": what it changes and what it does not. */
 const NOTE = 'Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.';
 /** The "?" beside Test sound. */
-const HELP_LABEL = 'About voice sample output';
+const HELP_LABEL = 'About where samples play';
 /** What the row says with a DAW: samples play in the app, and the DAW's own audio device is left alone. */
 export const dawSentence = (daw: string): string => `Voice samples play on this computer's default output. ${daw}'s own audio device is not used or changed.`;
 export const DAW_SENTENCE = dawSentence('REAPER');
