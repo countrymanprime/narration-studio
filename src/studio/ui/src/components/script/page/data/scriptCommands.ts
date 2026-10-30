@@ -14,6 +14,7 @@ import type { SpeakerAttribution, StoryBibleApi } from '../../../../api/contract
 import { apiErrorMessage } from '../../../../api/errorMessage';
 import { chapterName, type ChapterNameInput } from '../../../../chapterName';
 import type { Command, Journal, Result } from '../../../../studio/journal/createJournal';
+import { attributeCueCommand } from '../../../../studio/commands/attributeCue';
 import type { ScriptData, ScriptList } from './scriptData';
 
 export type ScriptCommandEnv = {
@@ -326,16 +327,7 @@ export async function saveSay(env: ScriptCommandEnv, word: string, say: string, 
 export async function confirmSpeaker(env: ScriptCommandEnv, cueId: string, entryId: string): Promise<Result<Done<null>>> {
   const cue = (await cached(env, 'cues'))?.find((row) => row.id === cueId);
   if (!cue) return refuse('cue-gone', 'That line is no longer in the Story Bible.');
-  const correct = (speaker: string) => async (): Promise<Result<null>> => {
-    const corrected = await attempt(() => env.storyBible.guideCorrectCue(cueId, speaker));
-    return corrected.ok ? { ok: true, value: null } : corrected;
-  };
-  return journalled<null>(env, ['cues', 'entries'], {
-    label: 'Confirmed a speaker',
-    touches: [`storyBible/cues/${cueId}`],
-    run: correct(entryId),
-    undo: correct(cue.speaker_entity_id ?? 'unknown'),
-  });
+  return journalled<null>(env, ['cues', 'entries'], attributeCueCommand(env.storyBible, cue, entryId));
 }
 
 /**

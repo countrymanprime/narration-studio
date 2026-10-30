@@ -418,6 +418,8 @@ While REAPER can play, the page plays the chapter through REAPER and never throu
 
 ## When the DAW is not connected
 
+The project file is linked by one action wherever it is offered (the connection dialog's Settings link, the audio engine panel and the Booth): only one file picker is open at a time.
+
 A dialog says the DAW is not connected, in the app's own words: the DAW's reason ("REAPER is not running."), what the host
 knows (the project is linked but REAPER has not connected; it connected before and stopped answering; no project file is
 linked, so it cannot be started from here), what still works, and when the app last checked. **Start REAPER** runs the
