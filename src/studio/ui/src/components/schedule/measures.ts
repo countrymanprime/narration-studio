@@ -39,7 +39,7 @@ export const chaptersOf = (stored: string | undefined): number => {
 };
 
 /** The longest "first N finished minutes" a book of `words` words has. */
-export const maxMinutes = (words: number): number => Math.max(1, Math.floor((words / WPH) * 60));
+export const maxMinutes = (words: number, wph: number = WPH): number => Math.max(1, Math.floor((words / wph) * 60));
 
 /**
  * The measures the project's delivery profile offers, plus the one the milestone already has: a stored measure is always an offered

@@ -16,7 +16,7 @@ import { StatStrip } from '../primitives/StatStrip';
 import type { Notify } from '../primitives/Toast';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
-import { WPH } from '../schedule/estimates';
+import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
 import { calc, scheduleChapters } from '../schedule/progress';
 import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
@@ -147,6 +147,7 @@ export function ProductionPage({
   const manuscriptImport = useManuscriptImport({ data, go, notify, refreshBootstrap });
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [plan, setPlan] = useState<ProductionPlan>();
+  const rateBasis = useRateBasis(plan?.rateBasis);
   const [caps, setCaps] = useState<DawCapabilities>();
   const today = useMemo(() => new Date(), []);
 
@@ -198,6 +199,7 @@ export function ProductionPage({
   const sessionIds = useMemo(() => (openLines ?? []).filter((line) => line.included).map((line) => line.id), [openLines]);
 
   const measured = useMeasured(measurements, '', sessionIds);
+  const wph = effectiveWph(rateBasis, paceChapters(load.status === 'ready' ? load.overview.chapters : []), measured.answers?.chapterLengths);
   const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
 
@@ -318,10 +320,10 @@ export function ProductionPage({
   }
 
   const due = plan?.deadline ? parseIso(plan.deadline) : null;
-  const k = calc(scheduleChapters(narrated), today, due, openPickups);
+  const k = calc(scheduleChapters(narrated), today, due, openPickups, wph);
   const start = planStart(today);
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
-  const finishedOf = (words: number) => (words / WPH) * 3600;
+  const finishedOf = (words: number) => (words / wph) * 3600;
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
   // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
@@ -329,6 +331,7 @@ export function ProductionPage({
   const rows = buildPipelineRows(pipelineRows, {
     proof: pipelineSources.proof,
     master: pipelineSources.master,
+    wph,
     pickups: pickupsByChapter,
     // A chapter's Prep is the Script page's prep record; a credits chapter's is its template's tokens. Absent until read: "Not measured yet".
     prep: { ...pipelineSources.prep, ...creditsPrep },
@@ -413,7 +416,7 @@ export function ProductionPage({
         <>
           <KpiRow
             k={k}
-            wph={WPH}
+            wph={wph}
             recordedSeconds={recordedHours * 3600}
             due={due}
             openPickups={openPickups}
@@ -427,8 +430,8 @@ export function ProductionPage({
               under it (two short lists drawn the full width put 700 px between a label and its figure); above 1280 three columns, the last
               as wide as the Next up column below it, so the right-hand cards of both rows share their edges (alignment audit XPR2-5). */}
           <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[640px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem] min-[640px]:max-[1281px]:[&>:first-child]:col-span-2">
-            <StageBar segments={stageSegments(narrated, WPH, pipelineSources.master)} wph={WPH} />
-            <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
+            <StageBar segments={stageSegments(narrated, wph, pipelineSources.master)} wph={wph} />
+            <WeekCard figures={weekFigures(log, today, start, due, k.words / wph)} />
             <CheckCountsCard
               counts={counts}
               nameOf={nameOf}
@@ -478,6 +481,7 @@ export function ProductionPage({
                       : null,
                     pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,
                     failing: pipelineSources.failing,
+                    wph,
                   }}
                   onGo={(target, chapterId) => onGo(target, chapterId)}
                   timer={{ running: Boolean(overview.running), starting: timer.starting, onStart: (id, stage) => void timer.start(id, stage) }}
@@ -488,7 +492,7 @@ export function ProductionPage({
               <div className={`grid min-h-0 flex-1 ${CHART_MAX_HEIGHT}`}>
                 <ProgressChart
                   k={k}
-                  wph={WPH}
+                  wph={wph}
                   start={start}
                   today={today}
                   due={due}
