@@ -60,6 +60,8 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
   const hasFiles = items.length > 0 || started;
   // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
   useErrorToast(problem);
+  // A job that ended in error is a toast too, not a red line under the table (rule 7, #2632).
+  useErrorToast(exportJob?.phase === 'error' ? exportJob.message : undefined);
   const shown = hasFiles;
   const revealRef = useRef<HTMLDivElement>(null);
   const wasShown = useRef(shown);
@@ -185,8 +187,8 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
           </div>
         </div>
       )}
-      {exportJob && !exportRunning && exportJob.phase !== 'idle' && (
-        <p aria-live="polite" className={`mt-2 text-sm ${ARRIVE_CLASSES}`} style={exportJob.phase === 'error' ? DANGER : undefined}>
+      {exportJob && !exportRunning && exportJob.phase !== 'idle' && exportJob.phase !== 'error' && (
+        <p aria-live="polite" className={`mt-2 text-sm ${ARRIVE_CLASSES}`}>
           {exportJob.message}
         </p>
       )}

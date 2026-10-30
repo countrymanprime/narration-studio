@@ -44,4 +44,15 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(container.innerHTML).toBe('');
     expect(screen.queryByRole('alert')).toBeNull();
   });
+
+  it('tells a job that ended in error as one toast, and draws no red line under the table (rule 7, #2632)', () => {
+    const failed = {
+      ...jobs({ items: [item] }),
+      exportJob: { id: 'j', phase: 'error', message: 'The encoder stopped.', percent: 40, files: [] },
+    } as unknown as ExportJobs;
+    const { container } = render(<MasterToSpecPanel jobs={failed} />);
+    expect(toastTexts()).toEqual(['The encoder stopped.']);
+    expect(container.textContent).not.toContain('The encoder stopped.');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });
