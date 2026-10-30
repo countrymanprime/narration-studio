@@ -303,7 +303,9 @@ describe('the host, and the other window', () => {
       return real();
     };
     const { user } = setup({}, api);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining("Couldn't read the voice samples. "), { tone: 'error' }));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(expect.stringContaining("Couldn't read the voice samples. "), expect.objectContaining({ tone: 'error' })),
+    );
     expect(toast.mock.calls[0]![0]).toContain('the project is busy');
     expect(screen.queryByRole('alert'), 'nothing in the page flow').toBeNull();
     expect(screen.queryByText(NO_SAMPLES_YET)).toBeNull();
@@ -314,7 +316,7 @@ describe('the host, and the other window', () => {
 
     fail = true;
     await user.click(screen.getByRole('button', { name: 'Check again' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('may be out of date'), { tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('may be out of date'), expect.objectContaining({ tone: 'error' })));
     expect(screen.getByText('Furious, to the court')).toBeTruthy();
   });
 
