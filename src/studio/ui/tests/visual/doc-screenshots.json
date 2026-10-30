@@ -575,6 +575,13 @@
   },
   {
     "page": "settings",
+    "state": "wave-scroll-step",
+    "viewport": "desktop",
+    "docName": "settings-wave-scroll-step",
+    "caption": "Settings - Waveform arrow step under Editing: a slider from 15 to 30 seconds, 20 s by default"
+  },
+  {
+    "page": "settings",
     "state": "global-keyboard",
     "viewport": "desktop",
     "docName": "settings-keyboard",

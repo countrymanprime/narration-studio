@@ -4,6 +4,7 @@ import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { reviewFinding } from '../../studio/commands/reviewFinding';
 import { shownFindingNoteType, type Finding, type FindingNoteType, type FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { describeApiError } from '../../api/errorMessage';
@@ -281,36 +282,20 @@ export function ProofPage({
       const before = listRef.current.find((f) => f.id === request.id);
       if (!before || (before.review.status === request.status && (before.review.note ?? '') === request.note)) return findingsApi.findingsReview(request);
       let failure: unknown;
-      const result = await journal.act({
+      const result = await reviewFinding(journal, findingsApi, before, request, {
         label: `Decision “${decisionLabel(request.status ?? 'unreviewed', fixKindOf(before))}” at ${noteRow(before).time}`,
-        touches: [`proof/finding/${request.id}`],
-        run: async () => {
-          try {
-            return { ok: true as const, value: await findingsApi.findingsReview(request) };
-          } catch (error) {
-            failure = error;
-            return { ok: false as const, refusal: { code: 'host_refused', reason: describeApiError(error) } };
-          }
+        describe: describeApiError,
+        onFailure: (error) => {
+          failure = error;
         },
-        undo: async (decided) => {
-          try {
-            const back = await findingsApi.findingsReview({
-              id: request.id,
-              evidenceVersion: decided.evidence_version ?? '',
-              status: before.review.status,
-              note: before.review.note ?? '',
-            });
-            replace(back);
-            select(request.id);
-            announcePickupListChanged();
-            // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
-            const home = chapterOf(before);
-            if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
-            setReload((n) => n + 1);
-            return { ok: true as const, value: back };
-          } catch (error) {
-            return { ok: false as const, refusal: { code: 'host_refused', reason: describeApiError(error) } };
-          }
+        afterUndo: (back) => {
+          replace(back);
+          select(request.id);
+          announcePickupListChanged();
+          // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
+          const home = chapterOf(before);
+          if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
+          setReload((n) => n + 1);
         },
       });
       // The Inspector tells a stale decision from any other failure by what the host threw, so that is what it gets back.
