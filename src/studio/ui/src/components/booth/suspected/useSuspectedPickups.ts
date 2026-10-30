@@ -70,7 +70,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
         }
       };
       if (withTake && entry !== undefined) overlay.toastUndo(text, undo, { entry });
-      else overlay.toastUndo(text, undo);
+      else overlay.toastUndo(text, undo, { offJournal: 'The findings are accepted straight through the host; no journal command yet (audit cluster 17).' });
       return added.length;
     },
     [teleprompter, findings, overlay],

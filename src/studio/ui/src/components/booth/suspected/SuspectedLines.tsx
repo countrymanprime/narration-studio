@@ -52,24 +52,28 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
       overlay.toast(apiErrorMessage(reason), { tone: 'error' });
       return;
     }
-    overlay.toastUndo('Dismissed.', async () => {
-      const kept = versions.get(key);
-      try {
-        // Reload so the Undo reaches the stored finding even when the answer above changed its version.
-        const latest = await teleprompter.teleprompterSaveFlags(chapterId, [toFlagSave(flag, false)]);
-        const target = latest[0] ?? kept;
-        await findings.findingsReview({
-          id: target.id,
-          evidenceVersion: target.evidence_version ?? kept?.evidenceVersion ?? '',
-          status: 'unreviewed',
-          note: '',
-        });
-        setDismissed((current) => new Set([...current].filter((entry) => entry !== key)));
-        return { ok: true };
-      } catch (reason) {
-        return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
-      }
-    });
+    overlay.toastUndo(
+      'Dismissed.',
+      async () => {
+        const kept = versions.get(key);
+        try {
+          // Reload so the Undo reaches the stored finding even when the answer above changed its version.
+          const latest = await teleprompter.teleprompterSaveFlags(chapterId, [toFlagSave(flag, false)]);
+          const target = latest[0] ?? kept;
+          await findings.findingsReview({
+            id: target.id,
+            evidenceVersion: target.evidence_version ?? kept?.evidenceVersion ?? '',
+            status: 'unreviewed',
+            note: '',
+          });
+          setDismissed((current) => new Set([...current].filter((entry) => entry !== key)));
+          return { ok: true };
+        } catch (reason) {
+          return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
+        }
+      },
+      { offJournal: 'A dismissed suspected line goes through the host review call; no journal command yet (audit cluster 17).' },
+    );
   };
 
   const open = useMemo(() => suspectedCount(flags, dismissed), [flags, dismissed]);
