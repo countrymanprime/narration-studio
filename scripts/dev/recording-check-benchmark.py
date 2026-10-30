@@ -16,6 +16,12 @@ first use). It writes `results.jsonl` and `results.md` to --out, one row per run
 cut into S-second chunks with the 6 s crossover. --workers 0 is the app's Automatic as the sidecar plans it. --recheck-model adds the
 pipelined second look with a larger model (--unsure-below sets the score line).
 
+--rules "current;min10:min=10;words:min=0,pad=1.5,gap=5,line=0.4" runs the second look under each window rule in turn (`recheck_rule.py`: shortest
+window, merge gap, padding and score line; "current" is the shipped one) without changing the sidecar. --corpus DIR --cases ID,ID,... swaps the
+LibriVox spans for cases of the built coverage corpus (`tests/fixtures/audio/librivox-alice/build.py coverage --out DIR`), the defect audio the
+re-check has to catch: each case is run per rule and scored on the host's verdict and findings against the recipe's labels, and on the words lost
+and repeated against a whole-file run of the re-check model (made once per case and kept under --out).
+
 Models are folders named after the model (`tiny`, `small`, `large-v3-turbo`) under --models-dir; one that is missing is downloaded with
 faster-whisper once. Needs the sidecar's environment (faster-whisper, PyAV, numpy); psutil is optional (memory and CPU read "n/a" without it).
 Works on Windows: nothing here is shell-specific.
@@ -26,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -42,6 +49,8 @@ BOUNDARY_SECONDS = 3.0
 OVERLAP_SECONDS = 6
 
 sys.path.insert(0, str(CORPUS))
+sys.path.insert(0, str(REPO / "scripts" / "dev"))
+sys.path.insert(0, str(REPO / "src" / "studio" / "sidecars" / "transcript-compare" / "tests"))
 
 
 @dataclass(frozen=True)
@@ -211,7 +220,16 @@ class Watcher:
         }
 
 
-def run_one(args, wav: Path, minutes: float, unit: Unit, model: str, workers: int, recheck: str | None, work: Path) -> dict:
+def sidecar_command(rule) -> tuple[list[str], dict]:
+    """The command that starts the sidecar and its environment: `compare.py` itself, or `recheck_rule.py` around it under a variant rule."""
+    environment = dict(os.environ, PYTHONPATH=str(SHARED))
+    if rule is None:
+        return [sys.executable, "-u", str(SIDECAR)], environment
+    environment["NARRATION_RECHECK_RULE"] = rule.to_json()
+    return [sys.executable, "-u", str(REPO / "scripts" / "dev" / "recheck_rule.py")], environment
+
+
+def run_one(args, wav: Path, minutes: float, unit: Unit, model: str, workers: int, recheck: str | None, work: Path, rule=None) -> dict:
     import alice_text
 
     run = Path(tempfile.mkdtemp(prefix="run_", dir=work))
@@ -225,8 +243,9 @@ def run_one(args, wav: Path, minutes: float, unit: Unit, model: str, workers: in
         for n in range(unit.items)
     ]
     (run / "manifest.json").write_text(json.dumps({"schemaVersion": 1, "items": items}), encoding="utf-8")
+    launcher, environment = sidecar_command(rule)
     command = [
-        sys.executable, "-u", str(SIDECAR), "--coverage", "--manifest", str(run / "manifest.json"), "--manuscript", str(run / "manuscript.json"),
+        *launcher, "--coverage", "--manifest", str(run / "manifest.json"), "--manuscript", str(run / "manuscript.json"),
         "--chapter-id", chapters[0].id, "--words-dir", str(run / "words"), "--out", str(run / "out.txt"), "--model", model,
         "--model-dir", str(model_dir(args.models_dir, model)), "--language", "en", "--progress", str(run / "progress.txt"), "--log", str(run / "log.txt"),
         "--parallel-workers", str(workers),
@@ -234,8 +253,14 @@ def run_one(args, wav: Path, minutes: float, unit: Unit, model: str, workers: in
     if unit.chunk:
         command += ["--chunk-seconds", str(unit.chunk), "--chunk-overlap-seconds", str(OVERLAP_SECONDS)]
     if recheck:
-        command += ["--recheck-model", recheck, "--recheck-model-dir", str(model_dir(args.models_dir, recheck)), "--unsure-below", str(args.unsure_below)]
-    environment = dict(os.environ, PYTHONPATH=str(SHARED))
+        command += [
+            "--recheck-model",
+            recheck,
+            "--recheck-model-dir",
+            str(model_dir(args.models_dir, recheck)),
+            "--unsure-below",
+            str(rule.line if rule and rule.line is not None else args.unsure_below),
+        ]
     started = time.time()
     process = subprocess.Popen(command, env=environment, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     watcher = Watcher(process.pid)
@@ -243,7 +268,7 @@ def run_one(args, wav: Path, minutes: float, unit: Unit, model: str, workers: in
         watcher.sample()
         time.sleep(0.2)
     wall = time.time() - started
-    row = {"model": model, "recheck": recheck or "", "span_min": minutes, "unit": unit.name, "workers": workers, "ok": process.returncode == 0,
+    row = {"model": model, "recheck": recheck or "", "rule": rule.name if rule else "", "span_min": minutes, "unit": unit.name, "workers": workers, "ok": process.returncode == 0,
            "wall_s": round(wall, 1), "rtf": round(wall / seconds, 3), **watcher.summary()}  # fmt: skip
     if process.returncode == 0:
         row.update(quality(run, unit, seconds, args._reference, args._script, args._window))
@@ -286,13 +311,122 @@ def quality(run: Path, unit: Unit, seconds: float, reference: list[tuple[str, fl
     return result
 
 
+def recheck_seconds(out: Path) -> tuple[int, float]:
+    """(passages, seconds of audio) the larger model re-checked, from the words report's COVERAGE_RECHECKED lines."""
+    count, seconds = 0, 0.0
+    for line in out.read_text(encoding="utf-8").splitlines():
+        if line.startswith("COVERAGE_RECHECKED|"):
+            payload = json.loads(line.partition("|")[2])
+            count += payload.get("windows", 0)
+            seconds += payload.get("seconds", 0.0)
+    return count, seconds
+
+
+def case_words(result, words_dir: Path) -> list[str]:
+    import coverage_mode
+
+    heard: list[str] = []
+    for item in result.items:
+        words = coverage_mode.read_words_file(words_dir / f"{item['index']:03d}-{item['itemGuid']}.json")
+        heard += [t for word in (words.words if words else ()) for t in tokens(word[0])]
+    return heard
+
+
+def run_case(args, case, corpus: Path, model: str, recheck: str | None, rule, work: Path) -> dict:
+    """One corpus case through the sidecar (as the host starts it), the host's aligner and the shipped settings."""
+    import coverage_calibration as cal
+
+    words_dir = work / (rule.name if rule else "plain") / case.id
+    if words_dir.exists():
+        shutil.rmtree(words_dir)
+    cal.write_inputs(case, words_dir)
+    out = words_dir / "results.txt"
+    whisper = cal.Whisper(model, model_dir(args.models_dir, model))
+    argv = cal._sidecar_args(case.chapter.id, corpus / "manuscript.json", words_dir, out, cal.SHIPPED, whisper)
+    argv += ["--parallel-workers", str(args.case_workers), "--chunk-seconds", "60", "--chunk-overlap-seconds", str(OVERLAP_SECONDS)]
+    if recheck:
+        line = rule.line if rule and rule.line is not None else args.unsure_below
+        argv += ["--recheck-model", recheck, "--recheck-model-dir", str(model_dir(args.models_dir, recheck)), "--unsure-below", str(line)]
+    launcher, environment = sidecar_command(rule)
+    started = time.time()
+    done = subprocess.run([*launcher, *argv], env=environment, capture_output=True, text=True, check=False)
+    wall = time.time() - started
+    row = {"rule": rule.name if rule else "", "case": case.id, "split": case.split, "defects": ",".join(c for c in case.conditions if c not in ("title_read",)),
+           "ok": done.returncode == 0, "wall_s": round(wall, 1)}  # fmt: skip
+    if done.returncode != 0:
+        row["error"] = done.stderr[-300:]
+        return row
+    cal.align_results(argv, out, cal.SHIPPED)
+    result = cal.read_results(out, wall)
+    passages, seconds = recheck_seconds(cal.words_report_path(out))
+    played = result.summary["items"]["playedSeconds"]
+    got = cal.text_complete(result, cal.SHIPPED)
+    reference = args._reference_words(case, corpus, model=recheck or model)
+    heard = case_words(result, words_dir)
+    subs, dels, inss, _ = edits(reference, heard)
+    row.update(
+        played_s=round(played), rechecked_windows=passages, rechecked_s=round(seconds), rechecked_share=round(seconds / played, 3) if played else 0,
+        expected_complete=case.expected.text_complete, got_complete=got, present=f"{result.summary['presentTokens']}/{result.summary['bodyTokens']}",
+        longest_missing_run=result.summary["longestMissingRun"], regions=len(result.regions), lost_vs_reference=dels, repeated_vs_reference=inss,
+        swapped_vs_reference=subs, wer_vs_reference=round((subs + dels + inss) / max(1, len(reference)), 4),
+    )  # fmt: skip
+    return row
+
+
+def reference_words(args, case, corpus: Path, model: str) -> list[str]:
+    """The whole case through `model` alone, once; the words a perfect second look would leave."""
+    import coverage_calibration as cal
+
+    words_dir = args.out / "reference" / model / case.id
+    if not (words_dir / "results.txt").exists():
+        words_dir.mkdir(parents=True, exist_ok=True)
+        cal.write_inputs(case, words_dir)
+        out = words_dir / "results.txt"
+        whisper = cal.Whisper(model, model_dir(args.models_dir, model))
+        argv = cal._sidecar_args(case.chapter.id, corpus / "manuscript.json", words_dir, out, cal.SHIPPED, whisper)
+        argv += ["--parallel-workers", str(args.case_workers), "--chunk-seconds", "60", "--chunk-overlap-seconds", str(OVERLAP_SECONDS)]
+        subprocess.run([sys.executable, "-u", str(SIDECAR), *argv], env=dict(os.environ, PYTHONPATH=str(SHARED)), check=True, capture_output=True)
+        cal.align_results(argv, out, cal.SHIPPED)
+    return case_words(cal.read_results(words_dir / "results.txt"), words_dir)
+
+
+def case_table(rows: list[dict]) -> str:
+    columns = ["rule", "case", "defects", "wall_s", "played_s", "rechecked_windows", "rechecked_s", "rechecked_share", "expected_complete", "got_complete", "present",
+               "longest_missing_run", "regions", "lost_vs_reference", "repeated_vs_reference", "swapped_vs_reference", "wer_vs_reference", "error"]  # fmt: skip
+    lines = ["| " + " | ".join(columns) + " |", "|" + "|".join(" - " for _ in columns) + "|"]
+    lines += ["| " + " | ".join(str(row.get(c, "")) for c in columns) + " |" for row in rows]
+    return "\n".join(lines) + "\n"
+
+
 def table(rows: list[dict]) -> str:
-    columns = ["model", "recheck", "span_min", "unit", "workers", "wall_s", "rtf", "processes", "peak_mb_one", "peak_mb_all", "cpu_percent",
+    columns = ["model", "recheck", "rule", "span_min", "unit", "workers", "wall_s", "rtf", "processes", "peak_mb_one", "peak_mb_all", "cpu_percent",
                "wer_vs_text", "wer_vs_reference", "lost_vs_reference", "repeated_vs_reference", "errors_at_chunk_edges", "rechecked_passages"]  # fmt: skip
     lines = ["| " + " | ".join(columns) + " |", "|" + "|".join(" - " for _ in columns) + "|"]
     for row in rows:
         lines.append("| " + " | ".join(str(row.get(c, "")) for c in columns) + " |")
     return "\n".join(lines) + "\n"
+
+
+def run_corpus(args, rules) -> None:
+    import coverage_harness as harness
+
+    corpus = args.corpus.resolve()
+    wanted = [c for c in args.cases.split(",") if c]
+    cases = [c for c in harness.load_corpus(corpus).cases if not wanted or c.id in wanted]
+    if not cases or (wanted and len(cases) != len(wanted)):
+        raise SystemExit(f"--cases: {wanted} are not all in {corpus}")
+    args._reference_words = lambda case, corpus_dir, model: reference_words(args, case, corpus_dir, model)
+    rows: list[dict] = []
+    with open(args.out / "cases.jsonl", "a", encoding="utf-8") as sink:
+        for case in cases:
+            for rule in rules:
+                row = run_case(args, case, corpus, args.models.split(",")[0], args.recheck_model, rule, args.out)
+                rows.append(row)
+                sink.write(json.dumps(row) + "\n")
+                sink.flush()
+                print(json.dumps(row), flush=True)
+    (args.out / "cases.md").write_text(case_table(rows), encoding="utf-8")
+    print(f"wrote {args.out / 'cases.md'}")
 
 
 def main() -> None:
@@ -302,12 +436,22 @@ def main() -> None:
     parser.add_argument("--units", default="whole,items:10", help="whole, items:N, chunk:S, comma-separated")
     parser.add_argument("--workers", default="1,2,4,0", help="worker counts; 0 is Automatic")
     parser.add_argument("--recheck-model", default=None, help="a larger model for the pipelined second look")
+    parser.add_argument("--rules", default="current", help='window rules to try, e.g. "current;min10:min=10;words:min=0,pad=1.5,gap=5,line=0.4"')
+    parser.add_argument("--corpus", type=Path, default=None, help="a built coverage corpus (build.py coverage --out DIR): run its cases instead of the spans")
+    parser.add_argument("--cases", default="", help="with --corpus: case ids, comma-separated (default all)")
+    parser.add_argument("--case-workers", type=int, default=2, help="with --corpus: parallel workers per case")
     parser.add_argument("--unsure-below", type=float, default=0.5)
     parser.add_argument("--models-dir", type=Path, default=Path.home() / ".cache" / "narration-benchmark" / "models")
     parser.add_argument("--out", type=Path, default=Path("narration-benchmark"))
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     args.models_dir.mkdir(parents=True, exist_ok=True)
+    import recheck_rule
+
+    rules = recheck_rule.parse_rules(args.rules)
+    if args.corpus:
+        run_corpus(args, rules)
+        return
     rows: list[dict] = []
     with open(args.out / "results.jsonl", "a", encoding="utf-8") as sink:
         for minutes in (float(m) for m in args.spans.split(",")):
@@ -317,11 +461,12 @@ def main() -> None:
             for model in args.models.split(","):
                 for unit in (parse_unit(u) for u in args.units.split(",")):
                     for workers in (int(w) for w in args.workers.split(",")):
-                        row = run_one(args, wav, minutes, unit, model, workers, args.recheck_model, args.out)
-                        rows.append(row)
-                        sink.write(json.dumps(row) + "\n")
-                        sink.flush()
-                        print(json.dumps(row), flush=True)
+                        for rule in rules if args.recheck_model else [None]:
+                            row = run_one(args, wav, minutes, unit, model, workers, args.recheck_model, args.out, rule)
+                            rows.append(row)
+                            sink.write(json.dumps(row) + "\n")
+                            sink.flush()
+                            print(json.dumps(row), flush=True)
     (args.out / "results.md").write_text(table(rows), encoding="utf-8")
     print(f"wrote {args.out / 'results.md'}")
 
