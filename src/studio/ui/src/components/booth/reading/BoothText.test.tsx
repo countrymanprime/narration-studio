@@ -62,6 +62,48 @@ describe('read and unread text colour', () => {
   });
 });
 
+describe('words-read-are-dimmed-one-by-one', () => {
+  const words = (state: string) => [...document.querySelectorAll<HTMLElement>(`[data-state="${state}"] [data-word]`)];
+
+  it('dims every word before the current one inside the sentence being read, and nothing at or after it', () => {
+    setup();
+    const cur = words('cur');
+    const at = cur.findIndex((word) => word.hasAttribute('data-current'));
+    expect(at).toBeGreaterThan(0);
+    cur.forEach((word, i) => {
+      expect(word.hasAttribute('data-read'), `word ${i}`).toBe(i < at);
+    });
+  });
+
+  it('dims the current word never, and the words of a sentence not yet read never', () => {
+    setup();
+    expect(document.querySelector('[data-current]')!.hasAttribute('data-read')).toBe(false);
+    for (const word of words('next')) expect(word.hasAttribute('data-read')).toBe(false);
+  });
+
+  it('dims every word of a sentence already read', () => {
+    setup();
+    const done = words('done');
+    expect(done.length).toBeGreaterThan(0);
+    for (const word of done) expect(word.hasAttribute('data-read')).toBe(true);
+  });
+
+  it('moves the dimming one word with the cursor', () => {
+    const { rerender, props } = setup({ position: { paragraphId: 'p2', word: 5 } });
+    const before = document.querySelectorAll('[data-read]').length;
+    rerender(<BoothText {...props} position={{ paragraphId: 'p2', word: 6 }} />);
+    expect(document.querySelectorAll('[data-read]').length).toBe(before + 1);
+  });
+
+  it('dims a tinted word before the cursor in the sentence being read', () => {
+    setup({ position: { paragraphId: 'p1', word: 3 } });
+    const garden = [...document.querySelectorAll<HTMLElement>('[data-word]')].find((word) => word.textContent === 'garden')!;
+    expect(garden.hasAttribute('data-read')).toBe(true);
+    expect(garden.style.color).toBe('var(--text-muted)');
+    expect(garden.style.boxShadow).toBe('inset 0 -2px 0 var(--place)');
+  });
+});
+
 describe('one-phrase-is-lit-the-ones-read-are-dimmed-and-one-word-is-marked', () => {
   it('lights one phrase, dims the ones read and marks exactly one word with no trailing space', () => {
     setup();

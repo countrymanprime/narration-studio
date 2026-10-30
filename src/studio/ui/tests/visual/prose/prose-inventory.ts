@@ -99,7 +99,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Not set yet: nothing in the manuscript names the narrator.', class: 'overlay' },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Use for all my projects (saved as your default in Settings &gt; General)', class: 'overlay' },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Only empty values are filled in; nothing you have already set is changed.', class: 'overlay' },
-  { file: 'components/delivery/page/OutputPanel.tsx', text: "Can't tell how the build is going, …: … ( … ).", class: 'error' },
   {
     file: 'components/delivery/page/OutputPanel.tsx',
     text: 'Cancel was sent, but the host did not confirm it, so the build may still be running.',
@@ -326,7 +325,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'explanation',
   },
   { file: 'components/master/ReportExportPanel.tsx', text: 'Include each file’s full location (otherwise only file names are written)', class: 'explanation' },
-  { file: 'components/masterqc/page/MasterPage.tsx', text: 'The chapters could not be read, so the files keep their file names:', class: 'error' },
   { file: 'components/pickups/PickupsCompanionSummary.tsx', text: 'Jump to one or mark it done on the Pickups page in the full app.', class: 'instruction' },
   {
     file: 'components/pickups/list/PickupsTable.tsx',

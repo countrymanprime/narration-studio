@@ -32,7 +32,7 @@ import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
 import { KpiRow } from './overview/KpiRow';
 import { ProductionSkeleton } from './overview/ProductionSkeleton';
-import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
+import { bookFigures, checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
@@ -308,6 +308,8 @@ export function ProductionPage({
   const k = calc(scheduleChapters(narrated), today, due, openPickups, wph);
   const start = planStart(today);
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
+  // One book for the figures strip, the stage bar and the week: its finished length and how much of it is recorded (#2634).
+  const book = bookFigures(narrated, wph, pipelineSources.master);
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
   // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
@@ -400,8 +402,7 @@ export function ProductionPage({
         <>
           <KpiRow
             k={k}
-            wph={wph}
-            recordedSeconds={recordedHours * 3600}
+            book={book}
             due={due}
             openPickups={openPickups}
             pickupMinutes={pickupMinutes}
@@ -415,7 +416,7 @@ export function ProductionPage({
               as wide as the Next up column below it, so the right-hand cards of both rows share their edges (alignment audit XPR2-5). */}
           <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[640px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem] min-[640px]:max-[1281px]:[&>:first-child]:col-span-2">
             <StageBar segments={stageSegments(narrated, wph, pipelineSources.master)} wph={wph} />
-            <WeekCard figures={weekFigures(log, today, start, due, k.words / wph)} />
+            <WeekCard figures={weekFigures(log, today, start, due, book.finishedHours)} />
             <CheckCountsCard
               counts={counts}
               nameOf={nameOf}

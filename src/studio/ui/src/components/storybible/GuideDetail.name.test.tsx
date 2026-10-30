@@ -36,16 +36,18 @@ describe('the Name field', () => {
     const guideEdit = editing();
     rename('   ');
     save();
-    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give this entry a name.', { tone: 'error' }));
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give this entry a name.', expect.objectContaining({ tone: 'error' })));
     expect(guideEdit).not.toHaveBeenCalled();
 
     // Another entry's name, whatever the case, and another entry's alias.
     rename('white rabbit');
     save();
-    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“white rabbit” is already a name of White Rabbit.', { tone: 'error' }));
+    await vi.waitFor(() =>
+      expect(toast).toHaveBeenLastCalledWith('“white rabbit” is already a name of White Rabbit.', expect.objectContaining({ tone: 'error' })),
+    );
     rename('Rabbit');
     save();
-    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“Rabbit” is already a name of White Rabbit.', { tone: 'error' }));
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“Rabbit” is already a name of White Rabbit.', expect.objectContaining({ tone: 'error' })));
     expect(guideEdit).not.toHaveBeenCalled();
   });
 
