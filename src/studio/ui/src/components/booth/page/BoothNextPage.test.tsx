@@ -234,7 +234,8 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     expect(screen.getByRole('status', { name: 'Take status' }).textContent).toBe('');
   });
 
-  it('a pedal only starts and stops: no other key but R records, and nothing rolls or flags', async () => {
+  // R is no longer in this list: Punch and roll now starts a take when none runs (next test). A pedal still sends only Space (ruling CF-4).
+  it('a pedal only starts and stops: no other key records, rolls or flags', async () => {
     const page = renderPage();
     await ready();
     for (const [key, code] of [
