@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { toastTexts } from '../../overlay/toastTesting';
+import { toastTexts } from '../../fixtures/toasts';
 import { MasteringChain } from './MasteringChain';
 
 afterEach(cleanup);

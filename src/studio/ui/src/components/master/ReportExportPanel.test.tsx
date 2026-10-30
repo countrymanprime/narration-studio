@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi } from '../../types';
-import { findToast } from '../../overlay/toastTesting';
+import { findToast } from '../../fixtures/toasts';
 import { ReportExportPanel } from './ReportExportPanel';
 import { brand } from '../../brand.gen';
 

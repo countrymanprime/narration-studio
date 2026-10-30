@@ -2,7 +2,7 @@ import { afterEach, vi } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
 import fc from 'fast-check';
 import { forgetProofMemory } from './components/proof/proofMemory';
-import { clearToasts } from './overlay/toastTesting';
+import { clearToasts } from './fixtures/toasts';
 
 // Testing Library's findBy* and waitFor give up after 1 s by default. Vitest runs test files in parallel workers, and a
 // page that mounts the whole app or a long chapter in jsdom can take longer than that when the machine is busy: two of 25

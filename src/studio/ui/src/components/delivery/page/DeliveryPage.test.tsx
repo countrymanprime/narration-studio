@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
-import { findToast } from '../../../overlay/toastTesting';
+import { findToast } from '../../../fixtures/toasts';
 import { createMockApi } from '../../../api/mockApi';
 import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi, PackageJob } from '../../../types';
 import { chapterName } from '../../../chapterName';

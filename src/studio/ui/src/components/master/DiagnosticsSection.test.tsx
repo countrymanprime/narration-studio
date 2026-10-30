@@ -10,7 +10,7 @@ import { providedCommands } from '../../input/commandProviders';
 import { diagnosticsJobSchema } from '../../api/schemas/diagnostics';
 import type { Bootstrap, DiagnosticsJob, NarrationApi } from '../../types';
 import { MasterPage } from '../masterqc/page/MasterPage';
-import { findToast } from '../../overlay/toastTesting';
+import { findToast } from '../../fixtures/toasts';
 import { PageHost } from '../masterqc/page/testPage';
 
 afterEach(cleanup);

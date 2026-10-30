@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExportItem } from '../../types';
-import { toastTexts } from '../../overlay/toastTesting';
+import { toastTexts } from '../../fixtures/toasts';
 import { MasterToSpecPanel } from './MasterToSpecPanel';
 import type { ExportJobs } from './useExportJobs';
 

@@ -1,5 +1,5 @@
 import { waitFor } from '@testing-library/react';
-import { overlay } from './overlayService';
+import { overlay } from '../overlay/overlayService';
 import type { ToastMessage } from '../components/primitives/Toast';
 
 /** What the app has told the narrator as toasts right now, newest last. For tests: errors are toasts, never text in a page's flow (rule 7). */

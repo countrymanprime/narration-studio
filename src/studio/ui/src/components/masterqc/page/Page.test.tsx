@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeChapters } from '../../../fixtures/chapters';
 import type { DeliveryProfile, MeasureFileResult, NarrationApi } from '../../../types';
-import { findToast, pressToastAction, toastTexts } from '../../../overlay/toastTesting';
+import { findToast, pressToastAction, toastTexts } from '../../../fixtures/toasts';
 import { chapterStates } from '../../delivery/page/chapterStates';
 import { MasterPage } from './MasterPage';
 import { ALL_PASS, CHAPTERS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing, withCredits } from './testPage';

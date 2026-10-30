@@ -2,7 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DeliveryProfile, MultiPackageJob, MultiPackageResult } from '../../types';
-import { toastTexts } from '../../overlay/toastTesting';
+import { toastTexts } from '../../fixtures/toasts';
 import { MultiPlatformExportPanel } from './MultiPlatformExportPanel';
 import type { ExportJobs } from './useExportJobs';
 

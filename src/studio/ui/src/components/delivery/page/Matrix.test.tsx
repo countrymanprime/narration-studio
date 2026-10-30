@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
-import { findToast, pressToastAction, toasts, toastTexts } from '../../../overlay/toastTesting';
+import { findToast, pressToastAction, toasts, toastTexts } from '../../../fixtures/toasts';
 import { MOCK_ACX, mockCustomProfile } from '../../../api/deliveryProfilesMock';
 import { createMockApi } from '../../../api/mockApi';
 import { StudioProvider } from '../../../studio/StudioProvider';

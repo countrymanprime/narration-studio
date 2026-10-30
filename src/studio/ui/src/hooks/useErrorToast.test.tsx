@@ -2,7 +2,7 @@
 import { renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { overlay } from '../overlay/overlayService';
-import { toastTexts } from '../overlay/toastTesting';
+import { toastTexts } from '../fixtures/toasts';
 import { useErrorToast } from './useErrorToast';
 
 afterEach(() => vi.restoreAllMocks());

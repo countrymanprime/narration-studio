@@ -10,7 +10,7 @@ import { createMockDawClient, type DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { MeasureFileResult, MeasureJob, NarrationApi } from '../../../types';
-import { findToast, toastTexts } from '../../../overlay/toastTesting';
+import { findToast, toastTexts } from '../../../fixtures/toasts';
 import { MasterPage } from './MasterPage';
 import { acx, apiOf, jobOf, passing, withCredits } from './testPage';
 
