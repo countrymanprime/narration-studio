@@ -88,7 +88,8 @@ type UnitProps = {
   seekWord: (unit: BoothUnit, word: number) => number;
 };
 
-// Only what has been read is dimmed: the sentence being read and every sentence not yet read keep the full text colour (the mock's --bup is --ink).
+// Only what has been read is dimmed: the sentence being read keeps the full text colour from its current word on (the words before it are dimmed
+// one by one, `said` in `UnitView`), and every sentence not yet read keeps it whole (the mock's --bup is --ink).
 const MODE_TONE: Record<Mode, string> = { done: 'text-[var(--text-muted)]', cur: 'text-[var(--text)]', next: 'text-[var(--text)]' };
 
 type Token = UnitWords['words'][number];
@@ -151,7 +152,9 @@ const UnitView = memo(function UnitView({
         {words.lead}
         {words.words.map((token) => {
           const now = mode === 'cur' && token.index === wcur;
+          // Words already read are dimmed one by one, not by sentence: every word of a sentence read, and the words before the cursor in the one being read.
           const said = mode === 'cur' && token.index < wcur;
+          const read = mode === 'done' || said;
           const heard = token.index === ghost;
           const look = wordLook(token, now, said);
           return (
@@ -159,6 +162,7 @@ const UnitView = memo(function UnitView({
               <span
                 data-word={token.index}
                 data-current={now ? '' : undefined}
+                data-read={read ? '' : undefined}
                 data-ghost={heard ? '' : undefined}
                 data-find={token.find ? (token.find.kind === 'find' && token.find.current ? 'current' : 'match') : undefined}
                 aria-current={now ? 'true' : undefined}
@@ -169,7 +173,7 @@ const UnitView = memo(function UnitView({
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''
-                } ${heard ? GHOST : ''}`}
+                } ${said ? 'text-[var(--text-muted)]' : ''} ${heard ? GHOST : ''}`}
               >
                 {token.text}
               </span>
