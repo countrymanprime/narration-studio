@@ -37,7 +37,6 @@ export function overviewFor(
   const book = bookFigures(chapters, WPH, master);
   const kpi: KpiInputs = {
     k,
-    wph: WPH,
     book,
     due,
     openPickups,
