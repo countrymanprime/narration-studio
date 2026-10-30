@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { DeliveryProfile, DeliveryRule } from '../../types';
 import { Disclosure } from '../primitives/Disclosure';
+import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { describeCheck, profileCounts, requirementOwner } from './deliveryProfile';
@@ -41,9 +42,15 @@ function sourceLine(profile: DeliveryProfile): string {
   const { title, url, readOn } = profile.source;
   const host = url ? ` (${new URL(url).host})` : '';
   if (profile.builtIn) {
-    return `Every rule cites ${title}${host}, read ${readOn}. Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met. This is a measurement, not ${profile.platform}'s approval.`;
+    return `Every rule cites ${title}${host}, read ${readOn}.`;
   }
-  return `Custom, revision ${profile.revision}${profile.note ? `. ${profile.note}` : ''}. Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.`;
+  return `Custom, revision ${profile.revision}${profile.note ? `. ${profile.note}` : ''}.`;
+}
+
+/** What the "?" beside the source says: how a file is judged, kept out of the page. */
+function judgingNote(profile: DeliveryProfile): string {
+  const judged = 'Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.';
+  return profile.builtIn ? `${judged} This is a measurement, not ${profile.platform}'s approval.` : judged;
 }
 
 /**
@@ -65,8 +72,9 @@ function ProfileBody({ profile, open, onOpenChange }: { profile: DeliveryProfile
   const owner = requirementOwner(profile);
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm" style={MUTED}>
-        {sourceLine(profile)}
+      <p className="flex items-center gap-2 text-sm" style={MUTED}>
+        <span>{sourceLine(profile)}</span>
+        <HelpButton label="About how files are judged">{judgingNote(profile)}</HelpButton>
       </p>
       <ul aria-label="Rules at a glance" className="flex flex-wrap gap-2">
         <li>

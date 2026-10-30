@@ -54,7 +54,7 @@ a take running, or the built-in recorder not available) says why under the radio
 While REAPER or Audacity is linked, choosing the **Built-in recorder** first asks **Stop recording with REAPER?** (or
 Audacity): new takes would go to the project's own folder, takes already in the DAW stay there and the Booth, Editing and
 Proof stop reading them, and the link is kept, so choosing the DAW again brings them back. **Keep REAPER** leaves the
-project as it was. Use it only when the DAW cannot be used at all.
+project as it was. Use it only when the DAW cannot be used at all; the **?** beside the **Built-in recorder** option says so.
 
 ![Settings - Recording: the confirm before a project linked to REAPER switches to the built-in recorder](../../images/ui/settings-recording-builtin-confirm.webp)
 
@@ -84,10 +84,10 @@ recorder the project uses (for example "Audacity's own audio device is not used 
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
 project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
-in the app's own audio, so with a DAW the row is **Test sound** with a note under it: samples play on this computer's default output and the DAW's own audio
+in the app's own audio, so with a DAW the row is **Test sound** with a **?** beside it: samples play on this computer's default output and the DAW's own audio
 device is not used or changed. An output that is not connected stays chosen, with a notice that samples play on the system default
 until it is back; the list is read again when the window gets focus and every few seconds while the notice shows. If the audio
-system will not list its outputs, the row says so and the choice is off. Taking and read-aloud keep using the microphone and output
+system will not list its outputs, the row says so and the choice is off. The **?** beside **Test sound** says the same for the built-in list. Taking and read-aloud keep using the microphone and output
 you chose elsewhere, and the row does not check whether a take is recording.
 
 ![Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound](../../images/ui/settings-sample-output.webp)

@@ -245,8 +245,8 @@ before it goes ahead.
 **FX in REAPER** lists the plug-ins on the project's tracks and its master track as REAPER holds them now: where each one
 sits, its name, and whether it is switched on there. It reads REAPER and changes nothing, so a plug-in you add or bypass in
 REAPER shows here when you come back to the app or press **Check again**; the list says when REAPER last answered. If REAPER
-cannot be read the section says why instead of showing an old list. To put a plug-in on words, use **Choose in REAPER…**
-(below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
+cannot be read the section says why instead of showing an old list. The **?** beside the heading says how a plug-in gets onto words:
+use **Choose in REAPER…** (below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
 
 ### Choose any plug-in in REAPER
 
