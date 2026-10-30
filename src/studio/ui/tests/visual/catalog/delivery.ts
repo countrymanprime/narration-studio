@@ -2,7 +2,7 @@
 // Delivery page (SN-M5): the profile card, Output, the profile's rules and the "Before you build" aside. `?mockDelivery=` boots
 // every chapter measured and passing with the files mastered and encoded, so Build is on and the build's own states can be captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 
 export const deliveryStates: StateEntry[] = [
   {
@@ -16,6 +16,7 @@ export const deliveryStates: StateEntry[] = [
     state: 'measured',
     description:
       'Delivery with the book already checked (?mockMeasure=spread) - "Before you build" counting the chapters that pass, each row opening the chapter in Master & QC, and Output with Build off, counting the chapters not ready and naming the first of them in red ("Opening credits: no measured file yet.")',
+    ...REFLOW,
   },
   {
     page: 'delivery',
@@ -92,4 +93,5 @@ export const deliveryStates: StateEntry[] = [
       'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
   },
 ];
-deliveryStates.push(wholePage(deliveryStates, 'measured'));
+// Since the Output reason sits in the Build row (#2632) the page fits the desktop window, so its whole height is the window there.
+deliveryStates.push(wholePage(deliveryStates, 'measured', ['desktop']));

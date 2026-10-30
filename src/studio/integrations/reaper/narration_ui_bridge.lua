@@ -92,6 +92,51 @@ M.HEARTBEAT_INTERVAL_SECONDS = 1.5
 -- (the startup script starts one at every REAPER start). The marker file says the loop that wrote it has not stopped.
 M.SESSION_SECTION, M.SESSION_KEY, M.RUNNING_FILE = core.brand.identity.reaperResourceFolder, 'session', 'bridge-running.txt'
 
+-- The timing diagnostic (#2251, docs/research/reaper-bridge-performance.md), off unless the non-persistent ExtState
+-- M.SESSION_SECTION / M.TIMING_KEY holds any value. On, the loop times each tick, the commands-folder listing and each
+-- command, and every TIMING_REPORT_SECONDS appends one summary line to <session>/TIMING_FILE and REAPER's console. Off, it
+-- reads the switch once every TIMING_CHECK_SECONDS and writes nothing. A line holds counts, milliseconds and the names of
+-- registered commands only.
+M.TIMING_KEY, M.TIMING_FILE = 'bridge_timing', 'bridge-timing.log'
+M.TIMING_CHECK_SECONDS, M.TIMING_REPORT_SECONDS = 1, 10
+
+local function new_timing(now)
+  return { started = now, ticks = {}, listing_total = 0, listing_max = 0, commands = {} }
+end
+local function percentile(sorted, q)
+  return sorted[math.min(#sorted, math.floor(q * #sorted) + 1)] or 0
+end
+local function timing_line(timing, now)
+  local ticks, total = timing.ticks, 0
+  table.sort(ticks)
+  for _, value in ipairs(ticks) do
+    total = total + value
+  end
+  local window = now - timing.started
+  local parts = {
+    os.date('!%Y-%m-%dT%H:%M:%SZ'),
+    string.format('window_s=%.1f ticks=%d', window, #ticks),
+    string.format(
+      'tick_ms p50=%.3f p99=%.3f max=%.3f busy=%.2f%%',
+      percentile(ticks, 0.5) * 1000,
+      percentile(ticks, 0.99) * 1000,
+      (ticks[#ticks] or 0) * 1000,
+      window > 0 and 100 * total / window or 0
+    ),
+    string.format('listing_ms total=%.1f max=%.3f', timing.listing_total * 1000, timing.listing_max * 1000),
+  }
+  local names = {}
+  for name in pairs(timing.commands) do
+    names[#names + 1] = name
+  end
+  table.sort(names)
+  for _, name in ipairs(names) do
+    local command = timing.commands[name]
+    parts[#parts + 1] = string.format('%s n=%d total_ms=%.1f max_ms=%.1f', name, command.n, command.total * 1000, command.max * 1000)
+  end
+  return table.concat(parts, ' ') .. '\n'
+end
+
 -- The session folder of the bridge loop running in this REAPER, or nil when none runs.
 function M.live_session()
   local session_dir = reaper.GetExtState(M.SESSION_SECTION, M.SESSION_KEY)
@@ -140,8 +185,12 @@ function M.run(session_dir, registry)
   -- last_play_state is GetPlayState's value in the last heartbeat sent: a change (play, record, stop) sends one at once,
   -- so the host learns REAPER started recording without waiting out the interval.
   local last_play_state = nil
+  -- The time the last heartbeat read, so checking the timing switch costs no clock read of its own; and the timing being
+  -- collected, nil while the diagnostic is off.
+  local last_now, timing, timing_checked_at = nil, nil, nil
   local function heartbeat()
     local now = reaper.time_precise()
+    last_now = now
     local play_state = reaper.GetPlayState()
     if last_heartbeat_at and (now - last_heartbeat_at) < M.HEARTBEAT_INTERVAL_SECONDS and play_state == last_play_state then
       return
@@ -162,8 +211,41 @@ function M.run(session_dir, registry)
     local play_position = string.format('%.6f', reaper.GetPlayPosition() or 0)
     ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)
   end
+  local function check_timing()
+    if not last_now or (timing_checked_at and last_now - timing_checked_at < M.TIMING_CHECK_SECONDS) then
+      return
+    end
+    timing_checked_at = last_now
+    if reaper.GetExtState(M.SESSION_SECTION, M.TIMING_KEY) == '' then
+      timing = nil
+    elseif not timing then
+      timing = new_timing(reaper.time_precise())
+    end
+  end
+  local function report_timing(started)
+    local now = reaper.time_precise()
+    timing.ticks[#timing.ticks + 1] = now - started
+    if now - timing.started < M.TIMING_REPORT_SECONDS then
+      return
+    end
+    local line = timing_line(timing, now)
+    local handle = io.open(core.join(session_dir, M.TIMING_FILE), 'a')
+    if handle then
+      handle:write(line)
+      handle:close()
+    end
+    reaper.ShowConsoleMsg(line)
+    timing = new_timing(now)
+  end
   local function tick()
-    for _, name in ipairs(core.command_files(commands_dir)) do
+    check_timing()
+    local started = timing and reaper.time_precise()
+    local names = core.command_files(commands_dir)
+    if timing then
+      local listing = reaper.time_precise() - started
+      timing.listing_total, timing.listing_max = timing.listing_total + listing, math.max(timing.listing_max, listing)
+    end
+    for _, name in ipairs(names) do
       local path = core.join(commands_dir, name)
       local handle = io.open(path, 'r')
       -- A file that cannot be opened is already gone (a listing can be stale): nothing to run, nothing to report.
@@ -181,8 +263,15 @@ function M.run(session_dir, registry)
             for index = 3, #command do
               args[#args + 1] = command[index]
             end
+            local command_started = timing and reaper.time_precise()
             -- One append for everything the command answers (narration_bridge_core.lua, batched).
             core.batched(handler, ctx, args)
+            if timing then
+              local spent = reaper.time_precise() - command_started
+              local entry = timing.commands[command[2]] or { n = 0, total = 0, max = 0 }
+              entry.n, entry.total, entry.max = entry.n + 1, entry.total + spent, math.max(entry.max, spent)
+              timing.commands[command[2]] = entry
+            end
           else
             ctx.event('ERROR', command[3] or '', 'Unsupported workspace command')
           end
@@ -193,6 +282,9 @@ function M.run(session_dir, registry)
     -- A host that holds a watch lease (watch_transport, narration_transport.lua) is sent the transport as it changes.
     if registry.transport_watch_tick then
       registry.transport_watch_tick(ctx)
+    end
+    if timing then
+      report_timing(started)
     end
     if active then
       reaper.defer(tick)

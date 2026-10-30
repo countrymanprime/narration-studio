@@ -324,10 +324,11 @@ chapters, and the title and author in them are offered when you set up the credi
 suggestions are switches too, each with the number of times the character's first name appears in the
 story; **Select all** and **Select none** change them at once. **Review what was found** is always in
 view, and under it **Chapters**, **Character suggestions** and, when the importer repaired a heading,
-**Repairs** are an accordion in one bordered box: every group's header is always in view, and opening one
-closes the others, so the open group takes the room and scrolls (the only scroll bar), with the closed
-headers above and below it. Resting the pointer on a chapter shows how it begins in the sample
-pinned under the box, a fixed size so it never jumps, set in the same title and subtitle lines.
+**Repairs** are an accordion in one bordered box: opening one group closes the others. In a window too short
+for the whole review, the dialog scrolls as one, so no header or chapter is cut and the last chapter is reachable; the footer
+stays in view. A book with hundreds of chapters scrolls its list inside the box, which stops growing at about 22 rem, and the
+list's last line fades out while more lies below it. Resting the pointer on a chapter shows how it begins in the sample
+under the box, a fixed size so it never jumps, set in the same title and subtitle lines.
 
 The footer has one secondary action, **Back**, and the import itself. The Close button at the top
 cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &
