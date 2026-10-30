@@ -126,8 +126,9 @@ it does not check, how many are for you to listen for, how many are off and how 
 Open **Rules and their sources** for every rule with what the platform requires, how the app checks it,
 and whether that requirement was read on the platform's own page (**Verified**), is still **To verify**,
 or has **Conflicting sources** (room tone at the head of a file: ACX's page was read as 1 to 5 s, current
-guides say 0.5 to 1 s, so the app judges the looser 0.5 to 5 s). The profile is a measurement, not ACX's
-approval.
+guides say 0.5 to 1 s, so the app judges the looser 0.5 to 5 s). The **?** beside the source line says how a file is
+judged, rule by rule, and that a rule the app cannot check is listed and never counted as met. The profile is a
+measurement, not ACX's approval.
 
 ![The ACX profile's rules and their sources](../../images/ui/delivery-profile-rules.webp)
 
