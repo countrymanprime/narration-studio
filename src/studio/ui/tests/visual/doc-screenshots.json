@@ -1194,7 +1194,7 @@
     "state": "following",
     "viewport": "desktop",
     "docName": "booth-following",
-    "caption": "Booth - six seconds into a take: the text follows the voice"
+    "caption": "Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice"
   },
   {
     "page": "booth",
