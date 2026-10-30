@@ -230,7 +230,16 @@ export function BoothText({
 
   const box = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
-  const { onWheel } = useBrowseView({ box, text, cur: followed.cur, wcur: followed.wcur, browse, onBrowse, viewRef });
+  const { onWheel } = useBrowseView({
+    box,
+    text,
+    cur: followed.cur,
+    wcur: followed.wcur,
+    paragraphIndex: units[followed.cur]?.paragraphIndex,
+    browse,
+    onBrowse,
+    viewRef,
+  });
 
   // Every sentence is a memoised view: a step moves the reading position and must re-render the two sentences it touches, not every word of the
   // chapter. So what each sentence is given stays the same between renders: the callbacks read the latest props through a ref, and the list of

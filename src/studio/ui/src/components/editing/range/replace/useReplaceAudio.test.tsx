@@ -178,7 +178,7 @@ describe("Replace with another narrator's audio", () => {
     await waitFor(() => expect(action('Put my audio back')).toBeTruthy());
     expect(menuItems('p-1:0').map((i) => i.label)).toContain("Put my audio back (now Eric Leach's)");
 
-    const entry = toastUndo.mock.calls[0]?.[2]?.entry as number;
+    const entry = (toastUndo.mock.calls[0]?.[2] as { entry: number }).entry;
     let undone: unknown;
     await act(async () => void (undone = await journal.undo(entry)));
     expect(undone).toMatchObject({ ok: true });

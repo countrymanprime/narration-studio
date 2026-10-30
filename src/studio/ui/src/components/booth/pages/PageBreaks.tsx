@@ -1,9 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { BoundaryMarker } from '../../primitives/BoundaryMarker';
+import { wordElements } from '../reading/wordElements';
 import type { PageBreak } from './pageBreaks';
-
-/** The word under `[data-unit]` and `[data-word]` is the Booth text's own markup (`BoothText`). */
-const wordSelector = (cur: number, wcur: number): string => `[data-unit="${cur}"] [data-word="${wcur}"]`;
 
 /**
  * The chapter's page breaks over the Booth's text: a `BoundaryMarker` across the column above the line that holds each break's first word.
@@ -20,10 +18,11 @@ export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
     const measure = (): void => {
       const base = layer.getBoundingClientRect().top;
       const next: Record<number, number> = {};
-      for (const { page, cur, wcur } of breaks) {
-        const word = column.querySelector<HTMLElement>(wordSelector(cur, wcur));
+      const words = wordElements(column, breaks);
+      breaks.forEach(({ page }, i) => {
+        const word = words[i];
         if (word) next[page] = Math.round(word.getBoundingClientRect().top - base);
-      }
+      });
       setTops((current) => {
         const same = Object.keys(next).length === Object.keys(current).length && Object.entries(next).every(([page, top]) => current[Number(page)] === top);
         return same ? current : next;

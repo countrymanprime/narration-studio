@@ -130,8 +130,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
           const failed = await setDone(targets, false);
           return failed ? { ok: false, refusal: { reason: failed } } : { ok: true };
         };
-        if (entry === undefined) overlay.toastUndo(text, undo);
-        else overlay.toastUndo(text, undo, { entry });
+        overlay.toastUndo(text, undo, entry === undefined ? { offJournal: 'The recorded marks are the pickup list, not the journal.' } : { entry });
       }
       return targets.length;
     },

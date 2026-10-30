@@ -5,10 +5,10 @@ import type { TakeLogEntry } from '../../../fixtures/measurements';
 import { WPH } from '../../schedule/estimates';
 import { calc, scheduleChapters } from '../../schedule/progress';
 import { planStart, recordedSeries, weekFigures } from '../measured/measured.selectors';
-import { FINISHED, MID_BOOK, MID_BOOK_SOURCES, NOTHING_RECORDED, STORY_DUE, STORY_TODAY } from '../pipeline/pipelineFixtures';
-import { checkCounts, kpiTiles, stageSegments, type DeliveryCounts, type KpiInputs } from './overviewFigures';
+import { FINISHED, MID_BOOK, MID_BOOK_SOURCES, MID_BOOK_WITH_CREDITS, NOTHING_RECORDED, STORY_DUE, STORY_TODAY } from '../pipeline/pipelineFixtures';
+import { bookFigures, checkCounts, kpiTiles, stageSegments, type DeliveryCounts, type KpiInputs } from './overviewFigures';
 
-export { FINISHED, MID_BOOK, NOTHING_RECORDED, STORY_TODAY };
+export { FINISHED, MID_BOOK, MID_BOOK_WITH_CREDITS, NOTHING_RECORDED, STORY_TODAY };
 
 const hours = (chapters: readonly ProductionChapter[]): number => chapters.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0);
 
@@ -34,10 +34,10 @@ export function overviewFor(
 ) {
   const k = calc(scheduleChapters(chapters), STORY_TODAY, due, openPickups);
   const start = planStart(STORY_TODAY);
+  const book = bookFigures(chapters, WPH, master);
   const kpi: KpiInputs = {
     k,
-    wph: WPH,
-    recordedSeconds: hours(chapters),
+    book,
     due,
     openPickups,
     pickupMinutes: log.ok ? { ok: true, value: 12 } : { ok: false, reason: 'No pickup session has been timed.' },
@@ -47,6 +47,7 @@ export function overviewFor(
     k,
     start,
     kpi,
+    book,
     tiles: kpiTiles(kpi),
     segments: stageSegments(chapters, WPH, master),
     week: weekFigures(log, STORY_TODAY, start, due, k.words / WPH),
