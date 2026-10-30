@@ -236,7 +236,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
   yet, highlighted and listed as unresolved. A chapter announcement is previewed for the first chapter
   ("Shown for Chapter 1, one of 12 chapters"); it needs an imported manuscript.
 - **Project values**: Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder,
-  Publisher, and a Narrator that overrides the narrator name set under Project for this project only. A value
+  Publisher, and a Narrator that overrides the narrator name set under **Project** (Settings > Project, Narrator and credits) for this project only. A value
   is saved as you type. Where the manuscript suggests a title or author, **Use suggestion** fills it in.
 - **Clear credits** empties every project value at once, after asking. The templates in your library stay,
   so the credits show their tokens in brackets again until you fill them in.

@@ -337,7 +337,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           Project values
         </h3>
         <p style={{ color: 'var(--text-muted)' }}>
-          The global narrator default is {narratorGlobal ? <strong>{narratorGlobal}</strong> : 'not set (see Settings > General)'}; a narrator override here
+          The global narrator default is {narratorGlobal ? <strong>{narratorGlobal}</strong> : 'not set (see Settings > Project)'}; a narrator override here
           applies only to this project.
         </p>
         {/* Two short fields to a line once the editor has room for them (XSE2-11). */}

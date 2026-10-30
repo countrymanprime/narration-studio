@@ -10,14 +10,15 @@ import type { CreditsKind } from '../credits/useCreditsRows';
  */
 export const COVERAGE_REASON_TEXT: Record<CoverageReason, string> = {
   no_project: 'Open a project first.',
-  no_project_file: 'Choose the saved REAPER project file on the Tracks page first.',
+  no_project_file: 'Choose the saved REAPER project file in the audio engine panel first.',
   project_unreadable: 'The saved REAPER project file could not be read. Save it again in REAPER.',
   no_manuscript: 'Import a manuscript first.',
   chapter_not_found: 'This chapter is no longer in the manuscript.',
   not_narration: 'Only chapters are checked, not reference sections.',
   unmapped: 'Link this chapter to the REAPER track it is recorded on first.',
-  multiple_tracks: 'This chapter is linked to more than one REAPER track. Keep one link on the Tracks page.',
-  mapped_track_missing: 'The REAPER track this chapter is linked to is no longer in the saved project. Clear the link and link it again on the Tracks page.',
+  multiple_tracks: 'This chapter is linked to more than one REAPER track. Keep one link in the audio engine panel.',
+  mapped_track_missing:
+    'The REAPER track this chapter is linked to is no longer in the saved project. Clear the link and link it again in the audio engine panel.',
   no_items: 'The chapter’s track has no audio in the saved project.',
   unsupported_item: 'An item on the chapter’s track is not an audio file the check can read.',
   source_missing: 'An audio file on the chapter’s track is missing.',
@@ -43,15 +44,15 @@ export const COVERAGE_REASON_TEXT: Record<CoverageReason, string> = {
 
 /**
  * The reasons a narrator answers by linking the chapter to a track, right there in the dialog. Only a
- * chapter with no link at all: a link to a missing track has to be cleared first, or a new one would make two, so that one goes to Tracks.
+ * chapter with no link at all: a link to a missing track has to be cleared first, or a new one would make two, so that one goes to the audio engine panel.
  */
 export const LINK_REASONS: ReadonlySet<CoverageReason> = new Set(['unmapped']);
 
-/** Where a reason that is not answered in the dialog is fixed, as a page the dialog can link to. */
-export const REASON_PAGE: Partial<Record<CoverageReason, { path: string; label: string }>> = {
-  no_project_file: { path: '/tracks', label: 'Open Tracks' },
-  multiple_tracks: { path: '/tracks', label: 'Open Tracks' },
-  mapped_track_missing: { path: '/tracks', label: 'Open Tracks' },
+/** Where a reason that is not answered in the dialog is fixed: a page the dialog can link to, or the audio engine panel. */
+export const REASON_PAGE: Partial<Record<CoverageReason, { path: string; label: string } | { engine: true; label: string }>> = {
+  no_project_file: { engine: true, label: 'Open the audio engine panel' },
+  multiple_tracks: { engine: true, label: 'Open the audio engine panel' },
+  mapped_track_missing: { engine: true, label: 'Open the audio engine panel' },
   sidecar_missing: { path: '/settings', label: 'Open Settings' },
   credits_not_set_up: { path: '/settings', label: 'Open Settings' },
 };
