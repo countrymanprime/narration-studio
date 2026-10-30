@@ -9,7 +9,8 @@ import type { ManuscriptChapter } from './api/contracts/manuscript';
 export const isCreditsChapter = (chapter: Pick<ManuscriptChapter, 'isCredits'>): boolean => chapter.isCredits === true;
 
 /** The chapters to record, proof and produce: narration, the credits included. Reference sections and front matter are not. */
-export const isNarrationChapter = (chapter: Pick<ManuscriptChapter, 'contentKind'>): boolean => (chapter.contentKind ?? 'narration') === 'narration';
+export const isNarrationChapter = (chapter: { contentKind?: ManuscriptChapter['contentKind'] | '' }): boolean =>
+  !chapter.contentKind || chapter.contentKind === 'narration';
 
 /** The chapters with the credits taken out, for a surface that reads paragraphs (Find, the reader's text, the Story Bible's appearances). */
 export const withoutCredits = <T extends Pick<ManuscriptChapter, 'isCredits'>>(chapters: readonly T[]): T[] =>

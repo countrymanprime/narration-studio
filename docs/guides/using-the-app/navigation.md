@@ -302,7 +302,7 @@ which has no folders.
 
 ### Linking chapters to tracks
 
-Below the track list, Chapter links shows every narration chapter with the track it's confirmed
+Below the track list, Chapter links shows every narration chapter (not a chapter removed from recording) with the track it's confirmed
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
 below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
 starts **Not linked** with its track list on **Choose a track**: pick a track, then press Confirm, which stays off until you

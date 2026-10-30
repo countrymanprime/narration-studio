@@ -4,6 +4,7 @@ import type { ProductionPlan } from '../../api/contracts/production';
 import type { Measured } from '../../api/schemas/base';
 import type { TakeLogEntry } from '../../fixtures/measurements';
 import { usePort } from '../../ports/usePort';
+import { isNarrationChapter } from '../../chapterKinds';
 import { scheduleChapters, type ScheduleChapter } from './progress';
 
 /** The host answers nothing by itself when a book changes on disk or in the DAW, so the page asks again this often while it is open. */
@@ -82,7 +83,7 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
         plan: fresh,
         chapters: scheduleChapters(overview.chapters),
         profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
-        recordedHours: overview.chapters.filter((c) => c.contentKind !== 'reference').reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600,
+        recordedHours: overview.chapters.filter(isNarrationChapter).reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600,
         takeLog: log,
         readAt: Date.now(),
       });

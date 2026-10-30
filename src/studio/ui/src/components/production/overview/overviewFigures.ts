@@ -3,6 +3,8 @@
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
 import type { Measured } from '../../../api/schemas/base';
+import { isNarrationChapter } from '../../../chapterKinds';
+import { recordedShare } from '../../../recordedThrough';
 import { fmtD, hm } from '../../schedule/dates';
 import { RATIO } from '../../schedule/estimates';
 import { statusTone } from '../../../kinds/statusTone';
@@ -187,9 +189,9 @@ export function stageSegments(
   let pw = 0;
   let mw = 0;
   for (const c of chapters) {
-    if (c.contentKind === 'reference') continue;
+    if (!isNarrationChapter(c)) continue;
     const done = DONE_SHARE[c.status];
-    const measured = c.recordedSeconds !== null && c.wordCount > 0 ? Math.min(1, c.recordedSeconds / ((c.wordCount / wph) * 3600)) : 0;
+    const measured = recordedShare(c, wph) ?? 0;
     const review = master?.[c.id];
     const delivered = review?.mastered && review.qc === 'PASS' ? 1 : 0;
     const proofed = Math.max(delivered, done.proof);

@@ -83,7 +83,9 @@ chapter being recorded (with **Open Booth** and **Start timer**), a pickup sessi
 Pickups list has open lines (naming the chapters they are in), and the first chapter whose
 measured file fails the delivery check, with each failed check, its value and its limit
 ("noise floor −57.8 dBFS (limit ≤ −60 dBFS)") and **Inspect failed check**, which opens
-[Master & QC](master-and-qc.md). It reads "Nothing needs you right now" when there is nothing to list.
+[Master & QC](master-and-qc.md). It reads "Nothing needs you right now" when there is nothing to list. Its percent recorded is the
+same figure as the chapter's **Record** cell and the Booth's "Recorded through" note. Every total on this page counts the
+narration chapters only: a chapter removed from recording, and reference material, are left out here and in [Schedule](schedule.md).
 
 ## Chapter pipeline
 

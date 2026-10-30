@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ProductionPlan, ProductionRateBasis } from '../../../api/contracts/production';
 import { usePort } from '../../../ports/usePort';
+import { isNarrationChapter } from '../../../chapterKinds';
 import { IconButton } from '../../primitives/IconButton';
 import { Popover, POPOVER_POPUP_SELECTOR } from '../../primitives/Popover';
 import { useMeasured } from '../measured/useMeasured';
@@ -40,7 +41,7 @@ export function TargetInfoButton() {
       ([p, overview]) => {
         if (!live) return;
         setPlan(p);
-        setChapters(overview.chapters.filter((c) => c.contentKind !== 'reference').map((c) => ({ id: c.id, tag: tagOf(c.id, c.title), words: c.wordCount })));
+        setChapters(overview.chapters.filter(isNarrationChapter).map((c) => ({ id: c.id, tag: tagOf(c.id, c.title), words: c.wordCount })));
       },
       () => undefined,
     );
