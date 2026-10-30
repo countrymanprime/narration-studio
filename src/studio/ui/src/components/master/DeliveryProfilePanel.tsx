@@ -72,9 +72,11 @@ function ProfileBody({ profile, open, onOpenChange }: { profile: DeliveryProfile
   const owner = requirementOwner(profile);
   return (
     <div className="flex flex-col gap-2">
-      <p className="flex items-center gap-2 text-sm" style={MUTED}>
-        <span>{sourceLine(profile)}</span>
-        <HelpButton label="About how files are judged">{judgingNote(profile)}</HelpButton>
+      <p className="text-sm" style={MUTED}>
+        {sourceLine(profile)}{' '}
+        <span className="inline-block align-middle">
+          <HelpButton label="About how files are judged">{judgingNote(profile)}</HelpButton>
+        </span>
       </p>
       <ul aria-label="Rules at a glance" className="flex flex-wrap gap-2">
         <li>
