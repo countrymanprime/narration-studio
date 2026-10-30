@@ -71,7 +71,8 @@ const called = (name: string) => new RegExp(`\\b${name}\\b`).test(text);
 
 describe('no-binding-arrives-without-a-screen-that-calls-it', () => {
   it('every host binding is called by a screen, or is on the shrinking list of unwired ones', () => {
-    const bindings = Object.keys(createMockApi()).filter((name) => typeof (createMockApi() as Record<string, unknown>)[name] === 'function');
+    const api = createMockApi() as unknown as Record<string, unknown>;
+    const bindings = Object.keys(api).filter((name) => typeof api[name] === 'function');
     const uncalled = bindings.filter((name) => !called(name)).sort();
     expect(uncalled).toEqual([...UNWIRED].sort());
   });
