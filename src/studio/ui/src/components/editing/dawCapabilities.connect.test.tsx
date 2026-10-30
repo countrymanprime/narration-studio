@@ -79,3 +79,31 @@ describe('the Editing DAW gates follow one live report', () => {
     expect(screen.getByTestId('cleanup').textContent).toBe('on');
   });
 });
+
+describe('a report that repeats is not a change', () => {
+  it('keeps the same capabilities object, so a consumer that asks the DAW again on each change cannot loop', async () => {
+    const daw = liveDaw();
+    const seen: unknown[] = [];
+    function Watch() {
+      const { caps } = useDawCapabilities();
+      seen.push(caps);
+      return null;
+    }
+    render(
+      <ApiProvider api={createMockApi()}>
+        <PortOverrides clients={{ daw: daw.client }}>
+          <Watch />
+        </PortOverrides>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(seen.at(-1)).not.toBeNull());
+    const first = seen.at(-1);
+    // The host reports the same thing again, as a fresh object (each ask of the DAW does).
+    act(() => daw.push({ ...OFF }));
+    act(() => daw.push(JSON.parse(JSON.stringify(OFF)) as DawCapabilities));
+    expect(seen.at(-1)).toBe(first);
+    // A report that differs is a change.
+    act(() => daw.push(REAPER));
+    await waitFor(() => expect(seen.at(-1)).toBe(REAPER));
+  });
+});

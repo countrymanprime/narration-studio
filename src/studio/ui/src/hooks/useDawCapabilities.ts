@@ -16,12 +16,13 @@ export function useDawCapabilities(): DawCapabilitiesState {
   const [state, setState] = useState<DawCapabilitiesState>({ caps: null, failed: false });
   useEffect(() => {
     let live = true;
-    setState({ caps: null, failed: false });
-    daw.capabilities().then(
-      (caps) => live && setState({ caps, failed: false }),
-      (error: unknown) => live && setState({ caps: null, failed: true, error }),
-    );
-    const stop = daw.subscribeCapabilities?.((caps) => live && setState({ caps, failed: false }));
+    setState((prev) => (prev.caps === null && !prev.failed ? prev : { caps: null, failed: false }));
+    // A report that says what the last one said keeps the last one's identity. Callers hold the capabilities in effect and memo dependencies, and
+    // some of those effects ask the DAW again, which reports again: a new object each time would be a loop.
+    const report = (caps: DawCapabilities) =>
+      live && setState((prev) => (prev.caps !== null && !prev.failed && sameReport(prev.caps, caps) ? prev : { caps, failed: false }));
+    daw.capabilities().then(report, (error: unknown) => live && setState({ caps: null, failed: true, error }));
+    const stop = daw.subscribeCapabilities?.(report);
     return () => {
       live = false;
       stop?.();
@@ -29,3 +30,5 @@ export function useDawCapabilities(): DawCapabilitiesState {
   }, [daw]);
   return state;
 }
+
+const sameReport = (a: DawCapabilities, b: DawCapabilities): boolean => a === b || JSON.stringify(a) === JSON.stringify(b);
