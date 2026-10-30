@@ -210,8 +210,13 @@ describe('the file table at narrow widths and long books', () => {
     const cells = within(first).getAllByRole('cell');
     expect(cells[0]!.className).toContain('@max-[44rem]:row-1');
     expect(cells[6]!.className).toContain('@max-[44rem]:row-1');
-    // Each stacked measurement is named, since the headings are gone.
-    expect(cells[2]!.className).toContain("before:content-['RMS']");
-    expect(cells[4]!.className).toContain("before:content-['Noise_floor']");
+    // Each stacked measurement carries its heading, drawn from the same text as the column header (they cannot drift), and hidden from a
+    // screen reader, which has the header row.
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    [1, 2, 3, 4, 5].forEach((index) => {
+      const heading = cells[index]!.querySelector('[aria-hidden="true"]');
+      expect(heading?.textContent).toBe(headers[index]);
+      expect(heading?.className).toContain('@max-[44rem]:block');
+    });
   });
 });

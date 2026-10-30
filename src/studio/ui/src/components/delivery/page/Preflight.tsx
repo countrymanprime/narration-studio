@@ -20,7 +20,7 @@ const FIRST_ROWS = 100;
  * to its pill across the card; a long name wraps to two lines instead of being cut (alignment audit XDL-4, R4TB-8, R3DL-4).
  */
 const ROW = 'flex min-h-8 items-center';
-/** More rows than this scroll inside the card, which shows about ten of them (20 rem at the 32 px pitch): rule 6, a list is capped (#2639). */
+/** More rows than this get a list box 20 rem tall (about ten rows at the 32 px pitch), so it scrolls once its rows fill that: sooner when long names wrap to two lines. Rule 6, a list is capped (#2639). */
 const SCROLL_AFTER = 10;
 
 /**

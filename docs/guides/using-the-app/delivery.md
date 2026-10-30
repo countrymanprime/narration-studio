@@ -50,7 +50,7 @@ own file, "Opening credits.wav"). A long chapter name wraps to a second line, an
 pickups, **Waiting on N pickups** (counted from the Pickups list, as Production counts them). Pressing a
 chapter opens its file in [Master & QC](master-and-qc.md); the arrow button in the panel's header opens Master & QC
 itself. A book with more than a hundred chapters lists the first hundred and a **Show the other N chapters**
-button for the rest, and a list of more than ten chapters scrolls inside the panel (the count above the list is always the whole book).
+button for the rest, and the list is 20 rem tall at most and scrolls inside the panel once its rows fill that, which is sooner when long chapter names wrap (the count above the list is always the whole book).
 
 ![Delivery with the book checked: the chapters that pass counted in Before you build, and Output waiting on the rest](../../images/ui/delivery-measured.webp)
 

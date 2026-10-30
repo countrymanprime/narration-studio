@@ -38,22 +38,31 @@ const NARROW_ROW =
   '@max-[44rem]:grid! @max-[44rem]:col-span-full @max-[44rem]:grid-cols-subgrid @max-[44rem]:border-b @max-[44rem]:border-[var(--border)] @max-[44rem]:px-4 @max-[44rem]:py-2 @max-[44rem]:last:border-b-0 @max-[44rem]:[&>td]:px-0! @max-[44rem]:[&>td]:py-0!';
 const NARROW_FILE = '@max-[44rem]:col-[1/-1] @max-[44rem]:row-1 @max-[44rem]:mr-[6.5rem] @max-[44rem]:pb-1!';
 const NARROW_RESULT = '@max-[44rem]:col-[1/-1] @max-[44rem]:row-1 @max-[44rem]:justify-self-end @max-[44rem]:pb-1!';
-/** A measurement's cell in a narrow row: left-aligned under the name, its label above it. */
+/** A measurement's cell in a narrow row: left-aligned under the name, its heading (`StackedHeading`) above it. */
 const STAT = {
-  length:
-    "@max-[44rem]:row-2 @max-[44rem]:col-1 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Length']",
-  rms: "@max-[44rem]:row-2 @max-[44rem]:col-2 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['RMS']",
-  peak: "@max-[44rem]:row-2 @max-[44rem]:col-3 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Peak']",
-  noise:
-    "@max-[44rem]:row-2 @max-[44rem]:col-4 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Noise_floor']",
-  headTail:
-    "@max-[44rem]:row-2 @max-[44rem]:col-[5/-1] @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Head_/_tail']",
+  length: '@max-[44rem]:row-2 @max-[44rem]:col-1 @max-[44rem]:text-left!',
+  rms: '@max-[44rem]:row-2 @max-[44rem]:col-2 @max-[44rem]:text-left!',
+  peak: '@max-[44rem]:row-2 @max-[44rem]:col-3 @max-[44rem]:text-left!',
+  noise: '@max-[44rem]:row-2 @max-[44rem]:col-4 @max-[44rem]:text-left!',
+  headTail: '@max-[44rem]:row-2 @max-[44rem]:col-[5/-1] @max-[44rem]:text-left!',
 } as const;
 /** The message of a row with no measurements: under the name, from the second column on; empty when the card says it once. */
 const NARROW_MESSAGE = '@max-[44rem]:col-[1/-1] @max-[44rem]:row-2 @max-[44rem]:empty:hidden';
 /** More chapters than this scroll inside the card, which shows about ten rows (rule 6, #2639). */
 const SCROLL_AFTER = 9;
 const NOWRAP = 'whitespace-nowrap';
+
+/** The column headings: the header row draws them, and a stacked row draws each over its value (`StackedHeading`), so the two cannot differ. */
+const HEADING = { file: 'File', length: 'Length', rms: 'RMS', peak: 'Peak', noise: 'Noise floor', headTail: 'Head / tail', result: 'Result' } as const;
+
+/** A measurement's heading over its value in a stacked row. The header row is read by a screen reader there (`sr-only`), so this is hidden from it. */
+function StackedHeading({ children }: { children: string }) {
+  return (
+    <span aria-hidden="true" className="hidden font-sans text-[0.6875rem] font-normal text-[var(--text-muted)] uppercase @max-[44rem]:block">
+      {children}
+    </span>
+  );
+}
 
 const NOTHING_MEASURED = 'Nothing measured yet. Check your rendered chapter files (WAV) to see them here.';
 
@@ -219,24 +228,24 @@ export function FilesTable({
           <Table label="Per-file checks" columns={COLUMNS} className={`${TABLE_FLOOR} ${NARROW_TABLE}`}>
             <TableHead sticky>
               <TableRow>
-                <TableHeader className={NOWRAP}>File</TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.file}</TableHeader>
                 <TableHeader className={NOWRAP} align="right">
-                  Length
+                  {HEADING.length}
                 </TableHeader>
                 <TableHeader className={NOWRAP} align="right">
-                  RMS
+                  {HEADING.rms}
                 </TableHeader>
                 <TableHeader className={NOWRAP} align="right">
-                  Peak
+                  {HEADING.peak}
                 </TableHeader>
                 <TableHeader className={NOWRAP} align="right">
-                  Noise floor
+                  {HEADING.noise}
                 </TableHeader>
                 <TableHeader className={NOWRAP} align="right">
-                  Head / tail
+                  {HEADING.headTail}
                 </TableHeader>
                 <TableHeader className={NOWRAP} align="right">
-                  Result
+                  {HEADING.result}
                 </TableHeader>
               </TableRow>
             </TableHead>
@@ -282,18 +291,23 @@ function FileTableRow({ row, said, selected, onSelect }: { row: FileRow; said: b
       ) : (
         <>
           <TableCell numeric className={STAT.length}>
+            <StackedHeading>{HEADING.length}</StackedHeading>
             {row.length}
           </TableCell>
           <TableCell numeric className={STAT.rms}>
+            <StackedHeading>{HEADING.rms}</StackedHeading>
             <Value cell={row.rms} />
           </TableCell>
           <TableCell numeric className={STAT.peak}>
+            <StackedHeading>{HEADING.peak}</StackedHeading>
             <Value cell={row.peak} />
           </TableCell>
           <TableCell numeric className={STAT.noise}>
+            <StackedHeading>{HEADING.noise}</StackedHeading>
             <Value cell={row.noiseFloor} />
           </TableCell>
           <TableCell numeric className={STAT.headTail}>
+            <StackedHeading>{HEADING.headTail}</StackedHeading>
             <Value cell={row.head} /> / <Value cell={row.tail} />
           </TableCell>
         </>
