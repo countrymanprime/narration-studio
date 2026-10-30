@@ -179,6 +179,20 @@ describe('the file table at narrow widths and long books', () => {
     expect(screen.getByRole('columnheader', { name: 'File' }).closest('thead')!.className).toContain('sticky');
   });
 
+  it('keeps a very long, right-to-left or emoji name in its own cell: it wraps, reads from its own side, and Result keeps its place', () => {
+    const names = [`${'פרק ראשון — הארנב הלבן '.repeat(6)}.wav`, `Chapter 🐇🐇🐇 ${'Down-the-Rabbit-Hole-'.repeat(8)}.wav`];
+    mount({ files: names.map((name) => passing(name)) });
+    for (const row of screen.getAllByRole('row').filter((r) => r.hasAttribute('data-row'))) {
+      const cells = within(row).getAllByRole('cell');
+      expect(cells[0]!.className).toContain('break-words');
+      expect(cells[0]!.className).toContain('@max-[44rem]:mr-[6.5rem]');
+      expect(cells[0]!.querySelector('[dir="auto"]')).toBeTruthy();
+      expect(within(cells[6]!).getByText('Pass')).toBeTruthy();
+    }
+    expect(screen.getAllByText(/פרק ראשון/).length).toBeTruthy();
+    expect(screen.getAllByText(/🐇🐇🐇/).length).toBeGreaterThan(0);
+  });
+
   it('is not a tab stop of its own while the list is short', () => {
     mount({ files: many.slice(0, 3) });
     expect(region().getAttribute('tabindex')).toBeNull();

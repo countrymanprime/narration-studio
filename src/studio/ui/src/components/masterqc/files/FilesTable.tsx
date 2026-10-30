@@ -50,7 +50,7 @@ const STAT = {
     "@max-[44rem]:row-2 @max-[44rem]:col-[5/-1] @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Head_/_tail']",
 } as const;
 /** The message of a row with no measurements: under the name, from the second column on; empty when the card says it once. */
-const NARROW_MESSAGE = '@max-[44rem]:col-[2/-1] @max-[44rem]:row-2 @max-[44rem]:empty:hidden';
+const NARROW_MESSAGE = '@max-[44rem]:col-[1/-1] @max-[44rem]:row-2 @max-[44rem]:empty:hidden';
 /** More chapters than this scroll inside the card, which shows about ten rows (rule 6, #2639). */
 const SCROLL_AFTER = 9;
 const NOWRAP = 'whitespace-nowrap';
@@ -267,11 +267,12 @@ function FileTableRow({ row, said, selected, onSelect }: { row: FileRow; said: b
       <TableCell className={`break-words ${NARROW_FILE}`}>
         {/* The marker the right-click provider reads: a row's own attributes are the primitive's. */}
         <span data-file={row.id} className="contents" />
-        {row.name}
+        {/* `dir="auto"`: a right-to-left name reads from its own side, and its wrap stays inside the cell beside Result. */}
+        <span dir="auto">{row.name}</span>
       </TableCell>
       {row.waiting ? (
         <>
-          <TableCell numeric className={STAT.length}>
+          <TableCell numeric className="@max-[44rem]:hidden">
             —
           </TableCell>
           <TableCell colSpan={4} muted className={NARROW_MESSAGE}>

@@ -183,4 +183,6 @@ export const masterStates: StateEntry[] = [
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];
-masterStates.push(wholePage(masterStates, 'measured'));
+// At 390 px the whole Master & QC page is taller than the capture's 6000 px cap (the rules and diagnostics panels under the file table), so
+// its whole-height picture stays at the window widths; `measured` itself is captured at 390 px.
+masterStates.push({ ...wholePage(masterStates, 'measured'), extraViewports: [] });
