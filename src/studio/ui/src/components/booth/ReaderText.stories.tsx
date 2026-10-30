@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { ReaderText } from './ReaderText';
@@ -39,7 +39,7 @@ async function expectCentredOnFirstLine(canvasElement: HTMLElement) {
   }
 }
 
-const sized = (px: number) => (Story: () => JSX.Element) => (
+const sized = (px: number) => (Story: () => ReactElement) => (
   <div style={{ '--font-size-booth-script': `${px}px` } as CSSProperties} className="max-w-3xl bg-[var(--reading-bg)] p-4 text-[var(--text)]">
     <Story />
   </div>
