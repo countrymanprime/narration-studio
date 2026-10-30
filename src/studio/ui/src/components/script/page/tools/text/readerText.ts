@@ -48,6 +48,8 @@ export const readerVars = (prefs: TextPrefs): Record<'--rs' | '--rl' | '--rw' | 
   '--rf': fontStack(prefs.font),
 });
 
+import { announceBrowserSettingChange } from '../../../../../browserSettings';
+
 export const TEXT_PREFS_STORAGE_KEY = 'narration.script.text';
 
 const isSpacing = (value: unknown): value is number => typeof value === 'number' && value >= READER_SPACING.min && value <= READER_SPACING.max;
@@ -74,6 +76,7 @@ export function loadTextPrefs(): TextPrefs {
 export function saveTextPrefs(prefs: TextPrefs): void {
   try {
     window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify(prefs));
+    announceBrowserSettingChange();
   } catch {
     /* storage unavailable: the choice lasts for this session only */
   }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePageCommands } from '../../../input/pageCommands';
+import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { useProjectDaw } from '../data/useProjectDaw';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
@@ -67,6 +68,8 @@ function pageNameOf(path: string): string {
 
 function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFrom?: string }) {
   const store = useSettingsStore();
+  // A window-kept setting is written outside the store: redraw the Changed counts when one is.
+  useBrowserSettingsVersion();
   const { data, go } = useSettingsHost();
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');

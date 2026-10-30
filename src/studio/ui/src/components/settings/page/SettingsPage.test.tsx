@@ -523,6 +523,9 @@ describe('Settings: search and filters', () => {
 
     // This window (browser scope): Start tone and Theme.
     fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'On' }));
+    // The row says so at once, and the category count follows without another interaction.
+    expect(within(row('daw.startTone')).getByText('Changed')).toBeTruthy();
+    expect(within(nav()).getByRole('button', { name: /^Recording & DAW.*1 changed/ })).toBeTruthy();
     pick('Appearance');
     fireEvent.click(await within(await waitForRow('look.theme')).findByRole('radio', { name: 'Dark' }));
 

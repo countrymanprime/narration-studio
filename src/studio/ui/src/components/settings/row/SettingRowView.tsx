@@ -5,7 +5,8 @@ import { HelpButton } from '../../primitives/HelpButton';
 import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useSettingsStore } from '../data/SettingsStore';
-import { choiceLabel, computerValue, isAnyChanged, isChanged, overrideValue, projectValue } from '../data/values';
+import { useBrowserSettingsVersion } from '../../../browserSettings';
+import { choiceLabel, computerValue, isAnyChanged, isBrowserChanged, isChanged, overrideValue, projectValue } from '../data/values';
 import { PAGE_LABEL, PAGE_PATH, type Scope, type SettingMeta } from '../registry/types';
 import { rowOf } from '../registry/rows';
 import { AssetNote } from './AssetNote';
@@ -76,7 +77,9 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const hasCustom = children !== undefined;
   const comp = computerValue(row, global);
   const own = overrideValue(row, project);
-  const changed = hasCustom ? false : isAnyChanged(row, global, project);
+  // A custom body has no host field to compare, except a row this window keeps, which has its own reader.
+  useBrowserSettingsVersion();
+  const changed = hasCustom ? isBrowserChanged(row) : isAnyChanged(row, global, project);
   const saved = store.saved?.row === row.id;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
   const describedBy = `${uid}d${error ? ` ${uid}e` : ''}`;
