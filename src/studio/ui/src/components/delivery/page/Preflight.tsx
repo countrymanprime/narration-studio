@@ -20,8 +20,8 @@ const FIRST_ROWS = 100;
  * to its pill across the card; a long name wraps to two lines instead of being cut (alignment audit XDL-4, R4TB-8, R3DL-4).
  */
 const ROW = 'flex min-h-8 items-center';
-/** More rows than this (about 40 rem of them) scroll inside the card. */
-const SCROLL_AFTER = 18;
+/** More rows than this scroll inside the card, which shows about ten of them (20 rem at the 32 px pitch): rule 6, a list is capped (#2639). */
+const SCROLL_AFTER = 10;
 
 /**
  * "Before you build" (the mock's aside): chapters passing n of N, then a row per chapter, named in the manuscript's heading style, that
@@ -92,7 +92,7 @@ export function Preflight({
             {/* A long book scrolls inside the card rather than running the page on for thousands of pixels (R3DL-4); a short one is not a
                 scroll box, so no gutter is kept for a scrollbar it never shows. */}
             <ul
-              className={`flex flex-col ${shown.length > SCROLL_AFTER ? 'max-h-[40rem] overflow-y-auto' : ''}`}
+              className={`flex flex-col ${shown.length > SCROLL_AFTER ? 'scroll-y-edges max-h-[20rem] overflow-y-auto' : ''}`}
               aria-label="Chapters"
               tabIndex={shown.length > SCROLL_AFTER ? 0 : undefined}
             >

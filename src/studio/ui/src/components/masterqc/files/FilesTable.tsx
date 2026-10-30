@@ -27,6 +27,32 @@ const MUTED = { color: 'var(--text-muted)' };
  */
 const COLUMNS = ['auto', '4.5rem', '4.75rem', '4.75rem', '6rem', '6.5rem', '7.5rem'] as const;
 const TABLE_FLOOR = 'min-w-[44rem]';
+/**
+ * Under the floor (a card narrower than 44 rem: the tablet width and the 390 reflow) a row is a block, not a clipped table row (#2635): the
+ * file's name with its Result at the right, the measurements under them, each named by a label drawn from the heading that goes. The
+ * body is the grid and each row a subgrid of it, so a measurement is as wide as its widest cell down the list (the Pickups table's way).
+ */
+const NARROW_TABLE =
+  '@max-[44rem]:block @max-[44rem]:min-w-0 @max-[44rem]:[&>colgroup]:hidden @max-[44rem]:[&>thead]:sr-only @max-[44rem]:[&>tbody]:grid @max-[44rem]:[&>tbody]:grid-cols-[auto_auto_auto_auto_minmax(0,1fr)_auto] @max-[44rem]:[&>tbody]:gap-x-4 @max-[44rem]:[&_td]:h-auto! @max-[44rem]:[&_td]:border-b-0';
+const NARROW_ROW =
+  '@max-[44rem]:grid! @max-[44rem]:col-span-full @max-[44rem]:grid-cols-subgrid @max-[44rem]:border-b @max-[44rem]:border-[var(--border)] @max-[44rem]:px-4 @max-[44rem]:py-2 @max-[44rem]:last:border-b-0 @max-[44rem]:[&>td]:px-0! @max-[44rem]:[&>td]:py-0!';
+const NARROW_FILE = '@max-[44rem]:col-[1/6] @max-[44rem]:row-1 @max-[44rem]:pb-1!';
+const NARROW_RESULT = '@max-[44rem]:col-6 @max-[44rem]:row-1 @max-[44rem]:justify-self-end @max-[44rem]:pb-1!';
+/** A measurement's cell in a narrow row: left-aligned under the name, its label above it. */
+const STAT = {
+  length:
+    "@max-[44rem]:row-2 @max-[44rem]:col-1 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Length']",
+  rms: "@max-[44rem]:row-2 @max-[44rem]:col-2 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['RMS']",
+  peak: "@max-[44rem]:row-2 @max-[44rem]:col-3 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Peak']",
+  noise:
+    "@max-[44rem]:row-2 @max-[44rem]:col-4 @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Noise_floor']",
+  headTail:
+    "@max-[44rem]:row-2 @max-[44rem]:col-[5/-1] @max-[44rem]:text-left! @max-[44rem]:before:block @max-[44rem]:before:font-sans @max-[44rem]:before:text-[0.6875rem] @max-[44rem]:before:font-normal @max-[44rem]:before:text-[var(--text-muted)] @max-[44rem]:before:uppercase @max-[44rem]:before:content-['Head_/_tail']",
+} as const;
+/** The message of a row with no measurements: under the name, from the second column on; empty when the card says it once. */
+const NARROW_MESSAGE = '@max-[44rem]:col-[2/-1] @max-[44rem]:row-2 @max-[44rem]:empty:hidden';
+/** More chapters than this scroll inside the card, which shows about ten rows (rule 6, #2639). */
+const SCROLL_AFTER = 9;
 const NOWRAP = 'whitespace-nowrap';
 
 const NOTHING_MEASURED = 'Nothing measured yet. Check your rendered chapter files (WAV) to see them here.';
@@ -182,9 +208,16 @@ export function FilesTable({
       {/* The keys sit on the wrapper: a row's own Enter and Space come from `TableRow`, the arrows from here. It is the containing block of
           the cells' screen-reader text (`sr-only`, absolute), so that text scrolls with the table instead of widening the page. */}
       {profile && (
-        <div ref={bind} onKeyDown={onKeyDown} className="relative overflow-x-auto">
-          <Table label="Per-file checks" columns={COLUMNS} className={TABLE_FLOOR}>
-            <TableHead>
+        <div
+          ref={bind}
+          onKeyDown={onKeyDown}
+          className="scroll-x-edges @container relative max-h-[26rem] [scrollbar-gutter:auto] overflow-auto"
+          tabIndex={rows.length > SCROLL_AFTER ? 0 : undefined}
+          role="group"
+          aria-label="Per-file checks scroll area"
+        >
+          <Table label="Per-file checks" columns={COLUMNS} className={`${TABLE_FLOOR} ${NARROW_TABLE}`}>
+            <TableHead sticky>
               <TableRow>
                 <TableHeader className={NOWRAP}>File</TableHeader>
                 <TableHeader className={NOWRAP} align="right">
@@ -230,37 +263,41 @@ function FileTableRow({ row, said, selected, onSelect }: { row: FileRow; said: b
   return (
     // `data-no-file` marks a chapter nothing was rendered for, for the visual suite's drivers: since a shared message is said once in
     // the card, such a row no longer carries text that tells it apart.
-    <TableRow onActivate={() => onSelect(row.id)} selected={selected} data={row.noFile ? { 'data-no-file': '' } : undefined}>
-      <TableCell className="break-words">
+    <TableRow onActivate={() => onSelect(row.id)} selected={selected} className={NARROW_ROW} data={row.noFile ? { 'data-no-file': '' } : undefined}>
+      <TableCell className={`break-words ${NARROW_FILE}`}>
         {/* The marker the right-click provider reads: a row's own attributes are the primitive's. */}
         <span data-file={row.id} className="contents" />
         {row.name}
       </TableCell>
       {row.waiting ? (
         <>
-          <TableCell numeric>—</TableCell>
-          <TableCell colSpan={4} muted>
+          <TableCell numeric className={STAT.length}>
+            —
+          </TableCell>
+          <TableCell colSpan={4} muted className={NARROW_MESSAGE}>
             {said ? null : `${row.waiting} · not mastered`}
           </TableCell>
         </>
       ) : (
         <>
-          <TableCell numeric>{row.length}</TableCell>
-          <TableCell numeric>
+          <TableCell numeric className={STAT.length}>
+            {row.length}
+          </TableCell>
+          <TableCell numeric className={STAT.rms}>
             <Value cell={row.rms} />
           </TableCell>
-          <TableCell numeric>
+          <TableCell numeric className={STAT.peak}>
             <Value cell={row.peak} />
           </TableCell>
-          <TableCell numeric>
+          <TableCell numeric className={STAT.noise}>
             <Value cell={row.noiseFloor} />
           </TableCell>
-          <TableCell numeric>
+          <TableCell numeric className={STAT.headTail}>
             <Value cell={row.head} /> / <Value cell={row.tail} />
           </TableCell>
         </>
       )}
-      <TableCell align="right" className={NOWRAP}>
+      <TableCell align="right" className={`${NOWRAP} ${NARROW_RESULT}`}>
         <Result row={row} />
       </TableCell>
     </TableRow>

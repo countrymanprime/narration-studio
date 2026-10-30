@@ -43,7 +43,7 @@ line you added) also keeps the ring from filling while it is open.
 Under the title, **Open notes, by chapter** draws one tile per chapter with how many of its notes are open, with **Open** and **Close** tiles
 for the opening and closing credits at the ends. Choose a tile to open that chapter; the credits are chapters, so a credits tile opens that credits file in Proof
 like any other. In a narrow window the tiles keep their
-size and the strip scrolls sideways, with **In** and **Out** for the credits.
+size and the strip scrolls sideways, with a shadow on the side that has more; **Open** and **Close** keep their words at any width.
 
 ### One chapter
 
@@ -120,6 +120,8 @@ part marked. Choosing one opens **Find in notes** on what you typed, clears the 
 ![Proof - Ctrl+F then "rabbit": the jump menu lists the matching notes under Notes, the matched word marked](../../images/ui/proof-search.webp)
 
 ## A note and your decision
+
+In a window narrower than about 40 rem of table, each note is a block instead of a row: its time, type and resolution on one line, the sentence under them and its source under that, so **Resolution** is never off-screen.
 
 Select a note in the table, or its pin on the waveform, and the Inspector shows it. In a window narrower than 1180 px the
 Inspector sits under the notes; clicking a note scrolls the page down to it, and stepping with the arrow keys does not.

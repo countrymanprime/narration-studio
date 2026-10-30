@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -11,6 +11,7 @@ export const masterStates: StateEntry[] = [
     state: 'empty',
     description:
       'Master & QC, nothing measured yet - the ACX profile pill and Check files…, "Nothing measured yet", the book consistency with no measurements, the built-in chain as three steps, and the delivery package aside with what it waits on',
+    ...REFLOW,
   },
   {
     page: 'master',
@@ -23,6 +24,7 @@ export const masterStates: StateEntry[] = [
     state: 'measured',
     description:
       'Master & QC, three files checked against ACX - the per-file table with the failing 48 kHz render selected, "Chapter 1 — Down the Rabbit-Hole · Why it fails" (the file named by its chapter) with Pass and Fail rows, its every-rule list under it, the book consistency and the package aside',
+    ...REFLOW,
   },
   {
     page: 'master',
