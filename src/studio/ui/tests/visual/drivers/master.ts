@@ -122,7 +122,11 @@ export const masterDrivers: Record<string, Driver> = {
   },
   'diagnostics-error': async (page) => {
     await checkOnDiagnostics(page, '?mockDiagnostics=fails');
-    await diagnosticsEnded(page, /^The diagnostics stopped unexpectedly\. Choose/);
+    // The failure is an error toast (rule 7, #2632), left up so the capture shows it; the Diagnostics card says nothing of it.
+    await page
+      .getByRole('alert')
+      .filter({ hasText: /The diagnostics stopped unexpectedly\. Choose/ })
+      .waitFor({ timeout: 15_000 });
   },
   'report-exported': async (page) => {
     await measureOnMaster(page);
