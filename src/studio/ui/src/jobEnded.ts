@@ -8,9 +8,17 @@ const SHOWN_BY_THEIR_DIALOG = new Set(['manuscript_import', 'tts_install', 'whis
 
 /**
  * A failed package build is written on the Delivery page itself, under its Build button, so a toast over the same page would say it twice
- * (and at a narrow width cover the list beside it). Left for another page, the toast is the only word the narrator gets.
+ * (and at a narrow width cover the list beside it). Left for another page, the toast is the only word the narrator gets. Master & QC's
+ * failed measurement, diagnostics check, export and multi-platform build are told by the page itself as an error toast (rule 7); this app's
+ * queue is a second one drawn in the same corner, so a second message there would sit over the first.
  */
-const SHOWN_ON_THEIR_PAGE: Record<string, string> = { render_package: '/delivery' };
+const SHOWN_ON_THEIR_PAGE: Record<string, string> = {
+  render_package: '/delivery',
+  measurement: '/master',
+  diagnostics: '/master',
+  render_export: '/master',
+  render_package_multi: '/master',
+};
 
 /** What the app says when a host job ends, or nothing when the narrator does not need telling (they cancelled it, or its dialog or page says so). */
 export function toastForJobEnd(event: JobEnded, pathname?: string): { text: string; tone: ToastTone } | undefined {

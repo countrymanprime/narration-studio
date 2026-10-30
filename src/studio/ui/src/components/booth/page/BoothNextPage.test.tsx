@@ -1729,6 +1729,22 @@ describe('a-take-is-undone-in-the-daw', () => {
     expect(await page.journal.entries()).toEqual([]);
   });
 
+  it('takes an undone take out of This session (#2655)', async () => {
+    let now = 1_000_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const page = renderPage({ journal: dawJournal });
+    const figure = () => screen.getByText(/^Recorded/).querySelector('b')?.textContent;
+    await record(page);
+    now += 2000;
+    await space();
+    await waitFor(() => expect(toastNamed(page, 'Take saved')).toBeTruthy());
+    expect(figure()).toBe('00:02');
+    await act(async () => {
+      await toastNamed(page, 'Take saved')?.action?.onAction();
+    });
+    await waitFor(() => expect(figure()).toBe('00:00'));
+  });
+
   it('an Undo after something else came on top of the take in the DAW is refused in the DAW words, and the take stays', async () => {
     const page = renderPage({ journal: () => createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'other' }) });
     await record(page);

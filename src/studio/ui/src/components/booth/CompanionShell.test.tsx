@@ -57,7 +57,6 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     changeDevice: vi.fn(),
     closeModelPrompt: vi.fn(),
     ensureModel: async () => true,
-    startWord: null,
     setStartWord: vi.fn(),
     reset: vi.fn(),
     canStart: true,

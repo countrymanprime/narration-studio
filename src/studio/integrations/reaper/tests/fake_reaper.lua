@@ -598,6 +598,10 @@ function Fake:add_project_api(api)
   function api.DeleteExtState(section, key, _)
     fake.ext_state[section .. '\0' .. key] = nil
   end
+  -- REAPER's console window: each message appended as REAPER shows it (it adds no line break of its own).
+  function api.ShowConsoleMsg(message)
+    fake.console = (fake.console or '') .. tostring(message)
+  end
   -- AddRemoveReaScript(add, section, path, commit): adding a path already in the action list answers the same command id, as
   -- REAPER 7.82 did (53004 twice for one path, docs/research/reaper-startup-bridge-2026-10-23.md).
   fake.script_actions = fake.script_actions or {}
