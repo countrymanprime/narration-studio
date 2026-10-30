@@ -803,7 +803,7 @@ function AppRoutes() {
 
   // A page may stop a move and ask first (the Booth does while a take is recording): the journal's leave guard answers, the overlay asks,
   // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
-  const guardedNavigate = (next: string, state?: unknown) => {
+  const guardedMove = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
     const verdict = nextPath === location.pathname ? 'allow' : journal.checkLeave(nextPath);
     if (verdict === 'allow') {
@@ -814,7 +814,9 @@ function AppRoutes() {
       if (confirmed) moveTo(next, state);
     });
   };
-  guardedNavigateRef.current = guardedNavigate;
+  // The one-argument form is what pages receive as a prop, so a caller that passes it on as a callback never hands it a second argument as state.
+  const guardedNavigate = (next: string) => guardedMove(next);
+  guardedNavigateRef.current = guardedMove;
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
   const moveTo = (next: string, state?: unknown) => {
