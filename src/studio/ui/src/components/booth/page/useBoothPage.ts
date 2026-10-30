@@ -301,7 +301,6 @@ export function useBoothPage(options: BoothPageOptions) {
       secondsOf: (phrase) => secondsBefore(units, phrase),
       recordedEnd,
       takeSeconds: seconds,
-      recordRefusal: control.disabled ? control.reason : '',
     },
     {
       roll: (_phrase, { confirmed }) => daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }),

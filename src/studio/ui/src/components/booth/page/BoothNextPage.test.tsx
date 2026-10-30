@@ -234,11 +234,10 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     expect(screen.getByRole('status', { name: 'Take status' }).textContent).toBe('');
   });
 
-  it('a pedal only starts and stops: no other key records, rolls or flags', async () => {
+  it('a pedal only starts and stops: no other key but R records, and nothing rolls or flags', async () => {
     const page = renderPage();
     await ready();
     for (const [key, code] of [
-      ['r', 'KeyR'],
       ['f', 'KeyF'],
       ['p', 'KeyP'],
       ['Enter', 'Enter'],
@@ -252,6 +251,14 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     // A USB pedal set to Space is a keyboard Space: the one recording key.
     await space();
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+  });
+
+  it('R before any take starts one in the same press, without a roll', async () => {
+    const page = renderPage();
+    await ready();
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    expect(page.daw.roll).not.toHaveBeenCalled();
   });
 
   it('a refused precondition says why and starts nothing', async () => {
