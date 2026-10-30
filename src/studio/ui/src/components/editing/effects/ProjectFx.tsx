@@ -1,5 +1,6 @@
 import type { ProjectFxSlot } from '../../../api/contracts/workspace';
 import { Button } from '../../primitives/Button';
+import { HelpButton } from '../../primitives/HelpButton';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import type { ProjectFxState } from './useProjectFx';
@@ -30,10 +31,13 @@ export function ProjectFx({ state, dawName }: { state: ProjectFxState; dawName: 
   return (
     <section aria-label={`FX in ${dawName}`} className="flex flex-col gap-2" data-projectfx>
       <div className="flex items-center justify-between gap-2">
-        <SectionLabel>
-          FX in {dawName}
-          {chain ? ` · ${rows.length}` : ''}
-        </SectionLabel>
+        <span className="inline-flex items-center gap-2">
+          <SectionLabel>
+            FX in {dawName}
+            {chain ? ` · ${rows.length}` : ''}
+          </SectionLabel>
+          <HelpButton label="How to add an effect to words">{howToAdd(dawName)}</HelpButton>
+        </span>
         <Button variant="secondary" size="sm" onClick={checkAgain} disabled={reading}>
           Check again
         </Button>
@@ -45,30 +49,27 @@ export function ProjectFx({ state, dawName }: { state: ProjectFxState; dawName: 
       ) : reading && !chain ? (
         <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{READING_PROJECT_FX}</p>
       ) : rows.length ? (
-        <>
-          <Table label={`FX in ${dawName}`}>
-            <TableHead>
-              <TableRow>
-                <TableHeader align="left">Where</TableHeader>
-                <TableHeader align="left">Effect</TableHeader>
-                <TableHeader align="left">State</TableHeader>
+        <Table label={`FX in ${dawName}`}>
+          <TableHead>
+            <TableRow>
+              <TableHeader align="left">Where</TableHeader>
+              <TableHeader align="left">Effect</TableHeader>
+              <TableHeader align="left">State</TableHeader>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.key}>
+                <TableCell>{row.where}</TableCell>
+                <TableCell>
+                  <span className="[overflow-wrap:anywhere]">{row.slot.name}</span>
+                </TableCell>
+                {/* A switched-off plug-in is said in words, not by dimming the row: dimmed text fails the contrast gate. */}
+                <TableCell>{row.slot.enabled ? 'On' : 'Off'}</TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.key}>
-                  <TableCell>{row.where}</TableCell>
-                  <TableCell>
-                    <span className="[overflow-wrap:anywhere]">{row.slot.name}</span>
-                  </TableCell>
-                  {/* A switched-off plug-in is said in words, not by dimming the row: dimmed text fails the contrast gate. */}
-                  <TableCell>{row.slot.enabled ? 'On' : 'Off'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{howToAdd(dawName)}</p>
-        </>
+            ))}
+          </TableBody>
+        </Table>
       ) : (
         <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
           {dawName} {NO_PROJECT_FX}

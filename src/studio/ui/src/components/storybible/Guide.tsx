@@ -30,7 +30,7 @@ import {
   type EntrySort,
 } from './entryTable';
 import { evidenceLinks } from './evidenceLinks';
-import { usePreviewAudio } from './usePreviewAudio';
+import { useHearEntry } from './useHearEntry';
 import { ActionsMenu } from './ActionsMenu';
 import { EntryTable, type EntryTableHandle } from './EntryTable';
 import { SortMenu } from './SortMenu';
@@ -262,24 +262,15 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   };
   // The list's Hear: the host's preview of an entry's name, as the entry's own play button plays it. One plays at a time; a voice that
   // is not installed opens the entry, whose own play asks again and shows the install prompt.
-  const hearTarget = useRef<string>(undefined);
-  const [heardId, setHeardId] = useState<string>();
-  const listPreview = usePreviewAudio({
-    resetKey: undefined,
-    requestPreview: () => api.guidePreview(hearTarget.current!),
-    onAssetRequired: () => {
-      const id = hearTarget.current!;
+  const listHear = useHearEntry({
+    requestPreview: (id) => api.guidePreview(id),
+    onAssetRequired: (id) => {
       selectRow(id);
       setCommand({ id, kind: 'hear', nonce: Math.random() });
     },
     notify,
   });
-  const hear = (id: string) => {
-    if (hearTarget.current !== id) listPreview.stopPreview();
-    hearTarget.current = id;
-    setHeardId(id);
-    void listPreview.playPreview();
-  };
+  const { hear } = listHear;
 
   // The right-click menu of an entry row (the mock's registerContext for the Bible page): Open, Find in the manuscript, Mark reviewed and
   // Delete entry. The last two go to the open entry, which does what its own buttons do (its pending and its Undo included).
@@ -469,8 +460,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 words={searchWords(query)}
                 handle={tableRef}
                 onHear={hear}
-                playingId={listPreview.playingPreview ? heardId : undefined}
-                loadingId={listPreview.loadingPreview ? heardId : undefined}
+                playingId={listHear.playingId}
+                loadingId={listHear.loadingId}
               />
             ) : (
               <div className="min-h-0 flex-1 overflow-hidden">
