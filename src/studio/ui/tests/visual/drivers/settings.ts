@@ -372,6 +372,11 @@ export const settingsDrivers: Record<string, Driver> = {
     await showSettingsRow(page, 'look.reader');
     await page.getByRole('slider', { name: 'Column width' }).waitFor();
   },
+  'wave-scroll-step': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    await showSettingsRow(page, 'look.waveScrollStep');
+    await page.getByRole('slider', { name: 'Waveform arrow step' }).waitFor();
+  },
   'global-keyboard': async (page) => {
     await openShortcuts(page);
     await page.getByRole('button', { name: 'Reset all to defaults' }).waitFor();

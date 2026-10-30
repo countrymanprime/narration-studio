@@ -154,7 +154,7 @@ bring it back with its status and any notes intact.
 after the last chapter. They are chapters like any other, listed everywhere chapters are (the chapter pickers of [Editing](editing.md), [Proof](proof.md) and the [Booth](booth.md), Engine's chapter links, Delivery and Master & QC), and counted in the totals: each is
 the first opening and first closing template in
 [Settings, Credits](settings.md#credits), each with its own status; a manuscript that brings its own opening-credits chapter
-lists that chapter in the opening row's place. Prep is a tick once no token is left to fill in, Record,
+lists that chapter in the opening row's place. Prep is the state you set under **My prep** on the credits' card in [Script](script.md), as for a chapter (an unresolved token is warned about in the **Credits…** panel, it does not change Prep), Record,
 Edit and Proof follow the row's status, and a stage nothing measures yet is a dash. Right-click a credits row for the same menu as a chapter's (**Open Proof**, **Editing check…**, **Chapter track…** and the rest) plus **Credits…**, which shows the template's name, words and estimated length (including
 room tone), a warning for an unresolved token (`[Author]` never filled in) with **Fill in under
 Settings > Credits**, its status, its Recorded length (once its own track is linked - never an

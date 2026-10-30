@@ -234,11 +234,11 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     expect(screen.getByRole('status', { name: 'Take status' }).textContent).toBe('');
   });
 
+  // R is no longer in this list: Punch and roll now starts a take when none runs (next test). A pedal still sends only Space (ruling CF-4).
   it('a pedal only starts and stops: no other key records, rolls or flags', async () => {
     const page = renderPage();
     await ready();
     for (const [key, code] of [
-      ['r', 'KeyR'],
       ['f', 'KeyF'],
       ['p', 'KeyP'],
       ['Enter', 'Enter'],
@@ -252,6 +252,14 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     // A USB pedal set to Space is a keyboard Space: the one recording key.
     await space();
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+  });
+
+  it('R before any take starts one in the same press, without a roll', async () => {
+    const page = renderPage();
+    await ready();
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    expect(page.daw.roll).not.toHaveBeenCalled();
   });
 
   it('a refused precondition says why and starts nothing', async () => {
@@ -1166,6 +1174,27 @@ describe('every way out of the page asks while a take records', () => {
 });
 
 describe('the right-click menu', () => {
+  it('Punch and roll in the menu is gated like R: a blocked start answers with its dialog and starts nothing', async () => {
+    const page = renderPage({ setup: 'reaper-off' });
+    await screen.findByText('Nobody', { exact: false });
+    const button = await screen.findByRole('button', { name: /^Record$/ });
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+    act(() => {
+      fireEvent.contextMenu(document.querySelector('[data-unit="1"] [data-word="0"]')!, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Punch and roll' }));
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    expect(page.daw.roll).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('dialog') ?? page.overlay.getSnapshot().toasts[0]).toBeTruthy());
+    expect(
+      page.overlay
+        .getSnapshot()
+        .toasts.map((t) => t.text)
+        .join(' '),
+    ).not.toMatch(/Starting from/);
+  });
+
   it('right-click offers the phrase, take and text commands', async () => {
     const page = renderPage();
     await ready();
