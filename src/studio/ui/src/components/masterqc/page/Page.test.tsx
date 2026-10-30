@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeChapters } from '../../../fixtures/chapters';
 import type { DeliveryProfile, MeasureFileResult, NarrationApi } from '../../../types';
+import { findToast, pressToastAction, toastTexts } from '../../../fixtures/toasts';
 import { chapterStates } from '../../delivery/page/chapterStates';
 import { MasterPage } from './MasterPage';
 import { ALL_PASS, CHAPTERS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing, withCredits } from './testPage';
@@ -416,15 +417,17 @@ describe('Master & QC package panel loading state', () => {
 
   it('ends the region when the chapters cannot be read, and says so', async () => {
     mount(ALL_PASS, acx, { manuscriptChapters: () => Promise.reject(new Error('unreadable')) });
-    expect(await screen.findByText(/The chapters could not be read/)).toBeTruthy();
+    await findToast(/The chapters could not be read/);
+    expect(screen.queryByText(/The chapters could not be read/)).toBeNull();
     await waitFor(() => expect(region()).toBeNull());
   });
 });
 
-// A failed read of the chapters or of the profile leaves the page working with a line that says so; each line offers Retry that reads again.
+// A failed read of the chapters or of the profile leaves the page working and says so in a toast (rule 7), never a line in the card; the toast
+// offers Retry that reads again.
 describe.each([
   // The package panel shows its skeleton while the chapters are read again; a measured job already carries its profile, so a profile read
-  // again shows no skeleton, only the line going away and coming back if it fails again.
+  // again shows no skeleton.
   {
     what: 'the chapters',
     seam: 'manuscriptChapters',
@@ -439,7 +442,10 @@ describe.each([
   },
 ] as const)('Master & QC: a failed read of $what offers Retry', ({ seam, line, skeleton }) => {
   const region = () => screen.queryByRole('group', { name: 'Loading the delivery package checks' });
-  const retry = () => screen.getByRole('button', { name: `Retry reading ${seam === 'manuscriptChapters' ? 'the chapters' : 'the delivery profile'}` });
+  const retry = async (reason: string) => {
+    const toast = await findToast(line(reason));
+    act(() => pressToastAction(toast));
+  };
   const fail = (reason: string) => () => Promise.reject(new Error(reason));
   const never = () => new Promise<never>(() => undefined);
   // Each call takes the next step; the last step repeats.
@@ -448,69 +454,49 @@ describe.each([
     (apiOf(jobOf(ALL_PASS, acx), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS }) as unknown as Record<string, () => Promise<unknown>>)[seam]();
   const mountWith = (read: unknown) => mount(ALL_PASS, acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS, [seam]: read } as Partial<NarrationApi>);
 
-  it('shows the line as an alert with Retry beside it, and no skeleton', async () => {
+  it('tells it as an error toast with Retry, draws nothing in the page, and shows no skeleton', async () => {
     mountWith(fail('first'));
-    const text = await screen.findByText(line('first'));
-    expect(text.getAttribute('role')).toBe('alert');
-    expect(retry()).toBeTruthy();
+    const toast = await findToast(line('first'));
+    expect(toast.tone).toBe('error');
+    expect(toast.action?.label).toBe('Retry');
+    expect(screen.queryByText(line('first'))).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
     await waitFor(() => expect(region()).toBeNull());
   });
 
-  it("shows no stale line while it reads again (the package panel's skeleton where it applies), then the loaded page", async () => {
+  it("shows the package panel's skeleton where it applies while it reads again, then the loaded page with no toast", async () => {
     let release: () => void = () => {};
     const held = new Promise<void>((resolve) => (release = resolve));
     mountWith(steps([fail('first'), () => held.then(real)]));
-    await screen.findByText(line('first'));
-    await userEvent.click(retry());
+    await retry('first');
     if (skeleton) expect(region()?.getAttribute('aria-busy')).toBe('true');
-    expect(screen.queryByText(line('first'))).toBeNull();
-    expect(screen.queryByRole('button', { name: /^Retry reading/ })).toBeNull();
     await act(async () => release());
     await waitFor(() => expect(region()).toBeNull());
-    expect(screen.queryByText(/could not be read/)).toBeNull();
+    expect(toastTexts()).toEqual([]);
   });
 
-  it('shows the new line with Retry when the second read fails too', async () => {
+  it('toasts the new reason when the second read fails too', async () => {
     mountWith(steps([fail('first'), fail('second')]));
-    await screen.findByText(line('first'));
-    await userEvent.click(retry());
-    expect(await screen.findByText(line('second'))).toBeTruthy();
-    expect(screen.queryByText(line('first'))).toBeNull();
-    expect(retry()).toBeTruthy();
-  });
-
-  it('keeps focus on the page when Retry removes the line it was pressed on, each time', async () => {
-    let release: () => void = () => {};
-    const held = new Promise<void>((resolve) => (release = resolve));
-    mountWith(steps([fail('first'), fail('second'), () => held.then(real)]));
-    await screen.findByText(line('first'));
-    await userEvent.click(retry());
-    await screen.findByText(line('second'));
-    // The second line is a new button: pressing it removes it as the first was.
-    await userEvent.click(retry());
-    expect(screen.queryByRole('button', { name: /^Retry reading/ })).toBeNull();
-    expect(document.activeElement).toBe(screen.getByRole('main'));
-    await act(async () => release());
-    await waitFor(() => expect(region()).toBeNull());
+    await retry('first');
+    expect((await findToast(line('second'))).action?.label).toBe('Retry');
   });
 
   it('reads again once for a double press, as for a single press', async () => {
     const reads = async (presses: number) => {
       const read = steps([fail('first'), never]);
-      const view = mountWith(read);
-      await screen.findByText(line('first'));
+      mountWith(read);
+      const toast = await findToast(line('first'));
       const before = read.mock.calls.length;
-      const button = retry();
       await act(async () => {
-        for (let press = 0; press < presses; press++) button.click();
+        for (let press = 0; press < presses; press++) toast.action!.onAction();
       });
       const extra = read.mock.calls.length - before;
       cleanup();
-      return { extra, view };
+      return extra;
     };
-    const single = (await reads(1)).extra;
+    const single = await reads(1);
     expect(single).toBeGreaterThan(0);
-    expect((await reads(2)).extra).toBe(single);
+    expect(await reads(2)).toBe(single);
   });
 
   it('sets nothing when the page is left mid-retry', async () => {
@@ -518,8 +504,7 @@ describe.each([
     const held = new Promise<void>((resolve) => (release = resolve));
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mountWith(steps([fail('first'), () => held.then(real)]));
-    await screen.findByText(line('first'));
-    await userEvent.click(retry());
+    await retry('first');
     cleanup();
     await act(async () => release());
     expect(spy).not.toHaveBeenCalled();

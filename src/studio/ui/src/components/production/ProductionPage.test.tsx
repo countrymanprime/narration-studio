@@ -81,6 +81,29 @@ describe('production-route-draws-the-mock-page', () => {
     expect(await pipeline()).toBeTruthy();
   });
 
+  // #2634: the strip and the stage bar draw one book. "Recorded audio" is the stage bar's recorded-or-further total out of its whole.
+  it('draws the same book length and the same recorded hours on the figures strip as on Where the book stands', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    const kpis = await screen.findByRole('list', { name: 'Production figures' });
+    const bar = (await screen.findByRole('heading', { name: 'Where the book stands' })).closest('.grid')!.firstElementChild as HTMLElement;
+    const legend = Object.fromEntries(
+      within(bar)
+        .getAllByRole('listitem')
+        .map((li) => [li.textContent!.replace(/\s*\d+:\d+$/, ''), li.querySelector('b')!.textContent!]),
+    );
+    const minutes = (clock: string) => clock.split(':').reduce((h, m) => Number(h) * 60 + Number(m), 0);
+    const total = Object.values(legend).reduce((a, clock) => a + minutes(clock), 0);
+    const recorded = total - minutes(legend['Not recorded yet']);
+    const tile = within(kpis).getByRole('button', { name: /Recorded audio/ }).textContent!;
+    const [value, whole] = [...tile.matchAll(/(\d+:\d+)/g)].map((m) => minutes(m[1]));
+    // The legend and the tile print each figure rounded to the minute, so a sum of printed figures can drift from a printed total by half a
+    // minute per figure and no more: four segments and the tile's own rounding for Recorded (2.5 min, so 2 whole minutes), five and the
+    // tile for the book (3). The exact, unrounded agreement is pinned in overview.test.tsx over four books.
+    expect(Math.abs(whole - total)).toBeLessThanOrEqual(3);
+    expect(Math.abs(value - recorded)).toBeLessThanOrEqual(2);
+    expect(within(kpis).getByRole('button', { name: /Open pickups/ }).textContent).not.toMatch(/not measured yet/i);
+  });
+
   // The mock's `.pstats` (1.5fr 1fr 1fr) and `.pgrid` (the pipeline beside a 360 px Next up), app.css:110-112.
   it('lays the stats row out 1.5 : 1 : 360 px over the pipeline and its 360 px Next up column, so the right-hand cards share their edges', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });

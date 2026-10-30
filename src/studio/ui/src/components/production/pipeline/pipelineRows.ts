@@ -1,6 +1,7 @@
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName, chapterParts } from '../../../chapterName';
+import { reached } from '../../../chapterStatus';
 import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
@@ -82,8 +83,7 @@ const TICK = '✓';
 /** The text of an under-way cell (a stage with no measured percent): the table draws it as a shape, not as this glyph, which many fonts lack. */
 export const UNDER_WAY = '◐';
 
-const ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
-const past = (status: ChapterStatus, at: ChapterStatus): boolean => ORDER.indexOf(status) >= ORDER.indexOf(at);
+const past = reached;
 
 const cell = (column: PipelineColumn, target: GoTarget, kind: CellKind, text: string, state: string, tip: string, go = true): PipelineCell => ({
   column,
