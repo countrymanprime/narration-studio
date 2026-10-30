@@ -533,6 +533,10 @@ describe('Settings: search and filters', () => {
     expect(within(nav()).getByRole('button', { name: /^Recording & DAW.*2 changed/ })).toBeTruthy();
     pick('Appearance');
     fireEvent.click(await within(await waitForRow('look.theme')).findByRole('radio', { name: 'Dark' }));
+    fireEvent.click(within(row('look.motion')).getByRole('radio', { name: 'Reduce' }));
+    fireEvent.change(within(row('look.waveScrollStep')).getByRole('slider', { name: 'Waveform arrow step' }), { target: { value: '27' } });
+    const font = within(row('look.reader')).getByRole('combobox', { name: 'Reader font' });
+    fireEvent.change(font, { target: { value: 'Verdana' } });
 
     // This computer (a custom body): the window zoom.
     fireEvent.change(await within(await waitForRow('look.zoom')).findByRole('combobox', { name: 'Zoom' }), { target: { value: '1.25' } });
@@ -548,7 +552,35 @@ describe('Settings: search and filters', () => {
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
-    for (const id of ['daw.engine', 'daw.startTone', 'look.theme', 'look.zoom', 'stt.model', 'app.channel']) expect(row(id), id).toBeTruthy();
+    for (const id of [
+      'daw.engine',
+      'daw.startTone',
+      'look.theme',
+      'look.motion',
+      'look.waveScrollStep',
+      'look.reader',
+      'look.zoom',
+      'stt.model',
+      'app.channel',
+    ])
+      expect(row(id), id).toBeTruthy();
+  }, 60_000);
+});
+
+describe('Settings: Changed and the delivery profiles', () => {
+  it('lists the default delivery profile once it is not the factory one', async () => {
+    const api = createMockApi({}, { deliveryProfile: 'custom' });
+    await renderPage({ api });
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    pick('Delivery');
+    const box = await within(await waitForRow('delivery.default')).findByRole('combobox', { name: 'Default profile for new projects' });
+    const custom = within(box)
+      .getAllByRole('option')
+      .find((option) => option.textContent?.includes('custom'))!;
+    fireEvent.change(box, { target: { value: (custom as HTMLOptionElement).value } });
+    await waitFor(() => expect(within(nav()).getByRole('button', { name: /^Delivery.*[0-9] changed/ })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+    await waitFor(() => expect(row('delivery.default')).toBeTruthy());
   }, 60_000);
 });
 
