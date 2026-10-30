@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
+import { attributeCue, UNKNOWN_SPEAKER } from '../../studio/commands/attributeCue';
+import { useJournalOrOwn } from '../../studio/StudioProvider';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import type { GuideDialogueCue, GuideEntity } from '../../types';
 import { InsetCard } from '../primitives/InsetCard';
 import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
-
-const UNKNOWN_SPEAKER = 'unknown';
 
 /**
  * Dialogue cues attributed to this speaker, or left unknown, with a correction control
@@ -28,6 +28,7 @@ export function DialogueCueAttribution({
   notify: Notify;
 }) {
   const api = useApi();
+  const journal = useJournalOrOwn();
   const mutation = usePendingAction();
   const [cues, setCues] = useState<GuideDialogueCue[]>();
   const [loadError, setLoadError] = useState<string>();
@@ -47,7 +48,8 @@ export function DialogueCueAttribution({
   const correct = (cue: GuideDialogueCue, speakerEntityId: string) =>
     mutation.run(`correct:${cue.id}`, async () => {
       try {
-        await api.guideCorrectCue(cue.id, speakerEntityId);
+        const done = await attributeCue(journal, api, cue, speakerEntityId);
+        if (!done.ok) return notify(done.refusal.reason, 'error');
         notify(speakerEntityId === UNKNOWN_SPEAKER ? 'Cue cleared to unknown.' : 'Cue attribution corrected.');
         await load();
       } catch (error) {

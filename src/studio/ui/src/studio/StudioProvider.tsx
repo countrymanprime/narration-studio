@@ -87,6 +87,16 @@ export function useJournal(): Journal {
   return journal;
 }
 
+/**
+ * The app's journal, or one of its own where nothing provides it (a component mounted alone in a test), so a change made there is still one undoable
+ * entry and never a bare host call.
+ */
+export function useJournalOrOwn(): Journal {
+  const provided = useContext(StudioContext);
+  const [own] = useState(() => (provided ? undefined : createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'unknown' })));
+  return provided ?? own!;
+}
+
 /** The store itself, for a caller that asks a slot to load (`load('chapters')`); a page reads a slot with `useStudio`. */
 export function useStoreHandle(): StudioStore<StudioRegistry> {
   const store = useContext(StoreContext);
