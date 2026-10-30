@@ -14,6 +14,7 @@ import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
 import type { Notify } from '../primitives/Toast';
+import { canRecord } from '../booth/record/useCanRecord';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
@@ -286,12 +287,7 @@ export function ProductionPage({
     onChanged();
   }, stages.busy);
 
-  const record = caps
-    ? {
-        ok: Boolean(caps.capabilities.record?.available),
-        reason: caps.capabilities.record?.message ?? '',
-      }
-    : { ok: false, reason: 'Checking the audio engine…' };
+  const record = canRecord(caps);
   const narrationIds = new Set(narrated.map((c) => c.id));
   const counts = checkCounts(sync?.chapters ?? [], narrationIds);
   const toCheck = [...counts.stale, ...counts.never];

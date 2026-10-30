@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { headingName } from '../../../chapterHeading';
 import { useApi } from '../../../api/ApiContext';
-import { useCapability } from '../../../useCapability';
+import { useCanRecord } from '../record/useCanRecord';
 import { CommandScope } from '../../../input/router';
 import type { GuideEntity, GuideType, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
@@ -63,8 +63,8 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
     listenOn: session.listenOn,
   });
   const follow = useFollowCursor({ active: session.active, cursor: session.cursor });
-  const record = useCapability('record');
-  const recording = useRecordInReaper(source.chapter.id, record.available);
+  const record = useCanRecord();
+  const recording = useRecordInReaper(source.chapter.id, record.ok);
   const chapterTitle = source.kind === 'chapter' ? headingName(source.chapter) : CREDITS_LABEL[source.credits];
   const { paragraphs, rows } = session;
   const { flags } = session.session;
