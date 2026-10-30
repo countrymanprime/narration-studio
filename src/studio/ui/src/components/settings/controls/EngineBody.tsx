@@ -12,6 +12,7 @@ import { useSecondsSince } from '../../layout/CheckLine';
 import { engineChanged } from '../data/engineSignal';
 import { AudacityLinkCard } from '../../engine/AudacityLinkCard';
 import { useAudacityLink } from '../../engine/useAudacityLink';
+import { HelpButton } from '../../primitives/HelpButton';
 import { useSettingsHost } from '../row/SettingsHost';
 
 /** One engine's honest state under its radio: not found on this computer, or why it cannot record now, in the host's sentence. */
@@ -46,7 +47,9 @@ function optionsFor(choice: DawChoice, disabled: boolean): RadioOption<Choosable
       label: option.daw === 'Built-in' ? 'Built-in recorder. Recordings live in the app.' : `${option.daw}. Recordings live in the DAW.`,
       description: (detail || lastResort) && (
         <span className="text-[0.8125rem]">
-          {lastResort && `Only if ${choice.daw} cannot be used at all: takes already in ${choice.daw} stay there and this app stops reading them. `}
+          {lastResort && (
+            <HelpButton label="About the built-in recorder">{`Only if ${choice.daw} cannot be used at all: takes already in ${choice.daw} stay there and this app stops reading them.`}</HelpButton>
+          )}
           {detail}
         </span>
       ),
