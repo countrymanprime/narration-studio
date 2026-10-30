@@ -92,4 +92,4 @@ export const deliveryStates: StateEntry[] = [
       'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
   },
 ];
-deliveryStates.push(wholePage(deliveryStates, 'measured'));
+deliveryStates.push(wholePage(deliveryStates, 'measured', ['desktop']));
