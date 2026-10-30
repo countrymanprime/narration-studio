@@ -1,6 +1,6 @@
 -- Shared helpers and the command registry of the REAPER bridge (narration_ui_bridge.lua and the feature files it
 -- loads: narration_compare.lua, narration_line_identity.lua). The protocol helpers here match bridge.go: fields are
--- percent-encoded and separated by `|`, and events are appended to events.log one line at a time.
+-- percent-encoded and separated by `|`, and each event is one line of events.log; a command's events are appended together (`batched`).
 
 local M = {}
 local SEP = package.config:sub(1, 1)
@@ -44,15 +44,52 @@ local function split(line, count)
   fields[#fields + 1] = decode(line:sub(start):gsub('[\r\n]+$', ''))
   return fields
 end
+local function append(path, text)
+  local handle = io.open(path, 'a')
+  if handle then
+    handle:write(text)
+    handle:close()
+  end
+end
+-- The lines events sent while `batched` runs a command, by file, and the files in the order each was first written.
+-- nil when no command is running: an event then goes to its file at once.
+local held = nil
 local function event(session_dir, tag, ...)
   local values = { tag }
   for _, value in ipairs({ ... }) do
     values[#values + 1] = encode(value)
   end
-  local handle = io.open(join(session_dir, 'events.log'), 'a')
-  if handle then
-    handle:write(table.concat(values, '|') .. '\n')
-    handle:close()
+  local path, line = join(session_dir, 'events.log'), table.concat(values, '|') .. '\n'
+  if not held then
+    append(path, line)
+    return
+  end
+  local lines = held.lines[path]
+  if not lines then
+    lines = {}
+    held.lines[path] = lines
+    held.order[#held.order + 1] = path
+  end
+  lines[#lines + 1] = line
+end
+-- Runs fn(...) with the events it sends held, then appends them to events.log in one write, also when fn raises (the
+-- error is raised again after the write). Opening the file once per line cost a 1000-item chapter_track_state about 4000
+-- file system calls and 13 ms of REAPER's main thread in REAPER 7.82 (docs/research/reaper-bridge-performance.md). The lines and their
+-- order are unchanged; the host may read a long write half-way, and its reader keeps a partial last line for the next read
+-- (events.go, newEventLines). A batch inside a batch joins the outer one.
+local function batched(fn, ...)
+  if held then
+    return fn(...)
+  end
+  held = { lines = {}, order = {} }
+  local ok, err = pcall(fn, ...)
+  local done = held
+  held = nil
+  for _, path in ipairs(done.order) do
+    append(path, table.concat(done.lines[path]))
+  end
+  if not ok then
+    error(err, 0)
   end
 end
 local JSON_ESCAPES = { ['\\'] = '\\\\', ['"'] = '\\"', ['\n'] = '\\n', ['\r'] = '\\r', ['\t'] = '\\t' }
@@ -220,6 +257,7 @@ M.encode = encode
 M.decode = decode
 M.split = split
 M.event = event
+M.batched = batched
 M.debug_log = debug_log
 M.command_files = command_files
 M.file_exists = file_exists
