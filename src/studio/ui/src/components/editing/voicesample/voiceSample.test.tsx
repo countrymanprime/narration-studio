@@ -258,7 +258,10 @@ describe('marking a voice sample', () => {
       alignmentRecordId: 'record-7',
     });
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(toastUndo).toHaveBeenCalledWith('Saved voice sample for The Queen of Hearts.', expect.any(Function), { durationMs: 10_000 });
+    expect(toastUndo).toHaveBeenCalledWith('Saved voice sample for The Queen of Hearts.', expect.any(Function), {
+      durationMs: 10_000,
+      offJournal: expect.any(String),
+    });
   });
 
   it('the character list: chapter speakers first, then the others, then Narration, under their headings', async () => {
