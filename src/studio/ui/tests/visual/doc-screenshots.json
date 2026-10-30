@@ -1422,6 +1422,13 @@
   },
   {
     "page": "pickups",
+    "state": "add-popover-empty",
+    "viewport": "desktop",
+    "docName": "pickups-add-empty",
+    "caption": "Pickups - Add a pickup submitted empty: the one message under the line box, and the time box's hint"
+  },
+  {
+    "page": "pickups",
     "state": "empty",
     "viewport": "desktop",
     "docName": "pickups-empty",
