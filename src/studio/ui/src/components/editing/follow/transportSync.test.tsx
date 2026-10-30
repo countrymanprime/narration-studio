@@ -523,3 +523,108 @@ describe('without-a-daw-that-can-play-the-app-plays', () => {
     expect(notices).toEqual([]);
   });
 });
+
+describe('a-selection-and-the-play-of-it', () => {
+  const select = (anchor: string, head: string) => act(() => page.dispatch({ type: 'select', anchor, head }));
+  const sel = () => page.state.sel;
+
+  it('keeps the selection when Space pauses a play of it', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(10);
+    expect(calls('playRange')).toHaveLength(1);
+    expect(state().playing).toBe(true);
+    act(() => playback.toggle());
+    await wait(10);
+    expect(state().playing).toBe(false);
+    expect(sel()).toEqual({ anchor: 'p-1:3', head: 'p-2:1' });
+  });
+
+  it('plays the new range when the selection changes mid-play, and does not play the old one on', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(10);
+    const first = calls('playRange')[0];
+    select('p-2:2', 'p-2:3');
+    await wait(10);
+    const sent = calls('playRange');
+    expect(sent).toHaveLength(2);
+    expect(sent[1].seconds).toBeGreaterThan(first.seconds);
+    expect(state().playing).toBe(true);
+    expect(sel()).toEqual({ anchor: 'p-2:2', head: 'p-2:3' });
+  });
+
+  it('does not play again when the selection that started the play is the one still selected', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(500);
+    expect(calls('playRange')).toHaveLength(1);
+  });
+
+  it('ends a play of a selection whose DAW position jumps straight to the end: the selection stays', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(10);
+    const until = calls('playRange')[0].until as number;
+    act(() => daw.moveInDaw({ playing: false, head: until }));
+    await wait(10);
+    expect(state().playing).toBe(false);
+    expect(sel()).toEqual({ anchor: 'p-1:3', head: 'p-2:1' });
+  });
+
+  it('counts a stop at the end of the stretch as the end of the play even when no reading near the end was heard playing', async () => {
+    await ready();
+    act(() => page.dispatch({ type: 'place', key: 'p-1:3' }));
+    act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
+    await wait(10);
+    const until = calls('playRange')[0].until as number;
+    act(() => daw.moveInDaw({ playing: false, head: until }));
+    await wait(10);
+    expect(state().playing).toBe(false);
+    expect(state().cursor).toBe('p-1:3');
+  });
+
+  describe('when the DAW stops answering', () => {
+    const mountAndLose = async () => {
+      const api = createMockApi({}, { daw: {} });
+      daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+      const tree = (caps: DawCapabilities) => (
+        <ApiProvider api={api}>
+          <EditingPageProvider doc={doc}>
+            <Harness caps={caps} />
+          </EditingPageProvider>
+        </ApiProvider>
+      );
+      const view = render(tree(DAW_SETUPS.reaper));
+      await wait(10);
+      return { lose: () => view.rerender(tree({ ...DAW_SETUPS.reaper, reachable: false })), back: () => view.rerender(tree(DAW_SETUPS.reaper)) };
+    };
+    it('puts the play bar back on Play, and keeps it there when the DAW returns', async () => {
+      const { lose, back } = await mountAndLose();
+      select('p-1:3', 'p-2:1');
+      act(() => playback.toggle());
+      await wait(10);
+      expect(state().playing).toBe(true);
+      lose();
+      await wait(10);
+      expect(state().playing).toBe(false);
+      // The DAW came back stopped (a DAW that comes back playing is followed, as any play of its own is).
+      act(() => daw.moveInDaw({ playing: false }));
+      back();
+      await wait(LEASE_RENEW_MS + 10);
+      expect(state().playing).toBe(false);
+    });
+    it('does the same for a play the DAW started itself', async () => {
+      const { lose } = await mountAndLose();
+      act(() => daw.moveInDaw({ playing: true, head: at(1.3) }));
+      expect(lit()).toBe('p-1:3');
+      lose();
+      await wait(10);
+      expect(state().playing).toBe(false);
+    });
+  });
+});

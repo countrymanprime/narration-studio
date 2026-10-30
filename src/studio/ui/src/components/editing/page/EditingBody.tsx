@@ -79,6 +79,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
+import { noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
 import { useRecordingCheck } from './useRecordingCheck';
@@ -539,6 +540,10 @@ export function EditingBody(props: EditingBodyProps) {
     onReread: props.onReread,
   });
 
+  // Nothing can play on a chapter with no audio (no linked track, a track that is gone or empty, or nothing recorded yet): Play says why.
+  const dawName = caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null;
+  const playUnavailable = read.audio.kind === 'ready' ? undefined : `${noAudioText(read.audio, chapterName, dawName).headline}`;
+
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {chapterLink.dialog}
@@ -561,12 +566,7 @@ export function EditingBody(props: EditingBodyProps) {
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
-            <NoAudioBanner
-              audio={read.audio}
-              chapterName={chapterName}
-              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
-              onReread={props.onReread}
-            />
+            <NoAudioBanner audio={read.audio} chapterName={chapterName} daw={dawName} onReread={props.onReread} />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
@@ -602,6 +602,7 @@ export function EditingBody(props: EditingBodyProps) {
               playback={playback}
               end={total}
               narrow={compact}
+              {...(playUnavailable ? { unavailable: playUnavailable } : {})}
               output={<EditingOutput prefs={output} onChange={changeOutput} deviceProblem={deviceProblem} caps={caps} />}
             />
             <KeyHints hints={hints} id="keyhints" />

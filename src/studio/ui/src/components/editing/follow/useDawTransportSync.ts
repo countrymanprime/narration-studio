@@ -127,6 +127,18 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     if (ready) return;
     guard.reset();
     dawPlaying.current = false;
+    // The DAW stopped answering while the page showed a play of it: no reading will come to end that play, so it ends here and the bar goes back
+    // to Play, behind the connection dialog and after the heartbeat returns.
+    const l = live.current;
+    if (owns.current) {
+      owns.current = false;
+      range.current = null;
+      l.onLost();
+      l.notify(LOST);
+    } else if (mine.current != null && l.state.playT === mine.current) {
+      mine.current = null;
+      l.dispatch({ type: 'play', t: null });
+    }
   }, [ready, guard]);
 
   const stopDaw = useCallback((): void => {
@@ -186,6 +198,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         return;
       }
       heard = null;
+      // A DAW that jumps to the end of its stretch and stops between two readings is heard stopping there: its play position is kept while stopped.
+      if (range.current && owns.current && pos.playPosition > range.current.head) range.current.head = pos.playPosition;
       if (dawPlaying.current) {
         dawPlaying.current = false;
         if (owns.current) {
