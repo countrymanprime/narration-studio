@@ -231,3 +231,21 @@ H.test("an event sent from a feature's own defer callback, outside a command, is
   s:tick()
   H.eq(s:events(), { { 'LATER', 'r1' } })
 end)
+
+-- encode is on the path of every event field (a 1000-item track read encodes about 8000), so it is a table lookup per
+-- character (#2251, docs/research/reaper-bridge-performance.md); its output must stay exactly what the host decodes.
+H.test('encode percent-encodes every byte as the host expects, and decode reverses it', function()
+  H.session()
+  local core = dofile(H.join(host.reaper_dir, 'narration_bridge_core.lua'))
+  for byte = 0, 255 do
+    local char = string.char(byte)
+    H.eq(core.encode(char), H.encode(char), 'byte ' .. byte)
+    H.eq(core.decode(core.encode(char)), char, 'byte ' .. byte)
+  end
+  local mixed = 'C:\\Audio\\Chapter 1|take 2 – “שלום” 🎙.wav'
+  H.eq(core.encode(mixed), H.encode(mixed))
+  H.eq(core.decode(core.encode(mixed)), mixed)
+  H.eq(core.encode(nil), '')
+  H.eq(core.encode(12.5), '12.5')
+  H.eq(core.encode('plain-text_1.0~'), 'plain-text_1.0~')
+end)

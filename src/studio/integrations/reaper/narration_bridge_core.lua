@@ -22,10 +22,15 @@ end
 M.brand = dofile(join(own_directory(), 'narration_brand.lua'))
 local BRAND = M.brand
 
+-- Every byte's %XX form, looked up by gsub for the bytes outside RFC 3986's unreserved set: a table, not a function, since
+-- encode runs for every field of every event and a function call plus a string.format per byte was about 14 ms of a
+-- 1000-item chapter_track_state in REAPER 7.82 (docs/research/reaper-bridge-performance.md).
+local PERCENT = {}
+for byte = 0, 255 do
+  PERCENT[string.char(byte)] = string.format('%%%02X', byte)
+end
 local function encode(value)
-  return tostring(value or ''):gsub('[^%w%-_%.~]', function(c)
-    return string.format('%%%02X', string.byte(c))
-  end)
+  return tostring(value or ''):gsub('[^%w%-_%.~]', PERCENT)
 end
 local function decode(value)
   return (tostring(value or ''):gsub('%%(%x%x)', function(hex)
