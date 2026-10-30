@@ -244,7 +244,8 @@ describe('keep-calls-the-daw-and-offers-undo', () => {
       expect((await undo()).ok).toBe(true);
     });
     expect(useTake).toHaveBeenLastCalledWith('5', 10, 20, 't-7');
-    expect(chip().textContent).toContain('To choose');
+    // Behaviour changed: the take the DAW has active again (T-7) reads Kept, as Proof reads it, instead of going back to "To choose".
+    expect(chip().textContent).toContain('Kept');
     fireEvent.click(screen.getByRole('button', { name: 'Keep T-8' }));
     await flush();
     const first = toastUndo.mock.calls[1][1] as () => Promise<{ ok: boolean; refusal?: { reason: string } }>;

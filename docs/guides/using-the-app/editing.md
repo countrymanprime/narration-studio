@@ -46,7 +46,7 @@ the mark's underline stays under both.
 Each line starts with its time in the chapter (a chapter with nothing heard yet has no times, and its text starts at the
 card's edge). Every line that has takes, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
 the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
-first read's spot), **Duplicate read** (the take reads the line twice) or **To choose**. Tab visits one chip, the one on the
+first read's spot), **Duplicate read** (the take reads the line twice) or **To choose** (no take is active in the DAW). **Kept** is the take the DAW plays, the same take Proof marks Kept, so it reads the same after you reopen the project. Tab visits one chip, the one on the
 line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
 cursor's line (and folds them again on a line with one take), and a click on a chip opens any other. The takes list
 lays every take out in the same columns: its name and state, a bar for its length, how much of the script it read as
