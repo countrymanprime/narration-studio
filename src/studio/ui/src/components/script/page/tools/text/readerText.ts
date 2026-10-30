@@ -28,12 +28,14 @@ export const READER_WIDTHS: ReadonlyArray<readonly [name: string, percent: numbe
 
 /**
  * The reader column's CSS max-width for a width choice, the one rule both the Script and the Booth use: the choice's characters a line (`ch`
- * of the text) or its share of the container, whichever is less. The share is what keeps Narrow narrower than Full when the window, or the
- * Booth's larger text, leaves less room than the characters ask for.
+ * of the text) or the whole container, whichever is less. The column follows the window, growing and shrinking with its container up to the
+ * chosen measure, and never overflows it. The narrowest choice (48) is above a readable 40 characters; a container narrower than that is
+ * filled, because a clipped line is worse than a short one. A share of the container (the rule before) held the column under 40 characters
+ * in a narrow window and clipped what sits inside it.
  */
-export const readerColumn = (width: number): string => `min(${width}ch, ${width}%)`;
+export const readerColumn = (width: number): string => `min(${width}ch, 100%)`;
 /** The same rule reading the choice from the `--rw` custom property that `readerVars` sets. */
-export const READER_COLUMN_VAR = 'min(calc(var(--rw, 64) * 1ch), calc(var(--rw, 64) * 1%))';
+export const READER_COLUMN_VAR = 'min(calc(var(--rw, 64) * 1ch), 100%)';
 
 export const DEFAULT_TEXT_PREFS: TextPrefs = { font: 'Georgia', size: 20, spacing: 1.7, width: 64 };
 

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_TEXT_PREFS,
   READER_COLUMN_VAR,
+  READER_WIDTHS,
   readerColumn,
   fontStack,
   loadTextPrefs,
@@ -88,13 +89,16 @@ describe('storage', () => {
 });
 
 describe('readerColumn', () => {
-  it('is the characters a line or the share of the container, whichever is less', () => {
-    expect(readerColumn(48)).toBe('min(48ch, 48%)');
+  it('is the characters a line or the whole container, whichever is less, so it follows the window up to the chosen measure', () => {
+    expect(readerColumn(48)).toBe('min(48ch, 100%)');
     expect(readerColumn(100)).toBe('min(100ch, 100%)');
   });
 
   it('is the same rule the Script reads from --rw', () => {
-    expect(READER_COLUMN_VAR).toContain('var(--rw, 64) * 1ch');
-    expect(READER_COLUMN_VAR).toContain('var(--rw, 64) * 1%');
+    expect(READER_COLUMN_VAR).toBe('min(calc(var(--rw, 64) * 1ch), 100%)');
+  });
+
+  it('never asks for less than a readable 40 characters: the narrowest choice is above that floor', () => {
+    expect(Math.min(...READER_WIDTHS.map(([, percent]) => percent))).toBeGreaterThanOrEqual(40);
   });
 });
