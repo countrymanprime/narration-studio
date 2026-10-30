@@ -141,6 +141,11 @@ export const DisabledIsInert: Story = {
   },
 };
 
+// The lock is the only other cue, so a locked item gives its reason after 0.4 s of hover, not the standard second (#2652). The timing is pinned in NavButton.test.tsx.
+export const DisabledShowsReasonOnHover: Story = {
+  args: { icon: faFileLines, children: 'Manuscript', disabled: true, disabledReason: MANUSCRIPT_REQUIRED_REASON },
+};
+
 // Icon-only buttons have no visible label, so the tooltip must appear at once on
 // keyboard focus rather than after the hover delay.
 export const IconOnlyShowsLabelOnFocus: Story = {
