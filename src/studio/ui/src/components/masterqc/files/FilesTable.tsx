@@ -33,11 +33,11 @@ const TABLE_FLOOR = 'min-w-[44rem]';
  * body is the grid and each row a subgrid of it, so a measurement is as wide as its widest cell down the list (the Pickups table's way).
  */
 const NARROW_TABLE =
-  '@max-[44rem]:block @max-[44rem]:min-w-0 @max-[44rem]:[&>colgroup]:hidden @max-[44rem]:[&>thead]:sr-only @max-[44rem]:[&>tbody]:grid @max-[44rem]:[&>tbody]:grid-cols-[auto_auto_auto_auto_minmax(0,1fr)_auto] @max-[44rem]:[&>tbody]:gap-x-4 @max-[44rem]:[&_td]:h-auto! @max-[44rem]:[&_td]:border-b-0';
+  '@max-[44rem]:block @max-[44rem]:min-w-0 @max-[44rem]:[&>colgroup]:hidden @max-[44rem]:[&>thead]:sr-only @max-[44rem]:[&>tbody]:grid @max-[44rem]:[&>tbody]:grid-cols-[auto_auto_auto_auto_minmax(0,1fr)] @max-[44rem]:[&>tbody]:gap-x-3 @max-[44rem]:[&_td]:h-auto! @max-[44rem]:[&_td]:border-b-0';
 const NARROW_ROW =
   '@max-[44rem]:grid! @max-[44rem]:col-span-full @max-[44rem]:grid-cols-subgrid @max-[44rem]:border-b @max-[44rem]:border-[var(--border)] @max-[44rem]:px-4 @max-[44rem]:py-2 @max-[44rem]:last:border-b-0 @max-[44rem]:[&>td]:px-0! @max-[44rem]:[&>td]:py-0!';
-const NARROW_FILE = '@max-[44rem]:col-[1/6] @max-[44rem]:row-1 @max-[44rem]:pb-1!';
-const NARROW_RESULT = '@max-[44rem]:col-6 @max-[44rem]:row-1 @max-[44rem]:justify-self-end @max-[44rem]:pb-1!';
+const NARROW_FILE = '@max-[44rem]:col-[1/-1] @max-[44rem]:row-1 @max-[44rem]:mr-[6.5rem] @max-[44rem]:pb-1!';
+const NARROW_RESULT = '@max-[44rem]:col-[1/-1] @max-[44rem]:row-1 @max-[44rem]:justify-self-end @max-[44rem]:pb-1!';
 /** A measurement's cell in a narrow row: left-aligned under the name, its label above it. */
 const STAT = {
   length:
