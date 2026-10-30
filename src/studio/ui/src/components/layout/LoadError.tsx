@@ -73,10 +73,13 @@ function CopyDetails({ text }: { text: string }) {
   const overlay = useOverlay();
   const copy = () => {
     // The text stays on screen once opened, so a narrator can still select it when the clipboard is unavailable.
-    void Promise.resolve(navigator.clipboard?.writeText(text)).then(
-      () => overlay.toast('Copied.'),
-      () => overlay.toast('The details could not be copied: select the text instead.', { tone: 'error' }),
-    );
+    const failed = () => overlay.toast('The details could not be copied: select the text instead.', { tone: 'error' });
+    try {
+      if (!navigator.clipboard) return failed();
+      void navigator.clipboard.writeText(text).then(() => overlay.toast('Copied.'), failed);
+    } catch {
+      failed();
+    }
   };
   return <IconButton action="copy" label="Copy details" size="sm" onClick={copy} />;
 }

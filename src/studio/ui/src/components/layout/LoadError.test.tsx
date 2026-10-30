@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -156,6 +156,36 @@ describe('LoadErrorPanel details', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Copy details' }));
     expect(writeText).toHaveBeenCalledWith(details);
     expect(service.getSnapshot().toasts.map((toast) => toast.text)).toContain('Copied.');
+  });
+
+  // The success toast is only for a copy that happened: no clipboard, a throw and a rejection each say the details could not be copied.
+  describe.each([
+    ['there is no clipboard (an insecure context)', undefined],
+    [
+      'the clipboard throws at once',
+      {
+        writeText: () => {
+          throw new Error('denied');
+        },
+      },
+    ],
+    ['the clipboard rejects', { writeText: () => Promise.reject(new Error('denied')) }],
+  ])('when %s', (_name, clipboard) => {
+    it('says it could not copy, and never says Copied.', async () => {
+      Object.defineProperty(navigator, 'clipboard', { value: clipboard, configurable: true });
+      const service = createOverlayService();
+      render(
+        <OverlayProvider service={service}>
+          <LoadErrorPanel message="It failed." details={details} retry={() => {}} />
+        </OverlayProvider>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: /Details/ }));
+      await userEvent.click(screen.getByRole('button', { name: 'Copy details' }));
+      await waitFor(() => expect(service.getSnapshot().toasts.length).toBeGreaterThan(0));
+      const toasts = service.getSnapshot().toasts;
+      expect(toasts.map((toast) => toast.text)).not.toContain('Copied.');
+      expect(toasts[0]).toMatchObject({ tone: 'error', text: 'The details could not be copied: select the text instead.' });
+    });
   });
 
   it('draws no Details disclosure when there is nothing technical to show', () => {
