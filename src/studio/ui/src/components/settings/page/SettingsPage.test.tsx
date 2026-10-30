@@ -49,6 +49,12 @@ async function renderPage({
 const nav = () => screen.getByRole('navigation', { name: 'Settings categories' });
 const pick = (name: string) => fireEvent.click(within(nav()).getByRole('button', { name: new RegExp(`^${name}`) }));
 const row = (id: string) => document.querySelector<HTMLElement>(`[data-row="${id}"]`)!;
+const waitForRow = (id: string) =>
+  waitFor(() => {
+    const found = row(id);
+    if (!found) throw new Error(`no row ${id}`);
+    return found;
+  });
 
 describe('Settings: structure', () => {
   it('lists every category in labelled groups, with Set on a page apart', async () => {
@@ -507,6 +513,31 @@ describe('Settings: search and filters', () => {
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
     expect(row('app.channel')).toBeTruthy();
+  });
+
+  // Issue 2636: Changed read only the host's files, so a setting this window keeps (Start tone) never showed under it. One change of every
+  // kind of row, so a row kind that Changed cannot see fails here.
+  it('Changed lists a changed row of every kind: a computer setting, a window setting and a project override', async () => {
+    await renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+
+    // This window (browser scope): Start tone and Theme.
+    fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'On' }));
+    pick('Appearance');
+    fireEvent.click(await within(await waitForRow('look.theme')).findByRole('radio', { name: 'Dark' }));
+
+    // This project overrides the computer's value.
+    pick('Speech');
+    fireEvent.click(await within(await waitForRow('stt.model')).findByRole('button', { name: /Override for this project/ }));
+
+    // The computer's file.
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+    for (const id of ['daw.startTone', 'look.theme', 'stt.model', 'app.channel']) expect(row(id), id).toBeTruthy();
+    expect(row('daw.engine')).toBeNull();
   });
 });
 
