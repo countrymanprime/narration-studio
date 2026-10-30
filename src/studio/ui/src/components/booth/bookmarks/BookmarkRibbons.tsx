@@ -22,8 +22,6 @@ export type BookmarkRibbonsProps = {
   onRemove: (id: string) => unknown;
 };
 
-/** The word under `[data-unit]` and `[data-word]` is the Booth text's own markup (`BoothText`). */
-
 /** Tops in the order given, pushed down so none sits closer to the one above it than that one's height. */
 function stacked(tops: readonly number[], heights: readonly number[], floor: number): number[] {
   const out = [...tops];
