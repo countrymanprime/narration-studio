@@ -21,6 +21,7 @@ import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
+import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
 
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
@@ -283,7 +284,7 @@ export function PickupsPage({
       {/* Side by side, the side column is Proof's 380 px (XPK-18) and both cards run down to the window's end, so they share a bottom edge
           in every state (XPK-6, R4TB-7). Stacked, each card keeps its own height, and the session card keeps its 30 rem rather than
           stretching its rows across the window (XPK-4). */}
-      <div className="flex min-h-full flex-col">
+      <div className={`${PAGE_COLUMN_CLASS} flex min-h-full flex-col`}>
         <div className="grid flex-1 content-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[minmax(0,1fr)] max-[1180px]:[&>:last-child]:max-w-[30rem]">
           <PickupsTable
             pickups={list.pickups}
