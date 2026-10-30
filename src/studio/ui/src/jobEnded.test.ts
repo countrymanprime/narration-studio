@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JobEnded } from './api/contracts/system';
+import { TOAST_ACTION_MS } from './components/primitives/Toast';
 import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnouncement, toastForJobEnd } from './jobEnded';
 
 const ended = (patch: Partial<JobEnded>): JobEnded => ({
@@ -31,8 +32,9 @@ describe('toastForJobEnd', () => {
       text: '2 suggestions added; 1 already offered or rejected before.',
       tone: 'info',
       follow,
+      durationMs: TOAST_ACTION_MS,
     });
-    expect(toastForJobEnd(scan('1 suggestion added.'))?.follow).toEqual(follow);
+    expect(toastForJobEnd(scan('1 suggestion added.'))).toMatchObject({ follow, durationMs: TOAST_ACTION_MS });
     expect(toastForJobEnd(scan('0 suggestions added; 3 already offered or rejected before.'))?.follow).toBeUndefined();
     expect(
       toastForJobEnd(

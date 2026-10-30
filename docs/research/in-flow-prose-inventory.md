@@ -74,7 +74,7 @@ These are capped: the number may only go down. Each one moves to a tooltip, a "?
 | Shell | `layout/HistoryPanel.tsx` | explanation | History keeps the newest … changes; older changes can no longer be undone. |
 | Stage evidence | `stages/StageEvidence.tsx` | explanation | Reads the evidence again; it starts no check. |
 | Story Bible | `storybible/VoiceDataPanel.tsx` | explanation | Narration's voice samples and approved references are here - a character's own live on its entry. Remove voice data clears every approved reference in the project; Remove voice samples deletes every sample and its audio. Nothing else about the Story Bible changes. |
-| Story Bible | `storybible/suggested/scan/AnalysisPrompt.tsx` | explanation | The basic scan finds names from the text alone. GLiNER adds the names of characters, places and things the text invents. BookNLP groups the different ways a character is named and works out who speaks each quoted line. Nothing downloads until you agree. |
+| Story Bible | `storybible/suggested/scan/AnalysisPrompt.tsx` | explanation | GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree. |
 
 ## Settings row descriptions
 

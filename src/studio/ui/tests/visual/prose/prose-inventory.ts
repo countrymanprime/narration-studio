@@ -612,7 +612,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/storybible/suggested/scan/AnalysisPrompt.tsx',
-    text: 'The basic scan finds names from the text alone. GLiNER adds the names of characters, places and things the text invents. BookNLP groups the different ways a character is named and works out who speaks each quoted line. Nothing downloads until you agree.',
+    text: 'GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree.',
     class: 'explanation',
   },
   {

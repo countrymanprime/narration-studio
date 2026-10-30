@@ -17,7 +17,13 @@ afterEach(cleanup);
 
 const Toast = () => {
   const navigate = useNavigate();
-  return <button onClick={() => navigate('/story-bible', { state: { show: 'review' } })}>Show them</button>;
+  return (
+    <>
+      <button onClick={() => navigate('/story-bible', { state: { show: 'review' } })}>Show them</button>
+      <button onClick={() => navigate(-1)}>Back</button>
+      <button onClick={() => navigate(1)}>Forward</button>
+    </>
+  );
 };
 
 function renderAt(initial: Parameters<typeof MemoryRouter>[0]['initialEntries']) {
@@ -56,6 +62,20 @@ describe('arriving with state { show: "review" }', () => {
     await waitFor(() => expect(chip()).not.toBeNull());
     await userEvent.click(chip()!);
     await waitFor(() => expect(chip()).toBeNull());
+  });
+
+  it('does not apply the filter again when the narrator goes Back and Forward over the handoff', async () => {
+    renderAt(['/story-bible']);
+    await waitFor(() => expect(entryRows().length).toBeGreaterThan(0));
+    await userEvent.click(screen.getByRole('button', { name: 'Show them' }));
+    await waitFor(() => expect(chip()).not.toBeNull());
+    await userEvent.click(chip()!);
+    await waitFor(() => expect(chip()).toBeNull());
+    // The state was spent in place (replace), so the entry history holds no state to read again.
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    await waitFor(() => expect(entryRows().length).toBeGreaterThan(0));
+    expect(chip()).toBeNull();
   });
 
   it('ignores any other state', async () => {

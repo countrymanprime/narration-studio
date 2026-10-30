@@ -14,8 +14,7 @@ export function AnalysisPrompt({ choose, busy = false }: { choose: (choice: Scan
   return (
     <div className="flex flex-col gap-3" data-analysis-prompt>
       <p className="m-0 text-sm text-[var(--text-muted)]">
-        The basic scan finds names from the text alone. GLiNER adds the names of characters, places and things the text invents. BookNLP groups the different
-        ways a character is named and works out who speaks each quoted line. Nothing downloads until you agree.
+        GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree.
       </p>
       <div className="flex flex-col items-start gap-2">
         <Button autoFocus disabled={busy} onClick={() => choose('basic', never)}>

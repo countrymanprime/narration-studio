@@ -129,8 +129,7 @@ Wikimedia Commons.
 **Scan the manuscript** (in **More actions**) reads the book and suggests new entries and facts about the ones
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; the prompt says what
-the tools add (GLiNER finds the names the text invents of characters, places and things; BookNLP groups the ways a character is named
-and works out who speaks each line), and nothing downloads until you agree. When a scan ends having added suggestions, the
+the tools add (GLiNER labels characters, places, items and groups; BookNLP groups the ways a character is named), and nothing downloads until you agree. When a scan ends having added suggestions, the
 toast has a **Show them** button that opens the list on **Needs review**; remove that filter chip to see every entry again. The basic scan reads English and would rather miss a name than suggest a word that is not one: it
 never suggests a pronoun or a contraction (I, I'm, We'll), a word that only starts a sentence (However, Because I), a title on
 its own (Mr, Sir, Ma'am), a shouted word, a chapter heading, a day or a month. It suggests a name once something shows it is

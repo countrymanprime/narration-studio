@@ -410,11 +410,11 @@ function AppRoutes() {
   boothRecordingRef.current = boothRecording;
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
-  const queuedAnnouncements = useRef<{ text: string; tone: ToastTone; follow?: JobEndFollow }[]>([]);
+  const queuedAnnouncements = useRef<{ text: string; tone: ToastTone; follow?: JobEndFollow; durationMs?: number }[]>([]);
   // A job-end toast may carry one button that takes the narrator to what the job made (the scan's new suggestions).
   const announce = useCallback(
-    ({ text, tone, follow }: { text: string; tone: ToastTone; follow?: JobEndFollow }) =>
-      setNotice(text, tone, follow && { label: follow.label, onAction: () => guardedNavigateRef.current(follow.to, follow.state) }),
+    ({ text, tone, follow, durationMs }: { text: string; tone: ToastTone; follow?: JobEndFollow; durationMs?: number }) =>
+      setNotice(text, tone, follow && { label: follow.label, onAction: () => guardedNavigateRef.current(follow.to, follow.state) }, undefined, durationMs),
     [setNotice],
   );
   useEffect(() => {
