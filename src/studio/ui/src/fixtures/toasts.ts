@@ -1,6 +1,8 @@
 import { waitFor } from '@testing-library/react';
 import { overlay } from '../overlay/overlayService';
-import type { ToastMessage } from '../components/primitives/Toast';
+
+// The toast's shape comes from the service that holds it: fixtures import no component (ports-and-fixtures-are-below-components).
+type ToastMessage = ReturnType<typeof overlay.getSnapshot>['toasts'][number];
 
 /** What the app has told the narrator as toasts right now, newest last. For tests: errors are toasts, never text in a page's flow (rule 7). */
 export const toasts = (): ToastMessage[] => [...overlay.getSnapshot().toasts];
