@@ -54,7 +54,7 @@ describe('the custom-row probes', () => {
 
 describe('each probe says changed for a changed value and not for the default', () => {
   const profilesOf = (over: object) => async () =>
-    ({ profiles: [{ builtIn: true }], globalDefault: { id: 'acx' }, hasProject: true, projectChoice: null, projectProfile: '', ...over }) as never;
+    ({ profiles: [{ builtIn: true }], globalDefault: { id: 'builtin' }, hasProject: true, projectChoice: null, projectProfile: '', ...over }) as never;
   const ctx = (api: object, extra: Partial<ProbeContext> = {}): ProbeContext => ({
     api: api as ProbeContext['api'],
     settings: {},
@@ -82,8 +82,6 @@ describe('each probe says changed for a changed value and not for the default', 
     expect(await run('keys.map', ctx({}, { settings: keymap(true) }))).toBe(true);
   });
   it('the delivery rows', async () => {
-    expect(await run('delivery.default', ctx({}, { delivery: profilesOf({}) }))).toBe(false);
-    expect(await run('delivery.default', ctx({}, { delivery: profilesOf({ globalDefault: { id: 'custom-1' } }) }))).toBe(true);
     expect(await run('delivery.custom', ctx({}, { delivery: profilesOf({}) }))).toBe(false);
     expect(await run('delivery.custom', ctx({}, { delivery: profilesOf({ profiles: [{ builtIn: true }, { builtIn: false }] }) }))).toBe(true);
     expect(await run('delivery.profile', ctx({}, { delivery: profilesOf({}) }))).toBe(false);

@@ -32,7 +32,7 @@ describe('Changed covers every row', () => {
 
   // The list shrinks as rows get probes. A new entry needs this number raised in the same change, which a reviewer sees.
   it('the exemption list does not grow silently', () => {
-    expect(Object.keys(CHANGED_EXEMPT).length).toBeLessThanOrEqual(8);
+    expect(Object.keys(CHANGED_EXEMPT).length).toBeLessThanOrEqual(9);
   });
 
   it('a probe or a window reader names a row that exists', () => {

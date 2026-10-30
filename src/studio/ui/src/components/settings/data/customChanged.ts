@@ -16,9 +16,6 @@ export type ProbeContext = {
   delivery: () => Promise<DeliveryProfilesState>;
 };
 
-/** The profile a fresh install judges with: the host's `deliveryprofile.Default()` is the built-in ACX profile (`schedule/profiles.ts`). */
-const FACTORY_DELIVERY_PROFILE = 'acx';
-
 /**
  * A row with a custom body has no host field to compare with its default. It is listed here instead, with a probe that says whether the
  * value it edits differs from the default, readable without the body being on screen (the Changed filter lists rows of every category).
@@ -32,9 +29,8 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
   'keys.map': ({ settings }) => settings.global?.Keymap?.some((field) => field.isSet) === true,
   // This computer: a Merriam-Webster key is saved.
   'voice.mwKey': async ({ api }) => (await api.pronunciationOnlineKeyStatus()).present,
-  // This computer: the narrator added a profile of their own, or chose another default than the factory one.
+  // This computer: the narrator added a profile of their own.
   'delivery.custom': async ({ delivery }) => (await delivery()).profiles.some((profile) => !profile.builtIn),
-  'delivery.default': async ({ delivery }) => (await delivery()).globalDefault.id !== FACTORY_DELIVERY_PROFILE,
   // This project: it records with something other than REAPER, or has its own delivery profile.
   'daw.engine': async ({ api }) => {
     const { chosen } = await api.dawChoice();
@@ -56,6 +52,11 @@ export type ExemptKind = 'report' | 'action' | 'unmarked-default';
 export const CHANGED_EXEMPT: Readonly<Record<string, { kind: ExemptKind; reason: string }>> = {
   'daw.capabilities': { kind: 'report', reason: 'A report of what the linked tool can do; nothing here is set.' },
   'daw.syncActivity': { kind: 'report', reason: 'A log of chapter syncs; nothing here is set.' },
+  'delivery.default': {
+    kind: 'unmarked-default',
+    reason:
+      'The host reports the chosen default profile but not which one ships as the default (deliveryprofile.Default() is not in the binding), and a component may not name a profile id.',
+  },
   'project.manuscript': { kind: 'action', reason: 'The import and replace action for the manuscript, which is project data and not a setting.' },
   'project.bibleData': { kind: 'action', reason: 'Deletes Story Bible data; an action, not a setting.' },
   'project.data': { kind: 'action', reason: 'Deletes project data; an action, not a setting.' },

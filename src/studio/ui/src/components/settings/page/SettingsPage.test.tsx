@@ -567,23 +567,6 @@ describe('Settings: search and filters', () => {
   }, 60_000);
 });
 
-describe('Settings: Changed and the delivery profiles', () => {
-  it('lists the default delivery profile once it is not the factory one', async () => {
-    const api = createMockApi({}, { deliveryProfile: 'custom' });
-    await renderPage({ api });
-    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
-    pick('Delivery');
-    const box = await within(await waitForRow('delivery.default')).findByRole('combobox', { name: 'Default profile for new projects' });
-    const custom = within(box)
-      .getAllByRole('option')
-      .find((option) => option.textContent?.includes('custom'))!;
-    fireEvent.change(box, { target: { value: (custom as HTMLOptionElement).value } });
-    await waitFor(() => expect(within(nav()).getByRole('button', { name: /^Delivery.*[0-9] changed/ })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
-    await waitFor(() => expect(row('delivery.default')).toBeTruthy());
-  }, 60_000);
-});
-
 describe('Settings: putting Changed rows back while the Changed list is open', () => {
   // ux-review of the Changed list saw one crash ("useSettingsStore needs a SettingsStoreProvider") after resetting Zoom. Repeated so a race shows.
   it.each(Array.from({ length: 5 }, (_, n) => n + 1))(
