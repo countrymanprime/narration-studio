@@ -63,6 +63,9 @@ export const ScrollCue: Story = {
   ),
   play: async ({ canvasElement }) => {
     const panel = within(canvasElement).getByText('Chapter One').closest('div.overflow-y-auto') as HTMLElement;
+    // The unit run is jsdom, which lays nothing out (no scroll height), so the cue cannot show there; Disclosure.test.tsx pins the logic with set
+    // metrics, and the atlas, a real browser, runs the assertions below.
+    if (panel.clientHeight === 0) return;
     await waitFor(() => expect(panel).toHaveAttribute('data-more-below'));
     panel.scrollTop = panel.scrollHeight;
     await waitFor(() => expect(panel).not.toHaveAttribute('data-more-below'));
