@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { useRef, type ReactNode } from 'react';
@@ -10,6 +11,7 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import { MIN_TAIL_SECONDS } from '../model';
+import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { clock } from './clock';
 import { SelectionActionButton } from './SelectionActionButton';
 import { SelectionBar } from './SelectionBar';
@@ -47,23 +49,25 @@ function Probe() {
   page = useEditingPage();
   return <output data-testid="state">{JSON.stringify({ cursor: page.state.cursor, sel: page.state.sel, playT: page.state.playT })}</output>;
 }
-function Harness({ playlist = [SEGMENT], children }: { playlist?: PlaylistSegment[]; children?: ReactNode }) {
+function Harness({ playlist = [SEGMENT], children, unavailable }: { playlist?: PlaylistSegment[]; children?: ReactNode; unavailable?: string }) {
   playback = useScriptPlayback({ playlist, mediaUrl: (f) => `media/${f}`, notify });
   return (
     <>
       <Probe />
-      <SelectionBar playback={playback} end={843} />
+      <SelectionBar playback={playback} end={843} {...(unavailable ? { unavailable } : {})} />
       {children}
     </>
   );
 }
 const diagnostic = vi.fn().mockResolvedValue(undefined);
-const mount = (node: ReactNode = null, doc = base, playlist = [SEGMENT]) =>
+const mount = (node: ReactNode = null, doc = base, playlist = [SEGMENT], unavailable?: string) =>
   render(
     // The playback hook reads the DAW sync port; with no DAW sync asked for it does nothing.
     <ApiProvider api={{ ...createMockApi(), reportClientDiagnostic: diagnostic }}>
       <EditingPageProvider doc={doc}>
-        <Harness playlist={playlist}>{node}</Harness>
+        <Harness playlist={playlist} {...(unavailable ? { unavailable } : {})}>
+          {node}
+        </Harness>
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -93,6 +97,20 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+
+describe('play on a chapter with nothing to play', () => {
+  it('turns Play off and says why, and a press plays nothing', async () => {
+    const why = 'Chapter 1 is not linked to a track in REAPER, so there is no audio to edit.';
+    mount(null, base, [SEGMENT], why);
+    const play = screen.getByRole('button', { name: /^Play/ });
+    expect(play.getAttribute('aria-disabled')).toBe('true');
+    dispatch({ type: 'place', key: base.items[0].key });
+    fireEvent.click(play);
+    expect(state().playT).toBeNull();
+    await userEvent.hover(play);
+    expect(await screen.findByText(why)).toBeTruthy();
+  });
 });
 
 describe('play from the cursor', () => {
@@ -129,6 +147,21 @@ describe('play from the cursor', () => {
     // The providers answer on a microtask (playback/providers.ts).
     await act(async () => {});
     expect(notify).toHaveBeenCalledWith('Nothing was recorded from here.');
+    expect(state().playT).toBeNull();
+    expect(audio().play).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['the heading', true, 'Nothing was recorded for the heading.'],
+    ['a word', false, 'Nothing was recorded for this word.'],
+  ])('says nothing was recorded for %s under the cursor, and does not play on from the next heard word', async (_name, heading, said) => {
+    const first = base.items[0];
+    const unheard = { ...first, t0: null, t1: null, st: 'miss' as const, ...(heading ? { pid: HEADING_PARAGRAPH } : {}) };
+    const doc = { ...base, items: [unheard, ...base.items.slice(1)] };
+    mount(null, doc);
+    dispatch({ type: 'place', key: first.key });
+    act(() => playback.toggle());
+    await act(async () => {});
+    expect(notify).toHaveBeenCalledWith(said);
     expect(state().playT).toBeNull();
     expect(audio().play).not.toHaveBeenCalled();
   });

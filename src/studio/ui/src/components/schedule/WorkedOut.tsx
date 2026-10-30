@@ -4,7 +4,7 @@ import { PACE, RATIO, WPH } from './estimates';
 import type { Calc } from './progress';
 
 /** "How this is worked out" (the mock's panel): the work left by stage at the fixed inputs, and when it is done at the daily pace. */
-export function WorkedOut({ k }: { k: Calc }) {
+export function WorkedOut({ k, wph = WPH }: { k: Calc; wph?: number }) {
   const rows: [string, string][] = [
     ['Recording left', hm(k.recLeft)],
     ['Editing left', hm(k.editLeft)],
@@ -39,7 +39,7 @@ export function WorkedOut({ k }: { k: Calc }) {
         </div>
       </dl>
       <p className="mt-3 text-[0.8125rem] text-[var(--text-muted)]">
-        Finished audio is words ÷ {num(WPH)}. Recording takes {RATIO.rec}×, editing {RATIO.edit}× and proofing {RATIO.proof}× the finished hours. Your pace is
+        Finished audio is words ÷ {num(wph)}. Recording takes {RATIO.rec}×, editing {RATIO.edit}× and proofing {RATIO.proof}× the finished hours. Your pace is
         an estimate, not measured from your sessions: it assumes {PACE.toFixed(1)} h of work a day.
       </p>
     </Panel>

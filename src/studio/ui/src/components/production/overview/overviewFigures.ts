@@ -174,11 +174,15 @@ const DONE_SHARE: Record<ChapterStatus, { rec: number; edit: number; proof: numb
 
 /**
  * The stage bar's segments (the mock's five), each chapter's words weighted by how far that chapter is: Delivered where the delivery review
- * has mastered it, Proofed, Edited and Recorded from its status, and a chapter still `recording` counts for the share of its finished audio
+ * has mastered it and its checks pass (a master that fails is not delivered, as Delivery says), Proofed, Edited and Recorded from its status, and a chapter still `recording` counts for the share of its finished audio
  * measured so far. A later stage never counts for less than an earlier one, so the segments are the gaps between the running totals and
  * sum to 100 over the narrated words, or the bar is empty.
  */
-export function stageSegments(chapters: readonly ProductionChapter[], wph: number, master?: Readonly<Record<string, { mastered: boolean }>>): StageSegment[] {
+export function stageSegments(
+  chapters: readonly ProductionChapter[],
+  wph: number,
+  master?: Readonly<Record<string, { mastered: boolean; qc: string | null }>>,
+): StageSegment[] {
   let total = 0;
   let rw = 0;
   let ew = 0;
@@ -188,7 +192,8 @@ export function stageSegments(chapters: readonly ProductionChapter[], wph: numbe
     if (!isNarrationChapter(c)) continue;
     const done = DONE_SHARE[c.status];
     const measured = recordedShare(c, wph) ?? 0;
-    const delivered = master?.[c.id]?.mastered ? 1 : 0;
+    const review = master?.[c.id];
+    const delivered = review?.mastered && review.qc === 'PASS' ? 1 : 0;
     const proofed = Math.max(delivered, done.proof);
     const edited = Math.max(proofed, done.edit);
     const recorded = Math.max(edited, done.rec, measured);

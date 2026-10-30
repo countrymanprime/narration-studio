@@ -173,7 +173,7 @@ describe('stageSegments', () => {
 
   it('counts a mastered chapter as delivered, and never lets a later stage count for less than an earlier one', () => {
     const [c1] = MID_BOOK;
-    const delivered = { [c1.id]: { mastered: true } };
+    const delivered = { [c1.id]: { mastered: true, qc: 'PASS' } };
     expect(hoursOf(stageSegments([{ ...c1, status: 'recording', recordedSeconds: null }], WPH, delivered))).toMatchObject({
       delivered: 1,
       proofed: 0,
@@ -182,6 +182,12 @@ describe('stageSegments', () => {
       unrecorded: 0,
     });
     expect(hoursOf(stageSegments([{ ...c1, status: 'finalized' }], WPH, {}))).toMatchObject({ delivered: 0, proofed: 1 });
+  });
+
+  it('does not count a chapter whose master fails its checks as delivered', () => {
+    const [c1] = MID_BOOK;
+    const failing = { [c1.id]: { mastered: true, qc: 'FAIL' } };
+    expect(hoursOf(stageSegments([{ ...c1, status: 'finalized' }], WPH, failing))).toMatchObject({ delivered: 0, proofed: 1 });
   });
 
   it('leaves a reference chapter out of the book', () => {

@@ -101,13 +101,13 @@ export function deadlineTone(k: Calc): Tone {
 }
 
 /** Work-hours left to reach a milestone's measure. */
-export function remainFor(chapters: readonly ScheduleChapter[], stored: string): number {
+export function remainFor(chapters: readonly ScheduleChapter[], stored: string, wph: number = WPH): number {
   const stagesLeft = (c: ScheduleChapter, stages: readonly (keyof typeof DONE_AT)[]): number =>
-    stages.reduce((a, s) => a + (stageDone(c, s) ? 0 : (c.words / WPH) * RATIO[s]), 0);
+    stages.reduce((a, s) => a + (stageDone(c, s) ? 0 : (c.words / wph) * RATIO[s]), 0);
   const measure = measOf(stored);
   if (measure === 'minN' || stored === CHECKPOINT_MEASURE) {
     // The first N finished minutes of the book, in reading order: each chapter in the window counts for the share of it that falls inside.
-    let words = (minutesOf(stored) / 60) * WPH;
+    let words = (minutesOf(stored) / 60) * wph;
     let hours = 0;
     for (const c of chapters) {
       if (words <= 0) break;
@@ -150,11 +150,12 @@ export function milestoneStatus(
   m: Pick<ProductionMilestone, 'dueDate' | 'measure' | 'done'>,
   chapters: readonly ScheduleChapter[],
   today: Date,
+  wph: number = WPH,
 ): MilestoneStatus {
   if (m.done) return { kind: 'done', sentence: 'Done', short: '✓' };
   if (measOf(m.measure) === 'custom') return { kind: 'none', sentence: 'Not estimated', short: '—' };
   if (!isIsoDate(m.dueDate)) return { kind: 'none', sentence: `Not estimated: ${m.dueDate || 'no date'} is not a real date`, short: '—' };
-  const projected = addDays(today, Math.ceil(remainFor(chapters, m.measure ?? '') / PACE));
+  const projected = addDays(today, Math.ceil(remainFor(chapters, m.measure ?? '', wph) / PACE));
   const est = fmtD(projected);
   const late = diffDays(projected, parseIso(m.dueDate));
   if (late > 0) return { kind: 'late', sentence: `Late by ${late} d (est. ${est})`, short: `+${late} d` };

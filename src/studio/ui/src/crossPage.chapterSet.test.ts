@@ -8,6 +8,7 @@ import { isNarrationChapter } from './chapterKinds';
 import { chapterTrackRows } from './components/engine/chapterTrackRows';
 import { stageSegments } from './components/production/overview/overviewFigures';
 import { buildPipelineRows } from './components/production/pipeline/pipelineRows';
+import { paceChapters } from './components/schedule/useEffectiveWph';
 import { remainFor, scheduleChapters } from './components/schedule/progress';
 import { RATIO, WPH } from './components/schedule/estimates';
 import { chapterRecordedDetail, recordedShare } from './recordedThrough';
@@ -32,6 +33,7 @@ describe('which chapters the book totals count', () => {
   it('is the narration chapters on Production, Schedule, the pace, the stage bar and the Engine links', () => {
     expect(book.filter(isNarrationChapter).map((c) => c.id)).toEqual(narrated);
     expect(scheduleChapters(book)).toHaveLength(narrated.length);
+    expect(paceChapters(book).map((c) => c.id)).toEqual(narrated);
     const stageWords = stageSegments(book, WPH).reduce((sum, segment) => sum + segment.words, 0);
     expect(stageWords).toBe(narrated.length * 9300);
     expect(chapterTrackRows(book as unknown as ManuscriptChapter[], [], []).map((row) => row.chapter.id)).toEqual(narrated);

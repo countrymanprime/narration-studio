@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { Panel } from '../primitives/Panel';
+import { ReaderColumn } from '../primitives/ReaderColumn';
+import { loadTextPrefs, readerColumn } from '../script/page/tools/text/readerText';
 import { ReaderKey } from './ReaderKey';
 import { ReaderText } from './ReaderText';
 import type { ReaderMark } from './readerModel';
@@ -52,20 +54,24 @@ type Props = {
  * the caller's, outside this view.
  */
 export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, aside, hideKey = false, fullBleed = false, dense = false, speakers }: Props) {
+  // The narrator's Column width choice (Settings › Reader text, the Script's text menu): the same column the Script and the Booth draw in.
+  const column = readerColumn(loadTextPrefs().width);
   const text = (
-    <ReaderText
-      rows={t.rows}
-      cursor={t.cursor}
-      skipped={t.session.skipped}
-      follow={t.active && follow.following}
-      readerRef={follow.readerRef}
-      onSeek={t.active ? t.seek : undefined}
-      marks={marks}
-      onOpenMark={onOpenMark}
-      speakers={speakers}
-      large={fullBleed}
-      dense={dense}
-    />
+    <ReaderColumn width={column}>
+      <ReaderText
+        rows={t.rows}
+        cursor={t.cursor}
+        skipped={t.session.skipped}
+        follow={t.active && follow.following}
+        readerRef={follow.readerRef}
+        onSeek={t.active ? t.seek : undefined}
+        marks={marks}
+        onOpenMark={onOpenMark}
+        speakers={speakers}
+        large={fullBleed}
+        dense={dense}
+      />
+    </ReaderColumn>
   );
   const main = (
     // The Booth's text is left-aligned in its own surface (mock 03: the speaker gutter at 22 px, the text at 154); the card

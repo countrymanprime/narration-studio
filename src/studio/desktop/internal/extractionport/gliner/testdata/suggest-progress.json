@@ -1,0 +1,18 @@
+[
+  {
+    "progress": {
+      "done": 1,
+      "failed": [],
+      "total": 3
+    }
+  },
+  {
+    "progress": {
+      "done": 3,
+      "failed": [
+        "c-0002"
+      ],
+      "total": 3
+    }
+  }
+]
