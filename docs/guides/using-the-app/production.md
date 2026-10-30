@@ -41,15 +41,15 @@ be loaded" with the reason and a **Retry** button, which reads it again.
 
 The six figures are one card; each opens the page it counts.
 
-- **Recorded audio**: the audio on every chapter's confirmed track in the saved DAW project, out of
-  the book's finished length estimated from its words. It is what is recorded, before editing: the
-  app does not know from the audio whether it is edited, proofed or mastered.
+- **Recorded audio**: the finished hours of the chapters that are recorded or further on, out of
+  the book's finished length estimated from its words. It is the same count as the stage bar's
+  segments above **Not recorded yet**, and the finished length is the one every figure on the page is out of.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
-  words still to do. The info icon on **Recording** opens the target pace: the standard rate or
+  words still to do, and out of the hours of work the whole book needs (a multiple of its finished length, named in the tooltip). The info icon on **Recording** opens the target pace: the standard rate or
   your own, once enough chapters are measured. The basis you choose there sets the hours on this page and on
   [Schedule](schedule.md).
 - **Open pickups**: the open lines of the [Pickups](pickups.md) list, and the booth time to redo
-  them once a pickup session has been timed. Each chapter's **Pickups** cell in the pipeline counts
+  them once a pickup session has been timed (the count stands alone until then). Each chapter's **Pickups** cell in the pipeline counts
   the same lines, so the cells add up to the tile.
 - **Delivery check**: chapters that pass, fail or are not checked yet. It reads "Not measured
   yet" until the host reports a check per chapter.
