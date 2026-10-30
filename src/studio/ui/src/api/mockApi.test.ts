@@ -251,3 +251,25 @@ describe('the mock host lists the Story Bible analysis tools as the real host do
     expect(analysis.filter((tool) => tool.unavailableReason)).toEqual([]);
   });
 });
+
+describe('createProject (#2656)', () => {
+  it('refuses a name the host refuses, with the host message, and makes no project', async () => {
+    const api = createMockApi();
+    const before = (await api.bootstrap()).projectFolder;
+    await expect(api.createProject('', 'Bad:name')).rejects.toThrow('a project name cannot contain any of <>:"/\\|?*');
+    expect((await api.bootstrap()).projectFolder).toBe(before);
+    await expect(api.createProject('', '  Good name ')).resolves.toEqual({ switched: true });
+  });
+});
+
+describe('?mockNoManuscript=1 import (#2656)', () => {
+  it('reports the manuscript after an import commits, as the host does, so the page stops asking for one', async () => {
+    const api = createMockApi({}, { noManuscript: true });
+    expect((await api.bootstrap()).manuscript).toBeNull();
+    const selected = await api.selectManuscript();
+    await api.manuscriptImportPreview(selected.jobId!, { markdownHeadingLevel: 1 });
+    await api.manuscriptImportCommit(selected.jobId!, { confirmedReset: false });
+    const { manuscript } = await api.bootstrap();
+    expect(manuscript).toMatchObject({ sourceName: 'Alice.docx', format: 'docx' });
+  });
+});

@@ -35,7 +35,7 @@ picks others.
 
 ![A check in progress, with its real progress and Cancel](../../images/ui/master-running.webp)
 
-The chapter stepper (Alt+Up and Alt+Down) reaches the opening and closing credits like any chapter. The files table has a row per chapter, then one for the opening and closing credits and one for the retail
+The chapter stepper (Alt+Up and Alt+Down) reaches the opening and closing credits like any chapter. The table is 26 rem tall at most and scrolls inside its card once its rows fill that, under a header that stays put; in a card narrower than 44 rem (a narrow window) each file is a block, its name and **Result** on one line and its measurements, each labelled, under them. The files table has a row per chapter, then one for the opening and closing credits and one for the retail
 sample, whether or not each has a file, so it is never empty. A row with no file shows a neutral **Waiting**
 pill and says what it waits on in place of its values: **Waiting on 3 pickups · not mastered** when the
 chapter has open pickups (the number the Pickups page lists), else **No file measured yet · not mastered**.

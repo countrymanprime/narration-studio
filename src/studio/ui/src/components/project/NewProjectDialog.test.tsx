@@ -155,6 +155,49 @@ describe('NewProjectDialog', () => {
     expect(await screen.findByText('Error: the desktop host is not ready')).toBeTruthy();
   });
 
+  // #2656: the mock took "Bad:name"; the host refuses it (project.ValidateName), and the dialog says so before Create.
+  it('refuses a name the host refuses, inline under the Name field, and never calls the host with it', () => {
+    const createProject = vi.fn(async () => ({ switched: true }));
+    renderDialog({ createProject });
+    const name = screen.getByLabelText('Name');
+    fireEvent.change(name, { target: { value: 'Bad:name' } });
+
+    const error = screen.getByText('A project name cannot contain any of <>:"/\\|?*');
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(name.getAttribute('aria-describedby')).toContain(error.id);
+    expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.submit(name.closest('form')!);
+    expect(createProject).not.toHaveBeenCalled();
+
+    fireEvent.change(name, { target: { value: 'Good name' } });
+    expect(screen.queryByText(/cannot contain any of/)).toBeNull();
+    expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('announces a host refusal as the one live message, above the field, and says the name rule with none', async () => {
+    const createProject = vi.fn(async () => ({ switched: false, reason: 'The app is busy.' }));
+    renderDialog({ createProject });
+    const name = screen.getByLabelText('Name');
+    // The name rule is inline and not live.
+    fireEvent.change(name, { target: { value: 'Bad:name' } });
+    expect(screen.getByText(/cannot contain any of/)).toBeTruthy();
+    expect(screen.queryAllByRole('alert')).toHaveLength(0);
+
+    fireEvent.change(name, { target: { value: 'Alice' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toBe('The app is busy.');
+    // A refusal that is not about the name is not drawn under the Name field.
+    expect(name.getAttribute('aria-invalid')).not.toBe('true');
+    expect(name.closest('form')!.contains(alerts[0])).toBe(false);
+
+    // Typing clears it, so the dialog never holds a refusal and a name rule together.
+    fireEvent.change(name, { target: { value: 'Alice 2' } });
+    expect(screen.queryAllByRole('alert')).toHaveLength(0);
+  });
+
   it('calls onClose when Cancel is clicked', () => {
     const { onClose } = renderDialog();
 
