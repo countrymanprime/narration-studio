@@ -166,7 +166,7 @@ follows you between projects rather than resetting when you switch.
 Click the chip at the right of the header to open the audio engine panel over whatever page you are on.
 It holds everything about the REAPER project itself rather than one stage of the work: the linked project
 file, the REAPER tools, chapter sync, the project's tracks and each chapter's link to its track. Close it
-with its close button, Escape or a click beside it. (It replaced the Tracks page; an old link to that page
+with its close button, Escape or a click beside it. Every "Open the audio engine panel" pointer in the app, in a message or a dialog, opens it over the page you are on and closes the dialog it was in. (It replaced the Tracks page; an old link to that page
 opens [Proof](proof.md) with this panel open over it.)
 
 ![The audio engine panel open over the Production home](../../images/ui/engine-panel.webp)

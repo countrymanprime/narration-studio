@@ -322,6 +322,8 @@ figure comes from the track's length.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
 
+A resume prompt that finds the chapter's track missing or linked twice has a **Link a track** or **check the link** button that opens the audio engine panel over the Booth.
+
 When the chapter's track already has a recording, the top bar offers **Resume at ¶ n** and says where it read that from: the
 DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place to where the recording
 ends; nothing starts until you press Record. With none of those, once you move elsewhere in the chapter it offers the place the

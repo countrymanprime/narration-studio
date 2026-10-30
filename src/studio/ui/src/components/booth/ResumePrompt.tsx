@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faArrowRightArrowLeft, faCircleCheck, faCircleNotch, faClockRotateLeft, faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
@@ -253,7 +253,7 @@ function PrompterOnlyNotice({ prompter, onChoose }: { prompter: TeleprompterResu
   );
 }
 
-/** One line naming a confirmed track's problem (renamed, missing, or linked twice), with a link to fix it on the Tracks page
+/** One line naming a confirmed track's problem (renamed, missing, or linked twice), with a link to fix it in the audio engine panel
  * instead of showing (or asking to change) the link here ("What We're NOT
  * Building": track linking stays Chapter Track Link Control's job). */
 function TrackProblem({ match, trackName }: { match: ChapterTrackMatch; trackName?: string }) {
@@ -261,9 +261,7 @@ function TrackProblem({ match, trackName }: { match: ChapterTrackMatch; trackNam
   return (
     <p style={MUTED}>
       Track{trackName ? `: ${trackName}` : ''} ({TRACK_PROBLEM_REASON[match.warnings[0]]}) —{' '}
-      <Link to="/tracks" className="underline">
-        check the link
-      </Link>
+      <EnginePanelLink className="font-normal underline">check the link</EnginePanelLink>
     </p>
   );
 }
@@ -371,10 +369,7 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
       >
         <p>{text}</p>
         <p style={MUTED}>
-          <Link to="/tracks" className="underline">
-            Link a track
-          </Link>{' '}
-          on the Tracks page.
+          <EnginePanelLink className="font-normal underline">Link a track</EnginePanelLink> in the audio engine panel.
         </p>
       </Actions>
     );

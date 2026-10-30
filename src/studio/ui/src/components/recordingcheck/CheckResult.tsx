@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -121,7 +122,7 @@ export function ReasonBlock({
 }) {
   const unique = [...new Set(reasons)];
   const link = unique.some((reason) => LINK_REASONS.has(reason));
-  const pages = [...new Map(unique.flatMap((reason) => (REASON_PAGE[reason] ? [[REASON_PAGE[reason]!.path, REASON_PAGE[reason]!]] : []))).values()];
+  const pages = [...new Map(unique.flatMap((reason) => (REASON_PAGE[reason] ? [[REASON_PAGE[reason]!.label, REASON_PAGE[reason]!]] : []))).values()];
   return (
     <InsetCard role={tone === 'alert' ? 'alert' : undefined} tone={tone === 'alert' ? 'danger' : 'neutral'} fill className="space-y-2">
       <p className="font-semibold" style={tone === 'alert' ? { color: 'var(--danger-text)' } : undefined}>
@@ -143,11 +144,17 @@ export function ReasonBlock({
       {link && <TrackLink chapter={chapter} onLinked={onLinked} onNavigate={onNavigate} />}
       {pages.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {pages.map((page) => (
-            <Link key={page.path} to={page.path} onClick={onNavigate} className="text-sm font-semibold underline">
-              {page.label}
-            </Link>
-          ))}
+          {pages.map((page) =>
+            'engine' in page ? (
+              <EnginePanelLink key={page.label} className="text-sm font-semibold" onOpen={onNavigate}>
+                {page.label}
+              </EnginePanelLink>
+            ) : (
+              <Link key={page.label} to={page.path} onClick={onNavigate} className="text-sm font-semibold underline">
+                {page.label}
+              </Link>
+            ),
+          )}
         </div>
       )}
     </InsetCard>
@@ -174,10 +181,7 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
   if (error)
     return (
       <p style={{ color: 'var(--danger-text)' }}>
-        The REAPER tracks could not be listed: {error}{' '}
-        <Link to="/tracks" onClick={onNavigate} className="font-semibold underline">
-          Open the audio engine panel
-        </Link>
+        The REAPER tracks could not be listed: {error} <EnginePanelLink onOpen={onNavigate} />
       </p>
     );
   if (!tracks) return <p role="status">Reading the REAPER tracks…</p>;

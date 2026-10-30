@@ -197,7 +197,8 @@ under them. It gives no estimate of how long the check will take. While it runs,
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 
 When a chapter cannot be checked, its row says why in plain words and where to fix it: a chapter that is not linked to its REAPER
-track gets the track picker right there, a missing project file points to the [audio engine panel](navigation.md#the-reaper-project),
+track gets the track picker right there, a missing project file, a chapter linked to more than one track and a linked track that is gone each get an **Open the audio engine panel** button that opens the panel over this page (it does not leave the page),
+[audio engine panel](navigation.md#the-reaper-project),
 and a missing Transcript Compare tool points to [Settings](settings.md). The dialog stays open on a refused chapter so you can read it.
 
 ![Production - a chapter's recording check, with text still to record](../../images/ui/production-recording-check.webp)
