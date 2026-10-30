@@ -105,7 +105,7 @@ word in the text to open it on the **Words** tab.
 
 - **In this chapter** is the same list on **Words** and on **Story Bible**: who and what the chapter has, one row each with the name, its
   kind where it has one, and a **Hear** button where there is a pronunciation to play. It lists who is in the chapter, not who speaks,
-  and it has no status column: a row without a **Hear** button has no pronunciation yet.
+  and it has no status column: a row without a **Hear** button has no pronunciation yet, or is a word you marked (the app can only speak a Story Bible name). **Hear** plays the same preview as the Story Bible's list and stops on a second press; if the preview voice is not installed yet, a message says to open the name in the Story Bible and press play there to install it.
 - The names, kinds and speakers on this page are read again each time you open it, so an entry you renamed or retyped in the [Story Bible](story-bible.md) shows here at once.
 - **Words** lists the words marked for pronunciation in the chapter in view. A word's card has **How I will say it**
   with its source (a dictionary, eSpeak or the one you typed), the **Definition**, **Forvo** and **YouGlish** pages for
