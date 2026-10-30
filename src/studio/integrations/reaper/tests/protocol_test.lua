@@ -120,3 +120,114 @@ H.test('a command written after an earlier one is picked up: the listing is refr
   end
   H.eq(runs, { 'first', 'second', 'third' })
 end)
+
+-- A session that counts how often events.log is opened from the moment a command's handler is called until the tick
+-- moves on to the next command or the heartbeat (#2251: one open per line made a 1000-item read hold REAPER for about 40 ms
+-- in REAPER 7.82, docs/research/reaper-bridge-performance.md). `extra(registry)` registers test commands.
+local function counting_session(options, extra)
+  local counter = { opens = 0 }
+  local real_open = io.open
+  options = options or {}
+  options.setup = function(registry)
+    if extra then
+      extra(registry)
+    end
+    local lookup = registry.lookup
+    registry.lookup = function(name)
+      local handler = lookup(name)
+      return handler
+        and function(ctx, args)
+          counter.opens = 0
+          io.open = function(path, mode)
+            if tostring(path):match('events%.log$') then
+              counter.opens = counter.opens + 1
+            end
+            return real_open(path, mode)
+          end
+          handler(ctx, args)
+        end
+    end
+  end
+  local s = H.session(options)
+  -- The opens counted for the last command: everything up to the end of its tick, the bridge's own write of its answer included.
+  function counter.last(send)
+    send()
+    io.open = real_open
+    return counter.opens
+  end
+  return s, counter
+end
+
+H.test("a command's events reach events.log in one append, in the order it sent them", function()
+  local s, counter = counting_session(nil, function(registry)
+    registry.register('emit_many', function(ctx, args)
+      for index = 1, 500 do
+        ctx.event('ROW', args[1], index)
+      end
+      ctx.event('ROWS_END', args[1])
+    end)
+  end)
+  s:events()
+  local opens = counter.last(function()
+    s:send('emit_many', 'r1')
+  end)
+  local events = s:events()
+  -- At most one more: the heartbeat, when it falls due in the same tick.
+  H.eq(opens <= 2, true, 'events.log opened ' .. opens .. ' times for one command')
+  H.eq(#events, 501)
+  for index = 1, 500 do
+    H.eq(events[index], { 'ROW', 'r1', tostring(index) })
+  end
+  H.eq(events[501], { 'ROWS_END', 'r1' })
+end)
+
+H.test('chapter_track_state of a track with 300 items appends its answer in one write', function()
+  local s, counter = counting_session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local retakes = s.fake:add_track('Retakes')
+  for index = 0, 299 do
+    s.fake:add_item(retakes, { position = index * 5, length = 4, source = 'take.wav' })
+  end
+  s:events()
+  local opens = counter.last(function()
+    s:send('chapter_track_state', 't1', retakes.guid)
+  end)
+  local events = s:events()
+  H.eq(opens <= 2, true, 'events.log opened ' .. opens .. ' times for one read')
+  H.eq(#events, 302)
+  H.eq(events[1][1], 'TRACK_STATE')
+  H.eq(events[302], { 'TRACK_STATE_END', 't1', '300', '300' })
+end)
+
+H.test('the events a command sent before it failed are written before the error ends the tick', function()
+  local s = H.session({
+    setup = function(registry)
+      registry.register('half_way', function(ctx, args)
+        ctx.event('STARTED', args[1])
+        error('half_way broke')
+      end)
+    end,
+  })
+  s:events()
+  local ok, err = pcall(function()
+    s:send('half_way', 'r1')
+  end)
+  H.eq(ok, false)
+  H.contains(tostring(err), 'half_way broke')
+  H.eq(s:events(), { { 'STARTED', 'r1' } })
+end)
+
+H.test("an event sent from a feature's own defer callback, outside a command, is written at once", function()
+  local s = H.session({
+    setup = function(registry)
+      registry.register('later', function(ctx, args)
+        reaper.defer(function()
+          ctx.event('LATER', args[1])
+        end)
+      end)
+    end,
+  })
+  s:send('later', 'r1')
+  H.eq(s:events(), {})
+  s:tick()
+  H.eq(s:events(), { { 'LATER', 'r1' } })
+end)
