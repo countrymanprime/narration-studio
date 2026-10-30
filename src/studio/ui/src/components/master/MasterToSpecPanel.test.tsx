@@ -54,18 +54,18 @@ describe('MasterToSpecPanel: after the files are prepared (issue 2631)', () => {
     files: [{ path: item.path, kind: 'chapter', title: 'Chapter 01', status: 'done' }],
   };
 
-  it('says the files are new copies that Delivery has not measured, and offers Check files…', () => {
+  it('offers an icon button that checks the prepared files, and draws no explanatory sentence', () => {
     const onCheckFiles = vi.fn();
     render(<MasterToSpecPanel jobs={jobs({ exportJob: done as never, items: [item] })} onCheckFiles={onCheckFiles} />);
-    expect(screen.getByText(/new copies/i)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Check files…' }));
+    expect(screen.queryByText(/new copies/i)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /check the prepared files/i }));
     expect(onCheckFiles).toHaveBeenCalledTimes(1);
   });
 
   it('offers no Check files… after a failed or cancelled export, or when the page gives no way to check', () => {
     const { rerender } = render(<MasterToSpecPanel jobs={jobs({ exportJob: { ...done, phase: 'error' } as never })} onCheckFiles={() => undefined} />);
-    expect(screen.queryByRole('button', { name: 'Check files…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /check the prepared files/i })).toBeNull();
     rerender(<MasterToSpecPanel jobs={jobs({ exportJob: done as never })} />);
-    expect(screen.queryByRole('button', { name: 'Check files…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /check the prepared files/i })).toBeNull();
   });
 });

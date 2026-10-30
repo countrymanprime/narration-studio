@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ExportJob, PackageItemKind } from '../../types';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
@@ -191,13 +192,10 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
         <div className={`mt-2 flex flex-wrap items-center justify-between gap-2 ${ARRIVE_CLASSES}`}>
           <p aria-live="polite" className="min-w-0 flex-[1_1_20rem] text-sm" style={exportJob.phase === 'error' ? DANGER : undefined}>
             {exportJob.message}
-            {/* The export writes new copies and measures nothing, so Delivery and the table above still go by the files that were checked (issue 2631). */}
-            {exportJob.phase === 'success' && onCheckFiles ? ' They are new copies: Delivery counts a chapter once its file is checked.' : ''}
           </p>
           {exportJob.phase === 'success' && onCheckFiles && (
-            <Button variant="secondary" onClick={onCheckFiles}>
-              Check files…
-            </Button>
+            // The export writes new copies and measures nothing, so Delivery and the table above still go by the files that were checked (issue 2631): the tooltip says so.
+            <IconButton action="checkPreparedFiles" onClick={onCheckFiles} />
           )}
         </div>
       )}
