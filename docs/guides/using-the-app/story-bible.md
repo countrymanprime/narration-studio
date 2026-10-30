@@ -143,7 +143,7 @@ the line is suggested too, as a weaker guess. A name still in Needs Review is ne
 suggestion, drawn dashed on Script, the Booth and Editing, until you confirm it; the rest are left without a speaker. The
 scan's log says how many it found. Filing an entry under a type that speaks (or out of one), renaming it, changing its
 aliases, merging or deleting it finds the quoted lines again in the chapters its names appear in; turning **Speaks** on
-or off for a type finds them again everywhere. Your own corrections stay.
+or off for a type finds them again everywhere. Your own corrections stay. Choosing a speaker for a quoted line, here, on Script or on a Booth chip, is the same change everywhere: one **Confirmed a speaker** entry in the history, which Undo reverses.
 
 ![Story Bible - the Import entries dialog (CSV or JSON)](../../images/ui/storybible-import.webp)
 
