@@ -31,7 +31,8 @@ then, a **REAPER not connected** mark takes its place, and a dialog opens once: 
 that progress that comes from it may be out of date until it is running again, and when the app last checked.
 **Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
-switching recorders is a choice in [Settings > Recording & DAW](settings.md).
+switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
+is one answer on Production, the Booth and the Companion: the DAW's own sentence when it cannot.
 
 If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
 be loaded" with the reason and a **Retry** button, which reads it again.
@@ -196,7 +197,8 @@ under them. It gives no estimate of how long the check will take. While it runs,
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 
 When a chapter cannot be checked, its row says why in plain words and where to fix it: a chapter that is not linked to its REAPER
-track gets the track picker right there, a missing project file points to the [audio engine panel](navigation.md#the-reaper-project),
+track gets the track picker right there, a missing project file, a chapter linked to more than one track and a linked track that is gone each get an **Open the audio engine panel** button that opens the panel over this page (it does not leave the page),
+[audio engine panel](navigation.md#the-reaper-project),
 and a missing Transcript Compare tool points to [Settings](settings.md). The dialog stays open on a refused chapter so you can read it.
 
 ![Production - a chapter's recording check, with text still to record](../../images/ui/production-recording-check.webp)

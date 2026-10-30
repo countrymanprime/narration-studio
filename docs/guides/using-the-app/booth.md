@@ -174,6 +174,8 @@ footer does not repeat the reason, and the setup chip on the top bar warns too:
   again**. **DAW settings** shows which file is linked. The setup chip on the top bar reads **REAPER · other project**. The Booth also asks again every few seconds while the chip is up, and by itself every 15 seconds otherwise, because
   REAPER sends no message when another project is opened. The dialog says what it waits for and when the app last looked.
 
+  **Link the open project** is the same action as the link button in the audio engine panel and in Settings: only one file picker is open at a time, so pressing it while another is open does nothing.
+
   ![Booth - REAPER has a different project open: the dialog offers Link the open project, DAW settings and Check again](../../images/ui/booth-record-other-project.webp)
 
   When REAPER already has a take running that the app did not start, a press of Record says so as a message ("REAPER is
@@ -322,6 +324,8 @@ figure comes from the track's length.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
 
+A resume prompt that finds the chapter's track missing or linked twice has a **Link a track** or **check the link** button that opens the audio engine panel over the Booth.
+
 When the chapter's track already has a recording, the top bar offers **Resume at ¶ n** and says where it read that from: the
 DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place to where the recording
 ends; nothing starts until you press Record. With none of those, once you move elsewhere in the chapter it offers the place the
@@ -342,6 +346,8 @@ in chapter 19 as in chapter 3.
 - **Side panel.** Each character in **In this chapter** is one row: its speaker chip in the character's own colour, the Story Bible's note on how they talk, and the
   speaker button at the right, **Hear the reference clip**, which plays the primary sample. A voice with a sample also has a count below the row; press the count to list every
   sample with its length, and press one to hear it. A voice with none keeps the button, switched off, and its hint says "No voice sample yet. Mark one in Editing." Press the button, or a sample, again to stop it.
+
+A sample does not play while the DAW is recording, on this page or on any other: it says "Not while recording. Stop the take first.", and one already playing stops when a take starts, so it never reaches the microphone.
 
 ![Booth - the speaker picker with a count and a play button on each character who has voice samples](../../images/ui/booth-voice-samples-picker.webp)
 
@@ -364,7 +370,7 @@ stops with a message.
 
 **V** plays the primary sample of whoever speaks the phrase the reading is on, with no need to open the picker; a phrase with no quotation is Narration's. Press **V**
 again to stop it. It plays nothing and says why in a message when that speaker has no sample ("No voice sample for Alice yet. Mark one in Editing."), when the phrase's
-speaker is not known yet ("Choose who speaks this line first: press its speaker chip."), or during a take. **Esc** stops a sample that is playing; the next **Esc**
+speaker is not known yet ("Choose who speaks this line first: press its speaker chip."). Choosing a speaker on a chip is a history entry you can undo, as on Script, or during a take. **Esc** stops a sample that is playing; the next **Esc**
 leaves the Booth, as it always did. The key is in the shortcut sheet and in **Settings > Keyboard** under Booth, where you can change it.
 
 When the Booth opens, it loads the primary samples of the characters who speak in the chapter, and Narration's, in the background, so the first press does not wait

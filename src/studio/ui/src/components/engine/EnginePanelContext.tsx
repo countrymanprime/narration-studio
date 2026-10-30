@@ -15,10 +15,26 @@ export function useOpenEnginePanel(): () => void {
 function noop() {}
 
 /** An inline "Open the audio engine panel" pointer, drawn like the text links it replaces ("Open Tracks"). */
-export function EnginePanelLink({ className = 'font-semibold', children = 'Open the audio engine panel' }: { className?: string; children?: ReactNode }) {
+export function EnginePanelLink({
+  className = 'font-semibold',
+  children = 'Open the audio engine panel',
+  onOpen,
+}: {
+  className?: string;
+  children?: ReactNode;
+  /** Runs as the panel opens, for a dialog that must close so the panel is not under it. */
+  onOpen?: () => void;
+}) {
   const open = useOpenEnginePanel();
   return (
-    <Button variant="link" className={className} onClick={open}>
+    <Button
+      variant="link"
+      className={className}
+      onClick={() => {
+        onOpen?.();
+        open();
+      }}
+    >
       {children}
     </Button>
   );

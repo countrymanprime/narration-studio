@@ -52,7 +52,6 @@ export const storyBibleFeedback: Record<string, FeedbackRow> = {
   'src/components/storybible/VoiceReferencesSection.tsx::characterRevoke#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'Revoke is busy while it runs, one at a time with Approve, through usePendingAction; a failure is a toast.'),
 
   'src/components/storybible/DialogueCueAttribution.tsx::guideDialogueCues#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loaded on mount, independent of the entity edit form; a failure shows inline (mirrors guideEntities#1).'),
-  'src/components/storybible/DialogueCueAttribution.tsx::guideCorrectCue#1': row('input', 'python', 'disabled', 'disabled', 'toast', 'toast', 'na', 'ok', 'Choosing a speaker corrects the cue through usePendingAction: every cue\'s speaker select disables while one correction runs, and a failure (e.g. the cue no longer exists) is a toast.'),
   'src/components/storybible/VoiceDataPanel.tsx::characterRemoveVoiceData#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'The confirm dialog stays open and busy until Remove voice data ends and cannot be cancelled away; a failure is a toast.'),
   // Voice samples (phase 4 of docs/prds/character-voice-samples.prd.md): the entry's section and the Voice data panel's lists.
   // Voice sample output (phase 7 of docs/prds/character-voice-samples.prd.md): where the shared player plays, read when a page that plays samples opens.
