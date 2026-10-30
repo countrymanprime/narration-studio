@@ -115,7 +115,10 @@ export const settingsDrivers: Record<string, Driver> = {
   'recording-sample-output-daw': async (page) => {
     await openSettings(page);
     const row = await showSettingsRow(page, 'daw.sampleOutput');
-    await row.getByText("Voice samples play on this computer's default output.", { exact: false }).waitFor();
+    // With a DAW the row is Test sound and a "?"; the "?" is open so the capture shows what it says.
+    await row.getByRole('button', { name: 'Test sound' }).waitFor();
+    await page.getByRole('button', { name: 'About where samples play' }).click();
+    await page.getByText("Voice samples play on this computer's default output.", { exact: false }).waitFor();
   },
   'recording-sample-output-builtin': async (page) => {
     await openSampleOutput(page, 'usual', 'Headphones (Focusrite USB Audio)');

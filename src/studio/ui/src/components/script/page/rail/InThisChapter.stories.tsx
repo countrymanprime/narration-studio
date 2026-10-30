@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { InThisChapter } from './InThisChapter';
 
+const HEAR = { playing: false, loading: false, onPress: () => {} };
+
 // The shared "In this chapter" list the Script rail's Words and Story Bible tabs both draw: name, kind, and a play button where there is a
 // pronunciation. No status column, and nothing about who speaks.
 const meta = {
@@ -23,9 +25,9 @@ export const Empty: Story = {};
 export const People: Story = {
   args: {
     rows: [
-      { id: 'a', name: 'Alice', kind: { label: 'Character', colour: 'character' }, detail: 'first Chapter 1', hear: true },
-      { id: 'q', name: 'The Queen of Hearts', kind: { label: 'Character', colour: 'character' }, detail: 'first Chapter 8', hear: false },
-      { id: 'w', name: 'Wonderland', kind: { label: 'Place', colour: 'place' }, detail: 'first Chapter 1', hear: true },
+      { id: 'a', name: 'Alice', kind: { label: 'Character', colour: 'character' }, detail: 'first Chapter 1', hear: HEAR },
+      { id: 'q', name: 'The Queen of Hearts', kind: { label: 'Character', colour: 'character' }, detail: 'first Chapter 8', hear: undefined },
+      { id: 'w', name: 'Wonderland', kind: { label: 'Place', colour: 'place' }, detail: 'first Chapter 1', hear: HEAR },
     ],
   },
   play: async ({ canvasElement }) => {
@@ -39,14 +41,14 @@ export const People: Story = {
 export const SelectedAndLongNames: Story = {
   args: {
     rows: [
-      { id: 'a', name: 'Alice', hear: true, selected: true, onActivate: fn() },
+      { id: 'a', name: 'Alice', hear: HEAR, selected: true, onActivate: fn() },
       {
         id: 'l',
         name: 'The Lord High Chamberlain of the Duchy of Very Long Names and Titles 👑',
         kind: { label: 'Character', colour: 'character' },
-        hear: true,
+        hear: HEAR,
       },
-      { id: 'r', name: 'أليس في بلاد العجائب', hear: false },
+      { id: 'r', name: 'أليس في بلاد العجائب', hear: undefined },
     ],
   },
   play: async ({ canvasElement, args }) => {
