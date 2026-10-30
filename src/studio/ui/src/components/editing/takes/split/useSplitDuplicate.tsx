@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { overlay } from '../../../../overlay/overlayService';
-import { usePort } from '../../../../ports/usePort';
 import type { Journal } from '../../../../studio/journal/createJournal';
 import { clock } from '../../bar/clock';
 import { registerFlagAction } from '../../flags/flagActions';
@@ -10,6 +9,7 @@ import { SplitButton } from './SplitButton';
 import { SplitConfirmBody } from './SplitConfirm';
 import { splitCommand, type SplitTarget } from './splitCommand';
 import { NO_SPLIT_COMMAND, planSplit, type SplitPlan, type TakeSplitter } from './splitPlan';
+import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
 
 export interface UseSplitDuplicate {
   /** The plan for the DAW now, or null until it has answered. */
@@ -37,18 +37,8 @@ export const NO_TAKE_TO_SPLIT = 'This line is not one take the DAW can split. De
  * action shows it in a toast.
  */
 export function useSplitDuplicate({ journal, splitter, resolve }: SplitOptions): UseSplitDuplicate {
-  const daw = usePort('daw');
-  const [plan, setPlan] = useState<SplitPlan | null>(null);
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (caps) => live && setPlan(planSplit(caps)),
-      () => live && setPlan({ kind: 'refused', reason: NO_ANSWER }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  const { caps, failed } = useDawCapabilities();
+  const plan = useMemo<SplitPlan | null>(() => (failed ? { kind: 'refused', reason: NO_ANSWER } : caps ? planSplit(caps) : null), [caps, failed]);
 
   const split = useCallback(
     async (target: SplitTarget) => {

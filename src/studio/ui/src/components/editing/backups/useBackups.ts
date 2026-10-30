@@ -5,6 +5,7 @@ import type { DawClient } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
 import type { Command, Journal } from '../../../studio/journal/createJournal';
 import { restoredText } from './backupsText';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 
 /** Whether the DAW can back up and restore now, and its own sentence when it cannot. */
 export type BackupsGate = { ok: true } | { ok: false; reason: string };
@@ -53,17 +54,13 @@ export interface BackupsState {
  */
 export function useBackups(journal: Pick<Journal, 'act'>, chapterId: string): BackupsState {
   const daw = usePort('daw');
-  const [caps, setCaps] = useState<DawCapabilities | null>(null);
+  const { caps } = useDawCapabilities();
   const [rows, setRows] = useState<readonly DawBackup[]>([]);
   const [missing, setMissing] = useState<ReadonlySet<string>>(new Set());
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
     let live = true;
-    daw.capabilities().then(
-      (c) => live && setCaps(c),
-      () => live && setCaps(null),
-    );
     daw.backups().then(
       (all) => live && setRows(all.filter((b) => b.chapterId === chapterId)),
       (e) => live && overlay.toast(why(e), { tone: 'error' }),
