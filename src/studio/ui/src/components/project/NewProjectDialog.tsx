@@ -24,11 +24,14 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   // null: use the projects directory (the binding's own default for an empty parent).
   const [parent, setParent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // What the host said about the last attempt (a refusal, a failed call, a failed folder pick). It and the name rule below share one place: under the Name field.
+  // What the host said about the last attempt (busy, the folder exists, no permission, a failed folder pick). It is the dialog's one live message
+  // (`role="alert"`, so a screen reader hears it), drawn above the field; it never shows with the name rule below, which hides it by clearing on each keystroke.
   const [hostError, setError] = useState('');
-  // The host's own rule, said while typing; an empty name is only a disabled Create, not an error.
-  const nameError = name.trim() ? projectNameError(name) : null;
-  const error = nameError ?? hostError;
+  // The host's own name rule, said under the Name field while typing; an empty name is only a disabled Create, not an error. Not live: the narrator
+  // is typing in the field it describes, and it is the field's `aria-describedby`.
+  const rule = name.trim() ? projectNameError(name) : null;
+  // The host's words start with a lower-case letter; the dialog says them as a sentence, like the rules line above them.
+  const nameError = rule && rule.charAt(0).toUpperCase() + rule.slice(1);
   // The projects directory, shown while no other location is chosen; empty until read, or when it cannot be.
   const [defaultLocation, setDefaultLocation] = useState('');
 
@@ -92,6 +95,11 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
         </>
       }
     >
+      {hostError && (
+        <p className="mb-3 text-sm" role="alert" style={{ color: 'var(--danger-text)' }}>
+          {hostError}
+        </p>
+      )}
       {/* A form around the one field, so Enter creates the project like the Create button does. */}
       <form
         onSubmit={(event) => {
@@ -106,7 +114,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
             setName(next);
             setError('');
           }}
-          error={error}
+          error={nameError ?? undefined}
           autoFocus
           disabled={busy}
           placeholder="My New Audiobook"

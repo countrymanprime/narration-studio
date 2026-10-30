@@ -142,9 +142,10 @@ export function ImportReview({
     onGroupOpenChange(key, next);
   };
   const labelId = useId();
-  // The open group takes the room left over and scrolls inside it; a closed one is only its header. Groups after the first have a rule above.
-  const groupClass = (key: ReviewGroupKey) => `${open(key) ? 'flex min-h-0 flex-1 flex-col' : 'flex-none'} border-[var(--border)] not-first:border-t`;
-  const panelClass = 'min-h-0 flex-1 overflow-y-auto';
+  // The dialog's body scrolls as a whole when the window is short, so no header or card is ever cut. A group's own list scrolls only past a cap (22 rem,
+  // or 45% of the window when that is less), for a book of hundreds of chapters. Groups after the first have a rule above.
+  const groupClass = () => 'flex-none border-[var(--border)] not-first:border-t';
+  const panelClass = 'max-h-[min(22rem,45vh)] overflow-y-auto';
   const root = useRef<HTMLDivElement>(null);
   // The row whose first lines the preview shows (the mock's selected outline row); the first section until the narrator picks one.
   const [previewId, setPreviewId] = useState<string>();
@@ -162,7 +163,7 @@ export function ImportReview({
       summary={`${counts.narration} of ${chapters.length} ${plural(chapters.length, 'chapter')} included`}
       open={open('narration')}
       onOpenChange={(next) => setOpen('narration', next)}
-      className={groupClass('narration')}
+      className={groupClass()}
       panelClassName={panelClass}
       panelFocusable
       scrollCue
@@ -239,7 +240,7 @@ export function ImportReview({
     </fieldset>
   );
   return (
-    <div ref={root} className="flex min-h-0 flex-1 flex-col gap-3">
+    <div ref={root} className="flex flex-col gap-3">
       <div className="mt-3 flex flex-none flex-wrap gap-2" aria-label="What was found">
         <StatusBadge tone="success" label={`${counts.narration} ${plural(counts.narration, 'chapter')}`} />
         <StatusBadge tone="neutral" label={`${preview.paragraphCount} ${plural(preview.paragraphCount, 'paragraph')}`} />
@@ -253,11 +254,11 @@ export function ImportReview({
       )}
       {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
         // The label stays in view, and so does every group's header: the box is a column in which the one open group scrolls.
-        <div role="group" aria-labelledby={labelId} className="flex min-h-[10.5rem] min-w-0 flex-1 flex-col gap-1">
+        <div role="group" aria-labelledby={labelId} className="flex min-w-0 flex-col gap-1">
           <SectionLabel as="div" id={labelId} className="flex-none">
             Review what was found
           </SectionLabel>
-          <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-card)] border px-3" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex flex-col rounded-[var(--radius-card)] border px-3" style={{ borderColor: 'var(--border)' }}>
             {chapterList}
             {candidates.length > 0 && (
               <Disclosure
@@ -265,7 +266,7 @@ export function ImportReview({
                 summary={`${counts.suggestionsChecked} of ${counts.suggestionsTotal} checked`}
                 open={open('characters')}
                 onOpenChange={(next) => setOpen('characters', next)}
-                className={groupClass('characters')}
+                className={groupClass()}
                 panelClassName={panelClass}
                 panelFocusable
                 scrollCue
@@ -319,7 +320,7 @@ export function ImportReview({
                 summary={`${notices.length} made to the source`}
                 open={open('repairs')}
                 onOpenChange={(next) => setOpen('repairs', next)}
-                className={groupClass('repairs')}
+                className={groupClass()}
                 panelClassName={panelClass}
                 panelFocusable
                 scrollCue
@@ -338,7 +339,7 @@ export function ImportReview({
         // The first lines of the chapter the pointer is over (or the one focused last), in the same title and subtitle lines as the list.
         <section
           aria-label="Preview of the selected heading"
-          className="h-[clamp(4.5rem,14vh,8.5rem)] min-h-0 shrink overflow-hidden rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
+          className="h-[8.5rem] flex-none overflow-hidden rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
           style={{ borderColor: 'var(--border)' }}
         >
           <h3 className="text-sm font-semibold">

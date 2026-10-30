@@ -162,7 +162,7 @@ describe('NewProjectDialog', () => {
     const name = screen.getByLabelText('Name');
     fireEvent.change(name, { target: { value: 'Bad:name' } });
 
-    const error = screen.getByText('a project name cannot contain any of <>:"/\\|?*');
+    const error = screen.getByText('A project name cannot contain any of <>:"/\\|?*');
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toContain(error.id);
     expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(true);
@@ -174,14 +174,27 @@ describe('NewProjectDialog', () => {
     expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('shows the host refusal in the same place as the name rule, and nowhere else (one error surface)', async () => {
+  it('announces a host refusal as the one live message, above the field, and says the name rule with none', async () => {
     const createProject = vi.fn(async () => ({ switched: false, reason: 'The app is busy.' }));
     renderDialog({ createProject });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
+    const name = screen.getByLabelText('Name');
+    // The name rule is inline and not live.
+    fireEvent.change(name, { target: { value: 'Bad:name' } });
+    expect(screen.getByText(/cannot contain any of/)).toBeTruthy();
+    expect(screen.queryAllByRole('alert')).toHaveLength(0);
+
+    fireEvent.change(name, { target: { value: 'Alice' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
-    const error = await screen.findByText('The app is busy.');
-    expect(screen.getByLabelText('Name').getAttribute('aria-describedby')).toContain(error.id);
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toBe('The app is busy.');
+    // A refusal that is not about the name is not drawn under the Name field.
+    expect(name.getAttribute('aria-invalid')).not.toBe('true');
+    expect(name.closest('form')!.contains(alerts[0])).toBe(false);
+
+    // Typing clears it, so the dialog never holds a refusal and a name rule together.
+    fireEvent.change(name, { target: { value: 'Alice 2' } });
     expect(screen.queryAllByRole('alert')).toHaveLength(0);
   });
 
