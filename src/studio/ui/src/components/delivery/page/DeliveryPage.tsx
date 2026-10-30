@@ -1,12 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
-import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
-import { useCreditsRows } from '../../credits/useCreditsRows';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { useOpenPickups } from '../../pickups/useOpenPickups';
 import type { DeliveryProfile } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
-import { chapterStates, firstFailure, firstNotReady, listedChapters, readiness } from './chapterStates';
+import { chapterStates, firstFailure, firstNotReady, readiness } from './chapterStates';
 import { OutputPanel } from './OutputPanel';
 import { Preflight } from './Preflight';
 import { useDeliveryBuild } from './useDeliveryBuild';
@@ -39,13 +37,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   const checks = useDeliveryChecks();
   const [profile, setProfile] = useState<DeliveryProfile>();
   const [built, setBuilt] = useState(true);
-  // Bumped by Check again, so the credits are read again with the chapters and the measurement.
-  const [creditsRead, setCreditsRead] = useState(0);
   const build = useDeliveryBuild(profile);
-  // The credits files are deliverables: the opening before chapter 1, the closing after the last, judged like a chapter. Nothing is judged
-  // until they have been read, or the page would say "Every chapter passes" and then add two rows that do not. Delivery changes no
-  // credits status, so the call's own error handler has nothing to report.
-  const credits = useCreditsRows(String(creditsRead), () => undefined);
 
   const onProfile = useCallback((next: DeliveryProfile) => setProfile(next), []);
   // A profile change or edit drops the built list; a new build shows it again.
@@ -61,10 +53,10 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   };
 
   const { chapters, job } = checks;
-  // Nothing is judged until the chapters, the credits and the measurement have each been read.
-  const known = chapters !== undefined && job !== undefined && credits.rows !== undefined;
-  const entries = creditsEntries(credits.rows, ownsOpeningCredits(chapters));
-  const listed = known ? listedChapters(chapters, entries) : [];
+  // Nothing is judged until the chapters and the measurement have each been read. The credits are chapters: the opening first, the closing
+  // last, each judged by its measured file ("Opening credits.wav") like any other.
+  const known = chapters !== undefined && job !== undefined;
+  const listed = known ? chapters : [];
   // Open pickup lines per chapter, as Production's pipeline counts them; nothing is claimed until the list is read.
   const openLines = useOpenPickups();
   const pickups = useMemo(() => {
@@ -103,12 +95,9 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
           states={states}
           known={known}
           measuring={measuring}
-          problem={checks.jobError ?? checks.chaptersError ?? (credits.failure && `The credits could not be read: ${credits.failure}`)}
+          problem={checks.jobError ?? checks.chaptersError}
           lastHeard={checks.lastHeard}
-          onCheckAgain={() => {
-            setCreditsRead((count) => count + 1);
-            checks.checkAgain();
-          }}
+          onCheckAgain={checks.checkAgain}
           onOpen={onOpenInMaster}
           onOpenMaster={onOpenMaster}
         />

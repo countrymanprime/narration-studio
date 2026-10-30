@@ -5,6 +5,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
+import { withoutCredits } from '../../../../chapterKinds';
 import type { JobEnded } from '../../../../api/contracts/system';
 import { createMockApi } from '../../../../api/mockApi';
 import { overlay } from '../../../../overlay/overlayService';
@@ -113,7 +114,7 @@ describe('chapters-and-paragraphs-load-once-and-follow-a-change', () => {
     expect(second.result.current.value).toBe(hook.result.current.paragraphs.value);
     expect(chapters).toHaveBeenCalledTimes(1);
     expect(paragraphs).toHaveBeenCalledTimes(1);
-    expect(hook.result.current.chapters.value?.[0]?.id).toBe('chapter-1');
+    expect(withoutCredits(hook.result.current.chapters.value ?? [])[0]?.id).toBe('chapter-1');
 
     act(() => jobEnded.forEach((onEnded) => onEnded({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 })));
     await waitFor(() => expect(paragraphs).toHaveBeenCalledTimes(2));
@@ -258,7 +259,7 @@ describe('prep-state-is-journalled-and-announced', () => {
   it('sets, steps within the ends, announces "{chapter}: {state}" and undoes to the earlier state', async () => {
     const hook = setup();
     await ready(hook);
-    const chapter = hook.result.current.chapters.value![0]!;
+    const chapter = withoutCredits(hook.result.current.chapters.value!)[0]!;
     await act(async () => void (await hook.result.current.commands.setPrep(chapter, 'prepped')));
     expect(hook.result.current.prep.prepOf(chapter.id)).toBe('prepped');
     expect(announce).toHaveBeenLastCalledWith(`${chapter.title}: ${PREP_LABELS.prepped}`);
@@ -337,6 +338,56 @@ describe('confirm-a-speaker', () => {
     expect(hook.result.current.speakers.phrasesOf(line)[0]?.speaker?.id).toBe(before!.speaker!.id);
     expect(hook.result.current.speakers.unattributed('chapter-6')).toBe(1);
     expect(hook.result.current.facts('chapter-6')).toBe('0 notes · 0 without pronunciation · 1 without a speaker');
+  });
+});
+
+describe('attribute-speakers', () => {
+  const blankFirstSuggestion = () => api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }]);
+
+  it('fills the unconfirmed lines, leaves a confirmed one alone, says the count with an Undo, and a re-run is a no-op', async () => {
+    const hook = setup();
+    await ready(hook);
+    await blankFirstSuggestion();
+    await act(async () => void (await hook.result.current.commands.confirmSpeaker('cue-2', 'alice')));
+    const confirmed = (await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2');
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    expect(toastUndo).toHaveBeenCalledWith('Attributed 1 line. 1 confirmed line left as they were.', expect.any(Function), { entry: expect.any(Number) });
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2')).toEqual(confirmed);
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-1')).toMatchObject({ speaker_entity_id: 'mad-hatter', corrected: false });
+    toastUndo.mockClear();
+    const entries = (await hook.result.current.journal.entries()).length;
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    expect(toast).toHaveBeenLastCalledWith('No new speakers found. 1 confirmed line left as they were.');
+    expect(toastUndo).not.toHaveBeenCalled();
+    expect(await hook.result.current.journal.entries()).toHaveLength(entries);
+  });
+
+  it('Undo puts the earlier suggestion back but never overwrites a line confirmed since', async () => {
+    const hook = setup();
+    await ready(hook);
+    await blankFirstSuggestion();
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    await undoLast(hook);
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-1')).toMatchObject({ speaker_entity_id: null, corrected: false });
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    await act(async () => void (await hook.result.current.commands.confirmSpeaker('cue-1', 'alice')));
+    // The narrator confirmed cue-1 after the run; an undo of that run must not take the confirmation back.
+    await act(async () => void (await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }])));
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-1')).toMatchObject({ speaker_entity_id: 'alice', corrected: true });
+  });
+
+  it('a refused run is a toast, journals nothing and leaves the confirmed lines as they were', async () => {
+    api = host({ guideAttributeSpeakers: refusing('The Story Bible could not be read.') });
+    const hook = setup();
+    await ready(hook);
+    await act(async () => void (await hook.result.current.commands.confirmSpeaker('cue-2', 'alice')));
+    const entries = (await hook.result.current.journal.entries()).length;
+    let finished: boolean | undefined;
+    await act(async () => void (finished = await hook.result.current.commands.attributeSpeakers()));
+    expect(finished).toBe(false);
+    expect(toast).toHaveBeenCalledWith('The Story Bible could not be read.', { tone: 'error' });
+    expect(await hook.result.current.journal.entries()).toHaveLength(entries);
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2')).toMatchObject({ speaker_entity_id: 'alice', corrected: true });
   });
 });
 

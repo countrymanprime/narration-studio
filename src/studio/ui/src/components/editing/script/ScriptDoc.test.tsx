@@ -224,6 +224,16 @@ describe('click-shift-click-drag-and-double-click', () => {
     expect(state().sel).toEqual({ anchor: keys[3], head: keys[3] });
     expect(document.querySelectorAll('[data-sel]')).toHaveLength(1);
   });
+  it('a triple click selects the whole line the word is in, and no other', () => {
+    const doc = marksDoc();
+    show(doc);
+    const para = doc.paras.find((dp) => dp.items.length > 1)!;
+    const other = doc.paras.find((dp) => dp !== para)!;
+    const inside = para.items[1].key;
+    fireEvent.mouseDown(word(inside), { detail: 3 });
+    expect(state().sel).toEqual({ anchor: para.items[0].key, head: para.items[para.items.length - 1].key });
+    expect(state().sel?.anchor).not.toBe(other.items[0].key);
+  });
   it('a click on a misread opens its card; on an extra word it does not', () => {
     const doc = marksDoc();
     show(doc);

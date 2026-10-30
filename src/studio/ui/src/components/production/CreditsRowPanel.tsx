@@ -33,8 +33,7 @@ const unresolvedWarning = (unresolved: string[]): string | undefined => {
 
 /**
  * An Opening or Closing credits row's slide-over on the Production board (a kind with no template has no row, so there is always one): its template, words and estimated length, the
- * tokens still to fill in, and its status, which only `setCreditsStatus` writes (credits are never a manuscript chapter and the
- * stage engine does not assess them).
+ * tokens still to fill in, and its status. The credits are chapters of the board; this panel holds what only they have.
  */
 export function CreditsRowPanel({
   open,
@@ -48,8 +47,8 @@ export function CreditsRowPanel({
   row: CreditsRow;
   label: string;
   onStatus: (status: ChapterStatus) => void;
-  /** Opens the same recording-check dialog a manuscript row's Record cell opens, over a synthetic chapter for this
-   * credits row. */
+  /** Opens the same recording-check dialog a chapter row's Record cell opens, for this
+   * credits chapter. */
   onCheck: () => void;
   onClose: () => void;
 }) {

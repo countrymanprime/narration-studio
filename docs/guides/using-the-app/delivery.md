@@ -44,7 +44,7 @@ offers **Check again**.
 ## Before you build
 
 **Before you build**, on the right, counts the chapters passing and lists each chapter, named as the
-manuscript's headings name it, with the opening credits first and the closing credits last (each judged by its
+manuscript's headings name it, with the opening credits first and the closing credits last (they are chapters of the list like the rest, each judged by its
 own file, "Opening credits.wav"). A long chapter name wraps to a second line, and a rule separates each chapter from the next. Each shows **Pass**,
 **Fails N checks**, **Not mastered**, or, for a chapter that is not mastered and has open
 pickups, **Waiting on N pickups** (counted from the Pickups list, as Production counts them). Pressing a

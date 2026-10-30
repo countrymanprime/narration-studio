@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -158,7 +159,7 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 	if err != nil {
 		return nil, err
 	}
-	lines, err := s.run(ctx, command, dir)
+	lines, err := s.run(ctx, command, dir, in.Threads)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +187,7 @@ func (s Source) log(message string) {
 }
 
 // run starts the sidecar and collects its stdout lines, stopping it at the first line or byte over a cap.
-func (s Source) run(ctx context.Context, command Command, dir string) ([]string, error) {
+func (s Source) run(ctx context.Context, command Command, dir string, threads int) ([]string, error) {
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
 	var mu sync.Mutex
@@ -215,6 +216,9 @@ func (s Source) run(ctx context.Context, command Command, dir string) ([]string,
 		"--manuscript", command.Manuscript, "--guide", command.Guide, "--install", dir)
 	if command.SpacyModel != "" {
 		args = append(args, "--spacy-model", command.SpacyModel)
+	}
+	if threads > 0 {
+		args = append(args, "--threads", strconv.Itoa(threads))
 	}
 	child, err := s.Supervisor.StartStream(runCtx, onLine, command.Program, args...)
 	if err != nil {

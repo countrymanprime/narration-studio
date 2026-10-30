@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, within } from 'storybook/test';
 import { MasterPage } from './MasterPage';
-import { ALL_PASS, CHAPTERS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './testPage';
+import { ALL_PASS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './testPage';
 
 // Master & QC's page body (docs/research/mockups/studio-next/src/pages/Master.tsx): files, consistency and the package checks beside
 // the kept panels. Mounted at `/master`.
@@ -10,7 +10,11 @@ const meta = {
   component: MasterPage,
   args: { hasManuscript: true, projectFolder: '/p', onImport: fn(), onOpenDelivery: fn(), openSettings: fn() },
   render: (args, { parameters }) => (
-    <PageHost api={apiOf(jobOf(parameters.files ?? []), acx, { manuscriptChapters: async () => (parameters.chapters ? CHAPTERS : []) })}>
+    <PageHost
+      api={apiOf(jobOf(parameters.files ?? []), acx, {
+        manuscriptChapters: async () => (parameters.chapters ? CHAPTERS_WITH_CREDITS : CHAPTERS_WITH_CREDITS.filter((chapter) => chapter.isCredits)),
+      })}
+    >
       <div className="bg-[var(--bg)] p-4">
         <MasterPage {...args} />
       </div>

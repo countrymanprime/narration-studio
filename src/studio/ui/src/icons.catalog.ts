@@ -26,8 +26,12 @@ import {
   faCaretLeft,
   faCaretRight,
   faCheck,
+  faAnglesDown,
+  faAnglesUp,
   faChevronDown,
+  faChevronRight,
   faChevronUp,
+  faCheckDouble,
   faCircle,
   faCircleCheck,
   faClockRotateLeft,
@@ -41,6 +45,7 @@ import {
   faFileLines,
   faFlag,
   faFlagCheckered,
+  faFolder,
   faFolderOpen,
   faFont,
   faForwardStep,
@@ -54,9 +59,11 @@ import {
   faListOl,
   faListUl,
   faLocationCrosshairs,
+  faPuzzlePiece,
   faMagnifyingGlass,
   faMagnifyingGlassMinus,
   faMagnifyingGlassPlus,
+  faMicrochip,
   faMicrophone,
   faMicrophoneLines,
   faCircleHalfStroke,
@@ -81,6 +88,7 @@ import {
   faComment,
   faUpRightAndDownLeftFromCenter,
   faUpload,
+  faUserTag,
   faVolumeHigh,
   faVolumeXmark,
   faWandMagicSparkles,
@@ -226,6 +234,10 @@ export const CATALOG = {
   scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
   problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
+  // The recording check's activity panel: the figures it labels, drawn with `Icon` and named by their tooltip.
+  chunksTranscribed: action(faPuzzlePiece, 'chunks transcribed', 'Show the chunks transcribed'),
+  transcriptionsAtOnce: action(faMicrochip, 'transcriptions at once', 'Show the transcriptions at once'),
+  largerModelRecheck: action(faCheckDouble, 'larger-model re-check', 'Show the larger-model re-check'),
 
   // State: outline is off, solid is on (audit rule 3).
   markDone: action(faCircleCheckRegular, 'mark done', 'Mark done'),
@@ -242,6 +254,12 @@ export const CATALOG = {
   export: action(faFileExport, 'export', 'Export a file'),
   download: action(faDownload, 'download', 'Download'),
   openFolder: action(faFolderOpen, 'open a folder', 'Open the folder'),
+  // REAPER's folder tracks in the Tracks card and the track picker.
+  trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
+  trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
+  folderCaret: action(faChevronRight, 'expand or collapse a folder', 'Toggle the folder'),
+  openAllFolders: action(faAnglesDown, 'open every folder', 'Open all folders'),
+  closeAllFolders: action(faAnglesUp, 'close every folder', 'Close all folders'),
   undo: action(faRotateLeft, 'undo', 'Undo', 'Ctrl+Z'),
   history: action(faClockRotateLeft, 'undo history', 'Open the undo history', 'Ctrl+Shift+H'),
   retry: action(faRotate, 'try again', 'Retry'),
@@ -303,6 +321,8 @@ export const CATALOG = {
   // The mock draws a wave for it, which is the Proof page's icon (audit rule 1), so a voice sample wears the speech bubble.
   primarySample: action(faStar, 'primary sample', 'Mark the primary sample'),
   moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
+  // Script: finds who speaks the quoted lines; a line the narrator confirmed is never changed.
+  attributeSpeakers: action(faUserTag, 'attribute speakers', 'Find who speaks each line'),
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),
   // The mock's wave is the Proof page's icon (audit rule 1), so the takes of a line wear the layers.
   showTakes: action(faLayerGroup, 'takes', 'Show the takes of this line', 'T'),

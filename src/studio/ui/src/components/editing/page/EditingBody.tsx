@@ -24,6 +24,7 @@ import { useTabCounts } from '../drawer/useTabCounts';
 import { effectsCount } from '../effects/EffectsTab';
 import { registerEffectsSection } from '../effects/registerEffectsSection';
 import { FlagCard } from '../flags/FlagCard';
+import { useWordClock } from '../follow/useWordClock';
 import { useDawPlayPosition } from '../follow/useDawPlayPosition';
 import { useFollowScroll } from '../follow/useFollowScroll';
 import { Legend } from '../flags/Legend';
@@ -64,7 +65,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { closedCutsOf, doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
+import { doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -78,6 +79,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
+import { noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
 import { useRecordingCheck } from './useRecordingCheck';
@@ -188,24 +190,25 @@ export function EditingBody(props: EditingBodyProps) {
   const checkRecording = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread });
 
   // Playback: the chapter on the document's clock, and a take on its own.
-  const closedCuts = useMemo(() => closedCutsOf(read), [read]);
   // The host's peaks are in source seconds and the page's axis is the document's: this puts each item's peaks where its audio is heard.
   const clocks = useMemo(() => itemClocks(doc, read.answer), [doc, read.answer]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const sound = useChapterSound(chapterId, clocks);
+  // Where each word plays in the DAW project now (the host's word table): the one map the follow-along, play-from-a-word and play-a-range read.
+  const { clock, pending: clockPending } = useWordClock(chapterId, doc, locator.token, caps);
   const playback = useScriptPlayback({
     playlist,
     sound,
     mediaUrl: tracks.mediaUrl,
-    sync: { items: read.workspace.items, cuts: closedCuts, caps, ...(dawRead ? { read: dawRead } : {}) },
+    sync: { clock, clockPending, chapterId, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
     onOutputDevice: setDeviceProblem,
   });
   useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
   // play head itself (useDawTransportSync), so the heartbeat read stands down.
-  useDawPlayPosition({ items: read.workspace.items, playlist, caps: playback.syncActive ? null : caps, playback });
+  useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
   useFollowScroll(root, playback);
   // A take under a line: through the DAW's preview while a DAW plays the chapter, else the app's range player (useTakeAudition).
   const passageOfTake = useCallback(
@@ -235,7 +238,7 @@ export function EditingBody(props: EditingBodyProps) {
   const current = activePid(doc, state);
   const currentLine = current ? (lines.byId.get(current) ?? null) : null;
   const dockTake = currentLine?.takes.find((t) => t.active)?.label ?? null;
-  const keep = useKeepTakes(journal);
+  const keep = useKeepTakes(journal, lines.byId);
   const passageOf = useCallback((sel: WordMenuSelection) => lineOfKey(sel.doc, lines.byId, sel.keys[0]), [lines.byId]);
   const currentRef = useRef(currentLine);
   currentRef.current = currentLine;
@@ -271,11 +274,15 @@ export function EditingBody(props: EditingBodyProps) {
       const take = line?.takes.find((t) => t.active) ?? line?.takes[0];
       const cut = doubledCut(read, id);
       const start = doc.paras.find((p) => p.p.id === id)?.start;
-      // The cut is seconds into the paragraph; the DAW wants the project's time, so it goes through the item the paragraph was heard on.
+      // The cut is seconds into the paragraph's take, which is a second of the item's source; the DAW wants the project's time. The word table says where
+      // the paragraph's words play, so the cut is carried from its first word to the project (a cut in a pause between two words included).
       const heard = cut !== null && start != null ? locator.source(start + cut) : null;
-      const item = heard ? read.workspace.items.find((it) => it.itemGuid === heard.itemGuid) : undefined;
-      if (!line || !take || !heard || item?.position === undefined || item.sourceStart === undefined || !item.playRate) return null;
-      const at = item.position + (heard.sourceTime - item.sourceStart) / item.playRate;
+      const first = doc.items.find((i) => i.pid === id && i.kind === 'w' && !i.cut && i.t0 != null);
+      const token = first ? locator.token(first.key) : undefined;
+      const firstStart = token === undefined ? undefined : read.workspace.tokens.find((t) => t.i === token)?.start;
+      const docCut = heard && first && first.t0 != null && firstStart !== undefined ? first.t0 + (heard.sourceTime - firstStart) : null;
+      const at = docCut === null ? null : (clock?.projectNear(docCut) ?? null);
+      if (!line || !take || at === null) return null;
       return { chapterId, takeId: take.id, label: take.label, at: Math.round(at * 1000) / 1000 };
     },
   });
@@ -356,7 +363,9 @@ export function EditingBody(props: EditingBodyProps) {
         id: 'undo-choice',
         order: 2,
         render: ({ passage, keptId }) =>
-          keptId !== null ? <IconButton action="undo" label="Undo choice" size="sm" onClick={() => void latest.current.keep.undoKeep(passage.id)} /> : null,
+          keptId !== null && latest.current.keep.undoable[passage.id] ? (
+            <IconButton action="undo" label="Undo choice" size="sm" onClick={() => void latest.current.keep.undoKeep(passage.id)} />
+          ) : null,
       }),
     [],
   );
@@ -533,6 +542,10 @@ export function EditingBody(props: EditingBodyProps) {
     onReread: props.onReread,
   });
 
+  // Nothing can play on a chapter with no audio (no linked track, a track that is gone or empty, or nothing recorded yet): Play says why.
+  const dawName = caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null;
+  const playUnavailable = read.audio.kind === 'ready' ? undefined : `${noAudioText(read.audio, chapterName, dawName).headline}`;
+
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {chapterLink.dialog}
@@ -555,12 +568,7 @@ export function EditingBody(props: EditingBodyProps) {
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
-            <NoAudioBanner
-              audio={read.audio}
-              chapterName={chapterName}
-              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
-              onReread={props.onReread}
-            />
+            <NoAudioBanner audio={read.audio} chapterName={chapterName} daw={dawName} onReread={props.onReread} />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
@@ -596,6 +604,7 @@ export function EditingBody(props: EditingBodyProps) {
               playback={playback}
               end={total}
               narrow={compact}
+              {...(playUnavailable ? { unavailable: playUnavailable } : {})}
               output={<EditingOutput prefs={output} onChange={changeOutput} deviceProblem={deviceProblem} caps={caps} />}
             />
             <KeyHints hints={hints} id="keyhints" />

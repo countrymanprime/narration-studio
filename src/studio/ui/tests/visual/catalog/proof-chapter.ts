@@ -14,6 +14,12 @@ export const proofChapterStates: StateEntry[] = [
   },
   {
     page: 'proof-chapter',
+    state: 'credits-closing',
+    description:
+      'Proof chapter view, the Closing credits opened by their address like any chapter - "Proof · Closing credits", never checked, with Check recordings…',
+  },
+  {
+    page: 'proof-chapter',
     state: 'stale',
     description: 'Proof chapter view, a stale check (an item was trimmed since) - the "Check stale" state pill and Check again',
   },

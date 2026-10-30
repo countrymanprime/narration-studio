@@ -56,7 +56,7 @@
     "cascade_unsure_below": "0.5",
     "cascade_pipeline": "true",
     "parallel_workers": "0",
-    "chunk_seconds": "300",
+    "chunk_seconds": "60",
     "chunk_overlap_seconds": "6",
     "parallel_chapters": "1",
     "background_checks_confirmed": "false",

@@ -10,6 +10,8 @@ export type ContractPanelProps = {
   plan: ProductionPlan;
   /** Words of the narrated chapters, which a rate per finished hour is worth. */
   words: number;
+  /** Words per finished hour of the schedule's basis (`useEffectiveWph`); the standard when absent. */
+  wph?: number;
   onPayment: (payment: ProductionPayment) => void;
   /** An amount of zero or more, or null to clear it. */
   onAmount: (amount: number | null) => void;
@@ -23,10 +25,10 @@ export type ContractPanelProps = {
  * How the narrator is paid (the mock's Contract panel). Only a rate per finished hour carries an amount; a royalty share or no payment is a
  * label, and with no rate there is no figure (src/studio/desktop/internal/project/manifest.go, SNP-Q4).
  */
-export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse, onAccepted }: ContractPanelProps) {
+export function ContractPanel({ plan, words, wph, onPayment, onAmount, onRefuse, onAccepted }: ContractPanelProps) {
   const payment = paymentOf(plan);
   const [typed, setTyped] = useState<string | null>(null);
-  const value = contractValue(plan, words);
+  const value = contractValue(plan, words, wph);
   const commit = () => {
     if (typed === null) return;
     const text = typed.trim();

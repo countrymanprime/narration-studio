@@ -30,7 +30,7 @@ export function overviewFor(
   due: Date | null = STORY_DUE,
   log: Measured<readonly TakeLogEntry[]> = TAKE_LOG,
   openPickups = 3,
-  master: Readonly<Record<string, { mastered: boolean }>> = MID_BOOK_SOURCES.master ?? {},
+  master: Readonly<Record<string, { mastered: boolean; qc: string | null }>> = MID_BOOK_SOURCES.master ?? {},
 ) {
   const k = calc(scheduleChapters(chapters), STORY_TODAY, due, openPickups);
   const start = planStart(STORY_TODAY);

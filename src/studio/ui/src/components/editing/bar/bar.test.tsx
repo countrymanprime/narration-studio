@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { useRef, type ReactNode } from 'react';
@@ -10,17 +11,20 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import { MIN_TAIL_SECONDS } from '../model';
+import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { clock } from './clock';
 import { SelectionActionButton } from './SelectionActionButton';
 import { SelectionBar } from './SelectionBar';
 import { SelToolbar, toolbarPlace } from './SelToolbar';
 import { registerSelectionAction } from './selectionActions';
 import { playSample, stopSample } from '../../voicesamples/samplePlayerStore';
+import { OUTPUT_DRAIN_SECONDS, STOP_FADE_SECONDS } from './playbackStop';
 import { AUDIO_FAILED, useScriptPlayback, type ScriptPlayback } from './useScriptPlayback';
 
 class FakeAudio extends EventTarget {
   src = '';
   currentTime = 0;
+  volume = 1;
   play = vi.fn().mockResolvedValue(undefined);
   pause = vi.fn();
 }
@@ -45,22 +49,25 @@ function Probe() {
   page = useEditingPage();
   return <output data-testid="state">{JSON.stringify({ cursor: page.state.cursor, sel: page.state.sel, playT: page.state.playT })}</output>;
 }
-function Harness({ playlist = [SEGMENT], children }: { playlist?: PlaylistSegment[]; children?: ReactNode }) {
+function Harness({ playlist = [SEGMENT], children, unavailable }: { playlist?: PlaylistSegment[]; children?: ReactNode; unavailable?: string }) {
   playback = useScriptPlayback({ playlist, mediaUrl: (f) => `media/${f}`, notify });
   return (
     <>
       <Probe />
-      <SelectionBar playback={playback} end={843} />
+      <SelectionBar playback={playback} end={843} {...(unavailable ? { unavailable } : {})} />
       {children}
     </>
   );
 }
-const mount = (node: ReactNode = null, doc = base, playlist = [SEGMENT]) =>
+const diagnostic = vi.fn().mockResolvedValue(undefined);
+const mount = (node: ReactNode = null, doc = base, playlist = [SEGMENT], unavailable?: string) =>
   render(
     // The playback hook reads the DAW sync port; with no DAW sync asked for it does nothing.
-    <ApiProvider api={createMockApi()}>
+    <ApiProvider api={{ ...createMockApi(), reportClientDiagnostic: diagnostic }}>
       <EditingPageProvider doc={doc}>
-        <Harness playlist={playlist}>{node}</Harness>
+        <Harness playlist={playlist} {...(unavailable ? { unavailable } : {})}>
+          {node}
+        </Harness>
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -76,6 +83,7 @@ const tick = (seconds: number) =>
 beforeEach(() => {
   instances.length = 0;
   notify.mockClear();
+  diagnostic.mockClear();
   vi.stubGlobal(
     'Audio',
     class extends FakeAudio {
@@ -89,6 +97,20 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+
+describe('play on a chapter with nothing to play', () => {
+  it('turns Play off and says why, and a press plays nothing', async () => {
+    const why = 'Chapter 1 is not linked to a track in REAPER, so there is no audio to edit.';
+    mount(null, base, [SEGMENT], why);
+    const play = screen.getByRole('button', { name: /^Play/ });
+    expect(play.getAttribute('aria-disabled')).toBe('true');
+    dispatch({ type: 'place', key: base.items[0].key });
+    fireEvent.click(play);
+    expect(state().playT).toBeNull();
+    await userEvent.hover(play);
+    expect(await screen.findByText(why)).toBeTruthy();
+  });
 });
 
 describe('play from the cursor', () => {
@@ -128,10 +150,30 @@ describe('play from the cursor', () => {
     expect(state().playT).toBeNull();
     expect(audio().play).not.toHaveBeenCalled();
   });
+  it.each([
+    ['the heading', true, 'Nothing was recorded for the heading.'],
+    ['a word', false, 'Nothing was recorded for this word.'],
+  ])('says nothing was recorded for %s under the cursor, and does not play on from the next heard word', async (_name, heading, said) => {
+    const first = base.items[0];
+    const unheard = { ...first, t0: null, t1: null, st: 'miss' as const, ...(heading ? { pid: HEADING_PARAGRAPH } : {}) };
+    const doc = { ...base, items: [unheard, ...base.items.slice(1)] };
+    mount(null, doc);
+    dispatch({ type: 'place', key: first.key });
+    act(() => playback.toggle());
+    await act(async () => {});
+    expect(notify).toHaveBeenCalledWith(said);
+    expect(state().playT).toBeNull();
+    expect(audio().play).not.toHaveBeenCalled();
+  });
 });
 
 describe('play the selection', () => {
+  /** Past the fade-out and the drain that end a play of words (bar/playbackStop.ts). */
+  const settle = (): void => {
+    act(() => vi.advanceTimersByTime((STOP_FADE_SECONDS + OUTPUT_DRAIN_SECONDS) * 1000 + 20));
+  };
   it('plays only its span, stops at its end and shows its start while stopped', () => {
+    vi.useFakeTimers();
     mount();
     dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:4' });
     const start = t0('p-1:1');
@@ -142,9 +184,98 @@ describe('play the selection', () => {
     tick(end + 0.01);
     expect(state().playT).not.toBeNull();
     tick(end + MIN_TAIL_SECONDS);
+    // The sound fades out over the last moments and the element keeps running, silent, a little past the stop before it is paused.
+    expect(audio().pause).not.toHaveBeenCalled();
+    settle();
+    expect(audio().pause).toHaveBeenCalled();
+    expect(audio().volume).toBe(1);
     expect(state().playT).toBeNull();
     expect(state().sel).not.toBeNull();
     expect(screen.getByText('/ 14:03', { exact: false }).parentElement?.textContent).toBe(`${clock(start)} / 14:03`);
+    vi.useRealTimers();
+  });
+  it('writes one line to the host log about how the play of words ended', () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:4' });
+      const word = base.items[base.index.get('p-1:4') ?? -1];
+      act(() => playback.toggle());
+      tick(t0('p-1:1'));
+      expect(diagnostic).not.toHaveBeenCalled();
+      tick((word.t1 as number) + MIN_TAIL_SECONDS);
+      settle();
+      expect(diagnostic).toHaveBeenCalledTimes(1);
+      const [kind, line] = diagnostic.mock.calls[0] as [string, string];
+      expect(kind).toBe('play_stop');
+      expect(line).toContain(`word="${word.text}"`);
+      expect(line).toContain(`alignment_end=${(word.t1 as number).toFixed(3)}`);
+      expect(line).toContain('path=app');
+      expect(line).toMatch(/planned_stop=\d+\.\d{3} tail_ms=\d+ actual_stop=\d+\.\d{3} actual_minus_planned_ms=-?\d+/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('after a play of words ends by itself, a late timeupdate does not bring the play back', () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:1' });
+      const end = base.items[base.index.get('p-1:1') ?? -1].t1 as number;
+      act(() => playback.toggle());
+      tick(t0('p-1:1'));
+      tick(end + MIN_TAIL_SECONDS);
+      // The element reports a last time right after it was paused, before the page has re-rendered (one batch, as the browser delivers it).
+      act(() => {
+        vi.advanceTimersByTime((STOP_FADE_SECONDS + OUTPUT_DRAIN_SECONDS) * 1000 + 20);
+        audio().currentTime = end + MIN_TAIL_SECONDS + 0.001;
+        audio().dispatchEvent(new Event('timeupdate'));
+      });
+      expect(state().playT).toBeNull();
+      expect(playback.playing).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('a play started during the fade-out is not faded out', () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:1' });
+      const end = base.items[base.index.get('p-1:1') ?? -1].t1 as number;
+      act(() => playback.toggle());
+      tick(t0('p-1:1'));
+      tick(end + MIN_TAIL_SECONDS);
+      act(() => vi.advanceTimersByTime(STOP_FADE_SECONDS * 500));
+      act(() => playback.playFrom(t0('p-1:1')));
+      audio().pause.mockClear();
+      act(() => vi.advanceTimersByTime(1000));
+      expect(audio().volume).toBe(1);
+      expect(audio().pause).not.toHaveBeenCalled();
+      expect(diagnostic).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('a stop by the narrator during the fade-out ends the play at once and puts the volume back', () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      dispatch({ type: 'select', anchor: 'p-1:1', head: 'p-1:1' });
+      const end = base.items[base.index.get('p-1:1') ?? -1].t1 as number;
+      act(() => playback.toggle());
+      tick(t0('p-1:1'));
+      tick(end + MIN_TAIL_SECONDS);
+      act(() => vi.advanceTimersByTime(STOP_FADE_SECONDS * 500));
+      act(() => playback.stop());
+      expect(audio().volume).toBe(1);
+      expect(state().playT).toBeNull();
+      act(() => vi.advanceTimersByTime(1000));
+      expect(audio().volume).toBe(1);
+      expect(diagnostic).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it('stops on time between timeupdates, which come only every 250 ms or so', () => {
     vi.useFakeTimers();
@@ -158,6 +289,7 @@ describe('play the selection', () => {
       expect(state().playT).not.toBeNull();
       audio().currentTime = end + MIN_TAIL_SECONDS;
       act(() => vi.advanceTimersByTime((end + MIN_TAIL_SECONDS - start) * 1000 + 1));
+      settle();
       expect(state().playT).toBeNull();
       expect(audio().pause).toHaveBeenCalled();
     } finally {

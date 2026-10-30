@@ -9,8 +9,9 @@ import type {
   ChapterSyncTrigger,
   NarrationApi,
   TrackMapping,
+  ManuscriptChapter,
 } from '../../types';
-import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireClone } from '../mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, WIRE_TRACKS_PROJECT_FOLDERS, wireClone } from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
 import { mockChaptersForTracks, mockChapterSuggestion } from '../chapterSuggestionMock';
 import type { CoverageResult } from '../contracts/coverage';
@@ -27,9 +28,17 @@ export function createChapterTracksMock(
     manuscriptReady,
     dawFileLinked,
     peekCoverage,
-  }: { manuscriptReady: Promise<void>; dawFileLinked: () => boolean; peekCoverage: (chapterId: string) => CoverageResult },
+    chaptersWithCredits,
+  }: {
+    manuscriptReady: Promise<void>;
+    dawFileLinked: () => boolean;
+    peekCoverage: (chapterId: string) => CoverageResult;
+    /** The chapter list as the host sends it: the credits around the manuscript's chapters. */
+    chaptersWithCredits: () => ManuscriptChapter[];
+  },
 ) {
   // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
+  const project = initial.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
   let chapterSyncConsent: ChapterSyncConsent = initial.chapterSync === 'ask' ? 'undecided' : initial.chapterSync === 'off' ? 'off' : 'on';
   let chapterSyncDecidedAt: string | null = chapterSyncConsent === 'undecided' ? null : '2026-09-24T09:00:00Z';
   let chapterSyncLastSync: string | null =
@@ -65,7 +74,7 @@ export function createChapterTracksMock(
         : [];
   // The activity seed's links: Chapter 1 by sync (its Undo shows), Chapter 2 by the narrator ("…automatically, 1 by you").
   if (initial.chapterSync === 'activity') {
-    const [first, second] = WIRE_TRACKS_PROJECT.tracks;
+    const [first, second] = project.tracks;
     s.chapterTrackMappings = [
       {
         trackGuid: first.guid,
@@ -88,7 +97,7 @@ export function createChapterTracksMock(
   const chapterSyncSubscribers = new Set<(state: ChapterSyncState) => void>();
   const mockLinksRead = () => {
     const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-    return mockChapterTrackLinks(s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, state);
+    return mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state);
   };
   const mockChapterSyncState = (batch: ChapterSyncBatch | null): ChapterSyncState => {
     const links = mockLinksRead();
@@ -191,7 +200,7 @@ export function createChapterTracksMock(
       s.tracksDiscovery = { ...s.tracksDiscovery, selected: path };
       return wireClone(s.tracksDiscovery);
     },
-    tracksList: async () => wireClone(WIRE_TRACKS_PROJECT),
+    tracksList: async () => wireClone(project),
     chapterTrackMapList: async () => ({ documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) }),
     chapterTrackMapConfirm: async (trackGuid, chapterId) => {
       await manuscriptReady;
@@ -219,10 +228,12 @@ export function createChapterTracksMock(
     chapterTrackSet: async (chapterId, trackGuid) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
-      if (!chapter) throw new Error('that chapter is not part of the current manuscript');
+      // The host's chapterTitle takes the credits ids too (mapping.go), so Set must as well.
+      const title = chapter?.title ?? CREDITS_CHECK_TITLE[chapterId];
+      if (!title) throw new Error('that chapter is not part of the current manuscript');
       if (!trackGuid) throw new Error('choose a track before linking a chapter');
       const displaced = s.chapterTrackMappings.find((existing) => existing.trackGuid === trackGuid && existing.chapterId !== chapterId) ?? null;
-      const link: TrackMapping = { trackGuid, chapterId, chapterTitle: chapter.title, confirmedAt: new Date().toISOString(), origin: 'manual', match: null };
+      const link: TrackMapping = { trackGuid, chapterId, chapterTitle: title, confirmedAt: new Date().toISOString(), origin: 'manual', match: null };
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid && existing.chapterId !== chapterId), link];
       return wireClone({ documentId: mockDocumentId, link, displaced, mappings: s.chapterTrackMappings });
     },
@@ -239,7 +250,7 @@ export function createChapterTracksMock(
       const track = {
         guid: `{c0ffee00-0000-4000-8000-${String(s.createdTracks).padStart(12, '0')}}`,
         name: title,
-        index: WIRE_TRACKS_PROJECT.tracks.length + s.createdTracks - 1,
+        index: project.tracks.length + s.createdTracks - 1,
       };
       const link: TrackMapping = {
         trackGuid: track.guid,
@@ -254,14 +265,16 @@ export function createChapterTracksMock(
     },
     chapterTrackUnlink: async (chapterId) => {
       await manuscriptReady;
-      if (!s.chapters.some((candidate) => candidate.id === chapterId)) throw new Error('that chapter is not part of the current manuscript');
+      if (!s.chapters.some((candidate) => candidate.id === chapterId) && !CREDITS_CHECK_TITLE[chapterId])
+        throw new Error('that chapter is not part of the current manuscript');
       s.chapterTrackMappings = s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId);
       return { documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) };
     },
     chapterTrackLinks: async () => {
       await manuscriptReady;
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-      return wireClone(mockChapterTrackLinks(s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, state));
+      // Unlike chapter sync and the region plan (which come from the picked tracks), the links list holds the credits, as the host's does.
+      return wireClone(mockChapterTrackLinks(chaptersWithCredits(), project, s.chapterTrackMappings, state));
     },
     chapterSyncState: async () => {
       await manuscriptReady;
@@ -309,18 +322,14 @@ export function createChapterTracksMock(
     chapterRegionsPreview: async (openingTrackGuid, closingTrackGuid) => {
       await manuscriptReady;
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-      const links = mockChapterTrackLinks(s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, state);
+      const links = mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state);
       return wireClone(mockChapterRegionPlan(links, openingTrackGuid, closingTrackGuid));
     },
     chapterRegionsCreate: async (openingTrackGuid, closingTrackGuid, update) => {
       await manuscriptReady;
       if (initial.regionsCreateAlwaysErrors) throw new Error('REAPER refused to write the regions: the app’s script is not responding');
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-      const plan = mockChapterRegionPlan(
-        mockChapterTrackLinks(s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, state),
-        openingTrackGuid,
-        closingTrackGuid,
-      );
+      const plan = mockChapterRegionPlan(mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state), openingTrackGuid, closingTrackGuid);
       if (plan.project !== 'ready') throw new Error(plan.message);
       if (plan.rows.length === 0) throw new Error('no chapter or credits entry has a linked track with recorded items, so there are no regions to create');
       const created = plan.rows.filter((row) => row.state === 'new' || (!update && row.state !== 'exists')).length;
@@ -345,15 +354,15 @@ export function createChapterTracksMock(
     },
     chapterTrackMatch: async (chapterId) => {
       await manuscriptReady;
-      return wireClone(mockChapterTrackMatch(chapterId, s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings));
+      return wireClone(mockChapterTrackMatch(chapterId, chaptersWithCredits(), project, s.chapterTrackMappings));
     },
     chapterSuggestion: async () => {
       await manuscriptReady;
-      return wireClone(mockChapterSuggestion(s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, initial.armedTracks ?? []));
+      return wireClone(mockChapterSuggestion(s.chapters, project, s.chapterTrackMappings, initial.armedTracks ?? []));
     },
     chaptersForTracks: async (guids) => {
       await manuscriptReady;
-      return wireClone(mockChaptersForTracks(guids, s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings));
+      return wireClone(mockChaptersForTracks(guids, s.chapters, project, s.chapterTrackMappings));
     },
   } satisfies Partial<NarrationApi>;
   return { bindings, publishChapterSync, mockChapterSyncState, backgroundSettingsSaved };

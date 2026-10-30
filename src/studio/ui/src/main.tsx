@@ -60,6 +60,8 @@ const mockNoProject = mockParams.has('mockNoProject');
 const mockMultipleRpp = mockParams.has('mockMultipleRpp');
 // `?mockNoRpp=1` seeds zero candidates: the project folder has no .rpp file.
 const mockNoRpp = mockParams.has('mockNoRpp');
+// `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the Tracks card and the track pickers draw the tree.
+const mockTrackFolders = mockParams.has('mockTrackFolders');
 // `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
 // linked", Proofing's nav item/Home card/Start are gated, and
 // Tracks/Settings show their unlinked DAW-link controls. The mock otherwise defaults `dawFileLinked` to true so every
@@ -312,7 +314,7 @@ const mockRollReplaces = mockParams.has('mockRollReplaces');
 // in REAPER (the reload lost this page's own memory of it).
 const mockDawRecording = mockParams.has('mockDawRecording');
 const mockDawPlayhead = Number.parseFloat(mockParams.get('mockDawPlayhead') ?? '');
-// `?mockCoverage=hold|stale|pickups|cascade|recheck-required` holds a started recording check at its last
+// `?mockCoverage=hold|hold-recheck|hold-none|hold-all|stale|pickups|cascade|recheck-required` holds a started recording check at its last
 // transcribing step (so the running dialog can be seen), makes Chapter 4's stored check read stale (an item was
 // trimmed since), or gives Chapter 4 two interior pickups (a skip and a short read) plus a small tail instead of its
 // default tail-only split, and seeds a take-review pickup and two open project-wide pickups for the same chapter, so
@@ -321,7 +323,9 @@ const mockDawPlayhead = Number.parseFloat(mockParams.get('mockDawPlayhead') ?? '
 // pickups and recheck label; `recheck-required` answers the next
 // start with the re-check model's own missing-model gate, offering "Check with tiny only" beside the download.
 // `?mockCoverageRefusal=<reason>` answers every start with that refusal (docs/utilities/recording-coverage.md).
-const mockCoverage = (['hold', 'stale', 'pickups', 'cascade', 'recheck-required'] as const).find((seed) => seed === mockParams.get('mockCoverage'));
+const mockCoverage = (['hold', 'hold-recheck', 'hold-none', 'hold-all', 'stale', 'pickups', 'cascade', 'recheck-required'] as const).find(
+  (seed) => seed === mockParams.get('mockCoverage'),
+);
 const mockCoverageRefusal = COVERAGE_REFUSAL_REASONS.find((reason) => reason === mockParams.get('mockCoverageRefusal'));
 // `?mockStages=mixed|error` puts the Home breakdown's stage suggestions in every state at
 // once, or makes reading them fail. `mixed`: Chapter 4 read in full (suggested: Editing), Chapter 5 with no track linked (can't tell),
@@ -533,6 +537,7 @@ const mockInitial = {
   ...(mockNoProject ? { projectFolder: '' } : {}),
   ...(mockMultipleRpp ? { tracksCandidates: ['C:/Projects/Alice-in-Wonderland/Alice.rpp', 'C:/Projects/Alice-in-Wonderland/Alice-alt-mix.rpp'] } : {}),
   ...(mockNoRpp ? { tracksCandidates: [] } : {}),
+  ...(mockTrackFolders ? { trackFolders: true } : {}),
   ...(mockManuscriptCandidate ? { manuscriptCandidate: { path: 'C:/Projects/Alice-in-Wonderland/manuscript.docx', name: 'manuscript.docx' } } : {}),
   ...(mockManuscriptMixed ? { mockManuscript: 'mixed' as const } : {}),
   ...(chapterLink === 'missing'
@@ -584,7 +589,10 @@ const mockInitial = {
     ? {
         coverage: {
           ...(mockStages === 'mixed' ? { measured: MOCK_STAGES_MEASURED } : {}),
-          ...(mockCoverage === 'hold' ? { hold: true } : {}),
+          ...(mockCoverage === 'hold' || mockCoverage === 'hold-recheck' || mockCoverage === 'hold-none' || mockCoverage === 'hold-all' ? { hold: true } : {}),
+          ...(mockCoverage === 'hold-recheck' ? { activity: 'recheck' as const } : {}),
+          ...(mockCoverage === 'hold-none' ? { activity: 'none' as const } : {}),
+          ...(mockCoverage === 'hold-all' ? { activity: 'all' as const } : {}),
           ...(mockCoverage === 'stale' ? { stale: [WIRE_CHAPTERS[3].id] } : {}),
           ...(mockCoverage === 'pickups' || mockCoverage === 'cascade' ? { pickups: [WIRE_CHAPTERS[3].id] } : {}),
           ...(mockCoverage === 'cascade' ? { cascade: [WIRE_CHAPTERS[3].id] } : {}),

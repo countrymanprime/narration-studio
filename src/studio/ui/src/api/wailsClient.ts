@@ -53,6 +53,9 @@ import {
   dawPositionSchema,
   dawProjectStateSchema,
   dawResultSchema,
+  dawLiveItemsSchema,
+  dawProjectEditedSchema,
+  wordTimesSchema,
   dawTransportSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
@@ -66,6 +69,8 @@ import {
   guideCreatedSchema,
   guideDeletedSchema,
   guideDialogueCuesSchema,
+  restoredSpeakersSchema,
+  speakerAttributionSchema,
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
@@ -368,6 +373,8 @@ export const wailsClient: NarrationApi = {
     decode(voidResult, 'GuidePronunciationUseAlternate', host.GuidePronunciationUseAlternate(id, aliasIndex ?? null)),
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
+  guideAttributeSpeakers: () => decode(speakerAttributionSchema, 'GuideAttributeSpeakers', host.GuideAttributeSpeakers()),
+  guideRestoreSpeakers: (previous) => decode(restoredSpeakersSchema, 'GuideRestoreSpeakers', host.GuideRestoreSpeakers(previous)),
   guideMarkReviewed: (id, aliasIndex) => decode(voidResult, 'GuideMarkReviewed', host.GuideMarkReviewed(id, aliasIndex ?? null)),
   guideFlagReview: (id, aliasIndex) => decode(voidResult, 'GuideFlagReview', host.GuideFlagReview(id, aliasIndex ?? null)),
   guideSetSpeakerColor: (id, index) => decode(voidResult, 'GuideSetSpeakerColor', host.GuideSetSpeakerColor(id, index)),
@@ -750,7 +757,11 @@ export const wailsClient: NarrationApi = {
   dawMeters: () => decode(dawMetersSchema, 'DawMeters', host.DawMeters()),
   dawPlace: () => decode(dawPlaceSchema, 'DawPlace', host.DawPlace()),
   dawGoToChapter: (chapterId, where, seconds) => decode(dawResultSchema, 'DawGoToChapter', host.DawGoToChapter(chapterId, where, seconds)),
-  dawTransportSync: (action, seconds, until = 0) => decode(dawResultSchema, 'DawTransportSync', host.DawTransportSync(action, seconds, until)),
+  workspaceWordTimes: (chapterId) => decode(wordTimesSchema, 'WorkspaceWordTimes', host.WorkspaceWordTimes(chapterId)),
+  subscribeDawProjectEdited: (onUpdate) => subscribeChecked('daw_project_edited', dawProjectEditedSchema, onUpdate),
+  dawLiveItems: (chapterId) => decode(dawLiveItemsSchema, 'DawLiveItems', host.DawLiveItems(chapterId)),
+  dawTransportSync: (action, seconds, until = 0, chapterId = '') =>
+    decode(dawResultSchema, 'DawTransportSync', host.DawTransportSync(action, seconds, until, chapterId)),
   subscribeDawPosition: (onUpdate) => subscribeChecked('daw_position_changed', dawPositionSchema, onUpdate),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),

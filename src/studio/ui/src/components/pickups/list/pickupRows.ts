@@ -4,7 +4,8 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
 import type { KindId } from '../../../kinds/kindMap';
 
-export type ChapterRef = { id: string; name: string };
+/** A chapter in the Pickups scope. The credits are listed like any chapter but never hold a pickup: the host's list skips them (a pickup is a line of text to re-read). */
+export type ChapterRef = { id: string; name: string; credits?: true };
 
 /** One chapter's pickups in the table: a group row ("<n> open") and the rows under it. */
 export type PickupGroup = { chapter: ChapterRef; items: PickupItem[]; open: number };

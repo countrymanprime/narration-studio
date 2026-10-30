@@ -1,3 +1,4 @@
+import { withoutCredits } from '../chapterKinds';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -201,7 +202,7 @@ const mockPort = (): EditLogPort => {
 /** A chapter and a word each adapter has: the goldens' "the" for the host, the mock manuscript's first word for the mock. */
 async function wordOf(adapter: 'mock' | 'host'): Promise<{ chapterId: string; key: string; paragraph: string }> {
   if (adapter === 'host') return { chapterId: HOST_CHAPTER, key: 'p-000001:4', paragraph: 'p-000001' };
-  const [chapter] = await mockApi.manuscriptChapters();
+  const [chapter] = withoutCredits(await mockApi.manuscriptChapters());
   const [line] = await mockApi.manuscriptParagraphs(chapter?.id ?? '');
   return { chapterId: chapter?.id ?? '', key: `${line?.id ?? ''}:0`, paragraph: line?.id ?? '' };
 }

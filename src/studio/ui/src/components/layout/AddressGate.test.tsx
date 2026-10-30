@@ -215,14 +215,33 @@ describe('AddressGate', () => {
     expect(view.reload).not.toHaveBeenCalled();
   });
 
-  it('checks the Editing chapter from the route and the Booth credits address needs no chapter', async () => {
+  it('checks the Editing chapter from the route and the Booth credits address names the credits chapter', async () => {
     mount({ at: '/editing/zzz', page: 'editing', route: '/editing/:chapterId', param: 'zzz' });
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Editing link points to a chapter'));
     cleanup();
     mount({ at: '/editing/c2', page: 'editing', route: '/editing/:chapterId', param: 'c2' });
     expect(screen.getByText('the page')).toBeTruthy();
     cleanup();
-    mount({ at: '/booth?credits=opening', page: 'booth', chapters: [] });
+    mount({ at: '/booth?credits=opening', page: 'booth', chapters: [{ id: 'credits-opening' }] });
+    expect(screen.getByText('the page')).toBeTruthy();
+  });
+
+  it('lets the Booth ask for a credits file the library has no template for: the page answers with its set-up panel', () => {
+    mount({ at: '/booth?credits=closing', page: 'booth', chapters: [{ id: 'c1' }] });
+    expect(screen.getByText('the page')).toBeTruthy();
+  });
+
+  it('an unlisted credits id is a missing chapter for Editing, which would otherwise open another chapter (Proof has its own chapter route)', async () => {
+    mount({ at: '/editing/credits-closing', page: 'editing', route: '/editing/:chapterId', param: 'credits-closing', chapters: [{ id: 'c1' }] });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Editing link points to a chapter'));
+  });
+
+  it('opens Editing and Proof on a credits chapter, which the chapter list holds', () => {
+    const list = [{ id: 'credits-opening', paragraphIds: [] }, { id: 'c1' }, { id: 'credits-closing', paragraphIds: [] }];
+    mount({ at: '/editing/credits-opening', page: 'editing', route: '/editing/:chapterId', param: 'credits-opening', chapters: list });
+    expect(screen.getByText('the page')).toBeTruthy();
+    cleanup();
+    mount({ at: '/proof/credits-closing', page: 'proof', route: '/proof/:chapterId', param: 'credits-closing', chapters: list });
     expect(screen.getByText('the page')).toBeTruthy();
   });
 

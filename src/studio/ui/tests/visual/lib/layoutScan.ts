@@ -3,7 +3,7 @@
 // W5 (nothing under a scrollbar) is not measured: Playwright's headless Chromium draws no scrollbars, so it could never fail here.
 
 export type LayoutRule =
-  'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A7' | 'A8' | 'A9' | 'W1' | 'W2' | 'W3' | 'W4' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'H1' | 'H2' | 'B1';
+  'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A7' | 'A8' | 'A9' | 'W1' | 'W2' | 'W3' | 'W4' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'H1' | 'H2' | 'B1' | 'C1';
 
 export interface LayoutHit {
   rule: LayoutRule;
@@ -190,6 +190,22 @@ export function scanLayout(): LayoutHit[] {
         break;
       }
     }
+  }
+
+  // ---- C1: a column header's label and info mark fit inside its cell. A fixed-layout table does not widen a column for a header that is
+  // too wide: the content spills into the next column (or under a scroll edge) and the mark is cut off or drawn over its neighbour.
+  for (const cell of all.filter((candidate) => candidate.matches('th'))) {
+    const cb = cell.getBoundingClientRect();
+    const style = css(cell);
+    const left = cb.left + parseFloat(style.borderLeftWidth);
+    const right = cb.right - parseFloat(style.borderRightWidth);
+    const spill = Array.from(cell.querySelectorAll('*'))
+      .filter((child) => shown(child))
+      .map((child) => child.getBoundingClientRect())
+      .filter((box) => box.width > 1)
+      .map((box) => Math.max(left - box.left, box.right - right))
+      .reduce((most, over) => Math.max(most, over), 0);
+    if (spill > TOL) hit('C1', cell, `"${textOf(cell)}" header content runs ${r1(spill)}px past its cell`);
   }
 
   // ---- W4: no two text runs overlap. Each text node's line boxes against every other's, in the same layer (an overlay drawn over the

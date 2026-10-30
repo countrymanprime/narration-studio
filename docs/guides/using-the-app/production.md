@@ -31,7 +31,8 @@ then, a **REAPER not connected** mark takes its place, and a dialog opens once: 
 that progress that comes from it may be out of date until it is running again, and when the app last checked.
 **Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
-switching recorders is a choice in [Settings > Recording & DAW](settings.md).
+switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
+is one answer on Production, the Booth and the Companion: the DAW's own sentence when it cannot.
 
 If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
 be loaded" with the reason and a **Retry** button, which reads it again.
@@ -45,7 +46,8 @@ The six figures are one card; each opens the page it counts.
   app does not know from the audio whether it is edited, proofed or mastered.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
   words still to do. The info icon on **Recording** opens the target pace: the standard rate or
-  your own, once enough chapters are measured.
+  your own, once enough chapters are measured. The basis you choose there sets the hours on this page and on
+  [Schedule](schedule.md).
 - **Open pickups**: the open lines of the [Pickups](pickups.md) list, and the booth time to redo
   them once a pickup session has been timed. Each chapter's **Pickups** cell in the pipeline counts
   the same lines, so the cells add up to the tile.
@@ -54,12 +56,12 @@ The six figures are one card; each opens the page it counts.
 - **Due**: the due date and what the pace says about it, or **Not set** ("Set it on the Schedule") before one is set. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
-from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery), **Proofed**, **Edited**,
+from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery whose checks pass; a master that fails counts as Proofed until it is fixed), **Proofed**, **Edited**,
 **Recorded** and **Not recorded yet**. A chapter still being recorded counts for the share of its audio measured so far, **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
-already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). Above 1280 px **Recording check** and **Next up** share the right-hand column, and the chart runs down to the foot of the pipeline. In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 640 px one; **Next up** and the chart sit side by side above the pipeline, so what to do next comes before the table.
+already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). Above 1280 px **Recording check** and **Next up** share the right-hand column, and the chart runs down to the foot of the pipeline, to at most 28 rem; a long book stretches the pipeline, not the chart. In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 640 px one; **Next up** and the chart sit side by side above the pipeline, so what to do next comes before the table.
 A figure with nothing honest to work from says "Not measured yet" and why, rather than 0.
 
 ## The stage timer
@@ -82,7 +84,9 @@ chapter being recorded (with **Open Booth** and **Start timer**), a pickup sessi
 Pickups list has open lines (naming the chapters they are in), and the first chapter whose
 measured file fails the delivery check, with each failed check, its value and its limit
 ("noise floor −57.8 dBFS (limit ≤ −60 dBFS)") and **Inspect failed check**, which opens
-[Master & QC](master-and-qc.md). It reads "Nothing needs you right now" when there is nothing to list.
+[Master & QC](master-and-qc.md). It reads "Nothing needs you right now" when there is nothing to list. Its percent recorded is the
+same figure as the chapter's **Record** cell and the Booth's "Recorded through" note. Every total on this page counts the
+narration chapters only: a chapter removed from recording, and reference material, are left out here and in [Schedule](schedule.md).
 
 ## Chapter pipeline
 
@@ -105,7 +109,7 @@ open lines once it is recorded to the end (0 when none are open). **Master** and
 the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
 read says "Not measured yet". A cell's colour is the colour of its status everywhere in the app: green for done or passing, blue for under way,
 amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
-check, Proof, Pickups or Master & QC. The board is about ten rows tall: with more chapters it scrolls inside its card, with the column headers kept in view, and the table scrolls sideways in a narrow window.
+check, Proof, Pickups or Master & QC. The board grows with the chapter list, and the table scrolls sideways in a narrow window.
 
 The round chip inside the chapter's current-stage cell, beside the stage, is its [readiness](#stage-readiness). A chapter that has not started has no chip: its Prep cell's tip says the verdict instead.
 
@@ -147,10 +151,11 @@ bring it back with its status and any notes intact.
 ### The credits
 
 **Opening credits** and **Closing credits** are the first and last rows of the pipeline, before chapter 1 and
-after the last chapter. They are not chapters, but the first opening and first closing template in
+after the last chapter. They are chapters like any other, listed everywhere chapters are (the chapter pickers of [Editing](editing.md), [Proof](proof.md) and the [Booth](booth.md), Engine's chapter links, Delivery and Master & QC), and counted in the totals: each is
+the first opening and first closing template in
 [Settings, Credits](settings.md#credits), each with its own status; a manuscript that brings its own opening-credits chapter
 lists that chapter in the opening row's place. Prep is a tick once no token is left to fill in, Record,
-Edit and Proof follow the row's status, and a stage nothing measures yet is a dash. Right-click a credits row for **Credits…**, which shows the template's name, words and estimated length (including
+Edit and Proof follow the row's status, and a stage nothing measures yet is a dash. Right-click a credits row for the same menu as a chapter's (**Open Proof**, **Editing check…**, **Chapter track…** and the rest) plus **Credits…**, which shows the template's name, words and estimated length (including
 room tone), a warning for an unresolved token (`[Author]` never filled in) with **Fill in under
 Settings > Credits**, its status, its Recorded length (once its own track is linked - never an
 estimate), and **Check recordings…** beside **Open in Script**. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
@@ -185,7 +190,9 @@ look is missing, the question also offers **Check with … only**, which checks 
 larger model** for the same choice up front).
 
 The chapters list each recorded chapter with its check state and last result. The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** (it names how many chapters, as in **Check 1 chapter**) stay in view
-under them. It gives no estimate of how long the check will take. While it runs, each chapter has its bar under its name, and **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card on Proof has the same **Stop checking**. Escape while it runs asks first. A run of one chapter ends on that chapter's result in the dialog; a run of several closes it with a message giving the totals. A chapter with a stored check has **Show result** in its row. Opened with no chapter in mind (Proof's all-chapters view), the dialog ticks the chapters whose check is not up to date.
+under them. It gives no estimate of how long the check will take. While it runs, a box of fixed size shows what the check is doing, and each chapter has its bar under its name with its own count (its chunks done, and the passages its re-check has finished). The box holds the overall bar, the phase (**First pass**, **First pass and re-check**, **Re-check**, **Finishing**), the models, the time so far and three figures; hover or focus a figure's icon for what it means. **Chunks** is the pieces of audio transcribed so far out of all of them; a recording shorter than the chunk length is one piece, and the tooltip says so, because one piece cannot run side by side with anything. **Workers** is the transcriptions running now out of the number the check really runs (what **Automatic** chose, or the number you set when fewer can be used). **Re-check** is the passages the larger model has looked at out of those sent to it so far (a trailing **+** means more may still come while the first pass runs), **None** when nothing was doubtful, **Waiting** before the first pass has found any, and **Off** when the check has no second look. Its tooltip names the model and why: words the first model was unsure of, places where it heard nothing, or, when so much was in doubt, whole recordings. The time is a clock, not an estimate: the passages for the larger model are only known as the first pass goes, so no end time is shown. A run of one chapter keeps the box, stopped, above that chapter's result. **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card on Proof has the same **Stop checking**. Escape while it runs asks first. A run of one chapter ends on that chapter's result in the dialog; a run of several closes it with a message giving the totals. A chapter with a stored check has **Show result** in its row. Opened with no chapter in mind (Proof's all-chapters view), the dialog ticks the chapters whose check is not up to date.
+
+![Proof - a recording check running: the activity box with the chunks done, the workers busy and the larger model's re-check](../../images/ui/proof-check-recordings-running.webp)
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 

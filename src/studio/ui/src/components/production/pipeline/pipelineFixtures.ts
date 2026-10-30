@@ -26,6 +26,11 @@ export function chapter(id: string, overrides: Partial<ProductionChapter> = {}):
   };
 }
 
+/** The opening or closing credits as the overview lists them: a narration chapter with no logged time and no readiness. */
+export function creditsChapter(kind: 'opening' | 'closing', overrides: Partial<ProductionChapter> = {}): ProductionChapter {
+  return chapter(`credits-${kind}`, { title: kind === 'opening' ? 'Opening credits' : 'Closing credits', wordCount: 40, ...overrides });
+}
+
 /** Mid-book: one chapter in each stage, with a measured recording under way. */
 export const MID_BOOK: ProductionChapter[] = [
   chapter('c1', { status: 'finalized', recordedSeconds: 3600 }),
@@ -33,6 +38,13 @@ export const MID_BOOK: ProductionChapter[] = [
   chapter('c3', { status: 'editing', recordedSeconds: 3700 }),
   chapter('c4', { status: 'recording', recordedSeconds: 1800 }),
   chapter('c5'),
+];
+
+/** The credits are chapters: the opening before chapter 1 and the closing after the last. */
+export const MID_BOOK_WITH_CREDITS: ProductionChapter[] = [
+  creditsChapter('opening', { status: 'finalized', recordedSeconds: 31 }),
+  ...MID_BOOK,
+  creditsChapter('closing', { wordCount: 30 }),
 ];
 
 export const FINISHED: ProductionChapter[] = [chapter('c1', { status: 'finalized' }), chapter('c2', { status: 'finalized' })];

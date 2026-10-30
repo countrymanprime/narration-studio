@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawPosition } from '../../../api/contracts/daw';
-import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import { usePort } from '../../../ports/usePort';
-import { totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import { useEditingPage } from '../script/EditingPageState';
-import { playable, playingKey } from '../script/playing';
-import type { ChapterDoc } from '../model';
-import { docAt, projectAt, projectEndAt, type ClosedCut } from './clockMap';
 import { EchoGuard } from './echoGuard';
+import type { WordClock } from './wordClock';
 import { useVisible } from './useDawPlayPosition';
 
 /** How often the watch lease is renewed. The host asks for a lease of 6 s (transportsync.Lease), so one renewal can be lost and the stream goes on. */
 export const LEASE_RENEW_MS = 3000;
 /** How long a play the app started may go without a position from the DAW before the page stops and says so. */
 export const SILENT_MS = 3000;
+/** How often the DAW's play head is carried on between two of its readings, so the lit word advances word by word and does not wait for the next reading. */
+export const EXTRAPOLATE_MS = 50;
+/** The most a reading is carried on: a DAW that has gone quiet is not followed past this, the silent timer stops the page's play. */
+const MAX_EXTRAPOLATE_SECONDS = 0.6;
 /** A run of cursor moves in the page is written to the DAW once, this long after the last. */
 const WRITE_DEBOUNCE_MS = 80;
 
@@ -33,16 +33,20 @@ const END_SLACK_SECONDS = 0.4;
 export interface RemotePlayer {
   refusal(docT: number): 'pending' | 'not_ready' | 'not_placed' | null;
   refusedWith(): string | null;
+  /** The narrator's words for why `refusal` said `not_placed` for this second: which check failed. */
+  notPlacedWhy(docT: number, daw: string): string;
   start(docT: number, endDocT?: number): Promise<string | null>;
   stop(): void;
 }
 
 export interface DawTransportSyncOptions {
-  items: readonly WorkspaceItem[];
-  playlist: readonly PlaylistSegment[];
-  /** The closing cuts, in the source seconds of their items. */
-  cuts: readonly ClosedCut[];
+  /** Where each word plays in the project (the host's word table), or null while there is none: every second is then not placed. */
+  clock: WordClock | null;
+  /** The host has not answered for the word table yet: `refusal` says `pending` rather than `not_placed`. */
+  clockPending: boolean;
   caps: DawCapabilities | null;
+  /** The chapter the page edits: the DAW plays that chapter's linked track alone, whatever track is selected in it. Empty plays the project as it is. */
+  chapterId?: string;
   /** The DAW's play head while the app's play is the DAW's: a document second (null in a gap) and whether it passed the chapter's end. */
   onHead(docT: number | null, ended: boolean): void;
   /** The narrator stopped the DAW while the app's play was the DAW's. */
@@ -58,13 +62,6 @@ export interface DawTransportSync {
   /** The DAW answers and its `transport_sync` capability is usable: the page syncs, and the heartbeat follow (`useDawPlayPosition`) stands down. */
   active: boolean;
   remote: RemotePlayer;
-}
-
-/** The word a document second falls inside, or null in a gap, before the first word or after the last. */
-function wordIn(doc: ChapterDoc, t: number): string | null {
-  const key = playingKey(playable(doc), t);
-  const item = key ? doc.items[doc.index.get(key) ?? -1] : undefined;
-  return item?.t1 != null && t < item.t1 ? key : null;
 }
 
 /**
@@ -130,6 +127,18 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     if (ready) return;
     guard.reset();
     dawPlaying.current = false;
+    // The DAW stopped answering while the page showed a play of it: no reading will come to end that play, so it ends here and the bar goes back
+    // to Play, behind the connection dialog and after the heartbeat returns.
+    const l = live.current;
+    if (owns.current) {
+      owns.current = false;
+      range.current = null;
+      l.onLost();
+      l.notify(LOST);
+    } else if (mine.current != null && l.state.playT === mine.current) {
+      mine.current = null;
+      l.dispatch({ type: 'play', t: null });
+    }
   }, [ready, guard]);
 
   const stopDaw = useCallback((): void => {
@@ -144,16 +153,35 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   // The DAW's position. Heard whenever the page watches, not only once the lease is answered: the opening position comes with the answer.
   useEffect(() => {
     if (!active || !visible) return;
-    return sync.subscribeDawPosition((pos: DawPosition) => {
+    /** The last reading of a play and when it was heard, carried on between readings. */
+    let heard: { at: number; position: number } | null = null;
+    /** Lights the word at project second `projectT`: the DAW's reading or that reading carried on. A second between two words lights nothing new. */
+    const head = (projectT: number, ended: boolean): void => {
+      const l = live.current;
+      const at = l.clock?.wordAt(projectT) ?? null;
+      if (owns.current) {
+        l.onHead(at?.t ?? null, ended);
+        return;
+      }
+      if (l.state.playT != null && l.state.playT !== mine.current) return; // the app's own audio is playing: it wins
+      if (at === null) return;
+      mine.current = at.t;
+      if (l.state.playT !== at.t) l.dispatch({ type: 'play', t: at.t });
+    };
+    const carry = setInterval(() => {
+      if (!heard || !dawPlaying.current) return;
+      const l = live.current;
+      if (l.state.playT != null && !owns.current && l.state.playT !== mine.current) return;
+      head(heard.position + Math.min((Date.now() - heard.at) / 1000, MAX_EXTRAPOLATE_SECONDS), false);
+    }, EXTRAPOLATE_MS);
+    const unsubscribe = sync.subscribeDawPosition((pos: DawPosition) => {
       const l = live.current;
       if (!pos.sameProject) return;
       lastHeard.current = Date.now();
-      const map = { playlist: l.playlist, items: l.items, cuts: l.cuts };
       const playing = pos.playing && !pos.recording;
       const moved = guard.heard(pos.editCursor) === 'moved';
       if (moved && !playing && !owns.current) {
-        const docT = docAt(map, pos.editCursor);
-        const key = docT === null ? null : wordIn(l.doc, docT);
+        const key = l.clock?.wordAt(pos.editCursor)?.key ?? null;
         if (key && key !== l.state.cursor) {
           fromDaw.current = key;
           l.dispatch({ type: 'place', key });
@@ -162,21 +190,16 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       if (playing) {
         const started = !dawPlaying.current;
         dawPlaying.current = true;
-        const docT = docAt(map, pos.playPosition);
+        heard = { at: Date.now(), position: pos.playPosition };
         if (range.current) range.current.head = pos.playPosition;
-        if (owns.current) {
-          const end = projectAt(map, Math.max(0, totalDuration([...l.playlist]) - 0.001));
-          l.onHead(docT, end !== null && pos.playPosition >= end);
-          return;
-        }
-        if (l.state.playT != null && l.state.playT !== mine.current) return; // the app's own audio is playing: it wins
-        if (started) l.onDawPlay();
-        // A second between two words lights nothing new; the word stays lit.
-        if (docT === null || wordIn(l.doc, docT) === null) return;
-        mine.current = docT;
-        if (l.state.playT !== docT) l.dispatch({ type: 'play', t: docT });
+        if (!owns.current && !(l.state.playT != null && l.state.playT !== mine.current) && started) l.onDawPlay();
+        const end = l.clock?.end() ?? null;
+        head(pos.playPosition, owns.current && end !== null && pos.playPosition >= end);
         return;
       }
+      heard = null;
+      // A DAW that jumps to the end of its stretch and stops between two readings is heard stopping there: its play position is kept while stopped.
+      if (range.current && owns.current && pos.playPosition > range.current.head) range.current.head = pos.playPosition;
       if (dawPlaying.current) {
         dawPlaying.current = false;
         if (owns.current) {
@@ -190,6 +213,10 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         }
       }
     });
+    return () => {
+      clearInterval(carry);
+      unsubscribe();
+    };
   }, [sync, active, visible, guard]);
 
   // After the DAW's own play stops, the word it reached stays lit until the cursor or the selection moves.
@@ -215,7 +242,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     fromDaw.current = null;
     const item = cursor ? doc.items[doc.index.get(cursor) ?? -1] : undefined;
     if (!item || item.t0 == null) return;
-    const project = projectAt({ playlist: live.current.playlist, items: live.current.items, cuts: live.current.cuts }, item.t0);
+    const project = live.current.clock?.projectAt(item.t0) ?? null;
     if (project === null) return;
     const timer = setTimeout(() => {
       const generation = guard.write(project);
@@ -253,16 +280,19 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       const l = live.current;
       if (l.lease.state === 'pending') return 'pending';
       if (l.lease.state === 'refused') return 'not_ready';
-      return projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT) === null ? 'not_placed' : null;
+      if (!l.clock && l.clockPending) return 'pending';
+      return (l.clock?.projectAt(docT) ?? null) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
+    notPlacedWhy: (docT, daw) =>
+      live.current.clock?.whyNotPlaced(docT, daw) ??
+      `The app could not read where the words sit in ${daw}'s project. Check that ${daw} is open on this book with the chapter's track linked.`,
     start: async (docT, endDocT) => {
       const l = live.current;
-      const map = { playlist: l.playlist, items: l.items, cuts: l.cuts };
-      const project = projectAt(map, docT);
+      const project = l.clock?.projectAt(docT) ?? null;
       if (project === null) return 'That part has no place in the DAW project.';
       // A stretch that ends where nothing is known to play (or before it starts) is played open, and the page stops it as it always did.
-      const projectEnd = endDocT === undefined ? null : projectEndAt(map, endDocT);
+      const projectEnd = endDocT === undefined ? null : (l.clock?.projectEndAt(endDocT) ?? null);
       const stretch = endDocT !== undefined && projectEnd !== null && projectEnd > project ? { docEnd: endDocT, projectEnd } : null;
       range.current = stretch ? { ...stretch, head: project } : null;
       const mineEpoch = ++epoch.current;
@@ -272,7 +302,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       let ok = false;
       let why: string;
       try {
-        const result = stretch ? await sync.dawTransportSync('playRange', project, stretch.projectEnd) : await sync.dawTransportSync('play', project);
+        const result = stretch
+          ? await sync.dawTransportSync('playRange', project, stretch.projectEnd, l.chapterId ?? '')
+          : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
         ok = result.ok;
         why = result.message;
       } catch {

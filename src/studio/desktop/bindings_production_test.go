@@ -193,10 +193,11 @@ func TestProductionOverviewReadsTheChaptersTheirReadinessAndTheTimeLog(t *testin
 	host := productionHost(t)
 	overview := decodeAnswer(t)(host.ProductionOverview())
 	chapters, _ := overview["chapters"].([]any)
-	if len(chapters) != 1 {
+	// The credits are chapters of the board: opening first, closing last, around the one chapter.
+	if len(chapters) != 3 || chapters[0].(map[string]any)["id"] != "credits-opening" || chapters[2].(map[string]any)["id"] != "credits-closing" {
 		t.Fatalf("overview = %v", overview)
 	}
-	chapter := chapters[0].(map[string]any)
+	chapter := chapters[1].(map[string]any)
 	if chapter["id"] != "c-0001" || chapter["status"] != "recording" || chapter["pfh"] != nil {
 		t.Fatalf("chapter = %v", chapter)
 	}
@@ -237,7 +238,7 @@ func TestProductionTimerStartsStopsAndRefusesASecondTimer(t *testing.T) {
 	if again["stopped"] != false || again["session"] != nil {
 		t.Fatalf("second stop = %v, want a no-op", again)
 	}
-	chapter := decodeAnswer(t)(host.ProductionOverview())["chapters"].([]any)[0].(map[string]any)
+	chapter := decodeAnswer(t)(host.ProductionOverview())["chapters"].([]any)[1].(map[string]any)
 	if chapter["status"] != "recording" {
 		t.Fatalf("status = %v, want it untouched by the timer", chapter["status"])
 	}

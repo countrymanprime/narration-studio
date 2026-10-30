@@ -11,6 +11,7 @@ import type { ManuscriptChapter } from '../types';
 import { CHAPTER_SHAPES } from '../fixtures/chapters';
 import { renderScenario, renderScenarioApp } from '../fixtures/renderScenario';
 import { makeScenario, SCENARIO_DAW_SETUPS, SCENARIO_SIZES } from '../fixtures/scenario';
+import { withoutCredits } from '../chapterKinds';
 import { shellPages } from '../components/layout/AppShell';
 
 beforeEach(() => window.history.replaceState(null, '', '/'));
@@ -20,7 +21,7 @@ afterEach(cleanup);
 function ChaptersFromPort() {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  useEffect(() => void api.manuscriptChapters().then(setChapters), [api]);
+  useEffect(() => void api.manuscriptChapters().then((all) => setChapters(withoutCredits(all))), [api]);
   return (
     <StudioProvider>
       <ChapterList chapters={chapters} currentId={null} onJump={() => {}} />

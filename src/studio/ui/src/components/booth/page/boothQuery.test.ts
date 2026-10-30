@@ -2,17 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { boothQuery, readBoothQuery, readPickupIds } from './boothQuery';
 
 describe('boothQuery', () => {
-  it('names a chapter, a place to start from in it, or the credits', () => {
+  it('names a chapter or a place to start from in it; the credits are chapters, and { credits } is their chapter', () => {
     expect(boothQuery({ chapter: 'c 1' })).toBe('?chapter=c%201');
     expect(boothQuery({ chapter: 'c1', from: { paragraphId: 'p3', offset: 12.7 } })).toBe('?chapter=c1&para=p3&at=12');
-    expect(boothQuery({ credits: 'closing' })).toBe('?credits=closing');
+    expect(boothQuery({ chapter: 'credits-closing' })).toBe('?chapter=credits-closing');
+    expect(boothQuery({ credits: 'closing' })).toBe('?chapter=credits-closing');
   });
 
   it('reads back what it wrote, and nothing from an address that names nothing', () => {
-    for (const target of [{ chapter: 'c 1' }, { chapter: 'c1', from: { paragraphId: 'p3', offset: 12 } }, { credits: 'opening' as const }])
+    for (const target of [{ chapter: 'c 1' }, { chapter: 'c1', from: { paragraphId: 'p3', offset: 12 } }, { chapter: 'credits-opening' }])
       expect(readBoothQuery(new URLSearchParams(boothQuery(target).slice(1)))).toEqual(target);
     expect(readBoothQuery(new URLSearchParams(''))).toBeNull();
     expect(readBoothQuery(new URLSearchParams('credits=middle'))).toBeNull();
+    // The old spelling resolves to the chapter id.
+    expect(readBoothQuery(new URLSearchParams('credits=opening'))).toEqual({ chapter: 'credits-opening' });
+    expect(readBoothQuery(new URLSearchParams('credits=closing'))).toEqual({ chapter: 'credits-closing' });
     expect(readBoothQuery(new URLSearchParams('chapter=c1&para=p2&at=nope'))).toEqual({ chapter: 'c1', from: { paragraphId: 'p2', offset: 0 } });
   });
 

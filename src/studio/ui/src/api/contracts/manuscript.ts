@@ -44,6 +44,8 @@ export type ManuscriptChapter = {
   /** Set while a chapter imported as narration has been removed from recording: list it under "Removed from recording"
    * with Restore (`manuscriptSetChapterKind(id, 'narration')`). */
   removedFromRecording?: true;
+  /** The opening or closing credits, listed as chapters: no paragraphs, text from a template (`id` is `credits-opening` or `credits-closing`). */
+  isCredits?: true;
   paragraphIds?: Array<{ id: string; index: number }>;
 };
 

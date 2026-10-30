@@ -1,5 +1,4 @@
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
-import type { CreditsEntry } from '../../credits/creditsEntries';
 import { Button } from '../../primitives/Button';
 import { Panel } from '../../primitives/Panel';
 import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
@@ -26,21 +25,18 @@ const SKELETON_ROWS = 4;
 export function PackageChecks({
   profile,
   chapters,
-  credits,
   files,
   loading = false,
   onOpenDelivery,
 }: {
   profile: DeliveryProfile | undefined;
   chapters: readonly ManuscriptChapter[];
-  /** The opening and closing credits files, which Delivery counts as chapters too. */
-  credits: { opening?: CreditsEntry; closing?: CreditsEntry };
   files: readonly MeasureFileResult[];
   /** The profile or the chapters are still being read, so no count is drawn: "0 failing" would read as a pass. */
   loading?: boolean;
   onOpenDelivery: () => void;
 }) {
-  const { failing, notReady } = packageCounts(chapters, credits, files);
+  const { failing, notReady } = packageCounts(chapters, files);
   const items: PackageItem[] = [
     ...packageItems(profile, files),
     ...failing.map((text): PackageItem => ({ state: 'bad', text })),

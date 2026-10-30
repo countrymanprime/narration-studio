@@ -1,6 +1,8 @@
 package main
 
 import (
+	"desktop/internal/coverage"
+	"desktop/internal/manuscript"
 	"fmt"
 	"os"
 	"time"
@@ -17,6 +19,16 @@ type trackOption struct {
 	Index int    `json:"index"`
 }
 
+// matchTrack is a trackOption with where the track sits in REAPER's folders and
+// whether it has audio of its own, so the picker can draw the project's tree.
+type matchTrack struct {
+	trackOption
+	Depth    int  `json:"depth"`
+	IsFolder bool `json:"isFolder"`
+	// HasAudio is false for a folder with no items, which cannot be a link target.
+	HasAudio bool `json:"hasAudio"`
+}
+
 // chapterTrackMatch is ChapterTrackMatch's payload: which track holds a chapter and where its recorded audio ends, from
 // the selected .rpp as of its last save.
 type chapterTrackMatch struct {
@@ -28,7 +40,7 @@ type chapterTrackMatch struct {
 	SavedAt     string `json:"savedAt"`
 	chaptermatch.Result
 	// Tracks lists every track for the picker.
-	Tracks []trackOption `json:"tracks"`
+	Tracks []matchTrack `json:"tracks"`
 	// RecordedEnd is set only for a confirmed or matched track with audible
 	// items: an uncertain guess never yields a resume point.
 	RecordedEnd *tracks.RecordedEnd `json:"recordedEnd"`
@@ -52,6 +64,11 @@ func chapterTrackMatchIn(svc hostServices, chapterID string) (chapterTrackMatch,
 		return chapterTrackMatch{}, tracks.Project{}, err
 	}
 
+	// The credits are not matched to tracks by name (manuscriptChapters leaves them out), but one asked about still answers: its
+	// confirmed link if it has one, else no match and every track to pick from.
+	if kind, isCredits := coverage.CreditsKind(chapterID); isCredits {
+		chapters = append(chapters, chaptermatch.Chapter{ID: chapterID, Title: creditsScriptTitles[kind]})
+	}
 	result, err := chaptermatch.ForChapter(chapterID, chapters, project, confirmed)
 	if err != nil {
 		return chapterTrackMatch{}, tracks.Project{}, fmt.Errorf("that chapter is not part of the current manuscript")
@@ -61,7 +78,7 @@ func chapterTrackMatchIn(svc hostServices, chapterID string) (chapterTrackMatch,
 		ProjectFile: project.Path,
 		SavedAt:     savedAt(project.Path),
 		Result:      result,
-		Tracks:      make([]trackOption, 0, len(project.Tracks)),
+		Tracks:      make([]matchTrack, 0, len(project.Tracks)),
 	}
 	for _, chapter := range chapters {
 		if chapter.ID == chapterID {
@@ -69,7 +86,10 @@ func chapterTrackMatchIn(svc hostServices, chapterID string) (chapterTrackMatch,
 		}
 	}
 	for _, track := range project.Tracks {
-		match.Tracks = append(match.Tracks, trackOption{GUID: track.GUID, Name: track.Name, Index: track.Index})
+		match.Tracks = append(match.Tracks, matchTrack{
+			trackOption: trackOption{GUID: track.GUID, Name: track.Name, Index: track.Index},
+			Depth:       track.Depth, IsFolder: track.IsFolder, HasAudio: len(track.Items) > 0,
+		})
 	}
 	if result.Track != nil {
 		if end, ok := chaptermatch.RecordedEnd(project, *result.Track); ok {
@@ -209,6 +229,10 @@ func manuscriptChapters(svc hostServices) ([]chaptermatch.Chapter, error) {
 	}
 	chapters := make([]chaptermatch.Chapter, 0, len(raw))
 	for _, chapter := range raw {
+		// The credits are linked by hand: a track is never matched to one by its name.
+		if manuscript.IsCredits(chapter) {
+			continue
+		}
 		id, _ := chapter["id"].(string)
 		title, _ := chapter["title"].(string)
 		chapters = append(chapters, chaptermatch.Chapter{ID: id, Title: title})

@@ -91,7 +91,8 @@ export const RunningTwoChapters: Story = {
     const canvas = within(canvasElement);
     (await canvas.findByRole('button', { name: 'Check 2 chapters' })).click();
     await expect(await canvas.findByRole('button', { name: 'Stop checking' })).toBeTruthy();
-    await expect(canvas.getAllByRole('progressbar')).toHaveLength(2);
+    // One bar per chapter and the activity panel's overall bar.
+    await expect(canvas.getAllByRole('progressbar')).toHaveLength(3);
   },
 };
 
@@ -109,10 +110,17 @@ export const RefusedChapter: Story = {
   },
 };
 
-/** A credits row's check: the synthetic chapter the manuscript does not list, offered ticked beside the recorded chapters. */
+/** A credits check: the credits are chapters of the list, offered ticked when asked for even with no recording measured. */
 export const CreditsRowChapter: Story = {
-  args: { preselected: ['credits-opening'], extra: [{ id: 'credits-opening', title: 'Opening credits', index: 0, wordCount: 0, status: 'recording' }] },
-  parameters: { api: host() },
+  args: { preselected: ['credits-opening'] },
+  parameters: {
+    api: host({
+      manuscriptChapters: async () => [
+        { id: 'credits-opening', title: 'Opening credits', index: -2, wordCount: 0, status: 'recording', isCredits: true },
+        ...chapters,
+      ],
+    }),
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole('checkbox', { name: /Opening credits/ })).toBeTruthy();

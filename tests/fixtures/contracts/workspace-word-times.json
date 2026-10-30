@@ -1,0 +1,47 @@
+{
+  "available": true,
+  "version": "rec-1@31",
+  "changeCount": 31,
+  "items": [
+    "{A}",
+    "{NEW}"
+  ],
+  "words": [
+    {
+      "i": 0,
+      "state": "placed",
+      "start": 101,
+      "end": 101.4,
+      "item": 0,
+      "clipped": false,
+      "misread": false
+    },
+    {
+      "i": 1,
+      "state": "placed",
+      "start": 102,
+      "end": 102.5,
+      "item": 0,
+      "clipped": false,
+      "misread": true
+    },
+    {
+      "i": 2,
+      "state": "placed",
+      "start": 107,
+      "end": 107.6,
+      "item": 1,
+      "clipped": false,
+      "misread": false
+    },
+    {
+      "i": 3,
+      "state": "not_heard",
+      "start": 0,
+      "end": 0,
+      "item": -1,
+      "clipped": false,
+      "misread": false
+    }
+  ]
+}

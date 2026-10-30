@@ -404,6 +404,9 @@ func (h *Host) cancelMeasure() MeasureJob {
 	job.mu.Lock()
 	job.message = "Cancelling the measurement."
 	job.mu.Unlock()
+	// Snapshot before cancelling: once the context is cancelled the worker can finish and overwrite the
+	// message with the final one before this goroutine reads it, so the answer would depend on scheduling.
+	cancelling := job.snapshot()
 	job.cancel()
-	return job.snapshot()
+	return cancelling
 }

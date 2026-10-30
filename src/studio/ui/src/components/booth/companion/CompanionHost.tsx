@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { headingName } from '../../../chapterHeading';
 import { useApi } from '../../../api/ApiContext';
-import { useCapability } from '../../../useCapability';
+import { useCanRecord } from '../record/useCanRecord';
 import { CommandScope } from '../../../input/router';
 import type { GuideEntity, GuideType, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
@@ -55,7 +55,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   // The Companion records in the DAW, so it listens on the DAW's own input as the Booth does (useListeningMic).
   useListeningMic({
     dawRecords: true,
-    chapterId: chapter?.id ?? '',
+    chapterId: source.chapter.id,
     chosen: session.chosenDevice,
     source: session.inputSource,
     settingsLoaded: session.settingsLoaded,
@@ -63,8 +63,8 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
     listenOn: session.listenOn,
   });
   const follow = useFollowCursor({ active: session.active, cursor: session.cursor });
-  const record = useCapability('record');
-  const recording = useRecordInReaper(chapter?.id, record.available);
+  const record = useCanRecord();
+  const recording = useRecordInReaper(source.chapter.id, record.ok);
   const chapterTitle = source.kind === 'chapter' ? headingName(source.chapter) : CREDITS_LABEL[source.credits];
   const { paragraphs, rows } = session;
   const { flags } = session.session;
@@ -74,17 +74,18 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   const shownFlags = useMemo(() => visibleFlags(flags, visibility, NO_DISMISSED), [flags, visibility]);
   const marks = useMemo(() => withMarks(storyMarks, flagMarks(rows, shownFlags)), [storyMarks, rows, shownFlags]);
 
-  // Credits have no chapter to keep a finding against.
-  const chapterId = chapter?.id;
+  // Credits have no paragraphs to keep a finding against; the shell still shows their chapter.
+  const chapterId = source.chapter.id;
+  const keepId = chapter?.id;
   const latest = useRef({ rows, flags });
   useEffect(() => {
     latest.current = { rows, flags };
   });
   const keep = useCallback(() => {
-    if (!chapterId) return;
+    if (!keepId) return;
     const { saves } = flagSaves(latest.current.rows, latest.current.flags, NO_DISMISSED);
-    if (saves.length > 0) void api.teleprompterSaveFlags(chapterId, saves).catch(() => {});
-  }, [api, chapterId]);
+    if (saves.length > 0) void api.teleprompterSaveFlags(keepId, saves).catch(() => {});
+  }, [api, keepId]);
   const wasActive = useRef(session.active);
   useEffect(() => {
     if (wasActive.current && !session.active) keep();
@@ -116,9 +117,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
         header={header}
         onFullApp={onFullApp}
       />
-      {recording.confirmPending && chapter && (
-        <RecordInReaperConfirm chapterTitle={chapterTitle} confirm={recording.confirm} cancel={recording.cancelConfirm} />
-      )}
+      {recording.confirmPending && <RecordInReaperConfirm chapterTitle={chapterTitle} confirm={recording.confirm} cancel={recording.cancelConfirm} />}
     </CommandScope>
   );
 }

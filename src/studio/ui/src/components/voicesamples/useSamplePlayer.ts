@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { overlay } from '../../overlay/overlayService';
+import { useIsRecording } from '../../daw/useIsRecording';
 import { usePort } from '../../ports/usePort';
 import { useSampleOutputSync } from './useSampleOutputSync';
 import {
@@ -16,7 +17,7 @@ import {
 /**
  * What the page knows about the recorder. `recording` is `control.recording`. `cantTell` is the page's sentence when it cannot tell
  * whether a take is recording (a DAW is configured and silent): a sample is refused with it, because a clip through the speakers reaches
- * the microphone of a take that may be running. A page that has no recorder, such as the Story Bible, passes none and a sample plays.
+ * the microphone of a take that may be running. A page that has no recorder, such as the Story Bible, passes none and is still refused while the DAW itself is recording.
  */
 type RecorderGuard = { recording: boolean; cantTell?: string };
 
@@ -47,12 +48,15 @@ export function useSamplePlayer({ guard, notify = toast }: SamplePlayerOptions =
   useSampleOutputSync();
   const state = useSyncExternalStore(subscribeSamplePlayer, samplePlayerState);
   const self = useMemo(() => Symbol('sample player'), []);
-  const live = useRef({ guard, notify, voiceSampleMediaUrl });
+  // A page with no recorder of its own (the Story Bible, Editing) still has a DAW that may be recording: a clip through the speakers reaches its microphone.
+  const dawRecording = useIsRecording();
+  const withDaw: RecorderGuard = { ...guard, recording: guard?.recording === true || dawRecording };
+  const live = useRef({ guard: withDaw, notify, voiceSampleMediaUrl });
   useEffect(() => {
-    live.current = { guard, notify, voiceSampleMediaUrl };
+    live.current = { guard: withDaw, notify, voiceSampleMediaUrl };
   });
 
-  const recording = guard?.recording === true;
+  const recording = withDaw.recording;
   useEffect(() => {
     if (recording) stopSampleOf(self);
   }, [recording, self]);

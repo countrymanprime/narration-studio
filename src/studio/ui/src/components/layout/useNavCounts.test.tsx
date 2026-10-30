@@ -7,6 +7,7 @@ import { createMockApi } from '../../api/mockApi';
 import type { ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi as Api } from '../../types';
 import { MIXED } from '../pickups/list/pickupFixtures';
 import { openPickups } from '../pickups/list/pickupRows';
+import { openPickupsBeyondNotes, proofProgress } from '../proof/proof.selectors';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
 import { useNavCounts } from './useNavCounts';
 
@@ -24,7 +25,10 @@ describe('useNavCounts (rail badges, N-B61)', () => {
       pickupsList: async () => ({ pickups: MIXED, leftOut: [] }),
     };
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
-    await waitFor(() => expect(result.current).toEqual({ proof: 14, pickups: openPickups(MIXED).length, master: 0 }));
+    // The Proof page's whole-book head is `proofProgress(summary, openPickupsBeyondNotes(pickups))`; the rail says the same number (audit cluster 2).
+    const proofPageOpen = proofProgress({ total: 20, decided: 17, cleared: 6 }, openPickupsBeyondNotes(MIXED)).open;
+    expect(proofPageOpen).toBeGreaterThan(14);
+    await waitFor(() => expect(result.current).toEqual({ proof: proofPageOpen, pickups: openPickups(MIXED).length, master: 0 }));
   });
 
   it('leaves a count out when its call fails, rather than drawing a made-up number', async () => {
@@ -99,6 +103,13 @@ describe('useNavCounts: Master & QC', () => {
     );
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
     await waitFor(() => expect(result.current.master).toBe(2));
+  });
+
+  it('counts a credits chapter whose file fails like any other chapter, paired by its title', async () => {
+    const credits = { id: 'credits-opening', index: -2, title: 'Opening credits', isCredits: true } as ManuscriptChapter;
+    const api = withMeasurement([file('Opening credits.wav', 'not_met'), file('One.wav', 'met')], [credits, chapter('c1', 0, 'One')]);
+    const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
+    await waitFor(() => expect(result.current.master).toBe(1));
   });
 
   it('counts nothing failing as 0, which draws no badge', async () => {

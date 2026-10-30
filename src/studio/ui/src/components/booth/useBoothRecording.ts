@@ -1,4 +1,4 @@
-import { useDawState } from '../../daw/useDawSession';
+import { useIsRecording } from '../../daw/useIsRecording';
 
 /**
  * Whether the Booth is showing *and* the DAW reports recording: the
@@ -9,6 +9,6 @@ import { useDawState } from '../../daw/useDawSession';
  * half clears, to release whatever toast it queued while this was true.
  */
 export function useBoothRecording(boothShowing: boolean): boolean {
-  const recording = useDawState((state) => state.transport.recording);
+  const recording = useIsRecording();
   return boothShowing && recording;
 }

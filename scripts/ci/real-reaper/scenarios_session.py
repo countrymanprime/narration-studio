@@ -381,3 +381,46 @@ def follow_position(env: Env) -> str:
     env.refused("go_to", fx["ch1"], "at", "-1")
     env.refused("go_to", fx["ch1"], "somewhere", "")
     return "read_place/go_to move the cursor and the selection only; 3 refusals"
+
+
+# -- the credits are chapters ---------------------------------------------------------------------------------------------------
+
+
+@scenario(
+    "credits_as_chapters",
+    "chapter_track_state, go_to, select_track",
+    "credits tracks: the tracks linked to credits-opening and credits-closing are read, selected and gone to like any chapter's track (the credits are chapters)",
+)
+def credits_as_chapters(env: Env) -> str:
+    fx = env.lua(
+        """
+        local a, b = args[1], args[2]
+        local opening, chapter, closing = ci.add_track('Opening credits'), ci.add_track('Chapter 1'), ci.add_track('Closing credits')
+        ci.add_item(opening, a, 0, 8)
+        ci.add_item(chapter, a, 0, 20)
+        ci.add_item(closing, b, 0, 6)
+        ci.add_item(closing, b, 10, 4)
+        ci.save_and_reload(ci.rpp)
+        return {
+          opening = reaper.GetTrackGUID(ci.track_by_name('Opening credits')),
+          chapter = reaper.GetTrackGUID(ci.track_by_name('Chapter 1')),
+          closing = reaper.GetTrackGUID(ci.track_by_name('Closing credits')),
+        }
+        """,
+        env.media_path("tone_a"),
+        env.media_path("tone_b"),
+    )
+    for name, guid, expected in (("opening", fx["opening"], [0]), ("closing", fx["closing"], [0, 10])):
+        events = env.send("chapter_track_state", guid, until={"TRACK_STATE_END", "TRACK_STALE"})
+        state = next(e for e in events if e[0] == "TRACK_STATE")
+        assert state[2] == guid, f"{name}: state names {state[2]}"
+        items = [e for e in events if e[0] == "TRACK_ITEM"]
+        assert [round(float(e[4])) for e in items] == expected, f"{name}: items {[e[4] for e in items]}"
+    env.ok("select_track", fx["closing"], until="TRACK_SELECTED")
+    assert [t["name"] for t in env.snapshot()["tracks"] if t["selected"]] == ["Closing credits"], "selection after select_track"
+    end = env.ok("go_to", fx["opening"], "end", "", until="PLACE_SET")
+    near(float(end[3]), 8.0, 0.01, "end of the opening credits' last item")
+    state = env.snapshot()
+    assert [t["name"] for t in state["tracks"] if t["selected"]] == ["Opening credits"], "go_to selection"
+    assert state["play_state"] == 0, f"go_to started the transport ({state['play_state']})"
+    return "both credits tracks read, selected and gone to like a chapter's"

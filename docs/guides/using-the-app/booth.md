@@ -16,7 +16,7 @@ where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
-the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the same rule as the Script's: the width's characters a line or its share of the window, whichever is less, so **Narrow** stays narrow in a half-width window; **+** and **-** change the size too, and the Booth opens at the size
+the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or its share of the text area, whichever is less, so each choice narrows the text equally on both sides and **Narrow** stays narrow in a half-width window; **+** and **-** change the size too, and the Booth opens at the size
 and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
 **Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
@@ -46,7 +46,7 @@ dotted or wavy underline), as they are on Script; a mark's note shows under its 
 speaker chip takes its character's colour; a suggested speaker's chip is dashed until you confirm it, and a quote nobody is
 matched to has a grey dashed **?** chip, by the same rule as on [Script](script.md). The chip's menu lists the entries whose
 type speaks. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **In this
-chapter** chips alike. The text is left-aligned and a paragraph starts at the column's edge, with no indent and a small gap above it, so a page of short paragraphs or
+chapter** chips alike. Lines are left-aligned within the centred column and a paragraph starts at the column's edge, with no indent and a small gap above it, so a page of short paragraphs or
 back-and-forth dialogue still shows many lines at the same text size. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
@@ -343,6 +343,8 @@ in chapter 19 as in chapter 3.
   speaker button at the right, **Hear the reference clip**, which plays the primary sample. A voice with a sample also has a count below the row; press the count to list every
   sample with its length, and press one to hear it. A voice with none keeps the button, switched off, and its hint says "No voice sample yet. Mark one in Editing." Press the button, or a sample, again to stop it.
 
+A sample does not play while the DAW is recording, on this page or on any other: it says "Not while recording. Stop the take first.", and one already playing stops when a take starts, so it never reaches the microphone.
+
 ![Booth - the speaker picker with a count and a play button on each character who has voice samples](../../images/ui/booth-voice-samples-picker.webp)
 
 ![Booth - In this chapter with voice samples: a play button and count on each voice, one opened to list its samples](../../images/ui/booth-voice-samples-panel.webp)
@@ -414,7 +416,7 @@ The credits have no heading: their first line is checked like any other.
 
 ## The credits
 
-The chapter menu also offers **Opening credits** first and **Closing credits** last, when your credit template library
+The credits are chapters, so the chapter menu lists **Opening credits** first and **Closing credits** last, when your credit template library
 ([Settings, Credits](settings.md#credits)) has an opening or a closing template. The text is the first template of each kind filled
 in with the project's values, exactly as Settings previews it. If a value is missing, for example no narrator name yet, the
 placeholder shows in brackets (such as [Narrator]) and a chip on the top bar says how many tokens have no value; it opens the
@@ -438,7 +440,7 @@ reading session, with REAPER's playhead in its header, the script in its own scr
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
 place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
-scroll. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.
+scroll. The script is set in the same reader column as the Script and the Booth, at the Column width you chose in Settings › Reader text. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.
 While its chapters are being read, the panel shows its title and grey blocks, and if the credits you asked for have no text it opens the Booth instead.
 
 ![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)

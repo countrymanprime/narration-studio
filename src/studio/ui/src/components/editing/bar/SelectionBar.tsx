@@ -10,9 +10,22 @@ import type { ScriptPlayback } from './useScriptPlayback';
 /**
  * The bar at the foot of the script: transport, what is selected, and what the selection can do. The actions are whatever the other slices
  * registered (`registerSelectionAction`); with none registered the right-hand side is empty. `end` is the chapter's length in seconds; `output` is the
- * output controls (speed, mute, volume and device), drawn after the clock.
+ * output controls (speed, mute, volume and device), drawn after the clock. `unavailable` is the reason Play is off, when it is.
  */
-export function SelectionBar({ playback, end, narrow = false, output }: { playback: ScriptPlayback; end: number; narrow?: boolean; output?: ReactNode }) {
+export function SelectionBar({
+  playback,
+  end,
+  narrow = false,
+  output,
+  unavailable,
+}: {
+  playback: ScriptPlayback;
+  end: number;
+  narrow?: boolean;
+  output?: ReactNode;
+  /** Why nothing can play (the chapter has no audio to play): Play is off and its hint says so. */
+  unavailable?: string;
+}) {
   const { doc, state, selected } = useEditingPage();
   const actions = useSelectionActions('bar');
   const keys = state.sel ? selected : [];
@@ -33,7 +46,13 @@ export function SelectionBar({ playback, end, narrow = false, output }: { playba
     >
       <div className="flex items-center gap-1.5">
         <IconButton action="previousWord" onClick={() => playback.skip(-1)} />
-        <IconButton action={playback.playing ? 'pause' : 'play'} label={playLabel} variant="primary" onClick={playback.toggle} />
+        <IconButton
+          action={playback.playing ? 'pause' : 'play'}
+          label={playLabel}
+          variant="primary"
+          {...(unavailable && !playback.playing ? { disabledReason: unavailable } : {})}
+          onClick={playback.toggle}
+        />
         <IconButton action="nextWord" onClick={() => playback.skip(1)} />
         <span className="ml-1.5 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[15px] font-medium whitespace-nowrap">
           {clock(at)}

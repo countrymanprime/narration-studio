@@ -41,8 +41,8 @@ line you added) also keeps the ring from filling while it is open.
 ### All chapters
 
 Under the title, **Open notes, by chapter** draws one tile per chapter with how many of its notes are open, with **Open** and **Close** tiles
-for the opening and closing credits at the ends. Choose a chapter's tile to open that chapter; a credits tile opens that
-credits card on [Script](script.md), since Proof has no recording view for them. In a narrow window the tiles keep their
+for the opening and closing credits at the ends. Choose a tile to open that chapter; the credits are chapters, so a credits tile opens that credits file in Proof
+like any other. In a narrow window the tiles keep their
 size and the strip scrolls sideways, with **In** and **Out** for the credits.
 
 ### One chapter

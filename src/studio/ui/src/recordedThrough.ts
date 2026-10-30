@@ -33,6 +33,16 @@ export function recordedThroughLabel(recorded: RecordedThrough | undefined, para
   };
 }
 
+/**
+ * How much of a chapter is recorded, 0 to 1: the host's `recordedThrough` when it sent one (the value the Booth resumes at, so every page agrees),
+ * else the measured length against the chapter's finished length at `wph` words an hour, else null.
+ */
+export function recordedShare(chapter: { recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number }, wph: number): number | null {
+  if (chapter.recordedThrough) return chapter.recordedThrough.complete ? 1 : chapter.recordedThrough.percent / 100;
+  if (chapter.recordedSeconds === null || chapter.wordCount <= 0) return null;
+  return Math.min(1, chapter.recordedSeconds / ((chapter.wordCount / wph) * 3600));
+}
+
 /** The note a chapter list draws after a chapter's name (`ChapterStepper`'s `detail`): "45%", "~30%", "Complete"; none with nothing recorded. */
 export function chapterRecordedDetail(chapter: Pick<ManuscriptChapter, 'recordedThrough'>): string | undefined {
   return recordedThroughLabel(chapter.recordedThrough, [])?.short;

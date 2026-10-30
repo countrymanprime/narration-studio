@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/coverage"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -645,7 +646,14 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 	h.runLog.App().Event(slog.LevelInfo, "teleprompter.start", "a read-aloud session was started",
 		"engine", engine, "model", modelID, "device", options["device"], "from_file", options["wav"] != "", "credits", options["credits"], "chapter", options["chapter"], "cold_read", options["coldRead"] == "true", "eval_args", evalArgsForLog())
 	// `credits` ("opening" or "closing") reads the credits instead of a chapter: the host renders the text itself, so the UI names only which credits, never the text.
-	if kind := strings.TrimSpace(options["credits"]); kind != "" {
+	// A credits file is also a chapter of the list, so `chapter=credits-opening` reads the same way.
+	kind := strings.TrimSpace(options["credits"])
+	if kind == "" {
+		if creditsKind, isCredits := coverage.CreditsKind(options["chapter"]); isCredits {
+			kind = creditsKind
+		}
+	}
+	if kind != "" {
 		script, err := h.creditsScript(kind)
 		if err != nil {
 			return "", err

@@ -1,18 +1,24 @@
 import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import type { StatusId } from '../../kinds/statusTone';
+import { isNarrationChapter } from '../../chapterKinds';
+import { creditsKindOfId } from '../credits/creditsEntries';
+import type { CreditsKind } from '../credits/useCreditsRows';
 import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
 
 /** A chapter as the estimates see it: its words and the stage it is in. Only real progress goes in; a stage in progress is not yet done. */
-export type ScheduleChapter = { words: number; status: ChapterStatus; kind: ManuscriptContentKind | '' };
+export type ScheduleChapter = { words: number; status: ChapterStatus; kind: ManuscriptContentKind | ''; credits?: CreditsKind };
 
 /** The chapters that are narrated: a reference chapter is not recorded, so it is no work. */
 export function scheduleChapters(
-  chapters: readonly { status: ChapterStatus; wordCount: number; contentKind: ManuscriptContentKind | '' }[],
+  chapters: readonly { id?: string; status: ChapterStatus; wordCount: number; contentKind: ManuscriptContentKind | '' }[],
 ): ScheduleChapter[] {
-  return chapters.filter((c) => c.contentKind !== 'reference').map((c) => ({ words: c.wordCount, status: c.status, kind: c.contentKind }));
+  return chapters.filter(isNarrationChapter).map((c) => {
+    const credits = c.id === undefined ? undefined : creditsKindOfId(c.id);
+    return { words: c.wordCount, status: c.status, kind: c.contentKind, ...(credits ? { credits } : {}) };
+  });
 }
 
 const STAGE_ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
@@ -95,13 +101,13 @@ export function deadlineTone(k: Calc): Tone {
 }
 
 /** Work-hours left to reach a milestone's measure. */
-export function remainFor(chapters: readonly ScheduleChapter[], stored: string): number {
+export function remainFor(chapters: readonly ScheduleChapter[], stored: string, wph: number = WPH): number {
   const stagesLeft = (c: ScheduleChapter, stages: readonly (keyof typeof DONE_AT)[]): number =>
-    stages.reduce((a, s) => a + (stageDone(c, s) ? 0 : (c.words / WPH) * RATIO[s]), 0);
+    stages.reduce((a, s) => a + (stageDone(c, s) ? 0 : (c.words / wph) * RATIO[s]), 0);
   const measure = measOf(stored);
   if (measure === 'minN' || stored === CHECKPOINT_MEASURE) {
     // The first N finished minutes of the book, in reading order: each chapter in the window counts for the share of it that falls inside.
-    let words = (minutesOf(stored) / 60) * WPH;
+    let words = (minutesOf(stored) / 60) * wph;
     let hours = 0;
     for (const c of chapters) {
       if (words <= 0) break;
@@ -112,12 +118,13 @@ export function remainFor(chapters: readonly ScheduleChapter[], stored: string):
     return hours;
   }
   if (measure === 'chN') {
-    // The opening, then the first N numbered chapters.
+    // The opening credits, then the first N numbered chapters. Front Matter is not the opening, and the closing credits are not numbered.
     const n = chaptersOf(stored);
     let numbered = 0;
     return chapters.reduce((a, c) => {
-      if (c.kind === 'narration') numbered += 1;
-      return c.kind === 'opening' || numbered <= n ? a + stagesLeft(c, ['edit', 'proof']) : a;
+      if (c.credits === 'opening') return a + stagesLeft(c, ['edit', 'proof']);
+      if (c.kind === 'narration' && !c.credits) numbered += 1;
+      return !c.credits && c.kind === 'narration' && numbered <= n ? a + stagesLeft(c, ['edit', 'proof']) : a;
     }, 0);
   }
   const stages: Record<string, readonly (keyof typeof DONE_AT)[]> = {
@@ -143,11 +150,12 @@ export function milestoneStatus(
   m: Pick<ProductionMilestone, 'dueDate' | 'measure' | 'done'>,
   chapters: readonly ScheduleChapter[],
   today: Date,
+  wph: number = WPH,
 ): MilestoneStatus {
   if (m.done) return { kind: 'done', sentence: 'Done', short: '✓' };
   if (measOf(m.measure) === 'custom') return { kind: 'none', sentence: 'Not estimated', short: '—' };
   if (!isIsoDate(m.dueDate)) return { kind: 'none', sentence: `Not estimated: ${m.dueDate || 'no date'} is not a real date`, short: '—' };
-  const projected = addDays(today, Math.ceil(remainFor(chapters, m.measure ?? '') / PACE));
+  const projected = addDays(today, Math.ceil(remainFor(chapters, m.measure ?? '', wph) / PACE));
   const est = fmtD(projected);
   const late = diffDays(projected, parseIso(m.dueDate));
   if (late > 0) return { kind: 'late', sentence: `Late by ${late} d (est. ${est})`, short: `+${late} d` };

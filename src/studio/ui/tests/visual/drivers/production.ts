@@ -352,8 +352,9 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'credits-panel': async (page) => {
     await productionLoaded(page);
-    // The credits are rows of the pipeline: the Edit cell of the Opening credits row opens the row's panel.
-    await page.getByRole('button', { name: /^Opening credits: Edit / }).click();
+    // The credits are rows of the pipeline like any chapter: the row's menu (right-click) has Credits…, which opens the template panel.
+    await page.getByRole('row', { name: /Opening credits/ }).click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Credits…' }).click();
     await page.getByRole('dialog', { name: 'Opening credits' }).getByRole('link', { name: 'Open in Script' }).waitFor();
   },
   'credits-closing-not-set-up': async (page) => {

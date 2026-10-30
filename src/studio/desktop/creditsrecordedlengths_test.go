@@ -56,3 +56,24 @@ func TestCreditsRecordedLengthsNeverLeaksIntoAManuscriptChaptersOwn(t *testing.T
 		}
 	}
 }
+
+// The Engine page's Chapter links rows for the opening and closing credits go through ChapterTrackSet and ChapterTrackUnlink,
+// not only ChapterTrackMapConfirm: both must take a credits id, and the recorded length must follow the link.
+func TestCreditsLinkSetAndUnlinkTakeACreditsIDAndMoveItsRecordedLength(t *testing.T) {
+	host, _ := newTestHostForChapterMatch(t)
+	for _, id := range []string{"credits-opening", "credits-closing"} {
+		if _, err := host.ChapterTrackSet(id, chapterLinksTrack); err != nil {
+			t.Fatalf("ChapterTrackSet(%s) = %v, want a link", id, err)
+		}
+	}
+	got := creditsRecordedLengths(t, host)
+	if got["closing"]["recordedSeconds"] != 15.0 || got["opening"]["recordedUnavailable"] != "unlinked" {
+		t.Fatalf("after Set, credits lengths = %#v, want closing 15 s and opening unlinked (the track moved)", got)
+	}
+	if _, err := host.ChapterTrackUnlink("credits-closing"); err != nil {
+		t.Fatalf("ChapterTrackUnlink(credits-closing) = %v", err)
+	}
+	if got := creditsRecordedLengths(t, host); got["closing"]["recordedUnavailable"] != "unlinked" {
+		t.Fatalf("after Unlink, credits-closing = %#v, want unlinked", got["closing"])
+	}
+}

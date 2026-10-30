@@ -12,6 +12,9 @@ import type {
   DawCapabilitySupport,
   DawCapabilitiesApi,
   DawKind,
+  DawLiveItem,
+  DawProjectEdited,
+  WordTimes,
   DawLevelsApi,
   DawPlaceApi,
   DawPosition,
@@ -426,12 +429,18 @@ export interface DawMockControl {
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
   moves(): { chapterId: string; where: 'end' | 'at'; seconds: number }[];
   /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
-  syncCalls(): { action: string; seconds: number; until?: number }[];
+  syncCalls(): { action: string; seconds: number; until?: number; chapterId?: string }[];
   /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease.
    * A stretch played with `playRange` stops itself when the head passes its end, as the DAW's own script does. */
   moveInDaw(change: { cursor?: number; head?: number; playing?: boolean; recording?: boolean }): void;
   /** The next transport action is refused with this sentence, as a recording or a stale REAPER would. */
   refuseNextSync(sentence: string): void;
+  /** The items the DAW has on the chapter's track now (`dawLiveItems`); null (the start) is a DAW that cannot be read, so the page follows by the saved items. */
+  setLiveItems(items: DawLiveItem[] | null): void;
+  /** The word table the DAW answers (`workspaceWordTimes`); null (the start) is a DAW that cannot make one, so the page follows nothing in it. */
+  setWordTimes(table: WordTimes | null): void;
+  /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
+  editInDaw(): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -487,7 +496,10 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuse: string | null;
     /** The project second a `playRange` stops itself at, while it plays; null for an open play. */
     stopAt: number | null;
-    calls: { action: string; seconds: number; until?: number }[];
+    liveItems: DawLiveItem[] | null;
+    wordTimes: WordTimes | null;
+    changeCount: number;
+    calls: { action: string; seconds: number; until?: number; chapterId?: string }[];
   } = {
     playing: false,
     recording: false,
@@ -496,9 +508,13 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     watching: false,
     refuse: null,
     stopAt: null,
+    liveItems: null,
+    wordTimes: null,
+    changeCount: 0,
     calls: [],
   };
   const positionSubs = new Set<(position: DawPosition) => void>();
+  const editSubs = new Set<(edit: DawProjectEdited) => void>();
   const streamPosition = () => {
     if (!sync.watching || dropped) return;
     const position: DawPosition = {
@@ -623,6 +639,16 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.transport = { playing: false, recording: false };
       publish();
     },
+    setWordTimes: (table) => {
+      sync.wordTimes = table === null ? null : wireClone(table);
+    },
+    editInDaw: () => {
+      sync.changeCount += 1;
+      for (const on of editSubs) on({ changeCount: sync.changeCount });
+    },
+    setLiveItems: (items) => {
+      sync.liveItems = items === null ? null : wireClone(items);
+    },
     startInDaw: () => {
       live.transport = { playing: true, recording: true, position: 0 };
       publish();
@@ -743,7 +769,22 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.
-    dawTransportSync: async (action, seconds, until = 0) => {
+    workspaceWordTimes: async () => {
+      const table = sync.wordTimes;
+      const off = table === null || !currentCapabilities(live).capabilities.track_state?.available;
+      return wireClone(off ? { available: false, version: '', changeCount: 0, items: [], words: [] } : { ...table, changeCount: sync.changeCount });
+    },
+    subscribeDawProjectEdited: (onUpdate) => {
+      editSubs.add(onUpdate);
+      return () => editSubs.delete(onUpdate);
+    },
+    dawLiveItems: async () => {
+      const items = sync.liveItems;
+      return wireClone(
+        items === null || !currentCapabilities(live).capabilities.track_state?.available ? { available: false, items: [] } : { available: true, items },
+      );
+    },
+    dawTransportSync: async (action, seconds, until = 0, chapterId = '') => {
       const support = currentCapabilities(live).capabilities.transport_sync;
       if (!support?.available) return refusedMove(support?.message ?? MESSAGE_NO_ENGINE);
       if ((action === 'cursor' || action === 'play' || action === 'playRange') && (!Number.isFinite(seconds) || seconds < 0))
@@ -756,7 +797,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       }
       if (action !== 'stop' && open !== 'linked')
         return refusedMove("REAPER does not have this book's project open, so its transport was left alone. Open the project in REAPER, then try again.");
-      sync.calls.push(action === 'playRange' ? { action, seconds, until } : { action, seconds });
+      sync.calls.push({ action, seconds, ...(action === 'playRange' ? { until } : {}), ...(chapterId ? { chapterId } : {}) });
       if (action === 'cursor') sync.cursor = seconds;
       if (action === 'play' || action === 'playRange') {
         sync.playing = true;

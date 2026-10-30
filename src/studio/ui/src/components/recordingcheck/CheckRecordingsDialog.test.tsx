@@ -99,11 +99,11 @@ function open(api: NarrationApi, preselected: string[] = [], opener = true, opti
 const toasts = (service: ReturnType<typeof createOverlayService>) => service.getSnapshot().toasts.map((t) => t.text);
 
 describe('CheckRecordingsDialog', () => {
-  it('offers-a-chapter-the-manuscript-does-not-list-ticked-and-checks-it', async () => {
-    // A credits row's synthetic chapter: no recording measured, never in the manuscript, still checked by its own id.
-    const { api, starts } = host();
-    const credits = chapter('credits-opening', { title: 'Opening credits', recordedSeconds: undefined, wordCount: 0 });
-    open(api, ['credits-opening'], true, { extra: [credits] });
+  it('offers-the-credits-chapter-ticked-and-checks-it', async () => {
+    // The credits are chapters of the manuscript's list: no recording measured, still offered when asked for, checked by their own id.
+    const credits = chapter('credits-opening', { title: 'Opening credits', recordedSeconds: undefined, wordCount: 0, isCredits: true, index: -2 });
+    const { api, starts } = host({ manuscriptChapters: async () => [credits, chapter('a')] });
+    open(api, ['credits-opening']);
     const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
     expect(
       within(dialog)
@@ -501,6 +501,59 @@ describe('CheckRecordingsDialog', () => {
     });
   });
 
+  describe('the activity panel', () => {
+    const activity = (recheck: NonNullable<CoverageState['activity']>['recheck']): NonNullable<CoverageState['activity']> => ({
+      requested: 0,
+      items: { total: 2, done: 1 },
+      firstPass: { model: 'small', workers: 4, busy: 3, total: 112, done: 40, final: true },
+      ...(recheck ? { recheck } : {}),
+    });
+    const figure = (label: string) => screen.getByLabelText(new RegExp(`^${label}: `)).getAttribute('aria-label');
+
+    it('shows the chunks done, the workers busy and the passages the larger model re-checks, as the host reports them', async () => {
+      const { api, emit } = host();
+      open(api, ['a']);
+      await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
+      await screen.findByRole('region', { name: 'Check activity' });
+      expect(figure('Chunks')).toMatch(/^Chunks: –\./);
+      emit({
+        runId: 'run-1',
+        phase: 'running',
+        percent: 30,
+        pass: 'pipeline',
+        activity: activity({ model: 'large-v3-turbo', workers: 1, busy: 1, total: 7, done: 3, final: false, reasons: ['low_confidence'] }),
+      });
+      await waitFor(() => expect(figure('Chunks')).toMatch(/^Chunks: 40 of 112\./));
+      expect(figure('Workers')).toMatch(/^Workers: 4\/5 busy\./);
+      expect(figure('Re-check')).toMatch(/^Re-check: 3 of 7\+\. large-v3-turbo re-checks passages the first model was unsure of\./);
+    });
+
+    it('asks "Stop checking?" once however many times Escape is pressed', async () => {
+      const { api } = host();
+      open(api, ['a']);
+      await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
+      await screen.findByRole('region', { name: 'Check activity' });
+      await userEvent.keyboard('{Escape}{Escape}{Escape}');
+      expect(await screen.findAllByText('Stop checking?')).toHaveLength(1);
+    });
+
+    it('says nothing needed re-checking when the first pass left nothing in doubt, and that there is no re-check when none was asked for', async () => {
+      const { api, emit } = host();
+      open(api, ['a']);
+      await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
+      await screen.findByRole('region', { name: 'Check activity' });
+      emit({
+        runId: 'run-1',
+        phase: 'running',
+        percent: 90,
+        activity: activity({ model: 'large-v3-turbo', workers: 1, busy: 0, total: 0, done: 0, final: true, reasons: [] }),
+      });
+      await waitFor(() => expect(figure('Re-check')).toMatch(/^Re-check: None\./));
+      emit({ runId: 'run-1', phase: 'running', percent: 91, activity: activity(undefined) });
+      await waitFor(() => expect(figure('Re-check')).toMatch(/^Re-check: Off\./));
+    });
+  });
+
   describe('several chapters at once', () => {
     beforeEach(() => vi.stubGlobal('navigator', { ...navigator, hardwareConcurrency: 8 }));
     afterEach(() => vi.unstubAllGlobals());
@@ -514,7 +567,9 @@ describe('CheckRecordingsDialog', () => {
       await waitFor(() => expect(starts.map((start) => start.id)).toEqual(['a', 'b']));
       expect(sent.every((options) => options?.chapters === 2)).toBe(true);
       const bars = await screen.findAllByRole('progressbar');
-      expect(bars).toHaveLength(3);
+      // One bar per chapter and the activity panel's overall bar.
+      expect(bars).toHaveLength(4);
+      expect(screen.getByRole('progressbar', { name: 'Overall progress' })).toBeTruthy();
       emit({ runId: 'run-2', phase: 'running', percent: 60 });
       emit({ runId: 'run-1', phase: 'running', percent: 20 });
       expect((await screen.findByRole('progressbar', { name: /Checking Chapter b/ })).getAttribute('aria-valuenow')).toBe('60');

@@ -3,13 +3,14 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
 import type { CreditsRenderResult, GuideEntity, GuideType, ManuscriptChapter, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
-import type { CreditsKind } from '../readerModel';
+import { readBoothQuery } from '../page/boothQuery';
+import { creditsKindOf } from '../page/useBoothData';
+import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionSkeleton } from './CompanionSkeleton';
 import { CompanionHost } from './CompanionHost';
 import { addressPath } from '../../../navigation/address';
 
-const CREDITS_KINDS: CreditsKind[] = ['opening', 'closing'];
 const NO_ENTITIES: GuideEntity[] = [];
 const NO_NOTES: ManuscriptNote[] = [];
 const NO_TYPES: GuideType[] = [];
@@ -20,7 +21,7 @@ type Props = {
 };
 
 /**
- * The Companion's route (`/companion?chapter=<id>` or `?credits=opening`): the chapter rule of the old Booth page without its
+ * The Companion's route (`/companion?chapter=<id>`; the credits are chapters, and `?credits=opening` is the old spelling of `?chapter=credits-opening`): the chapter rule of the old Booth page without its
  * picker. With neither in the address it reads the chapter a running session is on, else the last chapter read; an unknown
  * chapter sends the narrator to `/booth`.
  */
@@ -34,10 +35,8 @@ export function CompanionPage({ onFixCredits }: Props) {
   const [notes, setNotes] = useState<ManuscriptNote[]>(NO_NOTES);
   const [fallback, setFallback] = useState('');
   const [credits, setCredits] = useState<CreditsRenderResult>();
-  // The credits kind read last, with text or without, so empty credits are not waited for for ever.
+  // The credits chapter read last, with text or without, so empty credits are not waited for for ever.
   const [creditsReadOf, setCreditsReadOf] = useState<string>();
-  const creditsParam = params.get('credits');
-  const creditsKind = CREDITS_KINDS.find((kind) => kind === creditsParam);
 
   useEffect(() => {
     let live = true;
@@ -51,20 +50,30 @@ export function CompanionPage({ onFixCredits }: Props) {
     ])
       .then(([all, reader, host, nextEntities, nextTypes, nextNotes]) => {
         if (!live) return;
-        const narration = all.filter((item) => (item.contentKind ?? 'narration') === 'narration');
+        const narration = all.filter(isNarrationChapter);
         setChapters(narration);
         setEntities(nextEntities);
         setTypes(nextTypes);
         setNotes(nextNotes);
         const running = host && ACTIVE_PHASES.includes(host.phase) ? narration.find((item) => item.id === host.chapter)?.id : undefined;
         const last = narration.find((item) => item.id === reader?.activeChapter || item.title === reader?.activeChapter);
-        setFallback(running || (last ?? narration[0])?.id || '');
+        setFallback(running || (last ?? narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id || '');
       })
       .catch(() => live && setChapters([]));
     return () => {
       live = false;
     };
   }, [api]);
+
+  const asked = readBoothQuery(params)?.chapter;
+  const chosen = asked ?? fallback;
+  const chapter = chapters?.find((item) => item.id === chosen);
+  // A credits chapter has no paragraphs; it reads the credits' rendered text.
+  const creditsKind = chapter && isCreditsChapter(chapter) ? creditsKindOf(chapter) : undefined;
+  const chapterNotes = useMemo(
+    () => (chapter ? notes.filter((item) => item.chapterId === chapter.id || (!item.chapterId && item.chapter === chapter.title)) : NO_NOTES),
+    [notes, chapter],
+  );
 
   useEffect(() => {
     if (!creditsKind) return;
@@ -82,26 +91,20 @@ export function CompanionPage({ onFixCredits }: Props) {
     };
   }, [api, creditsKind]);
 
-  const chosen = params.get('chapter') ?? fallback;
-  const chapter = creditsKind ? undefined : chapters?.find((item) => item.id === chosen);
-  const chapterNotes = useMemo(
-    () => (chapter ? notes.filter((item) => item.chapterId === chapter.id || (!item.chapterId && item.chapter === chapter.title)) : NO_NOTES),
-    [notes, chapter],
-  );
-
   if (!chapters) return <CompanionSkeleton />;
-  if (!creditsKind && !chapter) return <Navigate to="/booth" replace />;
+  // A chapter the book does not list (a credits file with no template included) goes to the Booth with its id, which says so in its own panel.
+  if (!chapter) return <Navigate to={asked ? addressPath({ page: 'booth', target: { chapter: asked } }) : '/booth'} replace />;
   const source: BoothSource | undefined = creditsKind
-    ? credits && { kind: 'credits', credits: creditsKind, preview: credits }
-    : { kind: 'chapter', chapter: chapter! };
+    ? credits && { kind: 'credits', credits: creditsKind, chapter, preview: credits }
+    : { kind: 'chapter', chapter };
   // The credits asked for are still being read, or have no text: the Booth says so for them.
   if (!source)
-    return creditsReadOf === creditsKind ? <Navigate to={addressPath({ page: 'booth', target: { credits: creditsKind! } })} replace /> : <CompanionSkeleton />;
-  const toBooth = () => navigate(addressPath({ page: 'booth', target: creditsKind ? { credits: creditsKind } : { chapter: chapter!.id } }));
+    return creditsReadOf === creditsKind ? <Navigate to={addressPath({ page: 'booth', target: { chapter: chapter.id } })} replace /> : <CompanionSkeleton />;
+  const toBooth = () => navigate(addressPath({ page: 'booth', target: { chapter: chapter.id } }));
   return (
     <div className="flex size-full flex-col">
       <CompanionHost
-        key={creditsKind ? `credits:${creditsKind}` : chapter!.id}
+        key={chapter.id}
         source={source}
         entities={source.kind === 'chapter' ? entities : undefined}
         types={source.kind === 'chapter' ? types : undefined}

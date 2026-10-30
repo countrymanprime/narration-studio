@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PickupItem, PickupList } from '../../api/contracts/pickups';
 import type { Measured } from '../../api/schemas/base';
 import { headingName } from '../../chapterHeading';
+import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { useOverlay } from '../../overlay/OverlayProvider';
@@ -9,7 +10,6 @@ import { usePort } from '../../ports/usePort';
 import { useJournal } from '../../studio/StudioProvider';
 import { useCapability } from '../../useCapability';
 import { useDawKind } from '../../useDawKind';
-import type { ManuscriptChapter } from '../../types';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
@@ -22,7 +22,6 @@ import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsT
 import { SessionPanel } from './list/SessionPanel';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
 
-const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
 /** How often a list that could not be read is tried again. */
 const RETRY_MS = 10_000;
@@ -97,7 +96,11 @@ export function PickupsPage({
       if (!alive.current || mine < shown.current) return;
       shown.current = mine;
       showing.current = true;
-      setChapters(all.filter(isNarration).map((chapter) => ({ id: chapter.id, name: headingName(chapter) })));
+      setChapters(
+        all
+          .filter(isNarrationChapter)
+          .map((chapter) => ({ id: chapter.id, name: headingName(chapter), ...(isCreditsChapter(chapter) ? { credits: true as const } : {}) })),
+      );
       setList(answer);
       setRead({ kind: 'ready', readAt: Date.now() });
       announcePickupListChanged();
@@ -157,13 +160,15 @@ export function PickupsPage({
     setRead((before) => (before.kind === 'ready' ? { kind: 'ready', readAt: Date.now() } : before));
     announcePickupListChanged();
   }, []);
+  // The chapter the page starts on: the first with text to re-read, not the opening credits.
+  const firstWithText = chapters.find((c) => !c.credits);
   const choose = (next: string) => {
     setScope(next);
     if (next !== ALL_SCOPE) setCurrent(next);
   };
   const step = (direction: -1 | 1) => {
     if (scope === ALL_SCOPE) {
-      const back = chapters.find((c) => c.id === current) ?? chapters[0];
+      const back = chapters.find((c) => c.id === current) ?? firstWithText ?? chapters[0];
       if (back) choose(back.id);
       return;
     }
@@ -306,7 +311,7 @@ export function PickupsPage({
             }}
             chapters={chapters}
             scope={scope}
-            currentChapterId={current || chapters[0]?.id || ''}
+            currentChapterId={current || firstWithText?.id || chapters[0]?.id || ''}
             chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
             daw={{ available: review.available, message: review.message }}
             onScope={choose}

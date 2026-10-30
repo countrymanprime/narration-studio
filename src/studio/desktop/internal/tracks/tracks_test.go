@@ -3,6 +3,7 @@ package tracks
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -203,5 +204,71 @@ func TestTokenizeHandlesEachSafeStringDelimiter(t *testing.T) {
 				t.Fatalf("tokenize(%q) = %#v, want %#v", test.line, got, test.want)
 			}
 		}
+	}
+}
+
+// folders-handmade.rpp is written by hand from REAPER's documented ISBUS line, not recorded: see testdata/README.md.
+func TestParseReadsFolderDepth(t *testing.T) {
+	project, err := Parse(filepath.Join("testdata", "folders-handmade.rpp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		name   string
+		depth  int
+		folder bool
+	}{
+		{"Intro", 0, false},
+		{"Book", 0, true},
+		{"Part 1", 1, true},
+		{"Ch 1", 2, false},
+		{"Ch 2", 2, false}, // closes two levels at once
+		{"Empty folder", 0, true},
+		{"Spare", 1, false},
+		{"Appendix", 0, false},
+	}
+	if len(project.Tracks) != len(want) {
+		t.Fatalf("got %d tracks, want %d", len(project.Tracks), len(want))
+	}
+	for i, w := range want {
+		got := project.Tracks[i]
+		if got.Name != w.name || got.Depth != w.depth || got.IsFolder != w.folder {
+			t.Errorf("track %d = %q depth %d folder %v, want %q depth %d folder %v", i, got.Name, got.Depth, got.IsFolder, w.name, w.depth, w.folder)
+		}
+	}
+}
+
+func TestParseFolderDepthSurvivesMalformedLines(t *testing.T) {
+	cases := map[string]struct {
+		lines []string
+		depth []int
+	}{
+		"no ISBUS line":           {[]string{""}, []int{0, 0}},
+		"unparsable delta":        {[]string{"ISBUS 1 x"}, []int{0, 0}},
+		"missing delta":           {[]string{"ISBUS 1"}, []int{0, 0}},
+		"closes more than opened": {[]string{"ISBUS 2 -3"}, []int{0, 0}},
+		"folder never closed":     {[]string{"ISBUS 1 1"}, []int{0, 1}},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			var body strings.Builder
+			body.WriteString("<REAPER_PROJECT 0.1 \"7.80/win64\" 0\n")
+			for _, line := range []string{c.lines[0], ""} {
+				body.WriteString("  <TRACK {A}\n    NAME \"t\"\n    " + line + "\n  >\n")
+			}
+			path := filepath.Join(t.TempDir(), "p.rpp")
+			if err := os.WriteFile(path, []byte(body.String()+">\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			project, err := Parse(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i, want := range c.depth {
+				if project.Tracks[i].Depth != want {
+					t.Errorf("track %d depth = %d, want %d", i, project.Tracks[i].Depth, want)
+				}
+			}
+		})
 	}
 }

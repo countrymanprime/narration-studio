@@ -72,6 +72,8 @@ export type PipelineSources = {
   pickups?: Readonly<Record<string, number>>;
   /** The delivery review per chapter: whether it is mastered and the QC verdict ("PASS" or the failing verdict). */
   master?: Readonly<Record<string, { mastered: boolean; qc: string | null }>>;
+  /** Words per finished hour of the schedule's basis (`useEffectiveWph`); the standard when absent. */
+  wph?: number;
 };
 
 export const NOT_MEASURED = 'Not measured yet';
@@ -159,7 +161,7 @@ function measuredFigure(name: string, chapter: ProductionChapter, estimate: stri
   return { kind: 'none', text: state.text, label: `${name}: recorded ${state.text.toLowerCase()}`, tip: state.tip };
 }
 
-function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | undefined): PipelineCell {
+function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | undefined, wph: number): PipelineCell {
   const status = check ? chapterCheckStatusText(chapterName(chapter), check) : undefined;
   const checkLine = status ? `Recording check: ${status.label}${status.detail ? ` · ${status.detail}` : ''}` : '';
   const withCheck = (tip: string): string => (checkLine ? `${tip} · ${checkLine}` : tip);
@@ -177,7 +179,7 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
   const audio = chapter.recordedSeconds !== null && chapter.recordedSeconds > 0;
   if (chapter.status === 'recording' || audio) {
     const stageNote = chapter.status === 'recording' ? '' : ' · The chapter’s stage is still Not started';
-    const finished = (chapter.wordCount / WPH) * 3600;
+    const finished = (chapter.wordCount / wph) * 3600;
     // A percent only from a measured length against the chapter's finished length; never one made up.
     if (chapter.recordedSeconds !== null && finished > 0) {
       const percent = Math.min(99, Math.max(1, Math.floor((chapter.recordedSeconds / finished) * 100)));
@@ -250,12 +252,13 @@ export function currentColumn(status: ChapterStatus, openPickups = 0): PipelineC
 
 /** One row per chapter of the overview, each cell drawn from the field that measures it and a dash where nothing does. */
 export function buildPipelineRows(chapters: readonly ProductionChapter[], sources: PipelineSources = {}): PipelineRow[] {
+  const wph = sources.wph ?? WPH;
   return chapters.map((chapter) => {
     const open = sources.pickups?.[chapter.id];
     const review = sources.master?.[chapter.id];
     const cells: Record<PipelineColumn, PipelineCell> = {
       prep: prepCell(sources.prep?.[chapter.id]),
-      record: recordCell(chapter, sources.checks?.[chapter.id]),
+      record: recordCell(chapter, sources.checks?.[chapter.id], wph),
       edit: editCell(chapter),
       proof: proofCell(chapter, sources.proof?.[chapter.id]),
       pickups: pickupsCell(chapter, open),
@@ -263,7 +266,7 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
       qc: qcCell(review),
     };
     const name = chapterName(chapter);
-    const estimate = chapter.wordCount > 0 ? hm(chapter.wordCount / WPH) : DASH;
+    const estimate = chapter.wordCount > 0 ? hm(chapter.wordCount / wph) : DASH;
     return {
       id: chapter.id,
       name,

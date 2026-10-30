@@ -20,6 +20,10 @@ the recogniser that heard the words (**Flagged by**, written out when the card i
 wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
+The chapter list starts with **Opening credits** and ends with **Closing credits** (when your credit templates have them): they are chapters like
+any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the first
+chapter with text. A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
+
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
 track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped).
 
@@ -42,7 +46,7 @@ the mark's underline stays under both.
 Each line starts with its time in the chapter (a chapter with nothing heard yet has no times, and its text starts at the
 card's edge). Every line that has takes, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
 the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
-first read's spot), **Duplicate read** (the take reads the line twice) or **To choose**. Tab visits one chip, the one on the
+first read's spot), **Duplicate read** (the take reads the line twice) or **To choose** (no take is active in the DAW). **Kept** is the take the DAW plays, the same take Proof marks Kept, so it reads the same after you reopen the project. Tab visits one chip, the one on the
 line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
 cursor's line (and folds them again on a line with one take), and a click on a chip opens any other. The takes list
 lays every take out in the same columns: its name and state, a bar for its length, how much of the script it read as
@@ -59,6 +63,8 @@ of its mark type, and the notes you left on a line show under it as the mark typ
 The bar at the foot plays the chapter in the app, from its recorded audio with each item's trims, so it works with the
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
+
+**Play** is off, with its reason in the hint, on a chapter that has no audio to play (no linked track, a track that is gone or empty, or nothing recorded yet). With the cursor on a word that was not recorded, such as the chapter heading, Space says so instead of playing on from the next word. Space on a play of a selection pauses it and keeps the selection; selecting other words while it plays plays them instead. If the DAW stops answering during a play, the bar goes back to **Play** and the DAW dialog says why.
 
 Beside the clock, the **Output** group sets what you hear, not what is recorded. **Silence output** mutes the app's sound; it is not the
 **Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
@@ -99,7 +105,7 @@ words it heard show the next time you open the chapter.
 
 ## Selecting words
 
-Click a word to place the cursor there. Shift+click another, drag across the text or press Shift+← and Shift+→ to
+Click a word to place the cursor there. Double-click selects the word and triple-click the whole line it is in. Shift+click another, drag across the text or press Shift+← and Shift+→ to
 select a run of words. Hold ← or → (with Shift to select) and the cursor keeps travelling along the text; Up and Down hold
 the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats over the first line of the selection (under it when the selection starts at the top of the view) with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and

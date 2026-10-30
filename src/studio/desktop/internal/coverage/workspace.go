@@ -33,6 +33,20 @@ type AlignmentItem struct {
 	Length      float64 `json:"length,omitempty"`
 }
 
+// MarshalJSON sends Position and Length whenever the item is live. A zero is a real answer there (an item at the very start of the project),
+// and a field dropped as "empty" reads on the page as an item with no place, which sent the first stretch of a chapter to the app's own audio.
+func (a AlignmentItem) MarshalJSON() ([]byte, error) {
+	type plain AlignmentItem
+	if !a.Live {
+		return json.Marshal(plain(a))
+	}
+	return json.Marshal(struct {
+		plain
+		Position float64 `json:"position"`
+		Length   float64 `json:"length"`
+	}{plain(a), a.Position, a.Length})
+}
+
 // AlignmentView is a chapter's stored word alignment as the WorkspaceAlignment binding sends it: the same
 // state, reasons and basis CoverageResult answers (an alignment is only ever
 // as current as the coverage result it was written with), the chapter's
@@ -235,6 +249,17 @@ func (s *Service) chapterParagraphs(chapterID string) ([]AlignmentParagraph, err
 	data, err := s.config.LoadManuscript()
 	if err != nil {
 		return nil, unknown(ReasonNoManuscript, err.Error())
+	}
+	// A credits file's text is its rendered template, one paragraph: the same stand-in its recording check reads (credits.go).
+	if kind, isCredits := CreditsKind(chapterID); isCredits {
+		if s.config.LoadCredits == nil {
+			return nonNil[AlignmentParagraph](nil), nil
+		}
+		_, rendered, err := s.config.LoadCredits(kind)
+		if err != nil {
+			return nil, unknown(ReasonCreditsNotSetUp, err.Error())
+		}
+		return []AlignmentParagraph{{ID: creditsParagraphID(chapterID), Text: rendered}}, nil
 	}
 	var paragraphs []AlignmentParagraph
 	rawParagraphs, _ := data["paragraphs"].([]any)

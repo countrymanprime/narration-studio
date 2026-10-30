@@ -7,6 +7,7 @@
 
 import { useMemo, useRef } from 'react';
 import type { Mark } from '../../../../api/contracts/marks';
+import { withoutCredits } from '../../../../chapterKinds';
 import { EDITABLE } from '../../../../input/targets';
 import { usePageCommands, type PageItem } from '../../../../input/pageCommands';
 import { useCommand } from '../../../../input/useCommand';
@@ -75,7 +76,7 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     [],
   );
 
-  const chapterList = useMemo(() => chapters ?? [], [chapters]);
+  const chapterList = useMemo(() => withoutCredits(chapters ?? []), [chapters]);
   const marksSnapshot = useMemo(() => ({ types: marks.types, marks: marks.marks }), [marks.types, marks.marks]);
 
   useSearchSource(useMemo(() => manuscriptSource({ lines, locationOf, onFind: stable.openFind }), [lines, locationOf, stable]));

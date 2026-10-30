@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable } from './ChapterLinksTable';
+import { useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
@@ -13,12 +14,18 @@ afterEach(cleanup);
 
 const notify = vi.fn();
 
+// The table as the engine panel mounts it: drawn from the one chapter-links reader.
+function Table({ onChanged = () => {} }: { onChanged?: () => void }) {
+  const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, onChanged);
+  return <ChapterLinksTable links={links} notify={notify} />;
+}
+
 function renderTable(onChanged?: () => void) {
   const api = createMockApi();
   render(
     <ApiProvider api={api}>
       <MemoryRouter initialEntries={['/production']}>
-        <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} onChanged={onChanged} />
+        <Table onChanged={onChanged} />
         <Routes>
           <Route path="*" element={<Where />} />
         </Routes>
@@ -44,6 +51,54 @@ function chapterRow(table: HTMLElement, title: string): HTMLTableRowElement {
 }
 
 describe('ChapterLinksTable', () => {
+  // The owner could not link the opening or closing credits to a track: the table listed only the manuscript's chapters. The credits are
+  // chapters of that list, and the host takes their ids (credits-opening, credits-closing) in chapterTrackSet like a chapter's.
+  it('lists the opening credits first and the closing credits last, and links them to a track', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    await waitFor(() => expect(within(table).getByRole('cell', { name: 'Opening credits' })).toBeTruthy());
+    const rows = within(table).getAllByRole('row');
+    expect(within(rows[1]).getByRole('cell', { name: 'Opening credits' })).toBeTruthy();
+    expect(within(rows[rows.length - 1]).getByRole('cell', { name: 'Closing credits' })).toBeTruthy();
+
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
+  });
+
+  // The breaker double-clicked Confirm: the second press arrived before the row re-rendered busy and unlinked both rows.
+  it('links once when Confirm is pressed twice in a row', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    const confirm = within(opening).getByRole('button', { name: 'Confirm' });
+    await user.dblClick(confirm);
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    expect(set).toHaveBeenCalledTimes(1);
+    expect((await api.chapterTrackMapList()).mappings.filter((m) => m.chapterId === 'credits-opening')).toHaveLength(1);
+  });
+
+  it('opens a linked credits chapter in Editing or Proof like any chapter', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+
+    await user.click(within(chapterRow(table, 'Opening credits')).getByRole('button', { name: /^More actions for / }));
+    expect(await screen.findByRole('menuitem', { name: 'Open in Editing' })).toBeTruthy();
+    await user.click(screen.getByRole('menuitem', { name: 'Open in Proof' }));
+    expect(screen.getByRole('status', { name: 'Location' }).textContent).toBe('/proof/credits-opening');
+  });
+
   it('lists every narration chapter as not linked when nothing is confirmed', async () => {
     renderTable();
 
@@ -91,7 +146,7 @@ describe('ChapterLinksTable', () => {
     render(
       <ApiProvider api={api}>
         <MemoryRouter>
-          <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} />
+          <Table />
         </MemoryRouter>
       </ApiProvider>,
     );
@@ -198,7 +253,7 @@ describe('ChapterLinksTable', () => {
     render(
       <ApiProvider api={api}>
         <MemoryRouter>
-          <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} />
+          <Table />
         </MemoryRouter>
       </ApiProvider>,
     );
@@ -219,7 +274,7 @@ describe('ChapterLinksTable', () => {
     render(
       <ApiProvider api={api}>
         <MemoryRouter>
-          <ChapterLinksTable tracks={WIRE_TRACKS_PROJECT.tracks} notify={notify} />
+          <Table />
         </MemoryRouter>
       </ApiProvider>,
     );

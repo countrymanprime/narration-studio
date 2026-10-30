@@ -1,10 +1,7 @@
-import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { overlay as appOverlay, type OverlayService } from '../../overlay/overlayService';
 import { CheckRecordingsDialog } from './CheckRecordingsDialog';
 
 export type CheckRecordingsOptions = {
-  /** Chapters the manuscript does not list, offered ticked beside it: a credits row's synthetic chapter (`creditsCheckChapter`). */
-  extra?: readonly ManuscriptChapter[];
   /** Runs once the dialog has gone, however it closed: the opener reads what the check changed. */
   onClosed?: () => void;
 };
@@ -25,6 +22,6 @@ export function openCheckRecordings(
     title: 'Check recordings',
     // Two columns, the options and the chapters, each wide enough that the form shows whole at a 900 px tall window (alignment audit XPF-2).
     size: 'wide',
-    render: ({ close }) => <CheckRecordingsDialog preselected={preselected} extra={options.extra} onClosed={options.onClosed} close={close} />,
+    render: ({ close }) => <CheckRecordingsDialog preselected={preselected} onClosed={options.onClosed} close={close} />,
   });
 }

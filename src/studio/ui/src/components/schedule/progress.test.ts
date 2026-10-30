@@ -81,9 +81,23 @@ describe('the work left for a measure', () => {
     expect(remainFor(book, 'all')).toBeCloseTo(calc(book, TODAY, day(30)).remain);
   });
 
-  it('reaches the first N chapters edited and proofed, the opening included', () => {
-    const withOpening = [ch('not_started', WPH, 'opening'), ...book];
+  it('reaches the first N chapters edited and proofed, the opening credits included and Front Matter not', () => {
+    const credits: ScheduleChapter = { ...ch('not_started'), credits: 'opening' };
+    const withOpening = [credits, ...book];
     expect(remainFor(withOpening, 'ch1')).toBeCloseTo(RATIO.edit + RATIO.proof + RATIO.edit + RATIO.proof);
+    // Front Matter (a chapter removed from recording) is not "the opening": it adds no work and does not use up a chapter.
+    const frontMatter = ch('not_started', WPH, 'opening');
+    expect(remainFor([frontMatter, ...withOpening], 'ch1')).toBeCloseTo(remainFor(withOpening, 'ch1'));
+    // The closing credits come after the numbered chapters and are not in the first N.
+    expect(remainFor([...book, { ...ch('not_started'), credits: 'closing' }], 'ch2')).toBeCloseTo(remainFor(book, 'ch2'));
+    // From the host's overview: the credits chapter is told by its id.
+    const fromOverview = scheduleChapters([
+      { id: 'credits-opening', status: 'not_started', wordCount: WPH, contentKind: 'narration' },
+      { id: 'front', status: 'not_started', wordCount: WPH, contentKind: 'opening' },
+      { id: 'c1', status: 'not_started', wordCount: WPH, contentKind: 'narration' },
+    ]);
+    expect(fromOverview.map((c) => c.credits)).toEqual(['opening', undefined]);
+    expect(remainFor(fromOverview, 'ch1')).toBeCloseTo((RATIO.edit + RATIO.proof) * 2);
     expect(remainFor(book, 'ch2')).toBeCloseTo((RATIO.edit + RATIO.proof) * 2);
   });
 

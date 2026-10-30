@@ -299,6 +299,7 @@ flowchart LR
 - **Live progress** (`coverage:state`'s `pass`, `firstPassModel`, `recheckModel`, `recheckWindows`) names which of
   the up to four stages is running, ahead of the sidecar's own message: "First pass (tiny)", "First pass (tiny), re-checking as it goes (large-v3-turbo)" (`pipeline`), "Re-checking 3
   passages (large-v3-turbo)", "Re-checking the whole chapter (large-v3-turbo)" or "Combining the two passes".
+- **Activity** (`coverage:state`'s `activity`) is what the check is doing, as counts the sidecar writes to `<progress>.activity.json` (`core/coverage_activity.py`, read by `internal/coverage/activity.go`): `firstPass` and `recheck` each hold `workers` (the transcriptions at once the sidecar planned, never more than there are units), `busy`, `total` and `done` units and `final` (false while the larger model's total can still grow); `recheck.reasons` is `low_confidence` (words under the score line), `missing_words` (the host's second stage) or `widespread` (whole items redone); `requested` is the narrator's worker count, 0 for Automatic. A unit is an item, or a chunk of an item longer than the chunk length. The host adds a re-check stage's counts to what the first stage ended with. The file is best-effort: a check without it shows the percent alone. The dialog's activity panel draws it; it gives no estimate of the time left.
 - **Staleness and caching are unchanged in kind.** A cascade result is judged, evaluated for staleness and read
   back exactly like a plain one (Q13); the words cache key gains the re-check model (empty for a plain check), so
   a cascade's spliced words are never silently reused by, or reused from, a plain check of the same first-pass
@@ -363,8 +364,7 @@ flowchart LR
   row's Show result). A start the host holds for a missing model (`asset_required`, `recheck_asset_required`) is asked for in the dialog
   (`useAssetInstall` on the `whisper` port), with "Check with <model> only" for a missing larger model. A page's entry hands it the
   chapters to tick and nothing else. Proof's `CheckCard` is the findings triage on Proof (accept or ignore each).
-- **What is not measured.** The chunked path is tested with real spawned processes and a fake model; no real-speech timing or accuracy was measured, so the
-  shipped 5 min, 6 s and 0.5 are provisional like the other numbers. The words files made before scores are made again once (cache version 3).
+- **What is measured.** [The benchmark](../research/recording-check-benchmark.md) timed the real sidecar on LibriVox narration: 60 s chunks run as threads on one model were 2.3 times faster than the whole file on a 10-minute item with no loss of accuracy, so 60 s is the shipped chunk length (it was 5 min). The 6 s crossover and the 0.5 score line are still provisional. The words files made before scores are made again once (cache version 3).
 
 ## Decisions
 

@@ -8,7 +8,7 @@ import { makeChapters } from '../../../fixtures/chapters';
 import type { DeliveryProfile, MeasureFileResult, NarrationApi } from '../../../types';
 import { chapterStates } from '../../delivery/page/chapterStates';
 import { MasterPage } from './MasterPage';
-import { ALL_PASS, CHAPTERS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing } from './testPage';
+import { ALL_PASS, CHAPTERS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing, withCredits } from './testPage';
 
 afterEach(cleanup);
 
@@ -29,7 +29,7 @@ const mount = (files: readonly MeasureFileResult[], profile: DeliveryProfile = a
 const package_ = () => screen.getByRole('complementary', { name: /Delivery package/ });
 const chart = () => screen.getByRole('img', { name: /RMS by file/ });
 
-/** The mock's opening and closing credits, which Delivery lists after and before the chapters. */
+/** The opening and closing credits, which the chapter list holds beside the chapters. */
 const CREDITS_FILES = 2;
 
 /** How many rows of the package card fail (each says so to a screen reader: "Fails: …"). */
@@ -38,7 +38,7 @@ const failingRows = (aside: ReturnType<typeof within>) =>
 
 describe('Master & QC page body', () => {
   const withChapters = (files: readonly MeasureFileResult[], props: Partial<React.ComponentProps<typeof MasterPage>> = {}) => {
-    const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => CHAPTERS });
+    const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS });
     render(
       <PageHost api={api}>
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} {...props} />
@@ -64,6 +64,28 @@ describe('Master & QC page body', () => {
     // The bar moves the file the other way; a chapter with no file reads Not mastered yet.
     await user.click(screen.getByRole('button', { name: 'Previous chapter' }));
     expect(screen.getByRole('row', { name: /Chapter 2 — The Pool of Tears/ }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('lists the opening credits first and the closing credits last in the table, and steps to them with the chapter bar', async () => {
+    window.localStorage.clear();
+    const user = userEvent.setup();
+    withChapters([passing('Chapter 01.wav'), failingTwo('Chapter 04.wav')]);
+    const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
+    const names = await waitFor(() => {
+      const rows = [...grid.querySelectorAll('tbody tr')];
+      expect(rows.length).toBe(CHAPTERS.length + 3);
+      return rows.map((row) => row.textContent ?? '');
+    });
+    expect(names[0]).toContain('Opening credits');
+    expect(names.at(-2)).toContain('Closing credits');
+    // The bar holds both: Previous from chapter 1 reaches the opening credits, Next from chapter 4 the closing credits.
+    await user.click(screen.getByRole('row', { name: /Chapter 1 — / }));
+    await user.click(screen.getByRole('button', { name: 'Previous chapter' }));
+    expect(bar().getAttribute('aria-label')).toContain('Opening credits');
+    await user.click(screen.getByRole('row', { name: /Chapter 4 — / }));
+    await user.click(screen.getByRole('button', { name: 'Next chapter' }));
+    expect(bar().getAttribute('aria-label')).toContain('Closing credits');
+    expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('credits-closing');
   });
 
   it('a chapter with no file yet says no file was measured for it', async () => {
@@ -111,7 +133,7 @@ describe('Master & QC page body', () => {
       waiting: false,
     } as const;
     const list = [pickup, { ...pickup, id: 'q' }, { ...pickup, id: 'r' }, { ...pickup, id: 's', done: true }, { ...pickup, id: 't', chapterId: 'chapter-1' }];
-    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS, pickupsList: async () => ({ pickups: list, leftOut: [] }) });
+    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS, pickupsList: async () => ({ pickups: list, leftOut: [] }) });
     render(
       <PageHost api={api}>
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
@@ -217,29 +239,29 @@ describe('Master & QC page body', () => {
   });
 
   it('counts-failing-and-not-ready-from-the-files', async () => {
-    mount(TWO_FAIL);
+    mount(TWO_FAIL, acx, { manuscriptChapters: async () => withCredits([]) });
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
-    // Behaviour change: the opening and closing credits files count as chapters, as Delivery counts them, so each is one more not ready.
+    // The opening and closing credits are chapters of the list, so each is one more not ready, as on Delivery.
     // Behaviour change (R4MS2-4): the caption "1 failing and 3 not ready." under Open Delivery repeated these rows and is gone; the rows count.
     expect(failingRows(aside)).toBe(1);
     expect(aside.getByText('Chapter 04.wav fails 2 checks')).toBeTruthy();
     expect(aside.getByText(`${1 + CREDITS_FILES} chapters not ready`)).toBeTruthy();
     expect(aside.queryByText(/failing and \d+ not ready/)).toBeNull();
     cleanup();
-    mount(ALL_PASS);
+    mount(ALL_PASS, acx, { manuscriptChapters: async () => withCredits([]) });
     const passing = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     expect(await passing.findByText(`${CREDITS_FILES} chapters not ready`)).toBeTruthy();
     expect(failingRows(passing)).toBe(0);
   });
 
   it('says-nothing-passes-when-nothing-is-measured: no tick, and the same not-ready count Delivery shows', async () => {
-    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS });
+    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS });
     render(
       <PageHost api={api}>
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
       </PageHost>,
     );
-    const notReady = chapterStates(CHAPTERS, []).filter((state) => state.kind === 'wait').length + CREDITS_FILES;
+    const notReady = chapterStates(CHAPTERS_WITH_CREDITS, []).filter((state) => state.kind === 'wait').length;
     expect(notReady).toBe(CHAPTERS.length + CREDITS_FILES);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     expect(await aside.findByText(`${notReady} chapters not ready`)).toBeTruthy();
@@ -251,7 +273,7 @@ describe('Master & QC page body', () => {
   it('counts-failing-and-not-ready-from-the-chapters Delivery judges: one readiness source', async () => {
     const files = [...TWO_FAIL];
     // Six chapters, four files: two chapters have no file at all, which the files alone never count.
-    const chapters = makeChapters({ shape: 'titleAndSubtitle', count: 6 });
+    const chapters = withCredits(makeChapters({ shape: 'titleAndSubtitle', count: 6 }));
     const api = apiOf(jobOf(files), acx, { manuscriptChapters: async () => chapters });
     render(
       <PageHost api={api}>
@@ -260,7 +282,7 @@ describe('Master & QC page body', () => {
     );
     const states = chapterStates(chapters, files);
     const bad = states.filter((state) => state.kind === 'bad').length;
-    const wait = states.filter((state) => state.kind === 'wait').length + CREDITS_FILES;
+    const wait = states.filter((state) => state.kind === 'wait').length;
     expect(bad).toBeGreaterThan(0);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     expect(await aside.findByText(`${wait} chapters not ready`)).toBeTruthy();
@@ -367,7 +389,7 @@ describe('Master & QC package panel loading state', () => {
   });
 
   it('shows the counts, and no region, once both have been read', async () => {
-    mount(TWO_FAIL, acx, { manuscriptChapters: async () => CHAPTERS });
+    mount(TWO_FAIL, acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS });
     expect(await screen.findByText(/\d+ chapters? not ready/)).toBeTruthy();
     expect(region()).toBeNull();
   });
@@ -403,8 +425,8 @@ describe.each([
   // Each call takes the next step; the last step repeats.
   const steps = (list: Array<() => Promise<unknown>>) => vi.fn(() => (list.length > 1 ? (list.shift() as () => Promise<unknown>)() : list[0]()));
   const real = () =>
-    (apiOf(jobOf(ALL_PASS, acx), acx, { manuscriptChapters: async () => CHAPTERS }) as unknown as Record<string, () => Promise<unknown>>)[seam]();
-  const mountWith = (read: unknown) => mount(ALL_PASS, acx, { manuscriptChapters: async () => CHAPTERS, [seam]: read } as Partial<NarrationApi>);
+    (apiOf(jobOf(ALL_PASS, acx), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS }) as unknown as Record<string, () => Promise<unknown>>)[seam]();
+  const mountWith = (read: unknown) => mount(ALL_PASS, acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS, [seam]: read } as Partial<NarrationApi>);
 
   it('shows the line as an alert with Retry beside it, and no skeleton', async () => {
     mountWith(fail('first'));

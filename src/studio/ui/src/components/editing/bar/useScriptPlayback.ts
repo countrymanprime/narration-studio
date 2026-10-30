@@ -3,13 +3,15 @@ import { overlay } from '../../../overlay/overlayService';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import type { DawCapabilities } from '../../../api/contracts/daw';
-import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import { firstFrom, heardWindow, leadStart, MAX_TAIL_SECONDS, summarize, type ChapterDoc } from '../model';
 import type { SoundAt } from '../ribbon/useChapterSound';
-import type { ClosedCut } from '../follow/clockMap';
+import type { WordClock } from '../follow/wordClock';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
 import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { usePort } from '../../../ports/usePort';
+import { fadeOutAndPause, STOP_FADE_SECONDS } from './playbackStop';
+import { playStopLine, type PlayedWord } from './playStopLine';
 import { useEditingPage } from '../script/EditingPageState';
 import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
@@ -17,17 +19,20 @@ import { selectedKeysOf, type PageState } from '../script/scriptState';
 
 export const AUDIO_FAILED = "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.";
 const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
+const NOTHING_FOR_HEADING = 'Nothing was recorded for the heading.';
+const NOTHING_FOR_WORD = 'Nothing was recorded for this word.';
 
 const selectedFrom = (d: ChapterDoc, s: PageState): string[] => selectedKeysOf(d, s);
 
-/** The stretch the selected words are heard over, or null when none of them was recorded. */
-const selectionWindow = (d: ChapterDoc, s: PageState, sound?: SoundAt): [number, number] | null => {
+/** The stretch the selected words are heard over and the word it ends on, or null when none of them was recorded. */
+const selectionWindow = (d: ChapterDoc, s: PageState, sound?: SoundAt): { window: [number, number]; last: PlayedWord } | null => {
   const keys = selectedFrom(d, s);
   const sum = summarize(d, keys, [], (x) => x);
   if (!sum.audible.length) return null;
   // The levels from the first word to as far past the last as a play may run: the end is where the last word's sound dies away.
   const levels = sound?.(sum.start, sum.end + MAX_TAIL_SECONDS + 0.1);
-  return heardWindow(d, sum.audible[0].key, sum.audible[sum.audible.length - 1].key, sum.start, sum.end, levels);
+  const last = sum.audible[sum.audible.length - 1];
+  return { window: heardWindow(d, sum.audible[0].key, last.key, sum.start, sum.end, levels), last: { text: last.text, end: sum.end } };
 };
 
 /** Seconds early a stop timer may fire and still count as the stop: timers are not exact. */
@@ -41,7 +46,7 @@ export interface ScriptPlayback {
   /** Space: play from the cursor or the selection; again, pause on the word reached. */
   toggle: () => void;
   /** Plays from `from` seconds into the chapter, on to `to` or the end. */
-  playFrom: (from: number, to?: number) => void;
+  playFrom: (from: number, to?: number, word?: PlayedWord) => void;
   /** Plays the selected words, or says why it cannot. */
   playSelection: () => void;
   /** The previous (-1) or next (1) heard word: moves the playing position while it plays, the cursor when it does not. */
@@ -58,7 +63,14 @@ export interface ScriptPlaybackOptions {
   notify?: (text: string) => void;
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
    * do. Null `caps` (not answered yet) plays nothing unless the read failed; absent `sync` plays in the app. */
-  sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null; read?: DawRead };
+  sync?: {
+    clock: WordClock | null;
+    /** The host has not yet said where the words play: Play waits and the page says it is checking, as it does before the watch lease is answered. */
+    clockPending?: boolean;
+    caps: DawCapabilities | null;
+    read?: DawRead;
+    chapterId?: string;
+  };
   /** The chapter's audio levels, so a play of words ends where the last word's sound dies away; absent keeps the fixed tail. */
   sound?: SoundAt;
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
@@ -84,11 +96,20 @@ export function useScriptPlayback({
 }: ScriptPlaybackOptions): ScriptPlayback {
   const { doc, state, dispatch } = useEditingPage();
   const daw = usePort('daw');
+  const system = usePort('system');
   const [follow, setFollowState] = useState(true);
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
   const loaded = useRef<string | undefined>(undefined);
   const segment = useRef(0);
   const stopAt = useRef<number | null>(null);
+  /** The word the current play ends on, for the line that tells how it ended; null for a play that ends nowhere in particular. */
+  const played = useRef<{ word: PlayedWord; planned: number; path: string } | null>(null);
+  /** The selection the current play was started for, so a selection changed mid-play is told from the one being played. */
+  const playedSel = useRef<{ anchor: string; head: string } | null>(null);
+  /** Cancels the fade-out of the app's audio at the end of a play, while one runs. */
+  const fading = useRef<(() => void) | null>(null);
+  /** True from a halt until the next play starts: the element can still report a time or an end after it was paused, before the page has re-rendered. */
+  const halted = useRef(true);
   /** Fires at `stopAt`: `timeupdate` comes only every 250 ms or so, which would stop a play anywhere up to that much late. No output latency is
    * added: Chromium's `currentTime` is already the frame being heard (its audio clock counts the output delay). */
   const stopTimer = useRef<number | undefined>(undefined);
@@ -108,7 +129,22 @@ export function useScriptPlayback({
   /** Plays asked for, so an answer that comes after a stop or a newer play is not acted on. */
   const asks = useRef(0);
 
+  /** One line in the host log (host.log) about how a play of words ended, so a clipped word can be traced to the time it was stopped at. */
+  const reportStop = useCallback(
+    (actual: number | null): void => {
+      const p = played.current;
+      played.current = null;
+      if (!p) return;
+      void system.reportClientDiagnostic('play_stop', playStopLine({ word: p.word, planned: p.planned, actual, path: p.path })).catch(() => undefined);
+    },
+    [system],
+  );
+
   const halt = useCallback(() => {
+    fading.current?.();
+    fading.current = null;
+    played.current = null;
+    halted.current = true;
     asks.current += 1;
     remoteRef.current?.stop();
     audioRef.current?.pause();
@@ -169,6 +205,9 @@ export function useScriptPlayback({
   const go = useCallback(
     (t: number): void => {
       const { caps: now, read: dawRead, notify: say } = live.current;
+      fading.current?.();
+      fading.current = null;
+      halted.current = false;
       const ask = ++asks.current;
       const wanted = (): boolean => asks.current === ask;
       // A read that failed is asked again, so the DAW plays the next press once it answers.
@@ -185,10 +224,11 @@ export function useScriptPlayback({
             const refusal = remote ? remote.refusal(at) : 'pending';
             if (refusal === 'pending') return { ready: false, why: CHECKING, wait: true };
             if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
-            if (refusal === 'not_placed') return { ready: false, why: `That part is not in ${name}'s project.` };
+            if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
           },
           play: async (at) => {
+            if (played.current) played.current.path = 'daw';
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
             const why = await remoteRef.current?.start(at, stopAt.current ?? undefined);
@@ -200,6 +240,7 @@ export function useScriptPlayback({
         name: APP,
         readiness: (at) => (covers(at) ? { ready: true } : { ready: false, why: NOTHING_FROM_HERE }),
         play: (at) => {
+          if (played.current) played.current.path = 'app';
           cue(at);
           live.current.dispatch({ type: 'play', t: at });
           start();
@@ -219,8 +260,10 @@ export function useScriptPlayback({
   );
 
   const playFrom = useCallback(
-    (from: number, to?: number) => {
+    (from: number, to?: number, word?: PlayedWord) => {
       stopAt.current = to ?? null;
+      played.current = to !== undefined && word ? { word, planned: to, path: 'unknown' } : null;
+      playedSel.current = null;
       setFollowState(true);
       go(from);
     },
@@ -228,15 +271,32 @@ export function useScriptPlayback({
   );
 
   const reached = useCallback(
-    (t: number): void => {
+    (t: number, actual: number | null = t): void => {
       const { doc: d, dispatch: send } = live.current;
       const end = stopAt.current !== null;
+      reportStop(actual);
       halt();
       // A play to the chapter's end leaves the cursor on the last word it reached; a play of a selection leaves the selection.
       const key = end ? null : playingKey(playable(d), t);
       if (key) send({ type: 'place', key });
     },
-    [halt],
+    [halt, reportStop],
+  );
+
+  /** The app's audio reached the end of a range: fades out over the last moments before `at` and pauses a little after it (`playbackStop.ts`). */
+  const endRange = useCallback(
+    (at: number): void => {
+      const el = audioRef.current;
+      if (fading.current) return;
+      if (!el || el.paused) return reached(at);
+      window.clearTimeout(stopTimer.current);
+      fading.current = fadeOutAndPause(el, () => {
+        fading.current = null;
+        const seg = live.current.playlist[segment.current];
+        reached(at, seg ? seg.elapsedStart + el.currentTime - seg.sourceStart : null);
+      });
+    },
+    [reached],
   );
 
   // The DAW's play head, while the page's play is the DAW's: the same ends the app's own audio has.
@@ -244,7 +304,7 @@ export function useScriptPlayback({
     (t: number | null, ended: boolean): void => {
       if (ended) return reached(totalDuration(live.current.playlist));
       if (t === null) return;
-      if (stopAt.current !== null && t >= stopAt.current) return reached(stopAt.current);
+      if (stopAt.current !== null && t >= stopAt.current) return reached(stopAt.current, t);
       live.current.dispatch({ type: 'play', t });
     },
     [reached],
@@ -255,7 +315,8 @@ export function useScriptPlayback({
     if (s.playT == null) return;
     const key = playingKey(playable(d), s.playT);
     halt();
-    if (key) send({ type: 'place', key });
+    // A play of a selection leaves the selection; placing the cursor would drop it.
+    if (key && !s.sel) send({ type: 'place', key });
   }, [halt]);
   const onLost = useCallback((): void => {
     audioRef.current?.pause();
@@ -264,10 +325,10 @@ export function useScriptPlayback({
     live.current.dispatch({ type: 'play', t: null });
   }, []);
   const syncing = useDawTransportSync({
-    items: sync?.items ?? [],
-    playlist,
-    cuts: sync?.cuts ?? [],
+    clock: sync?.clock ?? null,
+    clockPending: sync?.clockPending ?? false,
     caps: sync?.caps ?? null,
+    chapterId: sync?.chapterId ?? '',
     onHead,
     onStopped,
     onLost,
@@ -280,7 +341,7 @@ export function useScriptPlayback({
     const el = audio();
     const onTime = (ended: boolean): void => {
       const { playlist: list, state: s, dispatch: send } = live.current;
-      if (s.playT == null) return;
+      if (s.playT == null || halted.current) return;
       const seg = list[segment.current];
       if (!seg) return;
       if (ended || el.currentTime >= seg.sourceEnd) {
@@ -294,10 +355,10 @@ export function useScriptPlayback({
         return;
       }
       const t = seg.elapsedStart + el.currentTime - seg.sourceStart;
-      if (stopAt.current !== null && t >= stopAt.current - STOP_SLACK_SECONDS) return reached(stopAt.current);
+      if (stopAt.current !== null && t >= stopAt.current - STOP_FADE_SECONDS - STOP_SLACK_SECONDS) return endRange(stopAt.current);
       if (stopAt.current !== null && !el.paused) {
         window.clearTimeout(stopTimer.current);
-        const left = (stopAt.current - t) / (el.playbackRate || 1);
+        const left = (stopAt.current - STOP_FADE_SECONDS - t) / (el.playbackRate || 1);
         stopTimer.current = window.setTimeout(() => onTime(false), left * 1000);
       }
       send({ type: 'play', t });
@@ -314,32 +375,55 @@ export function useScriptPlayback({
       window.clearTimeout(stopTimer.current);
       el.pause();
     };
-  }, [audio, reached, fail, start]);
+  }, [audio, reached, endRange, fail, start]);
+
+  /** Plays the selected words; false when none of them was recorded. */
+  const playSelected = useCallback((): boolean => {
+    const { doc: d, state: s } = live.current;
+    const heard = selectionWindow(d, s, live.current.sound);
+    if (!heard) return false;
+    playFrom(...heard.window, heard.last);
+    playedSel.current = s.sel ? { anchor: s.sel.anchor, head: s.sel.head } : null;
+    return true;
+  }, [playFrom]);
 
   const toggle = useCallback(() => {
     const { doc: d, state: s, notify: say, dispatch: send } = live.current;
     if (s.playT != null) {
       const key = playingKey(playable(d), s.playT);
       halt();
-      if (key) send({ type: 'place', key });
+      // Space on a play of a selection pauses it and keeps the selection; placing the cursor would drop it.
+      if (key && !s.sel) send({ type: 'place', key });
       return;
     }
     if (!d.aligned) return say('Nothing has been transcribed yet.');
     if (s.sel) {
-      const heard = selectionWindow(d, s, live.current.sound);
-      if (heard) return playFrom(...heard);
+      if (playSelected()) return;
     }
+    // A word with no recording under the cursor (the chapter heading, read by no one) is said, not skipped over: playing on from the next heard word
+    // would start at the top of the chapter as if the heading had been played.
+    const here = s.cursor ? d.items[d.index.get(s.cursor) ?? -1] : undefined;
+    if (here && (here.t0 == null || here.st === 'miss')) return say(here.pid === HEADING_PARAGRAPH ? NOTHING_FOR_HEADING : NOTHING_FOR_WORD);
     const from = firstFrom(d, s.cursor);
     if (!from || from.t0 == null) return say(NOTHING_FROM_HERE);
     playFrom(leadStart(d, from.key, from.t0));
-  }, [halt, playFrom]);
+  }, [halt, playFrom, playSelected]);
 
   const playSelection = useCallback(() => {
-    const { doc: d, state: s, notify: say } = live.current;
-    const heard = selectionWindow(d, s, live.current.sound);
-    if (heard) playFrom(...heard);
-    else say('Nothing was recorded for these words.');
-  }, [playFrom]);
+    if (!playSelected()) live.current.notify('Nothing was recorded for these words.');
+  }, [playSelected]);
+
+  // A selection changed while a play runs plays the new words, in the DAW as in the app: the old range does not play on.
+  const selection = state.sel;
+  useEffect(() => {
+    const now = live.current.state;
+    if (!selection || now.playT == null) return;
+    const was = playedSel.current;
+    if (was && was.anchor === selection.anchor && was.head === selection.head) return;
+    playSelection();
+    // The selection is the trigger; the rest is read from the latest render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection]);
 
   const skip = useCallback(
     (d: 1 | -1) => {

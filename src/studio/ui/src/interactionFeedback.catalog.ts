@@ -98,6 +98,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'onRemoveFromRecording already shows the failure (its own toast, in useChapterTools) before rethrowing; this catch only stops that rejection from going unhandled and skips closing the confirm, so the narrator can retry.',
   'src/api/wailsClient.ts#1': 'The diagnostic report itself: a report that fails must not raise a second error over the one being reported.',
   'src/api/wailsClient.ts#2': 'The host binding is missing (not running inside the desktop app), so there is nothing to report to.',
+  'src/components/editing/bar/useScriptPlayback.ts#1':
+    'The play-stop line for host.log (reportClientDiagnostic); a failed write must not raise a second error over the play it describes.',
   'src/App.tsx#1': 'A diagnostic report while showing the startup error; it must not throw over it.',
   'src/App.tsx#2': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
   'src/App.tsx#3': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',
@@ -186,10 +188,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
   'src/theme/ThemeContext.tsx#1': 'Remembering the theme in localStorage; the preference just does not persist when storage is disabled.',
-  'src/components/engine/EnginePanel.tsx#1':
-    'Only decides whether the "Link chapters…" tool shows; without it the button is absent, same as a project with no chapters.',
-  'src/components/engine/EnginePanel.tsx#2':
-    'Only names each track\'s chapter in the engine panel\'s track list; without it the column reads "Not linked", and the Chapter links table under it reports its own read failure.',
   'src/components/engine/LinkChaptersDialog.tsx#1':
     'Hydrates whatever stamp or read was already in flight when the dialog reopened; the live event follows anyway.',
   'src/components/pickups/usePickupsState.ts#1':

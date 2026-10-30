@@ -56,7 +56,7 @@ describe('addressPath and readAddress round-trip', () => {
     expect(addressPath({ page: 'editing' })).toBe('/editing');
     expect(addressPath({ page: 'booth' })).toBe('/booth');
     expect(addressPath({ page: 'booth', target: { chapter: 'c1', from: { paragraphId: 'p3', offset: 12.7 } } })).toBe('/booth?chapter=c1&para=p3&at=12');
-    expect(addressPath({ page: 'booth', target: { credits: 'closing' } })).toBe('/booth?credits=closing');
+    expect(addressPath({ page: 'booth', target: { credits: 'closing' } })).toBe('/booth?chapter=credits-closing');
     expect(addressPath({ page: 'booth', target: { chapter: 'c1' }, pickups: ['k 1', 'k2'] })).toBe('/booth?chapter=c1&pickups=k%201,k2');
     expect(addressPath({ page: 'proof', chapter: 'c1' })).toBe('/proof?chapter=c1');
     expect(addressPath({ page: 'proof' })).toBe('/proof');

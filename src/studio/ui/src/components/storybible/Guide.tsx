@@ -1,3 +1,4 @@
+import { withoutCredits } from '../../chapterKinds';
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -162,7 +163,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     api.manuscriptChapters().then(
       (list) => {
         if (!live) return;
-        setChapters(list);
+        setChapters(withoutCredits(list));
         setChaptersFailed(false);
       },
       () => live && setChaptersFailed(true),

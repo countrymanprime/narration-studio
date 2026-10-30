@@ -568,6 +568,49 @@ export type DawPosition = {
   sameProject: boolean;
 };
 
+/** One media item of the chapter's track as the DAW has it now: where it plays in the project, from where in which source file, at what rate.
+ * `sourceFile` is empty for an item with no audio take. */
+export type DawLiveItem = {
+  guid: string;
+  sourceFile: string;
+  position: number;
+  length: number;
+  sourceStart: number;
+  playRate: number;
+  muted: boolean;
+};
+
+/** DawLiveItems' answer. `available` is false, with no items, when the DAW cannot be read now (not running, `track_state` off, no linked track, the
+ * track gone or longer than one read lists): the Editing page then follows by the items the saved project had. The read is never an error. */
+export type DawLiveItems = { available: boolean; items: DawLiveItem[] };
+
+/** One word's place in the project. `placed` has `start` and `end` in project seconds and the live `item` (an index into the answer's `items`); `not_in_project`
+ * is a word heard whose audio no item on the track plays now (cut out, trimmed off, muted, its source not on the track): no time, never a neighbour's; `not_heard`
+ * is a word the check heard nothing for. `clipped` marks a word a split or trim cuts through (`end` is the item's end). `i` is the alignment token's index. */
+export type WordTimeState = 'placed' | 'not_in_project' | 'not_heard';
+export type WordTimeRow = {
+  i: number;
+  state: WordTimeState;
+  start: number;
+  end: number;
+  item: number;
+  clipped: boolean;
+  misread: boolean;
+};
+
+/** WorkspaceWordTimes' answer. `version` and `changeCount` say which project state the table was made from; `available` is false, with no words, when it
+ * cannot be made now (no stored alignment, no DAW answering, `track_state` off, no linked track): the page then follows nothing in the DAW. */
+export type WordTimes = {
+  available: boolean;
+  version: string;
+  changeCount: number;
+  items: string[];
+  words: WordTimeRow[];
+};
+
+/** daw_project_edited: REAPER's change counter, which rises on every edit, saved or not. */
+export type DawProjectEdited = { changeCount: number };
+
 /** The actions `dawTransportSync` takes: put the DAW's cursor at `seconds`, play from `seconds`, play the stretch `seconds` to `until` and have the DAW
  * stop itself at `until` (`playRange`), stop, and take or renew the lease on the position stream (`seconds` is ignored by the last two, `until` by all
  * but `playRange`). */
@@ -575,9 +618,17 @@ export type DawSyncAction = 'cursor' | 'play' | 'playRange' | 'stop' | 'watch';
 
 /** DawTransportSync and the daw_position_changed event (src/studio/desktop/bindings_daw_transportsync.go): the Editing page and the DAW's transport follow
  * each other, behind the `transport_sync` capability (docs/design/editing-daw-transport-sync.md). A refusal (the capability's own sentence, a DAW with
- * another project open, a recording, a time that is not usable) is `ok` false with the sentence and nothing changed; none adds an undo step. */
+ * another project open, a recording, a time that is not usable) is `ok` false with the sentence and nothing changed; none adds an undo step. For `play` and
+ * `playRange`, `chapterId` names the chapter whose linked track the DAW plays alone (the host resolves the track; the DAW selects and solos it and puts the
+ * narrator's selection, solos and mute back when the play ends); without a linked track, or with no audio on it at that time, the play is refused. */
 export interface DawTransportSyncApi {
-  dawTransportSync(action: DawSyncAction, seconds: number, until?: number): Promise<DawResult>;
+  dawTransportSync(action: DawSyncAction, seconds: number, until?: number, chapterId?: string): Promise<DawResult>;
+  /** The media items on the chapter's linked track as the DAW has them now (DawLiveItems, src/studio/desktop/bindings_daw_liveitems.go). */
+  dawLiveItems(chapterId: string): Promise<DawLiveItems>;
+  /** Where every word of the chapter's stored alignment plays in the DAW project now (WorkspaceWordTimes, src/studio/desktop/bindings_workspace_wordtimes.go). */
+  workspaceWordTimes(chapterId: string): Promise<WordTimes>;
+  /** Each time the DAW project is edited, with REAPER's change counter (daw_project_edited, bindings_daw_projectedited.go). Returns the unsubscribe. */
+  subscribeDawProjectEdited(onUpdate: (edit: DawProjectEdited) => void): () => void;
   /** Each position the DAW streams while a `watch` lease holds. Returns the unsubscribe. */
   subscribeDawPosition(onUpdate: (position: DawPosition) => void): () => void;
 }

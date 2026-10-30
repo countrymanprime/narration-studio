@@ -302,3 +302,27 @@ func TestChaptersForTracksNeedsAProject(t *testing.T) {
 		t.Fatal("want an error without a project")
 	}
 }
+
+func TestChapterTrackMatchAnswersForTheCreditsToo(t *testing.T) {
+	host, _ := newTestHostForChapterMatch(t)
+	raw, err := host.ChapterTrackMatch("credits-opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := decodeBinding(t, raw)
+	if result["status"] != "none" || result["chapterTitle"] != "Opening credits" || len(result["tracks"].([]any)) != 3 {
+		t.Fatalf("an unlinked credits file is no match with every track to pick from: %#v", result)
+	}
+	if _, err := host.ChapterTrackMapConfirm("{33333333-3333-4333-8333-333333333333}", "credits-opening"); err != nil {
+		t.Fatal(err)
+	}
+	raw, err = host.ChapterTrackMatch("credits-opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+	linked := decodeBinding(t, raw)
+	track, _ := linked["track"].(map[string]any)
+	if linked["status"] != "confirmed" || track["trackGuid"] != "{33333333-3333-4333-8333-333333333333}" {
+		t.Fatalf("a linked credits file is confirmed: %#v", linked)
+	}
+}

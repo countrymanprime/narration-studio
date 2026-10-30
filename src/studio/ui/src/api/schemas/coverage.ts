@@ -12,6 +12,7 @@ import type {
   CoverageReport,
   CoverageResult,
   CoverageStartResult,
+  CoverageActivity,
   CoverageState,
   CoverageWorkerLimit,
   CoverageWorkerPlan,
@@ -65,6 +66,21 @@ const reasonSchema = z.union([refusalReasonSchema, z.enum(COVERAGE_EVALUATOR_REA
 
 const coveragePassSchema = z.enum(['first_pass', 'pipeline', 'recheck_windows', 'recheck_whole', 'realign']);
 
+const passActivityShape = {
+  model: z.string(),
+  workers: z.number().int().min(1),
+  busy: z.number().int().min(0),
+  total: z.number().int().min(0),
+  done: z.number().int().min(0),
+  final: z.boolean(),
+};
+const coverageActivitySchema = z.strictObject({
+  requested: z.number().int().min(0),
+  items: z.strictObject({ total: z.number().int().min(0), done: z.number().int().min(0) }),
+  firstPass: z.strictObject(passActivityShape),
+  recheck: z.strictObject({ ...passActivityShape, reasons: z.array(z.enum(['low_confidence', 'missing_words', 'widespread'])) }).optional(),
+}) satisfies z.ZodType<CoverageActivity>;
+
 export const coverageStateSchema = z.object({
   runId: z.string().optional(),
   chapterId: z.string().optional(),
@@ -80,6 +96,7 @@ export const coverageStateSchema = z.object({
   firstPassModel: z.string().optional(),
   recheckModel: z.string().optional(),
   recheckWindows: z.number().optional(),
+  activity: coverageActivitySchema.optional(),
 }) satisfies z.ZodType<CoverageState>;
 
 const coverageEngineSchema = z.strictObject({

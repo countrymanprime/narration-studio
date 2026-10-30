@@ -7,15 +7,19 @@ import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../..
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
-import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
+import { creditsCheckKind } from './recordingCheckText';
+import type { PrepState } from '../../api/contracts/scriptPrep';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
 import type { Notify } from '../primitives/Toast';
+import { canRecord } from '../booth/record/useCanRecord';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
-import { WPH } from '../schedule/estimates';
+import { isNarrationChapter } from '../../chapterKinds';
+import { recordedShare } from '../../recordedThrough';
+import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
 import { calc, scheduleChapters } from '../schedule/progress';
 import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
@@ -42,7 +46,6 @@ import { NoManuscript } from './pipeline/NoManuscript';
 import { pickupChapters } from './pipeline/nextUpSources';
 import { PageHeader } from './pipeline/PageHeader';
 import { PipelineTable } from './pipeline/PipelineTable';
-import { pipelineChapters } from './pipeline/pipelineChapters';
 import { buildPipelineRows, type GoTarget } from './pipeline/pipelineRows';
 import { runningTimerOf } from '../layout/TimerChip';
 import { useStageTimer } from './pipeline/useStageTimer';
@@ -56,13 +59,13 @@ import { addressPath } from '../../navigation/address';
 import { useJustChanged } from '../primitives/changeHighlight';
 
 const DANGER = { color: 'var(--danger-text)' };
+/** The plan chart's tallest card (owner report, #2251): it follows the chapter pipeline's height only up to here. */
+const CHART_MAX_HEIGHT = 'max-h-[28rem]';
 
 type Load = { status: 'loading' } | { status: 'ready'; overview: ProductionOverview } | { status: 'error'; message: string };
 
 /** Proof on one chapter's notes (`?chapter=`), or on all of them. */
 const proofAt = (chapterId?: string) => addressPath({ page: 'proof', chapter: chapterId });
-
-const isNarration = (chapter: { contentKind?: string }) => !chapter.contentKind || chapter.contentKind === 'narration';
 
 /**
  * The stage timer's three figures, kept as built (SN0-Q4: the mock has no timer, PFH or effective rate, so they stay). Drawn only once
@@ -145,6 +148,7 @@ export function ProductionPage({
   const manuscriptImport = useManuscriptImport({ data, go, notify, refreshBootstrap });
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [plan, setPlan] = useState<ProductionPlan>();
+  const rateBasis = useRateBasis(plan?.rateBasis);
   const [caps, setCaps] = useState<DawCapabilities>();
   const today = useMemo(() => new Date(), []);
 
@@ -196,11 +200,12 @@ export function ProductionPage({
   const sessionIds = useMemo(() => (openLines ?? []).filter((line) => line.included).map((line) => line.id), [openLines]);
 
   const measured = useMeasured(measurements, '', sessionIds);
+  const wph = effectiveWph(rateBasis, paceChapters(load.status === 'ready' ? load.overview.chapters : []), measured.answers?.chapterLengths);
   const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
 
   const overview = found && load.status === 'ready' ? load.overview : undefined;
-  const narrated = useMemo(() => (overview ? overview.chapters.filter(isNarration) : []), [overview]);
+  const narrated = useMemo(() => (overview ? overview.chapters.filter(isNarrationChapter) : []), [overview]);
   const nameOf = useCallback(
     (chapterId: string) => {
       const chapter = narrated.find((c) => c.id === chapterId);
@@ -218,22 +223,31 @@ export function ProductionPage({
   }, [read, refreshStages, onManuscriptChanged]);
 
   const onGo = (target: GoTarget | OverviewTarget, chapterId?: string) => {
-    // A credits row is not a chapter: Script opens its card, the Booth reads it, Editing's check is the credits panel, and Proof has no chapter for it.
-    const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
+    // The credits are chapters of the board; only Script differs, where their row is a card of its own (their text is a template).
+    const credits = chapterId ? creditsCheckKind(chapterId) : undefined;
     if (target === 'script') return credits ? go(addressPath({ page: 'script', credits })) : chapterId ? goToScript(chapterId) : go('/script');
     if (target === 'booth') return goToBooth(chapterId);
-    if (target === 'editing') return credits ? tools.openCredits(credits) : chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
-    if (target === 'proof') return go(proofAt(credits ? undefined : chapterId));
+    if (target === 'editing') return chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
+    if (target === 'proof') return go(proofAt(chapterId));
     if (target === 'pickups') return go('/pickups');
     if (target === 'master') return go('/master');
     return go('/schedule');
   };
 
-  // The opening and closing credits are rows of the pipeline, in the places the mock puts them and the Script list draws them.
+  // The credits are chapters of the overview, so they are rows, counts and hours like any chapter. The credits rows are read only for what a chapter
+  // does not carry: the template's Prepped dot (its preview has no [Token] left) and the credits panel.
   const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
-  const ownsOpening = ownsOpeningCredits(overview?.chapters);
-  const entries = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
-  const pipelineRows = useMemo(() => (overview ? pipelineChapters(overview.chapters, entries) : []), [overview, entries]);
+  const creditsPrep = useMemo(
+    (): Record<string, PrepState> =>
+      Object.fromEntries(
+        (['opening', 'closing'] as const).flatMap((kind) => {
+          const row = credits.rows?.[kind];
+          return row?.template ? [[`credits-${kind}`, row.preview?.unresolved.length === 0 ? 'prepped' : 'none'] as const] : [];
+        }),
+      ),
+    [credits.rows],
+  );
+  const pipelineRows = narrated;
 
   // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).
   const changedRow = useJustChanged();
@@ -273,12 +287,7 @@ export function ProductionPage({
     onChanged();
   }, stages.busy);
 
-  const record = caps
-    ? {
-        ok: Boolean(caps.capabilities.record?.available),
-        reason: caps.capabilities.record?.message ?? '',
-      }
-    : { ok: false, reason: 'Checking the audio engine…' };
+  const record = canRecord(caps);
   const narrationIds = new Set(narrated.map((c) => c.id));
   const counts = checkCounts(sync?.chapters ?? [], narrationIds);
   const toCheck = [...counts.stale, ...counts.never];
@@ -307,10 +316,9 @@ export function ProductionPage({
   }
 
   const due = plan?.deadline ? parseIso(plan.deadline) : null;
-  const k = calc(scheduleChapters(narrated), today, due, openPickups);
+  const k = calc(scheduleChapters(narrated), today, due, openPickups, wph);
   const start = planStart(today);
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
-  const finishedOf = (words: number) => (words / WPH) * 3600;
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
   // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
@@ -318,12 +326,10 @@ export function ProductionPage({
   const rows = buildPipelineRows(pipelineRows, {
     proof: pipelineSources.proof,
     master: pipelineSources.master,
+    wph,
     pickups: pickupsByChapter,
-    // A chapter's Prep is the Script page's prep record; a credits row's is its template's tokens. Absent until read: "Not measured yet".
-    prep: {
-      ...pipelineSources.prep,
-      ...Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
-    },
+    // A chapter's Prep is the Script page's prep record; a credits chapter's is its template's tokens. Absent until read: "Not measured yet".
+    prep: { ...pipelineSources.prep, ...creditsPrep },
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);
@@ -405,7 +411,7 @@ export function ProductionPage({
         <>
           <KpiRow
             k={k}
-            wph={WPH}
+            wph={wph}
             recordedSeconds={recordedHours * 3600}
             due={due}
             openPickups={openPickups}
@@ -419,8 +425,8 @@ export function ProductionPage({
               under it (two short lists drawn the full width put 700 px between a label and its figure); above 1280 three columns, the last
               as wide as the Next up column below it, so the right-hand cards of both rows share their edges (alignment audit XPR2-5). */}
           <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[640px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem] min-[640px]:max-[1281px]:[&>:first-child]:col-span-2">
-            <StageBar segments={stageSegments(narrated, WPH, pipelineSources.master)} wph={WPH} />
-            <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
+            <StageBar segments={stageSegments(narrated, wph, pipelineSources.master)} wph={wph} />
+            <WeekCard figures={weekFigures(log, today, start, due, k.words / wph)} />
             <CheckCountsCard
               counts={counts}
               nameOf={nameOf}
@@ -462,24 +468,23 @@ export function ProductionPage({
                           stage: recordingChapter.status as ChapterStatus,
                           name: headingName(recordingChapter),
                           words: recordingChapter.wordCount,
-                          share:
-                            recordingChapter.recordedSeconds !== null && recordingChapter.wordCount > 0
-                              ? Math.min(1, recordingChapter.recordedSeconds / finishedOf(recordingChapter.wordCount))
-                              : null,
+                          share: recordedShare(recordingChapter, wph),
                         }
                       : null,
                     pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,
                     failing: pipelineSources.failing,
+                    wph,
                   }}
                   onGo={(target, chapterId) => onGo(target, chapterId)}
                   timer={{ running: Boolean(overview.running), starting: timer.starting, onStart: (id, stage) => void timer.start(id, stage) }}
                 />
               </Panel>
-              {/* A grid cell that takes what the column has left, so the chart card (`fill`) ends with the pipeline beside it. */}
-              <div className="grid min-h-0 flex-1">
+              {/* A grid cell that takes what the column has left, so the chart card (`fill`) ends with the pipeline beside it, up to a
+                  height (the plan chart is not worth more room than a screenful): a book of 60 chapters on a large screen must not stretch it. */}
+              <div className={`grid min-h-0 flex-1 ${CHART_MAX_HEIGHT}`}>
                 <ProgressChart
                   k={k}
-                  wph={WPH}
+                  wph={wph}
                   start={start}
                   today={today}
                   due={due}

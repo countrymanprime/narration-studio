@@ -372,7 +372,19 @@ func TestACoverageCheckEndsWithOneJobEventAndFillsRecordedFraction(t *testing.T)
 	}
 }
 
+// decodeChapters is the manuscript's own chapters: the credits the list also holds are read with decodeChaptersAndCredits.
 func decodeChapters(t *testing.T, host *Host) []map[string]any {
+	t.Helper()
+	own := []map[string]any{}
+	for _, chapter := range decodeChaptersAndCredits(t, host) {
+		if credits, _ := chapter["isCredits"].(bool); !credits {
+			own = append(own, chapter)
+		}
+	}
+	return own
+}
+
+func decodeChaptersAndCredits(t *testing.T, host *Host) []map[string]any {
 	t.Helper()
 	raw, err := host.ManuscriptChapters()
 	if err != nil {

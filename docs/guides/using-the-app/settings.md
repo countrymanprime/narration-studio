@@ -151,7 +151,7 @@ or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Rec
 speech model in memory. 0 is Automatic: half this computer's processors, fewer when the chosen model's copies would not fit in the free memory. The
 line under the box says what the value shown runs on this computer and what set it, for example "Automatic: 4 transcriptions at once, using 8 of
 8 processors for the small model. Set by the processors: half of them, so each transcription has 2 processors." A number you type is kept up to
-the processors and the memory, and the line says when it was cut down.
+the processors and the memory, and the line says when it was cut down. The same number is how many chapters a Story Bible scan with GLiNER reads at once; BookNLP always reads the whole book, and when it runs beside GLiNER the scan keeps a quarter of the processors and BookNLP's memory for GLiNER's workers (on 4 processors GLiNER then reads whole).
 
 **Background checks** holds **Check recordings in the background**, the **Model for background checks** (`tiny`) and the
 **Double-check model for background checks** (`small`, or **None (one model)**), and under Advanced the **Processors for background
@@ -248,7 +248,7 @@ credits rows on [Production](production.md#the-credits).
 
 ### Retail sample
 
-**Retail sample** is the stretch of the book you pick for the retailer's sample: up to 5 minutes, from
+**Retail sample** is the stretch of the book you pick for the retailer's sample (from the book's text, so the opening and closing credits are not offered): up to 5 minutes, from
 anywhere in the book. Choose the chapter and line it **starts in** and **ends in** (the line numbers the
 [Script](script.md) reader shows) and **Save sample**. The panel says where it runs ("Chapter 3: A Caucus-Race and a Long Tale, lines 1 to 3", naming a chapter once) and how long it
 is at about 155 words a minute; a range longer than 5 minutes is refused with its length, and the sample

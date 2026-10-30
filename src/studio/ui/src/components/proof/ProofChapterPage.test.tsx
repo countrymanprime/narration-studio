@@ -21,7 +21,12 @@ const linkedTrackGuid = WIRE_TRACKS_PROJECT.tracks[0].guid;
 
 type PageProps = Parameters<typeof ProofChapterPage>[0];
 
-function renderWorkspace(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, page: Partial<PageProps> = {}) {
+function renderWorkspace(
+  overrides: Partial<NarrationApi> = {},
+  initial: Parameters<typeof createMockApi>[1] = {},
+  page: Partial<PageProps> = {},
+  at = `/proof/${chapter.id}`,
+) {
   const props: PageProps = {
     notify: () => {},
     transcript: WIRE_TRANSCRIPT,
@@ -38,7 +43,7 @@ function renderWorkspace(overrides: Partial<NarrationApi> = {}, initial: Paramet
   render(
     <ApiProvider api={api}>
       <CommandRouter>
-        <MemoryRouter initialEntries={[`/proof/${chapter.id}`]}>
+        <MemoryRouter initialEntries={[at]}>
           <Routes>
             <Route path="/proof/:chapterId" element={<ProofChapterPage {...props} />} />
           </Routes>
@@ -54,6 +59,13 @@ describe('ProofChapterPage', () => {
     renderWorkspace();
     expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
     expect(await screen.findByText('Check current')).toBeTruthy();
+  });
+
+  // Owner rule: the credits are chapters, so each opens here like any other and is never "not in the manuscript".
+  it.each(['credits-opening', 'credits-closing'])('opens %s as a chapter of its own', async (id) => {
+    renderWorkspace({}, {}, {}, `/proof/${id}`);
+    expect(await screen.findByRole('heading', { name: /^Proof · .*credits/i })).toBeTruthy();
+    expect(screen.queryByText('This chapter is not in the manuscript')).toBeNull();
   });
 
   // SN-E9 (no-flag-no-second-page): the chapter view is Proof's, never the old workspace: no script, transport, takes or flags panel.

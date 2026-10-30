@@ -2,7 +2,7 @@
 import type { MergeEvents } from './mergeEvents';
 import { parseWireJson } from '../wire/parseWire';
 import { guidePropertiesSchema } from '../schemas/storyBible';
-import type { GuideEntity, GuidePronunciation, GuideProperty, GuideType, NarrationApi } from '../../types';
+import type { CueSpeaker, GuideEntity, GuidePronunciation, GuideProperty, GuideType, NarrationApi } from '../../types';
 import { GUIDE_TYPE_COLOURS } from '../contracts/storyBible';
 import { wireClone } from '../mockFixtures';
 import { type MockApiSeed, type MockState, wireContext } from './state';
@@ -312,6 +312,44 @@ export function createStoryBibleMock(
       });
     },
     guideDialogueCues: async () => wireClone(s.dialogueCues),
+    guideAttributeSpeakers: async () => {
+      // The tag names the speaker, as the host's attribution reads it; a confirmed or edited line is never touched.
+      const named = (tag: string) =>
+        s.entities.find((row) =>
+          [row.canonical_name, ...row.aliases.map((alias) => alias.text)].some((name) => name && tag.toLowerCase().includes(name.toLowerCase())),
+        );
+      const previous: CueSpeaker[] = [];
+      let filled = 0;
+      let changed = 0;
+      s.dialogueCues = s.dialogueCues.map((cue) => {
+        if (cue.corrected || cue.speaker_source === 'correction') return cue;
+        const found = cue.evidence.tag ? named(cue.evidence.tag) : undefined;
+        const speaker = found?.id ?? null;
+        if (speaker === cue.speaker_entity_id) return cue;
+        previous.push({ cueId: cue.id, speakerEntityId: cue.speaker_entity_id, speakerSource: cue.speaker_source });
+        if (cue.speaker_entity_id === null) filled += 1;
+        else changed += 1;
+        return { ...cue, speaker_entity_id: speaker, speaker_source: speaker ? 'tag' : 'unknown' };
+      });
+      return {
+        cues: s.dialogueCues.length,
+        attributed: s.dialogueCues.filter((cue) => cue.speaker_entity_id !== null).length,
+        filled,
+        changed,
+        keptConfirmed: s.dialogueCues.filter((cue) => cue.corrected || cue.speaker_source === 'correction').length,
+        previous,
+      };
+    },
+    guideRestoreSpeakers: async (previous) => {
+      let restored = 0;
+      s.dialogueCues = s.dialogueCues.map((cue) => {
+        const row = previous.find((item) => item.cueId === cue.id);
+        if (!row || cue.corrected || cue.speaker_source === 'correction') return cue;
+        restored += 1;
+        return { ...cue, speaker_entity_id: row.speakerEntityId, speaker_source: row.speakerSource };
+      });
+      return restored;
+    },
     guideMarkReviewed: async (id, aliasIndex) => {
       const entity = editableEntity(id);
       const review = reviewOf(entity);

@@ -2,7 +2,6 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DawCapabilities } from '../../../api/contracts/daw';
-import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { DawMockControl } from '../../../api/dawMock';
@@ -13,6 +12,8 @@ import { EditingPageProvider, useEditingPage } from '../script/EditingPageState'
 import { ScriptDoc } from '../script/ScriptDoc';
 import { marksDoc } from '../script/scriptFixtures';
 import { useDawPlayPosition } from './useDawPlayPosition';
+import { buildWordClock, type WordClock } from './wordClock';
+import { linear, wordTimesFor } from './wordTimesFixtures';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { LEASE_RENEW_MS, SILENT_MS } from './useDawTransportSync';
 import { CHECKING, READ_FAILED, type DawRead } from '../../../playback/providers';
@@ -21,12 +22,17 @@ const FELL_BACK = 'Played in the app instead.';
 
 const doc = marksDoc();
 
-// One item at 100 s in the project, its source from 10 s, at twice the speed: project 100 + x is source 10 + 2x, which the page plays as
-// document time 2x (the same fixture as follow.test.tsx).
-const ITEMS: WorkspaceItem[] = [{ index: 0, itemGuid: 'g', live: true, position: 100, sourceStart: 10, playRate: 2, length: 4 }];
+// One item at 100 s in the project playing the page at twice the speed: document time 2x is project 100 + x. It holds the first 8 document seconds; the
+// words after them are not in the project (the same fixture as follow.test.tsx).
 const PLAYLIST: PlaylistSegment[] = [
   { itemGuid: 'g', sourceFile: 'a.wav', sourceStart: 10, sourceEnd: 18, elapsedStart: 0, elapsedEnd: 8, overlapsPrevious: false },
 ];
+const placed = wordTimesFor(doc, (w) => (w.t1 <= 8 ? linear(100, 0, 2)(w) : null));
+const CLOCK = buildWordClock(placed.table, doc, placed.tokenOf);
+const atZero = wordTimesFor(doc, (w) => (w.t1 <= 8 ? linear(0, 0, 2)(w) : null));
+const ZERO_CLOCK = buildWordClock(atZero.table, doc, atZero.tokenOf);
+const NOTHING_PLACED = wordTimesFor(doc, () => null);
+const NO_CLOCK = buildWordClock(NOTHING_PLACED.table, doc, NOTHING_PLACED.tokenOf);
 /** The project time at which the page's clock reads `docT`. */
 const at = (docT: number): number => 100 + docT / 2;
 const t0 = (key: string): number => doc.items[doc.index.get(key) ?? -1].t0 as number;
@@ -43,15 +49,25 @@ let playback: ScriptPlayback;
 let page: ReturnType<typeof useEditingPage>;
 const notices: string[] = [];
 
-function Harness({ caps, items = ITEMS, read }: { caps: DawCapabilities | null; items?: WorkspaceItem[]; read?: DawRead }) {
+function Harness({
+  caps,
+  clock = CLOCK,
+  pending = false,
+  read,
+}: {
+  caps: DawCapabilities | null;
+  clock?: WordClock | null;
+  pending?: boolean;
+  read?: DawRead;
+}) {
   page = useEditingPage();
   playback = useScriptPlayback({
     playlist: PLAYLIST,
     mediaUrl: (f) => f,
     notify: (text) => notices.push(text),
-    sync: { items, cuts: [], caps, ...(read ? { read } : {}) },
+    sync: { clock, clockPending: pending, caps, chapterId: 'chapter-1', ...(read ? { read } : {}) },
   });
-  useDawPlayPosition({ items, playlist: PLAYLIST, caps: playback.syncActive ? null : caps, playback });
+  useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
   return (
     <div>
       <output data-testid="state">
@@ -62,13 +78,18 @@ function Harness({ caps, items = ITEMS, read }: { caps: DawCapabilities | null; 
   );
 }
 
-const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper, seed: Parameters<typeof createMockApi>[1] = { daw: {} }, items?: WorkspaceItem[]) => {
+const mount = (
+  caps: DawCapabilities | null = DAW_SETUPS.reaper,
+  seed: Parameters<typeof createMockApi>[1] = { daw: {} },
+  clock?: WordClock | null,
+  pending = false,
+) => {
   const api = createMockApi({}, seed);
   daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
   return render(
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
-        <Harness caps={caps} items={items} />
+        <Harness caps={caps} clock={clock} pending={pending} />
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -235,7 +256,7 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     await ready();
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
-    expect(calls('play')).toEqual([{ action: 'play', seconds: at(t0('p-2:1')) }]);
+    expect(calls('play')).toEqual([{ action: 'play', seconds: at(t0('p-2:1')), chapterId: 'chapter-1' }]);
     expect(audio.play).not.toHaveBeenCalled();
     expect(state().playing).toBe(true);
     act(() => daw.moveInDaw({ head: at(t0('p-2:3')) }));
@@ -274,6 +295,7 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
     await wait(10);
     expect(calls('play')).toHaveLength(0);
+    expect(calls('playRange').every((c) => c.chapterId === 'chapter-1')).toBe(true); // the DAW plays that chapter's linked track, not the selected one
     expect(calls('playRange').map(({ seconds, until }) => [seconds, until])).toEqual([[at(t0('p-1:3')), expect.closeTo(at(t0('p-2:1')), 2)]]);
     act(() => daw.moveInDaw({ head: at(t0('p-2:1')) + 0.05 }));
     await wait(10);
@@ -293,10 +315,11 @@ describe('play-from-the-app-plays-through-the-daw', () => {
   });
   it('carries a stretch that ends past the last word of a paragraph, on its tail, to the DAW', async () => {
     await ready();
-    // 7.9 is inside the fixture's one segment (0 to 8): the tail is still the item's audio.
-    act(() => playback.playFrom(t0('p-1:3'), 7.9));
+    // Half a second past the last word the project plays: the tail of its sound, carried on at the word's own rate.
+    const lastEnd = Math.max(...doc.items.filter((i) => i.kind === 'w' && i.t1 != null && i.t1 <= 8).map((i) => i.t1 as number));
+    act(() => playback.playFrom(t0('p-1:3'), lastEnd + 0.5));
     await wait(10);
-    expect(calls('playRange')[0].until).toBeCloseTo(at(7.9), 2);
+    expect(calls('playRange')[0].until).toBeCloseTo(at(lastEnd + 0.5), 2);
   });
   it('stops the page when the narrator stops the DAW in the middle of a stretch, without asking the DAW to stop', async () => {
     await ready();
@@ -336,13 +359,24 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     expect(notices.join(' ')).toContain(FELL_BACK);
   });
   it('asks the DAW for nothing and plays the app when the word has no project time', async () => {
-    mount(DAW_SETUPS.reaper, undefined, [{ ...ITEMS[0], live: false }]);
+    mount(DAW_SETUPS.reaper, undefined, NO_CLOCK);
     await wait(10);
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
     expect(calls('play')).toHaveLength(0);
     expect(audio.play).toHaveBeenCalled();
-    expect(notices.join(' ')).toMatch(/not in REAPER's project\. Played in the app instead\./);
+    expect(notices.join(' ')).toMatch(/not in REAPER's project now.*Played in the app instead\./);
+  });
+  // The owner's report: a chapter whose audio starts at 0:00 of the project played in the app, saying the part was not in REAPER's project.
+  it('plays a section of an item that sits at project second 0 in the DAW, not the app', async () => {
+    mount(DAW_SETUPS.reaper, undefined, ZERO_CLOCK);
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:3')));
+    await wait(10);
+    expect(calls('playRange')).toHaveLength(1);
+    expect(calls('playRange')[0].seconds).toBeCloseTo(t0('p-2:1') / 2, 2);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(notices.join(' ')).not.toMatch(/not in/);
   });
   it('keeps the room quiet while the DAW records: nothing plays, in the DAW or the app', async () => {
     await ready(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: true, position: 100 } } });
@@ -437,6 +471,15 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     await wait(10);
     expect(notices).toEqual([CHECKING]);
   });
+  it('plays nothing while the host has not yet said where the words play, and says it is checking', async () => {
+    mount(DAW_SETUPS.reaper, undefined, null, true);
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(calls('play')).toHaveLength(0);
+    expect(notices).toEqual([CHECKING]);
+  });
   it('says a failed read of the DAW, asks again, and plays the app rather than checking for ever', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);
     const api = createMockApi({}, { daw: {} });
@@ -478,5 +521,110 @@ describe('without-a-daw-that-can-play-the-app-plays', () => {
     expect(daw.syncCalls()).toHaveLength(0);
     // An engine that never declared a transport plays in the app as its normal path: no notice.
     expect(notices).toEqual([]);
+  });
+});
+
+describe('a-selection-and-the-play-of-it', () => {
+  const select = (anchor: string, head: string) => act(() => page.dispatch({ type: 'select', anchor, head }));
+  const sel = () => page.state.sel;
+
+  it('keeps the selection when Space pauses a play of it', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(10);
+    expect(calls('playRange')).toHaveLength(1);
+    expect(state().playing).toBe(true);
+    act(() => playback.toggle());
+    await wait(10);
+    expect(state().playing).toBe(false);
+    expect(sel()).toEqual({ anchor: 'p-1:3', head: 'p-2:1' });
+  });
+
+  it('plays the new range when the selection changes mid-play, and does not play the old one on', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(10);
+    const first = calls('playRange')[0];
+    select('p-2:2', 'p-2:3');
+    await wait(10);
+    const sent = calls('playRange');
+    expect(sent).toHaveLength(2);
+    expect(sent[1].seconds).toBeGreaterThan(first.seconds);
+    expect(state().playing).toBe(true);
+    expect(sel()).toEqual({ anchor: 'p-2:2', head: 'p-2:3' });
+  });
+
+  it('does not play again when the selection that started the play is the one still selected', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(500);
+    expect(calls('playRange')).toHaveLength(1);
+  });
+
+  it('ends a play of a selection whose DAW position jumps straight to the end: the selection stays', async () => {
+    await ready();
+    select('p-1:3', 'p-2:1');
+    act(() => playback.toggle());
+    await wait(10);
+    const until = calls('playRange')[0].until as number;
+    act(() => daw.moveInDaw({ playing: false, head: until }));
+    await wait(10);
+    expect(state().playing).toBe(false);
+    expect(sel()).toEqual({ anchor: 'p-1:3', head: 'p-2:1' });
+  });
+
+  it('counts a stop at the end of the stretch as the end of the play even when no reading near the end was heard playing', async () => {
+    await ready();
+    act(() => page.dispatch({ type: 'place', key: 'p-1:3' }));
+    act(() => playback.playFrom(t0('p-1:3'), t0('p-2:1')));
+    await wait(10);
+    const until = calls('playRange')[0].until as number;
+    act(() => daw.moveInDaw({ playing: false, head: until }));
+    await wait(10);
+    expect(state().playing).toBe(false);
+    expect(state().cursor).toBe('p-1:3');
+  });
+
+  describe('when the DAW stops answering', () => {
+    const mountAndLose = async () => {
+      const api = createMockApi({}, { daw: {} });
+      daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+      const tree = (caps: DawCapabilities) => (
+        <ApiProvider api={api}>
+          <EditingPageProvider doc={doc}>
+            <Harness caps={caps} />
+          </EditingPageProvider>
+        </ApiProvider>
+      );
+      const view = render(tree(DAW_SETUPS.reaper));
+      await wait(10);
+      return { lose: () => view.rerender(tree({ ...DAW_SETUPS.reaper, reachable: false })), back: () => view.rerender(tree(DAW_SETUPS.reaper)) };
+    };
+    it('puts the play bar back on Play, and keeps it there when the DAW returns', async () => {
+      const { lose, back } = await mountAndLose();
+      select('p-1:3', 'p-2:1');
+      act(() => playback.toggle());
+      await wait(10);
+      expect(state().playing).toBe(true);
+      lose();
+      await wait(10);
+      expect(state().playing).toBe(false);
+      // The DAW came back stopped (a DAW that comes back playing is followed, as any play of its own is).
+      act(() => daw.moveInDaw({ playing: false }));
+      back();
+      await wait(LEASE_RENEW_MS + 10);
+      expect(state().playing).toBe(false);
+    });
+    it('does the same for a play the DAW started itself', async () => {
+      const { lose } = await mountAndLose();
+      act(() => daw.moveInDaw({ playing: true, head: at(1.3) }));
+      expect(lit()).toBe('p-1:3');
+      lose();
+      await wait(10);
+      expect(state().playing).toBe(false);
+    });
   });
 });

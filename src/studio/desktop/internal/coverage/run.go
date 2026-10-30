@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -54,6 +55,9 @@ type job struct {
 
 	// state is the run's own reported state, read and written with the service's mu held.
 	state State
+
+	// activityBase is the activity the first stage ended with: a re-check stage's counts are added to it (activityOf).
+	activityBase Activity
 
 	// lastError is the message of an ERROR progress line, for the failure text.
 	lastError string
@@ -193,6 +197,7 @@ func (j *job) stageTranscription() (Transcription, bool) {
 // reported state's own stage and percent: a new sidecar process starting its own progress from
 // scratch is a new phase of the job, not a continuation of the one that just finished.
 func (s *Service) launchStage(running *job, next stage) bool {
+	_ = os.Remove(running.activityPath()) // the last stage's counts must not be read as this one's
 	child, err := s.launch(running.request.launchContext(), s.config.Python, s.stageArgs(running, next)...)
 	if err != nil {
 		running.stageErr = fmt.Errorf("could not start the recording check's re-check pass: %w", err)
@@ -205,8 +210,11 @@ func (s *Service) launchStage(running *job, next stage) bool {
 
 // enterStage moves the job into its next stage and resets the reported state's own stage and percent.
 func (s *Service) enterStage(running *job, next stage) {
-	running.stage = next
 	s.mu.Lock()
+	if running.state.Activity != nil && running.stage == stageFirstPass {
+		running.activityBase = *running.state.Activity
+	}
+	running.stage = next
 	running.state.Stage, running.state.Percent = "", 0
 	running.state.Pass = next.label()
 	if next == stageRecheckWindows {
@@ -235,6 +243,7 @@ func (s *Service) readProgress(running *job) {
 	// The sidecar writes ASCII ("Transcribing item 2/3... 0:41 / 1:30"); the dialog's ellipsis is one character, as the host's own
 	// messages are (alignment audit R3PR2-22).
 	message = strings.ReplaceAll(message, "...", "…")
+	activity, hasActivity := readActivityFile(running.activityPath())
 	s.mu.Lock()
 	if stage == "ERROR" {
 		running.lastError = message
@@ -243,7 +252,14 @@ func (s *Service) readProgress(running *job) {
 		s.mu.Unlock()
 		return
 	}
-	changed := running.state.Stage != stage || running.state.Percent < percent || (message != "" && running.state.Message != message && running.state.Message != "Cancelling…")
+	changed := false
+	if hasActivity {
+		next := running.activityOf(activity)
+		if running.state.Activity == nil || !reflect.DeepEqual(*running.state.Activity, next) {
+			running.state.Activity, changed = &next, true
+		}
+	}
+	changed = changed || running.state.Stage != stage || running.state.Percent < percent || (message != "" && running.state.Message != message && running.state.Message != "Cancelling…")
 	running.state.Stage = stage
 	if percent > running.state.Percent {
 		running.state.Percent = percent

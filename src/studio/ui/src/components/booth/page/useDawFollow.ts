@@ -66,7 +66,7 @@ export function useFollowDawOnOpen({
  * DAW can follow (`canFollow`); a DAW that is not connected yet is waited for a short while, and one that never can follow is left alone without a
  * word, since a Booth opened without a DAW is not a failure. A refusal from a DAW that can follow is said, with nothing moved.
  *
- * `target` is null until the line is known (the chapter's words are read); `enabled` is false for a Booth that followed the DAW or the credits.
+ * `target` is null until the line is known (the chapter's words are read); `enabled` is false for a Booth that followed the DAW.
  */
 export function useMoveDawOnOpen({
   enabled,
