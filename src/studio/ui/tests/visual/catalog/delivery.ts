@@ -93,4 +93,5 @@ export const deliveryStates: StateEntry[] = [
       'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
   },
 ];
-deliveryStates.push(wholePage(deliveryStates, 'measured'));
+// Since the Output reason sits in the Build row (#2632) the page fits the desktop window, so its whole height is the window there.
+deliveryStates.push(wholePage(deliveryStates, 'measured', ['desktop']));
