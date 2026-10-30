@@ -590,6 +590,7 @@ function BoothSession({
     paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
     wordsRead,
     words,
+    complete: recordedLabel?.complete,
   });
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
@@ -673,11 +674,14 @@ function BoothSession({
                 ) : (
                   <>
                     {recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}
-                    <ResumeOfferLine
-                      state={offerAwayFrom(page.resume, page.position)}
-                      saved={saveNote(control.project, page.dawName)}
-                      onChoose={page.chooseResume}
-                    />
+                    {/* A chapter recorded to the end has nothing to resume: its saved place is a place in it, not where the recording stopped. */}
+                    {recordedLabel?.complete ? null : (
+                      <ResumeOfferLine
+                        state={offerAwayFrom(page.resume, page.position)}
+                        saved={saveNote(control.project, page.dawName)}
+                        onChoose={page.chooseResume}
+                      />
+                    )}
                   </>
                 )
               }

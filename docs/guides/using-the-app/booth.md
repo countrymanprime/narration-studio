@@ -12,7 +12,7 @@ While the chapters are being read, the Booth draws its top bar, text, side panel
 ## The page
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
-where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and a chip naming the recording setup (the DAW, or the
+where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`; `At ¶ 1 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
@@ -321,7 +321,8 @@ A chapter edited since it was recorded loses the places that named its old words
 word you last read to, or the top. If the browser's storage is blocked, step 3 is skipped.
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
-the end. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
+the end. A chapter recorded to the end shows only where you are reading (`At ¶ 1 of 24`), with no share or time left, and offers no
+**Resume at** line, because there is no recording left to resume. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
 figure comes from the track's length.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
