@@ -1174,6 +1174,27 @@ describe('every way out of the page asks while a take records', () => {
 });
 
 describe('the right-click menu', () => {
+  it('Punch and roll in the menu is gated like R: a blocked start answers with its dialog and starts nothing', async () => {
+    const page = renderPage({ setup: 'reaper-off' });
+    await screen.findByText('Nobody', { exact: false });
+    const button = await screen.findByRole('button', { name: /^Record$/ });
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+    act(() => {
+      fireEvent.contextMenu(document.querySelector('[data-unit="1"] [data-word="0"]')!, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Punch and roll' }));
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    expect(page.daw.roll).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('dialog') ?? page.overlay.getSnapshot().toasts[0]).toBeTruthy());
+    expect(
+      page.overlay
+        .getSnapshot()
+        .toasts.map((t) => t.text)
+        .join(' '),
+    ).not.toMatch(/Starting from/);
+  });
+
   it('right-click offers the phrase, take and text commands', async () => {
     const page = renderPage();
     await ready();

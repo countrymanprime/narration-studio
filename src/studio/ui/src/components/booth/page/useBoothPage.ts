@@ -593,14 +593,14 @@ export function useBoothPage(options: BoothPageOptions) {
           ...more,
           { key: 'next', label: 'Next phrase', onSelect: run(() => moveTo(nextPhrase(latest.current.units, latest.current.at))) },
           { key: 'back', label: 'Back one phrase', onSelect: run(() => moveTo(backPhrase(latest.current.at))) },
-          { key: 'roll', label: 'Punch and roll', onSelect: run(() => void roll.punchAndRoll()) },
+          { key: 'roll', label: 'Punch and roll', onSelect: run(punchAndRoll) },
           { key: 'larger', label: 'Larger text', onSelect: run(larger) },
           { key: 'smaller', label: 'Smaller text', onSelect: run(smaller) },
           { key: 'exit', label: 'Exit Booth', onSelect: run(exit) },
         ];
       },
     }),
-    [hold, roll, moveTo, exit, setSize],
+    [hold, roll, punchAndRoll, moveTo, exit, setSize],
   );
   useContextProvider(menu);
 
