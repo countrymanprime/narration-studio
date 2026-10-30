@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
+import { useEffect, useMemo, useState } from 'react';
 import { useBrowserSettingsVersion } from '../../../browserSettings';
-import type { NarrationApi } from '../../../types';
+import { usePort } from '../../../ports/usePort';
+import type { PortOf } from '../../../ports';
 import { DELIVERY_PROFILES_CHANGED } from '../DeliveryProfilesPanel';
 import { MW_KEY_CHANGED } from '../controls/mwKeyStatus';
 import { onEngineChanged } from './engineSignal';
 import { BROWSER_CHANGED } from './browserValues';
 import type { ReadSettings } from './values';
 
-/** What a probe may look at: the host and the fields the page already read. */
-export type ProbeContext = { api: NarrationApi; settings: ReadSettings };
+/** What a probe may look at: the ports it reads through and the fields the page already read. */
+export type ProbeContext = {
+  api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'>;
+  settings: ReadSettings;
+};
 
 /**
  * A row with a custom body has no host field to compare with its default. It is listed here instead, with a probe that says whether the
@@ -60,7 +63,11 @@ export const changedIsCovered = (row: { id: string; field?: unknown }): boolean 
  * (a zoom change resizes it). A probe that fails counts as "not changed", so a host that cannot answer lists nothing wrongly.
  */
 export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
-  const api = useApi();
+  const system = usePort('system');
+  const dawChoice = usePort('dawChoice');
+  const delivery = usePort('deliveryProfiles');
+  const pronunciation = usePort('pronunciationOnline');
+  const api = useMemo(() => ({ ...system, ...dawChoice, ...delivery, ...pronunciation }), [system, dawChoice, delivery, pronunciation]);
   const version = useBrowserSettingsVersion();
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
