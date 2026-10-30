@@ -175,7 +175,7 @@ it), nothing moves.
 
 **Scrolling.** Hold the right button and drag to move the audio along, or use the wheel or two fingers on a trackpad or touch screen. The
 arrows at either end move what shows back or forward by one step, 20 seconds unless you change it in
-[Settings](settings.md#appearance-keys) (**Waveform arrow step**, 15 to 30 seconds). A click moves exactly one step, easing into place,
+[Settings](settings.md) (**Waveform arrow step**, 15 to 30 seconds). A click moves exactly one step, easing into place,
 and never a whole window. Hold an arrow and the waveform scrolls on smoothly at one step a second until you let go; with Motion set to
 Reduce, a press jumps and a hold repeats whole steps. The arrow turns off at the start or end of the chapter, and a selected range stays on
 its audio while the view moves; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
