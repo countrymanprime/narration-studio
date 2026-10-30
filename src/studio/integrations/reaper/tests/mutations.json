@@ -2966,5 +2966,35 @@
     "file": "narration_transport.lua",
     "find": "  if not save_isolation(rows) then\n    return false\n  end",
     "replace": "  save_isolation(rows)"
+  },
+  {
+    "name": "a command's events are appended one line at a time again",
+    "file": "narration_ui_bridge.lua",
+    "find": "core.batched(handler, ctx, args)",
+    "replace": "handler(ctx, args)"
+  },
+  {
+    "name": "events a command sent before it failed are dropped",
+    "file": "narration_bridge_core.lua",
+    "find": "  for _, path in ipairs(done.order) do\n    append(path, table.concat(done.lines[path]))\n  end\n  if not ok then",
+    "replace": "  if not ok then\n    error(err, 0)\n  end\n  for _, path in ipairs(done.order) do\n    append(path, table.concat(done.lines[path]))\n  end\n  if not ok then"
+  },
+  {
+    "name": "a failing command no longer ends the tick",
+    "file": "narration_bridge_core.lua",
+    "find": "  if not ok then\n    error(err, 0)\n  end\nend",
+    "replace": "end"
+  },
+  {
+    "name": "events outside a command are held and never written",
+    "file": "narration_bridge_core.lua",
+    "find": "  if not held then\n    append(path, line)\n    return\n  end",
+    "replace": "  held = held or { lines = {}, order = {} }"
+  },
+  {
+    "name": "a batch inside a command ends the command's batch",
+    "file": "narration_bridge_core.lua",
+    "find": "  if held then\n    return fn(...)\n  end\n",
+    "replace": ""
   }
 ]
