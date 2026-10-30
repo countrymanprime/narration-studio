@@ -3,6 +3,7 @@ import type { DawCapabilities, DawKind } from '../../../api/contracts/daw';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useToastClearance } from '../../../hooks/useToastClearance';
 import { usePort } from '../../../ports/usePort';
+import { useLinkDawFile } from '../../connection/linkDawFile';
 import { Button } from '../../primitives/Button';
 import { CheckLine } from '../../layout/CheckLine';
 import { claimAttachRefusal } from '../../connection/attachRefusal';
@@ -125,7 +126,7 @@ function OtherProject({
   check: CheckProps;
   asked: number;
 }) {
-  const project = usePort('project');
+  const link = useLinkDawFile();
   const [busy, run] = useBusy();
   const { dawName } = plan;
   const Name = dawName === 'the DAW' ? 'The DAW' : dawName;
@@ -134,20 +135,14 @@ function OtherProject({
   useReopenOnAsk(asked, dialog.reopen);
   const linkOpen = () =>
     run(async () => {
-      try {
-        const result = await project.linkDawFile();
-        // A closed picker is not a failure: nothing was asked for, so nothing is said.
-        if (!result.selected) return;
-        if (!result.linked) {
-          say(result.message || 'That project file could not be linked.', 'error');
-          return;
-        }
-        say(result.note ? `${Name} project linked. ${result.note}` : `${Name} project linked.`);
-        dialog.close();
-        onChanged();
-      } catch (error) {
-        say(`The project could not be linked: ${apiErrorMessage(error)}`, 'error');
-      }
+      const outcome = await link();
+      // A closed picker is not a failure: nothing was asked for, so nothing is said. A link already open somewhere else is that one's to finish.
+      if (outcome.kind === 'cancelled' || outcome.kind === 'busy') return;
+      if (outcome.kind === 'refused') return say(outcome.message, 'error');
+      if (outcome.kind === 'failed') return say(`The project could not be linked: ${apiErrorMessage(outcome.error)}`, 'error');
+      say(outcome.note ? `${Name} project linked. ${outcome.note}` : `${Name} project linked.`);
+      dialog.close();
+      onChanged();
     });
   return (
     <>
