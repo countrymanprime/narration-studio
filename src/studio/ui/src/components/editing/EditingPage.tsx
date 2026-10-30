@@ -27,6 +27,7 @@ import { useOpenOnce } from '../connection/useOpenOnce';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from '../production/pipeline/dawConnectGrace';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
 import type { DawRead } from '../../playback/providers';
+import { apiErrorMessage } from '../../api/errorMessage';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -113,7 +114,7 @@ function EditingLoaded({
     let live = true;
     manuscript.manuscriptChapters().then(
       (all) => live && setChapters(all.filter(isNarrationChapter)),
-      (e: unknown) => live && setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => live && setError(apiErrorMessage(e)),
     );
     return () => {
       live = false;

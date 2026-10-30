@@ -8,6 +8,7 @@ import type { ChapterDoc } from '../model';
 import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
+import { apiErrorMessage } from '../../../api/errorMessage';
 
 type ChapterSource =
   | { status: 'loading' }
@@ -37,7 +38,7 @@ export interface ChapterSourceState {
   retry: () => void;
 }
 
-const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+const why = apiErrorMessage;
 
 /**
  * What the page reads for one chapter through the ports: the text and what was heard (workspace and alignment), the stored cuts, effects and

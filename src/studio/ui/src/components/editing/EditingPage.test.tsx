@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { USER_MESSAGE, WireError } from '../../api/wire/WireError';
 import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
 import { resetOpenOnce } from '../connection/useOpenOnce';
 import { providedCommands } from '../../input/commandProviders';
@@ -1166,6 +1167,16 @@ describe('EditingPage loading state', () => {
     // XED-30, R3ED-11: the failure keeps the page's card and header (title, header buttons), so the title does not move.
     expect(screen.getByRole('heading', { level: 1, name: 'Editing' }).closest('header')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Clean up and effects' })).toBeTruthy();
+  });
+
+  it('says a payload that did not match its schema in plain words, with no failing path in the card (issue 2648)', async () => {
+    const wire = WireError.fromIssues('host.binding', 'ManuscriptChapters', [
+      { path: [{ key: 0 }, { key: 'index' }], message: 'Invalid input: expected number' },
+    ]);
+    mount({ api: { manuscriptChapters: () => Promise.reject(wire) } });
+    expect(await screen.findByText(USER_MESSAGE)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/\[0\]\.index|did not match its schema|Invalid input/);
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
   });
 
   it('draws the skeleton in the script’s own columns, with the bar’s band under it', async () => {

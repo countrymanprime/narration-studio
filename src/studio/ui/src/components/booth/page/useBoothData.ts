@@ -8,6 +8,7 @@ import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
+import { apiErrorMessage } from '../../../api/errorMessage';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 const NONE: never[] = [];
@@ -92,7 +93,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
         // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
         setFallback(running ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '');
       })
-      .catch((reason) => live && setError(reason instanceof Error ? reason.message : String(reason)));
+      .catch((reason) => live && setError(apiErrorMessage(reason)));
     return () => {
       live = false;
     };
