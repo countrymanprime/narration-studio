@@ -342,3 +342,41 @@ def perf_recording(env: Env) -> str:
     polled = result["poll_50_every_4s"]["tick_ms"]["max"]
     assert polled <= TRACK_READ_1000_TICK_MS, f"a 50-item read while recording held REAPER for {polled} ms"
     return f"{idle_line(result['on'], result['held'])}; longest tick reading 50 items every 4 s {polled} ms"
+
+
+TIMING = """
+local brand = dofile(os.getenv('NARRATION_CI_REAPER_DIR') .. '/narration_brand.lua')
+if args[1] == 'on' then
+  reaper.SetExtState(brand.identity.reaperResourceFolder, 'bridge_timing', '1', false)
+else
+  reaper.DeleteExtState(brand.identity.reaperResourceFolder, 'bridge_timing', false)
+end
+return true
+"""
+
+
+@scenario("perf", "(the timing diagnostic)", "perf: the timing diagnostic, switched on in REAPER, writes a summary with each command and costs little")
+def perf_timing_diagnostic(env: Env) -> str:
+    env.lua(PROBE)
+    log = env.session.dir / "bridge-timing.log"
+    before = log.read_text(encoding="utf-8") if log.exists() else ""
+    env.lua(TIMING, "on")
+    try:
+
+        def pings(deadline: float) -> None:
+            while time.monotonic() < deadline - 0.5:
+                env.session.send("ping")
+                time.sleep(0.5)
+
+        on = window(env, 12, during=pings)
+        env.wait_for(lambda: log.exists() and log.read_text(encoding="utf-8") != before, timeout=15, what="a timing summary")
+    finally:
+        env.lua(TIMING, "off")
+    lines = log.read_text(encoding="utf-8")[len(before) :].splitlines()
+    write_result(env, "timing", {"on": on, "lines": lines})
+    line = next((entry for entry in lines if " ping n=" in entry), "")
+    assert line, f"no summary names ping: {lines}"
+    assert "tick_ms p50=" in line and "listing_ms" in line, line
+    assert env.fixture.get("rpp", "?") not in line, "the summary holds the project path"
+    assert on["tick_ms"]["p99"] <= IDLE_TICK_P99_MS, f"tick p99 {on['tick_ms']['p99']} ms with timing on"
+    return line
