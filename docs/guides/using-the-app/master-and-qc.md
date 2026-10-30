@@ -16,21 +16,21 @@ While the profile and the chapters are being read, the **Delivery package** pane
 The header of the files panel holds the title, the chapter bar, a pill naming the profile the files are
 judged against (**ACX** for the built-in profile, a custom profile by its name) and one refresh icon,
 **Check the files again**. Pressing the pill opens [Delivery](delivery.md), where the profile is chosen and
-edited. The run buttons (**Master all to spec…**, **Check files…**) sit in a strip under the header. The main column holds the files and their checks, **Book consistency**, the
+edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**). The main column holds the files and their checks, **Book consistency**, the
 [mastering chain](#the-mastering-chain), [Diagnostics](#diagnostics) and the [report](#exporting-a-report);
 the column on the right holds the [delivery package](#the-delivery-package) and
 [Multi-platform export](#building-packages-for-several-platforms-at-once).
 
 ## Checking files
 
-Press **Check files…** and pick one or more rendered chapter files. Only WAV files are measured for now;
+Press the **Check files…** icon button and pick one or more rendered chapter files. Only WAV files are measured for now;
 a file in another format, or one that cannot be read, is listed with the reason and does not stop the
 others. The bar, in the table's card under the button, shows how much of the audio has been read so far,
 with the file being measured (its row reads **Measuring**), and **Cancel** stops the check: files already measured keep their results. You can leave the page while it
 runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
 the page says **Can't tell how the measurement is going, last heard N s ago** with a **Check again** button, and keeps
-trying every couple of seconds; the check itself keeps running. Once files are checked the button reads
-**Re-check 3 files** and measures the same files again (after a new render, say); **Choose other files…**
+trying every couple of seconds; the check itself keeps running. Once files are checked its tooltip reads
+**Re-check 3 files** and it measures the same files again (after a new render, say); The **Choose other files…** icon button
 picks others.
 
 ![A check in progress, with its real progress and Cancel](../../images/ui/master-running.webp)
@@ -116,7 +116,7 @@ side by side.
 
 ## Mastering to spec
 
-**Master all to spec…**, beside **Check files…**, picks the rendered files to master and encode and opens
+The **Master all to spec…** icon button, beside **Check files…**, picks the rendered files to master and encode and opens
 **Master to spec** with a row per file; **Add files…** adds more and **Remove** drops one. Give each its
 **Role** in the package (**Chapter**, **Opening credits**, **Closing credits** or **Retail sample**) and
 each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
