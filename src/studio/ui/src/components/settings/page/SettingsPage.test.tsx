@@ -584,6 +584,39 @@ describe('Settings: Changed and the delivery profiles', () => {
   }, 60_000);
 });
 
+describe('Settings: putting Changed rows back while the Changed list is open', () => {
+  // ux-review of the Changed list saw one crash ("useSettingsStore needs a SettingsStoreProvider") after resetting Zoom. Repeated so a race shows.
+  it.each(Array.from({ length: 5 }, (_, n) => n + 1))(
+    'Zoom, Start tone and the recorder leave the list when put back (run %i)',
+    async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        await renderPage();
+        await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+        fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'On' }));
+        pick('Appearance');
+        fireEvent.change(await within(await waitForRow('look.zoom')).findByRole('combobox', { name: 'Zoom' }), { target: { value: '1.25' } });
+        await waitFor(() => expect(within(row('look.zoom')).getByText('Changed')).toBeTruthy());
+        fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+        await waitFor(() => expect(row('look.zoom')).toBeTruthy());
+        expect(row('daw.startTone')).toBeTruthy();
+
+        fireEvent.click(within(row('look.zoom')).getByRole('button', { name: 'Reset zoom to 100%' }));
+        await waitFor(() => expect(row('look.zoom')).toBeNull());
+        fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'Off' }));
+        await waitFor(() => expect(row('daw.startTone')).toBeNull());
+
+        expect(screen.queryByText(/Something went wrong/)).toBeNull();
+        expect(screen.getByText('Nothing is changed from the defaults')).toBeTruthy();
+        expect(errors.mock.calls.flat().join(' ')).not.toMatch(/SettingsStoreProvider/);
+      } finally {
+        errors.mockRestore();
+      }
+    },
+    60_000,
+  );
+});
+
 describe('Settings: arriving from another page', () => {
   it('opens on the setting and focuses it', async () => {
     await renderPage({ api: createMockApi({}, { recording: { engine: 'builtin' } }), initialCategory: 'Teleprompter' });
