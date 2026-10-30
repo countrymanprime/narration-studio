@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ZOOM_STEPS } from '../../../hooks/useZoom';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { useTheme } from '../../../theme/ThemeContext';
@@ -113,9 +114,8 @@ export function ReaderWidthBody() {
   );
 }
 
-// The levels the host snaps to (src/studio/desktop/bindings_window.go's zoomSteps, as hooks/useZoom.ts lists them): 100% is the smallest
-// the header's buttons and Ctrl + minus reach, so the mock's 80% and 90% are not offered; the host would put them back to 100%.
-const ZOOM_LEVELS = [1, 1.1, 1.25, 1.5, 1.75, 2];
+// The levels are hooks/useZoom.ts's ZOOM_STEPS, the host's zoomSteps: 100% is the smallest the header's buttons and Ctrl + minus reach, so the
+// mock's 80% and 90% are not offered; the host would put them back to 100%.
 const percent = (level: number): string => `${Math.round(level * 100)}%`;
 
 /**
@@ -149,7 +149,7 @@ export function ZoomRowBody() {
       .catch((failure: unknown) => notify(apiErrorMessage(failure), 'error'));
 
   // A level under 100% (Ctrl + wheel) is shown as it is, though it is not one to choose.
-  const levels = ZOOM_LEVELS.includes(level) ? ZOOM_LEVELS : [...ZOOM_LEVELS, level].sort((a, b) => a - b);
+  const levels = ZOOM_STEPS.includes(level) ? ZOOM_STEPS : [...ZOOM_STEPS, level].sort((a, b) => a - b);
   return (
     <div className="flex flex-nowrap items-center gap-1.5">
       {/* A short value gets the settings' short field width, 8rem, not its 85 px content width (alignment audit XSE2-9, XSE2-33). */}

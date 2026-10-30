@@ -8,7 +8,7 @@ import { ConsentDialog } from '../../../settings/analysis/ConsentDialog';
 import { useAnalysisTools, useComponentsPort } from '../../../settings/analysis/useAnalysisTools';
 import { openImportDialog } from '../import/openImportDialog';
 import { AnalysisPrompt, type ScanChoice } from './AnalysisPrompt';
-import { readAnalysisPrompt, stopAskingAnalysisPrompt } from './analysisPromptSetting';
+import { readAnalysisPrompt, saveAnalysisPrompt } from '../../../settings/analysis/analysisPromptSetting';
 import { shouldOffer } from './scanModel';
 
 export type StartScan = {
@@ -57,7 +57,7 @@ export function useStartScan({ scan, onImported }: { scan: () => Promise<void>; 
     const choose = async (choice: ScanChoice, never: boolean, close: () => void) => {
       if (never) {
         try {
-          await stopAskingAnalysisPrompt(system);
+          await saveAnalysisPrompt(system, false);
         } catch (cause) {
           overlay.toast(`“Don’t ask again” could not be saved: ${describeApiError(cause)}`, { tone: 'error' });
         }
