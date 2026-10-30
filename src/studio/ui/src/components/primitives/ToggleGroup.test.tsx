@@ -125,3 +125,13 @@ describe('ToggleGroup', () => {
     expect(mine.className).toContain('text-[var(--text-muted)]');
   });
 });
+
+describe('ToggleGroup at a narrow width (#2642)', () => {
+  it('lets a segmented group wrap and stay inside its container instead of clipping the last option', () => {
+    render(<ToggleGroup label="My prep" look="segmented" value="Quiet" options={OPTIONS} onChange={() => undefined} />);
+    const group = screen.getByRole('group', { name: 'My prep' });
+    expect(group.className).toMatch(/(^|\s)flex-wrap(\s|$)/);
+    expect(group.className).toMatch(/(^|\s)max-w-full(\s|$)/);
+    expect(group.className).not.toMatch(/(^|\s)h-\[/);
+  });
+});

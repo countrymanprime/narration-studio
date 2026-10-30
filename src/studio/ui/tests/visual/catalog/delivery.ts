@@ -2,12 +2,13 @@
 // Delivery page (SN-M5): the profile card, Output, the profile's rules and the "Before you build" aside. `?mockDelivery=` boots
 // every chapter measured and passing with the files mastered and encoded, so Build is on and the build's own states can be captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 
 export const deliveryStates: StateEntry[] = [
   {
     page: 'delivery',
     state: 'default',
+    ...REFLOW,
     description:
       'Delivery judged against ACX with nothing measured - the built-in profile card with its checks and files read-only, the profile rules, Output with Build off, and "Before you build" with every chapter waiting',
   },

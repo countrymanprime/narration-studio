@@ -134,7 +134,7 @@ export function ProfileCard({
         </span>
       }
     >
-      <div className="flex flex-col gap-4">
+      <div className="@container flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <SectionLabel>Checks on every chapter</SectionLabel>
           {limitRules(profile).map((rule) => (

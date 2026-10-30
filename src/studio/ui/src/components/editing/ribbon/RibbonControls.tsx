@@ -11,13 +11,14 @@ import type { RibbonView } from './useRibbonView';
 /** The row above the waveform: what it is (`head`), what part of the audio it shows, a "?" with its `gestures`, and the zoom buttons. */
 export function ZoomRow({ t0, ribbon, head, gestures }: { t0: number; ribbon: RibbonView; head?: ReactNode; gestures?: string }) {
   const { view, canZoomIn, canZoomOut, zoom } = ribbon;
+  const range = `${fineClock(t0 + view.start)} to ${fineClock(t0 + view.start + view.len)}`;
   return (
     <div className="flex h-8 min-w-0 flex-none items-center gap-2 px-3 text-xs text-[var(--text-muted)]">
       {head}
-      <span className="flex min-w-0 items-center gap-1.5 truncate">
-        <span>Showing</span>
-        <span className="font-mono text-[var(--text)]" data-view-label>
-          {fineClock(t0 + view.start)} to {fineClock(t0 + view.start + view.len)}
+      <span className="flex min-w-0 items-center gap-1.5" title={`Showing ${range}`}>
+        <span className="flex-none">Showing</span>
+        <span className="min-w-0 truncate font-mono text-[var(--text)]" data-view-label>
+          {range}
         </span>
       </span>
       <span className="flex-1" />

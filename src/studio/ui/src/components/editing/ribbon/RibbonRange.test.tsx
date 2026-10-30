@@ -343,6 +343,17 @@ describe('a drawn range writes nothing under the waveform', () => {
   });
 });
 
+describe('the range label at a narrow width (#2642)', () => {
+  it('truncates its clock text and says the whole range in a tooltip, so it never runs under the gestures mark', async () => {
+    mount();
+    await ready();
+    const label = document.querySelector<HTMLElement>('[data-view-label]')!;
+    expect(label.className).toMatch(/(^|\s)truncate(\s|$)/);
+    expect(label.className).toMatch(/(^|\s)min-w-0(\s|$)/);
+    expect(label.parentElement?.getAttribute('title')).toBe('Showing 0:05.00 to 0:08.10');
+  });
+});
+
 describe('zoom', () => {
   it('has zoom out and zoom in buttons that step 3.1 s, 2 s, 1 s and stop there', async () => {
     mount();
