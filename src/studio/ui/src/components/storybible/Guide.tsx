@@ -199,6 +199,14 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     },
     [changed, load, markChanged],
   );
+  // The scan's toast sends the narrator here with `{ show: 'review' }` (jobEnded.ts), so the suggestions it added are what the list shows.
+  // The state is spent once read, so a reload or a later visit opens the list as the narrator left it.
+  const askedShow = (location.state as { show?: unknown } | null)?.show;
+  useEffect(() => {
+    if (askedShow !== 'review') return;
+    setFilter((current) => ({ ...current, show: 'review' }));
+    routerNavigate(location.pathname, { replace: true, state: null });
+  }, [askedShow, location.key, location.pathname, routerNavigate]);
   const scanStart = useStartScan({ scan: found.scan.start, onImported: () => void load() });
   const links = useMemo(() => evidenceLinks(chapters, goToManuscript), [chapters, goToManuscript]);
   // Each chapter's place in the book, for the Sort menu's Book order.

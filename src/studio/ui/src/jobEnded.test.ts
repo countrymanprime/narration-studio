@@ -24,6 +24,23 @@ describe('toastForJobEnd', () => {
     expect(toastForJobEnd(ended({ kind: 'transcript_compare', message: 'Comparison complete.' }))).toEqual({ text: 'Comparison complete.', tone: 'info' });
   });
 
+  it('lets the narrator open the suggestions a Story Bible scan added, and offers nothing when it added none', () => {
+    const scan = (message: string) => ended({ kind: 'extraction_scan', message });
+    const follow = { label: 'Show them', to: '/story-bible', state: { show: 'review' } };
+    expect(toastForJobEnd(scan('2 suggestions added; 1 already offered or rejected before.'))).toEqual({
+      text: '2 suggestions added; 1 already offered or rejected before.',
+      tone: 'info',
+      follow,
+    });
+    expect(toastForJobEnd(scan('1 suggestion added.'))?.follow).toEqual(follow);
+    expect(toastForJobEnd(scan('0 suggestions added; 3 already offered or rejected before.'))?.follow).toBeUndefined();
+    expect(
+      toastForJobEnd(
+        ended({ kind: 'extraction_scan', outcome: 'error', message: 'The scan did not finish: x. Kept 2 suggestions from the sources that finished.' }),
+      )?.follow,
+    ).toBeUndefined();
+  });
+
   it('makes a failure an error, which stays until it is dismissed', () => {
     expect(toastForJobEnd(ended({ outcome: 'error', message: 'The build failed.' }))).toEqual({ text: 'The build failed.', tone: 'error' });
   });

@@ -12,12 +12,22 @@ const SHOWN_BY_THEIR_DIALOG = new Set(['manuscript_import', 'tts_install', 'whis
  */
 const SHOWN_ON_THEIR_PAGE: Record<string, string> = { render_package: '/delivery' };
 
+/** Where a job-end toast's one button takes the narrator: a route, and the state the page there reads to open on what the job made. */
+export type JobEndFollow = { label: string; to: string; state: { show: 'review' } };
+
+/** The host's scan message starts with the count it added ("2 suggestions added; …", `suggestionsCount` in extraction_job.go). */
+const SCAN_ADDED = /^([1-9]\d*) suggestions? added/;
+
 /** What the app says when a host job ends, or nothing when the narrator does not need telling (they cancelled it, or its dialog or page says so). */
-export function toastForJobEnd(event: JobEnded, pathname?: string): { text: string; tone: ToastTone } | undefined {
+export function toastForJobEnd(event: JobEnded, pathname?: string): { text: string; tone: ToastTone; follow?: JobEndFollow } | undefined {
   if (event.outcome === 'cancelled' || SHOWN_BY_THEIR_DIALOG.has(event.kind)) return undefined;
   if (event.outcome === 'error' && pathname !== undefined && SHOWN_ON_THEIR_PAGE[event.kind] === pathname) return undefined;
   if (event.outcome === 'error') return { text: event.message || 'A background task failed.', tone: 'error' };
-  return { text: event.message || 'A background task finished.', tone: 'info' };
+  const text = event.message || 'A background task finished.';
+  // New suggestions sit among the entries with nothing marking them, so the toast takes the narrator to the Needs review filter.
+  if (event.kind === 'extraction_scan' && SCAN_ADDED.test(text))
+    return { text, tone: 'info', follow: { label: 'Show them', to: '/story-bible', state: { show: 'review' } } };
+  return { text, tone: 'info' };
 }
 
 // Only these kinds are worth an OS notification (Story Bible build, model/voice downloads, Transcript Compare, import, a recording

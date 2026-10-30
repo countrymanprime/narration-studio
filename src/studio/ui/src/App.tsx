@@ -35,7 +35,7 @@ import type { ChapterSyncPreview } from './api/contracts/chapterSync';
 import { useAppHistory } from './hooks/useAppHistory';
 import { useSettingsOrigin } from './hooks/useSettingsOrigin';
 import { useZoom } from './hooks/useZoom';
-import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnouncement, toastForJobEnd } from './jobEnded';
+import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnouncement, toastForJobEnd, type JobEndFollow } from './jobEnded';
 import { useBoothRecording } from './components/booth/useBoothRecording';
 import { ConfirmDialog } from './components/primitives/ConfirmDialog';
 import { ShortcutSheet } from './components/help/ShortcutSheet';
@@ -168,7 +168,7 @@ export function App({ journal }: { journal?: Journal } = {}) {
 // A pending guarded move, either a path (the nav, a "go to" link) or a Back/Forward delta; the two guards below
 // (unsaved Settings, leaving a Proof chapter view with a run) apply to both the same way (`guardedNavigate` and
 // `attemptDelta` in `App`).
-type PendingMove = { kind: 'path'; path: string } | { kind: 'delta'; direction: 1 | -1 };
+type PendingMove = { kind: 'path'; path: string; state?: unknown } | { kind: 'delta'; direction: 1 | -1 };
 
 function AppRoutes() {
   const api = useApi();
@@ -410,27 +410,33 @@ function AppRoutes() {
   boothRecordingRef.current = boothRecording;
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
-  const queuedAnnouncements = useRef<{ text: string; tone: ToastTone }[]>([]);
+  const queuedAnnouncements = useRef<{ text: string; tone: ToastTone; follow?: JobEndFollow }[]>([]);
+  // A job-end toast may carry one button that takes the narrator to what the job made (the scan's new suggestions).
+  const announce = useCallback(
+    ({ text, tone, follow }: { text: string; tone: ToastTone; follow?: JobEndFollow }) =>
+      setNotice(text, tone, follow && { label: follow.label, onAction: () => guardedNavigateRef.current(follow.to, follow.state) }),
+    [setNotice],
+  );
   useEffect(() => {
     if (!hasBootstrap) return;
     return api.subscribeJobEnded((event) => {
       const announcement = toastForJobEnd(event, pathnameRef.current);
       if (announcement) {
         if (shouldQueueJobEndAnnouncement(announcement, boothRecordingRef.current)) queuedAnnouncements.current.push(announcement);
-        else setNotice(announcement.text, announcement.tone);
+        else announce(announcement);
       }
       if (shouldNotifyForJobEnd(event, document.hasFocus())) {
         const { title, body } = notificationForJobEnd(event);
         void api.systemNotify(event.kind, title, body);
       }
     });
-  }, [api, hasBootstrap, setNotice]);
+  }, [api, hasBootstrap, setNotice, announce]);
   useEffect(() => {
     if (boothRecording || queuedAnnouncements.current.length === 0) return;
     const queued = queuedAnnouncements.current;
     queuedAnnouncements.current = [];
-    for (const announcement of queued) setNotice(announcement.text, announcement.tone);
-  }, [boothRecording, setNotice]);
+    for (const announcement of queued) announce(announcement);
+  }, [boothRecording, announce]);
 
   // A check the app makes on its own found a release newer than this build: the narrator is told once, and Settings > About
   // and updates says the rest. Nothing is downloaded until they ask.
@@ -543,7 +549,7 @@ function AppRoutes() {
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
-  const guardedNavigateRef = useRef<(next: string) => void>(() => {});
+  const guardedNavigateRef = useRef<(next: string, state?: unknown) => void>(() => {});
   // Ctrl+, opens Settings from any page; the page then offers Back to the page the narrator left.
   const openSettings = () => {
     settingsOrigin.markLink();
@@ -797,28 +803,28 @@ function AppRoutes() {
 
   // A page may stop a move and ask first (the Booth does while a take is recording): the journal's leave guard answers, the overlay asks,
   // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
-  const guardedNavigate = (next: string) => {
+  const guardedNavigate = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
     const verdict = nextPath === location.pathname ? 'allow' : journal.checkLeave(nextPath);
     if (verdict === 'allow') {
-      moveTo(next);
+      moveTo(next, state);
       return;
     }
     void overlay.confirm(verdict.ask).then((confirmed) => {
-      if (confirmed) moveTo(next);
+      if (confirmed) moveTo(next, state);
     });
   };
   guardedNavigateRef.current = guardedNavigate;
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
-  const moveTo = (next: string) => {
+  const moveTo = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
     if (nextPath !== location.pathname && location.pathname === '/settings' && settingsDirty) {
-      setPendingMove({ kind: 'path', path: next });
+      setPendingMove({ kind: 'path', path: next, state });
       return;
     }
     if (leavesCompareRun(location.pathname, nextPath.split('?')[0], data.transcript.phase)) void api.transcriptReset().catch(() => {});
-    navigate(next);
+    navigate(next, state === undefined ? undefined : { state });
   };
 
   // Back and Forward run the same two guards as the nav: dirty Settings asks first, leaving
@@ -1145,7 +1151,7 @@ function AppRoutes() {
   );
 
   function resolvePendingMove(move: PendingMove) {
-    if (move.kind === 'path') navigate(move.path);
+    if (move.kind === 'path') navigate(move.path, move.state === undefined ? undefined : { state: move.state });
     else if (move.direction === -1) history.back();
     else history.forward();
   }
