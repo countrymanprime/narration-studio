@@ -27,6 +27,9 @@ chapter with text. A credits file reads as its template's rendered text, one par
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
 track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped).
 
+The script is one centred column, 64 characters of text a line (the Script and Booth's default measure) with the times at its left, so on a wide
+window the text stays one comfortable line length and does not run across the whole card; in a narrow window it takes the card's width.
+
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
 same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
 without the colour:
