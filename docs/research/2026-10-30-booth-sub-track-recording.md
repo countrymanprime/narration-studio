@@ -115,7 +115,7 @@ Harness tests (fake `reaper`) come first for each new command; the scenarios pro
 
 ## 8. Decisions for the owner
 
-1. Is one stop-and-restart per voice change acceptable (the gap is measured in scenario 4), or is a seamless live switch required? That decides option A+ against B or C.
+1. Is one stop-and-restart per voice change acceptable (the gap is measured in scenario 4), or is a live switch with no gap required? That decides option A+ against B or C.
 2. Narrator on its own child (recommended) or on the folder itself?
 3. Match a character to a track by name (recommended), or store an explicit GUID per character per chapter?
 4. Number-pad keys: slots 1–9, 0 for the Narrator, and what for `+`, `-` and `.`? Give up the numpad pair for text size?
