@@ -24,7 +24,7 @@ export type ReviewOptions = {
  * run through it, so each decision is one journal entry that Undo reverses; Undo puts the earlier status and note back against the
  * evidence version the decision returned. A refusal journals nothing and carries the host's sentence.
  */
-export function reviewFindingCommand(port: ReviewPort, before: Finding, request: ReviewRequest, options: ReviewOptions): Command<Finding> {
+function reviewFindingCommand(port: ReviewPort, before: Finding, request: ReviewRequest, options: ReviewOptions): Command<Finding> {
   const refuse = (error: unknown): Result<Finding> => {
     options.onFailure?.(error);
     return { ok: false, refusal: { code: 'host_refused', reason: (options.describe ?? apiErrorMessage)(error) } };
