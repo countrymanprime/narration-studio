@@ -517,17 +517,26 @@ describe('Settings: search and filters', () => {
 
   // Issue 2636: Changed read only the host's files, so a setting this window keeps (Start tone) never showed under it. One change of every
   // kind of row, so a row kind that Changed cannot see fails here.
-  it('Changed lists a changed row of every kind: a computer setting, a window setting and a project override', async () => {
+  it('Changed lists a changed row of every kind, custom bodies included', async () => {
     await renderPage();
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+
+    // This project (a custom body): record with the built-in recorder, not REAPER.
+    fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch to the built-in recorder' }));
+    await waitFor(() => expect(within(row('daw.engine')).getByText('Changed')).toBeTruthy());
 
     // This window (browser scope): Start tone and Theme.
     fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'On' }));
     // The row says so at once, and the category count follows without another interaction.
     expect(within(row('daw.startTone')).getByText('Changed')).toBeTruthy();
-    expect(within(nav()).getByRole('button', { name: /^Recording & DAW.*1 changed/ })).toBeTruthy();
+    expect(within(nav()).getByRole('button', { name: /^Recording & DAW.*2 changed/ })).toBeTruthy();
     pick('Appearance');
     fireEvent.click(await within(await waitForRow('look.theme')).findByRole('radio', { name: 'Dark' }));
+
+    // This computer (a custom body): the window zoom.
+    fireEvent.change(await within(await waitForRow('look.zoom')).findByRole('combobox', { name: 'Zoom' }), { target: { value: '1.25' } });
+    await waitFor(() => expect(within(row('look.zoom')).getByText('Changed')).toBeTruthy());
 
     // This project overrides the computer's value.
     pick('Speech');
@@ -539,9 +548,8 @@ describe('Settings: search and filters', () => {
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
-    for (const id of ['daw.startTone', 'look.theme', 'stt.model', 'app.channel']) expect(row(id), id).toBeTruthy();
-    expect(row('daw.engine')).toBeNull();
-  });
+    for (const id of ['daw.engine', 'daw.startTone', 'look.theme', 'look.zoom', 'stt.model', 'app.channel']) expect(row(id), id).toBeTruthy();
+  }, 60_000);
 });
 
 describe('Settings: arriving from another page', () => {

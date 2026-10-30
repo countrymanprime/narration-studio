@@ -79,7 +79,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const own = overrideValue(row, project);
   // A custom body has no host field to compare, except a row this window keeps, which has its own reader.
   useBrowserSettingsVersion();
-  const changed = hasCustom ? isBrowserChanged(row) : isAnyChanged(row, global, project);
+  const changed = hasCustom ? isBrowserChanged(row) || store.customChanged.has(row.id) : isAnyChanged(row, global, project, store.customChanged);
   const saved = store.saved?.row === row.id;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
   const describedBy = `${uid}d${error ? ` ${uid}e` : ''}`;

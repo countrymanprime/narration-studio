@@ -3,6 +3,8 @@
 // per-viewer storage. The choices are a convenience of this browser, kept in `localStorage`; storage can be missing, full or
 // blocked, so every access is guarded and the page reads with the defaults when it fails.
 
+import { announceBrowserSettingChange } from '../../../../../browserSettings';
+
 export type TextPrefs = { font: string; size: number; spacing: number; width: number };
 
 /** Widely available public fonts: the name shown and the CSS stack it sets. */
@@ -47,8 +49,6 @@ export const readerVars = (prefs: TextPrefs): Record<'--rs' | '--rl' | '--rw' | 
   '--rw': prefs.width,
   '--rf': fontStack(prefs.font),
 });
-
-import { announceBrowserSettingChange } from '../../../../../browserSettings';
 
 export const TEXT_PREFS_STORAGE_KEY = 'narration.script.text';
 
