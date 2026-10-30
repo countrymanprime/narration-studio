@@ -33,6 +33,7 @@ import {
   faChevronRight,
   faChevronUp,
   faCheckDouble,
+  faClipboardCheck,
   faCircle,
   faCircleCheck,
   faClockRotateLeft,
@@ -260,7 +261,7 @@ export const CATALOG = {
   // Master & QC's toolbar: the page's own words as the `label`, these as the hint.
   masterAllToSpec: action(faBullseye, 'master all files to spec', 'Master all files to spec'),
   checkFiles: action(faFileCircleCheck, 'check files', 'Check files'),
-  recheckFiles: action(faRotate, 'try again', 'Check the files again'),
+  recheckFiles: action(faClipboardCheck, 'check the files again', 'Check the files again'),
   // REAPER's folder tracks in the Tracks card and the track picker.
   trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
   trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
