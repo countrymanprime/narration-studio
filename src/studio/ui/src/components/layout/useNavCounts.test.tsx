@@ -25,9 +25,11 @@ describe('useNavCounts (rail badges, N-B61)', () => {
       pickupsList: async () => ({ pickups: MIXED, leftOut: [] }),
     };
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
-    // The Proof page's whole-book head is `proofProgress(summary, openPickupsBeyondNotes(pickups))`; the rail says the same number (audit cluster 2).
-    const proofPageOpen = proofProgress({ total: 20, decided: 17, cleared: 6 }, openPickupsBeyondNotes(MIXED)).open;
-    expect(proofPageOpen).toBeGreaterThan(14);
+    // The Proof page draws "Open" as the notes still open (total less cleared) and "Pickups" as its own chip; the rail's badge is the first figure only,
+    // so it never counts pickups the page does not show as open notes (issue 2629).
+    const proofPageOpen = proofProgress({ total: 20, decided: 17, cleared: 6 }, 0).open;
+    expect(proofPageOpen).toBe(14);
+    expect(openPickupsBeyondNotes(MIXED)).toBeGreaterThan(0);
     await waitFor(() => expect(result.current).toEqual({ proof: proofPageOpen, pickups: openPickups(MIXED).length, master: 0 }));
   });
 
