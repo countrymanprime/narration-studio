@@ -87,6 +87,15 @@ export function useJournal(): Journal {
   return journal;
 }
 
+/** The shell's journal, or one of its own where no shell is above (a component under test, a story): a decision there is still one entry. */
+export function useJournalOrOwn(): Journal {
+  const shared = useContext(StudioContext);
+  const own = useRef<Journal | null>(null);
+  if (shared) return shared;
+  own.current ??= createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'unknown' });
+  return own.current;
+}
+
 /** The store itself, for a caller that asks a slot to load (`load('chapters')`); a page reads a slot with `useStudio`. */
 export function useStoreHandle(): StudioStore<StudioRegistry> {
   const store = useContext(StoreContext);

@@ -5,6 +5,8 @@ import { describeApiError } from '../../../api/errorMessage';
 import { kindColour } from '../../../kinds/kindMap';
 import { statusTone } from '../../../kinds/statusTone';
 import { usePort } from '../../../ports/usePort';
+import { reviewFinding } from '../../../studio/commands/reviewFinding';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import { useCapability } from '../../../useCapability';
 import type { ManuscriptChapter } from '../../../types';
 import { EnginePanelLink } from '../../engine/EnginePanelContext';
@@ -33,6 +35,7 @@ import {
   STALE_TEXT,
   staleWhy,
   unfinishedSentence,
+  type CardFinding,
   type CountKey,
   type ReviewStatus,
 } from './cardSelectors';
@@ -66,6 +69,7 @@ type Loaded = { result: CoverageResult; reviews: CoverageGapReviews; audio: Find
 export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; onCheck: (chapterId: string) => void }) {
   const coverage = usePort('coverage');
   const findings = usePort('findings');
+  const journal = useJournalOrOwn();
   const dawReview = useCapability('review');
   const [loaded, setLoaded] = useState<Loaded>();
   const [run, setRun] = useState<CoverageState>();
@@ -163,6 +167,14 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
       setBusy(false);
     }
   };
+  // A finding the check raised is decided as Proof decides one: one journal entry, so Ctrl+Z and History take it back.
+  const decideFinding = async (finding: CardFinding, id: string, status: 'accepted' | 'dismissed', label: string) => {
+    // Only a heard finding reaches here, and it always carries its stored finding.
+    if (!finding.finding) throw new Error('That finding is no longer on the list.');
+    const request = { id, evidenceVersion: finding.finding.evidence_version ?? '', status, note: '' };
+    const done = await reviewFinding(journal, findings, finding.finding, request, { label, afterUndo: load });
+    if (!done.ok) throw new Error(done.refusal.reason);
+  };
   const accept = (id: string) => {
     const finding = all.find((entry) => entry.id === id);
     if (!finding) return;
@@ -171,7 +183,7 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
         await coverage.coverageGapAccept(chapterId, id);
         return finding.suggested;
       }
-      await findings.findingsReview({ id, evidenceVersion: finding.finding?.evidence_version ?? '', status: 'accepted', note: '' });
+      await decideFinding(finding, id, 'accepted', 'Accepted a check finding');
       return finding.suggested;
     });
   };
@@ -180,7 +192,7 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
     if (!finding) return;
     void decide(id, async () => {
       if (finding.source === 'gap') await coverage.coverageGapIgnore(chapterId, id);
-      else await findings.findingsReview({ id, evidenceVersion: finding.finding?.evidence_version ?? '', status: 'dismissed', note: '' });
+      else await decideFinding(finding, id, 'dismissed', 'Ignored a check finding');
     });
   };
 
