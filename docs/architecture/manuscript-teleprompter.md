@@ -507,10 +507,10 @@ keep going").
 .
   A REAPER place reads "in REAPER now" when live and "as of the project's last
   save" otherwise.
-- **It never sits there.** The prompt settles for the rest of the Booth's visit to the chapter
-  on any choice or when a session starts, and does not come back after a session
-  ends
-.
+- **It never sits there.** The Companion's prompt settles on any choice or when a session
+  starts. When the session ends it comes back, from a fresh lookup and with the earlier
+  choice cleared, so the next Start begins at the top until one is made (#2649).
+
   It also goes away when REAPER starts playing or recording
   (`daw_transport_changed`, and the host follow below). While it shows for a
   track, the host follows REAPER: `TeleprompterResumeFollow` polls track state

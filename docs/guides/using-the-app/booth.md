@@ -442,8 +442,8 @@ If the book's chapters cannot be read when the Booth opens, it shows "This page 
 ## Companion mode
 
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`: the
-reading session, with REAPER's playhead in its header, the script in its own scroll box, the reading controls and the hotkeys
-that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
+reading session, with a badge in its header, the script in its own scroll box, the reading controls and the hotkeys
+that work while the panel has focus. The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for its name and key. After **Stop reading**, the "Where you stopped" choices (**Resume from here**, **Start from the top**) come back above the text for the next start. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
 place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
 scroll. The script is set in the same reader column as the Script and the Booth, at the Column width you chose in Settings › Reader text. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.
