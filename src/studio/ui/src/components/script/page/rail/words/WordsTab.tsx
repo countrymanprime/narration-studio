@@ -5,7 +5,7 @@ import { usePronunciationSources } from '../../../../storybible/source/usePronun
 import type { LineRange } from '../../data/scriptCommands';
 import { useEntries, useParagraphs, useScriptPrep, useScriptView } from '../../data/useScriptData';
 import { InThisChapter } from '../InThisChapter';
-import { useScriptHear } from '../useScriptHear';
+import { useScriptHear } from '../../data/useScriptHear';
 import { RailOptionRow } from '../RailOptionRow';
 import { DefinitionSourceMenu } from './DefinitionSourceMenu';
 import { WordCard } from './WordCard';

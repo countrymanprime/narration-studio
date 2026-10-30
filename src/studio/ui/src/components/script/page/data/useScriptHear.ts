@@ -1,7 +1,7 @@
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { useHearEntry } from '../../../storybible/useHearEntry';
-import type { InThisChapterRow } from './InThisChapter';
+import type { InThisChapterRow } from '../rail/InThisChapter';
 
 /** Said when the preview voice is not installed: the install prompt lives on the Story Bible entry, not in this rail. */
 export const HEAR_NEEDS_VOICE = 'The preview voice is not installed yet. Open the name in the Story Bible and press play to install it.';

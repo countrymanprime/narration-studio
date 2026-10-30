@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
 import { createMockApi } from '../../../../api/mockApi';
 import { overlay } from '../../../../overlay/overlayService';
-import { InThisChapter } from './InThisChapter';
+import { InThisChapter } from '../rail/InThisChapter';
 import { HEAR_NEEDS_VOICE, useScriptHear } from './useScriptHear';
 
 class PreviewAudio {

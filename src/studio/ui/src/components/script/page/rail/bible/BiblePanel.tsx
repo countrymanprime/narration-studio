@@ -6,7 +6,7 @@ import { Menu } from '../../../../primitives/Menu';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Swatch } from '../../../../primitives/Swatch';
 import { InThisChapter } from '../InThisChapter';
-import { useScriptHear } from '../useScriptHear';
+import { useScriptHear } from '../../data/useScriptHear';
 import { DefinitionBlock } from '../words/DefinitionBlock';
 import { ExternalLinks } from '../words/ExternalLinks';
 import type { WordsHost } from '../words/wordsHost';
