@@ -61,7 +61,7 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
         <h3 className="m-0 text-base font-semibold">{word}</h3>
         <StatusBadge tone={statusTone(status)} label={statusLabel(status)} />
         <span className="flex-1" />
-        <IconButton action={hearNameAction()} disabledReason="A word you marked has no clip to hear yet; a Story Bible name does." />
+        <IconButton action={hearNameAction()} disabledReason="No clip for a marked word" />
         <IconButton action="record" onClick={() => overlay.toast('Recording your own pronunciation')} />
       </div>
       <RailOptionRow label="How I will say it">

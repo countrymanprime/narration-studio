@@ -80,7 +80,7 @@ const hear = (of: HTMLElement) => within(of).queryByRole('button', { name: /^Hea
 const row = (word: string) => screen.getByRole('row', { name: named(word) });
 
 describe('list-shows-the-chapters-words-with-a-play-button', () => {
-  it('lists each flagged word with its source icon, no phonetic text and no status; Enter or a click selects it', async () => {
+  it('lists each flagged word with a play button and source icon, no phonetic text and no status; Enter or a click selects it', async () => {
     await api.scriptWordSay(words[0]!, 'uh-LIS', 'cmu');
     mount(fakeHost());
     const first = await screen.findByRole('row', { name: named(words[0]!) });
