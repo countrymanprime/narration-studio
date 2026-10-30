@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { ChapterDoc } from '../model';
 import { usePort } from '../../../ports/usePort';
 import { docFromHeard } from './docFromHeard';
-import { apiErrorMessage } from '../../../api/errorMessage';
 
 export type EditingDocState =
   | { status: 'loading' }
@@ -22,7 +21,7 @@ export function useEditingDoc(chapterId: string): EditingDocState {
         if (live) setState({ chapterId, value: { status: 'ready', doc: docFromHeard(ws.paragraphs, answer), reason: answer.heard ? null : answer.reason } });
       })
       .catch((e: unknown) => {
-        if (live) setState({ chapterId, value: { status: 'error', message: apiErrorMessage(e) } });
+        if (live) setState({ chapterId, value: { status: 'error', message: e instanceof Error ? e.message : String(e) } });
       });
     return () => {
       live = false;
