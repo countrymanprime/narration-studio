@@ -80,6 +80,32 @@ About 9 µs an item is ReaScript calls (`item_row`: the item and take GUIDs, `Ge
 
 On Linux the bridge does not explain a sluggish REAPER: nothing it does idle or while recording costs more than 0.3% of the main thread, and the worst read measured, 40 ms, is about one dropped frame.
 
+## Fix 1: one append per command
+
+[`narration_bridge_core.lua`](../../src/studio/integrations/reaper/narration_bridge_core.lua) `batched` holds the events a command sends and appends them in one write when it returns or fails; events sent outside a command (the heartbeat, a feature's own defer callback) are written at once as before. Same scenarios, same REAPER, 2026-10-30:
+
+| Measure | Before | After |
+| --- | --- | --- |
+| 1000-item read at one a second: `openat` / `write` / `close` per second | 1021 / 1002 / 1021 | 30 / 2.7 / 30 |
+| 1000-item handler, median of 7 | 36.7 ms | 29.0 ms |
+| Longest tick polling 1000 items every 1 s | 39.7 ms | 40.1 ms |
+| Idle, 4050 items: tick p99, REAPER CPU on / held | 0.178 ms, 23.7% / 23.1% | 0.218 ms, 24.0% / 23.4% |
+
+The remaining 30 opens a second are the idle loop's listing. The longest tick moved within run-to-run noise: on Linux the appends were a third of the handler, and the encoding and the API calls remain.
+
+## Fix 2: encoding by table lookup
+
+`encode` looks each reserved byte up in a table built once, instead of calling a Lua function and `string.format` for it; the output is byte for byte the same (`tests/protocol_test.lua` compares all 256 bytes with the harness's copy of the host's encoder). Same scenarios, 2026-10-30:
+
+| Measure | After fix 1 | After fix 2 |
+| --- | --- | --- |
+| 1000-item handler, median of 7 | 29.0 ms | 24.8 ms |
+| Longest tick polling 1000 items every 1 s | 40.1 ms | 33.9 ms |
+| Busy share of the main thread polling 1000 items every 1 s | 3.42% | 2.85% |
+| Longest tick polling 50 items every 1 s | 4.9 ms | 3.6 ms |
+
+What is left of a track read is about 9 to 12 ms of ReaScript calls per 1000 items and the Lua that builds the lines, both proportional to what the read lists.
+
 ## Not measured here
 
 - Windows: file opens, directory listings and antivirus scans of `events.log`, which grows for the whole session. Each is a candidate this Linux run cannot rank.

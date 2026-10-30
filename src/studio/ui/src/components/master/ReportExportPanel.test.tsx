@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi } from '../../types';
+import { findToast } from '../../fixtures/toasts';
 import { ReportExportPanel } from './ReportExportPanel';
 import { brand } from '../../brand.gen';
 
@@ -67,5 +68,15 @@ describe('the report export', () => {
     expect(screen.getByRole('checkbox', { name: /Include each file/ }).hasAttribute('data-disabled')).toBe(true);
     // R4MS2-2: the folder is one unbroken name.
     expect(screen.getByText(`${brand.identity.projectFolder}/delivery`).className).toContain('whitespace-nowrap');
+  });
+
+  it('tells a refused export as a toast, and the card keeps its shape (rule 7, #2632)', async () => {
+    mount({ measured: true }, { deliveryExportReport: async () => Promise.reject(new Error('the folder is read-only')) });
+    const card = screen.getByRole('button', { name: 'Export report' }).closest('section')!;
+    const before = card.innerHTML;
+    await userEvent.click(screen.getByRole('button', { name: 'Export report' }));
+    expect((await findToast('The report was not written: the folder is read-only')).tone).toBe('error');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(card.innerHTML).toBe(before);
   });
 });

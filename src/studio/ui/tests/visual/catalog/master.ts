@@ -53,7 +53,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'error',
     description:
-      'Master & QC, a check that broke (?mockMeasure=fails) - the alert asking to choose the files again, the reason on the file it broke on, the files after it not read',
+      'Master & QC, a check that broke (?mockMeasure=fails) - the error toast asking to choose the files again (dismissed for the capture), the reason on the file it broke on, the files after it not read',
   },
   // Master & QC, Diagnostics: a section below the chain, scrolled to
   {
@@ -173,13 +173,13 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'chapters-load-failed',
     description:
-      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and, in the file table card under its controls, "The chapters could not be read, so the files keep their file names" with the reason as an alert and a Retry button that reads the chapters again',
+      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and an error toast "The chapters could not be read, so the files keep their file names" with the reason and a Retry button that reads the chapters again',
   },
   {
     page: 'master',
     state: 'profile-load-failed',
     description:
-      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, in the file table card under its controls, the reason ("The delivery profiles could not be read from this project.", said once) as an alert and a Retry button that reads the profile again (scrolled to the alert)',
+      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and an error toast with the reason ("The delivery profiles could not be read from this project.", said once) and a Retry button that reads the profile again',
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];

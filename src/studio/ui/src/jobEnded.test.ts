@@ -19,6 +19,19 @@ describe('toastForJobEnd', () => {
     expect(toastForJobEnd(failed)).toEqual({ text: 'The package could not be built.', tone: 'error' });
   });
 
+  // Master & QC raises its own error toast for these (rule 7); the app's job-ended toast beside it was a second message in a second queue, drawn
+  // over the first in the same corner (#2632), so on that page it stays quiet and anywhere else it is the only word the narrator gets.
+  it.each(['measurement', 'diagnostics', 'render_export', 'render_package_multi'])(
+    'leaves a failed %s to Master & QC, which tells it itself, but not elsewhere',
+    (kind) => {
+      const failed = ended({ kind, outcome: 'error', message: 'It stopped unexpectedly.' });
+      expect(toastForJobEnd(failed, '/master')).toBeUndefined();
+      expect(toastForJobEnd(failed, '/delivery')).toEqual({ text: 'It stopped unexpectedly.', tone: 'error' });
+      expect(toastForJobEnd(failed)).toEqual({ text: 'It stopped unexpectedly.', tone: 'error' });
+      expect(toastForJobEnd({ ...failed, outcome: 'success', message: 'Done.' }, '/master')).toEqual({ text: 'Done.', tone: 'info' });
+    },
+  );
+
   it('says what the host said when a job that can finish elsewhere succeeds', () => {
     expect(toastForJobEnd(ended({}))).toEqual({ text: 'Story Bible rebuild complete.', tone: 'info' });
     expect(toastForJobEnd(ended({ kind: 'transcript_compare', message: 'Comparison complete.' }))).toEqual({ text: 'Comparison complete.', tone: 'info' });

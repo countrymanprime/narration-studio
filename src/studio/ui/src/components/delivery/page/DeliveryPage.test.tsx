@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import { findToast } from '../../../fixtures/toasts';
 import { createMockApi } from '../../../api/mockApi';
 import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi, PackageJob } from '../../../types';
 import { chapterName } from '../../../chapterName';
@@ -171,7 +172,7 @@ describe('DeliveryPage', () => {
       },
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Open the folder' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('no longer there');
+    expect((await findToast('no longer there')).text).toContain('no longer there');
   });
 
   it('names every chapter from its data in each heading style', async () => {
@@ -221,7 +222,7 @@ describe('DeliveryPage', () => {
   it('shows a failed package build', async () => {
     mount(PASSING, { packageStart: async () => ({ ...PACKAGE_DONE, phase: 'error', error: 'The folder is not writable.', files: [] }) });
     await userEvent.click(await screen.findByRole('button', { name: /Build .* package/ }));
-    expect((await screen.findByRole('alert')).textContent).toContain('The folder is not writable.');
+    expect((await findToast('The folder is not writable.')).text).toContain('The folder is not writable.');
   });
 
   it('the-built-list-goes-away-if-the-chapters-stop-passing', async () => {

@@ -124,7 +124,12 @@ fixes the problem, or, when there is nothing to fix from the Booth, a message th
 records, and the app does not start listening or play the start tone first. A refusal the DAW gives at the press (a full disk,
 REAPER not confirming in time) is a message with **Check again** too.
 
-![Booth - six seconds into a take: the text follows the voice](../../images/ui/booth-following.webp)
+Words you have read are dimmed one at a time, not by line or sentence: as the caret moves, every word before it turns grey, in the
+sentence you are reading as well as in the ones behind it. The word you are on and everything after it stay in full colour, so the
+text reads as a bright stretch ahead of a grey one that grows with you. A click, an arrow key or **Start from here** that moves the
+caret back brightens those words again.
+
+![Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice](../../images/ui/booth-following.webp)
 
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
 footer does not repeat the reason, and the setup chip on the top bar warns too:
@@ -231,7 +236,7 @@ chapter cannot be changed until you stop, and the chapter arrows and the chapter
 
 When you stop a take in a DAW, a message says **Take saved** with **Undo**, and the take is in the [undo history](navigation.md) as
 "Recorded a take of <chapter>", so `Ctrl+Z` or Undo in the jump menu reaches it from any page. Undo takes the take back in the DAW, as
-its own Edit > Undo would: the recorded audio is gone, and an earlier read the take split is whole again. It works only while the
+its own Edit > Undo would: the recorded audio is gone, and an earlier read the take split is whole again. The take's length also leaves **This session**, however you undid it. It works only while the
 take is still the DAW's last action. Once you change something in the DAW after it, Undo leaves the take alone and says to use
 Edit > Undo in the DAW. A take you start and stop in the DAW itself is not in the app's History, and neither is a built-in
 recorder's take; its file stays in `Recordings`.

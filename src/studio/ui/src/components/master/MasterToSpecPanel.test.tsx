@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExportItem } from '../../types';
+import { toastTexts } from '../../fixtures/toasts';
 import { MasterToSpecPanel } from './MasterToSpecPanel';
 import type { ExportJobs } from './useExportJobs';
 
@@ -36,12 +37,22 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
-  it('scrolls to a refusal that shows with no files', () => {
-    const scrollIntoView = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoView;
-    const { rerender } = render(<MasterToSpecPanel jobs={jobs()} />);
+  it('tells a refusal that has no files as a toast and draws no panel for it', () => {
+    const { container, rerender } = render(<MasterToSpecPanel jobs={jobs()} />);
     rerender(<MasterToSpecPanel jobs={jobs({ problem: 'Could not read the folder.' })} />);
-    expect(scrollIntoView).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('alert').textContent).toBe('Could not read the folder.');
+    expect(toastTexts()).toEqual(['Could not read the folder.']);
+    expect(container.innerHTML).toBe('');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('tells a job that ended in error as one toast, and draws no red line under the table (rule 7, #2632)', () => {
+    const failed = {
+      ...jobs({ items: [item] }),
+      exportJob: { id: 'j', phase: 'error', message: 'The encoder stopped.', percent: 40, files: [] },
+    } as unknown as ExportJobs;
+    const { container } = render(<MasterToSpecPanel jobs={failed} />);
+    expect(toastTexts()).toEqual(['The encoder stopped.']);
+    expect(container.textContent).not.toContain('The encoder stopped.');
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
