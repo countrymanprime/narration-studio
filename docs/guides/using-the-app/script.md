@@ -19,7 +19,7 @@ three parts side by side:
   is set. Speakers are the Story Bible's characters (the entries whose type speaks), and every speaker the app finds is
   a suggestion: a speech tag ("Ada said"), the other of two people taking turns, or a character's name within a few words
   of the line. It turns solid once you confirm it or pick someone in the chip's menu; confirming adds nothing to the Story
-  Bible. The **Find who speaks each line** button in the header runs the search again whenever you like, the first time or
+  Bible. Confirming who speaks a line is one history entry (**Confirmed a speaker**), the same one the Story Bible's cue list and the Booth's speaker chip make. The **Find who speaks each line** button in the header runs the search again whenever you like, the first time or
   after you add a character: it fills the lines nobody has confirmed, never changes one you confirmed or picked, and says
   how many lines it attributed, with **Undo**. Run again with nothing new, it says so and changes nothing. A name still in Needs Review is never a speaker until you file it under a type that speaks. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width: **Narrow**, **Medium**, **Wide** or **Full**, each the width's characters a line or its share of the text area, whichever is less, in a column centred in the text area, the same column the [Booth](booth.md) reads in, so Narrow stays narrower than Full in a half-width window). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
 - **The rail** on the right, with three tabs: **Words**, **Story Bible** and **Notes**. Bookmarks are not a tab: go to one from the [jump menu](navigation.md#jump-to-or-run) (`Ctrl+F`, then type *bookmark*), and add, edit or delete one from the right-click menu (see [Bookmarks](#bookmarks)).
@@ -106,6 +106,7 @@ word in the text to open it on the **Words** tab.
 - **In this chapter** is the same list on **Words** and on **Story Bible**: who and what the chapter has, one row each with the name, its
   kind where it has one, and a **Hear** button where there is a pronunciation to play. It lists who is in the chapter, not who speaks,
   and it has no status column: a row without a **Hear** button has no pronunciation yet.
+- The names, kinds and speakers on this page are read again each time you open it, so an entry you renamed or retyped in the [Story Bible](story-bible.md) shows here at once.
 - **Words** lists the words marked for pronunciation in the chapter in view. A word's card has **How I will say it**
   with its source (a dictionary, eSpeak or the one you typed), the **Definition**, **Forvo** and **YouGlish** pages for
   it, and its definition from where **Definitions from** says: the web page (the default), the offline dictionary
