@@ -8,6 +8,8 @@ import { overlay } from '../../../../overlay/overlayService';
 import { TooltipProvider } from '../../../primitives/Tooltip';
 import { InThisChapter, type InThisChapterRow } from './InThisChapter';
 
+const HEAR = { playing: false, loading: false, onPress: () => {} };
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -30,8 +32,8 @@ describe('In this chapter', () => {
 
   it('draws the name, the kind and a play button for a row with a pronunciation, and no status', () => {
     mount([
-      { id: 'a', name: 'Alice', kind: { label: 'Character', colour: 'character' }, detail: 'first Chapter 1', hear: true },
-      { id: 'b', name: 'Dinah', kind: { label: 'Character', colour: 'character' }, hear: false },
+      { id: 'a', name: 'Alice', kind: { label: 'Character', colour: 'character' }, detail: 'first Chapter 1', hear: HEAR },
+      { id: 'b', name: 'Dinah', kind: { label: 'Character', colour: 'character' }, hear: undefined },
     ]);
     const alice = screen.getByRole('row', { name: /Alice/ });
     expect(within(alice).getByText(/Character/).textContent).toContain('first Chapter 1');
@@ -43,7 +45,7 @@ describe('In this chapter', () => {
   it('plays the reference clip, and selects a row that can be selected', async () => {
     const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
     const onActivate = vi.fn();
-    mount([{ id: 'a', name: 'Alice 🐇 مرحبا', hear: true, onActivate, data: { 'data-e': 'a' } }]);
+    mount([{ id: 'a', name: 'Alice 🐇 مرحبا', hear: HEAR, onActivate, data: { 'data-e': 'a' } }]);
     await userEvent.setup().click(screen.getByRole('button', { name: /Hear Alice/ }));
     expect(toast).toHaveBeenCalledWith('Playing “Alice 🐇 مرحبا” reference clip');
     await userEvent.setup().click(screen.getByText('Alice 🐇 مرحبا'));

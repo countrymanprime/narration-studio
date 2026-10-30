@@ -6,6 +6,7 @@ import { Menu } from '../../../../primitives/Menu';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Swatch } from '../../../../primitives/Swatch';
 import { InThisChapter } from '../InThisChapter';
+import { useScriptHear } from '../useScriptHear';
 import { DefinitionBlock } from '../words/DefinitionBlock';
 import { ExternalLinks } from '../words/ExternalLinks';
 import type { WordsHost } from '../words/wordsHost';
@@ -55,6 +56,7 @@ export function BiblePanel({
   onOpenStoryBible: (entryId: string) => void;
   onCreate: (kind: string) => void;
 }) {
+  const hearOf = useScriptHear();
   return (
     <div className="flex flex-col gap-2">
       {entry ? (
@@ -99,7 +101,7 @@ export function BiblePanel({
           kind: { label: row.category, colour: swatchOf(colourOf(row.category)) },
           // No "first —": a name with no first appearance says nothing after its kind (alignment audit XSC-43).
           detail: firstAppearance(row, tagOf) === '—' ? undefined : `first ${firstAppearance(row, tagOf)}`,
-          hear: Boolean(row.pronunciation.ipa.trim()),
+          hear: hearOf(row.id, Boolean(row.pronunciation.ipa.trim())),
           selected: entry?.id === row.id,
           onActivate: () => onPick(row.id),
           data: { 'data-e': row.id },

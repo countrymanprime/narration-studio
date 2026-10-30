@@ -5,6 +5,7 @@ import { usePronunciationSources } from '../../../../storybible/source/usePronun
 import type { LineRange } from '../../data/scriptCommands';
 import { useEntries, useParagraphs, useScriptPrep, useScriptView } from '../../data/useScriptData';
 import { InThisChapter } from '../InThisChapter';
+import { useScriptHear } from '../useScriptHear';
 import { RailOptionRow } from '../RailOptionRow';
 import { DefinitionSourceMenu } from './DefinitionSourceMenu';
 import { WordCard } from './WordCard';
@@ -18,6 +19,7 @@ import type { WordsHost } from './wordsHost';
 export function WordsTab({ chapterId, host, selection }: { chapterId: string; host: WordsHost; selection?: LineRange }) {
   const prep = useScriptPrep();
   const { sources } = usePronunciationSources();
+  const hearOf = useScriptHear();
   const [word, update] = useScriptView((state) => state.word);
   const { entries } = useEntries();
   const paragraphs = useParagraphs(chapterId);
@@ -34,7 +36,7 @@ export function WordsTab({ chapterId, host, selection }: { chapterId: string; ho
         rows={list.map((row) => ({
           id: row.word,
           name: row.word,
-          hear: Boolean(row.say),
+          hear: hearOf(row.entryId, Boolean(row.say)),
           detail: row.say ? (
             <span
               role="img"
