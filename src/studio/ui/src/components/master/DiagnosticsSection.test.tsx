@@ -10,6 +10,7 @@ import { providedCommands } from '../../input/commandProviders';
 import { diagnosticsJobSchema } from '../../api/schemas/diagnostics';
 import type { Bootstrap, DiagnosticsJob, NarrationApi } from '../../types';
 import { MasterPage } from '../masterqc/page/MasterPage';
+import { findToast } from '../../overlay/toastTesting';
 import { PageHost } from '../masterqc/page/testPage';
 
 afterEach(cleanup);
@@ -202,13 +203,16 @@ describe('Master & QC, Diagnostics', () => {
 
   it('says so when the check broke, and shows the host’s refusal to start', async () => {
     await openDiagnostics({ overrides: { diagnosticsState: async () => contract('diagnostics-error.json') } });
-    expect(await screen.findByText(/The diagnostics stopped unexpectedly\. Choose the files again/)).toBeTruthy();
+    expect((await findToast(/The diagnostics stopped unexpectedly\. Choose the files again/)).tone).toBe('error');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/The diagnostics stopped unexpectedly/)).toBeNull();
     cleanup();
 
     const { user } = await openDiagnostics({
       overrides: { diagnosticsAnalyze: async () => Promise.reject(new Error('a diagnostics check is already running')) },
     });
     await user.click(screen.getByRole('button', { name: 'Choose files to check…' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('a diagnostics check is already running');
+    expect((await findToast('a diagnostics check is already running')).tone).toBe('error');
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

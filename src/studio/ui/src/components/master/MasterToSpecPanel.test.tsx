@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExportItem } from '../../types';
+import { toastTexts } from '../../overlay/toastTesting';
 import { MasterToSpecPanel } from './MasterToSpecPanel';
 import type { ExportJobs } from './useExportJobs';
 
@@ -36,12 +37,11 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
-  it('scrolls to a refusal that shows with no files', () => {
-    const scrollIntoView = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoView;
-    const { rerender } = render(<MasterToSpecPanel jobs={jobs()} />);
+  it('tells a refusal that has no files as a toast and draws no panel for it', () => {
+    const { container, rerender } = render(<MasterToSpecPanel jobs={jobs()} />);
     rerender(<MasterToSpecPanel jobs={jobs({ problem: 'Could not read the folder.' })} />);
-    expect(scrollIntoView).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('alert').textContent).toBe('Could not read the folder.');
+    expect(toastTexts()).toEqual(['Could not read the folder.']);
+    expect(container.innerHTML).toBe('');
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

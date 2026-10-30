@@ -2,6 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DeliveryProfile, MultiPackageJob, MultiPackageResult } from '../../types';
+import { toastTexts } from '../../overlay/toastTesting';
 import { MultiPlatformExportPanel } from './MultiPlatformExportPanel';
 import type { ExportJobs } from './useExportJobs';
 
@@ -66,5 +67,24 @@ describe('Multi-platform export', () => {
     render(<MultiPlatformExportPanel profiles={[ACX]} jobs={jobs([result({ phase: 'running' })], true)} />);
     expect(screen.getByText('Building…')).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: 'Building packages' })).toBeTruthy();
+  });
+
+  it('tells a failed build as a toast, not as a line that opens under the button (rule 7, #2632)', () => {
+    const failed = { ...jobs([]), multiPackageProblem: 'a package is already being built' } as ExportJobs;
+    const { container, rerender } = render(<MultiPlatformExportPanel profiles={[ACX, FINDAWAY]} jobs={jobs([])} />);
+    const before = container.innerHTML;
+    rerender(<MultiPlatformExportPanel profiles={[ACX, FINDAWAY]} jobs={failed} />);
+    expect(toastTexts()).toEqual(['a package is already being built']);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(container.querySelector('p')?.textContent ?? '').not.toContain('already being built');
+    expect(container.innerHTML.length).toBeLessThanOrEqual(before.length);
+  });
+
+  it('tells a build that ended in error as a toast once, with no red line of its own', () => {
+    const errored = jobs([]);
+    errored.multiPackageJob = { ...errored.multiPackageJob!, phase: 'error', message: 'Nothing was built.' } as MultiPackageJob;
+    const { container } = render(<MultiPlatformExportPanel profiles={[ACX]} jobs={errored} />);
+    expect(toastTexts()).toEqual(['Nothing was built.']);
+    expect(container.textContent).not.toContain('Nothing was built.');
   });
 });

@@ -10,6 +10,7 @@ import { createMockDawClient, type DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { MeasureFileResult, MeasureJob, NarrationApi } from '../../../types';
+import { findToast, toastTexts } from '../../../overlay/toastTesting';
 import { MasterPage } from './MasterPage';
 import { acx, apiOf, jobOf, passing, withCredits } from './testPage';
 
@@ -118,11 +119,14 @@ describe('Master & QC: the measurement host goes quiet', () => {
     mount([], { measureState });
     expect(await screen.findByText('Reading 10')).toBeTruthy();
     await act(async () => void (await vi.advanceTimersByTimeAsync(600)));
-    expect(await screen.findByText(/Can't tell how the measurement is going/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+    // The lapse is a toast with Check again as its Retry, not a line in the page (rule 7); it goes once the host answers.
+    const lapse = await findToast(/Can't tell how the measurement is going/);
+    expect(lapse.tone).toBe('error');
+    expect(lapse.action?.label).toBe('Retry');
+    expect(screen.queryByText(/Can't tell how the measurement is going/)).toBeNull();
     await act(async () => void (await vi.advanceTimersByTimeAsync(2100)));
     expect(await screen.findByText('Reading 60')).toBeTruthy();
-    expect(screen.queryByText(/Can't tell how the measurement is going/)).toBeNull();
+    expect(toastTexts().filter((text) => /Can't tell how the measurement/.test(text))).toEqual([]);
   });
 
   it('a state read that arrives after Cancel does not bring the progress bar back', async () => {
@@ -174,7 +178,8 @@ describe('Master & QC: the measurement host goes quiet', () => {
       measureState: async () => jobOf([]),
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Check files…' }));
-    expect(await screen.findByText(/a measurement is already running/)).toBeTruthy();
+    expect((await findToast(/a measurement is already running/)).tone).toBe('error');
+    expect(screen.queryByText(/a measurement is already running/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Check files…' })).toBeTruthy();
   });
 });

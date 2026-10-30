@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react';
 import type { DeliveryProfile, DeliveryRuleStatus, MultiPackagePhase, MultiPackageResult } from '../../types';
+import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
@@ -87,6 +88,9 @@ function ResultLine({ result }: { result: MultiPackageResult }) {
 export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: DeliveryProfile[]; jobs: ExportJobs }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const { multiPackageJob, multiPackageRunning, multiPackageProblem } = jobs;
+  // A failed build is a toast, not a red line that opens under the button and pushes the card down (rule 7, #2632).
+  useErrorToast(multiPackageProblem);
+  useErrorToast(multiPackageJob?.phase === 'error' ? multiPackageJob.message : undefined);
 
   const toggle = (id: string, checked: boolean) =>
     setSelected((current) => {
@@ -144,13 +148,8 @@ export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: Deliver
         )}
       </div>
       {multiPackageRunning && <ProgressBar label="Building packages" value={null} running className="mt-3" />}
-      {multiPackageProblem && (
-        <p role="alert" className="mt-2 text-sm" style={DANGER}>
-          {multiPackageProblem}
-        </p>
-      )}
-      {multiPackageJob && multiPackageJob.phase !== 'idle' && multiPackageJob.phase !== 'running' && (
-        <p aria-live="polite" className="mt-2 text-sm" style={multiPackageJob.phase === 'error' ? DANGER : OK}>
+      {multiPackageJob && multiPackageJob.phase !== 'idle' && multiPackageJob.phase !== 'running' && multiPackageJob.phase !== 'error' && (
+        <p aria-live="polite" className="mt-2 text-sm" style={OK}>
           {multiPackageJob.message}
         </p>
       )}

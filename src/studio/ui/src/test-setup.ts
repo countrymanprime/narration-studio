@@ -2,6 +2,7 @@ import { afterEach, vi } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
 import fc from 'fast-check';
 import { forgetProofMemory } from './components/proof/proofMemory';
+import { clearToasts } from './overlay/toastTesting';
 
 // Testing Library's findBy* and waitFor give up after 1 s by default. Vitest runs test files in parallel workers, and a
 // page that mounts the whole app or a long chapter in jsdom can take longer than that when the machine is busy: two of 25
@@ -19,6 +20,8 @@ afterEach(() => {
   cleanup();
   // What Proof keeps for a Back (the selected note, an unsaved decision note) is the session's, never a test's.
   forgetProofMemory();
+  // Nor is a toast one test raised the next test's.
+  clearToasts();
 });
 
 // Vitest 4's jsdom compat layer wraps URL.createObjectURL and reads a private
