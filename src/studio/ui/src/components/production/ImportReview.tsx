@@ -165,6 +165,7 @@ export function ImportReview({
       className={groupClass('narration')}
       panelClassName={panelClass}
       panelFocusable
+      scrollCue
     >
       {/* Two columns of tiles. The open group scrolls in the box around it, so this list never carries a scrollbar of its own. */}
       <div className="gap-2 py-2 sm:grid sm:grid-cols-2 sm:content-start">
@@ -267,6 +268,7 @@ export function ImportReview({
                 className={groupClass('characters')}
                 panelClassName={panelClass}
                 panelFocusable
+                scrollCue
               >
                 <div className="pb-2">
                   <p className="mb-2 text-xs text-[var(--text-muted)]">Checked names become reviewable Character entries after import.</p>
@@ -320,6 +322,7 @@ export function ImportReview({
                 className={groupClass('repairs')}
                 panelClassName={panelClass}
                 panelFocusable
+                scrollCue
               >
                 <ul className="list-disc space-y-1 pt-1 pb-3 pl-9 text-xs break-words text-[var(--text-muted)]">
                   {notices.map((notice, index) => (
