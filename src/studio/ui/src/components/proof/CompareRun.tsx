@@ -341,11 +341,6 @@ export function CompareRun({
     >
       {phase === 'setup' && (
         <div className="space-y-4">
-          <p className="text-[0.82rem]" style={{ color: 'var(--text-muted)' }}>
-            {dawName === 'Audacity'
-              ? `Transcribes the audio track selected in Audacity with Whisper and compares it with ${chapterTitle}.`
-              : `Transcribes the selected REAPER audio with Whisper and compares it with ${chapterTitle}.`}
-          </p>
           {/* Each group as wide as its buttons, side by side while they fit, so the model row never wraps beside half-empty columns (XPC-1). */}
           <div className="flex flex-wrap gap-x-8 gap-y-4">
             <div className="max-w-full min-w-0">
