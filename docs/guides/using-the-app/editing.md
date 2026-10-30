@@ -174,7 +174,11 @@ swell crossing it from left to right about every second and a half. With **Motio
 it), nothing moves.
 
 **Scrolling.** Hold the right button and drag to move the audio along, or use the wheel or two fingers on a trackpad or touch screen. The
-arrows at either end move a whole window back or forward; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
+arrows at either end move what shows back or forward by one step, 20 seconds unless you change it in
+[Settings](settings.md) (**Waveform arrow step**, 15 to 30 seconds). A click moves exactly one step, easing into place,
+and never a whole window. Hold an arrow and the waveform scrolls on smoothly at one step a second until you let go; with Motion set to
+Reduce, a press jumps and a hold repeats whole steps. The arrow turns off at the start or end of the chapter, and a selected range stays on
+its audio while the view moves; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
 brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps
@@ -245,8 +249,8 @@ before it goes ahead.
 **FX in REAPER** lists the plug-ins on the project's tracks and its master track as REAPER holds them now: where each one
 sits, its name, and whether it is switched on there. It reads REAPER and changes nothing, so a plug-in you add or bypass in
 REAPER shows here when you come back to the app or press **Check again**; the list says when REAPER last answered. If REAPER
-cannot be read the section says why instead of showing an old list. To put a plug-in on words, use **Choose in REAPER…**
-(below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
+cannot be read the section says why instead of showing an old list. The **?** beside the heading says how a plug-in gets onto words:
+use **Choose in REAPER…** (below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
 
 ### Choose any plug-in in REAPER
 

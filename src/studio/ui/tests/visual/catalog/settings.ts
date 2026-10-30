@@ -29,7 +29,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-sample-output-daw',
     description:
-      'Settings, Recording & DAW with REAPER chosen: the Voice sample output row is a sentence saying samples play on this computer’s default output and REAPER’s own audio device is not changed, with Test sound and no choice',
+      'Settings, Recording & DAW with REAPER chosen: the Voice sample output row is Test sound with a "?" open, saying samples play on this computer’s default output and REAPER’s own audio device is not changed, and no choice',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -333,6 +333,14 @@ export const settingsStates: StateEntry[] = [
     state: 'reader-text',
     description:
       'Settings, Appearance & keys scrolled to the reader rows: Reader font, Reader text size, Line spacing and Column width, each its own row, with the preview quote under Column width',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'wave-scroll-step',
+    description:
+      'Settings, Appearance & keys scrolled to the Editing section: Waveform arrow step, a slider from 15 to 30 seconds reading 20 s, with the rows around it',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

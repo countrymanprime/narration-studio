@@ -520,6 +520,34 @@ describe('the pipeline lists the credits as the mock does (issue 1705)', () => {
     expect(goToBooth).toHaveBeenCalledWith('credits-opening');
   });
 
+  // Audit cluster 15 (docs/research/ui-function-audit.md): the credits' prep is the narrator's mark on Script ("My prep"), the one record the
+  // Script card sets and Production reads; no template reading overrides it.
+  it("shows the prep the narrator marked for the credits on Script, whatever the template's tokens say", async () => {
+    const api = createMockApi();
+    await api.scriptPrepSetChapter('credits:opening', 'progress');
+    const data = await api.bootstrap();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <TooltipProvider>
+            <ProductionPage
+              data={data}
+              go={vi.fn()}
+              notify={vi.fn()}
+              goToScript={vi.fn()}
+              goToBooth={vi.fn()}
+              refreshBootstrap={async () => {}}
+              dawConnectGraceMs={0}
+            />
+          </TooltipProvider>
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    const table = await pipeline();
+    const opening = await within(table).findByRole('row', { name: /Opening credits/ });
+    await waitFor(() => expect(within(opening).getByRole('button', { name: /^Opening credits: Prep In progress/i })).toBeTruthy());
+  });
+
   it('has no separate Credits list under the pipeline: the rows are where the credits are', async () => {
     await renderPage();
     await pipeline();

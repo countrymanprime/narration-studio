@@ -79,7 +79,7 @@ export const ZoomedIn: Story = {
   args: { doc, range: { start: 6.1, end: 6.4 }, view: { start: 0.85, len: 1 } },
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByRole('button', { name: 'Scroll the waveform back a window' })).toBeTruthy();
+    await expect(c.getByRole('button', { name: 'Scroll the waveform back' })).toBeTruthy();
     await expect(c.queryByRole('slider', { name: 'Visible part' })).toBeNull();
   },
 };

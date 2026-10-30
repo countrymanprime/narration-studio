@@ -18,6 +18,7 @@
 //   refused save                   not tested here: the host's refusal of a text value is the store's (SettingsStore tests)
 //   recording                      not built: Settings has no recorder state; the player's own guard refuses a sample while a take records
 //   reload, leave mid-action       not tested: the row holds no state the host keeps
+import userEvent from '@testing-library/user-event';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -173,22 +174,24 @@ describe('Voice sample output: layout', () => {
     expect(refresh.parentElement).toBe(within(row()).getByRole('button', { name: 'Test sound' }).parentElement);
   });
 
-  it('with a DAW the sentence is a muted note under Test sound, not body text above it', async () => {
+  it('with a DAW the sentence is behind a "?" beside Test sound, not drawn in the row', async () => {
     await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
-    const sentence = await within(row()).findByText(DAW_SENTENCE);
-    expect(sentence.className).toContain('text-[var(--text-muted)]');
-    expect(sentence.className).toContain('text-[0.8125rem]');
+    const help = await within(row()).findByRole('button', { name: 'About where samples play' });
     const test = within(row()).getByRole('button', { name: 'Test sound' });
-    expect(test.compareDocumentPosition(sentence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(test.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(row()).queryByText(DAW_SENTENCE)).toBeNull();
+    await openHelp();
+    expect(await screen.findByText(DAW_SENTENCE)).toBeTruthy();
   });
 });
+
+const openHelp = async () => userEvent.setup().click(await within(row()).findByRole('button', { name: 'About where samples play' }));
 
 describe('Voice sample output: no project', () => {
   it('with no project open the choice is off and says to open one', async () => {
     await renderRow(createMockApi({}, { recording: { hasProject: false } }));
     await within(row()).findByText('Open a project to choose where its voice samples play.');
     expect(await picker()).toHaveProperty('disabled', true);
-    expect(within(row()).queryByText(DAW_SENTENCE)).toBeNull();
   });
 });
 
@@ -196,23 +199,25 @@ describe('Voice sample output: following "Record with"', () => {
   it('changing the recorder on this page changes the row, in both directions', async () => {
     const api = createMockApi({}, { daw: {} });
     await renderRow(api);
-    await within(row()).findByText(DAW_SENTENCE);
+    await within(row()).findByRole('button', { name: 'About where samples play' });
     const group = await screen.findByRole('radiogroup', { name: 'Record with' });
     fireEvent.click(within(group).getByRole('radio', { name: /^Built-in recorder/ }));
     // The project's REAPER file is linked, so the switch waits on the confirm that says what changes.
     const confirm = await screen.findByRole('alertdialog', { name: 'Stop recording with REAPER?' });
     fireEvent.click(within(confirm).getByRole('button', { name: 'Switch to the built-in recorder' }));
     expect(await picker()).toBeTruthy();
-    expect(within(row()).queryByText(DAW_SENTENCE)).toBeNull();
     fireEvent.click(within(group).getByRole('radio', { name: /^REAPER/ }));
-    await within(row()).findByText(DAW_SENTENCE);
+    await within(row()).findByRole('button', { name: 'About where samples play' });
   });
 });
 
 describe('Voice sample output: the DAW is named', () => {
   it("says Audacity's own audio device, not REAPER's, under an Audacity project", async () => {
     await renderRow(createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' }, recording: { engine: 'daw' } }));
-    await within(row()).findByText(dawSentence('Audacity'));
+    // The DAW row has no output list to refresh; wait for it before reading the note behind its "?".
+    await waitFor(() => expect(within(row()).queryByRole('button', { name: 'Refresh the list' })).toBeNull());
+    await openHelp();
+    await screen.findByText(dawSentence('Audacity'));
     expect(row().textContent).not.toMatch(/REAPER/);
     expect(dawSentence('Audacity')).toBe("Voice samples play on this computer's default output. Audacity's own audio device is not used or changed.");
   });
@@ -246,7 +251,7 @@ describe('Voice sample output: device changes', () => {
 describe('Voice sample output: a DAW is connected', () => {
   it('with a DAW the row is a sentence and a test sound, and has no choice', async () => {
     await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
-    await within(row()).findByText(DAW_SENTENCE);
+    await within(row()).findByRole('button', { name: 'About where samples play' });
     expect(within(row()).queryByRole('combobox')).toBeNull();
     expect(within(row()).getByRole('button', { name: 'Test sound' })).toBeTruthy();
   });
@@ -293,7 +298,7 @@ describe('Voice sample output: test sound', () => {
   it('with a DAW the test sound is on the default output', async () => {
     await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
     // The row first draws before the project's recorder is known; the button that matters is the one under the sentence.
-    await within(row()).findByText(DAW_SENTENCE);
+    await within(row()).findByRole('button', { name: 'About where samples play' });
     fireEvent.click(within(row()).getByRole('button', { name: 'Test sound' }));
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     expect(setSinkId).toHaveBeenCalledWith('');
