@@ -1,5 +1,5 @@
 import { creditsKindOfId } from '../../credits/creditsEntries';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
@@ -72,22 +72,26 @@ export function useBoothData(target: BoothChapterTarget | null) {
   // How far each chapter is recorded, read with the chapters and read again after a take (`refreshRecorded`), so a chapter the narrator
   // comes back to opens where the take they just made ends; the chapters themselves are not replaced, so nothing on the page re-renders.
   const [recorded, setRecorded] = useState<Record<string, RecordedThrough>>({});
+  // Reads can answer out of order; only the newest one asked is kept, so an old answer never replaces how far a later take reached.
+  const recordedRead = useRef(0);
   const refreshRecorded = useCallback(() => {
+    const mine = ++recordedRead.current;
     void manuscript
       .manuscriptChapters()
-      .then((all) => setRecorded(recordedOf(all)))
+      .then((all) => mine === recordedRead.current && setRecorded(recordedOf(all)))
       .catch(() => {});
   }, [manuscript]);
 
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
+    const mine = ++recordedRead.current;
     void Promise.all([manuscript.manuscriptChapters(), teleprompter.teleprompterState().catch(() => undefined)])
       .then(([all, host]) => {
         if (!live) return;
         const narration = all.filter(isNarrationChapter);
         setChapters(narration);
-        setRecorded(recordedOf(narration));
+        if (mine === recordedRead.current) setRecorded(recordedOf(narration));
         const running = host && host.phase !== 'idle' && host.phase !== 'stopped' ? narration.find((item) => item.id === host.chapter)?.id : undefined;
         // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
         setFallback(running ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '');
