@@ -60,13 +60,25 @@ File system calls by REAPER's main thread, per second:
 | Small project, idle, bridge held | 0.4 | 0.6 | 0.4 | 0.1 | 0.1 |
 | 4050 items, 1000-item read every 1 s | 1021 | 36 | 1021 | 1002 | 1002 |
 
+## Where a track read's time goes
+
+The `chapter_track_state` handler of a 1000-item track, called inside REAPER with its events sent three ways, median of 7 runs:
+
+| Events | Time |
+| --- | --- |
+| Not built | 9.0 ms |
+| Percent-encoded and joined, not written | 23.2 ms |
+| Written as the bridge writes them, one append per line | 36.7 ms |
+
+About 9 µs an item is ReaScript calls (`item_row`: the item and take GUIDs, `GetMediaSourceFileName`, five `Get*Info_Value`), about 14 µs is `encode` (a Lua function call and a `string.format` for every character outside `[%w-_.~]`, and a source path has many), and about 13 µs is the append.
+
 ## Ranking
 
-1. **Per-line `events.log` appends in multi-line answers.** A 1000-item `chapter_track_state` holds REAPER's main thread for about 40 ms and makes about 4000 file system calls; a 50-item one about 4 ms and 200 calls. It runs after every edit in REAPER while the Editing page is open and every 4 s while the Booth records. On Windows each open and close of a written file passes the file system filter drivers (antivirus), so the same count is expected to cost more there: not measured.
+1. **`chapter_track_state` cost per item**: about 37 µs an item, so 37 ms for 1000 items and 2 to 5 ms for a 50-item chapter, plus 4 file system calls per item. It runs after every edit in REAPER while the Editing page is open, every 4 s while the Booth records, and every 1 s while the resume prompt follows. The per-line appends are a third of the time on Linux; on Windows each open and close of a written file also passes the file system filter drivers (antivirus), so they are expected to weigh more there: not measured. Encoding is the other large part on every platform.
 2. **The idle tick's folder listing**: 30 directory opens and 58 `getdents64` a second, 0.06 ms a tick, 0.2% of the main thread. REAPER's CPU is the same with the bridge held. Not worth slowing the first command after idle for, on these numbers; Windows unmeasured.
 3. Everything else (heartbeat, transport watch, the record watch loop): below what these windows resolve.
 
-On Linux the bridge does not explain a sluggish REAPER: nothing it does idle or while recording costs more than 0.3% of the main thread, and the worst read measured, 40 ms, is a single dropped frame.
+On Linux the bridge does not explain a sluggish REAPER: nothing it does idle or while recording costs more than 0.3% of the main thread, and the worst read measured, 40 ms, is about one dropped frame.
 
 ## Not measured here
 
