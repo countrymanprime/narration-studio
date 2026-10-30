@@ -13,6 +13,7 @@ import { useDawKind } from '../../useDawKind';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
+import { reviewFinding } from '../../studio/commands/reviewFinding';
 import { ALL_SCOPE, clock, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
@@ -205,33 +206,18 @@ export function PickupsPage({
     const id = pickup.findingId;
     if (!id) return undefined;
     const before = await findingsApi.findingsGet(id);
-    const failed = (error: unknown) => ({ ok: false as const, refusal: { code: 'host_refused', reason: reasonSentence(error) } });
-    const done = await journal.act({
-      label: `Fine, not a pickup at ${clock(pickup.time)}`,
-      touches: [`proof/finding/${id}`, 'pickups'],
-      run: async () => {
-        try {
-          const after = await findingsApi.findingsReview({
-            id,
-            evidenceVersion: before.evidence_version ?? '',
-            status: 'dismissed',
-            note: before.review.note ?? '',
-          });
-          return { ok: true as const, value: after };
-        } catch (error) {
-          return failed(error);
-        }
+    const done = await reviewFinding(
+      journal,
+      findingsApi,
+      before,
+      { id, evidenceVersion: before.evidence_version ?? '', status: 'dismissed', note: before.review.note ?? '' },
+      {
+        label: `Fine, not a pickup at ${clock(pickup.time)}`,
+        touches: ['pickups'],
+        describe: reasonSentence,
+        afterUndo: () => changing(pickupsApi.pickupsList()),
       },
-      undo: async (after) => {
-        try {
-          await findingsApi.findingsReview({ id, evidenceVersion: after.evidence_version ?? '', status: before.review.status, note: before.review.note ?? '' });
-          await changing(pickupsApi.pickupsList());
-          return { ok: true as const, value: undefined };
-        } catch (error) {
-          return failed(error);
-        }
-      },
-    });
+    );
     if (!done.ok) throw new Error(done.refusal.reason);
     await changing(pickup.source === 'speech' ? pickupsApi.pickupsRemove(pickup.id) : pickupsApi.pickupsList());
     const entry = done.value.id;
