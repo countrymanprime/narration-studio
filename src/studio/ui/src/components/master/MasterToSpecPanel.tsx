@@ -53,7 +53,7 @@ const TABLE_FLOOR = 'min-w-[44rem]';
  * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
  * appears once files are picked or a job exists; before that the page's header action is the way in.
  */
-export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chainLabel?: string }) {
+export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: ExportJobs; chainLabel?: string; onCheckFiles?: () => void }) {
   const { items, exportJob, exportRunning, problem } = jobs;
   const started = !!exportJob?.files.length;
   const hasFiles = items.length > 0 || started;
@@ -188,9 +188,18 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
         </div>
       )}
       {exportJob && !exportRunning && exportJob.phase !== 'idle' && (
-        <p aria-live="polite" className={`mt-2 text-sm ${ARRIVE_CLASSES}`} style={exportJob.phase === 'error' ? DANGER : undefined}>
-          {exportJob.message}
-        </p>
+        <div className={`mt-2 flex flex-wrap items-center justify-between gap-2 ${ARRIVE_CLASSES}`}>
+          <p aria-live="polite" className="min-w-0 flex-[1_1_20rem] text-sm" style={exportJob.phase === 'error' ? DANGER : undefined}>
+            {exportJob.message}
+            {/* The export writes new copies and measures nothing, so Delivery and the table above still go by the files that were checked (issue 2631). */}
+            {exportJob.phase === 'success' && onCheckFiles ? ' They are new copies: Delivery counts a chapter once its file is checked.' : ''}
+          </p>
+          {exportJob.phase === 'success' && onCheckFiles && (
+            <Button variant="secondary" onClick={onCheckFiles}>
+              Check files…
+            </Button>
+          )}
+        </div>
       )}
     </Panel>
   );

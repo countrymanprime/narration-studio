@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExportItem } from '../../types';
 import { MasterToSpecPanel } from './MasterToSpecPanel';
@@ -43,5 +43,29 @@ describe('MasterToSpecPanel: showing up', () => {
     rerender(<MasterToSpecPanel jobs={jobs({ problem: 'Could not read the folder.' })} />);
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('alert').textContent).toBe('Could not read the folder.');
+  });
+});
+
+describe('MasterToSpecPanel: after the files are prepared (issue 2631)', () => {
+  const done = {
+    phase: 'success',
+    message: 'Prepared 1 files.',
+    percent: 100,
+    files: [{ path: item.path, kind: 'chapter', title: 'Chapter 01', status: 'done' }],
+  };
+
+  it('says the files are new copies that Delivery has not measured, and offers Check files…', () => {
+    const onCheckFiles = vi.fn();
+    render(<MasterToSpecPanel jobs={jobs({ exportJob: done as never, items: [item] })} onCheckFiles={onCheckFiles} />);
+    expect(screen.getByText(/new copies/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Check files…' }));
+    expect(onCheckFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no Check files… after a failed or cancelled export, or when the page gives no way to check', () => {
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ exportJob: { ...done, phase: 'error' } as never })} onCheckFiles={() => undefined} />);
+    expect(screen.queryByRole('button', { name: 'Check files…' })).toBeNull();
+    rerender(<MasterToSpecPanel jobs={jobs({ exportJob: done as never })} />);
+    expect(screen.queryByRole('button', { name: 'Check files…' })).toBeNull();
   });
 });
