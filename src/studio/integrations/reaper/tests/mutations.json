@@ -2996,5 +2996,17 @@
     "file": "narration_bridge_core.lua",
     "find": "  if held then\n    return fn(...)\n  end\n",
     "replace": ""
+  },
+  {
+    "name": "the timing diagnostic is on by default",
+    "file": "narration_ui_bridge.lua",
+    "find": "if reaper.GetExtState(M.SESSION_SECTION, M.TIMING_KEY) == '' then",
+    "replace": "if false then"
+  },
+  {
+    "name": "the timing switch is read on every tick",
+    "file": "narration_ui_bridge.lua",
+    "find": "if not last_now or (timing_checked_at and last_now - timing_checked_at < M.TIMING_CHECK_SECONDS) then",
+    "replace": "if not last_now then"
   }
 ]

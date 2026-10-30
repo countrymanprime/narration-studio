@@ -115,4 +115,18 @@ What is left of a track read is about 9 to 12 ms of ReaScript calls per 1000 ite
 
 ## Owner hands-on
 
-Pending, owner: confirm on the Windows machine where REAPER's time goes. The steps need the bridge timing diagnostic, which is not in this change.
+Pending, owner: where REAPER's time goes on the Windows machine, with a real audio device. The bridge's timing diagnostic is off unless switched on. On, it adds one summary line every 10 s to `bridge-timing.log` in the bridge's session folder and to REAPER's console: ticks, tick time (p50, p99, max), the share of the main thread the bridge used, the commands-folder listing, and each command by name with its count and time. It never writes a path or project text. Measured in REAPER 7.82 on Linux with it on: tick p99 0.23 ms, busy 0.21%.
+
+1. Install this build and open REAPER and the app as usual, with the project that feels slow.
+2. In REAPER: Actions > Show action list > New action > New ReaScript. Name it `bridge timing on.lua`, paste this line, save and close the editor, then select the new action in the action list and press Run:
+
+   ```lua
+   reaper.SetExtState('NarrationStudio', 'bridge_timing', '1', false)
+   ```
+
+3. Work as you do when REAPER feels slow for at least two minutes: edit in REAPER with the app's Editing page open, then record a take from the Booth. Note the clock time of each slow moment.
+4. Copy REAPER's console window (it opens on the first line), or send the file: Options > Show REAPER resource path, then `NarrationStudio/sessions/`, the newest `hub_…` folder, `bridge-timing.log`.
+5. Switch it off with a second ReaScript holding `reaper.DeleteExtState('NarrationStudio', 'bridge_timing', false)`, or close REAPER (the switch does not outlive REAPER).
+6. Also note the app's and REAPER's CPU in Task Manager while idle and while it feels slow.
+
+How to read it: a `busy` share or `tick_ms max` that stays small while REAPER is slow rules the bridge out. A large `listing_ms` points at the commands-folder listing (a Windows file system or antivirus cost this Linux run cannot show). A large `max_ms` beside one command names that command.
