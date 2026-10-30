@@ -14,6 +14,10 @@
 // inFlowProse.test.ts caps it). Adding an entry of another class is allowed, and a reviewer sees the class it claims.
 //
 // Generated on 2026-10-26 from main by the extractor and classed by hand where the pattern guessed wrong; re-class an entry when you touch it.
+// The extractor also reads what a JSX child draws without writing it inline: the branches of `?:`, `&&`, `||` and `??`, and the strings a
+// same-file constant or helper returns when the page draws it (`{NOTE}`, `{say(x)}`), and it counts a `HelpButton` note as an overlay. The 54 runs
+// that reading added are classed after the rest of the list (#2251): the ones that told the narrator how to do something were moved into a "?",
+// a tooltip or the guide, so none of them is debt.
 
 type ProseClass = 'overlay' | 'error' | 'empty' | 'state' | 'instruction' | 'explanation';
 
@@ -625,5 +629,175 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     file: 'components/settings/page/DeleteStoryBibleData.tsx',
     text: 'This cannot be undone. The script, takes, recordings, settings, voice samples and voice references stay. Add entry or Scan the manuscript starts the Story Bible again.',
     class: 'overlay',
+  },
+  {
+    file: 'components/booth/ResumePrompt.tsx',
+    text: 'This is a guess: the end of your recording could also fit elsewhere in the chapter (…% sure). Check the sentence before resuming:',
+    class: 'state',
+  },
+  { file: 'components/booth/ResumePrompt.tsx', text: "The last … seconds of your recording did not match this chapter's text, so …", class: 'state' },
+  { file: 'components/booth/ResumePrompt.tsx', text: "The last item's audio file is missing (…), so where you stopped cannot be found and …", class: 'state' },
+  { file: 'components/booth/frame/LevelsMenu.tsx', text: "…'s input could be any of these microphones. Pick the one it uses.", class: 'overlay' },
+  {
+    file: 'components/booth/page/BoothUnavailable.tsx',
+    text: 'The Booth reads the … from your credits template, and this project has none to read. Set it up in Settings, or go back to the chapters.',
+    class: 'empty',
+  },
+  {
+    file: 'components/booth/page/BoothUnavailable.tsx',
+    text: 'The Booth reads the chapters of this book. Go back to the chapters to pick one.',
+    class: 'empty',
+  },
+  { file: 'components/connection/ChapterLinkDialog.tsx', text: '… cannot add a track from this app. Add one in …, then check again.', class: 'overlay' },
+  {
+    file: 'components/connection/ReaperOffDialog.tsx',
+    text: 'The project is linked, but … has not connected: it is closed, or its bridge has not started yet.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/connection/ReaperOffDialog.tsx',
+    text: 'This app opened … on the linked project and is waiting for its bridge to answer.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/connection/ReaperOffDialog.tsx',
+    text: 'No … project file is linked to this project yet, so it cannot be started from here.',
+    class: 'overlay',
+  },
+  { file: 'components/editing/effects/ChooseInDaw.tsx', text: "Can't tell what is chosen: … last answered … s ago.", class: 'error' },
+  {
+    file: 'components/editing/effects/ProjectFx.tsx',
+    text: 'To put a plug-in on words, select them and use Choose in …… under Add an effect, or save it in … as an FX chain; saved chains are listed there too.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/editing/range/replace/ReplaceDialog.tsx',
+    text: '… is no longer where it was added. … plays it from there: put it back, or add it again from where it is now.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/editing/range/replace/ReplaceDialog.tsx',
+    text: '… changed since it was added. Add it again so the app measures what … plays.',
+    class: 'overlay',
+  },
+  { file: 'components/editing/takes/split/SplitConfirm.tsx', text: 'It is one undo step in …: Undo there puts the take back whole.', class: 'overlay' },
+  { file: 'components/editing/voicesample/VoiceSampleDialog.tsx', text: '… has … samples. Delete one first.', class: 'overlay' },
+  {
+    file: 'components/editing/voicesample/VoiceSampleDialog.tsx',
+    text: "That stretch couldn't be played. Check that its audio file is still where the project expects it.",
+    class: 'overlay',
+  },
+  {
+    file: 'components/engine/EnginePanel.tsx',
+    text: 'Audacity has no audio tracks yet, or has not answered since this project opened. The tracks shown here are read from the last time it did.',
+    class: 'state',
+  },
+  { file: 'components/engine/EnginePanel.tsx', text: 'One chapter can’t get a stage suggestion until its track link is confirmed below.', class: 'state' },
+  { file: 'components/engine/EnginePanel.tsx', text: '… chapters can’t get a stage suggestion until their track links are confirmed below.', class: 'state' },
+  {
+    file: 'components/engine/RetakeLanesDialog.tsx',
+    text: 'No track in the saved project uses fixed item lanes. Record retakes into lanes in REAPER first: The app never turns lanes on or converts takes to lanes.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/engine/RetakeLanesDialog.tsx',
+    text: 'No line has retakes on more than one lane of a track, so there is nothing to choose. Only items linked to manuscript lines are listed.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/layout/StartupScreen.tsx',
+    text: 'Lost connection to the app’s server. It may have been closed or crashed - check that it is still running.',
+    class: 'error',
+  },
+  {
+    file: 'components/master/DeliveryProfilePanel.tsx',
+    text: 'Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.',
+    class: 'overlay',
+  },
+  { file: 'components/master/DeliveryProfilePanel.tsx', text: ": …'s page, as recorded, sets no LUFS rule.", class: 'state' },
+  { file: 'components/master/FileRulesPanel.tsx', text: ' Loudness … LUFS (information: … no LUFS rule).', class: 'state' },
+  { file: 'components/master/ReportExportPanel.tsx', text: 'Check some files first: the report covers the files measured here.', class: 'empty' },
+  { file: 'components/masterqc/page/MasterPage.tsx', text: 'The link names …, but no files are measured yet. Check files to measure them.', class: 'empty' },
+  {
+    file: 'components/masterqc/page/MasterPage.tsx',
+    text: 'The link names …, which this check does not include. It may have been renamed, moved or not measured yet.',
+    class: 'empty',
+  },
+  { file: 'components/pickups/list/SessionPanel.tsx', text: 'No lines in the session: tick a line to include it.', class: 'empty' },
+  { file: 'components/production/ImportChooseDialog.tsx', text: 'Use a .docx, .md or .txt file. A copy is kept in your project.', class: 'overlay' },
+  { file: 'components/production/RecordingCheckReport.tsx', text: 'Start not read: paragraphs 1 to … (…).', class: 'state' },
+  { file: 'components/production/target/TargetPopover.tsx', text: '… … a measured length: … words in ….', class: 'overlay' },
+  { file: 'components/proof/CompareRun.tsx', text: 'Marker export is available only for results from this active … session', class: 'state' },
+  {
+    file: 'components/proof/PreviewPanel.tsx',
+    text: 'This pinned range is no longer in the manuscript (a re-import likely changed the paragraphs). Clear it and pin a new one.',
+    class: 'error',
+  },
+  { file: 'components/proof/PreviewPanel.tsx', text: 'The manuscript text under this pin has changed since it was pinned or last adjusted.', class: 'error' },
+  {
+    file: 'components/recordingcheck/CheckResult.tsx',
+    text: ' The saved file is older than the recorded audio: save the project in REAPER, then check again.',
+    class: 'error',
+  },
+  {
+    file: 'components/recordingcheck/background/BackgroundChecksNotice.tsx',
+    text: ': … listens first and … double-checks what it was unsure of.',
+    class: 'overlay',
+  },
+  { file: 'components/settings/CreditsPanel.tsx', text: 'Nothing to preview: ….', class: 'empty' },
+  { file: 'components/settings/KeyboardPanel.tsx', text: '… captured. No other command uses it ….', class: 'state' },
+  {
+    file: 'components/settings/RecordingCheckSummary.tsx',
+    text: 'A chapter counts as recorded when each paragraph has at least … of its words read and no more than … in a row are missing.',
+    class: 'state',
+  },
+  { file: 'components/settings/RecordingCheckSummary.tsx', text: 'The two-pass check is off: every check runs the Proof model above alone.', class: 'state' },
+  {
+    file: 'components/settings/RecordingCheckSummary.tsx',
+    text: 'The two-pass check is on: a fast first pass with …, then anything it reports missing is re-checked with ….',
+    class: 'state',
+  },
+  { file: 'components/settings/RetailSamplePanel.tsx', text: 'The saved sample cannot be shown: ….', class: 'error' },
+  {
+    file: 'components/settings/controls/AppearanceBodies.tsx',
+    text: '“Off with her head!” the Queen shouted at the top of her voice. Nobody moved.',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/EngineBody.tsx',
+    text: 'Only if … cannot be used at all: takes already in … stay there and this app stops reading them.',
+    class: 'overlay',
+  },
+  { file: 'components/settings/controls/EngineBody.tsx', text: 'Audacity 3 was not found on this computer. Install it to record with it. ', class: 'state' },
+  {
+    file: 'components/settings/controls/EngineBody.tsx',
+    text: '… was not found on this computer. Install it, or set where it is under Advanced, in the REAPER program setting below. ',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/MwKeyBody.tsx',
+    text: ' On this system the key is kept in a file only your account can read, not in a protected credential store.',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/SampleOutputBody.tsx',
+    text: "Voice samples play on this computer's default output. …'s own audio device is not used or changed.",
+    class: 'overlay',
+  },
+  {
+    file: 'components/settings/controls/SampleOutputBody.tsx',
+    text: 'Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/settings/page/ReaderTextPanel.tsx',
+    text: '“Off with her head!” the Queen shouted at the top of her voice. Nobody moved.',
+    class: 'state',
+  },
+  { file: 'components/storybible/voicesamples/MoveVoiceSampleDialog.tsx', text: '… has … samples. Delete one first.', class: 'overlay' },
+  {
+    file: 'components/storybible/voicesamples/VoiceSamplesBody.tsx',
+    text: 'No voice samples yet. Mark one in Editing: select words you voiced well and press V.',
+    class: 'empty',
   },
 ];
