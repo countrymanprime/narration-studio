@@ -31,6 +31,7 @@ import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureErrors,
 import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
+import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
 
 const MUTED = { color: 'var(--text-muted)' };
@@ -222,7 +223,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   };
 
   return (
-    <div className="mx-auto max-w-[96rem]">
+    <div className={PAGE_COLUMN_CLASS}>
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,22.4rem)]">
         {/* Below xl the page is one column: the files and their checks, then the delivery package (the answer to "can I deliver?",
             XMS-5), then the rest. The left column's own box gives way (`contents`) so the package can sit between its parts. */}

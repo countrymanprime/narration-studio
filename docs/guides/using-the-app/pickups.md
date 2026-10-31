@@ -40,6 +40,9 @@ title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by cha
 - **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and, set apart after a
   rule, **Remove from pickups**.
 
+On a very wide window the page stays one centred column about 1,500 px wide, the same width as Master & QC and Delivery, so a line's
+status and buttons stay beside its words instead of at the far edge of the screen.
+
 Each line is a tall row with 36 px buttons on its first line of text, and each chapter's group row is tinted. The columns keep
 their places when a line is recorded or left out. In a window narrower than the tablet width each line is a block instead: its box,
 time, type, source, status and buttons on one line and the words under them (on a phone width the buttons take a line of

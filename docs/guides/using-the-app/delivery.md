@@ -7,7 +7,7 @@ checks every chapter against it, and builds the platform's package from the file
 [Master & QC](master-and-qc.md). It sits under **Finish**, after Master & QC, and needs an imported
 manuscript: without one the page asks you to import one.
 While the chapters are being read, **Before you build** shows grey rows in place of the chapter checks. On a wide
-window the page keeps to the same centred column as Master & QC; in a narrow one the cards stack, with **Before you
+window the page keeps to one centred column about 1,500 px wide, the same as Master & QC and Pickups; in a narrow one the cards stack, with **Before you
 build** straight after **Output**, so the list that explains the Build button is next to it.
 
 ![Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting](../../images/ui/delivery-default.webp)

@@ -170,6 +170,16 @@ A table that scrolls sideways inside its panel says so: give its scroll box `scr
 
 **A page's notice belongs to the column it is about.** The Booth's setup notices (the chip that reopens a fix-it dialog, `NoticeChip`) are drawn in the text column under the text, at the page gutter, not in a full-width row under the text and the side panel, so the side panel runs down to the footer (alignment audit XBO-4, XBO-27). A sentence the notice already says is not drawn again: while a notice is up the footer keeps the reason only as Record's description (`sr-only`, still `aria-describedby`), and the top bar's setup chip takes its warning tone from the same plan (XBO-5, R4BO2-1). In a notice dialog every button is one size, and a caption sits on the line of the action it describes (XBO-6, R4BO2-3).
 
+## Page width
+
+One policy, proposed in #2654 and applied by `PAGE_COLUMN_CLASS` (`primitives/pageColumn.ts`, `pageWidthPolicy.guard.test.ts`):
+
+- **A data page is one column of up to 96 rem (1,536 px), centred.** Master & QC, Delivery and Pickups use it. Below 96 rem the page fills the window, so nothing changes at 1280 or 390 px. Above it, a table's text column no longer stretches with its status and actions at the far edge (Pickups at 1920 px was a 1,270 px table with a 700 px line column, now at most the 96 rem column less the 380 px session panel).
+- **A workspace page fills the window.** Script, Booth, Editing and Proof are panes around a reading column or a waveform. Their text is `ReaderColumn`, never a page cap.
+- A new page picks one of the two. It does not write its own `max-w-*` or `mx-auto` for the page.
+
+Not changed by this policy: Production, Story Bible and Schedule keep their current widths until a screenshot at 1920 px shows a gap like Pickups'.
+
 ## Layout rules
 
 Four widths and the rail decide the layout, as the Studio Next mock lays it out:
