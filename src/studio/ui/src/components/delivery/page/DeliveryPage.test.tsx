@@ -3,7 +3,9 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import { findToast, toastTexts } from '../../../fixtures/toasts';
 import { createMockApi } from '../../../api/mockApi';
+import { USER_MESSAGE, WireError } from '../../../api/wire/WireError';
 import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi, PackageJob } from '../../../types';
 import { chapterName } from '../../../chapterName';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
@@ -69,6 +71,18 @@ function mount(
 }
 
 describe('DeliveryPage', () => {
+  // Issue #2648: a chapters read whose payload did not match its schema says the plain sentence, in the toast that tells the failed read
+  // (#2677), never the failing paths.
+  it('says a chapters payload that did not match its schema in plain words, with no failing path', async () => {
+    const wire = WireError.fromIssues('host.binding', 'ManuscriptChapters', [
+      { path: [{ key: 0 }, { key: 'index' }], message: 'Invalid input: expected number' },
+    ]);
+    mount([], { manuscriptChapters: () => Promise.reject(wire) });
+    const toast = await findToast(new RegExp(`Can't tell which chapters pass: ${USER_MESSAGE}`));
+    expect(toast.tone).toBe('error');
+    expect(toastTexts().join(' ') + document.body.textContent).not.toMatch(/\[0\]\.index|did not match its schema|Invalid input/);
+  });
+
   it('blocks-the-build-while-chapters-fail-or-are-not-ready-and-says-how-many', async () => {
     mount(BLOCKED);
     const button = await screen.findByRole('button', { name: /Build .* package/ });
@@ -171,7 +185,7 @@ describe('DeliveryPage', () => {
       },
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Open the folder' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('no longer there');
+    expect((await findToast('no longer there')).text).toContain('no longer there');
   });
 
   it('names every chapter from its data in each heading style', async () => {
@@ -221,7 +235,7 @@ describe('DeliveryPage', () => {
   it('shows a failed package build', async () => {
     mount(PASSING, { packageStart: async () => ({ ...PACKAGE_DONE, phase: 'error', error: 'The folder is not writable.', files: [] }) });
     await userEvent.click(await screen.findByRole('button', { name: /Build .* package/ }));
-    expect((await screen.findByRole('alert')).textContent).toContain('The folder is not writable.');
+    expect((await findToast('The folder is not writable.')).text).toContain('The folder is not writable.');
   });
 
   it('the-built-list-goes-away-if-the-chapters-stop-passing', async () => {

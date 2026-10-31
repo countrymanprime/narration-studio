@@ -132,6 +132,16 @@ export const storybibleStates: StateEntry[] = [
     description: 'Story Bible, an entry with suggestions to verify: its Verify pill, its accepted claims and its Suggested list (SN-X41)',
     ...KEEPS_DESKTOP_SCROLL,
   },
+  {
+    page: 'storybible',
+    state: 'scan-prompt',
+    description: 'Story Bible, the first-scan prompt: what the basic scan finds, what GLiNER and BookNLP add, and the three ways forward',
+  },
+  {
+    page: 'storybible',
+    state: 'scan-done',
+    description: 'Story Bible, a basic scan that added suggestions: the toast with its Show them button, over the unmarked list',
+  },
   { page: 'storybible', state: 'import-dialog', description: 'Story Bible, the Import entries dialog (CSV or JSON, SN-X522)' },
 
   {

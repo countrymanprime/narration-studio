@@ -17,6 +17,7 @@ import { canCleanUp, keptReason, otherReads, stackModeOf } from './stackedLine';
 import { CHECKING, KEPT_UNSTACK, NO_ANSWER, NO_RETRIES, NO_STACKED, STACK_TEXT, plural } from './stackText';
 import type { StackLine } from './types';
 import { returnToScript } from '../script/returnToScript';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 
 export interface StackOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -58,8 +59,6 @@ const NO_SETTINGS: RetrySettings = { retryMode: 'leave', retryChapters: {} };
 export function useStackRetries({ journal, chapterId, lines, passageOf }: StackOptions): StackRetries {
   const daw = usePort('daw');
   const log = usePort('editStacks');
-  const [how, setHow] = useState<StackHow | null>(null);
-  const [dawName, setDawName] = useState('the DAW');
   const [records, setRecords] = useState<{ stacks: EditStackList['stacks']; settings: RetrySettings; own: Record<string, RetrySettings['retryMode']> }>({
     stacks: [],
     settings: NO_SETTINGS,
@@ -68,20 +67,9 @@ export function useStackRetries({ journal, chapterId, lines, passageOf }: StackO
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
 
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (caps) => {
-        if (!live) return;
-        setHow(planStack(caps));
-        setDawName(isRecorder(caps) ? BUILT_IN : caps.daw);
-      },
-      () => live && setHow({ kind: 'refused', reason: NO_ANSWER }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  const { caps: dawCaps, failed: dawFailed } = useDawCapabilities();
+  const how = useMemo<StackHow | null>(() => (dawFailed ? { kind: 'refused', reason: NO_ANSWER } : dawCaps ? planStack(dawCaps) : null), [dawCaps, dawFailed]);
+  const dawName = dawCaps ? (isRecorder(dawCaps) ? BUILT_IN : dawCaps.daw) : 'the DAW';
 
   const ids = useMemo(() => lines.map((l) => l.id).join('\n'), [lines]);
   useEffect(() => {

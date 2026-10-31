@@ -197,6 +197,17 @@ export const storybibleDrivers: Record<string, Driver> = {
     await suggested.waitFor();
     await suggested.evaluate((element) => element.scrollIntoView({ block: 'center' }));
   },
+  'scan-prompt': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await chooseAction(page, 'Scan the manuscript');
+    await page.getByRole('dialog', { name: 'Scan the manuscript' }).waitFor();
+  },
+  'scan-done': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await chooseAction(page, 'Scan the manuscript');
+    await page.getByRole('button', { name: 'Use basic scan now' }).click();
+    await page.getByRole('button', { name: 'Show them' }).waitFor();
+  },
   'import-dialog': async (page) => {
     await goToPage(page, 'Story Bible');
     await chooseAction(page, 'Import entries');

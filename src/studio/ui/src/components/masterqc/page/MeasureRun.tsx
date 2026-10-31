@@ -2,18 +2,17 @@
 // (docs/architecture/principles.md progress), cancel, and check again. The logic is the old page's, copied because that page is deleted by the swap.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
 import type { MeasureJob } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { ProgressBar } from '../../primitives/ProgressBar';
-import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 /** How often a running measurement is read. */
 const POLL_MS = 500;
 /** How often a read that failed is tried again. */
 const RETRY_MS = 2000;
-
-const DANGER = { color: 'var(--danger-text)' };
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
@@ -117,9 +116,9 @@ export function useMeasureRun() {
 }
 export type MeasureRun = ReturnType<typeof useMeasureRun>;
 
-/** "Check files…" (or "Re-check n files" once some were measured) and "Choose other files…". */
+/** The icon buttons "Check files…" (or "Re-check n files" once some were measured) and "Choose other files…"; their words are the name and the tooltip. */
 export function MeasureControls({ run }: { run: MeasureRun }) {
-  // Check files… is disabled while a run goes, and a disabled button drops focus to the page: send the keyboard to Cancel, the one
+  // Check files… is gated while a run goes (a native-disabled one drops focus to the page, an aria-disabled one keeps it on a dead control): send the keyboard to Cancel, the one
   // control the run offers, and back to the check button when Cancel goes away with the run. Only when focus is lost, and never on
   // arrival (a page that opens on a run in flight is the shell's to focus). It lives here, not in `MeasureProgress`, which is drawn
   // only while it has something to say.
@@ -129,50 +128,52 @@ export function MeasureControls({ run }: { run: MeasureRun }) {
     if (cancelShown === wasShown.current) return;
     wasShown.current = cancelShown;
     const active = document.activeElement as HTMLButtonElement | null;
-    if (active && active !== document.body && !active.disabled) return;
+    if (active && active !== document.body && !active.disabled && active.getAttribute('aria-disabled') !== 'true') return;
     document.querySelector<HTMLElement>(cancelShown ? '[data-measure-cancel]' : '[data-measure-check]')?.focus();
   }, [cancelShown]);
   return (
     <div className="flex flex-wrap items-center gap-2">
       {run.paths.length > 0 && (
-        <Button variant="ghost" onClick={() => void run.chooseOther()} disabled={run.running || run.checking}>
-          Choose other files…
-        </Button>
+        <IconButton
+          variant="default"
+          action="openFolder"
+          label="Choose other files…"
+          onClick={() => void run.chooseOther()}
+          disabledReason={run.running || run.checking ? (run.running ? 'A check is running' : 'Starting the check') : undefined}
+        />
       )}
-      <Button onClick={() => void run.check()} pending={run.checking} disabled={run.running} data-measure-check>
-        {run.paths.length > 0 ? `Re-check ${plural(run.paths.length, 'file', 'files')}` : 'Check files…'}
-      </Button>
+      <IconButton
+        variant="primary"
+        action={run.paths.length > 0 ? 'recheckFiles' : 'checkFiles'}
+        label={run.paths.length > 0 ? `Re-check ${plural(run.paths.length, 'file', 'files')}` : 'Check files…'}
+        onClick={() => void run.check()}
+        pending={run.checking}
+        disabledReason={run.running ? 'A check is running' : undefined}
+        data-measure-check
+      />
     </div>
   );
 }
 
 /** Whether `MeasureProgress` has anything to show. */
-export const hasMeasureProgress = (run: MeasureRun): boolean => !!run.jobError || !!run.problem || run.job?.phase === 'error' || (!!run.job && run.running);
+export const hasMeasureProgress = (run: MeasureRun): boolean => !!run.job && run.running;
 
-/** The progress of a running measurement with Cancel, and what went wrong reading or starting one. */
+/**
+ * What went wrong reading or starting a measurement, as toasts (rule 7, #2632): the host gone quiet, with Check again as its Retry, a start
+ * that was refused, and a measurement that ended in error. Called once by the page, whether or not a run is drawn.
+ */
+export function useMeasureErrors(run: MeasureRun): void {
+  // No age in the sentence: a toast that read "3 s ago" would be a new message at every tick of the clock.
+  useErrorToast(run.jobError && `Can't tell how the measurement is going: ${run.jobError}`, run.checkAgain);
+  useErrorToast(run.problem);
+  useErrorToast(run.job?.phase === 'error' ? `${run.job.message} Choose the files again to measure them.` : undefined);
+}
+
+/** The progress of a running measurement with Cancel. */
 export function MeasureProgress({ run }: { run: MeasureRun }) {
   const { job } = run;
   return (
     <>
-      {run.jobError && (
-        <p role="alert" className={`text-sm ${ARRIVE_CLASSES}`} style={DANGER}>
-          Can't tell how the measurement is going{run.lastHeard ? `, last heard ${Math.max(0, Math.round((Date.now() - run.lastHeard) / 1000))} s ago` : ''}:{' '}
-          {run.jobError}{' '}
-          <Button variant="ghost" size="sm" onClick={run.checkAgain}>
-            Check again
-          </Button>
-        </p>
-      )}
-      {run.problem && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          {run.problem}
-        </p>
-      )}
-      {job?.phase === 'error' && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          {job.message} Choose the files again to measure them.
-        </p>
-      )}
       {job && run.running && (
         <div className="flex flex-col gap-2">
           <ProgressBar label="Measuring" value={job.percent} running valueText={`${job.percent}% read`} />

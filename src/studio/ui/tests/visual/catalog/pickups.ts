@@ -37,6 +37,13 @@ export const pickupsStates: StateEntry[] = [
   },
   {
     page: 'pickups',
+    state: 'add-popover-empty',
+    description:
+      'Pickups with Add a pickup by hand submitted empty: "Type the line first." once, under the line box, no toast, and the time box showing its mm:ss.s hint',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
     state: 'empty',
     description: 'Pickups after every line is removed: "No pickups queued", the way to Proof, and an empty session',
     ...REFLOW,

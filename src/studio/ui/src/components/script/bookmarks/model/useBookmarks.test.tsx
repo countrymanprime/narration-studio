@@ -128,7 +128,7 @@ describe('same-spot-twice-is-one', () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.model.bookmarks).toEqual([]));
     await act(async () => void (await result.current.model.add(spot(0, 4))));
-    expect(toastUndo).toHaveBeenCalledWith('Bookmark added.', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Bookmark added.', expect.any(Function), { entry: expect.any(Number) });
     toast.mockClear();
     await act(async () => void (await result.current.model.add(spot(0, 4))));
     expect(toast).toHaveBeenCalledWith('That spot is already bookmarked.');

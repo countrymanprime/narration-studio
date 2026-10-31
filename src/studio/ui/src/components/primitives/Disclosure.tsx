@@ -1,7 +1,7 @@
 import { Collapsible as BaseCollapsible } from '@base-ui/react/collapsible';
 import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 // A titled group that opens and closes: the whole title row is the button (a chevron, the title as a letter-spaced uppercase
 // sub-heading, as the mock draws Settings' Advanced, and a short summary of what is inside), and the panel under it is not in the
@@ -19,6 +19,7 @@ export function Disclosure({
   aside,
   panelClassName = '',
   panelFocusable = false,
+  scrollCue = false,
   className = '',
   children,
 }: {
@@ -32,9 +33,33 @@ export function Disclosure({
   panelClassName?: string;
   /** Makes the panel a tab stop, for one that scrolls: a scrolling region must be reachable by keyboard. */
   panelFocusable?: boolean;
+  /** For a scrolling panel: while more lies below its bottom edge it fades its last 20 px out, so a card cut by the edge reads as "more below" and not as a clipped card (#2656). Sets `data-more-below`. */
+  scrollCue?: boolean;
   className?: string;
   children: ReactNode;
 }) {
+  const panel = useRef<HTMLDivElement>(null);
+  const update = useCallback(() => {
+    const element = panel.current;
+    if (!element) return;
+    const more = element.scrollHeight - element.clientHeight - element.scrollTop > 1;
+    if (more) element.setAttribute('data-more-below', '');
+    else element.removeAttribute('data-more-below');
+  }, []);
+  useEffect(() => {
+    const element = panel.current;
+    if (!scrollCue || !element) return;
+    update();
+    element.addEventListener('scroll', update, { passive: true });
+    // The panel's own size changes with the window and its content with the list; the observer is absent in jsdom.
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update);
+    observer?.observe(element);
+    for (const child of Array.from(element.children)) observer?.observe(child);
+    return () => {
+      element.removeEventListener('scroll', update);
+      observer?.disconnect();
+    };
+  }, [scrollCue, open, update]);
   return (
     <BaseCollapsible.Root open={open} onOpenChange={onOpenChange} className={className}>
       <div className="flex flex-none items-center gap-1">
@@ -52,7 +77,14 @@ export function Disclosure({
         </BaseCollapsible.Trigger>
         {aside}
       </div>
-      <BaseCollapsible.Panel className={panelClassName || undefined} tabIndex={panelFocusable ? 0 : undefined}>
+      <BaseCollapsible.Panel
+        ref={panel}
+        className={
+          `${panelClassName} ${scrollCue ? 'data-[more-below]:[mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)]' : ''}`.trim() ||
+          undefined
+        }
+        tabIndex={panelFocusable ? 0 : undefined}
+      >
         {children}
       </BaseCollapsible.Panel>
     </BaseCollapsible.Root>
