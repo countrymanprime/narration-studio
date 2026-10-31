@@ -93,5 +93,6 @@ export const deliveryStates: StateEntry[] = [
       'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
   },
 ];
-// Since the Output reason sits in the Build row (#2632) the page fits the desktop window, so its whole height is the window there.
-deliveryStates.push(wholePage(deliveryStates, 'measured', ['desktop']));
+// No `sameAs` at any width: at desktop the page content fits the window, but "Before you build" is a capped list that still scrolls, and the
+// whole-page capture grows the window for it (lib/capture.ts), so the two pictures differ by that growth.
+deliveryStates.push(wholePage(deliveryStates, 'measured'));
