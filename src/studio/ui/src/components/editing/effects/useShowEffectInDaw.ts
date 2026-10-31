@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { WordFx } from '../../../api/contracts/wordFx';
@@ -6,6 +5,7 @@ import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { clock } from '../bar/clock';
 import { useEffectHost } from './EffectSettings';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 
 const CHECKING = 'Checking what the DAW can do.';
 const NO_WORDS = 'These words are not in the script, so the DAW cannot be asked about them.';
@@ -22,21 +22,9 @@ function navigateReason(caps: DawCapabilities | null): string | null {
  * takes footer makes, and says where it went or why it did not. `reason` is why the control is off, or null.
  */
 export function useShowEffectInDaw(fx: WordFx): { reason: string | null; go: () => void } {
-  const daw = usePort('daw');
   const workspace = usePort('workspace');
   const host = useEffectHost();
-  const [caps, setCaps] = useState<DawCapabilities | null>(null);
-  const [unasked, setUnasked] = useState(false);
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (c) => live && setCaps(c),
-      () => live && setUnasked(true),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  const { caps, failed: unasked } = useDawCapabilities();
   const first = host ? fx.keys.map((k) => host.locator.token(k)).find((t): t is number => t !== undefined) : undefined;
   const reason = (unasked ? 'Could not ask the DAW what it can do.' : navigateReason(caps)) ?? (host === null || first === undefined ? NO_WORDS : null);
   const go = (): void => {
