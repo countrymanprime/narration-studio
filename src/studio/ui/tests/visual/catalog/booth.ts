@@ -336,14 +336,21 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'companion-default',
     description:
-      'The Companion (/companion, opened from the jump menu\'s Open Companion; frozen as built, DQ-13): the same session in CompactShell, the whole window (the host narrows it to 380 px and pins it beside the DAW, src/studio/desktop/bindings_companion.go; also captured at that companion width) - the Companion heading with REAPER\'s playhead badge ("Playhead stopped") and Full app, then the Script (chapter title, Play Kbd-labelled Space, Stop reading, the resume prompt and the text in its own scroll box), the Pickups section, the Hotkeys that work while this window has focus, and the reserved Note at playhead and This chapter sections ("Coming soon")',
+      'The Companion (/companion, opened from the jump menu\'s Open Companion; frozen as built, DQ-13): the same session in CompactShell, the whole window (the host narrows it to 380 px and pins it beside the DAW, src/studio/desktop/bindings_companion.go; also captured at that companion width) - the Companion heading with REAPER\'s playhead badge ("Playhead stopped") and Full app, then the Script (chapter title, Play and Stop reading as icon buttons with tooltips, the resume prompt and the text in its own scroll box), the Pickups section, the Hotkeys that work while this window has focus, and the reserved Note at playhead and This chapter sections ("Coming soon")',
     ...COMPANION,
   },
   {
     page: 'booth',
     state: 'companion-listening',
     description:
-      'The Companion mid-session (?mockTeleprompter=listening, 30 words into the first paragraph) with REAPER playing (?mockDawPlayhead=134.6) - the header badge reads "Playhead 2:14.6", the Script shows Pause (Kbd Space), Stop reading and Follow, and the current word highlighted in its scroll box',
+      'The Companion mid-session (?mockTeleprompter=listening, 30 words into the first paragraph) with REAPER playing (?mockDawPlayhead=134.6) - the header badge reads "Playhead 2:14.6", the Script shows the Pause and Stop reading icon buttons and Follow, and the current word highlighted in its scroll box',
+    ...COMPANION,
+  },
+  {
+    page: 'booth',
+    state: 'companion-stopped',
+    description:
+      'The Companion after Stop reading on a running session (?mockTeleprompter=listening, then the Stop reading icon button): the header badge is back to REAPER\'s own "Playhead stopped" (it reads "Reading" while the session runs), Stop reading is dimmed, and the "Where you stopped" prompt with Resume from here and Start from the top is back above the text',
     ...COMPANION,
   },
   {
