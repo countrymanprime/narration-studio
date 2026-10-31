@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { USER_MESSAGE, WireError } from '../../../api/wire/WireError';
 import { makeChapters } from '../../../fixtures/chapters';
 import type { DeliveryProfile, MeasureFileResult, NarrationApi } from '../../../types';
 import { findToast, pressToastAction, toastTexts } from '../../../fixtures/toasts';
@@ -393,6 +394,16 @@ describe('Master & QC package panel loading state', () => {
     mount(TWO_FAIL, acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS });
     expect(await screen.findByText(/\d+ chapters? not ready/)).toBeTruthy();
     expect(region()).toBeNull();
+  });
+
+  // Issue #2648: a chapters payload that did not match its schema is told in plain words; the failing paths stay in the host log.
+  it('tells a chapters payload that did not match its schema in plain words, with no failing path', async () => {
+    const wire = WireError.fromIssues('host.binding', 'ManuscriptChapters', [
+      { path: [{ key: 0 }, { key: 'index' }], message: 'Invalid input: expected number' },
+    ]);
+    mount(ALL_PASS, acx, { manuscriptChapters: () => Promise.reject(wire) });
+    await findToast(new RegExp(`The chapters could not be read, so the files keep their file names: ${USER_MESSAGE}`));
+    expect(toastTexts().join(' ') + document.body.textContent).not.toMatch(/\[0\]\.index|did not match its schema|Invalid input/);
   });
 
   it('ends the region when the chapters cannot be read, and says so', async () => {
