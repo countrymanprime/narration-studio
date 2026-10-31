@@ -141,27 +141,62 @@ describe('a chapter with a recording', () => {
     await waitFor(() => expect(reading()).toBe('said'));
   });
 
-  it('reads how far the chapters are recorded again when a take’s listening ends', async () => {
-    const states = new Set<(state: TeleprompterState) => void>();
-    const push = (state: Partial<TeleprompterState>) =>
-      act(() => states.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state })));
-    let calls = 0;
+  // The host as the Booth sees it while a take is made: `recorded` is how far the chapters are recorded now, and a read made while `held`
+  // is set waits for `release` and answers with what was recorded when it was asked. Which call asks is of no matter (the shell and other
+  // panels read the chapters too).
+  function takeHost() {
+    const subscribers = new Set<(state: TeleprompterState) => void>();
+    const host = {
+      recorded: through(),
+      held: false,
+      stale: [] as Array<() => void>,
+    };
     const api = pageApi({
       subscribeTeleprompterState: (on: (state: TeleprompterState) => void) => {
-        states.add(on);
-        return () => states.delete(on);
+        subscribers.add(on);
+        return () => subscribers.delete(on);
       },
-      manuscriptChapters: async () => {
-        calls += 1;
-        return withRecorded(calls > 1 ? { c1: through({ paragraphId: 'p3', word: 3, percent: 80 }) } : { c1: through() });
+      manuscriptChapters: () => {
+        const answer = withRecorded({ c1: host.recorded });
+        return host.held ? new Promise<ManuscriptChapter[]>((resolve) => host.stale.push(() => resolve(answer))) : Promise.resolve(answer);
       },
     } as Partial<NarrationApi>);
+    const push = (state: Partial<TeleprompterState>) =>
+      act(() => subscribers.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state })));
+    // A take: listening starts, then ends. The page has to be listening for the host's state first, or the take goes by unseen.
+    const take = async () => {
+      await waitFor(() => expect(subscribers.size).toBeGreaterThan(0));
+      await push({});
+      await push({ phase: 'stopped' });
+    };
+    return { api, host, take };
+  }
+  const chip = () => screen.getByRole('group', { name: /^Recorded through/ }).textContent;
+
+  it('reads how far the chapters are recorded again when a take’s listening ends', async () => {
+    const { api, host, take } = takeHost();
     renderPage({ api });
-    await waitFor(() => expect(screen.getByRole('group', { name: /^Recorded through/ }).textContent).toBe('Recorded 45%'));
-    await push({});
-    await push({ phase: 'stopped' });
-    // The read again waits on the mock host's chapter read, which can take longer than waitFor's default second.
-    await waitFor(() => expect(screen.getByRole('group', { name: /^Recorded through/ }).textContent).toBe('Recorded 80%'), { timeout: 4000 });
-    expect(calls).toBe(2);
+    await waitFor(() => expect(chip()).toBe('Recorded 45%'));
+    host.recorded = through({ paragraphId: 'p3', word: 3, percent: 80 });
+    await take();
+    await waitFor(() => expect(chip()).toBe('Recorded 80%'));
+  });
+
+  it('keeps the newest reading of how far the chapters are recorded when an older read answers last', async () => {
+    const { api, host, take } = takeHost();
+    renderPage({ api });
+    await waitFor(() => expect(chip()).toBe('Recorded 45%'));
+    // The first take's read is slow; a second take's read answers before it does.
+    host.held = true;
+    host.recorded = through({ paragraphId: 'p3', word: 1, percent: 60 });
+    await take();
+    await waitFor(() => expect(host.stale).toHaveLength(1));
+    host.held = false;
+    host.recorded = through({ paragraphId: 'p3', word: 3, percent: 80 });
+    await take();
+    await waitFor(() => expect(chip()).toBe('Recorded 80%'));
+    await act(async () => host.stale.forEach((release) => release()));
+    await settle();
+    expect(chip()).toBe('Recorded 80%');
   });
 });
