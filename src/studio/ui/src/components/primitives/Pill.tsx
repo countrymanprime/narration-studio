@@ -3,7 +3,7 @@ import { TooltipTarget } from './Tooltip';
 
 /** `filter` is a list filter: 28 px, a round pill in sentence case, the ink fill when pressed (the mock's `.chip`). `chip` is a standalone toggle (the Whisper model, chunk length): 32 px, its own border, the label in capitals. `segmented`
  * is one segment of a `ToggleGroup look="segmented"` container: no
- * border of its own (the container draws it), the label in its own case, and the height fills the container's inset. */
+ * border of its own (the container draws it), the label in its own case, and the height is the container's inset (its control height less the border and padding), so a wrapped group keeps every segment a full target. */
 export type PillLook = 'chip' | 'segmented' | 'filter';
 
 const LOOK_CLASS: Record<PillLook, (active: boolean) => string> = {
@@ -14,7 +14,7 @@ const LOOK_CLASS: Record<PillLook, (active: boolean) => string> = {
   segmented: (active) =>
     // A segment grows with the group, so a group wider than its labels shares the room and centres each label in its own part; an unchosen
     // segment is muted and takes a fill on hover, so it reads as a choice and not a label (alignment audit XPF-6).
-    `h-full grow rounded-[0.28rem] border-0 px-3 leading-none ${active ? 'active bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]'}`,
+    `min-h-[calc(var(--control-height)-0.5rem)] grow rounded-[0.28rem] border-0 px-3 leading-none ${active ? 'active bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]'}`,
 };
 
 // A toggle chip. Base UI's Toggle gives it `aria-pressed`, so a screen reader hears which chip of a group is selected. The
