@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExportItem } from '../../types';
 import { toastTexts } from '../../fixtures/toasts';
@@ -54,5 +54,29 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(toastTexts()).toEqual(['The encoder stopped.']);
     expect(container.textContent).not.toContain('The encoder stopped.');
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
+describe('MasterToSpecPanel: after the files are prepared (issue 2631)', () => {
+  const done = {
+    phase: 'success',
+    message: 'Prepared 1 files.',
+    percent: 100,
+    files: [{ path: item.path, kind: 'chapter', title: 'Chapter 01', status: 'done' }],
+  };
+
+  it('offers an icon button that checks the prepared files, and draws no explanatory sentence', () => {
+    const onCheckFiles = vi.fn();
+    render(<MasterToSpecPanel jobs={jobs({ exportJob: done as never, items: [item] })} onCheckFiles={onCheckFiles} />);
+    expect(screen.queryByText(/new copies/i)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /check the prepared files/i }));
+    expect(onCheckFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no Check files… after a failed or cancelled export, or when the page gives no way to check', () => {
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ exportJob: { ...done, phase: 'error' } as never })} onCheckFiles={() => undefined} />);
+    expect(screen.queryByRole('button', { name: /check the prepared files/i })).toBeNull();
+    rerender(<MasterToSpecPanel jobs={jobs({ exportJob: done as never })} />);
+    expect(screen.queryByRole('button', { name: /check the prepared files/i })).toBeNull();
   });
 });

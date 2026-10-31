@@ -32,6 +32,7 @@ import {
   faChevronRight,
   faChevronUp,
   faCheckDouble,
+  faClipboardCheck,
   faCircle,
   faCircleCheck,
   faClockRotateLeft,
@@ -232,6 +233,7 @@ export const CATALOG = {
   zoomOut: action(faMagnifyingGlassMinus, 'zoom out', 'Zoom out'),
   scrollWaveBack: action(faCaretLeft, 'scroll the waveform back', 'Scroll the waveform back'),
   scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward'),
+  checkPreparedFiles: action(faClipboardCheck, 'check prepared files', 'Check the prepared files so Delivery counts them'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
   problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
   // The recording check's activity panel: the figures it labels, drawn with `Icon` and named by their tooltip.
