@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { ExportJob, PackageItemKind } from '../../types';
 import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
@@ -54,7 +55,7 @@ const TABLE_FLOOR = 'min-w-[44rem]';
  * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
  * appears once files are picked or a job exists; before that the page's header action is the way in.
  */
-export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chainLabel?: string }) {
+export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: ExportJobs; chainLabel?: string; onCheckFiles?: () => void }) {
   const { items, exportJob, exportRunning, problem } = jobs;
   const started = !!exportJob?.files.length;
   const hasFiles = items.length > 0 || started;
@@ -188,9 +189,15 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
         </div>
       )}
       {exportJob && !exportRunning && exportJob.phase !== 'idle' && exportJob.phase !== 'error' && (
-        <p aria-live="polite" className={`mt-2 text-sm ${ARRIVE_CLASSES}`}>
-          {exportJob.message}
-        </p>
+        <div className={`mt-2 flex flex-wrap items-center justify-between gap-2 ${ARRIVE_CLASSES}`}>
+          <p aria-live="polite" className="min-w-0 flex-[1_1_20rem] text-sm">
+            {exportJob.message}
+          </p>
+          {exportJob.phase === 'success' && onCheckFiles && (
+            // The export writes new copies and measures nothing, so Delivery and the table above still go by the files that were checked (issue 2631): the tooltip says so.
+            <IconButton action="checkPreparedFiles" onClick={onCheckFiles} />
+          )}
+        </div>
       )}
     </Panel>
   );
