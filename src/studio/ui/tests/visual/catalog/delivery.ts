@@ -8,7 +8,6 @@ export const deliveryStates: StateEntry[] = [
   {
     page: 'delivery',
     state: 'default',
-    ...REFLOW,
     description:
       'Delivery judged against ACX with nothing measured - the built-in profile card with its checks and files read-only, the profile rules, Output with Build off, and "Before you build" with every chapter waiting',
   },
