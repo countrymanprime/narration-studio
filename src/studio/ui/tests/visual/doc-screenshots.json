@@ -1194,7 +1194,7 @@
     "state": "following",
     "viewport": "desktop",
     "docName": "booth-following",
-    "caption": "Booth - six seconds into a take: the text follows the voice"
+    "caption": "Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice"
   },
   {
     "page": "booth",
@@ -1419,6 +1419,13 @@
     "viewport": "desktop",
     "docName": "pickups-add",
     "caption": "Pickups - Add a pickup by hand: the time in the recording and the line to re-record"
+  },
+  {
+    "page": "pickups",
+    "state": "add-popover-empty",
+    "viewport": "desktop",
+    "docName": "pickups-add-empty",
+    "caption": "Pickups - Add a pickup submitted empty: the one message under the line box, and the time box's hint"
   },
   {
     "page": "pickups",

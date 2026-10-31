@@ -61,7 +61,6 @@ const UNJOURNALLED = [
   'components/booth/suspected/SuspectedLines.tsx',
   'components/booth/suspected/useSuspectedPickups.ts',
   'components/editing/flags/decideLinked.ts',
-  'components/proof/checkcard/CheckCard.tsx',
 ];
 
 /** The Inspector's own port call (the journalled api is injected into it) and Proof's no-op decision, which is no decision. */

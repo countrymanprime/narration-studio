@@ -135,7 +135,12 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   // Where the next Start begins (the read-aloud dialog's resume card):
   // null is the top. Passed to the host as `startWord` (start at a word), so a resumed session
   // never reads from the top first.
-  const [startWord, setStartWord] = useState<number | null>(null);
+  // A ref, not state: the page moves it on every step, and only Start reads it. As state it re-rendered the page for each step, and a step
+  // that came before the last one's render ended chained into React's maximum update depth (#2630).
+  const startWordRef = useRef<number | null>(null);
+  const setStartWord = useCallback((word: number | null) => {
+    startWordRef.current = word;
+  }, []);
   // The model download: the shared install-poll hook, through the generic asset bindings, since the missing model is either
   // engine's (the gate's answer names the engine, which is also the asset kind). A session must not start on a view the narrator has
   // already left: the hook stops and never calls onSuccess once this hook's owner has unmounted.
@@ -289,7 +294,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const start = async (options: { coldRead?: boolean; startWord?: number | null } = {}): Promise<{ ok: boolean; reason: string }> => {
     setError('');
     setModelMissing(false);
-    const from = options.startWord === undefined ? startWord : options.startWord;
+    const from = options.startWord === undefined ? startWordRef.current : options.startWord;
     startedAt.current = from ?? 0;
     try {
       const source = creditsKind ? { credits: creditsKind } : { chapter: chapterId };
@@ -489,7 +494,6 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     changeDevice,
     closeModelPrompt,
     ensureModel,
-    startWord,
     setStartWord,
     reset,
     canStart,

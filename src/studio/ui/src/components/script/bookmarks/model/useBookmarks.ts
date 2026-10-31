@@ -46,7 +46,7 @@ export function useBookmarks(): BookmarksModel {
       // A caller that opens the bookmark's editor straight away asks for no Undo: the next journal entry would be the typing in it.
       if (added.created && added.entryId !== null && undo) {
         const { entryId } = added;
-        overlay.toastUndo('Bookmark added.', () => journal.undo(entryId));
+        overlay.toastUndo('Bookmark added.', () => journal.undo(entryId), { entry: entryId });
       } else if (added.created) overlay.toast('Bookmark added.');
       else overlay.toast('That spot is already bookmarked.');
       return added.bookmark;

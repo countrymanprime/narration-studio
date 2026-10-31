@@ -3,6 +3,7 @@ import type { DawCatalogEntry, NarrationApi, ProjectAttachState, RecentProject }
 import { wireClone } from '../mockFixtures';
 import type { MockApiSeed } from './state';
 import { brand } from '../../brand.gen';
+import { projectNameError } from '../../projectName';
 
 /** The host's words for a project handed over while this app is busy (src/studio/desktop/app.go's attachBusyReason). */
 const ATTACH_BUSY_REASON = 'The app is busy, so the current project was left unchanged.';
@@ -69,7 +70,13 @@ export function createProjectMock(
     projectRecents: async () => wireClone(recentProjects),
     selectProjectFolder: async () => ({ selected: true, path: 'C:/Projects/Mock-Project' }),
     switchProject: async (path, name) => attachProject(path, name),
-    createProject: async (parent, name) => attachProject(`${parent || DEFAULT_PROJECTS_DIRECTORY}/${name}`, name),
+    // Like Host.ProjectCreateIn: the name is validated (and trimmed) before anything is made, and a refused name is a rejected call with the host's message.
+    createProject: async (parent, name) => {
+      const refused = projectNameError(name);
+      if (refused) throw new Error(refused);
+      const trimmed = name.trim();
+      return attachProject(`${parent || DEFAULT_PROJECTS_DIRECTORY}/${trimmed}`, trimmed);
+    },
     projectDefaultLocation: async () => ({ path: DEFAULT_PROJECTS_DIRECTORY }),
     removeRecentProject: async (path) => {
       recentProjects = recentProjects.filter((entry) => entry.path.toLowerCase() !== path.toLowerCase());

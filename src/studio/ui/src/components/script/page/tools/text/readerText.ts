@@ -3,6 +3,8 @@
 // per-viewer storage. The choices are a convenience of this browser, kept in `localStorage`; storage can be missing, full or
 // blocked, so every access is guarded and the page reads with the defaults when it fails.
 
+import { announceBrowserSettingChange } from '../../../../../browserSettings';
+
 export type TextPrefs = { font: string; size: number; spacing: number; width: number };
 
 /** Widely available public fonts: the name shown and the CSS stack it sets. */
@@ -32,6 +34,12 @@ export const READER_WIDTHS: ReadonlyArray<readonly [name: string, percent: numbe
  * Booth's larger text, leaves less room than the characters ask for.
  */
 export const readerColumn = (width: number): string => `min(${width}ch, ${width}%)`;
+/**
+ * The reader column for a page that keeps a gutter beside the text (Editing's time column): the choice's characters a line for the text
+ * alone, so the gutter and the column gap come on top, and never more than the container. Where `readerColumn` narrows to its share of the
+ * container, this one only caps at the container, so the text keeps the room a narrow window has (#2640).
+ */
+export const readerColumnWithGutter = (width: number, gutterPx: number): string => `min(calc(${width}ch + ${gutterPx}px), 100%)`;
 /** The same rule reading the choice from the `--rw` custom property that `readerVars` sets. */
 export const READER_COLUMN_VAR = 'min(calc(var(--rw, 64) * 1ch), calc(var(--rw, 64) * 1%))';
 
@@ -74,6 +82,7 @@ export function loadTextPrefs(): TextPrefs {
 export function saveTextPrefs(prefs: TextPrefs): void {
   try {
     window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify(prefs));
+    announceBrowserSettingChange();
   } catch {
     /* storage unavailable: the choice lasts for this session only */
   }

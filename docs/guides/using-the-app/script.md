@@ -90,7 +90,7 @@ Right-click the text for the same actions. The menu opens just under the words y
 below), so it never hides them. **Mark as** (your marks and **Pronunciation (a word)**) and
 **Add to the Story Bible as** open their choices beside the menu (left out when the words are already an entry's name or alias, where the entry's own row finds them),
 then **Look up**, **Find** (lights the matches in the text), **Copy**, **Bookmark here** and **Record from here**. Where you click adds more: on a speaker's line, **Speaker: …** to change who
-speaks it; on one of your marks, open it, change its type (**Change type** opens the types beside it), resolve or reopen its thread, or delete it; on a marked word,
+speaks it (an alias such as "Rabbit" is its own row, with its entry, "White Rabbit", beneath it; picking either row sets the same speaker); on one of your marks, open it, change its type (**Change type** opens the types beside it), resolve or reopen its thread, or delete it; on a marked word,
 **Show in Words** or **Remove from my words**. Right-click a chapter in the list or its card in the reader to go to it,
 record it in the Booth or set its prep state (**My prep** opens the states beside it), and a word on the **Words** tab to show it or remove it. Click a marked
 word in the text to open it on the **Words** tab.
@@ -105,7 +105,7 @@ word in the text to open it on the **Words** tab.
 
 - **In this chapter** is the same list on **Words** and on **Story Bible**: who and what the chapter has, one row each with the name, its
   kind where it has one, and a **Hear** button where there is a pronunciation to play. It lists who is in the chapter, not who speaks,
-  and it has no status column: a row without a **Hear** button has no pronunciation yet.
+  and it has no status column: a row without a **Hear** button has no pronunciation yet, or is a word you marked (the app can only speak a Story Bible name). **Hear** plays the same preview as the Story Bible's list and stops on a second press; if the preview voice is not installed yet, a message says to open the name in the Story Bible and press play there to install it.
 - The names, kinds and speakers on this page are read again each time you open it, so an entry you renamed or retyped in the [Story Bible](story-bible.md) shows here at once.
 - **Words** lists the words marked for pronunciation in the chapter in view. A word's card has **How I will say it**
   with its source (a dictionary, eSpeak or the one you typed), the **Definition**, **Forvo** and **YouGlish** pages for
