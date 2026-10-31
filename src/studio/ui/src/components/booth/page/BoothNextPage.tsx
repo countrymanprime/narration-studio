@@ -590,6 +590,7 @@ function BoothSession({
     paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
     wordsRead,
     words,
+    complete: recordedLabel?.complete,
   });
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
