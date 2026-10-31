@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { appExtension } from '../appExtension';
+import { announceBrowserSettingChange } from '../browserSettings';
 import { applyResolvedTheme, readStoredPreference, resolveTheme, systemTheme, THEME_STORAGE_KEY, type ResolvedTheme, type ThemePreference } from './theme';
 
 type ThemeContextValue = {
@@ -23,6 +24,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyResolvedTheme(next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, preference);
+      announceBrowserSettingChange();
     } catch {
       // Preference just won't persist across reloads (e.g. storage disabled) - not fatal.
     }

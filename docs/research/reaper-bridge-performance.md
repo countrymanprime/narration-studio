@@ -80,6 +80,32 @@ About 9 µs an item is ReaScript calls (`item_row`: the item and take GUIDs, `Ge
 
 On Linux the bridge does not explain a sluggish REAPER: nothing it does idle or while recording costs more than 0.3% of the main thread, and the worst read measured, 40 ms, is about one dropped frame.
 
+## Fix 1: one append per command
+
+[`narration_bridge_core.lua`](../../src/studio/integrations/reaper/narration_bridge_core.lua) `batched` holds the events a command sends and appends them in one write when it returns or fails; events sent outside a command (the heartbeat, a feature's own defer callback) are written at once as before. Same scenarios, same REAPER, 2026-10-30:
+
+| Measure | Before | After |
+| --- | --- | --- |
+| 1000-item read at one a second: `openat` / `write` / `close` per second | 1021 / 1002 / 1021 | 30 / 2.7 / 30 |
+| 1000-item handler, median of 7 | 36.7 ms | 29.0 ms |
+| Longest tick polling 1000 items every 1 s | 39.7 ms | 40.1 ms |
+| Idle, 4050 items: tick p99, REAPER CPU on / held | 0.178 ms, 23.7% / 23.1% | 0.218 ms, 24.0% / 23.4% |
+
+The remaining 30 opens a second are the idle loop's listing. The longest tick moved within run-to-run noise: on Linux the appends were a third of the handler, and the encoding and the API calls remain.
+
+## Fix 2: encoding by table lookup
+
+`encode` looks each reserved byte up in a table built once, instead of calling a Lua function and `string.format` for it; the output is byte for byte the same (`tests/protocol_test.lua` compares all 256 bytes with the harness's copy of the host's encoder). Same scenarios, 2026-10-30:
+
+| Measure | After fix 1 | After fix 2 |
+| --- | --- | --- |
+| 1000-item handler, median of 7 | 29.0 ms | 24.8 ms |
+| Longest tick polling 1000 items every 1 s | 40.1 ms | 33.9 ms |
+| Busy share of the main thread polling 1000 items every 1 s | 3.42% | 2.85% |
+| Longest tick polling 50 items every 1 s | 4.9 ms | 3.6 ms |
+
+What is left of a track read is about 9 to 12 ms of ReaScript calls per 1000 items and the Lua that builds the lines, both proportional to what the read lists.
+
 ## Not measured here
 
 - Windows: file opens, directory listings and antivirus scans of `events.log`, which grows for the whole session. Each is a candidate this Linux run cannot rank.
@@ -89,4 +115,18 @@ On Linux the bridge does not explain a sluggish REAPER: nothing it does idle or 
 
 ## Owner hands-on
 
-Pending, owner: confirm on the Windows machine where REAPER's time goes. The steps need the bridge timing diagnostic, which is not in this change.
+Pending, owner: where REAPER's time goes on the Windows machine, with a real audio device. The bridge's timing diagnostic is off unless switched on. On, it adds one summary line every 10 s to `bridge-timing.log` in the bridge's session folder and to REAPER's console: ticks, tick time (p50, p99, max), the share of the main thread the bridge used, the commands-folder listing, and each command by name with its count and time. It never writes a path or project text. Measured in REAPER 7.82 on Linux with it on: tick p99 0.23 ms, busy 0.21%.
+
+1. Install this build and open REAPER and the app as usual, with the project that feels slow.
+2. In REAPER: Actions > Show action list > New action > New ReaScript. Name it `bridge timing on.lua`, paste this line, save and close the editor, then select the new action in the action list and press Run:
+
+   ```lua
+   reaper.SetExtState('NarrationStudio', 'bridge_timing', '1', false)
+   ```
+
+3. Work as you do when REAPER feels slow for at least two minutes: edit in REAPER with the app's Editing page open, then record a take from the Booth. Note the clock time of each slow moment.
+4. Copy REAPER's console window (it opens on the first line), or send the file: Options > Show REAPER resource path, then `NarrationStudio/sessions/`, the newest `hub_…` folder, `bridge-timing.log`.
+5. Switch it off with a second ReaScript holding `reaper.DeleteExtState('NarrationStudio', 'bridge_timing', false)`, or close REAPER (the switch does not outlive REAPER).
+6. Also note the app's and REAPER's CPU in Task Manager while idle and while it feels slow.
+
+How to read it: a `busy` share or `tick_ms max` that stays small while REAPER is slow rules the bridge out. A large `listing_ms` points at the commands-folder listing (a Windows file system or antivirus cost this Linux run cannot show). A large `max_ms` beside one command names that command.

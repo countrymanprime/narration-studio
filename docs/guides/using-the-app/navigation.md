@@ -7,7 +7,7 @@ The sidebar on the left is grouped by production stage, the way a narrator's wee
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](delivery.md)).
 From 1360 px wide each group but the first shows as a heading over its pages; Production and Schedule sit straight under the logo. Below that the rail shrinks to icons, grouped by a thin line,
 and below 860 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme. **Proof** carries a count of
-the notes still open plus the open pickups no note stands for (the same number as the Proof page's open count), **Pickups** the open lines of the Pickups list and **Master & QC** the chapters whose file fails a delivery check; a zero, or a count the app cannot read, shows no badge. The Proof and Pickups counts move as soon as you decide a note on Proof or change the Pickups list, not only when you leave the page.
+the notes still open (the figure the Proof page draws as Open; pickups have their own badge), **Pickups** the open lines of the Pickups list and **Master & QC** the chapters whose file fails a delivery check; a zero, or a count the app cannot read, shows no badge. The Proof and Pickups counts move as soon as you decide a note on Proof or change the Pickups list, not only when you leave the page.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
@@ -25,7 +25,7 @@ Hover the rail (or tab into it) and it opens over the page with every label; not
 
 With no manuscript yet, the pages that need one are shown off, with a small lock: **Schedule, Script, Story Bible, Booth, Editing,
 Proof, Pickups, Master & QC** and **Delivery**. **Production** (where the import is), the theme item and **Settings** stay on.
-Hover an off item, or tab to it, and a hint says "Import a manuscript to unlock this page." Press it (or press Enter on it) and a
+Rest the pointer on an off item for under half a second, or tab to it, and a hint says "Import a manuscript to unlock this page." Press it (or press Enter on it) and a
 small note opens beside it with the same reason; nothing on the page moves, and Escape closes the note. An off item is still in
 the tab order and keeps its name, so a screen reader reads "Proof, Import a manuscript to unlock this page." The jump menu lists the
 same pages off, with the reason under each, and choosing one does nothing.

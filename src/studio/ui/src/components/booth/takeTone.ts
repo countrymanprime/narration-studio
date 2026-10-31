@@ -2,6 +2,8 @@
 // Settings. It is a tone and not speech, so it needs no screen reader, and it finishes before the take starts so it is not on the recording.
 // Kept by this browser window as the theme and motion are; storage can be missing or blocked, and then it reads as off.
 
+import { announceBrowserSettingChange } from '../../browserSettings';
+
 export const TAKE_TONE_STORAGE_KEY = 'narration-ui-take-tone';
 /** How long the tone lasts, ramps included: the take starts after it ends. */
 export const TAKE_TONE_MS = 180;
@@ -19,6 +21,7 @@ export function readStoredTakeTone(): boolean {
 export function writeStoredTakeTone(on: boolean): void {
   try {
     localStorage.setItem(TAKE_TONE_STORAGE_KEY, on ? 'on' : 'off');
+    announceBrowserSettingChange();
   } catch {
     // Storage unavailable: the choice holds for this window only, and the tone stays off after a restart.
   }

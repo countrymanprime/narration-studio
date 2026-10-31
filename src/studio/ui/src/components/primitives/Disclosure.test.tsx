@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -94,5 +94,55 @@ describe('Disclosure', () => {
       </Disclosure>,
     );
     expect(screen.getByRole('button', { name: 'Repairs' })).toBeTruthy();
+  });
+  // #2656: a scrolling panel that ends part-way through a card read as a clipped card. While more lies below, the panel fades its last
+  // 20 px out, so a half card reads as "more below"; at the end, or when everything fits, it draws plain.
+  describe('scrollCue', () => {
+    const renderCue = () => {
+      render(
+        <Disclosure title="Chapters" open onOpenChange={() => {}} panelClassName="overflow-y-auto" scrollCue>
+          <p>Chapter Five</p>
+        </Disclosure>,
+      );
+      const panel = screen.getByText('Chapter Five').parentElement!;
+      const measure = (scrollHeight: number, clientHeight: number, scrollTop: number) => {
+        Object.defineProperty(panel, 'scrollHeight', { configurable: true, value: scrollHeight });
+        Object.defineProperty(panel, 'clientHeight', { configurable: true, value: clientHeight });
+        Object.defineProperty(panel, 'scrollTop', { configurable: true, writable: true, value: scrollTop });
+        act(() => {
+          fireEvent.scroll(panel);
+        });
+      };
+      return { panel, measure };
+    };
+
+    it('marks the panel while content lies below its bottom edge, and stops at the end', () => {
+      const { panel, measure } = renderCue();
+      measure(188, 57, 0);
+      expect(panel.hasAttribute('data-more-below')).toBe(true);
+      measure(188, 57, 131);
+      expect(panel.hasAttribute('data-more-below')).toBe(false);
+    });
+
+    it('draws plain when everything fits', () => {
+      const { panel, measure } = renderCue();
+      measure(57, 57, 0);
+      expect(panel.hasAttribute('data-more-below')).toBe(false);
+    });
+
+    it('does nothing without the prop', () => {
+      render(
+        <Disclosure title="Chapters" open onOpenChange={() => {}} panelClassName="overflow-y-auto">
+          <p>Chapter Five</p>
+        </Disclosure>,
+      );
+      const panel = screen.getByText('Chapter Five').parentElement!;
+      Object.defineProperty(panel, 'scrollHeight', { configurable: true, value: 188 });
+      Object.defineProperty(panel, 'clientHeight', { configurable: true, value: 57 });
+      act(() => {
+        fireEvent.scroll(panel);
+      });
+      expect(panel.hasAttribute('data-more-below')).toBe(false);
+    });
   });
 });

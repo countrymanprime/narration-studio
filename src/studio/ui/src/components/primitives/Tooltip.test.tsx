@@ -187,6 +187,24 @@ describe('TooltipTarget', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
+  it('hoverDelayMs sets the rest a hover needs, and the default stays a second', async () => {
+    vi.useFakeTimers();
+    render(
+      <TooltipProvider>
+        <TooltipTarget text="Quick" hoverDelayMs={200}>
+          <button aria-label="Quick one">q</button>
+        </TooltipTarget>
+      </TooltipProvider>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Quick one' }).parentElement as HTMLElement;
+    fireEvent.mouseEnter(trigger);
+    fireEvent.mouseMove(trigger);
+    await act(() => vi.advanceTimersByTimeAsync(150));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    await act(() => vi.advanceTimersByTimeAsync(100));
+    expect(screen.getByRole('tooltip').textContent).toBe('Quick');
+  });
+
   it('leaves the child alone: its own accessible name is untouched and no aria reference dangles', async () => {
     const user = userEvent.setup();
     render(target);

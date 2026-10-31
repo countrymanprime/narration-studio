@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
+import userEvent from '@testing-library/user-event';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { USER_MESSAGE, WireError } from '../../../api/wire/WireError';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { ManuscriptChapter, NarrationApi } from '../../../types';
 import { forgetAppTake } from '../record/useRecordControl';
@@ -77,6 +79,19 @@ describe('Booth loading state', () => {
     renderBooth({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) });
     expect(await screen.findByText('The manuscript could not be read.')).toBeTruthy();
     expect(skeleton()).toBeNull();
+  });
+
+  // Issue #2648: a payload that did not match its schema reads as one plain sentence; the failing paths go to the host log, never the card.
+  it('says a payload that did not match its schema in plain words, with no failing path in the card', async () => {
+    const wire = WireError.fromIssues('host.binding', 'ManuscriptChapters', [
+      { path: [{ key: 0 }, { key: 'index' }], message: 'Invalid input: expected number' },
+    ]);
+    renderBooth({ manuscriptChapters: () => Promise.reject(wire) });
+    expect((await screen.findByText(USER_MESSAGE)).getAttribute('role')).toBe('alert');
+    expect(document.body.textContent).not.toMatch(/\[0\]\.index|did not match its schema|Invalid input/);
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /Details/ }));
+    expect(screen.getByText(/\[0\]\.index: Invalid input/)).toBeTruthy();
   });
 
   describe('a failed first read offers Retry', () => {

@@ -1,7 +1,14 @@
 import { WPH } from '../../schedule/estimates';
 
 /** Where the narrator is in the chapter: the paragraph the current word sits in, and the words read over the words in all. */
-export type BoothPlace = { paragraph: number; paragraphs: number; wordsRead: number; words: number };
+export type BoothPlace = {
+  paragraph: number;
+  paragraphs: number;
+  wordsRead: number;
+  words: number;
+  /** The chapter is recorded to the end: the line says where the reading is and nothing that reads as recording work to do. */
+  complete?: boolean;
+};
 
 /** Seconds as m:ss, or h:mm:ss from an hour. */
 function clock(seconds: number): string {
@@ -16,7 +23,8 @@ function clock(seconds: number): string {
  * The top bar's progress line (the mock's `bprog`, its "finished left" reworded, alignment audit R4BO2-11): "¶ 38 of 71 · 41% · ~8:10 of audio left". The time left is the words still
  * to read at the standard rate, `WPH` words per finished hour, so it estimates finished audio, not the narrator's own speed.
  */
-export function progressLine({ paragraph, paragraphs, wordsRead, words }: BoothPlace): string {
+export function progressLine({ paragraph, paragraphs, wordsRead, words, complete = false }: BoothPlace): string {
+  if (complete) return `At ¶ ${paragraph.toLocaleString()} of ${paragraphs.toLocaleString()}`;
   const read = Math.min(Math.max(wordsRead, 0), words);
   const percent = words > 0 ? Math.floor((read / words) * 100) : 0;
   const secondsLeft = Math.round(((words - read) / WPH) * 3600);

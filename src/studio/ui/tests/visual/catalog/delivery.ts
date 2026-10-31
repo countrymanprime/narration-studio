@@ -17,6 +17,7 @@ export const deliveryStates: StateEntry[] = [
     state: 'measured',
     description:
       'Delivery with the book already checked (?mockMeasure=spread) - "Before you build" counting the chapters that pass, each row opening the chapter in Master & QC, and Output with Build off, counting the chapters not ready and naming the first of them in red ("Opening credits: no measured file yet.")',
+    ...REFLOW,
   },
   {
     page: 'delivery',
@@ -66,19 +67,20 @@ export const deliveryStates: StateEntry[] = [
   {
     page: 'delivery',
     state: 'build-failed',
-    description: "Delivery after the host refused the build (?mockDelivery=fails) - the refusal in the host's words under Build, nothing listed as written",
+    description:
+      "Delivery after the host refused the build (?mockDelivery=fails) - the refusal in the host's words as an error toast, nothing listed as written",
   },
   {
     page: 'delivery',
     state: 'host-quiet',
     description:
-      'Delivery with a build running and the host no longer answering (?mockDelivery=quiet) - "Can\'t tell how the build is going, last heard N s ago" with Check again, Cancel still offered, and no "Every chapter passes." beside Build (it would be a stale fact)',
+      'Delivery with a build running and the host no longer answering (?mockDelivery=quiet) - an error toast "Can\'t tell how the build is going" with Retry, Cancel still offered, and no "Every chapter passes." beside Build (it would be a stale fact)',
   },
   {
     page: 'delivery',
     state: 'host-quiet-cancelled',
     description:
-      'Delivery with the host not answering (?mockDelivery=quiet), after Check again and then Cancel - the quiet notice ending "(you checked again just now)." and "Cancel was sent, but the host did not confirm it, so the build may still be running." with the quiet notice and Cancel still up',
+      'Delivery with the host not answering (?mockDelivery=quiet), after Cancel - the quiet error toast and "Cancel was sent, but the host did not confirm it, so the build may still be running." with the quiet toast and Cancel still up',
   },
   {
     page: 'delivery',
@@ -92,4 +94,6 @@ export const deliveryStates: StateEntry[] = [
       'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
   },
 ];
+// No `sameAs` at any width: at desktop the page content fits the window, but "Before you build" is a capped list that still scrolls, and the
+// whole-page capture grows the window for it (lib/capture.ts), so the two pictures differ by that growth.
 deliveryStates.push(wholePage(deliveryStates, 'measured'));
