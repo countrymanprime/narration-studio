@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JobEnded } from './api/contracts/system';
+import { TOAST_ACTION_MS } from './components/primitives/Toast';
 import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnouncement, toastForJobEnd } from './jobEnded';
 
 const ended = (patch: Partial<JobEnded>): JobEnded => ({
@@ -35,6 +36,24 @@ describe('toastForJobEnd', () => {
   it('says what the host said when a job that can finish elsewhere succeeds', () => {
     expect(toastForJobEnd(ended({}))).toEqual({ text: 'Story Bible rebuild complete.', tone: 'info' });
     expect(toastForJobEnd(ended({ kind: 'transcript_compare', message: 'Comparison complete.' }))).toEqual({ text: 'Comparison complete.', tone: 'info' });
+  });
+
+  it('lets the narrator open the suggestions a Story Bible scan added, and offers nothing when it added none', () => {
+    const scan = (message: string) => ended({ kind: 'extraction_scan', message });
+    const follow = { label: 'Show them', to: '/story-bible', state: { show: 'review' } };
+    expect(toastForJobEnd(scan('2 suggestions added; 1 already offered or rejected before.'))).toEqual({
+      text: '2 suggestions added; 1 already offered or rejected before.',
+      tone: 'info',
+      follow,
+      durationMs: TOAST_ACTION_MS,
+    });
+    expect(toastForJobEnd(scan('1 suggestion added.'))).toMatchObject({ follow, durationMs: TOAST_ACTION_MS });
+    expect(toastForJobEnd(scan('0 suggestions added; 3 already offered or rejected before.'))?.follow).toBeUndefined();
+    expect(
+      toastForJobEnd(
+        ended({ kind: 'extraction_scan', outcome: 'error', message: 'The scan did not finish: x. Kept 2 suggestions from the sources that finished.' }),
+      )?.follow,
+    ).toBeUndefined();
   });
 
   it('makes a failure an error, which stays until it is dismissed', () => {

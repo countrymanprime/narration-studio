@@ -610,7 +610,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/storybible/suggested/scan/AnalysisPrompt.tsx',
-    text: 'A scan finds more with the optional analysis tools. Nothing downloads until you agree.',
+    text: 'GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree.',
     class: 'explanation',
   },
   {
