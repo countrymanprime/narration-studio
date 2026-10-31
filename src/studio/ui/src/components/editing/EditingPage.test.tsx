@@ -1184,7 +1184,7 @@ describe('EditingPage loading state', () => {
   it('draws the skeleton in the script’s own columns, with the bar’s band under it', async () => {
     mount({ api: { manuscriptChapters: never } });
     const busy = await screen.findByRole('group', { name: 'Loading the editor' });
-    expect([...busy.querySelectorAll('div')].some((node) => node.className.includes('grid-cols-[76px_minmax(0,1000px)]'))).toBe(true);
+    expect([...busy.querySelectorAll('div')].some((node) => node.className.includes('grid-cols-[76px_minmax(0,1fr)]'))).toBe(true);
     expect([...busy.children].some((node) => node.className.includes('border-t'))).toBe(true);
   });
 
