@@ -182,7 +182,7 @@ and stay with the note when a check runs again.
 
 ## Trimming a gap
 
-A note about a long pause (a gap) that is not decided yet has **Trim the gap to 1.2 s** in the Inspector and in its
+A note about a long pause (a gap) that is not decided yet has **Trim the gap to 1.2 s** (on or off as the DAW starts or stops, without reopening the page) in the Inspector and in its
 right-click menu. It shortens that one gap the way [Editing](editing.md)'s Clean up does: the extra silence goes to the
 muted Cuts track in your DAW as one change, with the DAW's own Undo, and the note is then decided **Fix in edit**. It is
 off, with the reason, when the DAW cannot cut a range or the gap is already 1.2 s or shorter.

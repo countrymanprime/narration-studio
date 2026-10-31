@@ -3,6 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { WPH } from '../../schedule/estimates';
 import { progressLine, timerText } from './progressLine';
 
+describe('the-progress-line-of-a-chapter-recorded-to-the-end', () => {
+  it('says only where the reading is: a share and a time left would read as recording work, beside "Complete" (#2633)', () => {
+    expect(progressLine({ paragraph: 1, paragraphs: 24, wordsRead: 0, words: 400, complete: true })).toBe('At ¶ 1 of 24');
+    expect(progressLine({ paragraph: 1200, paragraphs: 1200, wordsRead: 5, words: 400, complete: true })).toBe('At ¶ 1,200 of 1,200');
+  });
+});
+
 describe('the-progress-line-reads-paragraph-percent-and-time-left', () => {
   it('reads paragraph n of N, the share of the words and the time left at the standard rate', () => {
     const words = WPH / 6; // ten finished minutes
