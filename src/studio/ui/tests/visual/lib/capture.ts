@@ -254,6 +254,9 @@ async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, prob
   if (entry.fullPage) {
     let height = viewport.height;
     for (let round = 0; round < 4; round += 1) {
+      // The window was just resized (to this viewport, or by the last round): a list capped to the window height lays out again over the
+      // next frames, and measuring before it has gives a different answer from run to run (delivery/measured vs whole-page).
+      await settleFrames(page);
       const hidden = await page.evaluate(() =>
         Math.max(
           0,

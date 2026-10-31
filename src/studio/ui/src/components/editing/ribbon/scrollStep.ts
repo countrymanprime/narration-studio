@@ -1,6 +1,8 @@
 // How far the Editing waveform's end arrows move the view: one step of 15 to 30 seconds, 20 until the narrator chooses. Kept by this browser
 // window as the start tone and the theme are; storage can be missing or blocked, and then it reads as the default.
 
+import { announceBrowserSettingChange } from '../../../browserSettings';
+
 export const SCROLL_STEP_STORAGE_KEY = 'narration-ui-ribbon-scroll-step';
 export const SCROLL_STEP_DEFAULT = 20;
 export const SCROLL_STEP_MIN = 15;
@@ -24,6 +26,7 @@ export function readScrollStep(): number {
 export function writeScrollStep(seconds: number): void {
   try {
     localStorage.setItem(SCROLL_STEP_STORAGE_KEY, String(clampScrollStep(seconds)));
+    announceBrowserSettingChange();
   } catch {
     // Storage unavailable: the choice holds for this window only.
   }

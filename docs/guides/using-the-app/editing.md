@@ -18,7 +18,7 @@ The header sits inside the one bordered card that holds the script, so the title
 next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
 the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
 wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
-While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. When the host's answer is in a shape the app cannot read, the reason is the plain sentence "The app received data it could not read."; the technical text is behind **Details** on the card, with a copy button, and in the host log. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 The chapter list starts with **Opening credits** and ends with **Closing credits** (when your credit templates have them): they are chapters like
 any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the first
@@ -429,7 +429,7 @@ knows (the project is linked but REAPER has not connected; it connected before a
 linked, so it cannot be started from here), what still works, and when the app last checked. **Start REAPER** runs the
 launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, a few seconds after the app
 opens so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
-opens it again. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
+opens it again. Every control that waits on the DAW (Delete, Mute, Add FX, Keep take, Clean up, Backups and the rest) follows the DAW's report as it changes: start the DAW with the page open and they turn on with the header, with no reload. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
 read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
 ![Editing - the dialog when the DAW (here Audacity) is not connected, with Start Audacity and Check again](../../images/ui/editing-daw-off.webp)

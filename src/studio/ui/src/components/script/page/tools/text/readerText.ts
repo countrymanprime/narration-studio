@@ -3,6 +3,8 @@
 // per-viewer storage. The choices are a convenience of this browser, kept in `localStorage`; storage can be missing, full or
 // blocked, so every access is guarded and the page reads with the defaults when it fails.
 
+import { announceBrowserSettingChange } from '../../../../../browserSettings';
+
 export type TextPrefs = { font: string; size: number; spacing: number; width: number };
 
 /** Widely available public fonts: the name shown and the CSS stack it sets. */
@@ -74,6 +76,7 @@ export function loadTextPrefs(): TextPrefs {
 export function saveTextPrefs(prefs: TextPrefs): void {
   try {
     window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify(prefs));
+    announceBrowserSettingChange();
   } catch {
     /* storage unavailable: the choice lasts for this session only */
   }

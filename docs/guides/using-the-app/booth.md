@@ -12,7 +12,7 @@ While the chapters are being read, the Booth draws its top bar, text, side panel
 ## The page
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
-where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`), the resume line, and a chip naming the recording setup (the DAW, or the
+where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`; `At ¶ 1 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
@@ -124,7 +124,12 @@ fixes the problem, or, when there is nothing to fix from the Booth, a message th
 records, and the app does not start listening or play the start tone first. A refusal the DAW gives at the press (a full disk,
 REAPER not confirming in time) is a message with **Check again** too.
 
-![Booth - six seconds into a take: the text follows the voice](../../images/ui/booth-following.webp)
+Words you have read are dimmed one at a time, not by line or sentence: as the caret moves, every word before it turns grey, in the
+sentence you are reading as well as in the ones behind it. The word you are on and everything after it stay in full colour, so the
+text reads as a bright stretch ahead of a grey one that grows with you. A click, an arrow key or **Start from here** that moves the
+caret back brightens those words again.
+
+![Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice](../../images/ui/booth-following.webp)
 
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
 footer does not repeat the reason, and the setup chip on the top bar warns too:
@@ -231,7 +236,7 @@ chapter cannot be changed until you stop, and the chapter arrows and the chapter
 
 When you stop a take in a DAW, a message says **Take saved** with **Undo**, and the take is in the [undo history](navigation.md) as
 "Recorded a take of <chapter>", so `Ctrl+Z` or Undo in the jump menu reaches it from any page. Undo takes the take back in the DAW, as
-its own Edit > Undo would: the recorded audio is gone, and an earlier read the take split is whole again. It works only while the
+its own Edit > Undo would: the recorded audio is gone, and an earlier read the take split is whole again. The take's length also leaves **This session**, however you undid it. It works only while the
 take is still the DAW's last action. Once you change something in the DAW after it, Undo leaves the take alone and says to use
 Edit > Undo in the DAW. A take you start and stop in the DAW itself is not in the app's History, and neither is a built-in
 recorder's take; its file stays in `Recordings`.
@@ -321,7 +326,7 @@ A chapter edited since it was recorded loses the places that named its old words
 word you last read to, or the top. If the browser's storage is blocked, step 3 is skipped.
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
-the end. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
+the end. A chapter recorded to the end shows only where you are reading (`At ¶ 1 of 24`), with no share or time left. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
 figure comes from the track's length.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
@@ -435,15 +440,15 @@ deleted), the Booth shows a panel instead of text: **The closing credits are not
 **Back to the chapters**, which opens [Script](script.md), the chapter list, as Escape does with a chapter open. A link to a chapter the book no longer has shows the
 same panel with **Back to the chapters**. An address the app cannot read at all, or one that names a chapter or line the book lacks, shows "This link could not be opened" with **Open Booth** and **Go to Production**; Escape leaves it as it leaves the Booth: for [Pickups](pickups.md) when the link still names pickups ("Open 3 in Booth"), otherwise for [Script](script.md).
 
-If the book's chapters cannot be read when the Booth opens, it shows "This page could not be loaded" with the reason and **Retry**; Retry shows the Booth's grey blocks again while it reads, then the page or the reason again. **Leave the Booth** beside it goes back (to [Script](script.md), or to [Pickups](pickups.md) for a pickup session). Escape does the same, both from that panel and while the grey blocks are showing.
+If the book's chapters cannot be read when the Booth opens, it shows "This page could not be loaded" with the reason and **Retry** (an answer the app cannot read is "The app received data it could not read."; the technical text is behind **Details** on the card, with a copy button, and in the host log); Retry shows the Booth's grey blocks again while it reads, then the page or the reason again. **Leave the Booth** beside it goes back (to [Script](script.md), or to [Pickups](pickups.md) for a pickup session). Escape does the same, both from that panel and while the grey blocks are showing.
 
 ![Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters](../../images/ui/booth-credits-missing.webp)
 
 ## Companion mode
 
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`: the
-reading session, with REAPER's playhead in its header, the script in its own scroll box, the reading controls and the hotkeys
-that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
+reading session, with a badge in its header, the script in its own scroll box, the reading controls and the hotkeys
+that work while the panel has focus. The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for its name and key. After **Stop reading**, the "Where you stopped" choices (**Resume from here**, **Start from the top**) come back above the text for the next start. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
 place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
 scroll. The script is set in the same reader column as the Script and the Booth, at the Column width you chose in Settings › Reader text. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.

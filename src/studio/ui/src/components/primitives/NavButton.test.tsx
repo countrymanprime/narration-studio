@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { faHouse } from '@fortawesome/free-solid-svg-icons';
 import { NavButton } from './NavButton';
@@ -163,6 +163,22 @@ describe('NavButton', () => {
       renderOff();
       fireEvent.focus(screen.getByRole('button', { name: 'Proof' }));
       expect(screen.getByRole('tooltip').textContent).toBe(REASON);
+    });
+
+    // #2652: the lock is the only other cue, and the standard second of hover let a narrator who rested on it for a moment read nothing.
+    it('shows the reason on hover after a short rest (0.4 s), not the standard second (#2652)', async () => {
+      vi.useFakeTimers();
+      renderOff();
+      const trigger = screen.getByRole('button', { name: 'Proof' }).parentElement as HTMLElement;
+      fireEvent.mouseEnter(trigger);
+      fireEvent.mouseMove(trigger);
+      await act(() => vi.advanceTimersByTimeAsync(300));
+      expect(screen.queryByRole('tooltip')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(screen.getByRole('tooltip').textContent).toBe(REASON);
+      fireEvent.mouseLeave(trigger);
+      await act(() => vi.advanceTimersByTimeAsync(300));
+      expect(screen.queryByRole('tooltip')).toBeNull();
     });
 
     it('stays the current page when it is also off, and keeps the muted look otherwise', () => {

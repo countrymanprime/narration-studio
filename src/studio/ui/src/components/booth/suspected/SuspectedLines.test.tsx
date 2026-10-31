@@ -93,7 +93,7 @@ describe('SuspectedLines', () => {
     expect(dismissedSaves).toHaveLength(1);
     expect(dismissedSaves[0]).toMatchObject({ paragraphId: 'p9', kind: 'skipped' });
     expect(screen.getByText('Suspected · 1')).toBeTruthy();
-    expect(toastUndo).toHaveBeenCalledWith('Dismissed.', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Dismissed.', expect.any(Function), { offJournal: expect.any(String) });
     const result = await toastUndo.mock.calls[0][1]();
     expect(result.ok).toBe(true);
     expect(review).toHaveBeenCalledWith(expect.objectContaining({ status: 'unreviewed' }));
@@ -134,7 +134,7 @@ describe('suspected lines feed Pickups', () => {
     expect(added).toBe(1);
     expect(review).toHaveBeenCalledExactlyOnceWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v1', status: 'accepted', note: '' });
     expect([...accepted]).toEqual(['c8:p9:skipped:2-5']);
-    expect(toastUndo).toHaveBeenCalledWith('Take saved · 1 suspected line added to Pickups', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Take saved · 1 suspected line added to Pickups', expect.any(Function), { offJournal: expect.any(String) });
     const undone = await toastUndo.mock.calls[0][1]();
     expect(undone.ok).toBe(true);
     expect(review).toHaveBeenLastCalledWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v2', status: 'unreviewed', note: '' });
@@ -163,7 +163,7 @@ describe('suspected lines feed Pickups', () => {
     await act(async () => {
       await result.current.takeStopped({ ...read('p9'), saidSaved: true, undoTake, entry: 3 });
     });
-    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function), { offJournal: expect.any(String) });
     expect((await toastUndo.mock.calls[0][1]()).ok).toBe(true);
     expect(undoTake).not.toHaveBeenCalled();
   });
@@ -181,7 +181,9 @@ describe('suspected lines feed Pickups', () => {
       expect(await result.current.takeStopped(read('p9', 'p12'))).toBe(0);
     });
     expect(review).toHaveBeenCalledTimes(2);
-    expect(toastUndo).toHaveBeenCalledExactlyOnceWith('Take saved · 2 suspected lines added to Pickups', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledExactlyOnceWith('Take saved · 2 suspected lines added to Pickups', expect.any(Function), {
+      offJournal: expect.any(String),
+    });
   });
 
   it('a dismissed line is not added, and a take that leaves the Booth adds without a toast', async () => {
@@ -215,7 +217,7 @@ describe('suspected lines feed Pickups', () => {
     await act(async () => {
       await result.current.takeStopped({ ...read('p9'), saidSaved: true });
     });
-    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function), { offJournal: expect.any(String) });
   });
 });
 

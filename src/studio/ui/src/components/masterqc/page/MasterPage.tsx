@@ -2,6 +2,7 @@ import { isNarrationChapter } from '../../../chapterKinds';
 import { headingName } from '../../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
 import { chapterOfFile, fileOf } from '../../master/chapterFile';
@@ -14,6 +15,7 @@ import { MultiPlatformExportPanel } from '../../master/MultiPlatformExportPanel'
 import { ReportExportPanel } from '../../master/ReportExportPanel';
 import { useExportJobs } from '../../master/useExportJobs';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { HeaderChip } from '../../primitives/HeaderChip';
 import { Heading } from '../../primitives/Heading';
@@ -25,16 +27,14 @@ import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
 import { Consistency, rangeOf } from './Consistency';
-import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
+import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureErrors, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
 import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
-import { keepFocusOnRemoval } from '../../layout/keepFocusOnRemoval';
 
 const MUTED = { color: 'var(--text-muted)' };
-const DANGER = { color: 'var(--danger-text)' };
 
 /**
  * Master & QC (the Studio Next mock's Master page, at `/master`): the chapter bar over the per-file checks (selecting a file moves the
@@ -70,13 +70,13 @@ type BodyProps = {
 };
 
 /**
- * A line of the files card: its text, and the one button it offers at the card's right edge. `alert` is a read that failed (red, announced);
- * otherwise it is a muted status line named by `label`.
+ * A muted status line of the files card, named by `label`: its text, and the one button it offers at the card's right edge. A read that
+ * failed is not one of these but a toast with Retry (rule 7, #2632).
  */
-function Notice({ alert = false, label, children: [text, action] }: { alert?: boolean; label?: string; children: [ReactNode, ReactNode] }) {
+function Notice({ label, children: [text, action] }: { label?: string; children: [ReactNode, ReactNode] }) {
   return (
-    <div role={alert ? undefined : 'status'} aria-label={label} className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-      <p role={alert ? 'alert' : undefined} className="min-w-0 flex-[1_1_20rem]" style={alert ? DANGER : MUTED}>
+    <div role="status" aria-label={label} className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+      <p className="min-w-0 flex-[1_1_20rem]" style={MUTED}>
         {text}
       </p>
       {action}
@@ -96,6 +96,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const [chaptersRead, setChaptersRead] = useState(false);
   const profilesPort = usePort('deliveryProfiles');
   const run = useMeasureRun();
+  useMeasureErrors(run);
   const jobs = useExportJobs();
   const mastering = useMasteringProviders();
   const [all, setAll] = useState<DeliveryProfile[]>([]);
@@ -156,6 +157,9 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     setChaptersRead(false);
     setChaptersAttempt((n) => n + 1);
   };
+  // A read that failed is a toast, with Retry where reading again could change it, not a line that opens in the files card (rule 7, #2632).
+  useErrorToast(profileProblem && sayOnce('The delivery profile could not be read', profileProblem), profileReadFailed ? retryProfile : undefined);
+  useErrorToast(chaptersProblem && `The chapters could not be read, so the files keep their file names: ${chaptersProblem}`, retryChapters);
 
   // The profile a measurement was judged against wins over the project's current choice until it is measured again.
   const profile = run.job?.profile ?? chosen;
@@ -243,33 +247,19 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             const controls = (
               <>
                 {/* Opens Master to spec below (no mock equivalent, kept as built). */}
-                <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
-                  Master all to spec…
-                </Button>
+                <IconButton
+                  action="masterAllToSpec"
+                  label="Master all to spec…"
+                  onClick={() => void jobs.pick()}
+                  pending={jobs.picking}
+                  disabledReason={jobs.exportRunning ? 'An export is running' : undefined}
+                />
                 <MeasureControls run={run} />
               </>
             );
             // What the card says under its controls, at its own inset: what could not be read with Retry at the card's right edge, a
             // link that names nothing here, and the run's progress and outcome, under the button that started it (R3MS-1, XMS-10, XMS-19).
             const notices = [
-              profileProblem && (
-                <Notice key="profile" alert>
-                  {sayOnce('The delivery profile could not be read', profileProblem)}
-                  {profileReadFailed && (
-                    <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the delivery profile" onClick={retryProfile}>
-                      Retry
-                    </Button>
-                  )}
-                </Notice>
-              ),
-              chaptersProblem && (
-                <Notice key="chapters" alert>
-                  {`The chapters could not be read, so the files keep their file names: ${chaptersProblem}`}
-                  <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the chapters" onClick={retryChapters}>
-                    Retry
-                  </Button>
-                </Notice>
-              ),
               staleLink !== undefined && (
                 <Notice key="stale" label="Link not found">
                   {run.files.length === 0
@@ -312,7 +302,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
               <Consistency files={run.files} profile={profile} />
             </Panel>
-            <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />
+            <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} onCheckFiles={() => void run.chooseOther()} />
             <MasteringChain providers={mastering.providers} problem={mastering.problem} />
             <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />

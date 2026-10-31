@@ -86,6 +86,9 @@ export const masterCases: OverlayCase[] = [
       },
     },
     open: async (page) => {
+      // The files table is a capped box that scrolls inside its card (#2639), and the guard's scroll passes can scroll it: bring the first row
+      // back into view in its box before looking for a point on it.
+      await firstRow(page).scrollIntoViewIfNeeded();
       // A real right-click on a point of the first row the open picker leaves uncovered.
       const box = await firstRow(page).boundingBox();
       if (!box) throw new Error('the first row has no box');

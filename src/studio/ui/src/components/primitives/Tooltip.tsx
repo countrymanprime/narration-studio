@@ -32,18 +32,21 @@ export function TooltipTarget({
   className = '',
   style,
   inline = false,
+  hoverDelayMs = HOVER_DELAY_MS,
 }: {
   text: string;
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
   inline?: boolean;
+  /** How long the pointer rests before the hint opens (keyboard focus is always at once). Only for a control whose reason is its one cue, such as a locked rail item. */
+  hoverDelayMs?: number;
 }) {
   const disabledChild = isValidElement(children) && Boolean((children.props as { disabled?: boolean }).disabled);
   return (
     <BaseTooltip.Root>
       <BaseTooltip.Trigger
-        delay={HOVER_DELAY_MS}
+        delay={hoverDelayMs}
         className={`${inline ? 'inline' : 'inline-flex'} ${className}`}
         style={style}
         render={<span tabIndex={disabledChild ? 0 : undefined} role={disabledChild ? 'group' : undefined} aria-label={disabledChild ? text : undefined} />}

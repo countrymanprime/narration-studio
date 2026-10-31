@@ -6,7 +6,7 @@ Settings is a page of eight categories, one shown at a time. The list sits at th
 tools** (Recording & DAW, Speech to text, Voice & pronunciation, Models & downloads, Delivery), **This project**
 (Project) and **This computer** (Appearance & keys, App & updates). **Set on a page** stands apart under
 **Elsewhere**. In a narrow window the list folds into one **Category** button that names the current category and opens the
-list.
+list. **Settings** is the page's one title; the category you are in is named by a smaller title above its sections.
 
 ![Settings - Recording & DAW, with the category list at the left and the search and filters above](../../images/ui/settings-recording.webp)
 
@@ -40,8 +40,11 @@ says how many it holds.
 
 At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description, its details and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
-whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
-the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
+whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists every setting that differs from
+the default: the host's settings, what this window keeps (Theme, Motion, Start tone, the waveform arrow step, Reader text), and Zoom, the
+Shortcuts, the Merriam-Webster key, the recording tool (anything but REAPER) and the delivery profiles (your own, or one chosen for this project). It does not list
+the rows that are not settings with a default: the capabilities report, the sync log, the manuscript, the Story Bible types and data, the marks, the credits
+templates, the default delivery profile and Delete project data. **In this project** lists the settings this project owns or overrides. Each says so
 when nothing is there; on a narrow window the folded category button reads **Search results** while results show. **Escape** clears the search.
 
 ![Settings - searching for "whisper"](../../images/ui/settings-search.webp)

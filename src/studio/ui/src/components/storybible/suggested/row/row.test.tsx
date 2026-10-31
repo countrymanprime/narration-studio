@@ -301,7 +301,7 @@ describe('decisions-are-journal-entries', () => {
     const locked = one((s) => s.reason === 'The entry is locked.');
     renderRow(locked);
     await u.click(screen.getByRole('button', { name: 'Accept this suggestion' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('The entry is locked.', { tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The entry is locked.', expect.objectContaining({ tone: 'error' })));
     expect(await journal.entries()).toEqual([]);
     expect(await statusOf(locked.id)).toBe('needs-verification');
     expect(screen.getByRole('button', { name: 'Accept this suggestion' })).toBeTruthy();
@@ -314,7 +314,7 @@ describe('decisions-are-journal-entries', () => {
     renderRow(one((s) => s.reason === 'The entry is locked.'));
     await u.click(screen.getByRole('button', { name: 'Edit this suggestion' }));
     await u.click(screen.getByRole('button', { name: 'Save and accept' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('The entry is locked.', { tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The entry is locked.', expect.objectContaining({ tone: 'error' })));
     expect(screen.getByRole('textbox')).toBeTruthy();
   });
 });

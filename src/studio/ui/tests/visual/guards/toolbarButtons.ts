@@ -46,13 +46,21 @@ const wordsOf = (el: ts.JsxElement): string =>
     .replace(/^[\s|]+|[\s|]+$/g, '')
     .trim();
 
-function scan(path: string): ToolbarTextButton[] {
-  const sf = ts.createSourceFile(path, readFileSync(path, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const file = relative(SRC, path).split('\\').join('/');
+/**
+ * A page that hands its card header's buttons to a table or panel builds them in a `controls` or `toolbar` constant, or passes them as a
+ * `controls` or `toolbar` prop (Master & QC's file table does): no `Toolbar` element is drawn in that file, but they are its toolbar.
+ */
+const isToolbarSlot = (n: ts.Node): boolean =>
+  (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && /^(controls|toolbar)$/i.test(n.name.text)) ||
+  (ts.isJsxAttribute(n) && /^(controls|toolbar)$/i.test(n.name.getText()));
+
+/** The text buttons one file's source draws in a toolbar; `file` is its path relative to `src`. */
+export function scanSource(file: string, text: string): ToolbarTextButton[] {
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const inFile = TOOLBAR_FILE.test(file);
   const hits: ToolbarTextButton[] = [];
   const visit = (node: ts.Node, inToolbar: boolean) => {
-    let within = inToolbar;
+    let within = inToolbar || isToolbarSlot(node);
     if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
       within = within || isToolbar(node);
       if (ts.isJsxElement(node) && tagOf(node) === 'Button' && (within || inFile)) {
@@ -65,6 +73,8 @@ function scan(path: string): ToolbarTextButton[] {
   visit(sf, false);
   return hits;
 }
+
+const scan = (path: string): ToolbarTextButton[] => scanSource(relative(SRC, path).split('\\').join('/'), readFileSync(path, 'utf8'));
 
 /** Every text `Button` the app draws in a toolbar or ribbon (tests and stories excluded). */
 export const toolbarTextButtons = (): ToolbarTextButton[] => sources(SRC).flatMap(scan);

@@ -97,7 +97,6 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
           known={known}
           measuring={measuring}
           problem={checks.jobError ?? checks.chaptersError}
-          lastHeard={checks.lastHeard}
           onCheckAgain={checks.checkAgain}
           onOpen={onOpenInMaster}
           onOpenMaster={onOpenMaster}

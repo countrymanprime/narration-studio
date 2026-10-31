@@ -187,7 +187,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
     return (
       <BoothExit onExit={leave}>
         <BoothGutter>
-          <LoadError title="Booth" message={data.error} retry={data.retry} exit={{ label: 'Leave the Booth', onClick: leave }} />
+          <LoadError title="Booth" message={data.error} details={data.errorDetails} retry={data.retry} exit={{ label: 'Leave the Booth', onClick: leave }} />
         </BoothGutter>
       </BoothExit>
     );
@@ -590,6 +590,7 @@ function BoothSession({
     paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
     wordsRead,
     words,
+    complete: recordedLabel?.complete,
   });
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
