@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ZOOM_STEPS } from '../../../hooks/useZoom';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
+import { announceBrowserSettingChange } from '../../../browserSettings';
 import { useTheme } from '../../../theme/ThemeContext';
 import type { ThemePreference } from '../../../theme/theme';
 import { useMotionPreference, type MotionPreference } from '../../../motion';
@@ -166,6 +167,7 @@ export function ZoomRowBody() {
       .then(async (result) => {
         setLevel(result.level);
         await system.windowSaveZoom(result.level);
+        announceBrowserSettingChange();
       })
       .catch((failure: unknown) => notify(apiErrorMessage(failure), 'error'));
 

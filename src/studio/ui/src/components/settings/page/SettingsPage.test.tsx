@@ -49,6 +49,12 @@ async function renderPage({
 const nav = () => screen.getByRole('navigation', { name: 'Settings categories' });
 const pick = (name: string) => fireEvent.click(within(nav()).getByRole('button', { name: new RegExp(`^${name}`) }));
 const row = (id: string) => document.querySelector<HTMLElement>(`[data-row="${id}"]`)!;
+const waitForRow = (id: string) =>
+  waitFor(() => {
+    const found = row(id);
+    if (!found) throw new Error(`no row ${id}`);
+    return found;
+  });
 
 describe('Settings: structure', () => {
   it('lists every category in labelled groups, with Set on a page apart', async () => {
@@ -518,6 +524,90 @@ describe('Settings: search and filters', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
     expect(row('app.channel')).toBeTruthy();
   });
+
+  // Issue 2636: Changed read only the host's files, so a setting this window keeps (Start tone) never showed under it. One change of every
+  // kind of row, so a row kind that Changed cannot see fails here.
+  it('Changed lists a changed row of every kind, custom bodies included', async () => {
+    await renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+
+    // This project (a custom body): record with the built-in recorder, not REAPER.
+    fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch to the built-in recorder' }));
+    await waitFor(() => expect(within(row('daw.engine')).getByText('Changed')).toBeTruthy());
+
+    // This window (browser scope): Start tone and Theme.
+    fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'On' }));
+    // The row says so at once, and the category count follows without another interaction.
+    expect(within(row('daw.startTone')).getByText('Changed')).toBeTruthy();
+    expect(within(nav()).getByRole('button', { name: /^Recording & DAW.*2 changed/ })).toBeTruthy();
+    pick('Appearance');
+    fireEvent.click(await within(await waitForRow('look.theme')).findByRole('radio', { name: 'Dark' }));
+    fireEvent.click(within(row('look.motion')).getByRole('radio', { name: 'Reduce' }));
+    fireEvent.change(within(row('look.waveScrollStep')).getByRole('slider', { name: 'Waveform arrow step' }), { target: { value: '27' } });
+    const font = within(row('look.reader')).getByRole('combobox', { name: 'Reader font' });
+    fireEvent.change(font, { target: { value: 'Verdana' } });
+
+    // This computer (a custom body): the window zoom.
+    fireEvent.change(await within(await waitForRow('look.zoom')).findByRole('combobox', { name: 'Zoom' }), { target: { value: '1.25' } });
+    await waitFor(() => expect(within(row('look.zoom')).getByText('Changed')).toBeTruthy());
+
+    // This project overrides the computer's value.
+    pick('Speech');
+    fireEvent.click(await within(await waitForRow('stt.model')).findByRole('button', { name: /Override for this project/ }));
+
+    // The computer's file.
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+    for (const id of [
+      'daw.engine',
+      'daw.startTone',
+      'look.theme',
+      'look.motion',
+      'look.waveScrollStep',
+      'look.reader',
+      'look.zoom',
+      'stt.model',
+      'app.channel',
+    ])
+      expect(row(id), id).toBeTruthy();
+  }, 60_000);
+});
+
+describe('Settings: putting Changed rows back while the Changed list is open', () => {
+  // ux-review of the Changed list saw one crash ("useSettingsStore needs a SettingsStoreProvider") after resetting Zoom. Repeated so a race shows.
+  it.each(Array.from({ length: 5 }, (_, n) => n + 1))(
+    'Zoom, Start tone and the recorder leave the list when put back (run %i)',
+    async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        await renderPage();
+        await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+        fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'On' }));
+        pick('Appearance');
+        fireEvent.change(await within(await waitForRow('look.zoom')).findByRole('combobox', { name: 'Zoom' }), { target: { value: '1.25' } });
+        await waitFor(() => expect(within(row('look.zoom')).getByText('Changed')).toBeTruthy());
+        fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+        await waitFor(() => expect(row('look.zoom')).toBeTruthy());
+        expect(row('daw.startTone')).toBeTruthy();
+
+        fireEvent.click(within(row('look.zoom')).getByRole('button', { name: 'Reset zoom to 100%' }));
+        await waitFor(() => expect(row('look.zoom')).toBeNull());
+        fireEvent.click(within(row('daw.startTone')).getByRole('radio', { name: 'Off' }));
+        await waitFor(() => expect(row('daw.startTone')).toBeNull());
+
+        expect(screen.queryByText(/Something went wrong/)).toBeNull();
+        expect(screen.getByText('Nothing is changed from the defaults')).toBeTruthy();
+        expect(errors.mock.calls.flat().join(' ')).not.toMatch(/SettingsStoreProvider/);
+      } finally {
+        errors.mockRestore();
+      }
+    },
+    60_000,
+  );
 });
 
 describe('Settings: arriving from another page', () => {

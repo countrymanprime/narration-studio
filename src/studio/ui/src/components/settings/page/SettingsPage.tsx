@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePageCommands } from '../../../input/pageCommands';
+import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { useProjectDaw } from '../data/useProjectDaw';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
@@ -12,7 +13,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { Notify } from '../../primitives/Toast';
 import { SettingsFormsProvider } from '../data/settingsForms';
 import { SettingsStoreProvider, useSettingsStore } from '../data/SettingsStore';
-import { isAnyChanged, overrideValue } from '../data/values';
+import { isAnyChanged, isBrowserChanged, overrideValue } from '../data/values';
 import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
@@ -67,6 +68,8 @@ function pageNameOf(path: string): string {
 
 function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFrom?: string }) {
   const store = useSettingsStore();
+  // A window-kept setting is written outside the store: redraw the Changed counts when one is.
+  const browserVersion = useBrowserSettingsVersion();
   const { data, go } = useSettingsHost();
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
@@ -102,12 +105,19 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     },
     [daw, loaded, store],
   );
+  // The rows whose value is not in the host's fields: custom bodies (read from the host) and window-kept rows (read from storage again on
+  // each write, so a row reset to its default leaves the Changed list at once).
+  const flagged = useMemo(
+    () => new Set([...store.customChanged, ...ROWS.filter(isBrowserChanged).map((row) => row.id)]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `browserVersion` says storage was written; `isBrowserChanged` reads it.
+    [store.customChanged, browserVersion],
+  );
   const changed = useCallback(
     (row: SettingMeta): boolean => {
       const { global, project } = store.fieldsOf(row);
-      return isAnyChanged(row, global, project);
+      return isAnyChanged(row, global, project, flagged);
     },
-    [store],
+    [store, flagged],
   );
   const inProject = useCallback(
     (row: SettingMeta): boolean => row.scope === 'project' || overrideValue(row, store.fieldsOf(row).project) !== undefined,
