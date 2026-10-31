@@ -3,9 +3,9 @@
 // label type over the columns, 10 px side padding and content in the middle of the row. A cell's `height` is the row's
 // least height in a table, so a cell holding two lines, or a pill, still grows its row.
 
-// A column header: Barlow Condensed at the label size and tracking, muted, no fill.
+// A column header: Barlow Condensed at the label size and tracking, muted, no fill, always centred over its column (owner rule 5).
 export const TABLE_HEADER_CLASS =
-  "h-[var(--header-row-height)] border-b border-[var(--border)] px-2.5 py-0 align-middle font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-label)] font-semibold tracking-[var(--tracking-label)] text-[var(--text-muted)] uppercase";
+  "h-[var(--header-row-height)] border-b border-[var(--border)] px-2.5 py-0 text-center align-middle font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-label)] font-semibold tracking-[var(--tracking-label)] text-[var(--text-muted)] uppercase";
 
 // A body cell (a `td`, or a row's `th`). The row token sets the height; the 5 px above and below keep a 22 px status
 // pill (StageGrid's cells) inside it too, where 6 px made a pill row 35 px.

@@ -54,11 +54,11 @@ export function CleanupList({
       <Table label={`${opSpec(kind).label} found`}>
         <TableHead>
           <TableRow>
-            <TableHeader align="left">Time</TableHeader>
-            <TableHeader align="left">Kind</TableHeader>
-            <TableHeader align="left">Measured</TableHeader>
-            <TableHeader align="left">Proposed</TableHeader>
-            <TableHeader align="left" hiddenLabel="Play" />
+            <TableHeader>Time</TableHeader>
+            <TableHeader>Kind</TableHeader>
+            <TableHeader>Measured</TableHeader>
+            <TableHeader>Proposed</TableHeader>
+            <TableHeader hiddenLabel="Play" />
           </TableRow>
         </TableHead>
         <TableBody>

@@ -211,9 +211,7 @@ export function LinkChaptersDialog({ links, onClose }: { links: ChapterLinks; on
           <TableRow>
             <TableHeader>Chapter</TableHeader>
             <TableHeader>REAPER track</TableHeader>
-            <TableHeader align="right" className="whitespace-nowrap">
-              To stamp
-            </TableHeader>
+            <TableHeader className="whitespace-nowrap">To stamp</TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>

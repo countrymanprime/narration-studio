@@ -119,11 +119,11 @@ export function StageGrid({
       </colgroup>
       <thead>
         <tr role="row">
-          <th role="columnheader" scope="col" className={`${TABLE_HEADER_CLASS} text-left`}>
+          <th role="columnheader" scope="col" className={`${TABLE_HEADER_CLASS}`}>
             {rowHeader}
           </th>
           {columns.map((column, col) => (
-            <th key={column} role="columnheader" scope="col" className={`${TABLE_HEADER_CLASS} text-left ${pad(col)}`}>
+            <th key={column} role="columnheader" scope="col" className={`${TABLE_HEADER_CLASS} ${pad(col)}`}>
               {column}
             </th>
           ))}

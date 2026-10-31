@@ -229,24 +229,12 @@ export function FilesTable({
             <TableHead sticky>
               <TableRow>
                 <TableHeader className={NOWRAP}>{HEADING.file}</TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  {HEADING.length}
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  {HEADING.rms}
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  {HEADING.peak}
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  {HEADING.noise}
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  {HEADING.headTail}
-                </TableHeader>
-                <TableHeader className={NOWRAP} align="right">
-                  {HEADING.result}
-                </TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.length}</TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.rms}</TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.peak}</TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.noise}</TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.headTail}</TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.result}</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>

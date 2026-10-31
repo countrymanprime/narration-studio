@@ -57,13 +57,14 @@ for (const size of [
     expect(await columnLefts(page), 'the columns start where they did in All chapters').toEqual(all);
   });
 
-  test(`Proof / the table's text starts where the card's own text starts, and Time is right-aligned over its values / ${size.name}`, async ({ page }) => {
+  test(`Proof / the table's text starts where the card's own text starts, and every header is centred over its column / ${size.name}`, async ({ page }) => {
     await openProof(page, size.width, size.height);
     const heading = (await notes(page).getByRole('heading', { level: 2 }).boundingBox())!;
     const first = notes(page).locator('thead th').first();
     const textLeft = await first.evaluate((cell) => cell.getBoundingClientRect().left + parseFloat(getComputedStyle(cell).paddingLeft));
     expect(Math.abs(textLeft - heading.x), 'the Time column starts at the heading').toBeLessThanOrEqual(1);
-    expect(await first.evaluate((cell) => getComputedStyle(cell).textAlign)).toBe('right');
+    for (const header of await notes(page).locator('thead th').all())
+      expect(await header.evaluate((cell) => getComputedStyle(cell).textAlign), 'every header is centred (owner rule 5, #2641)').toBe('center');
   });
 }
 

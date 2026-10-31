@@ -172,7 +172,7 @@ export function NotesTable({
       <Table label="Notes" columns={NOTE_COLUMNS} className={`min-w-[40rem] ${NARROW_TABLE}`}>
         <TableHead sticky>
           <TableRow>
-            <TableHeader align="right">Time</TableHeader>
+            <TableHeader>Time</TableHeader>
             <TableHeader>Type</TableHeader>
             <TableHeader>Script vs heard</TableHeader>
             <TableHeader>From</TableHeader>
