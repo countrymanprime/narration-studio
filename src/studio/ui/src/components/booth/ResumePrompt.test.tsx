@@ -13,7 +13,7 @@ import type { DawTransport, NarrationApi, TeleprompterLocateResult, Teleprompter
 
 // The resume prompt, as the Companion's header shows it: a compact notice or choice for where
 // the chapter's recording ends (TeleprompterLocate). It never starts anything by itself, and it settles - and
-// stays gone - the moment the narrator makes a choice or a session starts, for the rest of this dialog's open.
+// goes - the moment the narrator makes a choice or a session starts, and comes back when the session ends.
 
 const DEVICE_NAME = WIRE_TELEPROMPTER_DEVICES[0].name;
 const CHAPTER = { id: 'chapter-1', title: 'Chapter 1', subtitle: 'Down the Rabbit-Hole' };
@@ -75,7 +75,7 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
 const prompt = () => screen.findByRole('region', { name: 'Where you stopped' });
 
 async function startReading(user: ReturnType<typeof userEvent.setup>) {
-  const play = await screen.findByRole('button', { name: 'Space Play' });
+  const play = await screen.findByRole('button', { name: 'Play' });
   await waitFor(() => expect(play.hasAttribute('disabled')).toBe(false));
   await user.click(play);
 }
@@ -249,15 +249,32 @@ describe('ResumePrompt', () => {
     await waitFor(() => expect(teleprompterLocate).toHaveBeenCalledTimes(2));
   });
 
-  it('is gone the moment a session starts, and does not come back after it ends', async () => {
-    const { setState } = renderDialog();
+  it('is gone the moment a session starts, and comes back, asking again, once it ends (#2649)', async () => {
+    const { setState, teleprompterLocate } = renderDialog();
     await prompt();
+    expect(teleprompterLocate).toHaveBeenCalledTimes(1);
 
     setState({ phase: 'running', message: 'Listening…', chapter: 'chapter-1' });
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Where you stopped' })).toBeNull());
 
-    setState({ phase: 'idle', message: '', chapter: null });
-    expect(screen.queryByRole('region', { name: 'Where you stopped' })).toBeNull();
+    setState({ phase: 'stopped', message: '', chapter: null });
+    await within(await prompt()).findByRole('button', { name: 'Start from the top' });
+    expect(teleprompterLocate).toHaveBeenCalledTimes(2);
+  });
+
+  it('after a session that began at a chosen word ends, the choice is cleared with the prompt back (#2649)', async () => {
+    const user = userEvent.setup();
+    const { setState, teleprompterStart } = renderDialog();
+    await user.click(await within(await prompt()).findByRole('button', { name: 'Resume from here' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Where you stopped' })).toBeNull());
+
+    setState({ phase: 'running', message: 'Listening…', chapter: 'chapter-1' });
+    setState({ phase: 'stopped', message: '', chapter: null });
+    await prompt();
+
+    await startReading(user);
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalled());
+    expect(teleprompterStart).toHaveBeenCalledWith(expect.not.objectContaining({ startWord: expect.anything() }));
   });
 
   describe('reconciliation with the DAW word', () => {
@@ -471,7 +488,7 @@ describe('ResumePrompt', () => {
       expect(host.listening()).toBe(0);
     });
 
-    it('stops following when a session starts, and does not follow again after it ends', async () => {
+    it('stops following when a session starts, and follows again once it ends and the prompt is back (#2649)', async () => {
       const host = followingHost();
       const { api, setState } = renderDialog(host.overrides);
       await within(await prompt()).findByRole('button', { name: 'Resume from here' });
@@ -480,7 +497,7 @@ describe('ResumePrompt', () => {
       setState({ phase: 'running' });
       await waitFor(() => expect(api.teleprompterResumeUnfollow).toHaveBeenCalled());
       setState({ phase: 'idle' });
-      expect(api.teleprompterResumeFollow).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(api.teleprompterResumeFollow).toHaveBeenCalledTimes(2));
     });
 
     it('does not follow a chapter with no track', async () => {
