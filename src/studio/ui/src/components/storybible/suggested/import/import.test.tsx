@@ -222,7 +222,7 @@ describe('copies-the-prompt-and-the-example', () => {
     render(wrap(<ImportDialog onClose={vi.fn()} />));
     await act(async () => void (await new Promise((r) => setTimeout(r, 20))));
     await userEvent.click(screen.getByRole('button', { name: 'Copy prompt' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Copy failed.', { tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Copy failed.', expect.objectContaining({ tone: 'error' })));
   });
 });
 

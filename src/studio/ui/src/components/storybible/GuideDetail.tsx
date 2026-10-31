@@ -504,15 +504,19 @@ export function GuideDetail({
     return mutation.run(aliasIndex === undefined ? 'review' : `review:${aliasIndex}`, async () => {
       try {
         await api.guideMarkReviewed(...argsFor(aliasIndex));
-        overlay.toastUndo(`“${named ?? entity.canonical_name}” reviewed.`, async () => {
-          try {
-            for (const index of restore) await api.guideFlagReview(...argsFor(index));
-            await reloadFor(id);
-            return { ok: true as const };
-          } catch (error) {
-            return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
-          }
-        });
+        overlay.toastUndo(
+          `“${named ?? entity.canonical_name}” reviewed.`,
+          async () => {
+            try {
+              for (const index of restore) await api.guideFlagReview(...argsFor(index));
+              await reloadFor(id);
+              return { ok: true as const };
+            } catch (error) {
+              return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
+            }
+          },
+          { offJournal: 'Mark reviewed restores through the flag review host call, not a journal command.' },
+        );
         await reloadFor(id);
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -577,15 +581,19 @@ export function GuideDetail({
       try {
         const { undoId } = await api.guideMerge(source.id, target.id);
         clearAliasMatch();
-        overlay.toastUndo(`Merged “${source.canonical_name}” into “${target.canonical_name}”.`, async () => {
-          try {
-            await api.guideUnmerge(undoId);
-            await reloadFor(target.id);
-            return { ok: true as const };
-          } catch (error) {
-            return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
-          }
-        });
+        overlay.toastUndo(
+          `Merged “${source.canonical_name}” into “${target.canonical_name}”.`,
+          async () => {
+            try {
+              await api.guideUnmerge(undoId);
+              await reloadFor(target.id);
+              return { ok: true as const };
+            } catch (error) {
+              return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
+            }
+          },
+          { offJournal: 'A merge is undone by the host unmerge id, not a journal command.' },
+        );
         await reloadFor(target.id);
       } catch (error) {
         notify(describeApiError(error), 'error');

@@ -175,7 +175,7 @@ describe('overlay.toast', () => {
   it('an Undo toast with its own duration outlasts the usual time and is gone after it', () => {
     vi.useFakeTimers();
     mount();
-    act(() => service.toastUndo('Saved voice sample.', () => Promise.resolve({ ok: true }), { durationMs: 10_000 }));
+    act(() => service.toastUndo('Saved voice sample.', () => Promise.resolve({ ok: true }), { durationMs: 10_000, offJournal: 'a test toast' }));
     act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1000));
     expect(screen.getByText('Saved voice sample.')).toBeTruthy();
     act(() => void vi.advanceTimersByTime(10_000 - TOAST_INFO_MS - 1000));
@@ -198,7 +198,7 @@ describe('overlay.toastUndo', () => {
   it('runs the given function once and closes the toast on { ok: true }', async () => {
     mount();
     const undo = vi.fn().mockResolvedValue({ ok: true });
-    act(() => service.toastUndo('Added a bookmark', undo));
+    act(() => service.toastUndo('Added a bookmark', undo, { offJournal: 'a test toast' }));
     const button = screen.getByRole('button', { name: 'Undo' });
     fireEvent.click(button);
     expect(undo).toHaveBeenCalledOnce();
@@ -210,7 +210,7 @@ describe('overlay.toastUndo', () => {
   it('shows the refusal reason as a toast when the undo refuses, and nothing else', async () => {
     mount();
     const undo = vi.fn().mockResolvedValue({ ok: false, refusal: { reason: 'Something newer changed the DAW.' } });
-    act(() => service.toastUndo('Moved the marker', undo));
+    act(() => service.toastUndo('Moved the marker', undo, { offJournal: 'a test toast' }));
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(await screen.findByText('Something newer changed the DAW.')).toBeTruthy();
     expect(screen.queryByText('Moved the marker')).toBeNull();
@@ -232,7 +232,7 @@ describe('an Undo toast goes when its change is no longer there to undo', () => 
 
   it('settleUndo leaves a toast with no entry, and a plain message, alone', () => {
     mount();
-    act(() => service.toastUndo('Deleted the note', ok));
+    act(() => service.toastUndo('Deleted the note', ok, { offJournal: 'a test toast' }));
     act(() => service.toast('Saved.'));
     act(() => service.settleUndo(() => false));
     expect(screen.getByText('Deleted the note')).toBeTruthy();
@@ -242,7 +242,7 @@ describe('an Undo toast goes when its change is no longer there to undo', () => 
   it('dismissUndo takes away every Undo toast (the page, the chapter or the project it was about is gone) and nothing else', () => {
     mount();
     act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
-    act(() => service.toastUndo('Deleted the note', ok));
+    act(() => service.toastUndo('Deleted the note', ok, { offJournal: 'a test toast' }));
     act(() => service.toast('REAPER is starting', { topic: 'start' }));
     act(() => service.toast('Could not save.', { tone: 'error' }));
     act(() => service.dismissUndo());

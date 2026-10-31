@@ -2,13 +2,13 @@ import { useId, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DeliveryReportExport } from '../../types';
+import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
 import { brand } from '../../brand.gen';
 
 const MUTED = { color: 'var(--text-muted)' };
-const DANGER = { color: 'var(--danger-text)' };
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -24,6 +24,7 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
   const [pending, setPending] = useState(false);
   const [written, setWritten] = useState<DeliveryReportExport>();
   const [problem, setProblem] = useState<string>();
+  useErrorToast(problem && `The report was not written: ${problem}`);
   const reasonId = useId();
 
   const exportReport = async () => {
@@ -66,11 +67,6 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
           </span>
         )}
       </div>
-      {problem && (
-        <p role="alert" className="mt-2 text-sm" style={DANGER}>
-          The report was not written: {problem}
-        </p>
-      )}
       {written && (
         <div aria-live="polite" className="mt-2 text-sm">
           <p>

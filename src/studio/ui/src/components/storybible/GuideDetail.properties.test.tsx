@@ -129,7 +129,7 @@ describe('Story Bible entry properties', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add property' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 3 value' }), { target: { value: 'Wren' } });
     save();
-    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give property 3 a name, or clear its value.', { tone: 'error' }));
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give property 3 a name, or clear its value.', expect.objectContaining({ tone: 'error' })));
     expect(guideEdit).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 3 name' }), { target: { value: 'Codename' } });
   });
@@ -139,7 +139,9 @@ describe('Story Bible entry properties', () => {
     startEditing();
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 2 name' }), { target: { value: 'age' } });
     save();
-    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Two properties are named “age”. Give each a different name.', { tone: 'error' }));
+    await vi.waitFor(() =>
+      expect(toast).toHaveBeenLastCalledWith('Two properties are named “age”. Give each a different name.', expect.objectContaining({ tone: 'error' })),
+    );
     expect(guideEdit).not.toHaveBeenCalled();
   });
 

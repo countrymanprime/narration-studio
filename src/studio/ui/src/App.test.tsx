@@ -996,6 +996,29 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { max_missing_run: '5' });
   });
 
+  it("takes the scan toast's Show them through the unsaved-Settings question and lands on the Story Bible with Needs review on", async () => {
+    let jobEnded: ((event: JobEnded) => void) | undefined;
+    const base = createMockApi();
+    renderApp({
+      subscribeJobEnded: (listener) => {
+        jobEnded = listener;
+        return base.subscribeJobEnded(listener);
+      },
+    });
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
+    const check = await openKeptPanel('ps.coverage', 'Recording check');
+    fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
+    await waitFor(() => expect(jobEnded).toBeDefined());
+    act(() => jobEnded?.({ id: 'scan-1', kind: 'extraction_scan', outcome: 'success', message: '2 suggestions added.', durationMs: 900 }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show them' }));
+    expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Save & continue' }));
+
+    await screen.findByRole('heading', { level: 1, name: 'Story Bible' });
+    expect(await screen.findByRole('button', { name: /Remove filter Needs review/ })).toBeTruthy();
+  });
+
   it('saves only the settings the narrator changed, so a field with no value yet is never sent as an empty string', async () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });

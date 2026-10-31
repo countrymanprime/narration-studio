@@ -50,7 +50,7 @@ own file, "Opening credits.wav"). A long chapter name wraps to a second line, an
 pickups, **Waiting on N pickups** (counted from the Pickups list, as Production counts them). Pressing a
 chapter opens its file in [Master & QC](master-and-qc.md); the arrow button in the panel's header opens Master & QC
 itself. A book with more than a hundred chapters lists the first hundred and a **Show the other N chapters**
-button for the rest, and a long list scrolls inside the panel; the count above the list is always the whole book.
+button for the rest, and the list is 20 rem tall at most and scrolls inside the panel once its rows fill that, which is sooner when long chapter names wrap (the count above the list is always the whole book).
 
 ![Delivery with the book checked: the chapters that pass counted in Before you build, and Output waiting on the rest](../../images/ui/delivery-measured.webp)
 
@@ -58,10 +58,11 @@ The list is read when the page opens, when you return to the window and when a m
 measurement is still running in Master & QC the panel says so and Build stays off. Nothing is judged until the
 chapters, the credits and the measurement have each been read.
 
-If any of them cannot be read, Delivery does not guess. It says "Can't tell which chapters pass", when the host
-last answered and why, and offers **Check again**, which reads all three again. It reads the measurement again
-by itself every two seconds while the message is up, and the chapters when you return to the window. If a list was
-already showing, it stays, marked "The list below may be out of date".
+If any of them cannot be read, Delivery does not guess. It shows an error message at the bottom right of the window,
+"Can't tell which chapters pass" with the reason, and offers **Retry**, which reads all three again. Nothing is added to the page, so
+nothing under it moves. It reads the measurement again by itself every two seconds while the message is up, and the
+chapters when you return to the window. If a list was already showing, it stays, and the message adds "The list below
+may be out of date".
 
 ## Output
 
@@ -72,13 +73,13 @@ no package was built. A package cannot be saved inside the project's own <!-- br
 
 Build is on once every chapter passes, and files have been mastered and encoded in Master & QC. Until then it
 says how many chapters fail and how many are not ready, that there are no chapters, that you must master all
-to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off, a red message
-under it names the first chapter in the way, so you do not have to open Master & QC to learn why. For a failing
+to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off, the line beside it
+names the first chapter in the way, so you do not have to open Master & QC to learn why. For a failing
 chapter it gives the rule it misses, its value and the limit ("Chapter 8: noise floor −57.8 dBFS (limit ≤ −60
 dBFS), and 1 more rule."). When no chapter fails, it names the first chapter that is not ready and why: it has no
 measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
 anything is measured, it says "Nothing is measured yet. Measure the files in Master & QC." with **Open Master & QC**
-under it.
+beside it, in the same row, so nothing under Output moves.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
 its description. Pressing it builds nothing and announces "Nothing was built" with that reason.
@@ -98,24 +99,23 @@ profile that built it: choose another profile and it goes away until you build a
 
 ![Delivery after Build ACX package: Built, 15 files in the folder the host chose, and each file Written](../../images/ui/delivery-built.webp)
 
-If the host refuses or the build fails, Delivery shows its words under Build, in a red box with a warning sign, and
-writes nothing; beside Build it says "The last build did not finish." It does not also
-pop up a message while you are on this page; from another page the message appears there. A file that was encoded
+If the host refuses or the build fails, Delivery shows its words in an error message at the bottom right of the window, and
+writes nothing; beside Build it says "The last build did not finish." The message stays until you dismiss it. If the
+folder will not open, that is a message too. A file that was encoded
 empty or is gone is named and refused before anything is written ("is empty (0 bytes); encode it again"), and so
 is a chapter whose title makes a file name longer than Windows allows.
 
-![Delivery after the host refused the build: its reason under Build, and nothing written](../../images/ui/delivery-build-failed.webp)
+![Delivery after the host refused the build: its reason in an error message, and nothing written](../../images/ui/delivery-build-failed.webp)
 
-If the host stops answering while a build runs, Delivery says "Can't tell how the build is going", when it last
-heard and when it last asked, with **Check again** under it. **Check again** reads again at once and answers your
-press in the same sentence: "… the host did not answer (you checked again just now)." The build keeps running on the host and **Cancel** is still there. Beside Build the
+If the host stops answering while a build runs, Delivery shows an error message, "Can't tell how the build is going"
+with the reason, and **Retry** on it. **Retry** reads again at once, and the message goes when the host answers. The build keeps running on the host and **Cancel** is still there. Beside Build the
 sentence about the build ("Building the package…") is left out until the host answers again.
 
-![Delivery with a running build and a host that no longer answers: the message with Check again](../../images/ui/delivery-host-quiet.webp)
+![Delivery with a running build and a host that no longer answers: the line beside Build, with the error message at the corner](../../images/ui/delivery-host-quiet.webp)
 
 **Cancel** with a quiet host cannot be confirmed, so Delivery says "Cancel was sent, but the host did not confirm
 it, so the build may still be running." and keeps the quiet message. It says "Packaging cancelled." only when the
-host reports that the build ended; **Check again** asks for that.
+host reports that the build ended; **Retry** on the quiet message asks for that.
 
 ![Delivery with a host that no longer answers, after Check again and Cancel: each press is answered, and the cancel is marked unconfirmed](../../images/ui/delivery-host-quiet-cancelled.webp)
 

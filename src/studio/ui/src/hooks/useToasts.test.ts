@@ -53,6 +53,13 @@ describe('useToasts', () => {
     expect(result.current.messages.map((m) => m.text)).toEqual(['Could not save.']);
   });
 
+  it('carries a longer stay through to the message, and none when not asked', () => {
+    const { result } = renderHook(() => useToasts());
+    act(() => result.current.notify('Kept.', 'info', undefined, undefined, 12_000));
+    act(() => result.current.notify('Default.'));
+    expect(result.current.messages.map((m) => m.durationMs)).toEqual([12_000, undefined]);
+  });
+
   it('carries an action through to the message', () => {
     const { result } = renderHook(() => useToasts());
     const onAction = () => {};

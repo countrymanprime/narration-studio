@@ -5,6 +5,7 @@
 // arithmetic and "Next up" order as the host (src/studio/desktop/internal/production/overview.go) over the mock's own
 // chapters, stage recommendations and plan, and the stage timer. `?mockProduction=on-pace|at-risk` seeds a time log and a plan
 // (PRODUCTION_SCENARIOS); with no seed nothing is logged or set, which is what a narrator sees first.
+import { STATUS_ORDER } from '../chapterStatus';
 import type { ChapterStatus, ManuscriptChapter, RecordedUnavailable } from './contracts/manuscript';
 import type {
   ProductionApi,
@@ -77,8 +78,7 @@ export function scenarioFromToday(name: SeedLog, now: Date = new Date()): Produc
 }
 
 const NEXT_UP_LIMIT = 5;
-const TIMEABLE: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
-const STAGE_ORDER: Partial<Record<ChapterStatus, number>> = { not_started: 0, recording: 1, editing: 2, proofing: 3 };
+const TIMEABLE: readonly ChapterStatus[] = STATUS_ORDER;
 
 // Measured seconds of each seeded chapter's confirmed track: finished chapters in full, chapters 4 and 5 part-way, 6, 11 and 12 not
 // linked. Invented sample data, like every mock fixture.
@@ -278,7 +278,7 @@ function riskGroup(chapter: ProductionChapter): number {
 
 function nextUp(chapters: ProductionChapter[]): ProductionNextUpItem[] {
   return chapters
-    .map((chapter, order) => ({ chapter, order, stage: STAGE_ORDER[chapter.status] }))
+    .map((chapter, order) => ({ chapter, order, stage: chapter.status === 'finalized' ? undefined : STATUS_ORDER.indexOf(chapter.status) }))
     .filter(({ chapter, stage }) => stage !== undefined && (chapter.contentKind === '' || chapter.contentKind === 'narration'))
     .sort((a, b) => riskGroup(a.chapter) - riskGroup(b.chapter) || (a.stage ?? 0) - (b.stage ?? 0) || a.order - b.order)
     .slice(0, NEXT_UP_LIMIT)
