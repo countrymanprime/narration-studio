@@ -124,6 +124,10 @@ default) each file is mastered by the [chain](#the-mastering-chain) to the chose
 encoded; turn it off and the button reads **Encode**. The bar shows the files' progress, **Cancel** stops
 it, and each row's **Status** pill says whether it waits, is mastering, is encoding, is ready or failed, with the
 reason under a failure. Every stage writes a new file next to the app's own output: your renders are never changed.
+When it ends, the line under the bar says how many files were prepared. They are new copies, so the chapter table
+and [Delivery](delivery.md) still go by the files you checked: the check icon beside that line (its tooltip reads
+"Check the prepared files so Delivery counts them") opens the file picker to check the copies, and a chapter counts as
+mastered once its file passes.
 
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 

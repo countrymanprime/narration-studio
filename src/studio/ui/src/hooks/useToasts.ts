@@ -36,11 +36,11 @@ export function sayInPlace(text: string): void {
 export function useToasts(): { messages: ToastMessage[]; notify: Notify; dismiss: (id: number) => void } {
   const [messages, setMessages] = useState<ToastMessage[]>([]);
   const lastId = useRef(0);
-  const notify = useCallback((text: string, tone: ToastTone = 'info', action?: ToastAction, icon?: IconDefinition) => {
+  const notify = useCallback((text: string, tone: ToastTone = 'info', action?: ToastAction, icon?: IconDefinition, durationMs?: number) => {
     if (!text) return;
     logUi(`ui.toast.${tone}`, text);
     lastId.current += 1;
-    const message = { id: lastId.current, text, tone, action, icon };
+    const message = { id: lastId.current, text, tone, action, icon, durationMs };
     setMessages((current) => pushToast(current, message));
   }, []);
   const dismiss = useCallback((id: number) => setMessages((current) => current.filter((message) => message.id !== id)), []);

@@ -68,6 +68,19 @@ export const LongTitleWraps: Story = {
   },
 };
 
+// A title with no space to break at must wrap inside the header, never push it sideways.
+export const LongUnbrokenTitleWraps: Story = {
+  args: {
+    title: 'Averyveryveryveryveryveryveryveryveryveryveryverylongunbrokentitle',
+    status: <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent-strong)]">Reading</span>,
+    children: <p className="text-sm">Body</p>,
+  },
+  play: async ({ canvasElement }) => {
+    const header = canvasElement.querySelector('header')!;
+    await expect(header.scrollWidth).toBeLessThanOrEqual(header.clientWidth);
+  },
+};
+
 export const FullAppActionIsClickable: Story = {
   args: {
     action: (
