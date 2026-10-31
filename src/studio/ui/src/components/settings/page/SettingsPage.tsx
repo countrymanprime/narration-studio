@@ -314,9 +314,6 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
                 </Button>
               </InsetCard>
             )}
-            <div aria-label="Breadcrumb" className="text-[0.8125rem] text-[var(--text-muted)]">
-              Settings <span aria-hidden="true">/</span> {crumb}
-            </div>
             {content}
           </section>
         </div>

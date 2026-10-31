@@ -6,6 +6,7 @@ import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
 import type { MeasureJob } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { ProgressBar } from '../../primitives/ProgressBar';
 
 /** How often a running measurement is read. */
@@ -115,9 +116,9 @@ export function useMeasureRun() {
 }
 export type MeasureRun = ReturnType<typeof useMeasureRun>;
 
-/** "Check files…" (or "Re-check n files" once some were measured) and "Choose other files…". */
+/** The icon buttons "Check files…" (or "Re-check n files" once some were measured) and "Choose other files…"; their words are the name and the tooltip. */
 export function MeasureControls({ run }: { run: MeasureRun }) {
-  // Check files… is disabled while a run goes, and a disabled button drops focus to the page: send the keyboard to Cancel, the one
+  // Check files… is gated while a run goes (a native-disabled one drops focus to the page, an aria-disabled one keeps it on a dead control): send the keyboard to Cancel, the one
   // control the run offers, and back to the check button when Cancel goes away with the run. Only when focus is lost, and never on
   // arrival (a page that opens on a run in flight is the shell's to focus). It lives here, not in `MeasureProgress`, which is drawn
   // only while it has something to say.
@@ -127,19 +128,29 @@ export function MeasureControls({ run }: { run: MeasureRun }) {
     if (cancelShown === wasShown.current) return;
     wasShown.current = cancelShown;
     const active = document.activeElement as HTMLButtonElement | null;
-    if (active && active !== document.body && !active.disabled) return;
+    if (active && active !== document.body && !active.disabled && active.getAttribute('aria-disabled') !== 'true') return;
     document.querySelector<HTMLElement>(cancelShown ? '[data-measure-cancel]' : '[data-measure-check]')?.focus();
   }, [cancelShown]);
   return (
     <div className="flex flex-wrap items-center gap-2">
       {run.paths.length > 0 && (
-        <Button variant="ghost" onClick={() => void run.chooseOther()} disabled={run.running || run.checking}>
-          Choose other files…
-        </Button>
+        <IconButton
+          variant="default"
+          action="openFolder"
+          label="Choose other files…"
+          onClick={() => void run.chooseOther()}
+          disabledReason={run.running || run.checking ? (run.running ? 'A check is running' : 'Starting the check') : undefined}
+        />
       )}
-      <Button onClick={() => void run.check()} pending={run.checking} disabled={run.running} data-measure-check>
-        {run.paths.length > 0 ? `Re-check ${plural(run.paths.length, 'file', 'files')}` : 'Check files…'}
-      </Button>
+      <IconButton
+        variant="primary"
+        action={run.paths.length > 0 ? 'recheckFiles' : 'checkFiles'}
+        label={run.paths.length > 0 ? `Re-check ${plural(run.paths.length, 'file', 'files')}` : 'Check files…'}
+        onClick={() => void run.check()}
+        pending={run.checking}
+        disabledReason={run.running ? 'A check is running' : undefined}
+        data-measure-check
+      />
     </div>
   );
 }

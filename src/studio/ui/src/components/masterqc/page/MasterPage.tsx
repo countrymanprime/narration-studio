@@ -15,6 +15,7 @@ import { MultiPlatformExportPanel } from '../../master/MultiPlatformExportPanel'
 import { ReportExportPanel } from '../../master/ReportExportPanel';
 import { useExportJobs } from '../../master/useExportJobs';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { HeaderChip } from '../../primitives/HeaderChip';
 import { Heading } from '../../primitives/Heading';
@@ -245,9 +246,13 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             const controls = (
               <>
                 {/* Opens Master to spec below (no mock equivalent, kept as built). */}
-                <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
-                  Master all to spec…
-                </Button>
+                <IconButton
+                  action="masterAllToSpec"
+                  label="Master all to spec…"
+                  onClick={() => void jobs.pick()}
+                  pending={jobs.picking}
+                  disabledReason={jobs.exportRunning ? 'An export is running' : undefined}
+                />
                 <MeasureControls run={run} />
               </>
             );

@@ -6,7 +6,7 @@ Settings is a page of eight categories, one shown at a time. The list sits at th
 tools** (Recording & DAW, Speech to text, Voice & pronunciation, Models & downloads, Delivery), **This project**
 (Project) and **This computer** (Appearance & keys, App & updates). **Set on a page** stands apart under
 **Elsewhere**. In a narrow window the list folds into one **Category** button that names the current category and opens the
-list.
+list. **Settings** is the page's one title; the category you are in is named by a smaller title above its sections.
 
 ![Settings - Recording & DAW, with the category list at the left and the search and filters above](../../images/ui/settings-recording.webp)
 
