@@ -380,3 +380,52 @@ def perf_timing_diagnostic(env: Env) -> str:
     assert env.fixture.get("rpp", "?") not in line, "the summary holds the project path"
     assert on["tick_ms"]["p99"] <= IDLE_TICK_P99_MS, f"tick p99 {on['tick_ms']['p99']} ms with timing on"
     return line
+
+
+# The host's half of a record press (bindings_readaloud_record.go): read the chapter's track, arm it alone, place the cursor,
+# start recording. Each is a command file and an answer, so the budget is the four round trips, not REAPER's pre-roll.
+RECORD_PRESS_MS = 1000.0
+
+
+@scenario(
+    "perf",
+    "chapter_track_state, arm_only, punch_to, record_start",
+    "perf: a record press's four bridge steps answer within budget in a 4050-item project and the heartbeat says when timing is on",
+    needs_audio=True,
+)
+def perf_record_press(env: Env) -> str:
+    env.lua(PROBE)
+    fx = env.lua(BUILD, env.media_path("tone_a"), LARGE, timeout=300)
+    guid = fx["chapter"]
+    presses: list[dict] = []
+    for _ in range(5):
+        steps, start = {}, time.monotonic()
+        steps["track_state"] = round_trip(env, "chapter_track_state", guid, until={"TRACK_STATE_END"})
+        steps["arm_only"] = round_trip(env, "arm_only", guid, until={"ARMED"})
+        steps["punch_to"] = round_trip(env, "punch_to", "120", "0", until={"PUNCHED"})
+        steps["record_start"] = round_trip(env, "record_start", guid, until={"RECORD_STARTED"})
+        steps["total"] = (time.monotonic() - start) * 1000
+        presses.append(steps)
+        env.ok("record_stop", until="RECORD_STOPPED", timeout=20)
+        env.wait_for(lambda: env.lua("return reaper.GetPlayState()") == 0, what="REAPER to stop")
+    per_step = {name: summary([press[name] for press in presses]) for name in presses[0]}
+
+    log = env.session.dir / "events.log"
+    offset = log.stat().st_size
+    env.lua(TIMING, "on")
+    try:
+
+        def timing_heartbeat() -> bool:
+            for line in log.read_bytes()[offset:].decode("utf-8").splitlines():
+                event = line.split("|")
+                if event[0] == "PROJECT_STATUS" and len(event) == 8:
+                    return event[7] == "1"
+            return False
+
+        env.wait_for(timing_heartbeat, timeout=10, what="a heartbeat carrying the timing switch")
+    finally:
+        env.lua(TIMING, "off")
+    write_result(env, "record_press", {"presses": presses, "per_step_ms": per_step})
+    total = per_step["total"]["p95"]
+    assert total <= RECORD_PRESS_MS, f"a record press's bridge steps took {total} ms (p95) > {RECORD_PRESS_MS}"
+    return ", ".join(f"{name} p50 {value['p50']} ms" for name, value in per_step.items())

@@ -98,6 +98,12 @@ type Service struct {
 	// with the last position it is the stretch of the chapter the take followed (Reading.Ranges).
 	// +checklocks:mu
 	startWord int
+	// step is told each step of a start (internal/presstimeline): sidecar_spawned, sidecar_first_line, listening. nil tells
+	// nothing. spoke is whether the running session's sidecar has printed a line yet.
+	// +checklocks:mu
+	step func(string)
+	// +checklocks:mu
+	spoke bool
 
 	state    map[string]any
 	script   json.RawMessage
@@ -457,7 +463,7 @@ func (s *Service) begin(plan launch) error {
 	}
 	s.cancelAutoStopLocked()
 	s.autoStopped = false
-	s.ready, s.readyDone = make(chan struct{}), false
+	s.ready, s.readyDone, s.spoke = make(chan struct{}), false, false
 	s.mu.Unlock()
 	s.notify()
 	// The session opens the same microphone and reports its own levels: the meter lets go of it first.
@@ -485,6 +491,9 @@ func (s *Service) begin(plan launch) error {
 	s.mu.Unlock()
 	ctx, cancel := context.WithCancel(context.Background())
 	child, err := s.sidecars.StartStream(ctx, s.onLine, s.config.Python, plan.args...)
+	if err == nil {
+		s.tellStep("sidecar_spawned")
+	}
 	if err != nil {
 		cancel()
 		if plan.scriptFile != "" {
@@ -567,6 +576,13 @@ func (s *Service) drop() {
 // silently. A JSON value that is not an event envelope (an object with a string `type`) is dropped, counted and logged.
 // The rest is relayed unchanged: the UI checks the rest of each event against its schema.
 func (s *Service) onLine(line string) {
+	s.mu.Lock()
+	first := !s.spoke
+	s.spoke = true
+	s.mu.Unlock()
+	if first {
+		s.tellStep("sidecar_first_line")
+	}
 	if !json.Valid([]byte(line)) {
 		return
 	}
@@ -655,10 +671,30 @@ func (s *Service) relay(kind string, raw json.RawMessage) {
 
 func (s *Service) markReady() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.ready != nil && !s.readyDone {
+	closing := s.ready != nil && !s.readyDone
+	if closing {
 		s.readyDone = true
 		close(s.ready)
+	}
+	s.mu.Unlock()
+	if closing {
+		s.tellStep("listening")
+	}
+}
+
+// SetStepHook sets the function told each step of a start (sidecar_spawned, sidecar_first_line, listening); nil tells nothing.
+func (s *Service) SetStepHook(step func(string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.step = step
+}
+
+func (s *Service) tellStep(name string) {
+	s.mu.RLock()
+	step := s.step
+	s.mu.RUnlock()
+	if step != nil {
+		step(name)
 	}
 }
 

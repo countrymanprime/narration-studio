@@ -307,6 +307,16 @@ func TestAProjectStatusHeartbeatCarriesAnOptionalTransport(t *testing.T) {
 	}
 }
 
+// The seventh heartbeat field is the timing switch: 1 while it is on in REAPER, absent otherwise.
+func TestAProjectStatusHeartbeatCarriesAnOptionalTimingSwitch(t *testing.T) {
+	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "1"}); err != nil {
+		t.Fatalf("a heartbeat with the timing switch must be valid: %v", err)
+	}
+	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "on"}); err == nil {
+		t.Fatal("a timing field that is not a whole number must be refused")
+	}
+}
+
 func TestATransportEventNeedsAPlayStateAndTwoNumbers(t *testing.T) {
 	for name, fields := range map[string][]string{
 		"no fields after the run":  {"TRANSPORT", ""},

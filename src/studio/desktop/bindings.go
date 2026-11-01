@@ -625,7 +625,10 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 		return "", fmt.Errorf("the %s engine is not available on this computer", engine)
 	}
 	modelID := resolveTeleprompterModelID(options)
+	h.timeline.Mark("listen_call")
+	// The first start of an app session reads the whole model to verify it (assets.Ready); later ones only check its manifest.
 	modelDir, required, err := h.liveModelDir(engine, modelID)
+	h.timeline.Mark("model_checked")
 	if err != nil || required != nil {
 		return encodeBinding(required, err)
 	}
@@ -662,7 +665,9 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 		delete(started, "chapter")
 		return encodeBinding(map[string]any{"status": "started"}, awaitListening(svc.teleprompter, svc.teleprompter.StartScript(script, started)))
 	}
-	return encodeBinding(map[string]any{"status": "started"}, awaitListening(svc.teleprompter, svc.teleprompter.Start(started)))
+	listening := awaitListening(svc.teleprompter, svc.teleprompter.Start(started))
+	h.timeline.Mark("listen_answered")
+	return encodeBinding(map[string]any{"status": "started"}, listening)
 }
 
 // listeningWait is how long a start waits for the sidecar to say it is listening before it answers anyway: a slow model load is not a failure.
