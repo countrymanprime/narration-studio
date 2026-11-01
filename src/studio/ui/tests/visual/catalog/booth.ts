@@ -273,7 +273,13 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-width-full',
     description:
-      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow at any width and runs up to the gutters on both sides, centred, no paragraph indent',
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow wherever the text area holds more than 48 characters (the desktop) and runs up to the gutters on both sides, centred, no paragraph indent',
+    sameAs: {
+      of: 'booth/text-width-narrow',
+      reason:
+        'The column is its characters a line or the whole text area, whichever is less. Below the desktop the Booth text area holds fewer than 48 characters at its size, so Narrow already fills it and Full is the same picture.',
+      viewports: ['small-desktop', 'tablet', 'reflow'],
+    },
     ...REFLOW,
   },
   {
