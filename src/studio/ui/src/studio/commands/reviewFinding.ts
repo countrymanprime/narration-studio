@@ -66,12 +66,13 @@ export type LinkedChange = { before: Finding; after: Finding };
 /**
  * Writes `status` on each finding Editing's words reach (`findingsAt`), through the same `FindingsReview` Proof decides with, so the
  * note on Proof and the line on Pickups follow (research note A2). Each goes with its own evidence version and keeps its note; one
- * already at `status` is left alone. A refusal (the check ran again since) does not stop the others: `failed` is the host's sentence.
+ * already at `status` is left alone. A refusal (the check ran again since) does not stop the others, unless `stopAtRefusal`: `failed` is the host's sentence.
  */
 export async function decideLinked(
   port: ReviewPort,
   linked: readonly Finding[],
   status: FindingReviewStatus,
+  options: { stopAtRefusal?: boolean } = {},
 ): Promise<{ changed: LinkedChange[]; failed?: string }> {
   const changed: LinkedChange[] = [];
   let failed: string | undefined;
@@ -82,6 +83,7 @@ export async function decideLinked(
       changed.push({ before, after });
     } catch (error) {
       failed ??= apiErrorMessage(error);
+      if (options.stopAtRefusal) break;
     }
   }
   return { changed, ...(failed ? { failed } : {}) };
