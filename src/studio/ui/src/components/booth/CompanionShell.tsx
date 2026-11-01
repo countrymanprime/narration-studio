@@ -14,6 +14,7 @@ import { IconButton } from '../primitives/IconButton';
 import { Kbd } from '../primitives/Kbd';
 import { InsetCard } from '../primitives/InsetCard';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
+import { TooltipTarget } from '../primitives/Tooltip';
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import { ReadAlongView } from './ReadAlongView';
 import type { ReaderMark } from './readerModel';
@@ -90,7 +91,7 @@ function useCompanionWindow(): string | null {
 // Mock 07: sections sit full-bleed on `--bg` (no card border, background or radius of their own - `CompactShell`'s
 // `main` already gives the whole column its side padding), separated from the one before by a 1 px `--border` rule.
 // The very first section sits right under the header's own rule, so it draws none of its own.
-function Section({ title, badge, children, first = false }: { title: string; badge?: ReactNode; children: ReactNode; first?: boolean }) {
+function Section({ title, badge, children, first = false }: { title: string; badge?: ReactNode; children?: ReactNode; first?: boolean }) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={`text-sm ${first ? '' : 'border-t border-[var(--border)] pt-3'}`}>
@@ -264,9 +265,14 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           <CompanionThisChapter chapterId={chapterId} />
         </Section>
         {/* Not built yet: last, so the working sections come first (XBO-32). */}
-        <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />}>
-          <p style={{ color: 'var(--text-muted)' }}>The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.</p>
-        </Section>
+        <Section
+          title="Note at playhead"
+          badge={
+            <TooltipTarget text="Will show the proofer's note at REAPER's playhead">
+              <StatusBadge tone="neutral" label="Coming soon" />
+            </TooltipTarget>
+          }
+        />
       </CompactShell>
     </div>,
     document.body,
