@@ -20,6 +20,7 @@ describe('ActivityPanel', () => {
     const list = screen.getByRole('list', { name: 'Figures' });
     expect(within(list).getByText('Workers').parentElement?.className).toContain('Barlow_Condensed');
     expect(within(list).getByText('2 of 4 busy').parentElement?.className).toContain('IBM_Plex_Mono');
+    expect(within(list).getByText('2 of 4 busy').parentElement?.className, 'compact value fits the fixed-height box').toContain('--font-size-base');
     expect(list.querySelectorAll('svg').length).toBe(1);
   });
 

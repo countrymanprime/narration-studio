@@ -71,3 +71,5 @@ export const WithIcon: Story = {
     await expect(within(canvasElement).getByText('Chunks')).toBeVisible();
   },
 };
+
+export const Compact: Story = { args: { label: 'Workers', value: '3/4 busy', hint: undefined, icon: 'transcriptionsAtOnce', size: 'compact' } };

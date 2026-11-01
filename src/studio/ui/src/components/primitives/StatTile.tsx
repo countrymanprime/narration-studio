@@ -38,8 +38,8 @@ export function StatTile({
   /** A glyph drawn before the label that names the figure (see the catalogue's `figure` rows). Decoration: the label stays the name. */
   icon?: IconName;
   tone?: StatTileTone;
-  /** `kpi` is the Studio Next mock's Production tile: a 30 px value, a 16 px unit and a 13 px hint. */
-  size?: 'default' | 'kpi';
+  /** `compact` is a 15 px value for a tile inside a panel that has a fixed height (the activity panel's figures). `kpi` is the Studio Next mock's Production tile: a 30 px value, a 16 px unit and a 13 px hint. */
+  size?: 'default' | 'kpi' | 'compact';
   className?: string;
 }) {
   return (
@@ -56,7 +56,9 @@ export function StatTile({
         )}
       </SectionLabel>
       {/* Plex Mono, weight 500: 22 px by default, 30 px for the Production `kpi` tile (the mock's `.kpi .v`). */}
-      <div className={`row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}>
+      <div
+        className={`row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : size === 'compact' ? 'text-[length:var(--font-size-base)] leading-[1.4]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}
+      >
         <span style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>{value}</span>
         {unit && (
           <span className={`ml-1 ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>

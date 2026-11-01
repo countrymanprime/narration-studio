@@ -67,7 +67,7 @@ export function ActivityPanel({
           <li key={figure.key} className="flex min-w-0">
             <TooltipTarget text={figure.hint} className="min-w-0">
               <span tabIndex={0} aria-label={`${figure.label}: ${figure.value}. ${figure.hint}`} className="block min-w-0 rounded-sm">
-                <StatTile icon={figure.icon} label={figure.label} value={figure.value} className="min-w-0 [&>div:nth-child(2)]:truncate" />
+                <StatTile size="compact" icon={figure.icon} label={figure.label} value={figure.value} className="min-w-0 [&>div:nth-child(2)]:truncate" />
               </span>
             </TooltipTarget>
           </li>
