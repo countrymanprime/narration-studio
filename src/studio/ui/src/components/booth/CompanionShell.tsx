@@ -14,7 +14,6 @@ import { IconButton } from '../primitives/IconButton';
 import { Kbd } from '../primitives/Kbd';
 import { InsetCard } from '../primitives/InsetCard';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
-import { TooltipTarget } from '../primitives/Tooltip';
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import { ReadAlongView } from './ReadAlongView';
 import type { ReaderMark } from './readerModel';
@@ -265,14 +264,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           <CompanionThisChapter chapterId={chapterId} />
         </Section>
         {/* Not built yet: last, so the working sections come first (XBO-32). */}
-        <Section
-          title="Note at playhead"
-          badge={
-            <TooltipTarget text="Will show the proofer's note at REAPER's playhead">
-              <StatusBadge tone="neutral" label="Coming soon" />
-            </TooltipTarget>
-          }
-        />
+        <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />} />
       </CompactShell>
     </div>,
     document.body,
