@@ -57,11 +57,7 @@ describe('review-finding-is-one-journal-entry', () => {
 });
 
 /** Writers that still call the host directly, each owed its own journal entry (audit cluster 17); the list only shrinks. */
-const UNJOURNALLED = [
-  'components/booth/suspected/SuspectedLines.tsx',
-  'components/booth/suspected/useSuspectedPickups.ts',
-  'components/editing/flags/decideLinked.ts',
-];
+const UNJOURNALLED = ['components/booth/suspected/SuspectedLines.tsx', 'components/booth/suspected/useSuspectedPickups.ts'];
 
 /** The Inspector's own port call (the journalled api is injected into it) and Proof's no-op decision, which is no decision. */
 const PASS_THROUGH = ['components/proof/ProofPage.tsx', 'components/proof/inspector/useShownEvidence.ts'];
