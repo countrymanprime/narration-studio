@@ -1,5 +1,6 @@
 import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, MeasureFileResult, MeasureReport } from '../../types';
 import { Button } from '../primitives/Button';
+import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { deliveryProfileTitle, describeMet, describeMiss, formatRuleValue, requirementOwner } from './deliveryProfile';
@@ -67,9 +68,15 @@ export function FileRulesPanel({ file, profile, onClose }: { file: MeasureFileRe
     <Panel
       title={`${file.name} against ${deliveryProfileTitle(profile)}`}
       actions={
-        <Button variant="secondary" onClick={onClose}>
-          Close
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton label="About book rules">
+            Book rules (channels the same across files, credits files, retail sample, one section per file, consistency) judge the book as a whole, not this one
+            file: see the Delivery package beside the files.
+          </HelpButton>
+          <Button variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       }
     >
       {report && (
@@ -132,10 +139,6 @@ export function FileRulesPanel({ file, profile, onClose }: { file: MeasureFileRe
           </TableBody>
         </Table>
       </div>
-      <p className="mt-2 text-xs" style={MUTED}>
-        Book rules (channels the same across files, credits files, retail sample, one section per file, consistency) judge the book as a whole, not this one
-        file: see the Delivery package beside the files.
-      </p>
     </Panel>
   );
 }

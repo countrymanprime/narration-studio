@@ -161,7 +161,14 @@ export function createMockApi(
   const settings = createSettingsMock(
     () => base.bootstrap(),
     (tool, _scope, values) => {
-      chapterTracks.backgroundSettingsSaved(tool, values);
+      // The host layers a project override over Global; the loop reads the effective value, whichever scope was just written.
+      const layered = { ...values };
+      if ('background_checks' in values && tool === 'RecordingCoverage') {
+        const field = (scope: 'project' | 'global') => settings.settings[scope][tool]?.find((item) => item.key === 'background_checks');
+        const project = field('project');
+        layered.background_checks = project?.isSet ? project.value : field('global')?.isSet ? field('global')!.value : null;
+      }
+      chapterTracks.backgroundSettingsSaved(tool, layered);
     },
     initial.settings,
   );

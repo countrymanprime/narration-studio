@@ -111,7 +111,7 @@ moves the selection to the file it names.
 **Mastering chain** shows the chain the book masters with, as its steps in order: the built-in chain's
 **EQ** (a high-pass at 80 Hz), **Limiter** (peaks held 0.5 dB under the platform's peak limit) and **Gain**
 (toward the platform's RMS target). It is one chain for the book, the same for every platform, with each
-platform's own numbers. It is fixed and cannot be edited. The app does not yet play a file raw and mastered
+platform's own numbers; a **?** in the panel's header says so. It is fixed and cannot be edited. The app does not yet play a file raw and mastered
 side by side.
 
 ## Mastering to spec
@@ -121,7 +121,7 @@ The **Master all to spec…** icon button, beside **Check files…**, picks the 
 **Role** in the package (**Chapter**, **Opening credits**, **Closing credits** or **Retail sample**) and
 each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
 of the panel beside **Add files…**: with **Master before encoding** on (the
-default) each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then
+default; its **?** says the file is brought to the platform's RMS window and peak limit) each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then
 encoded; turn it off and the button reads **Encode**. The bar shows the files' progress, **Cancel** stops
 it, and each row's **Status** pill says whether it waits, is mastering, is encoding, is ready or failed, with the
 reason under a failure. Every stage writes a new file next to the app's own output: your renders are never changed.
@@ -193,7 +193,7 @@ one on screen; **Reset** on a changed setting hands it back to the computer-wide
 
 ## Exporting a report
 
-**Export report**, at the foot of **Report** at the bottom of the page under its one option, is off until some files are
+The **?** in **Report**'s header says what the files are and where they go. **Export report**, at the foot of **Report** at the bottom of the page under its one option, is off until some files are
 measured (the reason is written beside it, and the option is off with it), then writes the last check and the last diagnostics to two files
 in your project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/delivery folder: an HTML page a reviewer can open in any browser without
 the app, and a JSON file with the same findings for tools. Each export gets its own name from the time it

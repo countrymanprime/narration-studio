@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
+import { putBack } from '../../../studio/commands/reviewFinding';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -16,6 +18,7 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
   const flags = useMemo(() => suspectedLines(given), [given]);
   const teleprompter = usePort('teleprompter');
   const findings = usePort('findings');
+  const journal = useJournalOrOwn();
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
   const [versions, setVersions] = useState<ReadonlyMap<string, { id: string; evidenceVersion: string }>>(new Map());
 
@@ -46,33 +49,45 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
 
   const dismiss = async (flag: SuspectedFlag) => {
     const key = suspectedKey(flag);
-    try {
-      await keep(flags, new Set([...dismissed, key]));
-    } catch (reason) {
-      overlay.toast(apiErrorMessage(reason), { tone: 'error' });
-      return;
-    }
-    overlay.toastUndo(
-      'Dismissed.',
-      async () => {
+    const refuse = (reason: unknown) => ({ ok: false as const, refusal: { code: 'host_refused', reason: apiErrorMessage(reason) } });
+    // The dismissal is one journal entry, so Ctrl+Z and History take it back as the toast's Undo does.
+    const done = await journal.act<null>({
+      label: 'Dismissed a suspected line',
+      touches: [`proof/finding/${versions.get(key)?.id ?? key}`],
+      run: async () => {
+        try {
+          await keep(flags, new Set([...dismissed, key]));
+          return { ok: true, value: null };
+        } catch (reason) {
+          return refuse(reason);
+        }
+      },
+      undo: async () => {
         const kept = versions.get(key);
         try {
           // Reload so the Undo reaches the stored finding even when the answer above changed its version.
           const latest = await teleprompter.teleprompterSaveFlags(chapterId, [toFlagSave(flag, false)]);
           const target = latest[0] ?? kept;
-          await findings.findingsReview({
-            id: target.id,
-            evidenceVersion: target.evidence_version ?? kept?.evidenceVersion ?? '',
-            status: 'unreviewed',
-            note: '',
-          });
+          await putBack(findings, { id: target.id, evidenceVersion: target.evidence_version ?? kept?.evidenceVersion ?? '' }, 'unreviewed');
           setDismissed((current) => new Set([...current].filter((entry) => entry !== key)));
-          return { ok: true };
+          return { ok: true, value: null };
         } catch (reason) {
-          return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
+          return refuse(reason);
         }
       },
-      { offJournal: 'A dismissed suspected line goes through the host review call; no journal command yet (audit cluster 17).' },
+    });
+    if (!done.ok) {
+      overlay.toast(done.refusal.reason, { tone: 'error' });
+      return;
+    }
+    const entry = done.value.id;
+    overlay.toastUndo(
+      'Dismissed.',
+      async () => {
+        const undone = await journal.undo(entry);
+        return undone.ok ? { ok: true } : undone;
+      },
+      { entry },
     );
   };
 

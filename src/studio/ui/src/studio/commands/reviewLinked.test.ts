@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Finding, FindingReviewRequest } from '../../../api/contracts/findings';
-import { decideLinked, restoreLinked } from './decideLinked';
+import type { Finding, FindingReviewRequest } from '../../api/contracts/findings';
+import { decideLinked, restoreLinked } from './reviewFinding';
 
 const finding = (id: string, status: Finding['review']['status'] = 'unreviewed', note?: string): Finding => ({
   schema_version: 1,

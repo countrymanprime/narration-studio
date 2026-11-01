@@ -64,7 +64,7 @@ function StackedHeading({ children }: { children: string }) {
   );
 }
 
-const NOTHING_MEASURED = 'Nothing measured yet. Check your rendered chapter files (WAV) to see them here.';
+const NOTHING_MEASURED = 'Nothing measured yet.';
 
 /** A measured value; one the profile's rule did not meet is red, bold, marked with a cross and said in words for a screen reader. */
 function Value({ cell }: { cell: Cell | undefined }) {

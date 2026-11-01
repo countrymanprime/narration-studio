@@ -284,7 +284,13 @@ function AppRoutes() {
     };
     // The app's DAW session is the one reader of the capability report; this follows its reports, each one once.
     let seen = dawSession.getState().caps;
+    let checks = dawSession.getState().checkVersion;
     const unsubscribe = dawSession.subscribe(() => {
+      // A Check again anywhere reads the host's facts too, whatever the report says.
+      if (dawSession.getState().checkVersion !== checks) {
+        checks = dawSession.getState().checkVersion;
+        again();
+      }
       const caps = dawSession.getState().caps;
       if (!caps || caps === seen) return;
       seen = caps;
@@ -1091,7 +1097,7 @@ function AppRoutes() {
                   dawReachable: data.dawReachable,
                   dawProjectMatches: data.dawProjectMatches,
                   checkedAt: dataReadAt,
-                  onCheckAgain: () => void refreshBootstrap(),
+                  onCheckAgain: () => void dawSession.checkConnection(),
                   onLinkDawFile: () => void linkDawFile(),
                   linkingDawFile: dawLink.isBusy,
                 }}

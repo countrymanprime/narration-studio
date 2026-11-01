@@ -215,7 +215,7 @@ A row says what is wrong with it:
 | **Audio file missing** or **Audio file changed** | The sample's audio in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples folder is gone or is not the file that was saved. It cannot play. | **Check again** reads the folder again. Then **Mark again in Editing** (offered while the words are as they were), or delete it: after **Edit** on the entry, or from **Voice data** on any entry, a locked one too. |
 | "Couldn't read the voice samples." | The host could not read the list. The last list that was read stays. | **Check again**. |
 
-An entry with none says "No voice samples yet" with **Open Editing**. **Check again** beside the heading looks at every sample's file
+An entry with none says "No voice samples yet" with **Open Editing**; its **?** tells how to mark one (in Editing, select words you voiced well and press V). **Check again** beside the heading looks at every sample's file
 again. The list also follows the project by itself: a sample marked in Editing, or deleted from another window, appears or goes without
 you doing anything.
 

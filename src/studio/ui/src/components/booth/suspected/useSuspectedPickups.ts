@@ -2,6 +2,8 @@ import { useCallback, useRef } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
+import { decideLinked, restoreLinked, type LinkedChange } from '../../../studio/commands/reviewFinding';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 import { suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 
@@ -31,6 +33,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
   const teleprompter = usePort('teleprompter');
   const findings = usePort('findings');
   const overlay = useOverlay();
+  const journal = useJournalOrOwn();
   const latest = useRef({ chapterId, flags });
   latest.current = { chapterId, flags };
 
@@ -39,7 +42,8 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       const { chapterId: chapter, flags: all } = latest.current;
       const read = suspectedLines(all, paragraphIds);
       if (read.length === 0) return 0;
-      const added: { id: string; evidenceVersion: string }[] = [];
+      let changed: LinkedChange[] = [];
+      let journalEntry = -1;
       let refused = '';
       try {
         // The host answers each line with its stored decision, so a dismissed or accepted line is known before anything changes.
@@ -47,33 +51,53 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
           chapter,
           read.map((flag) => toFlagSave(flag, false)),
         );
-        for (const finding of stored.filter((item) => item.review.status === 'unreviewed')) {
-          const answer = await findings.findingsReview({ id: finding.id, evidenceVersion: finding.evidence_version ?? '', status: 'accepted', note: '' });
-          added.push({ id: answer.id, evidenceVersion: answer.evidence_version ?? '' });
+        const fresh = stored.filter((item) => item.review.status === 'unreviewed');
+        if (fresh.length > 0) {
+          // The accepted lines are one journal entry, so Ctrl+Z and History take them back with the toast's Undo; the first refusal stops it.
+          const done = await journal.act<{ changed: LinkedChange[]; failed?: string }>({
+            label: lines(fresh.length),
+            touches: ['pickups', ...fresh.map((finding) => `proof/finding/${finding.id}`)],
+            run: async () => {
+              const result = await decideLinked(findings, fresh, 'accepted', { stopAtRefusal: true });
+              if (result.changed.length === 0 && result.failed) return { ok: false, refusal: { code: 'host_refused', reason: result.failed } };
+              return { ok: true, value: result };
+            },
+            undo: async (result) => {
+              try {
+                await restoreLinked(findings, result.changed);
+                return { ok: true, value: result };
+              } catch (reason) {
+                return { ok: false, refusal: { code: 'host_refused', reason: apiErrorMessage(reason) } };
+              }
+            },
+          });
+          if (done.ok) {
+            changed = done.value.value.changed;
+            refused = done.value.value.failed ?? '';
+            journalEntry = done.value.id;
+          } else {
+            refused = done.refusal.reason;
+          }
         }
       } catch (reason) {
         refused = apiErrorMessage(reason);
       }
       if (refused) overlay.toast(refused, { tone: 'error' });
-      if (added.length === 0 || quiet) return added.length;
+      if (changed.length === 0 || quiet) return changed.length;
       const withTake = !saidSaved && undoTake;
-      const text = saidSaved ? lines(added.length) : `Take saved · ${lines(added.length)}`;
+      const text = saidSaved ? lines(changed.length) : `Take saved · ${lines(changed.length)}`;
       const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
         // The take goes first when this toast is the one that said it is saved.
         const take = withTake ? await undoTake() : null;
         if (take && !take.ok) return take;
-        try {
-          for (const item of added) await findings.findingsReview({ ...item, status: 'unreviewed', note: '' });
-          return { ok: true };
-        } catch (reason) {
-          return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
-        }
+        const undone = await journal.undo(journalEntry);
+        return undone.ok ? { ok: true } : undone;
       };
       if (withTake && entry !== undefined) overlay.toastUndo(text, undo, { entry });
-      else overlay.toastUndo(text, undo, { offJournal: 'The findings are accepted straight through the host; no journal command yet (audit cluster 17).' });
-      return added.length;
+      else overlay.toastUndo(text, undo, { entry: journalEntry });
+      return changed.length;
     },
-    [teleprompter, findings, overlay],
+    [teleprompter, findings, overlay, journal],
   );
 
   return { takeStopped };
