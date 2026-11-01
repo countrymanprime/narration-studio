@@ -3,6 +3,7 @@ import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/cont
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
 import { useDawState } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
+import { startDaw } from '../../connection/startDaw';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { InsetCard } from '../../primitives/InsetCard';
@@ -134,6 +135,7 @@ export function EngineBody() {
   const dawChoice = usePort('dawChoice');
   const capsVersion = useDawState((state) => state.capsVersion);
   const project = usePort('project');
+  const system = usePort('system');
   const catalog = usePort('dawCatalog');
   const { data, notify, onLinkDawFile } = useSettingsHost();
   const audacity = useAudacityLink();
@@ -187,14 +189,10 @@ export function EngineBody() {
 
   const start = async () => {
     setStarting(true);
-    try {
-      const result = await project.launchDaw();
-      notify(`Started ${choice?.daw ?? 'the DAW'} (${result.path}).`);
-    } catch (failure) {
-      notify(describeApiError(failure), 'error');
-    } finally {
-      setStarting(false);
-    }
+    const started = await startDaw({ project, system }, choice?.daw ?? 'none');
+    if (started.ok) notify(`Started ${choice?.daw ?? 'the DAW'} (${started.path}).`);
+    else notify(started.message, 'error');
+    setStarting(false);
   };
 
   const check = async () => {
