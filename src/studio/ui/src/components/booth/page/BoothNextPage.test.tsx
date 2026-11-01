@@ -1610,7 +1610,8 @@ describe('the text follows the voice: the listening microphone and the model', (
     expect(await screen.findByRole('alertdialog', { name: 'Download local Whisper model?' })).toBeTruthy();
     // Changed 2026-11-01 (#2251): the DAW starts alongside listening, so a model the asset list did not report missing is found once it has;
     // the recording is stopped at once and nothing of it is kept, so no take runs behind the question.
-    if (page.daw.recordStart.mock.calls.length > 0) await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
     expect(page.passageMapRecordRun).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByText('REC')).toBeNull());
     expect(assetsInstall).not.toHaveBeenCalled();
