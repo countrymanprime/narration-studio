@@ -5,7 +5,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
 import type { Notify } from '../../primitives/Toast';
-import { ProjectDataPanel } from './ProjectDataPanel';
+import { ClearProjectData } from './ProjectDataPanel';
 import { ScopedFieldsPanel } from './ScopedFieldsPanel';
 import { SettingsFormsProvider } from '../data/settingsForms';
 
@@ -21,14 +21,14 @@ function withForms(api: NarrationApi, children: React.ReactNode) {
   );
 }
 
-describe('ProjectDataPanel', () => {
+describe('ClearProjectData', () => {
   it('clears only after the confirm, once, and hands over to the app when done', async () => {
     const api = createMockApi();
     let finish: () => void = () => undefined;
     const clear = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
     api.clearProjectData = clear;
     const cleared = vi.fn(async () => undefined);
-    withForms(api, <ProjectDataPanel notify={vi.fn()} onProjectDataCleared={cleared} />);
+    withForms(api, <ClearProjectData notify={vi.fn()} onProjectDataCleared={cleared} label="Clear derived project data…" />);
     fireEvent.click(screen.getByRole('button', { name: 'Clear derived project data…' }));
     expect(clear).not.toHaveBeenCalled();
     const confirm = await screen.findByRole('button', { name: 'Clear project data' });
