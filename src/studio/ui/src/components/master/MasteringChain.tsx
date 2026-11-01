@@ -3,6 +3,7 @@ import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { MasteringProviders } from '../../api/contracts/mastering';
 import { useErrorToast } from '../../hooks/useErrorToast';
+import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { Badge } from '../primitives/StatusBadge';
 
@@ -39,12 +40,16 @@ export function MasteringChain({ providers, problem }: { providers?: MasteringPr
   return (
     // The long description is the body's first line, not a subtitle squeezed beside the title, so the header is as tall as its neighbours'
     // and the text does not fold into a narrow column at 390 (XMS-15, R4MS2-10).
-    <Panel title="Mastering chain">
-      {row && (
-        <p className="mb-3 max-w-[80ch] text-sm" style={MUTED}>
-          {`One chain for the book: ${row.label}, the same for every platform, with each platform's own RMS window and peak limit.`}
-        </p>
-      )}
+    <Panel
+      title="Mastering chain"
+      actions={
+        row && (
+          <HelpButton label="About the mastering chain">
+            {`One chain for the book: ${row.label}, the same for every platform, with each platform's own RMS window and peak limit.`}
+          </HelpButton>
+        )
+      }
+    >
       {row && (
         <>
           {providers?.notice && (

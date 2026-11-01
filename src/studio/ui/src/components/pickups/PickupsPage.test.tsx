@@ -154,6 +154,19 @@ describe('fine-not-a-pickup-and-show-where', () => {
     await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
   });
 
+  it('Remove on a line added by hand is one journal entry, and Ctrl+Z puts it back', async () => {
+    const mine = pickup({ id: 'you:1', chapterId: 'c1', source: 'you', time: 30, script: 'my line' });
+    const { api, remove, user, journal } = await setupFine(mine);
+    const add = vi.spyOn(api, 'pickupsAdd').mockResolvedValue({ pickups: [mine], leftOut: [] });
+    await user.click(screen.getByRole('button', { name: 'Remove from pickups' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('you:1'));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: 'Removed 00:30.0 from pickups', touches: ['pickups'], undoable: true });
+    expect((await journal.undoLast()).ok).toBe(true);
+    expect(add).toHaveBeenCalledWith('c1', 30, 'my line');
+  });
+
   it('a check’s gap with a note is also taken off the list', async () => {
     const { review, remove, user } = await setupFine(fromGap);
     await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));

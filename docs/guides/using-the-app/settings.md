@@ -66,7 +66,8 @@ Under it, **Connection** says what the app can reach right now, with **Test conn
 You set nothing up in REAPER. The app puts its bridge in REAPER's Scripts folder by itself, and REAPER starts it each
 time it opens; the card says so under **Connection**, or says what stopped it. When a project linked to REAPER opens and
 REAPER is not running, the app opens REAPER on the linked project: **Connection** reads **Starting REAPER** with how
-long ago it opened, until REAPER answers. If you close REAPER later the app does not reopen it; **Start REAPER** does.
+long ago it opened, until REAPER answers. If you close REAPER later the app does not reopen it; **Start REAPER** does, and it turns on the launcher first, as **Open in REAPER and
+connect** does on the Booth.
 If REAPER was already open before the app put its bridge there, the app runs the bridge in it for you.
 
 ![Settings - Recording: the app opening REAPER on the linked project, connecting on its own](../../images/ui/settings-recording-starting.webp)

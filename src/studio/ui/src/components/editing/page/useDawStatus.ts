@@ -47,5 +47,5 @@ export function useDawStatus(): DawStatus {
       : recordRow;
   const name = !caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'The DAW' : caps.daw;
   const off = caps && !caps.reachable ? (record?.message ?? `${name} is not running.`) : null;
-  return { caps, off, dawName: nameOf(caps), checkedAt, heardAt, readFailed, retry: session.refreshCapabilities, take: session.takeCapabilities };
+  return { caps, off, dawName: nameOf(caps), checkedAt, heardAt, readFailed, retry: session.checkConnection, take: session.takeCapabilities };
 }

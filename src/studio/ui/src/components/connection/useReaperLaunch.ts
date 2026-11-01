@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawKind } from '../../api/contracts/daw';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
-import { dawConnectGuide } from '../engine/dawConnectGuide';
+import { startDaw } from './startDaw';
 
 /** How the last Start went: nothing yet, the launcher is running, the app is waiting for the bridge, or it did not work. */
 export type LaunchState =
@@ -56,17 +56,13 @@ export function useReaperLaunch({
     const say = (next: LaunchState) => alive.current && setState(next);
     void (async () => {
       say({ phase: 'starting' });
-      try {
-        // The launcher runs only when REAPER is started with it: the setting is saved first, as the guide's own Start button does.
-        const settings = dawConnectGuide(daw)?.launch.settings;
-        if (settings) await system.saveSettings('DAW', 'global', settings);
-        const started = await project.launchDaw();
-        onLaunched?.(started.path);
-      } catch (error) {
-        say({ phase: 'refused', message: apiErrorMessage(error) });
+      const started = await startDaw({ project, system }, daw);
+      if (!started.ok) {
+        say({ phase: 'refused', message: started.message });
         running.current = false;
         return;
       }
+      onLaunched?.(started.path);
       say({ phase: 'waiting' });
       try {
         for (let attempt = 0; attempt < polls && alive.current; attempt++) {

@@ -5,6 +5,7 @@ import type { DeliveryReportExport } from '../../types';
 import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
+import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { brand } from '../../brand.gen';
 
@@ -45,16 +46,17 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
   const off = busy || !measured;
   const reason = busy ? 'Wait for the running check to end.' : !measured ? 'Check some files first: the report covers the files measured here.' : undefined;
   return (
-    <Panel title="Report">
-      <p className="max-w-[80ch] text-sm" style={MUTED}>
-        Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s{' '}
-        {/* One unbroken name: it broke at its hyphen into "narration-" and "studio/delivery" (R4MS2-2). */}
-        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] whitespace-nowrap">{brand.identity.projectFolder}/delivery</span>{' '}
-        folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed.
-      </p>
+    <Panel
+      title="Report"
+      actions={
+        <HelpButton label="About exporting">
+          {`Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s ${brand.identity.projectFolder}/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed. Without the full location, only file names are written.`}
+        </HelpButton>
+      }
+    >
       <div className="mt-3">
         <Checkbox checked={includePaths} onChange={setIncludePaths} disabled={off}>
-          Include each file’s full location (otherwise only file names are written)
+          Include each file’s full location
         </Checkbox>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">

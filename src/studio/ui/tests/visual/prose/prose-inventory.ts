@@ -26,11 +26,6 @@ export type ProseEntry = { file: string; text: string; class: ProseClass };
 export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/booth/CompanionShell.tsx', text: 'Hotkeys that reach this panel from REAPER are not available yet.', class: 'state' },
   {
-    file: 'components/booth/CompanionShell.tsx',
-    text: 'The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.',
-    class: 'state',
-  },
-  {
     file: 'components/booth/RecordInReaperConfirm.tsx',
     text: 'Play will arm and start recording in REAPER on the track linked to … , and Stop will stop that recording.',
     class: 'overlay',
@@ -289,11 +284,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   {
-    file: 'components/master/DeliveryProfilePanel.tsx',
-    text: 'Loudness (LUFS) and true peak are shown in each file&apos;s detail for information',
-    class: 'explanation',
-  },
-  {
     file: 'components/master/DiagnosticsSection.tsx',
     text: 'No silence, breath or click candidates in the checked files, against the thresholds below.',
     class: 'empty',
@@ -311,21 +301,18 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/master/FileRulesPanel.tsx',
     text: 'Book rules (channels the same across files, credits files, retail sample, one section per file, consistency) judge the book as a whole, not this one file: see the Delivery package beside the files.',
-    class: 'explanation',
+    class: 'overlay',
   },
-  { file: 'components/master/MasterToSpecPanel.tsx', text: 'Master before encoding…, to the platform&apos;s RMS window and peak limit', class: 'instruction' },
   {
     file: 'components/master/MasteringChain.tsx',
     text: "One chain for the book: …, the same for every platform, with each platform's own RMS window and peak limit.",
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/master/ReportExportPanel.tsx',
-    text: 'Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s … … folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed.',
-    class: 'explanation',
+    text: 'Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s …/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed. Without the full location, only file names are written.',
+    class: 'overlay',
   },
-  { file: 'components/master/ReportExportPanel.tsx', text: 'Include each file’s full location (otherwise only file names are written)', class: 'explanation' },
-  { file: 'components/pickups/PickupsCompanionSummary.tsx', text: 'Jump to one or mark it done on the Pickups page in the full app.', class: 'instruction' },
   {
     file: 'components/pickups/list/PickupsTable.tsx',
     text: 'A pickup can be added once the list has been read. If it could not be read, use Retry.',
@@ -601,7 +588,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/storybible/VoiceDataPanel.tsx',
     text: "Narration's voice samples and approved references are here - a character's own live on its entry. Remove voice data clears every approved reference in the project; Remove voice samples deletes every sample and its audio. Nothing else about the Story Bible changes.",
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/storybible/suggested/import/ImportDialog.tsx',
@@ -611,7 +598,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/storybible/suggested/scan/AnalysisPrompt.tsx',
     text: 'GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/recordingcheck/CheckResult.tsx',
@@ -708,11 +695,10 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'error',
   },
   {
-    file: 'components/master/DeliveryProfilePanel.tsx',
-    text: 'Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.',
+    file: 'components/master/MasterToSpecPanel.tsx',
+    text: 'Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.',
     class: 'overlay',
   },
-  { file: 'components/master/DeliveryProfilePanel.tsx', text: ": …'s page, as recorded, sets no LUFS rule.", class: 'state' },
   { file: 'components/master/FileRulesPanel.tsx', text: ' Loudness … LUFS (information: … no LUFS rule).', class: 'state' },
   { file: 'components/master/ReportExportPanel.tsx', text: 'Check some files first: the report covers the files measured here.', class: 'empty' },
   { file: 'components/masterqc/page/MasterPage.tsx', text: 'The link names …, but no files are measured yet. Check files to measure them.', class: 'empty' },
@@ -795,7 +781,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/storybible/voicesamples/MoveVoiceSampleDialog.tsx', text: '… has … samples. Delete one first.', class: 'overlay' },
   {
     file: 'components/storybible/voicesamples/VoiceSamplesBody.tsx',
-    text: 'No voice samples yet. Mark one in Editing: select words you voiced well and press V.',
-    class: 'empty',
+    text: 'Mark one in Editing: select words you voiced well and press V.',
+    class: 'overlay',
   },
 ];

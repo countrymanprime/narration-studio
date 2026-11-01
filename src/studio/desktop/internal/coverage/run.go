@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/creditsid"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -325,7 +326,7 @@ func (s *Service) finish(running *job) {
 	if err := os.RemoveAll(running.dir); err != nil {
 		s.config.Reporter.Warn("coverage_run_cleanup_failed", fmt.Sprintf("Recording coverage run folder was not removed: %v", err))
 	}
-	if _, isCredits := CreditsKind(running.basis.ChapterID); isCredits {
+	if _, isCredits := creditsid.Kind(running.basis.ChapterID); isCredits {
 		// Best-effort, like the run folder above: the synthetic manuscript is transient, rewritten fresh by the
 		// next credits check either way.
 		_ = os.Remove(running.manuscriptPath)
@@ -352,7 +353,7 @@ func (s *Service) finish(running *job) {
 func (s *Service) inputsUnchanged(running *job) error {
 	basis, err := s.chapter(running.basis.ChapterID)
 	if err != nil || basis != running.basis {
-		if _, isCredits := CreditsKind(running.basis.ChapterID); isCredits {
+		if _, isCredits := creditsid.Kind(running.basis.ChapterID); isCredits {
 			return fmt.Errorf("the credits text changed during the recording check; check again")
 		}
 		return fmt.Errorf("the manuscript changed during the recording check; check again")

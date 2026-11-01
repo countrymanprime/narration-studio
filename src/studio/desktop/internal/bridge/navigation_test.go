@@ -24,6 +24,48 @@ const (
 type fakeReaper struct {
 	mu       sync.Mutex
 	received [][]string
+	seen     fakeReaperSeen
+}
+
+// fakeReaperSeen is what the fake saw of the file protocol, kept so a test that fails with "REAPER did not answer" says which side lost the
+// exchange: no command read (readErrors, a file still pending), a command read but not removed (removeErrors), or an answer written that no
+// Dispatch delivered (the client's own counters in the dump).
+type fakeReaperSeen struct {
+	ticks, answered, readErrors, removeErrors int
+	lastReadError, lastRemoveError            string
+	lastTick                                  time.Time
+	longestGap                                time.Duration
+}
+
+// diagnosticLog is the part of *testing.T diagnose uses, so a test can read what it would write.
+type diagnosticLog interface {
+	Helper()
+	Failed() bool
+	Logf(format string, args ...any)
+}
+
+// diagnose writes what the fake and the client saw to the test log. It runs only for a failed test, after the fake has stopped.
+func (f *fakeReaper) diagnose(t diagnosticLog, client *Client, dir string) {
+	t.Helper()
+	if !t.Failed() {
+		return
+	}
+	pending, _ := filepath.Glob(filepath.Join(dir, "commands", "*"))
+	var log int64 = -1
+	if info, err := os.Stat(filepath.Join(dir, "events.log")); err == nil {
+		log = info.Size()
+	}
+	client.events.mu.Lock()
+	offset, undelivered, malformed, invalid := client.events.eventOffset, client.events.undelivered, client.events.malformed, client.events.invalid
+	client.events.mu.Unlock()
+	f.mu.Lock()
+	seen, received := f.seen, len(f.received)
+	f.mu.Unlock()
+	t.Logf("bridge diagnosis: commands received=%d answered=%d ticks=%d longest gap between ticks=%v\n"+
+		"  fake: read errors=%d (last %q) remove errors=%d (last %q); files left in commands/: %v\n"+
+		"  client: events.log size=%d dispatch offset=%d dispatches=%d undelivered=%d malformed=%d invalid=%d",
+		received, seen.answered, seen.ticks, seen.longestGap, seen.readErrors, seen.lastReadError, seen.removeErrors, seen.lastRemoveError,
+		pending, log, offset, client.events.dispatches.Load(), undelivered, malformed, invalid)
 }
 
 func startFakeReaper(t *testing.T, client *Client, dir string, answer func(command []string) [][]string) *fakeReaper {
@@ -34,6 +76,7 @@ func startFakeReaper(t *testing.T, client *Client, dir string, answer func(comma
 	t.Cleanup(func() {
 		close(done)
 		<-stopped
+		fake.diagnose(t, client, dir)
 	})
 	go func() {
 		defer close(stopped)
@@ -44,6 +87,7 @@ func startFakeReaper(t *testing.T, client *Client, dir string, answer func(comma
 			case <-done:
 				return
 			case <-ticker.C:
+				fake.noteTick()
 				fake.tick(t, client, dir, answer)
 			}
 		}
@@ -57,9 +101,12 @@ func (f *fakeReaper) tick(t *testing.T, client *Client, dir string, answer func(
 	for _, name := range names {
 		content, err := os.ReadFile(name)
 		if err != nil {
+			f.note(func(s *fakeReaperSeen) { s.readErrors++; s.lastReadError = err.Error() })
 			continue
 		}
-		_ = os.Remove(name)
+		if err := os.Remove(name); err != nil {
+			f.note(func(s *fakeReaperSeen) { s.removeErrors++; s.lastRemoveError = err.Error() })
+		}
 		fields, err := DecodeFields(string(content))
 		if err != nil {
 			t.Errorf("the client wrote a command that does not decode: %v", err)
@@ -69,8 +116,27 @@ func (f *fakeReaper) tick(t *testing.T, client *Client, dir string, answer func(
 		f.received = append(f.received, fields)
 		f.mu.Unlock()
 		appendEvents(t, dir, answer(fields)...)
+		f.note(func(s *fakeReaperSeen) { s.answered++ })
 	}
 	_ = client.Dispatch()
+}
+
+func (f *fakeReaper) note(update func(*fakeReaperSeen)) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	update(&f.seen)
+}
+
+// noteTick counts a tick and the longest time the fake's loop went without running, which shows a stalled runner.
+func (f *fakeReaper) noteTick() {
+	now := time.Now()
+	f.note(func(s *fakeReaperSeen) {
+		s.ticks++
+		if !s.lastTick.IsZero() && now.Sub(s.lastTick) > s.longestGap {
+			s.longestGap = now.Sub(s.lastTick)
+		}
+		s.lastTick = now
+	})
 }
 
 func (f *fakeReaper) commands() [][]string {
