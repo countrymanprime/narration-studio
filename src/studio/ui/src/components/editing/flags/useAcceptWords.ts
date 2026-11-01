@@ -5,7 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import type { Journal } from '../../../studio/journal/createJournal';
 import { announcePickupListChanged } from '../../pickups/pickupListChanged';
 import type { ChapterDoc } from '../model';
-import { decideLinked, restoreLinked, type LinkedChange } from './decideLinked';
+import { decideLinked, restoreLinked, type LinkedChange } from '../../../studio/commands/reviewFinding';
 import { findingsAt } from './findingLink';
 
 export interface AcceptOptions {

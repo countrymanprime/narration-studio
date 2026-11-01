@@ -130,7 +130,7 @@ under the list at its own width. From there:
 ## In the Booth's companion panel
 
 The companion panel's **Pickups** section shows how many of the DAW's pickup markers are still open, out of the total. It
-does not change them.
+does not change them: jump to a pickup or mark it done on this page in the full app.
 
 ---
 

@@ -182,18 +182,44 @@ export function PickupsPage({
   useCommand('editing.chapter.prev', () => step(-1), hasManuscript);
 
   // A line added by hand can be put back; the host keeps an automatic line off once removed, so it has no Undo.
-  const remove = async (id: string): Promise<RemoveUndo | undefined> => {
+  const remove = async (id: string): Promise<{ undo: RemoveUndo; entry: number } | undefined> => {
     const pickup = list.pickups.find((p) => p.id === id);
-    await changing(pickupsApi.pickupsRemove(id));
-    if (!pickup || pickup.source !== 'you' || pickup.time === null) return undefined;
+    const take = () => changing(pickupsApi.pickupsRemove(id));
+    if (!pickup || pickup.source !== 'you' || pickup.time === null) {
+      await take();
+      return undefined;
+    }
     const { chapterId, time, script } = pickup;
-    return async () => {
-      try {
-        await changing(pickupsApi.pickupsAdd(chapterId, time, script));
-        return { ok: true };
-      } catch (error) {
-        return { ok: false, refusal: { reason: reasonSentence(error) } };
-      }
+    const failed = (error: unknown) => ({ ok: false as const, refusal: { code: 'host_refused', reason: reasonSentence(error) } });
+    // A line added by hand is a journal entry, so Ctrl+Z and History put it back as the toast's Undo does.
+    const done = await journal.act<null>({
+      label: `Removed ${clock(time)} from pickups`,
+      touches: ['pickups'],
+      run: async () => {
+        try {
+          await take();
+          return { ok: true, value: null };
+        } catch (error) {
+          return failed(error);
+        }
+      },
+      undo: async () => {
+        try {
+          await changing(pickupsApi.pickupsAdd(chapterId, time, script));
+          return { ok: true, value: null };
+        } catch (error) {
+          return failed(error);
+        }
+      },
+    });
+    if (!done.ok) throw new Error(done.refusal.reason);
+    const entry = done.value.id;
+    return {
+      entry,
+      undo: async () => {
+        const undone = await journal.undo(entry);
+        return undone.ok ? { ok: true } : { ok: false, refusal: { reason: undone.refusal.reason } };
+      },
     };
   };
 

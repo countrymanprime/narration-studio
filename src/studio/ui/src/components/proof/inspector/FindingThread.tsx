@@ -3,6 +3,7 @@ import { MAX_REVIEW_NOTE_LENGTH, type FindingThreadAuthor, type FindingThreadCha
 import { describeApiError } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Finding, NarrationApi } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { Field } from '../../primitives/Field';
@@ -73,6 +74,7 @@ function Message({
  */
 export function FindingThread({ finding, api, onChanged }: { finding: Finding; api: FindingThreadApi; onChanged: (finding: Finding) => void }) {
   const overlay = useOverlay();
+  const journal = useJournalOrOwn();
   const action = usePendingAction();
   // Pasting the proofer's reply is the common case (mock `who: 'proofer'`).
   const [who, setWho] = useState<FindingThreadAuthor>('proofer');
@@ -96,18 +98,32 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
     });
   const remove = (message: FindingThreadMessage) =>
     action.run(`delete-${message.id}`, async () => {
-      if (!(await send({ op: 'delete', messageId: message.id }))) return;
+      // A deleted note is one journal entry, so Ctrl+Z and History bring it back as the toast's Undo does. `send` has already said why when it fails.
+      const done = await journal.act<null>({
+        label: 'Deleted a note',
+        touches: [`proof/finding/${finding.id}`],
+        run: async () =>
+          (await send({ op: 'delete', messageId: message.id }))
+            ? { ok: true, value: null }
+            : { ok: false, refusal: { code: 'host_refused', reason: 'Not saved.' } },
+        undo: async () => {
+          try {
+            onChanged(await api.findingsThread(finding.id, { op: 'restore', messageId: message.id }));
+            return { ok: true, value: null };
+          } catch (error) {
+            return { ok: false, refusal: { code: 'host_refused', reason: describeApiError(error) } };
+          }
+        },
+      });
+      if (!done.ok) return;
+      const entry = done.value.id;
       overlay.toastUndo(
         'Deleted the note',
         async () => {
-          try {
-            onChanged(await api.findingsThread(finding.id, { op: 'restore', messageId: message.id }));
-            return { ok: true };
-          } catch (error) {
-            return { ok: false, refusal: { reason: describeApiError(error) } };
-          }
+          const undone = await journal.undo(entry);
+          return undone.ok ? { ok: true } : undone;
         },
-        { offJournal: 'A note thread is restored by the host op, not a journal command.' },
+        { entry },
       );
     });
 

@@ -18,6 +18,7 @@ package coverage
 
 import (
 	"crypto/sha256"
+	"desktop/internal/creditsid"
 	"encoding/hex"
 	"fmt"
 )
@@ -88,23 +89,6 @@ func findChapter(data map[string]any, chapterID string) (map[string]any, bool) {
 	return nil, false
 }
 
-// CreditsChapterID is the id a credits row's check runs and reads under: "credits-opening" or "credits-closing",
-// matching the teleprompter's own credits script id and the row id the chapter table renders.
-func CreditsChapterID(kind string) string { return "credits-" + kind }
-
-// CreditsKind reports the credits kind a chapterID names ("opening" or "closing"), and whether it is one at all - the
-// coverage service's own dispatch between a manuscript chapter and a credits row (chapterID is never both).
-func CreditsKind(chapterID string) (kind string, ok bool) {
-	switch chapterID {
-	case CreditsChapterID("opening"):
-		return "opening", true
-	case CreditsChapterID("closing"):
-		return "closing", true
-	default:
-		return "", false
-	}
-}
-
 // creditsBasis is a credits row's basis, the rendered text rather than manuscript paragraphs: title and text
 // are the same first-of-kind template render the Home row and the teleprompter show, so a
 // template edit that changes either changes the hash and makes a stored result stale, exactly as an edited
@@ -118,5 +102,5 @@ func creditsBasis(documentID, kind, title, text string) ChapterBasis {
 	write(kind)
 	write(title)
 	write(text)
-	return ChapterBasis{DocumentID: documentID, ChapterID: CreditsChapterID(kind), Title: title, Hash: hex.EncodeToString(hash.Sum(nil))}
+	return ChapterBasis{DocumentID: documentID, ChapterID: creditsid.ID(kind), Title: title, Hash: hex.EncodeToString(hash.Sum(nil))}
 }

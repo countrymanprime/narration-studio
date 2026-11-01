@@ -70,7 +70,7 @@ export function useDawCapabilityReport() {
   const session = useDawSession();
   const report = useDawState((state) => state.caps) ?? undefined;
   const error = useDawState((state) => state.capsError);
-  const retry = useCallback(() => void session.refreshCapabilities(), [session]);
+  const retry = useCallback(() => void session.checkConnection(), [session]);
   return { report, loadError: report ? '' : error, retry };
 }
 
