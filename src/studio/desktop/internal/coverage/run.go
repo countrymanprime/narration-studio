@@ -255,8 +255,7 @@ func (s *Service) readProgress(running *job) {
 	}
 	changed := false
 	if hasActivity {
-		next := running.activityOf(activity)
-		if running.state.Activity == nil || !reflect.DeepEqual(*running.state.Activity, next) {
+		if next, ok := running.activityOf(activity); ok && (running.state.Activity == nil || !reflect.DeepEqual(*running.state.Activity, next)) {
 			running.state.Activity, changed = &next, true
 		}
 	}

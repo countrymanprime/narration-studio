@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
+import { HelpButton } from '../../primitives/HelpButton';
 import { Field } from '../../primitives/Field';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useSettingsHost } from '../row/SettingsHost';
@@ -114,13 +115,13 @@ export function MwKeyBody() {
           {error}
         </p>
       )}
-      <span role="status" className="text-[0.8125rem] text-[var(--text-muted)]">
-        {result}
-      </span>
-      <span className="text-[0.8125rem] text-[var(--text-muted)]">
-        When no dictionary on this computer knows a name, Look up online asks Merriam-Webster. Only the one word you look up is sent, never your text, file
-        names or project. Answers are kept on this computer, so a word is never sent twice.
-        {!status.protectedAtRest && ' On this system the key is kept in a file only your account can read, not in a protected credential store.'}
+      <span className="flex items-center gap-2">
+        <span role="status" className="text-[0.8125rem] text-[var(--text-muted)]">
+          {result}
+        </span>
+        <HelpButton label="About online lookups">
+          {`When no dictionary on this computer knows a name, Look up online asks Merriam-Webster. Only the one word you look up is sent, never your text, file names or project. Answers are kept on this computer, so a word is never sent twice.${status.protectedAtRest ? '' : ' On this system the key is kept in a file only your account can read, not in a protected credential store.'}`}
+        </HelpButton>
       </span>
     </div>
   );

@@ -6,7 +6,8 @@ import { SearchField } from '../primitives/SearchField';
 import { Dot, StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { treeKeyHandler } from '../primitives/treeKeys';
-import { IndentGuides, TREE_INDENT, TrackMark, TreeCaret, tracksWord } from '../tracks/TreeRowParts';
+import { IndentGuides, TREE_INDENT, TreeCaret } from '../primitives/TreeCaret';
+import { TrackMark, tracksWord } from '../tracks/TreeRowParts';
 import { buildTrackTree, defaultOpen, folderRollup, searchVisible, trackLabel, visibleNodes } from '../tracks/trackTree';
 import type { Track, TrackMapping } from '../../types';
 

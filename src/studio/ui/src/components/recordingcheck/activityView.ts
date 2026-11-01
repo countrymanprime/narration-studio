@@ -113,13 +113,3 @@ function workersHint(requested: number, workers: number, chunkTotal: number, lar
   if (workers < requested) return `You chose ${requested}; this check can use ${workers} at once${plus}.`;
   return `You chose ${requested}; ${workers} run at once${plus}.`;
 }
-
-/** m:ss, or h:mm:ss from an hour. */
-export function clock(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(whole / 3600);
-  const m = Math.floor((whole % 3600) / 60);
-  const s = whole % 60;
-  const two = (value: number) => String(value).padStart(2, '0');
-  return h > 0 ? `${h}:${two(m)}:${two(s)}` : `${m}:${two(s)}`;
-}

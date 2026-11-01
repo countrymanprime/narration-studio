@@ -105,8 +105,12 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircleCheck as faCircleCheckRegular } from '@fortawesome/free-regular-svg-icons';
 
-/** `page` is a rail or navigation icon, `pageLink` a button that opens that page, `action` anything else. A `text` row has no icon. */
-type CatalogKind = 'page' | 'pageLink' | 'action';
+/**
+ * `page` is a rail or navigation icon, `pageLink` a button that opens that page, `action` anything else a button does. `figure` is a glyph that
+ * labels a number the screen shows (an `ActivityPanel` figure): it is information, never a control, so it has no button tooltip (the figure
+ * carries its own hint). A `text` row has no icon.
+ */
+type CatalogKind = 'page' | 'pageLink' | 'action' | 'figure';
 
 type CatalogFields = {
   /** What the control does, in words. Two rows that wear one icon must share it (an alias); `page:<name>` for a page and its links. */
@@ -124,6 +128,7 @@ type TextRow = CatalogFields & { kind: 'text'; icon: null };
 export type CatalogRow = IconRow | TextRow;
 
 const action = (icon: IconDefinition, meaning: string, tooltip: string, shortcut?: string): IconRow => ({ kind: 'action', icon, meaning, tooltip, shortcut });
+const figure = (icon: IconDefinition, meaning: string): IconRow => ({ kind: 'figure', icon, meaning, tooltip: '' });
 const page = (icon: IconDefinition, name: string, tooltip: string): IconRow => ({ kind: 'page', icon, meaning: `page:${name}`, tooltip });
 const pageLink = (icon: IconDefinition, name: string, tooltip: string): IconRow => ({ kind: 'pageLink', icon, meaning: `page:${name}`, tooltip });
 const text = (meaning: string, tooltip: string): TextRow => ({ kind: 'text', icon: null, meaning, tooltip });
@@ -240,10 +245,10 @@ export const CATALOG = {
   checkPreparedFiles: action(faClipboardCheck, 'check prepared files', 'Check the prepared files so Delivery counts them'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
   problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
-  // The recording check's activity panel: the figures it labels, drawn with `Icon` and named by their tooltip.
-  chunksTranscribed: action(faPuzzlePiece, 'chunks transcribed', 'Show the chunks transcribed'),
-  transcriptionsAtOnce: action(faMicrochip, 'transcriptions at once', 'Show the transcriptions at once'),
-  largerModelRecheck: action(faCheckDouble, 'larger-model re-check', 'Show the larger-model re-check'),
+  // The recording check's activity panel: the figures it labels, drawn with `Icon`. Each figure shows its own hint as its tooltip.
+  chunksTranscribed: figure(faPuzzlePiece, 'chunks transcribed'),
+  transcriptionsAtOnce: figure(faMicrochip, 'transcriptions at once'),
+  largerModelRecheck: figure(faCheckDouble, 'larger-model re-check'),
 
   // State: outline is off, solid is on (audit rule 3).
   markDone: action(faCircleCheckRegular, 'mark done', 'Mark done'),
