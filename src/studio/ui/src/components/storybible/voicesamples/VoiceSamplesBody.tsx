@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { Button } from '../../primitives/Button';
+import { HelpButton } from '../../primitives/HelpButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { VoiceSample, VoiceSamples } from '../../../api/contracts/voiceSamples';
@@ -12,7 +13,8 @@ import { voiceSampleRowId, VoiceSampleRow } from './VoiceSampleRow';
 import { mebibytes, samplesOf } from './voiceSampleModel';
 import { useVoiceSampleActions } from './useVoiceSampleActions';
 
-export const NO_SAMPLES_YET = 'No voice samples yet. Mark one in Editing: select words you voiced well and press V.';
+export const NO_SAMPLES_YET = 'No voice samples yet.';
+const HOW_TO_MARK = 'Mark one in Editing: select words you voiced well and press V.';
 
 /**
  * One character's (or Narration's) voice samples, self-fetching like the Story Bible's other sections (docs/prds/character-voice-samples.prd.md,
@@ -154,7 +156,10 @@ export function VoiceSamplesBody({
       ) : null}
       {list && mine.length === 0 && read.status !== 'failed' ? (
         <>
-          <p className="m-0 mb-2 text-sm text-[var(--text-muted)]">{NO_SAMPLES_YET}</p>
+          <p className="m-0 mb-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+            {NO_SAMPLES_YET}
+            <HelpButton label="About marking a voice sample">{HOW_TO_MARK}</HelpButton>
+          </p>
           {openEditing ? (
             <Button variant="secondary" size="sm" onClick={() => openEditing()}>
               Open Editing
