@@ -398,16 +398,24 @@ def perf_record_press(env: Env) -> str:
     fx = env.lua(BUILD, env.media_path("tone_a"), LARGE, timeout=300)
     guid = fx["chapter"]
     presses: list[dict] = []
-    for _ in range(5):
-        steps, start = {}, time.monotonic()
-        steps["track_state"] = round_trip(env, "chapter_track_state", guid, until={"TRACK_STATE_END"})
-        steps["arm_only"] = round_trip(env, "arm_only", guid, until={"ARMED"})
-        steps["punch_to"] = round_trip(env, "punch_to", "120", "0", until={"PUNCHED"})
-        steps["record_start"] = round_trip(env, "record_start", guid, until={"RECORD_STARTED"})
-        steps["total"] = (time.monotonic() - start) * 1000
-        presses.append(steps)
-        env.ok("record_stop", until="RECORD_STOPPED", timeout=20)
-        env.wait_for(lambda: env.lua("return reaper.GetPlayState()") == 0, what="REAPER to stop")
+
+    def press_five(deadline: float) -> None:
+        for _ in range(5):
+            steps, start = {}, time.monotonic()
+            steps["track_state"] = round_trip(env, "chapter_track_state", guid, until={"TRACK_STATE_END"})
+            steps["arm_only"] = round_trip(env, "arm_only", guid, until={"ARMED"})
+            steps["punch_to"] = round_trip(env, "punch_to", "120", "0", until={"PUNCHED"})
+            steps["record_start"] = round_trip(env, "record_start", guid, until={"RECORD_STARTED"})
+            steps["total"] = (time.monotonic() - start) * 1000
+            presses.append(steps)
+            time.sleep(1.0)
+            env.ok("record_stop", until="RECORD_STOPPED", timeout=20)
+            env.wait_for(lambda: env.lua("return reaper.GetPlayState()") == 0, what="REAPER to stop")
+
+    # REAPER's main thread with the Booth's idle read (chapter_track_state every 15 s, useRecordControl.ts READY_POLL_MS), then while
+    # the presses run: what a click in REAPER waits for, the host's commands included.
+    idle = window(env, 32, during=polling(env, guid, 15.0))
+    pressing = window(env, 30, during=press_five)
     per_step = {name: summary([press[name] for press in presses]) for name in presses[0]}
 
     log = env.session.dir / "events.log"
@@ -425,7 +433,13 @@ def perf_record_press(env: Env) -> str:
         env.wait_for(timing_heartbeat, timeout=10, what="a heartbeat carrying the timing switch")
     finally:
         env.lua(TIMING, "off")
-    write_result(env, "record_press", {"presses": presses, "per_step_ms": per_step})
+    write_result(env, "record_press", {"presses": presses, "per_step_ms": per_step, "idle_booth_poll": idle, "pressing": pressing})
     total = per_step["total"]["p95"]
     assert total <= RECORD_PRESS_MS, f"a record press's bridge steps took {total} ms (p95) > {RECORD_PRESS_MS}"
-    return ", ".join(f"{name} p50 {value['p50']} ms" for name, value in per_step.items())
+    assert idle["tick_ms"]["p99"] <= IDLE_TICK_P99_MS, f"idle with the Booth's read: tick p99 {idle['tick_ms']['p99']} ms"
+    steps = ", ".join(f"{name} p50 {value['p50']} ms" for name, value in per_step.items())
+    return (
+        f"{steps}; idle with the Booth's read: tick p99 {idle['tick_ms']['p99']} ms max {idle['tick_ms']['max']} ms, busy {idle['busy_pct']}%, "
+        f"probe gap p95 {idle['gap_ms']['p95']} ms; pressing: tick p99 {pressing['tick_ms']['p99']} ms max {pressing['tick_ms']['max']} ms, "
+        f"busy {pressing['busy_pct']}%, probe gap p95 {pressing['gap_ms']['p95']} ms max {pressing['gap_ms']['max']} ms"
+    )

@@ -53,6 +53,19 @@ Time from the press until REAPER is asked to record, from the measurements above
 
 With REAPER's pre-roll at 2 measures (4 s at 120 BPM), listening is ready before the first recorded word in every measured case except `small.en` with a cold page cache (4.2 s). With pre-roll off, the opening second or so of a take is recorded before the text can follow it.
 
+## REAPER while the app works with it
+
+The same scenario wraps REAPER's defer loop with the probe of [the bridge note](reaper-bridge-performance.md#method) and sends what the host sends: the Booth's idle read (`chapter_track_state` every 15 s, `READY_POLL_MS` in [`useRecordControl.ts`](../../src/studio/ui/src/components/booth/record/useRecordControl.ts)), then five record presses. It sends the host's commands from the harness; the Go host itself was not running. 4050 items, 62 tracks, 120 FX, 2026-11-01:
+
+| Window | Tick p99 | Longest tick | Main thread busy with the bridge | Probe gap p95 / max |
+| --- | --- | --- | --- | --- |
+| Idle, the Booth's read every 15 s (32 s) | 0.23 ms | 4.0 ms | 0.41% | 34 / 68 ms |
+| Five record presses, a stop after each (30 s) | 5.5 ms | 17.5 ms | 0.91% | 36 / 55 ms |
+
+The probe gap is REAPER's own defer cadence (33 to 41 ms p95 with the bridge held, in the bridge note), so on Linux neither window shows the bridge holding REAPER up.
+
+The teleprompter sidecar while it listens, from source on this machine, over 40 s of LibriVox speech paced at real time (`--wav` with each chunk released at its own time, as a microphone does): `tiny` used 0.79 of a core on average, up to 19 threads, and finished 147 s after the audio began, so its decoding fell behind real time; `small.en` had not finished after 600 s. It competes with REAPER for CPU only while a take or a cold read runs (listening ends with the take); idle, no sidecar runs unless the Levels meter is open. Not measured on the owner's machine.
+
 ## The timeline diagnostic
 
 Switched on in REAPER with the bridge timing switch ([owner steps](reaper-bridge-performance.md#owner-hands-on), step 2), the heartbeat carries a seventh field and the host appends one line per press to `record-timeline.log` in the bridge session folder, beside `bridge-timing.log` ([`internal/presstimeline`](../../src/studio/desktop/internal/presstimeline/timeline.go), [`presstimeline_host.go`](../../src/studio/desktop/presstimeline_host.go)). Off, the host stamps nothing. A line holds step names, an outcome word (`started` or the refusal's reason) and milliseconds since the first step, on the host's monotonic clock. Its shape, with made-up numbers:
