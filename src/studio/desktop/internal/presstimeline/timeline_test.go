@@ -119,3 +119,31 @@ func TestAContextCarriesTheTimeline(t *testing.T) {
 		t.Fatal("a plain context carries a timeline")
 	}
 }
+
+// Listening and the recording start together: a record start that answers first does not end the press before listening has answered.
+func TestAPressWaitsForAnAwaitedStepBeforeItsLineIsWritten(t *testing.T) {
+	c, written := newClock(), []string{}
+	timeline := New(func() bool { return true }, c.now, lines(&written))
+	timeline.Begin("assets_list")
+	timeline.Mark("listen_call")
+	timeline.Await("listen_answered")
+	c.step(150 * time.Millisecond)
+	timeline.Finish("answered", "started")
+	if len(written) != 0 {
+		t.Fatalf("wrote %q before listening answered", written)
+	}
+	c.step(time.Second)
+	timeline.Mark("listening")
+	timeline.Mark("listen_answered")
+	if len(written) != 1 {
+		t.Fatalf("lines = %q, want one once listening answered", written)
+	}
+	want := "outcome=started total_ms=1150 assets_list=0 listen_call=0 answered=150 listening=1150 listen_answered=1150\n"
+	if !strings.HasSuffix(written[0], want) {
+		t.Fatalf("line = %q, want it to end %q", written[0], want)
+	}
+	timeline.Mark("listen_answered")
+	if len(written) != 1 {
+		t.Fatalf("a step after the press ended wrote %q", written)
+	}
+}

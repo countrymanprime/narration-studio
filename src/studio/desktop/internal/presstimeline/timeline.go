@@ -29,6 +29,11 @@ type Timeline struct {
 	mu    sync.Mutex
 	// +checklocks:mu
 	marks []mark
+	// awaited are the steps the press is not over without (Await); ended is the outcome of a Finish that came first, "" while none did.
+	// +checklocks:mu
+	awaited map[string]bool
+	// +checklocks:mu
+	ended string
 }
 
 // New is a timeline that stamps steps only while on answers true, reads time from now (time.Now carries the monotonic
@@ -46,34 +51,73 @@ func (t *Timeline) Begin(step string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.marks = append(t.marks[:0], mark{step, at})
+	t.awaited, t.ended = nil, ""
 }
 
-// Mark stamps step in the press under way.
+// Await says the press under way is not over until step is stamped: a Finish before it holds the line until then. Listening and the
+// recording start together, and either can answer first.
+func (t *Timeline) Await(step string) {
+	if t == nil || !t.on() {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.awaited == nil {
+		t.awaited = map[string]bool{}
+	}
+	t.awaited[step] = true
+}
+
+// Mark stamps step in the press under way, and ends it when step was the last one a Finish was waiting for.
 func (t *Timeline) Mark(step string) {
 	if t == nil || !t.on() {
 		return
 	}
 	at := t.now()
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	t.marks = append(t.marks, mark{step, at})
+	delete(t.awaited, step)
+	if t.ended == "" || len(t.awaited) > 0 {
+		t.mu.Unlock()
+		return
+	}
+	marks, outcome := t.endLocked()
+	t.mu.Unlock()
+	t.writeLine(marks, outcome)
 }
 
-// Finish stamps step, writes the press's line with outcome (a fixed word such as started or a refusal reason) and
-// starts over. A write that fails is dropped: the diagnostic never fails a recording.
+// Finish stamps step and ends the press with outcome (a fixed word such as started, or a refusal reason): its line is written now, or
+// once every awaited step is stamped. A write that fails is dropped: the diagnostic never fails a recording.
 func (t *Timeline) Finish(step, outcome string) {
 	if t == nil || !t.on() {
 		return
 	}
 	at := t.now()
 	t.mu.Lock()
-	marks := append(t.marks, mark{step, at})
-	t.marks = nil
+	t.marks = append(t.marks, mark{step, at})
+	t.ended = outcome
+	if len(t.awaited) > 0 {
+		t.mu.Unlock()
+		return
+	}
+	marks, outcome := t.endLocked()
 	t.mu.Unlock()
+	t.writeLine(marks, outcome)
+}
+
+// endLocked takes the press's steps and outcome and starts over.
+// +checklocks:t.mu
+func (t *Timeline) endLocked() ([]mark, string) {
+	marks, outcome := t.marks, t.ended
+	t.marks, t.awaited, t.ended = nil, nil, ""
+	return marks, outcome
+}
+
+func (t *Timeline) writeLine(marks []mark, outcome string) {
 	for len(marks) > 1 && marks[1].at.Sub(marks[0].at) > leadGap {
 		marks = marks[1:]
 	}
-	_ = t.write(line(marks, outcome, at))
+	_ = t.write(line(marks, outcome, marks[len(marks)-1].at))
 }
 
 func line(marks []mark, outcome string, at time.Time) string {

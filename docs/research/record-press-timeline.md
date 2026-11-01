@@ -53,7 +53,7 @@ Switched on in REAPER with the bridge timing switch ([owner steps](reaper-bridge
 | `assets_list`, `assets_listed` | The model check's `AssetsList` begins and answers. A press starts here; an asset listing more than 5 s before the next step (another page's) is left off |
 | `listen_call`, `model_checked` | `TeleprompterStart` begins; the model is verified (`liveModelDir`) |
 | `sidecar_spawned`, `sidecar_first_line`, `listening` | The sidecar process started; printed its first line; printed its first event other than `script` |
-| `listen_answered` | `TeleprompterStart` answers the Booth |
+| `listen_answered` | `TeleprompterStart` answers the Booth. When the record start answers first, the line waits for this step |
 | `record_call`, `track_state`, `armed`, `punched`, `recording`, `answered` | `ReadAloudRecordStart(At)` begins; each bridge step answers; the start answers |
 
 A press with listening already running has no listening steps. The press itself, in the WebView, is before `assets_list` by one Wails call; that gap is not stamped.
