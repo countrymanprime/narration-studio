@@ -46,7 +46,8 @@ function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
     .join(' · ');
 }
 
-const CHANGED = 'narration:delivery-profiles-changed';
+export const DELIVERY_PROFILES_CHANGED = 'narration:delivery-profiles-changed';
+const CHANGED = DELIVERY_PROFILES_CHANGED;
 
 /**
  * The delivery profiles as the host answers them, and every action on them: choose the Global default, duplicate, edit, delete. Each action

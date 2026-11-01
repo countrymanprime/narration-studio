@@ -13,6 +13,7 @@ import { CleanupHeader } from './CleanupHeader';
 import { CleanupInspector, CleanupKindHeading } from './CleanupInspector';
 import { CleanupList } from './CleanupList';
 import { NO_PLAYBACK, usePreviewPlay, windowOf, type PreviewPlayback } from './usePreviewPlay';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 
 const NO_TRIM = 'The DAW cannot trim ranges here yet.';
 
@@ -29,11 +30,9 @@ export interface CleanupTabProps {
 export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabProps) {
   const findingsPort = usePort('findings');
   const editing = usePort('editing');
-  const daw = usePort('daw');
   const dawName = useDawKind() ?? 'the DAW';
   const [findings, setFindings] = useState<Finding[]>([]);
   const [readError, setReadError] = useState<string | null>(null);
-  const [dawReason, setDawReason] = useState<string | null>(null);
   const [op, setOp] = useState<CleanupKind>('gaps');
   const [params, setParams] = useState(initialParams);
   const [skip, setSkip] = useState<string[]>([]);
@@ -58,20 +57,13 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
     };
   }, [findingsPort, editing, chapterId, version]);
 
-  useEffect(() => {
-    let live = true;
-    daw
-      .capabilities()
-      .then((caps) => {
-        if (!live) return;
-        // What the DAW can do for the chosen operation is the inspector's to say; here only whether it is running.
-        setDawReason(caps.reachable ? null : `${caps.daw === 'none' ? 'The DAW' : caps.daw} is not running.`);
-      })
-      .catch(() => live && setDawReason('The DAW did not answer.'));
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  // What the DAW can do for the chosen operation is the inspector's to say; here only whether it is running.
+  const { caps: dawCaps, failed: dawFailed } = useDawCapabilities();
+  const dawReason = dawFailed
+    ? 'The DAW did not answer.'
+    : dawCaps && !dawCaps.reachable
+      ? `${dawCaps.daw === 'none' ? 'The DAW' : dawCaps.daw} is not running.`
+      : null;
 
   const trimmed = deps?.trimmed;
   const rows = useMemo(() => proposals(findings, op, params[op], trimmed), [findings, op, params, trimmed]);

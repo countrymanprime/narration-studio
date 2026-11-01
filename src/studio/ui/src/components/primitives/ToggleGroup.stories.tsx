@@ -89,9 +89,15 @@ export const SegmentedMeasuredShapes: Story = {
     // classes are what ToggleGroup.test.tsx pins.
     const height = group.getBoundingClientRect().height;
     if (height === 0) return;
-    // The control height (36 px), so it lines up with a search box or select beside it; the mock's 33 px left it short of them (alignment audit
-    // XSE1-19, #2472).
-    await expect(height).toBeCloseTo(36, 0);
+    // The control height (36 px) on one row, so it lines up with a search box or select beside it; the mock's 33 px left it short of them
+    // (alignment audit XSE1-19, #2472). In a container too narrow for the options (390 px) the group wraps onto a second row and grows, and
+    // no option is clipped by its edge (#2642).
+    const buttons = within(group).getAllByRole('button');
+    const oneRow = new Set(buttons.map((button) => button.offsetTop)).size === 1;
+    if (oneRow) await expect(height).toBeCloseTo(36, 0);
+    else await expect(height).toBeGreaterThan(36);
+    const edge = group.getBoundingClientRect().right;
+    for (const button of buttons) await expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(edge + 0.5);
     await expect(getComputedStyle(chosen).textTransform).not.toBe('uppercase');
     await expect(getComputedStyle(chosen).backgroundColor).not.toBe(getComputedStyle(rest).backgroundColor);
   },

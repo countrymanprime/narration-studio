@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { AddPickup } from './AddPickup';
+import { parseClock } from './pickupRows';
 
 afterEach(cleanup);
 
@@ -33,15 +34,33 @@ function setup(onAdd = vi.fn().mockResolvedValue(undefined)) {
 
 describe('AddPickup', () => {
   it('add-by-hand-validates: an empty line is refused', async () => {
-    const { onAdd, onDone, user, toasts } = setup();
+    const { onAdd, onDone, user } = setup();
     await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-    expect(toasts()).toEqual(['Type the line first.']);
+    expect(problemWith(screen.getByRole('textbox', { name: 'Line to re-record' })).says).toBe('Type the line first.');
     expect(onAdd).not.toHaveBeenCalled();
     expect(onDone).not.toHaveBeenCalled();
   });
 
-  it('an empty line is also said next to its field, which is marked invalid and described by it', async () => {
+  it('a refusal is said once, under its field, and not also as a toast (rule 7: one surface)', async () => {
+    const { user, toasts } = setup();
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(screen.getAllByText('Type the line first.')).toHaveLength(1);
+    expect(toasts()).toEqual([]);
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(screen.getAllByText('Type the time like 05:12.0.')).toHaveLength(1);
+    expect(toasts()).toEqual([]);
+  });
+
+  it('the time box hints at the format and cannot be mistaken for a typed time', () => {
+    setup();
+    const hint = screen.getByRole('textbox', { name: 'Time in the recording' }).getAttribute('placeholder');
+    expect(hint).toBe('mm:ss.s');
+    expect(parseClock(hint ?? '')).toBeNull();
+  });
+
+  it('an empty line is said next to its field, which is marked invalid and described by it', async () => {
     const { user } = setup();
     await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
@@ -68,7 +87,8 @@ describe('AddPickup', () => {
     const { onAdd, user, toasts } = setup();
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-    expect(toasts()).toEqual(['Type the time like 05:12.0.']);
+    expect(problemWith(screen.getByRole('textbox', { name: 'Time in the recording' })).says).toBe('Type the time like 05:12.0.');
+    expect(toasts()).toEqual([]);
     expect(onAdd).not.toHaveBeenCalled();
   });
 
@@ -100,7 +120,8 @@ describe('AddPickup', () => {
       if (text.trim()) await user.type(box, text);
       await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
       await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-      expect(toasts()).toEqual(['Type the time like 05:12.0.']);
+      expect(problemWith(box).says).toBe('Type the time like 05:12.0.');
+      expect(toasts()).toEqual([]);
       expect(onAdd).not.toHaveBeenCalled();
     },
   );

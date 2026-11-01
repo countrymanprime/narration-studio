@@ -8,7 +8,6 @@ import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
 import { creditsCheckKind } from './recordingCheckText';
-import type { PrepState } from '../../api/contracts/scriptPrep';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
@@ -33,7 +32,7 @@ import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
 import { KpiRow } from './overview/KpiRow';
 import { ProductionSkeleton } from './overview/ProductionSkeleton';
-import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
+import { bookFigures, checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
@@ -235,18 +234,8 @@ export function ProductionPage({
   };
 
   // The credits are chapters of the overview, so they are rows, counts and hours like any chapter. The credits rows are read only for what a chapter
-  // does not carry: the template's Prepped dot (its preview has no [Token] left) and the credits panel.
+  // does not carry: the credits panel.
   const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
-  const creditsPrep = useMemo(
-    (): Record<string, PrepState> =>
-      Object.fromEntries(
-        (['opening', 'closing'] as const).flatMap((kind) => {
-          const row = credits.rows?.[kind];
-          return row?.template ? [[`credits-${kind}`, row.preview?.unresolved.length === 0 ? 'prepped' : 'none'] as const] : [];
-        }),
-      ),
-    [credits.rows],
-  );
   const pipelineRows = narrated;
 
   // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).
@@ -319,6 +308,8 @@ export function ProductionPage({
   const k = calc(scheduleChapters(narrated), today, due, openPickups, wph);
   const start = planStart(today);
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
+  // One book for the figures strip, the stage bar and the week: its finished length and how much of it is recorded (#2634).
+  const book = bookFigures(narrated, wph, pipelineSources.master);
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
   // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
@@ -328,8 +319,8 @@ export function ProductionPage({
     master: pipelineSources.master,
     wph,
     pickups: pickupsByChapter,
-    // A chapter's Prep is the Script page's prep record; a credits chapter's is its template's tokens. Absent until read: "Not measured yet".
-    prep: { ...pipelineSources.prep, ...creditsPrep },
+    // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
+    prep: pipelineSources.prep,
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);
@@ -411,8 +402,7 @@ export function ProductionPage({
         <>
           <KpiRow
             k={k}
-            wph={wph}
-            recordedSeconds={recordedHours * 3600}
+            book={book}
             due={due}
             openPickups={openPickups}
             pickupMinutes={pickupMinutes}
@@ -426,7 +416,7 @@ export function ProductionPage({
               as wide as the Next up column below it, so the right-hand cards of both rows share their edges (alignment audit XPR2-5). */}
           <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[640px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem] min-[640px]:max-[1281px]:[&>:first-child]:col-span-2">
             <StageBar segments={stageSegments(narrated, wph, pipelineSources.master)} wph={wph} />
-            <WeekCard figures={weekFigures(log, today, start, due, k.words / wph)} />
+            <WeekCard figures={weekFigures(log, today, start, due, book.finishedHours)} />
             <CheckCountsCard
               counts={counts}
               nameOf={nameOf}

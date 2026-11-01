@@ -69,7 +69,6 @@ export function useBoothPageCommands(page: BoothCommands): void {
         group: 'Transport',
         hint: keyOf('booth.roll'),
         icon: 'retry',
-        disabledReason: recording ? undefined : 'Start recording first, then roll again from here.',
         run: punchAndRoll,
       },
       {

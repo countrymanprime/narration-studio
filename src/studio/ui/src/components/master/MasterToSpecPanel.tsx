@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { ExportJob, PackageItemKind } from '../../types';
+import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
@@ -53,22 +55,26 @@ const TABLE_FLOOR = 'min-w-[44rem]';
  * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
  * appears once files are picked or a job exists; before that the page's header action is the way in.
  */
-export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chainLabel?: string }) {
+export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: ExportJobs; chainLabel?: string; onCheckFiles?: () => void }) {
   const { items, exportJob, exportRunning, problem } = jobs;
   const started = !!exportJob?.files.length;
   const hasFiles = items.length > 0 || started;
-  const shown = hasFiles || !!problem;
-  const revealRef = useRef<HTMLDivElement & HTMLParagraphElement>(null);
+  // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
+  useErrorToast(problem);
+  // A job that ended in error is a toast too, not a red line under the table (rule 7, #2632).
+  useErrorToast(exportJob?.phase === 'error' ? exportJob.message : undefined);
+  const shown = hasFiles;
+  const revealRef = useRef<HTMLDivElement>(null);
   const wasShown = useRef(shown);
   // The panel sits far below the header's "Master all to spec…" button on a 15-file book, so showing it off screen looks like a dead
   // button: bring it into view and put the keyboard on its files. Not on mount: a page that opens with a job running stays where it is.
   useEffect(() => {
     if (shown && !wasShown.current) {
       revealRef.current?.scrollIntoView?.({ block: 'nearest' });
-      if (hasFiles) revealRef.current?.focus();
+      revealRef.current?.focus();
     }
     wasShown.current = shown;
-  }, [shown, hasFiles]);
+  }, [shown]);
   if (!shown) return null;
   return (
     <Panel
@@ -86,17 +92,12 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
         )
       }
     >
-      {problem && (
-        <p ref={hasFiles ? undefined : revealRef} role="alert" className="text-sm" style={DANGER}>
-          {problem}
-        </p>
-      )}
       {(items.length > 0 || started) && (
         <div
           ref={revealRef}
           tabIndex={0}
           // Run to the card's edges, so the table's text starts at the card's inset and Remove ends where Add files… does (XMS-8, R3MS-13).
-          className={`${problem ? 'mt-2' : ''} scroll-x-edges -mx-4 overflow-x-auto [--panel-pad:0px] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset`}
+          className={`scroll-x-edges -mx-4 overflow-x-auto [--panel-pad:0px] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset`}
         >
           <Table label="Files to export" columns={COLUMNS} className={TABLE_FLOOR}>
             <TableHead>
@@ -187,10 +188,16 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
           </div>
         </div>
       )}
-      {exportJob && !exportRunning && exportJob.phase !== 'idle' && (
-        <p aria-live="polite" className={`mt-2 text-sm ${ARRIVE_CLASSES}`} style={exportJob.phase === 'error' ? DANGER : undefined}>
-          {exportJob.message}
-        </p>
+      {exportJob && !exportRunning && exportJob.phase !== 'idle' && exportJob.phase !== 'error' && (
+        <div className={`mt-2 flex flex-wrap items-center justify-between gap-2 ${ARRIVE_CLASSES}`}>
+          <p aria-live="polite" className="min-w-0 flex-[1_1_20rem] text-sm">
+            {exportJob.message}
+          </p>
+          {exportJob.phase === 'success' && onCheckFiles && (
+            // The export writes new copies and measures nothing, so Delivery and the table above still go by the files that were checked (issue 2631): the tooltip says so.
+            <IconButton action="checkPreparedFiles" onClick={onCheckFiles} />
+          )}
+        </div>
       )}
     </Panel>
   );

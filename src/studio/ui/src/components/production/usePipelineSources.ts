@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Finding } from '../../api/contracts/findings';
 import type { ManuscriptChapter, MeasureFileResult } from '../../types';
 import { usePort } from '../../ports/usePort';
+import { chapterIdOfPrepId } from '../credits/creditsEntries';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
 import type { NextUpInputs } from './pipeline/nextUpRanking';
@@ -79,7 +80,7 @@ export function usePipelineSources(
       },
     );
     scriptPrep.scriptPrepList().then(
-      (record) => live && setPrep(Object.fromEntries(record.chapters.map((chapter) => [chapter.chapterId, chapter.state]))),
+      (record) => live && setPrep(Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state]))),
       () => live && setPrep(undefined),
     );
     return () => {

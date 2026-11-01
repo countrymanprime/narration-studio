@@ -12,6 +12,7 @@ import type { LinePassage, LineTake } from '../types';
 import { PrepConfirmBody } from './PrepConfirm';
 import { PrepStatus, PrepStepButton, PrepStepDone } from './PrepControls';
 import { LEVEL_METRIC, LEVEL_TARGET_DB, LEVEL_TOLERANCE, STEP_TEXT, isTrim, normaliseCommand, trimCommand, type PrepStepId, type RangesOf } from './prepSteps';
+import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
 
 export interface PrepOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -46,22 +47,12 @@ export function usePrepSteps({ journal, hidden, rangesOf }: PrepOptions): PrepSt
   const daw = usePort('daw');
   const takes = usePort('takes');
   const matcher = useApi();
-  const [caps, setCaps] = useState<DawCapabilities | 'error' | null>(null);
+  const { caps: heard, failed } = useDawCapabilities();
+  const caps: DawCapabilities | 'error' | null = failed ? 'error' : heard;
   const [fresh, setFresh] = useState<Record<string, TakeEvidenceResult>>({});
   const [status, setStatus] = useState<Record<string, Status | undefined>>({});
   const [done, setDone] = useState<Record<string, readonly PrepStepId[]>>({});
   const running = useRef(new Set<string>());
-
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (c) => live && setCaps(c),
-      () => live && setCaps('error'),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
 
   const dawName = caps && caps !== 'error' ? (caps.daw === 'none' ? 'the built-in recorder' : caps.daw) : 'the DAW';
   /** Why the step cannot run now, or undefined. */

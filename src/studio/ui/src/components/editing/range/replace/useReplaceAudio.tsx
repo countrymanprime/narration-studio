@@ -13,6 +13,7 @@ import { cutScope, tokensOf, type RangeLocator } from '../common/locate';
 import { ReplaceDialog, replaceTitle } from './ReplaceDialog';
 import { replaceCommand } from './replaceCommand';
 import type { ReplacementMarks } from './replacementMarks';
+import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
 
 export interface ReplaceAudioOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -53,24 +54,14 @@ export function useReplaceAudio({ journal, chapterId, locator }: ReplaceAudioOpt
   const api = usePort('replaceAudio');
   const daw = usePort('daw');
   const [replacements, setReplacements] = useState<Replacement[]>([]);
-  const [available, setAvailable] = useState<{ ok: true } | { ok: false; reason: string } | null>(null);
-  const [dawName, setDawName] = useState('the DAW');
-
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (caps) => {
-        if (!live) return;
-        const support = caps.capabilities.replace_range;
-        setAvailable(support?.available ? { ok: true } : { ok: false, reason: support?.message || `${caps.daw} cannot replace audio yet.` });
-        setDawName(caps.daw === 'none' ? 'the DAW' : caps.daw);
-      },
-      () => live && setAvailable({ ok: false, reason: 'Could not ask the DAW what it can do.' }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  const { caps: dawCaps, failed: dawFailed } = useDawCapabilities();
+  const available = useMemo<{ ok: true } | { ok: false; reason: string } | null>(() => {
+    if (dawFailed) return { ok: false, reason: 'Could not ask the DAW what it can do.' };
+    if (!dawCaps) return null;
+    const support = dawCaps.capabilities.replace_range;
+    return support?.available ? { ok: true } : { ok: false, reason: support?.message || `${dawCaps.daw} cannot replace audio yet.` };
+  }, [dawCaps, dawFailed]);
+  const dawName = dawCaps && dawCaps.daw !== 'none' ? dawCaps.daw : 'the DAW';
   useEffect(() => {
     let live = true;
     api.editingReplacementsList(chapterId).then(

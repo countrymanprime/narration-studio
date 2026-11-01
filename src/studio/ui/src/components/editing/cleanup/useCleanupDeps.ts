@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import { usePort } from '../../../ports/usePort';
 import { origTime } from '../model/cuts';
 import type { CleanupDeps, RangeTrim } from './cleanupApply';
 import type { CleanupRow } from './cleanupRows';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 
 /** The fade at a trimmed gap's seam, in milliseconds: one of the cut fades the chapter's cuts take. */
 export const TRIM_FADE_MS = 6;
@@ -29,23 +30,12 @@ export interface CleanupCuts {
 export function useCleanupDeps({ cuts, onCuts }: CleanupCuts): CleanupDeps | undefined {
   const daw = usePort('daw');
   const log = usePort('editCuts');
-  const [caps, setCaps] = useState<DawCapabilities | null>(null);
+  const { caps } = useDawCapabilities();
   // The cuts as of the last read or record: an apply records several trims before the page re-renders.
   const latest = useRef({ cuts, onCuts });
   useEffect(() => {
     latest.current = { cuts, onCuts };
   }, [cuts, onCuts]);
-  useEffect(() => {
-    let live = true;
-    setCaps(null);
-    daw.capabilities().then(
-      (answer) => live && setCaps(answer),
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
   const reducible = caps ? available(caps, 'range_gain') : false;
   const repairable = caps ? available(caps, 'click_repair') : false;
   const dawName = caps?.daw ?? '';

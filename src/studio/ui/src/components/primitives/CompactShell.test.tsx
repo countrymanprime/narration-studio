@@ -41,6 +41,13 @@ describe('CompactShell', () => {
     expect(title.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('holds a long title with no break opportunity inside a shrinkable, anywhere-wrapping box instead of widening the header', () => {
+    render(<CompactShell title={'Averyveryveryveryveryveryveryveryverylongunbrokentitle'.repeat(3)}>Body</CompactShell>);
+    const box = screen.getByRole('heading', { level: 1 }).parentElement!;
+    expect(box.className).toContain('min-w-0');
+    expect(box.className).toContain('[overflow-wrap:anywhere]');
+  });
+
   it('keeps sections in the order the caller gave them, inside the main landmark', () => {
     render(
       <CompactShell title="Companion">

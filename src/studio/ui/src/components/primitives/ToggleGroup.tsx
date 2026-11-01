@@ -34,8 +34,8 @@ export function ToggleGroup({
 }) {
   const containerClass =
     look === 'segmented'
-      ? // The control height (36 px), so it lines up with a search box or a select beside it (alignment audit XSE1-19).
-        'inline-flex h-[var(--control-height)] gap-0.5 rounded-[var(--radius-button)] border border-[var(--line-strong)] bg-[var(--bg)] p-[0.1875rem]'
+      ? // At least the control height (36 px), so it lines up with a search box or a select beside it (alignment audit XSE1-19); a group wider than its container wraps its options onto another line rather than clip the last (#2642).
+        'inline-flex max-w-full min-h-[var(--control-height)] flex-wrap gap-0.5 rounded-[var(--radius-button)] border border-[var(--line-strong)] bg-[var(--bg)] p-[0.1875rem]'
       : // The chips wrap onto another line rather than squeeze, 6 px apart (alignment audit cause L); at no specificity, so a
         // caller's own gap or nowrap still wins.
         'flex [:where(&)]:flex-wrap [:where(&)]:gap-1.5';

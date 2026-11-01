@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import { shownFindingNoteType, type Finding } from '../../../api/contracts/findings';
 import { apiErrorMessage } from '../../../api/errorMessage';
@@ -11,6 +10,7 @@ import { cleanupRows } from '../../editing/cleanup/cleanupRows';
 import { useCleanupDeps } from '../../editing/cleanup/useCleanupDeps';
 import { IconButton } from '../../primitives/IconButton';
 import { dawNameOf } from './InspectorActions';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 
 /** The label of the control and of the note's menu entry (mock `#trim`). */
 export const TRIM_LABEL = `Trim the gap to ${DEAD_AIR_LIMIT} s`;
@@ -29,25 +29,14 @@ export function trimmableGap(finding: Finding): boolean {
  * Fix in edit, so the Clean up tab counts it as done. Shown only for a gap note not decided yet.
  */
 export function TrimGap({ finding, inert, onTrimmed }: { finding: Finding; inert: boolean; onTrimmed: () => void }) {
-  const daw = usePort('daw');
   const log = usePort('editCuts');
   const action = usePendingAction();
   const chapterId = finding.manuscript?.chapter_id ?? '';
-  const [caps, setCaps] = useState<DawCapabilities>();
+  const caps = useDawCapabilities().caps ?? undefined;
   const [cuts, setCuts] = useState<EditCut[]>();
   const [result, setResult] = useState<{ message: string; failed: boolean }>();
   const deps = useCleanupDeps({ cuts: cuts ?? [], onCuts: setCuts });
 
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (found) => live && setCaps(found),
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
   useEffect(() => {
     let live = true;
     if (chapterId)

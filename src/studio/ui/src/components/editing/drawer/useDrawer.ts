@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
-import { usePort } from '../../../ports/usePort';
-import type { DawCapabilities } from '../../../api/contracts/daw';
+import { useCallback, useLayoutEffect, useState } from 'react';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { backupsOffered, resolveTab, STRIP_MIN_WIDTH, tabsFor, type DrawerTab } from './drawerTabs';
 
 /** The width of the window, as the mock's `layout.width` reads it (`documentElement`), not of the page beside the rail; 0 before the first read. */
@@ -22,18 +21,7 @@ export function useStripFits(): boolean {
 
 /** Whether the DAW offers backups, from `DawClient.capabilities`; false while it is being asked or if it cannot answer. */
 export function useBackupsOffered(): boolean {
-  const daw = usePort('daw');
-  const [caps, setCaps] = useState<DawCapabilities | null>(null);
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (c) => live && setCaps(c),
-      () => live && setCaps(null),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  const { caps } = useDawCapabilities();
   return backupsOffered(caps);
 }
 

@@ -153,7 +153,8 @@ describe('ImportReview', () => {
     expect(screen.getByText('Review what was found')).toBeTruthy();
   });
 
-  it('keeps the groups in one order, the open one taking the room and scrolling, a closed one only its header', async () => {
+  // Behaviour changed (#2656): the open group no longer takes the leftover room; the dialog body scrolls as a whole and a group's list is capped.
+  it('keeps the groups in one order, the open one capped and scrolling past its cap, a closed one only its header', async () => {
     const user = userEvent.setup();
     renderReview('repaired');
     const order = () => screen.getAllByRole('button', { name: /^(Chapters|Character suggestions|Repairs)/ }).map((button) => button.textContent!.split(' ')[0]);
@@ -161,7 +162,7 @@ describe('ImportReview', () => {
     await user.click(groupButton(/^Repairs/));
     expect(order()).toEqual(['Chapters', 'Character', 'Repairs']);
     const panel = screen.getByText(/CHAPTER ONEDown the Rabbit-Hole/).closest('.overflow-y-auto')!;
-    expect(panel.className).toContain('flex-1');
+    expect(panel.className).toContain('max-h-[min(22rem,45vh)]');
     expect(document.body.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
     expect(groupButton(/^Chapters/).closest('.flex-none')).not.toBeNull();
   });
@@ -180,15 +181,14 @@ describe('ImportReview', () => {
     expect(within(screen.getByLabelText('What was found')).getByText('5 chapters')).toBeTruthy();
   });
 
-  it('sets the chapters in two columns with no scrollbar of their own: the one scroller is the box around the whole review', () => {
+  it('sets the chapters in two columns with no scrollbar of their own: the only scroller in the review is the open group, capped, never the options or the sample', () => {
     renderReview();
     const list = chapterSwitch(/^Chapter One/).closest('.sm\\:grid-cols-2');
     expect(list).not.toBeNull();
     expect(list!.className).not.toMatch(/overflow-y-|max-h-/);
     const scroller = list!.closest('.overflow-y-auto');
     expect(scroller).not.toBeNull();
-    expect(scroller!.className).toContain('min-h-0');
-    expect(scroller!.className).toContain('flex-1');
+    expect(scroller!.className).toContain('max-h-[min(22rem,45vh)]');
     // Exactly one element scrolls in the review.
     expect(document.body.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
   });
@@ -203,6 +203,7 @@ describe('ImportReview', () => {
     expect(scroller.contains(options)).toBe(false);
     expect(scroller.contains(sample)).toBe(false);
     expect(scroller.compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // A fixed height, so a longer first line never changes the box while the pointer moves down the list.
     expect(sample.className).toContain('flex-none');
     expect(sample.className).not.toContain('sticky');
   });

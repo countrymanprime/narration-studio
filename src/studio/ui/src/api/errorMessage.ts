@@ -8,6 +8,11 @@ export function describeApiError(error: unknown): string {
   return isWireError(error) ? error.userMessage : String(error);
 }
 
+/** The technical text behind that sentence, for a Details disclosure and Copy: only a payload that did not match its schema has any. */
+export function apiErrorDetails(error: unknown): string | undefined {
+  return isWireError(error) ? error.details() : undefined;
+}
+
 /** The same for the places that show an error's bare message, without the "Error: " prefix `String(error)` adds. */
 export function apiErrorMessage(error: unknown): string {
   if (isWireError(error)) return error.userMessage;

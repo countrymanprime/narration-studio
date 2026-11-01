@@ -16,6 +16,8 @@ export const runningDawProjectSchema = z.object({ linked: z.boolean(), path: z.s
 export const projectFolderSelectionSchema = z.object({ selected: z.boolean(), path: z.string().optional() }) satisfies z.ZodType<ProjectFolderSelection>;
 /** `reason` is an empty string when the switch worked. */
 export const projectSwitchResultSchema = z.object({ switched: z.boolean(), reason: z.string().optional() }) satisfies z.ZodType<ProjectSwitchResult>;
+/** tests/fixtures/contracts/project-name-cases.json: what project.ValidateName answers for each name; `message` is empty when the name is valid. Not a binding result: it pins `projectName.ts` to the host's rule. */
+export const projectNameCasesSchema = z.array(z.object({ name: z.string(), value: z.string(), valid: z.boolean(), message: z.string() }));
 export const projectDefaultLocationSchema = z.object({ path: z.string() }) satisfies z.ZodType<ProjectDefaultLocation>;
 export const dawLinkResultSchema = z.object({
   selected: z.boolean(),

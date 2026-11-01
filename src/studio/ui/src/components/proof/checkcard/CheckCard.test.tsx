@@ -7,6 +7,8 @@ import type { CoverageGap, CoverageGapReviews, CoverageResult, CoverageState } f
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { Finding } from '../../../api/contracts/findings';
 import { createMockApi } from '../../../api/mockApi';
+import { createJournal, type Journal } from '../../../studio/journal/createJournal';
+import { StudioProvider } from '../../../studio/StudioProvider';
 import type { ManuscriptChapter, NarrationApi } from '../../../types';
 import { CheckCard } from './CheckCard';
 
@@ -64,6 +66,7 @@ type Setup = {
   reviews?: CoverageGapReviews;
   available?: boolean;
   chapter?: Partial<ManuscriptChapter>;
+  journal?: Journal;
 };
 
 function mount(setup: Setup = {}) {
@@ -102,7 +105,13 @@ function mount(setup: Setup = {}) {
   });
   const view = render(
     <ApiProvider api={api}>
-      <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} />
+      {setup.journal ? (
+        <StudioProvider journal={setup.journal}>
+          <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} />
+        </StudioProvider>
+      ) : (
+        <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} />
+      )}
     </ApiProvider>,
   );
   return { ...view, calls, emit: (state: CoverageState) => act(() => listener(state)), setResult: (next: CoverageResult) => (current = next) };
@@ -220,6 +229,16 @@ describe('findings', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Accept Background noise at 0:05' }));
     await waitFor(() => expect(calls.review).toHaveBeenCalledWith({ id: 'a1', evidenceVersion: 'v1', status: 'accepted', note: '' }));
     expect(calls.accept).not.toHaveBeenCalled();
+  });
+  it('Accept on an audio finding is one journal entry, and Undo puts the earlier decision back', async () => {
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const { calls } = await open({ audio: [audio('a1', 'noise', 5)], journal });
+    await userEvent.click(screen.getByRole('button', { name: 'Accept Background noise at 0:05' }));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    const [entry] = await journal.entries();
+    expect(entry).toMatchObject({ label: 'Accepted a check finding', touches: ['proof/finding/a1'], undoable: true });
+    expect((await journal.undo(entry!.id)).ok).toBe(true);
+    expect(calls.review).toHaveBeenLastCalledWith({ id: 'a1', evidenceVersion: 'v1', status: 'unreviewed', note: '' });
   });
   it('Ignore calls coverageGapIgnore, and an audio finding is dismissed', async () => {
     const { calls } = await open({ audio: [audio('a1', 'noise', 5)] });

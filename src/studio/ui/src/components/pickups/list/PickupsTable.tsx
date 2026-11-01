@@ -212,7 +212,10 @@ export function PickupsTable({
         removed = true;
       });
       if (!removed) return;
-      if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo);
+      if (undo)
+        overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo, {
+          offJournal: 'A removed pickup comes back from the host list, not the journal.',
+        });
       else {
         /* Removals in a row are one message that counts them, so the no-Undo sentence is said once, not on a stack of toasts (R3PK-2, XPK-11). */
         const now = Date.now();

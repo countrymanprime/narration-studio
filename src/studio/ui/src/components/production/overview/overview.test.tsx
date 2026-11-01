@@ -9,8 +9,9 @@ import { KpiRow } from './KpiRow';
 import { ProgressChart } from './ProgressChart';
 import { StageBar } from './StageBar';
 import { WeekCard } from './WeekCard';
-import { COUNTS, FINISHED, MID_BOOK, NO_TAKE_LOG, NOTHING_RECORDED, STORY_TODAY, nameOf, overviewFor } from './overviewFixtures';
-import { WPH } from '../../schedule/estimates';
+import { COUNTS, FINISHED, MID_BOOK, MID_BOOK_WITH_CREDITS, NO_TAKE_LOG, NOTHING_RECORDED, STORY_TODAY, nameOf, overviewFor } from './overviewFixtures';
+import { hm } from '../../schedule/dates';
+import { RATIO, WPH } from '../../schedule/estimates';
 import { deliveryCounts, NOT_MEASURED, stageSegments } from './overviewFigures';
 
 afterEach(cleanup);
@@ -33,11 +34,33 @@ describe('KpiRow', () => {
     row();
     const strip = screen.getByRole('list', { name: 'Production figures' });
     expect(strip).toBeTruthy();
-    // 3600 + 3500 + 3700 + 1800 s recorded (3.5 h) over 5 chapters of one hour each at the standard rate.
+    // Three of five one-hour chapters are recorded or further on, the fourth is half recorded, the fifth not started: the stage bar's own count (3:30 of 5:00, the fourth chapter half recorded).
     expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3:30');
     expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5:00');
-    expect(screen.getByRole('button', { name: /Recording/ }).textContent).toMatch(/of 15:00 est\./);
-    expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toMatch(/of 15:12 est\./);
+    expect(screen.getByRole('button', { name: /Recording/ }).textContent).toMatch(/of 15:00 work/);
+    expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toMatch(/of 15:12 work/);
+  });
+
+  // Class guard (#2634): every figure on the strip is a function of one book, the one the stage bar draws.
+  it.each([
+    ['mid-book', MID_BOOK],
+    ['finished', FINISHED],
+    ['nothing recorded', NOTHING_RECORDED],
+    ['with credits', MID_BOOK_WITH_CREDITS],
+  ])('derives every figure of the strip from the stage bar book (%s)', (_name, chapters) => {
+    const o = overviewFor(chapters);
+    const sum = (keys: string[]) => o.segments.filter((s) => keys.includes(s.key)).reduce((a, s) => a + s.hours, 0);
+    const book = sum(['delivered', 'proofed', 'edited', 'recorded', 'unrecorded']);
+    const tile = (key: string) => o.tiles.find((t) => t.key === key)!;
+    expect(book).toBeCloseTo(o.book.finishedHours, 9);
+    expect(o.book.recordedHours).toBeCloseTo(book - sum(['unrecorded']), 9);
+    expect(tile('recorded').value).toBe(hm(o.book.recordedHours));
+    expect(tile('recorded').unit).toBe(`/ ${hm(book)}`);
+    expect(tile('recording').hint).toBe(`of ${hm(book * RATIO.rec)} work`);
+    expect(tile('editing').hint).toBe(`of ${hm(book * (RATIO.edit + RATIO.proof))} work`);
+    expect(tile('recording').tip).toContain(hm(book));
+    // The chart's and the week's targets read the same book.
+    expect(o.k.words / WPH).toBeCloseTo(book, 9);
   });
 
   it('lets every tile button fill its whole cell, so the hover highlight covers the card and not a patch of it', () => {
@@ -53,7 +76,7 @@ describe('KpiRow', () => {
   it('names the ratio behind an estimate in the tooltip', async () => {
     row();
     await userEvent.hover(screen.getByRole('button', { name: /Recording/ }));
-    expect(await screen.findByText('Estimated 3.0× the finished hours')).toBeTruthy();
+    expect(await screen.findByText('Hours of work, estimated 3.0× the book’s 5:00 of finished audio')).toBeTruthy();
   });
 
   it('due-tile-uses-the-deadline-tone', () => {
@@ -77,7 +100,8 @@ describe('KpiRow', () => {
     expect(screen.getByRole('button', { name: /Open pickups/ }).textContent).toContain('about 12 min');
     cleanup();
     view(<KpiRow {...overviewFor(MID_BOOK, undefined, NO_TAKE_LOG).kpi} onGo={vi.fn()} />);
-    expect(screen.getByRole('button', { name: /Open pickups/ }).textContent).toContain('not measured yet');
+    // A count is measured; it carries no "not measured yet" caption (#2634).
+    expect(screen.getByRole('button', { name: /Open pickups/ }).textContent).toBe('Open pickups3');
   });
 
   it('delivery check reads Not measured yet where the host has no chapter-level source', () => {

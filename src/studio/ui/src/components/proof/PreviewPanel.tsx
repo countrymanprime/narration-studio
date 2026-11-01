@@ -199,8 +199,8 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
                 <TableRow>
                   <TableHeader>Chapter</TableHeader>
                   <TableHeader>Paragraphs</TableHeader>
-                  <TableHeader align="right">Length</TableHeader>
-                  <TableHeader align="right">Words</TableHeader>
+                  <TableHeader>Length</TableHeader>
+                  <TableHeader>Words</TableHeader>
                   <TableHeader>Why suggested</TableHeader>
                   <TableHeader hiddenLabel="Actions" />
                 </TableRow>

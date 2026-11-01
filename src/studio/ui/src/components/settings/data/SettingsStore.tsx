@@ -5,6 +5,7 @@ import type { Scope, ScopedSettingField } from '../../../types';
 import type { SettingMeta } from '../registry/types';
 import { without } from './record';
 import { useSettingsForms } from './settingsForms';
+import { useCustomChanged } from './customChanged';
 import { fieldOf, type ReadSettings } from './values';
 
 export type SettingsStore = {
@@ -13,6 +14,8 @@ export type SettingsStore = {
   /** The host's sentence for a scope that could not be read. */
   readError: Partial<Record<Scope, string>>;
   reload: () => Promise<void>;
+  /** Ids of the rows with a custom body whose value differs from the default (`customChanged.ts`). */
+  customChanged: ReadonlySet<string>;
   /** The host field behind a row, per scope. */
   fieldsOf: (row: SettingMeta) => { global?: ScopedSettingField; project?: ScopedSettingField };
   /**
@@ -86,9 +89,10 @@ export function SettingsStoreProvider({ children }: { children: ReactNode }) {
 
   const fieldsOf = useCallback((row: SettingMeta) => ({ global: fieldOf(settings, 'global', row), project: fieldOf(settings, 'project', row) }), [settings]);
 
+  const customChanged = useCustomChanged(settings);
   const value = useMemo<SettingsStore>(
-    () => ({ settings, readError: errors, reload, fieldsOf, write, saved, rowErrors, setRowError, failing, announcement, announce }),
-    [settings, errors, reload, fieldsOf, write, saved, rowErrors, setRowError, failing, announcement, announce],
+    () => ({ settings, readError: errors, reload, customChanged, fieldsOf, write, saved, rowErrors, setRowError, failing, announcement, announce }),
+    [settings, errors, reload, customChanged, fieldsOf, write, saved, rowErrors, setRowError, failing, announcement, announce],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

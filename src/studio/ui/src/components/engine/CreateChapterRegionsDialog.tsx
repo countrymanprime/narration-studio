@@ -173,8 +173,8 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
               <TableRow>
                 <TableHeader>Region</TableHeader>
                 <TableHeader>Track</TableHeader>
-                <TableHeader align="right">Start</TableHeader>
-                <TableHeader align="right">End</TableHeader>
+                <TableHeader>Start</TableHeader>
+                <TableHeader>End</TableHeader>
                 <TableHeader>Status</TableHeader>
               </TableRow>
             </TableHead>

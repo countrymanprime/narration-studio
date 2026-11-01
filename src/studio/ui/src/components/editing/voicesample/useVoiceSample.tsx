@@ -139,7 +139,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                         .voiceSampleRemove(id)
                         .then(() => ({ ok: true as const }))
                         .catch((error: unknown) => ({ ok: false as const, refusal: { reason: apiErrorMessage(error) } })),
-                    { durationMs: UNDO_MS },
+                    { durationMs: UNDO_MS, offJournal: 'A voice sample is removed by the host call, not a journal command.' },
                   );
                 return { ok: true };
               }}

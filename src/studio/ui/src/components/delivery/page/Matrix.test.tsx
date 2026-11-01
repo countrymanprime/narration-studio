@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import { findToast, pressToastAction, toasts, toastTexts } from '../../../fixtures/toasts';
 import { MOCK_ACX, mockCustomProfile } from '../../../api/deliveryProfilesMock';
 import { createMockApi } from '../../../api/mockApi';
 import { StudioProvider } from '../../../studio/StudioProvider';
@@ -174,7 +175,7 @@ describe('D5 Build: pressing it', () => {
     mount({ packageStart });
     await screen.findByText(READY);
     await userEvent.click(await buildButton());
-    expect((await screen.findByRole('alert')).textContent).toContain('A package is already being built');
+    expect((await findToast('A package is already being built')).tone).toBe('error');
     expect((await buildButton()).getAttribute('aria-disabled')).toBeNull();
     await userEvent.click(await buildButton());
     expect(await screen.findByText('4 files')).toBeTruthy();
@@ -228,7 +229,7 @@ describe('D5 Build: pressing it', () => {
     mount({ packageStart: async () => ({ ...BUILT, phase: 'error', error: 'could not create "C:/ro": access is denied', files: [] }) as PackageJob });
     await screen.findByText(READY);
     await userEvent.click(await buildButton());
-    expect((await screen.findByRole('alert')).textContent).toContain('access is denied');
+    expect((await findToast('access is denied')).tone).toBe('error');
     expect(screen.queryByText('Written')).toBeNull();
   });
 
@@ -285,7 +286,7 @@ describe('D5 and D6 a running build', () => {
   it("Cancel refused: the host's words are shown and the build keeps running", async () => {
     mount({ packageState: async () => RUNNING, packageCancel: async () => Promise.reject(new Error('nothing to cancel')) });
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }), { advanceTimers: vi.advanceTimersByTime });
-    expect((await screen.findByRole('alert')).textContent).toContain('Nothing to cancel');
+    expect((await findToast('Nothing to cancel')).tone).toBe('error');
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
   });
 
@@ -301,8 +302,9 @@ describe('D5 and D6 a running build', () => {
     await screen.findByRole('button', { name: 'Cancel' });
     silent = true;
     await act(async () => vi.advanceTimersByTimeAsync(700));
-    const alert = await screen.findByText(/Can't tell how the build is going, last heard \d+ s ago: the host did not answer/);
-    expect(alert).toBeTruthy();
+    // Told as an error toast, with no text in the page's flow; the line beside Build keeps its place and says what is not known.
+    expect((await findToast(/Can't tell how the build is going: the host did not answer/)).tone).toBe('error');
+    expect(screen.queryByRole('alert')).toBeNull();
     // A sentence read before the host went quiet is not repeated beside Build as if it were current.
     expect(screen.queryByText(READY)).toBeNull();
     // The same words twice must still schedule the next try: three more failures in six seconds.
@@ -311,7 +313,7 @@ describe('D5 and D6 a running build', () => {
     expect(packageState.mock.calls.length - before).toBeGreaterThanOrEqual(3);
     silent = false;
     await act(async () => vi.advanceTimersByTimeAsync(2100));
-    await waitFor(() => expect(screen.queryByText(/Can't tell how the build is going/)).toBeNull());
+    await waitFor(() => expect(toastTexts().filter((text) => /Can't tell how the build is going/.test(text))).toEqual([]));
     // The build is still running, so beside Build is what it is doing, not the pre-build verdict (alignment audit R3DL-2).
     expect(screen.getByText('Building the package…')).toBeTruthy();
   });
@@ -326,24 +328,29 @@ describe('D5 and D6 a running build', () => {
     await screen.findByText(READY);
     silent = true;
     act(() => window.dispatchEvent(new Event('focus')));
-    await userEvent.click(await screen.findByRole('button', { name: 'Check again' }), { advanceTimers: vi.advanceTimersByTime });
+    const first = await findToast(/Can't tell how the build is going/);
+    const calls = packageState.mock.calls.length;
+    act(() => pressToastAction(first));
+    await waitFor(() => expect(packageState.mock.calls.length).toBeGreaterThan(calls));
     silent = false;
-    await userEvent.click(screen.getByRole('button', { name: 'Check again' }), { advanceTimers: vi.advanceTimersByTime });
-    await waitFor(() => expect(screen.queryByText(/Can't tell how the build is going/)).toBeNull());
+    act(() => pressToastAction(toasts().find((toast) => /Can't tell how the build is going/.test(toast.text))!));
+    await waitFor(() => expect(toastTexts().filter((text) => /Can't tell how the build is going/.test(text))).toEqual([]));
   });
 
-  it('Check again against a host that is still quiet says it asked again, and when', async () => {
+  // The toast's text carries no age (a clock in it would be a new toast every second), so "asked again 3 s ago" and "you checked again" went with
+  // the in-flow sentence; what stays is that its Retry reads again against a host that is still quiet.
+  it('Retry on the toast against a host that is still quiet reads again, and the toast stays one message', async () => {
     const packageState = vi.fn(async () => {
       throw new Error('the host did not answer');
     });
     mount({ packageState });
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toMatch(/asked again (just now|\d+ s ago)/);
+    const toast = await findToast(/Can't tell how the build is going/);
+    expect(toast.action?.label).toBe('Retry');
     const calls = packageState.mock.calls.length;
-    await userEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Check again' }), { advanceTimers: vi.advanceTimersByTime });
-    expect(packageState.mock.calls.length).toBeGreaterThan(calls);
-    // The press names itself in the same sentence (alignment audit R4DL-4).
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/you checked again just now/));
+    act(() => pressToastAction(toast));
+    await waitFor(() => expect(packageState.mock.calls.length).toBeGreaterThan(calls));
+    await findToast(/Can't tell how the build is going/);
+    expect(toastTexts().filter((text) => /Can't tell how the build is going/.test(text))).toHaveLength(1);
   });
 
   it('Cancel against a quiet host: says the cancel is unconfirmed, keeps the quiet notice and never says cancelled', async () => {
@@ -371,21 +378,6 @@ describe('D5 and D6 a running build', () => {
     await act(async () => vi.advanceTimersByTimeAsync(2100));
     expect(await screen.findByText('Packaging cancelled.')).toBeTruthy();
     expect(screen.queryByText(/did not confirm it/)).toBeNull();
-  });
-
-  // Since alignment audit R4DL-4 the answer is in the alert's own sentence, not a second grey line with its own clock.
-  it('Check again against a quiet host: a press is answered with "you checked again", not only the standing "asked again"', async () => {
-    const packageState = vi.fn(async () => {
-      throw new Error('the host did not answer');
-    });
-    mount({ packageState });
-    const alert = await screen.findByRole('alert');
-    expect(screen.queryByText(/checked again/)).toBeNull();
-    await userEvent.click(within(alert).getByRole('button', { name: 'Check again' }), { advanceTimers: vi.advanceTimersByTime });
-    await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toMatch(/: the host did not answer \(you checked again (just now|\d+ s ago)\)\.Check again$/),
-    );
-    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('late and out of order: an answer to an older read never replaces the Cancel answer', async () => {
@@ -453,7 +445,7 @@ describe('D5 and the profile while it builds', () => {
     });
     await screen.findByText(READY);
     await userEvent.click(await buildButton());
-    expect((await screen.findByRole('alert')).textContent).toContain('Access is denied');
+    expect((await findToast('Access is denied')).tone).toBe('error');
     await userEvent.selectOptions(await screen.findByRole('combobox'), `${custom.id}@r${custom.revision}`);
     await waitFor(() => expect(screen.queryByText(/access is denied/)).toBeNull());
   });
@@ -474,13 +466,14 @@ describe('D10 Check again and the host events', () => {
         return measureJob(PASSING);
       },
     });
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain("Can't tell which chapters pass, not heard yet: the measurement could not be read");
+    const toast = await findToast("Can't tell which chapters pass: the measurement could not be read");
+    expect(toast.tone).toBe('error');
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByText('Not mastered')).toBeNull();
     fail = false;
-    await userEvent.click(within(alert).getByRole('button', { name: 'Check again' }));
+    act(() => pressToastAction(toast));
     expect(await screen.findByText('4 of 4')).toBeTruthy();
-    expect(screen.queryByText(/Can't tell which chapters pass/)).toBeNull();
+    await waitFor(() => expect(toastTexts().filter((text) => /Can't tell which chapters pass/.test(text))).toEqual([]));
   });
 
   it('stale: a read that fails after one succeeded keeps the list and marks it out of date', async () => {
@@ -494,7 +487,7 @@ describe('D10 Check again and the host events', () => {
     expect(await screen.findByText('4 of 4')).toBeTruthy();
     fail = true;
     act(() => jobEnded());
-    expect((await screen.findByRole('alert')).textContent).toMatch(/last heard \d+ s ago: gone quiet The list below may be out of date\./);
+    expect((await findToast(/: gone quiet The list below may be out of date\./)).tone).toBe('error');
     expect(screen.getByText('4 of 4')).toBeTruthy();
   });
 
@@ -506,10 +499,9 @@ describe('D10 Check again and the host events', () => {
         return CHAPTERS;
       },
     });
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('the manuscript is locked');
+    const toast = await findToast('the manuscript is locked');
     fail = false;
-    await userEvent.click(within(alert).getByRole('button', { name: 'Check again' }));
+    act(() => pressToastAction(toast));
     expect(await screen.findByText('4 of 4')).toBeTruthy();
   });
 
@@ -577,7 +569,7 @@ describe('D7 Open the folder', () => {
     fireEvent.click(open);
     expect(deliveryOpenPackageFolder).toHaveBeenCalledOnce();
     await act(async () => answer.reject(new Error('the package folder C:/Deliver/ACX is no longer there; build the package again')));
-    expect((await screen.findByRole('alert')).textContent).toContain('no longer there');
+    expect((await findToast('no longer there')).tone).toBe('error');
     expect(screen.getByRole('button', { name: 'Open the folder' }).getAttribute('aria-busy')).toBeNull();
   });
 });
@@ -588,30 +580,33 @@ describe('output-panel-alignment', () => {
     const onOpenMaster = vi.fn();
     mount({ measureState: async () => measureJob([]) }, { onOpenMaster });
     expect(await screen.findByText('Nothing is measured yet. Measure the files in Master & QC.')).toBeTruthy();
+    // It sits in the row that holds Build and its reason, not in a block of its own under it (#2632).
+    expect(screen.getByText('Nothing is measured yet. Measure the files in Master & QC.').closest('[role="alert"]')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Open Master & QC' }));
     expect(onOpenMaster).toHaveBeenCalled();
   });
 
-  it('Check again under a quiet host is the same kind of button as Cancel (R4DL-3)', async () => {
+  // The in-flow Check again button (R4DL-3) is the toast's Retry now: a toast's one button, pressed as the narrator would.
+  it('a quiet host is one error toast whose Retry reads again, and nothing is drawn in the panel (rule 7, #2632)', async () => {
     mount({
       packageState: async () => {
         throw new Error('the host did not answer');
       },
     });
-    const alert = await screen.findByRole('alert');
-    const again = within(alert).getByRole('button', { name: 'Check again' });
-    // The secondary variant draws Cancel's outline (`--btn-line`); ghost drew a thin `--line-strong` one.
-    expect(again.className).toContain('--btn-line');
+    const toast = await findToast(/Can't tell how the build is going/);
+    expect(toast.tone).toBe('error');
+    expect(toast.action?.label).toBe('Retry');
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('a build error is a sentence in a framed, iconed message (R3DL-2, XDL-8)', async () => {
+  it('a build error is a toast that starts with a capital, with no framed message in the panel (R3DL-2, #2632)', async () => {
     mount({
       packageState: async () => ({ ...BUILT, phase: 'error', files: [], error: 'could not create "C:/ro": access is denied' }) as unknown as PackageJob,
     });
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toMatch(/^Could not create/);
-    expect(alert.className).toContain('bg-[var(--danger-soft)]');
-    expect(alert.querySelector('svg')).toBeTruthy();
+    const toast = await findToast(/^Could not create/);
+    expect(toast.tone).toBe('error');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/Could not create/)).toBeNull();
   });
 
   it('the built folder button shares the summary row and each Written pill follows the names (XDL-9)', async () => {

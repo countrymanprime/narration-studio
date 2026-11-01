@@ -250,21 +250,33 @@ export async function checkOnDiagnostics(page: Page, query = ''): Promise<void> 
   await page.getByRole('table', { name: 'Checked files' }).waitFor();
 }
 
+// Takes away every toast on the page (an end raises its own, and an error is a toast of its own that stays), one press at a time.
+async function dismissToasts(page: Page): Promise<void> {
+  const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
+  for (let press = 0; press < 6; press += 1) {
+    if ((await dismissToast.count()) === 0) return;
+    await dismissToast
+      .first()
+      .click({ timeout: 1_000 })
+      .catch(() => undefined);
+  }
+  await dismissToast
+    .first()
+    .waitFor({ state: 'detached', timeout: 1_000 })
+    .catch(() => undefined);
+}
+
 // Waits for the diagnostics check to end with `message`, then dismisses the toast its end raises (as measurementEnded does).
 export async function diagnosticsEnded(page: Page, message: string | RegExp): Promise<void> {
   await page.getByRole('region', { name: 'Diagnostics' }).getByText(message).waitFor({ timeout: 15_000 });
-  const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
-  await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
-  await dismissToast.waitFor({ state: 'detached' });
+  await dismissToasts(page);
 }
 
 // Waits for the measurement to end with `message` on the page (the unheld mock reads three files in twelve polls, about six
 // seconds), then dismisses the toast the same end raises (job:ended), which would otherwise race the screenshot.
 export async function measurementEnded(page: Page, message: string | RegExp): Promise<void> {
   await page.getByText(message).first().waitFor({ timeout: 15_000 });
-  const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
-  await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
-  await dismissToast.waitFor({ state: 'detached' });
+  await dismissToasts(page);
 }
 
 // The Production home's board exists only once its overview has been read, so it is the proof that the whole page (not just its

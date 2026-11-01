@@ -31,7 +31,8 @@ export type KpiTile = {
   label: string;
   value: string;
   unit?: string;
-  hint: string;
+  /** The line under the value; none where there is nothing to add (a measured count carries no caption). */
+  hint?: string;
   /** The tooltip: the ratio behind an estimate, or what the figure counts. */
   tip: string;
   tone: 'neutral' | 'success' | 'warning' | 'danger';
@@ -58,10 +59,8 @@ export function deliveryCounts(
 export type KpiInputs = {
   /** The estimates over the narrated chapters (`calc`). */
   k: Calc;
-  /** Words per finished hour of the chosen basis. */
-  wph: number;
-  /** Seconds of finished audio measured over the book (the overview's totals). */
-  recordedSeconds: number;
+  /** The book as the stage bar counts it: its finished length and how much of it is recorded. Every hour on the strip is out of this one book. */
+  book: BookFigures;
   due: Date | null;
   openPickups: number;
   /** Minutes in the booth to redo the pickups. */
@@ -80,8 +79,8 @@ const TONE_TILE: Record<Tone, KpiTile['tone']> = {
 const days = (n: number): string => `${Math.abs(n)} ${Math.abs(n) === 1 ? 'day' : 'days'}`;
 
 /** The six KPI tiles of the mock's Production page. */
-export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinutes, delivery }: KpiInputs): KpiTile[] {
-  const finished = k.words / wph;
+export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }: KpiInputs): KpiTile[] {
+  const finished = book.finishedHours;
   const tone = deadlineTone(k);
   const mark = TONE_MARK[tone];
   const verdictWord = k.finished ? 'finished' : k.verdict === 'ok' ? 'on track' : k.verdict === 'tight' ? 'tight' : 'behind';
@@ -102,12 +101,12 @@ export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinu
     {
       key: 'recorded',
       target: 'script',
-      // Raw audio on the chapters' linked tracks: nothing here knows whether it is edited, proofed or mastered, so it is not "finished".
+      // The stage bar's own count: finished hours recorded or further on, out of the book's finished length.
       label: 'Recorded audio',
-      value: hm(recordedSeconds / 3600),
+      value: hm(book.recordedHours),
       unit: `/ ${hm(finished)}`,
-      hint: 'before editing',
-      tip: 'Audio on the chapters’ linked tracks in the saved project, before editing, out of the whole book’s estimated finished length',
+      hint: 'recorded or further on',
+      tip: 'The finished hours of the chapters recorded, edited, proofed or delivered, as Where the book stands counts them, out of the book’s finished length estimated from its words',
       tone: 'neutral',
     },
     {
@@ -116,8 +115,8 @@ export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinu
       label: 'Recording',
       value: hm(k.recLeft),
       unit: 'left',
-      hint: `of ${hm(finished * RATIO.rec)} est.`,
-      tip: `Estimated ${RATIO.rec.toFixed(1)}× the finished hours`,
+      hint: `of ${hm(finished * RATIO.rec)} work`,
+      tip: `Hours of work, estimated ${RATIO.rec.toFixed(1)}× the book’s ${hm(finished)} of finished audio`,
       tone: 'neutral',
     },
     {
@@ -126,8 +125,8 @@ export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinu
       label: 'Editing + proof',
       value: hm(k.editLeft + k.proofLeft),
       unit: 'left',
-      hint: `of ${hm(finished * (RATIO.edit + RATIO.proof))} est.`,
-      tip: `Estimated ${(RATIO.edit + RATIO.proof).toFixed(2)}× the finished hours`,
+      hint: `of ${hm(finished * (RATIO.edit + RATIO.proof))} work`,
+      tip: `Hours of work, estimated ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book’s ${hm(finished)} of finished audio`,
       tone: 'neutral',
     },
     {
@@ -135,7 +134,8 @@ export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinu
       target: 'pickups',
       label: 'Open pickups',
       value: String(openPickups),
-      hint: pickupMinutes.ok ? `about ${pickupMinutes.value} min` : 'not measured yet',
+      // Booth time once a pickup session has been timed; a measured count has no "not measured yet" under it.
+      ...(pickupMinutes.ok ? { hint: `about ${pickupMinutes.value} min` } : {}),
       tip: 'Time in the booth',
       tone: 'neutral',
     },
@@ -172,22 +172,28 @@ const DONE_SHARE: Record<ChapterStatus, { rec: number; edit: number; proof: numb
   finalized: { rec: 1, edit: 1, proof: 1 },
 };
 
+/** The narrated book at each stage, in words: the running totals the stage bar and the figures strip both read (#2634). */
+export type BookFigures = {
+  /** The book's finished length in hours: its narrated words at `wph`. The one book length every figure of the page is out of. */
+  finishedHours: number;
+  /** Finished hours recorded or further on (edited, proofed, delivered): the stage bar's segments below "Not recorded yet". */
+  recordedHours: number;
+  words: { total: number; delivered: number; proofed: number; edited: number; recorded: number };
+  wph: number;
+};
+
 /**
- * The stage bar's segments (the mock's five), each chapter's words weighted by how far that chapter is: Delivered where the delivery review
- * has mastered it and its checks pass (a master that fails is not delivered, as Delivery says), Proofed, Edited and Recorded from its status, and a chapter still `recording` counts for the share of its finished audio
- * measured so far. A later stage never counts for less than an earlier one, so the segments are the gaps between the running totals and
- * sum to 100 over the narrated words, or the bar is empty.
+ * Each narrated chapter's words weighted by how far that chapter is: Delivered where the delivery review has mastered it and its checks pass
+ * (a master that fails is not delivered, as Delivery says), Proofed, Edited and Recorded from its status, and a chapter still `recording`
+ * counts for the share of its finished audio measured so far. A later stage never counts for less than an earlier one, so the running totals
+ * only shrink stage by stage.
  */
-export function stageSegments(
+export function bookFigures(
   chapters: readonly ProductionChapter[],
   wph: number,
   master?: Readonly<Record<string, { mastered: boolean; qc: string | null }>>,
-): StageSegment[] {
-  let total = 0;
-  let rw = 0;
-  let ew = 0;
-  let pw = 0;
-  let mw = 0;
+): BookFigures {
+  const words = { total: 0, delivered: 0, proofed: 0, edited: 0, recorded: 0 };
   for (const c of chapters) {
     if (!isNarrationChapter(c)) continue;
     const done = DONE_SHARE[c.status];
@@ -197,20 +203,30 @@ export function stageSegments(
     const proofed = Math.max(delivered, done.proof);
     const edited = Math.max(proofed, done.edit);
     const recorded = Math.max(edited, done.rec, measured);
-    total += c.wordCount;
-    mw += c.wordCount * delivered;
-    pw += c.wordCount * proofed;
-    ew += c.wordCount * edited;
-    rw += c.wordCount * recorded;
+    words.total += c.wordCount;
+    words.delivered += c.wordCount * delivered;
+    words.proofed += c.wordCount * proofed;
+    words.edited += c.wordCount * edited;
+    words.recorded += c.wordCount * recorded;
   }
+  return { finishedHours: words.total / wph, recordedHours: words.recorded / wph, words, wph };
+}
+
+/** The stage bar's segments (the mock's five): the gaps between `bookFigures`' running totals, which sum to 100 over the narrated words, or the bar is empty. */
+export function stageSegments(
+  chapters: readonly ProductionChapter[],
+  wph: number,
+  master?: Readonly<Record<string, { mastered: boolean; qc: string | null }>>,
+): StageSegment[] {
+  const { words: w } = bookFigures(chapters, wph, master);
   const parts: Array<[StageSegment['key'], string, number]> = [
-    ['delivered', 'Delivered', mw],
-    ['proofed', 'Proofed', pw - mw],
-    ['edited', 'Edited', ew - pw],
-    ['recorded', 'Recorded', rw - ew],
-    ['unrecorded', 'Not recorded yet', total - rw],
+    ['delivered', 'Delivered', w.delivered],
+    ['proofed', 'Proofed', w.proofed - w.delivered],
+    ['edited', 'Edited', w.edited - w.proofed],
+    ['recorded', 'Recorded', w.recorded - w.edited],
+    ['unrecorded', 'Not recorded yet', w.total - w.recorded],
   ];
-  return parts.map(([key, label, words]) => ({ key, label, words, hours: words / wph, percent: total > 0 ? (words / total) * 100 : 0 }));
+  return parts.map(([key, label, words]) => ({ key, label, words, hours: words / wph, percent: w.total > 0 ? (words / w.total) * 100 : 0 }));
 }
 
 export type CheckCounts = {

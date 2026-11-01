@@ -1,7 +1,7 @@
 // The `script` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. The Studio Next Script page (SN-B77,
 // swapped in by SN-B8): three columns at 1440, the rail a drawer below 1280 px and the chapter list a drawer below 1180 px.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH, TOAST_FADES_OUT } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH, TOAST_FADES_OUT } from './shared';
 
 // A rail tab: the column beside the reader at 1440, the drawer over the text with its scrim below 1280 px.
 const railTab = (state: string, description: string): StateEntry => ({ page: 'script', state, description, ...RAIL_DEPENDS_ON_WIDTH });
@@ -10,6 +10,7 @@ export const scriptStates: StateEntry[] = [
   {
     page: 'script',
     state: 'reader',
+    ...REFLOW,
     description:
       'Script, the continuous reader on Chapter 1: the chapter list with its prep dots, the chapter card, the marks and speaker chips in the text, and the rail on its Words tab',
   },
@@ -34,6 +35,13 @@ export const scriptStates: StateEntry[] = [
     state: 'reader-context-menu',
     description:
       'Script, the right-click menu on a selected word, opened under the word: Mark as and Add to the Story Bible as as submenus, then Look up, Find, Copy, Bookmark here and Record from here',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'script',
+    state: 'speaker-picker',
+    description:
+      'Script, the Change speaker menu opened from a speaker chip: a search box, "In this chapter" with a swatch per name, and the entry\'s name beneath an alias only (never repeated under its own name)',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {

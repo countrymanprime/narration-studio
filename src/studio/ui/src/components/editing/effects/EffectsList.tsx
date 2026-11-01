@@ -32,10 +32,10 @@ export function EffectsList({
           <Table label="Effects on this chapter">
             <TableHead>
               <TableRow>
-                <TableHeader align="left">Time</TableHeader>
-                <TableHeader align="left">Effect</TableHeader>
-                <TableHeader align="left">On</TableHeader>
-                <TableHeader align="left">Covers</TableHeader>
+                <TableHeader>Time</TableHeader>
+                <TableHeader>Effect</TableHeader>
+                <TableHeader>On</TableHeader>
+                <TableHeader>Covers</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>

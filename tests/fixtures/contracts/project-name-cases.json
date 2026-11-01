@@ -1,0 +1,212 @@
+[
+  {
+    "name": "plain",
+    "value": "My Book",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "spaces-inside",
+    "value": "The   Long  Book",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "trailing-space-is-trimmed",
+    "value": "My Book  ",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "trailing-dot",
+    "value": "My Book.",
+    "valid": false,
+    "message": "a project name cannot end with a period"
+  },
+  {
+    "name": "trailing-dots",
+    "value": "My Book...",
+    "valid": false,
+    "message": "a project name cannot end with a period"
+  },
+  {
+    "name": "trailing-dot-then-space",
+    "value": "My Book. ",
+    "valid": false,
+    "message": "a project name cannot end with a period"
+  },
+  {
+    "name": "only-dots",
+    "value": "...",
+    "valid": false,
+    "message": "a project name cannot end with a period"
+  },
+  {
+    "name": "inner-dot",
+    "value": "Vol. 2 - Part One",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "leading-dot",
+    "value": ".hidden",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "accented",
+    "value": "Café Résumé",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "cjk",
+    "value": "朗読プロジェクト",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "emoji",
+    "value": "Book 📚🎙️",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "rtl",
+    "value": "كتاب עברית",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "empty",
+    "value": "",
+    "valid": false,
+    "message": "a project name is required"
+  },
+  {
+    "name": "only-spaces",
+    "value": "   ",
+    "valid": false,
+    "message": "a project name is required"
+  },
+  {
+    "name": "dot",
+    "value": ".",
+    "valid": false,
+    "message": "\".\" is not a valid project name"
+  },
+  {
+    "name": "dot-dot",
+    "value": "..",
+    "valid": false,
+    "message": "\"..\" is not a valid project name"
+  },
+  {
+    "name": "dot-dot-segment",
+    "value": "..\\Other",
+    "valid": false,
+    "message": "a project name cannot contain any of <>:\"/\\|?*"
+  },
+  {
+    "name": "forward-slash",
+    "value": "a/b",
+    "valid": false,
+    "message": "a project name cannot contain any of <>:\"/\\|?*"
+  },
+  {
+    "name": "back-slash",
+    "value": "a\\b",
+    "valid": false,
+    "message": "a project name cannot contain any of <>:\"/\\|?*"
+  },
+  {
+    "name": "drive-colon",
+    "value": "C:Book",
+    "valid": false,
+    "message": "a project name cannot contain any of <>:\"/\\|?*"
+  },
+  {
+    "name": "unc-ish",
+    "value": "\\\\server\\share",
+    "valid": false,
+    "message": "a project name cannot contain any of <>:\"/\\|?*"
+  },
+  {
+    "name": "reserved",
+    "value": "CON",
+    "valid": false,
+    "message": "\"CON\" is a reserved name and cannot be used"
+  },
+  {
+    "name": "reserved-lower-with-extension",
+    "value": "nul.txt",
+    "valid": false,
+    "message": "\"nul.txt\" is a reserved name and cannot be used"
+  },
+  {
+    "name": "reserved-with-space-before-extension",
+    "value": "CON .txt",
+    "valid": false,
+    "message": "\"CON .txt\" is a reserved name and cannot be used"
+  },
+  {
+    "name": "reserved-lookalike",
+    "value": "CONSOLE",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "control-character",
+    "value": "Book\u0007",
+    "valid": false,
+    "message": "a project name cannot contain control characters"
+  },
+  {
+    "name": "embedded-nul",
+    "value": "Book\u0000",
+    "valid": false,
+    "message": "a project name cannot contain control characters"
+  },
+  {
+    "name": "wildcard",
+    "value": "Book*",
+    "valid": false,
+    "message": "a project name cannot contain any of <>:\"/\\|?*"
+  },
+  {
+    "name": "exactly-255-characters",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true,
+    "message": ""
+  },
+  {
+    "name": "256-characters",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": false,
+    "message": "a project name can be at most 255 characters"
+  },
+  {
+    "name": "300-cjk-characters",
+    "value": "本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本本",
+    "valid": false,
+    "message": "a project name can be at most 255 characters"
+  },
+  {
+    "name": "colon-in-the-middle",
+    "value": "Bad:name",
+    "valid": false,
+    "message": "a project name cannot contain any of <>:\"/\\|?*"
+  },
+  {
+    "name": "reserved-mixed-case",
+    "value": "Com3",
+    "valid": false,
+    "message": "\"Com3\" is a reserved name and cannot be used"
+  },
+  {
+    "name": "reserved-with-trailing-spaces",
+    "value": "NUL  ",
+    "valid": false,
+    "message": "\"NUL\" is a reserved name and cannot be used"
+  }
+]

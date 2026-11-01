@@ -223,7 +223,7 @@ export function EntryTable({
         <TableHead sticky>
           <TableRow>
             {COLUMNS.map((column) => (
-              <TableHeader key={column.key} align={column.numeric ? 'right' : 'left'} sorted={sortAria(sort, column.key)} onSort={() => onSort(column.key)}>
+              <TableHeader key={column.key} sorted={sortAria(sort, column.key)} onSort={() => onSort(column.key)}>
                 {column.label}
               </TableHeader>
             ))}

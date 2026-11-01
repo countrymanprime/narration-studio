@@ -1,6 +1,7 @@
 import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import type { StatusId } from '../../kinds/statusTone';
+import { reached } from '../../chapterStatus';
 import { isNarrationChapter } from '../../chapterKinds';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import type { CreditsKind } from '../credits/useCreditsRows';
@@ -21,10 +22,9 @@ export function scheduleChapters(
   });
 }
 
-const STAGE_ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
 /** The first status at which a stage is done. */
 const DONE_AT = { rec: 'editing', edit: 'proofing', proof: 'finalized' } as const;
-const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => STAGE_ORDER.indexOf(c.status) >= STAGE_ORDER.indexOf(DONE_AT[stage]);
+const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => reached(c.status, DONE_AT[stage]);
 
 export type Verdict = 'ok' | 'tight' | 'behind';
 export type Tone = 'neutral' | 'warn' | 'danger' | 'success';

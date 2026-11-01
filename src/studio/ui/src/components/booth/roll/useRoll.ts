@@ -26,8 +26,6 @@ export type RollSession = {
   recordedEnd: number;
   /** Seconds into the running take. */
   takeSeconds: number;
-  /** Why Record cannot start right now, in the Record control's own sentence; '' when it can. A key that needs a take says this, not a guess. */
-  recordRefusal?: string;
 };
 
 /** What the Booth does when a command settles. */
@@ -118,14 +116,16 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     [ask, doRoll],
   );
 
-  /** R: roll again from the phrase chosen with Start from here, otherwise from the current one. */
+  const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
+  const startFromHereRef = useRef<(unit: number) => Promise<void>>(async () => {});
+
+  /** R: while a take runs, roll again from the phrase chosen with Start from here, otherwise from the current one; before one, start the take there in the same press. */
   const punchAndRoll = useCallback(async () => {
     const s = sessionRef.current;
-    if (!s.recording) return actionsRef.current.notify(s.recordRefusal || 'Start recording first.');
-    return rollFrom(s.punchAt ?? s.phrase);
+    const from = s.punchAt ?? s.phrase;
+    if (!s.recording) return startFromHereRef.current(from);
+    return rollFrom(from);
   }, [rollFrom]);
-
-  const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
 
   /** Start from here (right-click on a phrase): while a take runs it goes through the same plan as R; before one it marks the start. */
   const startFromHere = useCallback(
@@ -147,6 +147,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     },
     [rollFrom],
   );
+  startFromHereRef.current = startFromHere;
 
   /** Starts the take: a phrase chosen inside what is recorded is a punch-in and follows the plan; anywhere else it starts at the end. */
   const startTake = useCallback(

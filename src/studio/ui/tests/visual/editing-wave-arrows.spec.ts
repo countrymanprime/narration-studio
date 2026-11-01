@@ -7,7 +7,7 @@ import { VIEWPORTS } from './viewports';
 
 const DOCK = '#wavedock';
 const LANE = `${DOCK} [data-ribbon-surface]`;
-const ARROWS = ['Scroll the waveform back a window', 'Scroll the waveform forward a window'];
+const ARROWS = ['Scroll the waveform back', 'Scroll the waveform forward'];
 
 async function openEditing(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await page.emulateMedia({ colorScheme: theme });

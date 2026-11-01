@@ -12,6 +12,9 @@ import { TooltipTarget } from './Tooltip';
 const ITEM =
   "relative flex h-10 w-full items-center gap-[0.625rem] border-0 pr-3 pl-[0.625rem] text-left font-['Barlow_Condensed',sans-serif] text-[0.9375rem] font-semibold tracking-[0.12em] uppercase [&>svg]:w-[1.375rem]! [&>svg]:flex-none [&>svg]:text-[1.25rem] [.medium-rail_&]:h-10 [.medium-rail_&]:justify-center [.medium-rail_&]:p-0 [.medium-rail_&>svg]:text-base";
 
+// A locked item's lock is its only cue, so its reason opens after 0.4 s of rest rather than the standard second (#2652); a pointer sweeping down the rail shows none.
+const LOCKED_HINT_DELAY_MS = 400;
+
 const ROUND = 'rounded-lg';
 const CURRENT = 'rounded-[0_6px_6px_0] bg-[var(--surface-2)] text-[var(--text)] shadow-[inset_3px_0_0_var(--accent)]';
 // A hovered item takes `--row-alt`, a step lighter than the current page's `--surface-2`, so hover and the current page do not look alike (alignment
@@ -83,7 +86,7 @@ export function NavButton({
   if (off) {
     // The hint shows the reason on hover and keyboard focus; a press opens the note, which also works on touch and in the drawer, where no hint opens.
     return (
-      <TooltipTarget text={disabledReason || children} className="w-full">
+      <TooltipTarget text={disabledReason || children} className="w-full" hoverDelayMs={LOCKED_HINT_DELAY_MS}>
         {/* A one-sentence note 8 px from its item, as wide as its words (alignment audit XSL-22). */}
         <Popover trigger={button} label={`${children} is unavailable`} side="right" align="start" sideOffset={8} compact>
           <p className="m-0 text-sm text-[var(--text)]">{disabledReason}</p>

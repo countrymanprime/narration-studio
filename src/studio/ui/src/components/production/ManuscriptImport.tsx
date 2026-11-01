@@ -287,7 +287,6 @@ export function useManuscriptImport({
           title={`Import ${importJob.preview.sourceName} · step 2 of 2`}
           size="wide"
           variant="alert"
-          bodyScroll={false}
           dismissOnOutsidePress={false}
           onClose={cancelImport}
           description={importDescription(replacing || Boolean(importJob.requiresReset))}

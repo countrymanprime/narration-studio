@@ -6,10 +6,10 @@ const MUTED = { color: 'var(--text-muted)' };
 
 /**
  * The profile card's label-and-value row: a label column (7 to 12 rem) and the value left-aligned after it, at least a field's height,
- * so a value sits beside its label rather than 700 px away at the card's far edge (alignment audit XDL-3) and stays beside it at 390
- * (XDL-10). `FormatRows` draws its text rows with it too.
+ * so a value sits beside its label rather than 700 px away at the card's far edge (alignment audit XDL-3). In a card narrower than
+ * 24 rem (390 px) the label stacks over its value, so the value keeps the card's width instead of wrapping a word a line (#2642). `FormatRows` draws its text rows with it too.
  */
-export const RULE_ROW = 'grid grid-cols-[minmax(7rem,12rem)_minmax(0,1fr)] items-center gap-x-4 gap-y-1 text-sm';
+export const RULE_ROW = 'grid grid-cols-1 @sm:grid-cols-[minmax(7rem,12rem)_minmax(0,1fr)] items-center gap-x-4 gap-y-1 text-sm';
 /** A custom profile's rows are a field's height whether they hold boxes, "Off" or text, so they share one pitch (XDL-1). */
 export const EDIT_ROW = 'min-h-9';
 /**

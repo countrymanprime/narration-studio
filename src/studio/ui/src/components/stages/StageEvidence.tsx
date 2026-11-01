@@ -117,7 +117,6 @@ function EvidenceBody({
         <Section title="Confirmed">
           <p>
             You confirmed the move from {stageLabel(confirmation.from)} to {stageLabel(confirmation.target)} on {formatWhen(confirmation.at)}.
-            {confirmation.evidenceChanged && ' The chapter has changed since, as editing changes it; that alone raises no notice.'}
           </p>
           <div>{decision('revert', `Revert to ${stageLabel(confirmation.from)}`)}</div>
         </Section>

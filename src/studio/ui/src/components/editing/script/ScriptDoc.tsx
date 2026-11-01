@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, type MouseEvent } from 'react';
 import { Button } from '../../primitives/Button';
+import { ReaderColumn } from '../../primitives/ReaderColumn';
+import { DEFAULT_TEXT_PREFS, readerColumnWithGutter } from '../../script/page/tools/text/readerText';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { flagged, type ChapterDoc } from '../model';
 import { useEditingPage } from './EditingPageState';
@@ -31,6 +33,9 @@ export interface ScriptDocProps {
   /** Called after each paragraph that rendered, so a test can count the paragraphs a change drew. Keep its identity stable: it is a prop of every memoised paragraph. */
   onParagraphRender?: (pid: string) => void;
 }
+
+/** The time column (76 px) and the gap after it (6 px) in front of each paragraph's text; the reading column adds them to its measure. */
+export const EDITING_GUTTER_PX = 82;
 
 /** The script, one row for each paragraph, with what was heard marked on its words. Reads and writes the page state through `useEditingPage`. */
 export function ScriptDoc({ reason, explained = false, onCheckRecording, onParagraphRender }: ScriptDocProps) {
@@ -132,23 +137,25 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         onMouseOver={onOver}
       >
         <MovedSampleMarks />
-        {doc.paras.map((dp) => {
-          const pid = dp.p.id;
-          return (
-            <Paragraph
-              key={pid}
-              dp={dp}
-              sel={touched.has(pid) ? selSet : null}
-              cursor={cursorPid === pid ? state.cursor : null}
-              nowKey={nowPid === pid ? nowKey : null}
-              flag={flagPid === pid ? state.flag : null}
-              active={pid === activePid}
-              inView={!!viewed?.has(pid)}
-              gutter={doc.aligned}
-              onRender={onParagraphRender}
-            />
-          );
-        })}
+        <ReaderColumn width={readerColumnWithGutter(DEFAULT_TEXT_PREFS.width, EDITING_GUTTER_PX)}>
+          {doc.paras.map((dp) => {
+            const pid = dp.p.id;
+            return (
+              <Paragraph
+                key={pid}
+                dp={dp}
+                sel={touched.has(pid) ? selSet : null}
+                cursor={cursorPid === pid ? state.cursor : null}
+                nowKey={nowPid === pid ? nowKey : null}
+                flag={flagPid === pid ? state.flag : null}
+                active={pid === activePid}
+                inView={!!viewed?.has(pid)}
+                gutter={doc.aligned}
+                onRender={onParagraphRender}
+              />
+            );
+          })}
+        </ReaderColumn>
       </div>
     </div>
   );

@@ -41,7 +41,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       data-active={active ? '' : undefined}
       data-in-view={inView ? '' : undefined}
       data-unrecorded={dp.recorded ? undefined : ''}
-      className={`mb-2 grid gap-x-1.5 border-l-[3px] py-1 ${gutter ? 'grid-cols-[76px_minmax(0,1000px)] @max-[30rem]/script:grid-cols-[2.75rem_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1000px)]'} ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
+      className={`mb-2 grid gap-x-1.5 border-l-[3px] py-1 ${gutter ? 'grid-cols-[76px_minmax(0,1fr)] @max-[30rem]/script:grid-cols-[2.75rem_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1fr)]'} ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 4.5rem' }}
     >
       {/* One line of the text tall (`1lh` is the inherited line height), so the time is centred on the paragraph's first line at any size. */}

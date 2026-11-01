@@ -306,8 +306,8 @@ describe('the-words-tab-lists-the-flags-and-the-story-bible-names-in-the-text', 
   it("adds each name once, with the entry's pronunciation deciding Set or Not set, after the flagged words", () => {
     expect(chapterWords([flagged], [alice, hare], 'c1', text)).toEqual([
       { word: 'knave', say: '', source: '', status: 'not_set', fromBible: false },
-      { word: 'Alice', say: '/ˈælɪs/', source: '', status: 'set', fromBible: true },
-      { word: 'March Hare', say: '', source: '', status: 'not_set', fromBible: true },
+      { word: 'Alice', say: '/ˈælɪs/', source: '', status: 'set', fromBible: true, entryId: alice.id },
+      { word: 'March Hare', say: '', source: '', status: 'not_set', fromBible: true, entryId: hare.id },
     ]);
   });
   it('lists a flagged word once even when the Story Bible names it too', () => {

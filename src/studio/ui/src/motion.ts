@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { appExtension } from './appExtension';
+import { announceBrowserSettingChange } from './browserSettings';
 
 /**
  * Whether motion should stop: Windows asked for reduced motion, or `<html data-motion="reduce">` is set, and the public demo's
@@ -79,6 +80,7 @@ export function useMotionPreference(): [MotionPreference, (next: MotionPreferenc
     applyMotion(next);
     try {
       localStorage.setItem(MOTION_STORAGE_KEY, next);
+      announceBrowserSettingChange();
     } catch {
       // Storage unavailable: the choice holds for this window only.
     }

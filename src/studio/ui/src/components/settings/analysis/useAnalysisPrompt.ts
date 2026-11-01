@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
-
-const TOOL = 'ManuscriptGuide';
-const KEY = 'analysis_prompt';
+import { readAnalysisField, saveAnalysisPrompt } from './analysisPromptSetting';
 
 /**
  * Whether a Story Bible scan offers the analysis tools first: `ManuscriptGuide.analysis_prompt`, `ask` or `basic`, saved for every
@@ -17,9 +15,8 @@ export function useAnalysisPrompt() {
 
   const read = useCallback(async () => {
     try {
-      const fields = await api.settingsForScope('global');
-      const field = fields[TOOL]?.find((candidate) => candidate.key === KEY);
-      if (field) setAsk(field.effectiveValue === 'ask');
+      const value = await readAnalysisField(api);
+      if (value !== undefined) setAsk(value === 'ask');
       setError('');
     } catch (reason) {
       setError(apiErrorMessage(reason));
@@ -46,7 +43,7 @@ export function useAnalysisPrompt() {
       setAsk(next);
       setError('');
       try {
-        await api.saveSettings(TOOL, 'global', { [KEY]: next ? 'ask' : 'basic' });
+        await saveAnalysisPrompt(api, next);
       } catch (reason) {
         setAsk(before);
         setError(`The choice could not be saved: ${apiErrorMessage(reason)}`);

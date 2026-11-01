@@ -1,6 +1,42 @@
 package project
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"desktop/internal/contractfile"
+	"desktop/internal/pathfixtures"
+)
+
+// nameCase is one row of tests/fixtures/contracts/project-name-cases.json: a name, whether the host takes it (judged trimmed, as
+// ProjectCreateIn does) and the message it gives when it does not. The UI's projectName.ts mirrors this rule and its test reads the
+// same file, so the two cannot drift. Two edges are not aligned and not in the file: strings.TrimSpace trims U+0085 where JS trim()
+// trims U+FEFF, and strings.ToUpper and toUpperCase can fold an exotic letter differently; neither can change a device name.
+type nameCase struct {
+	Name    string `json:"name"`
+	Value   string `json:"value"`
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
+}
+
+func TestValidateNameContract(t *testing.T) {
+	var cases []nameCase
+	add := func(name, value string) {
+		message := ""
+		err := ValidateName(strings.TrimSpace(value))
+		if err != nil {
+			message = err.Error()
+		}
+		cases = append(cases, nameCase{Name: name, Value: value, Valid: err == nil, Message: message})
+	}
+	for _, fixture := range pathfixtures.Names() {
+		add(fixture.Name, fixture.Value)
+	}
+	add("colon-in-the-middle", "Bad:name")
+	add("reserved-mixed-case", "Com3")
+	add("reserved-with-trailing-spaces", "NUL  ")
+	contractfile.Check(t, "project-name-cases", cases)
+}
 
 func TestValidateNameAcceptsAnOrdinaryName(t *testing.T) {
 	if err := ValidateName("Alice's Adventures"); err != nil {

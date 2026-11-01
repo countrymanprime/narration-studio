@@ -61,6 +61,13 @@ describe('ChapterStrip', () => {
     render(<ChapterStrip chapters={only} current="c1" onChooseChapter={() => {}} />);
     expect(drawn(screen.getByRole('button', { name: /^Closing credits/ })).startsWith('Close')).toBe(true);
   });
+  it('gives the unnumbered ends room to say Open and Close at every width, never In and Out on a narrow strip (#2635)', () => {
+    render(<ChapterStrip chapters={chapters(5)} current="c3" onChooseChapter={() => {}} />);
+    const open = screen.getByRole('button', { name: 'Chapter 0: 3 open of 4' });
+    expect(open.className).toContain('min-w-12');
+    expect(open.querySelector('[data-short]')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Chapter 2: 0 open of 4' }).className).toContain('min-w-7');
+  });
   it('goes dense above the threshold: a dot per tile and every fifth number labelled', () => {
     render(<ChapterStrip chapters={chapters(24)} current="c1" onChooseChapter={() => {}} />);
     const labels = screen.getAllByRole('button').map((b) => b.querySelector('span')!.getAttribute('data-text'));

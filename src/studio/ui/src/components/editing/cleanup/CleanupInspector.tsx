@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
-import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { Disclosure } from '../../primitives/Disclosure';
 import { NumberInput } from '../../primitives/NumberInput';
@@ -9,6 +7,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { CleanupPreview as Preview } from './cleanupApply';
 import { CleanupPreview } from './CleanupPreview';
 import { LEVELS, dawCommandReason, levelOf, opSpec, type CleanupKind, type CleanupParams, type Level, type ParamKey } from './cleanupOps';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 
 /** The chapter's noise floor in dBFS, or why there is none. */
 type NoiseFloor = { ok: true; value: number } | { ok: false; reason: string };
@@ -39,19 +38,7 @@ export interface CleanupInspectorProps {
 
 /** The DAW's capability report, read once; null until it answers (or if it cannot). */
 function useCapabilities(): DawCapabilities | null {
-  const daw = usePort('daw');
-  const [caps, setCaps] = useState<DawCapabilities | null>(null);
-  useEffect(() => {
-    let live = true;
-    daw
-      .capabilities()
-      .then((c) => live && setCaps(c))
-      .catch(() => live && setCaps(null));
-    return () => {
-      live = false;
-    };
-  }, [daw]);
-  return caps;
+  return useDawCapabilities().caps;
 }
 
 /** The chosen kind's heading with what is left to fix, above its findings, so an empty list's sentence sits under its own heading

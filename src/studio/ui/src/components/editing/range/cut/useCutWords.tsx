@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { EditCut } from '../../../../api/contracts/editCuts';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
@@ -17,6 +17,7 @@ import { DeleteButton, MuteButton, RestoreButton } from './CutButtons';
 import { CutDialog, cutTitle } from './CutDialog';
 import { cutCommand, cutRefusal, type CutOptions } from './cutCommand';
 import { returnToScript } from '../../script/returnToScript';
+import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
 
 export interface CutWordsOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -57,24 +58,14 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
   const daw = usePort('daw');
   const log = usePort('editCuts');
   const alignment = usePort('alignment');
-  const [plan, setPlan] = useState<RangePlan | null>(null);
-  const [dawName, setDawName] = useState('the DAW');
+  const { caps: dawCaps, failed: dawFailed } = useDawCapabilities();
+  const plan = useMemo<RangePlan | null>(
+    () => (dawFailed ? { kind: 'refused', reason: NO_ANSWER } : dawCaps ? planRange(dawCaps, 'cut_range') : null),
+    [dawCaps, dawFailed],
+  );
+  const dawName = dawCaps ? (dawCaps.daw === 'none' || dawCaps.daw === 'Built-in' ? BUILT_IN : dawCaps.daw) : 'the DAW';
   /** The history entry each cut made this session was recorded in. */
   const entries = useRef(new Map<string, number>());
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (caps) => {
-        if (!live) return;
-        setPlan(planRange(caps, 'cut_range'));
-        setDawName(caps.daw === 'none' || caps.daw === 'Built-in' ? BUILT_IN : caps.daw);
-      },
-      () => live && setPlan({ kind: 'refused', reason: NO_ANSWER }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
 
   const docCuts = useMemo(() => docCutsOf(cuts), [cuts]);
   const refusalOf = useCallback((sum: SelSummary) => cutRefusal(plan, sum, locator), [plan, locator]);

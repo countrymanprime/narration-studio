@@ -368,6 +368,92 @@ def record_refusals(env: Env) -> str:
 # -- roll --------------------------------------------------------------------------------------------------------------------
 
 
+def timed(env: Env, steps: list[tuple[str, float]], label: str, command: str, *args: object, until: str) -> list[str]:
+    """One bridge command as the host sends it, with its round trip in milliseconds appended to steps."""
+    began = time.monotonic()
+    answer = env.ok(command, *args, until=until)
+    steps.append((label, (time.monotonic() - began) * 1000))
+    return answer
+
+
+@scenario(
+    "punch",
+    "chapter_track_state, arm_only, punch_to, record_start",
+    "punch and roll start: the four bridge steps of one Booth press timed one by one",
+    needs_audio=True,
+)
+def punch_start_timing(env: Env) -> str:
+    """Click-to-record-start on the bridge side: readAloudRecordStartFrom's four commands, in its order, each timed from the harness.
+
+    A round trip here is the harness's file protocol plus REAPER's defer loop, as the host's is. The listening session's start is the
+    page's own and is not on the bridge. The numbers go in the row's detail; the asserts only keep the sequence correct.
+    """
+    fx = book(env)
+    steps: list[tuple[str, float]] = []
+    for _ in range(3):  # a bridge command with no work, for the floor of one round trip
+        timed(env, steps, "baseline play_position", "play_position", until="PLAY_POSITION")
+    state_events = None
+    began = time.monotonic()
+    state_events = env.send("chapter_track_state", fx["ch1"], until={"TRACK_STATE_END"})
+    steps.append(("chapter_track_state", (time.monotonic() - began) * 1000))
+    assert any(e[0] == "TRACK_STATE" for e in state_events), state_events
+    timed(env, steps, "arm_only", "arm_only", fx["ch1"], until="ARMED")
+    timed(env, steps, "punch_to (pre-roll 0)", "punch_to", "2", "0", until="PUNCHED")
+    began = time.monotonic()
+    env.ok("record_start", fx["ch1"], "", until="RECORD_STARTED")
+    steps.append(("record_start", (time.monotonic() - began) * 1000))
+    assert play_state(env) & 4 == 4, "REAPER is not recording"
+    try:
+        sequence = [ms for label, ms in steps if not label.startswith("baseline")]
+        base = [ms for label, ms in steps if label.startswith("baseline")]
+        total = sum(sequence)
+        print("punch_start_timing_ms " + ", ".join(f"{label}={ms:.0f}" for label, ms in steps) + f", total={total:.0f}", flush=True)
+        result = (
+            f"read+arm+cursor+record {total:.0f} ms ("
+            + ", ".join(f"{label} {ms:.0f}" for label, ms in steps if not label.startswith("baseline"))
+            + f"); one empty round trip {min(base):.0f}-{max(base):.0f} ms"
+        )
+        env.ok("record_stop", until="RECORD_STOPPED")
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        before = env.lua("local _, a = reaper.get_config_var_string('preroll') local _, b = reaper.get_config_var_string('prerollmeas') return {a, b}")
+        off_bridge, off_lead = seconds_to_cursor(env, fx["ch1"], 12.0)
+        env.ok("record_stop", until="RECORD_STOPPED")
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        try:
+            env.lua("reaper.set_config_var_string('preroll', '2', 0) reaper.set_config_var_string('prerollmeas', '2', 0) return true")
+            on_bridge, on_lead = seconds_to_cursor(env, fx["ch1"], 20.0)
+            env.ok("record_stop", until="RECORD_STOPPED")
+            env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        finally:
+            env.lua("reaper.set_config_var_string('preroll', args[1], 0) reaper.set_config_var_string('prerollmeas', args[2], 0) return true", *before)
+        print(
+            f"punch_start_timing_preroll off: bridge {off_bridge:.0f} ms, play head at the cursor after {off_lead:.2f} s; on (2 measures): bridge {on_bridge:.0f} ms, after {on_lead:.2f} s",
+            flush=True,
+        )
+        return result + f"; pre-roll off: play head at the cursor {off_lead:.2f} s after record_start; pre-roll on, 2 measures: {on_lead:.2f} s"
+    finally:
+        if play_state(env) & 4:
+            stop_by_hand(env)
+
+
+def seconds_to_cursor(env: Env, track: str, at: float) -> tuple[float, float]:
+    """Milliseconds for the bridge's four steps, and seconds from the record_start command until REAPER's play head reaches the cursor.
+
+    With pre-roll on record REAPER reports recording at once but plays in from before the cursor, so the second number is the lead-in
+    the narrator waits through. Leaves the recording running; the caller stops it.
+    """
+    env.lua("reaper.SetEditCurPos(args[1], false, false) return true", at)
+    began = time.monotonic()
+    env.send("chapter_track_state", track, until={"TRACK_STATE_END"})
+    env.ok("arm_only", track, until="ARMED")
+    env.ok("punch_to", f"{at}", "0", until="PUNCHED")
+    sent = time.monotonic()
+    env.ok("record_start", track, "", until="RECORD_STARTED")
+    bridge = (time.monotonic() - began) * 1000
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") >= at - 0.02, timeout=15, what="the play head to reach the cursor")
+    return bridge, time.monotonic() - sent
+
+
 @scenario(
     "punch",
     "roll",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
 import { usePedalSpace } from '../../../input/usePedalSpace';
 import { useCommand } from '../../../input/useCommand';
@@ -62,7 +62,7 @@ export type BoothPageOptions = {
   daw: DawClient;
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
   /** The shell's history: a take a DAW stopped is one entry there, which Undo takes back in the DAW (`recordedTakeCommand`). */
-  journal?: Pick<Journal, 'act' | 'undo'>;
+  journal?: Pick<Journal, 'act' | 'undo'> & Partial<Pick<Journal, 'has' | 'subscribe'>>;
   overlay: Pick<OverlayService, 'confirm' | 'toast' | 'toastUndo' | 'dismissUndo' | 'getSnapshot' | 'subscribe'>;
   /** Where Record from here opened the Booth. */
   from?: BoothStart;
@@ -175,7 +175,11 @@ export function useBoothPage(options: BoothPageOptions) {
   const takeClock = useTakeClock(recording);
   const { seconds } = takeClock;
   const [paused, setPaused] = useState(false);
-  const [recorded, setRecorded] = useState(0);
+  // The takes this visit recorded, each with the journal entry that can take it back: a take undone by any route leaves This session's figure.
+  const [takes, setTakes] = useState<{ seconds: number; entry: number | null }[]>([]);
+  const [, journalChanged] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => options.journal?.subscribe?.(journalChanged), [options.journal]);
+  const recorded = takes.reduce((sum, take) => (take.entry === null || options.journal?.has?.(take.entry) !== false ? sum + take.seconds : sum), 0);
   // What a screen reader hears when a take ends: empty while it records and at the start, so nothing speaks into an open microphone.
   const [takeNote, setTakeNote] = useState('');
   const [punches, setPunches] = useState<Punch[]>([]);
@@ -301,7 +305,6 @@ export function useBoothPage(options: BoothPageOptions) {
       secondsOf: (phrase) => secondsBefore(units, phrase),
       recordedEnd,
       takeSeconds: seconds,
-      recordRefusal: control.disabled ? control.reason : '',
     },
     {
       roll: (_phrase, { confirmed }) => daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }),
@@ -377,13 +380,14 @@ export function useBoothPage(options: BoothPageOptions) {
     if (now.session.active) now.session.stop();
     const said = endOfChapter.current;
     endOfChapter.current = false;
+    const seconds = now.elapsed();
     void tellStopped(false).then(({ marked, take }) => {
+      setTakes((all) => [...all, { seconds, entry: take.entry ?? null }]);
       // A take that marked or added pickups says it was saved in that toast, with its Undo; else the take says so here.
       if (marked > 0) return;
       if (take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
       else if (said) notify(TAKE_SAVED);
     });
-    setRecorded((total) => total + now.elapsed());
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
   }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead]);
 
@@ -594,14 +598,14 @@ export function useBoothPage(options: BoothPageOptions) {
           ...more,
           { key: 'next', label: 'Next phrase', onSelect: run(() => moveTo(nextPhrase(latest.current.units, latest.current.at))) },
           { key: 'back', label: 'Back one phrase', onSelect: run(() => moveTo(backPhrase(latest.current.at))) },
-          { key: 'roll', label: 'Punch and roll', onSelect: run(() => void roll.punchAndRoll()) },
+          { key: 'roll', label: 'Punch and roll', onSelect: run(punchAndRoll) },
           { key: 'larger', label: 'Larger text', onSelect: run(larger) },
           { key: 'smaller', label: 'Smaller text', onSelect: run(smaller) },
           { key: 'exit', label: 'Exit Booth', onSelect: run(exit) },
         ];
       },
     }),
-    [hold, roll, moveTo, exit, setSize],
+    [hold, roll, punchAndRoll, moveTo, exit, setSize],
   );
   useContextProvider(menu);
 

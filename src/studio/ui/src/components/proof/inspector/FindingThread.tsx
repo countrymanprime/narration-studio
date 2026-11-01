@@ -97,14 +97,18 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
   const remove = (message: FindingThreadMessage) =>
     action.run(`delete-${message.id}`, async () => {
       if (!(await send({ op: 'delete', messageId: message.id }))) return;
-      overlay.toastUndo('Deleted the note', async () => {
-        try {
-          onChanged(await api.findingsThread(finding.id, { op: 'restore', messageId: message.id }));
-          return { ok: true };
-        } catch (error) {
-          return { ok: false, refusal: { reason: describeApiError(error) } };
-        }
-      });
+      overlay.toastUndo(
+        'Deleted the note',
+        async () => {
+          try {
+            onChanged(await api.findingsThread(finding.id, { op: 'restore', messageId: message.id }));
+            return { ok: true };
+          } catch (error) {
+            return { ok: false, refusal: { reason: describeApiError(error) } };
+          }
+        },
+        { offJournal: 'A note thread is restored by the host op, not a journal command.' },
+      );
     });
 
   return (

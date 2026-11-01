@@ -56,11 +56,16 @@ test('Delivery / no card runs past a 390 px window / reflow', async ({ page }) =
   await open(page, 'default', 390, 844);
   const rights = await page.locator('main section').evaluateAll((all) => all.map((el) => el.getBoundingClientRect().right));
   for (const right of rights) expect(right, 'inside the window').toBeLessThanOrEqual(390);
+  // Under 24 rem of card a rule's label sits over its value (#2642), so the value keeps the card's width instead of wrapping a word a line.
   const channels = await page.getByText('Channels', { exact: true }).evaluate((label) => {
     const value = label.nextElementSibling!.getBoundingClientRect();
-    return { valueLeft: value.left, labelRight: label.getBoundingClientRect().right };
+    const own = label.getBoundingClientRect();
+    return { valueLeft: value.left, valueTop: value.top, valueRight: value.right, valueWidth: value.width, labelLeft: own.left, labelBottom: own.bottom };
   });
-  expect(channels.valueLeft, 'the Channels value stays in its column, not under the label').toBeGreaterThan(channels.labelRight);
+  expect(channels.valueTop, 'the Channels value is under its label').toBeGreaterThanOrEqual(channels.labelBottom - 1);
+  expect(Math.abs(channels.valueLeft - channels.labelLeft), 'and starts where the label starts').toBeLessThanOrEqual(1);
+  expect(channels.valueRight, 'inside the window').toBeLessThanOrEqual(390);
+  expect(channels.valueWidth, 'with the card width, not a squeezed column').toBeGreaterThan(250);
 });
 
 test('Delivery / the two top cards’ header rules line up / desktop', async ({ page }) => {

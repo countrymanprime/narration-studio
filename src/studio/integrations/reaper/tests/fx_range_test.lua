@@ -264,6 +264,8 @@ H.test('a path, a separator or a control character is refused before any REAPER 
   H.write_file(H.join(s.dir, 'reaper.ini'), '[reaper]\n')
   -- What the bridge itself touches to read a command and answer it, whatever the command.
   local overhead = reaper_keys_during(s, 'no_such_command', 'r0')
+  -- The loop also reads the timing switch about once a second (narration_ui_bridge.lua), whichever tick that falls in.
+  overhead.GetExtState = true
   s:events()
   local names = {
     '../reaper.ini',

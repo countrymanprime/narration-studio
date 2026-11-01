@@ -86,8 +86,9 @@ describe('list-shows-the-chapters-words-with-a-play-button', () => {
     const first = await screen.findByRole('row', { name: named(words[0]!) });
     expect(within(first).queryByText('uh-LIS')).toBeNull();
     expect(within(first).getByLabelText('Source: CMU dictionary')).toBeTruthy();
-    expect(hear(first)).not.toBeNull();
-    expect(hear(row(words[1]!))).toBeNull();
+    // A marked word has no Story Bible entry, which is all the host can speak, so it has no Hear (a Story Bible name does, below).
+    expect(hear(first)).toBeNull();
+    expect(within(row(words[1]!)).queryByLabelText(/^Source:/)).toBeNull();
     expect(screen.queryByRole('columnheader', { name: 'Status' })).toBeNull();
     expect(first.getAttribute('aria-selected')).toBe('false');
     await userEvent.click(first);
@@ -124,7 +125,7 @@ describe('word-card-saves-how-i-say-it', () => {
     await userEvent.type(input, 'kroh-KAY');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(say).toHaveBeenLastCalledWith(words[0], 'kroh-KAY', 'manual');
-    await waitFor(() => expect(hear(row(words[0]!))).not.toBeNull());
+    await waitFor(() => expect(within(row(words[0]!)).getByLabelText(/^Source:/)).toBeTruthy());
     await userEvent.clear(input);
     await userEvent.type(input, 'kroh-KEE{Enter}');
     expect(say).toHaveBeenLastCalledWith(words[0], 'kroh-KEE', 'manual');
@@ -136,7 +137,7 @@ describe('word-card-saves-how-i-say-it', () => {
     await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
     await userEvent.click(await screen.findByRole('button', { name: 'Save' }));
     expect(say).not.toHaveBeenCalled();
-    expect(hear(row(words[0]!))).toBeNull();
+    expect(within(row(words[0]!)).queryByLabelText(/^Source:/)).toBeNull();
   });
 });
 

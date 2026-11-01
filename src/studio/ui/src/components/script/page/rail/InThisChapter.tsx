@@ -4,7 +4,6 @@ import { hearNameAction } from '../../../../icons.catalog';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Swatch, type SwatchColour } from '../../../primitives/Swatch';
 import { Table, TableBody, TableCell, TableRow } from '../../../primitives/Table';
-import { overlay } from '../../../../overlay/overlayService';
 
 /** One name or word the chapter has. The tabs build these from their own data; this component knows nothing of either. */
 export type InThisChapterRow = {
@@ -14,16 +13,13 @@ export type InThisChapterRow = {
   kind?: { label: string; colour: SwatchColour };
   /** The muted words after the kind ("first Chapter 3"), or anything else that says where it comes from. */
   detail?: ReactNode;
-  /** Whether the name has a pronunciation to play. The phonetic spelling is not drawn: the narrator listens, they do not read it. */
-  hear?: boolean;
+  /** The name's preview, when it has a pronunciation to play (none otherwise). The phonetic spelling is not drawn: the narrator listens, they do not read it. */
+  hear?: { playing: boolean; loading: boolean; onPress: () => void };
   selected?: boolean;
   onActivate?: () => void;
   /** Attributes the tab's tests and the page's scripts find the row by. */
   data?: Record<`data-${string}`, string>;
 };
-
-/** Playing a reference clip is a toast until the host has audio for a pronunciation (the Words tab's card does the same). */
-export const hearReference = (name: string): void => overlay.toast(`Playing “${name}” reference clip`);
 
 /**
  * "In this chapter": the people, places and words the chapter has, one row each (name, kind, a button that plays the pronunciation).
@@ -61,7 +57,16 @@ export function InThisChapter({ label, rows, empty }: { label: string; rows: rea
                   )}
                 </TableCell>
                 <TableCell>
-                  {row.hear && <IconButton action={hearNameAction()} label={`Hear ${row.name}`} size="sm" onClick={() => hearReference(row.name)} />}
+                  {row.hear && (
+                    <IconButton
+                      action={hearNameAction(row.hear.playing)}
+                      label={`${row.hear.playing ? 'Stop' : 'Hear'} ${row.name}`}
+                      size="sm"
+                      aria-pressed={row.hear.playing}
+                      pending={row.hear.loading}
+                      onClick={row.hear.onPress}
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             ))}

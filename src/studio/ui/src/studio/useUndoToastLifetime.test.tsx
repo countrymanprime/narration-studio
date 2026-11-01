@@ -45,6 +45,23 @@ describe('useUndoToastLifetime', () => {
     expect(texts(overlay)).toEqual(['One']);
   });
 
+  it('Ctrl+Z and a toast Undo act on the entry each names, after an off-journal change in between', async () => {
+    const { journal, overlay } = setup();
+    const first = await decide(journal, 'One');
+    act(() => overlay.toastUndo('One', () => journal.undo(first), { entry: first }));
+    act(() => overlay.toastUndo('Removed a pickup', async () => ({ ok: true }), { offJournal: 'a test change the journal does not hold' }));
+    const second = await decide(journal, 'Two');
+    act(() => overlay.toastUndo('Two', () => journal.undo(second), { entry: second }));
+    // The keys undo the newest entry; its toast goes, the older entry's and the off-journal one stay.
+    await act(async () => void (await journal.undoLast()));
+    expect(texts(overlay)).toEqual(['One', 'Removed a pickup']);
+    expect((await journal.entries()).map((e) => e.id)).toEqual([first]);
+    // The older toast's Undo still takes back its own entry, and nothing else.
+    await act(async () => void (await journal.undo(first)));
+    expect(texts(overlay)).toEqual(['Removed a pickup']);
+    expect(await journal.entries()).toEqual([]);
+  });
+
   it('a project switch (the journal is cleared) takes the toast away', async () => {
     const { journal, overlay } = setup();
     const id = await decide(journal, 'Waive');
@@ -57,7 +74,7 @@ describe('useUndoToastLifetime', () => {
     const { journal, overlay, view } = setup('/editing/chapter-1');
     const id = await decide(journal, 'Cut');
     act(() => overlay.toastUndo('Cut 3 words', () => journal.undo(id), { entry: id }));
-    act(() => overlay.toastUndo('Deleted the note', async () => ({ ok: true })));
+    act(() => overlay.toastUndo('Deleted the note', async () => ({ ok: true }), { offJournal: 'a test toast' }));
     act(() => overlay.toast('Could not save.', { tone: 'error' }));
     view.rerender({ at: '/editing/chapter-2' });
     expect(texts(overlay)).toEqual(['Could not save.']);

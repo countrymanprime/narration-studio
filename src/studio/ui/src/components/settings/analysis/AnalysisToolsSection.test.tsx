@@ -125,7 +125,7 @@ describe('AnalysisToolsSection', () => {
     const gliner = await row('gliner');
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
     expect(within(gliner).getByText('Download failed')).toBeTruthy();
-    expect(toast).toHaveBeenCalledWith('Could not reach huggingface.co.', { tone: 'error' });
+    expect(toast).toHaveBeenCalledWith('Could not reach huggingface.co.', expect.objectContaining({ tone: 'error' }));
     expect(gliner.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     fake.plan('gliner', 'completes');
     fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));
@@ -173,7 +173,9 @@ describe('AnalysisToolsSection', () => {
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
     fireEvent.click(within(gliner).getByRole('button', { name: 'Remove GLiNER' }));
     fireEvent.click(within(await screen.findByRole('alertdialog', { name: 'Remove GLiNER?' })).getByRole('button', { name: 'Remove' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/Could not remove GLiNER: .*in use by a scan/), { tone: 'error' }));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(expect.stringMatching(/Could not remove GLiNER: .*in use by a scan/), expect.objectContaining({ tone: 'error' })),
+    );
     expect(gliner.getAttribute('data-status')).toBe('installed');
   });
 
@@ -199,7 +201,7 @@ describe('AnalysisToolsSection', () => {
     await download('gliner', 'GLiNER');
     const gliner = await row('gliner');
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(shortfall, { tone: 'error' }), SLOW);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(shortfall, expect.objectContaining({ tone: 'error' })), SLOW);
     expect(gliner.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     fake.plan('gliner', 'completes');
     fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));
@@ -215,7 +217,7 @@ describe('AnalysisToolsSection', () => {
     await download('booknlp-small', 'BookNLP (small)');
     const booknlp = await row('booknlp-small');
     await waitFor(() => expect(booknlp.getAttribute('data-status')).toBe('failed'), SLOW);
-    expect(toast).toHaveBeenCalledWith(sentence, { tone: 'error' });
+    expect(toast).toHaveBeenCalledWith(sentence, expect.objectContaining({ tone: 'error' }));
     expect(booknlp.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     const details = booknlp.querySelector<HTMLDetailsElement>('[data-comp-error-detail]')!;
     expect(details.open).toBe(false);

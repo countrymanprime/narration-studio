@@ -9,7 +9,7 @@ export function EditingBodySkeleton({ label, status }: { label: string; status: 
     <LoadingRegion label={label} status={status} className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden pt-3 pr-7 pl-2">
         {[0, 1, 2].map((paragraph) => (
-          <div key={paragraph} className="grid grid-cols-[76px_minmax(0,1000px)] gap-x-1.5 border-l-[3px] border-transparent">
+          <div key={paragraph} className="grid grid-cols-[76px_minmax(0,1fr)] gap-x-1.5 border-l-[3px] border-transparent">
             <div className="flex justify-end pt-1 pr-2">
               <Skeleton className="w-9" />
             </div>

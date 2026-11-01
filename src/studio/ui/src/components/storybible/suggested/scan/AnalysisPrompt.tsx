@@ -13,7 +13,9 @@ export function AnalysisPrompt({ choose, busy = false }: { choose: (choice: Scan
   const [never, setNever] = useState(false);
   return (
     <div className="flex flex-col gap-3" data-analysis-prompt>
-      <p className="m-0 text-sm text-[var(--text-muted)]">A scan finds more with the optional analysis tools. Nothing downloads until you agree.</p>
+      <p className="m-0 text-sm text-[var(--text-muted)]">
+        GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree.
+      </p>
       <div className="flex flex-col items-start gap-2">
         <Button autoFocus disabled={busy} onClick={() => choose('basic', never)}>
           Use basic scan now

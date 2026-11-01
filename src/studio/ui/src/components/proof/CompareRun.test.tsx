@@ -576,9 +576,9 @@ describe('CompareRun for an Audacity project', () => {
         <CompareRun {...props} dawFileLinked={false} />
       </ApiProvider>,
     );
-    expect(await screen.findByText(/Transcribes the audio track selected in Audacity/)).toBeTruthy();
-    // The reason is the button's description and, in sight, beside it (alignment audit XPC-15).
-    expect(screen.getAllByText(/Link the Audacity project to start a comparison/)).toHaveLength(2);
+    expect(await screen.findAllByText(/Link the Audacity project to start a comparison/)).toHaveLength(2);
+    // The reason is the button's description and, in sight, beside it (alignment audit XPC-15); the setup draws no intro sentence.
+    expect(screen.queryByText(/Transcribes the/)).toBeNull();
     expect(document.body.textContent).not.toMatch(/REAPER/);
   });
 });

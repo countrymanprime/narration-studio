@@ -40,6 +40,9 @@ title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by cha
 - **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and, set apart after a
   rule, **Remove from pickups**.
 
+On a very wide window the page stays one centred column about 1,500 px wide, the same width as Master & QC and Delivery, so a line's
+status and buttons stay beside its words instead of at the far edge of the screen.
+
 Each line is a tall row with 36 px buttons on its first line of text, and each chapter's group row is tinted. The columns keep
 their places when a line is recorded or left out. In a window narrower than the tablet width each line is a block instead: its box,
 time, type, source, status and buttons on one line and the words under them (on a phone width the buttons take a line of
@@ -90,11 +93,13 @@ list. It is off when the DAW is not reachable. An off button stays in the Tab or
 a screen reader reads it as the button's description. **Add a pickup by hand** asks for the time in the
 recording (`05:12.0`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
 adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first); the form names that
-chapter under its title, and **Close** or Escape leaves it. A time or
-line the app cannot use is said under its box, which is marked as wrong until you change it, and in a short message; the
-form keeps what you typed.
+chapter under its title, and **Close** or Escape leaves it. The time box shows the shape, `mm:ss.s`, in
+grey until you type. A time or line the app cannot use is said once, under its box, which is marked as wrong until you change
+it; the form keeps what you typed. If the app refuses a line that looks right, a short message says why.
 
 ![Pickups - Add a pickup by hand: the time in the recording and the line to re-record](../../images/ui/pickups-add.webp)
+
+![Pickups - Add a pickup submitted empty: the one message under the line box, and the time box's hint](../../images/ui/pickups-add-empty.webp)
 
 With no lines at all, the page says **No pickups queued**, with a **Go to Proof** button; a chapter with none says **No pickups
 for this chapter**. If a chapter you were viewing is no longer in the manuscript, the page shows every chapter.

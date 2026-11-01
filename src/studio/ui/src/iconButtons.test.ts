@@ -26,8 +26,6 @@ const TOOLBAR_WORDS: Record<string, string> = {
     'the only button across paragraphs is a disabled one that says why the tools are off, a sentence no icon can say',
   // The companion is a roomy panel beside the DAW that the narrator reads at a glance while recording; its transport names each action
   // (and shows its key) rather than packing dense icons the mock does not draw there.
-  'src/components/booth/CompanionShell.tsx:{playPauseLabel}': 'the companion transport reads out the action beside its key cap',
-  'src/components/booth/CompanionShell.tsx:Stop reading': 'the companion transport names its actions for a glance while recording',
   'src/components/booth/CompanionShell.tsx:Follow': 'the companion transport names its actions for a glance while recording',
 };
 

@@ -180,11 +180,11 @@ describe('MonitorRow', () => {
     expect(screen.getByText('Reading the level from REAPER…')).toBeTruthy();
   });
 
-  it('sets the DAW level and says it is not this player', () => {
+  it('sets the DAW level and draws no explanation under it', () => {
     const onLevel = level({ kind: 'ready', level: 70, saving: false });
     const slider = screen.getByRole('slider', { name: 'REAPER monitor level' });
     expect((slider as HTMLInputElement).disabled).toBe(false);
-    expect(screen.getByText(/does not change this player/)).toBeTruthy();
+    expect(screen.queryByText(/does not change this player/)).toBeNull();
     fireEvent.change(slider, { target: { value: '80' } });
     expect(onLevel).toHaveBeenCalledWith(80);
   });

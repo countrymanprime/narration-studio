@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
+import { overlay } from '../../../overlay/overlayService';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { StudioProvider } from '../../../studio/StudioProvider';
@@ -156,19 +157,23 @@ export const Building: Story = {
   },
 };
 
-// The host refused the build: its reason under Build, and nothing listed as written.
+/** The error toasts the page has raised: errors are toasts, never text in the page's flow (rule 7). */
+const errorToasts = () => overlay.getSnapshot().toasts.filter((toast) => toast.tone === 'error');
+
+// The host refused the build: its reason as an error toast, nothing drawn under Build, and nothing listed as written.
 export const BuildFailed: Story = {
   parameters: {
     api: host(all, { ...running, phase: 'error', error: 'could not create "C:/Deliver/ACX": access is denied', message: 'The package could not be built.' }),
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect((await canvas.findByRole('alert')).textContent).toContain('access is denied');
+    await waitFor(() => expect(errorToasts().some((toast) => toast.text.includes('access is denied'))).toBe(true));
+    await expect(canvas.queryByRole('alert')).toBeNull();
     await expect(canvas.queryByText('Written')).toBeNull();
   },
 };
 
-// The measurement cannot be read: the page says it cannot tell, and offers Check again, rather than calling every chapter "Not mastered".
+// The measurement cannot be read: the page says it cannot tell in an error toast with Retry, rather than calling every chapter "Not mastered".
 export const CannotTell: Story = {
   parameters: {
     api: createMockApi({
@@ -180,8 +185,8 @@ export const CannotTell: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect((await canvas.findAllByText(/Can't tell which chapters pass/))[0]).toBeTruthy();
-    await expect(canvas.getAllByRole('button', { name: 'Check again' }).length).toBeGreaterThan(0);
+    await waitFor(() => expect(errorToasts().some((toast) => /Can't tell which chapters pass/.test(toast.text) && toast.action?.label === 'Retry')).toBe(true));
+    await expect(canvas.queryByRole('alert')).toBeNull();
     await expect(canvas.queryByText('Not mastered')).toBeNull();
   },
 };

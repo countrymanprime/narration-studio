@@ -7,7 +7,7 @@ import { parseClock, reasonSentence } from './pickupRows';
 
 /**
  * The popover form of "Add a pickup by hand" (mock `AddPickup`): the time in the recording and the line to re-record, for the chapter in view.
- * It refuses an empty line before anything is sent; a host refusal keeps what was typed and says why, and success closes the popover.
+ * It refuses an empty line or an unusable time before anything is sent, saying so under that field only; a host refusal keeps what was typed and says why in a toast, and success closes the popover.
  */
 export function AddPickup({
   chapterId,
@@ -25,12 +25,10 @@ export function AddPickup({
   const [time, setTime] = useState('');
   const [line, setLine] = useState('');
   const [busy, setBusy] = useState(false);
-  /* What is wrong, said under the field it is about as well as in a toast (the toast is gone in five seconds); typing in the field clears it. */
+  /* What is wrong, said once: under the field it is about, which the popover holds (rule 7: one surface, never the toast as well), marks it invalid and describes it;
+     typing in the field clears it. */
   const [problem, setProblem] = useState<{ field: 'time' | 'line'; text: string } | null>(null);
-  const refuse = (field: 'time' | 'line', text: string) => {
-    setProblem({ field, text });
-    overlay.toast(text);
-  };
+  const refuse = (field: 'time' | 'line', text: string) => setProblem({ field, text });
 
   const submit = async () => {
     if (!line.trim()) return refuse('line', 'Type the line first.');
@@ -74,7 +72,8 @@ export function AddPickup({
           setTime(value);
           if (problem?.field === 'time') setProblem(null);
         }}
-        placeholder="05:12.0"
+        /* The format, not a time: a sample such as 05:12.0 in the box's muted text reads as a value already typed. */
+        placeholder="mm:ss.s"
         error={problem?.field === 'time' ? problem.text : undefined}
       />
       <Field

@@ -575,6 +575,13 @@
   },
   {
     "page": "settings",
+    "state": "wave-scroll-step",
+    "viewport": "desktop",
+    "docName": "settings-wave-scroll-step",
+    "caption": "Settings - Waveform arrow step under Editing: a slider from 15 to 30 seconds, 20 s by default"
+  },
+  {
+    "page": "settings",
     "state": "global-keyboard",
     "viewport": "desktop",
     "docName": "settings-keyboard",
@@ -1187,7 +1194,7 @@
     "state": "following",
     "viewport": "desktop",
     "docName": "booth-following",
-    "caption": "Booth - six seconds into a take: the text follows the voice"
+    "caption": "Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice"
   },
   {
     "page": "booth",
@@ -1412,6 +1419,13 @@
     "viewport": "desktop",
     "docName": "pickups-add",
     "caption": "Pickups - Add a pickup by hand: the time in the recording and the line to re-record"
+  },
+  {
+    "page": "pickups",
+    "state": "add-popover-empty",
+    "viewport": "desktop",
+    "docName": "pickups-add-empty",
+    "caption": "Pickups - Add a pickup submitted empty: the one message under the line box, and the time box's hint"
   },
   {
     "page": "pickups",

@@ -5,6 +5,7 @@ import {
   READER_COLUMN_VAR,
   READER_WIDTHS,
   readerColumn,
+  readerColumnWithGutter,
   fontStack,
   loadTextPrefs,
   readerVars,
@@ -85,6 +86,12 @@ describe('storage', () => {
     window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ ...DEFAULT_TEXT_PREFS, spacing: 1.9 }));
     expect(loadTextPrefs().spacing).toBe(1.9);
     expect(readerVars(loadTextPrefs())['--rl']).toBe(1.9);
+  });
+});
+
+describe('readerColumnWithGutter', () => {
+  it('is the characters a line plus the gutter, capped at the container', () => {
+    expect(readerColumnWithGutter(64, 82)).toBe('min(calc(64ch + 82px), 100%)');
   });
 });
 

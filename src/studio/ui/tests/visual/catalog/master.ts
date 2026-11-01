@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -11,6 +11,7 @@ export const masterStates: StateEntry[] = [
     state: 'empty',
     description:
       'Master & QC, nothing measured yet - the ACX profile pill and Check files…, "Nothing measured yet", the book consistency with no measurements, the built-in chain as three steps, and the delivery package aside with what it waits on',
+    ...REFLOW,
   },
   {
     page: 'master',
@@ -23,6 +24,7 @@ export const masterStates: StateEntry[] = [
     state: 'measured',
     description:
       'Master & QC, three files checked against ACX - the per-file table with the failing 48 kHz render selected, "Chapter 1 — Down the Rabbit-Hole · Why it fails" (the file named by its chapter) with Pass and Fail rows, its every-rule list under it, the book consistency and the package aside',
+    ...REFLOW,
   },
   {
     page: 'master',
@@ -51,7 +53,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'error',
     description:
-      'Master & QC, a check that broke (?mockMeasure=fails) - the alert asking to choose the files again, the reason on the file it broke on, the files after it not read',
+      'Master & QC, a check that broke (?mockMeasure=fails) - the error toast asking to choose the files again (dismissed for the capture), the reason on the file it broke on, the files after it not read',
   },
   // Master & QC, Diagnostics: a section below the chain, scrolled to
   {
@@ -171,14 +173,16 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'chapters-load-failed',
     description:
-      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and, in the file table card under its controls, "The chapters could not be read, so the files keep their file names" with the reason as an alert and a Retry button that reads the chapters again',
+      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and an error toast "The chapters could not be read, so the files keep their file names" with the reason and a Retry button that reads the chapters again',
   },
   {
     page: 'master',
     state: 'profile-load-failed',
     description:
-      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, in the file table card under its controls, the reason ("The delivery profiles could not be read from this project.", said once) as an alert and a Retry button that reads the profile again (scrolled to the alert)',
+      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and an error toast with the reason ("The delivery profiles could not be read from this project.", said once) and a Retry button that reads the profile again',
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];
-masterStates.push(wholePage(masterStates, 'measured'));
+// At 390 px the whole Master & QC page is taller than the capture's 6000 px cap (the rules and diagnostics panels under the file table), so
+// its whole-height picture stays at the window widths; `measured` itself is captured at 390 px.
+masterStates.push({ ...wholePage(masterStates, 'measured'), extraViewports: [] });

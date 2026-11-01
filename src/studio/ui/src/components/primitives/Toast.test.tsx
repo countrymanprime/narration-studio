@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dialog } from './Dialog';
-import { TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
+import { TOAST_ACTION_MS, TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -60,6 +60,16 @@ describe('ToastRegion', () => {
     expect(dismiss).not.toHaveBeenCalled();
     act(() => void vi.advanceTimersByTime(10_000 - TOAST_INFO_MS - 1000));
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(8);
+  });
+
+  it('keeps a toast whose button is the only route for TOAST_ACTION_MS (12 s), longer than every other action toast', () => {
+    expect(TOAST_ACTION_MS).toBe(12_000);
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[{ ...info(9), action: { label: 'Show them', onAction: vi.fn() }, durationMs: TOAST_ACTION_MS }]} dismiss={dismiss} />);
+    act(() => void vi.advanceTimersByTime(TOAST_ACTION_MS - 1000));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(9);
   });
 
   it('never dismisses an error by itself, however long it stays', () => {

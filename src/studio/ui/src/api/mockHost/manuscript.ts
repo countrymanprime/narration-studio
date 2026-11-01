@@ -275,5 +275,5 @@ export function createManuscriptMock(
     },
     readerState: async () => wireClone(readerState),
   } satisfies Partial<NarrationApi>;
-  return { bindings, manuscriptReady };
+  return { bindings, manuscriptReady, hasImported: () => imported };
 }

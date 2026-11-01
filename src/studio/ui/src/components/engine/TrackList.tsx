@@ -63,7 +63,7 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
               <TableRow>
                 <TableHeader>Track</TableHeader>
                 <TableHeader>Chapter</TableHeader>
-                <TableHeader align="right">Playable items</TableHeader>
+                <TableHeader>Playable items</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody

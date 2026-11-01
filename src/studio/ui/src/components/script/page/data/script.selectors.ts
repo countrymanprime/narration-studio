@@ -33,7 +33,14 @@ export const wordsInChapter = (words: readonly ScriptWord[], chapterId: string):
   words.filter((word) => word.flags.some((flag) => flag.chapterId === chapterId));
 
 /** One row of the Words tab: a word flagged in the chapter, or a Story Bible name found in its text. */
-export type ChapterWord = { word: string; say: string; source: string; status: WordStatus; fromBible: boolean };
+export type ChapterWord = {
+  word: string;
+  say: string;
+  source: string;
+  status: WordStatus;
+  fromBible: boolean;
+  /** The Story Bible entry a name comes from; none for a flagged word. */ entryId?: string;
+};
 
 /**
  * Every word the narrator will meet in a chapter with how it is said: the words flagged there, then the Story Bible names in its text
@@ -57,7 +64,7 @@ export function chapterWords(
       const named =
         entry && (wordKey(entry.canonical_name) === key ? entry.pronunciation : entry.aliases.find((alias) => wordKey(alias.text) === key)?.pronunciation);
       const say = named?.ipa.trim() ?? '';
-      rows.push({ word: mention.text, say, source: '', status: say ? 'set' : 'not_set', fromBible: true });
+      rows.push({ word: mention.text, say, source: '', status: say ? 'set' : 'not_set', fromBible: true, entryId: mention.entryId });
     }
   }
   return [...flagged, ...rows];

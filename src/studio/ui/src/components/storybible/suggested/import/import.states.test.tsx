@@ -529,7 +529,7 @@ describe('Add', () => {
     await userEvent.click(addButton());
     view.unmount();
     await act(async () => slow.reject(new Error('The entry is locked.')));
-    expect(toast).toHaveBeenCalledWith('Nothing was added: The entry is locked.', { tone: 'error' });
+    expect(toast).toHaveBeenCalledWith('Nothing was added: The entry is locked.', expect.objectContaining({ tone: 'error' }));
     expect(close).not.toHaveBeenCalled();
     expect(await journal.entries()).toHaveLength(0);
   });

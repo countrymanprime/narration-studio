@@ -13,6 +13,7 @@ import { useDawKind } from '../../useDawKind';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
+import { reviewFinding } from '../../studio/commands/reviewFinding';
 import { ALL_SCOPE, clock, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
@@ -20,6 +21,7 @@ import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
+import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
 
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
@@ -205,33 +207,18 @@ export function PickupsPage({
     const id = pickup.findingId;
     if (!id) return undefined;
     const before = await findingsApi.findingsGet(id);
-    const failed = (error: unknown) => ({ ok: false as const, refusal: { code: 'host_refused', reason: reasonSentence(error) } });
-    const done = await journal.act({
-      label: `Fine, not a pickup at ${clock(pickup.time)}`,
-      touches: [`proof/finding/${id}`, 'pickups'],
-      run: async () => {
-        try {
-          const after = await findingsApi.findingsReview({
-            id,
-            evidenceVersion: before.evidence_version ?? '',
-            status: 'dismissed',
-            note: before.review.note ?? '',
-          });
-          return { ok: true as const, value: after };
-        } catch (error) {
-          return failed(error);
-        }
+    const done = await reviewFinding(
+      journal,
+      findingsApi,
+      before,
+      { id, evidenceVersion: before.evidence_version ?? '', status: 'dismissed', note: before.review.note ?? '' },
+      {
+        label: `Fine, not a pickup at ${clock(pickup.time)}`,
+        touches: ['pickups'],
+        describe: reasonSentence,
+        afterUndo: () => changing(pickupsApi.pickupsList()),
       },
-      undo: async (after) => {
-        try {
-          await findingsApi.findingsReview({ id, evidenceVersion: after.evidence_version ?? '', status: before.review.status, note: before.review.note ?? '' });
-          await changing(pickupsApi.pickupsList());
-          return { ok: true as const, value: undefined };
-        } catch (error) {
-          return failed(error);
-        }
-      },
-    });
+    );
     if (!done.ok) throw new Error(done.refusal.reason);
     await changing(pickup.source === 'speech' ? pickupsApi.pickupsRemove(pickup.id) : pickupsApi.pickupsList());
     const entry = done.value.id;
@@ -297,7 +284,7 @@ export function PickupsPage({
       {/* Side by side, the side column is Proof's 380 px (XPK-18) and both cards run down to the window's end, so they share a bottom edge
           in every state (XPK-6, R4TB-7). Stacked, each card keeps its own height, and the session card keeps its 30 rem rather than
           stretching its rows across the window (XPK-4). */}
-      <div className="flex min-h-full flex-col">
+      <div className={`${PAGE_COLUMN_CLASS} flex min-h-full flex-col`}>
         <div className="grid flex-1 content-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[minmax(0,1fr)] max-[1180px]:[&>:last-child]:max-w-[30rem]">
           <PickupsTable
             pickups={list.pickups}

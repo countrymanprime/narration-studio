@@ -54,6 +54,24 @@ describe('the-notes-table-scrolls-instead-of-squeezing', () => {
     expect(region.className).toContain('overflow-auto');
     expect(within(region).getByRole('table', { name: 'Notes' }).className).toMatch(/min-w-\[\d+rem\]/);
   });
+
+  // #2635: under the table's floor a note is a stacked block, so Resolution is on screen at 390 px rather than behind a sideways scroll.
+  it('stacks a note under the floor: Time, Type and Resolution on one line, the sentence and its source under them', () => {
+    render(<Harness />);
+    const table = screen.getByRole('table', { name: 'Notes' });
+    expect(table.parentElement!.className).toContain('@container');
+    expect(table.className).toContain('@max-[40rem]:block');
+    expect(table.className).toContain('@max-[40rem]:min-w-0');
+    expect(table.className).toContain('@max-[40rem]:[&>thead]:sr-only');
+    const row = dataRows()[0]!;
+    expect(row.className).toContain('@max-[40rem]:grid!');
+    const cells = within(row).getAllByRole('cell');
+    expect(cells[4]!.className).toContain('@max-[40rem]:row-1');
+    expect(cells[2]!.className).toContain('@max-[40rem]:row-2');
+    expect(cells[3]!.className).toContain('@max-[40rem]:row-3');
+    const group = screen.getAllByText(/open$/, { selector: 'span' })[0]!.closest('tr')!;
+    expect(group.className).toContain('@max-[40rem]:block');
+  });
 });
 
 describe('all-chapters-groups-by-chapter-with-open-count', () => {

@@ -115,6 +115,18 @@ describe('the first scan prompt', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('says what the optional tools find, and that nothing downloads until the narrator agrees', async () => {
+    mount();
+    await press();
+    const dialog = await prompt();
+    const text = dialog.textContent ?? '';
+    expect(text).toContain('GLiNER');
+    expect(text).toContain('labels characters, places, items and groups');
+    expect(text).toContain('BookNLP');
+    expect(text).not.toContain('invents');
+    expect(text).toContain('Nothing downloads until you agree.');
+  });
+
   it('download-opens-the-consent-for-the-pair: nothing downloads and no scan starts by itself', async () => {
     const { fake } = mount();
     const user = userEvent.setup();

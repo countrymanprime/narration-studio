@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { useStoreHandle, useStudio } from '../../../studio/StudioProvider';
 import type { MeasureJob } from '../../../types';
@@ -32,7 +33,7 @@ export function useDeliveryChecks() {
 
   return {
     chapters,
-    chaptersError: chaptersError?.message,
+    chaptersError: chaptersError === undefined ? undefined : apiErrorMessage(chaptersError),
     job: job.value,
     jobError: job.error,
     lastHeard: job.lastHeard,

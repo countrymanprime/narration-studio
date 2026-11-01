@@ -166,7 +166,7 @@ export function createMockApi(
     initial.settings,
   );
   const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
-  const { manuscriptReady } = manuscript;
+  const { manuscriptReady, hasImported: manuscriptImported } = manuscript;
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
   // Every read of the chapter list holds the credits (a credits file is a chapter): the Production overview, the pages and the host agree.
   const chaptersWithCredits = async () => credits.withCreditsChapters(await manuscript.bindings.manuscriptChapters());
@@ -377,6 +377,7 @@ export function createMockApi(
     dictionaryState: assets.dictionaryState,
     dawFacts: () => dawControl.facts(),
     manuscriptReady,
+    manuscriptImported,
   });
   // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
   const undoHistory = new MockUndoHistory();

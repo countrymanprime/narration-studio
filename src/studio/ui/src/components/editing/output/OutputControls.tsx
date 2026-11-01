@@ -86,7 +86,7 @@ export function MonitorRow({ daw }: { daw: DawMonitor }) {
   return (
     <div className="flex flex-col gap-1">
       <Slider label={label} valueText={shown} value={value} onValueChange={daw.onLevel} disabled={disabled} />
-      <Note alert={Boolean(note) && level.kind !== 'loading'}>{note ?? `Sets ${daw.name}'s own output when it plays. It does not change this player.`}</Note>
+      {note && <Note alert={level.kind !== 'loading'}>{note}</Note>}
     </div>
   );
 }

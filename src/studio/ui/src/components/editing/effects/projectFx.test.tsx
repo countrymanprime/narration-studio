@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import userEvent from '@testing-library/user-event';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -66,7 +67,10 @@ describe('the FX in the DAW now', () => {
     expect(within(rows[1]).getByText('Chapter One')).toBeTruthy();
     expect(within(rows[2]).getByText('Off')).toBeTruthy();
     expect(within(rows[3]).getByText('Master')).toBeTruthy();
-    expect(within(section()).getByText(howToAdd('REAPER'))).toBeTruthy();
+    // The how-to is behind a "?", not drawn under the table.
+    expect(within(section()).queryByText(howToAdd('REAPER'))).toBeNull();
+    await userEvent.setup().click(within(section()).getByRole('button', { name: 'How to add an effect to words' }));
+    expect(await screen.findByText(howToAdd('REAPER'))).toBeTruthy();
     expect(within(section()).getByText(/Read from REAPER at/)).toBeTruthy();
   });
   it('says the project has none when the DAW answers an empty chain', async () => {

@@ -73,6 +73,12 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.mouse.click(at.x, at.y, { button: 'right' });
     await page.getByRole('menuitem', { name: 'Mark as' }).waitFor();
   },
+  'speaker-picker': async (page) => {
+    await goToPage(page, 'Script');
+    await page.locator('button[data-chip]').first().click();
+    await page.getByRole('combobox', { name: 'Search speakers' }).waitFor();
+    await page.getByRole('listbox', { name: 'Speakers in this chapter' }).waitFor();
+  },
   'skip-to-side-panel': async (page) => {
     await goToPage(page, 'Script');
     const skip = page.getByRole('button', { name: 'Skip to the side panel' });

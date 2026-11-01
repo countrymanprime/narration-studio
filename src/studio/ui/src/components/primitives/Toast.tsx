@@ -26,10 +26,12 @@ export type ToastMessage = {
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
  * `icon` leads an information message with the glyph of what it is about (the track glyph for a chapter sync); an error always
  * leads with its warning glyph. */
-export type Notify = (text: string, tone?: ToastTone, action?: ToastAction, icon?: IconDefinition) => void;
+export type Notify = (text: string, tone?: ToastTone, action?: ToastAction, icon?: IconDefinition, durationMs?: number) => void;
 
 /** How long an information message stays. An error has no timer. */
 export const TOAST_INFO_MS = 5_000;
+/** How long an information message stays when its button is the only way to what it announces (the scan's Show them): longer than a keyboard user needs to Tab to it. */
+export const TOAST_ACTION_MS = 12_000;
 const FADE_MS = 150;
 
 function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: number) => void }) {

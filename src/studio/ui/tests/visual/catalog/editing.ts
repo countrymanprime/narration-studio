@@ -3,7 +3,7 @@
 // `?mockChapterLink=confirmed`, so its words carry the times they were heard at; the mock REAPER answers, so every edit it
 // builds is on.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, TOAST_FADES_OUT } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, TOAST_FADES_OUT } from './shared';
 
 export const editingStates: StateEntry[] = [
   {
@@ -15,6 +15,7 @@ export const editingStates: StateEntry[] = [
   {
     page: 'editing',
     state: 'default',
+    ...REFLOW,
     description:
       'Editing, Chapter 1 linked to its track - the header with the chapter step and the legend, the script with each line’s takes chip and time, the one waveform docked above the bar, the bar and the key hints',
   },

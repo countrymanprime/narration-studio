@@ -7,6 +7,7 @@ import { scheduleDrivers } from './drivers/schedule';
 // stops at two lines, a card with only the Final row says so, and at 390 px the Due and Status columns stay on screen.
 type Layout = {
   title: number;
+  headerAligns: string[];
   headers: Record<string, number>;
   dateLefts: number[];
   finalDate: number;
@@ -36,6 +37,7 @@ async function layout(page: Page): Promise<Layout> {
     }
     return {
       title: textLeft(card.querySelector('h2')!),
+      headerAligns: [...table.querySelectorAll('thead th')].map((th) => getComputedStyle(th).textAlign),
       headers: Object.fromEntries([...table.querySelectorAll('thead th')].map((th) => [th.textContent ?? '', textLeft(th)])),
       // The plain dates of the milestone rows (the Due column is the third cell).
       dateLefts: rows.slice(0, -1).map((row) => textLeft(row.children[2]!)),
@@ -66,7 +68,7 @@ for (const size of [
     const onPace = await measure('on-pace');
     const long = await measure('long-text');
 
-    expect(Math.abs(onPace.headers.Milestone! - onPace.title), 'the Milestone heading starts at the card title').toBeLessThanOrEqual(1);
+    expect(new Set(onPace.headerAligns), 'every heading is centred over its column (owner rule 5, #2641)').toEqual(new Set(['center']));
     expect(long.headers, 'the headings stand at the same x whatever the milestones are called').toEqual(onPace.headers);
     expect(onPace.empty, 'a card with only the Final row says there are none yet').toBe(true);
     expect(long.empty, 'the hint goes once there are milestones').toBe(false);

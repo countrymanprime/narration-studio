@@ -51,7 +51,13 @@ export function SpeakerPicker({
   for (const choice of term ? searchSpeakers(everyone, term) : inChapter) {
     const id = `${choice.entryId}:${choice.name}`;
     if (choice.entryId === confirmed && marked === undefined) marked = id;
-    rows.push({ id, entryId: choice.entryId, option: { id, label: choice.name, description: choice.entryName, leading: swatch(choice.colourIndex) } });
+    // The entry's name goes beneath an alias only; under the entry's own name it would repeat the label.
+    const sameName = choice.name.trim().toLowerCase() === choice.entryName.trim().toLowerCase();
+    rows.push({
+      id,
+      entryId: choice.entryId,
+      option: { id, label: choice.name, description: sameName ? undefined : choice.entryName, leading: swatch(choice.colourIndex) },
+    });
   }
   const current = Math.min(active, rows.length - 1);
   const choose = (row: Row | undefined) => row && onChoose(row.entryId);

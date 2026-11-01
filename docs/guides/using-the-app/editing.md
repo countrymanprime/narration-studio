@@ -18,7 +18,7 @@ The header sits inside the one bordered card that holds the script, so the title
 next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
 the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
 wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
-While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. When the host's answer is in a shape the app cannot read, the reason is the plain sentence "The app received data it could not read."; the technical text is behind **Details** on the card, with a copy button, and in the host log. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 The chapter list starts with **Opening credits** and ends with **Closing credits** (when your credit templates have them): they are chapters like
 any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the first
@@ -26,6 +26,9 @@ chapter with text. A credits file reads as its template's rendered text, one par
 
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
 track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped).
+
+The script is one centred column, 64 characters of text a line (the Script and Booth's default measure) with the times at its left, so on a wide
+window the text stays one comfortable line length and does not run across the whole card; in a narrow window it takes the card's width.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
 same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
@@ -174,7 +177,11 @@ swell crossing it from left to right about every second and a half. With **Motio
 it), nothing moves.
 
 **Scrolling.** Hold the right button and drag to move the audio along, or use the wheel or two fingers on a trackpad or touch screen. The
-arrows at either end move a whole window back or forward; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
+arrows at either end move what shows back or forward by one step, 20 seconds unless you change it in
+[Settings](settings.md) (**Waveform arrow step**, 15 to 30 seconds). A click moves exactly one step, easing into place,
+and never a whole window. Hold an arrow and the waveform scrolls on smoothly at one step a second until you let go; with Motion set to
+Reduce, a press jumps and a hold repeats whole steps. The arrow turns off at the start or end of the chapter, and a selected range stays on
+its audio while the view moves; there is no scrollbar. With the waveform focused (Tab to it), **←** and **→**
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
 brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps
@@ -245,8 +252,8 @@ before it goes ahead.
 **FX in REAPER** lists the plug-ins on the project's tracks and its master track as REAPER holds them now: where each one
 sits, its name, and whether it is switched on there. It reads REAPER and changes nothing, so a plug-in you add or bypass in
 REAPER shows here when you come back to the app or press **Check again**; the list says when REAPER last answered. If REAPER
-cannot be read the section says why instead of showing an old list. To put a plug-in on words, use **Choose in REAPER…**
-(below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
+cannot be read the section says why instead of showing an old list. The **?** beside the heading says how a plug-in gets onto words:
+use **Choose in REAPER…** (below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
 
 ### Choose any plug-in in REAPER
 
@@ -425,7 +432,7 @@ knows (the project is linked but REAPER has not connected; it connected before a
 linked, so it cannot be started from here), what still works, and when the app last checked. **Start REAPER** runs the
 launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, a few seconds after the app
 opens so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
-opens it again. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
+opens it again. Every control that waits on the DAW (Delete, Mute, Add FX, Keep take, Clean up, Backups and the rest) follows the DAW's report as it changes: start the DAW with the page open and they turn on with the header, with no reload. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
 read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
 ![Editing - the dialog when the DAW (here Audacity) is not connected, with Start Audacity and Check again](../../images/ui/editing-daw-off.webp)

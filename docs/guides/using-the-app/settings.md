@@ -6,7 +6,7 @@ Settings is a page of eight categories, one shown at a time. The list sits at th
 tools** (Recording & DAW, Speech to text, Voice & pronunciation, Models & downloads, Delivery), **This project**
 (Project) and **This computer** (Appearance & keys, App & updates). **Set on a page** stands apart under
 **Elsewhere**. In a narrow window the list folds into one **Category** button that names the current category and opens the
-list.
+list. **Settings** is the page's one title; the category you are in is named by a smaller title above its sections.
 
 ![Settings - Recording & DAW, with the category list at the left and the search and filters above](../../images/ui/settings-recording.webp)
 
@@ -40,8 +40,11 @@ says how many it holds.
 
 At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description, its details and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
-whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
-the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
+whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists every setting that differs from
+the default: the host's settings, what this window keeps (Theme, Motion, Start tone, the waveform arrow step, Reader text), and Zoom, the
+Shortcuts, the Merriam-Webster key, the recording tool (anything but REAPER) and the delivery profiles (your own, or one chosen for this project). It does not list
+the rows that are not settings with a default: the capabilities report, the sync log, the manuscript, the Story Bible types and data, the marks, the credits
+templates, the default delivery profile and Delete project data. **In this project** lists the settings this project owns or overrides. Each says so
 when nothing is there; on a narrow window the folded category button reads **Search results** while results show. **Escape** clears the search.
 
 ![Settings - searching for "whisper"](../../images/ui/settings-search.webp)
@@ -54,7 +57,7 @@ a take running, or the built-in recorder not available) says why under the radio
 While REAPER or Audacity is linked, choosing the **Built-in recorder** first asks **Stop recording with REAPER?** (or
 Audacity): new takes would go to the project's own folder, takes already in the DAW stay there and the Booth, Editing and
 Proof stop reading them, and the link is kept, so choosing the DAW again brings them back. **Keep REAPER** leaves the
-project as it was. Use it only when the DAW cannot be used at all.
+project as it was. Use it only when the DAW cannot be used at all; the **?** beside the **Built-in recorder** option says so.
 
 ![Settings - Recording: the confirm before a project linked to REAPER switches to the built-in recorder](../../images/ui/settings-recording-builtin-confirm.webp)
 
@@ -84,10 +87,10 @@ recorder the project uses (for example "Audacity's own audio device is not used 
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
 project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
-in the app's own audio, so with a DAW the row is **Test sound** with a note under it: samples play on this computer's default output and the DAW's own audio
+in the app's own audio, so with a DAW the row is **Test sound** with a **?** beside it: samples play on this computer's default output and the DAW's own audio
 device is not used or changed. An output that is not connected stays chosen, with a notice that samples play on the system default
 until it is back; the list is read again when the window gets focus and every few seconds while the notice shows. If the audio
-system will not list its outputs, the row says so and the choice is off. Taking and read-aloud keep using the microphone and output
+system will not list its outputs, the row says so and the choice is off. The **?** beside **Test sound** says the same for the built-in list. Taking and read-aloud keep using the microphone and output
 you chose elsewhere, and the row does not check whether a take is recording.
 
 ![Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound](../../images/ui/settings-sample-output.webp)
@@ -262,10 +265,13 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 - **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
 - **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
+- **Waveform arrow step** (under **Editing**) is how far an arrow at either end of the [Editing](editing.md) waveform moves it, from 15 to 30 seconds (20 until you change it). A click moves one step; holding scrolls at that many seconds a second. It is kept in this window, as Theme and Motion are.
 - **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font and column width chosen here; its **Text settings** change the same font and width.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
 - **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
+
+![Settings - Waveform arrow step under Editing: a slider from 15 to 30 seconds, 20 s by default](../../images/ui/settings-wave-scroll-step.webp)
 
 ![Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote](../../images/ui/settings-reader-text.webp)
 

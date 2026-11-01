@@ -13,6 +13,7 @@ import type {
   NarrationApi,
   RetailSampleAnswer,
 } from '../../types';
+import { STATUS_ORDER } from '../../chapterStatus';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
 import { WIRE_TRACKS_PROJECT, wireClone } from '../mockFixtures';
 import { type MockApiSeed, mockDocumentId, type MockState } from './state';
@@ -133,7 +134,7 @@ function measureMockRetailSample(paragraphs: ManuscriptParagraph[], startId: str
   };
 }
 
-const CHAPTER_STATUSES: readonly ManuscriptChapter['status'][] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
+const CHAPTER_STATUSES: readonly ManuscriptChapter['status'][] = STATUS_ORDER;
 
 /** The credits bindings: the template library, the project's values, the setup prompt and the retail sample. */
 export function createCreditsMock(

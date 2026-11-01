@@ -42,7 +42,7 @@ describe('Save', () => {
     for (const text of ['', '   ', '\t\n']) {
       fireEvent.change(name(), { target: { value: text } });
       fireEvent.click(save());
-      await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give this entry a name.', { tone: 'error' }));
+      await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give this entry a name.', expect.objectContaining({ tone: 'error' })));
     }
     expect(write).not.toHaveBeenCalled();
   });
@@ -53,7 +53,7 @@ describe('Save', () => {
     edit();
     fireEvent.change(name(), { target: { value: 'aLiCe' } });
     fireEvent.click(save());
-    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“aLiCe” is already a name of Alice.', { tone: 'error' }));
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“aLiCe” is already a name of Alice.', expect.objectContaining({ tone: 'error' })));
     expect(write).not.toHaveBeenCalled();
   });
 

@@ -74,7 +74,7 @@ export function ChapterCard({
         fill
         frame="roomy"
         aria-label={`${headingName(chapter)}, chapter card`}
-        className="flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
+        className="@container/card flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
       >
         <div className="flex items-start justify-between gap-2">
           <h2 className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem]">
@@ -83,7 +83,8 @@ export function ChapterCard({
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
         </div>
         <CardFacts facts={cardFacts(chapter.wordCount, facts(chapter.id))} />
-        <div className="flex flex-wrap items-center gap-3">
+        {/* In a card under 20 rem (the 390 px reader) the label sits above the group, which wraps under it; beside it the wrapped options would stack in a column next to the label (#2642). */}
+        <div className="flex flex-wrap items-center gap-3 @max-[20rem]/card:flex-col @max-[20rem]/card:items-start @max-[20rem]/card:gap-1">
           <SectionLabel>My prep</SectionLabel>
           <PrepSegment chapter={chapter} />
         </div>

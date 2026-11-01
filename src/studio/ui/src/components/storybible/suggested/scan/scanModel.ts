@@ -2,7 +2,7 @@ import type { AssetItem } from '../../../../types';
 import { anyInstalled } from '../../../settings/analysis/components';
 
 /** The value of `ManuscriptGuide.analysis_prompt` that stops the offer; anything else asks (the host's default is `ask`). */
-export const BASIC = 'basic';
+const BASIC = 'basic';
 
 /**
  * Whether a scan first offers better analysis (the mock's `shouldOffer`): the narrator has not said no, no tool that can run is on this

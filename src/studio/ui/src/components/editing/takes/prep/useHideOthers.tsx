@@ -11,6 +11,7 @@ import type { LinePassage, TakesGate } from '../types';
 import { useTakesGate } from '../useTakesGate';
 import { HideOthersConfirmBody } from './HideOthersConfirm';
 import { HideButton } from './PrepControls';
+import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
 
 const KEEP_FIRST = 'Keep a take first.';
 const NO_OTHERS = 'There are no other takes to hide.';
@@ -67,17 +68,8 @@ export function useHideOthers({ journal, kept, current, passageOf }: HideOthersO
   const gate = useTakesGate();
   const [hidden, setHidden] = useState<Record<string, readonly string[]>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
-  const [dawName, setDawName] = useState('the DAW');
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (caps) => live && setDawName(caps.daw === 'none' ? 'the built-in recorder' : caps.daw),
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  const { caps: dawCaps } = useDawCapabilities();
+  const dawName = dawCaps ? (dawCaps.daw === 'none' ? 'the built-in recorder' : dawCaps.daw) : 'the DAW';
 
   const hiddenIds = useCallback((id: string): readonly string[] => hidden[id] ?? [], [hidden]);
   const othersOf = (passage: LinePassage): string[] => {

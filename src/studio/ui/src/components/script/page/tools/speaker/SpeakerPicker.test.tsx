@@ -41,6 +41,20 @@ function picker(phrase = suggested, handlers: { onChoose?: (id: string) => void;
 }
 const search = () => screen.getByRole('combobox', { name: 'Search speakers' });
 
+describe('speaker-picker-names-the-entry-only-when-it-differs', () => {
+  it('prints an entry once for its own name, and the entry beneath an alias only', () => {
+    picker();
+    expect(screen.getByRole('option', { name: 'Five' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /^The gardeners\s*Five$/ })).toBeTruthy();
+  });
+
+  it('treats a name that differs from its entry only by case or spaces as the same', () => {
+    const loud = entry('e9', 'Alice', { aliases: [alias('  ALICE ')] });
+    render(<SpeakerPicker phrase={unknown} inChapter={speakerChoices([loud], TYPES)} everyone={[]} onChoose={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByRole('option', { name: 'Alice' })).toBeTruthy();
+  });
+});
+
 describe('speaker-picker-suggests-this-chapters-people-first', () => {
   it("lists this chapter's speakers, not everyone, while the search is empty", () => {
     picker();

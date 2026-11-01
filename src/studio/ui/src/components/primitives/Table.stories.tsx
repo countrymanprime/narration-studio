@@ -30,7 +30,7 @@ function EntryTable({ onSelect }: { onSelect: (id: string) => void }) {
             <TableHeader sorted={state('name')} onSort={() => toggle('name')}>
               Name
             </TableHeader>
-            <TableHeader align="right" sorted={state('occurrences')} onSort={() => toggle('occurrences')}>
+            <TableHeader sorted={state('occurrences')} onSort={() => toggle('occurrences')}>
               Occurrences
             </TableHeader>
           </TableRow>
@@ -74,7 +74,7 @@ export const Plain: Story = {
         <TableHead>
           <TableRow>
             <TableHeader>Chapter</TableHeader>
-            <TableHeader align="right">Words</TableHeader>
+            <TableHeader>Words</TableHeader>
             <TableHeader hiddenLabel="Status" />
           </TableRow>
         </TableHead>
@@ -159,11 +159,11 @@ function PerFileChecks() {
             <TableHead>
               <TableRow>
                 <TableHeader>File</TableHeader>
-                <TableHeader align="right">Length</TableHeader>
-                <TableHeader align="right">RMS</TableHeader>
-                <TableHeader align="right">True peak</TableHeader>
+                <TableHeader>Length</TableHeader>
+                <TableHeader>RMS</TableHeader>
+                <TableHeader>True peak</TableHeader>
                 <TableHeader>Source</TableHeader>
-                <TableHeader align="right">Result</TableHeader>
+                <TableHeader>Result</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -236,7 +236,7 @@ export const FixedColumns: Story = {
         <TableHead>
           <TableRow>
             <TableHeader>Chapter</TableHeader>
-            <TableHeader align="right">Length</TableHeader>
+            <TableHeader>Length</TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>

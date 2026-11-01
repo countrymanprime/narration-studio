@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JobEnded } from './api/contracts/system';
+import { TOAST_ACTION_MS } from './components/primitives/Toast';
 import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnouncement, toastForJobEnd } from './jobEnded';
 
 const ended = (patch: Partial<JobEnded>): JobEnded => ({
@@ -19,9 +20,40 @@ describe('toastForJobEnd', () => {
     expect(toastForJobEnd(failed)).toEqual({ text: 'The package could not be built.', tone: 'error' });
   });
 
+  // Master & QC raises its own error toast for these (rule 7); the app's job-ended toast beside it was a second message in a second queue, drawn
+  // over the first in the same corner (#2632), so on that page it stays quiet and anywhere else it is the only word the narrator gets.
+  it.each(['measurement', 'diagnostics', 'render_export', 'render_package_multi'])(
+    'leaves a failed %s to Master & QC, which tells it itself, but not elsewhere',
+    (kind) => {
+      const failed = ended({ kind, outcome: 'error', message: 'It stopped unexpectedly.' });
+      expect(toastForJobEnd(failed, '/master')).toBeUndefined();
+      expect(toastForJobEnd(failed, '/delivery')).toEqual({ text: 'It stopped unexpectedly.', tone: 'error' });
+      expect(toastForJobEnd(failed)).toEqual({ text: 'It stopped unexpectedly.', tone: 'error' });
+      expect(toastForJobEnd({ ...failed, outcome: 'success', message: 'Done.' }, '/master')).toEqual({ text: 'Done.', tone: 'info' });
+    },
+  );
+
   it('says what the host said when a job that can finish elsewhere succeeds', () => {
     expect(toastForJobEnd(ended({}))).toEqual({ text: 'Story Bible rebuild complete.', tone: 'info' });
     expect(toastForJobEnd(ended({ kind: 'transcript_compare', message: 'Comparison complete.' }))).toEqual({ text: 'Comparison complete.', tone: 'info' });
+  });
+
+  it('lets the narrator open the suggestions a Story Bible scan added, and offers nothing when it added none', () => {
+    const scan = (message: string) => ended({ kind: 'extraction_scan', message });
+    const follow = { label: 'Show them', to: '/story-bible', state: { show: 'review' } };
+    expect(toastForJobEnd(scan('2 suggestions added; 1 already offered or rejected before.'))).toEqual({
+      text: '2 suggestions added; 1 already offered or rejected before.',
+      tone: 'info',
+      follow,
+      durationMs: TOAST_ACTION_MS,
+    });
+    expect(toastForJobEnd(scan('1 suggestion added.'))).toMatchObject({ follow, durationMs: TOAST_ACTION_MS });
+    expect(toastForJobEnd(scan('0 suggestions added; 3 already offered or rejected before.'))?.follow).toBeUndefined();
+    expect(
+      toastForJobEnd(
+        ended({ kind: 'extraction_scan', outcome: 'error', message: 'The scan did not finish: x. Kept 2 suggestions from the sources that finished.' }),
+      )?.follow,
+    ).toBeUndefined();
   });
 
   it('makes a failure an error, which stays until it is dismissed', () => {

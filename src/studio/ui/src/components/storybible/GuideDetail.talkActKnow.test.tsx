@@ -140,7 +140,9 @@ describe('Story Bible: how they talk, act and know', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 1 name' }), { target: { value: 'Knows' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 1 value' }), { target: { value: 'x' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
-    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('“Knows” is the What they know field above. Write it there.', { tone: 'error' }));
+    await vi.waitFor(() =>
+      expect(toast).toHaveBeenLastCalledWith('“Knows” is the What they know field above. Write it there.', expect.objectContaining({ tone: 'error' })),
+    );
     expect(guideEdit).not.toHaveBeenCalled();
   });
 });

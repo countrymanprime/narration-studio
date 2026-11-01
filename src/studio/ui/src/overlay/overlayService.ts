@@ -61,11 +61,18 @@ type OverlaySnapshot = {
 /** How many toasts show at once; the oldest information toast goes first, then the oldest error. */
 const OVERLAY_TOAST_LIMIT = 4;
 
+/**
+ * What an Undo toast is tied to (audit cluster 21): the journal entry it undoes, so it goes when that entry is undone from the header,
+ * the keys or History; or, for a change the journal does not hold, `offJournal` with the reason, so the toast is covered by the page
+ * and chapter alone and a reader can see which ones those are.
+ */
+type UndoToastOptions = { durationMs?: number } & ({ entry: number } | { offJournal: string });
+
 export type OverlayService = {
   confirm: (spec: ConfirmSpec) => Promise<boolean>;
   toast: (text: string, options?: ToastOptions) => void;
   /** A message with an Undo; `durationMs` keeps it longer than the usual five seconds. */
-  toastUndo: (text: string, undo: Undo, options?: { durationMs?: number; entry?: number }) => void;
+  toastUndo: (text: string, undo: Undo, options: UndoToastOptions) => void;
   /**
    * Takes away the Undo toasts whose journal `entry` `live` no longer holds (undone from the header, the keys or History; cleared by a project
    * switch; pushed out). An Undo toast with no `entry` is left to `dismissUndo`.
@@ -162,7 +169,7 @@ export function createOverlayService(): OverlayService {
             },
           },
         },
-        { entry: options?.entry },
+        { entry: 'entry' in options ? options.entry : undefined },
       );
     },
     settleUndo: (live) => {

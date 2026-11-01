@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_TEXT_PREFS } from '../../script/page/tools/text/readerText';
 import { overlay } from '../../../overlay/overlayService';
 import { EditingPageProvider, useEditingPage } from './EditingPageState';
-import { NO_TEXT, ScriptDoc, type ScriptDocProps } from './ScriptDoc';
+import { EDITING_GUTTER_PX, NO_TEXT, ScriptDoc, type ScriptDocProps } from './ScriptDoc';
 import { docFromHeard } from './docFromHeard';
 import { ANNOUNCE_SETTLE_MS } from './useAnnounceCursor';
 import { marksDoc, notTranscribed, PARAS } from './scriptFixtures';
@@ -29,6 +30,17 @@ function show(doc: ChapterDoc, props: ScriptDocProps = {}) {
 }
 const word = (key: string): HTMLElement => document.querySelector<HTMLElement>(`[data-k="${key}"]`)!;
 const scriptWords = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('[data-k][data-kind="w"]')];
+
+describe('the reading column (#2640)', () => {
+  it('draws the paragraphs in the shared ReaderColumn, centred and capped at the 64-character measure, not left in a fixed 1000 px', () => {
+    show(marksDoc());
+    const column = document.querySelector<HTMLElement>('[data-reader-column]')!;
+    expect(column.style.maxWidth).toContain(`${DEFAULT_TEXT_PREFS.width}ch + ${EDITING_GUTTER_PX}px`);
+    expect(column.querySelectorAll('[data-pid]').length).toBe(document.querySelectorAll('[data-pid]').length);
+    expect(column.className).toMatch(/(^|\s)mx-auto(\s|$)/);
+    expect(document.querySelector('[data-pid]')!.className).not.toContain('1000px');
+  });
+});
 
 describe('words-are-read-only-and-keyed', () => {
   it('draws one element per word with its document key, nothing editable, and the script text', () => {
@@ -144,14 +156,14 @@ describe('the time gutter', () => {
   it('is drawn for a transcribed chapter', () => {
     show(marksDoc());
     const row = document.querySelector<HTMLElement>('[data-pid]')!;
-    expect(row.className).toContain('grid-cols-[76px_minmax(0,1000px)]');
+    expect(row.className).toContain('grid-cols-[76px_minmax(0,1fr)]');
     expect(row.querySelector('[data-gutter]')!.className).not.toContain('invisible');
   });
   it('is dropped when nothing was transcribed', () => {
     const answer = notTranscribed();
     show(docFromHeard(PARAS, answer), { reason: null });
     const row = document.querySelector<HTMLElement>('[data-pid]')!;
-    expect(row.className).toContain('grid-cols-[0px_minmax(0,1000px)]');
+    expect(row.className).toContain('grid-cols-[0px_minmax(0,1fr)]');
     expect(row.querySelector('[data-gutter]')!.className).toContain('invisible');
   });
 });

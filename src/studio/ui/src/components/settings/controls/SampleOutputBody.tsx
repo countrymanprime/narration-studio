@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RecordingEngine } from '../../../api/contracts/recording';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
+import { HelpButton } from '../../primitives/HelpButton';
 import { Select } from '../../primitives/Select';
 import { listAudioOutputs, type OutputListing } from '../../voicesamples/audioOutputs';
 import { setSampleOutput } from '../../voicesamples/samplePlayerStore';
@@ -21,8 +22,10 @@ const RECHECK_MS = 5000;
 /** A note under the control: muted 13 px, one width with the row's description. */
 const NOTE_CLASS = 'max-w-[60ch] text-[0.8125rem] break-words text-[var(--text-muted)]';
 
-/** The words under the control: what it changes and what it does not. */
+/** The words behind the control's "?": what it changes and what it does not. */
 const NOTE = 'Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.';
+/** The "?" beside Test sound. */
+const HELP_LABEL = 'About where samples play';
 /** What the row says with a DAW: samples play in the app, and the DAW's own audio device is left alone. */
 export const dawSentence = (daw: string): string => `Voice samples play on this computer's default output. ${daw}'s own audio device is not used or changed.`;
 export const DAW_SENTENCE = dawSentence('REAPER');
@@ -106,8 +109,10 @@ export function SampleOutputBody() {
   if (engine === 'daw' && hasProject) {
     return (
       <div className="flex w-full min-w-0 flex-col items-start gap-2">
-        {testButton}
-        <span className={NOTE_CLASS}>{dawSentence(daw)}</span>
+        <div className="flex items-center gap-2">
+          {testButton}
+          <HelpButton label={HELP_LABEL}>{dawSentence(daw)}</HelpButton>
+        </div>
       </div>
     );
   }
@@ -147,10 +152,10 @@ export function SampleOutputBody() {
           {unavailable || missing ? 'Check again' : 'Refresh the list'}
         </Button>
         {testButton}
+        <HelpButton label={HELP_LABEL}>{NOTE}</HelpButton>
         {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for outputs…</span>}
       </div>
       {!hasProject && <span className="text-[0.8125rem] text-[var(--text-muted)]">Open a project to choose where its voice samples play.</span>}
-      <span className={NOTE_CLASS}>{NOTE}</span>
       {missing && listing.phase === 'ready' && (
         <span className={NOTE_CLASS}>
           Last checked {new Date(listing.checkedAt).toLocaleTimeString()}. The list is read again when you open Settings, when the window gets focus, and while

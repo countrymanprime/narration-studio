@@ -51,6 +51,9 @@ export type ScriptData = {
   start(): () => void;
 };
 
+/** The lists the Story Bible page also edits. */
+const STORY_BIBLE_LISTS: readonly ScriptList[] = ['entries', 'types', 'cues'];
+
 export function createScriptData(ports: ScriptPorts): ScriptData {
   let state: ScriptDataState = { paragraphs: {} };
   /** Bumped by a project switch, so an answer for the old project is dropped. */
@@ -117,6 +120,8 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
     },
     start() {
       if (started++ === 0) {
+        // The cache outlives the page, and the Story Bible edits entries, types and cues without telling it: opening Script reads again what it holds.
+        STORY_BIBLE_LISTS.filter((list) => state[list]).forEach((list) => void load(list));
         const offJob = ports.system.subscribeJobEnded(reloadLoaded);
         const offProject = ports.system.subscribeProjectAttach((attach) => {
           if (!attach.attached) return;

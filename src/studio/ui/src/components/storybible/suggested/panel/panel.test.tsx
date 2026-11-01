@@ -295,7 +295,7 @@ describe('scan-failure-names-the-reason', () => {
       logs: ['Scanning the manuscript.', 'Skipped GLiNER: the model could not be loaded.', 'Rules offered 4 suggestions.'],
     });
     act(() => h.end('success'));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('GLiNER: the model could not be loaded.', { tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('GLiNER: the model could not be loaded.', expect.objectContaining({ tone: 'error' })));
     expect(screen.queryByText('GLiNER: the model could not be loaded.'), 'the sentence is a toast, never in the page').toBeNull();
     expect(screen.getByRole('option', { name: /^Needs verification/ })).toBeTruthy();
   });

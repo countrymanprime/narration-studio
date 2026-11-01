@@ -27,6 +27,7 @@ import { fxTitle } from './fxText';
 import { createHostFxChains } from '../../../../ports/fxchains';
 import { returnToScript } from '../../script/returnToScript';
 import { useChooseInDaw, type FxChooser } from './useChooseInDaw';
+import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
 
 export interface FxWordsOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -85,8 +86,6 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     () => chains ?? createHostFxChains({ dawCapabilities: () => daw.capabilities(), workspaceListFXChains: () => workspace.workspaceListFXChains() }),
     [chains, daw, workspace],
   );
-  const [plan, setPlan] = useState<RangePlan | null>(null);
-  const [dawName, setDawName] = useState('the DAW');
   const [dawList, setList] = useState<FxList | null>(null);
   const { names, error, toggle } = useFxFavourites();
   const favourites = useMemo<FxFavourites>(() => ({ names, error, toggle }), [names, error, toggle]);
@@ -94,20 +93,12 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   const [listWhy, setListWhy] = useState('');
   const anchor = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (caps) => {
-        if (!live) return;
-        setPlan(planRange(caps, 'fx_range'));
-        setDawName(caps.daw === 'none' || caps.daw === 'Built-in' ? BUILT_IN : caps.daw);
-      },
-      () => live && setPlan({ kind: 'refused', reason: NO_ANSWER }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw]);
+  const { caps: dawCaps, failed: dawFailed } = useDawCapabilities();
+  const plan = useMemo<RangePlan | null>(
+    () => (dawFailed ? { kind: 'refused', reason: NO_ANSWER } : dawCaps ? planRange(dawCaps, 'fx_range') : null),
+    [dawCaps, dawFailed],
+  );
+  const dawName = dawCaps ? (dawCaps.daw === 'none' || dawCaps.daw === 'Built-in' ? BUILT_IN : dawCaps.daw) : 'the DAW';
   useEffect(() => {
     let live = true;
     port.list().then(

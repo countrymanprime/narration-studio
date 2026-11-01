@@ -188,9 +188,9 @@ export function RecordingCheckReport({
               <TableHead>
                 <TableRow>
                   <TableHeader>Paragraph</TableHeader>
-                  <TableHeader align="right">Recorded</TableHeader>
-                  <TableHeader align="right">Missing</TableHeader>
-                  <TableHeader align="right">Longest gap</TableHeader>
+                  <TableHeader>Recorded</TableHeader>
+                  <TableHeader>Missing</TableHeader>
+                  <TableHeader>Longest gap</TableHeader>
                 </TableRow>
               </TableHead>
               <TableBody>

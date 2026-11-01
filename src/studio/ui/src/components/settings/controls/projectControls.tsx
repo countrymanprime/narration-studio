@@ -1,5 +1,14 @@
 import type { ComponentType } from 'react';
-import { MotionRowBody, ReaderFontBody, ReaderSizeBody, ReaderSpacingBody, ReaderWidthBody, ThemeRowBody, ZoomRowBody } from './AppearanceBodies';
+import {
+  MotionRowBody,
+  ReaderFontBody,
+  ReaderSizeBody,
+  ReaderSpacingBody,
+  ReaderWidthBody,
+  ThemeRowBody,
+  WaveScrollStepBody,
+  ZoomRowBody,
+} from './AppearanceBodies';
 import { CreditsRowBody } from './CreditsBody';
 import { ManuscriptRowBody, MarksRowBody, ProjectDataRowBody, StoryBibleDataRowBody, StoryBibleTypesRowBody } from './ProjectBodies';
 import { ShortcutsRowBody } from './ShortcutsBody';
@@ -18,6 +27,7 @@ export const PROJECT_CONTROLS: Record<string, ComponentType> = {
   'look.readerSize': ReaderSizeBody,
   'look.readerSpacing': ReaderSpacingBody,
   'look.readerWidth': ReaderWidthBody,
+  'look.waveScrollStep': WaveScrollStepBody,
   'look.zoom': ZoomRowBody,
   'keys.map': ShortcutsRowBody,
 };

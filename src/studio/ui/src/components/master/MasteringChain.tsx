@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { MasteringProviders } from '../../api/contracts/mastering';
+import { useErrorToast } from '../../hooks/useErrorToast';
 import { Panel } from '../primitives/Panel';
 import { Badge } from '../primitives/StatusBadge';
 
@@ -33,6 +34,7 @@ export function useMasteringProviders(): { providers?: MasteringProviders; probl
  * for a rendered file the host does not have yet.
  */
 export function MasteringChain({ providers, problem }: { providers?: MasteringProviders; problem?: string }) {
+  useErrorToast(problem && `The mastering chain could not be read: ${problem}`);
   const row = providers?.providers.find((candidate) => candidate.name === providers.effective);
   return (
     // The long description is the body's first line, not a subtitle squeezed beside the title, so the header is as tall as its neighbours'
@@ -41,11 +43,6 @@ export function MasteringChain({ providers, problem }: { providers?: MasteringPr
       {row && (
         <p className="mb-3 max-w-[80ch] text-sm" style={MUTED}>
           {`One chain for the book: ${row.label}, the same for every platform, with each platform's own RMS window and peak limit.`}
-        </p>
-      )}
-      {problem && (
-        <p role="alert" className="mt-1 text-sm" style={{ color: 'var(--danger-text)' }}>
-          The mastering chain could not be read: {problem}
         </p>
       )}
       {row && (

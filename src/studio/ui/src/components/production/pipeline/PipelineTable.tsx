@@ -143,25 +143,18 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
       <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[45.75rem]">
         <TableHead>
           <TableRow>
-            <TableHeader align="center" className={STICKY_NAME}>
-              Chapter
-            </TableHeader>
+            <TableHeader className={STICKY_NAME}>Chapter</TableHeader>
             <TableHeader
-              align="center"
               className={FIGURE_HEAD}
               info="The audio on the chapter's linked track in the saved project, before editing, or a word saying why there is none. The cell's tip also says how far the chapter is recorded: through which paragraph, or to the end."
             >
               Rec.
             </TableHeader>
-            <TableHeader
-              align="center"
-              className={FIGURE_HEAD}
-              info="The chapter's finished length estimated from its words at the planning rate, not a measurement."
-            >
+            <TableHeader className={FIGURE_HEAD} info="The chapter's finished length estimated from its words at the planning rate, not a measurement.">
               Est.
             </TableHeader>
             {STAGE_COLUMNS.map((column) => (
-              <TableHeader key={column} align="center" className={STAGE_CELL}>
+              <TableHeader key={column} className={STAGE_CELL}>
                 {COLUMN_LABEL[column]}
               </TableHeader>
             ))}
@@ -177,7 +170,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                 className={row.id === justChanged ? CHANGE_HIGHLIGHT_CLASSES : ''}
               >
                 {/* Broken between words, never inside one ("Caterpill / ar", R4SM-3). */}
-                <TableCell className={`font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
+                <TableCell className={`text-center font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
                   <TitleSubtitle {...row.parts} />
                 </TableCell>
                 <TableCell numeric align="center">

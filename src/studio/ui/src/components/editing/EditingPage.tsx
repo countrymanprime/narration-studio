@@ -27,6 +27,7 @@ import { useOpenOnce } from '../connection/useOpenOnce';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from '../production/pipeline/dawConnectGrace';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
 import type { DawRead } from '../../playback/providers';
+import { apiErrorDetails, apiErrorMessage } from '../../api/errorMessage';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -102,6 +103,7 @@ function EditingLoaded({
   const width = useWindowWidth();
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   const [chosen, setChosen] = useState<string | undefined>(asked);
   useEffect(() => setChosen(asked), [asked]);
@@ -113,7 +115,11 @@ function EditingLoaded({
     let live = true;
     manuscript.manuscriptChapters().then(
       (all) => live && setChapters(all.filter(isNarrationChapter)),
-      (e: unknown) => live && setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => {
+        if (!live) return;
+        setError(apiErrorMessage(e));
+        setErrorDetails(apiErrorDetails(e));
+      },
     );
     return () => {
       live = false;
@@ -122,6 +128,7 @@ function EditingLoaded({
   // Retry: forgets the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
   const retry = useCallback(() => {
     setError(null);
+    setErrorDetails(undefined);
     setAttempt((n) => n + 1);
   }, []);
 
@@ -197,7 +204,7 @@ function EditingLoaded({
                   onDrawer={panels.drawer.toggle}
                 />
                 <div className="px-4">
-                  <LoadErrorPanel message={error} retry={retry} />
+                  <LoadErrorPanel message={error} details={errorDetails} retry={retry} />
                 </div>
               </div>
             </div>
@@ -299,7 +306,7 @@ function EditingChapter({
           />
           {source.status === 'error' ? (
             <div className="px-4">
-              <LoadErrorPanel message={source.message} retry={retry} />
+              <LoadErrorPanel message={source.message} details={source.details} retry={retry} />
             </div>
           ) : (
             <EditingBodySkeleton label="Loading the chapter" status="Reading the chapter…" />

@@ -27,7 +27,7 @@ REAPER open on a different project, not when you start the app on its own.
 ## Where new projects go
 
 **New project** asks for a name. The line under the field lists what a name cannot be: any of `< > : " / \ | ? *`, ending with a period,
-or a reserved Windows name such as CON, NUL or COM1. **Location** shows the folder the project goes in: the default projects folder
+or a reserved Windows name such as CON, NUL or COM1. A name that breaks a rule shows the reason under the field as you type, and **Create** stays off until it is fixed. **Location** shows the folder the project goes in: the default projects folder
 (<!-- brand:identity.defaultProjectsFolder -->NarrationStudio<!-- /brand --> in your user folder) until you pick another with **Change location…**.
 
 ![New Project - the name rules, and the location line showing the default projects folder with Change location](../../images/ui/project-new-dialog.webp)

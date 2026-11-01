@@ -74,3 +74,13 @@ describe('searchSpeakers', () => {
     expect(searchSpeakers(all, 'DUCHESS').map((c) => c.name)).toEqual(['The Duchess', 'Her Grace']);
   });
 });
+
+describe('an alias is one speaker with its entry, not a second speaker', () => {
+  it('lists Rabbit as a name of White Rabbit and both choose the same entry', () => {
+    const rabbit = entry('white-rabbit', 'White Rabbit', { aliases: [alias('Rabbit')] });
+    expect(speakerChoices([rabbit], TYPES).map((choice) => [choice.name, choice.entryId, choice.entryName])).toEqual([
+      ['White Rabbit', 'white-rabbit', 'White Rabbit'],
+      ['Rabbit', 'white-rabbit', 'White Rabbit'],
+    ]);
+  });
+});

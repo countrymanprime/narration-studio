@@ -41,6 +41,13 @@ export const pickupsDrivers: Record<string, Driver> = {
     await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
     await page.getByRole('textbox', { name: 'Line to re-record' }).waitFor();
   },
+  // Submitted empty: the one message under the line box, no toast with it (rule 7).
+  'add-popover-empty': async (page) => {
+    await openPickups(page);
+    await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
+    await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
+    await page.getByText('Type the line first.').waitFor();
+  },
   'marked-recorded': async (page) => {
     await openPickups(page);
     await list(page).getByRole('button', { name: 'Mark recorded' }).first().click();

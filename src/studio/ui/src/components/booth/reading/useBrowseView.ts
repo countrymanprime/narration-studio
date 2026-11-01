@@ -15,6 +15,8 @@ type Options = {
   /** The sentence and word being read; the view keeps this word 40% down the box. */
   cur: number;
   wcur: number;
+  /** The paragraph holding the sentence `cur`: the unit is looked for inside it, not in the whole chapter's markup. */
+  paragraphIndex?: number;
   /** The view has been moved away from the reading position. Set false and the view comes back. */
   browse: boolean;
   onBrowse: (on: boolean) => void;
@@ -36,20 +38,23 @@ export function restAt(areaHeight: number, wordHeight: number): number {
 // The wheel moves the view by the pixels it is given, with no easing; the Page keys ease. Neither moves the reading position
 // (DQ-17): only a click on a word, a step or a new take does, and that puts the view back on it. The distance from the reading
 // position is a pixel count held in a ref, not state: a wheel tick must not re-render the text.
-export function useBrowseView({ box, text, cur, wcur, browse, onBrowse, viewRef }: Options) {
+export function useBrowseView({ box, text, cur, wcur, paragraphIndex, browse, onBrowse, viewRef }: Options) {
   const away = useRef(0);
 
   const restingY = useCallback((): number | null => {
     const area = box.current;
     const content = text.current;
-    const unit = content?.querySelector<HTMLElement>(`[data-unit="${cur}"]`);
+    // A selector search of a 1,000-paragraph chapter (300,000 nodes) cost about a second a step, so the search starts at the paragraph.
+    const own = paragraphIndex === undefined ? undefined : content?.children[paragraphIndex];
+    const scope = own?.hasAttribute('data-paragraph') ? own : content;
+    const unit = scope?.querySelector<HTMLElement>(`[data-unit="${cur}"]`);
     if (!area || !content || !unit) return null;
     const words = unit.querySelectorAll<HTMLElement>('[data-word]');
     const word = words[Math.max(0, Math.min(words.length - 1, wcur))] ?? unit;
     // 40% down the box, unless the box is so short (a small window, a notice above the footer, a large Text size) that the word would run past
     // its bottom: then as high as it needs to be to show whole. The word being read is never under what sits below the text.
     return -(word.offsetTop - restAt(area.clientHeight, word.offsetHeight));
-  }, [box, text, cur, wcur]);
+  }, [box, text, cur, wcur, paragraphIndex]);
 
   const clampY = useCallback(
     (y: number): number => {

@@ -65,18 +65,10 @@ export function CheckedFilesTable({ files }: { files: readonly DiagnosticsFileRe
       <TableHead>
         <TableRow>
           <TableHeader className={NOWRAP}>File</TableHeader>
-          <TableHeader className={NOWRAP} align="right">
-            Length
-          </TableHeader>
-          <TableHeader className={NOWRAP} align="right">
-            Clip regions
-          </TableHeader>
-          <TableHeader className={NOWRAP} align="right">
-            Level shifts
-          </TableHeader>
-          <TableHeader className={NOWRAP} align="right">
-            Silence
-          </TableHeader>
+          <TableHeader className={NOWRAP}>Length</TableHeader>
+          <TableHeader className={NOWRAP}>Clip regions</TableHeader>
+          <TableHeader className={NOWRAP}>Level shifts</TableHeader>
+          <TableHeader className={NOWRAP}>Silence</TableHeader>
           {/* Left-aligned text after right-aligned figures: a wider gap so "212 (3:07)" and the pacing do not read as one cell (R3MS-16). */}
           <TableHeader className={`${NOWRAP} pl-8`}>Pacing</TableHeader>
         </TableRow>
