@@ -9,6 +9,7 @@
     {"tool":"go","project":"src/studio/desktop","path":"internal/contractfile","floor":96},
     {"tool":"go","project":"src/studio/desktop","path":"internal/coverage","floor":93},
     {"tool":"go","project":"src/studio/desktop","path":"internal/recordingcoverage","floor":96},
+    {"tool":"go","project":"src/studio/desktop","path":"internal/wordtimes","floor":97},
     {"tool":"go","project":"src/studio/desktop","path":"internal/dawcatalog","floor":100},
     {"tool":"go","project":"src/studio/desktop","path":"internal/dawport/audacity","floor":84,"reason":"84.4% measured on Linux; the chapter export's happy path runs only on Windows, where Audacity paths are drive paths (D74)"},
     {"tool":"go","project":"src/studio/desktop","path":"internal/evidence","floor":92},
