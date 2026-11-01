@@ -1,7 +1,7 @@
 package main
 
 import (
-	"desktop/internal/coverage"
+	"desktop/internal/creditsid"
 	"desktop/internal/manuscript"
 	"fmt"
 	"os"
@@ -66,8 +66,8 @@ func chapterTrackMatchIn(svc hostServices, chapterID string) (chapterTrackMatch,
 
 	// The credits are not matched to tracks by name (manuscriptChapters leaves them out), but one asked about still answers: its
 	// confirmed link if it has one, else no match and every track to pick from.
-	if kind, isCredits := coverage.CreditsKind(chapterID); isCredits {
-		chapters = append(chapters, chaptermatch.Chapter{ID: chapterID, Title: creditsScriptTitles[kind]})
+	if kind, isCredits := creditsid.Kind(chapterID); isCredits {
+		chapters = append(chapters, chaptermatch.Chapter{ID: chapterID, Title: creditsid.Title(kind)})
 	}
 	result, err := chaptermatch.ForChapter(chapterID, chapters, project, confirmed)
 	if err != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"errors"
 	"os"
@@ -11,7 +12,6 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
-	"desktop/internal/coverage"
 	"desktop/internal/dawport"
 	"desktop/internal/dawport/dawporttest"
 	"desktop/internal/manuscript"
@@ -120,9 +120,10 @@ func TestChapterTrackCreateForAChapterNotInTheManuscriptIsAnError(t *testing.T) 
 
 func TestChapterTrackCreateNamesACreditsTrackAfterItsTitle(t *testing.T) {
 	host, _ := newTestHostForChapterMatch(t)
-	for kind, title := range creditsScriptTitles {
+	for _, kind := range creditsid.Kinds {
+		title := creditsid.Title(kind)
 		creator := &fakeCreator{}
-		id := coverage.CreditsChapterID(kind)
+		id := creditsid.ID(kind)
 		result := createTrack(t, host, creator, createAvailable(), id)
 		if result["outcome"] != "created" || len(creator.names) != 1 || creator.names[0] != title {
 			t.Fatalf("%s: asked %v, result %v", kind, creator.names, result)
