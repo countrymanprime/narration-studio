@@ -110,36 +110,43 @@ const ROW_EMPHASIS = { current: 'font-semibold', highlight: 'bg-[var(--row-selec
 // current one (`aria-selected`) and fills it with `--row-selected`; `tabStop={false}` takes it out of the tab order (the rows of a
 // `navigable` body share one stop and the arrow keys reach the rest). Without `onActivate` it is a plain row. `data-row` marks a pressable row for the
 // visual suite's drivers.
-export function TableRow({
-  onActivate,
-  tabStop = true,
-  rowIndex,
-  selected = false,
-  emphasis,
-  tree,
-  className = '',
-  style,
-  data,
-  children,
-}: {
-  onActivate?: () => void;
-  /**
-   * A row of a tree table: `id` keys it for the tree keys, `level` is `aria-level` (1 at the top), `posInSet` and `setSize` its place among its siblings,
-   * `expanded` is set on a folder only, and `active` is the one row in the tab order (the others are reached with the arrow keys).
-   */
-  tree?: { id: string; level: number; posInSet: number; setSize: number; expanded?: boolean; active: boolean };
-  tabStop?: boolean;
-  rowIndex?: number;
+type TreePlace = { id: string; level: number; posInSet: number; setSize: number; expanded?: boolean; active: boolean };
+
+type RowShared = {
   /** `data-*` attributes for the row, such as the key a right-click menu reads (`data-w` on the Script page's Words rows). */
   data?: Record<`data-${string}`, string>;
-  selected?: boolean;
   emphasis?: keyof typeof ROW_EMPHASIS;
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
-}) {
+};
+
+// Two kinds of row, told apart by `tree`, so a tree row cannot be given what it would ignore: it is not pressable (`onActivate`), has no
+// selected state or tab-stop choice of its own (`active` is its stop) and is placed by the tree, not by `rowIndex`.
+type PlainRowProps = RowShared & {
+  tree?: undefined;
+  onActivate?: () => void;
+  tabStop?: boolean;
+  rowIndex?: number;
+  selected?: boolean;
+};
+type TreeRowProps = RowShared & {
+  /**
+   * A row of a tree table: `id` keys it for the tree keys, `level` is `aria-level` (1 at the top), `posInSet` and `setSize` its place among its siblings,
+   * `expanded` is set on a folder only, and `active` is the one row in the tab order (the others are reached with the arrow keys).
+   */
+  tree: TreePlace;
+  onActivate?: never;
+  tabStop?: never;
+  rowIndex?: never;
+  selected?: never;
+};
+
+export function TableRow(props: PlainRowProps | TreeRowProps) {
+  const { emphasis, className = '', style, data, children } = props;
   const emphasisClass = emphasis ? ROW_EMPHASIS[emphasis] : '';
-  if (tree) {
+  if (props.tree) {
+    const { tree } = props;
     return (
       <tr
         {...data}
@@ -157,6 +164,7 @@ export function TableRow({
       </tr>
     );
   }
+  const { onActivate, tabStop = true, rowIndex, selected = false } = props;
   if (!onActivate) {
     return (
       <tr {...data} aria-rowindex={rowIndex} className={`${emphasisClass} ${className}`} style={style}>
