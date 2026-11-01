@@ -57,3 +57,22 @@ for (const reading of PAGES) {
     });
   }
 }
+
+// A token wider than the column (a long URL, a German compound, a title with no break point) wraps inside it instead of running past the
+// reader's edge (qa-breaker B1 and B3).
+test('the Script wraps a word or a title longer than the column inside it', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 500 });
+  await PAGES[0]!.open(page);
+  const m = await page.evaluate(() => {
+    const column = document.querySelector<HTMLElement>('[data-reader-column][data-reader]')!;
+    const paragraph = column.querySelector<HTMLElement>('[data-pid]')!;
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+    walker.nextNode()!.textContent = 'W'.repeat(80);
+    const title = column.querySelector<HTMLElement>('[data-chapter-id] h2')!;
+    title.textContent = 'Chapter 1: ' + 'Supercalifragilisticexpialidocious'.repeat(4);
+    const edge = column.getBoundingClientRect().right;
+    return { paragraph: paragraph.getBoundingClientRect().right - edge, title: title.getBoundingClientRect().right - edge };
+  });
+  expect(m.paragraph, 'the paragraph ends inside the column').toBeLessThanOrEqual(1);
+  expect(m.title, 'the chapter title ends inside the column').toBeLessThanOrEqual(1);
+});
