@@ -64,8 +64,23 @@ describe('no-two-meanings-share-an-icon', () => {
   });
 });
 
+describe('figure-glyphs-are-not-actions', () => {
+  const figureKeys = ['chunksTranscribed', 'transcriptionsAtOnce', 'largerModelRecheck'];
+
+  test('the activity panel glyphs are kind figure: they name a number, they are never a button', () => {
+    for (const key of figureKeys) expect((CATALOG as Record<string, CatalogRow>)[key]?.kind, key).toBe('figure');
+  });
+
+  test('a figure row has an icon and no button tooltip (the figure shows its own hint)', () => {
+    for (const [key, row] of rows.filter(([, row]) => row.kind === 'figure')) {
+      expect(row.icon, key).not.toBeNull();
+      expect(row.tooltip, key).toBe('');
+    }
+  });
+});
+
 describe('every-action-has-a-tooltip', () => {
-  test.each(rows)('%s: sentence case, verb first, no trailing full stop', (key, row) => {
+  test.each(rows.filter(([, row]) => row.kind !== 'figure'))('%s: sentence case, verb first, no trailing full stop', (key, row) => {
     expect(row.tooltip, key).toMatch(/^[A-Z][a-z]+( |$)/);
     expect(TOOLTIP_VERBS as readonly string[], `${key}: "${row.tooltip.split(' ')[0]}" is not a listed verb`).toContain(row.tooltip.split(' ')[0]);
     expect(row.tooltip, key).not.toMatch(/[.…]$|\.\.\.$/);
