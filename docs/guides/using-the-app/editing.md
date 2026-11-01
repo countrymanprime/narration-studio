@@ -265,7 +265,7 @@ pick one there and click **Add**. If the item already had plug-ins, REAPER shows
 in it. You can add more than one, and set them up there as you would any plug-in in REAPER.
 
 While REAPER's window is open, the Effects tab shows what REAPER has chosen so far and checks every second or two, and when
-you come back to the app. Close REAPER's FX window when you are done, and the app adds what you chose to the words as an
+you come back to the app. Close REAPER's FX window when you are done (the **?** in the panel says so), and the app adds what you chose to the words as an
 effect, named after the plug-ins. **Keep it** adds it straight away with the window still open. **Cancel** takes off
 anything you chose and joins the item back together, and the app records nothing. **Check again** asks REAPER now. If
 REAPER stops answering, the panel says it cannot tell what is chosen and when REAPER last answered, rather than showing an
