@@ -61,6 +61,11 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
   const heard = link.state === 'answering' ? null : heardText(link, receivedAt, now);
   const stepsOpen = link.steps.some((step) => !step.done);
   const answering = link.state === 'answering' || link.state === 'no_project';
+  const startAudacity = async () => {
+    const started = await startDaw({ project, system }, 'Audacity');
+    if (started.ok) notify('Started Audacity. The app connects when it answers.');
+    else throw new Error(started.message);
+  };
   const canLinkOpen = link.state === 'answering' && link.openProject !== 'linked';
   const canStart = link.action === 'launch';
 
@@ -91,18 +96,7 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
       </details>
       <div className="flex flex-wrap items-center gap-2">
         {canStart && (
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={busy !== undefined}
-            onClick={() =>
-              void run('start', async () => {
-                const started = await startDaw({ project, system }, 'Audacity');
-                if (!started.ok) throw new Error(started.message);
-                notify('Started Audacity. The app connects when it answers.');
-              })
-            }
-          >
+          <Button variant="primary" size="sm" disabled={busy !== undefined} onClick={() => void run('start', startAudacity)}>
             {busy === 'start' ? 'Starting Audacity…' : 'Start Audacity'}
           </Button>
         )}
