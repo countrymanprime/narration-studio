@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The Schedule basis toggle changes every hours figure (docs/research/ui-function-audit.md, cluster 5): choosing "Your pace" in the
-// Production popover moves the rate the Schedule's "Finished audio is words ÷ N" line and the stage bar's hours divide by.
+// Production popover moves the rate the Schedule's "Finished audio is words ÷ N" note (in its "?") and the stage bar's hours divide by.
 import { cleanup, configure, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -45,6 +45,7 @@ describe('the Schedule basis toggle', () => {
     await waitFor(async () => expect((await api.productionPlan()).rateBasis).toBe('own'));
 
     await user.click(await rail(/^Schedule/));
+    await user.click(await screen.findByRole('button', { name: 'About these figures' }));
     expect(await screen.findByText(new RegExp(`Finished audio is words ÷ ${rate}\\.`))).toBeTruthy();
   });
 });
