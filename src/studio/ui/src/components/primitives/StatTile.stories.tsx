@@ -63,3 +63,11 @@ export const LongLabelWraps: Story = {
     hint: 'across every chapter recorded so far, including retakes and asides',
   },
 };
+
+// A figure glyph (a catalogue `figure` row) before the label; the label stays the name and the glyph is decoration.
+export const WithIcon: Story = {
+  args: { label: 'Chunks', value: '40 of 112', hint: undefined, icon: 'chunksTranscribed' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('Chunks')).toBeVisible();
+  },
+};

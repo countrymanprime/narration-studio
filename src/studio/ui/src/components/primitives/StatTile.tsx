@@ -1,7 +1,9 @@
+import type { IconName } from '../../icons.catalog';
+import { Icon } from './Icon';
 import { ProgressBar } from './ProgressBar';
 import { SectionLabel } from './SectionLabel';
 
-const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
+export const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
 const TONE_TEXT: Record<Exclude<StatTileTone, 'neutral'>, string> = {
   info: 'var(--info-text)',
@@ -22,6 +24,7 @@ export function StatTile({
   hint,
   unit,
   progress,
+  icon,
   tone = 'neutral',
   size = 'default',
   className = '',
@@ -32,6 +35,8 @@ export function StatTile({
   unit?: string;
   /** 0 to 1. When given, a ProgressBar is drawn under the value, named after `label`. */
   progress?: number;
+  /** A glyph drawn before the label that names the figure (see the catalogue's `figure` rows). Decoration: the label stays the name. */
+  icon?: IconName;
   tone?: StatTileTone;
   /** `kpi` is the Studio Next mock's Production tile: a 30 px value, a 16 px unit and a 13 px hint. */
   size?: 'default' | 'kpi';
@@ -40,8 +45,15 @@ export function StatTile({
   return (
     <div className={className}>
       {/* The row-start classes place each part in its own row when a StatStrip lays a row of tiles on one subgrid; elsewhere they do nothing. */}
-      <SectionLabel as="div" className="row-start-1">
-        {label}
+      <SectionLabel as="div" className={icon ? 'row-start-1 flex min-w-0 items-center gap-1.5' : 'row-start-1'}>
+        {icon ? (
+          <>
+            <Icon name={icon} />
+            <span className="truncate">{label}</span>
+          </>
+        ) : (
+          label
+        )}
       </SectionLabel>
       {/* Plex Mono, weight 500: 22 px by default, 30 px for the Production `kpi` tile (the mock's `.kpi .v`). */}
       <div className={`row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}>
