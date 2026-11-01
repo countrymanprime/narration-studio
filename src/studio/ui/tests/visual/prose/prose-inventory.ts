@@ -594,7 +594,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/storybible/VoiceDataPanel.tsx',
     text: "Narration's voice samples and approved references are here - a character's own live on its entry. Remove voice data clears every approved reference in the project; Remove voice samples deletes every sample and its audio. Nothing else about the Story Bible changes.",
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/storybible/suggested/import/ImportDialog.tsx',
@@ -604,7 +604,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/storybible/suggested/scan/AnalysisPrompt.tsx',
     text: 'GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/recordingcheck/CheckResult.tsx',
@@ -787,7 +787,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/storybible/voicesamples/MoveVoiceSampleDialog.tsx', text: '… has … samples. Delete one first.', class: 'overlay' },
   {
     file: 'components/storybible/voicesamples/VoiceSamplesBody.tsx',
-    text: 'No voice samples yet. Mark one in Editing: select words you voiced well and press V.',
-    class: 'empty',
+    text: 'Mark one in Editing: select words you voiced well and press V.',
+    class: 'overlay',
   },
 ];
