@@ -1,17 +1,10 @@
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Icon } from '../primitives/Icon';
-import { SectionLabel } from '../primitives/SectionLabel';
-import { SelectTrigger } from '../primitives/Select';
-import { Popover } from '../primitives/Popover';
-import { SearchField } from '../primitives/SearchField';
-import { TooltipTarget } from '../primitives/Tooltip';
-import { treeKeyHandler } from '../primitives/treeKeys';
-import { IndentGuides, TREE_INDENT, TrackMark, TreeCaret } from '../tracks/TreeRowParts';
+import { useMemo, useState } from 'react';
+import { TreeSelect, type TreeSelectRow, type TreeSelectSection } from '../primitives/TreeSelect';
+import { TrackMark } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
 import type { TrackChoice } from './trackChoices';
 
 type Entry = TreeTrack & { choice: TrackChoice };
-type Row = { key: string; node: TreeNode<Entry>; level: number; posInSet: number; setSize: number; path?: string };
 
 const NO_AUDIO = 'A folder with no audio of its own can’t be linked';
 
@@ -26,7 +19,8 @@ const pathOf = (nodes: readonly TreeNode<Entry>[], at: number): string => {
  * The track picker for a project with REAPER folders: the Tracks card's tree in a popover, so a chapter is linked to a track in its folder. The
  * matcher's best match heads it, a search flattens the list to its matches with each one's folder path, a track another chapter holds says so,
  * and a folder with no audio of its own is shown but not choosable. The trigger names the pick with its path. A project with no folders keeps the
- * native select (`TrackSelect` chooses).
+ * native select (`TrackSelect` chooses). The widget is the `TreeSelect` primitive; this turns tracks into its rows and owns the search text and
+ * which folders are open.
  */
 export function TrackTreePicker({
   label,
@@ -41,12 +35,8 @@ export function TrackTreePicker({
   onChange: (guid: string) => void;
   fullWidth?: boolean;
 }) {
-  const listId = useId();
-  const popup = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [closed, setClosed] = useState<Set<string>>();
-  const [active, setActive] = useState('');
 
   const nodes = useMemo(
     () =>
@@ -81,156 +71,80 @@ export function TrackTreePicker({
 
   const searching = query.trim() !== '';
   const needle = query.trim().toLowerCase();
-  const rows: Row[] = [];
+  const toRow = (
+    node: TreeNode<Entry>,
+    at: number,
+    place: Pick<TreeSelectRow, 'key' | 'level' | 'posInSet' | 'setSize'> & Partial<TreeSelectRow>,
+  ): TreeSelectRow => {
+    const entry = node.track.choice;
+    const blocked = node.track.isFolder && entry.hasAudio === false;
+    const path = place.key.startsWith('t-') ? '' : pathOf(nodes, at);
+    return {
+      id: node.id,
+      label: trackLabel(node.track),
+      mark: <TrackMark color={entry.color ?? ''} folder={node.track.isFolder} open={!shut.has(node.id)} />,
+      note: [path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ') || undefined,
+      disabledReason: blocked ? NO_AUDIO : undefined,
+      ...place,
+    };
+  };
+
+  const sections: TreeSelectSection[] = [];
   if (searching) {
+    const matches: TreeSelectRow[] = [];
     nodes.forEach((node, at) => {
       if (trackLabel(node.track).toLowerCase().includes(needle))
-        rows.push({ key: `s-${node.id}`, node, level: 1, posInSet: rows.length + 1, setSize: 0, path: pathOf(nodes, at) });
+        matches.push(toRow(node, at, { key: `s-${node.id}`, level: 1, posInSet: matches.length + 1, setSize: 0, flat: true }));
     });
-    rows.forEach((row) => (row.setSize = rows.length));
+    sections.push({ rows: matches.map((row) => ({ ...row, setSize: matches.length })) });
   } else {
+    const rows: TreeSelectRow[] = [];
     const hidden: boolean[] = [];
-    nodes.forEach((node) => {
+    nodes.forEach((node, at) => {
       const shown = node.parent < 0 || (hidden[node.parent] === false && !shut.has(nodes[node.parent].id));
-      hidden[nodes.indexOf(node)] = !shown;
-      if (shown) rows.push({ key: `t-${node.id}`, node, level: node.level, posInSet: node.posInSet, setSize: node.setSize });
+      hidden[at] = !shown;
+      if (shown)
+        rows.push(
+          toRow(node, at, {
+            key: `t-${node.id}`,
+            level: node.level,
+            posInSet: node.posInSet,
+            setSize: node.setSize,
+            folder: node.track.isFolder ? { open: !shut.has(node.id) } : undefined,
+          }),
+        );
     });
+    const bestAt = best ? nodes.findIndex((node) => node.id === best.guid) : -1;
+    if (bestAt >= 0)
+      // The best match is one row with its path, as a search result is; it is not a folder, so its caret is a blank.
+      sections.push(
+        { heading: 'Best match', rows: [toRow(nodes[bestAt], bestAt, { key: `b-${best?.guid}`, level: 1, posInSet: 1, setSize: 1 })] },
+        { heading: 'Other tracks', rows },
+      );
+    else sections.push({ rows });
   }
-  const bestAt = !searching && best ? nodes.findIndex((node) => node.id === best.guid) : -1;
-  const bestRow: Row | undefined =
-    bestAt >= 0 ? { key: `b-${best?.guid}`, node: nodes[bestAt], level: 1, posInSet: 1, setSize: 1, path: pathOf(nodes, bestAt) } : undefined;
-  const tabStop = [bestRow, ...rows].some((row) => row?.key === active) ? active : (bestRow ?? rows[0])?.key;
 
-  const selectable = (node: TreeNode<Entry>) => !(node.track.isFolder && node.track.choice.hasAudio === false);
-  const pick = (node: TreeNode<Entry>) => {
-    onChange(node.id);
-    setOpen(false);
-  };
   const toggle = (id: string, wanted: boolean) => {
     const next = new Set(shut);
     if (wanted) next.delete(id);
     else next.add(id);
     setClosed(next);
   };
-  const byKey = new Map([...(bestRow ? [bestRow] : []), ...rows].map((row) => [row.key, row]));
-  const keys = treeKeyHandler(
-    (key, wanted) => {
-      const row = byKey.get(key);
-      if (row) toggle(row.node.id, wanted);
-    },
-    (key) => {
-      const row = byKey.get(key);
-      if (!row) return;
-      if (selectable(row.node)) pick(row.node);
-      else toggle(row.node.id, shut.has(row.node.id));
-    },
-  );
-  const fromSearch = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      popup.current?.querySelector<HTMLElement>('[data-tree-row]')?.focus();
-    }
-  };
-
-  const renderRow = (row: Row) => {
-    const { node } = row;
-    const entry = node.track.choice;
-    const folder = node.track.isFolder && !searching && row.key.startsWith('t-');
-    const isOpen = !shut.has(node.id);
-    const blocked = !selectable(node);
-    const selected = node.id === value;
-    const note = blocked ? 'No audio of its own' : [row.path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ');
-    return (
-      <li
-        key={row.key}
-        role="treeitem"
-        id={`${listId}-${row.key}`}
-        data-tree-row={row.key}
-        data-level={row.level}
-        aria-level={row.level}
-        aria-posinset={row.posInSet}
-        aria-setsize={row.setSize}
-        aria-expanded={folder ? isOpen : undefined}
-        aria-selected={selected}
-        aria-disabled={blocked || undefined}
-        tabIndex={row.key === tabStop ? 0 : -1}
-        onFocus={() => setActive(row.key)}
-        onClick={() => (blocked ? toggle(node.id, !isOpen) : pick(node))}
-        className={`flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md pr-2 text-sm hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] aria-disabled:cursor-default aria-selected:bg-[var(--row-selected)] ${blocked ? 'text-[var(--text-muted)]' : ''}`}
-      >
-        {!searching && <IndentGuides level={row.level} />}
-        {!searching && (
-          <span onClick={(event) => event.stopPropagation()} className="contents">
-            <TreeCaret folderName={folder ? trackLabel(node.track) : undefined} open={isOpen} onToggle={() => toggle(node.id, !isOpen)} />
-          </span>
-        )}
-        <TrackMark color={node.track.choice.color ?? ''} folder={node.track.isFolder} open={isOpen} />
-        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-          {blocked ? (
-            <TooltipTarget text={NO_AUDIO} inline>
-              <span>{trackLabel(node.track)}</span>
-            </TooltipTarget>
-          ) : (
-            trackLabel(node.track)
-          )}
-        </span>
-        {note && <span className="max-w-[45%] flex-none text-right text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{note}</span>}
-        {selected && (
-          <span className="flex-none text-xs">
-            <Icon name="accept" />
-          </span>
-        )}
-      </li>
-    );
-  };
-
-  const shownName = chosen >= 0 ? trackLabel(nodes[chosen].track) : '';
-  const shownPath = chosen >= 0 ? pathOf(nodes, chosen) : '';
-  const trigger = (
-    <SelectTrigger
-      // The name starts with what the control is for and holds the text it shows, so the visible words are part of the name.
-      aria-label={`${label}: ${chosen >= 0 ? (shownPath ? `${shownPath} / ` : '') + shownName : 'Choose a track'}`}
-      fullWidth={fullWidth}
-    >
-      {chosen >= 0 ? (
-        // The path gives way first, so a long path never cuts the track's own name.
-        <span className="flex min-w-0 flex-1">
-          {shownPath && <span className="min-w-0 shrink-[4] truncate text-[var(--text-muted)]">{shownPath}&nbsp;/&nbsp;</span>}
-          <span className="min-w-0 truncate">{shownName}</span>
-        </span>
-      ) : (
-        <span className="min-w-0 truncate text-[var(--text-muted)]">Choose a track</span>
-      )}
-    </SelectTrigger>
-  );
 
   return (
-    <Popover trigger={trigger} label={label} align="start" open={open} onOpenChange={setOpen}>
-      <div ref={popup} className={`space-y-2 ${TREE_INDENT}`} onKeyDown={keys}>
-        <SearchField label="Search tracks" placeholder="Search tracks" value={query} onChange={setQuery} onKeyDown={fromSearch} leadingIcon autoFocus />
-        <div className="max-h-[min(50vh,20rem)] overflow-auto overscroll-contain">
-          {bestRow && (
-            <>
-              <SectionLabel as="div" className="block px-1 pb-1">
-                Best match
-              </SectionLabel>
-              <ul role="tree" aria-label="Best match">
-                {renderRow(bestRow)}
-              </ul>
-              <SectionLabel as="div" className="block px-1 pt-2 pb-1">
-                Other tracks
-              </SectionLabel>
-            </>
-          )}
-          {rows.length > 0 ? (
-            <ul role="tree" aria-label={bestRow ? 'Other tracks' : label}>
-              {rows.map(renderRow)}
-            </ul>
-          ) : (
-            <p className="px-1 py-3 text-center text-sm text-[var(--text-muted)]">No track matches “{query.trim()}”</p>
-          )}
-        </div>
-      </div>
-    </Popover>
+    <TreeSelect
+      label={label}
+      value={value}
+      shown={chosen >= 0 ? { path: pathOf(nodes, chosen) || undefined, name: trackLabel(nodes[chosen].track) } : undefined}
+      placeholder="Choose a track"
+      searchLabel="Search tracks"
+      query={query}
+      onQueryChange={setQuery}
+      sections={sections}
+      emptyText={(text) => `No track matches “${text}”`}
+      onPick={onChange}
+      onToggle={toggle}
+      fullWidth={fullWidth}
+    />
   );
 }
