@@ -71,6 +71,16 @@ describe('TreeSelect', () => {
     expect(screen.getByRole('treeitem', { name: /^Ch 1/ }).getAttribute('aria-selected')).toBe('true');
   });
 
+  it('caps the path and keeps the name flexible, so a long path cannot shrink to a bare letter at 390 px', () => {
+    setup({ value: 'Ch 1', shown: { path: 'Narration / Chapters', name: 'Ch 1' } });
+    const path = screen.getByText(/^Narration \/ Chapters/);
+    expect(path.className).toContain('max-w-[40%]');
+    expect(path.className).toContain('flex-none');
+    expect(path.className).toContain('truncate');
+    expect(path.className).not.toMatch(/shrink/);
+    expect(screen.getByText('Ch 1').className).toContain('flex-1');
+  });
+
   it('puts each row at its level, place and open state', async () => {
     setup();
     await openIt();

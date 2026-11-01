@@ -81,11 +81,26 @@ export const Empty: Story = {
   },
 };
 
-// A long name is cut at the caret, the path giving way before the name.
+// A long name is cut at the caret; the path is capped at 40% of the box and ellipsized, so at 390 px it never shrinks to a bare letter beside the name (ux-reviewer, #2701).
 export const PickedWithLongName: Story = {
   render: () => <Picker initial="ch4" />,
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: /^Track for Chapter 4: Narration \/ Chapters \/ Chapter 4/ })).toBeVisible();
+  },
+};
+
+// The open tree with its folders, left open for the atlas to capture at 390 px: levels, carets, and a folder that cannot be picked.
+export const OpenTree: Story = {
+  render: () => <Picker />,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: /^Track for Chapter 4/ }));
+    const tree = await within(canvasElement.ownerDocument.body).findByRole('tree', { name: 'Track for Chapter 4' });
+    await expect(
+      within(tree)
+        .getAllByRole('treeitem')
+        .map((item) => item.getAttribute('aria-level')),
+    ).toEqual(['1', '2', '3', '3', '1']);
+    await expect(within(tree).getByRole('treeitem', { name: /^Narration/ })).toHaveAttribute('aria-disabled', 'true');
   },
 };
 

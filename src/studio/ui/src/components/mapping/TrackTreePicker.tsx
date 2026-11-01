@@ -85,6 +85,7 @@ export function TrackTreePicker({
       mark: <TrackMark color={entry.color ?? ''} folder={node.track.isFolder} open={!shut.has(node.id)} />,
       note: [path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ') || undefined,
       disabledReason: blocked ? NO_AUDIO : undefined,
+      disabledNote: blocked ? 'No audio of its own' : undefined,
       ...place,
     };
   };

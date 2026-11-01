@@ -27,6 +27,8 @@ export type TreeSelectRow = {
   note?: string;
   /** Why the row cannot be chosen. The row is still drawn, `aria-disabled`, and a press opens or closes it when it is a folder. */
   disabledReason?: string;
+  /** The short text shown at the right of a disabled row in place of `note`, so the full `disabledReason` is for the tooltip alone; defaults to the reason. */
+  disabledNote?: string;
   /** No indent guides and no caret: a search result, which stands apart from the tree. */
   flat?: boolean;
 };
@@ -58,7 +60,7 @@ export function TreeSelect({
   label: string;
   /** The picked item's `id`, or '' for none. */
   value: string;
-  /** What the trigger shows for the pick: the names above it (`path`) give way first, so a long path never cuts `name`. */
+  /** What the trigger shows for the pick: the names above it (`path`) take at most 40% of the box and end in an ellipsis, so a long path never squeezes `name` to a stub. */
   shown?: { path?: string; name: string };
   placeholder: string;
   searchLabel: string;
@@ -108,7 +110,7 @@ export function TreeSelect({
     const selected = row.id === value;
     const blocked = row.disabledReason !== undefined;
     const isOpen = row.folder?.open ?? false;
-    const note = blocked ? row.disabledReason : row.note;
+    const note = blocked ? (row.disabledNote ?? row.disabledReason) : row.note;
     return (
       <li
         key={row.key}
@@ -162,8 +164,8 @@ export function TreeSelect({
     >
       {shown ? (
         <span className="flex min-w-0 flex-1">
-          {shown.path && <span className="min-w-0 shrink-[4] truncate text-[var(--text-muted)]">{shown.path}&nbsp;/&nbsp;</span>}
-          <span className="min-w-0 truncate">{shown.name}</span>
+          {shown.path && <span className="max-w-[40%] flex-none truncate text-[var(--text-muted)]">{shown.path}&nbsp;/&nbsp;</span>}
+          <span className="min-w-0 flex-1 truncate">{shown.name}</span>
         </span>
       ) : (
         <span className="min-w-0 truncate text-[var(--text-muted)]">{placeholder}</span>
