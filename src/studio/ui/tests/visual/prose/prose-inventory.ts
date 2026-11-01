@@ -26,11 +26,6 @@ export type ProseEntry = { file: string; text: string; class: ProseClass };
 export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/booth/CompanionShell.tsx', text: 'Hotkeys that reach this panel from REAPER are not available yet.', class: 'state' },
   {
-    file: 'components/booth/CompanionShell.tsx',
-    text: 'The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.',
-    class: 'state',
-  },
-  {
     file: 'components/booth/RecordInReaperConfirm.tsx',
     text: 'Play will arm and start recording in REAPER on the track linked to … , and Stop will stop that recording.',
     class: 'overlay',
@@ -318,7 +313,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s …/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed. Without the full location, only file names are written.',
     class: 'overlay',
   },
-  { file: 'components/pickups/PickupsCompanionSummary.tsx', text: 'Jump to one or mark it done on the Pickups page in the full app.', class: 'instruction' },
   {
     file: 'components/pickups/list/PickupsTable.tsx',
     text: 'A pickup can be added once the list has been read. If it could not be read, use Retry.',
