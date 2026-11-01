@@ -6,6 +6,10 @@ how much the larger model has been asked to re-check and how much of that is don
 (`<progress>.activity.json`, `internal/coverage/activity.go`) and sends it with the run's state. It is best-effort, like the
 progress file: a run never fails because it could not be written, and a host that cannot read it shows the percent alone.
 
+The windows-only re-check stage (`--recheck`) has no first pass: its windows are the larger model's share, and it writes them as `recheck`
+(`ActivityLog.for_recheck`), so a field means one thing in every file and the host merges by field. A run that keeps no log is handed
+`NULL_ACTIVITY`.
+
 Everything here is a count of work the sidecar really did or really has queued; nothing is estimated.
 """
 
