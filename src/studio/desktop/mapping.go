@@ -1,9 +1,9 @@
 package main
 
 import (
+	"desktop/internal/creditsid"
 	"fmt"
 
-	"desktop/internal/coverage"
 	"desktop/internal/evidence"
 )
 
@@ -96,8 +96,8 @@ func chapterTitle(svc hostServices, chapterID string) (string, bool, error) {
 	// credits row's link goes through the same ChapterTrackSet/ChapterTrackMapConfirm/Unlink bindings a manuscript
 	// chapter's does (src/studio/desktop/internal/coverage/credits.go: one chapter-track-map.json), and each calls this to validate the id and stamp the
 	// stored link with a real title, so it needs the credits titles too, not just the manuscript's own.
-	if kind, ok := coverage.CreditsKind(chapterID); ok {
-		return creditsScriptTitles[kind], true, nil
+	if kind, ok := creditsid.Kind(chapterID); ok {
+		return creditsid.Title(kind), true, nil
 	}
 	chapters, err := svc.manuscript.Chapters()
 	if err != nil {

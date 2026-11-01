@@ -60,3 +60,31 @@ func TestEveryHostReaderOfTheChapterListHandlesTheCredits(t *testing.T) {
 		t.Fatalf("these files read the chapter list, which holds the credits; list each in creditsListReaders with what it does with them: %v", missing)
 	}
 }
+
+// The credits' chapter id, kind and title have one owner, internal/creditsid. A host or internal file that spells one of them out has
+// a second owner that can drift from the first (issue 2645); it asks creditsid instead.
+func TestOnlyCreditsidSpellsTheCreditsIdAndTitle(t *testing.T) {
+	spelled := regexp.MustCompile(`"credits-(opening|closing)"|"(Opening|Closing) credits"|"credits-"`)
+	var offenders []string
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		slash := filepath.ToSlash(path)
+		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") ||
+			strings.HasPrefix(slash, "internal/creditsid/") {
+			return err
+		}
+		data, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		if spelled.Match(data) {
+			offenders = append(offenders, slash)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(offenders) > 0 {
+		t.Fatalf("these files spell a credits id or title; ask internal/creditsid instead: %v", offenders)
+	}
+}
