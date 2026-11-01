@@ -40,6 +40,19 @@ The four bridge steps in REAPER, a 4050-item project, five presses (`perf: a rec
 
 On this machine a press waits 0.7 to 4.2 s for listening before REAPER is asked to record, against 0.15 s for REAPER's part. The listening start is the pause. On Windows the frozen sidecar also loads its DLLs (CTranslate2, PyAV) under the antivirus scanner, and `dshow` opens the device; neither is measured here, and both add to the same wait.
 
+## Fix 1: listening starts alongside the recording
+
+`beginTake` starts listening and asks the DAW to record at the same time (`Promise.all`), so REAPER's pre-roll plays while the model loads. A take is still never kept without listening: when listening fails, `dropUnheardTake` stops the recording and, when the DAW reports undo steps for it, takes it back with `undoLast('record_take', n)`. The failed take writes no passage-map run and says no "take saved". Stopped inside REAPER's pre-roll, nothing was recorded: the real-REAPER scenario `record stopped inside REAPER's pre-roll leaves no item and no undo point` ([`scenarios_transport.py`](../../scripts/ci/real-reaper/scenarios_transport.py)) stopped 1.2 s into a 2-measure pre-roll, with the item count and the top undo point unchanged and `undoPoints` 0. The built-in recorder has no pre-roll and keeps its file from the first instant, so it still starts once listening has.
+
+Time from the press until REAPER is asked to record, from the measurements above (estimated from the parts, not timed end to end; the `Bootstrap` check and the optional start tone in `useRecordControl.toggle` come before `record_start` both times and are not measured):
+
+| Model | Before | After |
+| --- | --- | --- |
+| `tiny` | 0.9 to 1.7 s (listening, then 0.15 s of bridge steps) | 0.15 s (bridge steps; listening loads during the pre-roll) |
+| `small.en` | 1.8 to 4.4 s | 0.15 s |
+
+With REAPER's pre-roll at 2 measures (4 s at 120 BPM), listening is ready before the first recorded word in every measured case except `small.en` with a cold page cache (4.2 s). With pre-roll off, the opening second or so of a take is recorded before the text can follow it.
+
 ## The timeline diagnostic
 
 Switched on in REAPER with the bridge timing switch ([owner steps](reaper-bridge-performance.md#owner-hands-on), step 2), the heartbeat carries a seventh field and the host appends one line per press to `record-timeline.log` in the bridge session folder, beside `bridge-timing.log` ([`internal/presstimeline`](../../src/studio/desktop/internal/presstimeline/timeline.go), [`presstimeline_host.go`](../../src/studio/desktop/presstimeline_host.go)). Off, the host stamps nothing. A line holds step names, an outcome word (`started` or the refusal's reason) and milliseconds since the first step, on the host's monotonic clock. Its shape, with made-up numbers:

@@ -282,7 +282,7 @@ room tone) uses one microphone:
 If the speech model is not downloaded yet, the footer says so before you press Record ("The text cannot follow your voice yet"),
 and the first take asks to download it, says how large it is and where it goes, and
 downloads nothing until you press **Download model**. While the text cannot follow (no microphone listed, or the listening failed
-to start), the footer says why. The text starts following your voice before the DAW records, so a take never begins with the text unable to follow: if listening fails to start, nothing is recorded and the Booth says why.
+to start), the footer says why. Listening starts at the same time as the DAW, so REAPER's pre-roll plays while the speech model loads instead of after it. A take is never kept with the text unable to follow: if listening fails to start, the Booth stops the recording, takes back anything it recorded, and says why. With REAPER's pre-roll on, the failure comes inside the pre-roll and nothing was recorded. The built-in recorder has no pre-roll, so it starts once listening has.
 
 ![Booth - Record pressed with the live engine's model not installed: the take runs and the Booth asks about the model](../../images/ui/booth-model-required.webp)
 

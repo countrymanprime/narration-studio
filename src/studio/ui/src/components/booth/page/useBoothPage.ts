@@ -22,7 +22,7 @@ import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
-import { recordedTakeCommand } from '../record/takeCommand';
+import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
@@ -294,6 +294,30 @@ export function useBoothPage(options: BoothPageOptions) {
     if (latest.current.listening) latest.current.session.pause(false);
   }, []);
 
+  // listenStarting: a take's listening session is being started by the press, so the recording's own start must not start a second one.
+  // unheard: the take stopping now is one whose listening failed, dropped without a word (dropUnheardTake).
+  const listenStarting = useRef(false);
+  const unheard = useRef(false);
+  /** Stops a recording whose listening failed and takes back what the DAW recorded of it. False, with the reason said, when either did not go through. */
+  const { stopped: markTakeStopped } = control;
+  const recorderLabel = control.capabilities?.daw ?? 'the DAW';
+  const dropUnheardTake = useCallback(async (): Promise<boolean> => {
+    unheard.current = true;
+    const failed = (message: string): DawResult => ({ ok: false, changed: false, message, undoSteps: 0 });
+    const stopped = await daw.recordStop().catch(() => failed('the stop did not go through.'));
+    markTakeStopped();
+    if (!stopped.ok) {
+      unheard.current = false;
+      overlay.toast(`The recording could not be stopped: ${stopped.refused ?? stopped.message} Stop it in ${recorderLabel}.`, { tone: 'error' });
+      return false;
+    }
+    if (stopped.undoSteps < 1) return true;
+    const undone = await daw.undoLast(TAKE_KIND, stopped.undoSteps).catch(() => failed('the undo did not go through.'));
+    if (!undone.ok)
+      overlay.toast(`The short recording could not be taken back: ${undone.refused ?? undone.message} Undo it in ${recorderLabel}.`, { tone: 'error' });
+    return undone.ok;
+  }, [daw, markTakeStopped, overlay, recorderLabel]);
+
   const roll = useRoll(
     {
       capabilities: control.capabilities,
@@ -318,23 +342,33 @@ export function useBoothPage(options: BoothPageOptions) {
         // starts from the real cursor, never from the ghost.
         const from = realWord();
         const endedColdRead = await endColdRead();
-        // Listening comes first, and a take never begins without it: a text that cannot follow the voice is a failed start, not a
-        // recording that runs while the narrator is told why it cannot be followed. The DAW is asked to start at the punch itself,
-        // so it is already at that spot when the take begins.
-        if (endedColdRead || !latest.current.session.active) {
-          const listening = await latest.current.session.start(endedColdRead ? { startWord: from } : undefined);
-          if (!listening.ok) {
-            // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
-            overlay.toast(`Recording did not start: the text cannot follow your voice (${listening.reason || 'listening failed'}). Nothing was recorded.`, {
+        takeAt.current = punch ?? recordedEnd;
+        // Listening and the DAW start together: loading the speech model takes seconds (docs/research/record-press-timeline.md), and the
+        // DAW's pre-roll runs meanwhile instead of after it. A take is still never kept without listening: a session that fails stops the
+        // recording at once, and what it recorded is taken back (inside REAPER's pre-roll it has recorded nothing).
+        // The app's own recorder has no pre-roll and keeps its file from the first instant, so it starts once listening has.
+        const listen = endedColdRead || !latest.current.session.active;
+        const together = !recordsInApp(control.capabilities?.daw);
+        listenStarting.current = listen;
+        const hearing = listen ? latest.current.session.start(endedColdRead ? { startWord: from } : undefined) : Promise.resolve({ ok: true, reason: '' });
+        const [heard, started] = await (
+          together
+            ? Promise.all([hearing, control.toggle(punch)])
+            : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch))] as const)
+        ).finally(() => (listenStarting.current = false));
+        if (!heard.ok) {
+          const kept = started && !(await dropUnheardTake());
+          // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
+          overlay.toast(
+            `Recording did not start: the text cannot follow your voice (${heard.reason || 'listening failed'}).${kept ? '' : ' Nothing was recorded.'}`,
+            {
               tone: 'error',
               action: retryAction(() => void retryTake.current()),
-            });
-            return;
-          }
+            },
+          );
+          return;
         }
-        takeAt.current = punch ?? recordedEnd;
-        const started = await control.toggle(punch);
-        if (!started && latest.current.session.active) latest.current.session.stop();
+        if (!started && listen) latest.current.session.stop();
       },
       clearStart: () => setPunchAt(null),
       chooseStart: (phrase, move) => {
@@ -372,7 +406,15 @@ export function useBoothPage(options: BoothPageOptions) {
       if (now.coldRead) {
         const from = realWord();
         void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
-      } else if (!now.session.active && now.session.canStart) void now.session.start();
+      } else if (!listenStarting.current && !now.session.active && now.session.canStart) void now.session.start();
+      return;
+    }
+    if (unheard.current) {
+      // A take whose listening failed (dropUnheardTake): it is not a take, so nothing is said, mapped or offered back.
+      unheard.current = false;
+      takeBegan.current = null;
+      takeEntry.current = null;
+      if (now.session.active) now.session.stop();
       return;
     }
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);

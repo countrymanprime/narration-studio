@@ -403,6 +403,23 @@ describe('a-built-in-take-is-guarded-too', () => {
     expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 
+  // The app's own recorder has no pre-roll to load the speech model in, and keeps its file from the first instant: it starts once listening has.
+  it('starts the built-in recorder only once listening has started', async () => {
+    let listening = (_value: { status: 'started' }) => {};
+    const teleprompterStart = vi.fn(() => new Promise<{ status: 'started' }>((resolve) => (listening = resolve)));
+    const settingsForScope = async () => ({
+      Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+    });
+    const page = renderPage({ setup: 'builtin', api: { settingsForScope, teleprompterStart } as never });
+    await ready();
+    await space();
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    await act(async () => listening({ status: 'started' }));
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+  });
+
   it('"Stop and leave" stops the take through the port before the Booth goes', async () => {
     const page = renderPage({ setup: 'builtin' });
     await ready();
@@ -1587,26 +1604,72 @@ describe('the text follows the voice: the listening microphone and the model', (
       installPath: 'C:/assets/whisper',
     }));
     const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart, assetsInstall } as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
     await ready();
     await space();
     expect(await screen.findByRole('alertdialog', { name: 'Download local Whisper model?' })).toBeTruthy();
-    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    // Changed 2026-11-01 (#2251): the DAW starts alongside listening, so a model the asset list did not report missing is found once it has;
+    // the recording is stopped at once and nothing of it is kept, so no take runs behind the question.
+    if (page.daw.recordStart.mock.calls.length > 0) await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText('REC')).toBeNull());
     expect(assetsInstall).not.toHaveBeenCalled();
   });
 
-  it('a session that fails to start says so in the footer, and no take begins', async () => {
+  // Changed 2026-11-01 (#2251): the DAW is asked to record alongside listening, not after it, so its pre-roll covers the model load; a take whose
+  // text cannot follow is still never kept: the recording is stopped and anything it recorded is taken back.
+  it('a session that fails to start stops the recording it began alongside, takes it back, and says so in the footer', async () => {
+    let fail = (_reason: Error) => {};
+    const teleprompterStart = vi.fn(() => new Promise<never>((_resolve, reject) => (fail = reject)));
+    const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+    await ready();
+    await space();
+    // Listening is still starting and the DAW has already been asked: its pre-roll runs while the model loads.
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    expect(teleprompterStart).toHaveBeenCalledTimes(1);
+    await act(async () => fail(new Error('The microphone is in use by another application.')));
+    await waitFor(() =>
+      expect(document.getElementById('blisten-why')?.textContent).toBe('The text cannot follow your voice: The microphone is in use by another application.'),
+    );
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1));
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Take saved/i)).toBeNull();
+    expect(await screen.findByRole('button', { name: /^Record$/ })).toBeTruthy();
+    // The recording that started did not start a second listening session behind the first.
+    expect(teleprompterStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("a session that fails inside the DAW's pre-roll stops the recording and has nothing to take back", async () => {
     const teleprompterStart = vi.fn(async () => {
       throw new Error('The microphone is in use by another application.');
     });
     const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
     await ready();
     await space();
-    await waitFor(() =>
-      expect(document.getElementById('blisten-why')?.textContent).toBe('The text cannot follow your voice: The microphone is in use by another application.'),
-    );
-    // The DAW is never asked to record: a take whose text cannot follow the voice is not started.
-    expect(page.daw.recordStart).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    expect(page.daw.undoLast).not.toHaveBeenCalled();
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    expect(await screen.findByRole('button', { name: /^Record$/ })).toBeTruthy();
+  });
+
+  it('a recording the DAW refuses stops the listening started alongside it', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
+    page.daw.recordStart.mockImplementation(async () => ({
+      ok: false,
+      changed: false,
+      message: 'REAPER is playing: stop it first.',
+      refused: 'REAPER is playing: stop it first.',
+      undoSteps: 0,
+    }));
+    await ready();
+    await space();
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalled());
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 });
 
