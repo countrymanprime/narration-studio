@@ -41,11 +41,11 @@ export function ChooseInDaw({
       data-choose-in-daw
       className="flex flex-col gap-2 rounded-[var(--radius-button)] border border-[var(--border)] p-2 text-[length:var(--font-size-sm)]"
     >
-      <p className="m-0 flex flex-wrap items-center gap-x-2">
-        <span>
-          Choose an effect for <b className="[overflow-wrap:anywhere]">“{text}”</b> in {dawName}’s FX window.
+      <p className="m-0">
+        Choose an effect for <b className="[overflow-wrap:anywhere]">“{text}”</b> in {dawName}’s FX window.{' '}
+        <span className="inline-block align-middle">
+          <HelpButton label="About choosing in the FX window">When you close that window the effect is added to these words; Keep it adds it now.</HelpButton>
         </span>
-        <HelpButton label="About choosing in the FX window">When you close that window the effect is added to these words; Keep it adds it now.</HelpButton>
       </p>
       <p className="m-0" role="status" aria-live="polite">
         {heardAt === null

@@ -474,11 +474,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/settings/DeliveryProfilesPanel.tsx', text: 'No custom profiles. Duplicate a built-in profile to make one.', class: 'empty' },
   { file: 'components/settings/KeyboardPanel.tsx', text: 'Press another key or pedal to try again. Esc cancels.', class: 'error' },
-  {
-    file: 'components/settings/KeyboardPanel.tsx',
-    text: 'Replace takes it from "…", which is then left with no key; you can give it another one afterwards.',
-    class: 'explanation',
-  },
   { file: 'components/settings/RecordingCheckSummary.tsx', text: 'Misreads, extra words and a spoken title never count against it.', class: 'explanation' },
   {
     file: 'components/settings/RecordingCheckSummary.tsx',
@@ -535,7 +530,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/controls/MwKeyBody.tsx',
     text: 'When no dictionary on this computer knows a name, Look up online asks Merriam-Webster. Only the one word you look up is sent, never your text, file names or project. Answers are kept on this computer, so a word is never sent twice.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/settings/controls/SampleOutputBody.tsx',
@@ -550,12 +545,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/page/ModelsPane.tsx',
     text: 'The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/settings/page/ProjectDataPanel.tsx',
-    text: 'Clearing removes the imported manuscript and stored source, Story Bible, proofing artifacts, reader notes/bookmarks, and saved comparison results. Settings remain.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/settings/page/ScopedFieldsPanel.tsx', text: 'Settings could not be loaded: ….', class: 'error' },
   {
@@ -749,11 +739,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/controls/EngineBody.tsx',
     text: '… was not found on this computer. Install it, or set where it is under Advanced, in the REAPER program setting below. ',
-    class: 'state',
-  },
-  {
-    file: 'components/settings/controls/MwKeyBody.tsx',
-    text: ' On this system the key is kept in a file only your account can read, not in a protected credential store.',
     class: 'state',
   },
   {
