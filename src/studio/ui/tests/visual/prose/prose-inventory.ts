@@ -559,11 +559,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.',
     class: 'overlay',
   },
-  {
-    file: 'components/settings/page/ProjectDataPanel.tsx',
-    text: 'Clearing removes the imported manuscript and stored source, Story Bible, proofing artifacts, reader notes/bookmarks, and saved comparison results. Settings remain.',
-    class: 'overlay',
-  },
   { file: 'components/settings/page/ScopedFieldsPanel.tsx', text: 'Settings could not be loaded: ….', class: 'error' },
   {
     file: 'components/settings/page/SettingsPage.tsx',
