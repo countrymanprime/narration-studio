@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
-import { useDawState } from '../../../daw/useDawSession';
+import { useDawSession, useDawState } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
 import { startDaw } from '../../connection/startDaw';
 import { Button } from '../../primitives/Button';
@@ -134,6 +134,7 @@ function BridgeLine({ choice }: { choice: DawChoice }) {
 export function EngineBody() {
   const dawChoice = usePort('dawChoice');
   const capsVersion = useDawState((state) => state.capsVersion);
+  const session = useDawSession();
   const project = usePort('project');
   const system = usePort('system');
   const catalog = usePort('dawCatalog');
@@ -198,6 +199,8 @@ export function EngineBody() {
   const check = async () => {
     setTest({ phase: 'testing', text: 'Testing…' });
     const began = performance.now();
+    // The one check route: the report is read again for every screen, and the header's facts follow it.
+    void session.checkConnection();
     const next = await read();
     if (!next) return setTest({ phase: 'bad', text: 'The connection could not be read.' });
     setError(undefined);
