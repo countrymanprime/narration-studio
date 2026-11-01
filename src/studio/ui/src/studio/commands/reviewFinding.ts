@@ -95,3 +95,7 @@ export async function restoreLinked(port: ReviewPort, changed: readonly LinkedCh
     await port.findingsReview({ id: before.id, evidenceVersion: after.evidence_version ?? '', status: before.review.status, note: before.review.note ?? '' });
   }
 }
+
+/** Puts one finding back to `status`, against the evidence version it was last answered with. */
+export const putBack = (port: ReviewPort, to: { id: string; evidenceVersion: string }, status: FindingReviewStatus, note = '') =>
+  port.findingsReview({ id: to.id, evidenceVersion: to.evidenceVersion, status, note });

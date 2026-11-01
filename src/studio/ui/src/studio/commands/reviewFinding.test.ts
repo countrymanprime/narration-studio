@@ -56,9 +56,6 @@ describe('review-finding-is-one-journal-entry', () => {
   });
 });
 
-/** Writers that still call the host directly, each owed its own journal entry (audit cluster 17); the list only shrinks. */
-const UNJOURNALLED = ['components/booth/suspected/SuspectedLines.tsx', 'components/booth/suspected/useSuspectedPickups.ts'];
-
 /** The Inspector's own port call (the journalled api is injected into it) and Proof's no-op decision, which is no decision. */
 const PASS_THROUGH = ['components/proof/ProofPage.tsx', 'components/proof/inspector/useShownEvidence.ts'];
 
@@ -71,12 +68,12 @@ function sources(dir: string): string[] {
 }
 
 describe('no-page-decides-a-finding-outside-the-command', () => {
-  it('only the command, the Inspector pass-through and the unjournalled list call findingsReview', () => {
+  it('no screen decides a finding by itself: only the Inspector pass-through calls findingsReview, and every other decision goes through reviewFinding.ts', () => {
     const root = join(__dirname, '../..');
     const calling = sources(join(root, 'components'))
       .filter((path) => /\.findingsReview\(/.test(readFileSync(path, 'utf8')))
       .map((path) => path.slice(root.length + 1).replaceAll('\\', '/'))
       .sort();
-    expect(calling.filter((path) => ![...PASS_THROUGH, ...UNJOURNALLED].includes(path))).toEqual([]);
+    expect(calling.filter((path) => !PASS_THROUGH.includes(path))).toEqual([]);
   });
 });

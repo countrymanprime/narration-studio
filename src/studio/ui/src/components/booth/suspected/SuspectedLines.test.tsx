@@ -95,11 +95,30 @@ describe('SuspectedLines', () => {
     expect(dismissedSaves).toHaveLength(1);
     expect(dismissedSaves[0]).toMatchObject({ paragraphId: 'p9', kind: 'skipped' });
     expect(screen.getByText('Suspected · 1')).toBeTruthy();
-    expect(toastUndo).toHaveBeenCalledWith('Dismissed.', expect.any(Function), { offJournal: expect.any(String) });
+    expect(toastUndo).toHaveBeenCalledWith('Dismissed.', expect.any(Function), { entry: expect.any(Number) });
     const result = await toastUndo.mock.calls[0][1]();
     expect(result.ok).toBe(true);
     expect(review).toHaveBeenCalledWith(expect.objectContaining({ status: 'unreviewed' }));
     await waitFor(() => expect(screen.queryByText('Dismissed')).toBeNull());
+  });
+
+  it('a dismissal is one journal entry, and Ctrl+Z brings the line back', async () => {
+    const { review, wrapper } = host();
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    render(
+      <StudioProvider journal={journal}>
+        <SuspectedLines chapterId="c8" flags={[skipped, again]} />
+      </StudioProvider>,
+      { wrapper },
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Dismiss: down the hole' }));
+    await waitFor(() => expect(screen.getByText('Dismissed')).toBeTruthy());
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: 'Dismissed a suspected line', undoable: true });
+    expect((await journal.undoLast()).ok).toBe(true);
+    expect(review).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'unreviewed' }));
+    await waitFor(() => expect(screen.getByText('Suspected · 2')).toBeTruthy());
   });
 
   it('the-key-is-stable-and-a-dismissed-line-stays-dismissed: a re-read comes back dismissed, once', async () => {
