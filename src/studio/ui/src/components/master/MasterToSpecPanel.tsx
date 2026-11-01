@@ -4,6 +4,7 @@ import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Checkbox } from '../primitives/Checkbox';
+import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { Select } from '../primitives/Select';
@@ -168,11 +169,13 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
         </div>
       )}
       {items.length > 0 && !started && (
-        <div className="mt-3">
+        <div className="mt-3 flex items-center gap-2">
           <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
-            Master before encoding{chainLabel ? ` with the ${chainLabel.charAt(0).toLowerCase()}${chainLabel.slice(1)}` : ''}, to the platform&apos;s RMS window
-            and peak limit
+            Master before encoding{chainLabel ? ` with the ${chainLabel.charAt(0).toLowerCase()}${chainLabel.slice(1)}` : ''}
           </Checkbox>
+          <HelpButton label="About mastering before encoding">
+            Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.
+          </HelpButton>
         </div>
       )}
       {exportJob && exportRunning && (

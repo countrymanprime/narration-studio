@@ -289,11 +289,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   {
-    file: 'components/master/DeliveryProfilePanel.tsx',
-    text: 'Loudness (LUFS) and true peak are shown in each file&apos;s detail for information',
-    class: 'explanation',
-  },
-  {
     file: 'components/master/DiagnosticsSection.tsx',
     text: 'No silence, breath or click candidates in the checked files, against the thresholds below.',
     class: 'empty',
@@ -311,20 +306,18 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/master/FileRulesPanel.tsx',
     text: 'Book rules (channels the same across files, credits files, retail sample, one section per file, consistency) judge the book as a whole, not this one file: see the Delivery package beside the files.',
-    class: 'explanation',
+    class: 'overlay',
   },
-  { file: 'components/master/MasterToSpecPanel.tsx', text: 'Master before encoding…, to the platform&apos;s RMS window and peak limit', class: 'instruction' },
   {
     file: 'components/master/MasteringChain.tsx',
     text: "One chain for the book: …, the same for every platform, with each platform's own RMS window and peak limit.",
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/master/ReportExportPanel.tsx',
-    text: 'Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s … … folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed.',
-    class: 'explanation',
+    text: 'Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s …/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed. Without the full location, only file names are written.',
+    class: 'overlay',
   },
-  { file: 'components/master/ReportExportPanel.tsx', text: 'Include each file’s full location (otherwise only file names are written)', class: 'explanation' },
   { file: 'components/pickups/PickupsCompanionSummary.tsx', text: 'Jump to one or mark it done on the Pickups page in the full app.', class: 'instruction' },
   {
     file: 'components/pickups/list/PickupsTable.tsx',
@@ -708,11 +701,10 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'error',
   },
   {
-    file: 'components/master/DeliveryProfilePanel.tsx',
-    text: 'Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.',
+    file: 'components/master/MasterToSpecPanel.tsx',
+    text: 'Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.',
     class: 'overlay',
   },
-  { file: 'components/master/DeliveryProfilePanel.tsx', text: ": …'s page, as recorded, sets no LUFS rule.", class: 'state' },
   { file: 'components/master/FileRulesPanel.tsx', text: ' Loudness … LUFS (information: … no LUFS rule).', class: 'state' },
   { file: 'components/master/ReportExportPanel.tsx', text: 'Check some files first: the report covers the files measured here.', class: 'empty' },
   { file: 'components/masterqc/page/MasterPage.tsx', text: 'The link names …, but no files are measured yet. Check files to measure them.', class: 'empty' },
