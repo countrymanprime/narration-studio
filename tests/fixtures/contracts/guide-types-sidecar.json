@@ -30,6 +30,12 @@
     "speaks": false
   },
   {
+    "builtin": "Word",
+    "colour": "teal",
+    "name": "Word",
+    "speaks": false
+  },
+  {
     "colour": "amber",
     "name": "Creature",
     "speaks": true

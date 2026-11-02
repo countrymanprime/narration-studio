@@ -50,6 +50,7 @@ export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
 /**
  * AssetsList is every approved asset of every kind with its state, size, publisher, licence and provenance links, where it is installed,
  * when, and the download that is running for it (so a page opened while one runs can follow it). It reads no file contents.
+ * The Booth's record press asks it first (the speech model check), so it begins a press on the record-press timeline.
  */
 export function AssetsList(): $CancellablePromise<string> {
     return $Call.ByID(2175855371);
@@ -1710,6 +1711,16 @@ export function GuidePronounceUser(id: string, aliasIndex: number | null, ipa: s
     return $Call.ByID(867110926, id, aliasIndex, ipa);
 }
 
+/**
+ * GuidePronunciationRestore writes the entity's name's (aliasIndex null) or one alias's whole pronunciation object exactly as given, a
+ * key the value lacks removed: the undo of a pronunciation edit. It returns the object as written. A locked entry, an unknown id and an
+ * alias out of range are refused as the other pronunciation edits refuse them; an IPA or note over its limit, or a source that is not
+ * a registered one, manual, "not generated" or none, is refused before the file is read.
+ */
+export function GuidePronunciationRestore(id: string, aliasIndex: number | null, value: $models.GuidePronunciationValue): $CancellablePromise<string> {
+    return $Call.ByID(747697347, id, aliasIndex, value);
+}
+
 export function GuidePronunciationUseAlternate(id: string, aliasIndex: number | null): $CancellablePromise<string> {
     return $Call.ByID(661717092, id, aliasIndex);
 }
@@ -2741,8 +2752,7 @@ export function RetakeLanesState(): $CancellablePromise<string> {
 }
 
 /**
- * ScriptPrepList returns every manuscript chapter with its prep state (none when never set) and every flagged word with its
- * status, in reading order of its first flag.
+ * ScriptPrepList returns every manuscript chapter with its prep state (none when never set), then the credits once set.
  */
 export function ScriptPrepList(): $CancellablePromise<string> {
     return $Call.ByID(3735153582);
@@ -2754,29 +2764,6 @@ export function ScriptPrepList(): $CancellablePromise<string> {
  */
 export function ScriptPrepSetChapter(chapterID: string, state: string): $CancellablePromise<string> {
     return $Call.ByID(1526545883, chapterID, state);
-}
-
-/**
- * ScriptWordFlag flags a range of one line for pronunciation: start and end are UTF-16 units into the line's text, start before
- * end. The word is the line's own text for the range, lower-cased as its key. It returns the word with all its flags.
- */
-export function ScriptWordFlag(chapterID: string, paragraphID: string, start: number, end: number): $CancellablePromise<string> {
-    return $Call.ByID(2540312751, chapterID, paragraphID, start, end);
-}
-
-/**
- * ScriptWordSay stores how a flagged word is said and the id of the pronunciation source the value came from; an empty source
- * means the narrator typed it, and an empty say clears the value and keeps the word flagged.
- */
-export function ScriptWordSay(word: string, say: string, source: string): $CancellablePromise<string> {
-    return $Call.ByID(1125216296, word, say, source);
-}
-
-/**
- * ScriptWordUnflag removes one flag and returns its word. The say-value is dropped with the word's last flag.
- */
-export function ScriptWordUnflag(flagID: string): $CancellablePromise<string> {
-    return $Call.ByID(2287209164, flagID);
 }
 
 /**

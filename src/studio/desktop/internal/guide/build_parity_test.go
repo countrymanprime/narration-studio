@@ -210,6 +210,7 @@ var refusedInWords = []string{"ValueError", "ManuscriptError"}
 // Story Bible as the sidecar did, and what else it did is pinned in testdata/build-rules.json instead (its stdout line or error, the
 // names it asked pronunciations for, and its file's SHA-256; UPDATE_CONTRACTS=1 rewrites it).
 func TestBuildMatchesTheSidecar(t *testing.T) {
+	sidecarDefaults(t)
 	root, cases, results, rules, cues := readBuildParity(t)
 	built, refused, ambiguous, names, spacy := 0, 0, 0, 0, 0
 	byRules := map[string]rulesBuild{}
