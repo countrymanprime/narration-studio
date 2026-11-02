@@ -4,7 +4,6 @@ import { errorText } from './useTeleprompterSession';
 
 const SETTINGS_TOOL = 'ReadAloud';
 const ENABLED_KEY = 'record_in_reaper';
-const CONFIRMED_KEY = 'record_confirmed';
 
 export type RecordInReaperState = {
   /** The project-scope settings have been read once; the toggle shows its real state only after this. */
@@ -16,13 +15,6 @@ export type RecordInReaperState = {
   recordingSince?: number;
   /** The last arm, start or stop refusal's message, cleared at the start of the next attempt. */
   error?: string;
-  armPending: boolean;
-  /** Turning the toggle on for the first time in this project asks first; every other change is immediate. */
-  confirmPending: boolean;
-  toggle: () => void;
-  confirm: () => void;
-  cancelConfirm: () => void;
-  armOnly: () => Promise<void>;
   /** Called before a session starts listening (Play). Resolves true when it is fine to go ahead: the toggle is off, the
    * capability is unavailable, there is no chapter (credits), or REAPER confirmed it started recording. Resolves false
    * only on a genuine refusal or timeout, with `error` set to why. */
@@ -33,10 +25,10 @@ export type RecordInReaperState = {
 };
 
 /**
- * The Record-in-REAPER toggle's memory and orchestration: a per-project on/off (`ReadAloud.record_in_reaper`, reusing the generic
- * settings mechanism the way `Keymap.overrides` does - no Settings panel names this tool, so it never joins the
- * generic Settings page) with a first-time confirm (`record_confirmed`), "Arm `<chapter>` only", and what Play
- * and Stop do while it is on: `ReadAloudRecordStart` before a session starts listening, `ReadAloudRecordStop` after it
+ * The Record-in-REAPER setting's reading and what Play and Stop do while it is on. The setting is a per-project on/off
+ * (`ReadAloud.record_in_reaper`, read the way `Keymap.overrides` is; no Settings panel names this tool). Nothing in the app turns it on or off
+ * any more (its toggle and first-time confirm had no caller and were removed, #2602), so it is on only for a project that saved it earlier.
+ * While it is on: `ReadAloudRecordStart` before a session starts listening, `ReadAloudRecordStop` after it
  * stops. Reading with the toggle off, with the record capability unavailable, or with no chapter (credits mode)
  * never touches REAPER: `beforeStart` answers true at once, as before the toggle existed, so a narrator whose REAPER access
  * lapses can still just read.
@@ -45,9 +37,6 @@ export function useRecordInReaper(chapterId: string | undefined, capabilityAvail
   const api = useApi();
   const [loaded, setLoaded] = useState(false);
   const [enabled, setEnabled] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-  const [confirmPending, setConfirmPending] = useState(false);
-  const [armPending, setArmPending] = useState(false);
   const [recordingSince, setRecordingSince] = useState<number>();
   const recording = recordingSince !== undefined;
   const [error, setError] = useState<string>();
@@ -60,7 +49,6 @@ export function useRecordInReaper(chapterId: string | undefined, capabilityAvail
         if (!live) return;
         const rows = fields[SETTINGS_TOOL] ?? [];
         setEnabled(rows.find((row) => row.key === ENABLED_KEY)?.effectiveValue === 'true');
-        setConfirmed(rows.find((row) => row.key === CONFIRMED_KEY)?.effectiveValue === 'true');
         setLoaded(true);
       })
       .catch((reason) => live && setError(errorText(reason)));
@@ -68,51 +56,6 @@ export function useRecordInReaper(chapterId: string | undefined, capabilityAvail
       live = false;
     };
   }, [api]);
-
-  const save = useCallback(
-    (values: Record<string, string>) => void api.saveSettings(SETTINGS_TOOL, 'project', values).catch((reason) => setError(errorText(reason))),
-    [api],
-  );
-
-  const toggle = useCallback(() => {
-    if (enabled) {
-      setEnabled(false);
-      save({ [ENABLED_KEY]: 'false' });
-      return;
-    }
-    if (confirmed) {
-      setEnabled(true);
-      save({ [ENABLED_KEY]: 'true' });
-      return;
-    }
-    setConfirmPending(true);
-  }, [enabled, confirmed, save]);
-
-  const confirm = useCallback(() => {
-    setConfirmPending(false);
-    setEnabled(true);
-    setConfirmed(true);
-    save({ [ENABLED_KEY]: 'true', [CONFIRMED_KEY]: 'true' });
-  }, [save]);
-
-  const cancelConfirm = useCallback(() => setConfirmPending(false), []);
-
-  // Returns a promise (rather than firing and forgetting) so the caller can re-ask the chapter's REAPER state once
-  // arming has actually finished: the indicator's own status text is how the narrator learns arming worked, not a
-  // second message here.
-  const armOnly = useCallback(async () => {
-    if (!chapterId) return;
-    setArmPending(true);
-    setError(undefined);
-    try {
-      const result = await api.readAloudArmOnly(chapterId);
-      if (result.outcome === 'refused') setError(result.message);
-    } catch (reason) {
-      setError(errorText(reason));
-    } finally {
-      setArmPending(false);
-    }
-  }, [api, chapterId]);
 
   const beforeStart = useCallback(async (): Promise<boolean> => {
     if (!enabled || !capabilityAvailable || !chapterId) return true;
@@ -140,5 +83,5 @@ export function useRecordInReaper(chapterId: string | undefined, capabilityAvail
     api.readAloudRecordStop().catch((reason) => setError(errorText(reason)));
   }, [api, recording]);
 
-  return { loaded, enabled, recording, recordingSince, error, armPending, confirmPending, toggle, confirm, cancelConfirm, armOnly, beforeStart, afterStop };
+  return { loaded, enabled, recording, recordingSince, error, beforeStart, afterStop };
 }

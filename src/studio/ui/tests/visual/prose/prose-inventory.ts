@@ -25,21 +25,6 @@ export type ProseEntry = { file: string; text: string; class: ProseClass };
 
 export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/booth/CompanionShell.tsx', text: 'Hotkeys that reach this panel from REAPER are not available yet.', class: 'state' },
-  {
-    file: 'components/booth/RecordInReaperConfirm.tsx',
-    text: 'Play will arm and start recording in REAPER on the track linked to … , and Stop will stop that recording.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/booth/RecordInReaperConfirm.tsx',
-    text: 'Nothing is recorded on any other track, and a recording you started in REAPER yourself is never stopped by the app.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/booth/RecordInReaperConfirm.tsx',
-    text: 'You will be asked this once for this project. You can turn it off from the bar at any time.',
-    class: 'overlay',
-  },
   { file: 'components/booth/ResumePrompt.tsx', text: 'REAPER and your last reading are in different places. Start where?', class: 'state' },
   {
     file: 'components/booth/ResumePrompt.tsx',
