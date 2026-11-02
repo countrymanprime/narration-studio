@@ -5,6 +5,7 @@ import { usePort } from '../../ports/usePort';
 import { startDaw } from '../connection/startDaw';
 import { Button } from '../primitives/Button';
 import { StatusBadge } from '../primitives/StatusBadge';
+import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
 import { audacityTitle, audacityTone, heardText } from './audacityLinkText';
 import type { AudacityLinkView } from './useAudacityLink';
@@ -60,7 +61,6 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
 
   const heard = link.state === 'answering' ? null : heardText(link, receivedAt, now);
   const stepsOpen = link.steps.some((step) => !step.done);
-  const answering = link.state === 'answering' || link.state === 'no_project';
   const startAudacity = async () => {
     const started = await startDaw({ project, system }, 'Audacity');
     if (started.ok) notify('Started Audacity. The app connects when it answers.');
@@ -114,17 +114,16 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
           {link.linkedFile ? 'Change Audacity project file' : 'Choose Audacity project file'}
         </Button>
         {link.linked && (
-          <Button variant="secondary" size="sm" disabled={busy !== undefined} onClick={() => void run('unlink', () => port.audacityUnlink())}>
-            Unlink
-          </Button>
+          <TooltipTarget text="Leaves the link label in the Audacity project">
+            <Button variant="secondary" size="sm" disabled={busy !== undefined} onClick={() => void run('unlink', () => port.audacityUnlink())}>
+              Unlink
+            </Button>
+          </TooltipTarget>
         )}
         <Button variant="secondary" size="sm" disabled={busy !== undefined} onClick={() => void run('check', () => check())}>
           {busy === 'check' ? 'Checking…' : 'Check again'}
         </Button>
       </div>
-      {link.linked && answering && (
-        <span className="text-[var(--text-muted)]">Unlinking leaves the link label in the Audacity project; delete it there if you like.</span>
-      )}
       {(problem ?? error) && (
         <p role="alert" className="text-[var(--danger-text)]">
           {problem ?? error}

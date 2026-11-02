@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ChooseState } from '../range/fx/useChooseInDaw';
 import { Button } from '../../primitives/Button';
+import { HelpButton } from '../../primitives/HelpButton';
 
 /** How long without an answer before the panel says it cannot tell what is chosen, in milliseconds. */
 export const CHOOSE_QUIET_MS = 6000;
@@ -41,8 +42,10 @@ export function ChooseInDaw({
       className="flex flex-col gap-2 rounded-[var(--radius-button)] border border-[var(--border)] p-2 text-[length:var(--font-size-sm)]"
     >
       <p className="m-0">
-        Choose an effect for <b className="[overflow-wrap:anywhere]">“{text}”</b> in {dawName}’s FX window. When you close that window it is added to these
-        words; Keep it adds it now.
+        Choose an effect for <b className="[overflow-wrap:anywhere]">“{text}”</b> in {dawName}’s FX window.{' '}
+        <span className="inline-block align-middle">
+          <HelpButton label="About choosing in the FX window">When you close that window the effect is added to these words; Keep it adds it now.</HelpButton>
+        </span>
       </p>
       <p className="m-0" role="status" aria-live="polite">
         {heardAt === null

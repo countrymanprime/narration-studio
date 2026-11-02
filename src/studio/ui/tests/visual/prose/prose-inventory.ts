@@ -82,7 +82,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'A take would not land in the project linked here. Open the linked project in …, or link the one that is open now.',
     class: 'error',
   },
-  { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'instruction' },
+  { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Could not read whether a project file is linked. Press Check again.', class: 'error' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'is linked to …. Linking it here moves it.', class: 'overlay' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new track for this chapter, named after it, and link it:', class: 'overlay' },
@@ -109,7 +109,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: "Matching changes each item's volume in REAPER to bring it onto target, in one undo step.",
     class: 'overlay',
   },
-  { file: 'components/editing/EditingCheckPanel.tsx', text: 'A met or not-met status shows only while this chapter is in Editing.', class: 'explanation' },
+  { file: 'components/editing/EditingCheckPanel.tsx', text: 'A met or not-met status shows only while this chapter is in Editing.', class: 'overlay' },
   { file: 'components/editing/EditingCheckPanel.tsx', text: 'Another chapter is being checked. Check this one when it finishes.', class: 'overlay' },
   {
     file: 'components/editing/EditingCheckPanel.tsx',
@@ -120,8 +120,8 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/editing/cleanup/CleanupPreview.tsx', text: 'Hidden on …; nothing is deleted.', class: 'state' },
   {
     file: 'components/editing/effects/ChooseInDaw.tsx',
-    text: 'Choose an effect for … in …’s FX window. When you close that window it is added to these words; Keep it adds it now.',
-    class: 'instruction',
+    text: 'When you close that window the effect is added to these words; Keep it adds it now.',
+    class: 'overlay',
   },
   { file: 'components/editing/flags/FlagCard.tsx', text: 'reads the line twice. The second read starts at ….', class: 'state' },
   {
@@ -145,7 +145,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/editing/stack/useStackRetries.tsx',
     text: 'Hide … (…) of this passage. They are muted and put out of the way, never deleted, and Undo brings them back.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/editing/takes/TakeCompare.tsx',
@@ -189,11 +189,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     file: 'components/editing/voicesample/VoiceSampleDialog.tsx',
     text: 'Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.',
     class: 'overlay',
-  },
-  {
-    file: 'components/engine/AudacityLinkCard.tsx',
-    text: 'Unlinking leaves the link label in the Audacity project; delete it there if you like.',
-    class: 'explanation',
   },
   {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
@@ -276,7 +271,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Choose which lane plays for a line. A lane plays across its whole track, so choosing one silences the other lanes of that track everywhere, not only for this line. … changes nothing else, and Undo in REAPER puts the previous lanes back.',
     class: 'overlay',
   },
-  { file: 'components/layout/HistoryPanel.tsx', text: 'History keeps the newest … changes; older changes can no longer be undone.', class: 'explanation' },
   { file: 'components/layout/NeedManuscript.tsx', text: 'This project has no manuscript yet. Import one to begin.', class: 'empty' },
   {
     file: 'components/layout/NotFoundPage.tsx',
@@ -565,7 +559,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'You confirmed the move from … to … on …. A check since then is not met (below). Nothing has changed: the chapter stays in … unless you revert it.',
     class: 'state',
   },
-  { file: 'components/stages/StageEvidence.tsx', text: 'Reads the evidence again; it starts no check.', class: 'explanation' },
   { file: 'components/stages/StageEvidence.tsx', text: 'Based on the saved REAPER project, file modified … …. Read ….', class: 'state' },
   { file: 'components/storybible/AppearsIn.tsx', text: 'Not listed yet. Build the Story Bible again to list the chapters.', class: 'empty' },
   {
