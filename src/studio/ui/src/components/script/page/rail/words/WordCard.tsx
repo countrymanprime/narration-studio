@@ -1,102 +1,85 @@
-import { useEffect, useState } from 'react';
 import { overlay } from '../../../../../overlay/overlayService';
+import { hearNameAction } from '../../../../../icons.catalog';
 import { Button } from '../../../../primitives/Button';
 import { Icon } from '../../../../primitives/Icon';
 import { IconButton } from '../../../../primitives/IconButton';
-import { hearNameAction } from '../../../../../icons.catalog';
 import { InsetCard } from '../../../../primitives/InsetCard';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { StatusBadge } from '../../../../primitives/StatusBadge';
-import { TextField } from '../../../../primitives/TextField';
-import { PronSourceTag } from '../../../../storybible/source/PronSourceTag';
+import type { Notify } from '../../../../primitives/Toast';
+import { NamePronunciation, NAMES_GRID } from '../../../../storybible/source/NamePronunciation';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
-import { useScriptCommands, useScriptPrep } from '../../data/useScriptData';
+import { wordKey } from '../../data/script.selectors';
 import type { LineRange } from '../../data/scriptCommands';
-import { RailFieldRow, RailOptionRow } from '../RailOptionRow';
+import { useEntries, useScriptCommands } from '../../data/useScriptData';
+import { useScriptHear } from '../../data/useScriptHear';
 import { DefinitionBlock } from './DefinitionBlock';
 import { ExternalLinks } from './ExternalLinks';
-import { statusLabel, statusTone } from './wordStatus';
+import { statusLabel, statusTone, type WordStatus } from './wordStatus';
 import type { WordsHost } from './wordsHost';
 
+const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
+const NOT_A_WORD_REASON = 'Add it to your words first.';
+
 /**
- * One word: its status, how I will say it with the source it came from, the definition from the chosen source, the fixed web look-ups and
- * "Add to my words" for a word the chapter has no flag for. Hear and Record are toasts, as in the mock: there is no clip to play.
+ * One word: its status, how I will say it, the definition from the chosen source, the fixed web look-ups and "Add to my words" for a word no
+ * Story Bible entry names. How it is said is the Story Bible name's own pronunciation (#2595), shown and edited through the Story Bible's row
+ * (`NamePronunciation`) and its journalled commands, so the two pages cannot disagree. Record is a toast, as in the mock: there is no clip.
  */
 export function WordCard({ word, host, selection }: { word: string; host: WordsHost; selection?: LineRange }) {
-  const prep = useScriptPrep();
+  const entries = useEntries();
   const commands = useScriptCommands();
-  const { sources } = usePronunciationSources();
-  const status = prep.pronStatus(word);
-  const saved = prep.pronOfWord(word);
-  const [say, setSay] = useState(saved.say);
-  const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
-  useEffect(() => setSay(saved.say), [saved.say]);
-
-  const save = async (value: string, source?: string) => {
-    const own = (id: string | undefined) => !id || id === 'manual';
-    if (value.trim() === saved.say && (source === saved.source || (own(source) && own(saved.source)))) return;
-    setBusy(true);
-    try {
-      await commands.saveSay(word, value, source);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const pick = async (id: string) => {
-    setNote('');
-    const source = sources.find((row) => row.id === id);
-    if (!source) return;
-    if (source.kind === 'manual') return void (await save(say, 'manual'));
-    const candidate = await host.candidate(word, id);
-    if (!candidate.ok) return setNote(candidate.reason);
-    setSay(candidate.say);
-    await save(candidate.say, id);
-  };
+  const sources = usePronunciationSources();
+  const hearOf = useScriptHear();
+  const name = entries.nameByKey(wordKey(word));
+  const entry = name ? entries.entryById(name.entryId) : undefined;
+  const status: WordStatus = name?.status ?? 'not_flagged';
+  const hear = name && hearOf(name.entryId, status === 'set', name.aliasIndex);
+  const toast: Notify = (text, tone) => overlay.toast(text, tone ? { tone } : undefined);
 
   return (
-    <InsetCard fill className="space-y-3" aria-label={`Word: ${word}`} role="group">
+    <InsetCard fill className="space-y-3" aria-label={`Word: ${name?.name ?? word}`} role="group">
       <div className="flex items-center gap-2">
-        <h3 className="m-0 text-base font-semibold">{word}</h3>
+        <h3 className="m-0 text-base font-semibold">{name?.name ?? word}</h3>
         <StatusBadge tone={statusTone(status)} label={statusLabel(status)} />
         <span className="flex-1" />
-        <IconButton action={hearNameAction()} disabledReason="No clip for a marked word" />
+        <IconButton
+          action={hearNameAction(hear?.playing)}
+          label={`${hear?.playing ? 'Stop' : 'Hear'} ${name?.name ?? word}`}
+          aria-pressed={hear?.playing}
+          pending={hear?.loading}
+          onClick={hear?.onPress}
+          disabledReason={hear ? undefined : name ? NO_PRONUNCIATION_REASON : NOT_A_WORD_REASON}
+        />
         <IconButton action="record" onClick={() => overlay.toast('Recording your own pronunciation')} />
       </div>
-      <RailOptionRow label="How I will say it">
-        <PronSourceTag src={saved.source} sources={sources} word={word} onPick={(id) => void pick(id)} disabled={busy} />
-      </RailOptionRow>
-      <RailFieldRow
-        field={
-          <TextField
-            label="How I will say it"
-            mono
-            placeholder="for example: kroh-KAY"
-            value={say}
-            onChange={setSay}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void save(say, 'manual');
-            }}
-          />
-        }
-        action={
-          <Button variant="secondary" pending={busy} onClick={() => void save(say, 'manual')}>
-            Save
-          </Button>
-        }
-      />
-      {note && (
-        <p role="status" className="m-0 text-xs text-[var(--text-muted)]">
-          {note}
-        </p>
+      {name && entry && (
+        <div className="@container">
+          <div role="group" aria-label="How I will say it" className={`${NAMES_GRID.shared} ${NAMES_GRID.edit}`}>
+            <NamePronunciation
+              entityId={entry.id}
+              row={{ name: name.name, aliasIndex: name.aliasIndex, pronunciation: name.pronunciation }}
+              editing
+              locked={entry.locked}
+              sources={sources}
+              reload={async () => undefined}
+              notify={toast}
+              primary
+            />
+          </div>
+        </div>
       )}
-      <DefinitionBlock word={word} source={host.definitionSource} host={host} onUse={(value, id) => void (setSay(value), save(value, id))} />
+      <DefinitionBlock
+        word={word}
+        source={host.definitionSource}
+        host={host} // An answer from the definition source is the narrator's own value, as the Story Bible's "Use this" saves it.
+        onUse={name ? (value) => void commands.pronounceName(name, value) : undefined}
+      />
       <SectionLabel as="div">Look up on the web</SectionLabel>
       <ExternalLinks word={word} open={(source, w) => void host.openLookup(source, w)} />
-      {status === 'not_flagged' && selection && (
+      {!name && selection && (
         // A labelled button, not a lone `+` under the look-ups that reads as one of them (XSC-12).
-        <Button variant="secondary" size="sm" onClick={() => void commands.flagWord(selection)}>
+        <Button variant="secondary" size="sm" onClick={() => void commands.addWord(selection)}>
           <Icon name="add" />
           Add to my words
         </Button>

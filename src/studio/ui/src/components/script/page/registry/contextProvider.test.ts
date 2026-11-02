@@ -40,8 +40,7 @@ function build(handlers: Partial<MenuHandlers> = {}, marks: Mark[] = [], entries
     setMarkType: vi.fn(async () => null),
     removeMark: vi.fn(async () => null),
     setStatus: vi.fn(async () => null),
-    removeWord: vi.fn(async () => null),
-    flagWord: vi.fn(async () => null),
+    addWord: vi.fn(async () => 'hatter'),
     createEntryFrom: vi.fn(async () => null),
     setPrep: vi.fn(async () => null),
   };
@@ -171,19 +170,17 @@ describe('context-provider-matches-the-targets', () => {
     expect(named(provider.items(dom('<section data-bound="" data-ch="c1"><b data-t>One</b></section>')))).toHaveLength(5);
   });
 
-  it('a word of the side panel gets Show and Remove', () => {
-    const { provider, commands, handlers } = build();
+  it('a word of the side panel gets Show only: it is a Story Bible entry, removed there with the entry (#2595)', () => {
+    const { provider, handlers } = build();
     const items = provider.items(dom('<table><tr data-w="caius"><td data-t>x</td></tr></table>'));
-    expect(items.map((i) => i.label)).toEqual(['Show “caius”', 'Remove from my words']);
+    expect(items.map((i) => i.label)).toEqual(['Show “caius”']);
     items[0].onSelect();
-    items[1].onSelect();
     expect(handlers.showWord).toHaveBeenCalledWith('caius');
-    expect(commands.removeWord).toHaveBeenCalledWith('caius');
   });
 });
 
 describe('menu-items-run-the-hooks-commands', () => {
-  it('each item calls a command or a handler with the target’s ids', () => {
+  it('each item calls a command or a handler with the target’s ids', async () => {
     const mine = build({ selectionAt: () => selection }, [mark('m1', 'query', 'open')]);
     const items = mine.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'));
     const run = (key: string) =>
@@ -205,7 +202,8 @@ describe('menu-items-run-the-hooks-commands', () => {
     expect(mine.commands.setMarkType).toHaveBeenCalledWith('m1', 'tone');
     expect(mine.commands.removeMark).toHaveBeenCalledWith('m1');
     expect(mine.handlers.composeMark).toHaveBeenCalledWith('tone', selection);
-    expect(mine.commands.flagWord).toHaveBeenCalledWith(selection);
+    expect(mine.commands.addWord).toHaveBeenCalledWith(selection);
+    await vi.waitFor(() => expect(mine.handlers.showWord).toHaveBeenCalledWith('hatter'));
     expect(mine.commands.createEntryFrom).toHaveBeenCalledWith('Place', 'Hatter');
     expect(mine.handlers.lookUp).toHaveBeenCalledWith('Hatter', selection);
     expect(mine.handlers.openFind).toHaveBeenCalledWith('Hatter');

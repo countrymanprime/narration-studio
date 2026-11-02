@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // The Script page's data layer over the browser mock (`createMockApi`) and over fakes that refuse: reads and their error
 // state, the journalled commands and their inverses, prep announcements, words, speakers and Story Bible entries.
+import { pronounceOwn } from '../../../../studio/commands/pronounce';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
@@ -283,40 +284,31 @@ describe('prep-state-is-journalled-and-announced', () => {
   });
 });
 
-describe('words-follow-the-mock', () => {
-  it('flag, say and unflag map to the three word calls with the host status; typing records manual', async () => {
-    const say = vi.spyOn(api, 'scriptWordSay');
+describe('a-word-is-a-story-bible-name (#2595)', () => {
+  it("Add to my words makes a Word entry once; its pronunciation is the entry's, changed through the shared command and undone", async () => {
+    const create = vi.spyOn(api, 'guideCreate');
     const hook = setup();
     await ready(hook);
-    const r = await range(0, 5);
-    let word = '';
-    await act(async () => void (word = (await hook.result.current.commands.flagWord(r))!.word));
-    expect(hook.result.current.prep.pronStatus(word)).toBe('not_set');
-    await act(async () => void (await hook.result.current.commands.flagWord(r)));
-    expect(await hook.result.current.journal.entries()).toHaveLength(1);
+    // "Alice was beginning…": "was" is no name, so it becomes an entry of the type Word.
+    const r = { ...(await range(0, 9)), start: 6, quote: 'was' };
+    let key: string | null = null;
+    await act(async () => void (key = await hook.result.current.commands.addWord(r)));
+    expect(key).toBe('was');
+    expect(create).toHaveBeenCalledWith('was', 'Word', []);
+    await act(async () => void (await hook.result.current.commands.addWord(r)));
+    expect(create).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toMatchObject({ category: 'Word', status: 'not_set' }));
 
-    await act(async () => void (await hook.result.current.commands.saveSay(word, 'uh-LIS')));
-    expect(say).toHaveBeenLastCalledWith(word, 'uh-LIS', 'manual');
-    expect(hook.result.current.prep.pronStatus(word)).toBe('set');
-    expect(hook.result.current.prep.pronOfWord(word)).toEqual({ say: 'uh-LIS', source: 'manual' });
-    await act(async () => void (await hook.result.current.commands.saveSay(word, 'uh-lees', 'cmu')));
-    expect(hook.result.current.prep.pronOfWord(word)).toEqual({ say: 'uh-lees', source: 'cmu' });
+    // A change made through the one command (the Story Bible's row and the Words card both use it) is what the Script reads, with no job event.
+    const name = hook.result.current.entries.nameByKey('was')!;
+    const target = { entryId: name.entryId, prior: name.pronunciation };
+    await act(async () => void (await pronounceOwn(hook.result.current.journal, api, target, 'WUZ')));
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toMatchObject({ status: 'set', pronunciation: { ipa: 'WUZ' } }));
     await undoLast(hook);
-    expect(hook.result.current.prep.pronOfWord(word).say).toBe('uh-LIS');
-
-    const flagId = hook.result.current.prep.words.find((w) => w.word === word)!.flags[0]!.id;
-    await act(async () => void (await hook.result.current.commands.unflagWord(flagId)));
-    expect(hook.result.current.prep.pronStatus(word)).toBe('not_flagged');
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')?.status).toBe('not_set'));
+    // Undo of Add removes the entry again.
     await undoLast(hook);
-    expect(hook.result.current.prep.pronStatus(word)).toBe('set');
-    expect(hook.result.current.prep.wordsInChapter('chapter-1').map((w) => w.word)).toEqual([word]);
-
-    await act(async () => void (await hook.result.current.commands.flagWord(await range(1, 5))));
-    await act(async () => void (await hook.result.current.commands.removeWord(word)));
-    expect(hook.result.current.prep.pronStatus(word)).toBe('not_flagged');
-    await undoLast(hook);
-    expect(hook.result.current.prep.pronStatus(word)).toBe('set');
-    expect(hook.result.current.prep.pronOfWord(word).say).toBe('uh-LIS');
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toBeUndefined());
   });
 });
 
@@ -447,14 +439,14 @@ describe('contract-kit', () => {
 
   it('every command refusing is a toast and an empty journal', async () => {
     const no = refusing('No.');
-    api = host({ marksAdd: no, scriptPrepSetChapter: no, scriptWordFlag: no, guideCorrectCue: no });
+    api = host({ marksAdd: no, scriptPrepSetChapter: no, guideCreate: no, guideCorrectCue: no });
     const hook = setup();
     await ready(hook);
     const c = hook.result.current.commands;
     await act(async () => {
       expect(await c.addMark(await range(), 'stress', '')).toBeNull();
       expect(await c.setPrep(hook.result.current.chapters.value![0]!, 'prepped')).toBe(false);
-      expect(await c.flagWord(await range())).toBeNull();
+      expect(await c.addWord({ ...(await range(0, 9)), start: 6, quote: 'was' })).toBeNull();
       expect(await c.confirmSpeaker('cue-1', 'alice')).toBe(false);
     });
     expect(toast.mock.calls.filter(([text]) => text === 'No.')).toHaveLength(4);

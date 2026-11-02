@@ -562,7 +562,6 @@ function ScriptWorkspace({
                 sources={{
                   marks: marks.marks,
                   markTypes: marks.types,
-                  words: prep.words,
                   entries: entries.entries,
                   cues: speakers.value ?? [],
                   types: entries.types,

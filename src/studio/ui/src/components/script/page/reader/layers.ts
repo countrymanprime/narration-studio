@@ -1,4 +1,5 @@
-// The layers a paragraph draws over its own text: the narrator's marks, flagged words, Story Bible names, the speaker of each
+// The layers a paragraph draws over its own text: the narrator's marks, Story Bible names (a plain word of the type Word drawn as a
+// word, with whether it has a pronunciation), the speaker of each
 // quoted phrase and the matches of Find. They only wrap pieces of the text, so the paragraph's text is the same with or
 // without them. The pieces come from one interval compositor in the style of the old reader's `manuscript/annotations.ts`
 // (a layer boundary splits a piece, the shorter layer is the inner one and owns the click); that file is the Booth's until its swap
@@ -6,12 +7,11 @@
 
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkColour, MarkStyle, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
 import { entryColour, speakerColour, type EntityColour } from '../../../../kinds/entityColour';
 import type { GuideType } from '../../../../types';
 import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
-import { mentionsIn, phrasesOf, type Phrase } from '../data/script.selectors';
+import { mentionsIn, nameByKey, phrasesOf, WORD_TYPE, wordKey, type NameStatus, type Phrase } from '../data/script.selectors';
 
 type Span = { start: number; end: number };
 
@@ -26,7 +26,8 @@ type MarkLayer = Span & {
   note: boolean;
   name: string;
 };
-type WordLayer = Span & { kind: 'word'; key: string; flagId: string; status: ScriptWord['status'] };
+/** A Story Bible entry of the type Word in the text, and whether that name has a pronunciation (#2595). */
+type WordLayer = Span & { kind: 'word'; key: string; entryId: string; status: NameStatus };
 /** A Story Bible name in the text; `colour` is its entry type's (`entryColour`), the same on every page. */
 type NameLayer = Span & { kind: 'name'; entryId: string; entryKind: string; colour: EntityColour };
 type FindLayer = Span & { kind: 'find'; current: boolean };
@@ -53,7 +54,7 @@ const layerId = (layer: Layer): string => {
     case 'mark':
       return layer.id;
     case 'word':
-      return layer.flagId;
+      return `${layer.entryId}:${layer.start}`;
     case 'name':
       return layer.entryId;
     case 'phrase':
@@ -89,7 +90,6 @@ export function composeLayers(text: string, layers: readonly Layer[]): LayerPiec
 export type LayerSources = {
   marks: readonly Mark[];
   markTypes: readonly MarkType[];
-  words: readonly ScriptWord[];
   entries: readonly GuideEntity[];
   cues: readonly GuideDialogueCue[];
   /** The Story Bible's types, which decide the colour of a name and of a speaker. */
@@ -99,7 +99,6 @@ export type LayerSources = {
 export type LayerIndex = {
   sources: LayerSources;
   marksBy: ReadonlyMap<string, Mark[]>;
-  wordsBy: ReadonlyMap<string, WordLayer[]>;
 };
 
 const pushTo = <T>(map: Map<string, T[]>, key: string, value: T): void => {
@@ -108,18 +107,11 @@ const pushTo = <T>(map: Map<string, T[]>, key: string, value: T): void => {
   else map.set(key, [value]);
 };
 
-/** Groups the marks and flags by paragraph once, so drawing a paragraph does not scan every mark of the book. */
+/** Groups the marks by paragraph once, so drawing a paragraph does not scan every mark of the book. */
 export function buildLayerIndex(sources: LayerSources): LayerIndex {
   const marksBy = new Map<string, Mark[]>();
   sources.marks.forEach((mark) => !mark.stale && pushTo(marksBy, mark.paragraphId, mark));
-  const wordsBy = new Map<string, WordLayer[]>();
-  sources.words.forEach((word) =>
-    word.flags.forEach((flag) => {
-      if (!flag.stale)
-        pushTo(wordsBy, flag.paragraphId, { kind: 'word', key: word.word, flagId: flag.id, status: word.status, start: flag.start, end: flag.end });
-    }),
-  );
-  return { sources, marksBy, wordsBy };
+  return { sources, marksBy };
 }
 
 const markLayer = (types: readonly MarkType[], mark: Mark): MarkLayer => {
@@ -154,15 +146,14 @@ export function paragraphLayers(index: LayerIndex, paragraph: Pick<ManuscriptPar
   const entryKind = new Map(entries.map((entry) => [entry.id, entry.category]));
   return [
     ...(index.marksBy.get(paragraph.id) ?? []).map((mark) => markLayer(markTypes, mark)),
-    ...(index.wordsBy.get(paragraph.id) ?? []),
-    ...mentionsIn(entries, paragraph.text).map((m): NameLayer => ({
-      kind: 'name',
-      entryId: m.entryId,
-      entryKind: entryKind.get(m.entryId) ?? '',
-      colour: entryColour(types, entryKind.get(m.entryId) ?? ''),
-      start: m.start,
-      end: m.end,
-    })),
+    ...mentionsIn(entries, paragraph.text).map((m): NameLayer | WordLayer => {
+      const kind = entryKind.get(m.entryId) ?? '';
+      if (kind === WORD_TYPE) {
+        const key = wordKey(m.text);
+        return { kind: 'word', key, entryId: m.entryId, status: nameByKey(entries, key)?.status ?? 'not_set', start: m.start, end: m.end };
+      }
+      return { kind: 'name', entryId: m.entryId, entryKind: kind, colour: entryColour(types, kind), start: m.start, end: m.end };
+    }),
     ...phrasesOf(cues, cueSpeakerEntries(entries, types), paragraph).map((phrase) => phraseLayer(types, phrase)),
   ];
 }

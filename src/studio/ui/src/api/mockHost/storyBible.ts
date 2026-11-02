@@ -47,6 +47,7 @@ const MOCK_DEFAULT_TYPES: GuideType[] = [
   { name: 'Lore', colour: 'amber', speaks: false },
   { name: 'Item', colour: 'teal', speaks: false },
   { name: 'Event', colour: 'rose', speaks: false },
+  { name: 'Word', colour: 'teal', speaks: false },
 ];
 
 /** The sidecar's check of a type's name (manuscript_guide.py _type_name and _refuse_taken). */
@@ -310,6 +311,9 @@ export function createStoryBibleMock(
         if (!prior.alternate) throw new Error('There is no other pronunciation to switch to.');
         return setPronunciation(prior, { ...prior.alternate, chosen: true });
       });
+    },
+    guidePronunciationRestore: async (id, value, aliasIndex) => {
+      changePronunciation(id, aliasIndex, () => wireClone(value));
     },
     guideDialogueCues: async () => wireClone(s.dialogueCues),
     guideAttributeSpeakers: async () => {

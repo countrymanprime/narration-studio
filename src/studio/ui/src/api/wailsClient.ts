@@ -170,7 +170,7 @@ import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemoved
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
-import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordSchema } from './schemas/scriptPrep';
+import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
   extractionImportPlanSchema,
@@ -482,9 +482,6 @@ export const wailsClient: NarrationApi = {
   marksSaveTypes: (types, removeUses) => decode(marksSchema, 'MarksSaveTypes', host.MarksSaveTypes(types, removeUses)),
   scriptPrepList: () => decode(scriptPrepSchema, 'ScriptPrepList', host.ScriptPrepList()),
   scriptPrepSetChapter: (chapterId, state) => decode(scriptPrepChapterSchema, 'ScriptPrepSetChapter', host.ScriptPrepSetChapter(chapterId, state)),
-  scriptWordFlag: (chapterId, paragraphId, start, end) => decode(scriptWordSchema, 'ScriptWordFlag', host.ScriptWordFlag(chapterId, paragraphId, start, end)),
-  scriptWordSay: (word, say, source) => decode(scriptWordSchema, 'ScriptWordSay', host.ScriptWordSay(word, say, source)),
-  scriptWordUnflag: (flagId) => decode(scriptWordSchema, 'ScriptWordUnflag', host.ScriptWordUnflag(flagId)),
   extractionList: () => decode(extractionSuggestionsSchema, 'ExtractionList', host.ExtractionList()),
   extractionAccept: (id, text) => decode(extractionDecisionSchema, 'ExtractionAccept', host.ExtractionAccept(id, text ?? null)),
   extractionReject: (id) => decode(extractionDecisionSchema, 'ExtractionReject', host.ExtractionReject(id)),

@@ -3,7 +3,6 @@
 
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { GuideType } from '../../../../types';
 import type { GuideDialogueCue, GuideDialogueCueSpeakerSource, GuideEntity } from '../../../../api/contracts/storyBible';
 
@@ -24,6 +23,7 @@ export const GUIDE_TYPES: readonly GuideType[] = [
   { name: 'Lore', colour: 'amber', speaks: false },
   { name: 'Item', colour: 'teal', speaks: false },
   { name: 'Event', colour: 'rose', speaks: false },
+  { name: 'Word', colour: 'teal', speaks: false },
 ];
 
 type Span = { start: number; end: number };
@@ -98,10 +98,8 @@ export const mark = (id: string, paragraphId: string, span: Span, type: string, 
   ...extra,
 });
 
-export const flaggedWord = (word: string, paragraphId: string, span: Span, status: ScriptWord['status'] = 'not_set'): ScriptWord => ({
-  word,
-  say: '',
-  source: '',
-  status,
-  flags: [{ id: `f-${word}`, chapterId: 'c1', paragraphId, paragraph: 0, ...span, quote: word, createdAt: '2026-10-11T00:00:00Z', stale: false }],
+/** A plain word the narrator added (#2595): a Story Bible entry of the type Word, with how it is said when `say` is given. */
+export const wordEntry = (word: string, say = ''): GuideEntity => ({
+  ...entry(`w-${word.toLowerCase()}`, word, 'Word'),
+  pronunciation: { ipa: say, source: say ? 'manual' : '', confidence: say ? 'narrator' : '', chosen: Boolean(say) },
 });

@@ -5,7 +5,7 @@
 // (`useScriptRegistry`), not hits, so a name is listed once. Nothing here names a mark type or a Story Bible kind.
 
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
+import type { ChapterWord } from '../data/script.selectors';
 import type { SearchHit, SearchSource } from '../../../../registries/search';
 import { searchManuscript, type FindMatch } from '../tools/find/searchManuscript';
 
@@ -74,12 +74,17 @@ export function marksSource(marks: () => { types: readonly MarkType[]; marks: re
   };
 }
 
-/** Flagged words whose text or say-value holds the term. */
-export function wordsSource(words: () => readonly ScriptWord[], onShow: (word: string) => void): SearchSource {
+/** The narrator's words (Story Bible entries of the type Word, #2595) whose text or pronunciation holds the term. */
+export function wordsSource(words: () => readonly ChapterWord[], onShow: (key: string) => void): SearchSource {
   return (term) => {
     const needle = term.toLowerCase();
     return words()
-      .filter((row) => has(row.word, needle) || has(row.say, needle))
-      .map((row) => ({ group: WORDS_GROUP, title: row.word, sub: row.say ? `Say: ${row.say}` : undefined, run: () => onShow(row.word) }));
+      .filter((row) => has(row.name, needle) || has(row.pronunciation.ipa, needle))
+      .map((row) => ({
+        group: WORDS_GROUP,
+        title: row.name,
+        sub: row.pronunciation.ipa ? `Say: ${row.pronunciation.ipa}` : undefined,
+        run: () => onShow(row.key),
+      }));
   };
 }

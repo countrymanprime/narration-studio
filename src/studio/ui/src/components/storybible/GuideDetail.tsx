@@ -32,7 +32,7 @@ import { EntryVoiceSamples } from './voicesamples/EntryVoiceSamples';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 import { DialogueCueAttribution } from './DialogueCueAttribution';
 import { SpeakerColourField } from './SpeakerColourField';
-import { NamePronunciation } from './source/NamePronunciation';
+import { NamePronunciation, NAMES_GRID } from './source/NamePronunciation';
 import { nameRows } from './source/pronunciationRows';
 import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
@@ -195,18 +195,6 @@ export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; non
 const NO_CHAPTERS: readonly ChapterRef[] = [];
 /** The rule over a titled section of the entry, as Properties, Relationships and Appears in draw it; an empty section draws none. */
 const SECTION_RULE = 'border-t border-[var(--border)] pt-4 empty:hidden';
-/**
- * The names list's one grid: the name, how it is said, its source and the row's buttons. Every row is a subgrid of it, so the
- * columns are shared and a row with more buttons does not move the others' (alignment audit SBX-4). Below a 32 rem card the
- * rows wrap instead (`NamePronunciation`).
- */
-const NAMES_GRID = {
-  // Read: the source follows the longest pronunciation, not the row's far end (SBX-2); the buttons keep the right edge.
-  read: 'grid-cols-[9rem_minmax(0,max-content)_minmax(0,1fr)_auto]',
-  // Edit: the pronunciation is a text box that takes the room.
-  edit: 'grid-cols-[9rem_minmax(0,1fr)_auto_auto]',
-  shared: 'm-0 grid list-none gap-x-2 gap-y-3 p-0 @max-[32rem]:grid-cols-[minmax(0,1fr)_auto]',
-};
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
 const VERIFY_FIRST_REASON = 'Verify or reject its suggestions first.';
 

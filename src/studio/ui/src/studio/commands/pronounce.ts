@@ -1,0 +1,62 @@
+import { apiErrorMessage } from '../../api/errorMessage';
+import type { GuidePronunciation, StoryBibleApi } from '../../api/contracts/storyBible';
+import type { Command, Journal, Result } from '../journal/createJournal';
+
+/** The host calls that change a name's pronunciation. No other UI file calls them (`pronunciationSingleStore.test.ts`). */
+export type PronounceApi = Pick<StoryBibleApi, 'guidePronounceUser' | 'guidePronounce' | 'guidePronunciationUseAlternate' | 'guidePronunciationRestore'>;
+
+/** One name of a Story Bible entry (its own when `aliasIndex` is absent) and the pronunciation it has now, which Undo writes back. */
+export type PronounceTarget = { entryId: string; aliasIndex?: number; prior: GuidePronunciation };
+
+type Journalling = Pick<Journal, 'act'>;
+
+const attempt = async (call: () => Promise<void>): Promise<Result<null>> => {
+  try {
+    await call();
+    return { ok: true, value: null };
+  } catch (error) {
+    return { ok: false, refusal: { code: 'host-refused', reason: apiErrorMessage(error) } };
+  }
+};
+
+/** The alias index as the host's calls take it: last, and left off for the entry's own name. */
+const alias = (target: PronounceTarget): [] | [number] => (target.aliasIndex === undefined ? [] : [target.aliasIndex]);
+
+const listeners = new Set<() => void>();
+
+/**
+ * Calls `listener` after any pronunciation changes through these commands, made or undone on any page (Undo from History included), so a
+ * page that shows Story Bible names reads them again (Script's Words, the Story Bible's list). Returns the unsubscribe.
+ */
+export function subscribePronunciationChanged(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+const announced = async (call: () => Promise<void>): Promise<Result<null>> => {
+  const result = await attempt(call);
+  if (result.ok) listeners.forEach((listener) => listener());
+  return result;
+};
+
+function command(api: PronounceApi, target: PronounceTarget, label: string, run: () => Promise<void>): Command<null> {
+  return {
+    label,
+    touches: [`storyBible/entries/${target.entryId}/names/${target.aliasIndex ?? 'own'}`],
+    run: () => announced(run),
+    undo: () => announced(() => api.guidePronunciationRestore(target.entryId, target.prior, ...alias(target))),
+  };
+}
+
+/**
+ * The one way a pronunciation changes (audit cluster 13, #2595): the Story Bible's names grid and Script's Words card both call these, so a change is
+ * one journal entry whichever page made it, and Undo from either page writes the name's earlier value back.
+ */
+export const pronounceOwn = (journal: Journalling, api: PronounceApi, target: PronounceTarget, ipa: string) =>
+  journal.act<null>(command(api, target, 'Changed a pronunciation', () => api.guidePronounceUser(target.entryId, ipa, ...alias(target))));
+
+export const pronounceFromSource = (journal: Journalling, api: PronounceApi, target: PronounceTarget, source: { id: string; label: string }) =>
+  journal.act<null>(command(api, target, `Pronunciation from ${source.label}`, () => api.guidePronounce(target.entryId, source.id, ...alias(target))));
+
+export const pronounceUseAlternate = (journal: Journalling, api: PronounceApi, target: PronounceTarget) =>
+  journal.act<null>(command(api, target, 'Switched pronunciation', () => api.guidePronunciationUseAlternate(target.entryId, ...alias(target))));

@@ -33,8 +33,8 @@ type MenuCommands = {
   setMarkType: (id: string, type: string) => Promise<unknown>;
   removeMark: (id: string) => Promise<unknown>;
   setStatus: (id: string, status: 'open' | 'resolved') => Promise<unknown>;
-  removeWord: (word: string) => Promise<unknown>;
-  flagWord: (range: LineRange) => Promise<unknown>;
+  /** "Add to my words": the selection's Story Bible name, or a new entry of the type Word (#2595); answers the name's key. */
+  addWord: (range: LineRange) => Promise<string | null>;
   createEntryFrom: (category: string, text: string) => Promise<unknown>;
   setPrep: (chapter: { id: string; title: string; subtitle?: string }, state: PrepState) => Promise<unknown>;
 };
@@ -119,7 +119,7 @@ function selectionItems(selection: ReaderSelection, lists: MenuLists, commands: 
   const out: ContextMenuItem[] = [
     ...submenu('mark-as', 'Mark as', [
       ...lists.types.map((type) => item(`mark-as-${type.key}`, type.name, () => handlers.composeMark(type.key, selection))),
-      item('mark-as-word', 'Pronunciation (a word)', () => void commands.flagWord(selection)),
+      item('mark-as-word', 'Pronunciation (a word)', () => void commands.addWord(selection).then((key) => key && handlers.showWord(key))),
     ]),
     // A name the Story Bible already has is opened, not added again.
     ...submenu(
@@ -140,7 +140,7 @@ function selectionItems(selection: ReaderSelection, lists: MenuLists, commands: 
   return out;
 }
 
-/** Reader text: the mark, the flagged word or the name under the pointer first, then the selection's items. */
+/** Reader text: the mark, the word or the name under the pointer first, then the selection's items. */
 function lineItems(target: Element, deps: ScriptMenuDeps): ContextMenuItem[] {
   const lists = deps.lists();
   const handlers = deps.handlers();
@@ -158,10 +158,8 @@ function lineItems(target: Element, deps: ScriptMenuDeps): ContextMenuItem[] {
   const entry = lists.entries.find((row) => row.id === attr(target, TARGETS.name, 'data-ent'));
   if (mark) out.push(...markItems(mark, lists, commands, handlers));
   else if (word) {
-    out.push(
-      item('word-show', 'Show in Words', () => handlers.showWord(word)),
-      item('word-remove', 'Remove from my words', () => void commands.removeWord(word)),
-    );
+    // A word is a Story Bible entry (#2595): it is removed there, with the entry, never from a second list here.
+    out.push(item('word-show', 'Show in Words', () => handlers.showWord(word)));
   } else if (entry) {
     out.push(
       item('entry-show', `Open “${entry.canonical_name}” in the side panel`, () => handlers.showEntry(entry.id)),
@@ -210,10 +208,7 @@ export function scriptContextProvider(deps: ScriptMenuDeps): ContextProvider {
       if (chapter) return chapterItems(chapter, deps);
       const w = word(target);
       if (w === undefined) return [];
-      return [
-        item('word-show', `Show “${w}”`, () => deps.handlers().showWord(w)),
-        item('word-remove', 'Remove from my words', () => void deps.commands.removeWord(w)),
-      ];
+      return [item('word-show', `Show “${w}”`, () => deps.handlers().showWord(w))];
     },
   };
 }

@@ -5,7 +5,7 @@ import type { MarkColour, MarkStyle } from '../../../../api/contracts/marks';
 import { buildLayerIndex, paragraphLayers, type Layer } from './layers';
 import { HIT_AREA } from '../../../primitives/hitArea';
 import { Para } from './Para';
-import { cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, wordEntry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 afterEach(cleanup);
 
@@ -15,7 +15,7 @@ const para = paragraph('p1', 'c1', TEXT);
 const QUOTE = at('"Come along,"');
 
 const layersOf = (parts: Parameters<typeof buildLayerIndex>[0]): Layer[] => paragraphLayers(buildLayerIndex(parts), para);
-const base = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [], types: GUIDE_TYPES };
+const base = { marks: [], markTypes: TYPES, entries: [], cues: [], types: GUIDE_TYPES };
 const text = (container: HTMLElement): string => container.querySelector('p[data-pid]')?.textContent ?? '';
 
 describe('Para', () => {
@@ -23,8 +23,7 @@ describe('Para', () => {
     const layers = layersOf({
       ...base,
       marks: [mark('m1', 'p1', at('said, "Come'), 'note')],
-      words: [flaggedWord('harbour', 'p1', at('harbour'))],
-      entries: [entry('e1', 'Mina', 'Character')],
+      entries: [entry('e1', 'Mina', 'Character'), wordEntry('harbour')],
       cues: [cue('q1', 'p1', 'c1', QUOTE, 'e1', 'correction')],
     });
     const { container } = render(<Para paragraph={para} layers={layers} find={[at('along')]} findCurrent={0} />);
@@ -57,8 +56,8 @@ describe('Para', () => {
     expect(container.querySelector<HTMLElement>('[data-a="m2"]')!.style.boxShadow).toContain('inset');
   });
 
-  it('carries data-w on a flagged word and data-ent on a Story Bible name', () => {
-    const layers = layersOf({ ...base, words: [flaggedWord('harbour', 'p1', at('harbour'))], entries: [entry('e1', 'Mina', 'Character')] });
+  it('carries data-w on a word (a Story Bible entry of the type Word) and data-ent on any other Story Bible name', () => {
+    const layers = layersOf({ ...base, entries: [entry('e1', 'Mina', 'Character'), wordEntry('harbour')] });
     const { container } = render(<Para paragraph={para} layers={layers} />);
     expect(container.querySelector('[data-w="harbour"]')?.textContent).toBe('harbour');
     expect(container.querySelector('[data-ent="e1"]')?.textContent).toBe('Mina');
@@ -95,10 +94,17 @@ describe('Para', () => {
       expect(container.querySelector<HTMLElement>('[data-ent="e2"]')!.style.boxShadow).toBe('inset 0 -2px 0 var(--warn)');
     });
 
-    it('draws a flagged word as a pronunciation mark whether or not its pronunciation is set', () => {
-      const layers = layersOf({ ...base, words: [flaggedWord('harbour', 'p1', at('harbour'))] });
-      const { container } = render(<Para paragraph={para} layers={layers} />);
-      expect(container.querySelector<HTMLElement>('[data-w]')!.style.textDecoration).toContain('dotted');
+    it('draws a word as a pronunciation mark whether or not its pronunciation is set, with that status', () => {
+      for (const [say, status] of [
+        ['', 'not_set'],
+        ['HAR-ber', 'set'],
+      ] as const) {
+        const layers = layersOf({ ...base, entries: [wordEntry('harbour', say)] });
+        const { container } = render(<Para paragraph={para} layers={layers} />);
+        const word = container.querySelector<HTMLElement>('[data-w]')!;
+        expect(word.style.textDecoration).toContain('dotted');
+        expect(word.dataset.status).toBe(status);
+      }
     });
 
     it('draws a Find hit with the search hue and rings the current one', () => {

@@ -222,14 +222,15 @@ describe('right-click-menus-reach-what-the-page-draws', () => {
   const labels = (target: Element | null) =>
     target ? (contextItemsFor(target) ?? []).flatMap((item) => (item.submenu ? item.submenu.map((sub) => `${item.label}: ${sub.label}`) : [item.label])) : [];
 
-  it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
+  it('a mark, a word, a chapter row, a chapter card and a Words row each get their menu', async () => {
     const api = createMockApi({ manuscriptChapters: noCreditsList });
     const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const types = await api.marksList();
     await api.marksAdd(chapter!.id, line!.id, 0, 5, types.types[0]!.key, 'Check this');
     const found = /\p{L}{6,}/u.exec(line!.text)!;
-    await api.scriptWordFlag(chapter!.id, line!.id, found.index, found.index + found[0].length);
+    // A word the narrator added is a Story Bible entry of the type Word (#2595).
+    await api.guideCreate(found[0], 'Word', []);
     mount({ api });
     await firstHeading();
     await waitFor(() => expect(document.querySelector('[data-pid] [data-st]')).not.toBeNull());
@@ -240,11 +241,12 @@ describe('right-click-menus-reach-what-the-page-draws', () => {
     expect(labels(row)).toContain('Go to this chapter');
     expect(labels(document.querySelector('[data-reader] [data-bound] h2'))).toContain('My prep: Prepped');
     const wordRow = await waitFor(() => document.querySelector('#railbody tbody tr')!);
-    expect(labels(wordRow)).toContain('Remove from my words');
+    expect(labels(wordRow).some((label) => label.startsWith('Show “'))).toBe(true);
+    expect(labels(wordRow)).not.toContain('Remove from my words');
   });
 });
 
-describe('record-from-here-and-flagged-words', () => {
+describe('record-from-here-and-words', () => {
   it('Record from here on the selection tool and in the menu opens the Booth at the selection', async () => {
     const { goToBooth } = mount();
     await firstHeading();
@@ -259,9 +261,9 @@ describe('record-from-here-and-flagged-words', () => {
     expect(goToBooth).toHaveBeenCalledTimes(2);
   });
 
-  it('Look up on one word opens its card, and Add to my words flags the word selected', async () => {
+  it('Look up on one word opens its card, and Add to my words makes the selected word a Story Bible entry of the type Word', async () => {
     const api = createMockApi({ manuscriptChapters: noCreditsList });
-    const flag = vi.spyOn(api, 'scriptWordFlag');
+    const create = vi.spyOn(api, 'guideCreate');
     mount({ api });
     await firstHeading();
     const p = await waitFor(() => document.querySelector<HTMLElement>('p[data-pid="p-2"]')!);
@@ -271,15 +273,16 @@ describe('record-from-here-and-flagged-words', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Look up in the dictionary or the Story Bible' }));
     await waitFor(() => expect(view.tab).toBe('pron'));
     fireEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
-    await waitFor(() => expect(flag).toHaveBeenCalledWith('chapter-1', 'p-2', found.index, found.index + found[0].length));
+    await waitFor(() => expect(create).toHaveBeenCalledWith(found[0], 'Word', []));
   });
 
-  it('a click on a flagged word opens it in the Words tab', async () => {
+  it('a click on a word opens it in the Words tab', async () => {
     const api = createMockApi({ manuscriptChapters: noCreditsList });
     const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const found = /\p{L}{6,}/u.exec(line!.text)!;
-    await api.scriptWordFlag(chapter!.id, line!.id, found.index, found.index + found[0].length);
+    // A word the narrator added is a Story Bible entry of the type Word (#2595).
+    await api.guideCreate(found[0], 'Word', []);
     mount({ api });
     await firstHeading();
     const word = await waitFor(() => document.querySelector<HTMLElement>('[data-pid] [data-w]')!);
@@ -618,16 +621,16 @@ describe('dictionary-download-in-place', () => {
     // No credits, so the section at the top of the reader is a chapter, whose words the tab lists.
     const api = createMockApi({ manuscriptChapters: noCreditsList }, { dictionary: 'missing' });
     const install = vi.spyOn(api, 'assetsInstall');
-    // A flagged word in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
+    // A word in every chapter (a Story Bible entry of the type Word, #2595), so the Words tab has a row to open whichever chapter the
+    // reader reports as in view.
     for (const chapter of withoutCredits(await api.manuscriptChapters())) {
       const [line] = await api.manuscriptParagraphs(chapter.id);
-      const found = /\p{L}+/u.exec(line!.text)!;
-      await api.scriptWordFlag(chapter.id, line!.id, found.index, found.index + found[0].length);
+      await api.guideCreate(/\p{L}{5,}/u.exec(line!.text)![0], 'Word', []);
     }
     mount({ api });
     await firstHeading();
     const body = () => document.getElementById('railbody')!;
-    // A flagged word's row opens its card, which reads the definition from the chosen source.
+    // A word's row opens its card, which reads the definition from the chosen source.
     fireEvent.click((await within(body()).findAllByRole('row', {}, { timeout: 5000 }))[0]!);
     await waitFor(() => expect(within(body()).getByText(/is not installed/)).toBeTruthy(), { timeout: 5000 });
     expect(install).not.toHaveBeenCalled();

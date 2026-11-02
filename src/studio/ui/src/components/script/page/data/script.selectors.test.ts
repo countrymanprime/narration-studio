@@ -4,7 +4,6 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/contracts/storyBible';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord, ScriptWordFlag } from '../../../../api/contracts/scriptPrep';
 import { WIRE_DIALOGUE_CUES, WIRE_ENTITIES } from '../../../../api/mockFixtures';
 import {
   chapterFacts,
@@ -16,12 +15,12 @@ import {
   marksInChapter,
   mentionsIn,
   phrasesOf,
-  pronOfWord,
-  pronStatus,
+  nameByKey,
+  wordNames,
+  WORD_TYPE,
   speakerCandidates,
   unattributed,
   wordKey,
-  wordsInChapter,
   chapterWords,
 } from './script.selectors';
 
@@ -48,31 +47,19 @@ const mark = (chapterId: string, type: string, extra: Partial<Mark> = {}): Mark 
   ...extra,
 });
 
-const flag = (chapterId: string): ScriptWordFlag => ({
-  id: `f${++n}`,
-  chapterId,
-  paragraphId: `${chapterId}-p`,
-  paragraph: 0,
-  start: 0,
-  end: 3,
-  quote: 'x',
-  createdAt: '2026-10-11T00:00:00Z',
-  stale: false,
-});
-const word = (key: string, say: string, flags: ScriptWordFlag[], source = ''): ScriptWord => ({
-  word: key,
-  say,
-  source,
-  status: flags.length === 0 ? 'not_flagged' : say ? 'set' : 'not_set',
-  flags,
-});
-
 const entity = (id: string, name: string, category: string, aliases: string[] = []): GuideEntity => ({
   ...WIRE_ENTITIES[0]!,
   id,
   canonical_name: name,
   category,
   aliases: aliases.map((text) => ({ text, pronunciation: { ipa: '', source: '', confidence: 'pending' }, occurrences: [] })),
+});
+
+/** An entry with no pronunciation (or `say`), found once in each of `chapters` (the host's evidence). */
+const unsaid = (name: string, chapters: string[], say = ''): GuideEntity => ({
+  ...entity(name, name, 'Word'),
+  pronunciation: { ipa: say, source: say ? 'manual' : '', confidence: '' },
+  occurrences: chapters.map((chapterId, paragraph) => ({ chapter: chapterId, chapterId, paragraph, excerpt: name })),
 });
 
 describe('marks', () => {
@@ -97,9 +84,9 @@ describe('marks', () => {
 
 describe('chapter-facts-line-is-pure', () => {
   it('reads the counts with the mock singular and plural rules', () => {
-    const input = { types: TYPES, marks: [mark('c1', 'stress'), mark('c1', 'ask')], words: [word('knave', '', [flag('c1')])], unattributed: 0 };
+    const input = { types: TYPES, marks: [mark('c1', 'stress'), mark('c1', 'ask')], entries: [unsaid('knave', ['c1'])], unattributed: 0 };
     expect(chapterFacts(input, 'c1')).toBe('2 notes · 1 without pronunciation');
-    expect(chapterFacts({ types: TYPES, marks: [], words: [], unattributed: 0 }, 'c1')).toBe('0 notes · 0 without pronunciation');
+    expect(chapterFacts({ types: TYPES, marks: [], entries: [], unattributed: 0 }, 'c1')).toBe('0 notes · 0 without pronunciation');
   });
 
   it('adds the speaker clause only when a phrase has no speaker, and counts per chapter', () => {
@@ -113,7 +100,7 @@ describe('chapter-facts-line-is-pure', () => {
         mark('c1', 'ask', { status: 'resolved' }),
         mark('c2', 'stress'),
       ],
-      words: [word('knave', '', [flag('c1'), flag('c1'), flag('c2')]), word('queen', 'kween', [flag('c1')])],
+      entries: [unsaid('knave', ['c1', 'c1', 'c2']), unsaid('queen', ['c1'], 'kween')],
       unattributed: 2,
     };
     expect(chapterFacts(input, 'c1')).toBe('5 notes · 2 without pronunciation · 2 without a speaker');
@@ -128,7 +115,7 @@ describe('chapter-facts-line-is-pure', () => {
         const input = {
           types: TYPES,
           marks: ms.map((m) => mark(m.chapterId, m.type, m.resolved ? { status: 'resolved' } : {})),
-          words: ws.map((w, i) => word(`w${i}`, w.say, w.chapters.map(flag))),
+          entries: ws.map((w, i) => unsaid(`w${i}`, w.chapters, w.say)),
           unattributed: un,
         };
         const copy = structuredClone(input);
@@ -142,24 +129,20 @@ describe('chapter-facts-line-is-pure', () => {
   });
 });
 
-describe('words-follow-the-mock', () => {
-  const words = [word('knave', '', [flag('c1')]), word('queen', 'kween', [flag('c2')], 'cmu'), word('tarts', 'tahts', [flag('c1')])];
+describe('a-name-is-the-story-bible-entrys', () => {
+  const knave = unsaid('knave', ['c1']);
+  const queen = { ...entity('queen', 'Queen', 'Character', ['Her Majesty']), pronunciation: { ipa: 'kween', source: 'cmu', confidence: 'high' } };
 
-  it('statuses are the host statuses and the key ignores case and padding', () => {
-    expect(pronStatus(words, 'Knave ')).toBe('not_set');
-    expect(pronStatus(words, 'Queen')).toBe('set');
-    expect(pronStatus(words, 'dormouse')).toBe('not_flagged');
+  it('finds a name by its key, ignoring case and padding, with Set or Not set from its own pronunciation', () => {
     expect(wordKey('  Knave ')).toBe('knave');
+    expect(nameByKey([knave, queen], wordKey('Queen'))).toMatchObject({ name: 'Queen', entryId: 'queen', status: 'set', category: 'Character' });
+    expect(nameByKey([knave, queen], 'knave')).toMatchObject({ status: 'not_set', category: WORD_TYPE });
+    expect(nameByKey([knave, queen], 'her majesty')).toMatchObject({ entryId: 'queen', aliasIndex: 0, status: 'not_set' });
+    expect(nameByKey([knave, queen], 'dormouse')).toBeUndefined();
   });
 
-  it('a value with no source was typed by the narrator', () => {
-    expect(pronOfWord(words, 'queen')).toEqual({ say: 'kween', source: 'cmu' });
-    expect(pronOfWord(words, 'tarts')).toEqual({ say: 'tahts', source: 'manual' });
-    expect(pronOfWord(words, 'knave')).toEqual({ say: '', source: '' });
-  });
-
-  it('words of a chapter are those with a flag in it', () => {
-    expect(wordsInChapter(words, 'c1').map((w) => w.word)).toEqual(['knave', 'tarts']);
+  it("the narrator's words are the names of entries of the type Word only", () => {
+    expect(wordNames([knave, queen]).map((row) => row.name)).toEqual(['knave']);
   });
 });
 
@@ -291,30 +274,25 @@ describe('a renamed or removed alias keeps or drops its confirmed lines', () => 
   });
 });
 
-describe('the-words-tab-lists-the-flags-and-the-story-bible-names-in-the-text', () => {
+describe('the-words-tab-lists-the-story-bible-names-in-the-text', () => {
   const alice = { ...entity('alice', 'Alice', 'Character', ['Allie']), pronunciation: { ipa: '/ˈælɪs/', source: 'cmu', confidence: 'set' } };
   const hare = { ...entity('hare', 'March Hare', 'Character'), pronunciation: { ipa: '', source: '', confidence: 'pending' } };
-  const flagged: ScriptWord = {
-    word: 'knave',
-    say: '',
-    source: '',
-    status: 'not_set',
-    flags: [{ id: 'f', chapterId: 'c1', paragraphId: 'p', paragraph: 1, start: 0, end: 5, quote: 'knave', createdAt: '', stale: false }],
-  };
-  const text = [{ text: 'Alice met the March Hare. Alice saw a knave.' }];
+  const knave = unsaid('knave', ['c1']);
+  const text = [{ text: 'Alice met the March Hare. Allie saw a knave. Alice left.' }];
 
-  it("adds each name once, with the entry's pronunciation deciding Set or Not set, after the flagged words", () => {
-    expect(chapterWords([flagged], [alice, hare], 'c1', text)).toEqual([
-      { word: 'knave', say: '', source: '', status: 'not_set', fromBible: false },
-      { word: 'Alice', say: '/ˈælɪs/', source: '', status: 'set', fromBible: true, entryId: alice.id },
-      { word: 'March Hare', say: '', source: '', status: 'not_set', fromBible: true, entryId: hare.id },
+  it("lists each name once in reading order, each with its own entry's pronunciation deciding Set or Not set", () => {
+    expect(chapterWords([alice, hare, knave], text).map(({ key, entryId, aliasIndex, status }) => ({ key, entryId, aliasIndex, status }))).toEqual([
+      { key: 'alice', entryId: 'alice', aliasIndex: undefined, status: 'set' },
+      { key: 'march hare', entryId: 'hare', aliasIndex: undefined, status: 'not_set' },
+      { key: 'allie', entryId: 'alice', aliasIndex: 0, status: 'not_set' },
+      { key: 'knave', entryId: 'knave', aliasIndex: undefined, status: 'not_set' },
     ]);
   });
-  it('lists a flagged word once even when the Story Bible names it too', () => {
-    const both: ScriptWord = { ...flagged, word: 'alice', say: 'AL-iss', source: 'manual', status: 'set' };
-    expect(chapterWords([both], [alice], 'c1', text).filter((row) => row.word.toLowerCase() === 'alice')).toHaveLength(1);
+  it('a change to the entry is what the row shows: there is no second value to win over it (#2595)', () => {
+    const said = { ...knave, pronunciation: { ipa: 'nayv', source: 'manual', confidence: 'narrator' } };
+    expect(chapterWords([said], text)).toEqual([expect.objectContaining({ key: 'knave', status: 'set', pronunciation: said.pronunciation })]);
   });
-  it('lists nothing for a chapter with no flags and no names in its text', () => {
-    expect(chapterWords([flagged], [alice], 'c2', [{ text: 'Nothing here.' }])).toEqual([]);
+  it('lists nothing for a chapter with no names in its text', () => {
+    expect(chapterWords([alice, knave], [{ text: 'Nothing here.' }])).toEqual([]);
   });
 });

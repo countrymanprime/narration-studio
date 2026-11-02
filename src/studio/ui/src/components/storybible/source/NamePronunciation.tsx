@@ -12,8 +12,24 @@ import { PronSourceTag } from './PronSourceTag';
 import type { NameRow } from './pronunciationRows';
 import type { PronunciationSources } from './usePronunciationSources';
 import { useErrorToast } from '../../../hooks/useErrorToast';
+import { pronounceFromSource, pronounceOwn, pronounceUseAlternate } from '../../../studio/commands/pronounce';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
+import type { Result } from '../../../studio/journal/createJournal';
 
 const OWN_SOURCES: readonly string[] = ['manual', 'user'];
+
+/**
+ * The names list's one grid: the name, how it is said, its source and the row's buttons. Every row is a subgrid of it, so the
+ * columns are shared and a row with more buttons does not move the others' (alignment audit SBX-4). Below a 32 rem card the
+ * rows wrap instead (`NamePronunciation`).
+ */
+export const NAMES_GRID = {
+  // Read: the source follows the longest pronunciation, not the row's far end (SBX-2); the buttons keep the right edge.
+  read: 'grid-cols-[9rem_minmax(0,max-content)_minmax(0,1fr)_auto]',
+  // Edit: the pronunciation is a text box that takes the room.
+  edit: 'grid-cols-[9rem_minmax(0,1fr)_auto_auto]',
+  shared: 'm-0 grid list-none gap-x-2 gap-y-3 p-0 @max-[32rem]:grid-cols-[minmax(0,1fr)_auto]',
+};
 
 /** The three columns of the names grid this row fills; below a 32 rem card the row wraps as a flex line instead. */
 const NAME_CELLS = 'col-span-3 grid grid-cols-subgrid gap-y-2 @max-[32rem]:col-span-1 @max-[32rem]:flex @max-[32rem]:flex-wrap @max-[32rem]:gap-2';
@@ -65,6 +81,7 @@ export function NamePronunciation({
   note?: ReactNode;
 }) {
   const api = useApi();
+  const journal = useJournalOrOwn();
   const port = usePort('pronunciationSources');
   const mutation = usePendingAction();
   useErrorToast(sources.error);
@@ -79,67 +96,48 @@ export function NamePronunciation({
   }
   const key = aliasIndex === undefined ? 'entry' : `alias-${aliasIndex}`;
 
-  const writeOwn = (ipa: string) => {
-    const args: Parameters<typeof api.guidePronounceUser> = aliasIndex === undefined ? [entityId, ipa] : [entityId, ipa, aliasIndex];
-    return api.guidePronounceUser(...args);
+  const target = { entryId: entityId, aliasIndex, prior: pronunciation };
+  // Every change is one journal entry through the shared commands (#2595), so Undo works from this grid and from Script's Words card alike.
+  const done = async (result: Result<unknown>, success: string): Promise<boolean> => {
+    if (!result.ok) {
+      notify(result.refusal.reason, 'error');
+      return false;
+    }
+    notify(success);
+    await reload();
+    return true;
   };
-  const failed = (error: unknown) => notify(describeApiError(error), 'error');
 
   const commit = () =>
     text === pronunciation.ipa || text.trim() === ''
       ? undefined
       : mutation.run(`${key}-own`, async () => {
-          try {
-            await writeOwn(text);
-            notify('Your pronunciation is in use.');
-            await reload();
-          } catch (error) {
-            setText(pronunciation.ipa);
-            failed(error);
-          }
+          if (!(await done(await pronounceOwn(journal, api, target, text), 'Your pronunciation is in use.'))) setText(pronunciation.ipa);
         });
 
   const pick = (id: string) =>
     mutation.run(`${key}-source`, async () => {
       const source = sources.sources.find((row) => row.id === id);
       if (!source) return;
+      // Manual keeps the text as it is; only the source changes.
+      if (source.kind === 'manual') return void (await done(await pronounceOwn(journal, api, target, text), 'Your pronunciation is in use.'));
+      let candidate: Awaited<ReturnType<typeof port.pronunciationCandidate>>;
       try {
-        if (source.kind === 'manual') {
-          // The text stays as it is; only the source changes.
-          await writeOwn(text);
-          notify('Your pronunciation is in use.');
-        } else {
-          const candidate = await port.pronunciationCandidate(name, id);
-          if (!candidate.ok) {
-            notify(candidate.reason);
-            return;
-          }
-          if (source.needs === 'network') {
-            // The online source is not one the host can pronounce from by id; its answer is saved as the narrator's own, as "Use this" does.
-            await writeOwn(candidate.say);
-          } else {
-            const args: Parameters<typeof api.guidePronounce> = aliasIndex === undefined ? [entityId, id] : [entityId, id, aliasIndex];
-            await api.guidePronounce(...args);
-          }
-          notify(`Pronunciation from ${source.label}.`);
-        }
-        await reload();
+        candidate = await port.pronunciationCandidate(name, id);
       } catch (error) {
-        failed(error);
+        return notify(describeApiError(error), 'error');
       }
+      if (!candidate.ok) return notify(candidate.reason);
+      // The online source is not one the host can pronounce from by id; its answer is saved as the narrator's own, as "Use this" does.
+      const result =
+        source.needs === 'network'
+          ? await pronounceOwn(journal, api, target, candidate.say)
+          : await pronounceFromSource(journal, api, target, { id, label: source.label });
+      await done(result, `Pronunciation from ${source.label}.`);
     });
 
   const switchToAlternate = () =>
-    mutation.run(`${key}-alternate`, async () => {
-      try {
-        const args: Parameters<typeof api.guidePronunciationUseAlternate> = aliasIndex === undefined ? [entityId] : [entityId, aliasIndex];
-        await api.guidePronunciationUseAlternate(...args);
-        notify('Pronunciation switched.');
-        await reload();
-      } catch (error) {
-        failed(error);
-      }
-    });
+    mutation.run(`${key}-alternate`, async () => void (await done(await pronounceUseAlternate(journal, api, target), 'Pronunciation switched.')));
 
   const own = OWN_SOURCES.includes(pronunciation.source);
   const alternate = pronunciation.alternate ? { label: own ? 'Use the dictionary’s' : 'Use mine', onUse: () => void switchToAlternate() } : undefined;
