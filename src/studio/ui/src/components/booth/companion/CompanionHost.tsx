@@ -6,7 +6,6 @@ import { CommandScope } from '../../../input/router';
 import type { GuideEntity, GuideType, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
 import { CompanionShell } from '../CompanionShell';
-import { RecordInReaperConfirm } from '../RecordInReaperConfirm';
 import { ResumePrompt } from '../ResumePrompt';
 import { UnresolvedCreditsWarning } from '../UnresolvedCreditsWarning';
 import { flagMarks, flagSaves, visibleFlags, withMarks } from '../readerFlags';
@@ -117,7 +116,6 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
         header={header}
         onFullApp={onFullApp}
       />
-      {recording.confirmPending && <RecordInReaperConfirm chapterTitle={chapterTitle} confirm={recording.confirm} cancel={recording.cancelConfirm} />}
     </CommandScope>
   );
 }

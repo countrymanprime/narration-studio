@@ -32,6 +32,7 @@ const UNWIRED = [
   'pickupsNext',
   'productionBurndown',
   'projectStateState',
+  'readAloudArmOnly',
   'recorderChooseEngine',
   'recorderMeterStart',
   'recorderMeterStop',
