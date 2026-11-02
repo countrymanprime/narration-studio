@@ -461,11 +461,12 @@ export function Reader(props: ReaderProps) {
     if (!target.closest('[data-bm]')) onTextClick?.();
     if (target.closest('[data-chip]')) return;
     const mark = target.closest<HTMLElement>('[data-a]');
+    const word = target.closest<HTMLElement>('[data-w]');
     const name = target.closest<HTMLElement>('[data-ent]');
-    if ((!mark && !name) || !(window.getSelection()?.isCollapsed ?? true)) return;
-    // A flagged word is a `data-a` span too, with its word (`data-w`): it opens in the Words tab, as the mock's pronunciation marks do.
-    if (mark?.dataset.w !== undefined) onShowWord?.(mark.dataset.w);
-    else if (mark) onShowAnnotation?.(mark.dataset.a as string);
+    if ((!mark && !word && !name) || !(window.getSelection()?.isCollapsed ?? true)) return;
+    // A word (a Story Bible entry of the type Word, #2595) opens in the Words tab, as the mock's pronunciation marks do; a mark inside it wins.
+    if (mark) onShowAnnotation?.(mark.dataset.a as string);
+    else if (word) onShowWord?.(word.dataset.w as string);
     else onShowEntry?.(name!.dataset.ent as string);
   };
 
