@@ -9,6 +9,7 @@
 // and the replies carry the time they were added again.
 
 import type { Mark, MarksApi, MarkThreadAuthor, ThreadMessage } from '../../../../api/contracts/marks';
+import type { PronounceApi } from '../../../../studio/commands/pronounce';
 import type { PrepState, ScriptPrepApi } from '../../../../api/contracts/scriptPrep';
 import type { SpeakerAttribution, StoryBibleApi } from '../../../../api/contracts/storyBible';
 import { apiErrorMessage } from '../../../../api/errorMessage';
@@ -21,7 +22,7 @@ export type ScriptCommandEnv = {
   journal: Pick<Journal, 'act'>;
   marks: Pick<MarksApi, 'marksAdd' | 'marksRemove' | 'marksReply' | 'marksEditMessage' | 'marksDeleteMessage' | 'marksRestoreMessage' | 'marksSetStatus'>;
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepSetChapter'>;
-  storyBible: Pick<StoryBibleApi, 'guideAttributeSpeakers' | 'guideCorrectCue' | 'guideCreate' | 'guideDelete' | 'guideRestoreSpeakers'>;
+  storyBible: Pick<StoryBibleApi, 'guideAttributeSpeakers' | 'guideCorrectCue' | 'guideCreate' | 'guideDelete' | 'guideRestoreSpeakers'> & PronounceApi;
   data: Pick<ScriptData, 'getState' | 'load'>;
   /** Says a change aloud (the overlay service's live region). */
   announce: (text: string) => void;
