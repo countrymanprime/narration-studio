@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"os"
 	"testing"
@@ -8,13 +9,13 @@ import (
 
 // creditsRequest is testRequest() for a credits row instead of the fixture manuscript chapter.
 func creditsRequest(kind string) Request {
-	return Request{ChapterID: CreditsChapterID(kind), Transcription: Transcription{Model: "small"}, Alignment: DefaultAlignmentParams}
+	return Request{ChapterID: creditsid.ID(kind), Transcription: Transcription{Model: "small"}, Alignment: DefaultAlignmentParams}
 }
 
 func TestACreditsCheckRunsAgainstTheRenderedTemplateTextNotTheManuscript(t *testing.T) {
 	p := newTestProject(t)
 	p.setCredits("opening", "Opening credits", "Narrated by Alice Narrator.")
-	p.confirm(testDocument, testTrack, CreditsChapterID("opening"))
+	p.confirm(testDocument, testTrack, creditsid.ID("opening"))
 	sidecar := &fakeSidecar{present: 10}
 	// The run folder (and this stand-in manuscript with it) is removed as soon as the run finishes (run.go's
 	// finish), so the file is read here, mid-run, before the sidecar writes its results and the job ends.
@@ -32,7 +33,7 @@ func TestACreditsCheckRunsAgainstTheRenderedTemplateTextNotTheManuscript(t *test
 	if state.Phase != PhaseComplete {
 		t.Fatalf("state = %+v", state)
 	}
-	if args := sidecar.lastArgs(); args["--chapter-id"] != CreditsChapterID("opening") {
+	if args := sidecar.lastArgs(); args["--chapter-id"] != creditsid.ID("opening") {
 		t.Fatalf("chapter-id = %q", args["--chapter-id"])
 	}
 	if manuscriptPath == "" || manuscriptPath == p.dir {
@@ -57,11 +58,11 @@ func TestACreditsCheckRunsAgainstTheRenderedTemplateTextNotTheManuscript(t *test
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		t.Fatalf("the synthetic credits manuscript did not decode: %v", err)
 	}
-	if decoded.DocumentID != testDocument || len(decoded.Chapters) != 1 || decoded.Chapters[0].ID != CreditsChapterID("opening") ||
+	if decoded.DocumentID != testDocument || len(decoded.Chapters) != 1 || decoded.Chapters[0].ID != creditsid.ID("opening") ||
 		decoded.Chapters[0].Title != "Opening credits" || decoded.Chapters[0].ContentKind != "narration" {
 		t.Fatalf("decoded chapters = %+v (documentId %q)", decoded.Chapters, decoded.DocumentID)
 	}
-	if len(decoded.Paragraphs) != 1 || decoded.Paragraphs[0].ChapterID != CreditsChapterID("opening") || decoded.Paragraphs[0].Text != "Narrated by Alice Narrator." {
+	if len(decoded.Paragraphs) != 1 || decoded.Paragraphs[0].ChapterID != creditsid.ID("opening") || decoded.Paragraphs[0].Text != "Narrated by Alice Narrator." {
 		t.Fatalf("decoded paragraphs = %+v", decoded.Paragraphs)
 	}
 
@@ -70,7 +71,7 @@ func TestACreditsCheckRunsAgainstTheRenderedTemplateTextNotTheManuscript(t *test
 		t.Fatalf("the synthetic credits manuscript was not removed: err = %v", err)
 	}
 
-	result, err := service.Result(CreditsChapterID("opening"), DefaultAlignmentParams)
+	result, err := service.Result(creditsid.ID("opening"), DefaultAlignmentParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,11 +83,11 @@ func TestACreditsCheckRunsAgainstTheRenderedTemplateTextNotTheManuscript(t *test
 func TestACreditsTemplateChangeMarksAStoredResultStale(t *testing.T) {
 	p := newTestProject(t)
 	p.setCredits("closing", "Closing credits", "The end.")
-	p.confirm(testDocument, testTrack, CreditsChapterID("closing"))
+	p.confirm(testDocument, testTrack, creditsid.ID("closing"))
 	service := p.service(&fakeSidecar{present: 10})
 	run(t, service, creditsRequest("closing"))
 
-	current, err := service.Result(CreditsChapterID("closing"), DefaultAlignmentParams)
+	current, err := service.Result(creditsid.ID("closing"), DefaultAlignmentParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +96,7 @@ func TestACreditsTemplateChangeMarksAStoredResultStale(t *testing.T) {
 	}
 
 	p.setCredits("closing", "Closing credits", "The end. Thank you for listening.")
-	stale, err := service.Result(CreditsChapterID("closing"), DefaultAlignmentParams)
+	stale, err := service.Result(creditsid.ID("closing"), DefaultAlignmentParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +120,7 @@ func TestACreditsTemplateChangeMarksAStoredResultStale(t *testing.T) {
 func TestACreditsCheckIsRefusedWithoutATemplate(t *testing.T) {
 	p := newTestProject(t)
 	// No opening template was seeded (CT5): the row would show "Not set up" on Home.
-	p.confirm(testDocument, testTrack, CreditsChapterID("opening"))
+	p.confirm(testDocument, testTrack, creditsid.ID("opening"))
 	service := p.service(&fakeSidecar{})
 
 	_, err := service.Start(creditsRequest("opening"))
@@ -131,7 +132,7 @@ func TestACreditsCheckIsRefusedWithoutATemplate(t *testing.T) {
 
 func TestACreditsCheckIsRefusedWhenNoLoaderIsConfigured(t *testing.T) {
 	p := newTestProject(t)
-	p.confirm(testDocument, testTrack, CreditsChapterID("opening"))
+	p.confirm(testDocument, testTrack, creditsid.ID("opening"))
 	service := New(Config{
 		Project: p.dir, Python: "python-sidecar", Backend: "compare.py",
 		ProjectFile: func() (string, error) { return p.rpp, nil }, LoadManuscript: p.loadManuscript,
@@ -145,16 +146,16 @@ func TestACreditsCheckIsRefusedWhenNoLoaderIsConfigured(t *testing.T) {
 }
 
 func TestCreditsKindAndChapterID(t *testing.T) {
-	if id := CreditsChapterID("opening"); id != "credits-opening" {
+	if id := creditsid.ID("opening"); id != "credits-opening" {
 		t.Fatalf("id = %q", id)
 	}
 	for _, chapterID := range []string{"credits-opening", "credits-closing"} {
-		if _, ok := CreditsKind(chapterID); !ok {
+		if _, ok := creditsid.Kind(chapterID); !ok {
 			t.Fatalf("%q should be a credits id", chapterID)
 		}
 	}
 	for _, chapterID := range []string{"", "c-0001", "credits", "credits-middle"} {
-		if kind, ok := CreditsKind(chapterID); ok {
+		if kind, ok := creditsid.Kind(chapterID); ok {
 			t.Fatalf("%q should not be a credits id (kind %q)", chapterID, kind)
 		}
 	}

@@ -7,6 +7,7 @@ windows path) also refuses to reuse a words file another model made."""
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import go_coverage
 import pytest
@@ -247,6 +248,23 @@ def test_run_recheck_splices_every_affected_words_file_and_writes_no_report(tmp_
     assert item2.model == "small" and item2.spans == (mode.Span(0.0, 6.0, "large-v3-turbo"),)
     assert progress.lines[0][0] == "START"
     assert progress.lines[-1] == ("DONE", 100, "Finished")
+
+
+def test_run_recheck_writes_its_windows_as_the_activity_file_s_recheck_and_no_first_pass(tmp_path, cached_project, progress):
+    manuscript, manifest = cached_project
+    windows = _write_windows(tmp_path / "windows.json", [_window(item_index=0, guid="{A}", source="a.wav", words_file="item-0.json", start=10.0, end=20.0)])
+
+    def transcriber(item, on_seconds):
+        on_seconds(item.length)
+        return mode.ItemWords(_timed(P1, item.start_offset), item.start_offset, item.end, "large-v3-turbo", "en", None)
+
+    args = _args(tmp_path, manuscript, manifest, recheck=str(windows), model="large-v3-turbo")
+    mode.run_recheck(args, compare, transcriber=transcriber)
+
+    body = json.loads(Path(args.progress + ".activity.json").read_text(encoding="utf-8"))
+    assert "firstPass" not in body
+    assert body["items"] == {"total": 1, "done": 1}
+    assert body["recheck"] == {"model": "large-v3-turbo", "workers": 1, "busy": 0, "total": 1, "done": 1, "final": True, "reason": None}
 
 
 def test_run_recheck_refuses_before_transcribing_when_a_named_words_file_has_nothing_cached(tmp_path, progress):

@@ -244,12 +244,13 @@ describe('PickupsTable', () => {
   it('remove-is-one-undoable-step', async () => {
     const undo = vi.fn().mockResolvedValue({ ok: true });
     const { onRemove, user, toasts } = setup();
-    onRemove.mockResolvedValueOnce(undo);
+    onRemove.mockResolvedValueOnce({ undo, entry: 4 });
     await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
     expect(onRemove).toHaveBeenCalledWith(SPEECH.id);
     await waitFor(() => expect(toasts()).toHaveLength(1));
     expect(toasts()[0].text).toBe('Removed 05:12.0 from pickups.');
     expect(toasts()[0].action?.label).toBe('Undo');
+    expect(toasts()[0].undo?.entry).toBe(4);
     act(() => toasts()[0].action?.onAction());
     expect(undo).toHaveBeenCalledOnce();
   });

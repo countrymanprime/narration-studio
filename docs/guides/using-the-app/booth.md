@@ -420,6 +420,9 @@ While you read, the Booth marks places where listening suspects something went d
 words or a restart. They are listed in the side panel as cards, a chip naming what was suspected above the line, where **Dismiss** removes one from the list. Every
 one is only suspected: Transcript Compare over the recording is the authority.
 
+A dismissal, and the suspected lines a stopped take puts on Pickups, are each one entry in History, so **Undo** in the toast, Ctrl+Z
+and History all take them back.
+
 The chapter heading, its title and subtitle, is the first line you read, and reading it is optional. Nothing you say in it, or
 before the chapter's first word, is a suspected line, so "Chapter Twelve, the Storm Breaks" for "Chapter 12: The Storm Breaks"
 or leaving the heading out adds no pickup. The checks of the recording on Proof and Editing treat the heading the same way.

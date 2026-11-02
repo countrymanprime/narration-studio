@@ -5,9 +5,7 @@ import (
 	"time"
 
 	"desktop/internal/bridge"
-	"desktop/internal/coverage"
 	"desktop/internal/dawport"
-	"desktop/internal/tracks"
 	"desktop/internal/wordtimes"
 )
 
@@ -28,18 +26,18 @@ func (h *Host) WorkspaceWordTimes(chapterID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), wordTimesTimeout)
 	defer cancel()
 	if svc.coverage == nil {
-		return encodeBinding(unavailableWordTimes(), nil)
+		return encodeBinding(wordtimes.Unavailable(), nil)
 	}
 	view, err := svc.coverage.Alignment(chapterID, coverageSettings(svc.settings).Alignment)
 	if err != nil || view.NeedsAlignAgain || len(view.Tokens) == 0 {
-		return encodeBinding(unavailableWordTimes(), nil)
+		return encodeBinding(wordtimes.Unavailable(), nil)
 	}
 	state, ok := h.liveTrackState(ctx, svc, resolver.Support(dawport.CapTrackState), chapterID)
 	if !ok {
-		return encodeBinding(unavailableWordTimes(), nil)
+		return encodeBinding(wordtimes.Unavailable(), nil)
 	}
 	saved, _ := selectedProject(svc)
-	return encodeBinding(wordTimesIn(view, saved, state), nil)
+	return encodeBinding(wordtimes.Wire(view, saved, state), nil)
 }
 
 // liveTrackState reads chapterID's linked track now: false when it cannot be read or holds more items than one read lists.
@@ -57,72 +55,4 @@ func (h *Host) liveTrackState(ctx context.Context, svc hostServices, support daw
 		return bridge.TrackState{}, false
 	}
 	return state, true
-}
-
-// wordTimeRow is one word on the wire. Item indexes the answer's items list (-1 when no item plays the word).
-type wordTimeRow struct {
-	Index   int     `json:"i"`
-	State   string  `json:"state"`
-	Start   float64 `json:"start"`
-	End     float64 `json:"end"`
-	Item    int     `json:"item"`
-	Clipped bool    `json:"clipped"`
-	Misread bool    `json:"misread"`
-}
-
-// wordTimesView is WorkspaceWordTimes' answer.
-type wordTimesView struct {
-	Available   bool          `json:"available"`
-	Version     string        `json:"version"`
-	ChangeCount int           `json:"changeCount"`
-	Items       []string      `json:"items"`
-	Words       []wordTimeRow `json:"words"`
-}
-
-func unavailableWordTimes() wordTimesView {
-	return wordTimesView{Items: []string{}, Words: []wordTimeRow{}}
-}
-
-// wordTimesIn makes the table from the stored alignment, the saved project (where an alignment item's source file is read) and the live track.
-func wordTimesIn(view coverage.AlignmentView, saved tracks.Project, state bridge.TrackState) wordTimesView {
-	items := make([]wordtimes.Item, 0, len(view.Items))
-	for _, it := range view.Items {
-		item := wordtimes.Item{Index: it.Index, GUID: it.ItemGUID}
-		if _, found, ok := saved.ItemByGUID(it.ItemGUID); ok {
-			item.SourceFile = found.SourceFile
-		}
-		items = append(items, item)
-	}
-	words := make([]wordtimes.Word, 0, len(view.Tokens))
-	for _, t := range view.Tokens {
-		w := wordtimes.Word{Index: t.Index, ItemIndex: -1, Misread: t.Status == "misread"}
-		if t.Item != nil && t.Start != nil && t.End != nil {
-			w.ItemIndex, w.Start, w.End = *t.Item, *t.Start, *t.End
-		}
-		words = append(words, w)
-	}
-	live := make([]wordtimes.Live, 0, len(state.Items))
-	for _, it := range state.Items {
-		live = append(live, wordtimes.Live{
-			GUID: it.ItemGUID, SourceFile: it.SourceFile, Position: it.Position, Length: it.Length,
-			SourceStart: it.SourceOffset, PlayRate: it.PlayRate, Muted: it.Muted != nil && *it.Muted,
-		})
-	}
-	table := wordtimes.Compute(wordtimes.Input{Words: words, Items: items, Live: live, ChangeCount: state.ChangeCount, RecordID: view.RecordID})
-	out := wordTimesView{Available: true, Version: table.Version, ChangeCount: table.ChangeCount, Items: []string{}, Words: make([]wordTimeRow, 0, len(table.Rows))}
-	index := map[string]int{}
-	for _, r := range table.Rows {
-		row := wordTimeRow{Index: r.Index, State: string(r.State), Start: r.Start, End: r.End, Item: -1, Clipped: r.Clipped, Misread: r.Misread}
-		if r.ItemGUID != "" {
-			at, seen := index[r.ItemGUID]
-			if !seen {
-				at = len(out.Items)
-				index[r.ItemGUID] = at
-				out.Items = append(out.Items, r.ItemGUID)
-			}
-			row.Item = at
-		}
-		out.Words = append(out.Words, row)
-	}
-	return out
 }

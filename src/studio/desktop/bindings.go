@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"desktop/internal/coverage"
+	"desktop/internal/creditsid"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -655,7 +655,7 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 	// A credits file is also a chapter of the list, so `chapter=credits-opening` reads the same way.
 	kind := strings.TrimSpace(options["credits"])
 	if kind == "" {
-		if creditsKind, isCredits := coverage.CreditsKind(options["chapter"]); isCredits {
+		if creditsKind, isCredits := creditsid.Kind(options["chapter"]); isCredits {
 			kind = creditsKind
 		}
 	}
