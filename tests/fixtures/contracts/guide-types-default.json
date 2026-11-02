@@ -28,5 +28,10 @@
     "colour": "rose",
     "name": "Event",
     "speaks": false
+  },
+  {
+    "colour": "teal",
+    "name": "Word",
+    "speaks": false
   }
 ]

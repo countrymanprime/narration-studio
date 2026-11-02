@@ -172,6 +172,15 @@ func (s *Service) createInHost(name, category string, aliases []string, descript
 			if err != nil {
 				return false, err
 			}
+			if category == WordType && !slices.Contains(names, category) {
+				// A list made before Word was a default type takes it with the entry, in the same write.
+				named, err := ensureWordType(document)
+				if err != nil {
+					return false, err
+				}
+				category = named
+				names = append(names, named)
+			}
 			if !slices.Contains(names, category) {
 				return false, fmt.Errorf("Unknown category: %s", category) //nolint:staticcheck // the sidecar's own words, shown to the narrator
 			}

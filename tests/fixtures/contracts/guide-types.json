@@ -25,6 +25,11 @@
     "speaks": false
   },
   {
+    "name": "Word",
+    "colour": "teal",
+    "speaks": false
+  },
+  {
     "name": "Creature",
     "colour": "amber",
     "speaks": true

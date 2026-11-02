@@ -22,12 +22,45 @@ type Type struct {
 var TypeColours = []string{"green", "blue", "violet", "amber", "teal", "rose"}
 
 // DefaultTypes are the types of a file without a list: the fixed categories of before, in the colours the app drew them in, and
-// only Character speaking (manuscript_guide.py DEFAULT_TYPES; TestDefaultTypesMatchTheSidecar pins the two together).
+// only Character speaking, then Word, a word the narrator wants said one way (#2595). The build's defaultTypeRows are made from
+// this list; TestDefaultTypesMatchTheSidecar pins it to the golden that build test writes.
 func DefaultTypes() []Type {
-	return []Type{
+	types := []Type{
 		{"Character", "green", true}, {"Place", "blue", false}, {"Organization", "violet", false},
 		{"Lore", "amber", false}, {"Item", "teal", false}, {"Event", "rose", false},
 	}
+	if wordIsDefault {
+		types = append(types, Type{WordType, "teal", false})
+	}
+	return types
+}
+
+// wordIsDefault is false only while a test replays the sidecar's frozen recordings, which predate the Word type
+// (sidecarDefaults in the tests).
+var wordIsDefault = true
+
+// WordType is the default type of an entry made for a word rather than a character, place or thing: the Script page's flagged words
+// are entries of it.
+const WordType = "Word"
+
+// ensureWordType gives a document whose own types list has no Word type one, after the others, as DefaultTypes has it. A document
+// without a list reads as DefaultTypes and is left alone. It answers the name the Word type has in the document.
+func ensureWordType(document map[string]any) (string, error) {
+	if stored, present := document["types"]; !present || stored == nil {
+		return WordType, nil
+	}
+	types, err := guideTypes(document)
+	if err != nil {
+		return "", err
+	}
+	for _, row := range types {
+		if name, _ := row["name"].(string); foldCase(name) == foldCase(WordType) {
+			return name, nil
+		}
+	}
+	rows, _ := document["types"].([]any)
+	document["types"] = append(slices.Clone(rows), map[string]any{"name": WordType, "colour": "teal", "speaks": false, "builtin": WordType})
+	return WordType, nil
 }
 
 // maxTypeName is the longest type name, in characters; the sidecar checks the same.
