@@ -1843,3 +1843,123 @@ describe('a-take-is-undone-in-the-daw', () => {
     expect(toastNamed(page, 'Take saved')).toBeUndefined();
   });
 });
+
+// Listening and the recording start together (#2251): what a second press, a Stop or a failed stop does while listening is still starting.
+// From the qa-breaker pass of 2026-11-02 (B1 to B4).
+describe('a-record-press-while-listening-starts', () => {
+  const settingsForScope = async () => ({
+    Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+  });
+  // A real double press: the start guard stays on.
+  const rawSpace = () =>
+    act(() => {
+      fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+    });
+  const stopped = (undoSteps: number) => async () => ({ ok: true, changed: true, message: '', undoSteps });
+  const toasts = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
+  /** A host whose one session the test settles by hand, and that tells the page its phase as the real host does. */
+  const manual = () => {
+    let phase = 'idle';
+    const states = new Set<(next: never) => void>();
+    const publish = (next: string) => {
+      phase = next;
+      states.forEach((listener) =>
+        listener({ phase, message: '', engine: 'whisper', chapter: 'c1', paused: false, coldRead: false, script: null, position: null } as never),
+      );
+    };
+    let pending: { ok: () => void; fail: (e: Error) => void } = { ok: () => {}, fail: () => {} };
+    const start = vi.fn(() => {
+      act(() => publish('starting'));
+      return new Promise<{ status: 'started' }>((resolve, reject) => {
+        pending = {
+          ok: () => {
+            publish('running');
+            resolve({ status: 'started' });
+          },
+          fail: (error) => {
+            publish('stopped');
+            reject(error);
+          },
+        };
+      });
+    });
+    const stop = vi.fn(async () => {
+      if (phase === 'running' || phase === 'starting') act(() => publish('stopped'));
+    });
+    const api = {
+      settingsForScope,
+      teleprompterStart: start,
+      teleprompterStop: stop,
+      teleprompterState: async () => ({ phase, message: '', engine: null, chapter: null, paused: false, coldRead: false, script: null, position: null }),
+      subscribeTeleprompterState: (listener: (next: never) => void) => {
+        states.add(listener);
+        return () => states.delete(listener);
+      },
+    };
+    return { start, stop, api, listen: () => act(async () => pending.ok()), fail: (message: string) => act(async () => pending.fail(new Error(message))) };
+  };
+
+  it('a second press while listening is still starting starts nothing more', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    await ready();
+    await space();
+    await rawSpace();
+    await settle();
+    await host.listen();
+    await settle();
+    expect(host.start).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+
+  it('Stop while listening starts waits for it; listening up, the take stops and is kept as usual', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await space();
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    await host.listen();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(host.stop).toHaveBeenCalled());
+    expect(page.daw.undoLast).not.toHaveBeenCalled();
+  });
+
+  it('Stop while listening starts, then listening fails: one stop, the take taken back, nothing saved or mapped', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    page.daw.recordStop.mockImplementation(stopped(1));
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await space();
+    await host.fail('The microphone is in use by another application.');
+    await waitFor(() => expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1));
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    // The mock DAW refuses the undo (it never recorded the take this stop reports); its own sentence says what to do, once.
+    expect(toasts(page).filter((text) => /Take saved|could not be stopped/i.test(text))).toEqual([]);
+    expect(toasts(page).filter((text) => /Undo it in/.test(text))).toEqual([]);
+  });
+
+  it('a stop that fails after a failed listen is said, and the take is not mapped', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    page.daw.recordStop.mockImplementation(async () => {
+      throw new Error('bridge gone');
+    });
+    await ready();
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    await host.fail('no mic');
+    await waitFor(() => expect(toasts(page).some((text) => /could not be stopped/.test(text))).toBe(true));
+    await settle();
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    expect(toasts(page).some((text) => /Nothing was recorded/.test(text))).toBe(false);
+  });
+});
