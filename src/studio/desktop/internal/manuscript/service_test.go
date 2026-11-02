@@ -1001,6 +1001,8 @@ func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
 		}
 		return committed
 	}
+	// A schema-1 file backed up in a later cycle sits beside the first backup.
+	secondBackup := filepath.Join(filepath.Dir(scriptprep.BackupFile(project)), "script-prep.v1-2.json")
 	writePrep := func() {
 		t.Helper()
 		if err := os.MkdirAll(filepath.Dir(scriptprep.File(project)), 0o755); err != nil {
@@ -1013,10 +1015,13 @@ func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
 		if err := os.WriteFile(scriptprep.BackupFile(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
+		if err := os.WriteFile(secondBackup, []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	gone := func(when string) {
 		t.Helper()
-		for _, path := range []string{scriptprep.File(project), scriptprep.BackupFile(project)} {
+		for _, path := range []string{scriptprep.File(project), scriptprep.BackupFile(project), secondBackup} {
 			if _, err := os.Stat(path); !os.IsNotExist(err) {
 				t.Fatalf("%s left %s behind: %v", when, filepath.Base(path), err)
 			}

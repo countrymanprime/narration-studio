@@ -2,7 +2,6 @@ package guide
 
 import (
 	"maps"
-	"slices"
 	"strings"
 )
 
@@ -33,8 +32,8 @@ type ScriptWordImport struct {
 }
 
 // ImportScriptWords moves the Script page's words into the Story Bible, in one write (none when nothing changes), starting the Story
-// Bible as a create does when there is none. Each word goes to the first entry whose canonical name, or else the first whose alias,
-// equals it ignoring case and surrounding space:
+// Bible as a create does when there is none. Each word goes to the first entry in list order whose canonical name or any alias
+// equals it ignoring case and surrounding space, as the Script page gives a name to an entry:
 //
 //   - a name with no IPA takes the value (setPronunciation: chosen, its note kept);
 //   - a name that says it the same way, or keeps it as its alternate or in its note, is left alone;
@@ -43,7 +42,7 @@ type ScriptWordImport struct {
 //   - a locked entry is never changed.
 //
 // A word no name matches becomes an entry of the Word type (added to a types list that lacks it), made by hand as a create makes it,
-// named with Name and pronounced with the Script value, or with the "not generated" value when it had none: no source is asked.
+// under an id no other name has (claimID), named with Name and pronounced with the Script value, or with the "not generated" value when it had none: no source is asked.
 // Running it again changes nothing more.
 func (s *Service) ImportScriptWords(words []ScriptWord) (ScriptWordImport, error) {
 	var result ScriptWordImport
@@ -64,16 +63,13 @@ func (s *Service) ImportScriptWords(words []ScriptWord) (ScriptWordImport, error
 				name = pythonStrip(word.Word)
 			}
 			entity, holder := matchScriptWord(entities, word.Word)
-			if entity == nil && name != "" {
-				// A name whose id an entry has already (the same name in other punctuation) is that entry's.
-				id := entityID(name)
-				if index := slices.IndexFunc(entities, func(raw any) bool { return idOf(raw) == id }); index >= 0 {
-					entity, _ = entities[index].(map[string]any)
-					holder = entity
-				}
-			}
 			if entity == nil && name == "" {
 				continue
+			}
+			id := ""
+			if entity == nil {
+				// The same name in other ASCII punctuation is the entry's that has it; any other name gets an id of its own.
+				id, entity, holder = claimID(entities, name)
 			}
 			if entity == nil {
 				category, err := ensureWordType(document)
@@ -90,7 +86,7 @@ func (s *Service) ImportScriptWords(words []ScriptWord) (ScriptWordImport, error
 					value = map[string]any{"ipa": say, "source": scriptSource(word.Source), "chosen": true}
 				}
 				values := make([]map[string]any, 0, 1)
-				created, err := newEntry(entityID(name), name, category, nil, append(values, value), "", []any{}, search)
+				created, err := newEntry(id, name, category, nil, append(values, value), "", []any{}, search)
 				if err != nil {
 					return false, err
 				}
@@ -123,7 +119,9 @@ func (s *Service) ImportScriptWords(words []ScriptWord) (ScriptWordImport, error
 	return result, err
 }
 
-// matchScriptWord is the entry and the name (the entry itself, or one of its aliases) a word goes to, or nil for none.
+// matchScriptWord is the entry and the name (the entry itself, or one of its aliases) a word goes to, or nil for none: the first entry
+// in list order whose canonical name or any alias equals the word, which is the entry the Script page gives the name to (mentionsIn in
+// script.selectors.ts).
 func matchScriptWord(entities []any, word string) (map[string]any, map[string]any) {
 	key := foldCase(pythonStrip(word))
 	if key == "" {
@@ -131,12 +129,9 @@ func matchScriptWord(entities []any, word string) (map[string]any, map[string]an
 	}
 	for _, raw := range entities {
 		entity, _ := raw.(map[string]any)
-		if name, _ := entity["canonical_name"].(string); foldCase(pythonStrip(name)) == key {
+		if name, _ := entity["canonical_name"].(string); entity != nil && foldCase(pythonStrip(name)) == key {
 			return entity, entity
 		}
-	}
-	for _, raw := range entities {
-		entity, _ := raw.(map[string]any)
 		aliases, _ := entity["aliases"].([]any)
 		for _, item := range aliases {
 			alias, _ := item.(map[string]any)
