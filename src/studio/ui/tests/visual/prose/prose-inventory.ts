@@ -341,17 +341,17 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Imported by mistake? Take it out of the board and totals. Its text stays in the manuscript.',
     class: 'overlay',
   },
-  { file: 'components/production/ImportReview.tsx', text: 'Checked names become reviewable Character entries after import.', class: 'explanation' },
+  { file: 'components/production/ImportReview.tsx', text: 'Checked names become reviewable Character entries after import.', class: 'overlay' },
   {
     file: 'components/production/RecordingCheckReport.tsx',
     text: 'heard (retakes, asides, a spoken title); extra words never count against the reading.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/production/RecordingCheckReport.tsx', text: 'The paragraphs with missing words. The other … are fully read.', class: 'state' },
   {
     file: 'components/production/RecordingCheckRules.tsx',
     text: 'They were chosen on synthetic test recordings and have not been checked against real ones. The first two only change how a stored check is judged; changing either of the next two changes which words count, so earlier checks read as out of date and those chapters need checking again.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/production/RemoveFromRecordingDialog.tsx',
@@ -361,7 +361,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/production/pipeline/NoManuscript.tsx',
     text: 'The app reads your manuscript, finds the chapters, and works out how much finished audio, recording and editing that means.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/production/report/ReportDialog.tsx',
@@ -436,12 +436,12 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/recordingcheck/RunOptions.tsx',
     text: 'Only the passages that are missing or that Whisper was unsure of are transcribed a second time.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/recordingcheck/RunOptions.tsx',
     text: 'Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/recordingcheck/RunOptions.tsx', text: 'Automatic: plan it from the processors, the free memory and the model', class: 'overlay' },
   { file: 'components/schedule/MilestoneTable.tsx', text: 'No other milestones yet. Add one with +.', class: 'empty' },
@@ -449,7 +449,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/schedule/WorkedOut.tsx',
     text: 'Finished audio is words ÷ …. Recording takes …×, editing …× and proofing …× the finished hours. Your pace is an estimate, not measured from your sessions: it assumes … h of work a day.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/script/page/rail/threads/ThreadsPanel.tsx', text: 'No notes in this chapter yet. Select text and choose Mark.', class: 'empty' },
   { file: 'components/script/page/rail/words/DefinitionBlock.tsx', text: 'cannot be reached. The web links below still work.', class: 'error' },

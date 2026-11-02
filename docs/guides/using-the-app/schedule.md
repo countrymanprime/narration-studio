@@ -24,7 +24,7 @@ date is today or past, no daily pace can reach it, so the pill says how late ins
 
 ## How it is worked out
 
-**How this is worked out** lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**. Like Production, it counts the narration chapters only; a chapter removed from recording is not work.
+**How this is worked out** (its **?** gives the arithmetic: words per finished hour, the recording, editing and proofing multiples, and the hours a day it assumes) lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**. Like Production, it counts the narration chapters only; a chapter removed from recording is not work.
 With no due date, **Pace needed for the due date** says **Set a due date**; once the date is today or past, it says **Due today** or **Past the due date**. The numbers behind it are fixed, not measured from your sessions, so the page labels **Your pace** and **At your
 pace, done** as estimates and says what they assume: finished audio is words ÷ 9,300 per hour (or your own measured rate, once you choose **Your pace** in Production's finished-hour target; every hours figure on Production and Schedule follows that choice), recording takes 3×
 the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours (3.6 minutes), and your pace is 1.5 hours a day. **At your
@@ -32,7 +32,7 @@ pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
 the app can read them (otherwise a line under the chart says why it cannot), today (its label sits beside the dot, on the side away from the plan, estimate and due lines), and the
-estimated finish as a dotted line. With no due date there is no plan or due line, and the line under the chart says **Set a due date to see the plan line.**
+estimated finish as a dotted line. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
 
 ## Contract
 
