@@ -104,8 +104,10 @@ var eventSpecs = map[string]eventSpec{
 	// exactly when rpp is empty. changeCount (GetProjectStateChangeCount(0)) was appended later: optional, so an older
 	// script's three-field heartbeat still passes, and empty on a REAPER without the call. playState (GetPlayState's
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later
-	// optional for the same reason; the script also sends a heartbeat at once when playState changes.
-	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition")}},
+	// optional for the same reason; the script also sends a heartbeat at once when playState changes. timing is 1 while the
+	// bridge timing diagnostic is switched on in REAPER (the host then writes its record-press timeline, internal/presstimeline),
+	// and absent otherwise.
+	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition"), count("timing")}},
 	// src/studio/integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
 	// action-list name REAPER matched (so the narrator sees what opened).
 	"CLEANUP_LAUNCHED": {required: []fieldSpec{text("run"), text("tool"), text("action")}},

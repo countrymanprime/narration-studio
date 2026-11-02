@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/presstimeline"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -213,6 +214,8 @@ type Host struct {
 	// every project switch. Never a true nil interface: with no bridge client it is daw.NewReachability(nil), which
 	// always reports unreachable.
 	reachability dawport.Heartbeat
+	// timeline is the record-press timeline (presstimeline_host.go), set once in NewHost; nil (a no-op) in tests that build a Host.
+	timeline *presstimeline.Timeline
 	// navigation is the Review page's REAPER navigator on the same bridge client (bindings_navigation.go); swappable
 	// like transcript. Never nil once configured: with no bridge client it is standalone and refuses every request.
 	navigation *findingNavigation
@@ -570,6 +573,7 @@ func NewHost() *Host {
 		runLog.SetDebug(true)
 	}
 	host.sidecars.SetFallbackRun(runLog.App)
+	host.timeline = newPressTimeline(host)
 	return host
 }
 
@@ -957,6 +961,7 @@ func (h *Host) configureLocked(next config) {
 	// a developer/evaluation-only opt-in, same pattern as NARRATION_DEBUG (runlog), never a Settings toggle.
 	h.teleprompter = teleprompter.New(teleprompter.Config{Project: h.config.projectFolder, SessionDir: teleprompterDir, Python: h.config.teleprompterPython, Backend: h.config.teleprompterBackend, Platform: h.platform, EvalTiming: os.Getenv("NARRATION_TELEPROMPTER_EVAL") == "1", EvalExtraArgs: evalExtraArgs}, h.sidecars, h.emitTeleprompterEvent, h.emitTeleprompterState)
 	h.teleprompter.SetLog(func(kind, message string) { _ = h.log.Report(kind, message) })
+	h.teleprompter.SetStepHook(h.timeline.Mark)
 	// Every capture of a microphone measures its room tone, kept per microphone for the Booth to show (#2251 item 10).
 	h.teleprompter.SetRoomTone(roomtone.NewMeter(roomtone.Open(roomTonePath(), h.persist)))
 	h.teleprompter.SetTrace(func(event string, attrs ...any) {
