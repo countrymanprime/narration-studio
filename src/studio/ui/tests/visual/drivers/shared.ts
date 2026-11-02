@@ -518,6 +518,16 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
             top: scroller.scrollTop + at.top + at.height / 2 - (scroller.getBoundingClientRect().top + scroller.clientHeight / 2),
             behavior: 'instant',
           });
+        // The reader names the chapter whose heading is at or above 70 px under its top, and the rail follows it. Centring can leave the
+        // word's own chapter heading lower than that (a wide column puts a paragraph close under its heading), and the rail would then
+        // list the chapter before it. Bring the heading to the top, as a jump to the chapter does, when the word stays on screen under it.
+        const bound = scroller && paragraph.closest<HTMLElement>('[data-para]')?.dataset.ch;
+        const heading = bound ? scroller?.querySelector<HTMLElement>(`[data-bound][data-ch="${bound}"]`) : null;
+        if (scroller && heading && heading.offsetTop - scroller.scrollTop > 70) {
+          const target = Math.max(0, heading.offsetTop - 8);
+          const wordTop = range.getBoundingClientRect().top - scroller.getBoundingClientRect().top - (target - scroller.scrollTop);
+          if (wordTop >= 64) scroller.scrollTo({ top: target, behavior: 'instant' });
+        }
         const selection = window.getSelection();
         selection?.removeAllRanges();
         selection?.addRange(range);

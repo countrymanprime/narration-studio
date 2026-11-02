@@ -252,7 +252,8 @@ describe('ResumePrompt', () => {
   it('is gone the moment a session starts, and comes back, asking again, once it ends (#2649)', async () => {
     const { setState, teleprompterLocate } = renderDialog();
     await prompt();
-    expect(teleprompterLocate).toHaveBeenCalledTimes(1);
+    // The lookup follows the read of how far the chapter is recorded, which the Companion offers first.
+    await waitFor(() => expect(teleprompterLocate).toHaveBeenCalledTimes(1));
 
     setState({ phase: 'running', message: 'Listening…', chapter: 'chapter-1' });
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Where you stopped' })).toBeNull());

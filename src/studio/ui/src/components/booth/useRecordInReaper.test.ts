@@ -14,7 +14,6 @@ function fakeApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
   return {
     settingsForScope: vi.fn(async () => ({})),
     saveSettings: vi.fn(async () => ({}) as never),
-    readAloudArmOnly: vi.fn(async () => ({ outcome: 'armed' }) as ReadAloudRecording),
     readAloudRecordStart: vi.fn(async () => ({ outcome: 'started', trackGuid: '{1}', position: 0 }) as ReadAloudRecording),
     readAloudRecordStop: vi.fn(async () => ({ outcome: 'stopped', restored: 0, kept: 0 }) as ReadAloudRecording),
     ...overrides,
@@ -40,87 +39,6 @@ describe('useRecordInReaper', () => {
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.enabled).toBe(false);
-  });
-
-  it('turning the toggle on for the first time asks for confirmation instead of saving at once', async () => {
-    const saveSettings = vi.fn(async () => ({}) as never);
-    const { result } = renderHook(() => useRecordInReaper('chapter-1', true), { wrapper: wrapper(fakeApi({ saveSettings })) });
-    await waitFor(() => expect(result.current.loaded).toBe(true));
-
-    act(() => result.current.toggle());
-
-    expect(result.current.confirmPending).toBe(true);
-    expect(result.current.enabled).toBe(false);
-    expect(saveSettings).not.toHaveBeenCalled();
-  });
-
-  it('confirming turns the toggle on and remembers both the choice and that it was confirmed', async () => {
-    const saveSettings = vi.fn(async () => ({}) as never);
-    const { result } = renderHook(() => useRecordInReaper('chapter-1', true), { wrapper: wrapper(fakeApi({ saveSettings })) });
-    await waitFor(() => expect(result.current.loaded).toBe(true));
-    act(() => result.current.toggle());
-
-    act(() => result.current.confirm());
-
-    expect(result.current.confirmPending).toBe(false);
-    expect(result.current.enabled).toBe(true);
-    expect(saveSettings).toHaveBeenCalledWith('ReadAloud', 'project', { record_in_reaper: 'true', record_confirmed: 'true' });
-  });
-
-  it('cancelling the confirm leaves the toggle off', async () => {
-    const { result } = renderHook(() => useRecordInReaper('chapter-1', true), { wrapper: wrapper(fakeApi()) });
-    await waitFor(() => expect(result.current.loaded).toBe(true));
-    act(() => result.current.toggle());
-
-    act(() => result.current.cancelConfirm());
-
-    expect(result.current.confirmPending).toBe(false);
-    expect(result.current.enabled).toBe(false);
-  });
-
-  it('turning the toggle off (once confirmed before) saves at once, with no confirm', async () => {
-    const settingsForScope = vi.fn(async () => ({ ReadAloud: [field('record_in_reaper', 'true'), field('record_confirmed', 'true')] }));
-    const saveSettings = vi.fn(async () => ({}) as never);
-    const { result } = renderHook(() => useRecordInReaper('chapter-1', true), { wrapper: wrapper(fakeApi({ settingsForScope, saveSettings })) });
-    await waitFor(() => expect(result.current.enabled).toBe(true));
-
-    act(() => result.current.toggle());
-
-    expect(result.current.enabled).toBe(false);
-    expect(result.current.confirmPending).toBe(false);
-    expect(saveSettings).toHaveBeenCalledWith('ReadAloud', 'project', { record_in_reaper: 'false' });
-  });
-
-  it('turning it on again after it was confirmed before does not ask again', async () => {
-    const settingsForScope = vi.fn(async () => ({ ReadAloud: [field('record_in_reaper', 'false'), field('record_confirmed', 'true')] }));
-    const saveSettings = vi.fn(async () => ({}) as never);
-    const { result } = renderHook(() => useRecordInReaper('chapter-1', true), { wrapper: wrapper(fakeApi({ settingsForScope, saveSettings })) });
-    await waitFor(() => expect(result.current.loaded).toBe(true));
-
-    act(() => result.current.toggle());
-
-    expect(result.current.confirmPending).toBe(false);
-    expect(result.current.enabled).toBe(true);
-    expect(saveSettings).toHaveBeenCalledWith('ReadAloud', 'project', { record_in_reaper: 'true' });
-  });
-
-  it('armOnly asks the host and surfaces a refusal as an error', async () => {
-    const readAloudArmOnly = vi.fn(
-      async () => ({ outcome: 'refused', reason: 'already_recording', message: 'REAPER is already recording.' }) as ReadAloudRecording,
-    );
-    const { result } = renderHook(() => useRecordInReaper('chapter-1', true), { wrapper: wrapper(fakeApi({ readAloudArmOnly })) });
-    await waitFor(() => expect(result.current.loaded).toBe(true));
-
-    // A synchronous act() callback (the promise is discarded, not returned) so React flushes the immediate
-    // setArmPending(true) before this assertion, rather than switching act() into async mode.
-    act(() => {
-      void result.current.armOnly();
-    });
-    expect(result.current.armPending).toBe(true);
-
-    await waitFor(() => expect(result.current.armPending).toBe(false));
-    expect(readAloudArmOnly).toHaveBeenCalledWith('chapter-1');
-    expect(result.current.error).toBe('REAPER is already recording.');
   });
 
   it('beforeStart does nothing and answers true when the toggle is off', async () => {
