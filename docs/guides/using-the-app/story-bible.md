@@ -98,6 +98,10 @@ field, a source tag, and beside the play button **Record my own clip** (for your
   Merriam-Webster online. The source is asked for that name alone; one with nothing for it says so and the value stays.
 - When you replace a dictionary's answer with your own, or the other way round, the one replaced is kept: the tag's
   menu offers **Use mine** or **Use the dictionary's** to switch back.
+- Each change is one step in the history: **Undo** puts the name's earlier pronunciation back.
+
+This row is also the **How I will say it** row on the [Script](script.md#the-rail) page's **Words** card, and both edit the same value: a change
+made on either page shows on the other. A word you add from Script for its pronunciation is an entry here of the type **Word**.
 
 A new scan keeps all of this. Which source a *fresh* pronunciation tries first (at scan time, or when you add an alias)
 follows **Settings > Voice & pronunciation > Pronunciation source for new names**. A note written on a pronunciation shows under its
