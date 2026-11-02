@@ -55,4 +55,4 @@ export const scheduleStates: StateEntry[] = [
       'Schedule while the plan is still being read (?mockPlan=loading): the page title, a block for its due-date line and verdict, a chart block, two panel blocks and the milestones block, with one polite "Loading the schedule…" status',
   },
 ];
-scheduleStates.push(wholePage(scheduleStates, 'on-pace'));
+scheduleStates.push(wholePage(scheduleStates, 'on-pace', ['desktop']));
