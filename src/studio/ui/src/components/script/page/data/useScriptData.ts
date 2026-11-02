@@ -273,6 +273,7 @@ export function useScriptCommands() {
   );
 
   return useMemo(() => {
+    const adding = new Map<string, Promise<string | null>>();
     const undoOffer = (text: string, entryId: number | null) => {
       if (entryId === null) return;
       overlay.toastUndo(
@@ -318,19 +319,36 @@ export function useScriptCommands() {
        * has the one home every page reads. Answers the name's key for the Words card, or null when nothing was added.
        */
       /** Says a Story Bible name the narrator's own way (the definition source's "Use"), through the one pronunciation command (#2595). */
-      async pronounceName(name: Pick<select.ChapterWord, 'entryId' | 'aliasIndex' | 'pronunciation'>, say: string) {
-        const done = await pronounceOwn(journal, env.storyBible, { entryId: name.entryId, aliasIndex: name.aliasIndex, prior: name.pronunciation }, say);
+      async pronounceName(name: Pick<select.ChapterWord, 'entryId' | 'aliasIndex' | 'name' | 'pronunciation'>, say: string) {
+        const done = await pronounceOwn(
+          journal,
+          env.storyBible,
+          { entryId: name.entryId, aliasIndex: name.aliasIndex, name: name.name, prior: name.pronunciation },
+          say,
+        );
         overlay.toast(done.ok ? 'Your pronunciation is in use.' : done.refusal.reason, done.ok ? undefined : { tone: 'error' });
         return done.ok;
       },
-      async addWord(range: LineRange & { quote?: string }) {
-        // The selection's own words; a range without them is read from the line the page has loaded.
-        const line = data.getState().paragraphs[range.chapterId]?.value?.find((row) => row.id === range.paragraphId);
-        const text = (range.quote ?? line?.text.slice(range.start, range.end) ?? '').trim();
-        const done = said(await commands.createEntryFrom(env, select.WORD_TYPE, text));
-        if (!done) return null;
-        overlay.toast(done.created ? `Added “${text}” to the Story Bible as a word.` : `“${text}” is in the Story Bible already.`);
-        return select.wordKey(text);
+      addWord(target: LineRange | { quote: string }): Promise<string | null> {
+        // The words given; a range without them is read from the line the page has loaded.
+        const range = 'chapterId' in target ? target : undefined;
+        const line = range && data.getState().paragraphs[range.chapterId]?.value?.find((row) => row.id === range.paragraphId);
+        const given = 'quote' in target && typeof target.quote === 'string' ? target.quote : undefined;
+        const text = (given ?? (line && range ? line.text.slice(range.start, range.end) : '')).trim();
+        // A second add of the same word while the first is still with the host waits for it, so the word is made once (a double click,
+        // a click and Enter, the menu and the toolbar at once).
+        const key = select.wordKey(text);
+        const running = adding.get(key);
+        if (running) return running;
+        const added = (async () => {
+          const done = said(await commands.createEntryFrom(env, select.WORD_TYPE, text));
+          if (!done) return null;
+          overlay.toast(done.created ? `Added “${text}” to the Story Bible as a word.` : `“${text}” is in the Story Bible already.`);
+          return select.wordKey(text);
+        })();
+        adding.set(key, added);
+        void added.finally(() => adding.delete(key));
+        return added;
       },
       /** Finds who speaks the quoted lines and says what moved, with Undo when something did. Answers whether the run finished. */
       async attributeSpeakers() {

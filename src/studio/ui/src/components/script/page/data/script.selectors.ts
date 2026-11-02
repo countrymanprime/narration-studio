@@ -154,14 +154,14 @@ const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\
 
 /**
  * The entries' names in a text, left to right, never overlapping: at each place the longest name wins, a name matches as a
- * whole word only, and case is ignored. A name two entries share belongs to the first in the list.
+ * whole word only (a combining accent is part of the word), and case is ignored. A name two entries share belongs to the first in the list.
  */
 export function mentionsIn(entries: readonly GuideEntity[], text: string): Mention[] {
   const owner = new Map<string, string>();
   for (const entry of entries) for (const name of namesOf(entry)) if (!owner.has(name.toLowerCase())) owner.set(name.toLowerCase(), entry.id);
   if (owner.size === 0) return [];
   const names = [...owner.keys()].sort((a, b) => b.length - a.length || a.localeCompare(b));
-  const re = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${names.map(escape).join('|')})(?![\\p{L}\\p{N}_])`, 'giu');
+  const re = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}_])(?:${names.map(escape).join('|')})(?![\\p{L}\\p{M}\\p{N}_])`, 'giu');
   return [...text.matchAll(re)].map((match) => ({
     start: match.index,
     end: match.index + match[0].length,

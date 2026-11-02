@@ -111,7 +111,7 @@ function Seeded({ words, say = false, show = 'first', source = 'web', local, off
       <StudioProvider>
         <Show word={shown} />
         <div className="max-w-sm rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
-          <WordsTab chapterId={CHAPTER} host={host} selection={state.spare!.range} />
+          <WordsTab chapterId={CHAPTER} host={host} />
         </div>
       </StudioProvider>
     </ApiProvider>

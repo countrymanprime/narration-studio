@@ -287,7 +287,7 @@ export async function createEntryFrom(env: ScriptCommandEnv, category: string, t
   if (found) return { ok: true, value: { value: found.id, entryId: null, created: false } };
   const result = await journalled<string>(env, ['entries'], {
     label: `Added “${name}” to the Story Bible`,
-    touches: ['storyBible/entries'],
+    touches: ['storyBible/entities'],
     run: () => attempt(() => env.storyBible.guideCreate(name, category, [])),
     undo: (id) => attempt(() => env.storyBible.guideDelete(id)),
   });

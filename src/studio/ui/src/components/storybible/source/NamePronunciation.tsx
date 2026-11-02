@@ -96,7 +96,7 @@ export function NamePronunciation({
   }
   const key = aliasIndex === undefined ? 'entry' : `alias-${aliasIndex}`;
 
-  const target = { entryId: entityId, aliasIndex, prior: pronunciation };
+  const target = { entryId: entityId, aliasIndex, name, prior: pronunciation };
   // Every change is one journal entry through the shared commands (#2595), so Undo works from this grid and from Script's Words card alike.
   const done = async (result: Result<unknown>, success: string): Promise<boolean> => {
     if (!result.ok) {

@@ -42,4 +42,26 @@ describe('one pronunciation store (#2595)', () => {
     const card = files.find(({ path }) => path === 'components/script/page/rail/words/WordCard.tsx')!.text;
     expect(card).toMatch(/<NamePronunciation\b/);
   });
+
+  it('only the shared row asks a source for a value or lets the narrator pick one: no second editor under another label', () => {
+    const asking = outsideApi
+      .filter(({ path }) => path !== 'components/storybible/source/NamePronunciation.tsx')
+      .filter(({ text }) => /\.pronunciationCandidate\(|<PronSourceTag\b[^>]*\bonPick=/s.test(text))
+      .map(({ path }) => path);
+    expect(asking, "a source tag elsewhere is read-only; picking or asking a source is NamePronunciation's").toEqual([]);
+  });
+
+  it("Script's read cache holds the host's lists and no list of its own: the Story Bible's entries are its words", () => {
+    const data = files.find(({ path }) => path === 'components/script/page/data/scriptData.ts')!.text;
+    const lists = /export type ScriptList = ([^;]+);/.exec(data)![1]!.match(/'[a-z]+'/g);
+    expect(lists).toEqual(["'chapters'", "'marks'", "'prep'", "'entries'", "'types'", "'cues'"]);
+  });
+
+  it('every journal key of the Story Bible is in one namespace, so its undos order with each other whichever page made them', () => {
+    const keys = outsideApi.flatMap(({ path, text }) =>
+      [...text.matchAll(/touches:\s*\[([^\]]*)\]/g)].flatMap((match) => [...match[1]!.matchAll(/storyBible\/([a-zA-Z]+)/g)].map((key) => `${path}: ${key[1]}`)),
+    );
+    expect(keys.length).toBeGreaterThan(0);
+    expect(keys.filter((key) => !/: (entities|cues|types)$/.test(key))).toEqual([]);
+  });
 });

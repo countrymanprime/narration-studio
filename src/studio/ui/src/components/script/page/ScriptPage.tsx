@@ -141,7 +141,6 @@ function ScriptWorkspace({
 
   const [drawer, update] = useScriptView((state) => state.drawer);
   const [selectedMark] = useScriptView((state) => state.sel);
-  const [missSel] = useScriptView((state) => state.missSel);
   const [spyAt] = useScriptView((state) => state.spyAt);
   const [pendingJump] = useScriptView((state) => state.pendingJump);
   const [pendingPid] = useScriptView((state) => state.pendingPid);
@@ -509,7 +508,7 @@ function ScriptWorkspace({
   const body = (current: RailTab): ReactNode => {
     switch (current) {
       case 'pron':
-        return <WordsTab chapterId={inView} host={wordsHost} selection={missSel ?? undefined} />;
+        return <WordsTab chapterId={inView} host={wordsHost} />;
       case 'bible':
         return <BibleTab chapterId={inView} host={wordsHost} onOpenStoryBible={focusStoryBibleEntity} />;
       case 'marks':

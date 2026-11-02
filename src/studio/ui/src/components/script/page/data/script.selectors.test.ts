@@ -292,6 +292,12 @@ describe('the-words-tab-lists-the-story-bible-names-in-the-text', () => {
     const said = { ...knave, pronunciation: { ipa: 'nayv', source: 'manual', confidence: 'narrator' } };
     expect(chapterWords([said], text)).toEqual([expect.objectContaining({ key: 'knave', status: 'set', pronunciation: said.pronunciation })]);
   });
+  it('a name never matches inside a longer word, a combining accent included (café is not cafe)', () => {
+    const cafe = entity('cafe', 'cafe', 'Word');
+    expect(mentionsIn([cafe], 'a cafe\u0301 by the sea')).toEqual([]);
+    expect(mentionsIn([cafe], 'a café by the sea')).toEqual([]);
+    expect(mentionsIn([cafe], 'the cafe, at noon')).toHaveLength(1);
+  });
   it('lists nothing for a chapter with no names in its text', () => {
     expect(chapterWords([alice, knave], [{ text: 'Nothing here.' }])).toEqual([]);
   });

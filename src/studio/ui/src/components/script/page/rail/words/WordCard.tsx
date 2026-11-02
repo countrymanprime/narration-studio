@@ -10,7 +10,6 @@ import type { Notify } from '../../../../primitives/Toast';
 import { NamePronunciation, NAMES_GRID } from '../../../../storybible/source/NamePronunciation';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
 import { wordKey } from '../../data/script.selectors';
-import type { LineRange } from '../../data/scriptCommands';
 import { useEntries, useScriptCommands } from '../../data/useScriptData';
 import { useScriptHear } from '../../data/useScriptHear';
 import { DefinitionBlock } from './DefinitionBlock';
@@ -26,7 +25,7 @@ const NOT_A_WORD_REASON = 'Add it to your words first.';
  * Story Bible entry names. How it is said is the Story Bible name's own pronunciation (#2595), shown and edited through the Story Bible's row
  * (`NamePronunciation`) and its journalled commands, so the two pages cannot disagree. Record is a toast, as in the mock: there is no clip.
  */
-export function WordCard({ word, host, selection }: { word: string; host: WordsHost; selection?: LineRange }) {
+export function WordCard({ word, host }: { word: string; host: WordsHost }) {
   const entries = useEntries();
   const commands = useScriptCommands();
   const sources = usePronunciationSources();
@@ -42,6 +41,8 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
       <div className="flex items-center gap-2">
         <h3 className="m-0 text-base font-semibold">{name?.name ?? word}</h3>
         <StatusBadge tone={statusTone(status)} label={statusLabel(status)} />
+        {/* A locked entry's row cannot be changed here or in the Story Bible until it is unlocked there. */}
+        {entry?.locked && <StatusBadge tone="neutral" label="Locked" />}
         <span className="flex-1" />
         <IconButton
           action={hearNameAction(hear?.playing)}
@@ -51,11 +52,14 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
           onClick={hear?.onPress}
           disabledReason={hear ? undefined : name ? NO_PRONUNCIATION_REASON : NOT_A_WORD_REASON}
         />
-        <IconButton action="record" onClick={() => overlay.toast('Recording your own pronunciation')} />
+        {name && <IconButton action="record" onClick={() => overlay.toast('Recording your own pronunciation')} />}
       </div>
       {name && entry && (
-        <div className="@container">
-          <div role="group" aria-label="How I will say it" className={`${NAMES_GRID.shared} ${NAMES_GRID.edit}`}>
+        <div className="@container space-y-1.5">
+          <SectionLabel as="div" id="word-say-label">
+            How I will say it
+          </SectionLabel>
+          <div role="group" aria-labelledby="word-say-label" className={`${NAMES_GRID.shared} ${NAMES_GRID.edit}`}>
             <NamePronunciation
               entityId={entry.id}
               row={{ name: name.name, aliasIndex: name.aliasIndex, pronunciation: name.pronunciation }}
@@ -77,9 +81,10 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
       />
       <SectionLabel as="div">Look up on the web</SectionLabel>
       <ExternalLinks word={word} open={(source, w) => void host.openLookup(source, w)} />
-      {!name && selection && (
-        // A labelled button, not a lone `+` under the look-ups that reads as one of them (XSC-12).
-        <Button variant="secondary" size="sm" onClick={() => void commands.addWord(selection)}>
+      {!name && (
+        // A labelled button, not a lone `+` under the look-ups that reads as one of them (XSC-12). It adds the word this card shows, never
+        // whatever the reader has selected since.
+        <Button variant="secondary" size="sm" onClick={() => void commands.addWord({ quote: word })}>
           <Icon name="add" />
           Add to my words
         </Button>

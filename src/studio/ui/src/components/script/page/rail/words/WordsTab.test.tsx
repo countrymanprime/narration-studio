@@ -53,12 +53,12 @@ async function addTwo() {
   return WORDS;
 }
 
-function mount(host: WordsHost, props: { chapterId?: string; selection?: Parameters<typeof WordsTab>[0]['selection'] } = {}) {
+function mount(host: WordsHost, props: { chapterId?: string } = {}) {
   return render(
     <ApiProvider api={api}>
       <StudioProvider>
         <TooltipProvider>
-          <WordsTab chapterId={props.chapterId ?? CHAPTER} host={host} selection={props.selection} />
+          <WordsTab chapterId={props.chapterId ?? CHAPTER} host={host} />
         </TooltipProvider>
       </StudioProvider>
     </ApiProvider>,
@@ -316,7 +316,7 @@ describe('web-links-open-the-fixed-templates', () => {
 });
 
 describe('add-to-my-words', () => {
-  /** Shows a word no Story Bible entry names, as the reader's look-up does, with the reader's selection of it. */
+  /** Shows a word no Story Bible entry names, as the reader's look-up does. */
   function ShowWord({ word }: { word: string }) {
     const [, update] = useScriptView(() => null);
     useEffect(() => update({ word }), [update, word]);
@@ -330,13 +330,13 @@ describe('add-to-my-words', () => {
       range: { chapterId: CHAPTER, paragraphId: line.id, start: match.index, end: match.index + match[0].length, quote: match[0] },
     };
   }
-  function mountWithWord(word: string, range?: Parameters<typeof WordsTab>[0]['selection']) {
+  function mountWithWord(word: string) {
     return render(
       <ApiProvider api={api}>
         <StudioProvider>
           <TooltipProvider>
             <ShowWord word={word} />
-            <WordsTab chapterId={CHAPTER} host={fakeHost()} selection={range} />
+            <WordsTab chapterId={CHAPTER} host={fakeHost()} />
           </TooltipProvider>
         </StudioProvider>
       </ApiProvider>,
@@ -344,9 +344,9 @@ describe('add-to-my-words', () => {
   }
 
   it('a word no entry names shows the button, which makes it a Story Bible entry of the type Word; the card then edits that entry', async () => {
-    const { word, range } = await unflaggedSelection();
+    const { word } = await unflaggedSelection();
     const create = vi.spyOn(api, 'guideCreate');
-    mountWithWord(word, range);
+    mountWithWord(word);
     await userEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
     expect(create).toHaveBeenCalledWith(word, 'Word', []);
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull());
@@ -354,15 +354,49 @@ describe('add-to-my-words', () => {
     expect(hear(row(word))).toBeNull();
   });
 
-  it('a word the Story Bible has has no button, and a word with no selection has none either', async () => {
-    const { word } = await unflaggedSelection();
+  it('a word the Story Bible has has no button', async () => {
     mountWithWord(words[0]!);
     await screen.findByLabelText('How I will say it');
     expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull();
-    cleanup();
-    mountWithWord(word);
-    await screen.findByRole('group', { name: `Word: ${word}` });
-    expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull();
+  });
+
+  it('adds the word the card shows: the card takes no selection, so a later selection of other text cannot be added instead', async () => {
+    const create = vi.spyOn(api, 'guideCreate');
+    mountWithWord('Dinah');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith('Dinah', 'Word', []));
+  });
+});
+
+describe('card-states', () => {
+  it('a locked entry says so on the card, and its row cannot be changed', async () => {
+    await api.guideSetLocked(ids[words[0]!]!, true);
+    mount(fakeHost());
+    await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
+    const card = await screen.findByRole('group', { name: `Word: ${words[0]}` });
+    expect(within(card).getByText('Locked')).toBeTruthy();
+    expect((within(card).getByLabelText(`How I say ${words[0]}`) as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it('a word not added yet has no Record, and its Hear says why it is off', async () => {
+    function ShowWord() {
+      const [, update] = useScriptView(() => null);
+      useEffect(() => update({ word: 'Dinah' }), [update]);
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <StudioProvider>
+          <TooltipProvider>
+            <ShowWord />
+            <WordsTab chapterId={CHAPTER} host={fakeHost()} />
+          </TooltipProvider>
+        </StudioProvider>
+      </ApiProvider>,
+    );
+    const card = await screen.findByRole('group', { name: 'Word: Dinah' });
+    expect(within(card).queryByRole('button', { name: /record/i })).toBeNull();
+    expect(within(card).getByRole('button', { name: 'Hear Dinah' }).getAttribute('aria-disabled')).toBe('true');
   });
 });
 

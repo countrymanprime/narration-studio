@@ -3,10 +3,18 @@ import type { GuidePronunciation, StoryBibleApi } from '../../api/contracts/stor
 import type { Command, Journal, Result } from '../journal/createJournal';
 
 /** The host calls that change a name's pronunciation. No other UI file calls them (`pronunciationSingleStore.test.ts`). */
-export type PronounceApi = Pick<StoryBibleApi, 'guidePronounceUser' | 'guidePronounce' | 'guidePronunciationUseAlternate' | 'guidePronunciationRestore'>;
+export type PronounceApi = Pick<
+  StoryBibleApi,
+  'guidePronounceUser' | 'guidePronounce' | 'guidePronunciationUseAlternate' | 'guidePronunciationRestore' | 'guideEntities'
+>;
 
-/** One name of a Story Bible entry (its own when `aliasIndex` is absent) and the pronunciation it has now, which Undo writes back. */
-export type PronounceTarget = { entryId: string; aliasIndex?: number; prior: GuidePronunciation };
+/**
+ * One name of a Story Bible entry (its own when `aliasIndex` is absent), its text, and the pronunciation it has now, which Undo writes back.
+ * Undo finds the name by its entry and text, never by its place alone: an alias removed meanwhile moves the others up.
+ */
+export type PronounceTarget = { entryId: string; aliasIndex?: number; name: string; prior: GuidePronunciation };
+
+const NAME_GONE = 'That name is no longer in the Story Bible.';
 
 type Journalling = Pick<Journal, 'act'>;
 
@@ -39,12 +47,28 @@ const announced = async (call: () => Promise<void>): Promise<Result<null>> => {
   return result;
 };
 
+/** Writes the earlier value back to the same name, or refuses when the entry is gone or the name at that place is another one now. */
+async function restore(api: PronounceApi, target: PronounceTarget): Promise<Result<null>> {
+  let entries: Awaited<ReturnType<PronounceApi['guideEntities']>>;
+  try {
+    entries = await api.guideEntities();
+  } catch (error) {
+    return { ok: false, refusal: { code: 'host-refused', reason: apiErrorMessage(error) } };
+  }
+  const entry = entries.find((row) => row.id === target.entryId);
+  const now = target.aliasIndex === undefined ? entry?.canonical_name : entry?.aliases[target.aliasIndex]?.text;
+  if (now?.trim().toLowerCase() !== target.name.trim().toLowerCase()) return { ok: false, refusal: { code: 'name-gone', reason: NAME_GONE } };
+  return announced(() => api.guidePronunciationRestore(target.entryId, target.prior, ...alias(target)));
+}
+
 function command(api: PronounceApi, target: PronounceTarget, label: string, run: () => Promise<void>): Command<null> {
   return {
     label,
-    touches: [`storyBible/entries/${target.entryId}/names/${target.aliasIndex ?? 'own'}`],
+    // The Story Bible page's own keys (GuideDetail's `storyBible/entities/<id>`), so an edit of the entry there and a pronunciation change
+    // here order their undos.
+    touches: [`storyBible/entities/${target.entryId}/names/${target.aliasIndex ?? 'own'}`],
     run: () => announced(run),
-    undo: () => announced(() => api.guidePronunciationRestore(target.entryId, target.prior, ...alias(target))),
+    undo: () => restore(api, target),
   };
 }
 

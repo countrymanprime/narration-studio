@@ -301,7 +301,7 @@ describe('a-word-is-a-story-bible-name (#2595)', () => {
 
     // A change made through the one command (the Story Bible's row and the Words card both use it) is what the Script reads, with no job event.
     const name = hook.result.current.entries.nameByKey('was')!;
-    const target = { entryId: name.entryId, prior: name.pronunciation };
+    const target = { entryId: name.entryId, name: name.name, prior: name.pronunciation };
     await act(async () => void (await pronounceOwn(hook.result.current.journal, api, target, 'WUZ')));
     await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toMatchObject({ status: 'set', pronunciation: { ipa: 'WUZ' } }));
     await undoLast(hook);
@@ -309,6 +309,21 @@ describe('a-word-is-a-story-bible-name (#2595)', () => {
     // Undo of Add removes the entry again.
     await undoLast(hook);
     await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toBeUndefined());
+  });
+});
+
+describe('add-a-word-once', () => {
+  it('two quick adds of one word make one entry, and the second says it is in the Story Bible already, never an error', async () => {
+    const create = vi.spyOn(api, 'guideCreate');
+    const hook = setup();
+    await ready(hook);
+    let keys: (string | null)[] = [];
+    await act(async () => {
+      keys = await Promise.all([hook.result.current.commands.addWord({ quote: 'Dinah' }), hook.result.current.commands.addWord({ quote: 'dinah ' })]);
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(keys).toEqual(['dinah', 'dinah']);
+    expect(toast.mock.calls.some(([, options]) => (options as { tone?: string } | undefined)?.tone === 'error')).toBe(false);
   });
 });
 
