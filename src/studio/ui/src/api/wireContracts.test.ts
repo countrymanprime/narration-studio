@@ -6210,7 +6210,11 @@ describe('the script prep bindings', () => {
 
   it('the schemas read the goldens and refuse an unknown state, a key, or words beside the chapters (#2595)', () => {
     const list = parseWire(scriptPrepSchema, readGolden('script-prep-list.json'), ctx('script prep list'));
-    expect(list.chapters.map((chapter) => chapter.state)).toEqual(['progress', 'none']);
+    expect(list.chapters.map((chapter) => [chapter.chapterId, chapter.state])).toEqual([
+      ['c-0001', 'progress'],
+      ['c-0002', 'none'],
+      ['credits:opening', 'prepped'],
+    ]);
     const chapter = parseWire(scriptPrepChapterSchema, readGolden('script-prep-chapter.json'), ctx('script prep chapter'));
     expect(scriptPrepChapterSchema.safeParse({ ...chapter, state: 'done' }).success).toBe(false);
     expect(scriptPrepChapterSchema.safeParse({ ...chapter, extra: true }).success).toBe(false);
