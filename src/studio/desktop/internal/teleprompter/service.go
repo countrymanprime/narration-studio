@@ -671,14 +671,16 @@ func (s *Service) relay(kind string, raw json.RawMessage) {
 
 func (s *Service) markReady() {
 	s.mu.Lock()
-	closing := s.ready != nil && !s.readyDone
+	ready := s.ready
+	closing := ready != nil && !s.readyDone
 	if closing {
 		s.readyDone = true
-		close(s.ready)
 	}
 	s.mu.Unlock()
 	if closing {
+		// Told before ready closes, so whoever AwaitReady released finds the step already told.
 		s.tellStep("listening")
+		close(ready)
 	}
 }
 
