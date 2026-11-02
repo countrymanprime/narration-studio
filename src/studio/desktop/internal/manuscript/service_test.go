@@ -1006,8 +1006,20 @@ func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(scriptprep.File(project)), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(scriptprep.File(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+		if err := os.WriteFile(scriptprep.File(project), []byte(`{"schemaVersion":2,"chapters":{}}`), 0o600); err != nil {
 			t.Fatal(err)
+		}
+		// The schema-1 file the migration kept (#2595) holds the old words' quotes: it goes with the manuscript too.
+		if err := os.WriteFile(scriptprep.BackupFile(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	gone := func(when string) {
+		t.Helper()
+		for _, path := range []string{scriptprep.File(project), scriptprep.BackupFile(project)} {
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Fatalf("%s left %s behind: %v", when, filepath.Base(path), err)
+			}
 		}
 	}
 	writePrep()
@@ -1020,16 +1032,12 @@ func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
 	if committed := importAlice(true); committed.Phase != "success" {
 		t.Fatalf("confirmed replace = %#v", committed)
 	}
-	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
-		t.Fatalf("a confirmed replace left the script prep behind: %v", err)
-	}
+	gone("a confirmed replace")
 	writePrep()
 	if err := service.Clear(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
-		t.Fatalf("Clear project data left the script prep behind: %v", err)
-	}
+	gone("Clear project data")
 }
 
 // The extraction suggestions name entries and quote paragraphs of the manuscript, so a confirmed replace and Clear project data remove
