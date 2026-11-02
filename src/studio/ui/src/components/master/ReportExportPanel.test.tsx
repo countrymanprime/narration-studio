@@ -66,8 +66,6 @@ describe('the report export', () => {
     expect(button.getAttribute('aria-describedby')).toBe(reason.id);
     expect(button.closest('[class*="border-b"]')).toBeNull();
     expect(screen.getByRole('checkbox', { name: /Include each file/ }).hasAttribute('data-disabled')).toBe(true);
-    // R4MS2-2: the folder is one unbroken name.
-    expect(screen.getByText(`${brand.identity.projectFolder}/delivery`).className).toContain('whitespace-nowrap');
   });
 
   it('tells a refused export as a toast, and the card keeps its shape (rule 7, #2632)', async () => {

@@ -132,9 +132,7 @@ function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCa
       </p>
       {conflict && conflictCommand && (
         <InsetCard as="p" tone="warn" role="alert" className="mt-1 text-[0.82rem]">
-          <span style={{ color: 'var(--warn-text)' }}>
-            Replace takes it from "{conflictCommand.label}", which is then left with no key; you can give it another one afterwards.
-          </span>
+          <span style={{ color: 'var(--warn-text)' }}>Replace takes it from "{conflictCommand.label}", which is then left with no key.</span>
         </InsetCard>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2">

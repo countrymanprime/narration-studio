@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CoverageActivity, CoveragePassActivity, CoverageRecheckActivity } from '../../api/contracts/coverage';
-import { clock, recheckReason, summarizeActivity, type ChapterActivity } from './activityView';
+import { recheckReason, summarizeActivity, type ChapterActivity } from './activityView';
 
 const first = (over: Partial<CoveragePassActivity> = {}): CoveragePassActivity => ({
   model: 'small',
@@ -116,11 +116,5 @@ describe('recheckReason', () => {
       expect(text.length).toBeLessThanOrEqual(80);
       expect(text.endsWith('.')).toBe(true);
     }
-  });
-});
-
-describe('clock', () => {
-  it('reads m:ss and h:mm:ss', () => {
-    expect([clock(0), clock(59.9), clock(61), clock(3600), clock(3725), clock(-3)]).toEqual(['0:00', '0:59', '1:01', '1:00:00', '1:02:05', '0:00']);
   });
 });

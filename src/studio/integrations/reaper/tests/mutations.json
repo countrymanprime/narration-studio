@@ -3008,5 +3008,11 @@
     "file": "narration_ui_bridge.lua",
     "find": "if not last_now or (timing_checked_at and last_now - timing_checked_at < M.TIMING_CHECK_SECONDS) then",
     "replace": "if not last_now then"
+  },
+  {
+    "name": "the heartbeat never says the timing diagnostic is on",
+    "file": "narration_ui_bridge.lua",
+    "find": "    if timing then\n      ctx.event('PROJECT_STATUS'",
+    "replace": "    if false then\n      ctx.event('PROJECT_STATUS'"
   }
 ]

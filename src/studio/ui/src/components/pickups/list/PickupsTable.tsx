@@ -148,7 +148,7 @@ export function PickupsTable({
   onSetIncluded: (id: string, included: boolean) => Promise<unknown>;
   onSetDone: (id: string, done: boolean) => Promise<unknown>;
   /** Removes the pickup and answers how to put it back; the list offers that as Undo. */
-  onRemove: (id: string) => Promise<RemoveUndo | undefined>;
+  onRemove: (id: string) => Promise<{ undo: RemoveUndo; entry: number } | undefined>;
   /** Plays the original recording around a line; without it the button is off. */
   original?: OriginalPlayer;
   onOpenInBooth: (pickups: PickupItem[]) => void;
@@ -201,7 +201,7 @@ export function PickupsTable({
   const setDone = (id: string, done: boolean) => once(id, () => said(overlay, () => onSetDone(id, done)));
   const remove = (pickup: PickupItem) =>
     once(pickup.id, async () => {
-      let undo: RemoveUndo | undefined;
+      let undo: { undo: RemoveUndo; entry: number } | undefined;
       let removed = false;
       /* Focus goes to the line that takes this one's place as the page draws it (grouped by chapter, not in the host's order), so a keyboard user keeps their place instead of starting again from the top. */
       const drawn = [...(body.current?.querySelectorAll<HTMLTableRowElement>(`tr[${PICKUP_ROW}]`) ?? [])].map((row) => row.getAttribute(PICKUP_ROW));
@@ -212,10 +212,7 @@ export function PickupsTable({
         removed = true;
       });
       if (!removed) return;
-      if (undo)
-        overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo, {
-          offJournal: 'A removed pickup comes back from the host list, not the journal.',
-        });
+      if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo.undo, { entry: undo.entry });
       else {
         /* Removals in a row are one message that counts them, so the no-Undo sentence is said once, not on a stack of toasts (R3PK-2, XPK-11). */
         const now = Date.now();

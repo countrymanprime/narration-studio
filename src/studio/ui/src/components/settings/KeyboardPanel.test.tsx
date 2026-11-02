@@ -135,9 +135,7 @@ describe('KeyboardPanel', () => {
     keydown({ code: 'ArrowRight' });
 
     expect(group.getByRole('status').textContent).toBe('→ already runs "Next word".');
-    expect(group.getByRole('alert').textContent).toBe(
-      'Replace takes it from "Next word", which is then left with no key; you can give it another one afterwards.',
-    );
+    expect(group.getByRole('alert').textContent).toBe('Replace takes it from "Next word", which is then left with no key.');
     expect(group.queryByRole('button', { name: 'Add as another key' })).toBeNull();
     expect(group.queryByRole('button', { name: 'Unbind' })).toBeNull();
     expect(group.getByRole('button', { name: 'Try another key' })).toBeTruthy();

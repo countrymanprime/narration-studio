@@ -2,6 +2,7 @@ package manuscript
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -211,7 +212,7 @@ func (s *Service) SetChapterStatus(chapterID, status string) (map[string]any, er
 	if !validChapterStatus(status) {
 		return nil, fmt.Errorf("unknown chapter status: %s", status)
 	}
-	if IsCreditsID(chapterID) {
+	if creditsid.IsID(chapterID) {
 		return s.setCreditsStatus(chapterID, status)
 	}
 	s.notesMu.Lock()

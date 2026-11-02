@@ -86,17 +86,6 @@ export const dawFeedback = {
     'ok',
     'Unlink forgets the recorded project file and link id; the buttons are off until the host answers, and the card then offers to link again.',
   ),
-  'src/components/engine/AudacityLinkCard.tsx::launchDaw#1': row(
-    'click',
-    'instant',
-    'disabled',
-    'disabled',
-    'toast',
-    'inline',
-    'no',
-    'ok',
-    'Start Audacity reads Starting and the buttons are off while the detached spawn is in flight; the outcome is a toast, and a refusal (already running, not installed) is the host sentence under the card. The card then follows Audacity as it starts answering.',
-  ),
   'src/ports/daw.ts::dawCapabilities#1': adapter('Forwards the capability read.'),
   'src/ports/daw.ts::dawProjectState#1': startup(
     'The adapter forwards the saved-versus-live project state read (DawProjectState) unchanged; it changes nothing, and the page that adopts the port shows its answer or failure.',
@@ -175,7 +164,7 @@ export const dawFeedback = {
   'src/ports/daw.ts::pickupsReopen#1': adapter('Forwards marking a pickup open again.'),
   'src/ports/daw.ts::pickupsListMarkers#1': adapter('Forwards reading the pickup markers.'),
   // The connection dialogs (components/connection/): the not-connected and not-linked banners' replacement.
-  'src/components/connection/useReaperLaunch.ts::saveSettings#1': row(
+  'src/components/connection/startDaw.ts::saveSettings#1': row(
     'click',
     'instant',
     'pending',
@@ -184,9 +173,9 @@ export const dawFeedback = {
     'inline',
     'no',
     'ok',
-    'Part of Start: saves DAW.auto_start_launcher first so the launcher runs; the button reads Connecting and is busy meanwhile, and a failure is written in the dialog as "could not be started".',
+    'Part of Start, from the not-connected dialog, Settings\' Engine row and the Audacity card alike (REAPER only): saves DAW.auto_start_launcher first so the launcher runs; the button reads Connecting and is busy meanwhile, and a failure is written in the dialog as "could not be started".',
   ),
-  'src/components/connection/useReaperLaunch.ts::launchDaw#1': row(
+  'src/components/connection/startDaw.ts::launchDaw#1': row(
     'click',
     'file-io',
     'pending',
@@ -195,7 +184,7 @@ export const dawFeedback = {
     'inline',
     'no',
     'ok',
-    'Start in the not-connected dialog starts the DAW, or runs the launcher in the one already open, then reads the DAW every second for up to ten seconds; the button is busy and ignores a second press, a refusal and a start that never answers are both written in the dialog, and the page drops the dialog when the DAW answers.',
+    "Start in the not-connected dialog starts the DAW, or runs the launcher in the one already open, then reads the DAW every second for up to ten seconds; the button is busy and ignores a second press, a refusal and a start that never answers are both written in the dialog, and the page drops the dialog when the DAW answers. Settings' Engine row and the Audacity card start through the same call: the button reads Starting and is off while the detached spawn is in flight, the outcome is a toast, and a refusal is the host sentence (a toast in Settings, under the card for Audacity).",
   ),
   'src/components/connection/ReaperOffDialog.tsx::dawChoice#1': row(
     'effect',

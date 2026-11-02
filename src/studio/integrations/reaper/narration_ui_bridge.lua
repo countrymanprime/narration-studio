@@ -209,7 +209,13 @@ function M.run(session_dir, registry)
     -- The fifth and sixth fields are the transport: GetPlayState's bit field (1 playing, 2 paused, 4 recording)
     -- and GetPlayPosition in seconds. wire.go treats both as optional, so an older script's heartbeat still passes.
     local play_position = string.format('%.6f', reaper.GetPlayPosition() or 0)
-    ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)
+    -- A seventh field, 1, only while the timing diagnostic is on: the host then writes its record-press timeline too
+    -- (docs/research/record-press-timeline.md). Off, the heartbeat keeps the six fields an older host expects.
+    if timing then
+      ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, '1')
+    else
+      ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)
+    end
   end
   local function check_timing()
     if not last_now or (timing_checked_at and last_now - timing_checked_at < M.TIMING_CHECK_SECONDS) then

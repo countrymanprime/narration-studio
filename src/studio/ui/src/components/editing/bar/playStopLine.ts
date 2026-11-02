@@ -4,6 +4,9 @@ export interface PlayedWord {
   end: number;
 }
 
+/** Which player a play went through: the DAW's transport, the app's own audio, or not yet decided when the stop is reported. */
+export type PlayPath = 'unknown' | 'daw' | 'app';
+
 /** The most of a word the line carries: the host cuts a message at 2000 characters, and the numbers after the word must not be what is lost. */
 const MAX_WORD_CHARS = 40;
 /** The word as one safe token: no quote, backslash, control, format (direction marks) or separator (line and paragraph) character, and cut short. */
@@ -21,7 +24,7 @@ const seconds = (t: number | null): string => (t === null ? 'unknown' : t.toFixe
  * difference in milliseconds and the path that played it (`app` or `daw`). A word heard clipped is traced here: a stop at or before the end of its
  * sound shows as a small `tail`.
  */
-export function playStopLine({ word, planned, actual, path }: { word: PlayedWord; planned: number; actual: number | null; path: string }): string {
+export function playStopLine({ word, planned, actual, path }: { word: PlayedWord; planned: number; actual: number | null; path: PlayPath }): string {
   const tail = Math.round((planned - word.end) * 1000);
   const late = actual === null ? 'unknown' : String(Math.round((actual - planned) * 1000));
   return `word="${safeWord(word.text)}" alignment_end=${seconds(word.end)} planned_stop=${seconds(planned)} tail_ms=${tail} actual_stop=${seconds(actual)} actual_minus_planned_ms=${late} path=${path}`;

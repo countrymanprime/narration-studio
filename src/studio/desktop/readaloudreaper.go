@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"desktop/internal/creditsid"
 	"errors"
 	"fmt"
 
 	"desktop/internal/bridge"
-	"desktop/internal/coverage"
 	"desktop/internal/dawport"
 )
 
@@ -117,8 +117,8 @@ func chapterLinksFor(svc hostServices, chapterID string) (string, []string, erro
 	}
 	title, found := "", false
 	// The opening and closing credits are recorded like a chapter but are never in the manuscript's chapter list.
-	if kind, ok := coverage.CreditsKind(chapterID); ok {
-		title, found = creditsScriptTitles[kind], true
+	if kind, ok := creditsid.Kind(chapterID); ok {
+		title, found = creditsid.Title(kind), true
 	} else {
 		chapters, err := svc.manuscript.ChaptersUnmeasured()
 		if err != nil {
