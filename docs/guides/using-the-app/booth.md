@@ -16,7 +16,7 @@ where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`; `At ¶ 1 of 24` once 
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
-the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or its share of the text area, whichever is less, so each choice narrows the text equally on both sides and **Narrow** stays narrow in a half-width window; **+** and **-** change the size too, and the Booth opens at the size
+the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or the whole text area, whichever is less, so each choice narrows the text equally on both sides and the column follows the window up to that width; **+** and **-** change the size too, and the Booth opens at the size
 and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
 **Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, and the top bar wraps onto a second row when it runs out of room: the status chips, **Text settings** and the
@@ -282,7 +282,7 @@ room tone) uses one microphone:
 If the speech model is not downloaded yet, the footer says so before you press Record ("The text cannot follow your voice yet"),
 and the first take asks to download it, says how large it is and where it goes, and
 downloads nothing until you press **Download model**. While the text cannot follow (no microphone listed, or the listening failed
-to start), the footer says why. The text starts following your voice before the DAW records, so a take never begins with the text unable to follow: if listening fails to start, nothing is recorded and the Booth says why.
+to start), the footer says why. Listening starts at the same time as the DAW, so REAPER's pre-roll plays while the speech model loads instead of after it. A take is never kept with the text unable to follow: if listening fails to start, the Booth stops the recording, takes back anything it recorded, and says why. With REAPER's pre-roll on, the failure comes inside the pre-roll and nothing was recorded. With it off, the first second or so of a take is recorded before the text can follow it. The built-in recorder has no pre-roll, so it starts once listening has. A second press while a take is starting starts nothing more, and Stop pressed then waits until listening has started or failed.
 
 ![Booth - Record pressed with the live engine's model not installed: the take runs and the Booth asks about the model](../../images/ui/booth-model-required.webp)
 

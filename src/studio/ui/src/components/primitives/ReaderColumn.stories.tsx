@@ -7,7 +7,7 @@ const TEXT = 'Alice was beginning to get very tired of sitting by her sister on 
 const meta = {
   title: 'Primitives/ReaderColumn',
   component: ReaderColumn,
-  args: { width: 'min(64ch, 64%)', children: TEXT },
+  args: { width: 'min(64ch, 100%)', children: TEXT },
   decorators: [
     (Story) => (
       <div className="w-[48rem] max-w-full border border-dashed border-[var(--border)] p-4">
@@ -21,7 +21,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Medium: Story = {};
-export const Narrow: Story = { args: { width: 'min(48ch, 48%)' } };
+export const Narrow: Story = { args: { width: 'min(48ch, 100%)' } };
 export const Full: Story = {
   args: { width: 'min(100ch, 100%)' },
   play: async ({ canvasElement }) => {

@@ -77,7 +77,7 @@ export function ChapterCard({
         className="@container/card flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
       >
         <div className="flex items-start justify-between gap-2">
-          <h2 className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem]">
+          <h2 className="m-0 min-w-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere]">
             <TitleSubtitle layout="stacked" {...parts} />
           </h2>
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}

@@ -496,8 +496,9 @@ export function Reader(props: ReaderProps) {
         <ReaderColumn
           data-reader=""
           width={READER_COLUMN_VAR}
-          // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12).
-          className="px-6 pt-2 pb-20"
+          // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12). A word
+          // wider than the column (a long URL) breaks inside it, as the Booth's text does.
+          className="px-6 pt-2 pb-20 [overflow-wrap:anywhere]"
           style={{
             fontFamily: 'var(--rf, Georgia, serif)',
             fontSize: 'calc(var(--rs, 18) * 1px)',
