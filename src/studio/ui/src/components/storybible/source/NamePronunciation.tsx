@@ -65,6 +65,7 @@ export function NamePronunciation({
   primary = false,
   badge,
   note,
+  showName = true,
 }: {
   entityId: string;
   row: NameRow;
@@ -79,6 +80,8 @@ export function NamePronunciation({
   badge?: ReactNode;
   /** A line under the row, in the pronunciation's column. */
   note?: ReactNode;
+  /** False where the name is already the heading over the row (Script's Words card): the row is then how it is said and its source. */
+  showName?: boolean;
 }) {
   const api = useApi();
   const journal = useJournalOrOwn();
@@ -148,7 +151,7 @@ export function NamePronunciation({
     // every row, so a name, a pronunciation and a source button start at one x down the list whatever each row holds; the row's
     // action buttons are the fourth cell. In a narrow card the cells wrap instead, the name on a line of its own.
     <div className={NAME_CELLS} data-name={name}>
-      <span className={`${CELL} ${primary ? 'font-semibold' : 'font-medium'} @max-[32rem]:basis-full`}>{name}</span>
+      {showName && <span className={`${CELL} ${primary ? 'font-semibold' : 'font-medium'} @max-[32rem]:basis-full`}>{name}</span>}
       {editing ? (
         <div className={`${CELL} min-w-[8rem] @max-[32rem]:flex-1`}>
           <TextField

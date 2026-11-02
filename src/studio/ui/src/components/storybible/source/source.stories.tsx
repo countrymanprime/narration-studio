@@ -57,7 +57,7 @@ export const MenuWithUnavailableSources: Story = {
   },
 };
 
-function NameRow({ editing }: { editing: boolean }) {
+function NameRow({ editing, showName = true }: { editing: boolean; showName?: boolean }) {
   const list = usePronunciationSources();
   return (
     <div className="max-w-[44rem]">
@@ -71,6 +71,7 @@ function NameRow({ editing }: { editing: boolean }) {
         sources={list}
         reload={async () => undefined}
         notify={() => undefined}
+        showName={showName}
       />
     </div>
   );
@@ -87,6 +88,22 @@ export const NameRowEditing: Story = {
   render: () => <NameRow editing />,
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByRole('textbox', { name: 'How I say Croquet' })).toBeTruthy();
+  },
+};
+
+// The row as Script's Words card draws it (#2595): the card's heading is the name, so the row is how it is said and its source.
+export const NameRowUnderAHeading: Story = {
+  decorators: [
+    (Story) => (
+      <ApiProvider api={createMockApi()}>
+        <Story />
+      </ApiProvider>
+    ),
+  ],
+  render: () => <NameRow editing showName={false} />,
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByRole('textbox', { name: 'How I say Croquet' })).toBeTruthy();
+    await expect(within(canvasElement).queryByText('Croquet')).toBeNull();
   },
 };
 

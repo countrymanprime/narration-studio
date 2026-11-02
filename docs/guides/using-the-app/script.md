@@ -126,7 +126,9 @@ text to open it on the **Words** tab.
 
 ![Script - the rail's Story Bible tab: the entries met in this chapter](../../images/ui/script-rail-story-bible.webp)
 
-![Script - a word looked up in the rail's Words tab: a box for how to say it, its source and the web look-ups](../../images/ui/script-word-lookup.webp)
+![Script - a word looked up in the rail's Words tab that is not in the Story Bible yet: Add to my words and the web look-ups](../../images/ui/script-word-lookup.webp)
+
+![Script - a Story Bible name chosen on the Words tab: How I will say it is the entry's own row, the same as in the Story Bible](../../images/ui/script-word-name.webp)
 
 ![Script - the rail's Notes tab](../../images/ui/script-note-sidebar.webp)
 

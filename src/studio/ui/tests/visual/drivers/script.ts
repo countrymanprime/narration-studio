@@ -38,6 +38,14 @@ export const scriptDrivers: Record<string, Driver> = {
       .first()
       .waitFor();
   },
+  // A Story Bible name chosen on the Words tab: the card's How I will say it is the Story Bible entry's own row (#2595).
+  'rail-words-name': async (page) => {
+    await openRailTab(page, 'Words');
+    const rail = await openRail(page);
+    await rail.getByRole('row', { name: /^White Rabbit\b/ }).click();
+    await rail.getByRole('group', { name: 'Word: White Rabbit' }).waitFor();
+    await rail.getByLabel('How I say White Rabbit').waitFor();
+  },
   'rail-story-bible': async (page) => openRailTab(page, 'Story Bible'),
   'rail-notes': async (page) => openRailTab(page, 'Notes'),
   // The first-use tip over the reader, as the narrator meets it the first time Script opens.

@@ -69,6 +69,7 @@ export function WordCard({ word, host }: { word: string; host: WordsHost }) {
               reload={async () => undefined}
               notify={toast}
               primary
+              showName={false}
             />
           </div>
         </div>
