@@ -148,6 +148,57 @@ func TestAMigrationCutShortFinishesOnTheNextOpen(t *testing.T) {
 	}
 }
 
+// A run whose rewrite failed leaves the schema-1 file and its backup. If the narrator changes a migrated name's pronunciation before
+// the next open, that open must not bring the old Script value back as the name's alternate or note: the words in the backup were
+// imported already, so only the rewrite is retried.
+func TestARetriedMigrationDoesNotImportTheWordsAgain(t *testing.T) {
+	host, project := bookmarksHost(t)
+	writeNested(t, scriptprep.File(project), scriptWordsV1)
+	writeNested(t, filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json"), scriptWordsBibleV1)
+	next := host.config
+	next.projectFolder = project
+	host.attachProjectLocked(next)
+	// The rewrite failed: the schema-1 file is still there, beside the backup the run made.
+	writeNested(t, scriptprep.File(project), scriptWordsV1)
+	guidePath := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
+	bible, _ := os.ReadFile(guidePath)
+	edited := strings.Replace(string(bible), "kwiːn", "KWEEN", 1)
+	if edited == string(bible) {
+		t.Fatal("the migrated value is not in the Story Bible")
+	}
+	writeNested(t, guidePath, edited)
+	host.attachProjectLocked(next)
+	if again, _ := os.ReadFile(guidePath); string(again) != edited {
+		t.Fatalf("the retry changed the Story Bible:\n%s", again)
+	}
+	if words, _ := host.scriptPrep().LegacyWords(); len(words) != 0 {
+		t.Fatalf("the rewrite was not finished: %d words", len(words))
+	}
+	if backups, _ := scriptprep.BackupFiles(project); len(backups) != 1 {
+		t.Fatalf("backups = %v", backups)
+	}
+}
+
+// A schema-1 file from a later cycle (other bytes than the backup an earlier migration kept) is imported, backed up beside the earlier
+// backup and rewritten.
+func TestALaterSchemaOneFileIsMigratedWithItsOwnBackup(t *testing.T) {
+	host, project := bookmarksHost(t)
+	writeNested(t, scriptprep.BackupFile(project), `{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`)
+	writeNested(t, scriptprep.File(project), scriptWordsV1)
+	next := host.config
+	next.projectFolder = project
+	host.attachProjectLocked(next)
+	if entries := storyBibleEntries(t, project); len(entries) != 7 {
+		t.Fatalf("entries = %v", entries)
+	}
+	if raw, _ := os.ReadFile(filepath.Join(filepath.Dir(scriptprep.BackupFile(project)), "script-prep.v1-2.json")); string(raw) != scriptWordsV1 {
+		t.Fatalf("second backup = %s", raw)
+	}
+	if words, _ := host.scriptPrep().LegacyWords(); len(words) != 0 {
+		t.Fatalf("the rewrite was not finished: %d words", len(words))
+	}
+}
+
 // A project with no Story Bible yet gets one with a Word entry per word, as a create would start it; a project with no script prep
 // file, or a schema-2 one, is left as it is.
 func TestTheMigrationStartsAStoryBible(t *testing.T) {
