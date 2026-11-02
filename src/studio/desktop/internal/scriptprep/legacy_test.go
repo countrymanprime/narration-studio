@@ -108,14 +108,11 @@ func TestFinishMigrationKeepsABackupAndWritesSchemaTwo(t *testing.T) {
 	if raw, _ := os.ReadFile(BackupFile(project)); string(raw) != legacyFile {
 		t.Fatalf("backup = %s", raw)
 	}
-	if err := os.WriteFile(BackupFile(project), []byte("an earlier backup"), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	if err := svc.Backup(); err != nil {
 		t.Fatal(err)
 	}
-	if raw, _ := os.ReadFile(BackupFile(project)); string(raw) != "an earlier backup" {
-		t.Fatalf("an existing backup was overwritten: %s", raw)
+	if backups, _ := BackupFiles(project); len(backups) != 1 {
+		t.Fatalf("a second backup of the same file made %v", backups)
 	}
 	if err := svc.FinishMigration(); err != nil {
 		t.Fatal(err)
@@ -145,8 +142,82 @@ func TestFinishMigrationKeepsABackupAndWritesSchemaTwo(t *testing.T) {
 	if after, _ := os.ReadFile(File(project)); string(after) != string(before) {
 		t.Fatalf("a second run changed the file: %s", after)
 	}
-	if raw, _ := os.ReadFile(BackupFile(project)); string(raw) != "an earlier backup" {
+	if raw, _ := os.ReadFile(BackupFile(project)); string(raw) != legacyFile {
 		t.Fatalf("a second run changed the backup: %s", raw)
+	}
+}
+
+// A backup from an earlier cycle holds other bytes: it is kept, and the current file goes to the next free name, so the file
+// FinishMigration rewrites is always in a backup. FinishMigration refuses while only a stale backup is there.
+func TestAStaleBackupIsKeptAndTheCurrentFileBackedUpBesideIt(t *testing.T) {
+	project := t.TempDir()
+	current := book()
+	svc := service(t, project, &current)
+	writeLegacy(t, project, legacyFile)
+	if err := os.WriteFile(BackupFile(project), []byte("an earlier backup"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if done, err := svc.BackedUp(); err != nil || done {
+		t.Fatalf("backed up = %v, %v with only a stale backup", done, err)
+	}
+	if err := svc.FinishMigration(); err == nil {
+		t.Fatal("FinishMigration rewrote a file that is in no backup")
+	}
+	second := filepath.Join(filepath.Dir(BackupFile(project)), "script-prep.v1-2.json")
+	if err := os.WriteFile(second, []byte("another earlier backup"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Backup(); err != nil {
+		t.Fatal(err)
+	}
+	if raw, _ := os.ReadFile(BackupFile(project)); string(raw) != "an earlier backup" {
+		t.Fatalf("an existing backup was overwritten: %s", raw)
+	}
+	if raw, _ := os.ReadFile(second); string(raw) != "another earlier backup" {
+		t.Fatalf("an existing backup was overwritten: %s", raw)
+	}
+	third := filepath.Join(filepath.Dir(BackupFile(project)), "script-prep.v1-3.json")
+	if raw, _ := os.ReadFile(third); string(raw) != legacyFile {
+		t.Fatalf("v1-3 = %s", raw)
+	}
+	if done, err := svc.BackedUp(); err != nil || !done {
+		t.Fatalf("backed up = %v, %v", done, err)
+	}
+	if err := svc.Backup(); err != nil {
+		t.Fatal(err)
+	}
+	if backups, _ := BackupFiles(project); len(backups) != 3 {
+		t.Fatalf("backing up the same file again made %v", backups)
+	}
+	if err := svc.FinishMigration(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Schema 1's rules (the app before #2595 kept them too) give every saved value a flag, so LegacyWords has every value there is. A file
+// with a value for a word that has no flag breaks them: it is kept aside whole, and the rewrite never runs on it, so FinishMigration
+// cannot clear a value the import did not see.
+func TestAValueWithoutAFlagIsNeverClearedUnimported(t *testing.T) {
+	project := t.TempDir()
+	current := book()
+	svc := service(t, project, &current)
+	broken := strings.Replace(legacyFile, `"says": {`, `"says": {"jabberwock": {"say": "JAB-er-wok", "source": "manual"}, `, 1)
+	writeLegacy(t, project, broken)
+	if words, err := svc.LegacyWords(); err != nil || len(words) != 0 {
+		t.Fatalf("words = %+v, %v", words, err)
+	}
+	aside, _ := filepath.Glob(File(project) + ".corrupt-*")
+	if len(aside) != 1 {
+		t.Fatalf("kept aside = %v", aside)
+	}
+	if raw, _ := os.ReadFile(aside[0]); string(raw) != broken {
+		t.Fatalf("the file kept aside lost its value: %s", raw)
+	}
+	if err := svc.FinishMigration(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(File(project)); !os.IsNotExist(err) {
+		t.Fatalf("the rewrite wrote a file: %v", err)
 	}
 }
 

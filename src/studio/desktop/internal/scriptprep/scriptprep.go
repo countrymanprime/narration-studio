@@ -3,7 +3,7 @@
 //
 // Schema 1 also kept the words the narrator flagged for pronunciation, each with how it is said and its source. A word's
 // pronunciation now lives on its Story Bible name (#2595): a schema-1 file still reads its chapters, LegacyWords gives its words to
-// the migration that moves them into the Story Bible, Backup keeps the file as script-prep.v1.json, and FinishMigration rewrites it
+// the migration that moves them into the Story Bible, Backup keeps the file as script-prep.v1.json (or script-prep.v1-<n>.json beside an earlier cycle's backup), and FinishMigration rewrites it
 // as schema 2. Until then a chapter change keeps the words as they were.
 //
 // The file is narrator data, read through persist: a corrupt one is kept aside and a fresh record starts, one written by a newer
@@ -16,9 +16,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -74,9 +76,40 @@ func File(project string) string {
 	return filepath.Join(project, brand.ProjectFolder, "script-prep.json")
 }
 
-// BackupFile is the schema-1 file as it was before the migration moved its words, written once and never overwritten.
+// BackupFile is the schema-1 file as it was before the migration moved its words, written once and never overwritten. A schema-1
+// file with other bytes, from a later cycle, is backed up beside it as script-prep.v1-2.json, script-prep.v1-3.json and so on.
 func BackupFile(project string) string {
-	return filepath.Join(project, brand.ProjectFolder, "script-prep.v1.json")
+	return backupName(project, 1)
+}
+
+// backupName is the nth backup's path: BackupFile for the first, script-prep.v1-<n>.json after it.
+func backupName(project string, n int) string {
+	name := "script-prep.v1.json"
+	if n > 1 {
+		name = "script-prep.v1-" + strconv.Itoa(n) + ".json"
+	}
+	return filepath.Join(project, brand.ProjectFolder, name)
+}
+
+var backupPattern = regexp.MustCompile(`^script-prep\.v1(-[1-9][0-9]*)?\.json$`)
+
+// BackupFiles is every backup of a schema-1 file the project has: script-prep.v1.json and each script-prep.v1-<n>.json.
+func BackupFiles(project string) ([]string, error) {
+	folder := filepath.Join(project, brand.ProjectFolder)
+	entries, err := os.ReadDir(folder)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var backups []string
+	for _, entry := range entries {
+		if backupPattern.MatchString(entry.Name()) {
+			backups = append(backups, filepath.Join(folder, entry.Name()))
+		}
+	}
+	return backups, nil
 }
 
 // legacyFlag is one flagged range as a schema-1 file stored it. Start and End are UTF-16 code units into the paragraph's text,
