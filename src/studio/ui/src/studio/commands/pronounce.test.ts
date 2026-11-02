@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GuidePronunciation } from '../../api/contracts/storyBible';
 import { createJournal } from '../journal/createJournal';
-import { pronounceFromSource, pronounceOwn, pronounceUseAlternate, type PronounceApi } from './pronounce';
+import { pronounceFromSource, pronounceOwn, pronounceUseAlternate, subscribePronunciationChanged, type PronounceApi } from './pronounce';
 
 const journal = () => createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
 const prior: GuidePronunciation = { ipa: '/ˈæl.ɪs/', source: 'cmu', confidence: 'medium', chosen: true };
@@ -72,5 +72,20 @@ describe('pronounce commands', () => {
     const rows = await j.entries();
     expect(rows[0].touches).toEqual(['storyBible/entries/e1/names/0']);
     expect(rows[1].touches).toEqual(['storyBible/entries/e1/names/own']);
+  });
+
+  it('tells every page that shows names after a change and after its undo, never after a refusal', async () => {
+    const heard = vi.fn();
+    const off = subscribePronunciationChanged(heard);
+    const j = journal();
+    await pronounceOwn(j, fakeApi(), { entryId: 'e1', prior }, 'a');
+    expect(heard).toHaveBeenCalledTimes(1);
+    await j.undoLast();
+    expect(heard).toHaveBeenCalledTimes(2);
+    await pronounceOwn(j, fakeApi({ guidePronounceUser: vi.fn(async () => Promise.reject(new Error('No.'))) }), { entryId: 'e1', prior }, 'b');
+    expect(heard).toHaveBeenCalledTimes(2);
+    off();
+    await pronounceOwn(j, fakeApi(), { entryId: 'e1', prior }, 'c');
+    expect(heard).toHaveBeenCalledTimes(2);
   });
 });
