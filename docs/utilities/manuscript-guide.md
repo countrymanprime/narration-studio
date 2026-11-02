@@ -36,7 +36,7 @@ The host writes the dialogue cues (`dialogue_cues`) itself (`src/studio/desktop/
 
 ## Story Bible types
 
-The file may carry `types`, the narrator's ordered list of `{name, colour, speaks}` ([Settings](../guides/using-the-app/settings.md)). Without it the types are the defaults: Character (speaks), Place, Organization, Lore, Item and Event, in the hues they have always had. An entry's `category` is a type's name, or `Needs Review` or `Draft`.
+The file may carry `types`, the narrator's ordered list of `{name, colour, speaks}` ([Settings](../guides/using-the-app/settings.md)). Without it the types are the defaults: Character (speaks), Place, Organization, Lore, Item and Event, in the hues they have always had, then Word (teal), for a word the narrator wants said one way. A create of category `Word` in a file whose own list lacks it adds the type in the same write. An entry's `category` is a type's name, or `Needs Review` or `Draft`.
 
 - **Add**, **rename**, **colour** (green, blue, violet, amber, teal or rose), **can speak** and **remove** (`GuideTypeAdd`, `GuideTypeRename`, `GuideTypeSetColour`, `GuideTypeSetSpeaks`, `GuideTypeRemove`, in `src/studio/desktop/internal/guide/types.go`) each write the whole list. A rename moves every entry of the type; a type in use and the last type cannot be removed.
 - Only an entry whose type speaks takes a speaker colour, and a build's dialogue cues resolve only to such entries. A rebuild keeps the list and files a new entry under the type its built-in category was renamed to (`builtin`), or under Needs Review when that type was removed.
@@ -87,7 +87,8 @@ system's own ([CI and releases](../operations/ci-and-releases.md), "Known gap").
 
 A narrator can also keep their own pronunciation: `GuidePronounceUser` sets one with source `manual` (a file written earlier says
 `user`; it reads as `manual`) that never asks a dictionary, and keeps the dictionary's answer beside it as `alternate`;
-`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. Since
+`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. `GuidePronunciationRestore` writes a
+name's whole pronunciation object back as the page read it, for undo. Since
 [How you say each name](../guides/using-the-app/story-bible.md#how-you-say-each-name)
 the host's `Entities()` ignores a stored `status` and a rebuild no longer carries it; a note and the alternate are kept, and
 the Story Bible shows an old note read-only. A pronunciation's `source` is the registry name (`cmu`, `wiktextract`,
