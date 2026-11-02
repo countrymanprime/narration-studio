@@ -74,6 +74,7 @@ import {
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
+  guidePronunciationSchema,
   guideTypesSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
@@ -374,6 +375,10 @@ export const wailsClient: NarrationApi = {
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
   guideAttributeSpeakers: () => decode(speakerAttributionSchema, 'GuideAttributeSpeakers', host.GuideAttributeSpeakers()),
+  // The name's whole pronunciation as Undo writes it back; `status` is read from an older file only and is never written (the host answers the value it stored).
+  guidePronunciationRestore: async (id, { status: _status, ...value }, aliasIndex) => {
+    await decode(guidePronunciationSchema, 'GuidePronunciationRestore', host.GuidePronunciationRestore(id, aliasIndex ?? null, value));
+  },
   guideRestoreSpeakers: (previous) => decode(restoredSpeakersSchema, 'GuideRestoreSpeakers', host.GuideRestoreSpeakers(previous)),
   guideMarkReviewed: (id, aliasIndex) => decode(voidResult, 'GuideMarkReviewed', host.GuideMarkReviewed(id, aliasIndex ?? null)),
   guideFlagReview: (id, aliasIndex) => decode(voidResult, 'GuideFlagReview', host.GuideFlagReview(id, aliasIndex ?? null)),

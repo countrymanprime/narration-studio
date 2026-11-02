@@ -4498,6 +4498,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideDialogueCues',
       'guideAttributeSpeakers',
       'guideRestoreSpeakers',
+      'guidePronunciationRestore',
       'guideTypes',
       'characterListRegions',
       'characterApprove',
