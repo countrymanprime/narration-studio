@@ -201,6 +201,73 @@ export class GuideCueSpeaker {
 }
 
 /**
+ * GuidePronunciationAlternate is a pronunciation's kept alternate as GuidePronunciationRestore takes it: ipa, source and, when it has one,
+ * confidence.
+ */
+export class GuidePronunciationAlternate {
+    "ipa": string;
+    "source": string;
+    "confidence"?: string;
+
+    /** Creates a new GuidePronunciationAlternate instance. */
+    constructor($$source: Partial<GuidePronunciationAlternate> = {}) {
+        if (!("ipa" in $$source)) {
+            this["ipa"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GuidePronunciationAlternate instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GuidePronunciationAlternate {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GuidePronunciationAlternate($$parsedSource as Partial<GuidePronunciationAlternate>);
+    }
+}
+
+/**
+ * GuidePronunciationValue is a name's whole pronunciation object as GuideEntities returned it and GuidePronunciationRestore takes it back.
+ * An empty confidence or note, chosen false and a nil alternate are keys the object does not have.
+ */
+export class GuidePronunciationValue {
+    "ipa": string;
+    "source": string;
+    "confidence"?: string;
+    "chosen"?: boolean;
+    "note"?: string;
+    "alternate"?: GuidePronunciationAlternate | null;
+
+    /** Creates a new GuidePronunciationValue instance. */
+    constructor($$source: Partial<GuidePronunciationValue> = {}) {
+        if (!("ipa" in $$source)) {
+            this["ipa"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GuidePronunciationValue instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GuidePronunciationValue {
+        const $$createField5_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("alternate" in $$parsedSource) {
+            $$parsedSource["alternate"] = $$createField5_0($$parsedSource["alternate"]);
+        }
+        return new GuidePronunciationValue($$parsedSource as Partial<GuidePronunciationValue>);
+    }
+}
+
+/**
  * LineIdentityStampRow is one row of LineIdentityStamp's input: an item GUID, the manuscript entity ID it
  * should carry (a paragraph or chapter ID), and that entity's current text.
  */
@@ -257,8 +324,8 @@ export class MultiPackageRequest {
      * Creates a new MultiPackageRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): MultiPackageRequest {
-        const $$createField0_0 = $$createType3;
-        const $$createField1_0 = $$createType5;
+        const $$createField0_0 = $$createType5;
+        const $$createField1_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("selections" in $$parsedSource) {
             $$parsedSource["selections"] = $$createField0_0($$parsedSource["selections"]);
@@ -331,7 +398,7 @@ export class PackageRequest {
      * Creates a new PackageRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): PackageRequest {
-        const $$createField2_0 = $$createType5;
+        const $$createField2_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("items" in $$parsedSource) {
             $$parsedSource["items"] = $$createField2_0($$parsedSource["items"]);
@@ -373,7 +440,7 @@ export class PassageMapMarkInput {
      * Creates a new PassageMapMarkInput instance from a string or object.
      */
     static createFrom($$source: any = {}): PassageMapMarkInput {
-        const $$createField4_0 = $$createType7;
+        const $$createField4_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("prev" in $$parsedSource) {
             $$parsedSource["prev"] = $$createField4_0($$parsedSource["prev"]);
@@ -515,9 +582,11 @@ export class TakeReviewScanScope {
 // Private type creation functions
 const $$createType0 = ExportItem.createFrom;
 const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = ProfileSelection.createFrom;
-const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = PackageItem.createFrom;
+const $$createType2 = GuidePronunciationAlternate.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = ProfileSelection.createFrom;
 const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = PassageMapMarkPlace.createFrom;
-const $$createType7 = $Create.Nullable($$createType6);
+const $$createType6 = PackageItem.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = PassageMapMarkPlace.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
