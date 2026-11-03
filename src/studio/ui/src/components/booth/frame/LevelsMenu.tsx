@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import type { RecordingEngine, RecorderDevice } from '../../../api/contracts/recording';
 import type { TeleprompterDevice } from '../../../api/contracts/teleprompter';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -71,13 +72,26 @@ function Devices({ device, onDevice }: { device: string; onDevice: (device: stri
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void recording.recorderDevices().then((result) => {
-      if (cancelled) return;
-      setDevices(result.devices);
-      setProblem(result.error);
-    });
+    const read = () =>
+      void recording
+        .recorderDevices()
+        .then((result) => {
+          if (cancelled) return;
+          setDevices(result.devices);
+          setProblem(result.error);
+        })
+        .catch((reason: unknown) => {
+          if (cancelled) return;
+          // A listing that fails says why, with an empty list, rather than leaving "Listing microphones…" up for good.
+          setDevices([]);
+          setProblem(apiErrorMessage(reason));
+        });
+    read();
+    // The narrator may plug a microphone in or out and come back: the window's focus lists them again.
+    window.addEventListener('focus', read);
     return () => {
       cancelled = true;
+      window.removeEventListener('focus', read);
     };
   }, [recording]);
   if (devices === null) return <p className="text-sm text-[var(--text-muted)]">Listing microphones…</p>;
@@ -89,7 +103,7 @@ function Devices({ device, onDevice }: { device: string; onDevice: (device: stri
     );
   const options = [
     ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
-    ...devices.map((d) => ({ value: d.name, label: d.name })),
+    ...devices.filter((d) => d.name.trim() !== '').map((d) => ({ value: d.name, label: d.name })),
     ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
   ];
   return <Select label="Microphone" fullWidth value={device} options={options} onChange={onDevice} />;

@@ -4,6 +4,8 @@ import { usePort } from '../../../ports/usePort';
 import { resolveListeningMic, type InputSource, type ResolvedMic } from './listeningMic';
 
 export type ListeningMic = ResolvedMic & {
+  /** The microphones Record can be asked to use: the recorder's own list with the built-in recorder, the speech listener's otherwise; no blank names. */
+  micNames: readonly string[];
   /** The host's sentence about the DAW's input: why it is used, or why the narrator picks. Null before the answer or with no DAW. */
   note: string | null;
   /** What the host said about the DAW's input; null before it arrives or with no DAW. */
@@ -77,7 +79,8 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
       void recording
         .recorderDevices()
         .then((list) => live && setRecorderMics(list.devices.map((d) => d.name)))
-        .catch(() => {});
+        // A listing that fails is no microphones, the same as Levels shows it.
+        .catch(() => live && setRecorderMics([]));
     };
     read();
     window.addEventListener('focus', read);
@@ -89,12 +92,12 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
 
   const answer = dawRecords ? input : null;
   // With the built-in recorder the microphones are the recorder's own, once read (what the select lists and what Record opens), else the speech listener's.
-  const names = appRecords && recorderMics ? recorderMics : devices.map((device) => device.name);
+  const names = (appRecords && recorderMics ? recorderMics : devices.map((device) => device.name)).filter((name) => name.trim() !== '');
   const resolved = resolveListeningMic({ dawRecords, answer, source, chosen, devices: names, appRecords, recordsOn });
   const device = settingsLoaded ? resolved.device : null;
   useEffect(() => {
     listenOn(device);
   }, [device, listenOn]);
 
-  return { ...resolved, note: answer ? answer.message : null, answer, overridden: dawRecords && source === 'chosen' };
+  return { ...resolved, micNames: names, note: answer ? answer.message : null, answer, overridden: dawRecords && source === 'chosen' };
 }

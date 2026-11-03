@@ -53,6 +53,8 @@ export function dawInputLabel(answer: TeleprompterReaperInput | null): string | 
  * the microphone is the one Record will use, so it is never a first-listed guess among several (#2810).
  */
 export function resolveListeningMic({ dawRecords, answer, source, chosen, devices, appRecords = false, recordsOn = '' }: Inputs): ResolvedMic {
+  // A name of only spaces is no name: it is not a choice, and is never listed.
+  if (chosen.trim() === '') chosen = '';
   const listed = (name: string) => devices.includes(name);
   const dawInput = dawRecords ? dawInputLabel(answer) : null;
   if (dawRecords && source !== 'chosen' && answer) {

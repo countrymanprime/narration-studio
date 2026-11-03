@@ -101,4 +101,8 @@ describe('with the built-in recorder, the microphone named is the one Record use
   it('leaves a DAW’s resolution alone', () => {
     expect(resolve({ dawRecords: true, answer: null })).toMatchObject({ device: devices[0], origin: 'first' });
   });
+  it('treats a chosen name of only spaces as no choice', () => {
+    expect(app({ chosen: '   ' })).toMatchObject({ device: '', origin: 'none' });
+    expect(app({ chosen: '   ', recordsOn: devices[1]! })).toMatchObject({ device: devices[1], origin: 'last' });
+  });
 });

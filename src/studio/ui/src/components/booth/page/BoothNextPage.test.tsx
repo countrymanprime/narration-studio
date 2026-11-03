@@ -1854,6 +1854,108 @@ describe('the-built-in-recorder-names-the-microphone-it-records-on', () => {
     expect(page.daw.recordStart).not.toHaveBeenCalled();
   });
 
+  const toastText = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((toast) => toast.text);
+  const noneSaved = noSavedDevice;
+  const list =
+    (...names: string[]) =>
+    async () => ({ devices: names.map((name) => ({ name })), error: null });
+  const savedAs = (name: string) => async () => ({
+    Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: name, effectiveValue: name, isSet: true }],
+  });
+
+  it('judges Levels and Record by the recorder’s list alone when the speech listener’s list disagrees (several here, none there)', async () => {
+    const page = renderPage({
+      setup: 'builtin',
+      api: { settingsForScope: noneSaved, teleprompterDevices: list(), recorderDevices: list('A', 'B', 'C'), recorderState: recorderState('') } as never,
+    });
+    await ready();
+    expect((await levelsSelect()).value).toBe('');
+    await userEvent.keyboard('{Escape}');
+    await space();
+    await settle();
+    expect(toastText(page)).toContain('Choose the microphone in Levels, then press Record.');
+    expect(toastText(page)).not.toContain('No microphone found. Plug one in, then press Record again.');
+  });
+
+  it('says no microphone was found when the recorder lists none, even if the speech listener lists some', async () => {
+    const page = renderPage({
+      setup: 'builtin',
+      api: { settingsForScope: noneSaved, teleprompterDevices: list('A', 'B'), recorderDevices: list(), recorderState: recorderState('') } as never,
+    });
+    await ready();
+    await space();
+    await settle();
+    expect(toastText(page)).toContain('No microphone found. Plug one in, then press Record again.');
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('shows why when the microphone listing fails, instead of "Listing microphones…" for good, and does not start', async () => {
+    const page = renderPage({
+      setup: 'builtin',
+      api: {
+        settingsForScope: noneSaved,
+        teleprompterDevices: list('A', 'B'),
+        recorderDevices: async () => {
+          throw new Error('PortAudio is not installed');
+        },
+        recorderState: recorderState(''),
+      } as never,
+    });
+    await ready();
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    expect(await within(menu).findByText(/PortAudio is not installed/)).toBeTruthy();
+    expect(within(menu).queryByText('Listing microphones…')).toBeNull();
+    await userEvent.keyboard('{Escape}');
+    await space();
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('lists the microphones again when the window gets focus while Levels is open', async () => {
+    let names = ['A', 'B'];
+    renderPage({
+      setup: 'builtin',
+      api: {
+        settingsForScope: noneSaved,
+        teleprompterDevices: list('A', 'B'),
+        recorderDevices: async () => ({ devices: names.map((name) => ({ name })), error: null }),
+        recorderState: recorderState(''),
+      } as never,
+    });
+    await ready();
+    const select = await levelsSelect();
+    await waitFor(() => expect([...select.options].map((o) => o.value)).toContain('B'));
+    names = ['C', 'D'];
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect([...select.options].map((o) => o.value)).toEqual(expect.arrayContaining(['C', 'D'])));
+    expect([...select.options].map((o) => o.value)).not.toContain('B');
+  });
+
+  it('treats a microphone named only spaces as none: not listed, not a choice', async () => {
+    const page = renderPage({
+      setup: 'builtin',
+      api: { settingsForScope: savedAs('   '), teleprompterDevices: list('   '), recorderDevices: list('   '), recorderState: recorderState('') } as never,
+    });
+    await ready();
+    await space();
+    await settle();
+    expect(toastText(page)).toContain('No microphone found. Plug one in, then press Record again.');
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('refuses to record on a chosen microphone that is no longer listed, and names it', async () => {
+    const page = renderPage({
+      setup: 'builtin',
+      api: { settingsForScope: savedAs('Gone mic'), teleprompterDevices: list('A'), recorderDevices: list('A'), recorderState: recorderState('') } as never,
+    });
+    await ready();
+    await space();
+    await settle();
+    expect(toastText(page)).toContain('Gone mic was not found. Choose another microphone in Levels, then press Record.');
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
   it('says why the microphone is the one shown while the narrator has not chosen it', async () => {
     renderPage({
       setup: 'builtin',
