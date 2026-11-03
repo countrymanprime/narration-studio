@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { DiagnosticsPreview } from '../../../api/contracts/system';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import { usePort } from '../../../ports/usePort';
 import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
@@ -12,6 +12,15 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 const ROW =
   'grid gap-x-8 gap-y-1.5 border-t border-[var(--border)] px-5 py-4 first:border-t-0 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
 
+// Copies text to the clipboard; false when there is no clipboard or it refuses, so the toast still says where the file is.
+const copyText = async (text: string): Promise<boolean> => {
+  if (!navigator.clipboard) return false;
+  return navigator.clipboard.writeText(text).then(
+    () => true,
+    () => false,
+  );
+};
+
 const kilobytes = (bytes: number): string => `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 /**
@@ -20,7 +29,7 @@ const kilobytes = (bytes: number): string => `${Math.max(1, Math.round(bytes / 1
  * dialog, so a long list of files never moves the page.
  */
 export function DiagnosticsSection() {
-  const api = useApi();
+  const api = usePort('system');
   const overlay = useOverlay();
   const [preview, setPreview] = useState<DiagnosticsPreview>();
   const [busy, setBusy] = useState<'preview' | 'save' | ''>('');
@@ -41,13 +50,7 @@ export function DiagnosticsSection() {
     try {
       const { path } = await api.systemSaveDiagnostics();
       if (!path) return; // the narrator closed the folder picker
-      let copied = false;
-      try {
-        await navigator.clipboard.writeText(path);
-        copied = true;
-      } catch {
-        // The clipboard may be unavailable; the toast still says where the file is.
-      }
+      const copied = await copyText(path);
       overlay.toast(copied ? `Saved to ${path}. The path is copied.` : `Saved to ${path}.`);
     } catch (failure) {
       overlay.toast(apiErrorMessage(failure), { tone: 'error' });
@@ -70,7 +73,13 @@ export function DiagnosticsSection() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <IconButton action="list" label="Preview the diagnostics bundle" pending={busy === 'preview'} onClick={() => void showPreview()} />
+            <IconButton
+              action="list"
+              label="Preview the diagnostics bundle"
+              aria-haspopup="dialog"
+              pending={busy === 'preview'}
+              onClick={() => void showPreview()}
+            />
             <IconButton action="export" label="Save the diagnostics bundle" pending={busy === 'save'} onClick={() => void save()} />
           </div>
         </div>
