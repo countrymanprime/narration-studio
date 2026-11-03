@@ -71,6 +71,11 @@ function classify(r) {
     const hit = r.context === 'row' ? CONVERT.find(([re]) => re.test(r.label)) : undefined;
     return hit && hit[1] !== 'review' ? ['convert', hit[1]] : ['keep', 'inline text action inside a sentence'];
   }
+  // Coordinator rulings (2026-11-03) on three groups with no unambiguous icon.
+  if (/editing\/flags\/FlagCard|proof\/inspector\/DecisionButtons/.test(r.file))
+    return ['keep', 'primary decision action of the Inspector card (owner rule: primary = text)'];
+  if (/stages\/Stage(Evidence|Suggestion)/.test(r.file)) return ['keep', 'data-labelled chip, not an action'];
+  if (/booth\/ResumePrompt/.test(r.file) && /^Pick a word/.test(L)) return ['keep', 'pick-list option'];
   if (/^\{.*'primary'/.test(String(r.variant))) return ['keep', 'primary action of its row or card while its state allows it'];
   if (r.variant === 'primary' || r.variant === 'danger-solid') return ['keep', 'primary action of its card, page or dialog'];
   if (r.context === 'dialog' && (DIALOG_FOOTER.test(L) || L.startsWith('{')))

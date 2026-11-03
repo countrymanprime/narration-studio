@@ -42,7 +42,7 @@ A row's state in the table is read from the tree after the change, so `converted
 
 ## Totals
 
-Totals: **457** buttons found; **14** converted in this change; **121** mapped to a catalogue action and queued; **90** need a catalogue decision; **232** kept as text with a reason.
+Totals: **457** buttons found; **14** converted in this change; **116** mapped to a catalogue action and queued; **79** need a catalogue decision; **248** kept as text with a reason.
 
 Per page group (before this change), `converted` + `convert` + `decide` are the buttons the owner's rule asks to become icons:
 
@@ -50,13 +50,12 @@ Per page group (before this change), `converted` + `convert` + `decide` are the 
 | - | - | - | - | - |
 | engine | 14 | 0 | 0 | 21 |
 | settings | 0 | 28 | 17 | 29 |
-| editing | 0 | 13 | 21 | 31 |
+| editing | 0 | 12 | 15 | 38 |
 | storybible | 0 | 16 | 8 | 16 |
 | proof | 0 | 12 | 6 | 16 |
 | production | 0 | 10 | 4 | 19 |
 | script | 0 | 5 | 6 | 14 |
 | booth | 0 | 3 | 6 | 21 |
-| stages | 0 | 4 | 5 | 0 |
 | master | 0 | 4 | 4 | 4 |
 | recordingcheck | 0 | 7 | 1 | 9 |
 | layout | 0 | 4 | 2 | 7 |
@@ -71,6 +70,7 @@ Per page group (before this change), `converted` + `convert` + `decide` are the 
 | devtools | 0 | 0 | 1 | 0 |
 | help | 0 | 0 | 0 | 1 |
 | primitives | 0 | 0 | 0 | 24 |
+| stages | 0 | 0 | 0 | 9 |
 
 ## Plan
 
@@ -80,8 +80,7 @@ and intent-reviewer. The last PR closes #2836.
 1. Engine panel (the Link chapters dialog, Chapter links, Chapter sync, the REAPER project card, the REAPER tools, the Audacity card): done in the first PR.
 2. Settings, Editing, Story Bible, Proof, Production, Script, Booth, then the smaller groups in the table's order.
 
-The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter links) as text because they are the primary action of their row, and `Create chapter regions…` in the render dialog because it opens a flow rather than deciding. The guard sees `row` and `toolbar` contexts only; there is no `list` context in the audit's classifier yet. Three queued decisions need the owner, because the catalogue has no row and an icon would be ambiguous: the Inspector's decision buttons
-(`FlagCard`, `DecisionButtons`), the `StageEvidence` and `StageSuggestion` chips whose label is data, and the `Pick a word` buttons of the Booth resume prompt.
+The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter links) as text because they are the primary action of their row, and `Create chapter regions…` in the render dialog because it opens a flow rather than deciding. The guard sees `row` and `toolbar` contexts only; there is no `list` context in the audit's classifier yet. Three groups with no unambiguous icon were ruled on 2026-11-03 and stay text: the Inspector decision buttons (`FlagCard`, `DecisionButtons`; primary decision actions), the `StageEvidence` and `StageSuggestion` chips (data labels, not actions) and the Booth resume prompt's `Pick a word` (pick-list options).
 
 ## The table
 
@@ -107,11 +106,11 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `booth/ResumePrompt.tsx:224` | native | page | {label} {when} · word {place.number.toLocaleString()} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `booth/ResumePrompt.tsx:333` | secondary | page | Retry | convert (queued) | retry |
 | `booth/ResumePrompt.tsx:344` | primary | page | Download model… | keep | primary action of its card, page or dialog |
-| `booth/ResumePrompt.tsx:393` | secondary | page | Pick a word | keep | sentence-length action that names its object, not one verb |
+| `booth/ResumePrompt.tsx:393` | secondary | page | Pick a word | keep | pick-list option |
 | `booth/ResumePrompt.tsx:430` | {located.confident ? 'primary' : 'secondary'} | page | Resume from here | keep | primary action of its row or card while its state allows it |
 | `booth/ResumePrompt.tsx:436` | secondary | page | Start from the top | decide (queued) | needs a catalogue decision |
-| `booth/ResumePrompt.tsx:439` | secondary | page | Pick a word | keep | sentence-length action that names its object, not one verb |
-| `booth/ResumePrompt.tsx:464` | secondary | page | Pick a word | keep | sentence-length action that names its object, not one verb |
+| `booth/ResumePrompt.tsx:439` | secondary | page | Pick a word | keep | pick-list option |
+| `booth/ResumePrompt.tsx:464` | secondary | page | Pick a word | keep | pick-list option |
 | `booth/side/VoicesInChapter.tsx:54` | link | page | Check again | keep | inline text action inside a sentence |
 | `booth/side/VoicesInChapter.tsx:94` | ghost | row | {plural(mine.length)} {open ? '▴' : '▾'} | keep | option in a pick list: the label is the choice |
 | `booth/side/VoicesInChapter.tsx:133` | ghost | page | {sample.primary ? '★ ' : ''} {name} · {sampleLength(sample.durationMs) | decide (queued) | needs a catalogue decision |
@@ -159,15 +158,15 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `editing/effects/EffectSettings.tsx:382` | secondary | page | Stop comparing | decide (queued) | needs a catalogue decision |
 | `editing/effects/EffectsList.tsx:55` | link | row | {clock(at.start)} – {clock(at.end)} | keep | inline text action inside a sentence |
 | `editing/effects/ProjectFx.tsx:41` | secondary | page | Check again | convert (queued) | +checkAgain |
-| `editing/flags/FlagCard.tsx:150` | primary | panel | Stack as 2 takes | keep | primary action of its card, page or dialog |
-| `editing/flags/FlagCard.tsx:153` | secondary | panel | Hear both reads | convert (queued) | hear |
-| `editing/flags/FlagCard.tsx:156` | secondary | panel | Leave in place | decide (queued) | needs a catalogue decision |
-| `editing/flags/FlagCard.tsx:159` | ghost | panel | Delete second read… | decide (queued) | needs a catalogue decision |
-| `editing/flags/FlagCard.tsx:166` | secondary | panel | {it?.st === 'extra' ? 'Hear it' : 'Hear the word'} | decide (queued) | needs a catalogue decision |
-| `editing/flags/FlagCard.tsx:172` | secondary | panel | Keep this addition | decide (queued) | needs a catalogue decision |
-| `editing/flags/FlagCard.tsx:175` | danger | panel | Delete words and audio… | decide (queued) | needs a catalogue decision |
-| `editing/flags/FlagCard.tsx:181` | secondary | panel | It is right, accept | decide (queued) | needs a catalogue decision |
-| `editing/flags/FlagCard.tsx:184` | primary | panel | Mark for pickup | keep | primary action of its card, page or dialog |
+| `editing/flags/FlagCard.tsx:150` | primary | panel | Stack as 2 takes | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:153` | secondary | panel | Hear both reads | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:156` | secondary | panel | Leave in place | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:159` | ghost | panel | Delete second read… | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:166` | secondary | panel | {it?.st === 'extra' ? 'Hear it' : 'Hear the word'} | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:172` | secondary | panel | Keep this addition | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:175` | danger | panel | Delete words and audio… | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:181` | secondary | panel | It is right, accept | keep | primary decision action of the Inspector card (owner rule: primary = t |
+| `editing/flags/FlagCard.tsx:184` | primary | panel | Mark for pickup | keep | primary decision action of the Inspector card (owner rule: primary = t |
 | `editing/menu/marks/NoteDialog.tsx:66` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `editing/menu/marks/NoteDialog.tsx:69` | primary | dialog | Save note | keep | primary action of its card, page or dialog |
 | `editing/output/OutputControls.tsx:68` | secondary | row | Check again | convert (queued) | +checkAgain |
@@ -355,7 +354,7 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `proof/frame/ChapterStrip.tsx:50` | native | row | (icon) | keep | native button that is a whole row or a menu item (the label is the cho |
 | `proof/frame/WaveformWindow.tsx:272` | native | row | {cluster.pins.length} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `proof/frame/WaveformWindow.tsx:289` | native | row | (icon) | keep | native button that is a whole row or a menu item (the label is the cho |
-| `proof/inspector/DecisionButtons.tsx:40` | secondary | row | {decision.label} | keep | option in a pick list: the label is the choice |
+| `proof/inspector/DecisionButtons.tsx:40` | secondary | row | {decision.label} | keep | primary decision action of the Inspector card (owner rule: primary = t |
 | `proof/inspector/EvidenceChangedBanner.tsx:52` | secondary | page | Use the new evidence | convert (queued) | +useThis |
 | `proof/inspector/FindingThread.tsx:40` | secondary | page | Cancel | convert (queued) | cancelEdit |
 | `proof/inspector/FindingThread.tsx:43` | primary | page | Save | keep | primary action of its card, page or dialog |
@@ -495,15 +494,15 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `settings/UpdatesPanel.tsx:139` | primary | panel | Show the downloaded file | keep | primary action of its card, page or dialog |
 | `settings/UpdatesPanel.tsx:141` | secondary | panel | Release notes | decide (queued) | needs a catalogue decision |
 | `settings/UpdatesPanel.tsx:145` | secondary | panel | {checking ? 'Checking…' : 'Check now'} | decide (queued) | needs a catalogue decision |
-| `stages/StageEvidence.tsx:70` | secondary | page | Check now | convert (queued) | +checkAgain |
-| `stages/StageEvidence.tsx:92` | {variant} | page | {label} | decide (queued) | needs a catalogue decision |
-| `stages/StageEvidence.tsx:144` | secondary | page | Check now | convert (queued) | +checkAgain |
-| `stages/StageEvidence.tsx:224` | secondary | page | {openLabel} | decide (queued) | needs a catalogue decision |
-| `stages/StageEvidence.tsx:231` | secondary | page | Check now | convert (queued) | +checkAgain |
-| `stages/StageEvidence.tsx:255` | secondary | page | Go to paragraph {first.number} | convert (queued) | pageLink |
-| `stages/StageEvidence.tsx:262` | secondary | page | Open this note | decide (queued) | needs a catalogue decision |
-| `stages/StageSuggestion.tsx:38` | {variant} | page | {visible} | decide (queued) | needs a catalogue decision |
-| `stages/StageSuggestion.tsx:43` | secondary | page | Why | decide (queued) | needs a catalogue decision |
+| `stages/StageEvidence.tsx:70` | secondary | page | Check now | keep | data-labelled chip, not an action |
+| `stages/StageEvidence.tsx:92` | {variant} | page | {label} | keep | data-labelled chip, not an action |
+| `stages/StageEvidence.tsx:144` | secondary | page | Check now | keep | data-labelled chip, not an action |
+| `stages/StageEvidence.tsx:224` | secondary | page | {openLabel} | keep | data-labelled chip, not an action |
+| `stages/StageEvidence.tsx:231` | secondary | page | Check now | keep | data-labelled chip, not an action |
+| `stages/StageEvidence.tsx:255` | secondary | page | Go to paragraph {first.number} | keep | data-labelled chip, not an action |
+| `stages/StageEvidence.tsx:262` | secondary | page | Open this note | keep | data-labelled chip, not an action |
+| `stages/StageSuggestion.tsx:38` | {variant} | page | {visible} | keep | data-labelled chip, not an action |
+| `stages/StageSuggestion.tsx:43` | secondary | page | Why | keep | data-labelled chip, not an action |
 | `storybible/CommonsAudioLookup.tsx:31` | secondary | page | Listen on Commons | convert (queued) | hear |
 | `storybible/FilterMenu.tsx:142` | link | page | Clear all | keep | inline text action inside a sentence |
 | `storybible/Guide.tsx:368` | link | page | Clear filters | keep | inline text action inside a sentence |
