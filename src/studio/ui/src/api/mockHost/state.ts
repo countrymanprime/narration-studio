@@ -190,6 +190,8 @@ export type MockApiSeed = {
   chapterTagsEmbedAlwaysErrors?: boolean;
   /** Makes chapterRegionsCreate always reject, to review "Create chapter regions…"'s error state. */
   regionsCreateAlwaysErrors?: boolean;
+  /** Makes systemOpenLogFolder refuse with the Windows host's sentence (`?mockLogFolder=refused`), to see the refusal toast. */
+  logFolderRefused?: boolean;
   /** Seeds the recording coverage mock (a refusal for every start, or stale chapters), see `CoverageSeed`. */
   coverage?: CoverageSeed;
   /** Seeds the stage recommendations mock (a chapter's recording evidence, a live confirmation, a dismissal), see `StagesSeed`. */

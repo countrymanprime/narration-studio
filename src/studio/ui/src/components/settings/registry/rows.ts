@@ -788,7 +788,7 @@ export const ROWS: readonly SettingMeta[] = [
     used: [],
     advanced: true,
     beside: 'logFolder',
-    syn: 'log verbose run log diagnostics folder open',
+    syn: 'log logs verbose run log run.jsonl host.log diagnostics folder open file manager explorer',
   },
 ];
 

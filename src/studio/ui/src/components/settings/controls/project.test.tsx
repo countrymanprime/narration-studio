@@ -15,6 +15,7 @@ import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText'
 import { SettingsPage } from '../page/SettingsPage';
 import { brand } from '../../../brand.gen';
 import { overlay } from '../../../overlay/overlayService';
+import { LOG_FOLDER_WAIT_MS } from '../row/logFolderRequest';
 
 afterEach(() => {
   cleanup();
@@ -449,6 +450,10 @@ describe('Settings: App & updates', () => {
   describe('Open the log folder (#2730)', () => {
     afterEach(() => overlay.getSnapshot().toasts.forEach((t) => overlay.dismissToast(t.id)));
     const toasts = () => overlay.getSnapshot().toasts;
+    const openCategory = async (name: string) => {
+      fireEvent.click(within(nav()).getByRole('button', { name: new RegExp(`^${name}`) }));
+      await screen.findByRole('heading', { level: 2, name });
+    };
     const folderButton = () => within(row('app.debug')).getByRole('button', { name: 'Open the log folder' });
 
     it('idle: an enabled icon button beside Debug logging, with its tooltip', async () => {
@@ -495,6 +500,61 @@ describe('Settings: App & updates', () => {
       expect(toasts()[0].text).toContain('No file manager is installed.');
       expect(folderButton().getAttribute('aria-busy')).toBeNull();
       expect(row('app.debug').querySelector('[role="alert"]')).toBeNull();
+    });
+
+    it('pending survives leaving the category: the button is still busy on return and a press makes no second call', async () => {
+      const { api } = await renderApp();
+      let finish: () => void = () => undefined;
+      const open = vi.spyOn(api, 'systemOpenLogFolder').mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)));
+      await openAdvanced();
+      await userEvent.click(folderButton());
+      await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBe('true'));
+      await openCategory('Project');
+      await openCategory('App & updates');
+      if (!row('app.debug')) await openAdvanced();
+      await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBe('true'));
+      await userEvent.click(folderButton());
+      expect(open).toHaveBeenCalledTimes(1);
+      finish();
+      await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBeNull());
+    });
+
+    it('a host that never answers frees the button after a timeout and says so', async () => {
+      const { api } = await renderApp();
+      vi.spyOn(api, 'systemOpenLogFolder').mockImplementation(() => new Promise<void>(() => undefined));
+      await openAdvanced();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        fireEvent.click(folderButton());
+        await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBe('true'));
+        await vi.advanceTimersByTimeAsync(LOG_FOLDER_WAIT_MS);
+        await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBeNull());
+        expect(toasts()).toHaveLength(1);
+        expect(toasts()[0]).toMatchObject({ tone: 'error' });
+        expect(toasts()[0].text).toMatch(/did not answer/);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('refusal with an empty message drops the colon', async () => {
+      const { api } = await renderApp();
+      vi.spyOn(api, 'systemOpenLogFolder').mockRejectedValue(new Error(''));
+      await openAdvanced();
+      await userEvent.click(folderButton());
+      await waitFor(() => expect(toasts()).toHaveLength(1));
+      expect(toasts()[0].text).toBe('The log folder could not be opened.');
+    });
+
+    it('the mock host refuses with the real host sentence (?mockLogFolder=refused), and the toast does not repeat it', async () => {
+      const api = createMockApi({}, { logFolderRefused: true });
+      await expect(api.systemOpenLogFolder()).rejects.toThrow('The folder could not be opened.');
+      await renderPage({ api });
+      await open('App & updates');
+      await openAdvanced();
+      await userEvent.click(folderButton());
+      await waitFor(() => expect(toasts()).toHaveLength(1));
+      expect(toasts()[0].text).toBe('The log folder could not be opened.');
     });
   });
 });
