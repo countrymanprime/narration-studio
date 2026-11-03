@@ -16,6 +16,8 @@ import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
+import { useVoiceLayout } from './voiceLayout';
+import { folderChildren, folderLinkLabel } from './voices';
 
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }> = {
   linked: { label: 'Linked', tone: 'success' },
@@ -43,6 +45,7 @@ const NARROW_ROW =
 export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; notify: Notify }) {
   const { tracks, chapters, mappings, rows, error, busyChapterId } = links;
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
+  const folders = useVoiceLayout() === 'folders';
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
@@ -59,7 +62,7 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
             <TableRow>
               <TableHeader>Chapter</TableHeader>
               <TableHeader>Status</TableHeader>
-              <TableHeader>Track</TableHeader>
+              <TableHeader>{folders ? 'Folder' : 'Track'}</TableHeader>
               <TableHeader hiddenLabel="Actions" />
             </TableRow>
           </TableHead>
@@ -132,6 +135,10 @@ function ChapterLinkRow({
   }, [hasLink, linkedGuid]);
 
   const name = headingName(row.chapter);
+  // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
+  const folders = useVoiceLayout() === 'folders';
+  const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
+  const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(row.trackName ?? '', folderChildren(tracks, linkedTrack.guid).length) : row.trackName;
   const short = chapterName(row.chapter, 'short');
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const badge = STATE_BADGE[row.state];
@@ -159,14 +166,14 @@ function ChapterLinkRow({
       </TableCell>
       <TableCell>
         {showPicker ? (
-          <TrackSelect label={`Track for ${short}`} choices={choices} value={chosen} onChange={setChosen} fullWidth />
+          <TrackSelect label={`${folders ? 'Folder' : 'Track'} for ${short}`} choices={choices} value={chosen} onChange={setChosen} fullWidth />
         ) : picking ? (
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No REAPER tracks to link
           </span>
         ) : row.trackName ? (
-          <span className="block truncate" title={row.trackName}>
-            {row.trackName}
+          <span className="block truncate" title={linkedName}>
+            {linkedName}
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>

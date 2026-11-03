@@ -2,6 +2,7 @@
 // Booth can be given. Not a screenshot test. Each case names what it drives and asserts what the narrator sees and what the DAW holds; any page
 // error or console error fails it.
 import { expect, test, type Page } from '@playwright/test';
+import { showChapterTop } from './helpers/viewTop';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
@@ -244,6 +245,7 @@ test.describe('with a take running', () => {
   test('the right-click menu holds the take while it is open and lets go when it closes', async ({ page }) => {
     const errors = watch(page);
     await takeRunning(page);
+    await showChapterTop(page);
     await page.locator('[data-word]').nth(40).click({ button: 'right' });
     await expect(page.getByRole('menu').last()).toBeVisible();
     await expect(page.getByText('REC · reading paused', { exact: true })).toBeVisible();

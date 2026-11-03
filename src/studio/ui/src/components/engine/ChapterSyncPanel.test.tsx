@@ -46,6 +46,27 @@ describe('ChapterSyncPanel', () => {
     await waitFor(() => expect(container.textContent).toBe(''));
   });
 
+  it('draws the project layout as its Layout row, on or off, and says so; before consent it draws nothing and says that', async () => {
+    for (const chapterSync of ['off', undefined, 'ask'] as const) {
+      const shown = vi.fn();
+      const api = createMockApi({}, chapterSync ? { chapterSync } : {});
+      render(
+        <ApiProvider api={api}>
+          <ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={() => {}} layout={<span>the switch</span>} onLayoutShown={shown} />
+        </ApiProvider>,
+      );
+      if (chapterSync === 'ask') {
+        await waitFor(() => expect(shown).toHaveBeenLastCalledWith(false));
+        expect(screen.queryByText('the switch')).toBeNull();
+      } else {
+        await screen.findByText('the switch');
+        expect(screen.getByText('Layout')).toBeTruthy();
+        expect(shown).toHaveBeenLastCalledWith(true);
+      }
+      cleanup();
+    }
+  });
+
   it('offers Turn on when sync is off, and calls chapterSyncSetEnabled(true)', async () => {
     const api = createMockApi({}, { chapterSync: 'off' });
     const onChanged = vi.fn();

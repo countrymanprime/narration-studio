@@ -1,6 +1,6 @@
 // The mock host (mockApi.ts): the manuscript.
 import type { GuideEvidence, ManuscriptChapter, ManuscriptContentKind, ManuscriptParagraph, NarrationApi, ReaderState, WorkJob } from '../../types';
-import { aliceChapterSeeds, mockRecordedThrough, WIRE_NOTES, WIRE_READER_STATE, WIRE_TRACKS_PROJECT, wireClone, withFormatting } from '../mockFixtures';
+import { aliceChapterSeeds, mockRecordedThrough, WIRE_NOTES, WIRE_READER_STATE, mockTracksProject, wireClone, withFormatting } from '../mockFixtures';
 import { loadAliceManuscript } from '../aliceManuscript';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
 import { mockImportPreview, mockImportPreviewLog } from '../mockImportPreview';
@@ -211,7 +211,7 @@ export function createManuscriptMock(
           const through = chapter.recordedThrough ?? (narrationIndex < 0 ? undefined : mockRecordedThrough(narrationIndex, paragraphs));
           return {
             ...withMeasurement(chapter),
-            ...mockRecordedLength(chapter.id, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
+            ...mockRecordedLength(chapter.id, mockTracksProject(initial), s.chapterTrackMappings, readable),
             ...(through ? { recordedThrough: through } : {}),
           };
         }),

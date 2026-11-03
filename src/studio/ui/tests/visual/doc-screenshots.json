@@ -319,7 +319,7 @@
     "state": "resume",
     "viewport": "desktop",
     "docName": "booth-waiting",
-    "caption": "Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends"
+    "caption": "Booth - looked elsewhere in the chapter: Resume at ¶ 14 offers the way back to where the recording ends"
   },
   {
     "page": "booth",
@@ -428,6 +428,34 @@
   },
   {
     "page": "engine",
+    "state": "voice-folders-sync",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-layout",
+    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Tracks card with a chapter folder and its voice tracks"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-link-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-folder-picker",
+    "caption": "The audio engine panel - a chapter's folder picker in a Voice folders project, the voice tracks inside a chapter folder off"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices",
+    "caption": "The audio engine panel - the Voices card for a Voice folders project: a chapter's voice tracks with their number-pad keys and characters"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-picker",
+    "caption": "The audio engine panel - the character list of a voice track on the Voices card"
+  },
+  {
+    "page": "engine",
     "state": "folder-tracks-picker",
     "viewport": "desktop",
     "docName": "engine-panel-folder-picker",
@@ -523,6 +551,13 @@
     "viewport": "desktop",
     "docName": "settings-models",
     "caption": "Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions"
+  },
+  {
+    "page": "settings",
+    "state": "models-checking",
+    "viewport": "desktop",
+    "docName": "settings-models-checking",
+    "caption": "Settings - Models & downloads checking the files of the Whisper model: Checking the files in its row and the check icon spinning"
   },
   {
     "page": "settings",

@@ -5,7 +5,7 @@
 // a chapter is heard in its Proof chapter view. `tracks/sync-consent` went too: the same dialog over the Production home is
 // `production/chapter-sync-consent`.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
 
 export const engineStates: StateEntry[] = [
   {
@@ -70,6 +70,41 @@ export const engineStates: StateEntry[] = [
     state: 'wrong-project',
     description:
       'The engine panel with REAPER answering on a different project than the linked one (?mockDawMismatch=1): the REAPER project card’s warning callout says so, then "Waiting for REAPER to open the linked project.", "Last checked N s ago.", Link the open project… and Check again',
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders',
+    description:
+      'The engine panel for a Voice folders project (?mockVoiceFolders=1): Chapter sync\'s Layout row on Voice folders, Chapter links\' Folder column naming "Chapter 1 · 3 voices", and below it the Voices card with Chapter 1 picked in its header and its voices - Narrator on key 0, White Rabbit on 1 matched by name, Extras on 2 with the two characters assigned to it - each with its edit button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-picker',
+    description:
+      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked, each other character with the voice it is already on",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-sync',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it the Tracks card, where the Chapter 1 folder names its chapter and its Narrator, White Rabbit and Extras tracks sit inside it',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-links',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter links: the Folder column header, Chapter 1 linked to "Chapter 1 · 3 voices", the other chapters on "Choose a folder"',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-link-picker',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) with Chapter 2\'s folder picker open: the Chapter 1 folder can be chosen (linked to Chapter 1), its Narrator, White Rabbit and Extras tracks are off with "A voice of its folder"',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'engine',
