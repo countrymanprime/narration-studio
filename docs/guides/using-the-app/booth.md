@@ -12,7 +12,7 @@ While the chapters are being read, the Booth draws its top bar, text, side panel
 ## The page
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
-where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`; `At ¶ 1 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
+where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
@@ -333,12 +333,13 @@ The chapter menu lists the same figure after every chapter's name, as the chapte
 
 A resume prompt that finds the chapter's track missing or linked twice has a **Link a track** or **check the link** button that opens the audio engine panel over the Booth.
 
-When the chapter's track already has a recording, the top bar offers **Resume at ¶ n** and says where it read that from: the
-DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place to where the recording
-ends; nothing starts until you press Record. With none of those, once you move elsewhere in the chapter it offers the place the
-chapter opened at, *where your recording ends* or *where you left off*, so you can go back to it.
+A chapter that is partly recorded opens at the word after the recording ends, so **Recorded through …** and the reading position
+agree and no resume line is drawn. Once you move elsewhere in the chapter, the top bar offers **Resume at ¶ n** and says where it
+read that from: the DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place back to
+where the recording ends; nothing starts until you press Record. With none of those, it offers the place the chapter opened at,
+*where your recording ends* or *where you left off*, so you can go back to it.
 
-![Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends](../../images/ui/booth-waiting.webp)
+![Booth - looked elsewhere in the chapter: Resume at ¶ 14 offers the way back to where the recording ends](../../images/ui/booth-waiting.webp)
 
 ## Voice samples
 

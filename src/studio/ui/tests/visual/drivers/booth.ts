@@ -2,6 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { boothChapterReady, readFromStart, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // Where the page clock stops once Record is pressed, so the timer reads 00:00 at every viewport.
@@ -23,7 +24,7 @@ const UNLINKED = '?mockReaperState=no_link';
 async function readyToRecord(page: Page, query = ''): Promise<void> {
   // Always a fresh load: a spec that calls a driver on a blank page has no app to navigate in until one is loaded.
   await openBooth(page, query || '?');
-  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  await boothChapterReady(page);
   await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
 }
 
@@ -263,7 +264,7 @@ export const boothDrivers: Record<string, Driver> = {
     await record(page).click();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
     await page.clock.runFor(30_000);
-    await page.getByText(/^(At )?¶ [2-9] of 24/).waitFor();
+    await page.getByText(/^¶ (1[4-9]|2[0-4]) of 24/).waitFor();
     if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
@@ -276,12 +277,13 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByText('Mic on · cold read', { exact: true }).waitFor();
     await page.clock.runFor(30_000);
     await page.locator('[data-paragraph]:not(:first-child) [data-ghost]').waitFor();
-    await page.getByText(/^(At )?¶ 1 of 24/).waitFor();
+    await page.getByText(/^¶ 14 of 24/).waitFor();
     if (await page.getByText('REC', { exact: true }).count()) throw new Error('a cold read shows REC: it records nothing');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
   'voice-samples-picker': async (page) => {
     await readyToRecord(page, SAMPLES);
+    await showChapterTop(page);
     await page.locator('[data-speaker-chip]').first().click();
     await page.getByRole('combobox', { name: 'Search speakers' }).waitFor();
     await page
@@ -324,16 +326,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.clock.runFor(2_000);
     await page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ }).waitFor();
   },
-  // The chip is not offered at the place it would take the narrator to, so once chosen it goes; a page opened again (the next
-  // viewport) returns to the remembered ¶ 14 and offers no chip at all.
+  // Chapter 1 opens at ¶ 14, where its recording ends, so the chip is not offered; looking elsewhere (a word in the next paragraph)
+  // offers the way back, and the chip is left in view. A page opened again (the next viewport) returns to the remembered place, so each
+  // viewport looks away again.
   resume: async (page) => {
     await openBooth(page, '');
-    const chip = page.getByRole('button', { name: /^Resume at ¶/ });
-    const there = page.getByText(/¶ 14 of 24/);
-    await chip.or(there).first().waitFor();
-    if (await chip.isVisible()) await chip.click();
-    await there.waitFor();
-    await chip.waitFor({ state: 'detached' });
+    await page.getByText(/¶ 14 of 24/).waitFor();
+    await page.locator('[data-booth-text] [data-paragraph]:has([data-current]) + [data-paragraph] [data-word="0"]').click();
+    await page.getByRole('button', { name: /^Resume at ¶ 14/ }).waitFor();
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'recorded-partly': async (page) => {
@@ -429,15 +429,16 @@ export const boothDrivers: Record<string, Driver> = {
     // The Script's "Marked …" toast would otherwise sit over the Booth's footer.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await boothChapterReady(page);
+    await showChapterTop(page);
     await page.locator('[data-booth-text] [data-word][title]', { hasText: 'tired' }).click();
     await page.locator('#booth-reference').getByText('Lean on it: she is bored, not sleepy.').waitFor();
   },
   // B on the word being read: the ribbon in the margin beside its line (the toast is dismissed so the shot shows the margin).
   'bookmarks-ribbon': async (page) => {
     await readyToRecord(page);
-    // On the first paragraph's first word: the chapter title and subtitle above it are no manuscript paragraph a bookmark can name.
-    await page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
+    // On the reading paragraph's first word (Chapter 1 opens at ¶ 14): the chapter title above is no manuscript paragraph a bookmark can name.
+    await page.locator('[data-booth-text] [data-paragraph]:has([data-current]):not([data-heading]) [data-word="0"]').first().click();
     await page.keyboard.press('b');
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();
@@ -446,6 +447,8 @@ export const boothDrivers: Record<string, Driver> = {
   // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
   'page-break-stop': async (page) => {
     await readyToRecord(page);
+    // Chapter 1 opens at ¶ 14, past the Page 2 break: the reading goes back to the chapter's start to step down to it.
+    await readFromStart(page);
     const label = page.locator('[data-page-breaks] [data-page-break="2"]');
     const height = page.viewportSize()?.height ?? 800;
     for (let step = 0; step < 80; step++) {
@@ -500,7 +503,7 @@ export const boothDrivers: Record<string, Driver> = {
     await settlePage(page);
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await boothChapterReady(page);
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'companion-default': async (page) => {
