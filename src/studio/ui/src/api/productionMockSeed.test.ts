@@ -23,10 +23,9 @@ describe('scenarioFromToday', () => {
       const [a, b] = await Promise.all([base.productionOverview(), moved.productionOverview()]);
       expect(b.deadline?.daysLeft).toBe(a.deadline?.daysLeft);
       expect(b.deadline?.date).not.toBe(a.deadline?.date);
-      const [burnA, burnB] = await Promise.all([base.productionBurndown(), moved.productionBurndown()]);
-      expect(burnB.map((p) => p.hoursLogged)).toEqual(burnA.map((p) => p.hoursLogged));
+      expect(b.totals.hoursLogged).toBe(a.totals.hoursLogged);
       const days = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
-      expect(days(burnA[0].date, burnB[0].date)).toBe(days(a.deadline!.date, b.deadline!.date));
+      expect(scenarioFromToday(name, now).shiftDays ?? 0).toBe(days(a.deadline!.date, b.deadline!.date));
     }
   });
 });

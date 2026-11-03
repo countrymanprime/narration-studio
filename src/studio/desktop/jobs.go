@@ -30,8 +30,6 @@ const (
 	jobKindAppUpdate          = "app_update"
 	jobKindTranscript         = "transcript_compare"
 	jobKindCoverage           = "recording_coverage"
-	jobKindTakeReview         = "take_review"
-	jobKindTakeComparison     = "take_comparison"
 	jobKindMeasurement        = "measurement"
 	jobKindDiagnostics        = "diagnostics"
 	jobKindRenderExport       = "render_export"

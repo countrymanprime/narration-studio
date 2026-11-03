@@ -48,11 +48,11 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 ### `pickups`
 
-- **Intent:** keep a list of lines to re-record, walk it, resolve entries and reopen them, and read every pickup marker back with its state.
+- **Intent:** keep a list of lines to re-record, resolve entries and reopen them, and read every pickup marker back with its state.
 - **Role:** `PickupList`, asynchronous.
-- **Result:** `import_pickups` answers `PICKUPS_IMPORTED` with added, already-there and invalid counts. `export_pickups` answers `PICKUPS_EXPORTED` with the path and count. `next_pickup` answers `PICKUP_NEXT`, or an error when none remain. `resolve_pickup` answers `PICKUP_RESOLVED` and `reopen_pickup` answers `PICKUP_REOPENED`. `list_pickup_markers` writes every pickup marker, `open` or `done`, to the file it names and answers `PICKUP_MARKERS_LISTED` with the path and both counts; the host reads back only the file it asked for. `count_pickups` answers `PICKUPS_COUNTED` with remaining and total.
+- **Result:** `import_pickups` answers `PICKUPS_IMPORTED` with added, already-there and invalid counts. `export_pickups` answers `PICKUPS_EXPORTED` with the path and count. `resolve_pickup` answers `PICKUP_RESOLVED` and `reopen_pickup` answers `PICKUP_REOPENED`. `list_pickup_markers` writes every pickup marker, `open` or `done`, to the file it names and answers `PICKUP_MARKERS_LISTED` with the path and both counts; the host reads back only the file it asked for. `count_pickups` answers `PICKUPS_COUNTED` with remaining and total.
 - **REAPER:** the commands of the same names ([the bridge](../../architecture/reaper-bridge.md#commands)).
-- **Audacity 3.x:** Experimental ([pickups.go](../../../src/studio/desktop/internal/dawport/audacity/pickups.go)). Audacity has no project markers, so a pickup is a label on the `<label track>` label track, `[nu:pickup open] <body>` or `[nu:pickup done] <body>`, where `<body>` is the note or `[tag] note`. Import skips a row whose label (open or done, same body) is within 0.15 s; resolve and reopen rewrite the prefix of the nearest label in the other state with `SetLabel`; next reads the cursor (`GetInfo: Type=Selection`) and goes to the next open pickup after it, wrapping; export, list and count read the labels. The answers are REAPER's events, queued by the role and delivered by `Dispatch`. Only a label with this prefix is ever changed. Labels have no colour, and an undo in Audacity takes back a label at a time.
+- **Audacity 3.x:** Experimental ([pickups.go](../../../src/studio/desktop/internal/dawport/audacity/pickups.go)). Audacity has no project markers, so a pickup is a label on the `<label track>` label track, `[nu:pickup open] <body>` or `[nu:pickup done] <body>`, where `<body>` is the note or `[tag] note`. Import skips a row whose label (open or done, same body) is within 0.15 s; resolve and reopen rewrite the prefix of the nearest label in the other state with `SetLabel`; export, list and count read the labels. The answers are REAPER's events, queued by the role and delivered by `Dispatch`. Only a label with this prefix is ever changed. Labels have no colour, and an undo in Audacity takes back a label at a time.
 - **Checked:** REAPER, harness (`pickups_test.lua`). Audacity, the fake pipe only (`pickups_test.go`, `bindings_audacity_pickups_test.go`); the owner's pass checks matrix A3-T10. `reopen_pickup` and `list_pickup_markers`: not checked in REAPER; expected result is rows C8 and C9 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet).
 
 ### `line_identity`
@@ -100,21 +100,12 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Audacity:** not built.
 - **Checked:** REAPER, harness (`project_state_test.lua`).
 
-`DawProjectState()` and its `daw_project_state_changed` event answer the saved project against the live one without this command: `{savedAt, unsavedChanges, playState, playPosition}`, read through the `heartbeat` capability (`src/studio/desktop/bindings_daw_projectstate.go`, `internal/dawport/projectstate.go`).
+`DawProjectState()` answers the saved project against the live one without this command: `{savedAt, unsavedChanges, playState, playPosition}`, read through the `heartbeat` capability (`src/studio/desktop/bindings_daw_projectstate.go`, `internal/dawport/projectstate.go`).
 
 - `savedAt` is the host's stat of the `.rpp` the heartbeat names, as a local date and time to the minute; null when the project was never saved or the engine keeps no saved project (the built-in recorder, and Audacity until it reports one).
 - `unsavedChanges` compares the heartbeat's change count with a baseline taken at the first count and again at each save (the `.rpp`'s modification time moves), as the chapter sync watcher does ([chaptersync_watch.go](../../../src/studio/desktop/chaptersync_watch.go)). The `unsaved` field of the heartbeat and of `chapter_track_state` means "never saved", not this.
 - `playState` is `stopped`, `playing` or `recording`, and `playPosition` is the heartbeat's position while playing or recording, 0 when stopped. It is a display value, not an anchor for a word.
 - With no engine, the engine not answering or `heartbeat` turned off, the payload is stopped, 0, null, false. The event goes out from the same `transcriptLoop` tick as `daw_transport_changed`, on the first tick and then only on a change.
-
-### `take_create`
-
-- **Intent:** add a chosen read as a take of an existing item, from a source range of another item.
-- **Role:** `TakeCreator`, asynchronous.
-- **Result:** `TAKE_CREATED` with the target item and the new take's GUID, or `TAKE_STALE` when the item is gone. One undo step.
-- **REAPER:** `create_take`.
-- **Audacity:** none (take management).
-- **Checked:** REAPER, harness (`take_review_test.lua`). The check in REAPER is pending with the owner ([take review](../../utilities/take-review.md)).
 
 ### `heartbeat`
 
@@ -159,6 +150,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Role:** `TrackCreator`, synchronous.
 - **Result:** one new track at the end of the project's track list, named as asked (trimmed), with the engine's id for it, its name and its 0-based index. No other track changes and the project is not saved. One undo point. Each call adds a track: it is not idempotent. A blank name is refused before anything is sent, and the engine refuses while it records, so no track appears in the middle of a take. The host links the chapter to the id it answers (`ChapterTrackCreate`).
 - **REAPER:** `track_create` (`TRACK_CREATED`), Experimental, in `narration_track_create.lua`: `InsertTrackAtIndex(CountTracks(0), false)` and `P_NAME` in one undo block `<app name>: add track`. A line break or tab inside the name becomes a space. Refused with `ERROR` while `GetPlayState` has the recording bit.
+- **REAPER, inside a folder:** `track_create` with a parent GUID (`ChildTrackCreator`, `CreateChildTrack`): a direct child after the folder's last descendant, folder depths moved so every folder still closes, the first child's record input and mode copied, `TRACK_STALE` for a parent that is gone. Seen in REAPER 7.82 on Linux, 2026-11-03 (`track_create_in_folder`).
 - **Audacity 3.x:** Experimental. `NewMonoTrack` (`NewStereoTrack` when the last audio track is stereo), then `SetTrackStatus` with the name, which selects the new track alone ([Audacity 3.x](audacity-3.md)); one undo step, since `NewMonoTrack` adds one and `SetTrackStatus` none. The id is the one `track_select` and `track_state` find it by (`audacity:<name>`, `#n` when the name repeats). A name the pipe cannot carry (a double quote, a backslash, a control character) is refused before any track is added. A recording this app started is refused; one started in Audacity's own window cannot be seen, and the first command ends it, as for every Audacity role.
 - **Audacity 4.x:** not available: no scripting interface ([Audacity 4.x](audacity-4.md)).
 - **Checked:** harness (`track_create_test.lua`) and the Audacity adapter's fake pipe (`trackcreate_test.go`); expected result is row C19; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-studio/issues/510)). Not run in Audacity.

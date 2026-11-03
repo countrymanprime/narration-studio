@@ -144,3 +144,101 @@ H.test('a failure that shows a non-ASCII name reads as ASCII, whatever the platf
   H.eq(tostring(message):find('[\128-\255]'), nil)
   H.contains(tostring(message), '\\215\\157')
 end)
+
+-- A voice added inside a chapter's folder (docs/prds/booth-voice-tracks.prd.md, phase 3): track_create|run|name|parentGuid puts the new track after
+-- the folder's last descendant as a direct child of the folder, and moves the folder depth changes so every folder still closes where it did
+-- (REAPER 7.82, docs/research/2026-10-30-booth-sub-track-recording.md, section 6a, row 2). It records from the folder's first child's input.
+local function depths(s)
+  local out = {}
+  for _, track in ipairs(s.fake.tracks) do
+    out[#out + 1] = { track.name, track.folder_depth or 0 }
+  end
+  return out
+end
+
+local function folder_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local fake = s.fake
+  local book = fake:add_track('Book')
+  local folder = fake:add_track('Chapter 3')
+  local narrator = fake:add_track('Narrator')
+  local crowd = fake:add_track('Crowd')
+  local guard = fake:add_track('Guard')
+  local after = fake:add_track('After')
+  book.folder_depth, folder.folder_depth, crowd.folder_depth, guard.folder_depth = 1, 1, 1, -3
+  narrator.rec_input, narrator.rec_mode = 1024, 1
+  return s, { book = book, folder = folder, narrator = narrator, crowd = crowd, guard = guard, after = after }
+end
+
+H.test('track_create with a parent adds a direct child after its last descendant and every folder still closes', function()
+  local s, t = folder_session()
+  s:send('track_create', 'c1', 'Veyra', t.folder.guid)
+  local created = s:events()[1]
+  H.eq({ created[1], created[4], created[5] }, { 'TRACK_CREATED', '5', 'Veyra' })
+  H.eq(depths(s), {
+    { 'Book', 1 },
+    { 'Chapter 3', 1 },
+    { 'Narrator', 0 },
+    { 'Crowd', 1 },
+    { 'Guard', -1 },
+    { 'Veyra', -2 },
+    { 'After', 0 },
+  })
+end)
+
+H.test("track_create with a parent copies the record input and mode of the folder's first child", function()
+  local s, t = folder_session()
+  s:send('track_create', 'c1', 'Veyra', t.folder.guid)
+  local added = s.fake.tracks[6]
+  H.eq({ added.name, added.rec_input, added.rec_mode }, { 'Veyra', 1024, 1 })
+end)
+
+H.test('track_create with a parent that is not a folder makes it a folder with the new track as its one child', function()
+  local s, t = folder_session()
+  s:send('track_create', 'c1', 'Guard captain', t.narrator.guid)
+  H.eq(depths(s), {
+    { 'Book', 1 },
+    { 'Chapter 3', 1 },
+    { 'Narrator', 1 },
+    { 'Guard captain', -1 },
+    { 'Crowd', 1 },
+    { 'Guard', -3 },
+    { 'After', 0 },
+  })
+end)
+
+H.test('track_create with a parent at the end of the project closes the folder on the new track', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local narrator = s.fake:add_track('Narrator')
+  folder.folder_depth, narrator.folder_depth = 1, -1
+  s:send('track_create', 'c1', 'Veyra', folder.guid)
+  H.eq(depths(s), { { 'Chapter 1', 1 }, { 'Narrator', 0 }, { 'Veyra', -1 } })
+end)
+
+H.test("track_create with a parent is one undo point and changes no other track's name, arm or mute", function()
+  local s, t = folder_session()
+  t.after.armed, t.after.muted = true, true
+  s:send('track_create', 'c1', 'Veyra', t.folder.guid)
+  H.eq({ t.after.name, t.after.armed, t.after.muted }, { 'After', true, true })
+  H.eq(#s.fake.undo, 1)
+  H.eq(s.fake.undo[1].label, H.brand.name .. ': add track')
+  H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('track_create with a parent that is gone answers TRACK_STALE and adds nothing', function()
+  local s = folder_session()
+  local before = #s.fake.tracks
+  s:send('track_create', 'c1', 'Veyra', '{00000000-0000-4000-8000-0000000000DE}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'c1', '{00000000-0000-4000-8000-0000000000DE}' } })
+  H.eq(#s.fake.tracks, before)
+end)
+
+H.test('track_create with a parent refuses while REAPER records and adds nothing', function()
+  local s, t = folder_session()
+  s.fake.play_state = 5
+  local before = #s.fake.tracks
+  s:send('track_create', 'c1', 'Veyra', t.folder.guid)
+  H.eq(s:events(), { { 'ERROR', 'c1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(#s.fake.tracks, before)
+end)

@@ -306,7 +306,7 @@ Below the track list, Chapter links shows every narration chapter (not a chapter
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
 below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
 starts **Not linked** with its track list on **Choose a track**: pick a track, then press Confirm, which stays off until you
-have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can). A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
+have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
@@ -329,6 +329,35 @@ computed because its track link is missing or not yet confirmed, a line above Ch
 ("N chapters can't get a stage suggestion until their track links are confirmed below") and points
 at this same list - link or confirm the chapter there to let its suggestion be computed on the next
 read.
+
+### Voice folders
+
+Chapter sync's **Layout** row sets how the project's chapters sit in REAPER. While Chapter sync shows nothing (before you have answered
+whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter. **Voice folders** makes
+each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
+that character speaks. Switching changes no track in REAPER.
+
+![Chapter sync's Layout row on Voice folders, above the Tracks card with a chapter folder and its voice tracks](../../images/ui/engine-panel-voices-layout.webp)
+
+With Voice folders, Chapter links' last column is **Folder**: a chapter links to its folder, named with how many voices it holds
+("Chapter 1 · 3 voices"), and a track inside such a folder can't be chosen, since it is one of that chapter's voices.
+
+![A chapter's folder picker: the Chapter 1 folder can be chosen, its voice tracks can't](../../images/ui/engine-panel-voices-folder-picker.webp)
+
+The **Voices** card, below Chapter links, lists the folder's tracks for the chapter picked in its header, in REAPER's order. The first
+track named **Narrator** gets number-pad key 0 and the others 1 to 9; a track past the ninth gets no key. Each row shows the characters
+the track records: a track named for a character, or for one of its aliases in the [Story Bible](story-bible.md), records that character
+with no setup. The edit button at the end of a row opens the Story Bible's characters with the ones the track records ticked; tick or
+untick to change them, several on one track for an "Extras" track. A character already on another voice of the folder says which. On the
+Narrator row the list picks the one character the narrator also voices, for a book told in the first person. A change is saved at once
+and holds for every chapter folder with a track of that name. A track with no name, or a name over 120 characters, can't be given
+characters until it is renamed in REAPER.
+
+![The Voices card for a Voice folders project: Chapter 1's tracks with their keys and characters](../../images/ui/engine-panel-voices.webp)
+
+![A track's character list open on the Voices card](../../images/ui/engine-panel-voices-picker.webp)
+
+An Audacity project has no folders, so the card is not shown for it.
 
 ### Editing check
 

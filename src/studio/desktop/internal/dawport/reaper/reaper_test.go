@@ -158,14 +158,13 @@ var experimentalCapability = map[string]dawport.Capability{
 var supportedCommands = map[string]dawport.Capability{
 	"prepare_compare": dawport.CapReview, "inspect_compare_results": dawport.CapReview,
 	"jump_to_compare_marker": dawport.CapReview, "export_compare_markers": dawport.CapReview,
-	"import_pickups": dawport.CapPickups, "export_pickups": dawport.CapPickups, "next_pickup": dawport.CapPickups,
+	"import_pickups": dawport.CapPickups, "export_pickups": dawport.CapPickups,
 	"resolve_pickup": dawport.CapPickups, "count_pickups": dawport.CapPickups,
 	"stamp_item_lines": dawport.CapLineIdentity, "read_line_ids": dawport.CapLineIdentity,
 	"configure_chapter_render": dawport.CapRenderConfig,
 	"launch_cleanup_tool":      dawport.CapCleanupTools,
 	"pick_retake_lane":         dawport.CapRetakeLanes,
 	"project_state":            dawport.CapProjectState,
-	"create_take":              dawport.CapTakeCreate,
 }
 
 // experimentalCommandsInSource reads the keys of bridge.experimentalCommands from actions.go itself, so a command added to (or

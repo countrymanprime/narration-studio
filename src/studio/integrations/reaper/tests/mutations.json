@@ -150,18 +150,6 @@
     "replace": "if kind == 'PICKUP' or kind == 'PICKUP_DONE' then\n      remaining, total = remaining + 1, total + 1"
   },
   {
-    "name": "next_pickup ignores the edit cursor",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(pickups) do\n    if marker.pos > cursor then",
-    "replace": "for _, marker in ipairs(pickups) do\n    if true then"
-  },
-  {
-    "name": "next_pickup can land on a resolved pickup",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) == 'PICKUP' then\n      pickups[#pickups + 1] = marker",
-    "replace": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) ~= 'PICKUP_DONE' then\n      pickups[#pickups + 1] = marker"
-  },
-  {
     "name": "resolve_pickup ignores the position tolerance",
     "file": "narration_pickups.lua",
     "find": "if gap <= PICKUP_TOLERANCE and (not best_gap or gap < best_gap) then",
@@ -196,24 +184,6 @@
     "file": "narration_project_state.lua",
     "find": "local count = reaper.GetProjectStateChangeCount(0)",
     "replace": "local count = 0"
-  },
-  {
-    "name": "create_take's stale target item GUID resolves to another item",
-    "file": "narration_take_review.lua",
-    "find": "local target_item = items[normalized_target]",
-    "replace": "local target_item = items[normalized_target] or reaper.GetMediaItem(0, 0)"
-  },
-  {
-    "name": "create_take's stale candidate item GUID check is skipped",
-    "file": "narration_take_review.lua",
-    "find": "if normalized_candidate ~= '' and not items[normalized_candidate] then",
-    "replace": "if false then"
-  },
-  {
-    "name": "create_take does not check the candidate source file exists",
-    "file": "narration_take_review.lua",
-    "find": "if not core.file_exists(payload.source_file) then",
-    "replace": "if false then"
   },
   {
     "name": "a stale navigation GUID resolves to another item",
@@ -2508,8 +2478,8 @@
   {
     "name": "track_create inserts the track first instead of last",
     "file": "narration_track_create.lua",
-    "find": "local index = reaper.CountTracks(0)",
-    "replace": "local index = 0"
+    "find": "    index = reaper.CountTracks(0)",
+    "replace": "    index = 0"
   },
   {
     "name": "track_create makes no undo point",
@@ -3056,5 +3026,29 @@
     "file": "narration_bridge_core.lua",
     "find": "  if depth <= 0 then\n    return out\n  end",
     "replace": "  if depth < 0 then\n    return out\n  end\n  depth = math.max(depth, 1)"
+  },
+  {
+    "name": "a voice added to a folder leaves the old last child's depth change as it was",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', parent_depth + 1 - last_depth)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder closes nothing",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', last_delta + last_depth - parent_depth - 1)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder records from its own default input",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(source, 'I_RECINPUT'))\n",
+    "replace": ""
+  },
+  {
+    "name": "a parent that is gone is answered with a track at the end",
+    "file": "narration_track_create.lua",
+    "find": "    if parent_index == nil then\n      event(session_dir, 'TRACK_STALE', run_id, parent_text)\n      return\n    end",
+    "replace": "    if false then\n    end"
   }
 ]

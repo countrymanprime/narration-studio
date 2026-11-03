@@ -167,12 +167,11 @@ type ReviewSession interface {
 	ExportFindings(runID, findingsPath string, colors MarkerColors) error
 }
 
-// PickupList imports, exports, walks, resolves, reopens and lists the pickup list (PICKUPS_* and PICKUP_* events).
+// PickupList imports, exports, resolves, reopens, lists and counts the pickup list (PICKUPS_* and PICKUP_* events).
 type PickupList interface {
 	Events
 	ImportPickups(runID, payloadPath string) error
 	ExportPickups(runID, outputPath string) error
-	NextPickup(runID string) error
 	ResolvePickup(runID string, position float64) error
 	// ReopenPickup puts the resolved pickup nearest position back to open (PICKUP_REOPENED).
 	ReopenPickup(runID string, position float64) error
@@ -210,12 +209,6 @@ type RetakeLanePicker interface {
 type ProjectStateReader interface {
 	Events
 	RequestProjectState(runID string) error
-}
-
-// TakeCreator creates a take from a request payload file (TAKE_CREATED or TAKE_STALE).
-type TakeCreator interface {
-	Events
-	CreateTake(runID, payloadPath string) error
 }
 
 // FXRenderer renders regions through the project's own FX into a folder the host chose (the mastering port's DAW row).
@@ -290,6 +283,12 @@ type TrackSelector interface {
 // refuses while the engine records, and is not idempotent: each call adds a track.
 type TrackCreator interface {
 	CreateTrack(ctx context.Context, name string) (CreatedTrack, error)
+}
+
+// ChildTrackCreator adds a track inside a folder, as a direct child after the folder's last descendant (a voice in a chapter's folder). Only
+// an engine with folder tracks (REAPER) has it. A parent that is gone is a stale error and nothing is added.
+type ChildTrackCreator interface {
+	CreateChildTrack(ctx context.Context, name, parentGUID string) (CreatedTrack, error)
 }
 
 // Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected

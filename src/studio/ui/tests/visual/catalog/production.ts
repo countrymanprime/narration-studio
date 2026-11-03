@@ -190,6 +190,14 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'recording-check-pickup-notes',
+    description:
+      "Production, Check recordings for Chapter 4 (?mockCoverage=pickups) scrolled to the Pickup notes (Proof) row: the count of the chapter's pickup notes not reviewed yet and Open Proof, which opens Proof on the chapter",
+    // Driven per viewport so the scrolled-to row is in frame at each width.
+    reloadPerViewport: true,
+  },
+  {
+    page: 'production',
     state: 'recording-check-stale',
     description:
       'Production, Check recordings showing a stored check that is out of date (?mockCoverage=stale): the plain-language reason and the old counts labelled as from then',

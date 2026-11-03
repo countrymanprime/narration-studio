@@ -11,15 +11,11 @@
       - group "Stop reading":
         - button "Stop reading" [disabled]
     - region "Where you stopped":
-      - paragraph: /Chapter 1 track · as of the project's last save, Sep \d+, \d+, \d+:\d+ AM/
-      - paragraph: "Continuing where your recording ends:"
-      - blockquote:
-        - text: “How she longed to get out of that dark hall, and wander about among those beds of bright flowers and those cool fountains, but she
-        - strong: could
-        - text: not even get her head through the doorway; ‘and even if my head would go through,’ thought poor Alice, ‘it would be of very little use without my shoulders.”
-      - button "Resume from here"
+      # Chapter 1 is recorded through ¶ 14 (the mock's recordedThrough, #2633), so the dialog offers that place first, with the way to a
+      # different start (Change) and the top; the located resume point is asked only when the narrator presses Change.
+      - paragraph: /Continuing at ‘.+’ — recorded 58% through/
+      - button "Change"
       - button "Start from the top"
-      - button "Pick a word"
     - group "Script text, scrollable":
       - region "Chapter text":
         - 'heading "Chapter 1: Down the Rabbit-Hole" [level=2]'

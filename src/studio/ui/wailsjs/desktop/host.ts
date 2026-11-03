@@ -187,16 +187,6 @@ export function ChapterRegionsPreview(openingTrackGUID: string, closingTrackGUID
 }
 
 /**
- * ChapterSuggestion suggests the chapter the narrator is recording from the
- * selected .rpp's record-armed (else selected) track as of its last save
- * the matcher's
- * other direction, track to chapter, with the same statuses. Read-only.
- */
-export function ChapterSuggestion(): $CancellablePromise<string> {
-    return $Call.ByID(677537319);
-}
-
-/**
  * ChapterSyncPreview plans a sync without writing anything: the consent dialog's preview.
  */
 export function ChapterSyncPreview(): $CancellablePromise<string> {
@@ -296,17 +286,6 @@ export function ChapterTrackSet(chapterID: string, trackGUID: string): $Cancella
 
 export function ChapterTrackUnlink(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(2391887305, chapterID);
-}
-
-/**
- * ChaptersForTracks is ForTrack run over every GUID in guids: the
- * Review page's chapter grouping for findings that carry only a track, item or take GUID
- * rather than a manuscript-anchored chapter. One GUID the project no longer
- * has is reported as an error alongside the others, never as a failed call.
- * Read-only.
- */
-export function ChaptersForTracks(guids: string[]): $CancellablePromise<string> {
-    return $Call.ByID(1946035715, guids);
 }
 
 /**
@@ -812,17 +791,6 @@ export function DawLaunch(): $CancellablePromise<string> {
  */
 export function DawLinkFound(): $CancellablePromise<string> {
     return $Call.ByID(3767148346);
-}
-
-/**
- * DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), for the Editing page's
- * follow-along: where each plays in the project, from where in which source file, at what rate. The saved project the alignment was read
- * against knows none of the narrator's edits since, and a split's right half has a GUID it never saw. Read-only; it adds no undo step.
- * The answer is {available, items}: available is false, with no items, when the DAW cannot be read now (not running, track_state off, no
- * linked track, the track gone or longer than one read lists), and the page then follows by the saved items. The read is never an error.
- */
-export function DawLiveItems(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1764856264, chapterID);
 }
 
 /**
@@ -1514,16 +1482,6 @@ export function FindingsGoTo(id: string): $CancellablePromise<string> {
 }
 
 /**
- * FindingsGoToRead is FindingsGoTo for one read of a finding that groups several (a take-review pickup or duplicate
- * read): read is the index in its evidence.members,
- * and REAPER goes to that read's own item and take, at the start of its range in its own source. A read index the
- * finding does not have is an error, not a refusal: the page only offers the reads it was sent.
- */
-export function FindingsGoToRead(id: string, read: number): $CancellablePromise<string> {
-    return $Call.ByID(2921722827, id, read);
-}
-
-/**
  * FindingsList answers one page of the findings that match query, and how many matched in all.
  */
 export function FindingsList(query: $models.FindingsQuery): $CancellablePromise<string> {
@@ -1536,15 +1494,6 @@ export function FindingsList(query: $models.FindingsQuery): $CancellablePromise<
  */
 export function FindingsLoop(id: string): $CancellablePromise<string> {
     return $Call.ByID(499300970, id);
-}
-
-/**
- * FindingsLoopRead loops one read of a finding in REAPER, as FindingsLoop does, over that read's own range. The loop is
- * the finding's, so FindingsStopLoop stops it. REAPER plays the item's
- * active take: a read that is another take of its item is heard as itself through the in-app audition instead.
- */
-export function FindingsLoopRead(id: string, read: number): $CancellablePromise<string> {
-    return $Call.ByID(3171307890, id, read);
 }
 
 /**
@@ -1843,10 +1792,6 @@ export function ManuscriptParagraphs(chapter: string): $CancellablePromise<strin
     return $Call.ByID(3533633545, chapter);
 }
 
-export function ManuscriptReader(): $CancellablePromise<string> {
-    return $Call.ByID(3976609117);
-}
-
 export function ManuscriptReaderState(): $CancellablePromise<string> {
     return $Call.ByID(3073538398);
 }
@@ -2115,10 +2060,6 @@ export function PickupsListMarkers(): $CancellablePromise<string> {
     return $Call.ByID(2406048942);
 }
 
-export function PickupsNext(): $CancellablePromise<string> {
-    return $Call.ByID(1607807066);
-}
-
 /**
  * PickupsRemove hides a pickup of any source from the list; a note or a check keeps its own record.
  */
@@ -2195,14 +2136,6 @@ export function PreviewPinClear(): $CancellablePromise<string> {
  */
 export function PreviewPinSet(chapterID: string, paragraphIDs: string[]): $CancellablePromise<string> {
     return $Call.ByID(3856724439, chapterID, paragraphIDs);
-}
-
-/**
- * ProductionBurndown is the book's logged hours by day: data only, for a future chart primitive to
- * plot. It reads the same time log as ProductionOverview and adds nothing to it.
- */
-export function ProductionBurndown(): $CancellablePromise<string> {
-    return $Call.ByID(211479988);
 }
 
 /**
@@ -2508,10 +2441,6 @@ export function ProviderCapabilities(): $CancellablePromise<string> {
     return $Call.ByID(74377393);
 }
 
-export function ReadAloudArmOnly(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(4236043623, chapterID);
-}
-
 /**
  * ReadAloudReaperState answers whether REAPER is ready to record chapterID with reading:
  * its linked track the one track armed, and REAPER not already recording. A
@@ -2724,38 +2653,6 @@ export function ScriptWordUnflag(flagID: string): $CancellablePromise<string> {
 }
 
 /**
- * SeriesDelete removes a series by id. Deleting an id that is not present is not an error.
- */
-export function SeriesDelete(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2391274860, id);
-}
-
-/**
- * SeriesList lists every series the narrator has created, for managing series membership.
- */
-export function SeriesList(): $CancellablePromise<string> {
-    return $Call.ByID(3400757367);
-}
-
-/**
- * SeriesSave creates a series (id empty) or updates one in place (an existing id), naming it and setting its member
- * project paths. The narrator adds and removes books this way; there is no separate add/remove binding.
- */
-export function SeriesSave(id: string, name: string, memberProjectPaths: string[]): $CancellablePromise<string> {
-    return $Call.ByID(2243015706, id, name, memberProjectPaths);
-}
-
-/**
- * SeriesVoiceBible builds the current project's Series tab view: its series membership, and - only once the series has
- * a second book with data to share - every member project's characters and approved reference clips, pooled by
- * character id. A project outside any series, or in one with no other book yet, reads back with no character list at
- * all: the honest empty state, never an error.
- */
-export function SeriesVoiceBible(): $CancellablePromise<string> {
-    return $Call.ByID(2231610263);
-}
-
-/**
  * StageConfirm sets the chapter's status to target and records the basis the narrator saw, if basisKey is still the one
  * the evidence gives. It answers {status: "ok", chapter} or {status: "refused", reason, message}.
  */
@@ -2845,70 +2742,6 @@ export function SystemSettingsForScope(scope: string): $CancellablePromise<strin
 }
 
 /**
- * TakeComparisonCancel stops a running comparison; nothing is saved. With none running it changes nothing.
- */
-export function TakeComparisonCancel(): $CancellablePromise<string> {
-    return $Call.ByID(1970715310);
-}
-
-/**
- * TakeComparisonStart compares the takes of one take-review group as a job: findingID
- * names the group; the reads, their audio and the manuscript span all come from the store and the saved project. It
- * answers the job; TakeComparisonState reports its real progress and TakeComparisonCancel stops it. The comparison is a
- * take_comparison finding, read and decided through the generic findings bindings.
- */
-export function TakeComparisonStart(findingID: string): $CancellablePromise<string> {
-    return $Call.ByID(166408064, findingID);
-}
-
-/**
- * TakeComparisonState answers the comparison job: idle, running, or how it ended (with the comparison's finding id).
- */
-export function TakeComparisonState(): $CancellablePromise<string> {
-    return $Call.ByID(250001969);
-}
-
-/**
- * TakeReviewCreateTake adds a narrator-approved candidate's source range as a
- * new take on the target item: findingID is the
- * finding this candidate came from (provenance); targetItemGUID
- * is the item the narrator explicitly chose (never preselected);
- * candidateItemGUID is the candidate's own item GUID when it has one (empty
- * skips that extra staleness check); sourceFile, sourceRangeStart and
- * sourceRangeEnd (seconds, source-file-relative) locate the candidate's
- * matched span within its own source. The previously active take and the
- * item's length are never touched.
- */
-export function TakeReviewCreateTake(findingID: string, targetItemGUID: string, candidateItemGUID: string, sourceFile: string, sourceRangeStart: number, sourceRangeEnd: number): $CancellablePromise<string> {
-    return $Call.ByID(3742993354, findingID, targetItemGUID, candidateItemGUID, sourceFile, sourceRangeStart, sourceRangeEnd);
-}
-
-/**
- * TakeReviewScanCancel stops a running scan; nothing it found is saved. With no scan running it changes nothing.
- */
-export function TakeReviewScanCancel(): $CancellablePromise<string> {
-    return $Call.ByID(2539611526);
-}
-
-/**
- * TakeReviewScanStart starts a pickup and duplicate scan of scope as a job: the chapter track's
- * items and takes, plus at most one pickup track or time range. It answers the job; TakeReviewScanState reports
- * its real progress and TakeReviewScanCancel stops it. The findings it saves are read and decided through
- * the Review page's generic findings bindings, like every other analyzer's.
- */
-export function TakeReviewScanStart(scope: $models.TakeReviewScanScope): $CancellablePromise<string> {
-    return $Call.ByID(2149397544, scope);
-}
-
-/**
- * TakeReviewScanState answers the scan job: idle (with the project's saved pickup scope to offer), running, or how it
- * ended.
- */
-export function TakeReviewScanState(): $CancellablePromise<string> {
-    return $Call.ByID(1696107641);
-}
-
-/**
  * TeleprompterDevices lists the input devices the teleprompter's capture path can open, by the name it opens them
  * under. It never fails Start-style: a listing problem comes back as
  * `{"devices": [], "error": "..."}`, not a rejected promise, so a caller can
@@ -2957,29 +2790,6 @@ export function TeleprompterMeterStop(): $CancellablePromise<string> {
  */
 export function TeleprompterPause(paused: boolean): $CancellablePromise<string> {
     return $Call.ByID(3709351835, paused);
-}
-
-/**
- * TeleprompterPunch resolves word's punch time again (the narrator may have kept reading since the preview; an
- * alignment of the same stretch is reused, punchAlignCache) and
- * moves REAPER's edit cursor there minus the pre-roll, through the DAW port's Puncher role. On a successful punch,
- * every anchor at or after word is dropped (the narrator is about to re-record from here, so an anchor from the take
- * being replaced would misplace the next punch, teleprompter.DropAnchorsFrom); that failing is logged, never
- * surfaced, since the punch itself already succeeded.
- */
-export function TeleprompterPunch(word: number): $CancellablePromise<string> {
-    return $Call.ByID(1321624509, word);
-}
-
-/**
- * TeleprompterPunchPreview resolves word's punch time and pre-roll without moving anything in REAPER: what the
- * narrator sees before confirming "Punch from here" (its time, its source and the pre-roll,
- * before moving). word is the flag's own script word index; the chapter is whichever one is live right now. When the
- * anchors do not bracket the word, this runs the offline alignment (a sidecar decode of up to two minutes of the
- * recording, bounded by teleprompterLocateTimeout), so it can take a few seconds.
- */
-export function TeleprompterPunchPreview(word: number): $CancellablePromise<string> {
-    return $Call.ByID(3160914767, word);
 }
 
 /**
@@ -3081,6 +2891,11 @@ export function TracksSelect(path: string): $CancellablePromise<string> {
     return $Call.ByID(2374312442, path);
 }
 
+/**
+ * TranscriptAddEquivalence makes later comparisons count a one-word misread as a match, by adding its script word and heard word as
+ * one group to TranscriptCompare/equivalences.csv. id is the note's finding id (Proof's note inspector) or a row id of this
+ * session's run. A pair the file already holds is not written again; anything but a one-word misread is refused.
+ */
 export function TranscriptAddEquivalence(id: string): $CancellablePromise<string> {
     return $Call.ByID(196067889, id);
 }
@@ -3236,6 +3051,35 @@ export function VoiceSamplesRemoveAll(): $CancellablePromise<string> {
     return $Call.ByID(2655911602);
 }
 
+/**
+ * VoiceTracksGet answers the project's voice setup: flat with no assignments when nothing was saved.
+ */
+export function VoiceTracksGet(): $CancellablePromise<string> {
+    return $Call.ByID(866350912);
+}
+
+/**
+ * VoiceTracksSetCharacters replaces the characters assigned to the voice track named track (as REAPER shows it, trimmed); an empty
+ * list clears the assignment, so the track matches characters by name again. Character ids are the Story Bible's.
+ */
+export function VoiceTracksSetCharacters(track: string, characterIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(808111104, track, characterIDs);
+}
+
+/**
+ * VoiceTracksSetLayout sets the project's chapter layout, "flat" or "folders". It converts no chapter.
+ */
+export function VoiceTracksSetLayout(layout: string): $CancellablePromise<string> {
+    return $Call.ByID(1984145122, layout);
+}
+
+/**
+ * VoiceTracksSetNarrator sets the character the Narrator track also voices (a first-person book), or clears it with "".
+ */
+export function VoiceTracksSetNarrator(characterID: string): $CancellablePromise<string> {
+    return $Call.ByID(4074868469, characterID);
+}
+
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {
     return $Call.ByID(477322835, modelID);
 }
@@ -3375,21 +3219,10 @@ export function WorkspaceTakeEvidence(chapterID: string, firstToken: number, las
 /**
  * WorkspaceTakes lists the takes the narrator can set beside the passage (the tokens firstToken to lastToken of the
  * chapter's stored alignment, snapped out to whole paragraphs): the other takes of the item it was heard on, the other
- * retakes of its line on a fixed-lane track, and reads a take-review group set beside it (EP6). It reads only; it works
- * with REAPER closed.
+ * and the other retakes of its line on a fixed-lane track (EP6). It reads only; it works with REAPER closed.
  */
 export function WorkspaceTakes(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
     return $Call.ByID(3010134085, chapterID, firstToken, lastToken);
-}
-
-/**
- * WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job:
- * the same sidecar mode, state and cancel as a take-review group's comparison (TakeComparisonState and
- * TakeComparisonCancel answer for it, with the passage's id as the job's FindingID), with a manifest built from the
- * saved project. It saves one take_comparison finding whose id is computable from the passage, so the panel reads it back.
- */
-export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
-    return $Call.ByID(286927960, chapterID, firstToken, lastToken);
 }
 
 /**
@@ -3397,8 +3230,7 @@ export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number
  * ids WorkspaceTakes just offered: the host re-reads the alternates from the saved project and refuses an id it does
  * not offer, so nothing but a listed take can be chosen. What happens depends on where the take came from: another take
  * of the item is made active (set_active_take, one undo step); another retake on a fixed-lane track becomes the lane
- * that plays (pick_retake_lane); a read from another item is added as a take (create_take) and then made active, in
- * one action the page confirms first. Every REAPER refusal is answered as a refused outcome and changes nothing.
+ * that plays (pick_retake_lane). Every REAPER refusal is answered as a refused outcome and changes nothing.
  */
 export function WorkspaceUseTake(chapterID: string, firstToken: number, lastToken: number, candidateID: string): $CancellablePromise<string> {
     return $Call.ByID(1964370133, chapterID, firstToken, lastToken, candidateID);

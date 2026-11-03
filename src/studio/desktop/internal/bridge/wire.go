@@ -86,7 +86,6 @@ var eventSpecs = map[string]eventSpec{
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
 	"PICKUPS_COUNTED":       {required: []fieldSpec{text("run"), count("remaining"), count("total")}},
-	"PICKUP_NEXT":           {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_RESOLVED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_REOPENED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_MARKERS_LISTED": {required: []fieldSpec{text("run"), text("path"), count("open"), count("done")}},
@@ -122,8 +121,6 @@ var eventSpecs = map[string]eventSpec{
 	// itemGuid name the retake (a line id alone names several items on a lane track); lane is the 0-based lane REAPER
 	// read from the item when the pick ran.
 	"RETAKE_LANE_PICKED": {required: []fieldSpec{text("run"), text("lineId"), text("itemGuid"), count("lane")}},
-	"TAKE_CREATED":       {required: []fieldSpec{text("run"), text("targetItemGuid"), text("newTakeGuid")}},
-	"TAKE_STALE":         {required: []fieldSpec{text("run"), text("guid")}},
 	// Going to and looping a finding (narration_navigation.lua, bridge.Navigator). Times are
 	// project seconds; restored/kept count the time selection, loop points and repeat; looping and playing are 0 or 1;
 	// reason is item, take or range.

@@ -19,7 +19,6 @@ import (
 	"desktop/internal/manuscript"
 	"desktop/internal/moonshine"
 	"desktop/internal/project"
-	"desktop/internal/takereview"
 	"desktop/internal/teleprompter"
 	"desktop/internal/tts"
 	"desktop/internal/whisper"
@@ -519,9 +518,6 @@ func (h *Host) ManuscriptChapters() (string, error) {
 func (h *Host) ManuscriptParagraphs(chapter string) (string, error) {
 	return encodeBinding(h.services().manuscript.Paragraphs(chapter))
 }
-func (h *Host) ManuscriptReader() (string, error) {
-	return encodeBinding(h.services().manuscript.Reader())
-}
 func (h *Host) ManuscriptSearch(query string) (string, error) {
 	return encodeBinding(h.services().manuscript.Search(query))
 }
@@ -806,6 +802,10 @@ func (h *Host) TranscriptLastCompleted() (string, error) {
 	}
 	return encodeBinding(service.LastCompleted(), nil)
 }
+
+// TranscriptAddEquivalence makes later comparisons count a one-word misread as a match, by adding its script word and heard word as
+// one group to TranscriptCompare/equivalences.csv. id is the note's finding id (Proof's note inspector) or a row id of this
+// session's run. A pair the file already holds is not written again; anything but a one-word misread is refused.
 func (h *Host) TranscriptAddEquivalence(id string) (string, error) {
 	service := h.services().transcript
 	if service == nil {
@@ -921,80 +921,6 @@ func (h *Host) TracksList() (string, error) { return encodeBinding(h.tracksList(
 // and region names. It only reads; it never creates a track or a link.
 func (h *Host) ChapterTrackMatch(chapterID string) (string, error) {
 	return encodeBinding(h.chapterTrackMatchFor(chapterID))
-}
-
-// ChapterSuggestion suggests the chapter the narrator is recording from the
-// selected .rpp's record-armed (else selected) track as of its last save
-// the matcher's
-// other direction, track to chapter, with the same statuses. Read-only.
-func (h *Host) ChapterSuggestion() (string, error) {
-	return encodeBinding(h.chapterSuggestionFor())
-}
-
-// ChaptersForTracks is ForTrack run over every GUID in guids: the
-// Review page's chapter grouping for findings that carry only a track, item or take GUID
-// rather than a manuscript-anchored chapter. One GUID the project no longer
-// has is reported as an error alongside the others, never as a failed call.
-// Read-only.
-func (h *Host) ChaptersForTracks(guids []string) (string, error) {
-	return encodeBinding(h.chaptersForTracks(guids))
-}
-
-// TakeReviewScanStart starts a pickup and duplicate scan of scope as a job: the chapter track's
-// items and takes, plus at most one pickup track or time range. It answers the job; TakeReviewScanState reports
-// its real progress and TakeReviewScanCancel stops it. The findings it saves are read and decided through
-// the Review page's generic findings bindings, like every other analyzer's.
-func (h *Host) TakeReviewScanStart(scope TakeReviewScanScope) (string, error) {
-	return encodeBinding(h.startTakeReviewScan(scope))
-}
-
-// TakeReviewScanState answers the scan job: idle (with the project's saved pickup scope to offer), running, or how it
-// ended.
-func (h *Host) TakeReviewScanState() (string, error) {
-	return encodeBinding(h.takeReviewScanState(), nil)
-}
-
-// TakeReviewScanCancel stops a running scan; nothing it found is saved. With no scan running it changes nothing.
-func (h *Host) TakeReviewScanCancel() (string, error) {
-	return encodeBinding(h.cancelTakeReviewScan(), nil)
-}
-
-// TakeComparisonStart compares the takes of one take-review group as a job: findingID
-// names the group; the reads, their audio and the manuscript span all come from the store and the saved project. It
-// answers the job; TakeComparisonState reports its real progress and TakeComparisonCancel stops it. The comparison is a
-// take_comparison finding, read and decided through the generic findings bindings.
-func (h *Host) TakeComparisonStart(findingID string) (string, error) {
-	return encodeBinding(h.startTakeComparison(findingID))
-}
-
-// TakeComparisonState answers the comparison job: idle, running, or how it ended (with the comparison's finding id).
-func (h *Host) TakeComparisonState() (string, error) {
-	return encodeBinding(h.takeComparisonState(), nil)
-}
-
-// TakeComparisonCancel stops a running comparison; nothing is saved. With none running it changes nothing.
-func (h *Host) TakeComparisonCancel() (string, error) {
-	return encodeBinding(h.cancelTakeComparison(), nil)
-}
-
-// TakeReviewCreateTake adds a narrator-approved candidate's source range as a
-// new take on the target item: findingID is the
-// finding this candidate came from (provenance); targetItemGUID
-// is the item the narrator explicitly chose (never preselected);
-// candidateItemGUID is the candidate's own item GUID when it has one (empty
-// skips that extra staleness check); sourceFile, sourceRangeStart and
-// sourceRangeEnd (seconds, source-file-relative) locate the candidate's
-// matched span within its own source. The previously active take and the
-// item's length are never touched.
-func (h *Host) TakeReviewCreateTake(findingID, targetItemGUID, candidateItemGUID, sourceFile string, sourceRangeStart, sourceRangeEnd float64) (string, error) {
-	return encodeBinding(h.takeReviewCreateTake(takereview.CreateTakeRequest{
-		FindingID:         findingID,
-		TargetItemGUID:    targetItemGUID,
-		CandidateItemGUID: candidateItemGUID,
-		SourceFile:        sourceFile,
-		SourceRangeStart:  sourceRangeStart,
-		SourceRangeEnd:    sourceRangeEnd,
-	}))
 }
 
 // voiceAssetRequired is the answer to a preview that needs a voice that is not installed yet: which voice, its state and its

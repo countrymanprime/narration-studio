@@ -116,13 +116,12 @@ def test_an_empty_manifest_is_refused(tmp_path):
         compare.run(args)
 
 
-def test_neither_the_run_nor_find_repeats_needs_a_track_name(tmp_path):
+def test_the_run_needs_no_track_name(tmp_path):
     run_cli = [sys.executable, str(COMPARE_PATH), "--manifest", "m.txt", "--manuscript", "m.json", "--out", "o.txt", "--progress", str(tmp_path / "p.txt")]
 
-    for args in (run_cli, [*run_cli, "--find-repeats"]):
-        completed = subprocess.run(args, capture_output=True, text=True, timeout=60, check=False)
-        assert completed.returncode == 1  # it gets as far as the missing manifest
-        assert "No such file" in Path(tmp_path / "p.txt").read_text(encoding="utf-8")
+    completed = subprocess.run(run_cli, capture_output=True, text=True, timeout=60, check=False)
+    assert completed.returncode == 1  # it gets as far as the missing manifest
+    assert "No such file" in Path(tmp_path / "p.txt").read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -130,7 +129,7 @@ def test_neither_the_run_nor_find_repeats_needs_a_track_name(tmp_path):
 )
 def test_the_cli_no_longer_takes_what_the_host_decides(flag):
     completed = subprocess.run(
-        [sys.executable, str(COMPARE_PATH), "--manifest", "m.txt", "--manuscript", "m.json", "--out", "o.txt", "--find-repeats", *flag],
+        [sys.executable, str(COMPARE_PATH), "--manifest", "m.txt", "--manuscript", "m.json", "--out", "o.txt", *flag],
         capture_output=True,
         text=True,
         timeout=60,

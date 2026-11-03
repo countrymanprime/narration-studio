@@ -159,27 +159,6 @@ func TestExportWritesTheExactBridgeContractThenBuildsCSV(t *testing.T) {
 	}
 }
 
-func TestNextWritesTheExactBridgeContractThenReportsThePosition(t *testing.T) {
-	service, session := testService(t)
-	if err := service.Next(); err != nil {
-		t.Fatal(err)
-	}
-	runID := service.Snapshot()["runId"].(string)
-	command := firstCommand(t, session)
-	if command != "1|next_pickup|"+runID+"\n" {
-		t.Fatalf("command = %q", command)
-	}
-	appendEvents(t, session, "PICKUP_NEXT|"+runID+"|9.25|narrator|Mispronounced")
-	if err := service.Drain(); err != nil {
-		t.Fatal(err)
-	}
-	state := service.Snapshot()
-	next := state["next"].(map[string]any)
-	if next["position"] != 9.25 || next["tag"] != "narrator" || next["note"] != "Mispronounced" {
-		t.Fatalf("next = %#v", next)
-	}
-}
-
 func TestResolveSendsThePositionThenReportsTheResolvedPickup(t *testing.T) {
 	service, session := testService(t)
 	if err := service.Resolve(9.25); err != nil {
@@ -227,7 +206,7 @@ func TestARunsCountsSurviveIntoTheNextRunUntilItReportsItsOwn(t *testing.T) {
 	if err := service.Drain(); err != nil {
 		t.Fatal(err)
 	}
-	if err := service.Next(); err != nil {
+	if err := service.Resolve(9.25); err != nil {
 		t.Fatal(err)
 	}
 	state := service.Snapshot()
@@ -492,11 +471,11 @@ func TestSentencesNameTheProjectsDAW(t *testing.T) {
 		t.Errorf("error = %q", got)
 	}
 	none := New(Config{DAW: "Audacity"}, nil, nil)
-	if err := none.Next(); err == nil || err.Error() != "the Audacity bridge is unavailable" {
+	if err := none.Resolve(0); err == nil || err.Error() != "the Audacity bridge is unavailable" {
 		t.Errorf("no role = %v", err)
 	}
 	plain := New(Config{}, nil, nil)
-	if err := plain.Next(); err == nil || err.Error() != "the REAPER bridge is unavailable" {
+	if err := plain.Resolve(0); err == nil || err.Error() != "the REAPER bridge is unavailable" {
 		t.Errorf("default = %v", err)
 	}
 }

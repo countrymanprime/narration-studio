@@ -57,14 +57,6 @@ func (h *Host) PickupsExport() (string, error) {
 	return encodeBinding(map[string]any{"status": "started"}, service.Export())
 }
 
-func (h *Host) PickupsNext() (string, error) {
-	service := h.services().pickups
-	if service == nil {
-		return "", fmt.Errorf("the pickup list service is unavailable")
-	}
-	return encodeBinding(map[string]any{"status": "started"}, service.Next())
-}
-
 func (h *Host) PickupsResolve(position float64) (string, error) {
 	service := h.services().pickups
 	if service == nil {

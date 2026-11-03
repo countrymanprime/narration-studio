@@ -1,8 +1,9 @@
-import { afterEach, vi } from 'vitest';
+import { afterAll, afterEach, vi } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
 import fc from 'fast-check';
 import { forgetProofMemory } from './components/proof/proofMemory';
 import { clearToasts } from './fixtures/toasts';
+import { trackIntervals } from './leakedIntervals';
 
 // Testing Library's findBy* and waitFor give up after 1 s by default. Vitest runs test files in parallel workers, and a
 // page that mounts the whole app or a long chapter in jsdom can take longer than that when the machine is busy: two of 25
@@ -23,6 +24,14 @@ afterEach(() => {
   // Nor is a toast one test raised the next test's.
   clearToasts();
 });
+
+// The Wails runtime polls from a module-level `window.setInterval` (dist/drag.js, up to 100 x 50 ms) as soon as a file imports it. A file
+// that finishes inside that 5 s leaves the interval armed, and it fires after jsdom is torn down with "window is not defined"
+// (quality / rename rehearsal on d64cdc65). Remember every interval a file starts and clear them when the file ends.
+if (typeof window !== 'undefined') {
+  const clearLeakedIntervals = trackIntervals(window);
+  afterAll(clearLeakedIntervals);
+}
 
 // Vitest 4's jsdom compat layer wraps URL.createObjectURL and reads a private
 // `_buffer` field off jsdom's Blob implementation, which jsdom 30 no longer

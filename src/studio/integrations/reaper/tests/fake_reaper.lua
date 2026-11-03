@@ -1214,8 +1214,8 @@ function Fake:add_take_api(api)
     end
     error('fake reaper: unmodelled take value setter ' .. tostring(key))
   end
-  -- CountTakes/GetTake enumerate every take of an item (not just the active one), the way take-review's create_take
-  -- re-resolves a newly added take by GUID after Undo_EndBlock2.
+  -- CountTakes/GetTake enumerate every take of an item (not just the active one), the way a command
+  -- re-resolves a take by GUID after Undo_EndBlock2.
   function api.CountTakes(item)
     return #item.takes
   end
@@ -1452,7 +1452,7 @@ function Fake:add_take_api(api)
     take.source = source
   end
   -- PCM_Source_CreateFromFile does not check the file exists here; the fake's source is an opaque handle, the same
-  -- way REAPER's is. create_take checks the file itself (core.file_exists) before calling this.
+  -- way REAPER's is. A caller checks the file itself (core.file_exists) before calling this.
   function api.PCM_Source_CreateFromFile(path)
     if fake.unreadable_sources[path] then
       return nil
@@ -1732,6 +1732,8 @@ function Fake:add_lane_api(api)
       return track.solo or 0
     elseif key == 'I_SELECTED' then
       return track.selected and 1 or 0
+    elseif key == 'I_RECMODE' then
+      return track.rec_mode or 0
     elseif key == 'I_FOLDERDEPTH' then
       -- The change in folder depth after this track (1 opens a folder, 0 none, -N closes N levels); 0 on a new track.
       return track.folder_depth or 0
@@ -1759,6 +1761,10 @@ function Fake:add_lane_api(api)
       track.solo = value
     elseif key == 'I_FOLDERDEPTH' then
       track.folder_depth = value
+    elseif key == 'I_RECINPUT' then
+      track.rec_input = value
+    elseif key == 'I_RECMODE' then
+      track.rec_mode = value
     elseif not lane then
       error('fake reaper: unmodelled track value setter ' .. tostring(key))
     end

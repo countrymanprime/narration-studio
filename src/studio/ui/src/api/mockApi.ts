@@ -22,8 +22,6 @@ import { createMasteringMock } from './masteringMock';
 import { createBuiltinBoothRecordMock } from './builtinBoothMock';
 import { createRecordingMock, type RecorderMockControl } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
-import { createTakeReviewScanMock } from './takeReviewMock';
-import { createTakeComparisonMock } from './takeComparisonMock';
 import { createWorkspaceTakesMock } from './workspaceTakesMock';
 import { createTakeEvidenceMock } from './takeEvidenceMock';
 import { createMeasureMock } from './measureMock';
@@ -34,6 +32,7 @@ import { createDiagnosticsMock } from './diagnosticsMock';
 import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createBookmarksMock } from './bookmarksMock';
+import { createVoiceTracksMock } from './voiceTracksMock';
 import { createVoiceSamplesMock } from './voiceSamplesMock';
 import { createPassageMapMock } from './passageMapMock';
 import { takesPerParagraph } from './passageMapSpans';
@@ -53,12 +52,12 @@ import { createManuscriptMock } from './mockHost/manuscript';
 import { createCreditsMock } from './mockHost/credits';
 import { createAssetsMock } from './mockHost/assets';
 import { createProofingMock } from './mockHost/proofing';
+import { createEquivalenceMock } from './mockHost/equivalences';
 import { createReaperActionsMock } from './mockHost/reaperActions';
 import { createChapterTracksMock } from './mockHost/chapterTracks';
 import { createMergeEvents } from './mockHost/mergeEvents';
 import { createStoryBibleMock } from './mockHost/storyBible';
 import { createCharacterMock } from './mockHost/character';
-import { createSeriesMock } from './mockHost/series';
 import { createSystemMock, invalidPayloadOverrides } from './mockHost/system';
 import { createPronunciationLookupMock } from './mockHost/pronunciationLookup';
 import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommonsAudio';
@@ -195,7 +194,6 @@ export function createMockApi(
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
   const { clearSuggestions, ...extraction } = createExtractionMock(endJob);
   const character = createCharacterMock(s);
-  const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
   const mockStartedAt = Date.now();
   const teleprompter = createTeleprompterMock({
     ready: manuscriptReady,
@@ -322,19 +320,14 @@ export function createMockApi(
     seed: initial.production,
   });
   // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
-  // `?mockHold=overview,entities,series`: those reads never answer, so Production, the Story Bible and its Series tab stay on their loading skeleton.
+  // `?mockHold=overview,entities`: those reads never answer, so Production and the Story Bible stay on their loading skeleton.
   const held = new Set(initial.held ?? []);
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
-  if (held.has('series')) series.bindings.seriesVoiceBible = never;
-  if (initial.seriesVoiceBible === 'fails')
-    series.bindings.seriesVoiceBible = async () => {
-      throw new Error('The series could not be read from this project.');
-    };
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
-  const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
+  const { saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
     rerunAfterFirstList: initial.findingsRerun,
     reaper: initial.reaper,
     // Only the default seed demonstrates the overlay; a caller supplying its own findings (most tests) opts out, as
@@ -342,18 +335,9 @@ export function createMockApi(
     ...(initial.findings ? {} : { lazySeed: workspaceOverlayFinding }),
   });
   proofNotes.read = acceptedFindings;
-  const takeReviewScan = createTakeReviewScanMock(saveAnalyzerFindings, endJob, initial.takeReviewScanHold);
-  const { beginPassageComparison, ...takeComparison } = createTakeComparisonMock(
-    { get: findings.findingsGet, save: saveFinding },
-    endJob,
-    initial.takeComparisonHold,
-  );
   const workspaceTakes = createWorkspaceTakesMock({
     alignment: workspace.workspaceAlignment,
     paragraphs: () => s.paragraphs,
-    chapterTitle: (chapterId) => s.chapters.find((chapter) => chapter.id === chapterId)?.title ?? 'Chapter',
-    comparison: async (findingId) => (await findings.findingsList({ analyzer: 'take-comparison' })).findings.find((finding) => finding.id === findingId),
-    beginPassageComparison,
     reaper: initial.reaper,
   });
   const measurePicked = new Set<string>();
@@ -405,15 +389,13 @@ export function createMockApi(
     ...settings.bindings,
     ...storyBible.bindings,
     ...character.bindings,
-    ...series.bindings,
     ...assets.bindings,
     ...proofing.bindings,
+    ...createEquivalenceMock(findings.findingsGet),
     ...reaperActions.bindings,
     ...project.bindings,
     ...credits.bindings,
     ...chapterTracks.bindings,
-    ...takeReviewScan,
-    ...takeComparison,
     ...measurement,
     ...renderEncodeMaster,
     ...resavingAfterProfileChange(
@@ -435,6 +417,9 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
+    ...createVoiceTracksMock(
+      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+    ),
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,
@@ -502,10 +487,6 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    takeReviewCreateTake: async (request) => ({
-      targetItemGuid: request.targetItemGuid,
-      newTakeGuid: '{99999999-0000-4000-8000-000000000099}',
-    }),
     ...update.bindings,
     ...teleprompter,
     ...coverage,

@@ -348,16 +348,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/proof/AuditionDialog.tsx',
-    text: 'This read&rsquo;s audio couldn&rsquo;t be played. Check that its source file is still where the project expects it.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/proof/AuditionDialog.tsx',
-    text: 'Each read plays straight from its own source file, with about …s before and …s after the matched span. REAPER&rsquo;s processing chain (FX, gain, edits) is not applied, so this can sound different from the project.',
-    class: 'overlay',
-  },
-  {
     file: 'components/proof/PreviewPanel.tsx',
     text: 'No eligible text was found for a preview. Narration chapters with at least one paragraph are needed.',
     class: 'empty',
@@ -644,6 +634,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/engine/RetakeLanesDialog.tsx',
     text: 'No line has retakes on more than one lane of a track, so there is nothing to choose. Only items linked to manuscript lines are listed.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/engine/VoicesCard.tsx',
+    text: 'Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.',
     class: 'overlay',
   },
   {

@@ -53,6 +53,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'retired-take-review-note',
+    description:
+      'Proof, Chapter 4 with a pickup the retired take review saved (?mockCoverage=pickups): a plain note with no time, listed under In view, worded as its group and typed Repeat, From Take review, with Show in REAPER, Hear it and Add marker off for the note having no time',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'check-findings',
     description:
       'Proof, Chapter 1 linked, its recording check’s findings shown: a line said twice listed as Said twice with the words said again, Fix in edit and Open in Editing, above the gaps',
@@ -113,6 +120,38 @@ export const proofStates: StateEntry[] = [
     description:
       'Proof, all chapters, Hear it pressed on the misread at 00:12.4 ("pink eyes"): Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
     ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same',
+    description:
+      'Proof, a one-word misread selected (?mockFindings=misread: "Dinah" heard as "Dina"): the equals button after Add marker in the Inspector\'s row, with the keyboard focus on it (#2736; its tooltip is checked in TreatAsSame.test.tsx, since a portalled tooltip fails axe\'s region rule on a page capture)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same-added',
+    description:
+      'Proof, the equals button pressed on the one-word misread: the information toast "Added equivalence: Dinah = Dina" with what comes next, the button off (its reason "Already treated as the same"), and the note still To review (#2736)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same-long',
+    description:
+      'Proof, a one-word misread of a 45-letter word with no place to break, heard one letter off (?mockFindings=misread-long): the words wrap inside the Script and Heard quotes and the notes table, and the equals button stays inside the Inspector, at every width down to 390 px (#2736)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same-rtl',
+    description:
+      'Proof, a one-word misread of a Hebrew word with an emoji heard as another Hebrew word (?mockFindings=misread-rtl): the words read right to left in the quotes and the equals button stays in the row (#2736)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof',

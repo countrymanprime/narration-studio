@@ -81,7 +81,8 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
                 const hasIssue = track.items.some((item) => !item.supported || !item.sourceAvailable);
                 const chapterTitles = titlesFor(track.guid);
                 const isOpen = searching ? track.isFolder : open.has(node.id);
-                const rollup = track.isFolder ? folderRollup(nodes, at, linked) : undefined;
+                // A folder linked to a chapter itself (a Voice folders chapter, or a folder with audio) names its chapter, as a track does.
+                const rollup = track.isFolder && chapterTitles.length === 0 ? folderRollup(nodes, at, linked) : undefined;
                 const name = trackLabel(track);
                 const row = (children: React.ReactNode) =>
                   hasFolders ? (

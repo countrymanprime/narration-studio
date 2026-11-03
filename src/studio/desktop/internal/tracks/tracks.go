@@ -157,9 +157,8 @@ type Track struct {
 	HasFXChain bool `json:"-"`
 
 	// Selected and Armed are the track's selection (SEL 1) and record-arm (the
-	// first REC field) as of the .rpp's last save. The chapter suggestion
-	// (chaptermatch.Suggest) reads them to find the track the
-	// narrator is recording; not on the TracksList wire contract (json:"-").
+	// first REC field) as of the .rpp's last save; not on the TracksList wire
+	// contract (json:"-").
 	Selected bool `json:"-"`
 	Armed    bool `json:"-"`
 	// FixedLanes is true for a track in fixed item lane mode (FREEMODE 2).

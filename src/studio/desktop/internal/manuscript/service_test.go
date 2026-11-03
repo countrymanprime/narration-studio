@@ -63,11 +63,15 @@ func TestCommittedManuscriptKeepsLineBreaksAndFormattingSpans(t *testing.T) {
 	if committed, err := service.Commit(job.ID, false, Choices{}); err != nil || committed.Phase != "success" {
 		t.Fatalf("commit = %#v, %v", committed, err)
 	}
-	reader, err := service.Reader()
+	chapters, err := service.Chapters()
 	if err != nil {
 		t.Fatal(err)
 	}
-	paragraph := reader["paragraphs"].([]map[string]any)[0]
+	paragraphs, err := service.Paragraphs(text(chapters[0], "id"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	paragraph := paragraphs[0]
 	if got, want := paragraph["text"], "Roses are red,\nviolets are blue."; got != want {
 		t.Fatalf("text = %q want %q", got, want)
 	}

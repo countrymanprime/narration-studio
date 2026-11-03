@@ -30,8 +30,10 @@ function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?
     findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 12.4 })),
     findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 7, loopEnd: 14 })),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
+    transcriptAddEquivalence: vi.fn(async () => 'Added equivalence: Dinah = Dina'),
+    findingsGet: vi.fn(async () => finding),
   };
-  const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn() };
+  const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn(), onNoteRead: vi.fn() };
   render(
     <ApiProvider api={createMockApi()}>
       <PortOverrides clients={{ daw }}>
@@ -110,6 +112,18 @@ describe('open-in-script-and-booth-are-links-not-moves', () => {
     await userEvent.click(button('Open this chapter in Booth'));
     expect(t.onOpenScript).toHaveBeenCalledWith('chapter-1');
     expect(t.onOpenBooth).toHaveBeenCalledWith('chapter-1');
+  });
+
+  // #2800 (walkthrough 4): a note with an item but no time (every retired take-review note) toasted "Moved to 00:00.0", the item's
+  // start, while the pane said the note has no time. Show in is off with the reason, as Hear it and Add marker are.
+  it('turns Show in REAPER off with the reason for a note with no time, and asks the DAW nothing', async () => {
+    const t = setup(placed({ time_range: undefined }));
+    await waitFor(() =>
+      expect(button('Show in REAPER').getAttribute('aria-disabled') ?? String((button('Show in REAPER') as HTMLButtonElement).disabled)).toMatch(/true/),
+    );
+    expect(screen.getByText('This note has no time in its audio to go to.')).toBeTruthy();
+    await userEvent.click(button('Show in REAPER'));
+    expect(t.api.findingsGoTo).not.toHaveBeenCalled();
   });
 
   it('turns both off for a note with no chapter', () => {

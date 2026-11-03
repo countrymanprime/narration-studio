@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -429,4 +431,30 @@ func TestMeasureStartsFromAFileThatVanishedAfterItWasPicked(t *testing.T) {
 	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("measuring created the file")
 	}
+}
+
+// writeToneWAV writes 10 s of a mono 16-bit tone that sounds every other second, so every take category can be measured.
+func writeToneWAV(t *testing.T, path string) {
+	t.Helper()
+	const rate, seconds = 16000, 10
+	data := make([]byte, 44+rate*seconds*2)
+	copy(data, "RIFF")
+	binary.LittleEndian.PutUint32(data[4:], uint32(len(data)-8))
+	copy(data[8:], "WAVEfmt ")
+	for offset, value := range map[int]uint32{16: 16, 24: rate, 28: rate * 2} {
+		binary.LittleEndian.PutUint32(data[offset:], value)
+	}
+	for offset, value := range map[int]uint16{20: 1, 22: 1, 32: 2, 34: 16} {
+		binary.LittleEndian.PutUint16(data[offset:], value)
+	}
+	copy(data[36:], "data")
+	binary.LittleEndian.PutUint32(data[40:], uint32(rate*seconds*2))
+	for i := 0; i < rate*seconds; i++ {
+		value := 0.0005 * math.Sin(float64(i)*1.3)
+		if (i/rate)%2 == 0 {
+			value += 0.25 * math.Sin(2*math.Pi*220*float64(i)/rate)
+		}
+		binary.LittleEndian.PutUint16(data[44+i*2:], uint16(int16(math.Round(value*32767))))
+	}
+	writeFile(t, path, string(data))
 }

@@ -218,6 +218,47 @@ export const editingDrivers: Record<string, Driver> = {
   'replace-dialog': async (page) => {
     await openReplace(page);
   },
+  'replace-dialog-removable': async (page) => {
+    const dialog = await openReplace(page);
+    await addNarrator(dialog, 'Jon Doe');
+    await dialog.getByRole('button', { name: 'Remove Jon Doe' }).waitFor();
+    await dialog.getByRole('button', { name: 'Cancel' }).focus();
+  },
+  'replace-dialog-removed': async (page) => {
+    const dialog = await openReplace(page);
+    await addNarrator(dialog, 'Jon Doe');
+    await dialog.getByRole('button', { name: 'Remove Jon Doe' }).click();
+    await dialog.getByRole('button', { name: /^Remove / }).waitFor({ state: 'detached' });
+    await dialog.getByRole('combobox', { name: 'Other narrator' }).and(page.locator(':focus')).waitFor();
+  },
+  'replace-dialog-long-name': async (page) => {
+    const dialog = await openReplace(page);
+    const name = 'Maximiliana Theodora Wilhelmina Bartholomew-Featherstonehaugh de la Montgomery-A';
+    await addNarrator(dialog, name);
+    const remove = dialog.getByRole('button', { name: `Remove ${name}` });
+    await remove.waitFor();
+    // The button is inside the dialog, nothing covers it, and no control of its section sticks out (qa B3: the list once pushed it out).
+    const placed = await remove.evaluate((button) => {
+      const box = button.getBoundingClientRect();
+      const frame = button.closest('[role="dialog"]')?.getBoundingClientRect();
+      const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      // The first control of the Whose audio section that sticks out of it, or null. (The dialog's body is measured by its box, not its scroll
+      // width: the sticky footer bleeds into the body's scrollbar gutter by design, at every width.)
+      const section = button.closest('section')?.getBoundingClientRect();
+      const out = [...(button.closest('section')?.querySelectorAll('select, button, input') ?? [])].find((el) => {
+        const r = el.getBoundingClientRect();
+        return !section || r.left < section.left - 1 || r.right > section.right + 1;
+      });
+      const wide = out ? `${out.tagName} ${out.getAttribute('aria-label') ?? out.textContent ?? ''}` : null;
+      return {
+        inside: !!frame && box.left >= frame.left && box.right <= frame.right && box.top >= frame.top && box.bottom <= frame.bottom,
+        topmost: !!top && button.contains(top),
+        wide,
+      };
+    });
+    expect(placed).toEqual({ inside: true, topmost: true, wide: null });
+    await dialog.getByRole('button', { name: 'Cancel' }).focus();
+  },
   'replace-mark-open': async (page) => {
     const dialog = await openReplace(page);
     await dialog.getByRole('button', { name: /^Replace \d+ words$/ }).click();
@@ -414,6 +455,13 @@ async function openReplace(page: Page): Promise<Locator> {
   await dialog.getByText(/target -?\d+ LUFS|could not be measured/).waitFor();
   await dialog.getByRole('button', { name: 'Cancel' }).focus();
   return dialog;
+}
+
+/** Names another narrator in the open Replace dialog; the host chooses them in the list. */
+async function addNarrator(dialog: Locator, name: string): Promise<void> {
+  await dialog.getByRole('textbox', { name: 'Name another narrator' }).fill(name);
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Other narrator' }).getByRole('option', { name, selected: true }).waitFor({ state: 'attached' });
 }
 
 /** The dot after the last word of the range just saved. */
