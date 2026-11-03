@@ -105,7 +105,7 @@ func Scope(chapterID string) string {
 	return "chapter-" + hex.EncodeToString(hash[:8])
 }
 
-// ToFindings validates every flag against the chapter and returns one finding per flag, in order. Any invalid flag
+// ToFindings validates every flag against the chapter and returns one finding per kept flag, in order (a flag the confirmation pass cleared is validated and then left out, so the result can be shorter than flags). Any invalid flag
 // rejects the whole save, so a half-written session never lands in the store.
 func ToFindings(chapter Chapter, project findings.Project, flags []Flag) ([]findings.Finding, error) {
 	if chapter.ID == "" {
