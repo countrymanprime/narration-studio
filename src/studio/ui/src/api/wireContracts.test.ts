@@ -1584,9 +1584,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(created.mappings.filter((mapping) => mapping.chapterId === chapters[0].id)).toHaveLength(1);
     // The host reads the new link: the chapter that had no track is ready to record.
     expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('ready');
+    // A second create for the chapter is refused, naming its track (#2958, B2); after Clear, the track's name is taken (F2).
     const second = await api.chapterTrackCreate(chapters[0].id);
-    if (second.outcome !== 'created') throw new Error('expected a created track');
-    expect(second.track.guid).not.toBe(created.track.guid);
+    expectMatches(chapterTrackCreateSchema, second, 'mock chapter track create, already linked');
+    expect(second).toMatchObject({ outcome: 'refused', reason: 'already_linked' });
+    await api.chapterTrackUnlink(chapters[0].id);
+    const taken = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, taken, 'mock chapter track create, name taken');
+    expect(taken).toMatchObject({ outcome: 'refused', reason: 'name_taken' });
     await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
     for (const reaperState of ['unavailable', 'recording_elsewhere'] as const) {
       const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);

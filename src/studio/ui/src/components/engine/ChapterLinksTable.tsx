@@ -63,6 +63,8 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
         if (!result) return;
         if (result.outcome === 'refused') {
           notify(result.message, 'error');
+          // The DAW added the track but its link was not saved: read the tracks so it can be picked.
+          if (result.reason === 'link_failed') live?.refresh();
           return;
         }
         live?.refresh();
@@ -98,6 +100,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
                 mappings={mappings}
                 busy={busyChapterId === row.chapter.id}
                 creating={creatingChapterId === row.chapter.id}
+                createLocked={creatingChapterId !== '' && creatingChapterId !== row.chapter.id}
                 onCreate={() => create(row.chapter)}
                 onConfirm={(trackGuid) => links.set(row.chapter.id, trackGuid)}
                 onClear={() => links.unlink(row.chapter.id)}
@@ -145,6 +148,7 @@ function ChapterLinkRow({
   mappings,
   busy,
   creating,
+  createLocked,
   onCreate,
   onConfirm,
   onClear,
@@ -155,6 +159,8 @@ function ChapterLinkRow({
   mappings: TrackMapping[];
   busy: boolean;
   creating: boolean;
+  /** Another chapter's create is in flight: this row's button is off until it ends (walkthrough F1). */
+  createLocked: boolean;
   onCreate: () => void;
   onConfirm: (trackGuid: string) => void;
   onClear: () => void;
@@ -186,7 +192,7 @@ function ChapterLinkRow({
       action={folders ? 'createChapterFolder' : 'createChapterTrack'}
       label={`Create a ${folders ? 'folder' : 'track'} for ${short}`}
       pending={creating}
-      disabledReason={busy && !creating ? 'Wait for the change in progress' : undefined}
+      disabledReason={createLocked ? 'Wait for the track being added' : busy && !creating ? 'Wait for the change in progress' : undefined}
       onClick={onCreate}
     />
   );

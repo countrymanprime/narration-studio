@@ -17,12 +17,18 @@
 // | refused: not answering                 | the host's sentence as an error toast; row unchanged                                  |
 // | failed (the call rejects)              | "The track could not be added: ..." toast; row unchanged                              |
 // | double press                           | one host call, one track                                                              |
-// | press on another row while busy        | ignored (the hook's one in-flight change)                                             |
+// | press on another row while busy        | every other create button is off (aria-disabled) and a press does nothing (F1)        |
+// | press within 600 ms of an answer       | ignored: the rows moved under the pointer (F1); a press after it goes through          |
+// | remount while a create is pending      | the new mount shows the row busy and cannot press again; one host call (B2)            |
+// | already linked (a second create)       | the host's already_linked sentence as an error toast (B2)                             |
+// | name taken                             | the host's name_taken sentence as an error toast (F2)                                 |
+// | link not saved after the DAW added it  | the host's link_failed sentence as an error toast, and the live tracks read again (B6) |
 // | RTL and emoji title                    | the toast and the row keep the title exactly                                          |
 // | long title                             | the row's track cell truncates with the full name as its title                        |
 // | layout switched mid-press              | the host's answer decides: a flat button press that made a folder says folder         |
 // | track list re-read without the track   | the row stays Linked until the list lists it (shown from the answer)                  |
 // | track deleted after the list read it   | the row shows Track missing (the answer's copy is dropped once listed)                |
+// | a read after the answer lacks it       | the row shows Track missing (the answer's copy is dropped, B4)                        |
 // | reload mid-action, leave mid-action    | not tested: the host call is not cancellable; the link is the host's and is re-read   |
 // |                                        | on the next mount (useChapterLinks reads the mapping on mount)                        |
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -31,7 +37,7 @@ import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable } from './ChapterLinksTable';
-import { useChapterLinks } from './useChapterLinks';
+import { CREATE_QUIET_MS, resetChapterTrackCreateGuard, useChapterLinks } from './useChapterLinks';
 import { VoiceLayoutContext } from './voiceLayout';
 import type { LiveTracks } from './useLiveTracks';
 import { ApiProvider } from '../../api/ApiContext';
@@ -42,13 +48,29 @@ import { headingName } from '../../chapterHeading';
 import { chapterName } from '../../chapterName';
 import type { NarrationApi, Track, VoiceTracksLayout } from '../../types';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  resetChapterTrackCreateGuard();
+});
+
+/** The name the host gives a chapter's new track: its display title, the subtitle joined on. */
+const trackNameOf = (index: number) => {
+  const chapter = WIRE_CHAPTERS[index];
+  return chapter.subtitle ? `${chapter.title}: ${chapter.subtitle}` : chapter.title;
+};
 
 function liveStub(): LiveTracks {
   return { reason: '', message: '', readAt: Date.now(), busy: false, refreshing: false, stale: false, error: '', refresh: vi.fn(), join: vi.fn() };
 }
 
-type Harness = { api: NarrationApi; notify: ReturnType<typeof vi.fn>; live: LiveTracks; setTracks: (tracks: Track[]) => void };
+type Harness = {
+  api: NarrationApi;
+  notify: ReturnType<typeof vi.fn>;
+  live: LiveTracks;
+  setTracks: (tracks: Track[], readAt?: number | null) => void;
+  unmount: () => void;
+};
 
 function renderTable({
   api = createMockApi(),
@@ -59,12 +81,12 @@ function renderTable({
   const live = liveStub();
   const harness = { api, notify, live } as Harness;
   function Table() {
-    const [shown, setShown] = useState(tracks);
-    harness.setTracks = setShown;
-    const links = useChapterLinks(shown, 0, () => {});
+    const [read, setRead] = useState<{ tracks: Track[]; readAt: number | null }>({ tracks, readAt: null });
+    harness.setTracks = (next, readAt = null) => setRead({ tracks: next, readAt });
+    const links = useChapterLinks(read.tracks, 0, () => {}, read.readAt);
     return <ChapterLinksTable links={links} notify={notify} live={live} />;
   }
-  render(
+  const { unmount } = render(
     <ApiProvider api={api}>
       <MemoryRouter>
         <VoiceLayoutContext.Provider value={layout}>
@@ -73,6 +95,7 @@ function renderTable({
       </MemoryRouter>
     </ApiProvider>,
   );
+  harness.unmount = unmount;
   return harness;
 }
 
@@ -134,10 +157,11 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
     await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
     // The track list passed in has not read the new track yet: the row shows it from the host's answer.
-    expect(within(row).getByText(WIRE_CHAPTERS[0].title)).toBeTruthy();
+    // The chapter cell and the track cell: the new track is named after the chapter's display title.
+    expect(within(row).getAllByText(trackNameOf(0))).toHaveLength(2);
     expect(within(row).queryByRole('button', { name: /^Create a/ })).toBeNull();
     expect(live.refresh).toHaveBeenCalledTimes(1);
-    expect(notify).toHaveBeenCalledWith(`Created the track “${WIRE_CHAPTERS[0].title}” and linked ${short(0)} to it. Save the project to keep it.`, 'info');
+    expect(notify).toHaveBeenCalledWith(`Created the track “${trackNameOf(0)}” and linked ${short(0)} to it. Save the project to keep it.`, 'info');
     const { mappings } = await api.chapterTrackMapList();
     expect(mappings.filter((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id)).toHaveLength(1);
   });
@@ -150,9 +174,9 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await waitFor(() => chapterRow(table, headingName(WIRE_CHAPTERS[1])));
     const row = chapterRow(table, headingName(WIRE_CHAPTERS[1]));
     await user.click(within(row).getByRole('button', { name: `Create a folder for ${short(1)}` }));
-    await waitFor(() => expect(within(row).getByText(`${WIRE_CHAPTERS[1].title} · 1 voice`)).toBeTruthy());
+    await waitFor(() => expect(within(row).getByText(`${trackNameOf(1)} · 1 voice`)).toBeTruthy());
     expect(notify).toHaveBeenCalledWith(
-      `Created the folder “${WIRE_CHAPTERS[1].title}” with a Narrator track and linked ${short(1)} to it. Save the project to keep it.`,
+      `Created the folder “${trackNameOf(1)}” with a Narrator track and linked ${short(1)} to it. Save the project to keep it.`,
       'info',
     );
   });
@@ -169,7 +193,12 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     expect(button.getAttribute('aria-busy')).toBe('true');
     expect((within(row).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
     await user.click(button);
-    // Another row's press while one is in flight is ignored too: one change at a time.
+    // Every other row's create button is off while one runs, and a press on it does nothing (walkthrough F1).
+    const others = within(table)
+      .getAllByRole('button', { name: /^Create a track for/ })
+      .filter((other) => other !== button);
+    expect(others.length).toBeGreaterThan(0);
+    for (const other of others) expect(other.getAttribute('aria-disabled')).toBe('true');
     await user.click(within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('button', { name: `Create a track for ${short(1)}` }));
     expect(create).toHaveBeenCalledTimes(1);
     await act(async () => answer.resolve(await base.chapterTrackCreate(WIRE_CHAPTERS[0].id)));
@@ -236,6 +265,8 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await user.click(await within(table).findByRole('button', { name: `Create a track for ${rtl}` }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(`Created the track “${rtl}” and linked ${rtl} to it. Save the project to keep it.`, 'info'));
     await waitFor(() => expect(within(table).queryByRole('button', { name: `Create a track for ${rtl}` })).toBeNull());
+    // Past the quiet time after an answer (tested on its own below).
+    resetChapterTrackCreateGuard();
     await user.click(within(table).getByRole('button', { name: `Create a track for ${long}` }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining(`“${long}”`), 'info'));
     await waitFor(() => expect(within(table).queryByRole('button', { name: `Create a track for ${long}` })).toBeNull());
@@ -268,10 +299,98 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
     const { mappings } = await harness.api.chapterTrackMapList();
     const guid = mappings.find((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id)?.trackGuid ?? '';
-    const listed: Track = { ...WIRE_TRACKS_PROJECT.tracks[0], guid, name: WIRE_CHAPTERS[0].title, index: WIRE_TRACKS_PROJECT.tracks.length };
+    const listed: Track = { ...WIRE_TRACKS_PROJECT.tracks[0], guid, name: trackNameOf(0), index: WIRE_TRACKS_PROJECT.tracks.length };
     act(() => harness.setTracks([...WIRE_TRACKS_PROJECT.tracks, listed]));
     expect(within(row).getByText('Linked')).toBeTruthy();
     act(() => harness.setTracks(WIRE_TRACKS_PROJECT.tracks));
+    await waitFor(() => expect(within(row).getByText('Track missing')).toBeTruthy());
+  });
+  it('ignores a create press within the quiet time after an answer, and takes one after it (F1)', async () => {
+    const user = userEvent.setup();
+    const base = createMockApi();
+    const create = vi.fn((chapterId: string) => base.chapterTrackCreate(chapterId));
+    renderTable({ api: { ...base, chapterTrackCreate: create } });
+    const { table, row } = await firstRow();
+    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+    // The rows below moved up a line: a fast second click lands on the next row's button. It must not add a track.
+    const next = within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('button', { name: `Create a track for ${short(1)}` });
+    await user.click(next);
+    expect(create).toHaveBeenCalledTimes(1);
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + CREATE_QUIET_MS + 1);
+    await user.click(next);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('a remount while a create is pending shows the row busy and cannot press again (B2)', async () => {
+    const user = userEvent.setup();
+    const base = createMockApi();
+    const answer = deferred<ChapterTrackCreateResult>();
+    const create = vi.fn(() => answer.promise);
+    const api = { ...base, chapterTrackCreate: create };
+    const first = renderTable({ api });
+    const { row } = await firstRow();
+    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+    first.unmount();
+    renderTable({ api });
+    const again = await firstRow();
+    const button = within(again.row).getByRole('button', { name: `Create a track for ${short(0)}` });
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    await user.click(button);
+    await user.click(within(chapterRow(again.table, headingName(WIRE_CHAPTERS[1]))).getByRole('button', { name: `Create a track for ${short(1)}` }));
+    expect(create).toHaveBeenCalledTimes(1);
+    await act(async () => answer.resolve(await base.chapterTrackCreate(WIRE_CHAPTERS[0].id)));
+    // The new mount reads the links again once the create ends: the chapter shows its link.
+    await waitFor(() => expect(within(again.row).queryByRole('button', { name: /^Create a track for/ })).toBeNull());
+  });
+
+  it.each([
+    ['already_linked', 'This chapter is already linked to “Chapter 1” in REAPER. Change or clear that link instead of adding another track.'],
+    ['name_taken', 'REAPER already has a track named “Chapter 1: Down the Rabbit-Hole”. Link that one with the picker instead of adding another.'],
+  ] as const)('a %s refusal is an error toast and the row is unchanged (B2, F2)', async (reason, message) => {
+    const user = userEvent.setup();
+    const base = createMockApi();
+    const { notify, live } = renderTable({ api: { ...base, chapterTrackCreate: async () => ({ outcome: 'refused', reason, message }) } });
+    const { row } = await firstRow();
+    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(message, 'error'));
+    expect(within(row).getByText('Not linked')).toBeTruthy();
+    expect(live.refresh).not.toHaveBeenCalled();
+  });
+
+  it('the mock refuses a name a track already has after the chapter was unlinked, as the host does (F2)', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    await api.chapterTrackCreate(WIRE_CHAPTERS[0].id);
+    await api.chapterTrackUnlink(WIRE_CHAPTERS[0].id);
+    const { notify } = renderTable({ api });
+    const { row } = await firstRow();
+    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining(`already has a track named “${trackNameOf(0)}”`), 'error'));
+  });
+
+  it('a link that could not be saved after the DAW added the track is an error toast, and the live tracks are read again (B6)', async () => {
+    const user = userEvent.setup();
+    const base = createMockApi();
+    const message = 'REAPER added the track “Chapter 1: Down the Rabbit-Hole”, but its link could not be saved: the disk is full.';
+    const { notify, live } = renderTable({ api: { ...base, chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'link_failed', message }) } });
+    const { row } = await firstRow();
+    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(message, 'error'));
+    expect(live.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops a created track that a read answered after the create leaves out, so the row says Track missing (B4)', async () => {
+    const user = userEvent.setup();
+    const harness = renderTable();
+    const { row } = await firstRow();
+    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+    // A re-read with no new answer time keeps it (the list has not read REAPER since); one that answered later does not.
+    act(() => harness.setTracks([...WIRE_TRACKS_PROJECT.tracks]));
+    expect(within(row).getByText('Linked')).toBeTruthy();
+    act(() => harness.setTracks([...WIRE_TRACKS_PROJECT.tracks], Date.now() + 1000));
     await waitFor(() => expect(within(row).getByText('Track missing')).toBeTruthy());
   });
 });

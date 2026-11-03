@@ -102,7 +102,7 @@ export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
   }),
   z.object({
     outcome: z.literal('refused'),
-    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed']),
+    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed', 'already_linked', 'name_taken', 'link_failed']),
     message: z.string().min(1),
   }),
 ]) satisfies z.ZodType<ChapterTrackCreateResult>;

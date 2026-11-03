@@ -277,9 +277,30 @@ export function createChapterTracksMock(
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
       const title = chapter?.title ?? CREDITS_CHECK_TITLE[chapterId];
       if (!title) throw new Error('that chapter is not part of the current manuscript');
+      // The host names the track after the chapter's display title, its subtitle joined on (displayTitle in Go).
+      const trackName = chapter?.subtitle ? `${title}: ${chapter.subtitle}` : title;
+      const folders = (await voiceLayout()) === 'folders';
+      // The host's guards, in its order (chaptertrackcreate.go): a chapter already linked to a track REAPER has, then a name a track has.
+      const present = liveProject().tracks;
+      const linked = s.chapterTrackMappings
+        .filter((existing) => existing.chapterId === chapterId)
+        .map((existing) => present.find((candidate) => candidate.guid === existing.trackGuid))
+        .find((candidate) => candidate !== undefined);
+      if (linked)
+        return {
+          outcome: 'refused' as const,
+          reason: 'already_linked' as const,
+          message: `This chapter is already linked to “${linked.name}” in REAPER. Change or clear that link instead of adding another track.`,
+        };
+      const taken = present.find((candidate) => candidate.name.trim().toLowerCase() === trackName.trim().toLowerCase());
+      if (taken)
+        return {
+          outcome: 'refused' as const,
+          reason: 'name_taken' as const,
+          message: `REAPER already has a ${taken.isFolder ? 'folder' : 'track'} named “${taken.name.trim()}”. Link that one with the picker instead of adding another.`,
+        };
       const refusal = mockCreateRefusal(initial.reaperState);
       if (refusal) return refusal;
-      const folders = (await voiceLayout()) === 'folders';
       const next = () => {
         s.createdTracks += 1;
         return {
@@ -288,7 +309,7 @@ export function createChapterTracksMock(
         };
       };
       const made = next();
-      const track = { ...made, name: title };
+      const track = { ...made, name: trackName };
       const base = { color: '', muted: false, soloed: false, items: [] };
       added.push({ ...base, ...track, depth: 0, isFolder: folders });
       let voice: { guid: string; name: string; index: number } | undefined;

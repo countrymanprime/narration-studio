@@ -102,7 +102,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
   const [layoutInSync, setLayoutInSync] = useState(false);
   // The one reader of the chapter links: the Link chapters button and dialog, the Tracks card and the Chapter links section all use it.
-  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1));
+  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1), forAudacity ? null : live.readAt);
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
   const stages = useStageRecommendations({ refreshKey: String(refresh), notify, onStatus: () => {} });

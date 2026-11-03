@@ -93,7 +93,18 @@ export type ChapterTrackSetResult = {
  * linked to the chapter, as ChapterTrackSet links one; or a refusal that changed nothing. `unsupported` is an engine that cannot
  * add a track from this app (the sentence says what to do in it instead). In a Voice folders project on an engine with folders the
  * track is a folder and `voice` is the Narrator track the DAW added inside it (#2840); a plain track has no `voice`. */
-export type ChapterTrackCreateReason = 'standalone' | 'not_running' | 'recording' | 'unsupported' | 'failed';
+export type ChapterTrackCreateReason =
+  | 'standalone'
+  | 'not_running'
+  | 'recording'
+  | 'unsupported'
+  | 'failed'
+  /** The chapter already has a track the project has (or one this app just added): nothing was added. */
+  | 'already_linked'
+  /** A track or folder already has the name the new one would get: link it with the picker. */
+  | 'name_taken'
+  /** The DAW added the track but its link was not saved: the sentence names the track to link by hand. */
+  | 'link_failed';
 export type CreatedTrack = { guid: string; name: string; index: number };
 export type ChapterTrackCreateResult =
   | (ChapterTrackSetResult & { outcome: 'created'; track: CreatedTrack; voice?: CreatedTrack })
