@@ -215,8 +215,12 @@ describe('ScopedSetting layout', () => {
 
   it("keeps the hint icon on the line of the label's last word", () => {
     renderSetting(number());
+    // From `md` the last word and the icon are adjacent inline boxes with no space between them, so no line can break between them;
+    // below `md` the icon sits in its own right-hand column (the alignment audit's A4 at 390 px).
     const last = screen.getByText(/^read$/);
-    expect(last.className).toContain('whitespace-nowrap');
-    expect(last.querySelector('button, [role="button"], svg')).toBeTruthy();
+    expect(last.className).toContain('md:whitespace-nowrap');
+    expect(last.nextSibling).toBeNull();
+    const icon = last.parentElement?.nextElementSibling;
+    expect(icon?.querySelector('button, [role="button"], svg')).toBeTruthy();
   });
 });

@@ -117,12 +117,8 @@ function BridgeLine({ choice }: { choice: DawChoice }) {
       </p>
     );
   }
-  if (!bridge.installed || !bridge.startsWithReaper) return null;
-  return (
-    <p data-bridge="ok" className="text-[0.8125rem] text-[var(--text-muted)]">
-      The app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so there is nothing to set up in REAPER.
-    </p>
-  );
+  // Installed and started by REAPER itself is the usual state: the "?" on Record with says so, and only a problem is drawn here.
+  return null;
 }
 
 /**
