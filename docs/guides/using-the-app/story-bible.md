@@ -195,7 +195,7 @@ first. **Open in Editing** goes to the sample's chapter.
 
 ![Story Bible - the Queen of Hearts entry with four voice samples: the primary, one whose passage changed, one whose audio file is missing](../../images/ui/storybible-voice-samples.webp)
 
-A sample kept in REAPER ([Voice sample storage](settings.md#recording--daw)) is a region in REAPER's project. If the region is deleted there the row says **Region removed** and the sample has ended; if it is not in the saved project yet, **Not saved in REAPER yet** and it plays once you save in REAPER; a region you moved plays the audio now under it (a sample kept in both places shows **Region moved** and keeps playing its copy).
+A sample kept in REAPER ([Voice sample storage](settings.md#recording--daw)) is a region in REAPER's project. A badge on the row says what REAPER's saved project holds, and hovering it says why: **Region removed** (the sample has ended), **Not saved in REAPER yet** (it plays once you save in REAPER), **Audio missing** or **Project unreadable**. A region you moved plays the audio now under it. A sample kept in both places keeps playing its copy and shows **Region moved**, **Region removed**, **Not saved in REAPER yet** or **Region unchecked**. A character's list scrolls inside its own box once it is long.
 
 ![Story Bible - the Queen of Hearts with samples kept in REAPER: Not saved in REAPER yet, Region removed and Region moved](../../images/ui/storybible-voice-samples-daw.webp)
 

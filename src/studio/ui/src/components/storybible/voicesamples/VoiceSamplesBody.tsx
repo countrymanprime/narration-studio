@@ -174,26 +174,35 @@ export function VoiceSamplesBody({
               {characterName} has {limit} samples, the most a character can have.
             </p>
           ) : null}
-          <ul className="m-0 list-none space-y-1.5 p-0">
-            {mine.map((sample) => (
-              <VoiceSampleRow
-                key={sample.id}
-                sample={sample}
-                characterName={characterName}
-                status={player.isActive(sample.id) ? player.status : 'idle'}
-                progress={player.isActive(sample.id) ? player.progress : 0}
-                onPlay={() => void player.play(sample.id, { name: characterName })}
-                onStop={player.stop}
-                canManage={canManage}
-                onRename={() => actions.rename(sample)}
-                onMakePrimary={() => actions.makePrimary(sample)}
-                onMove={() => actions.move(sample)}
-                onDelete={() => actions.remove(sample)}
-                onOpenEditing={openEditing ? () => openEditing(sample.source.chapterId) : undefined}
-                onNotice={(text) => notify(text)}
-              />
-            ))}
-          </ul>
+          {/* Twenty samples is a character's most; the list scrolls inside this cap (rule 6) and is a stop of its own for the keyboard. */}
+          <div
+            className="max-h-[26rem] overflow-y-auto p-0.5"
+            tabIndex={0}
+            role="group"
+            aria-label={`Voice samples of ${characterName}`}
+            data-voice-samples-list
+          >
+            <ul className="m-0 list-none space-y-1.5 p-0">
+              {mine.map((sample) => (
+                <VoiceSampleRow
+                  key={sample.id}
+                  sample={sample}
+                  characterName={characterName}
+                  status={player.isActive(sample.id) ? player.status : 'idle'}
+                  progress={player.isActive(sample.id) ? player.progress : 0}
+                  onPlay={() => void player.play(sample.id, { name: characterName })}
+                  onStop={player.stop}
+                  canManage={canManage}
+                  onRename={() => actions.rename(sample)}
+                  onMakePrimary={() => actions.makePrimary(sample)}
+                  onMove={() => actions.move(sample)}
+                  onDelete={() => actions.remove(sample)}
+                  onOpenEditing={openEditing ? () => openEditing(sample.source.chapterId) : undefined}
+                  onNotice={(text) => notify(text)}
+                />
+              ))}
+            </ul>
+          </div>
         </>
       ) : null}
       {dialogs}

@@ -420,17 +420,22 @@ describe('marking a voice sample', () => {
     };
     await open();
     expect(line().dataset.voiceSampleStorage).toBe('project');
-    expect(line().textContent).toBe('Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.');
+    // The line is a short status; what it means is in the "?" beside it, so the dialog holds no instruction in its flow.
+    expect(line().textContent).toBe('Kept in the project folder?');
+    fireEvent.click(within(line()).getByRole('button', { name: 'About where the sample is kept' }));
+    expect(await screen.findByText(/Copies the raw recording, as it was before editing, into this project\. Nothing leaves your computer\./)).toBeTruthy();
     closeOverlays();
     cleanup();
     storageSetting = 'daw';
     await open();
-    expect(line().textContent).toMatch(/^Adds a region named for the character and label to the DAW’s project, with no copy of the audio/);
+    expect(line().textContent).toBe('Kept in the DAW?');
+    fireEvent.click(within(line()).getByRole('button', { name: 'About where the sample is kept' }));
+    expect(await screen.findByText(/with no copy of the audio/)).toBeTruthy();
     closeOverlays();
     cleanup();
     storageSetting = 'both';
     await open();
-    expect(line().textContent).toMatch(/into this project, and adds a region named for the character and label to the DAW’s project\.$/);
+    expect(line().textContent).toBe('Kept in the project folder and the DAW?');
     closeOverlays();
     cleanup();
     storageSetting = 'elsewhere';

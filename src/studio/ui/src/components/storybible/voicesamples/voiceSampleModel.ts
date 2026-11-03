@@ -20,7 +20,7 @@ export function mebibytes(bytes: number): string {
 }
 
 /** What is wrong with a sample's audio file, in a badge word and the sentence under it; undefined when the clip is as saved. */
-export function clipProblem(sample: VoiceSample): { badge: string; sentence: string } | undefined {
+export function clipProblem(sample: VoiceSample): { badge: string; sentence: string; hint?: true } | undefined {
   // A sample kept only in the DAW has no file: its audio is whatever lies under its region in the saved project (docs/prds/character-voice-samples.prd.md).
   if (sample.storage === 'daw' && sample.daw && sample.clipState !== 'ok') return dawProblem(sample.daw.state);
   switch (sample.clipState) {
@@ -35,18 +35,19 @@ export function clipProblem(sample: VoiceSample): { badge: string; sentence: str
 }
 
 /** Why a sample kept only in the DAW cannot play: the region is gone, not saved yet, or has no audio under it. */
-function dawProblem(state: VoiceSampleDawState): { badge: string; sentence: string } | undefined {
+function dawProblem(state: VoiceSampleDawState): { badge: string; sentence: string; hint: true } | undefined {
+  // `hint`: the sentence is the badge's tooltip and the play control's reason, a short sentence of at most 80 characters, and is not drawn in the row.
   switch (state) {
     case 'label_missing':
-      return { badge: 'Region removed', sentence: 'Its region is no longer in the REAPER project, so the sample has ended.' };
+      return { badge: 'Region removed', sentence: 'Its region is gone from the REAPER project, so the sample has ended.', hint: true };
     case 'not_saved':
-      return { badge: 'Not saved in REAPER yet', sentence: 'Its region is not in the saved REAPER project yet. Save the project in REAPER and it plays.' };
+      return { badge: 'Not saved in REAPER yet', sentence: 'Its region is not in the saved REAPER project yet.', hint: true };
     case 'source_missing':
-      return { badge: 'Audio missing', sentence: 'The audio under its region is not in the REAPER project any more.' };
+      return { badge: 'Audio missing', sentence: 'The audio under its region is no longer in the REAPER project.', hint: true };
     case 'project_unreadable':
-      return { badge: 'Project unreadable', sentence: 'The saved REAPER project could not be read.' };
+      return { badge: 'Project unreadable', sentence: 'The saved REAPER project could not be read.', hint: true };
     default:
-      return { badge: 'Audio missing', sentence: 'The audio under its region could not be read.' };
+      return { badge: 'Audio missing', sentence: 'The audio under its region could not be read.', hint: true };
   }
 }
 
@@ -57,14 +58,14 @@ export function dawBadge(sample: VoiceSample): { badge: string; hint: string } |
     case 'ok':
       return undefined;
     case 'label_moved':
-      return { badge: 'Region moved', hint: 'The region was moved in REAPER. The sample still plays the copy that was saved.' };
+      return { badge: 'Region moved', hint: 'The region moved in REAPER, and the saved copy still plays.' };
     case 'label_missing':
-      return { badge: 'Region removed', hint: 'The region is no longer in the REAPER project. The sample still plays the copy that was saved.' };
+      return { badge: 'Region removed', hint: 'The region is gone from REAPER, and the saved copy still plays.' };
     case 'not_saved':
-      return { badge: 'Not saved in REAPER yet', hint: 'The region is not in the saved REAPER project yet. Save the project in REAPER. The sample still plays.' };
+      return { badge: 'Not saved in REAPER yet', hint: 'The region is not in the saved REAPER project yet.' };
     case 'source_missing':
     case 'project_unreadable':
-      return { badge: 'Region unchecked', hint: 'The region could not be checked against the saved REAPER project. The sample still plays the copy that was saved.' };
+      return { badge: 'Region unchecked', hint: 'The region could not be checked, and the saved copy still plays.' };
   }
 }
 

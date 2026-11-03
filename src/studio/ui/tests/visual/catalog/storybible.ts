@@ -189,6 +189,13 @@ export const storybibleStates: StateEntry[] = [
   },
   {
     page: 'storybible',
+    state: 'voice-samples-daw-more',
+    description:
+      'Story Bible, the same Queen with the list scrolled to its end: Region removed and Not saved in REAPER yet on samples kept in both places (they still play), Audio missing and Project unreadable on samples kept only in REAPER, and Region unchecked (?mockVoiceSamples=daw)',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'storybible',
     state: 'voice-samples-empty',
     description: 'Story Bible, an entry with no voice sample: how to mark one and Open Editing (?mockVoiceSamples=bible, White Rabbit)',
     ...KEEPS_DESKTOP_SCROLL,

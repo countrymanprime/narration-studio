@@ -5,8 +5,9 @@ import { rowOf } from '../registry/rows';
 
 type Storage = 'project' | 'daw' | 'both';
 
-/** The words under a DAW choice the project's DAW cannot honour; the capability's own sentence when it has one. */
+/** Why a DAW choice is off when the project's DAW cannot keep a region and its own sentence is too long for a hint (80 characters, one sentence). */
 const CANNOT = 'This recording tool cannot keep a voice sample.';
+const HINT_MAX = 80;
 
 /**
  * Where a new voice sample is kept (docs/prds/character-voice-samples.prd.md, Where a sample is kept): copied into the project folder (the
@@ -23,16 +24,20 @@ export function SampleStorageBody() {
   const support = caps?.capabilities.voice_sample_region;
   // The choice is declared by the tool, not by whether the tool answers right now: an engine that is closed still can, and a mark says so.
   const declared = support !== undefined && support.level !== 'not_yet_available' && support.level !== 'unsupported';
-  const why = support === undefined ? undefined : declared ? undefined : support.message || CANNOT;
+  // The reason is the disabled choice's tooltip and accessible description, not text in the row; what each choice does is the row's "?".
+  const sentence = support?.message ?? '';
+  const why = support === undefined || declared ? undefined : sentence !== '' && sentence.length <= HINT_MAX ? sentence : CANNOT;
   const options: RadioOption<Storage>[] = [
-    { value: 'project', label: 'In the project folder', description: 'A copy of the audio, played anywhere.' },
-    {
-      value: 'daw',
-      label: 'In the DAW',
-      description: why ?? 'A region in the DAW’s project; moving or deleting it there moves or ends the sample.',
-      disabled: !declared,
-    },
-    { value: 'both', label: 'Both', description: why ?? 'A copy of the audio and a region.', disabled: !declared },
+    { value: 'project', label: 'In the project folder' },
+    { value: 'daw', label: 'In the DAW', disabled: !declared, reason: why },
+    { value: 'both', label: 'Both', disabled: !declared, reason: why },
   ];
-  return <RadioGroup label="Where voice samples are kept" value={value} onChange={(next) => void store.write(row, 'project', next === 'project' ? null : next)} options={options} />;
+  return (
+    <RadioGroup
+      label="Where voice samples are kept"
+      value={value}
+      onChange={(next) => void store.write(row, 'project', next === 'project' ? null : next)}
+      options={options}
+    />
+  );
 }

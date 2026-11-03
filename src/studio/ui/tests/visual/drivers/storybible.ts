@@ -290,9 +290,21 @@ export const storybibleDrivers: Record<string, Driver> = {
     await entryRows(page).filter({ hasText: 'Queen of Hearts' }).click();
     const section = samplesSection(page);
     // A sample kept only in REAPER whose region was deleted, one not saved in REAPER yet, and one kept in both places whose region was moved.
-    await section.getByText('Region removed').waitFor();
-    await section.getByText('Not saved in REAPER yet').waitFor();
-    await section.getByText('Region moved').waitFor();
+    await section.getByText('Region removed').first().waitFor();
+    await section.getByText('Not saved in REAPER yet').first().waitFor();
+    await section.getByText('Region moved').first().waitFor();
+    await section.scrollIntoViewIfNeeded();
+  },
+  'voice-samples-daw-more': async (page) => {
+    await openWithSamples(page, 'daw');
+    await entryRows(page).filter({ hasText: 'Queen of Hearts' }).click();
+    const section = samplesSection(page);
+    const list = section.locator('[data-voice-samples-list]');
+    await list.waitFor();
+    await list.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
+    await section.getByText('Audio missing').first().waitFor();
+    await section.getByText('Project unreadable').first().waitFor();
+    await section.getByText('Region unchecked').first().waitFor();
     await section.scrollIntoViewIfNeeded();
   },
   'voice-samples-empty': async (page) => {

@@ -52,7 +52,8 @@ type Stored = Omit<VoiceSample, 'clipState' | 'source' | 'daw'> & {
  * playing-length one, a sample whose passage changed and one whose audio file is missing, the Hatter with one, Narration with one and a
  * sample for a character who is no longer in the Story Bible; `full` is a Queen with the 20 a character may have; `daw` is a Queen with samples kept
  * in REAPER (phase 6): one whose region is in the saved project, one whose region was deleted, one not saved in REAPER yet, one kept in both places
- * whose region was moved.
+ * whose region was moved, and each of the other states (region removed or not saved on a sample kept in both places, no audio under the region, an
+ * unreadable project).
  */
 export type VoiceSamplesSeed = 'bible' | 'full' | 'daw';
 
@@ -140,6 +141,68 @@ const SEED_ROWS: Record<VoiceSamplesSeed, SeedRow[]> = {
       storage: 'daw',
       dawState: 'not_saved',
       clip: 'missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Muttering',
+      note: '',
+      primary: false,
+      seconds: 4,
+      chapter: 1,
+      from: 0,
+      to: 2,
+      storage: 'both',
+      dawState: 'label_missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Humming',
+      note: '',
+      primary: false,
+      seconds: 6,
+      chapter: 2,
+      from: 0,
+      to: 3,
+      storage: 'both',
+      dawState: 'not_saved',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Shrieking',
+      note: '',
+      primary: false,
+      seconds: 5,
+      chapter: 3,
+      from: 1,
+      to: 4,
+      storage: 'daw',
+      dawState: 'source_missing',
+      clip: 'missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Counting',
+      note: '',
+      primary: false,
+      seconds: 8,
+      chapter: 1,
+      from: 1,
+      to: 5,
+      storage: 'daw',
+      dawState: 'project_unreadable',
+      clip: 'missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Pleading',
+      note: '',
+      primary: false,
+      seconds: 3,
+      chapter: 2,
+      from: 2,
+      to: 4,
+      storage: 'both',
+      dawState: 'project_unreadable',
     },
     { characterId: 'mad-hatter', label: 'Tea party, quick', note: '', primary: true, seconds: 6.1, chapter: 2, from: 0, to: 4 },
   ],

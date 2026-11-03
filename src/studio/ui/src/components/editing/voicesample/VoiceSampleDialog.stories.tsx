@@ -107,11 +107,11 @@ export const WithANoticeAndOnlyNarration: Story = {
   },
 };
 
-// The Settings row "Voice sample storage" is In the DAW: the line under Make primary says a region is added and no copy is made.
+// The Settings row "Voice sample storage" is In the DAW: a short status under Make primary, with a "?" for what it means.
 export const KeptInTheDaw: Story = {
   args: { storage: 'daw' },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/Adds a region named for the character and label to the DAW’s project, with no copy of the audio/)).toBeInTheDocument();
+    await expect(within(canvasElement).getByText('Kept in the DAW')).toBeInTheDocument();
   },
 };
 
@@ -119,7 +119,7 @@ export const KeptInTheDaw: Story = {
 export const KeptInTheProjectAndTheDaw: Story = {
   args: { storage: 'both' },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/into this project, and adds a region named for the character and label/)).toBeInTheDocument();
+    await expect(within(canvasElement).getByText('Kept in the project folder and the DAW')).toBeInTheDocument();
   },
 };
 

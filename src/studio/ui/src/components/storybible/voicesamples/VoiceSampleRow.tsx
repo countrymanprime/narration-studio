@@ -5,6 +5,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { Menu, type MenuItem } from '../../primitives/Menu';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { TooltipTarget } from '../../primitives/Tooltip';
 import { SamplePlayButton } from '../../voicesamples/SamplePlayButton';
 import type { SamplePlayerStatus } from '../../voicesamples/samplePlayerStore';
 import { clipProblem, dawBadge, passageBadge, sampleLength, sampleName } from './voiceSampleModel';
@@ -63,8 +64,7 @@ export function VoiceSampleRow({
   const name = sampleName(sample, characterName);
   const chapterThere = sample.source.state !== 'chapter_missing';
   // Marking again is offered only while the words are as they were: otherwise the range would be found in text that moved.
-  // A region that is only not saved yet comes back when the project is saved in REAPER: marking again would make a second one.
-  const markAgain = sample.source.state === 'ok' && sample.daw?.state !== 'not_saved' && Boolean(onOpenEditing);
+  const markAgain = sample.source.state === 'ok' && Boolean(onOpenEditing);
   const items: MenuItem[] = [
     { key: 'rename', label: 'Rename…', onSelect: onRename },
     ...(sample.primary ? [] : [{ key: 'primary', label: 'Make primary', onSelect: onMakePrimary }]),
@@ -117,14 +117,22 @@ export function VoiceSampleRow({
             </span>
           ) : null}
           {region ? (
-            <span title={region.hint}>
+            <TooltipTarget text={region.hint} inline>
               <StatusBadge tone="warning" label={region.badge} />
-            </span>
+            </TooltipTarget>
           ) : null}
-          {problem ? <StatusBadge tone="danger" label={problem.badge} /> : null}
+          {problem ? (
+            problem.hint ? (
+              <TooltipTarget text={problem.sentence} inline>
+                <StatusBadge tone="danger" label={problem.badge} />
+              </TooltipTarget>
+            ) : (
+              <StatusBadge tone="danger" label={problem.badge} />
+            )
+          ) : null}
         </div>
         <div className={`${UNDER_TITLE} text-sm text-[var(--text-muted)]`}>
-          {problem ? (
+          {problem && !problem.hint ? (
             <>
               {problem.sentence}{' '}
               {markAgain ? (

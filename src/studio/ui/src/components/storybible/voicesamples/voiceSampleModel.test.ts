@@ -112,7 +112,12 @@ describe('names and groups', () => {
 });
 
 describe('a sample kept in the DAW', () => {
-  const daw = (state: NonNullable<VoiceSample['daw']>['state']): NonNullable<VoiceSample['daw']> => ({ state, name: 'Voice sample: Queen - Furious [aaaaaa]', start: 0, end: 0 });
+  const daw = (state: NonNullable<VoiceSample['daw']>['state']): NonNullable<VoiceSample['daw']> => ({
+    state,
+    name: 'Voice sample: Queen - Furious [aaaaaa]',
+    start: 0,
+    end: 0,
+  });
   const only = (state: NonNullable<VoiceSample['daw']>['state'], clipState: VoiceSample['clipState']) => sample({ storage: 'daw', daw: daw(state), clipState });
 
   it('plays while its region is there, moved or not', () => {
@@ -123,7 +128,18 @@ describe('a sample kept in the DAW', () => {
   it('says why it cannot play: the region ended, is not saved yet, has no audio, or the project cannot be read', () => {
     expect(clipProblem(only('label_missing', 'missing'))?.badge).toBe('Region removed');
     expect(clipProblem(only('not_saved', 'missing'))?.badge).toBe('Not saved in REAPER yet');
-    expect(clipProblem(only('not_saved', 'missing'))?.sentence).toMatch(/Save the project in REAPER/);
+    expect(clipProblem(only('not_saved', 'missing'))).toMatchObject({ hint: true, sentence: 'Its region is not in the saved REAPER project yet.' });
+    // Every reason and hint is a tooltip: one short sentence of at most 80 characters (tests/visual/inFlowProse.test.ts).
+    for (const state of ['label_missing', 'not_saved', 'source_missing', 'project_unreadable', 'ok'] as const) {
+      const sentence = clipProblem(only(state, 'missing'))?.sentence ?? '';
+      expect(sentence.length).toBeLessThanOrEqual(80);
+      expect(sentence).not.toMatch(/[.!?;]\s+\S/);
+    }
+    for (const state of ['label_moved', 'label_missing', 'not_saved', 'source_missing'] as const) {
+      const hint = dawBadge(sample({ storage: 'both', daw: daw(state) }))?.hint ?? '';
+      expect(hint.length).toBeLessThanOrEqual(80);
+      expect(hint).not.toMatch(/[.!?;]\s+\S/);
+    }
     expect(clipProblem(only('source_missing', 'missing'))?.badge).toBe('Audio missing');
     expect(clipProblem(only('project_unreadable', 'missing'))?.badge).toBe('Project unreadable');
   });
