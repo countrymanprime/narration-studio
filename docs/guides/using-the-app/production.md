@@ -28,7 +28,7 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 The app connects to the REAPER you have open by itself. For the first ten seconds after it opens, an
 engine that is not connected yet shows a quiet "Connecting to REAPER…" line. If it has not connected by
 then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
-that progress that comes from it may be out of date until it is running again, and when the app last checked.
+that progress that comes from it may be out of date until it is running again, and when the app last checked. The mark is a problem notice that reopens this dialog, not the DAW chip: the engine chip in the header is the one that opens the [audio engine panel](navigation.md#the-audio-engine-panel).
 **Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
 switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
