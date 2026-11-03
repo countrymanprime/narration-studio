@@ -25,6 +25,7 @@ import { useChapterLinks } from './useChapterLinks';
 import { RenderConfigDialog } from './RenderConfigDialog';
 import { RetakeLanesDialog } from './RetakeLanesDialog';
 import { useAudacityLink } from './useAudacityLink';
+import { useLiveTracks } from './useLiveTracks';
 import type { Track, TracksDiscovery, TracksProject } from '../../types';
 
 function basename(path: string): string {
@@ -81,12 +82,21 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // from is taken while Audacity answers.
   const audacityHeard = forAudacity ? audacity.receivedAt : undefined;
   const [discovery, setDiscovery] = useState<TracksDiscovery>();
-  const [project, setProject] = useState<TracksProject>();
+  // An Audacity project's tracks: the snapshot the host takes while Audacity answers.
+  const [audacityProject, setAudacityProject] = useState<TracksProject>();
   const [error, setError] = useState('');
   // Bumped by the chapter-sync panel's own actions (toggle, Link, Undo), so the track list and the Chapter links table re-read
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
   const [tool, setTool] = useState<Tool>();
+  // A REAPER project's tracks as REAPER has them now, saved or not (#2840): read when the panel opens, when the linked file or the link
+  // facts change (Check again, a relink), on focus and on a timer, and by the Refresh in Chapter links and the Link chapters dialog.
+  const live = useLiveTracks({
+    enabled: !forAudacity && !!discovery?.selected,
+    readKey: `${discovery?.selected ?? ''}|${link.checkedAt ?? ''}|${link.dawFileLinked}|${link.dawProjectMatches}`,
+    notify,
+  });
+  const project = forAudacity ? audacityProject : live.project;
   const voices = useVoiceTracks(notify);
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
   const [layoutInSync, setLayoutInSync] = useState(false);
@@ -115,13 +125,13 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   }, [api, audacityHeard]);
 
   useEffect(() => {
-    if (!discovery?.selected) return;
+    if (!forAudacity || !discovery?.selected) return;
     let active = true;
     void api
       .tracksList()
       .then((next) => {
         if (active) {
-          setProject(next);
+          setAudacityProject(next);
           setError('');
         }
       })
@@ -131,7 +141,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
     return () => {
       active = false;
     };
-  }, [api, discovery?.selected, audacityHeard]);
+  }, [api, forAudacity, discovery?.selected, audacityHeard]);
 
   const selectRpp = (path: string) => {
     setError('');
@@ -142,6 +152,8 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   };
 
   const hasTracks = !!project && project.tracks.length > 0;
+  // A live read that failed before any answered is shown where the tracks would be, as the saved read's failure was; a later one is a toast.
+  const shownError = error || (!forAudacity && !project ? live.error : '');
   const closeTool = () => setTool(undefined);
 
   return (
@@ -160,9 +172,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             No tracks have been read from Audacity yet. They appear here once Audacity answers with this project open.
           </p>
         )}
-        {error && (
+        {shownError && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-            {error}
+            {shownError}
           </p>
         )}
         {hasTracks && !forAudacity && (
@@ -202,7 +214,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
               : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
           </p>
         )}
-        {project && <ChapterLinksTable links={links} notify={notify} />}
+        {project && <ChapterLinksTable links={links} notify={notify} live={forAudacity ? undefined : live} />}
         {hasTracks && !forAudacity && (
           <VoicesCard
             tracks={project.tracks}
@@ -216,7 +228,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             layoutInCard={!layoutInSync}
           />
         )}
-        {tool === 'link-chapters' && project && <LinkChaptersDialog links={links} onClose={closeTool} />}
+        {tool === 'link-chapters' && project && <LinkChaptersDialog links={links} live={live} onClose={closeTool} />}
         {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} onCreateRegions={() => setTool('create-regions')} />}
         {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}
         {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}

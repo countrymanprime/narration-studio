@@ -148,6 +148,11 @@ var eventSpecs = map[string]eventSpec{
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
 	// was given, in one undo point.
 	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
+	// tracks_read (narration_tracks_read.lua): the open project's track list as REAPER has it now, saved or not, read-only. rpp is empty
+	// for a project never saved; one TRACKS_ROW per track (folderDelta is I_FOLDERDEPTH), then TRACKS_READ_END (listed, and the total).
+	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}},
+	"TRACKS_ROW":      {required: []fieldSpec{text("run"), count("index"), text("guid"), text("name"), count("folderDelta")}},
+	"TRACKS_READ_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during

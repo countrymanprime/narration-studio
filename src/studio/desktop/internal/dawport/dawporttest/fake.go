@@ -63,6 +63,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapTrackState:      trackStateRole{r(dawport.CapTrackState)},
 		dawport.CapTrackSelect:     trackSelectRole{r(dawport.CapTrackSelect)},
 		dawport.CapTrackCreate:     trackCreateRole{r(dawport.CapTrackCreate)},
+		dawport.CapTracksRead:      tracksReadRole{r(dawport.CapTracksRead)},
 		dawport.CapRecord:          recordRole{r(dawport.CapRecord)},
 		dawport.CapPunch:           punchRole{r(dawport.CapPunch)},
 		dawport.CapRegions:         regionsRole{r(dawport.CapRegions)},
@@ -255,6 +256,12 @@ type trackCreateRole struct{ role }
 
 func (r trackCreateRole) CreateTrack(context.Context, string) (dawport.CreatedTrack, error) {
 	return dawport.CreatedTrack{}, r.do("CreateTrack")
+}
+
+type tracksReadRole struct{ role }
+
+func (r tracksReadRole) ReadTracks(context.Context) (dawport.LiveTracks, error) {
+	return dawport.LiveTracks{}, r.do("ReadTracks")
 }
 
 type filePreviewRole struct{ role }

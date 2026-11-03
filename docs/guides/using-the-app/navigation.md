@@ -219,7 +219,8 @@ REAPER starts when it opens; nothing is written until you press the dialog's act
 bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
-items that hold its recording. It opens with the links the **Chapter links** list shows, the opening and
+items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
+have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
 clears the link, and either shows in the other at once. **To stamp** shows how many of that track's items will
 carry the chapter's identity, and **Stamp N items** writes it. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
@@ -314,6 +315,15 @@ missing** until it's relinked or cleared. The list starts with **Opening credits
 change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
+
+The tracks here are REAPER's own, saved or not, while REAPER has the linked project open: a track or folder you add in REAPER shows
+without saving. Chapter links' header says whose tracks they are and when they were read. The panel reads them again when it opens,
+after **Check again**, when you come back to the window and every few seconds while it is in front; the **Refresh** button beside
+the header (also in the Link chapters dialog) reads them at once. While REAPER is closed, not answering or has another project
+open, the header says so and the tracks are the saved project's, as of its last save. If a read fails after a good one, the header
+says it can't tell whether the tracks are still REAPER's and when it last read them, and a message says why.
+
+![Chapter links when REAPER is not answering: the header says the tracks are the saved project's](../../images/ui/engine-panel-live-tracks-saved.webp)
 
 ![A chapter's track picker open on a project with folders: the tree, with a search box](../../images/ui/engine-panel-folder-picker.webp)
 

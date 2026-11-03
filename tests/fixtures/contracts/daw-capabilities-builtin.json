@@ -217,6 +217,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "tracks_read": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "transport_sync": {
       "available": false,
       "level": "unsupported",

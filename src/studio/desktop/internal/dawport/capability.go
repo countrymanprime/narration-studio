@@ -26,6 +26,9 @@ const (
 	CapTrackSelect  Capability = "track_select"
 	// CapTrackCreate adds one named track at the end of the project's track list, so a chapter with no track can be linked to a new one.
 	CapTrackCreate Capability = "track_create"
+	// CapTracksRead lists the open project's tracks as the engine has them now, saved or not, so a track the narrator adds in the
+	// engine shows in the app before the project is saved (#2840).
+	CapTracksRead Capability = "tracks_read"
 	// CapFollowPosition reads the track and cursor the narrator is on and moves them: the Booth opens where the narrator is, and takes them to
 	// the chapter and word it was opened at.
 	CapFollowPosition Capability = "follow_position"
@@ -122,6 +125,7 @@ var specs = []Spec{
 	{CapTrackState, "Read track arm state", NeedsRunning, reflect.TypeFor[TrackStateReader](), nil},
 	{CapTrackSelect, "Select a track in the recording tool", NeedsRunning, reflect.TypeFor[TrackSelector](), nil},
 	{CapTrackCreate, "Add a track for a chapter", NeedsRunning, reflect.TypeFor[TrackCreator](), nil},
+	{CapTracksRead, "Read the open project's tracks", NeedsRunning, reflect.TypeFor[TrackLister](), nil},
 	{CapFollowPosition, "Follow the narrator's place in the project", NeedsRunning, reflect.TypeFor[PlaceFollower](), nil},
 	{CapTransportSync, "Play and follow the project's transport", NeedsRunning, reflect.TypeFor[TransportSyncer](), nil},
 	{CapRecord, "Record", NeedsRunning, reflect.TypeFor[Recorder](), nil},

@@ -490,6 +490,13 @@
     "caption": "The audio engine panel - the chapter links list, one chapter confirmed to a track"
   },
   {
+    "page": "engine",
+    "state": "live-tracks-saved",
+    "viewport": "desktop",
+    "docName": "engine-panel-live-tracks-saved",
+    "caption": "The audio engine panel - Chapter links when REAPER is not answering: the header says the tracks are the saved project's, and when they were read"
+  },
+  {
     "page": "proof-chapter",
     "state": "never",
     "viewport": "desktop",

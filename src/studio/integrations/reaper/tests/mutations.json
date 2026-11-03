@@ -3164,5 +3164,47 @@
     "file": "narration_transport.lua",
     "find": "  core.cursor_moved()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(seconds, true, true)",
     "replace": "  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(seconds, true, true)"
+  },
+  {
+    "name": "the track list limit is lifted",
+    "file": "narration_tracks_read.lua",
+    "find": "local TRACK_LIMIT = 2000",
+    "replace": "local TRACK_LIMIT = 5000"
+  },
+  {
+    "name": "the track read opens an undo point",
+    "file": "narration_tracks_read.lua",
+    "find": "  local total = reaper.CountTracks(0)\n",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'read tracks', -1)\n  local total = reaper.CountTracks(0)\n"
+  },
+  {
+    "name": "the track read drops the folder depth change",
+    "file": "narration_tracks_read.lua",
+    "find": "math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH'))",
+    "replace": "0"
+  },
+  {
+    "name": "the track read answers a GUID as REAPER spells it",
+    "file": "narration_tracks_read.lua",
+    "find": "normalize_guid(reaper.GetTrackGUID(track)),",
+    "replace": "reaper.GetTrackGUID(track),"
+  },
+  {
+    "name": "the track read skips the first track",
+    "file": "narration_tracks_read.lua",
+    "find": "for index = 0, listed - 1 do",
+    "replace": "for index = 1, listed - 1 do"
+  },
+  {
+    "name": "the track read runs on a REAPER without the calls it needs",
+    "file": "narration_tracks_read.lua",
+    "find": "if not reaper.APIExists(name) then",
+    "replace": "if false then"
+  },
+  {
+    "name": "the track read says the project is saved when it is not",
+    "file": "narration_tracks_read.lua",
+    "find": "rpp, rpp == '' and 1 or 0,",
+    "replace": "rpp, 0,"
   }
 ]

@@ -1,5 +1,5 @@
 import { headingName } from '../../chapterHeading';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
@@ -11,6 +11,8 @@ import { Select } from '../primitives/Select';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToolResult } from './ToolResult';
+import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
+import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track } from '../../types';
@@ -115,8 +117,13 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
   );
 }
 
-export function LinkChaptersDialog({ links, onClose }: { links: ChapterLinks; onClose: () => void }) {
+/** `live` is the panel's live track list (#2840): the dialog reads it again when it opens, says whose tracks the pickers list and when they were
+ * read, and has its own Refresh, so a track added in REAPER while the dialog is open can be picked without closing it. */
+export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLinks; live?: LiveTracks; onClose: () => void }) {
   const api = useApi();
+  // Opening the dialog reads the tracks again, once: a track added in REAPER since the panel's last read is in the pickers.
+  const refreshOnOpen = useRef(live?.refresh);
+  useEffect(() => refreshOnOpen.current?.(), []);
   const { tracks, rows } = links;
   const [overwrite, setOverwrite] = useState(false);
   const [state, setState] = useState<LineIdentityState>({
@@ -179,6 +186,12 @@ export function LinkChaptersDialog({ links, onClose }: { links: ChapterLinks; on
         </>
       }
     >
+      {live && (
+        <div className="mb-3 flex items-center justify-between gap-2 text-[0.8125rem]" style={{ color: 'var(--text-muted)' }}>
+          <LiveTracksStatus live={live} />
+          <LiveTracksRefresh live={live} />
+        </div>
+      )}
       {/* The outcome of Stamp opens the body, where it is seen without scrolling past the chapters (R3EN2-13). */}
       {stampError && (
         <div className="mb-3">

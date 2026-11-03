@@ -30,6 +30,8 @@ type (
 	TrackItem     = bridge.TrackItem
 	SelectedTrack = bridge.SelectedTrack
 	CreatedTrack  = bridge.CreatedTrack
+	LiveTracks    = bridge.LiveTracks
+	LiveTrack     = bridge.LiveTrack
 	Armed         = bridge.Armed
 	RecordStarted = bridge.RecordStarted
 	RecordOptions = bridge.RecordOptions
@@ -284,6 +286,12 @@ type TrackSelector interface {
 // refuses while the engine records, and is not idempotent: each call adds a track.
 type TrackCreator interface {
 	CreateTrack(ctx context.Context, name string) (CreatedTrack, error)
+}
+
+// TrackLister lists the open project's tracks in order as the engine has them now, saved or not: each track's id (a GUID in
+// REAPER), name and folder depth change, with the open project's file and edit counter. It changes nothing.
+type TrackLister interface {
+	ReadTracks(ctx context.Context) (LiveTracks, error)
 }
 
 // ChildTrackCreator adds a track inside a folder, as a direct child after the folder's last descendant (a voice in a chapter's folder). Only

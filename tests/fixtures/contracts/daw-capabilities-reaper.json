@@ -227,6 +227,12 @@
       "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "reason": "standalone"
     },
+    "tracks_read": {
+      "available": false,
+      "level": "experimental",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
+    },
     "transport_sync": {
       "available": false,
       "level": "experimental",

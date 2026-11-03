@@ -136,6 +136,20 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'live-tracks-saved',
+    description:
+      'The engine panel with REAPER not answering (?mockLiveTracks=saved): Chapter links\' header says "REAPER is not answering, so these are the tracks as of the last save." and when they were read, beside the Refresh button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'live-tracks-stale',
+    description:
+      'The engine panel after a Refresh that REAPER did not answer (?mockLiveTracks=failing): Chapter links\' header says "Can’t tell whether these are REAPER’s tracks now." and when it last read them, the tracks still listed, and the failure as a toast',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
     state: 'chapter-link-missing',
     description:
       'The engine panel, a chapter confirmed to a track GUID no longer in the project - Track missing, with the missing-track message and Change/Clear (reached via the ?mockChapterLink=missing mock seam)',
