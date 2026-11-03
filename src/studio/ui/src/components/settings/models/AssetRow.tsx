@@ -55,7 +55,7 @@ export type AssetRowProps = {
  * The installed pill's words: "checked" only while the last check stands, with the time when it was today (a check that just passed shows
  * at once), and plain "Installed" after a check that was refused or not answered.
  */
-export function installedLabel(verifiedAt: string, unchecked: boolean, now = new Date()): string {
+function installedLabel(verifiedAt: string, unchecked: boolean, now = new Date()): string {
   if (unchecked) return 'Installed';
   const at = verifiedAt ? new Date(verifiedAt) : undefined;
   if (!at || Number.isNaN(at.getTime()) || at.toDateString() !== now.toDateString()) return 'Installed · checked';
