@@ -10,7 +10,8 @@ import (
 // liveItemsTimeout bounds one chapter_track_state read for DawLiveItems.
 const liveItemsTimeout = 5 * time.Second
 
-// DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), for the Editing page's
+// DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), and on every track inside it
+// when the link is a REAPER folder of voices (dawport.ChapterAudioState), for the Editing page's
 // follow-along: where each plays in the project, from where in which source file, at what rate. The saved project the alignment was read
 // against knows none of the narrator's edits since, and a split's right half has a GUID it never saw. Read-only; it adds no undo step.
 // The answer is {available, items}: available is false, with no items, when the DAW cannot be read now (not running, track_state off, no
@@ -20,7 +21,7 @@ func (h *Host) DawLiveItems(chapterID string) (string, error) {
 	resolver, _ := h.dawResolverFor(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), liveItemsTimeout)
 	defer cancel()
-	live := h.stackSourcesIn(svc, resolver.Support(dawport.CapTrackState)).live
+	live := h.stackSourcesReading(svc, resolver.Support(dawport.CapTrackState), dawport.ChapterAudioState).live
 	return encodeBinding(dawLiveItemsIn(ctx, live, chapterID), nil)
 }
 
