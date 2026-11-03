@@ -702,6 +702,41 @@ def track_create_in_folder(env: Env) -> str:
 @scenario(
     "booth_voices",
     "track_create, (snippet) Undo_DoUndo2",
+    "#2840 breaker B1: a plain track_create after a project whose last folder is left open closes that folder on its last track and adds the "
+    "track at the top level; no other track changes parent, the same after save and reload, and one Undo restores the project",
+)
+def track_create_plain_after_open_folder(env: Env) -> str:
+    env.lua(
+        """
+        local ch8 = ci.add_track('Ch 8')
+        ci.add_track('Narrator')
+        ci.add_track('Queen')
+        reaper.SetMediaTrackInfo_Value(ch8, 'I_FOLDERDEPTH', 1)
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    before = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert before == [("Ch 8", 1, 0, ""), ("Narrator", 0, 1, "Ch 8"), ("Queen", 0, 1, "Ch 8")], before
+    created = env.ok("track_create", "Chapter 9", until="TRACK_CREATED")
+    assert created[3:5] == ["3", "Chapter 9"], f"created {created}"
+    want = [("Ch 8", 1, 0, ""), ("Narrator", 0, 1, "Ch 8"), ("Queen", -1, 1, "Ch 8"), ("Chapter 9", 0, 0, "")]
+    after = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert after == want, after
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    undone = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert undone == before, f"one Undo left {undone}"
+    env.ok("track_create", "Chapter 9", until="TRACK_CREATED")
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    reloaded = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert reloaded == want, reloaded
+    return f"after {[(n, d, depth, p) for n, d, depth, p in after]}; undo {undo!r} restored {[(n, d) for n, d, _, _ in undone]}; same after save and reload; ISBUS {isbus_lines(env)}"
+
+
+@scenario(
+    "booth_voices",
+    "track_create, (snippet) Undo_DoUndo2",
     "#2840 part 2: track_create with a child name appends a chapter folder and its Narrator after a project whose last folder is left open; the "
     "open folder is closed on its last track, no other depth moves, both survive save and reload, and one Undo removes the folder, its child and "
     "the close",

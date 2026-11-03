@@ -2,11 +2,13 @@
 -- to record on. Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
 -- track_create|run|name adds one track at the end of the track list (after every track the narrator has, never between
--- them), names it, and answers TRACK_CREATED|run|guid|index|name: the new track's GUID, its 0-based index and the name
+-- them), at the top level, names it, and answers TRACK_CREATED|run|guid|index|name: the new track's GUID, its 0-based index and the name
 -- it was given, so the host can link the chapter to it. The name is trimmed and a line break or tab inside it becomes a
 -- space (a track name is one line); a name that is empty after that is refused. It refuses while REAPER records, so no
 -- track appears in the middle of a take, and changes nothing else: no other track's selection, arm, mute or name. It is one
--- undo point ("<app name>: add track") and never saves the project. It is not idempotent: each call adds a track.
+-- undo point ("<app name>: add track") and never saves the project. It is not idempotent: each call adds a track. A project
+-- that ends inside a folder left open has that folder closed on its last track first (close_open_folders), so the new track
+-- is never the open folder's last child; that is the only change to a track that was there, and no track changes parent.
 --
 -- track_create|run|name|parentGuid adds a voice inside a chapter's folder (docs/prds/booth-voice-tracks.prd.md, phase 3): the new track goes after
 -- the parent's last descendant as a direct child of the parent, and the folder depth changes (I_FOLDERDEPTH) of that last descendant and of
@@ -86,8 +88,9 @@ local function insert_child(parent_index, depths)
   return index
 end
 
--- Closes every folder the last track leaves open by lowering its depth change by that many, and answers the index after it. This is the
--- open-folder close #2877 adds to every append as core.append_track; only the folder append uses it here until that lands.
+-- Closes every folder the last track leaves open by lowering its depth change by that many, and answers the index after it. Every
+-- append here (a plain track and a chapter folder) calls it inside its undo block. It is the same rule as core.append_track in #2877
+-- (not merged when this was written): once that lands, both appends here should call core.append_track and this goes.
 local function close_open_folders()
   local count = reaper.CountTracks(0)
   local open = 0
@@ -166,7 +169,7 @@ local function track_create(session_dir, run_id, name_text, parent_text, child_t
   if parent_index ~= nil then
     index = insert_child(parent_index, depths)
   else
-    index = reaper.CountTracks(0)
+    index = close_open_folders()
     reaper.InsertTrackAtIndex(index, false)
   end
   local track = reaper.GetTrack(0, index)

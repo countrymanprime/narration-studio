@@ -376,3 +376,75 @@ H.test('track_create of a folder keeps emoji and right-to-left text in the folde
   H.eq(s.fake.tracks[3].name, name .. ' Part One')
   H.eq(s:events()[1][5], name .. ' Part One')
 end)
+
+-- A plain track appended to a project that ends inside an open folder (breaker B1, #2840): the track must land at the top level, not as the
+-- open folder's last child. The last track closes every folder still open; no track that was there changes parent.
+
+-- Each track's parent (by name, '' at the top level) and the depth it sits at, read from the depth changes as REAPER reads them.
+local function parents(s)
+  local out, stack, depth = {}, {}, 0
+  for _, track in ipairs(s.fake.tracks) do
+    out[#out + 1] = { track.name, stack[depth] or '', depth }
+    local delta = track.folder_depth or 0
+    if delta > 0 then
+      stack[depth + 1] = track.name
+    end
+    depth = math.max(depth + delta, 0)
+  end
+  return out
+end
+
+H.test('a plain track_create after a folder left open closes it on its last track and lands at the top level', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local ch8 = s.fake:add_track('Ch 8')
+  s.fake:add_track('Narrator')
+  s.fake:add_track('Queen')
+  ch8.folder_depth = 1
+  local before = parents(s)
+  s:send('track_create', 'c1', 'Chapter 9')
+  H.eq(depths(s), { { 'Ch 8', 1 }, { 'Narrator', 0 }, { 'Queen', -1 }, { 'Chapter 9', 0 } })
+  local after = parents(s)
+  for index, row in ipairs(before) do
+    H.eq(after[index], row)
+  end
+  H.eq(after[#after], { 'Chapter 9', '', 0 })
+end)
+
+H.test('a plain track_create after two nested folders left open closes both and lands at the top level', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local book, ch1 = s.fake:add_track('Book'), s.fake:add_track('Chapter 1')
+  s.fake:add_track('Narrator')
+  book.folder_depth, ch1.folder_depth = 1, 1
+  local before = parents(s)
+  s:send('track_create', 'c1', 'Chapter 2')
+  H.eq(depths(s), { { 'Book', 1 }, { 'Chapter 1', 1 }, { 'Narrator', -2 }, { 'Chapter 2', 0 } })
+  local after = parents(s)
+  for index, row in ipairs(before) do
+    H.eq(after[index], row)
+  end
+  H.eq(after[#after], { 'Chapter 2', '', 0 })
+  H.eq(#s.fake.undo, 1)
+end)
+
+H.test('a plain track_create in a project whose folders all close changes no depth', function()
+  local s, t = folder_session()
+  local before = depths(s)
+  s:send('track_create', 'c1', 'Chapter 4')
+  local after = depths(s)
+  H.eq(#after, #before + 1)
+  for index, row in ipairs(before) do
+    H.eq(after[index], row)
+  end
+  H.eq(after[#after], { 'Chapter 4', 0 })
+  H.eq(t.after.folder_depth or 0, 0)
+end)
+
+H.test('a plain track_create while REAPER records leaves a folder open at the end as it was', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local ch = s.fake:add_track('Ch 8')
+  s.fake:add_track('Narrator')
+  ch.folder_depth = 1
+  s.fake.play_state = 5
+  s:send('track_create', 'c1', 'Chapter 9')
+  H.eq(depths(s), { { 'Ch 8', 1 }, { 'Narrator', 0 } })
+end)
