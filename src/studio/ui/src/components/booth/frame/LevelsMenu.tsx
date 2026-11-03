@@ -410,13 +410,16 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
     <Popover
       label="Levels"
       side="top"
+      // In a window as small as 320x300 the Booth's own bars leave a strip a few lines tall: the popup is measured against the window and scrolls
+      // inside itself instead of being cut down to that strip.
+      fitToWindow
       // A control in the menu can leave the Booth (Turn on in Settings): a footswitch Enter right after opening must not press it.
       focusPopup
       open={open}
       onOpenChange={onOpenChange}
       trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
     >
-      <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
+      <div className="flex w-max max-w-[min(26rem,100%)] min-w-[min(18rem,100%)] flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <span className={SECTION_LABEL}>Input</span>
           <LevelMeter label="Input level" peak={off ? null : (level?.peak ?? null)} rms={off ? null : (level?.rms ?? null)} size="regular" />
