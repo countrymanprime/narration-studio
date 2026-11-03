@@ -22,8 +22,8 @@ import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from 
 import { Para, type FindRange } from './Para';
 import { loadReaderPosition, READER_POSITION_KEY, saveReaderPosition } from './readerPosition';
 
-/** A Find match in a paragraph, in the order Find lists them. */
-type FindMatch = { paragraphId: string; start: number; end: number };
+/** A Find match in a paragraph, in the order Find lists them. `chapterId` lets the reader go to a match in a chapter not read yet. */
+type FindMatch = { paragraphId: string; chapterId?: string; start: number; end: number };
 /** A place in a paragraph: a bookmark's line. */
 type BookmarkSpot = { paragraphId: string; offset: number };
 /** Which request the reader just honoured, so its owner clears it. */
@@ -51,7 +51,8 @@ export type ReaderProps = {
   flashParagraphId?: string | null;
   /** The page zoom, so a measured line is in the paragraph's own pixels. */
   zoom?: number;
-  find?: { matches: readonly FindMatch[]; current: number } | null;
+  /** The matches, the current one, and `request`, which changes each time the narrator chooses a match, so choosing the current one again scrolls back to it. */
+  find?: { matches: readonly FindMatch[]; current: number; request?: number } | null;
   activeMarkId?: string | null;
   /** The bookmark ribbons of a paragraph (the ribbon comes in through this slot). Keep the function the same between renders. */
   renderGutter?: (paragraph: ManuscriptParagraph) => ReactNode;
@@ -278,17 +279,19 @@ export function Reader(props: ReaderProps) {
   const findState = useMemo(() => {
     const by = new Map<string, FindRange[]>();
     let currentPid: string | null = null;
+    let currentChapterId: string | null = null;
     let currentLocal = -1;
     (find?.matches ?? []).forEach((match, i) => {
       const list = by.get(match.paragraphId) ?? [];
       if (i === find?.current) {
         currentPid = match.paragraphId;
+        currentChapterId = match.chapterId ?? null;
         currentLocal = list.length;
       }
       list.push({ start: match.start, end: match.end });
       by.set(match.paragraphId, list);
     });
-    return { by, currentPid, currentLocal };
+    return { by, currentPid, currentChapterId: currentChapterId as string | null, currentLocal, request: find?.request ?? 0 };
   }, [find]);
   const activeParagraphId = useMemo(() => sources.marks.find((mark) => mark.id === activeMarkId)?.paragraphId ?? null, [sources.marks, activeMarkId]);
 
@@ -427,18 +430,27 @@ export function Reader(props: ReaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paragraphsOf]);
 
-  /* Find: bring the current match into view. */
+  /* Find: bring the current match into view. A match in a chapter not drawn or not read yet draws and reads it first, then scrolls once its
+     text arrives; each choice of a match (and each step) moves the reader once. */
+  const findShown = useRef<string | null>(null);
   useLayoutEffect(() => {
     const root = scroller.current;
-    if (!root || !findState.currentPid) return;
-    const at = chapterOf(findState.currentPid);
+    if (!root || !findState.currentPid) {
+      findShown.current = null;
+      return;
+    }
+    const key = `${findState.currentPid}:${findState.currentLocal}:${findState.request}`;
+    if (findShown.current === key) return;
+    const at = findState.currentChapterId !== null ? (indexOf.get(findState.currentChapterId) ?? -1) : chapterOf(findState.currentPid);
     if (at < 0 || !reach(at)) return;
-    release();
     const match = root.querySelector<HTMLElement>('.a-find-cur');
-    if (match) root.scrollTop += (match.getBoundingClientRect().top - root.getBoundingClientRect().top) / zoom - root.clientHeight / 3;
-    // Only a different current match moves the reader.
+    if (!match) return;
+    release();
+    findShown.current = key;
+    root.scrollTop += (match.getBoundingClientRect().top - root.getBoundingClientRect().top) / zoom - root.clientHeight / 3;
+    // A different current match, a match chosen again, a chapter drawn or text read; the key above keeps one choice from moving the reader twice.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [findState.currentPid, findState.currentLocal, drawn]);
+  }, [findState.currentPid, findState.currentLocal, findState.request, drawn, paragraphsOf]);
 
   useEffect(() => () => clearTimeout(saveTimer.current), []);
 

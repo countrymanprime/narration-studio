@@ -33,7 +33,7 @@ import { dictionaryInstallPrompt } from '../dictionaryInstall';
 import { useScriptCredits, useSaveMarkTypes, useWordsHost } from '../scriptPageHost';
 import { ChapterCard } from './chapters/ChapterCard';
 import { ChapterList } from './chapters/ChapterList';
-import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView, useSpeakers } from './data/useScriptData';
+import { useChapters, useEntries, useManuscriptSearch, useMarks, useScriptCommands, useScriptPrep, useScriptView, useSpeakers } from './data/useScriptData';
 import { BookmarkGutter, GutterContext, type GutterState } from './layout/BookmarkGutter';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { FirstUseTip } from '../../../tips/FirstUseTip';
@@ -60,7 +60,8 @@ import { WordsTab } from './rail/words/WordsTab';
 import type { ReaderSelection } from './registry/contextProvider';
 import { useScriptRegistry } from './registry/useScriptRegistry';
 import { openFind } from './tools/find/findState';
-import { searchManuscript, type FindMatch } from './tools/find/searchManuscript';
+import { useBookFind } from './tools/find/useBookFind';
+import { findWhere, type FindCount } from './registry/useScriptRegistry';
 import { getSelection, type ToolSelection } from './tools/select/getSelection';
 import { lookupTarget } from './tools/select/lookupTarget';
 import { MarkComposer } from './tools/select/MarkComposer';
@@ -166,13 +167,14 @@ function ScriptWorkspace({
   const lineOf = useCallback(
     (spot: { chapterId: string; paragraphId: string }): string => {
       const chapter = chapterById.get(spot.chapterId);
-      const n = (paragraphs.paragraphsOf(spot.chapterId) ?? []).findIndex((row) => row.id === spot.paragraphId);
+      // A chapter not read yet (a whole-book search finds text there) still lists its paragraph ids.
+      const ids = paragraphs.paragraphsOf(spot.chapterId) ?? chapter?.paragraphIds ?? [];
+      const n = ids.findIndex((row) => row.id === spot.paragraphId);
       return [chapter ? chapterName(chapter, 'short') : '', n >= 0 ? `¶ ${n + 1}` : ''].filter(Boolean).join(' · ');
     },
     [chapterById, paragraphs],
   );
   const lineText = useCallback<LineText>((b) => paragraphs.paragraphsOf(b.chapterId)?.find((row) => row.id === b.paragraphId)?.text, [paragraphs]);
-  const lines = useCallback(() => paragraphs.all.map((row) => ({ chapterId: row.chapterId, id: row.id, index: row.index, text: row.text })), [paragraphs.all]);
   const named = useMemo(() => chapters.map((chapter) => ({ id: chapter.id, name: headingName(chapter) })), [chapters]);
 
   /* ---------- Showing things ---------- */
@@ -358,11 +360,12 @@ function ScriptWorkspace({
     [entries.entries, update, openRailIfDrawer],
   );
   // The registry reads the match count when the menu opens or F3 is pressed, so it is a ref, not a dependency that registers the page again.
-  const matchesRef = useRef(0);
+  const findCountRef = useRef<FindCount>({ steps: 0, total: 0, searching: false });
+  const searchBook = useManuscriptSearch();
   useScriptRegistry({
-    lines,
+    search: searchBook,
     locationOf: lineOf,
-    matchCount: () => matchesRef.current,
+    findCount: () => findCountRef.current,
     kinds,
     currentChapterId: () => inViewRef.current,
     stops,
@@ -392,14 +395,22 @@ function ScriptWorkspace({
   /* ---------- Find ---------- */
 
   const [findState] = useScriptView((state) => state.find);
-  const matches = useMemo<FindMatch[]>(
-    () => (findState.open ? searchManuscript(paragraphs.all, findState.q) : []),
-    [findState.open, findState.q, paragraphs.all],
-  );
-  matchesRef.current = matches.length;
+  // The whole book's matches from the host (#2775): the answer the jump menu's rows came from, so a row opens Find at its own match.
+  const bookFind = useBookFind(findState.open, findState.q, searchBook);
+  const matches = bookFind.matches;
+  findCountRef.current = { steps: matches.length, total: bookFind.total, searching: bookFind.status === 'searching' };
+  // A screen reader hears where the search stands when its answer arrives and at each step.
+  const findSaid = findState.open && bookFind.status !== 'searching' ? findWhere(findCountRef.current, findState.i, findState.q) : '';
+  const lastSaid = useRef('');
+  useEffect(() => {
+    if (findSaid) overlay.announce(findSaid);
+    // Closing the search takes back what was said about it, unless something else has been said since.
+    else if (lastSaid.current && overlay.getSnapshot().announcement === lastSaid.current) overlay.announce('');
+    lastSaid.current = findSaid;
+  }, [findSaid]);
   const readerFind = useMemo(
-    () => (findState.open ? { matches, current: Math.min(findState.i, matches.length - 1) } : null),
-    [findState.open, findState.i, matches],
+    () => (findState.open ? { matches, current: Math.min(findState.i, matches.length - 1), request: findState.asked ?? 0 } : null),
+    [findState.open, findState.i, findState.asked, matches],
   );
 
   /* ---------- The reader's slots ---------- */

@@ -74,7 +74,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 152
+const hostAPIVersion = 154
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1924,15 +1924,6 @@ var fieldSchemas = map[string][]fieldSchema{
 	// generic Settings fields form: KeyboardPanel reads and writes it. saveSettings caps its size and keeps it
 	// global-only.
 	"Keymap": {{"overrides", "Keyboard shortcut overrides", "text", nil}},
-	// ReadAloud.record_in_reaper and record_confirmed are the Record-in-REAPER toggle's own memory: whether the narrator turned recording
-	// on for this project, and whether they have already seen the first-time confirm naming the track and what Play
-	// and Stop do. Project scope only (saveSettings below), because a global memory
-	// would carry the choice into a project with no REAPER link. Like Keymap, no Settings category names this tool,
-	// so it stays off the generic Settings page; the read-aloud control bar's own toggle is where a narrator sets it.
-	"ReadAloud": {
-		{"record_in_reaper", "Record in REAPER", "bool", nil},
-		{"record_confirmed", "Seen the Record in REAPER confirm", "bool", nil},
-	},
 	// Cleanup is the silence cleanup analyzer's own thresholds: measure.CleanupOptions field for field, read by cleanupSettings
 	// (cleanup_settings.go) and passed to measure.DiagnosticInput.Cleanup when a diagnostics check runs. Every key has
 	// a config/defaults.json entry mirroring measure.DefaultCleanupOptions, so an untouched store already answers the
@@ -2034,9 +2025,6 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	}
 	if tool == "Keymap" && scope != "global" {
 		return fmt.Errorf("keymap overrides are global: a narrator's pedal belongs to the booth, not the project")
-	}
-	if tool == "ReadAloud" && scope != "project" {
-		return fmt.Errorf("record in REAPER is a per-project choice: open a project to change it")
 	}
 	if tool == "General" && scope != "global" {
 		if _, ok := values["debug_logging"]; ok {

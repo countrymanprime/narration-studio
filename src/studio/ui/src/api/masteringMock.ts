@@ -15,6 +15,7 @@ const ROWS: MockRow[] = [
     label: 'Built-in chain (EQ, limiter, gain)',
     modes: ['wav'],
     needsApproval: false,
+    needsMacro: false,
     needs: [],
     support: { level: 'supported', available: true },
     chain: [
@@ -28,6 +29,7 @@ const ROWS: MockRow[] = [
     label: "Your DAW's FX chain",
     modes: ['daw_region'],
     needsApproval: true,
+    needsMacro: false,
     needs: ['render_with_fx', 'master_chain_read'],
     support: { level: 'experimental', available: true },
     chain: [],
@@ -37,6 +39,7 @@ const ROWS: MockRow[] = [
     label: "Audacity's effect macro",
     modes: ['wav'],
     needsApproval: true,
+    needsMacro: true,
     needs: ['macro_render'],
     support: { level: 'experimental', available: true },
     chain: [],

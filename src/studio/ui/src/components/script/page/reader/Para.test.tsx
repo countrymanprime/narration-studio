@@ -102,6 +102,15 @@ describe('Para', () => {
       expect(current.className).toContain('ring-2');
     });
 
+    it('draws the current Find match in another hue than the others, as the mock does (.a-find-cur: warn fill and outline)', () => {
+      const { container } = render(<Para paragraph={para} layers={[]} find={[at('Mina'), at('along')]} findCurrent={1} />);
+      const [first, current] = [...container.querySelectorAll<HTMLElement>('mark[data-kind="search"]')];
+      expect(current.style.background).toBe('var(--warn-soft)');
+      expect(current.className).toContain('ring-[var(--warn)]');
+      expect(first.style.background).not.toBe('var(--warn-soft)');
+      expect(first.className).not.toContain('ring-[var(--warn)]');
+    });
+
     it('draws a suggested speaker dashed in its colour and an unknown one dashed and neutral', () => {
       const { container } = render(
         <Para

@@ -2,7 +2,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import { createSearchRegistry } from '../../../../registries/search';
-import { manuscriptSource, marksSource, type ManuscriptLine } from './searchSources';
+import type { ManuscriptSearchHit, ManuscriptSearchResult } from '../../../../api/contracts/manuscript';
+import { bookMatches } from '../tools/find/searchManuscript';
+import { bookSource, manuscriptSource, marksSource, type ManuscriptLine } from './searchSources';
 
 const line = (index: number, text: string): ManuscriptLine => ({ chapterId: 'c1', id: `p${index}`, index, text });
 const types: MarkType[] = [{ key: 'tone', name: 'Tone', colour: 'copper', style: 'underline', asks: false }];
@@ -70,5 +72,84 @@ describe('search-sources', () => {
     expect(source).not.toHaveBeenCalled();
     registry.searchAll('al');
     expect(source).toHaveBeenCalledWith('al');
+  });
+});
+
+describe('the book source (#2775)', () => {
+  const hit = (paragraphId: string, excerpt: string, matches: [number, number][]): ManuscriptSearchHit => ({
+    chapter: 'One',
+    chapterId: paragraphId.startsWith('q') ? 'c2' : 'c1',
+    paragraph: 0,
+    paragraphId,
+    excerpt,
+    matches: matches.map(([start, end]) => ({ start, end })),
+  });
+  const answer = (hits: ManuscriptSearchHit[], total?: number): ManuscriptSearchResult => {
+    const sent = hits.reduce((n, row) => n + row.matches.length, 0);
+    return { hits, total: total ?? sent, truncated: (total ?? sent) > sent };
+  };
+  const source = (result: ManuscriptSearchResult, onFind = vi.fn()) =>
+    bookSource({ search: () => Promise.resolve(result), locationOf: (spot) => `${spot.chapterId} · ${spot.paragraphId}`, onFind });
+
+  it('lists one row per match in book order, a paragraph’s several matches in their order, and row n opens Find at match n', async () => {
+    const onFind = vi.fn();
+    const hits = await source(
+      answer([
+        hit('p1', 'rabbit and rabbit', [
+          [0, 6],
+          [11, 17],
+        ]),
+        hit('q1', 'one rabbit', [[4, 10]]),
+      ]),
+      onFind,
+    )('rabbit', new AbortController().signal);
+    expect(hits.map((row) => [row.sub, row.snippet?.pre, row.snippet?.hit])).toEqual([
+      ['c1 · p1', '', 'rabbit'],
+      ['c1 · p1', 'rabbit and ', 'rabbit'],
+      ['c2 · q1', 'one ', 'rabbit'],
+    ]);
+    hits[1]!.run();
+    expect(onFind).toHaveBeenCalledWith('rabbit', 1);
+    // The same list Find marks: bookMatches gives match 1 the second match of the first paragraph.
+    expect(
+      bookMatches(
+        answer([
+          hit('p1', 'rabbit and rabbit', [
+            [0, 6],
+            [11, 17],
+          ]),
+        ]),
+      )[1],
+    ).toMatchObject({ paragraphId: 'p1', chapterId: 'c1', start: 11, end: 17 });
+  });
+
+  it('cuts a window around a match in a long paragraph, so a row never carries the whole paragraph', async () => {
+    const excerpt = `${'a '.repeat(200)}needle${' b'.repeat(200)}`;
+    const [row] = await source(answer([hit('p1', excerpt, [[400, 406]])]))('needle', new AbortController().signal);
+    expect(row!.snippet!.pre.startsWith('…')).toBe(true);
+    expect(row!.snippet!.post.endsWith('…')).toBe(true);
+    expect(row!.title.length).toBeLessThan(90);
+  });
+
+  it('says the exact number of the rest, from the host’s total, even past the matches it sent', async () => {
+    const many = Array.from({ length: 60 }, (_, i) => hit(`p${i}`, 'a rabbit', [[2, 8]]));
+    const onFind = vi.fn();
+    const rows = await source(answer(many, 4210), onFind)('rabbit', new AbortController().signal);
+    expect(rows).toHaveLength(51);
+    expect(rows[50]!.title).toBe('4160 more matches. Show them in the script.');
+    rows[50]!.run();
+    expect(onFind).toHaveBeenCalledWith('rabbit', 50);
+    const one = await source(answer(many.slice(0, 51)))('rabbit', new AbortController().signal);
+    expect(one[50]!.title).toBe('1 more match. Show them in the script.');
+  });
+
+  it('answers no rows when the book has no match, and passes a refusal on', async () => {
+    expect(await source(answer([]))('zzz', new AbortController().signal)).toEqual([]);
+    const refused = bookSource({
+      search: () => Promise.reject(new Error('the search term is longer than 500 characters')),
+      locationOf: () => '',
+      onFind: () => {},
+    });
+    await expect(refused('x'.repeat(10_000), new AbortController().signal)).rejects.toThrow('longer than 500');
   });
 });
