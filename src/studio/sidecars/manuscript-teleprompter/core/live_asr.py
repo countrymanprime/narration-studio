@@ -744,6 +744,20 @@ def _load_confirmer(args):
     return Confirmer(load)
 
 
+def _guarded(call, *arguments):
+    """Run a confirmation-pass call; whatever it raises is logged and dropped, because the pass never stops the live read."""
+    try:
+        return call(*arguments)
+    except Exception as error:  # noqa: BLE001 - the confirmation pass is optional, the live session is not
+        log(f"The confirmation pass failed: {type(error).__name__}: {error}")
+        return None
+
+
+def _checks(confirmer, which: str) -> list[dict]:
+    """The finished checks of `confirmer` (`poll` or `finish`), none when asking fails."""
+    return _guarded(getattr(confirmer, which)) or [] if confirmer else []
+
+
 def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], confirmer=None) -> None:
     """Stream engine events (with --clock, and a clock line per chunk and before each event) to stdout until the input
     ends or Ctrl+C. With a `confirmer`, each closed segment is rechecked on its own thread and the result printed as a
@@ -770,9 +784,8 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], confirmer=None
                         clock.pause() if paused else clock.resume()
                 if args.clock:
                     _emit({"type": "clock", "t": clock.now()})
-                if confirmer:
-                    for check in confirmer.poll():
-                        _emit(check)
+                for check in _checks(confirmer, "poll"):
+                    _emit(check)
 
             chunks = gated(ticking(chunks, clock, on_tick), lambda: clock.paused)
         if confirmer:
@@ -782,8 +795,8 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], confirmer=None
                 _emit({"type": "clock", "t": clock.now(), "event": True})
             _emit(event)
             if confirmer:
-                confirmer.observe(event)
-                for check in confirmer.poll():
+                _guarded(confirmer.observe, event)
+                for check in _checks(confirmer, "poll"):
                     _emit(check)
             if args.timing and capture_started is not None:
                 lag = event_lag_seconds(event, clock.now())
@@ -793,9 +806,9 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], confirmer=None
         log("Stopped.")
     finally:
         if confirmer:
-            for check in confirmer.finish():
+            for check in _checks(confirmer, "finish"):
                 _emit(check)
-            confirmer.close()
+            _guarded(confirmer.close)
 
 
 # What --meter cannot be combined with: it opens a microphone and reports its level, nothing else.
