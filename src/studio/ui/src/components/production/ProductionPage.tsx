@@ -482,7 +482,6 @@ export function ProductionPage({
                   series={recordedSeries(log, start)}
                   onOpenSchedule={() => go('/schedule')}
                   fill
-                  noteBelow
                 />
               </div>
             </div>

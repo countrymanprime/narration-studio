@@ -16,6 +16,8 @@ const GAP = 8;
 const PAD = 3;
 /** The step, in px, a label slides along its row when no side beside the point is clear. */
 const SLIDE = 4;
+/** The farthest, in px, a slid label's nearer end may be from its point: past it the label would read as belonging to something else. */
+const MAX_SLIDE = 40;
 
 export const textWidth = (text: string): number => Math.ceil(text.length * CHAR_PX);
 
@@ -70,7 +72,7 @@ export const keepInside = (p: Placement, text: string, b: Bounds): Placement => 
 
 /**
  * Puts `text` beside `at`, on the first of `prefer` whose box fits inside `bounds` and crosses no segment of `lines` and no rectangle of `taken`.
- * When every side is crossed it slides along the row above or below the point to the nearest clear spot, and failing that takes the side that crosses fewest (the earlier preferred side on a tie); when none fits inside the bounds it
+ * When every side is crossed it slides along the rows above or below the point (a short way) to the nearest clear spot, and failing that takes the side that crosses fewest (the earlier preferred side on a tie); when none fits inside the bounds it
  * moves the first preferred side in.
  */
 export function placeLabel(text: string, at: { x: number; y: number }, bounds: Bounds, lines: Seg[], taken: Rect[], prefer: Side[]): Placement {
@@ -86,12 +88,14 @@ export function placeLabel(text: string, at: { x: number; y: number }, bounds: B
   // No preferred side is clear (a line close to the point on both): slide the label along the row above or below the point to the nearest clear spot.
   const w = textWidth(text);
   const slid: Placement[] = [];
-  for (const dy of [-GAP, GAP + ASCENT - 2]) {
-    for (let x1 = bounds.left; x1 + w <= bounds.right; x1 += SLIDE) slid.push({ x: x1, y: at.y + dy, anchor: 'start' });
+  for (let k = 0; k <= 7; k++) {
+    for (const dy of [-GAP - 8 * k, GAP + ASCENT - 2 + 8 * k]) {
+      for (let x1 = bounds.left; x1 + w <= bounds.right; x1 += SLIDE) slid.push({ x: x1, y: at.y + dy, anchor: 'start' });
+    }
   }
   const away = (p: Placement): number => Math.abs(p.x + w / 2 - at.x) + Math.abs(p.y - at.y);
   const clear = slid
-    .filter((p) => inside(labelRect(p, text), bounds))
+    .filter((p) => inside(labelRect(p, text), bounds) && at.x >= p.x - MAX_SLIDE && at.x <= p.x + w + MAX_SLIDE)
     .sort((a, b) => away(a) - away(b))
     .find((p) => {
       const r = labelRect(p, text);

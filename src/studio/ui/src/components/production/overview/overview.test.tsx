@@ -257,9 +257,11 @@ describe('ProgressChart', () => {
     const dot = container.querySelector('[data-marker="today"]') as SVGCircleElement;
     const label = screen.getByText('today');
     const [x, y, cx, cy] = [label.getAttribute('x'), label.getAttribute('y'), dot.getAttribute('cx'), dot.getAttribute('cy')].map(Number);
-    // Left of the dot and above it (recording ahead of the plan), or right of it and below (behind it, or no room on the left).
-    if (label.getAttribute('text-anchor') === 'end') expect([x < cx, y < cy]).toEqual([true, true]);
-    else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
+    // Beside the dot, never on it, and close enough to read as its label.
+    const w = 32;
+    const [x1, x2] = label.getAttribute('text-anchor') === 'end' ? [x - w, x] : [x, x + w];
+    expect(x2 < cx - 5 || x1 > cx + 5 || y < cy - 8 || y > cy + 8).toBe(true);
+    expect(Math.abs((x1 + x2) / 2 - cx)).toBeLessThanOrEqual(64);
   });
 
   it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts no part of the label on the due line', () => {

@@ -1,17 +1,25 @@
 // @vitest-environment jsdom
 // The chart's labels sit clear of its lines and inside the card (follow-up to #1896; issue 1942).
 import { cleanup, render } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { addDays } from '../../schedule/dates';
 import { labelRect } from './chartLabels';
 import { ProgressChart } from './ProgressChart';
 import { MID_BOOK, NO_TAKE_LOG, STORY_TODAY, overviewFor } from './overviewFixtures';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+/** The card's width: the sweep runs on a wide card, where a clear side exists, and the cramped 280 px one keeps every label inside. */
+const atWidth = (px: number) => vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(px);
 
 const draw = (due: Date | null, recordedHours = 0.1) => {
   const o = overviewFor(MID_BOOK, due);
-  return render(<ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={due} recordedHours={recordedHours} series={o.series} noteBelow />);
+  return render(
+    <ProgressChart k={o.k} wph={9300} start={addDays(o.start, -14)} today={STORY_TODAY} due={due} recordedHours={recordedHours} series={o.series} />,
+  );
 };
 
 const rectOf = (t: Element) =>
@@ -34,6 +42,7 @@ const DUES: Array<[string, Date]> = [
 describe('ProgressChart labels clear the lines', () => {
   for (const [name, due] of DUES) {
     it(`never crosses the due line with "today" or "done" when the due date is ${name}`, () => {
+      atWidth(520);
       const { container } = draw(due);
       const dueX = Number(container.querySelector('[data-line="due"]')!.getAttribute('x1'));
       for (const re of [/^today$/, /^done /]) {
@@ -65,6 +74,7 @@ describe('ProgressChart labels and the plan and estimate lines', () => {
   });
   for (const [name, due] of DUES) {
     it(`leaves the plan and estimate lines clear of today and done when the due date is ${name}`, () => {
+      atWidth(520);
       const { container } = draw(due);
       const lines = ['plan', 'projection']
         .map((l) => container.querySelector(`[data-line="${l}"]`))
@@ -89,7 +99,7 @@ describe('ProgressChart unmeasured-days note', () => {
   it('is a caption under the plot, outside the drawing, so no line can strike it', () => {
     const o = overviewFor(MID_BOOK, addDays(STORY_TODAY, 60), NO_TAKE_LOG);
     const { container } = render(
-      <ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={addDays(STORY_TODAY, 60)} recordedHours={0} series={o.series} noteBelow />,
+      <ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={addDays(STORY_TODAY, 60)} recordedHours={0} series={o.series} />,
     );
     const note = container.querySelector('[data-chart-note]')!;
     expect(note.textContent).toBe('Recorded days not measured yet');

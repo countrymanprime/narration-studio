@@ -42,6 +42,6 @@ const dueAt = (d: Date) => {
   const f = overviewFor(MID_BOOK, d);
   return { k: f.k, due: f.kpi.due };
 };
-export const DueTomorrow: Story = { args: { ...dueAt(new Date(STORY_TODAY.getTime() + 86_400_000)), noteBelow: true } };
-export const DueToday: Story = { args: { ...dueAt(STORY_TODAY), noteBelow: true } };
-export const DueYear9999: Story = { args: { ...dueAt(new Date(9999, 11, 31)), noteBelow: true } };
+export const DueTomorrow: Story = { args: { ...dueAt(new Date(STORY_TODAY.getTime() + 86_400_000)) } };
+export const DueToday: Story = { args: { ...dueAt(STORY_TODAY) } };
+export const DueYear9999: Story = { args: { ...dueAt(new Date(9999, 11, 31)) } };

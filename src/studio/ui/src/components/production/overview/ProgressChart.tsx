@@ -13,6 +13,8 @@ const DAY = 86_400_000;
 // The axis labels ("3h", right-aligned 6 px before the plot) start about as far in from the card's content edge as the plot ends before its
 // right edge, and the plot starts 6 px under the card's body padding, so no empty band sits under the header (alignment audit XSH-16).
 const PAD = { left: 28, right: 12, top: 6, bottom: 28 };
+/** A band of the card's colour round a label, so a line that still passes behind it does not strike it through. */
+const HALO = { stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' } as const;
 const MONO = 'IBM Plex Mono, monospace';
 /** One character of the axis font at 11 px. */
 const MONO_PX = 6.6;
@@ -37,9 +39,6 @@ type Props = {
   fill?: boolean;
   /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
   title?: string;
-  /** Says "Recorded days not measured yet" as a caption under the plot instead of inside it, where a narrow card puts it on a gridline and under
-   * the "today" label (Production's 360 px card; alignment audit R4TA-2). */
-  noteBelow?: boolean;
   /** Draws the header's "Open schedule" calendar button (Production's panel, the mock's `side-chart`); the Schedule page is already there and passes nothing. */
   onOpenSchedule?: () => void;
 };
@@ -56,7 +55,6 @@ export function ProgressChart({
   height: minHeight = 200,
   fill = false,
   title = 'Recorded vs plan',
-  noteBelow = false,
   onOpenSchedule,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
@@ -185,7 +183,7 @@ export function ProgressChart({
               <>
                 <line x1={x(due)} x2={x(due)} y1={PAD.top} y2={height - PAD.bottom} stroke="var(--danger)" strokeDasharray="2 4" data-line="due" />
                 {dueLabel && (
-                  <text x={dueLabel.x} y={dueLabel.y} textAnchor={dueLabel.anchor} fontSize="11" fill="var(--danger-text)">
+                  <text x={dueLabel.x} y={dueLabel.y} textAnchor={dueLabel.anchor} fontSize="11" fill="var(--danger-text)" {...HALO}>
                     {dueText}
                   </text>
                 )}
@@ -213,10 +211,6 @@ export function ProgressChart({
                 points={actual.map((p) => `${x(addDays(start, p[0]))},${y(p[1])}`).join(' ')}
               />
             )}
-            {/* Mid-height at the left, clear of the "done" label at the top right and the "today" marker at the bottom. */}
-            {!series.ok && !noteBelow && (
-              <text x={PAD.left + 8} y={(PAD.top + y(0)) / 2} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>
-            )}
             <line
               x1={x(today)}
               y1={y(recordedHours)}
@@ -230,15 +224,15 @@ export function ProgressChart({
             />
             <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
             {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
-            <text x={todayLabel.x} y={todayLabel.y} textAnchor={todayLabel.anchor} fontSize="11" fill="var(--text)">
+            <text x={todayLabel.x} y={todayLabel.y} textAnchor={todayLabel.anchor} fontSize="11" fill="var(--text)" {...HALO}>
               today
             </text>
-            <text x={doneLabel.x} y={doneLabel.y} textAnchor={doneLabel.anchor} fontSize="11" fill="var(--text)">
+            <text x={doneLabel.x} y={doneLabel.y} textAnchor={doneLabel.anchor} fontSize="11" fill="var(--text)" {...HALO}>
               {doneText}
             </text>
           </svg>
         </div>
-        {!series.ok && noteBelow && (
+        {!series.ok && (
           <p className="mt-1 flex-none text-[0.75rem] text-[var(--text-muted)]" data-chart-note>
             {/* With no due date the plan line is missing; the "?" in the header says what draws it (XSH-18). */}
             {`Recorded days ${NOT_MEASURED}`}
