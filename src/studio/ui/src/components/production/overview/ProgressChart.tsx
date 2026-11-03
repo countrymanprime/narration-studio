@@ -3,7 +3,7 @@ import { HelpButton } from '../../primitives/HelpButton';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import type { Measured } from '../../../api/schemas/base';
-import { addDays, diffDays, fmtD } from '../../schedule/dates';
+import { addDays, diffDays, fmtD, fmtDY } from '../../schedule/dates';
 import type { Calc } from '../../schedule/progress';
 import { NOT_MEASURED } from '../measured/measured.selectors';
 import { keepInside, labelRect, placeLabel, type Bounds, type Placement, type Seg, type Side } from './chartLabels';
@@ -15,6 +15,7 @@ const DAY = 86_400_000;
 const PAD = { left: 28, right: 12, top: 6, bottom: 28 };
 /** A band of the card's colour round a label, so a line that still passes behind it does not strike it through. */
 const HALO = { stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' } as const;
+const monthYear = (d: Date): string => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 const MONO = 'IBM Plex Mono, monospace';
 /** One character of the axis font at 11 px. */
 const MONO_PX = 6.6;
@@ -89,6 +90,8 @@ export function ProgressChart({
   const pxPerDay = (width - PAD.left - PAD.right) / span;
   const step = Math.max(7, Math.ceil(TICK_GAP / pxPerDay / 7) * 7);
   for (let d = 0; d <= span; d += step) weeks.push(d);
+  /* Over about a year the same month would label two ticks: name the year instead of the day. */
+  const longSpan = span > 330;
   const planDays = due ? diffDays(due, start) : 0;
   const aheadOfPlan = planDays > 0 && y(recordedHours) < y((finishedHours * nowDay) / planDays);
   /* Each label goes beside its point on a side no line or other label crosses (chartLabels.ts): the due label first, where it is, then "today", then the estimated finish. */
@@ -102,7 +105,8 @@ export function ProgressChart({
   for (let i = 1; i < actual.length; i++) {
     lines.push({ x1: x(addDays(start, actual[i - 1][0])), y1: y(actual[i - 1][1]), x2: x(addDays(start, actual[i][0])), y2: y(actual[i][1]) });
   }
-  const dueText = due ? `due ${fmtD(due)}` : '';
+  // A date in another year says so, so a due date years away is not read as this year's.
+  const dueText = due ? `due ${fmtDY(due, today)}` : '';
   const dueLabel: Placement | null = due
     ? keepInside({ x: x(due) + (x(due) < 96 ? 4 : -4), y: PAD.top + 10, anchor: x(due) < 96 ? 'start' : 'end' }, dueText, bounds)
     : null;
@@ -160,7 +164,7 @@ export function ProgressChart({
               </g>
             ))}
             {weeks.map((d) => {
-              const text = fmtD(addDays(start, d));
+              const text = longSpan ? monthYear(addDays(start, d)) : fmtD(addDays(start, d));
               // The last date would run past the card's edge centred on its tick, so it ends at the edge instead.
               const edge = width - 2;
               const half = (text.length * MONO_PX) / 2;

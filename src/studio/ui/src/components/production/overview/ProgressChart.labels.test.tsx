@@ -136,3 +136,19 @@ describe('ProgressChart date axis', () => {
     }
   });
 });
+
+describe('ProgressChart dates years away', () => {
+  it('names the year of a due date in another year, and the axis names months and years over a long span', () => {
+    atWidth(520);
+    const { container } = draw(new Date(2031, 5, 15));
+    expect(labelled(container, /^due /).textContent).toBe('due Jun 15, 2031');
+    const ticks = [...container.querySelectorAll('text')].filter((t) => /^[A-Z][a-z]{2} \d{4}$/.test(t.textContent ?? ''));
+    expect(ticks.length).toBeGreaterThan(2);
+    expect(new Set(ticks.map((t) => t.textContent)).size).toBe(ticks.length);
+  });
+
+  it('keeps the day-and-month axis for a plan of a few weeks', () => {
+    const { container } = draw(addDays(STORY_TODAY, 20));
+    expect(labelled(container, /^due /).textContent).toMatch(/^due [A-Z][a-z]{2} \d{1,2}$/);
+  });
+});
