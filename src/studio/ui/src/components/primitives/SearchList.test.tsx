@@ -50,6 +50,9 @@ describe('SearchList', () => {
     expect(onPick).toHaveBeenCalledWith('White Rabbit');
     fireEvent.change(box, { target: { value: 'zzz' } });
     expect(screen.getByText('No voice matches.')).toBeTruthy();
+    // With no list drawn, the box names no list and says it is collapsed (an aria-controls to a missing id is invalid ARIA).
+    expect(box.getAttribute('aria-controls')).toBeNull();
+    expect(box.getAttribute('aria-expanded')).toBe('false');
     onPick.mockClear();
     fireEvent.keyDown(box, { key: 'Enter' });
     expect(onPick).not.toHaveBeenCalled();

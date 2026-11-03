@@ -65,8 +65,9 @@ export function SearchList({
         onKeyDown={onKeyDown}
         combobox={{
           role: 'combobox',
-          'aria-controls': id,
-          'aria-expanded': true,
+          // With no match the list is not drawn (its empty sentence is), so the box names no list and says it is collapsed.
+          'aria-controls': options.length > 0 ? id : undefined,
+          'aria-expanded': options.length > 0,
           'aria-activedescendant': activeOption ? listboxOptionId(id, activeOption.id) : undefined,
         }}
       />
