@@ -11,7 +11,7 @@ import type { BoothVoices } from './useBoothVoices';
 
 const keyLabel = (voice: Voice) => (voice.key ? `Num ${voice.key}` : '');
 /** A track REAPER holds with a blank name is still a voice: it is named so the row and the control say something. */
-export const voiceName = (voice: Voice) => voice.name.trim() || 'Unnamed track';
+const voiceName = (voice: Voice) => voice.name.trim() || 'Unnamed track';
 
 /** The mock's arm dot: drawn only when REAPER reports the voice armed. */
 function ArmDot() {
