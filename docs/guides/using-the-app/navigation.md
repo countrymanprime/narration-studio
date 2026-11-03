@@ -320,9 +320,12 @@ To add a track for a chapter that has none, press the **+** button on its row (*
 named after the chapter after every other track, the chapter is linked to it, and a message says what was made. Nothing else in the
 project changes, the project is not saved, and one Undo in REAPER takes it back. The button is only on a row with no link: a chapter
 whose track is missing keeps Change and Clear. While REAPER records, or when it is closed or not answering, nothing is added and a
-message says why. With [Voice folders](#voice-folders) the button is **Create a folder for this chapter**: REAPER adds a folder named
-after the chapter with one track inside it, **Narrator**, and the chapter is linked to the folder. If the project's last folder was left
-open in REAPER, that folder is closed first, so the new chapter is never nested inside the one before it.
+message says why. Nothing is added either when the chapter is already linked to a track, or when a track or folder already has the
+name the new one would get: link that one with the track list instead. While one track is being added, the other rows' buttons are off.
+If the project's last folder was left open in REAPER, that folder is closed on its last track first, so the new track is never inside
+it. With [Voice folders](#voice-folders) the button is **Create a folder for this chapter**: REAPER adds a folder named
+after the chapter with one track inside it, **Narrator**, and the chapter is linked to the folder. The Booth's and Editing's link dialog
+says **Create a new folder** in a Voice folders project and makes the same folder.
 
 ![Chapter links after Create a track for this chapter: the first chapter linked to its new track, and a message saying it was made](../../images/ui/engine-panel-chapter-track-created.webp)
 
