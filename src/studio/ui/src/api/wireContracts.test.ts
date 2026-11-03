@@ -2359,6 +2359,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(daw.exportPlan({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval: null })).rejects.toThrow(/Retail sample\.wav has no region/);
     await expect(start(daw, { provider: 'daw', macro: '' }, MOCK_EXPORT_ITEMS)).rejects.toThrow(/Retail sample\.wav has no region/);
     await expect(start(daw, null, [{ ...withRegions[1]!, title: '   ' }])).rejects.toThrow(/has no chapter title/);
+    // No character a narrator can see is no title either, and the refusal names the file, not its whole path (qa on #2929).
+    for (const title of ['\u200b', '\u202e', '\u00a0\u3000']) {
+      const refusal = start(daw, null, [{ ...withRegions[1]!, title }]);
+      await expect(refusal).rejects.toThrow('"Chapter 01.wav" has no chapter title');
+      await expect(refusal).rejects.not.toThrow('C:/Users');
+    }
     await expect(start(daw, null)).rejects.toThrow(/Your DAW's FX chain runs only after you approve this render/);
     await expect(start(daw, { provider: 'audacity', macro: 'Loud' })).rejects.toThrow(
       /you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain/,

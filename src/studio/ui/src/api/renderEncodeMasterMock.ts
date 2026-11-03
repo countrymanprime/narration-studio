@@ -321,8 +321,9 @@ export function createRenderEncodeMasterMock(
     const unpicked = req.items.find((item) => !picked.has(item.path));
     if (unpicked !== undefined) throw new Error(`"${unpicked.path}" was not chosen in the file picker; choose the files to export again`);
     const items = req.items.map((item) => ({ ...item, title: item.title.trim() }));
-    const untitled = items.find((item) => item.kind === 'chapter' && item.title === '');
-    if (untitled !== undefined) throw new Error(`"${untitled.path}" has no chapter title`);
+    // export_job.go's hasVisibleRune: a title of spaces, zero-width or direction characters is none; the refusal names the file only.
+    const untitled = items.find((item) => item.kind === 'chapter' && !/[^\s\p{Cf}\p{Cc}]/u.test(item.title));
+    if (untitled !== undefined) throw new Error(`"${baseName(untitled.path)}" has no chapter title`);
     const plan: ExportPlan = {
       master: req.master,
       provider: '',

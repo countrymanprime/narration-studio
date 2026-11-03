@@ -115,6 +115,17 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     expect(exportStart).not.toHaveBeenCalled();
   });
 
+  it('isolates each file and region in its cell, so a direction override in a title cannot reverse its neighbour (qa on #2929)', async () => {
+    await mount('daw');
+    const box = within(rowOf('Chapter 01.wav')).getByRole('textbox');
+    await userEvent.clear(box);
+    await userEvent.type(box, '\u202eOne');
+    await openDialog();
+    const table = within(dialog()).getByRole('table', { name: 'Files and the regions they render' });
+    const row = within(table).getByRole('cell', { name: 'Chapter 01.wav' }).closest('tr, [role="row"]') as HTMLElement;
+    for (const cell of within(row).getAllByRole('cell')) expect(cell.querySelector('bdi')).not.toBeNull();
+  });
+
   it('cancel sends nothing, and the next press asks again', async () => {
     const { exportStart } = await mount('daw');
     const button = screen.getByRole('button', { name: 'Master & encode' });

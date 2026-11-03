@@ -270,3 +270,26 @@ func TestMacroNameRuleGoldenIsCurrent(t *testing.T) {
 	}
 	contractfile.Check(t, "macro-names", map[string]any{"names": verdicts})
 }
+
+// A title with no character a narrator can see (a zero-width space, a direction mark, an override) is no title: refused like an
+// empty one by the plan and the start, and the refusal names the file, not its whole path (qa on #2929).
+func TestATitleWithNoVisibleCharacterIsRefusedNamingTheFile(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "Chapter 01.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, masteringport.Builtin, source)
+	for _, title := range []string{"\u200b", "\u200b \u200b", "\u202e", "\u00a0\u3000", "\u2066\u2069"} {
+		req := ExportRequest{Master: true, Items: []ExportItem{{Kind: string(packager.KindChapter), Title: title, Path: source}}}
+		for name, call := range map[string]func() error{
+			"plan":  func() error { _, err := host.exportPlan(req); return err },
+			"start": func() error { _, err := host.startExport(req); return err },
+		} {
+			err := call()
+			if err == nil || !strings.Contains(err.Error(), `"Chapter 01.wav" has no chapter title`) || strings.Contains(err.Error(), filepath.Dir(source)) {
+				t.Fatalf("%s with title %q: err = %v, want a refusal naming only the file", name, title, err)
+			}
+		}
+	}
+	if _, err := host.exportPlan(ExportRequest{Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "\u200bChapter 1", Path: source}}}); err != nil {
+		t.Fatalf("a title with visible characters was refused: %v", err)
+	}
+}

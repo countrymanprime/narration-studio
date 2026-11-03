@@ -76,8 +76,15 @@ export function MasteringApprovalDialog({
           <TableBody>
             {plan.items.map((item) => (
               <TableRow key={item.path}>
-                <TableCell className="break-words">{fileName(item.path)}</TableCell>
-                {regions && <TableCell className="break-words">{item.region}</TableCell>}
+                {/* Each name is isolated, so a direction override in a title cannot reorder the cell beside it. */}
+                <TableCell className="break-words">
+                  <bdi>{fileName(item.path)}</bdi>
+                </TableCell>
+                {regions && (
+                  <TableCell className="break-words">
+                    <bdi>{item.region}</bdi>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
