@@ -188,12 +188,17 @@ function ChapterLinkRow({
               <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} pending={busy} onClick={() => onConfirm(chosen)}>
                 Confirm
               </Button>
-              {hasLink && <IconButton action="cancelEdit" disabled={busy} onClick={() => setPicking(false)} />}
+              {hasLink && <IconButton action="cancelEdit" disabledReason={busy ? 'Saving the link' : undefined} onClick={() => setPicking(false)} />}
             </>
           ) : hasLink ? (
             <>
-              <IconButton action="changeTrack" disabled={busy} onClick={() => setPicking(true)} />
-              <IconButton action="clearLink" pending={busy} onClick={onClear} />
+              <IconButton
+                action="changeTrack"
+                label={`Change the track for ${short}`}
+                disabledReason={busy ? 'Saving the link' : undefined}
+                onClick={() => setPicking(true)}
+              />
+              <IconButton action="clearLink" label={`Clear the link for ${short}`} pending={busy} onClick={onClear} />
             </>
           ) : null}
           <Menu render={<IconButton action="moreActions" label={`More actions for ${short}`} />} items={menu}>

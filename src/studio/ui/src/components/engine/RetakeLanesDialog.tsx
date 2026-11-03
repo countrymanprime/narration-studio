@@ -57,7 +57,7 @@ function RetakeRow({
         label={`Play this lane: lane ${lane} for ${line.lineId} on ${line.trackName}`}
         onClick={onPick}
         pending={picking && state.itemGuid === retake.itemGuid}
-        disabled={plays || (picking && state.itemGuid !== retake.itemGuid)}
+        disabledReason={plays ? 'This lane already plays' : picking && state.itemGuid !== retake.itemGuid ? 'Another lane is being set' : undefined}
       />
     </li>
   );

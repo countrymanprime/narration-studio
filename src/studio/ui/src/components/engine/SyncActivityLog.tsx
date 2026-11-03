@@ -46,7 +46,7 @@ export function SyncActivityLog({ notify }: { notify: Notify }) {
               action="undo"
               label={`Undo: ${row.text}`}
               size="xs"
-              disabled={undoingTrackGuid === row.undoTrackGuid}
+              pending={undoingTrackGuid === row.undoTrackGuid}
               onClick={() => void undo(row.undoTrackGuid)}
             />
           ) : (

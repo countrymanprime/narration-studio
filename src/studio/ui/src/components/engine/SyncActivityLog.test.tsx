@@ -32,6 +32,27 @@ describe('SyncActivityLog', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: /^Undo:/ })).toBeNull());
   });
 
+  // qa-breaker B1 (#2836): a native `disabled` Undo dropped keyboard focus to the page while the undo ran.
+  it('keeps focus on Undo and marks it busy while the undo runs', async () => {
+    let finish: () => void = () => {};
+    const api = createMockApi(
+      { chapterSyncUndo: () => new Promise<void>((resolve) => (finish = resolve)).then(() => ({ ok: true }) as never) },
+      { chapterSync: 'activity' },
+    );
+    render(
+      <ApiProvider api={api}>
+        <SyncActivityLog notify={() => {}} />
+      </ApiProvider>,
+    );
+    const button = await screen.findByRole('button', { name: /^Undo:/ });
+    button.focus();
+    fireEvent.click(button);
+    await waitFor(() => expect(button.getAttribute('aria-busy')).toBe('true'));
+    expect(button.hasAttribute('disabled')).toBe(false);
+    expect(document.activeElement).toBe(button);
+    finish();
+  });
+
   it('says so when no sync has run', async () => {
     const base = await createMockApi({}, {}).chapterSyncState();
     const api = createMockApi({ chapterSyncState: async () => ({ ...base, activity: [] }) }, {});
