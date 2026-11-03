@@ -149,6 +149,21 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     expect(sent(exportStart)[0]?.approval).toEqual({ provider: 'audacity', macro: 'Book loudness' });
   });
 
+  it('while the macro name is invalid its error takes the place of the hint, which comes back once the name changes (ux-reviewer)', async () => {
+    await mount('audacity');
+    await openDialog();
+    const macro = within(dialog()).getByRole('textbox', { name: 'Macro' });
+    const hint = /^Its name as Audacity's Macro Manager lists it/;
+    expect(within(dialog()).getByText(hint)).toBeTruthy();
+    await userEvent.type(macro, 'ACX – Master');
+    await pressInDialog('Approve and master');
+    expect(within(dialog()).getByText(/A macro name can hold only/)).toBeTruthy();
+    expect(within(dialog()).queryByText(hint)).toBeNull();
+    await userEvent.type(macro, 'x');
+    expect(within(dialog()).queryByText(/A macro name can hold only/)).toBeNull();
+    expect(within(dialog()).getByText(hint)).toBeTruthy();
+  });
+
   it('a macro name the host refused is not offered again; one it took is (qa B3)', async () => {
     const { api, exportStart } = await mount('audacity');
     exportStart.mockRejectedValueOnce(new Error('invalid value: macro name "Refused one"'));

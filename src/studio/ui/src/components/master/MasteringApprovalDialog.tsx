@@ -93,7 +93,8 @@ export function MasteringApprovalDialog({
               setProblem(undefined);
             }}
             disabled={pending}
-            hint={`Its name as Audacity's Macro Manager lists it: ${MACRO_NAME_CHARACTERS}.`}
+            // While the name is refused its error says the rule, so the hint, which says it too, steps aside until the name changes.
+            hint={problem ? undefined : `Its name as Audacity's Macro Manager lists it: ${MACRO_NAME_CHARACTERS}.`}
             error={problem}
           />
         </div>
