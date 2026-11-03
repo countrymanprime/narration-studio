@@ -1,5 +1,4 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react';
-import type { IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
 import { TooltipTarget } from './Tooltip';
 
@@ -44,26 +43,19 @@ export function SplitMain({ className = '', type = 'button', ...rest }: PartProp
 }
 
 /**
- * A switch between the main action and the side: pressed (`aria-pressed`) it takes the recording colour as an outline. Below the `lg` breakpoint it draws the icon
- * alone (the label stays as the accessible name, `sr-only`) `hint` is its tooltip: what pressing it does, or why it cannot.
+ * A switch between the main action and the side: pressed (`aria-pressed`) it takes the recording colour as an outline; its word is always
+ * drawn (an icon alone left narrators guessing what it did). `hint` is its tooltip: what pressing it does, or why it cannot.
  */
 export function SplitToggle({
   pressed,
-  icon,
-  children,
   hint,
   className = '',
   type = 'button',
   ...rest
-}: Omit<PartProps, 'aria-pressed' | 'title'> & { pressed: boolean; icon: IconName; hint: string }) {
+}: Omit<PartProps, 'aria-pressed' | 'title'> & { pressed: boolean; hint: string }) {
   return (
     <TooltipTarget text={hint}>
-      <button type={type} aria-pressed={pressed} className={`${PART} ${pressed ? TONES.danger : TONES.secondary} ${DISABLED} ${className}`} {...rest}>
-        <span className="contents lg:hidden">
-          <Icon name={icon} />
-        </span>
-        <span className="max-lg:sr-only">{children}</span>
-      </button>
+      <button type={type} aria-pressed={pressed} className={`${PART} ${pressed ? TONES.danger : TONES.secondary} ${DISABLED} ${className}`} {...rest} />
     </TooltipTarget>
   );
 }

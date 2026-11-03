@@ -50,9 +50,9 @@ describe('the voice control', () => {
     render(<Harness onChoose={vi.fn()} current={voices[1]} />);
     const trigger = screen.getByRole('button', { name: /^Voice:/ });
     expect(trigger.querySelector('kbd')).toBeNull();
-    const visible = [...trigger.querySelectorAll('span:not(.sr-only)')].map((node) => node.textContent);
-    expect(visible).toContain('Num 1');
-    expect(trigger.querySelector('.font-mono')?.lastChild?.textContent).toBe('1');
+    // The name reads as words: "Voice: Num 1, Queen".
+    expect(trigger.getAttribute('aria-label') ?? trigger.textContent).toMatch(/^Voice: Num 1, /);
+    expect(trigger.querySelector('.font-mono')?.textContent).toBe('Num 1, ');
   });
 
   it('the search finds a voice by its key, its track or a character it records, and Enter picks it', async () => {

@@ -144,7 +144,7 @@ export function BoothFooter({
             {coldRead ? (
               <SplitToggle
                 id="bcold"
-                icon="microphone"
+
                 pressed={coldRead.on}
                 aria-disabled={coldRead.disabledReason ? true : undefined}
                 hint={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}

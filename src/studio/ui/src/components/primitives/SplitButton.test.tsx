@@ -10,7 +10,7 @@ const drawn = (onMain = vi.fn(), onToggle = vi.fn(), onSide = vi.fn()) =>
   render(
     <SplitButton label="Recording">
       <SplitMain onClick={onMain}>Record</SplitMain>
-      <SplitToggle pressed={false} icon="microphone" hint="Follow your voice" onClick={onToggle}>
+      <SplitToggle pressed={false} hint="Follow your voice" onClick={onToggle}>
         Cold read
       </SplitToggle>
       <SplitSide label="Levels" onClick={onSide} />
@@ -28,11 +28,9 @@ describe('SplitButton', () => {
     expect([main.mock.calls.length, toggle.mock.calls.length, side.mock.calls.length]).toEqual([1, 1, 1]);
   });
 
-  it('keeps the switch name when only its icon is drawn, and reports its pressed state', () => {
+  it('names the switch by its word and reports its pressed state', () => {
     drawn();
-    const toggle = screen.getByRole('button', { name: 'Cold read' });
-    expect(toggle.getAttribute('aria-pressed')).toBe('false');
-    expect(toggle.querySelector('.sr-only, .max-lg\\:sr-only')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Cold read' }).getAttribute('aria-pressed')).toBe('false');
   });
 
   it('forwards its ref and attributes so a Popover can use the side as its trigger', () => {

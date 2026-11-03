@@ -15,6 +15,7 @@ function KeyNumber({ voice }: { voice: Voice }) {
     <span className="flex-none font-mono font-semibold whitespace-nowrap text-[var(--text)]">
       <span className="sr-only">Num </span>
       {voice.key}
+      <span className="sr-only">, </span>
     </span>
   );
 }
@@ -121,7 +122,7 @@ export function VoiceControl({
         <Button id="bvoice" variant="secondary" pending={choosing} title={tip}>
           <span className="flex max-w-[18rem] min-w-0 items-center gap-2 normal-case">
             {/* The name a screen reader says holds what is drawn ("Voice: Num 0 Narrator Armed in REAPER"), so a spoken command finds it. */}
-            <span className="sr-only">Voice:</span>
+            <span className="sr-only">Voice: </span>
             <KeyNumber voice={current} />
             <span className="min-w-0 truncate">
               <SpeakerTag label={voiceName(current)} speakerId={current.characters[0]?.id ?? (current.narrator ? 'narrator' : current.guid)} />
