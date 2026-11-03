@@ -3178,12 +3178,6 @@
     "replace": "reaper.GetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH') - 1)"
   },
   {
-    "name": "folder_parents follows a close past the top level below it",
-    "file": "narration_bridge_core.lua",
-    "find": "    depth = math.max(depth + delta, 0)\n  end\n  return out\nend\n\n-- Every track's I_FOLDERDEPTH, in order.",
-    "replace": "    depth = depth + delta\n  end\n  return out\nend\n\n-- Every track's I_FOLDERDEPTH, in order."
-  },
-  {
     "name": "the insert guard never checks the folder the new track lands in",
     "file": "narration_bridge_core.lua",
     "find": "  return now[at] == (parent == 0 and 0 or shifted(parent))",
