@@ -87,6 +87,8 @@ recorder the project uses (for example "Audacity's own audio device is not used 
 
 **Voice sample storage** (project setting) chooses where a new [voice sample](editing.md#marking-a-voice-sample) is kept: **In the project folder** (the default) copies its audio into the project, **In the DAW** keeps only a region in REAPER's project, named for the character and label, and plays the audio under that region, and **Both** does both. Moving the region in REAPER moves the sample; deleting it ends the sample, and a region REAPER has not saved yet reads as "Not saved in REAPER yet". A recording tool that cannot keep a region (Audacity today) shows the two DAW choices off, with the reason under each.
 
+![Settings - Recording & DAW with REAPER: Voice sample storage with In the project folder, In the DAW and Both, and Both chosen](../../images/ui/settings-sample-storage.webp)
+
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
 project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays

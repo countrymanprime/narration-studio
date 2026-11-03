@@ -285,6 +285,16 @@ export const storybibleDrivers: Record<string, Driver> = {
     await section.getByText('Furious, to the court').waitFor();
     await section.scrollIntoViewIfNeeded();
   },
+  'voice-samples-daw': async (page) => {
+    await openWithSamples(page, 'daw');
+    await entryRows(page).filter({ hasText: 'Queen of Hearts' }).click();
+    const section = samplesSection(page);
+    // A sample kept only in REAPER whose region was deleted, one not saved in REAPER yet, and one kept in both places whose region was moved.
+    await section.getByText('Region removed').waitFor();
+    await section.getByText('Not saved in REAPER yet').waitFor();
+    await section.getByText('Region moved').waitFor();
+    await section.scrollIntoViewIfNeeded();
+  },
   'voice-samples-empty': async (page) => {
     await openWithSamples(page, 'bible');
     // Alice is the entry the page opens on (category-all's picture); the White Rabbit has no sample either, and selecting it moves the detail.
@@ -348,7 +358,7 @@ async function openForEditing(page: Page, name: string): Promise<void> {
 }
 
 /** Boots the mock with voice samples saved (`?mockVoiceSamples=`) and opens the Story Bible. */
-async function openWithSamples(page: Page, seed: 'bible' | 'full'): Promise<void> {
+async function openWithSamples(page: Page, seed: 'bible' | 'full' | 'daw'): Promise<void> {
   await page.goto(`/?mockVoiceSamples=${seed}`);
   await settlePage(page);
   await goToPage(page, 'Story Bible');

@@ -197,6 +197,8 @@ first. **Open in Editing** goes to the sample's chapter.
 
 A sample kept in REAPER ([Voice sample storage](settings.md#recording--daw)) is a region in REAPER's project. If the region is deleted there the row says **Region removed** and the sample has ended; if it is not in the saved project yet, **Not saved in REAPER yet** and it plays once you save in REAPER; a region you moved plays the audio now under it (a sample kept in both places shows **Region moved** and keeps playing its copy).
 
+![Story Bible - the Queen of Hearts with samples kept in REAPER: Not saved in REAPER yet, Region removed and Region moved](../../images/ui/storybible-voice-samples-daw.webp)
+
 The **⋯** menu on a row has **Rename…** (the label and the note) and **Make primary**, and both work on any entry, locked or not. **Move to a
 character…** and **Delete…** appear only after you press **Edit** on the entry, so a stray click cannot remove a sample; unlock a locked
 entry first. Delete asks first and says that the sample's audio is

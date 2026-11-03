@@ -63,7 +63,8 @@ export function VoiceSampleRow({
   const name = sampleName(sample, characterName);
   const chapterThere = sample.source.state !== 'chapter_missing';
   // Marking again is offered only while the words are as they were: otherwise the range would be found in text that moved.
-  const markAgain = sample.source.state === 'ok' && Boolean(onOpenEditing);
+  // A region that is only not saved yet comes back when the project is saved in REAPER: marking again would make a second one.
+  const markAgain = sample.source.state === 'ok' && sample.daw?.state !== 'not_saved' && Boolean(onOpenEditing);
   const items: MenuItem[] = [
     { key: 'rename', label: 'Rename…', onSelect: onRename },
     ...(sample.primary ? [] : [{ key: 'primary', label: 'Make primary', onSelect: onMakePrimary }]),

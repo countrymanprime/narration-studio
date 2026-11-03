@@ -182,6 +182,13 @@ export const storybibleStates: StateEntry[] = [
   },
   {
     page: 'storybible',
+    state: 'voice-samples-daw',
+    description:
+      'Story Bible, the Queen of Hearts with samples kept in REAPER (?mockVoiceSamples=daw): one whose region is in the saved project, Region moved on a sample kept in both places, Region removed and Not saved in REAPER yet on samples kept only in REAPER, which cannot play',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'storybible',
     state: 'voice-samples-empty',
     description: 'Story Bible, an entry with no voice sample: how to mark one and Open Editing (?mockVoiceSamples=bible, White Rabbit)',
     ...KEEPS_DESKTOP_SCROLL,
