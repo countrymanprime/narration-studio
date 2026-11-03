@@ -58,7 +58,6 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapCleanupTools:    cleanupToolsRole{r(dawport.CapCleanupTools)},
 		dawport.CapRetakeLanes:     retakeLanesRole{r(dawport.CapRetakeLanes)},
 		dawport.CapProjectState:    projectStateRole{r(dawport.CapProjectState)},
-		dawport.CapTakeCreate:      takeCreateRole{r(dawport.CapTakeCreate)},
 		dawport.CapHeartbeat:       heartbeatRole{r(dawport.CapHeartbeat)},
 		dawport.CapProjectRead:     projectReadRole{r(dawport.CapProjectRead)},
 		dawport.CapTrackState:      trackStateRole{r(dawport.CapTrackState)},
@@ -209,10 +208,6 @@ func (r retakeLanesRole) PickRetakeLane(string, string, string, dawport.Trace) e
 type projectStateRole struct{ role }
 
 func (r projectStateRole) RequestProjectState(string) error { return r.do("RequestProjectState") }
-
-type takeCreateRole struct{ role }
-
-func (r takeCreateRole) CreateTake(string, string) error { return r.do("CreateTake") }
 
 // heartbeatRole reports a quiet engine with no project: the heartbeat reads, so it has no error to return.
 type heartbeatRole struct{ role }

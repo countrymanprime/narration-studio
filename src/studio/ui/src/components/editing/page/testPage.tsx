@@ -107,7 +107,6 @@ const take = (id: string, label: string, active: boolean) => ({
   id,
   source: 'reaper',
   action: 'activate',
-  confirm: false,
   label,
   detail: '',
   active,
@@ -117,7 +116,6 @@ const take = (id: string, label: string, active: boolean) => ({
   sourceStart: 1,
   sourceLength: 2.4,
   usable: true,
-  compared: false,
 });
 
 /** The first line has two takes; the second has none. */

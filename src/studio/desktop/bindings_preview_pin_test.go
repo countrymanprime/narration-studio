@@ -171,7 +171,7 @@ func TestPreviewPinReportsTextChangedStaleness(t *testing.T) {
 		`{"id":"p-000004","chapterId":"c-0002","index":3,"text":"The old house stood quiet at the end of the lane."},` +
 		`{"id":"p-000005","chapterId":"c-0002","index":4,"text":"Its windows were dark, and nobody had lived there in years."}` +
 		`]}`
-	if err := os.WriteFile(takeReviewManuscriptPath(project), []byte(edited), 0o600); err != nil {
+	if err := os.WriteFile(manuscriptPathIn(project), []byte(edited), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -209,7 +209,7 @@ func TestPreviewPinReportsParagraphMissingStaleness(t *testing.T) {
 		`],"paragraphs":[` +
 		`{"id":"p-999001","chapterId":"c-0001","index":0,"text":"A completely different opening line."}` +
 		`]}`
-	if err := os.WriteFile(takeReviewManuscriptPath(project), []byte(reimported), 0o600); err != nil {
+	if err := os.WriteFile(manuscriptPathIn(project), []byte(reimported), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

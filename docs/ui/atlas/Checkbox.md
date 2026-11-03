@@ -33,7 +33,6 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/production/report/ReportDialog.tsx`
-- `src/components/proof/AuditionDialog.tsx`
 - `src/components/recordingcheck/CheckRecordingsDialog.tsx`
 - `src/components/recordingcheck/RunOptions.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`

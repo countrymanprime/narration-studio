@@ -64,7 +64,6 @@ export type DawCapabilityKey =
   | 'cleanup_tools'
   | 'retake_lanes'
   | 'project_state'
-  | 'take_create'
   | 'heartbeat'
   | 'project_read'
   | 'track_state'
@@ -117,7 +116,6 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'cleanup_tools', label: 'Cleanup tools' },
   { key: 'retake_lanes', label: 'Retake lanes' },
   { key: 'project_state', label: 'Project change check' },
-  { key: 'take_create', label: 'Create takes' },
   { key: 'heartbeat', label: 'Connection status' },
   { key: 'project_read', label: 'Read the saved project' },
   { key: 'track_state', label: 'Read track arm state' },

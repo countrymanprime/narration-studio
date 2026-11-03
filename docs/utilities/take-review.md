@@ -1,90 +1,42 @@
-# Take review
+# Take review (retired)
 
-**Status: Implemented.** The checks on a real chapter and in the owner's REAPER are pending (see [What is still open](#what-is-still-open)).
+**Status: Removed** (2026-11-03, [#2765](https://github.com/countrymanprime/narration-studio/issues/2765) to
+[#2774](https://github.com/countrymanprime/narration-studio/issues/2774)). The owner chose to delete it rather than wire it
+again.
 
-## User problem
+Take review scanned a chapter track, plus one pickup track or stretch of the timeline, for repeated reads, saved each group
+as a finding, compared a group's reads word by word and added a chosen read as a take. No page had started a scan since the
+Proof swap (SN-Q9, 2026-10-12). What went with it:
 
-A narrator records a line more than once: a restart after a stumble, a pickup of part of a line on a pickup track or later
-in the session, an exact copy, a near-identical re-read. Finding the alternates by ear, lining them up against the script,
-listening to them side by side and putting the chosen one in the right item is slow, and a single "best take" score would
-hide why one read is better than another. Take review finds the repeated reads, lets the narrator review them with
-evidence, adds a chosen read as a take, and compares the takes of one part of the script category by category. It never
-makes a take active, moves or deletes audio, or ranks the reads.
+- The ten host bindings: `TakeReviewScanStart`, `TakeReviewScanState`, `TakeReviewScanCancel`, `TakeReviewCreateTake`,
+  `TakeComparisonStart`, `TakeComparisonState`, `TakeComparisonCancel`, `WorkspaceTakesCompareStart`, `FindingsGoToRead`
+  and `FindingsLoopRead`.
+- The host packages `internal/takereview`, `internal/takecompare`, `internal/takedivergence` and `internal/repeats`, and
+  the grouping in `internal/comparerun` (`FindRepeats`).
+- The Transcript Compare sidecar's `--find-repeats` and `--take-divergence` modes.
+- The REAPER bridge's `create_take` command, its `TAKE_CREATED` and `TAKE_STALE` events and the DAW port's `take_create`
+  capability. Editing's [takes](../guides/using-the-app/editing.md#takes) offer the other takes of the item and the other
+  retakes on fixed lanes; they no longer offer a read from another item.
+- The `TakeReview` settings tool and chapter sync's record of which pickup tracks a scan had seen (`pickupsScannedAt`,
+  `pickupsChanged`). A chapter's row still names its pickup track.
 
-## Workflow
+Pickups are recorded in the Booth; a read on a separate pickup track is not grouped with the chapter's reads.
 
-Since the Proof swap (SN-Q9, 2026-10-12) no page starts a scan, lists a group's reads or offers Add as take: the scan
-dialog and the reads list were deleted with the old Proof notes page, and the take suggestion belongs to Editing (DQ-15 in
-the [Studio Next Proof and Pickups PRD](../prds/studio-next-proof-and-pickups.prd.md#decisions)). The host side below is
-unchanged. A pickup read an earlier scan set beside a paragraph is one of that line's
-[takes on Editing](../guides/using-the-app/editing.md#takes), where Keep take makes it the one that plays. The steps the
-host supports:
+## Findings a project already holds
 
-1. The scan (`TakeReviewScanStart`) takes the chapter track and at most one pickup addition, a pickup track or a stretch
-   of the timeline. The scan is a cancellable job with the sidecar's own progress. A track named as the
-   chapter's pickup track ("Chapter 6 (pickups)") is recognised by chapter sync and carried on that chapter's row of
-   `chaptersync:state` (`pickupTrackName`), so a scan can start with it. A finished scan that included
-   the pickup track records it as scanned, and the row's `pickupsChanged` says when the track has changed since, so the
-   scan can be offered again. A pickup track is never the chapter's link: the recording check still reads the chapter
-   track only.
-2. Each group of repeated reads is a finding (category `pickup` or `duplicate_read`) with its reads: range in its own file,
-   whole or partial coverage of the span, match quality, exact-copy flag. Go to and Loop per read in REAPER; Audition two
-   reads from their raw source over `/media`.
-3. Add as take (`TakeReviewCreateTake`) on an accepted group: the target item and the read that becomes the take; REAPER
-   adds it in one undo step, with provenance in the take's extension data.
-4. Take comparison (`TakeComparisonStart`): a `take_comparison` finding that sets the group's reads side by side over the same words, how each
-   read the script and its audio evidence per category.
-5. The narrator makes the chosen take active in REAPER.
+A project scanned before the removal keeps its take-review findings (analyzer `take-review`, categories `pickup` and
+`duplicate_read`) and take comparisons (analyzer `take-comparison`, category `take_comparison`). They are plain findings:
 
-The narrator's flow before SN-Q9 is in the [recording and comping workflow](../workflows/recording-and-comping.md).
+- Proof lists them and the narrator decides them like any other. A group's line says what it was from its own evidence
+  ("Partial pickup: 2 reads of sentences 4–8") and its type is Repeat ([`findingFormat.ts`](../../src/studio/ui/src/components/proof/findingFormat.ts),
+  `findings.DefaultNoteType`). They have no time in their audio, so the In view filter always lists them, and Hear it,
+  Show in the DAW and Add marker are off with that reason. Nothing acts on their reads any more: no list of reads, no
+  audition, no add as take, no comparison panel.
+- An open take-review pickup still counts against the chapter's pickups signal, under the label "Take review", until the
+  narrator decides it ([`internal/proofing/sources.go`](../../src/studio/desktop/internal/proofing/sources.go)). A chapter
+  with none is not told about take review.
+- Editing does not offer their reads as takes.
 
-## How it works
-
-| Step | Code | Decision |
-| --- | --- | --- |
-| Take-aware project model: every take of every item, its GUID, source, `SOFFS`, `PLAYRATE`, `SECTION`; `Project.ItemByGUID` | `src/studio/desktop/internal/tracks` ([Tracks](tracks.md)) | [fingerprint.go](../../src/studio/desktop/internal/evidence/fingerprint.go) (parser superset) |
-| Scan scope (chapter track plus one pickup track or range), manifest, thresholds from project settings | `src/studio/desktop/internal/takereview` (`buildManifest`, `ValidateScope`, `ResolveThresholds`, `ResolvePickupScope`) | Take review |
-| Repeated-span detection: choose the chapter, transcribe each read, align it to the manuscript with the markers' diff, group reads whose spans overlap, flag exact copies by source identity | `src/studio/desktop/internal/takereview` (`ProcessRunner`) and `internal/comparerun` (`Choose`, `FindRepeats`) group the words that `compare.py --find-repeats` transcribes | [repeats.go](../../src/studio/desktop/internal/comparerun/repeats.go) |
-| Groups to findings: `pickup` (`evidence.kind` `restart`, `pickup`, `exact_copy`) or `duplicate_read` (`near_duplicate`), stable ids and evidence versions | `src/studio/desktop/internal/repeats` | |
-| The scan job and per-read navigation (no page calls them since SN-Q9) | `src/studio/desktop/takereview_job.go`, `bindings_navigation.go` | Take review, [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md) |
-| Add as take: `create_take` in REAPER, re-resolving GUIDs, active take and item length untouched, one undo step | `src/studio/integrations/reaper/narration_take_review.lua`, `src/studio/desktop/internal/takereview/createtake.go` | [narration_take_review.lua](../../src/studio/integrations/reaper/narration_take_review.lua) |
-| Audition: two raw-source ranges with pre and post roll, one playing at a time | `src/studio/ui/src/components/proof/AuditionDialog.tsx`, `src/studio/ui/src/components/engine/useRangePlayer.ts` | |
-| Take metrics: clipping, noise, level against neighbours, duration, pause profile, each measured or unavailable with a reason | `src/studio/desktop/internal/measure` (`MeasureTake`, `TakeSourceRange`) | [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go) |
-| Per-take divergence: every span word's status and time, every divergence as words plus seconds | `src/studio/desktop/internal/takedivergence` aligns the words that `compare.py --take-divergence` (`core/take_divergence_mode.py`) transcribes | [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go) |
-| Take comparison: same-span checks, manifest from the saved project, one `take_comparison` finding, the view | `src/studio/desktop/internal/takecompare`, `src/studio/desktop/takecompare_job.go` (the view of a comparison went with the chapter workspace's Takes panel, SN-E9; the Editing page's takes show their own evidence) | [Codebase map](../architecture/codebase-map.md) |
-
-The wire contracts (`TakeReviewScanStart/State/Cancel`, `TakeReviewCreateTake`, `TakeComparisonStart/State/Cancel`, the
-evidence of both finding kinds) are in `src/studio/ui/src/api/schemas/takeReview.ts`, pinned by the goldens under
-`tests/fixtures/contracts/` (`takereview-*`, `takecomparison-*`, `findings-list-take-review.json`,
-`findings-list-take-comparison.json`, and `take-divergence-results.json`, the results file `internal/takedivergence` writes
-from the sidecar's words report and the parser in `internal/takecompare` reads). The trust boundaries are rows 4a, 4f and 4j of the [threat model](../architecture/threat-model.md).
-
-### Settings
-
-Project settings, tool `TakeReview` (built-in defaults in `config/defaults.json`; an unparseable or out-of-range stored value
-falls back to the default rather than failing a scan):
-
-| Key | Default | Meaning |
-| --- | --- | --- |
-| `full_coverage_threshold` | `0.9` | A read covering at least this much of its group's span is a full re-read; less is a partial pickup. |
-| `near_duplicate_quality_threshold` | `0.97` | A group whose reads are all full and all match the script at least this well is a near duplicate (`duplicate_read`), not a restart. |
-| `pickup_track_name` | empty | The pickup track a scan starts with. |
-| `pickup_range_start_seconds`, `pickup_range_end_seconds` | empty | The stretch of the timeline a scan starts with (never both a track and a range). |
-
-## Decisions
-
-- Scan scope, the review surface and the cancellable job: Take review; scope is built by `takereview.buildManifest`.
-- Detection is transcript-to-manuscript alignment plus exact-copy detection from source identity. The sidecar (`compare.py --find-repeats`) only transcribes each read; the host chooses the chapter, aligns and groups (`internal/comparerun`) and adapts the groups to findings (`internal/repeats`). Acoustic similarity (fingerprints, DTW) and a Silero VAD restart cue were not adopted; they need the local-dependency protocol first.
-- Spans come from alignment and the item's own GUID is the target, so no manuscript line-identity stamp is needed (`Project.ItemByGUID`, [Tracks](tracks.md)).
-- Add as take, with provenance in take `P_EXT`: [narration_take_review.lua](../../src/studio/integrations/reaper/narration_take_review.lua).
-- Go to and Loop per read: [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md).
-- Take metrics are evidence per category, with no composite score: [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go).
-- Divergence is localized by the markers' diff and Whisper word timestamps: [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go), [why that is precise enough](transcript-compare.md#alignment-and-confidence).
-- Words said before a span that starts the chapter are its heading, not an extra; before a later span they are an extra before it: [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go).
-- A take comparison is one finding per group and is never ranked: [Codebase map](../architecture/codebase-map.md).
-- Take review never makes a take active; the workspace Takes panel does: [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel).
-- Thresholds: [Settings](#settings).
-
-## What is still open
-
-A scan of a real chapter with calibration, the owner's REAPER checks, timing measurements and later work are tracked in [#1455](https://github.com/countrymanprime/narration-studio/issues/1455).
+`bindings_retired_findings_test.go`, `TestWorkspaceTakesOffersNoReadsFromASavedTakeReviewGroup`,
+`TestSignalProviderRetiredTakeReview`, `TestARetiredTakeReviewPickupIsARepeat`, `findingFormat.test.ts`, `noteRows.test.ts`,
+`NotesPanel.test.tsx` and `InspectorActions.test.tsx` pin this.

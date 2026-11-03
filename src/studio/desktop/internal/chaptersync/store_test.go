@@ -4,6 +4,7 @@ import (
 	"desktop/internal/brand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -90,26 +91,31 @@ func TestTheFingerprintIgnoresTheNameAndFollowsTheItems(t *testing.T) {
 	}
 }
 
-func TestAPickupScanIsRememberedPerTrackAndSurvivesASync(t *testing.T) {
+// A file an older app wrote still holds the retired take review's pickupScans (#2765): it reads as before, and the next
+// write drops them.
+func TestAFileWithTheRetiredPickupScansStillReads(t *testing.T) {
 	project := t.TempDir()
+	if err := os.MkdirAll(filepath.Dir(File(project)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := `{"schemaVersion": 1, "snapshot": {"syncedAt": "2026-09-25T10:00:00Z", "tracks": [{"guid": "{1}", "name": "Chapter 1", "fingerprint": "abc"}]},
+	"pickupScans": [{"trackGuid": "{p}", "fingerprint": "one", "scannedAt": "2026-09-25T09:00:00Z"}]}`
+	if err := os.WriteFile(File(project), []byte(old), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	store := NewStore(project)
-	if scans := store.PickupScans(); len(scans) != 0 {
-		t.Fatalf("a project with no file has scans %#v", scans)
+	got := store.Read()
+	if len(got.Tracks) != 1 || got.Tracks[0].GUID != "{1}" {
+		t.Fatalf("read %#v, want the old file's snapshot", got)
 	}
-	first := time.Date(2026, 9, 25, 10, 0, 0, 0, time.UTC)
-	if err := store.RecordPickupScan(PickupScan{TrackGUID: "{p}", Fingerprint: "one", ScannedAt: first}); err != nil {
+	if err := store.Write(got); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.RecordPickupScan(PickupScan{TrackGUID: "{p}", Fingerprint: "two", ScannedAt: first.Add(time.Hour)}); err != nil {
+	written, err := os.ReadFile(File(project))
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Write(Snapshot{SyncedAt: first.Add(2 * time.Hour)}); err != nil {
-		t.Fatal(err)
-	}
-
-	scans := NewStore(project).PickupScans()
-
-	if len(scans) != 1 || scans[0].Fingerprint != "two" || !scans[0].ScannedAt.Equal(first.Add(time.Hour)) {
-		t.Fatalf("scans = %#v, want the newest scan of the one track", scans)
+	if strings.Contains(string(written), "pickupScans") {
+		t.Fatalf("the rewritten file kept the retired scans: %s", written)
 	}
 }

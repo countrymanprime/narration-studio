@@ -43,7 +43,6 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   cleanup_tools: 'supported',
   retake_lanes: 'supported',
   project_state: 'supported',
-  take_create: 'supported',
   heartbeat: 'supported',
   project_read: 'supported',
   track_state: 'experimental',
