@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/encodeport"
@@ -277,10 +278,11 @@ func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 			item.Kind != string(packager.KindCreditsClosing) && item.Kind != string(packager.KindRetailSample) {
 			return nil, fmt.Errorf("%q is not a package item kind", item.Kind)
 		}
-		// A title is a file name in the package and the DAW region a chapter renders from: one of spaces is none.
+		// A title is a file name in the package and the DAW region a chapter renders from: one with no character a narrator can see
+		// (spaces, a zero-width space, a direction mark) is none. The refusal names the file, not its whole path.
 		title := strings.TrimSpace(item.Title)
-		if item.Kind == string(packager.KindChapter) && title == "" {
-			return nil, fmt.Errorf("%q has no chapter title", item.Path)
+		if item.Kind == string(packager.KindChapter) && !hasVisibleRune(title) {
+			return nil, fmt.Errorf("%q has no chapter title", filepath.Base(clean))
 		}
 		if item.Kind != string(packager.KindChapter) && seenKind[item.Kind] {
 			return nil, fmt.Errorf("only one %s file is expected", item.Kind)
@@ -292,6 +294,16 @@ func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 		out = append(out, ExportItem{Kind: item.Kind, Title: title, Path: clean})
 	}
 	return out, nil
+}
+
+// hasVisibleRune is whether s has a character a reader can see: not a space, a control or a format character (U+200B, U+202E).
+func hasVisibleRune(s string) bool {
+	for _, r := range s {
+		if !unicode.IsSpace(r) && !unicode.Is(unicode.Cf, r) && !unicode.IsControl(r) {
+			return true
+		}
+	}
+	return false
 }
 
 // startExport masters (if requested) and encodes every item in the background; only one export runs at once.
