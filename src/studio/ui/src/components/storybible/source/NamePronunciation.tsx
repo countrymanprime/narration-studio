@@ -89,7 +89,7 @@ export function NamePronunciation({
   const journal = useJournalOrOwn();
   const port = usePort('pronunciationSources');
   const mutation = usePendingAction();
-  useErrorToast(sources.error);
+  useErrorToast(sources.error, sources.retry);
   const { name, aliasIndex, pronunciation } = row;
   const [text, setText] = useState(pronunciation.ipa);
   const [shown, setShown] = useState(pronunciation.ipa);

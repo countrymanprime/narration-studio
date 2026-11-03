@@ -2,11 +2,12 @@
 // #2595: the dictionaries' candidates for a Story Bible name, each with its source, are in the name's own row on both pages. Use makes one
 // the name's pronunciation through the shared journalled commands: a registry source is asked by the host, a record of the narrator's
 // dictionary is written as it is.
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { overlay } from '../../../overlay/overlayService';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
@@ -100,5 +101,20 @@ describe("a name's dictionary candidates", () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Check again' }));
     expect(await screen.findByRole('list', { name: 'Dictionary candidates for Alice' })).toBeTruthy();
     expect(ask).toHaveBeenCalledTimes(2);
+  });
+
+  it('a failed read is an error toast with Retry, which asks every source again (#2919)', async () => {
+    const api = createMockApi();
+    const ask = vi.spyOn(api, 'pronunciationCandidates').mockRejectedValueOnce(new Error('The dictionaries did not answer.'));
+    const toast = vi.spyOn(overlay, 'toast');
+    render(<Row api={api} />);
+    await userEvent.click(screen.getByRole('button', { name: 'From the dictionaries' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The dictionaries did not answer.', expect.objectContaining({ tone: 'error' })));
+    const [, options] = toast.mock.calls.find(([text]) => text === 'The dictionaries did not answer.')!;
+    expect(options).toMatchObject({ action: { label: 'Retry' } });
+    act(() => options!.action!.onAction());
+    expect(await screen.findByRole('list', { name: 'Dictionary candidates for Alice' })).toBeTruthy();
+    expect(ask).toHaveBeenCalledTimes(2);
+    toast.mockRestore();
   });
 });

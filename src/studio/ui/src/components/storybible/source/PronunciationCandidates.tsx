@@ -4,6 +4,7 @@ import { USER_DICTIONARY_SOURCE, type PronunciationCandidateRow, type Pronunciat
 import { hearNameAction } from '../../../icons.catalog';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { subscribeUserDictionaryChanged } from '../../../studio/commands/userDictionary';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -20,11 +21,13 @@ const NONE: Answer = { candidates: [], misses: [] };
 
 /**
  * What every local dictionary and the narrator's own dictionary say for one word (#2595), read when `enabled` (each source is a sidecar
- * run, so a closed list asks nothing) and again after the narrator's dictionary changes. A failed read is a toast, and `retry` reads again.
+ * run, so a closed list asks nothing) and again after the narrator's dictionary changes. A failed read is an error toast with
+ * Retry, and `retry` reads again.
  */
 export function usePronunciationCandidates(word: string, enabled = true): CandidatesView {
   const port = usePort('pronunciationSources');
   const [view, setView] = useState<Omit<CandidatesView, 'retry'>>({ status: 'idle', answer: NONE });
+  const [failure, setFailure] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   useEffect(() => subscribeUserDictionaryChanged(() => setNonce((n) => n + 1)), []);
   useEffect(() => {
@@ -32,10 +35,14 @@ export function usePronunciationCandidates(word: string, enabled = true): Candid
     let live = true;
     setView((prior) => ({ status: 'loading', answer: prior.answer }));
     port.pronunciationCandidates(word).then(
-      (answer) => live && setView({ status: 'ready', answer }),
+      (answer) => {
+        if (!live) return;
+        setFailure(null);
+        setView({ status: 'ready', answer });
+      },
       (error: unknown) => {
         if (!live) return;
-        overlay.toast(apiErrorMessage(error), { tone: 'error' });
+        setFailure(apiErrorMessage(error));
         setView({ status: 'error', answer: NONE });
       },
     );
@@ -44,6 +51,8 @@ export function usePronunciationCandidates(word: string, enabled = true): Candid
     };
   }, [port, word, enabled, nonce]);
   const retry = useCallback(() => setNonce((n) => n + 1), []);
+  // Reading changes nothing, so the failure's toast offers Retry (#2919); it goes once a read answers.
+  useErrorToast(failure, retry);
   return { ...view, retry };
 }
 
