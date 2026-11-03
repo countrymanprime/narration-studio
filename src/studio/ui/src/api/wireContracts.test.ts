@@ -1595,6 +1595,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     }
   });
 
+  it('the ChapterTrackCreate answer in a Voice folders project: a folder with a Narrator, both in the live track list at once', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id);
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, folder');
+    if (created.outcome !== 'created' || !created.voice) throw new Error('expected a created folder with a voice');
+    expect(created.voice.name).toBe('Narrator');
+    expect(created.link.trackGuid).toBe(created.track.guid);
+    const live = await api.tracksLive();
+    const folder = live.project.tracks.find((track) => track.guid === created.track.guid);
+    const voice = live.project.tracks.find((track) => track.guid === created.voice?.guid);
+    expect(folder).toMatchObject({ isFolder: true, depth: 0, name: created.track.name });
+    expect(voice).toMatchObject({ isFolder: false, depth: 1, name: 'Narrator', index: (folder?.index ?? -1) + 1 });
+    await api.voiceTracksSetLayout('flat');
+    const plain = await api.chapterTrackCreate(chapters[2].id);
+    if (plain.outcome !== 'created') throw new Error('expected a created track');
+    expect(plain.voice).toBeUndefined();
+  });
+
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
     const api = createMockApi();
     const chapters = await ownChapters(api);

@@ -8,13 +8,22 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
+	"desktop/internal/voicetracks"
 )
+
+// narratorVoice is the name of the one child a new chapter folder gets: the Booth's voice for key 0 (voiceFor).
+const narratorVoice = "Narrator"
 
 // "Create a track for this chapter and link it": offered when a chapter has no track to record on. The engine's half is the
 // DAW port's track_create role (track_create in narration_track_create.lua and bridge.Actions.CreateTrack for REAPER,
 // audacity.Session.CreateTrack for Audacity 3), harness- and fake-pipe-tested; this file is the caller. It is sent only from a
 // click, with the chapter id, never a name from the UI: the track is named here, after the chapter's display title, the same
 // rule chapterLinksFor and the name matcher use, so the new track also matches its chapter by name.
+//
+// In a Voice folders project (voice-tracks.json, docs/prds/booth-voice-tracks.prd.md) a chapter is a folder whose children are its voices,
+// so on an engine with folder tracks (dawport.FolderTrackCreator) the press adds a folder named after the chapter holding one child named
+// Narrator (key 0 in the Booth), and links the chapter to the folder (#2840, part 2). The layout is read at the press, so a switch made after
+// the page drew its button decides; the answer's voice says a folder was made.
 
 // The outcomes and the refusal reasons ChapterTrackCreate answers. standalone and not_running are the shared words
 // (reaperStandalone, reaperNotRunning); the others are this action's own.
@@ -26,11 +35,13 @@ const (
 )
 
 // chapterTrackCreated is ChapterTrackCreate's answer when the track was added and linked: ChapterTrackSet's payload (the link
-// as written, the link it displaced, which is always null for a new track, and every link that remains) and the new track.
+// as written, the link it displaced, which is always null for a new track, and every link that remains) and the new track. Voice is the
+// Narrator child when the track is a new chapter folder (Voice folders), absent for a plain track.
 type chapterTrackCreated struct {
 	Outcome string `json:"outcome"`
 	chapterTrackSetResult
-	Track createdTrack `json:"track"`
+	Track createdTrack  `json:"track"`
+	Voice *createdTrack `json:"voice,omitempty"`
 }
 
 // createdTrack is the track the engine added: its id (a GUID in REAPER), its name and its 0-based index in the project's tracks.
@@ -134,7 +145,11 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 	if creator == nil {
 		return trackCreateUnavailable(name, title, support), nil
 	}
-	created, err := creator.CreateTrack(ctx, title)
+	folders, err := voiceFoldersLayout(svc)
+	if err != nil {
+		return nil, err
+	}
+	created, voice, err := createChapterTrack(ctx, creator, title, folders)
 	if err != nil {
 		return trackCreateError(name, title, err), nil
 	}
@@ -150,5 +165,30 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		Outcome:               trackCreateCreated,
 		chapterTrackSetResult: chapterTrackSetResult{DocumentID: documentID, ChapterLinkSet: set, Mappings: mappings},
 		Track:                 createdTrack{GUID: created.GUID, Name: created.Name, Index: created.Index},
+		Voice:                 voice,
 	}, nil
+}
+
+// voiceFoldersLayout says whether the open project's chapters are folders of voices (voice-tracks.json); a project with no file is flat.
+func voiceFoldersLayout(svc hostServices) (bool, error) {
+	setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
+	if err != nil {
+		return false, err
+	}
+	return setup.Layout == voicetracks.LayoutFolders, nil
+}
+
+// createChapterTrack adds the chapter's track named title: a folder with a Narrator child when folders is set and the engine has folder
+// tracks, else one plain track. voice is the child, nil for a plain track (and for a folder request an older script answered with one).
+func createChapterTrack(ctx context.Context, creator dawport.TrackCreator, title string, folders bool) (dawport.CreatedTrack, *createdTrack, error) {
+	folderCreator, ok := creator.(dawport.FolderTrackCreator)
+	if !folders || !ok {
+		created, err := creator.CreateTrack(ctx, title)
+		return created, nil, err
+	}
+	created, err := folderCreator.CreateFolderTrack(ctx, title, narratorVoice)
+	if err != nil || created.Child.GUID == "" {
+		return created.Folder, nil, err
+	}
+	return created.Folder, &createdTrack{GUID: created.Child.GUID, Name: created.Child.Name, Index: created.Child.Index}, nil
 }

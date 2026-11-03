@@ -16,6 +16,7 @@ import (
 	"desktop/internal/dawport/dawporttest"
 	"desktop/internal/manuscript"
 	"desktop/internal/settings"
+	"desktop/internal/voicetracks"
 )
 
 const createdTrackGUID = "{00000003-0000-4000-8000-000000000003}"
@@ -323,6 +324,15 @@ func TestContractChapterTrackCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	pin(t, "chapter-track-create-created", folder, created)
+
+	// A Voice folders project: the chapter's new folder and its Narrator child (#2840).
+	folders, folderIDs := newTestHostForChapterMatch(t)
+	setLayout(t, folders, voicetracks.LayoutFolders)
+	createdFolder, err := chapterTrackCreateIn(context.Background(), folders.services(), &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}, createAvailable(), folderIDs[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin(t, "chapter-track-create-folder", folders.config.projectFolder, createdFolder)
 
 	host.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{Adapter: dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))})
 	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[1])

@@ -1,5 +1,7 @@
 // The mock host (mockApi.ts): tracks, chapter links and chapter sync.
 import type { ChapterTrackCreateResult } from '../contracts/chapterTrackMap';
+import type { Track, TracksProject } from '../contracts/tracks';
+import type { VoiceTracksLayout } from '../contracts/voiceTracks';
 import type {
   ChapterSyncBackground,
   ChapterSyncBatch,
@@ -28,8 +30,11 @@ export function createChapterTracksMock(
     dawFileLinked,
     peekCoverage,
     chaptersWithCredits,
+    voiceLayout,
   }: {
     manuscriptReady: Promise<void>;
+    /** The project's layout (voice-tracks.json) as ChapterTrackCreate reads it at the press: a folder with a Narrator child, or one track. */
+    voiceLayout: () => Promise<VoiceTracksLayout>;
     dawFileLinked: () => boolean;
     peekCoverage: (chapterId: string) => CoverageResult;
     /** The chapter list as the host sends it: the credits around the manuscript's chapters. */
@@ -38,6 +43,9 @@ export function createChapterTracksMock(
 ) {
   // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
   const project = mockTracksProject(initial);
+  // The tracks ChapterTrackCreate added in REAPER this session: in REAPER's live list at once, in the saved project only after a save.
+  const added: Track[] = [];
+  const liveProject = (): TracksProject => ({ ...project, tracks: [...project.tracks, ...added] });
   // A Voice folders project links Chapter 1 to its folder, in place of the default seed's link to its first track.
   if (initial.voiceFolders) {
     s.chapterTrackMappings = [
@@ -227,7 +235,7 @@ export function createChapterTracksMock(
           project,
         });
       }
-      return wireClone({ source: 'live' as const, reason: '' as const, message: '', readAt, project });
+      return wireClone({ source: 'live' as const, reason: '' as const, message: '', readAt, project: liveProject() });
     },
     chapterTrackMapList: async () => ({ documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) }),
     chapterTrackMapConfirm: async (trackGuid, chapterId) => {
@@ -261,8 +269,9 @@ export function createChapterTracksMock(
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid && existing.chapterId !== chapterId), link];
       return wireClone({ documentId: mockDocumentId, link, displaced, mappings: s.chapterTrackMappings });
     },
-    // ChapterTrackCreate (src/studio/desktop/chapterlinks.go): `?mockReaperState=` decides what the DAW answers, as it does for Select in REAPER.
-    // The new track is not in the saved project the matcher reads until the narrator saves in REAPER, so only the link changes here.
+    // ChapterTrackCreate (src/studio/desktop/chaptertrackcreate.go): `?mockReaperState=` decides what the DAW answers, as it does for Select in
+    // REAPER. The new track (a folder with a Narrator child in a Voice folders project) joins REAPER's live list (TracksLive) at once; the saved
+    // project the matcher reads has it only after a save, so it is not added there.
     chapterTrackCreate: async (chapterId) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
@@ -270,12 +279,23 @@ export function createChapterTracksMock(
       if (!title) throw new Error('that chapter is not part of the current manuscript');
       const refusal = mockCreateRefusal(initial.reaperState);
       if (refusal) return refusal;
-      s.createdTracks += 1;
-      const track = {
-        guid: `{c0ffee00-0000-4000-8000-${String(s.createdTracks).padStart(12, '0')}}`,
-        name: title,
-        index: project.tracks.length + s.createdTracks - 1,
+      const folders = (await voiceLayout()) === 'folders';
+      const next = () => {
+        s.createdTracks += 1;
+        return {
+          guid: `{c0ffee00-0000-4000-8000-${String(s.createdTracks).padStart(12, '0')}}`,
+          index: project.tracks.length + added.length,
+        };
       };
+      const made = next();
+      const track = { ...made, name: title };
+      const base = { color: '', muted: false, soloed: false, items: [] };
+      added.push({ ...base, ...track, depth: 0, isFolder: folders });
+      let voice: { guid: string; name: string; index: number } | undefined;
+      if (folders) {
+        voice = { ...next(), name: 'Narrator' };
+        added.push({ ...base, ...voice, depth: 1, isFolder: false });
+      }
       const link: TrackMapping = {
         trackGuid: track.guid,
         chapterId,
@@ -285,7 +305,15 @@ export function createChapterTracksMock(
         match: null,
       };
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId), link];
-      return wireClone({ outcome: 'created' as const, documentId: mockDocumentId, link, displaced: null, mappings: s.chapterTrackMappings, track });
+      return wireClone({
+        outcome: 'created' as const,
+        documentId: mockDocumentId,
+        link,
+        displaced: null,
+        mappings: s.chapterTrackMappings,
+        track,
+        ...(voice ? { voice } : {}),
+      });
     },
     chapterTrackUnlink: async (chapterId) => {
       await manuscriptReady;

@@ -185,8 +185,12 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     proofNotes: () => proofNotes.read(),
   });
+  const voiceTracks = createVoiceTracksMock(
+    initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+  );
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
+    voiceLayout: async () => (await voiceTracks.voiceTracksGet()).layout,
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
@@ -428,9 +432,7 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
-    ...createVoiceTracksMock(
-      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
-    ),
+    ...voiceTracks,
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,

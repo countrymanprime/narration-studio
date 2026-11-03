@@ -92,10 +92,13 @@ export const chapterTrackSetSchema = z.object({
   mappings: listFromNull(trackMappingSchema),
 }) satisfies z.ZodType<ChapterTrackSetResult>;
 
+const createdTrackSchema = z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) });
+
 export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
   chapterTrackSetSchema.extend({
     outcome: z.literal('created'),
-    track: z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) }),
+    track: createdTrackSchema,
+    voice: createdTrackSchema.optional(),
   }),
   z.object({
     outcome: z.literal('refused'),
