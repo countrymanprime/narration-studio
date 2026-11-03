@@ -129,7 +129,6 @@ function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: stri
           label={`Pronunciation of ${word} for my dictionary`}
           mono
           maxLength={MAX_SAY}
-          placeholder="for example: kroh-KAY"
           value={say}
           onChange={setSay}
           onKeyDown={(event) => {
