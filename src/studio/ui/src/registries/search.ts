@@ -20,12 +20,12 @@ export type SearchSource = (term: string) => SearchHit[];
 export type AsyncSearchSource = (term: string, signal: AbortSignal) => Promise<SearchHit[]>;
 
 /** A term shorter than this queries no source: one letter matches everything and says nothing. */
-export const MIN_TERM_LENGTH = 2;
+const MIN_TERM_LENGTH = 2;
 
 /** One source's hits, with the source's place in registration order, so a later answer lands where its source is. */
 export type OrderedHits = { order: number; hits: SearchHit[] };
 /** An asynchronous source asked for a term: its place, its group (for the menu's waiting row) and its answer. */
-export type PendingHits = { order: number; group: string; answer: Promise<SearchHit[]> };
+type PendingHits = { order: number; group: string; answer: Promise<SearchHit[]> };
 
 export type SearchRegistry = {
   /** Adds a source and returns the function that removes it. */
@@ -94,9 +94,6 @@ export function createSearchRegistry(): SearchRegistry {
     },
   };
 }
-
-/** Hits from several sources in their sources' registration order. */
-export const inSourceOrder = (answers: readonly OrderedHits[]): SearchHit[] => [...answers].sort((a, b) => a.order - b.order).flatMap((answer) => answer.hits);
 
 const registry = createSearchRegistry();
 
