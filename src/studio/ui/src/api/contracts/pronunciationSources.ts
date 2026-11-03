@@ -38,7 +38,6 @@ export const USER_DICTIONARY_SOURCE = 'user_dictionary';
 export const SCRIPT_IMPORTED_SOURCE = 'script_imported';
 export type UserDictionaryRecord = { say: string; source: string; addedAt: string };
 export type UserDictionaryWord = { word: string; records: UserDictionaryRecord[] };
-export type UserDictionary = { words: UserDictionaryWord[] };
 
 /** One source's answer for a word, with the source it came from. */
 export type PronunciationCandidateRow = { sourceId: string; label: string; say: string };
@@ -56,7 +55,6 @@ export interface PronunciationSourcesApi {
   pronunciationCandidates(word: string): Promise<PronunciationCandidates>;
   /** The preview voice saying `ipa` for `text`, before the narrator picks it; the Story Bible's preview shape. */
   pronunciationPreview(text: string, ipa: string): Promise<GuidePreview>;
-  userDictionaryList(): Promise<UserDictionary>;
   /** Saves how the narrator says a word in their dictionary (their own record replaces their earlier one). Answers the word. */
   userDictionarySave(word: string, say: string): Promise<UserDictionaryWord>;
   /** Removes one record; the word goes with its last. Answers the word, its records possibly empty. */

@@ -305,13 +305,13 @@ describe('save-to-my-dictionary', () => {
     const hook = setup();
     await ready(hook);
     let saved = false;
-    await act(async () => void (saved = await hook.result.current.commands.saveToMyDictionary('quorlen', 'KWOR-len')));
+    await act(async () => void (saved = await hook.result.current.commands.saveToMyDictionary('zarvex', 'ZAR-vex')));
     expect(saved).toBe(true);
-    expect(save).toHaveBeenCalledWith('quorlen', 'KWOR-len');
+    expect(save).toHaveBeenCalledWith('zarvex', 'ZAR-vex');
     expect(create).not.toHaveBeenCalled();
-    expect((await api.userDictionaryList()).words).toEqual([expect.objectContaining({ word: 'quorlen' })]);
+    expect((await api.pronunciationCandidates('zarvex')).candidates).toEqual([expect.objectContaining({ sourceId: 'user_dictionary', say: 'ZAR-vex' })]);
     await undoLast(hook);
-    expect((await api.userDictionaryList()).words).toEqual([]);
+    expect((await api.pronunciationCandidates('zarvex')).candidates.filter((row) => row.sourceId === 'user_dictionary')).toEqual([]);
   });
 });
 

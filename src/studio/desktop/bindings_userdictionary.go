@@ -13,12 +13,6 @@ import (
 // The project's user dictionary (#2595) and the pronunciation candidates a word has: each dictionary source's answer with its source,
 // then the narrator's own saved values. A Story Bible name takes the candidate the narrator picks, through GuidePronunciationRestore.
 
-// UserDictionaryList is every word in the project's user dictionary with its records: {"words":[{"word","records":[{"say","source",
-// "addedAt"}]}]}.
-func (h *Host) UserDictionaryList() (string, error) {
-	return encodeBinding(h.userDictionary().List())
-}
-
 // UserDictionarySave sets the narrator's own value for word (source user_dictionary), replacing an earlier one, and returns the word's
 // entry. A Script value the migration imported is kept beside it.
 func (h *Host) UserDictionarySave(word, say string) (string, error) {

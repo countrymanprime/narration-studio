@@ -44,16 +44,15 @@ func decodeAs[T any](t *testing.T) func(string, error) T {
 	}
 }
 
-func TestUserDictionaryBindingsSaveListAndRemove(t *testing.T) {
+func TestUserDictionaryBindingsSaveAndRemove(t *testing.T) {
 	host, _, project := candidatesHost(t)
 	mustImport(t, project)
 	saved := decodeAs[userdictionary.Entry](t)(host.UserDictionarySave(" tulgey ", "TOOL-gay"))
 	if saved.Word != "Tulgey" || len(saved.Records) != 2 || saved.Records[1] != (userdictionary.Record{Say: "TOOL-gay", Source: "user_dictionary", AddedAt: saved.Records[1].AddedAt}) {
 		t.Fatalf("saved = %+v", saved)
 	}
-	list := decodeAs[userdictionary.Words](t)(host.UserDictionaryList())
-	if len(list.Words) != 1 || !reflect.DeepEqual(list.Words[0], saved) {
-		t.Fatalf("list = %+v", list)
+	if again := decodeAs[userdictionary.Entry](t)(host.UserDictionarySave("Tulgey", "TOOL-gay")); !reflect.DeepEqual(again.Records[:1], saved.Records[:1]) || len(again.Records) != 2 {
+		t.Fatalf("saved again = %+v", again)
 	}
 	removed := decodeAs[userdictionary.Entry](t)(host.UserDictionaryRemove("TULGEY", "script_imported", "TUL-gee"))
 	if len(removed.Records) != 1 || removed.Records[0].Source != "user_dictionary" {
@@ -83,10 +82,6 @@ func TestUserDictionaryBindingsNeedAProject(t *testing.T) {
 	host := newTestHost(t)
 	if _, err := host.UserDictionarySave("Tulgey", "x"); err == nil {
 		t.Fatal("saved without a project")
-	}
-	list := decodeAs[userdictionary.Words](t)(host.UserDictionaryList())
-	if list.Words == nil || len(list.Words) != 0 {
-		t.Fatalf("list = %+v", list)
 	}
 }
 

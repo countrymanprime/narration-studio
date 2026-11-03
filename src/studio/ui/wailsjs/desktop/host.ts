@@ -3266,14 +3266,6 @@ export function UpdateStatus(): $CancellablePromise<string> {
 }
 
 /**
- * UserDictionaryList is every word in the project's user dictionary with its records: {"words":[{"word","records":[{"say","source",
- * "addedAt"}]}]}.
- */
-export function UserDictionaryList(): $CancellablePromise<string> {
-    return $Call.ByID(291809957);
-}
-
-/**
  * UserDictionaryRemove removes the word's one record with this source (user_dictionary or script_imported) and say-value, and returns
  * the word's entry; its records are empty when that was its last.
  */

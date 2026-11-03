@@ -59,7 +59,12 @@ import {
   dawTransportSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
-import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
+import {
+  pronunciationCandidateSchema,
+  pronunciationCandidatesSchema,
+  pronunciationSourcesSchema,
+  userDictionaryWordSchema,
+} from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { masteringProvidersSchema } from './schemas/mastering';
@@ -694,6 +699,10 @@ export const wailsClient: NarrationApi = {
   pronunciationOnlineLookup: (word) => decode(pronunciationOnlineResultSchema, 'PronunciationOnlineLookup', host.PronunciationOnlineLookup(word)),
   pronunciationSources: () => decode(pronunciationSourcesSchema, 'PronunciationSources', host.PronunciationSources()),
   pronunciationCandidate: (word, source) => decode(pronunciationCandidateSchema, 'PronunciationCandidate', host.PronunciationCandidate(word, source)),
+  pronunciationCandidates: (word) => decode(pronunciationCandidatesSchema, 'PronunciationCandidates', host.PronunciationCandidates(word)),
+  pronunciationPreview: (text, ipa) => decode(guidePreviewSchema, 'PronunciationPreview', host.PronunciationPreview(text, ipa)),
+  userDictionarySave: (word, say) => decode(userDictionaryWordSchema, 'UserDictionarySave', host.UserDictionarySave(word, say)),
+  userDictionaryRemove: (word, source, say) => decode(userDictionaryWordSchema, 'UserDictionaryRemove', host.UserDictionaryRemove(word, source, say)),
 
   dawCapabilities: () => decode(dawCapabilitiesSchema, 'DawCapabilities', host.DawCapabilities()),
   subscribeDawCapabilities: (onUpdate) => subscribeChecked('daw_capabilities_changed', dawCapabilitiesSchema, onUpdate),

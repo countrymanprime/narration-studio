@@ -4,7 +4,6 @@ import type {
   PronunciationCandidates,
   PronunciationSource,
   PronunciationSourceList,
-  UserDictionary,
   UserDictionaryWord,
 } from '../contracts/pronunciationSources';
 
@@ -41,5 +40,3 @@ const userDictionaryRecordSchema = z.object({ say: z.string().min(1), source: z.
 export const userDictionaryWordSchema = z
   .object({ word: z.string().min(1), records: z.array(userDictionaryRecordSchema) })
   .strict() satisfies z.ZodType<UserDictionaryWord>;
-
-export const userDictionarySchema = z.object({ words: z.array(userDictionaryWordSchema) }).strict() satisfies z.ZodType<UserDictionary>;

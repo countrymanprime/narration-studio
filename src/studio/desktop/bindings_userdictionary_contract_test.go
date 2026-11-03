@@ -14,11 +14,6 @@ func TestUserDictionaryContractGoldens(t *testing.T) {
 	if _, err := host.UserDictionarySave("Bandersnatch", "BAN-der-snatch"); err != nil {
 		t.Fatal(err)
 	}
-	payload, err = host.UserDictionaryList()
-	if err != nil {
-		t.Fatal(err)
-	}
-	checkBindingContract(t, "user-dictionary-list", payload)
 	payload, err = host.UserDictionaryRemove("Bandersnatch", "user_dictionary", "BAN-der-snatch")
 	if err != nil {
 		t.Fatal(err)

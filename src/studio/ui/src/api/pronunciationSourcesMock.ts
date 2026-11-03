@@ -78,7 +78,6 @@ export function createPronunciationSourcesMock(): PronunciationSourcesApi {
       if (!text.trim() || !ipa.trim()) throw new Error('There is nothing to say.');
       return { status: 'ready', audioBase64: MOCK_PREVIEW_WAV_BASE64, mimeType: 'audio/wav' };
     },
-    userDictionaryList: async () => ({ words: [...user.values()].map((row) => ({ word: row.word, records: row.records.map((r) => ({ ...r })) })) }),
     userDictionarySave: async (rawWord, rawSay) => {
       const word = rawWord.trim();
       const say = rawSay.trim();
