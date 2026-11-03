@@ -59,7 +59,7 @@ func TestDawCapabilitiesGoldenIsCurrent(t *testing.T) {
 func builtinCapabilitiesHost(t *testing.T) *Host {
 	t.Helper()
 	host := recorderHost(t, &recordingtest.Fake{})
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	chooseEngine(t, host, engineBuiltin)
 	return host
 }
 
@@ -97,12 +97,12 @@ func TestDawLaunchKindFollowsTheEngineChoiceOnlyWithoutADAW(t *testing.T) {
 	host.mu.Lock()
 	host.config.daw = ""
 	host.mu.Unlock()
-	recorderOf(t)(host.RecorderChooseEngine(engineDAW))
+	chooseEngine(t, host, engineDAW)
 	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindREAPER {
 		t.Errorf("no DAW, REAPER chosen: kind = %v, want KindREAPER", kind)
 	}
 	host.platform = "windows"
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	chooseEngine(t, host, engineBuiltin)
 	host.platform = "linux"
 	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindNone {
 		t.Errorf("built-in chosen where its capture row does not run, empty folder: kind = %v, want KindNone", kind)

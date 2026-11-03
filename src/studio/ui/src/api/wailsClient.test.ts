@@ -564,7 +564,7 @@ describe('wailsClient', () => {
     await expect(wailsClient.tracksList()).resolves.toEqual(project);
   });
 
-  it('decodes the ChapterTrackMap list, confirm, and clear bindings', async () => {
+  it('decodes the ChapterTrackMap list and confirm bindings', async () => {
     const empty = { documentId: 'doc-1', mappings: [] };
     const confirmed = {
       trackGuid: 'track-guid-a',
@@ -576,19 +576,15 @@ describe('wailsClient', () => {
     };
     const withOne = { documentId: 'doc-1', mappings: [confirmed] };
     const confirm = vi.fn().mockResolvedValue(JSON.stringify(confirmed));
-    const clear = vi.fn().mockResolvedValue(JSON.stringify(empty));
     standInHost({
       ChapterTrackMapList: vi.fn().mockResolvedValueOnce(JSON.stringify(empty)).mockResolvedValueOnce(JSON.stringify(withOne)),
       ChapterTrackMapConfirm: confirm,
-      ChapterTrackMapClear: clear,
     });
 
     await expect(wailsClient.chapterTrackMapList()).resolves.toEqual(empty);
     await expect(wailsClient.chapterTrackMapConfirm('track-guid-a', 'c-0001')).resolves.toEqual(confirmed);
     expect(confirm).toHaveBeenCalledWith('track-guid-a', 'c-0001');
     await expect(wailsClient.chapterTrackMapList()).resolves.toEqual(withOne);
-    await expect(wailsClient.chapterTrackMapClear('track-guid-a')).resolves.toEqual(empty);
-    expect(clear).toHaveBeenCalledWith('track-guid-a');
   });
 
   it('sends the review query and decision to the host and decodes the findings it answers', async () => {
@@ -647,15 +643,13 @@ describe('wailsClient', () => {
     const goTo = vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'navigated', projectTime: 102.5 }));
     const loop = vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'refused', reason: 'stale', message: 'Gone.' }));
     const stop = vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'stopped', restored: 2, kept: 1 }));
-    const status = vi.fn().mockResolvedValue(JSON.stringify({ connection: 'connected', loopingFindingId: 'f1' }));
-    standInHost({ FindingsGoTo: goTo, FindingsLoop: loop, FindingsStopLoop: stop, FindingsReaperStatus: status });
+    standInHost({ FindingsGoTo: goTo, FindingsLoop: loop, FindingsStopLoop: stop });
 
     await expect(wailsClient.findingsGoTo('f1')).resolves.toEqual({ outcome: 'navigated', projectTime: 102.5 });
     expect(goTo).toHaveBeenCalledWith('f1');
     await expect(wailsClient.findingsLoop('f1')).resolves.toEqual({ outcome: 'refused', reason: 'stale', message: 'Gone.' });
     expect(loop).toHaveBeenCalledWith('f1');
     await expect(wailsClient.findingsStopLoop()).resolves.toEqual({ outcome: 'stopped', restored: 2, kept: 1 });
-    await expect(wailsClient.findingsReaperStatus()).resolves.toEqual({ connection: 'connected', loopingFindingId: 'f1' });
   });
 
   it('sends a cut to WorkspaceSnap as ids and a time and decodes the snapped answer', async () => {

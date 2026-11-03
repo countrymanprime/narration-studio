@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"desktop/internal/captureport"
-	"desktop/internal/dawport"
 	"desktop/internal/manuscript"
 	"desktop/internal/port"
 	"desktop/internal/recording"
@@ -46,35 +44,6 @@ func (h *Host) RecorderState() (string, error) {
 	return encodeBinding(h.recorderState(h.services(), nil), nil)
 }
 
-// RecorderChooseEngine saves which engine the project records with: "daw" (the project's DAW, REAPER unless it records with
-// Audacity) or "builtin". The built-in recorder is refused, with its sentence, where its capture row is not available; nothing
-// changes while a take records. DawChoose (bindings_dawchoice.go) chooses a DAW by name; both write the same Recording.engine row.
-func (h *Host) RecorderChooseEngine(engine string) (string, error) {
-	svc := h.services()
-	if svc.config.projectFolder == "" || svc.settings == nil {
-		return "", errors.New("open a project before choosing how it records")
-	}
-	var kind dawport.Kind
-	switch engine {
-	case engineDAW:
-		kind = dawport.KindREAPER
-		if current := h.projectDaw(svc).kind; current.IsDAW() {
-			kind = current
-		}
-	case engineBuiltin:
-		if support := recorderSupport(h.recorderPlatform()); !support.Available {
-			return "", &port.NotSupportedError{Capability: captureport.WASAPI, Support: support}
-		}
-		kind = dawport.KindBuiltIn
-	default:
-		return "", errors.New(`the engine is "daw" or "builtin"`)
-	}
-	if err := h.chooseProjectDaw(kind); err != nil {
-		return "", err
-	}
-	return h.RecorderState()
-}
-
 // RecorderDevices lists the input devices the built-in recorder can open. Like TeleprompterDevices, a listing problem comes
 // back as {"devices": [], "error": "..."}, never a rejected promise.
 func (h *Host) RecorderDevices() (string, error) {
@@ -109,32 +78,6 @@ func (h *Host) RecorderMeterStop() (string, error) {
 	svc := h.services()
 	if svc.recorder != nil {
 		svc.recorder.StopMeter()
-	}
-	return encodeBinding(h.recorderState(svc, nil), nil)
-}
-
-// RecorderStart records a new take of device into the project's Recordings folder and remembers the device for the project.
-// It answers once the take has started; its end arrives as "recording:state".
-func (h *Host) RecorderStart(device string) (string, error) {
-	svc, err := h.builtinRecorder()
-	if err != nil {
-		return "", err
-	}
-	if err := svc.recorder.Start(device); err != nil {
-		return "", err
-	}
-	trimmed := strings.TrimSpace(device)
-	if err := svc.settings.Save(recordingSettingsTool, "project", map[string]*string{recordingDeviceKey: &trimmed}); err != nil {
-		_ = h.log.Report("recording", "could not remember the recorder's device: "+err.Error())
-	}
-	return encodeBinding(h.recorderState(svc, nil), nil)
-}
-
-// RecorderStop asks the take (or the meter) to end and answers at once; the take's end arrives as "recording:state".
-func (h *Host) RecorderStop() (string, error) {
-	svc := h.services()
-	if svc.recorder != nil {
-		svc.recorder.Stop()
 	}
 	return encodeBinding(h.recorderState(svc, nil), nil)
 }

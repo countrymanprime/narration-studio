@@ -221,10 +221,6 @@ export function createChapterTracksMock(
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid), mapping];
       return wireClone(mapping);
     },
-    chapterTrackMapClear: async (trackGuid) => {
-      s.chapterTrackMappings = s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid);
-      return { documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) };
-    },
     chapterTrackSet: async (chapterId, trackGuid) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);

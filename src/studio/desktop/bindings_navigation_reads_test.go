@@ -62,7 +62,7 @@ func TestLoopReadLoopsThatReadAndTheStatusNamesTheFinding(t *testing.T) {
 	if target := fake.targets[0]; target.ItemGUID != readItemA || *target.SourceStart != 0 || *target.SourceEnd != 4.5 {
 		t.Fatalf("sent %+v, want read 0's own range", target)
 	}
-	if status := bindingAnswer[ReaperStatus](t)(host.FindingsReaperStatus()); status.LoopingFindingID != id {
+	if status := reaperStatus(host.services()); status.LoopingFindingID != id {
 		t.Fatalf("status %+v, want the looping finding named", status)
 	}
 }

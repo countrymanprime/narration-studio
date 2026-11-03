@@ -100,7 +100,6 @@ export function createProofingMock(
     },
     transcriptLastCompleted: async () => wireClone(lastCompleted),
     transcriptAddEquivalence: async () => 'Added pronunciation equivalence.',
-    transcriptJump: async () => {},
     transcriptExportMarkers: async () => {
       const exportable = transcript.rows.filter((row) => (row.markerState ?? 'pending') === 'pending');
       transcript = {

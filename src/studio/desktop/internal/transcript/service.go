@@ -357,22 +357,6 @@ func (s *Service) AddEquivalence(rowID string) (string, error) {
 	}
 	return fmt.Sprintf("Added equivalence: %s = %s", doc, audio), nil
 }
-func (s *Service) Jump(rowID string) error {
-	s.mu.RLock()
-	runID, _ := s.state["runId"].(string)
-	rows, _ := s.state["rows"].([]map[string]any)
-	found := false
-	for _, row := range rows {
-		if row["id"] == rowID {
-			found = true
-		}
-	}
-	s.mu.RUnlock()
-	if !found || s.bridge == nil {
-		return fmt.Errorf("that discrepancy is no longer available")
-	}
-	return s.bridge.NavigateToFinding(runID, rowID)
-}
 func (s *Service) Export() error {
 	s.mu.Lock()
 	phase, _ := s.state["phase"].(string)

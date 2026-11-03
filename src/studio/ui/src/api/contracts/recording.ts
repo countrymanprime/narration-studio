@@ -81,16 +81,10 @@ export type RecorderDevicesResult = { devices: RecorderDevice[]; error: string |
 
 export interface RecordingApi {
   recorderState(): Promise<RecorderState>;
-  /** Saves the project's engine; 'builtin' is refused where its capture row is not available, or while a take records. */
-  recorderChooseEngine(engine: RecordingEngine): Promise<RecorderState>;
   recorderDevices(): Promise<RecorderDevicesResult>;
   /** Meters `device` before a take (no file is written); refused while a take records. */
   recorderMeterStart(device: string): Promise<RecorderState>;
   recorderMeterStop(): Promise<RecorderState>;
-  /** Records a new take of `device`; its end arrives on subscribeRecorderState. */
-  recorderStart(device: string): Promise<RecorderState>;
-  /** Asks the take or meter to end; answers at once. */
-  recorderStop(): Promise<RecorderState>;
   /** Assigns takeName the manuscript paragraph or chapter entityId as its line identity ("" clears it); the
    * manuscript's current source checksum is read host-side, never sent here. */
   recorderSetTakeLine(takeName: string, entityId: string): Promise<RecorderState>;
