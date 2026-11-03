@@ -148,6 +148,15 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'replace-dialog-long-name',
+    description:
+      "Editing, Replace with another narrator's audio - a narrator with an 80-character name (the host's longest) chosen: the list ends in an ellipsis and the remove button stays inside the dialog, at every width down to 390 px (#2737)",
+    // The driver checks the button's place at each width, so it runs on a fresh load at each.
+    extraViewports: REFLOW.extraViewports,
+    reloadPerViewport: true,
+  },
+  {
+    page: 'editing',
     state: 'replace-mark-open',
     description:
       "Editing, four words replaced with another narrator's audio - the narrator's name after the last word, opened: their stretch, the level change and Put my audio back",
