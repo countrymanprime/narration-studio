@@ -33,6 +33,16 @@ function setup(onAdd = vi.fn().mockResolvedValue(undefined)) {
 }
 
 describe('AddPickup, the rest of the form', () => {
+  it('a second Enter while the first is being answered does not reach the host twice', async () => {
+    let finish!: () => void;
+    const onAdd = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const { user } = setup(onAdd);
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line{Enter}{Enter}');
+    expect(onAdd).toHaveBeenCalledTimes(1);
+    finish();
+  });
+
   it('refuses a line over 500 characters under the line box, not as a toast', async () => {
     const { onAdd, user, toasts } = setup();
     await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');

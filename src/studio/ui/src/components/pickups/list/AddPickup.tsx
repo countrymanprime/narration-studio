@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { Button } from '../../primitives/Button';
 import { Field } from '../../primitives/Field';
@@ -35,12 +35,16 @@ export function AddPickup({
   const [problem, setProblem] = useState<{ field: 'time' | 'line'; text: string } | null>(null);
   const refuse = (field: 'time' | 'line', text: string) => setProblem({ field, text });
 
+  /* A second Enter while the first is still being answered would reach the host twice. */
+  const sending = useRef(false);
   const submit = async () => {
+    if (sending.current) return;
     if (!line.trim()) return refuse('line', 'Type the line first.');
     if ([...line.trim()].length > PICKUP_LINE_MAX) return refuse('line', `A line can be at most ${PICKUP_LINE_MAX} characters.`);
     const seconds = parseClock(time);
     if (seconds === null) return refuse('time', 'Type the time like 05:12.0.');
     setProblem(null);
+    sending.current = true;
     setBusy(true);
     try {
       await onAdd(choices ? chosen : chapterId, seconds, line.trim());
@@ -48,6 +52,7 @@ export function AddPickup({
     } catch (error) {
       overlay.toast(reasonSentence(error), { tone: 'error' });
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   };
