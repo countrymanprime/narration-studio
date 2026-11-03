@@ -142,7 +142,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'chain-unavailable',
     description:
-      "Master & QC's Mastering chain card with Audacity's row not available on this computer (?mockMastering=no-audacity) - that row off, its reason open as the tooltip of its keyboard stop",
+      "Master & QC's Mastering chain card with Audacity's row not available on this computer (?mockMastering=no-audacity) - that row off. The driver opens its reason as the tooltip under the pointer; the capture parks the pointer, so the shot shows the row off and the tooltip closed (a tooltip left open fails axe's landmark rule, and axe debt only shrinks)",
     ...TOOLTIP_CLOSES_ON_RESIZE,
   },
   // Master & encode with a mastering row that makes the DAW render: the narrator's approval for this one export first (#2739)
