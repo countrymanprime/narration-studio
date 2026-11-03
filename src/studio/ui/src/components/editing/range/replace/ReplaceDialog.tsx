@@ -34,7 +34,7 @@ function Captioned({ caption, children }: { caption: string; children: ReactNode
 }
 
 /** Why a narrator with files cannot be removed: the host's sentence (internal/editlog NarratorRemove), shown on the remove button before it is pressed. */
-export const keptNarrator = (name: string): string => `${name}'s audio is in the project, so they stay on the list.`;
+const keptNarrator = (name: string): string => `${name}'s audio is in the project, so they stay on the list.`;
 
 /** The dialog's title: how many words are replaced. */
 export const replaceTitle = (n: number): string => `Replace ${plural(n, 'word', 'words')} with another narrator's audio`;
