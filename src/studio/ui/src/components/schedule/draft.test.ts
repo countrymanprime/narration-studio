@@ -25,6 +25,14 @@ describe('a milestone draft', () => {
     expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: ' 2026-10-25 ' }, undefined, BOUNDS)).toMatchObject({ milestone: { dueDate: '2026-10-25' } });
   });
 
+  it('refuses a date past the last year, so a typo is not a milestone in the year 9999', () => {
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '9999-12-31' }, undefined, BOUNDS)).toEqual({
+      refusal: 'Write a date no later than Dec 31, 2100.',
+    });
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2101-01-01' }, undefined, BOUNDS)).toHaveProperty('refusal');
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2100-12-31' }, undefined, BOUNDS)).toHaveProperty('milestone');
+  });
+
   it('refuses a name or note over the host limit in a sentence of its own', () => {
     const long = { ...blankDraft(), name: 'A', date: '2026-10-05' };
     expect(milestoneFromDraft({ ...long, name: 'x'.repeat(201) }, undefined, BOUNDS)).toEqual({ refusal: 'The name is 201 characters; the most is 200.' });

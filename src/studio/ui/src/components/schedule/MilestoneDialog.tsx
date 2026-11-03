@@ -48,6 +48,13 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
         event.preventDefault();
         void save();
       }}
+      // Ctrl+Enter (Cmd+Enter on a Mac) saves from anywhere in the form, the note box included, where a plain Enter is a new line.
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !saving) {
+          event.preventDefault();
+          void save();
+        }
+      }}
     >
       <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} />
       <div>

@@ -1,5 +1,5 @@
 import type { ProductionMilestone } from '../../api/contracts/production';
-import { isIsoDate } from './dates';
+import { farDateProblem, isIsoDate } from './dates';
 import { chaptersOf, measOf, minutesOf } from './measures';
 
 /** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N". */
@@ -60,6 +60,8 @@ export function milestoneFromDraft(
   if ([...name].length > MAX_NAME) return { refusal: `The name is ${[...name].length} characters; the most is ${MAX_NAME}.` };
   const date = draft.date.trim();
   if (!isIsoDate(date)) return { refusal: badDate(date) };
+  const far = farDateProblem(date);
+  if (far) return { refusal: far };
   const measure = storedMeasure(draft, bounds);
   const keepEstimate = existing?.estimate !== undefined && measOf(measure) !== 'custom' && existing.measure === measure;
   const note = draft.note.trim();

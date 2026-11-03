@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ProductionPayment, ProductionPlan } from '../../api/contracts/production';
 import { Panel } from '../primitives/Panel';
 import { Select } from '../primitives/Select';
@@ -27,25 +27,35 @@ export type ContractPanelProps = {
  */
 export function ContractPanel({ plan, words, wph, onPayment, onAmount, onRefuse, onAccepted }: ContractPanelProps) {
   const payment = paymentOf(plan);
+  const refusedId = useId();
   const [typed, setTyped] = useState<string | null>(null);
+  // The text a refusal was about and its sentence: the box keeps it, marked invalid, until the next edit; leaving it again unedited puts the stored amount back.
+  const [refused, setRefused] = useState<{ text: string; sentence: string } | null>(null);
   const value = contractValue(plan, words, wph);
   const commit = () => {
     if (typed === null) return;
     const text = typed.trim();
+    if (refused && refused.text === typed) {
+      setRefused(null);
+      setTyped(null);
+      return onAccepted?.();
+    }
     setTyped(null);
     if (text === '') {
       onAccepted?.();
       return onAmount(null);
     }
     const amount = parseAmount(text);
-    if (amount === null)
-      return onRefuse(
-        isTooLarge(text)
-          ? `That rate is too large. Write it as ${MAX_AMOUNT.toLocaleString('en-US')} or less.`
-          : text.includes(',') && !text.includes('.')
-            ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
-            : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.',
-      );
+    if (amount === null) {
+      const sentence = isTooLarge(text)
+        ? `That rate is too large. Write it as ${MAX_AMOUNT.toLocaleString('en-US')} or less.`
+        : text.includes(',') && !text.includes('.')
+          ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
+          : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.';
+      setTyped(typed);
+      setRefused({ text: typed, sentence });
+      return onRefuse(sentence);
+    }
     onAccepted?.();
     if (amount !== plan.contractedAmount) onAmount(amount);
   };
@@ -73,12 +83,22 @@ export function ContractPanel({ plan, words, wph, onPayment, onAmount, onRefuse,
                 mono
                 inputMode="decimal"
                 value={typed ?? (plan.contractedAmount === null ? '' : plainNumber(plan.contractedAmount))}
-                onChange={setTyped}
+                onChange={(text) => {
+                  setTyped(text);
+                  setRefused(null);
+                }}
+                aria-invalid={refused ? true : undefined}
+                aria-describedby={refused ? refusedId : undefined}
                 onBlur={commit}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') event.currentTarget.blur();
                 }}
               />
+              {refused && (
+                <span id={refusedId} className="sr-only">
+                  {refused.sentence}
+                </span>
+              )}
             </dd>
           </>
         )}

@@ -30,6 +30,18 @@ import { WorkedOut } from './WorkedOut';
 /** How long a write waits for the one before it to be answered, before it goes ahead anyway. */
 export const WRITE_WAIT_MS = 15_000;
 
+/** After the next paint, puts focus on the first selector that matches, if focus has fallen to the page (a button that was pressed has gone). */
+function focusSoon(...selectors: string[]): void {
+  window.requestAnimationFrame(() => {
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    for (const selector of selectors) {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (el) return el.focus();
+    }
+  });
+}
+
 /** What the page needs of the command journal: run a change as one entry, take an entry back, and hear of a change made from elsewhere (the history panel's Undo). */
 /** The topic of the page's refusals: a newer one replaces the old, and a change that goes through takes it away. */
 const REFUSAL = 'schedule-refusal';
@@ -83,6 +95,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     build: (latest: ProductionPlan) => Command<ProductionPlan>,
     undoText?: string,
     stale?: (latest: ProductionPlan) => string | undefined,
+    restoreFocus?: () => void,
   ): Promise<string | undefined> => {
     // A host that never answers one write must not hold every later one forever: after a wait the next write goes ahead.
     const task = Promise.race([queue.current, new Promise((resolve) => window.setTimeout(resolve, WRITE_WAIT_MS))]).then(
@@ -115,6 +128,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
             async () => {
               const undone = await journal.undo(result.value.id);
               await reload();
+              restoreFocus?.();
               return undone;
             },
             { entry: result.value.id },
@@ -130,7 +144,8 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     milestones: (latest: ProductionMilestone[]) => ProductionMilestone[],
     undoText?: string,
     stale?: (latest: ProductionPlan) => string | undefined,
-  ) => run((latest) => saveMilestonesCommand(production, label, latest, milestones(latest.milestones)), undoText, stale);
+    restoreFocus?: () => void,
+  ) => run((latest) => saveMilestonesCommand(production, label, latest, milestones(latest.milestones)), undoText, stale, restoreFocus);
 
   // A plan edited by hand can hold a date that is not one; the page treats it as no due date and says so.
   const due = plan.deadline && isIsoDate(plan.deadline) ? parseIso(plan.deadline) : null;
@@ -183,7 +198,19 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   };
   const remove = (index: number) => {
     const m = plan.milestones[index];
-    once(`remove:${index}`, () => saveList(`Remove ${m.name}`, (list) => list.filter((_, i) => i !== index), `Removed ${m.name}.`, rowMoved(index, m)));
+    once(`remove:${index}`, () =>
+      saveList(
+        `Remove ${m.name}`,
+        (list) => list.filter((_, i) => i !== index),
+        `Removed ${m.name}.`,
+        rowMoved(index, m),
+        // Undo takes its own button away, which drops focus on the page: the milestone that came back takes it, on its Edit button.
+        () => focusSoon(`[data-edit="${index}"]`),
+      ).then((refusal) => {
+        // The row's own button went with it: focus stays in the list, on the row that took its place, or on Add milestone when no row is left.
+        if (refusal === undefined) focusSoon(`[data-remove="${index}"]`, 'button[aria-label="Add milestone"]');
+      }),
+    );
   };
   const changeDue = async (text: string): Promise<boolean> => {
     const problem = dueDateProblem(text);

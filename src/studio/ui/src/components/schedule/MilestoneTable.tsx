@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import { DateField } from '../primitives/DateField';
 import { Icon } from '../primitives/Icon';
@@ -13,7 +13,7 @@ import { milestoneStatus, type MilestoneStatus, type ScheduleChapter } from './p
 
 const STATUS_ID: Record<MilestoneStatus['kind'], StatusId> = { done: 'done', ok: 'on_track', risk: 'at_risk', late: 'late', none: 'no_estimate' };
 
-/** A status as a small cell: the value is short ("+3 d", a date, a check, a dash) and the sentence is its name and its tooltip. */
+/** A status as a small cell: the value is short ("3 d late", "est." and a date, a check, a dash) and the sentence is its name and its tooltip. */
 function StatusCell({ status, finalRow = false }: { status: MilestoneStatus; finalRow?: boolean }) {
   return (
     <TooltipTarget text={status.sentence}>
@@ -55,7 +55,7 @@ export function MilestoneTable({ milestones, chapters, today, wph, due, onToggle
   return (
     /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, instead of spilling out of the card on a narrow window. */
     <div className={`scroll-x-edges overflow-x-auto ${MEASURES_WIDTH}`} tabIndex={0} role="group" aria-label="Milestones scroll area">
-      <Table label="Milestones" flush columns={COLUMNS} className="min-w-[34.5rem] lg:min-w-[44.5rem]">
+      <Table label="Milestones" flush columns={COLUMNS} className="min-w-[36.5rem] lg:min-w-[46.5rem]">
         <TableHead>
           <TableRow>
             <TableHeader>Milestone</TableHeader>
@@ -135,7 +135,7 @@ const WHOLE_BOOK = 'Whole book';
 // Fixed columns (alignment audit XSH-3): only Milestone takes what is left, so Due and Status stand at the same x in every state
 // whatever the milestones are called. Due is the mock's 152 px; Actions holds four 36 px buttons 8 px apart.
 // Below 1024 px Measures folds to nothing and its words move under the name (R4SM-13), so Due and Status stay on screen.
-const COLUMNS = ['auto', 'var(--ms-measures)', '9.5rem', '6rem', '12rem'] as const;
+const COLUMNS = ['auto', 'var(--ms-measures)', '9.5rem', '8rem', '12rem'] as const;
 const MEASURES_WIDTH = '[--ms-measures:0px] lg:[--ms-measures:9rem]';
 // A folded column keeps its cells for a screen reader (the copy under the name is hidden from it) but draws nothing.
 const NARROW_HIDDEN = 'max-lg:overflow-hidden max-lg:p-0 max-lg:whitespace-nowrap max-lg:text-transparent';
@@ -165,21 +165,37 @@ function NameBlock({ name, measure, data }: { name: string; measure: string; dat
  */
 function DueField({ value, onCommit }: { value: string; onCommit: (date: string) => void | Promise<unknown> }) {
   const [draft, setDraft] = useState<string | null>(null);
+  // A date that was written whole but refused (past the last year, or the host said no) stays in the box, marked invalid, until the next edit; leaving it again puts the saved date back.
+  const [refused, setRefused] = useState<string | null>(null);
+  const refusedId = useId();
   return (
-    <DateField
-      label="Delivery due"
-      // The cell's own width (the mock's 152 px less its 10 px padding each side). It reads as the column's text (R3SH-1, XSH-11): no frame or fill until
-      // the pointer or focus is on it, the date in the column's 13 px mono, and its text pulled left onto the other rows' dates.
-      className="-ml-2 w-[8.25rem] border-transparent! bg-transparent! px-2! text-[0.8125rem]! hover:border-[var(--line-strong)]! focus:border-[var(--line-strong)]!"
-      value={draft ?? value}
-      onChange={(text) => {
-        setDraft(text);
-        if (isIsoDate(text) && text !== value) void onCommit(text);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' && draft === '' && value !== '') void onCommit('');
-      }}
-      onBlur={() => setDraft(null)}
-    />
+    <>
+      <DateField
+        label="Delivery due"
+        // The cell's own width (the mock's 152 px less its 10 px padding each side). It reads as the column's text (R3SH-1, XSH-11): no frame or fill until
+        // the pointer or focus is on it, the date in the column's 13 px mono, and its text pulled left onto the other rows' dates.
+        className="-ml-2 w-[8.25rem] border-transparent! bg-transparent! px-2! text-[0.8125rem]! hover:border-[var(--line-strong)]! focus:border-[var(--line-strong)]! aria-[invalid=true]:border-[var(--danger)]!"
+        value={draft ?? value}
+        onChange={(text) => {
+          setDraft(text);
+          setRefused(null);
+          if (isIsoDate(text) && text !== value) void Promise.resolve(onCommit(text)).then((saved) => saved === false && setRefused(text));
+        }}
+        aria-invalid={refused !== null ? true : undefined}
+        aria-describedby={refused !== null ? refusedId : undefined}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && draft === '' && value !== '') void onCommit('');
+        }}
+        onBlur={() => {
+          setDraft(null);
+          setRefused(null);
+        }}
+      />
+      {refused !== null && (
+        <span id={refusedId} className="sr-only">
+          This date was not saved.
+        </span>
+      )}
+    </>
   );
 }
