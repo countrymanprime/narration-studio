@@ -163,7 +163,7 @@ follows you between projects rather than resetting when you switch.
 
 ## The audio engine panel
 
-Click the chip at the right of the header, or the recording-setup chip in the [Booth](booth.md), to open the audio engine panel over whatever page you are on: every chip that names the DAW leads here. Its gear button at the top (**Open Recording settings**) opens Settings > Recording & DAW, where the project's engine is chosen.
+Click the chip at the right of the header, or the recording-setup chip in the [Booth](booth.md), to open the audio engine panel over whatever page you are on: every chip that names the DAW leads here. Its gear button at the top (**Recording settings**) opens Settings > Recording & DAW, where the project's engine is chosen.
 It holds everything about the REAPER project itself rather than one stage of the work: the linked project
 file, the REAPER tools, chapter sync, the project's tracks and each chapter's link to its track. Close it
 with its close button, Escape or a click beside it. Every "Open the audio engine panel" pointer in the app, in a message or a dialog, opens it over the page you are on and closes the dialog it was in. (It replaced the Tracks page; an old link to that page

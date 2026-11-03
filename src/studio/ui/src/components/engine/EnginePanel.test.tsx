@@ -62,7 +62,7 @@ describe('EnginePanel', () => {
     const open = vi.fn();
     renderPanel({}, {}, {}, open);
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Open Recording settings' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Recording settings' }));
     expect(open).toHaveBeenCalledTimes(1);
   });
 
