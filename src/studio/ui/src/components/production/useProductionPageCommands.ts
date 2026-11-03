@@ -9,14 +9,20 @@ import { revealRow } from './pipeline/rowWindow';
  * menu is where the narrator is. A long book draws only the rows near the view: a row not drawn yet is scrolled to by its place, then found a
  * frame later.
  */
-function focusPipelineRow(id: string, index: number, retries = 3): void {
+function focusPipelineRow(id: string, index: number): void {
+  // After the jump menu has closed: it returns focus to what opened it when it closes, and a row already on screen was focused before that,
+  // so the focus went back to the project button and the chapter chosen gave no cue (a far one was focused later and kept it).
+  requestAnimationFrame(() => requestAnimationFrame(() => reachPipelineRow(id, index, 3)));
+}
+
+function reachPipelineRow(id: string, index: number, retries: number): void {
   const body = document.querySelector(`[${PIPELINE_AREA}] tbody`);
   if (!body) return;
   const row = [...body.querySelectorAll<HTMLElement>('tr[data-chapter-id]')].find((tr) => tr.dataset.chapterId === id);
   if (!row) {
     if (retries <= 0) return;
     revealRow(body, index);
-    requestAnimationFrame(() => requestAnimationFrame(() => focusPipelineRow(id, index, retries - 1)));
+    requestAnimationFrame(() => requestAnimationFrame(() => reachPipelineRow(id, index, retries - 1)));
     return;
   }
   row.scrollIntoView({ block: 'center' });

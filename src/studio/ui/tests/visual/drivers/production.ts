@@ -84,6 +84,13 @@ export const productionDrivers: Record<string, Driver> = {
     await openManyChapters(page);
     await scrollPipelineTo(page, 0);
     await expectFixedRowHeight(page);
+    // A clamped name gives its whole name in a tip once the pointer has rested on it (the hover delay is about a second); the tip is closed again
+    // before the capture, because a portalled popup sits outside the landmarks.
+    const title = page.locator(`${PIPELINE_ROWS} [data-title]`).nth(10);
+    await title.hover();
+    await expect(page.getByRole('tooltip')).toHaveText(/The Rabbit Sends in a Little Bill|Chapter \d+ — /, { timeout: 4000 });
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
   },
   // The window moved: rows 2400 on, the spacer above holding the place of the 2400 before them.
   'many-chapters-scrolled': async (page) => {
