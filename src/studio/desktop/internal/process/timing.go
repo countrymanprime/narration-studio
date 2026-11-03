@@ -72,7 +72,7 @@ func (s *Supervisor) SetTracer(tracer *trace.Tracer) { s.tracer = tracer }
 func traceKind(program string) string {
 	kind := []byte(programKind(program))
 	for i, b := range kind {
-		if !(b >= 'a' && b <= 'z' || b >= '0' && b <= '9' || b == '_' || b == '.' || b == ':' || b == '-') {
+		if (b < 'a' || b > 'z') && (b < '0' || b > '9') && b != '_' && b != '.' && b != ':' && b != '-' {
 			kind[i] = '_'
 		}
 	}
