@@ -24,6 +24,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/App.tsx::reportClientDiagnostic#3': row('event', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'A diagnostic must never throw or show a second error while one is already being reported.'),
   'src/App.tsx::subscribeTranscript#1': subscription('The transcript state event.'),
   'src/App.tsx::subscribeJobEnded#1': subscription('A host job that ends becomes a toast for the jobs that can finish elsewhere.'),
+  'src/trace/installTracing.ts::systemTraceBatch#1': row('timer', 'instant', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'The activity trace sends its queued events once a second. It is a diagnostic that must never throw or show anything: a failed batch is dropped (src/api/tracing.ts), and the host answers from memory.'),
   'src/App.tsx::systemNotify#1': row('event', 'os-dialog', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'An OS notification is a courtesy, not load-bearing: the host already swallows a failed or unavailable sender (N1-N4), and the app-level toast from the same job:ended event is the record of what happened.'),
   'src/App.tsx::subscribeNotices#1': subscription('Host notices (a file kept aside) become toasts.'),
   'src/App.tsx::subscribeUpdate#1': subscription('The update check finding a newer release becomes one toast.'),
