@@ -19,13 +19,13 @@ repository (read with `gh api repos/{owner}/{repo}/rulesets`, and `.../environme
 
 - **`Main Protection` ruleset** (active): deleting `main`, force-pushing to it and re-creating it are blocked. The
   admin role and the owner bypass it.
-- **`Pull Request` ruleset** (active): squash merges only; one approval; **code-owner review is required**
-  (`.github/CODEOWNERS` names `@countrymanprime` for every path); a new push dismisses stale approvals; the last push
+- **`Pull Request` ruleset** (active): squash merges only; one approval (the live ruleset has `require_code_owner_review` off, read 2026-11-03,
+  although `.github/CODEOWNERS` names `@countrymanprime` for every path); a new push dismisses stale approvals; the last push
   must be approved; every review thread must be resolved; its `require_extra_approval_for_unattributed_changes` option is on. The admin role can bypass it through a pull request, and the
   owner `@countrymanprime` is exempt, so the solo maintainer merges their own pull requests.
 - **No ruleset requires a status check.** CI is advisory: a red job does not block a merge and a green one does not
   permit it, so the maintainer reads the run before merging (the table below says what each check is). Requiring
-  checks is an owner-only setting. If it is ever turned on, the names to require are the ones in the table, and two
+  checks is an owner-only setting; [Turning on required checks](github-workflow.md#turning-on-required-checks-544) holds the rule and the decision it needs. If it is ever turned on, the names to require are the ones in the table, and two
   things need a decision first: `ci.yml` skips documentation-only pull requests (`paths-ignore: docs/**, **/*.md`),
   which would leave a required check pending on them, and the visual and atlas jobs have to have stopped failing
   without a code change (see [Keeping a red run meaningful](#keeping-a-red-run-meaningful)). The one check that is
