@@ -8,10 +8,10 @@ export const recordingFeedback = {
     'inline',
     'pending',
     'ui',
-    'inline',
+    'toast',
     'yes',
     'ok',
-    "Opening the Booth's Levels menu with the built-in recorder starts its meter on the chosen microphone: the row says it is opening the device, then the level moves; a refusal, or no answer within METER_WAIT_MS, is the row's sentence. One call at a time, kept outside the menu, so a call on its way survives closing it.",
+    "Opening the Booth's Levels menu with the built-in recorder starts its meter on the chosen microphone: the line under the meter says it is opening it, then the level moves; a refusal, or no answer within METER_WAIT_MS, says the meter did not start, with Check again, and its reason is an error toast with Retry. One call at a time, kept outside the menu, so a call on its way survives closing it.",
   ),
   'src/components/booth/frame/recorderMeter.ts::recorderMeterStop#1': row(
     'effect',

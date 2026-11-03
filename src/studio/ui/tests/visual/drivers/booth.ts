@@ -377,11 +377,30 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Levels' }).click();
     const menu = page.getByRole('dialog', { name: 'Levels' });
     await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
-    await menu
-      .getByRole('alert')
-      .filter({ hasText: /could not open/ })
-      .waitFor();
+    await menu.getByText('The meter did not start.').waitFor();
     await menu.getByRole('button', { name: 'Check again' }).waitFor();
+    // The recorder's own words come as an error toast beside the menu.
+    await page
+      .getByText(/could not open/)
+      .first()
+      .waitFor();
+  },
+  'levels-menu-builtin-opening': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=meter-hangs');
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    await menu.getByText('Opening the microphone…').waitFor();
+  },
+  'levels-menu-builtin-paused': async (page) => {
+    await openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.getByRole('dialog', { name: 'Levels' }).getByText('Paused while the app is in the background.').waitFor();
+  },
+  'levels-menu-builtin-no-mic': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=mic-gone');
+    await page.getByRole('button', { name: 'Levels' }).click();
+    await page.getByRole('dialog', { name: 'Levels' }).getByText('No microphone chosen.').waitFor();
   },
   'levels-menu-builtin-long-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=long', `Long ${'microphone name '.repeat(19)}end`),
   'levels-menu-builtin-rtl-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=weird', 'ميكروفون 🎤 (USB)'),

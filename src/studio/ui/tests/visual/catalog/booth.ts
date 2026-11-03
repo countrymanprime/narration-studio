@@ -245,7 +245,28 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu-builtin-refused',
     description:
-      "The Levels menu of levels-menu-builtin when the built-in recorder cannot open the microphone (?mockRecorder=start-fails): the Input meter dimmed with no reading, the recorder's sentence under it in the error colour, and Check again beside it",
+      'The Levels menu of levels-menu-builtin when the built-in recorder cannot open the microphone (?mockRecorder=start-fails): the Input meter dimmed with no reading, "The meter did not start." under it in the error colour with Check again, and the recorder\'s own reason in an error toast',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-opening',
+    description:
+      'The Levels menu of levels-menu-builtin while the meter\'s start has not answered (?mockRecorder=meter-hangs): the Input meter dimmed with no reading and "Opening the microphone…" under it, the menu the same height as when it reads',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-paused',
+    description:
+      'The Levels menu of levels-menu-builtin after the window lost focus: the meter stopped, dimmed, and "Paused while the app is in the background." under it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-no-mic',
+    description:
+      'The Levels menu with the built-in recorder when it no longer lists the chosen microphone (?mockRecorder=mic-gone): no meter started, the Input meter dimmed and "No microphone chosen." under it, the picker showing the chosen one as not found',
     ...REFLOW,
   },
   {

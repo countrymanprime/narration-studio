@@ -211,14 +211,16 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     expect(recorder.listeners.size).toBe(0);
   });
 
-  it('a refusal is the meter’s sentence, and the meter shows no reading', async () => {
+  it('a refusal says the meter did not start, gives its reason as an error toast, and shows no reading', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
     const recorder = fakeRecorder();
     recorder.api.recorderMeterStart = async () => {
       throw new Error('a take is recording; its level shows in the Booth');
     };
     const { open } = booth(recorder.api);
     await open();
-    expect(await within(popup()).findByRole('alert')).toHaveProperty('textContent', 'a take is recording; its level shows in the Booth');
+    expect(await within(popup()).findByText('The meter did not start.')).toBeTruthy();
+    expect(toast).toHaveBeenCalledWith('a take is recording; its level shows in the Booth', expect.objectContaining({ tone: 'error' }));
     expect(within(popup()).queryByRole('meter', { name: 'Input level' })).toBeNull();
   });
 
@@ -301,9 +303,11 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     const { open, close } = booth(recorder.api);
     await open();
     await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
-    expect(within(popup()).getByText('Opening USB Mic…')).toBeTruthy();
+    const toast = vi.spyOn(overlay, 'toast');
+    expect(within(popup()).getByText('Opening the microphone…')).toBeTruthy();
     await act(async () => void (await vi.advanceTimersByTimeAsync(METER_WAIT_MS + 100)));
-    expect(within(popup()).getByRole('alert').textContent).toBe('The built-in recorder did not answer in 15 s.');
+    expect(within(popup()).getByText('The meter did not start.')).toBeTruthy();
+    expect(toast).toHaveBeenCalledWith('The built-in recorder did not answer in 15 s.', expect.objectContaining({ tone: 'error' }));
     await close();
     await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic', 'stop']));
   });
@@ -329,8 +333,8 @@ describe("the built-in recorder's meter in the Levels menu", () => {
       const { open, unmount } = booth(recorder.api, { device: name });
       await open();
       await waitFor(() => expect(recorder.calls).toEqual([`start:${name}`]));
-      const opening = within(popup()).getByText(`Opening ${name}…`);
-      expect(opening.className).toContain('[overflow-wrap:anywhere]');
+      // The line under the meter never names the device, so a long name cannot make the menu taller.
+      expect(within(popup()).getByText('Opening the microphone…')).toBeTruthy();
       unmount();
       cleanup();
     }
@@ -372,7 +376,7 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     const { open } = booth(recorder.api);
     await open();
     await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
-    expect(within(popup()).getByText('Opening USB Mic…')).toBeTruthy();
+    expect(within(popup()).getByText('Opening the microphone…')).toBeTruthy();
     expect(within(popup()).queryByRole('meter', { name: 'Input level' })).toBeNull();
     expect(within(popup()).getByTestId('input-meter').className).toContain('opacity-50');
   });
@@ -398,11 +402,11 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     recorder.api.recorderMeterStart = (device: string) => (refuse ? Promise.reject(new Error('USB Mic is in use by another program')) : start(device));
     const { open } = booth(recorder.api);
     await open();
-    expect(await within(popup()).findByRole('alert')).toHaveProperty('textContent', 'USB Mic is in use by another program');
+    expect(await within(popup()).findByText('The meter did not start.')).toBeTruthy();
     refuse = false;
     await userEvent.click(within(popup()).getByRole('button', { name: 'Check again' }));
     await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
-    expect(within(popup()).queryByRole('alert')).toBeNull();
+    expect(within(popup()).queryByText('The meter did not start.')).toBeNull();
     expect(within(popup()).queryByRole('button', { name: 'Check again' })).toBeNull();
   });
 
@@ -429,6 +433,19 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     expect(await within(popup()).findByText('Paused while the app is in the background.')).toBeTruthy();
     fireEvent.focus(window);
     await waitFor(() => expect(within(popup()).queryByText('Paused while the app is in the background.')).toBeNull());
+  });
+
+  // ux-reviewer: a refusal that wrapped made the menu taller, so the popover jumped. Every state's line is one fixed line.
+  it('keeps every sentence on one fixed line under the meter, the reading shown as the held peak', async () => {
+    const recorder = fakeRecorder();
+    const { open } = booth(recorder.api);
+    await open();
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
+    recorder.emit({ peak: -14.2, rms: -24.6 });
+    const line = within(popup()).getByTestId('input-line');
+    await waitFor(() => expect(line.textContent).toContain('Peak −14.2 dB'));
+    expect(line.className).toContain('h-7');
+    expect(line.className).toContain('whitespace-nowrap');
   });
 
   it('runs against the mock recorder: a steady level while the menu is open, none after it closes', async () => {
