@@ -42,7 +42,8 @@ export const scheduleStates: StateEntry[] = [
     state: 'long-text',
     reloadPerViewport: true,
     description:
-      'Schedule with milestones named in a 200-character word, in right-to-left text and with emoji - the table wraps them and does not widen the page',
+      'Schedule with milestones named in a 200-character word, in right-to-left text and with emoji, and a late one - the table wraps them and does not widen the page',
+    ...REFLOW,
   },
   {
     page: 'schedule',
@@ -58,3 +59,5 @@ export const scheduleStates: StateEntry[] = [
   },
 ];
 scheduleStates.push(wholePage(scheduleStates, 'on-pace', ['desktop']));
+// The long-text rows seen whole (`fullPage`) at 390, 768, 1024 and 1440 px, so the stacked or scrolling milestone table is in the picture.
+scheduleStates.push({ ...wholePage(scheduleStates, 'long-text'), state: 'long-text-whole-page' });
