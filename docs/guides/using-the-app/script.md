@@ -45,12 +45,15 @@ Enter moves focus to the open tab of the rail (or opens the rail, where it is a 
 
 `Ctrl+F` opens the [jump menu](navigation.md#jump-to-or-run) searching only this page. Type at least two letters and the menu lists, in this order:
 what the page offers that matches (**On this page**: chapters, Story Bible entries and the mark types), then **In the script**, **My marks** and **My words**.
-Each match in the script shows the words around it with the matched part marked, and the chapter and paragraph it is in (**Chapter 3 · ¶ 12**);
-the first 50 are listed and a last row says how many more there are. It reads the chapters the page has loaded.
+**In the script** searches the whole book, including chapters you have not scrolled to yet, but not front matter or chapters taken out of recording.
+Until the answer comes, **Searching…** holds its place. Each match is its own row, with the words around it, the matched part marked, and its chapter and
+paragraph (**Chapter 3 · ¶ 12**). The first 50 are listed, and a last row gives the exact number of the rest. Case does not matter, and accented
+letters, right-to-left text, emoji and characters such as `(` `*` `.` are matched as typed. A term longer than 500 characters is refused with a message.
 
-Choose a match (`Enter` or a click) and the menu closes: every match of the word is lit in the text, the one you chose is ringed and brought into view.
-**F3** and **Shift+F3** move to the next and previous match, wrapping at the ends; the same steps, with "3 of 12 for “alice”", and **Clear the search** are under **Search** in
-the jump menu while a search is showing. `Esc` clears the search. `Ctrl+K` opens the whole menu, with **On this page** first, and `Backspace` on an empty field in `Ctrl+F` widens the search to every page and command.
+Choose a match (`Enter` or a click) and the menu closes. Every match of the word is lit in the text, and the one you chose is ringed and brought into
+view, even in a chapter the page had not read yet. **F3** and **Shift+F3** move to the next and previous match, wrapping at the ends. While a search is
+showing, the jump menu has the same steps under **Search**, with "3 of 12 for “alice”", and **Clear the search**. A screen reader hears the same count.
+A word found more than 1,000 times lights and steps through the first 1,000, and the count says so ("3 of the first 1000 of 4210"). `Esc` clears the search. `Ctrl+K` opens the whole menu, with **On this page** first, and `Backspace` on an empty field in `Ctrl+F` widens the search to every page and command.
 
 ![Script - Ctrl+F then "Alice": the menu lists the matches under In the script, the matched word marked](../../images/ui/script-search.webp)
 

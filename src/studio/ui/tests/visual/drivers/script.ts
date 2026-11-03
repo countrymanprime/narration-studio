@@ -104,13 +104,15 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('combobox', { name: 'Jump menu' }).waitFor();
     await page.getByRole('option', { name: /^Chapters/ }).waitFor();
   },
-  // Ctrl+F searches the page: the term is typed into the menu and the manuscript's matches come back under "In the script".
+  // Ctrl+F searches the page: the term is typed into the menu and the host's whole-book matches come back under "In the script",
+  // replacing its "Searching…" row; a match row names its chapter and paragraph.
   'search-menu': async (page) => {
     await goToPage(page, 'Script');
     await page.keyboard.press('Control+f');
     await page.getByRole('combobox', { name: 'Jump menu' }).fill('Alice');
-    await page.getByRole('listbox', { name: 'Jump menu results' }).getByRole('option').first().waitFor();
     await page.getByText('In the script', { exact: true }).waitFor();
+    await page.getByRole('option', { name: /¶/ }).first().waitFor();
+    await page.getByRole('option', { name: 'Searching…' }).waitFor({ state: 'detached' });
   },
   'search-shown': async (page) => {
     await goToPage(page, 'Script');

@@ -13,10 +13,25 @@ import type { GestureEvent, InputSource } from '../../../../input/InputSource';
 import { CommandRouter, CommandScope } from '../../../../input/router';
 import { useCommand } from '../../../../input/useCommand';
 import { contextItemsFor } from '../../../../registries/context';
-import { searchAll } from '../../../../registries/search';
+import { searchAll, searchLater, type SearchHit } from '../../../../registries/search';
+import type { ManuscriptSearchResult } from '../../../../api/contracts/manuscript';
 import { StudioProvider } from '../../../../studio/StudioProvider';
 import { useChapters, useScriptPrep, useScriptView } from '../data/useScriptData';
 import { useScriptRegistry, type ScriptRegistryOptions } from './useScriptRegistry';
+
+const NO_ANSWER: ManuscriptSearchResult = { hits: [], total: 0, truncated: false };
+const NO_COUNT = { steps: 0, total: 0, searching: false };
+const count =
+  (steps: number, total = steps) =>
+  () => ({ steps, total, searching: false });
+/** What the sources that answer later (the book's) answer for a term, as the jump menu would ask them. */
+const searchBook = async (term: string): Promise<SearchHit[]> =>
+  (await Promise.all(searchLater(term, new AbortController().signal).map((pending) => pending.answer))).flat();
+const rabbit: ManuscriptSearchResult = {
+  hits: [{ chapter: 'One', chapterId: 'c1', paragraph: 0, paragraphId: 'p1', excerpt: 'The White Rabbit ran', matches: [{ start: 10, end: 16 }] }],
+  total: 1,
+  truncated: false,
+};
 
 afterEach(() => {
   cleanup();
@@ -58,9 +73,9 @@ function setup(extra: Partial<ScriptRegistryOptions> = {}) {
     () => {
       useScriptRegistry({
         ...handlers,
-        lines: () => [],
+        search: () => Promise.resolve(NO_ANSWER),
         locationOf: () => '',
-        matchCount: () => 0,
+        findCount: () => NO_COUNT,
         kinds: ['Character'],
         currentChapterId: () => current,
         ...extra,
@@ -80,12 +95,14 @@ function reader(): HTMLElement {
 }
 
 describe('registrations', () => {
-  it('search-sources: the manuscript answers under In the script from the lines the page gives; the Story Bible is a page item, not a second hit', async () => {
-    const lines = [{ chapterId: 'c1', id: 'p1', index: 0, text: 'The White Rabbit ran' }];
-    setup({ lines: () => lines });
+  it('search-sources: the book answers later under In the script from the host search the page gives; the Story Bible is a page item, not a second hit', async () => {
+    const search = vi.fn(() => Promise.resolve(rabbit));
+    setup({ search });
     await waitFor(() => expect(currentPageContext()!.items.some((row) => row.group === 'Story Bible' && row.label === 'White Rabbit')).toBe(true));
-    const hits = searchAll('rabbit');
-    expect(hits.some((hit) => hit.group === 'In the script')).toBe(true);
+    expect(searchAll('rabbit').some((hit) => hit.group === 'In the script')).toBe(false);
+    const hits = await searchBook('rabbit');
+    expect(search).toHaveBeenCalledWith('rabbit');
+    expect(hits.map((hit) => [hit.group, hit.title])).toEqual([['In the script', 'The White Rabbit ran']]);
     expect(hits.some((hit) => hit.group === 'Story Bible')).toBe(false);
   });
 
@@ -122,7 +139,7 @@ describe('registrations', () => {
   });
 
   it('page-items: while a search is showing the menu offers the next and previous match and clearing it, with the count; none of them otherwise', () => {
-    const { hook } = setup({ matchCount: () => 3 });
+    const { hook } = setup({ findCount: count(3) });
     const search = () => (currentPageContext()?.items ?? []).filter((row) => row.group === 'Search');
     expect(search()).toEqual([]);
     act(() => hook.result.current.update({ find: { open: true, q: 'rabbit', i: 0 } }));
@@ -137,8 +154,22 @@ describe('registrations', () => {
     expect(hook.result.current.view.find.open).toBe(false);
   });
 
+  it('page-items: while the host is still searching the steps are off; past the host cap the count says how many Find steps of the total', () => {
+    let counted = { steps: 0, total: 0, searching: true };
+    const { hook } = setup({ findCount: () => counted });
+    const search = () => (currentPageContext()?.items ?? []).filter((row) => row.group === 'Search');
+    act(() => hook.result.current.update({ find: { open: true, q: 'the', i: 2 } }));
+    expect(search()[0]).toMatchObject({ hint: 'Searching for “the”', disabledReason: 'Still searching' });
+    counted = { steps: 1000, total: 4210, searching: false };
+    act(() => hook.result.current.update({ find: { open: true, q: 'the', i: 2 } }));
+    expect(search()[0]!.hint).toBe('3 of the first 1000 of 4210 for “the”');
+    counted = { steps: 0, total: 0, searching: false };
+    act(() => hook.result.current.update({ find: { open: true, q: 'zzz', i: 0 } }));
+    expect(search()[0]).toMatchObject({ hint: 'No matches for “zzz”', disabledReason: 'No matches' });
+  });
+
   it('keys: F3 and Shift+F3 step the matches, wrapping, and do nothing while no search shows', () => {
-    const { hook, press } = setup({ matchCount: () => 3 });
+    const { hook, press } = setup({ findCount: count(3) });
     press('F3');
     expect(hook.result.current.view.find.i).toBe(0);
     act(() => hook.result.current.update({ find: { open: true, q: 'rabbit', i: 0 } }));
@@ -182,12 +213,12 @@ describe('registrations', () => {
   });
 
   it('unregister-on-unmount: sources, provider and keys are gone', async () => {
-    const { hook, press, handlers } = setup({ lines: () => [{ chapterId: 'c1', id: 'p1', index: 0, text: 'The White Rabbit ran' }] });
-    await waitFor(() => expect(searchAll('rabbit').length).toBeGreaterThan(0));
+    const { hook, press, handlers } = setup({ search: () => Promise.resolve(rabbit) });
+    await waitFor(async () => expect((await searchBook('rabbit')).length).toBeGreaterThan(0));
     document.body.innerHTML = '<div data-jump="c"><b id="in">x</b></div>';
     expect(contextItemsFor(document.getElementById('in')!)).not.toBeNull();
     hook.unmount();
-    expect(searchAll('rabbit')).toEqual([]);
+    expect(await searchBook('rabbit')).toEqual([]);
     expect(contextItemsFor(document.getElementById('in')!)).toBeNull();
     press('ArrowDown', ['Alt']);
     expect(handlers.goToChapter).not.toHaveBeenCalled();
@@ -214,9 +245,9 @@ describe('registrations', () => {
         copy: vi.fn(),
         goToChapter: vi.fn(),
         composeMark: vi.fn(),
-        lines: () => [],
+        search: () => Promise.resolve(NO_ANSWER),
         locationOf: () => '',
-        matchCount: () => 0,
+        findCount: () => NO_COUNT,
         kinds: [],
         currentChapterId: () => null,
       });

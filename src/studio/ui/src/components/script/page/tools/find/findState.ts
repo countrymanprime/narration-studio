@@ -6,6 +6,12 @@ import type { ScriptViewState } from '../../data/scriptView';
 
 type Patch = (state: ScriptViewState) => Partial<ScriptViewState>;
 
+/** Characters of a term quoted in a sentence about it; a longer term (a pasted page) is cut with an ellipsis. */
+const QUOTED = 40;
+
+/** The term in curly quotes, as a sentence about the search says it. */
+export const quoteTerm = (term: string): string => `“${term.length > QUOTED ? `${term.slice(0, QUOTED)}…` : term}”`;
+
 /** Shows the search for `term` with the match at `index` current. */
 export const openFind =
   (term: string, index = 0): Patch =>
