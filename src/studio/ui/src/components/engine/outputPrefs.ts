@@ -40,7 +40,7 @@ export function readOutputPrefs(): OutputPrefs {
 }
 
 /** Saves the choices and says so to the windows that show them (Settings' Changed mark). */
-export function writeOutputPrefs(prefs: OutputPrefs): void {
+function writeOutputPrefs(prefs: OutputPrefs): void {
   try {
     localStorage.setItem(OUTPUT_STORAGE_KEY, JSON.stringify(prefs));
     announceBrowserSettingChange();
