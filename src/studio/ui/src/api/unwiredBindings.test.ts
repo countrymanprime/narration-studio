@@ -28,7 +28,6 @@ const UNWIRED = [
   'masteringChooseProvider',
   'recorderMeterStart',
   'recorderMeterStop',
-  'replaceNarratorRemove',
   'subscribeRecorderLevel',
   'systemCopyDiagnostics',
   'takeComparisonCancel',
