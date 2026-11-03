@@ -69,7 +69,7 @@ runs:
     # The key hashes scripts/toolchain.json, which pins the versions installed below (keep them in step).
     - if: inputs.need-wails-tools == 'true'
       id: wails-cache
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/go/bin/wails3${{ runner.os == 'Windows' && '.exe' || '' }}
         key: go-tool-wails3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/toolchain.json') }}
@@ -84,7 +84,7 @@ runs:
     # binary: a prebuilt binary is compiled with one Go version and refuses to lint a module that targets a newer one.
     - if: inputs.need-golangci-lint == 'true'
       id: golangci-lint-cache
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/go/bin/golangci-lint${{ runner.os == 'Windows' && '.exe' || '' }}
         key: go-tool-golangci-lint-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/toolchain.json') }}
@@ -96,7 +96,7 @@ runs:
     # pseudo-version pins a commit of gVisor's `go` branch.
     - if: inputs.need-golangci-lint == 'true'
       id: checklocks-cache
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/go/bin/checklocks${{ runner.os == 'Windows' && '.exe' || '' }}
         key: go-tool-checklocks-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/toolchain.json') }}
