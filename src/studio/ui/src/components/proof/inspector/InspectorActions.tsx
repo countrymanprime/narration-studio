@@ -19,6 +19,7 @@ export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'> & HearItApi
 // can get a marker, whatever its decision (SD-4).
 const NO_ITEM = 'This note has no place in the DAW to go to, because it came from an older check. Run the check again to record one.';
 const NO_SOURCE_TIME = 'This note has no time in its audio to put a marker at.';
+const NO_TIME = 'This note has no time in its audio to go to.';
 const CHECKING = 'Checking what the DAW can do…';
 const NOT_OFFERED = 'Your DAW does not offer this.';
 
@@ -83,9 +84,10 @@ export function InspectorActions({
     };
   }, [daw]);
 
+  // A note with an item but no time would only move to the item's start, which says nothing about the note (#2800).
   const placed = Boolean(finding.source.item_guid || finding.time_range);
   const goto = gateOf(capabilities, 'navigate');
-  const gotoReason = !goto.ok ? goto.reason : placed ? undefined : NO_ITEM;
+  const gotoReason = !goto.ok ? goto.reason : !placed ? NO_ITEM : finding.time_range ? undefined : NO_TIME;
   const marker = gateOf(capabilities, 'markers');
   const markerReason = !marker.ok ? marker.reason : finding.time_range?.source_start === undefined ? NO_SOURCE_TIME : undefined;
   const dawName = dawNameOf(capabilities);

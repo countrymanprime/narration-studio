@@ -20,22 +20,19 @@ compact JSON payloads:
 --manuscript is read only for the project's vocabulary hints. The host's results
 file (SUMMARY, DIFF and MARKER lines) is described in internal/comparerun.
 
-Two additive modes write their own tagged lines instead: --find-repeats
-(each read of an item_index|source_file|start_offset|length|item_guid|take_guid
-manifest transcribed on its own, a REPEAT_WORDS line per read that the host
-groups into repeated spans) and --coverage (recording coverage: a JSON manifest
-in, one words file per item and a words report of COVERAGE_WORDS,
-COVERAGE_UNSURE and COVERAGE_RECHECKED lines with JSON payloads out, which the
-host aligns; see core/coverage_mode.py for its manifest, words files, output
-and exit codes).
+One additive mode writes its own tagged lines instead: --coverage (recording
+coverage: a JSON manifest in, one words file per item and a words report of
+COVERAGE_WORDS, COVERAGE_UNSURE and COVERAGE_RECHECKED lines with JSON payloads
+out, which the host aligns; see core/coverage_mode.py for its manifest, words
+files, output and exit codes).
 
 --capabilities prints one JSON object instead of any of the above: every row
 this process has actually registered in ENGINES (batch ASR), e.g.
 {"type": "capabilities", "asr": {"whisper": {"label": "Whisper (faster-whisper)",
 "platforms": [], "modes": ["batch"], "asset": "whisper", "loadable": null}}} -
 registration only, never verified.
---manuscript is still required by argparse (as it is for --coverage and
---take-divergence too) but unused here; the packaged app's smoke test
+--manuscript is still required by argparse (as it is for --coverage too) but
+unused here; the packaged app's smoke test
 (checkCompareCapabilities) reads this to catch a batch ASR row Go declares
 for this platform that this process never registered.
 """
@@ -54,7 +51,7 @@ import numpy as np
 _SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
-# The sibling modules (coverage_mode, take_divergence_mode...) when compare.py is loaded by path, as the tests do.
+# The sibling modules (coverage_mode, asr_batch...) when compare.py is loaded by path, as the tests do.
 _CORE = Path(__file__).resolve().parent
 if str(_CORE) not in sys.path:
     sys.path.append(str(_CORE))
@@ -504,72 +501,6 @@ def load_manuscript_chapters(manuscript_path):
     return chapters
 
 
-def read_repeat_segments(manifest_path):
-    """Manifest reader for --find-repeats: like read_segments(), but each
-    line names a distinct *read* (an item, or one take of an item) to be
-    transcribed and aligned on its own, plus the identity fields the
-    exact-copy check and the Go adapter need. Pipe-delimited, no header:
-
-        item_index|source_file|start_offset_seconds|length_seconds|item_guid|take_guid
-
-    item_guid/take_guid are opaque strings supplied by the Go caller (a
-    REAPER item/take GUID); this module never interprets them beyond
-    equality and pass-through, since take identity is REAPER's, not this
-    sidecar's (see compare.py module docstring). Segments keep manifest order (unlike read_segments, which is only
-    ever used for one concatenated stream and sorts by item_index)."""
-    segments = []
-    with open(manifest_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            item_index, source_file, start_offset, length, item_guid, take_guid = line.split("|")
-            segments.append(
-                {
-                    "item_index": int(item_index),
-                    "source_file": source_file,
-                    "start_offset": float(start_offset),
-                    "length": float(length),
-                    "item_guid": item_guid,
-                    "take_guid": take_guid,
-                }
-            )
-    return segments
-
-
-def find_repeated_spans(args):
-    """The pickup and duplicate scan's transcription: every read named in --manifest decoded and transcribed on its
-    own, and its words written to --out as one REPEAT_WORDS line per read, in manifest order. The host chooses the
-    chapter before it starts this, then aligns each read, groups the reads that cover the same span and flags exact
-    copies (src/studio/desktop/internal/comparerun/repeats.go)."""
-    progress_path = args.progress
-
-    write_progress(progress_path, "START", 0, "Starting...")
-
-    segments = read_repeat_segments(args.manifest)
-    if not segments:
-        raise ValueError("Manifest contained no segments.")
-
-    lines = []
-    n = len(segments)
-    for i, seg in enumerate(segments):
-        check_cancelled(progress_path)
-        write_progress(progress_path, "TRANSCRIBE", 2 + int(90 * i / max(1, n)), f"Transcribing read {i + 1}/{n}")
-        log(
-            f"Transcribing read {i}: item {seg['item_index']} take {seg['take_guid']} ({seg['source_file']} [{seg['start_offset']:.2f}s, {seg['length']:.2f}s])"
-        )
-        audio = decode_segment(seg["source_file"], seg["start_offset"], seg["length"])
-        transcript_words = transcribe(audio, args.model, args.language, args.device, model_dir=args.model_dir)
-        words = [[text, float(start), float(end)] for text, start, end in transcript_words]
-        lines.append("REPEAT_WORDS|" + json.dumps({"words": words}, ensure_ascii=False, separators=(",", ":")) + "\n")
-
-    check_cancelled(progress_path)
-    write_progress(progress_path, "WRITE", 99, "Writing results...")
-    _write_atomically(args.out, "".join(lines))
-    log(f"Wrote the words of {n} read(s) to {args.out}")
-    write_progress(progress_path, "DONE", 100, "Finished")
-
-
 def run(args):
     """The compare run: decode and join the manifest's items, transcribe them and write the words report. The host has
     already matched the chapter (src/studio/desktop/internal/comparerun) and builds the markers from the report."""
@@ -716,19 +647,6 @@ def main():
         "{type: capabilities, asr}; registration only, not verified), then exit 0",
     )
     ap.add_argument(
-        "--take-divergence",
-        action="store_true",
-        help="Additive mode: transcribe every take in --manifest (a JSON manifest) of one fixed manuscript span and write "
-        "its words to --out, which the host aligns to the span (see core/take_divergence_mode.py)",
-    )
-    ap.add_argument(
-        "--find-repeats",
-        action="store_true",
-        help="Additive mode: instead of one concatenated compare, transcribe every read in --manifest "
-        "(item_index|source_file|start_offset|length|item_guid|take_guid) on its own and write a REPEAT_WORDS line of "
-        "its words per read, which the host groups into repeated spans",
-    )
-    ap.add_argument(
         "--coverage",
         action="store_true",
         help="Additive mode (recording coverage): transcribe the items in --manifest (a JSON manifest) of --chapter-id, "
@@ -760,11 +678,6 @@ def main():
         print(json.dumps(capabilities_report()), flush=True)
         os._exit(0)
 
-    if args.take_divergence:
-        import take_divergence_mode  # a sibling module: compare.py's own directory is on sys.path, frozen or not
-
-        os._exit(take_divergence_mode.main(ap, args, sys.modules[__name__]))
-
     if args.coverage:
         _main_coverage(ap, args)
         return
@@ -776,15 +689,13 @@ def main():
     if missing:
         ap.error(", ".join(missing) + " required")
 
-    _run_and_exit(args, find_repeated_spans if args.find_repeats else run)
+    _run_and_exit(args, run)
 
 
 def _main_coverage(ap, args):
     """--coverage: check its own arguments, then run core/coverage_mode.py. --recheck (the cascade's
     second pass) is a separate, windows-only mode: it takes only --words-dir and --model,
     never a manifest, chapter or --out."""
-    if args.find_repeats:
-        ap.error("--find-repeats cannot be used with --coverage")
     if args.unsure_below is not None and not 0 <= args.unsure_below <= 1:
         ap.error("--unsure-below must be from 0 to 1")
     if args.chunk_overlap_seconds is not None and args.chunk_overlap_seconds < 0:

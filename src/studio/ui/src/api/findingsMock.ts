@@ -3,7 +3,6 @@
 // total before paging, counts over the latest run, and a decision refused when the evidence changed.
 // It exists so the Review page can be built and screenshotted without a host; the host's rules are the ones that
 // count, and src/studio/desktop/internal/findings/query_test.go pins them.
-import { z } from 'zod';
 import type {
   Finding,
   FindingMarker,
@@ -27,12 +26,6 @@ import {
   type FindingThreadMessage,
 } from './contracts/findings';
 import { wireClone } from './mockFixtures';
-
-// The reads of a finding that groups several, whichever analyzer wrote it (a take-review group or a take comparison of one),
-// as bindings_navigation.go's findingReads decodes evidence.members: only where each read is.
-const groupedReadsSchema = z.object({
-  members: z.array(z.object({ item_guid: z.string(), source_file: z.string(), source_start: z.number(), source_length: z.number() })),
-});
 
 const SEVERITY_ORDER: FindingSeverity[] = ['error', 'warning', 'info'];
 
@@ -188,15 +181,6 @@ const markerRefused = (reason: FindingMarkerRefusal, message: string): FindingMa
 /** The REAPER side of the review bindings, refusing in the host's order: the finding first, then the connection, then REAPER. */
 function createReaperMock(mode: MockReaper, find: (id: string) => Finding) {
   let loopingId: string | undefined;
-  // A read stands in for its finding: its own item, and its range in its own source (bindings_navigation.go's readTarget).
-  const readOf = (id: string, read: number) => {
-    const members = groupedReadsSchema.safeParse(find(id).evidence);
-    const member = members.success ? members.data.members[read] : undefined;
-    if (!member) throw new Error(`this finding has no read ${read + 1}; reload the list`);
-    const start = member.source_start;
-    const finding: Finding = { ...find(id), source: { file: member.source_file, item_guid: member.item_guid || undefined } };
-    return { finding, start, end: start + member.source_length };
-  };
   const marked = new Set<string>();
   const status = (): ReaperStatus => {
     if (mode === 'standalone') return { connection: 'standalone', message: REAPER_MESSAGES.standalone };
@@ -226,18 +210,6 @@ function createReaperMock(mode: MockReaper, find: (id: string) => Finding) {
       const range = finding.time_range ?? { start: 0, end: 0 };
       return { outcome: 'looping', loopStart: Math.max(range.start - LOOP_PADDING_SECONDS, 0), loopEnd: range.end + LOOP_PADDING_SECONDS };
     },
-    // One read of a take-review group: placed by the read's own item and range, refused like the finding.
-    findingsGoToRead: async (id: string, read: number): Promise<FindingNavigation> => {
-      const { finding, start } = readOf(id, read);
-      return refusalOf(finding, false) ?? { outcome: 'navigated', projectTime: start };
-    },
-    findingsLoopRead: async (id: string, read: number): Promise<FindingNavigation> => {
-      const { finding, start, end } = readOf(id, read);
-      const refusal = refusalOf(finding, false);
-      if (refusal) return refusal;
-      loopingId = id;
-      return { outcome: 'looping', loopStart: Math.max(start - LOOP_PADDING_SECONDS, 0), loopEnd: end + LOOP_PADDING_SECONDS };
-    },
     findingsAddMarker: async (id: string): Promise<FindingMarker> => {
       const finding = find(id);
       if (!finding.source.item_guid) return markerRefused('no_item', REAPER_MESSAGES.markerNoItem);
@@ -263,15 +235,13 @@ function createReaperMock(mode: MockReaper, find: (id: string) => Finding) {
 }
 
 /**
- * The mock store and one more door the host has and the page does not: what an analyzer run saves (the take-review scan
- * mock writes through it), replacing that analyzer's findings for one chapter the way findings.Store.SaveAnalyzerFindings does
- * for a fresh run (decisions on a finding found again are kept; one not found again is dropped here, not carried forward).
+ * The mock store and the doors the host has and the page does not: what a run saves, one finding at a time or a file's
+ * findings at once.
  */
 export function createFindingsMock(
   seed: Finding[],
   options: FindingsMockOptions = {},
 ): FindingsApi & {
-  saveAnalyzerFindings: (analyzer: string, chapterId: string, fresh: Finding[]) => void;
   saveFinding: (fresh: Finding) => void;
   saveFileFindings: (analyzer: string, files: readonly string[], fresh: Finding[]) => void;
   acceptedFindings: () => Finding[];
@@ -385,13 +355,8 @@ export function createFindingsMock(
       return wireClone(store.filter((finding) => finding.review.status === 'accepted' && !finding.not_in_latest_run));
     },
     ...createReaperMock(options.reaper ?? 'connected', find),
-    saveAnalyzerFindings: (analyzer, chapterId, fresh) => {
-      const kept = store.filter((finding) => finding.analyzer !== analyzer || chapterOf(finding) !== chapterId);
-      const decided = new Map(store.map((finding) => [finding.id, finding.review]));
-      store = [...kept, ...wireClone(fresh).map((finding) => ({ ...finding, review: decided.get(finding.id) ?? finding.review }))];
-    },
-    // One finding saved in a scope of its own, as a take comparison is (scoped by the group it compares): it replaces the
-    // finding with its id, keeping a decision made on the same evidence version.
+    // One finding saved in a scope of its own: it replaces the finding with its id, keeping a decision made on the same
+    // evidence version.
     saveFinding: (fresh) => {
       const previous = store.find((finding) => finding.id === fresh.id);
       const review = previous && previous.evidence_version === fresh.evidence_version ? previous.review : fresh.review;

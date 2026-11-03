@@ -22,8 +22,6 @@ import { createMasteringMock } from './masteringMock';
 import { createBuiltinBoothRecordMock } from './builtinBoothMock';
 import { createRecordingMock, type RecorderMockControl } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
-import { createTakeReviewScanMock } from './takeReviewMock';
-import { createTakeComparisonMock } from './takeComparisonMock';
 import { createWorkspaceTakesMock } from './workspaceTakesMock';
 import { createTakeEvidenceMock } from './takeEvidenceMock';
 import { createMeasureMock } from './measureMock';
@@ -329,7 +327,7 @@ export function createMockApi(
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
-  const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
+  const { saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
     rerunAfterFirstList: initial.findingsRerun,
     reaper: initial.reaper,
     // Only the default seed demonstrates the overlay; a caller supplying its own findings (most tests) opts out, as
@@ -337,18 +335,9 @@ export function createMockApi(
     ...(initial.findings ? {} : { lazySeed: workspaceOverlayFinding }),
   });
   proofNotes.read = acceptedFindings;
-  const takeReviewScan = createTakeReviewScanMock(saveAnalyzerFindings, endJob, initial.takeReviewScanHold);
-  const { beginPassageComparison, ...takeComparison } = createTakeComparisonMock(
-    { get: findings.findingsGet, save: saveFinding },
-    endJob,
-    initial.takeComparisonHold,
-  );
   const workspaceTakes = createWorkspaceTakesMock({
     alignment: workspace.workspaceAlignment,
     paragraphs: () => s.paragraphs,
-    chapterTitle: (chapterId) => s.chapters.find((chapter) => chapter.id === chapterId)?.title ?? 'Chapter',
-    comparison: async (findingId) => (await findings.findingsList({ analyzer: 'take-comparison' })).findings.find((finding) => finding.id === findingId),
-    beginPassageComparison,
     reaper: initial.reaper,
   });
   const measurePicked = new Set<string>();
@@ -407,8 +396,6 @@ export function createMockApi(
     ...project.bindings,
     ...credits.bindings,
     ...chapterTracks.bindings,
-    ...takeReviewScan,
-    ...takeComparison,
     ...measurement,
     ...renderEncodeMaster,
     ...resavingAfterProfileChange(
@@ -500,10 +487,6 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    takeReviewCreateTake: async (request) => ({
-      targetItemGuid: request.targetItemGuid,
-      newTakeGuid: '{99999999-0000-4000-8000-000000000099}',
-    }),
     ...update.bindings,
     ...teleprompter,
     ...coverage,

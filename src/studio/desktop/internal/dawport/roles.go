@@ -211,12 +211,6 @@ type ProjectStateReader interface {
 	RequestProjectState(runID string) error
 }
 
-// TakeCreator creates a take from a request payload file (TAKE_CREATED or TAKE_STALE).
-type TakeCreator interface {
-	Events
-	CreateTake(runID, payloadPath string) error
-}
-
 // FXRenderer renders regions through the project's own FX into a folder the host chose (the mastering port's DAW row).
 // It is the one role that makes the engine render: each request carries the narrator's approval and runs only on their action.
 // The answer arrives through Events tagged with runID (a FXRendered).

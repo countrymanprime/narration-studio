@@ -6,22 +6,15 @@ Turn retakes and repeated reads into organized comparison candidates without mak
 
 ## Flow
 
-What each step runs on is in [Take review](../utilities/take-review.md). Since the Proof swap (SN-Q9, 2026-10-12) no page
-runs steps 2 to 5: the scan dialog and a group's reads were deleted with the old Proof notes page, and the take suggestion
-belongs to Editing. A pickup read an earlier scan found is offered among the line's
-[takes on Editing](../guides/using-the-app/editing.md#takes).
+1. Record narration and pickups in the [Booth](../guides/using-the-app/booth.md): a retry becomes a take of the item, or a
+   retake on a fixed lane.
+2. Open a line's [takes on Editing](../guides/using-the-app/editing.md#takes): the item's other takes and the line's other
+   retakes, each with what share of the script it read as written and its pause, level, noise, clarity and breaths.
+   Nothing is ranked.
+3. Hear them, then **Keep take** to make one the one that plays.
 
-1. Record normal narration and pickups: as takes of the timeline item, on a pickup track, or later in the timeline.
-2. **Find pickups and duplicates…** (on Proof before SN-Q9) on the chapter track, adding the pickup track or stretch of the
-   timeline if there is one. Every take of every item in scope is transcribed and aligned to the manuscript.
-3. Review each group of repeated reads: its part of the script, each read's range, whether it covers the whole part or
-   only some of it, and how closely it matches. Go to or loop a read in REAPER, or audition two from their raw source.
-   Dismiss a line repeated on purpose.
-4. Accept a real alternate, then **Add as take…**: choose the target item and the read that becomes the take. REAPER adds
-   it in one undo step; the active take and the item's length stay as they were.
-5. **Compare takes…** sets the reads side by side over the same words: how each read the script, word by word, and its
-   clipping, room noise, level, length and pauses, each measured or unavailable with its reason. Nothing is ranked.
-6. Choose the active take in REAPER yourself.
+A read on a separate pickup track is not grouped with the chapter's reads: the take review that did that was
+[removed](../utilities/take-review.md) on 2026-11-03.
 
 ## Safeguards
 

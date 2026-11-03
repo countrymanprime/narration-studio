@@ -302,7 +302,6 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapCleanupTools:    check[dawport.CleanupLauncher](),
 	dawport.CapRetakeLanes:     check[dawport.RetakeLanePicker](),
 	dawport.CapProjectState:    check[dawport.ProjectStateReader](),
-	dawport.CapTakeCreate:      check[dawport.TakeCreator](),
 	dawport.CapHeartbeat:       check[dawport.Heartbeat](),
 	dawport.CapProjectRead:     check[dawport.ProjectReader](),
 	dawport.CapTrackState:      check[dawport.TrackStateReader](),

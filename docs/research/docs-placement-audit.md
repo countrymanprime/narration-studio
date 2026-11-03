@@ -563,7 +563,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0095](../architecture/docx-import-quirks.md#txt) | IMPL | N | Accepted | code comments in src/studio/desktop/internal/importer/txt.go | Charset detection order and hard-wrap heuristics; parsing detail |
 | [0096](../../src/studio/ui/vite.config.ts) | IMPL | N | Accepted | comment in src/studio/ui/vite.config.ts / docs/operations | Demo build mode and router basename; build configuration detail |
 | [0097](../architecture/dictionary-thesaurus-integration.md) | ARCH | N | Accepted | keep | Local Open English WordNet asset, no cloud API; data dependency and licence choice |
-| [0098](../../src/studio/integrations/reaper/narration_take_review.lua) | ARCH | N | Accepted | keep | Take provenance persisted in REAPER take P_EXT keys; persistence strategy |
+| [0098](https://github.com/countrymanprime/narration-studio/blob/0eebd02e9d0d29b40cee7a7d1b23cdc61b9d1176/src/studio/integrations/reaper/narration_take_review.lua) | ARCH | N | Accepted | keep | Take provenance persisted in REAPER take P_EXT keys; persistence strategy |
 | [0099](../../src/studio/desktop/internal/chaptertags/chaptertags.go) | ARCH | N | Accepted | keep | bogem/id3v2 dependency with hand-built CTOC, new-file MP3 output; library choice |
 | [0100](../../src/studio/desktop/internal/evidence/fingerprint.go) | ARCH | Y | Accepted | keep | Two hash keys, run ledger and confirmed track map; evidence persistence model with several decisions |
 | [0101](../architecture/docx-import-quirks.md) | IMPL | N | Accepted | code comments in src/studio/desktop/internal/importer/epub.go | EPUB TOC fallback order, caps, DRM refusal; parser details |
@@ -598,7 +598,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0135](../architecture/import-review.md#correcting-a-subtitle) | IMPL | N | Proposed | docs/utilities import reference | Importer per-section subtitleOff field and how an override is applied. |
 | [0136](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented) | ARCH | N | Proposed | keep | Asset pipeline gains a Derive step changing what verified installs persist and how they are verified. |
 | [0140](../../src/studio/desktop/internal/measure/takemetrics.go) | IMPL | Y | Proposed | reference measure doc / code comments | Range API shape and clipping metric inside the measure package. |
-| [0141](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py) | ARCH | N | Proposed | keep | Rejects forced-alignment dependency (PyTorch/Kaldi); keeps Whisper-timestamp approach for divergence. |
+| [0141](https://github.com/countrymanprime/narration-studio/blob/0eebd02e9d0d29b40cee7a7d1b23cdc61b9d1176/src/studio/sidecars/transcript-compare/core/take_divergence_mode.py) | ARCH | N | Proposed | keep | Rejects forced-alignment dependency (PyTorch/Kaldi); keeps Whisper-timestamp approach for divergence. |
 | [0143](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Proposed | keep | Introduces DAW adapter interface seam and makes the event vocabulary part of its contract. |
 | [0144](../architecture/daw-integration.md#audacity-boundary) | ARCH | N | Proposed | keep | Launch-argument DAW classification decides which process bridges and services start. |
 | [0145](../architecture/daw-integration.md#audacity-boundary) | ENG | Y | Proposed | docs/operations release/installer doc | Installer creates an Audacity Start Menu entry; bundles project-picker UX rule. |

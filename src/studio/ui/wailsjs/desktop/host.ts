@@ -1482,16 +1482,6 @@ export function FindingsGoTo(id: string): $CancellablePromise<string> {
 }
 
 /**
- * FindingsGoToRead is FindingsGoTo for one read of a finding that groups several (a take-review pickup or duplicate
- * read): read is the index in its evidence.members,
- * and REAPER goes to that read's own item and take, at the start of its range in its own source. A read index the
- * finding does not have is an error, not a refusal: the page only offers the reads it was sent.
- */
-export function FindingsGoToRead(id: string, read: number): $CancellablePromise<string> {
-    return $Call.ByID(2921722827, id, read);
-}
-
-/**
  * FindingsList answers one page of the findings that match query, and how many matched in all.
  */
 export function FindingsList(query: $models.FindingsQuery): $CancellablePromise<string> {
@@ -1504,15 +1494,6 @@ export function FindingsList(query: $models.FindingsQuery): $CancellablePromise<
  */
 export function FindingsLoop(id: string): $CancellablePromise<string> {
     return $Call.ByID(499300970, id);
-}
-
-/**
- * FindingsLoopRead loops one read of a finding in REAPER, as FindingsLoop does, over that read's own range. The loop is
- * the finding's, so FindingsStopLoop stops it. REAPER plays the item's
- * active take: a read that is another take of its item is heard as itself through the in-app audition instead.
- */
-export function FindingsLoopRead(id: string, read: number): $CancellablePromise<string> {
-    return $Call.ByID(3171307890, id, read);
 }
 
 /**
@@ -2761,70 +2742,6 @@ export function SystemSettingsForScope(scope: string): $CancellablePromise<strin
 }
 
 /**
- * TakeComparisonCancel stops a running comparison; nothing is saved. With none running it changes nothing.
- */
-export function TakeComparisonCancel(): $CancellablePromise<string> {
-    return $Call.ByID(1970715310);
-}
-
-/**
- * TakeComparisonStart compares the takes of one take-review group as a job: findingID
- * names the group; the reads, their audio and the manuscript span all come from the store and the saved project. It
- * answers the job; TakeComparisonState reports its real progress and TakeComparisonCancel stops it. The comparison is a
- * take_comparison finding, read and decided through the generic findings bindings.
- */
-export function TakeComparisonStart(findingID: string): $CancellablePromise<string> {
-    return $Call.ByID(166408064, findingID);
-}
-
-/**
- * TakeComparisonState answers the comparison job: idle, running, or how it ended (with the comparison's finding id).
- */
-export function TakeComparisonState(): $CancellablePromise<string> {
-    return $Call.ByID(250001969);
-}
-
-/**
- * TakeReviewCreateTake adds a narrator-approved candidate's source range as a
- * new take on the target item: findingID is the
- * finding this candidate came from (provenance); targetItemGUID
- * is the item the narrator explicitly chose (never preselected);
- * candidateItemGUID is the candidate's own item GUID when it has one (empty
- * skips that extra staleness check); sourceFile, sourceRangeStart and
- * sourceRangeEnd (seconds, source-file-relative) locate the candidate's
- * matched span within its own source. The previously active take and the
- * item's length are never touched.
- */
-export function TakeReviewCreateTake(findingID: string, targetItemGUID: string, candidateItemGUID: string, sourceFile: string, sourceRangeStart: number, sourceRangeEnd: number): $CancellablePromise<string> {
-    return $Call.ByID(3742993354, findingID, targetItemGUID, candidateItemGUID, sourceFile, sourceRangeStart, sourceRangeEnd);
-}
-
-/**
- * TakeReviewScanCancel stops a running scan; nothing it found is saved. With no scan running it changes nothing.
- */
-export function TakeReviewScanCancel(): $CancellablePromise<string> {
-    return $Call.ByID(2539611526);
-}
-
-/**
- * TakeReviewScanStart starts a pickup and duplicate scan of scope as a job: the chapter track's
- * items and takes, plus at most one pickup track or time range. It answers the job; TakeReviewScanState reports
- * its real progress and TakeReviewScanCancel stops it. The findings it saves are read and decided through
- * the Review page's generic findings bindings, like every other analyzer's.
- */
-export function TakeReviewScanStart(scope: $models.TakeReviewScanScope): $CancellablePromise<string> {
-    return $Call.ByID(2149397544, scope);
-}
-
-/**
- * TakeReviewScanState answers the scan job: idle (with the project's saved pickup scope to offer), running, or how it
- * ended.
- */
-export function TakeReviewScanState(): $CancellablePromise<string> {
-    return $Call.ByID(1696107641);
-}
-
-/**
  * TeleprompterDevices lists the input devices the teleprompter's capture path can open, by the name it opens them
  * under. It never fails Start-style: a listing problem comes back as
  * `{"devices": [], "error": "..."}`, not a rejected promise, so a caller can
@@ -3302,21 +3219,10 @@ export function WorkspaceTakeEvidence(chapterID: string, firstToken: number, las
 /**
  * WorkspaceTakes lists the takes the narrator can set beside the passage (the tokens firstToken to lastToken of the
  * chapter's stored alignment, snapped out to whole paragraphs): the other takes of the item it was heard on, the other
- * retakes of its line on a fixed-lane track, and reads a take-review group set beside it (EP6). It reads only; it works
- * with REAPER closed.
+ * and the other retakes of its line on a fixed-lane track (EP6). It reads only; it works with REAPER closed.
  */
 export function WorkspaceTakes(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
     return $Call.ByID(3010134085, chapterID, firstToken, lastToken);
-}
-
-/**
- * WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job:
- * the same sidecar mode, state and cancel as a take-review group's comparison (TakeComparisonState and
- * TakeComparisonCancel answer for it, with the passage's id as the job's FindingID), with a manifest built from the
- * saved project. It saves one take_comparison finding whose id is computable from the passage, so the panel reads it back.
- */
-export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
-    return $Call.ByID(286927960, chapterID, firstToken, lastToken);
 }
 
 /**
@@ -3324,8 +3230,7 @@ export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number
  * ids WorkspaceTakes just offered: the host re-reads the alternates from the saved project and refuses an id it does
  * not offer, so nothing but a listed take can be chosen. What happens depends on where the take came from: another take
  * of the item is made active (set_active_take, one undo step); another retake on a fixed-lane track becomes the lane
- * that plays (pick_retake_lane); a read from another item is added as a take (create_take) and then made active, in
- * one action the page confirms first. Every REAPER refusal is answered as a refused outcome and changes nothing.
+ * that plays (pick_retake_lane). Every REAPER refusal is answered as a refused outcome and changes nothing.
  */
 export function WorkspaceUseTake(chapterID: string, firstToken: number, lastToken: number, candidateID: string): $CancellablePromise<string> {
     return $Call.ByID(1964370133, chapterID, firstToken, lastToken, candidateID);

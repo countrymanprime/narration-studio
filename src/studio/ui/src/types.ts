@@ -23,7 +23,6 @@ export * from './api/contracts/cleanuptools';
 export * from './api/contracts/projectstate';
 export * from './api/contracts/retakelanes';
 export * from './api/contracts/chaptertags';
-export * from './api/contracts/takeReview';
 export * from './api/contracts/coverage';
 export * from './api/contracts/stages';
 export * from './api/contracts/dictionary';
@@ -67,7 +66,6 @@ import type { ProjectApi } from './api/contracts/project';
 import type { StoryBibleApi } from './api/contracts/storyBible';
 import type { CharacterApi } from './api/contracts/character';
 import type { SystemApi } from './api/contracts/system';
-import type { TakeReviewApi } from './api/contracts/takeReview';
 import type { TeleprompterApi } from './api/contracts/teleprompter';
 import type { TracksApi } from './api/contracts/tracks';
 import type { TranscriptApi } from './api/contracts/transcript';
@@ -162,7 +160,6 @@ export interface NarrationApi
     ProjectStateApi,
     RetakeLanesApi,
     ChapterTagsApi,
-    TakeReviewApi,
     CoverageApi,
     StagesApi,
     DictionaryApi,

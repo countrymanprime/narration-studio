@@ -33,7 +33,6 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/master/MasterToSpecPanel.tsx`
 - `src/components/production/CreditsRowPanel.tsx`
 - `src/components/production/ImportReview.tsx`
-- `src/components/proof/AuditionDialog.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/inspector/TypeSelect.tsx`
 - `src/components/proof/notes/NotesPanel.tsx`

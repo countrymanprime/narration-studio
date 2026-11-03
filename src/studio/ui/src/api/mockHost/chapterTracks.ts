@@ -168,8 +168,6 @@ export function createChapterTracksMock(
         lastChanged: newestSourceAt,
         pickupTrackGuid: pickups ? '{mock-pickups-track}' : '',
         pickupTrackName: pickups ? `${chapter.chapterTitle} (pickups)` : '',
-        pickupsScannedAt: pickups ? '2026-09-21T09:00:00Z' : null,
-        pickupsChanged: pickups,
       };
     });
   const publishChapterSync = (state: ChapterSyncState) => chapterSyncSubscribers.forEach((fn) => fn(wireClone(state)));

@@ -15,9 +15,9 @@ import { findingSchema } from './findings';
 
 const nullableNumber = z.number().nullable();
 
-export const measureRangeSchema = z.object({ start_seconds: z.number(), length_seconds: z.number() }) satisfies z.ZodType<MeasureRange>;
+const measureRangeSchema = z.object({ start_seconds: z.number(), length_seconds: z.number() }) satisfies z.ZodType<MeasureRange>;
 
-export const measureClipRunSchema = z.object({
+const measureClipRunSchema = z.object({
   channel: z.number(),
   start_seconds: z.number(),
   duration_seconds: z.number(),

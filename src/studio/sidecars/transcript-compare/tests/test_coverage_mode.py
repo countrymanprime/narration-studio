@@ -748,7 +748,7 @@ def test_the_cli_exits_2_on_cancel_and_1_on_a_bad_manifest(tmp_path, cached_proj
 
 @pytest.mark.parametrize(
     ("extra", "message"),
-    [(("--find-repeats",), "--find-repeats"), (("--unsure-below", "1.5"), "--unsure-below"), (("--chunk-overlap-seconds", "-1"), "--chunk-overlap-seconds")],
+    [(("--unsure-below", "1.5"), "--unsure-below"), (("--chunk-overlap-seconds", "-1"), "--chunk-overlap-seconds")],
 )
 def test_the_cli_refuses_options_the_coverage_mode_does_not_take(tmp_path, cached_project, extra, message):
     manuscript, manifest = cached_project

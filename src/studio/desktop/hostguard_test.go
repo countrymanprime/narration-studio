@@ -38,7 +38,6 @@ var swappableHostFields = map[string]bool{
 	"reachability":     true,
 	"bridge":           true,
 	"navigation":       true,
-	"takeCreator":      true,
 	"takeSelector":     true,
 	"puncher":          true,
 	"rangeCutter":      true,

@@ -1412,11 +1412,9 @@ export const WIRE_CHAPTER_TAGS_EMBED_SUCCESS: ChapterTagsEmbedResult = {
   outputPath: 'C:\\Books\\Alice\\renders\\Alice in Wonderland.chapters.mp3',
 };
 
-// What a pickup and duplicate scan of "Chapter 1" of WIRE_TRACKS_PROJECT saves: one partial pickup (a
-// re-read of part of the span, below the near-duplicate quality bar) and one near-identical duplicate_read, in the shape
-// src/studio/desktop/contract_test.go's TestContractTakeReviewFindings pins as tests/fixtures/contracts/findings-list-take-review.json.
-// The mock scan saves them into the findings store, so they reach the Review page the way the host's do. No composite score
-// anywhere in this fixture: only per-category evidence.
+// What the retired pickup and duplicate scan (#2765) saved for "Chapter 1" of WIRE_TRACKS_PROJECT: one partial pickup and one
+// near-identical duplicate_read, in the shape the take review wrote (tests/fixtures/contracts/findings-list-take-review.json
+// pins the host's listing of one). Nothing writes these any more; a project that holds some lists them as plain findings.
 export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
   {
     schema_version: 1,
@@ -1667,8 +1665,8 @@ export const WIRE_ONE_WORD_MISREAD: Finding = {
   review: { status: 'unreviewed' },
 };
 
-/** One unreviewed take-review pickup finding for chapterId: the
- * summary's "Take review" count and Open Review link demo, seeded additively (never into the default
+/** One unreviewed pickup finding the retired take review saved for chapterId: the
+ * summary's repeated-reads count and Open Proof link demo, seeded additively (never into the default
  * `WIRE_FINDINGS` other tests hardcode exact counts against) alongside the coverage mock's own interior-pickups
  * seed for the same chapter. */
 export function takeReviewPickupFor(chapterId: string, chapterTitle: string): Finding {

@@ -174,6 +174,16 @@ export const proofDrivers: Record<string, Driver> = {
     await openChapter(page, 'Chapter 4');
     await page.getByText('Out of date').waitFor();
   },
+  // #2800: a note the retired take review saved has no time; it stays listed under In view and its DAW controls say why they are off.
+  'retired-take-review-note': async (page) => {
+    await openProof(page, 'mockCoverage=pickups');
+    await openChapter(page, 'Chapter 4');
+    await notes(page)
+      .locator('tr[data-row]')
+      .filter({ hasText: /Partial pickup/ })
+      .click();
+    await inspector(page).getByText('This note has no time in its audio to go to.').waitFor();
+  },
   // Issue #2251 item 30: the check card's findings, with the mock's line said twice.
   'check-findings': async (page) => {
     await openProof(page, 'mockChapterLink=confirmed');
