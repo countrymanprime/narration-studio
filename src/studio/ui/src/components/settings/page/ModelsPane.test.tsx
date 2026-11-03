@@ -156,6 +156,8 @@ describe('Settings: Models & downloads', () => {
       .closest('td')!;
     expect(actionCell.className).toContain('row-start-1');
     expect(actionCell.className).toContain('col-start-2');
+    // The table's last-row rule would draw a line under each cell of the last card (seen at tablet and 390 px on PR 2801).
+    expect(screen.getByRole('table', { name: 'Models, voices and tools' }).className).toContain('@max-[1020px]:[&>tbody>tr:last-child>*]:border-b-0');
   });
 
   it('keeps Open folder at the end of the disk bar, not wrapped under the path', async () => {

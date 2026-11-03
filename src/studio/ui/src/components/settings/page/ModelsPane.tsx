@@ -197,7 +197,7 @@ export function ModelsPane({ category }: { category: Category }) {
       <Table
         label="Models, voices and tools"
         columns={ASSET_COLUMNS}
-        className="@max-[1020px]:block @max-[1020px]:[&_tbody]:block @max-[1020px]:[&_thead]:sr-only"
+        className="@max-[1020px]:block @max-[1020px]:[&_tbody]:block @max-[1020px]:[&_thead]:sr-only @max-[1020px]:[&>tbody>tr:last-child>*]:border-b-0"
       >
         <TableHead>
           <TableRow>
