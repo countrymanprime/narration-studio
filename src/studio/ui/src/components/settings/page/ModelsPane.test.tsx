@@ -157,7 +157,8 @@ describe('Settings: Models & downloads', () => {
     expect(actionCell.className).toContain('row-start-1');
     expect(actionCell.className).toContain('col-start-2');
     // The table's last-row rule would draw a line under each cell of the last card (seen at tablet and 390 px on PR 2801).
-    expect(screen.getByRole('table', { name: 'Models, voices and tools' }).className).toContain('@max-[1020px]:[&>tbody>tr:last-child>*]:border-b-0');
+    // The table's own last-row rule is more specific than a plain cell class, so the card cell's no-bottom-rule wins with !important.
+    for (const cell of screen.getAllByRole('cell')) expect(cell.className).toContain('@max-[1020px]:border-b-0!');
   });
 
   it('keeps Open folder at the end of the disk bar, not wrapped under the path', async () => {

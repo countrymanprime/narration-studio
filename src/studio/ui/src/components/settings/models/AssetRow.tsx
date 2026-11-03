@@ -19,7 +19,7 @@ import type { AssetView } from './AssetsStore';
 // layout below 1020px uses them, and the page keeps to its count of off-vocabulary width variants (layoutQueries.test.ts).
 const CARD_ROW =
   'grid-cols-[minmax(0,1fr)_auto] rounded-lg @max-[1020px]:mb-2.5 @max-[1020px]:grid @max-[1020px]:border @max-[1020px]:border-[var(--border)] @max-[1020px]:bg-[var(--surface)] @max-[1020px]:py-1.5';
-const CARD_CELL = '@max-[1020px]:block @max-[1020px]:h-auto @max-[1020px]:border-b-0 @max-[1020px]:py-1 @max-[1020px]:break-words';
+const CARD_CELL = '@max-[1020px]:block @max-[1020px]:h-auto @max-[1020px]:border-b-0! @max-[1020px]:py-1 @max-[1020px]:break-words';
 const CARD_WIDE = 'col-span-2';
 const CARD_LABEL =
   "@max-[1020px]:before:mr-1.5 @max-[1020px]:before:font-['Barlow_Condensed',sans-serif] @max-[1020px]:before:text-[length:var(--font-size-label)] @max-[1020px]:before:font-semibold @max-[1020px]:before:tracking-[var(--tracking-label)] @max-[1020px]:before:text-[var(--text-muted)] @max-[1020px]:before:uppercase @max-[1020px]:before:content-[attr(data-label)]";
