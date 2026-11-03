@@ -29,6 +29,14 @@ async function openManyChapters(page: Page): Promise<void> {
 }
 
 /** Scrolls the page (whichever element scrolls it) so the pipeline's row number `row` is near the top of the view, then waits for the window to follow. */
+/** Every drawn row is ROW_PX tall, one- and two-line names alike: the window and spacer maths count on it (a row a pixel off drifts 5000 px over the book). */
+async function expectFixedRowHeight(page: Page): Promise<void> {
+  const heights = await page.locator(PIPELINE_ROWS).evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+  expect(heights.length).toBeGreaterThan(5);
+  for (const height of heights) expect(Math.abs(height - 52)).toBeLessThanOrEqual(1);
+  expect(new Set(heights.map(Math.round)).size).toBe(1);
+}
+
 async function scrollPipelineTo(page: Page, row: number): Promise<void> {
   await page.evaluate((index) => {
     const table = document.querySelector('table[aria-label="Chapter pipeline"]')!;
@@ -54,12 +62,14 @@ export const productionDrivers: Record<string, Driver> = {
   'many-chapters': async (page) => {
     await openManyChapters(page);
     await scrollPipelineTo(page, 0);
+    await expectFixedRowHeight(page);
   },
   // The window moved: rows 2400 on, the spacer above holding the place of the 2400 before them.
   'many-chapters-scrolled': async (page) => {
     await openManyChapters(page);
     await scrollPipelineTo(page, 2400);
     await expect(page.locator(PIPELINE_ROWS).first()).not.toHaveAttribute('data-chapter-id', /^(credits-opening|chapter-1)$/);
+    await expectFixedRowHeight(page);
   },
   // Keyboard focus on a cell of a drawn row far down the book: the ring shows on the cell.
   'many-chapters-focus': async (page) => {
