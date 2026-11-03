@@ -161,7 +161,7 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-backup-restored.json': dawResultSchema,
   'daw-backup-refused.json': dawResultSchema,
   'daw-backups-list.json': dawBackupsFileSchema,
-  // DawPreviewFileRange, DawStopFilePreview and DawRevealFile (bindings_daw_files_test.go): a stretch playing, a preview stopped, a file
+  // The file actions' shared answers (bindings_daw_files_test.go): a stretch playing, a preview stopped, a file
   // shown, and the host's refusals of a path the narrator did not pick and of a stretch over 60 s.
   'daw-file-preview-playing.json': dawResultSchema,
   'daw-file-preview-stopped.json': dawResultSchema,

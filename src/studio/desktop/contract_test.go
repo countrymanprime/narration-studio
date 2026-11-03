@@ -181,19 +181,7 @@ func contractServices(t *testing.T) contractFixture {
 	return contractFixture{registry: registry, settings: settings.New(layout.FindRoot("."), "")}
 }
 
-func TestContractCatalogsAndInstallJobs(t *testing.T) {
-	svc := contractServices(t)
-	voices, err := ttsCatalogPayload(svc.registry, svc.settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "tts-catalog", voices)
-	models, err := whisperCatalogPayload(svc.registry, svc.settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "whisper-catalog", models)
-
+func TestContractInstallJobs(t *testing.T) {
 	for name, job := range map[string]*installJob{
 		"tts-install-downloading":     {id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseDownloading, message: "Downloading and verifying the approved voice…", done: 45678901, total: 114203981},
 		"tts-install-verifying":       {id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseVerifying, message: "Checking the voice against its approved checksum…", done: 114203981, total: 114203981},

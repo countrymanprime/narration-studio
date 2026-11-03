@@ -146,7 +146,7 @@ import {
   productionStopResultSchema,
 } from './schemas/production';
 import { PRODUCTION_SCENARIOS } from './productionMock';
-import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema, reaperStatusSchema } from './schemas/findings';
+import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
 import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chaptersForTracksSchema,
@@ -161,9 +161,9 @@ import {
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
-import { ttsCatalogSchema, ttsInstallJobSchema } from './schemas/tts';
+import { ttsInstallJobSchema } from './schemas/tts';
 import { updateJobSchema, updateStatusSchema } from './schemas/update';
-import { startResultSchema, whisperCatalogSchema, whisperInstallJobSchema } from './schemas/whisper';
+import { startResultSchema, whisperInstallJobSchema } from './schemas/whisper';
 import {
   dawLaunchResultSchema,
   dawLinkResultSchema,
@@ -1466,10 +1466,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(bootstrapSchema, await api.saveSettings('General', 'global', { log_verbosity: 'verbose' }), 'mock saved settings');
   });
 
-  it('the voice and model catalogs and their install jobs', async () => {
+  it('the voice and model install jobs', async () => {
     const api = createMockApi();
-    expectMatches(ttsCatalogSchema, await api.ttsCatalog(), 'mock voice catalog');
-    const voice = (await api.ttsCatalog()).voices[0]?.id ?? '';
+    const voice = (await api.assetsList()).assets.find((asset) => asset.kind === 'tts')?.id ?? '';
     const started = await api.ttsInstall(voice);
     for (const job of [
       started,
@@ -1480,8 +1479,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ]) {
       expectMatches(ttsInstallJobSchema, job, 'mock voice install job');
     }
-    expectMatches(whisperCatalogSchema, await api.whisperCatalog(), 'mock model catalog');
-    const model = (await api.whisperCatalog()).models[0]?.id ?? '';
+    const model = (await api.assetsList()).assets.find((asset) => asset.kind === 'whisper')?.id ?? '';
     const running = await api.whisperInstall(model);
     for (const job of [
       running,
@@ -1548,9 +1546,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the first-use gates for a model that is not installed, and a start that goes ahead', async () => {
     const api = createMockApi();
-    const model = (await api.whisperCatalog()).models[0]?.id ?? '';
+    const model = (await api.assetsList()).assets.find((asset) => asset.kind === 'whisper')?.id ?? '';
     expectMatches(startResultSchema, await api.transcriptStart({ model, chunk: '60', workers: '1', hints: '' }), 'mock transcript start');
-    await api.whisperRemove(model);
+    await api.assetsRemove('whisper', model);
     const gate = await api.transcriptStart({ model, chunk: '60', workers: '1', hints: '' });
     expect(gate.status).toBe('asset_required');
     expectMatches(startResultSchema, gate, 'mock transcript first-use gate');
@@ -1629,8 +1627,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(chapterTrackMappingSchema, listed, 'mock chapter-track map, one confirmed');
     expect(listed.mappings).toHaveLength(1);
 
-    const cleared = await api.chapterTrackMapClear(confirmed.trackGuid);
-    expectMatches(chapterTrackMappingSchema, cleared, 'mock chapter-track map after clear');
+    const cleared = await api.chapterTrackUnlink(confirmed.chapterId);
+    expectMatches(chapterTrackMappingSchema, cleared, 'mock chapter-track map after unlink');
     expect(cleared.mappings).toHaveLength(0);
 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
@@ -1951,8 +1949,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       expectMatches(projectStateStartResultSchema, await api.projectStateCheck(), 'mock project-state check start');
       await vi.advanceTimersByTimeAsync(200);
       for (const state of seen) expectMatches(projectStateStateSchema, state, 'mock projectstate:state');
-      const checked = await api.projectStateState();
-      expectMatches(projectStateStateSchema, checked, 'mock project-state state');
+      const checked = seen[seen.length - 1];
       const baseline = (await api.transcriptLastCompleted())?.projectChangeCount;
       expect(baseline).toBe(41);
       const changed = await api.projectStateChangedSince(checked.changeCount ?? 0, baseline ?? 0);
@@ -2241,12 +2238,15 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const levels: unknown[] = [];
     api.subscribeRecorderState((state) => states.push(state));
     api.subscribeRecorderLevel((level) => levels.push(level));
-    await expect(api.recorderStart('Mic')).rejects.toThrow('choose the built-in recorder');
-    expect((await api.recorderChooseEngine('builtin')).engine).toBe('builtin');
-    const recording = await api.recorderStart('Analogue 1 + 2 (Focusrite USB Audio)');
+    // The project records with its DAW until the narrator chooses the built-in recorder (DawChoose), then the Booth's Record takes.
+    await api.dawChoose('Built-in');
+    expect((await api.recorderState()).engine).toBe('builtin');
+    await api.saveSettings('Teleprompter', 'global', { input_device: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    expect(await api.readAloudRecordStart('c-0001')).toEqual({ outcome: 'started' });
+    const recording = await api.recorderState();
     expectMatches(recorderStateSchema, recording, 'mock recorder (recording)');
     expect(recording).toMatchObject({ phase: 'recording', take: 'Take 001' });
-    expect((await api.recorderStop()).phase).toBe('stopping');
+    expect(await api.readAloudRecordStop()).toEqual({ outcome: 'stopped' });
     await vi.waitFor(async () => expect((await api.recorderState()).phase).toBe('idle'));
     const done = await api.recorderState();
     expectMatches(recorderStateSchema, done, 'mock recorder (a take finished)');
@@ -2267,7 +2267,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       hidden: false,
       cuts: [],
     });
-    await expect(createMockApi({}, { recording: { unavailable: true } }).recorderChooseEngine('builtin')).rejects.toThrow('not available');
+    await expect(createMockApi({}, { recording: { unavailable: true } }).dawChoose('Built-in')).rejects.toThrow('not available');
   });
 
   it('recorderSetTakeLine and recorderSetTakeKeeper mark and undo', async () => {
@@ -2833,19 +2833,17 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const answers: Array<[string, Promise<unknown>]> = [
       ['go to', api.findingsGoTo(placed.id)],
       ['loop', api.findingsLoop(placed.id)],
-      ['status while looping', api.findingsReaperStatus()],
       ['stop', api.findingsStopLoop()],
       ['no item', api.findingsGoTo(older.id)],
     ];
     for (const reaper of ['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const) {
       const refusing = createMockApi({}, { reaper });
-      answers.push([`${reaper} status`, refusing.findingsReaperStatus()], [`${reaper} go to`, refusing.findingsGoTo(placed.id)]);
+      answers.push([`${reaper} go to`, refusing.findingsGoTo(placed.id)]);
       answers.push([`${reaper} loop`, refusing.findingsLoop(placed.id)], [`${reaper} stop`, refusing.findingsStopLoop()]);
     }
     for (const [name, answer] of answers) {
       const value = await answer;
-      const schema = name.endsWith('status') || name === 'status while looping' ? reaperStatusSchema : findingNavigationSchema;
-      expectMatches(schema, value, `mock ${name}`);
+      expectMatches(findingNavigationSchema, value, `mock ${name}`);
     }
   });
 
@@ -3939,7 +3937,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(noBackupAnswer('Audacity')).toBe('Audacity has no backup with that id.');
   });
 
-  it('dawPreviewFileRange, dawStopFilePreview and dawRevealFile: the host goldens parse, and the mock answers as the host does', async () => {
+  it('dawStopFilePreview and the file-action answers: the host goldens parse, and the mock answers as the host does', async () => {
     const files = [
       'daw-file-preview-playing.json',
       'daw-file-preview-stopped.json',
@@ -3966,31 +3964,17 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
     // Off by default (Experimental): the capability's sentence, as the host answers it.
     const off = createMockApi({}, { daw: { reachable: false } });
-    const [path] = (await off.measurePickFiles()).paths;
     const offSupport = (await off.dawCapabilities()).capabilities.file_preview;
     expect(offSupport.available).toBe(false);
-    expect((await off.dawPreviewFileRange(path, 0, 5)).refused).toBe(offSupport.message);
+    expect((await off.dawStopFilePreview()).refused).toBe(offSupport.message);
 
-    const api = createMockApi({}, { daw: {} });
-    expect((await api.dawPreviewFileRange(path, 0, 5)).refused).toBe(DAW_ANSWERS.fileNotPicked);
-    const [picked] = (await api.measurePickFiles()).paths;
-    const playing = await api.dawPreviewFileRange(picked, 12.5, 5);
-    expectMatches(dawResultSchema, playing, 'mock file preview');
-    expect(playing).toEqual({ ok: true, changed: false, undoSteps: 0, message: filePreviewAnswer(picked, 12.5, 5) });
-    for (const [start, length] of [
-      [-1, 5],
-      [0, 0],
-      [0, 61],
-      [Number.NaN, 5],
-    ]) {
-      expect((await api.dawPreviewFileRange(picked, start, length)).refused).toBe(DAW_ANSWERS.fileBadStretch);
-    }
+    // Stop answers whether a preview the app started (here Play the quietest 5 s) was still playing.
+    const api = createMockApi({}, { measure: 'spread', daw: {} });
+    expect((await api.dawStopFilePreview()).message).toBe(DAW_ANSWERS.fileNothingPlaying);
+    const [file] = (await api.measureState()).files;
+    expect((await api.masterPlayQuietest(file.path)).ok).toBe(true);
     expect(await api.dawStopFilePreview()).toEqual(readGolden('daw-file-preview-stopped.json'));
     expect((await api.dawStopFilePreview()).message).toBe(DAW_ANSWERS.fileNothingPlaying);
-    const shown = await api.dawRevealFile(picked);
-    expectMatches(dawResultSchema, shown, 'mock reveal');
-    expect(shown.message).toBe(fileRevealAnswer(picked, 'REAPER'));
-    expect((await api.dawRevealFile('C:/elsewhere/Other.wav')).refused).toBe(DAW_ANSWERS.fileNotPicked);
   });
 
   it('masterPlayQuietest and masterOpenInDaw: the host goldens parse, and the mock answers as the host does', async () => {
@@ -4513,11 +4497,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'assetsInstallState',
       'assetsInstallCancel',
       'assetsVerify',
-      'ttsCatalog',
       'ttsInstall',
       'ttsInstallState',
       'ttsInstallCancel',
-      'whisperCatalog',
       'whisperInstall',
       'whisperInstallState',
       'whisperInstallCancel',
@@ -4542,12 +4524,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'masteringProviders',
       'masteringChooseProvider',
       'recorderState',
-      'recorderChooseEngine',
       'recorderDevices',
       'recorderMeterStart',
       'recorderMeterStop',
-      'recorderStart',
-      'recorderStop',
       'recorderSetTakeLine',
       'recorderSetTakeKeeper',
       'dawCatalogList',
@@ -4556,7 +4535,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'tracksList',
       'chapterTrackMapList',
       'chapterTrackMapConfirm',
-      'chapterTrackMapClear',
       'chapterTrackSet',
       'chapterTrackCreate',
       'chapterTrackUnlink',
@@ -4594,7 +4572,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'cleanupToolsState',
       'projectStateCheck',
       'projectStateChangedSince',
-      'projectStateState',
       'retakeLanesList',
       'retakeLanesPick',
       'retakeLanesState',
@@ -4649,9 +4626,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
-      'dawPreviewFileRange',
       'dawStopFilePreview',
-      'dawRevealFile',
       'masterPlayQuietest',
       'masterOpenInDaw',
       'workspacePeaks',
@@ -4708,7 +4683,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'findingsSetType',
       'findingsThread',
       'findingsSummary',
-      'findingsReaperStatus',
       'findingsGoTo',
       'findingsLoop',
       'findingsGoToRead',
@@ -4780,15 +4754,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'characterRevoke',
       'characterRemoveVoiceData',
       'seriesDelete',
-      'ttsRemove',
-      'whisperRemove',
       'assetsOpenFolder',
       'assetsRemove',
       'transcriptCancel',
       'coverageCancel',
       'editingCancel',
       'transcriptReset',
-      'transcriptJump',
       'transcriptExportMarkers',
       'transcriptSaveHints',
       'teleprompterStop',

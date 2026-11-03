@@ -19,11 +19,9 @@ import (
 	"desktop/internal/manuscript"
 	"desktop/internal/moonshine"
 	"desktop/internal/project"
-	"desktop/internal/settings"
 	"desktop/internal/takereview"
 	"desktop/internal/teleprompter"
 	"desktop/internal/tts"
-	"desktop/internal/ttsport"
 	"desktop/internal/whisper"
 )
 
@@ -60,22 +58,6 @@ func (h *Host) SystemReportDiagnostic(kind, message string) (string, error) {
 	return encodeBinding(nil, nil)
 }
 
-func (h *Host) TtsCatalog() (string, error) {
-	return encodeBinding(ttsCatalogPayload(h.registry(), h.services().settings))
-}
-
-// ttsCatalogPayload is the approved voices plus which provider and voice are selected and where that choice comes from.
-func ttsCatalogPayload(registry *assetRegistry, store *settings.Store) (map[string]any, error) {
-	if registry.tts == nil {
-		return nil, registry.catalogUnavailable("TTS")
-	}
-	catalog := registry.tts.Catalog()
-	provider, providerSource := store.Effective("Piper", "tts_provider", ttsport.Default())
-	voice, voiceSource := store.Effective("Piper", "tts_voice_id", "en_US-ljspeech-high")
-	catalog["provider"] = map[string]any{"id": provider, "effectiveSource": providerSource}
-	catalog["voice"] = map[string]any{"id": voice, "effectiveSource": voiceSource}
-	return catalog, nil
-}
 func (h *Host) TtsInstall(voiceID string) (string, error) {
 	return encodeBinding(h.startTtsInstall(voiceID))
 }
@@ -85,28 +67,7 @@ func (h *Host) TtsInstallState(jobID string) (string, error) {
 func (h *Host) TtsInstallCancel(jobID string) (string, error) {
 	return encodeBinding(h.cancelTtsInstall(jobID))
 }
-func (h *Host) TtsRemove(voiceID string) (string, error) {
-	registry := h.registry()
-	if registry.tts == nil {
-		return "", registry.catalogUnavailable("TTS")
-	}
-	return encodeBinding(nil, h.removeAsset(installKindTts, voiceID))
-}
 
-func (h *Host) WhisperCatalog() (string, error) {
-	return encodeBinding(whisperCatalogPayload(h.registry(), h.services().settings))
-}
-
-// whisperCatalogPayload is the approved models plus which one is selected and where that choice comes from.
-func whisperCatalogPayload(registry *assetRegistry, store *settings.Store) (map[string]any, error) {
-	if registry.whisper == nil {
-		return nil, registry.catalogUnavailable("Whisper")
-	}
-	catalog := registry.whisper.Catalog()
-	modelID, modelSource := store.Effective("TranscriptCompare", "model_size", "small")
-	catalog["model"] = map[string]any{"id": modelID, "effectiveSource": modelSource}
-	return catalog, nil
-}
 func (h *Host) WhisperInstall(modelID string) (string, error) {
 	return encodeBinding(h.startWhisperInstall(modelID))
 }
@@ -115,13 +76,6 @@ func (h *Host) WhisperInstallState(jobID string) (string, error) {
 }
 func (h *Host) WhisperInstallCancel(jobID string) (string, error) {
 	return encodeBinding(h.cancelWhisperInstall(jobID))
-}
-func (h *Host) WhisperRemove(modelID string) (string, error) {
-	registry := h.registry()
-	if registry.whisper == nil {
-		return "", registry.catalogUnavailable("Whisper")
-	}
-	return encodeBinding(nil, h.removeAsset(installKindWhisper, modelID))
 }
 
 func (h *Host) GuideEntities() (string, error) {
@@ -860,13 +814,6 @@ func (h *Host) TranscriptAddEquivalence(id string) (string, error) {
 	message, err := service.AddEquivalence(id)
 	return encodeBinding(map[string]any{"message": message}, err)
 }
-func (h *Host) TranscriptJump(id string) (string, error) {
-	service := h.services().transcript
-	if service == nil {
-		return "", fmt.Errorf("the Transcript Compare service is unavailable")
-	}
-	return encodeBinding(nil, service.Jump(id))
-}
 func (h *Host) TranscriptExportMarkers() (string, error) {
 	service := h.services().transcript
 	if service == nil {
@@ -914,15 +861,12 @@ func (h *Host) TranscriptSaveHints(accepted []string) (string, error) {
 	return encodeBinding(nil, service.SaveHints(accepted))
 }
 
-// ChapterTrackMapList, ChapterTrackMapConfirm and ChapterTrackMapClear are
-// the narrator-confirmed chapter-track mapping's bindings: list the
-// confirmed rows, confirm one and clear one.
+// ChapterTrackMapList and ChapterTrackMapConfirm are the narrator-confirmed
+// chapter-track mapping's bindings: list the confirmed rows and confirm one.
+// ChapterTrackUnlink (below) clears a chapter's link.
 func (h *Host) ChapterTrackMapList() (string, error) { return encodeBinding(h.mappingList()) }
 func (h *Host) ChapterTrackMapConfirm(trackGUID, chapterID string) (string, error) {
 	return encodeBinding(h.mappingConfirm(trackGUID, chapterID))
-}
-func (h *Host) ChapterTrackMapClear(trackGUID string) (string, error) {
-	return encodeBinding(h.mappingClear(trackGUID))
 }
 
 // ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks are the chapter
