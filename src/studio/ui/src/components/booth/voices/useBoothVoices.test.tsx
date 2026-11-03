@@ -103,4 +103,46 @@ describe("the Booth's voices", () => {
     expect(notify).toHaveBeenCalledWith('That track is not a voice of this chapter.', 'error');
     expect(hook.current.current?.name).toBe('Narrator');
   });
+
+  it('a second key pressed while the host answers the first is sent after it: the last key wins', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const set = api.boothVoiceSet.bind(api);
+    const sent: string[] = [];
+    api.boothVoiceSet = async (chapter, guid) => {
+      sent.push(guid);
+      await new Promise((r) => setTimeout(r, 30));
+      return set(chapter, guid);
+    };
+    const { hook } = await mount({}, true, api);
+    await act(async () => hook.current.byKey(1));
+    await act(async () => hook.current.byKey(0));
+    await act(async () => hook.current.byKey(2));
+    await act(async () => new Promise((r) => setTimeout(r, 120)));
+    expect(hook.current.current?.name).toBe('Extras');
+    // The key between them is dropped, not sent: only the voice the narrator ended on goes after the first.
+    expect(sent).toEqual(['{V01CE-RABB1T}', '{V01CE-EXTRAS}']);
+  });
+
+  it('Num + pressed twice while the host answers steps twice', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const set = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => {
+      await new Promise((r) => setTimeout(r, 30));
+      return set(chapter, guid);
+    };
+    const { hook } = await mount({}, false, api);
+    await act(async () => hook.current.step(1));
+    await act(async () => hook.current.step(1));
+    await act(async () => new Promise((r) => setTimeout(r, 120)));
+    expect(hook.current.current?.name).toBe('Extras');
+  });
+
+  it('a refusal because the tracks changed reads the voices again', async () => {
+    const { api, hook } = await mount({ voiceFolders: true });
+    const reads = vi.spyOn(api, 'tracksList');
+    api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'That track is not a voice of this chapter.' });
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    expect(reads).toHaveBeenCalled();
+  });
 });

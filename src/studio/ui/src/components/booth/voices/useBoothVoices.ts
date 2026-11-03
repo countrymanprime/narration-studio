@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { Track } from '../../../api/contracts/tracks';
 import { describeApiError } from '../../../api/errorMessage';
@@ -15,7 +15,7 @@ export type BoothVoices = {
   voices: Voice[];
   /** The voice the next take, or the take running now, records on. */
   current?: Voice;
-  /** A choice the host is answering: the control shows it as busy and a second press waits. */
+  /** A choice the host is answering: the control shows it as busy, and a press meanwhile is sent once it answers (the last one wins). */
   choosing: boolean;
   choose: (voice: Voice) => void;
   /** Number-pad key n (0 the Narrator, 1 to 9 the others). */
@@ -86,20 +86,42 @@ export function useBoothVoices({
   const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
   const current = fromHost ?? voices.find((voice) => voice.narrator) ?? voices[0];
 
-  const choose = useCallback(
+  // The voice the host is answering for, and the one pressed since: a press while the host answers is not dropped but sent next, and
+  // only the last of several such presses is (a narrator who presses Num 1 then Num 2 means Num 2).
+  const sending = useRef<Voice | undefined>(undefined);
+  const queued = useRef<Voice | undefined>(undefined);
+
+  const send = useCallback(
     (voice: Voice) => {
-      if (choosing) return;
+      sending.current = voice;
       setChoosing(true);
       voiceTracks
         .boothVoiceSet(chapterId, voice.guid)
         .then((answer) => {
-          if (answer.outcome === 'refused') notify(answer.message ?? 'The voice was not changed.', 'error');
-          else if (answer.trackGuid) setHostVoice({ chapterId, guid: answer.trackGuid });
+          if (answer.outcome === 'refused') {
+            notify(answer.message ?? 'The voice was not changed.', 'error');
+            // The voices this page lists are not the saved project's any more: read them again.
+            if (answer.reason === 'not_a_voice' || answer.reason === 'track_missing') setRevision((n) => n + 1);
+          } else if (answer.trackGuid) setHostVoice({ chapterId, guid: answer.trackGuid });
         })
         .catch((reason: unknown) => notify(describeApiError(reason), 'error'))
-        .finally(() => setChoosing(false));
+        .finally(() => {
+          sending.current = undefined;
+          const next = queued.current;
+          queued.current = undefined;
+          if (next && next.guid !== voice.guid) send(next);
+          else setChoosing(false);
+        });
     },
-    [choosing, voiceTracks, chapterId, notify],
+    [voiceTracks, chapterId, notify],
+  );
+
+  const choose = useCallback(
+    (voice: Voice) => {
+      if (sending.current) queued.current = voice;
+      else send(voice);
+    },
+    [send],
   );
 
   const byKey = useCallback(
@@ -122,7 +144,12 @@ export function useBoothVoices({
         notify(FLAT_VOICE_KEYS, 'info');
         return;
       }
-      const at = current ? voices.indexOf(current) : 0;
+      // From the voice last pressed, so Num + twice while the host answers steps twice.
+      const from = queued.current ?? sending.current ?? current;
+      const at = Math.max(
+        0,
+        voices.findIndex((voice) => voice.guid === from?.guid),
+      );
       choose(voices[(at + by + voices.length) % voices.length]);
     },
     [voices, current, choose, notify],
