@@ -400,8 +400,10 @@ export function Reader(props: ReaderProps) {
       // A section outside the chapters (the credits) is always drawn.
       if (at === undefined || reach(at)) {
         jumpTo(pendingJump);
-        // The heading takes focus, so the next Tab and a screen reader start at the chapter the narrator chose (#2902).
-        root.querySelector<HTMLElement>(`[data-bound][data-ch="${pendingJump}"] h2`)?.focus({ preventScroll: true });
+        // The heading takes focus, so the next Tab and a screen reader start at the chapter the narrator chose (#2902), unless the
+        // narrator chose it in the chapter list: focus stays there so Down steps to the next chapter.
+        if (!document.activeElement?.closest('ul[aria-label="Chapters"]'))
+          root.querySelector<HTMLElement>(`[data-bound][data-ch="${pendingJump}"] h2`)?.focus({ preventScroll: true });
         onHandled?.('chapter');
         jumped = true;
       }

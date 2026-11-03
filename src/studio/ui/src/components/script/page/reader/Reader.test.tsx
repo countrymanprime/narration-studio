@@ -112,6 +112,22 @@ describe('continuous scroll with the spy', () => {
     expect(document.activeElement).toBe(heading);
   });
 
+  it('leaves focus in the chapter list when the jump came from it, so Down still steps to the next chapter (#2902)', () => {
+    vi.spyOn(overlay, 'announce').mockImplementation(() => undefined);
+    render(
+      <ul aria-label="Chapters">
+        <li>
+          <button>Chapter 2</button>
+        </li>
+      </ul>,
+    );
+    const item = screen.getByRole('button', { name: 'Chapter 2' });
+    const { rerender } = render(<Reader {...props()} />);
+    item.focus();
+    rerender(<Reader {...props({ pendingJump: 'c2' })} />);
+    expect(document.activeElement).toBe(item);
+  });
+
   it('tells its owner which chapter is in view, once per change', () => {
     const onChapterInView = vi.fn();
     render(<Reader {...props({ onChapterInView })} />);
