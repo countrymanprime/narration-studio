@@ -13,6 +13,19 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'voices',
+    description:
+      'Booth on a chapter linked to a folder of voices (?mockVoiceFolders=1, Voice folders): the voice control on the record bar after Levels, "Num 0 Narrator", the take records on, and the key hints gaining Num 0 Narrator, Num − Num + Voice and Num . Voices',
+  },
+  {
+    page: 'booth',
+    state: 'voices-list',
+    description:
+      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): the folder's voices in REAPER's order with their keys, Narrator (Narration, pressed), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned)",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'booth',
     state: 'heading-title-only',
     description:
       'Booth on a chapter with a title and no subtitle (?mockManuscript=mixed, Next chapter from Chapter 1 to "A Message from the Author"): the title is the first line of the text (#2251 item 7), semibold and unindented, with the reading position on its first word and a half line before the first paragraph; no empty subtitle line',

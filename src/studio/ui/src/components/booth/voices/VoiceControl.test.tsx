@@ -22,7 +22,7 @@ describe('the voice control', () => {
   it('names the voice and its key, opens the voices, and a press chooses one and closes the list', async () => {
     const onChoose = vi.fn();
     render(<Harness onChoose={onChoose} />);
-    const trigger = screen.getByRole('button', { name: 'Voice: Narrator' });
+    const trigger = screen.getByRole('button', { name: /^Voice:.*Narrator/ });
     expect(trigger.textContent).toContain('Num 0');
     await userEvent.click(trigger);
     const list = await screen.findByRole('list', { name: 'Voices of this chapter' });

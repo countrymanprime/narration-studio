@@ -48,15 +48,15 @@ export function VoiceControl({
       open={open}
       onOpenChange={onOpenChange}
       trigger={
-        <Button
-          id="bvoice"
-          variant="secondary"
-          pending={choosing}
-          aria-label={`Voice: ${current.name.trim() || 'unnamed track'}`}
-          title="Choose the voice to record"
-        >
+        <Button id="bvoice" variant="secondary" pending={choosing} title="Choose the voice to record">
           <span className="flex max-w-[16rem] min-w-0 items-center gap-2 normal-case">
-            {current.key ? <Kbd keys={[keyLabel(current)]} /> : null}
+            {/* The name a screen reader says holds what is drawn ("Voice: Num 0 Narrator"), so a spoken command finds it. */}
+            <span className="sr-only">Voice:</span>
+            {current.key ? (
+              <span className="flex-none whitespace-nowrap">
+                <Kbd keys={[keyLabel(current)]} />
+              </span>
+            ) : null}
             <span className="truncate">
               <bdi>{current.name}</bdi>
             </span>
@@ -77,7 +77,7 @@ export function VoiceControl({
               }}
             >
               <span className="flex w-full min-w-0 items-center gap-2 text-left normal-case">
-                <span className="w-12 flex-none">{voice.key ? <Kbd keys={[keyLabel(voice)]} /> : null}</span>
+                <span className="min-w-16 flex-none whitespace-nowrap">{voice.key ? <Kbd keys={[keyLabel(voice)]} /> : null}</span>
                 <span className="min-w-0 flex-none truncate font-medium">
                   <bdi>{voice.name}</bdi>
                 </span>

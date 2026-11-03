@@ -18,6 +18,7 @@ const NAMED_CODES: Record<string, string> = {
   Minus: '-',
   NumpadAdd: 'Num +',
   NumpadSubtract: 'Num -',
+  NumpadDecimal: 'Num .',
   Space: 'Space',
   BrowserBack: 'Browser Back',
   BrowserForward: 'Browser Forward',
