@@ -13,6 +13,7 @@ import { VERDICT_LABEL, verdictOf } from '../readiness/verdict';
 import { stageLabel } from '../../stages/stageText';
 import {
   cellName,
+  nameTip,
   COLUMN_LABEL,
   UNDER_WAY,
   type CellKind,
@@ -209,8 +210,8 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                     // One row height: the name takes two 20 px lines at most (40 px, so the cell's 10 px of padding and its rule stay inside
                     // ROW_PX and a name can never grow the row), and the full name is in the tip. The text is all in the DOM: a screen reader
                     // reads the whole name, and each cell's accessible name carries it too.
-                    <TooltipTarget text={row.name} className="block">
-                      <span className="line-clamp-2 leading-5">
+                    <TooltipTarget text={nameTip(row.name)} className="w-full min-w-0">
+                      <span className="line-clamp-2 min-w-0 leading-5 [overflow-wrap:anywhere]">
                         <TitleSubtitle {...row.parts} />
                       </span>
                     </TooltipTarget>
