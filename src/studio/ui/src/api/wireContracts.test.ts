@@ -198,7 +198,14 @@ import {
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
-import { bootstrapSchema, copyDiagnosticsResultSchema, projectAttachStateSchema, readySchema, windowZoomSchema } from './schemas/system';
+import {
+  bootstrapSchema,
+  diagnosticsPreviewSchema,
+  projectAttachStateSchema,
+  readySchema,
+  saveDiagnosticsResultSchema,
+  windowZoomSchema,
+} from './schemas/system';
 import {
   readAloudReaperStateSchema,
   readAloudRecordingSchema,
@@ -1263,9 +1270,10 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.systemLookup('two words')).rejects.toThrow(/single word/);
   });
 
-  it('copy diagnostics answers the saved path', async () => {
+  it('save diagnostics answers the saved path and the preview answers the manifest', async () => {
     const api = createMockApi();
-    expectMatches(copyDiagnosticsResultSchema, await api.systemCopyDiagnostics('last_run'), 'mock copy diagnostics');
+    expectMatches(saveDiagnosticsResultSchema, await api.systemSaveDiagnostics(), 'mock save diagnostics');
+    expectMatches(diagnosticsPreviewSchema, await api.systemDiagnosticsPreview(), 'mock diagnostics preview');
   });
 
   it('the window zoom binding reads and sets a level', async () => {
@@ -4408,7 +4416,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'ready',
       'bootstrap',
       'systemLookup',
-      'systemCopyDiagnostics',
+      'systemDiagnosticsPreview',
+      'systemSaveDiagnostics',
       'windowZoom',
       'windowSetZoom',
       'saveSettings',

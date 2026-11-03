@@ -2841,12 +2841,11 @@ export function StageRevert(chapterID: string): $CancellablePromise<string> {
 }
 
 /**
- * SystemCopyDiagnostics saves scope's records as one .jsonl file in a folder the narrator chooses, and answers its
- * path (the UI copies it to the clipboard). "last_run" with no run yet logged is refused rather than saving an
- * empty file with nothing to show for it.
+ * SystemDiagnosticsPreview answers what a saved diagnostics bundle would hold: each file with its size, what is left out and why,
+ * and what the leak check dropped. Nothing is written. The narrator reads it before saving (docs/prds/activity-trace.prd.md).
  */
-export function SystemCopyDiagnostics(scope: string): $CancellablePromise<string> {
-    return $Call.ByID(399038062, scope);
+export function SystemDiagnosticsPreview(): $CancellablePromise<string> {
+    return $Call.ByID(1565816495);
 }
 
 /**
@@ -2881,7 +2880,7 @@ export function SystemNotify(kind: string, title: string, body: string): $Cancel
 }
 
 /**
- * SystemOpenLogFolder shows the run log's folder (logs/run.jsonl, host.log and logs/runs/) in the file manager, the
+ * SystemOpenLogFolder shows the run log's folder (logs/run.jsonl, trace.jsonl, host.log and logs/runs/) in the file manager, the
  * way TeleprompterStop's sibling bindings already do for the update cache (update_install.go's showDownloadedUpdate).
  */
 export function SystemOpenLogFolder(): $CancellablePromise<string> {
@@ -2890,6 +2889,15 @@ export function SystemOpenLogFolder(): $CancellablePromise<string> {
 
 export function SystemReportDiagnostic(kind: string, message: string): $CancellablePromise<string> {
     return $Call.ByID(4083438554, kind, message);
+}
+
+/**
+ * SystemSaveDiagnostics saves the diagnostics bundle (a zip with a manifest) in a folder the narrator chooses and answers its path,
+ * which the UI copies to the clipboard. The answer's path is empty when the narrator cancelled the folder picker. Nothing is sent
+ * anywhere: the narrator attaches the file to an issue by hand.
+ */
+export function SystemSaveDiagnostics(): $CancellablePromise<string> {
+    return $Call.ByID(2984472618);
 }
 
 export function SystemSaveSettings(tool: string, scope: string, values: { [_ in string]?: string | null }): $CancellablePromise<string> {

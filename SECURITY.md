@@ -38,7 +38,7 @@ especially welcome:
   folder it is meant for, overwrites an existing file, carries a path, an amount or text the narrator did not choose to include,
   or holds a cell that runs as a formula in a spreadsheet (row 6h;
   [Status report](docs/guides/using-the-app/production.md#status-report)).
-- The run log every tool run writes (`logs/run.jsonl`, `logs/runs/*.stderr.jsonl`; [Reading a run](docs/operations/verification-tooling.md#reading-a-run)) and the diagnostics bundle Settings can save from it (`SystemCopyDiagnostics`) or the folder it can open (`SystemOpenLogFolder`): manuscript, audio or transcript text reaching either is in scope, as is the export landing anywhere but the folder the narrator picked in that session's file picker.
+- The run log every tool run writes (`logs/run.jsonl`, `logs/runs/*.stderr.jsonl`; [Reading a run](docs/operations/verification-tooling.md#reading-a-run)) and the diagnostics bundle Settings can save (`SystemSaveDiagnostics`, a zip of the activity trace and an allow-listed run log) or the folder it can open (`SystemOpenLogFolder`): manuscript, audio or transcript text, a user name or a file path reaching either is in scope, as is the export landing anywhere but the folder the narrator picked in that session's file picker.
 - A file the app keeps in a project or user folder (the Editing records in `<app>/editing/`, `stacks.json` among them, are
   such files) that makes it run, open, fetch or write anything else, or puts markup into
   the page ([data files](docs/reference/data-files.md); threat model row 6i, and rows 6m and 6zc for a file that names a path

@@ -57,9 +57,24 @@ export type ProjectAttachState = { attached: boolean; reason?: string };
  */
 export type JobEnded = { id: string; kind: string; outcome: 'success' | 'error' | 'cancelled'; message: string; durationMs: number };
 
-/** SystemCopyDiagnostics's answer: the .jsonl file it saved. Empty
- * when the narrator cancelled the folder picker — no file was written. */
-export type CopyDiagnosticsResult = { path: string };
+/** SystemSaveDiagnostics's answer: the .zip it saved. Empty when the narrator cancelled the folder picker — no file was written. */
+export type SaveDiagnosticsResult = { path: string };
+
+/**
+ * SystemDiagnosticsPreview's answer, and the manifest.json inside the saved zip: each file with its line and byte counts, what is left out
+ * and why, and how many lines the leak check dropped (`terms` is how many names it searched for, never the names).
+ */
+export type DiagnosticsPreview = {
+  format: number;
+  createdAt: string;
+  appVersion: string;
+  redactionVersion: number;
+  traceEnabled: boolean;
+  files: { name: string; lines: number; bytes: number; source: string }[];
+  excluded: { name: string; reason: string }[];
+  leakCheck: { terms: number; linesDropped: number };
+  note: string;
+};
 
 /** The window's real webview zoom level as a fraction (1.25 is 125%), whatever set it. */
 export type WindowZoom = { level: number };
@@ -85,10 +100,11 @@ export interface SystemApi {
   subscribeLiveUpdateHealth(onDegraded: () => void): () => void;
   /** Shows the run log's folder in the file manager. */
   systemOpenLogFolder(): Promise<void>;
-  /** Saves scope's run log records ("last_run" or "last_30_minutes") as one .jsonl file in a folder the
-   * narrator chooses, and answers its path so the UI can copy it to the clipboard. Throws for "last_run" when
-   * nothing has run yet this session. */
-  systemCopyDiagnostics(scope: 'last_run' | 'last_30_minutes'): Promise<CopyDiagnosticsResult>;
+  /** What a saved diagnostics bundle would hold, and what it leaves out. Writes nothing. */
+  systemDiagnosticsPreview(): Promise<DiagnosticsPreview>;
+  /** Saves the diagnostics bundle (a zip with a manifest) in a folder the narrator chooses and answers its path so the UI can copy
+   * it to the clipboard; the path is empty when the narrator cancelled. Nothing is sent anywhere. */
+  systemSaveDiagnostics(): Promise<SaveDiagnosticsResult>;
   /** Narrows the app's one window to the companion width and pins it always-on-top, remembering its size and position
    * (src/studio/desktop/bindings_companion.go: never a second window). Entering twice keeps the first
    * saved bounds. */
