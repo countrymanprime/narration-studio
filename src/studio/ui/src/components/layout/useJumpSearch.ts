@@ -1,6 +1,6 @@
 // The jump menu's search hits for the typed term: the synchronous sources' at once, as they always were, and the asynchronous
 // sources' once the typing pauses. Only the answer to the term still typed is shown; a source that does not answer in time, or fails,
-// is said in a toast and leaves the rest listed.
+// is said in a toast and leaves the rest listed. Typing the term again asks again, so a source that timed out is retried.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { searchLater, searchNow, waitingFor, type OrderedHits, type SearchHit } from '../../registries/search';
 
@@ -15,7 +15,11 @@ export type SearchSlot = { order: number; hits: SearchHit[] } | { order: number;
 /** Why an asynchronous source gave no hits: it took longer than SEARCH_WAIT_MS, or it failed with `reason`. */
 export type SearchFailure = { group: string } & ({ kind: 'slow' } | { kind: 'failed'; reason: string });
 
-type Answers = { term: string; answered: OrderedHits[]; settled: ReadonlySet<number> };
+/**
+ * The answers to one ask: one typing of a term. A term typed again is a new ask, so the answers (or the sources given up on) of an
+ * earlier typing are not shown for it.
+ */
+type Answers = { ask: object | null; answered: OrderedHits[]; settled: ReadonlySet<number> };
 
 const timeout = (ms: number, signal: AbortSignal) =>
   new Promise<'slow'>((resolve) => {
@@ -27,7 +31,9 @@ const timeout = (ms: number, signal: AbortSignal) =>
 export function useJumpSearch(term: string, enabled: boolean, onFailure: (failure: SearchFailure) => void): SearchSlot[] {
   const now = useMemo(() => (enabled ? searchNow(term) : []), [enabled, term]);
   const expected = useMemo(() => (enabled ? waitingFor(term) : []), [enabled, term]);
-  const [answers, setAnswers] = useState<Answers>({ term: '', answered: [], settled: new Set() });
+  // A new object for each change of the term: the token an answer must carry to be shown.
+  const ask = useMemo(() => ({ term }), [term]);
+  const [answers, setAnswers] = useState<Answers>({ ask: null, answered: [], settled: new Set() });
   // Read when an answer settles, so a new function each render does not ask the sources again.
   const failed = useRef(onFailure);
   useEffect(() => {
@@ -39,21 +45,27 @@ export function useJumpSearch(term: string, enabled: boolean, onFailure: (failur
     const controller = new AbortController();
     const settle = (order: number, hits: SearchHit[]) =>
       setAnswers((current) => {
-        // An answer to a term no longer typed was already dropped by the abort; this keeps the latest term's answers together, one per
-        // source (a term typed again replaces its earlier answer).
-        const base = current.term === term ? current : { term, answered: [], settled: new Set<number>() };
-        return {
-          term,
-          answered: [...base.answered.filter((answer) => answer.order !== order), { order, hits }],
-          settled: new Set([...base.settled, order]),
-        };
+        const base = current.ask === ask ? current : { ask, answered: [], settled: new Set<number>() };
+        return { ask, answered: [...base.answered, { order, hits }], settled: new Set([...base.settled, order]) };
       });
     const debounce = setTimeout(() => {
-      for (const { order, group, answer } of searchLater(term, controller.signal)) {
+      // Each source has its own signal, aborted with the term's or when the menu stops waiting for it, so a source that keeps its
+      // answers can drop one that never came.
+      const own = new Map<number, AbortController>();
+      const signalFor = (order: number): AbortSignal => {
+        const one = new AbortController();
+        controller.signal.addEventListener('abort', () => one.abort(), { once: true });
+        own.set(order, one);
+        return one.signal;
+      };
+      for (const { order, group, answer } of searchLater(term, signalFor)) {
         void Promise.race([answer, timeout(SEARCH_WAIT_MS, controller.signal)]).then(
           (result) => {
             if (controller.signal.aborted) return;
-            if (result === 'slow') failed.current({ group, kind: 'slow' });
+            if (result === 'slow') {
+              own.get(order)?.abort();
+              failed.current({ group, kind: 'slow' });
+            }
             settle(order, result === 'slow' ? [] : result);
           },
           (error: unknown) => {
@@ -68,10 +80,10 @@ export function useJumpSearch(term: string, enabled: boolean, onFailure: (failur
       clearTimeout(debounce);
       controller.abort();
     };
-  }, [expected, term]);
+  }, [ask, expected, term]);
 
-  // Answers kept for an earlier term are not shown: until the new term's answers arrive, its sources are waited for.
-  const current = answers.term === term ? answers : { answered: [], settled: new Set<number>() };
+  // Answers to an earlier ask are not shown: until this ask's answers arrive, its sources are waited for.
+  const current = answers.ask === ask ? answers : { answered: [], settled: new Set<number>() };
   const waiting = expected.filter(({ order }) => !current.settled.has(order)).map(({ order, group }) => ({ order, waiting: group }));
   return [...now, ...current.answered, ...waiting].sort((a, b) => a.order - b.order);
 }

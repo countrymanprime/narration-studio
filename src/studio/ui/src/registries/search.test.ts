@@ -102,6 +102,16 @@ describe('sources that answer later', () => {
     expect(registry.searchLater('s', signal())).toEqual([]);
   });
 
+  it('searchLater can give each source its own signal, by its place', () => {
+    const registry = createSearchRegistry();
+    const seen: AbortSignal[] = [];
+    registry.registerAsync((_term, signal) => (seen.push(signal), Promise.resolve([])), 'A');
+    registry.registerAsync((_term, signal) => (seen.push(signal), Promise.resolve([])), 'B');
+    const own = [new AbortController(), new AbortController()];
+    registry.searchLater('storm', (order) => own[order]!.signal);
+    expect(seen).toEqual([own[0]!.signal, own[1]!.signal]);
+  });
+
   it('unregistering removes only that registration', () => {
     const registry = createSearchRegistry();
     const later = () => Promise.resolve([hit('x')]);
