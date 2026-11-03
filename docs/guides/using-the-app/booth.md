@@ -203,6 +203,13 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
   microphone in Levels, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
   will not let the app open (another program has it, or the privacy setting blocks it) is refused in the recorder's own words and
   nothing records.
+- **The recorder's own level.** While **Levels** is open, the **Recorder** meter under the microphone shows the level the
+  built-in recorder hears on that microphone, before a take and during one. No file is written. Choosing another microphone moves
+  it to that one. The recorder lets go of the microphone when you close **Levels**, leave the Booth, switch to another window or
+  press Record. If the recorder refuses the microphone, or does not answer within 15 seconds, the line under the meter says why.
+
+  ![Booth - the Levels menu with the built-in recorder: its own level under the microphone](../../images/ui/booth-levels-menu-builtin.webp)
+
 - **A take.** Record becomes **Stop** and the **REC** pill shows, as with a DAW.
 
   ![Booth - a take recording with the built-in recorder: Stop in place of Record and the REC pill beside the Built-in chip](../../images/ui/booth-builtin-listening.webp)

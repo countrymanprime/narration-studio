@@ -222,6 +222,27 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'levels-menu-builtin',
+    description:
+      'Booth for a project that records with the built-in recorder (?mockEngine=builtin), a microphone chosen and the Levels menu open: under the microphone picker, the built-in recorder\'s own meter ("Recorder"), started on that microphone when the menu opened and moving with its recording:level stream (#2732)',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-long-name',
+    description:
+      'The Levels menu of levels-menu-builtin with a microphone whose name is very long (?mockMics=long): the picker and the built-in meter keep the menu its bounded width, the name wraps',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-rtl-name',
+    description:
+      'The Levels menu of levels-menu-builtin with an Arabic microphone name with an emoji (?mockMics=weird, "ميكروفون 🎤 (USB)") chosen: the name reads right to left in the picker and the built-in meter runs on it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'levels-menu-mic-uncertain',
     description:
       'Booth, the Levels menu when REAPER\'s input could be either of two microphones (?mockReaperInput=uncertain): the host\'s sentence in the warning colour, one button per microphone, "Listening to … until you pick", and Choose a different one',

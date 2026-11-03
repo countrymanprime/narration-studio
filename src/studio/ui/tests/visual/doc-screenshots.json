@@ -1226,6 +1226,13 @@
   },
   {
     "page": "booth",
+    "state": "levels-menu-builtin",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu-builtin",
+    "caption": "Booth - the Levels menu with the built-in recorder: its own level under the microphone"
+  },
+  {
+    "page": "booth",
     "state": "levels-menu-preroll",
     "viewport": "desktop",
     "docName": "booth-levels-menu-preroll",

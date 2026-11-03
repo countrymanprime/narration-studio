@@ -17,6 +17,8 @@ import { useDawMeters, type DawMetersState } from './useDawMeters';
 import { useMonitorLevel } from './useMonitorLevel';
 import { usePunchPreroll } from './usePunchPreroll';
 import { useDawPreroll } from './useDawPreroll';
+import { useRecorderMeter } from './useRecorderMeter';
+import type { RecorderMeterView } from './recorderMeter';
 import type { ListeningMic } from '../listening/useListeningMic';
 
 export type ListenProps = {
@@ -57,6 +59,13 @@ export type LevelsMenuProps = {
     preroll?: DawCapabilitySupport | undefined;
     meters?: DawCapabilitySupport | undefined;
   };
+  /**
+   * The built-in recorder records this project (#2732): its own meter shows under the microphone while the menu is open, on the device
+   * chosen there. Off for a project with no recorder at all.
+   */
+  recorderMeter?: boolean;
+  /** A take records: the built-in meter is not started, and the take's own level moves its row. */
+  recording?: boolean;
   level: InputLevel | null;
   error: string | null;
   open: boolean;
@@ -266,6 +275,44 @@ function DawMeter({ caption, label, db, why }: { caption: string; label: string;
   );
 }
 
+/** Why the built-in meter row shows no level, or what it is doing: one line, in the slot under the meter. */
+function recorderWhy(view: RecorderMeterView, device: string): string | undefined {
+  if (view.status === 'none') return 'No microphone chosen.';
+  if (view.status === 'starting') return `Opening ${device}…`;
+  if (view.status === 'refused') return view.message ?? undefined;
+  return undefined;
+}
+
+/** The built-in recorder's own level for the chosen microphone (#2732), on the shared meter the DAW's meters use. Mounted only while the menu is open. */
+function RecorderMeterRow({ device, recording }: { device: string; recording: boolean }) {
+  const view = useRecorderMeter(device, recording);
+  const db = view.status === 'live' || view.status === 'take' ? (view.level?.peak ?? null) : null;
+  return (
+    <div data-testid="recorder-meter" className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true" className="shrink-0 text-xs text-[var(--text-muted)]">
+          Recorder
+        </span>
+        <div className="min-w-0 flex-1">
+          <LevelMeter
+            label="Built-in recorder input level"
+            peak={db}
+            rms={view.status === 'live' || view.status === 'take' ? (view.level?.rms ?? null) : null}
+            size="compact"
+          />
+        </div>
+      </div>
+      {/* One line is kept for the sentence, so the menu does not jump as the meter starts. */}
+      <span
+        role={view.status === 'refused' ? 'alert' : undefined}
+        className={`min-h-4 text-xs [overflow-wrap:anywhere] ${view.status === 'refused' ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`}
+      >
+        {recorderWhy(view, device)}
+      </span>
+    </div>
+  );
+}
+
 /** What the DAW's meters say about one side: its level, or the sentence for a meter that is loading, off or quiet. */
 function meterFor(state: DawMetersState, side: 'input' | 'output', dawName: string): { db: number | null; why?: string } {
   if (state.kind === 'loading') return { db: null, why: `Reading the levels from ${dawName}…` };
@@ -299,7 +346,7 @@ function MonitorLevelRow() {
  * The mock's two sliders under the microphone: Input level and Monitor level (output), each off with the reason when the DAW cannot set it,
  * and under each the DAW's own meter for that side (`daw_meters`) when the DAW can read them: the armed track's input and the output.
  */
-function LevelSliders({ levels, dawName }: { levels: NonNullable<LevelsMenuProps['levels']>; dawName: string }) {
+function LevelSliders({ levels, dawName, ownMeter }: { levels: NonNullable<LevelsMenuProps['levels']>; dawName: string; ownMeter: boolean }) {
   const { monitor, input, meters } = levels;
   const state = useDawMeters();
   const reading = meters?.available === true;
@@ -320,7 +367,8 @@ function LevelSliders({ levels, dawName }: { levels: NonNullable<LevelsMenuProps
         )}
         {outputMeter ? <DawMeter caption={`${dawName} output`} label={`${dawName} output level`} db={outputMeter.db} why={outputMeter.why} /> : null}
       </div>
-      {meters && !meters.available ? (
+      {/* The built-in recorder's own input level shows under the microphone, so "its own levels are not available" would contradict it. */}
+      {meters && !meters.available && !ownMeter ? (
         <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">
           {dawName}&rsquo;s own input and output levels: {meters.message}
         </span>
@@ -404,7 +452,22 @@ function PunchPrerollRow({ dawName, support }: { dawName: string; support: DawCa
   );
 }
 
-export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDevice, listen, levels, level, error, open, onOpenChange }: LevelsMenuProps) {
+export function LevelsMenu({
+  engine,
+  dawName,
+  reachable,
+  offReason,
+  device,
+  onDevice,
+  listen,
+  levels,
+  recorderMeter = false,
+  recording = false,
+  level,
+  error,
+  open,
+  onOpenChange,
+}: LevelsMenuProps) {
   const off = engine === 'daw' && !reachable;
   return (
     <Popover
@@ -424,7 +487,10 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
         <div className="flex flex-col gap-1.5">
           <span className={SECTION_LABEL}>Microphone</span>
           {engine === 'builtin' ? (
-            <Devices device={device} onDevice={onDevice} />
+            <>
+              <Devices device={device} onDevice={onDevice} />
+              {recorderMeter ? <RecorderMeterRow device={device} recording={recording} /> : null}
+            </>
           ) : (
             <>
               {off ? <div className="text-sm text-[var(--text)]">{offReason ?? `${dawName} is not running`}</div> : null}
@@ -441,7 +507,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
             </span>
           ) : null}
         </div>
-        {levels ? <LevelSliders levels={levels} dawName={dawName} /> : null}
+        {levels ? <LevelSliders levels={levels} dawName={dawName} ownMeter={engine === 'builtin' && recorderMeter} /> : null}
         {engine === 'daw' ? <PunchPrerollRow dawName={dawName} support={levels?.preroll} /> : null}
       </div>
     </Popover>

@@ -2,6 +2,31 @@
 import { row, startup, subscription } from './row';
 
 export const recordingFeedback = {
+  'src/components/booth/frame/recorderMeter.ts::recorderMeterStart#1': row(
+    'effect',
+    'instant',
+    'inline',
+    'pending',
+    'ui',
+    'inline',
+    'yes',
+    'ok',
+    "Opening the Booth's Levels menu with the built-in recorder starts its meter on the chosen microphone: the row says it is opening the device, then the level moves; a refusal, or no answer within METER_WAIT_MS, is the row's sentence. One call at a time, kept outside the menu, so a call on its way survives closing it.",
+  ),
+  'src/components/booth/frame/recorderMeter.ts::recorderMeterStop#1': row(
+    'effect',
+    'instant',
+    'na',
+    'pending',
+    'ui',
+    'toast',
+    'yes',
+    'ok',
+    'Closing the Levels menu, leaving the Booth, the window losing focus or Record starting stops the built-in meter; the menu is gone by then, so a refusal or no answer within METER_WAIT_MS is an error toast.',
+  ),
+  'src/components/booth/frame/recorderMeter.ts::subscribeRecorderLevel#1': subscription(
+    "The built-in recorder's level (recording:level) under the Levels menu's microphone, held only while the menu is open: the pre-take meter's level, or a take's.",
+  ),
   'src/components/booth/useRecorder.ts::recorderState#1': startup(
     "The engine chip's first reading of the project's recording engine; a failure leaves the chip on REAPER, the default, and the Booth reports the recorder's own error.",
   ),
