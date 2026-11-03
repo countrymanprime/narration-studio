@@ -6,9 +6,10 @@
 //
 // The rows:
 //   - builtin (builtin.go): today's internal/mastering chain, EQ then limiter then gain, wrapped unchanged. The default.
-//   - daw (daw.go): declared, not yet available. It will render regions through the project's own track and master FX, through
-//     the DAW port's render_with_fx role, with the narrator's approval for each render.
-//   - an Audacity row is planned (its effect macros, then Export2), once the Audacity 3.x pipe client lands; it is not registered.
+//   - daw (daw.go): Experimental. It renders a region through the project's own track and master FX, through the DAW port's
+//     render_with_fx role, with the narrator's approval for each render.
+//   - audacity (mastering_audacity.go): Experimental. It applies the narrator's effect macro in Audacity, then exports, with the
+//     narrator's approval for each render.
 //
 // A row's Descriptor.Modes say what it masters from: ModeWAV, a rendered WAV file at Request.Source; ModeDAWRegion, regions the DAW
 // renders itself (Request.Region). Capabilities say how far it is built and what it needs.
@@ -80,6 +81,9 @@ type Result struct {
 	// After and Judgement are Judge's answer for Destination, whichever row wrote it.
 	After     measure.Report
 	Judgement deliveryprofile.Judgement
+	// BuiltinReport is the built-in chain's own report (internal/mastering's Result), with the gain and high-pass numbers it chose,
+	// for a caller that shows them; nil for every other row, whose chain the app does not set.
+	BuiltinReport *mastering.Result
 }
 
 // Capabilities are what a row declares beyond its descriptor: how far it is built, and what it needs before it can run.
