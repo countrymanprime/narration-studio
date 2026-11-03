@@ -280,13 +280,20 @@ export function PickupsPage({
   const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
   const addMarkers = async (picked: PickupItem[]) => {
     const placed = picked.filter((p): p is PickupItem & { at: number } => p.at !== null);
+    /* A line the host cannot place in the recording gets no marker: say so, so the count on the button and the sentence agree. */
+    if (placed.length === 0) throw new Error('None of these lines has a place in the recording yet, so no marker was added.');
+    const skipped = picked.length - placed.length;
     const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
     if (!result.ok) throw new Error(result.message);
-    const lines = placed.length === 1 ? '1 line' : `${placed.length} lines`;
+    const lines = skipped > 0 ? `${placed.length} of ${picked.length} lines` : placed.length === 1 ? '1 line' : `${placed.length} lines`;
+    const left =
+      skipped > 0
+        ? ` ${skipped} ${skipped === 1 ? 'line has' : 'lines have'} no place in the recording yet and ${skipped === 1 ? 'was' : 'were'} left out.`
+        : '';
     overlay.toast(
       result.changed
-        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.`
-        : `Those markers were already in ${dawName}.`,
+        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.${left}`
+        : `Those markers were already in ${dawName}.${left}`,
     );
     await changing(pickupsApi.pickupsList());
   };

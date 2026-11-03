@@ -434,8 +434,8 @@ describe('narrator-walkthrough-fixes-2', () => {
 describe('adding-lines-as-markers-says-what-happened', () => {
   const markersDaw = (changed: boolean) =>
     ({ addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }) }) as never;
-  const renderWith = (changed: boolean) => {
-    const api = createMockApi({ pickupsList: () => Promise.resolve(LIST) });
+  const renderWith = (changed: boolean, list: PickupList = LIST) => {
+    const api = createMockApi({ pickupsList: () => Promise.resolve(list) });
     vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
       CHAPTERS.map((c, index) => ({ id: c.id, title: c.name, index, wordCount: 100, status: 'recording' })) as never,
     );
@@ -462,6 +462,21 @@ describe('adding-lines-as-markers-says-what-happened', () => {
     await userEvent.setup().click(await screen.findByRole('button', { name: /^Add \d+ as markers in / }));
     expect(await screen.findByText(/^Pickup markers for \d+ lines are in .+\.$/)).toBeTruthy();
     expect(screen.queryByText(/Imported/)).toBeNull();
+  });
+
+  it('says how many lines had no place in the recording, so the count matches the button', async () => {
+    const placed = pickup({ id: 'a', at: 10, time: 10 });
+    const unplaced = pickup({ id: 'b', at: null, time: 20 });
+    renderWith(true, { pickups: [placed, unplaced], leftOut: [] });
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add 2 as markers in REAPER' }));
+    expect(await screen.findByText('Pickup marker for 1 of 2 lines is in REAPER. 1 line has no place in the recording yet and was left out.')).toBeTruthy();
+  });
+
+  it('says so and does not claim success when no line has a place', async () => {
+    renderWith(true, { pickups: [pickup({ id: 'b', at: null, time: 20 })], leftOut: [] });
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add 1 as markers in REAPER' }));
+    expect(await screen.findByText('None of these lines has a place in the recording yet, so no marker was added.')).toBeTruthy();
+    expect(screen.queryByText(/are in|is in|already in/)).toBeNull();
   });
 
   it('says the markers were already there when nothing changed', async () => {
