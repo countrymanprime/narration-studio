@@ -19,7 +19,7 @@ import wave
 from pathlib import Path
 from typing import Any, NoReturn
 
-from narration_common.ports.pronunciation import BROWSE, PRONOUNCE, SOURCES, PronunciationDescriptor
+from narration_common.ports.pronunciation import BROWSE, PRONOUNCE, SOURCES, Pronunciation, PronunciationDescriptor
 from narration_common.ports.tts import ENGINES, TtsDescriptor
 
 # --- pronunciation: CMU and eSpeak -------------------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ class CmuSource:
     # What the build-time fallback logs when this source fails on a name, before it tries the next one.
     unavailable_log = "CMU pronunciation unavailable"
 
-    def pronounce(self, name: str) -> dict[str, str]:
+    def pronounce(self, name: str) -> Pronunciation:
         import pronouncing
 
         words = re.findall(r"[A-Za-z]+", name)
@@ -127,7 +127,7 @@ class WiktextractSource:
             self._cache_path = self.index_path
         return self._cache
 
-    def pronounce(self, name: str) -> dict[str, str]:
+    def pronounce(self, name: str) -> Pronunciation:
         index = self._index()
         words = re.findall(r"[A-Za-z']+", name)
         entries = [index[word.lower()] for word in words if word.lower() in index]
@@ -171,7 +171,7 @@ class EspeakSource:
         sentences = self._piper.phonemize("en-us", name)
         return "".join("".join(sentence) for sentence in sentences).strip()
 
-    def pronounce(self, name: str) -> dict[str, str]:
+    def pronounce(self, name: str) -> Pronunciation:
         """Guesses the IPA of a name from its spelling.
 
         An explicit ``--espeak-library`` goes through the ``phonemizer`` package. Without one (every shipped build: the host
