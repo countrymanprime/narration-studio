@@ -192,8 +192,9 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
       try {
         const list = await api.replaceNarrators();
         take(list.narrators, { narrator: chosen.current.narratorId, file: chosen.current.fileId });
-      } catch {
-        // The toast has said what went wrong; the list stays as it was.
+      } catch (reread) {
+        // The list stays as it was; the failed re-read is said too, so a stale button state is not trusted silently.
+        overlay.toast(why(reread), { tone: 'error' });
       }
     } finally {
       removingRef.current = false;

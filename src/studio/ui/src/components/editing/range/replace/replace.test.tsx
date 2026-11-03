@@ -410,6 +410,25 @@ describe('ReplaceDialog: remove a narrator', () => {
     expect(await tooltipOf(screen.getByRole('button', { name: 'Remove Jon Doe' }))).toBe(sentence);
   });
 
+  it('says a failed re-read after a refusal in a second toast and keeps the list', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const api = await mockHost();
+    const refusal = "Jon Doe's audio is in the project, so they stay on the list";
+    let reads = 0;
+    renderDialog({
+      ...api,
+      replaceNarrators: () => (reads++ === 0 ? api.replaceNarrators() : Promise.reject(new Error('The narrators could not be read'))),
+      replaceNarratorRemove: vi.fn(() => Promise.reject(new Error(refusal))),
+    });
+    await screen.findByLabelText('Other narrator');
+    choose('n-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Jon Doe' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The narrators could not be read', { tone: 'error' }));
+    expect(toast).toHaveBeenCalledWith(refusal, { tone: 'error' });
+    expect(narratorSelect().value).toBe('n-2');
+    expect(screen.getByRole('button', { name: 'Remove Jon Doe' }).getAttribute('aria-busy')).toBeNull();
+  });
+
   it('moves the focus to the name field when the last narrator is removed', async () => {
     const host = createReplaceAudioMock({ ready: Promise.resolve(), alignment: () => Promise.reject(new Error('none')), paragraphText: () => undefined });
     await host.replaceNarratorAdd('Jon Doe');
