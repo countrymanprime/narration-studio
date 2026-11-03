@@ -19,7 +19,7 @@ import (
 // (a later change) is the only way on there. The in-memory ring records either way.
 func (h *Host) startTrace() {
 	dev := h.version == developmentVersion
-	saved, _ := h.settings.Effective("General", "activity_trace", "false")
+	saved, _ := h.services().settings.Effective("General", "activity_trace", "false")
 	if dev || saved == "true" {
 		h.tracer.SetEnabled(true)
 	}

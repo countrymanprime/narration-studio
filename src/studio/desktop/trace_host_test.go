@@ -164,6 +164,7 @@ func TestNoCanaryReachesTheHostTrace(t *testing.T) {
 func TestTheActivityTraceSwitchTurnsTheFileOnAndOffAndIsRecorded(t *testing.T) {
 	host := newTestHostForDawCapabilities(t, "")
 	host.version = "0.5.1"
+	defer host.tracer.Close()
 	host.setActivityTrace(true)
 	if !host.tracer.Enabled() {
 		t.Fatal("the switch did not turn the trace on")
@@ -181,6 +182,7 @@ func TestTheActivityTraceSwitchTurnsTheFileOnAndOffAndIsRecorded(t *testing.T) {
 func TestASavedActivityTraceSettingTurnsTheTraceOnForAPublishedBuild(t *testing.T) {
 	host := newTestHostForDawCapabilities(t, "")
 	host.version = "0.5.1"
+	defer host.tracer.Close()
 	if err := host.saveSettings("General", "global", map[string]*string{"activity_trace": ptr("true")}); err != nil {
 		t.Fatal(err)
 	}
