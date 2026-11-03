@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { makeChapters } from '../../../fixtures/chapters';
-import type { CoverageResult } from '../../../types';
+import type { CoverageResult, CoverageState } from '../../../types';
 import { passing } from './testFiles';
 import { useTextMatches } from './textMatch';
 
@@ -51,5 +51,37 @@ describe('useTextMatches (#2105 breaker: a long book, a check that cannot be rea
     const files = [passing('Chapter 01.wav'), passing('Chapter 02.wav')];
     const { result } = renderHook(() => useTextMatches(chapters, files), { wrapper: host(read) });
     await waitFor(() => expect(Object.keys(result.current)).toEqual([chapters[0]!.id]));
+  });
+
+  it('follows the check while Master stays open: a re-run updates the figure, a stale check drops it to no figure', async () => {
+    const chapters = makeChapters({ shape: 'titleAndSubtitle', count: 3 });
+    const id = chapters[0]!.id;
+    let stored: CoverageResult = current(id);
+    let notify: (state: CoverageState) => void = () => undefined;
+    const api = {
+      ...createMockApi(),
+      coverageResult: async () => stored,
+      subscribeCoverage: (listener: (state: CoverageState) => void) => {
+        notify = listener;
+        return () => undefined;
+      },
+    };
+    const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
+    const files = [passing('Chapter 01.wav')];
+    const { result } = renderHook(() => useTextMatches(chapters, files), { wrapper });
+    await waitFor(() => expect(result.current[id]).toEqual({ percent: 90, met: true }));
+
+    // The check runs again and finds less: a running state changes nothing, the ended one is read.
+    stored = { ...current(id), result: { bodyTokens: 100, presentTokens: 70 } as never, judgement: { ...current(id).judgement!, state: 'not_met' } };
+    act(() => notify({ phase: 'running', percent: 10, message: '' }));
+    act(() => notify({ phase: 'complete', percent: 100, message: '' }));
+    await waitFor(() => expect(result.current[id]).toEqual({ percent: 70, met: false }));
+
+    // The recording changes after that: the stored check is stale, so the figure goes ("Not checked") when the window comes back.
+    stored = { chapterId: id, state: 'stale', reasons: ['item_trimmed'], result: stored.result, judgement: stored.judgement };
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(result.current[id]).toBeUndefined());
   });
 });

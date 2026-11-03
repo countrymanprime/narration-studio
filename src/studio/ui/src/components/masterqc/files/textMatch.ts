@@ -21,7 +21,7 @@ const READ_AT_ONCE = 8;
 
 /**
  * The Text figure by chapter id of each chapter a measured file belongs to (`chapterOfFile`, the page's one pairing rule), read from the
- * stored Recording Checks (`coverageResult`), again whenever `files` changes. A chapter with no file is not read at all, and one whose
+ * stored Recording Checks (`coverageResult`), again whenever the set of those chapters changes, a check ends (`subscribeCoverage`) or the window regains focus. A chapter with no file is not read at all, and one whose
  * read fails has no entry, so its file says "Not checked"; nothing is guessed.
  */
 export function useTextMatches(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): Readonly<Record<string, TextMatch>> {
@@ -38,6 +38,20 @@ export function useTextMatches(chapters: readonly ManuscriptChapter[], files: re
     }
     return JSON.stringify([...found]);
   }, [chapters, files]);
+  // A check that ends (or stops) while Master stays open, or the window coming back to the front (the saved project may have changed under a
+  // check, which goes stale), reads every stored check again: the cell follows the check, not only the set of files.
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const reread = () => setVersion((count) => count + 1);
+    const unsubscribe = coverage.subscribeCoverage((state) => {
+      if (state.phase !== 'running' && state.phase !== 'idle') reread();
+    });
+    window.addEventListener('focus', reread);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('focus', reread);
+    };
+  }, [coverage]);
   useEffect(() => {
     const ids = JSON.parse(key) as string[];
     let live = true;
@@ -60,6 +74,6 @@ export function useTextMatches(chapters: readonly ManuscriptChapter[], files: re
     return () => {
       live = false;
     };
-  }, [coverage, key]);
+  }, [coverage, key, version]);
   return matches;
 }

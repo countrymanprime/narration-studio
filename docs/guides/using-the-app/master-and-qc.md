@@ -50,7 +50,7 @@ of the chapter's words the [recording check](production.md) found in its recordi
 check's own thresholds; a figure under them is red with a cross. The measurement itself does not compare the audio with
 the text: the figure is the chapter's current check, read back, and Master & QC never runs one. A file that matches no
 chapter, or whose chapter has no current check (never run, or out of date since the recording changed), says **Not checked**,
-never a guess. The table has no Clicks column. A value that misses the
+never a guess. A red Text figure does not change **Pass** or **Fail**, which come from the profile's rules alone. The table has no Clicks column. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the

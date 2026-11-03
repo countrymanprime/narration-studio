@@ -1,9 +1,10 @@
 // The interaction feedback rows for Master & QC's call sites (formerly the Delivery page's) (see interactionFeedback.catalog.ts for what a row says).
-import { type FeedbackRow, row } from './row';
+import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const masterFeedback: Record<string, FeedbackRow> = {
   // Master & QC's Text column
+  'src/components/masterqc/files/textMatch.ts::subscribeCoverage#1': subscription('The recording check state: when a check ends or stops, the Text column reads the stored checks again, so a re-run figure replaces the old one.'),
   'src/components/masterqc/files/textMatch.ts::coverageResult#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads each narration chapter\'s stored Recording Check (never runs one) for the files table\'s Text column, again when a measurement ends; a check that cannot be read leaves that file\'s cell on "Not checked", which is its own state in the table.'),
   // Master & QC's mastering chain (the mastering port)
   'src/components/master/MasteringChain.tsx::masteringProviders#1': row('mount', 'instant', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'On opening Master & QC: the mastering chain the project masters with, drawn as its steps; a failed read is an error toast, and nothing else on the page depends on it.'),
