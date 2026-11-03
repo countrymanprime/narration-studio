@@ -64,7 +64,12 @@ export function TakeChip({
           />
         ))}
       </span>
-      {active ? <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] max-[30rem]:hidden">{active.label}</span> : null}
+      {/* The name stays at every width, ending in an ellipsis when it is long, so the badge and the chevron are never pushed out of the chip. */}
+      {active && active.label.trim() !== '' ? (
+        <span className="max-w-[14rem] min-w-0 truncate font-['IBM_Plex_Mono',ui-monospace,monospace]" title={active.label}>
+          {active.label}
+        </span>
+      ) : null}
       {keptId ? (
         <StatusBadge tone={statusTone('kept_take')} label={statusLabel('kept_take')} shape="tag" />
       ) : stacked ? (

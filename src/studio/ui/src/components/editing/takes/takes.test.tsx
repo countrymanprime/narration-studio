@@ -132,6 +132,15 @@ describe('chip-under-a-line-with-more-than-one-take', () => {
     fireEvent.click(chip());
     expect(document.querySelectorAll('[data-takes] [data-take]')).toHaveLength(1);
   });
+  it('offers no Keep on a line with one take: there is nothing to choose and such a line never reads Kept', () => {
+    mount(singleTakePassage());
+    fireEvent.click(chip());
+    expect(document.querySelectorAll('[data-take]')).toHaveLength(1);
+    expect(document.querySelector('[data-tkeep]')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Keep / })).toBeNull();
+    // Play is still there.
+    expect(document.querySelector('[data-tplay]')).not.toBeNull();
+  });
   it('says Stacked or Duplicate read where the line is, and Kept above both', () => {
     const base = { passage: measuredPassage(), open: false, onToggle: () => {} };
     const { rerender } = render(<TakeChip {...base} keptId={null} stacked />);
@@ -263,6 +272,16 @@ describe('keep-calls-the-daw-and-offers-undo', () => {
       expect(r.ok).toBe(false);
       expect(r.refusal!.reason).toContain("Undo 'Later change' first");
     });
+  });
+  it('after a keep exactly one row reads Kept and none still reads Active (the lines have not been read again)', async () => {
+    mount();
+    await flush();
+    fireEvent.click(chip());
+    fireEvent.click(screen.getByRole('button', { name: 'Keep T-8' }));
+    await flush();
+    const rows = [...document.querySelectorAll('[data-take]')].map((row) => ({ id: row.getAttribute('data-take'), text: row.textContent ?? '' }));
+    expect(rows.filter((r) => /Kept/i.test(r.text)).map((r) => r.id)).toEqual(['t-8']);
+    expect(rows.filter((r) => /Active/i.test(r.text))).toEqual([]);
   });
   it('a refusal shows the DAW’s own sentence and changes nothing', async () => {
     mount(measuredPassage(), 'reaper', 'The take is no longer in the project.');
