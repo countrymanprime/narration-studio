@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf16"
+	"unicode/utf8"
 )
 
 // SearchMatch is one place the term appears in a hit's excerpt: JS string indices (UTF-16 code units), end exclusive.
@@ -65,18 +66,17 @@ func (s *Service) Search(query string) (SearchResult, error) {
 			continue
 		}
 		body := text(paragraph, "text")
-		if !strings.Contains(foldCase(body), needle) {
+		folded := foldCase(body)
+		count := strings.Count(folded, needle)
+		if count == 0 {
 			continue
 		}
-		matches := findMatches(body, needle)
-		result.Total += len(matches)
+		result.Total += count
 		room := maxSearchMatches - sent
 		if room <= 0 {
 			continue
 		}
-		if len(matches) > room {
-			matches = matches[:room]
-		}
+		matches := findMatches(body, folded, needle, room)
 		sent += len(matches)
 		index, _ := paragraph["index"].(float64)
 		result.Hits = append(result.Hits, SearchHit{
@@ -101,34 +101,49 @@ func hiddenFromScript(data map[string]any) map[string]bool {
 
 func foldCase(value string) string { return strings.Map(unicode.ToLower, value) }
 
-// findMatches is every non-overlapping place the folded needle appears in body, as UTF-16 indices into body itself.
-// Folding can change a code point's UTF-8 length (U+0130 is two bytes, its fold "i" one), so offsets in the folded text
-// are mapped back through the code point each folded byte came from.
-func findMatches(body, needle string) []SearchMatch {
-	folded := make([]byte, 0, len(body))
-	// at[i] is the UTF-16 index in body of the code point that folded byte i came from; at[len(folded)] is body's length.
-	at := make([]int, 0, len(body)+1)
-	units := 0
-	for _, r := range body {
-		before := len(folded)
-		folded = append(folded, string(unicode.ToLower(r))...)
-		for range len(folded) - before {
-			at = append(at, units)
+// findMatches is the first limit non-overlapping places the needle appears in folded (foldCase(body)), as UTF-16 indices
+// into body itself. Folding can change a code point's UTF-8 length (U+0130 is two bytes, its fold "i" one), so outside
+// ASCII the offsets are mapped back through the code point each folded byte came from.
+func findMatches(body, folded, needle string, limit int) []SearchMatch {
+	var at []int
+	if !isASCII(body) {
+		// at[i] is the UTF-16 index in body of the code point that folded byte i came from; at[len(folded)] is body's length.
+		at = make([]int, 0, len(folded)+1)
+		units := 0
+		for _, r := range body {
+			for range utf8.RuneLen(unicode.ToLower(r)) {
+				at = append(at, units)
+			}
+			units += utf16.RuneLen(r)
 		}
-		units += utf16.RuneLen(r)
+		at = append(at, units)
 	}
-	at = append(at, units)
-	haystack := string(folded)
+	index := func(offset int) int {
+		if at == nil {
+			return offset
+		}
+		return at[offset]
+	}
 	matches := []SearchMatch{}
-	for from := 0; ; {
-		found := strings.Index(haystack[from:], needle)
+	for from := 0; len(matches) < limit; {
+		found := strings.Index(folded[from:], needle)
 		if found < 0 {
-			return matches
+			break
 		}
 		start := from + found
 		from = start + len(needle)
-		matches = append(matches, SearchMatch{Start: at[start], End: at[from]})
+		matches = append(matches, SearchMatch{Start: index(start), End: index(from)})
 	}
+	return matches
+}
+
+func isASCII(value string) bool {
+	for i := 0; i < len(value); i++ {
+		if value[i] >= utf8.RuneSelf {
+			return false
+		}
+	}
+	return true
 }
 
 func utf16Length(value string) int {

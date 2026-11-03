@@ -202,3 +202,31 @@ func TestSearchOfABookWithoutAManuscriptFails(t *testing.T) {
 		t.Fatal("want an error with no manuscript")
 	}
 }
+
+// A 90,000-word book (1,500 paragraphs of 60 words) with curly quotes in every paragraph, so none takes the ASCII path, searched
+// for its commonest word: go test -run '^$' -bench BenchmarkSearch ./internal/manuscript.
+func BenchmarkSearchANonASCIIBookForACommonWord(b *testing.B) {
+	project := b.TempDir()
+	words := strings.Repeat("the ‘rabbit’ ran past a café — ", 10)
+	paragraphs := make([]map[string]any, 0, 1500)
+	for i := range 1500 {
+		paragraphs = append(paragraphs, line("p", "c1", i, words))
+	}
+	dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		b.Fatal(err)
+	}
+	bytes, err := json.Marshal(map[string]any{"schemaVersion": 1, "chapters": []any{}, "paragraphs": paragraphs})
+	if err != nil {
+		b.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "manuscript.json"), bytes, 0o644); err != nil {
+		b.Fatal(err)
+	}
+	service := New(project)
+	for b.Loop() {
+		if _, err := service.Search("the"); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
