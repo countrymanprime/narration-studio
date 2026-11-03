@@ -421,15 +421,18 @@ const mockProduction = (['on-pace', 'at-risk', 'linked'] as const).find((seed) =
 // `?mockFidelity=05` draws the mock backend as benchmark mock 05 draws Master & QC, for the pixel-match tool (mockHost/mockFidelity.ts).
 const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 
-// `?mockRecorder=recording|failed|empty|no-devices|start-fails|unavailable` seeds the Booth's built-in recorder
+// `?mockRecorder=recording|failed|empty|no-devices|start-fails|meter-hangs|mic-gone|unavailable` seeds the Booth's built-in recorder
 // with `?mockEngine=builtin` choosing it: a take 42 s in; the last take ended on
-// its own; no takes yet; no input device listed; a device that will not open on Record; the wasapi row unavailable here.
+// its own; no takes yet; no input device listed; a device that will not open on Record; a Levels meter whose start never answers; a
+// recorder that no longer lists the microphone the Booth listens on (other microphones listed); the wasapi row unavailable here.
 const MOCK_RECORDER_SEEDS: Record<string, RecordingMockSeed> = {
   recording: { recording: true },
   failed: { lastTakeFailed: true },
   empty: { takes: 'none' },
   'no-devices': { takes: 'none', devices: 'none' },
   'start-fails': { startFails: true },
+  'meter-hangs': { meterHangs: true },
+  'mic-gone': { deviceNames: ['USB Headset (Jabra Evolve2)', 'Line In (Realtek(R) Audio)'] },
   unavailable: { unavailable: true },
 };
 const mockRecorderParam = mockParams.get('mockRecorder') ?? '';

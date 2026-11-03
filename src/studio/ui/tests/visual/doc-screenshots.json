@@ -1275,6 +1275,13 @@
   },
   {
     "page": "booth",
+    "state": "levels-menu-builtin",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu-builtin",
+    "caption": "Booth - the Levels menu with the built-in recorder: its Input meter is the recorder's own level"
+  },
+  {
+    "page": "booth",
     "state": "levels-menu-preroll",
     "viewport": "desktop",
     "docName": "booth-levels-menu-preroll",
