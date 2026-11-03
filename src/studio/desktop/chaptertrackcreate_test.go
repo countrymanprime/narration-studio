@@ -98,16 +98,6 @@ func TestChapterTrackCreateReplacesTheChaptersOldLink(t *testing.T) {
 	}
 }
 
-func TestChapterTrackCreateTwiceAddsTwoTracks(t *testing.T) {
-	host, ids := newTestHostForChapterMatch(t)
-	creator := &fakeCreator{}
-	createTrack(t, host, creator, createAvailable(), ids[0])
-	createTrack(t, host, creator, createAvailable(), ids[0])
-	if len(creator.names) != 2 {
-		t.Fatalf("asked %d times, want 2: the binding does not dedupe", len(creator.names))
-	}
-}
-
 func TestChapterTrackCreateForAChapterNotInTheManuscriptIsAnError(t *testing.T) {
 	host, _ := newTestHostForChapterMatch(t)
 	creator := &fakeCreator{}
@@ -335,9 +325,15 @@ func TestContractChapterTrackCreate(t *testing.T) {
 	pin(t, "chapter-track-create-folder", folders.config.projectFolder, createdFolder)
 
 	host.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{Adapter: dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))})
-	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[1])
+	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 	pin(t, "chapter-track-create-refused", folder, refused)
+	// ids[1] was linked by the create above: a second create is refused and names its track (#2958, B2).
+	already, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{}, createAvailable(), ids[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin(t, "chapter-track-create-already-linked", folder, already)
 }

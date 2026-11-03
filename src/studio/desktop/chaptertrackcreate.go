@@ -5,9 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
+	"desktop/internal/evidence"
+	"desktop/internal/tracks"
 	"desktop/internal/voicetracks"
 )
 
@@ -32,7 +36,27 @@ const (
 	trackCreateRefused     = "refused"
 	trackCreateRecording   = "recording"
 	trackCreateUnsupported = "unsupported"
+	// The chapter already has a track the project has (or one this app just added): Change or Clear it instead (#2958, B2).
+	trackCreateAlreadyLinked = "already_linked"
+	// A track (or folder) already has the name the new one would get: link that one with the picker (#2958, F2).
+	trackCreateNameTaken = "name_taken"
+	// The engine added the track but the link could not be saved (#2958, B6): the sentence names the track to link by hand.
+	trackCreateLinkFailed = "link_failed"
 )
+
+// chapterTrackCreates serialises ChapterTrackCreate across the app, so two presses for one chapter (a double click, a remount, two
+// windows) add one track: the second runs after the first has linked the chapter and is refused as already_linked. made holds the
+// tracks this app added this session, by GUID key, with their names: they are the chapter's even before the project is saved, when
+// neither the saved file nor (with the engine not answering) the live list has them.
+var chapterTrackCreates = struct {
+	sync.Mutex
+	made map[string]string
+}{made: map[string]string{}}
+
+// setChapterLink writes the new track's link; a seam so a test can make the write fail after the engine added the track.
+var setChapterLink = func(store *evidence.MappingStore, documentID, chapterID, chapterTitle, trackGUID string) (evidence.ChapterLinkSet, error) {
+	return store.SetChapter(documentID, chapterID, chapterTitle, trackGUID)
+}
 
 // chapterTrackCreated is ChapterTrackCreate's answer when the track was added and linked: ChapterTrackSet's payload (the link
 // as written, the link it displaced, which is always null for a new track, and every link that remains) and the new track. Voice is the
@@ -142,20 +166,40 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 	if strings.TrimSpace(title) == "" {
 		return trackCreateRefusedWith(refusedFailed, "This chapter has no title to name a track after. Give it a title in the manuscript, then try again."), nil
 	}
-	if creator == nil {
-		return trackCreateUnavailable(name, title, support), nil
-	}
 	folders, err := voiceFoldersLayout(svc)
 	if err != nil {
 		return nil, err
+	}
+	chapterTrackCreates.Lock()
+	defer chapterTrackCreates.Unlock()
+	// Read after the lock: a create that held it may have linked this chapter.
+	_, links, err := chapterLinksFor(svc, chapterID)
+	if err != nil {
+		return nil, err
+	}
+	present, known := projectTracksNow(ctx, svc)
+	if refusal, refused := alreadyLinked(name, links, present, known); refused {
+		return refusal, nil
+	}
+	if taken, ok := trackNamed(present, title); ok {
+		kind := "track"
+		if taken.IsFolder {
+			kind = "folder"
+		}
+		return trackCreateRefusedWith(trackCreateNameTaken, fmt.Sprintf("%s already has a %s named “%s”. Link that one with the picker instead of adding another.", name, kind, strings.TrimSpace(taken.Name))), nil
+	}
+	if creator == nil {
+		return trackCreateUnavailable(name, title, support), nil
 	}
 	created, voice, err := createChapterTrack(ctx, creator, title, folders)
 	if err != nil {
 		return trackCreateError(name, title, err), nil
 	}
-	set, err := store.SetChapter(documentID, chapterID, storedTitle, created.GUID)
+	chapterTrackCreates.made[guidKey(created.GUID)] = created.Name
+	set, err := setChapterLink(store, documentID, chapterID, storedTitle, created.GUID)
 	if err != nil {
-		return nil, err
+		why := strings.TrimRight(strings.TrimSpace(err.Error()), ".")
+		return trackCreateRefusedWith(trackCreateLinkFailed, fmt.Sprintf("%s added the track “%s”, but its link could not be saved: %s. Choose “%s” in the chapter's picker to link it.", name, created.Name, why, created.Name)), nil
 	}
 	mappings, err := store.List(documentID)
 	if err != nil {
@@ -167,6 +211,58 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		Track:                 createdTrack{GUID: created.GUID, Name: created.Name, Index: created.Index},
 		Voice:                 voice,
 	}, nil
+}
+
+// projectTracksNow is the project's tracks as the engine has them now, or the saved file's when it is not answering (tracksLiveIn);
+// known is false when neither could be read.
+func projectTracksNow(ctx context.Context, svc hostServices) ([]tracks.Track, bool) {
+	lister, support := trackListerFrom(svc)
+	ctx, cancel := context.WithTimeout(ctx, tracksLiveTimeout)
+	defer cancel()
+	answer, err := tracksLiveIn(ctx, svc, lister, support, time.Now())
+	if err != nil {
+		return nil, false
+	}
+	return answer.Project.Tracks, true
+}
+
+// alreadyLinked refuses a create for a chapter linked to a track the project has, or to one this app added (made, not saved yet), naming
+// it. A link to a track that is gone ("Track missing") is not refused: a new track replaces it. With the tracks unknown, any link refuses.
+// The caller holds chapterTrackCreates.
+func alreadyLinked(name string, links []string, present []tracks.Track, known bool) (chapterTrackCreateRefusal, bool) {
+	for _, link := range links {
+		trackName, found := chapterTrackCreates.made[guidKey(link)]
+		for _, track := range present {
+			if guidKey(track.GUID) == guidKey(link) {
+				trackName, found = track.Name, true
+			}
+		}
+		if found || !known {
+			named := "a track"
+			if strings.TrimSpace(trackName) != "" {
+				named = fmt.Sprintf("“%s”", strings.TrimSpace(trackName))
+			}
+			return trackCreateRefusedWith(trackCreateAlreadyLinked, fmt.Sprintf("This chapter is already linked to %s in %s. Change or clear that link instead of adding another track.", named, name)), true
+		}
+	}
+	return chapterTrackCreateRefusal{}, false
+}
+
+// trackNamed is the first of present whose name is the one a new track named title would get (trimmed, a line break or tab as a space,
+// ignoring case): a plain track or a folder.
+func trackNamed(present []tracks.Track, title string) (tracks.Track, bool) {
+	want := oneLineName(title)
+	for _, track := range present {
+		if strings.EqualFold(oneLineName(track.Name), want) {
+			return track, true
+		}
+	}
+	return tracks.Track{}, false
+}
+
+// oneLineName is a track name as track_create stores it: trimmed, with each run of line breaks and tabs as one space.
+func oneLineName(text string) string {
+	return strings.TrimSpace(strings.Join(strings.FieldsFunc(text, func(r rune) bool { return r == '\r' || r == '\n' || r == '\t' }), " "))
 }
 
 // voiceFoldersLayout says whether the open project's chapters are folders of voices (voice-tracks.json); a project with no file is flat.
