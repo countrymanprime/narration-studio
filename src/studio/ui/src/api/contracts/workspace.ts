@@ -209,7 +209,7 @@ export interface WorkspaceApi {
    * runs anything. */
   workspaceAlignment(chapterId: string): Promise<WorkspaceAlignmentResult>;
   /** Selects tokenIndex's item in REAPER and puts the edit cursor on the spot it was heard (navigate_item): the host resolves the
-   * token's item, take and source time, exactly as findingsGoTo does for a finding. Connection status is shared with the Review page (findingsReaperStatus). */
+   * token's item, take and source time, exactly as findingsGoTo does for a finding. Its refusals are the ones findingsGoTo gives. */
   workspaceGoTo(chapterId: string, tokenIndex: number): Promise<FindingNavigation>;
   /** Lists the narrator's FX chains (list_fx_chains). Refused offline or before the DAW port's FX chains
    * capability is available (dawport.CapFXChains). */

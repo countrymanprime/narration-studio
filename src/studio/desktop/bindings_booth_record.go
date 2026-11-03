@@ -103,7 +103,7 @@ func (h *Host) builtinRecordStart(ctx context.Context, svc hostServices) ReadAlo
 	if _, err := recorder.RecordStart(ctx, "", dawport.RecordOptions{}); err != nil {
 		return readAloudRefused(refusedFailed, upperFirst(err.Error()))
 	}
-	// The project remembers the microphone it last recorded with, as RecorderStart does.
+	// The project remembers the microphone it last recorded with, the fallback when the Levels menu has none chosen.
 	if err := svc.settings.Save(recordingSettingsTool, "project", map[string]*string{recordingDeviceKey: &chosen}); err != nil {
 		_ = h.log.Report("recording", "could not remember the recorder's device: "+err.Error())
 	}

@@ -28,7 +28,7 @@ func boothRecorderHost(t *testing.T, fake *recordingtest.Fake, mic string) *Host
 	// The global settings (the microphone) live under APPDATA: a test never reads or writes the machine's.
 	t.Setenv("APPDATA", t.TempDir())
 	host := recorderHost(t, fake)
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	chooseEngine(t, host, engineBuiltin)
 	if mic != "" {
 		boothSetting(t, host, "Teleprompter", "global", "input_device", mic)
 	}
@@ -206,7 +206,7 @@ func TestBuiltinBoothTakeEndingByItselfIsHeardAndKept(t *testing.T) {
 func TestBoothRecordWithADawDoesNotTouchTheBuiltinRecorder(t *testing.T) {
 	fake := &recordingtest.Fake{DeviceList: []recording.Device{{Name: micOne}}}
 	host := boothRecorderHost(t, fake, micOne)
-	recorderOf(t)(host.RecorderChooseEngine(engineDAW))
+	chooseEngine(t, host, engineDAW)
 	result := boothRecord(t)(host.ReadAloudRecordStart("c-0001"))
 	if result.Outcome != "refused" || fake.Last() != nil {
 		t.Fatalf("start = %+v (run %v), want REAPER's refusal and no built-in take", result, fake.Last())

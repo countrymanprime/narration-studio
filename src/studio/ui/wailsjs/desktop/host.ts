@@ -50,6 +50,7 @@ export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
 /**
  * AssetsList is every approved asset of every kind with its state, size, publisher, licence and provenance links, where it is installed,
  * when, and the download that is running for it (so a page opened while one runs can follow it). It reads no file contents.
+ * The Booth's record press asks it first (the speech model check), so it begins a press on the record-press timeline.
  */
 export function AssetsList(): $CancellablePromise<string> {
     return $Call.ByID(2175855371);
@@ -258,18 +259,14 @@ export function ChapterTrackLinks(): $CancellablePromise<string> {
     return $Call.ByID(488920311);
 }
 
-export function ChapterTrackMapClear(trackGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(3648043981, trackGUID);
-}
-
 export function ChapterTrackMapConfirm(trackGUID: string, chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(784242736, trackGUID, chapterID);
 }
 
 /**
- * ChapterTrackMapList, ChapterTrackMapConfirm and ChapterTrackMapClear are
- * the narrator-confirmed chapter-track mapping's bindings: list the
- * confirmed rows, confirm one and clear one.
+ * ChapterTrackMapList and ChapterTrackMapConfirm are the narrator-confirmed
+ * chapter-track mapping's bindings: list the confirmed rows and confirm one.
+ * ChapterTrackUnlink (below) clears a chapter's link.
  */
 export function ChapterTrackMapList(): $CancellablePromise<string> {
     return $Call.ByID(20566568);
@@ -856,15 +853,6 @@ export function DawPlace(): $CancellablePromise<string> {
 }
 
 /**
- * DawPreviewFileRange plays length seconds of the file at path from start (the file's own seconds) through the DAW's preview,
- * never through the project, stopping a preview this app started before. The resolver's file_preview sentence comes first,
- * then the stretch, then the path; nothing is sent to the DAW on any refusal.
- */
-export function DawPreviewFileRange(path: string, start: number, length: number): $CancellablePromise<string> {
-    return $Call.ByID(4279548801, path, start, length);
-}
-
-/**
  * DawProjectState answers {savedAt, unsavedChanges, playState, playPosition} (dawport.ProjectState). With no DAW, the
  * heartbeat capability unavailable or turned off, or a DAW not answering, it is the idle payload: stopped, 0, null, false.
  */
@@ -950,14 +938,6 @@ export function DawRestoreBackup(backupID: string): $CancellablePromise<string> 
  */
 export function DawRestoreReplacement(chapterID: string, replacementID: string): $CancellablePromise<string> {
     return $Call.ByID(3637008624, chapterID, replacementID);
-}
-
-/**
- * DawRevealFile shows the file at path in the DAW's own file browser without importing or playing it. The resolver's
- * file_reveal sentence comes first, then the path; nothing is sent to the DAW on any refusal.
- */
-export function DawRevealFile(path: string): $CancellablePromise<string> {
-    return $Call.ByID(4263544213, path);
 }
 
 /**
@@ -1560,19 +1540,11 @@ export function FindingsLoop(id: string): $CancellablePromise<string> {
 
 /**
  * FindingsLoopRead loops one read of a finding in REAPER, as FindingsLoop does, over that read's own range. The loop is
- * the finding's, so FindingsReaperStatus names the finding and FindingsStopLoop stops it. REAPER plays the item's
+ * the finding's, so FindingsStopLoop stops it. REAPER plays the item's
  * active take: a read that is another take of its item is heard as itself through the in-app audition instead.
  */
 export function FindingsLoopRead(id: string, read: number): $CancellablePromise<string> {
     return $Call.ByID(3171307890, id, read);
-}
-
-/**
- * FindingsReaperStatus answers whether REAPER is there for Go to and Loop, without sending REAPER anything: it reads
- * the heartbeat REAPER's script already broadcasts (daw.Reachability), so the page can poll it.
- */
-export function FindingsReaperStatus(): $CancellablePromise<string> {
-    return $Call.ByID(1717933253);
 }
 
 /**
@@ -2404,16 +2376,12 @@ export function ProjectStateChangedSince(current: number, baseline: number): $Ca
 
 /**
  * ProjectStateCheck asks REAPER (when it is open from this app) for its live change count and the current
- * project's saved-file path. The result (ProjectStateState's changeCount, projectFile and savedModifiedAt) comes
+ * project's saved-file path. The result (the projectstate:state payload's changeCount, projectFile and savedModifiedAt) comes
  * back once REAPER answers; with no bridge it fails immediately, so a caller can fall back to a saved-file-mtime
  * basis without waiting.
  */
 export function ProjectStateCheck(): $CancellablePromise<string> {
     return $Call.ByID(4248506512);
-}
-
-export function ProjectStateState(): $CancellablePromise<string> {
-    return $Call.ByID(1931134061);
 }
 
 /**
@@ -2577,15 +2545,6 @@ export function Ready(): $CancellablePromise<{ [_ in string]?: any }> {
 }
 
 /**
- * RecorderChooseEngine saves which engine the project records with: "daw" (the project's DAW, REAPER unless it records with
- * Audacity) or "builtin". The built-in recorder is refused, with its sentence, where its capture row is not available; nothing
- * changes while a take records. DawChoose (bindings_dawchoice.go) chooses a DAW by name; both write the same Recording.engine row.
- */
-export function RecorderChooseEngine(engine: string): $CancellablePromise<string> {
-    return $Call.ByID(247123031, engine);
-}
-
-/**
  * RecorderDevices lists the input devices the built-in recorder can open. Like TeleprompterDevices, a listing problem comes
  * back as {"devices": [], "error": "..."}, never a rejected promise.
  */
@@ -2627,25 +2586,10 @@ export function RecorderSetTakeLine(takeName: string, entityId: string): $Cancel
 }
 
 /**
- * RecorderStart records a new take of device into the project's Recordings folder and remembers the device for the project.
- * It answers once the take has started; its end arrives as "recording:state".
- */
-export function RecorderStart(device: string): $CancellablePromise<string> {
-    return $Call.ByID(1722162476, device);
-}
-
-/**
  * RecorderState answers the recorder's state. It changes nothing.
  */
 export function RecorderState(): $CancellablePromise<string> {
     return $Call.ByID(1538594405);
-}
-
-/**
- * RecorderStop asks the take (or the meter) to end and answers at once; the take's end arrives as "recording:state".
- */
-export function RecorderStop(): $CancellablePromise<string> {
-    return $Call.ByID(925363464);
 }
 
 /**
@@ -3153,10 +3097,6 @@ export function TranscriptHints(): $CancellablePromise<string> {
     return $Call.ByID(1808960066);
 }
 
-export function TranscriptJump(id: string): $CancellablePromise<string> {
-    return $Call.ByID(275761128, id);
-}
-
 export function TranscriptLastCompleted(): $CancellablePromise<string> {
     return $Call.ByID(695536997);
 }
@@ -3177,10 +3117,6 @@ export function TranscriptSuggestHints(): $CancellablePromise<string> {
     return $Call.ByID(3967109440);
 }
 
-export function TtsCatalog(): $CancellablePromise<string> {
-    return $Call.ByID(29725922);
-}
-
 export function TtsInstall(voiceID: string): $CancellablePromise<string> {
     return $Call.ByID(689160454, voiceID);
 }
@@ -3191,10 +3127,6 @@ export function TtsInstallCancel(jobID: string): $CancellablePromise<string> {
 
 export function TtsInstallState(jobID: string): $CancellablePromise<string> {
     return $Call.ByID(2657027067, jobID);
-}
-
-export function TtsRemove(voiceID: string): $CancellablePromise<string> {
-    return $Call.ByID(2665374435, voiceID);
 }
 
 /**
@@ -3304,10 +3236,6 @@ export function VoiceSamplesRemoveAll(): $CancellablePromise<string> {
     return $Call.ByID(2655911602);
 }
 
-export function WhisperCatalog(): $CancellablePromise<string> {
-    return $Call.ByID(2492386831);
-}
-
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {
     return $Call.ByID(477322835, modelID);
 }
@@ -3318,10 +3246,6 @@ export function WhisperInstallCancel(jobID: string): $CancellablePromise<string>
 
 export function WhisperInstallState(jobID: string): $CancellablePromise<string> {
     return $Call.ByID(288841540, jobID);
-}
-
-export function WhisperRemove(modelID: string): $CancellablePromise<string> {
-    return $Call.ByID(1246245112, modelID);
 }
 
 /**

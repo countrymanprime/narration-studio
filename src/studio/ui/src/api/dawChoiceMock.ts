@@ -4,6 +4,7 @@
 // recorder; choosing the built-in recorder or a DAW also tells the recorder mock, so the Booth and Settings agree.
 import type { ChoosableDaw, DawCapabilities, DawCapabilitySupport, DawChoice, DawChoiceApi, DawChoiceSource, DawChoiceState } from './contracts/daw';
 import type { RecordingApi } from './contracts/recording';
+import type { RecorderMockControl } from './recordingMock';
 import { wireClone } from './mockFixtures';
 
 /** What the mock project's folder holds and how its DAW stands, as `?mockDawChoice=` names it. */
@@ -74,7 +75,7 @@ export function createDawChoiceMock(
   seed: DawChoiceMockSeed,
   deps: {
     capabilities: () => Promise<DawCapabilities>;
-    recording: Pick<RecordingApi, 'recorderState' | 'recorderChooseEngine'>;
+    recording: Pick<RecordingApi, 'recorderState'> & Pick<RecorderMockControl, 'chooseEngine'>;
     /** Whether the project has a linked DAW file: the host's one fact, shared with bootstrap's `dawFileLinked`. */
     link?: { linked: () => boolean; set: (linked: boolean) => void };
     /** Whether the DAW's bridge was opened (the launcher ran), live; falls back to the seed. */
@@ -124,7 +125,7 @@ export function createDawChoiceMock(
   return {
     dawChoice: current,
     dawChoose: async (daw) => {
-      await deps.recording.recorderChooseEngine(daw === 'Built-in' ? 'builtin' : 'daw');
+      await deps.recording.chooseEngine(daw === 'Built-in' ? 'builtin' : 'daw');
       chosen = daw;
       return current();
     },
@@ -133,7 +134,7 @@ export function createDawChoiceMock(
       if (foundFiles.length > 1) throw new Error(`this project's folder holds ${foundFiles.length} REAPER project files: choose the one to link`);
       linkedFile = foundFiles[0];
       deps.link?.set(true);
-      await deps.recording.recorderChooseEngine('daw');
+      await deps.recording.chooseEngine('daw');
       chosen = 'REAPER';
       return current();
     },

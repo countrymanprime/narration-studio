@@ -76,7 +76,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 148
+const hostAPIVersion = 149
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -262,9 +262,9 @@ type Host struct {
 	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
 	// Nil with no bridge client or no such role.
 	takeStacker dawport.TakeStacker
-	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator
-	// DawPreviewFileRange, DawStopFilePreview and DawRevealFile (bindings_daw_files.go) ask them to play a stretch of
-	// a file on disk and to show one. Nil with no bridge client or no such role.
+	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator:
+	// MasterPlayQuietest, MasterOpenInDaw, WorkspacePreviewTake and DawStopFilePreview ask them to play a stretch of a file on
+	// disk, to show one, and to stop the preview. Nil with no bridge client or no such role.
 	filePreviewer dawport.FilePreviewer
 	fileRevealer  dawport.FileRevealer
 	// rangeGain is the DAW port's range_gain role over the same adapter as takeCreator: DawReduceRangeGain

@@ -435,7 +435,6 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       return { status: 'started' as const };
     },
     projectStateChangedSince: async (current, baseline) => ({ changed: current !== baseline }),
-    projectStateState: async () => wireClone(projectState),
     subscribeProjectState: (onUpdate) => {
       projectStateSubscribers.add(onUpdate);
       onUpdate(wireClone(projectState));

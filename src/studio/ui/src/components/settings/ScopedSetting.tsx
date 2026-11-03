@@ -120,17 +120,23 @@ function numberPlaceholder(field: ScopedSettingField, scope: Scope): string {
   return scope === 'project' && field.isSet ? 'Inherits Global' : 'Not set';
 }
 
-/** A field's label with its hint icon kept on the line of the label's last word, so the icon never wraps to a line of its own (XSE2-22). */
+/**
+ * A field's label with its hint icon. From `md` the icon stays on the line of the label's last word (the two share one `nowrap` span), so it
+ * never wraps to a line of its own (XSE2-22); below `md`, where the label sits above its control, the icon is pinned to the row's right edge,
+ * so the icons of a stacked list line up in one column (alignment audit A4 at 390 px).
+ */
 function LabelWithHint({ field }: { field: ScopedSettingField }) {
   const cut = field.label.lastIndexOf(' ');
   return (
-    <>
+    <span className="relative block pr-8 md:static md:inline md:pr-0">
       {cut > 0 ? `${field.label.slice(0, cut)} ` : ''}
-      <span className="whitespace-nowrap">
+      <span className="md:whitespace-nowrap">
         {cut > 0 ? field.label.slice(cut + 1) : field.label}
-        <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+        <span className="absolute top-0 right-0 md:static">
+          <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+        </span>
       </span>
-    </>
+    </span>
   );
 }
 

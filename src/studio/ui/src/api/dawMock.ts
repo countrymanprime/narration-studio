@@ -458,7 +458,7 @@ export interface DawMockControl {
     recording: boolean;
     monitorLevel: number;
   };
-  /** The project's recording engine changed (`recorderChooseEngine`). */
+  /** The project's recording engine changed (`dawChoose`). */
   engineChosen(engine: 'daw' | 'builtin'): void;
   /** A record start or stop as the host answers it: a refusal sentence and its reason, or null once the transport changed. */
   record(kind: 'start' | 'stop'): { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;

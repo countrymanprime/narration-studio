@@ -214,7 +214,6 @@ function createReaperMock(mode: MockReaper, find: (id: string) => Finding) {
     return undefined;
   };
   return {
-    findingsReaperStatus: async () => status(),
     findingsGoTo: async (id: string): Promise<FindingNavigation> => {
       const finding = find(id);
       return refusalOf(finding, false) ?? { outcome: 'navigated', projectTime: finding.time_range?.start ?? 0 };

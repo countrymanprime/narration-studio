@@ -48,7 +48,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'project',
     def: 'reaper',
     desc: 'Where this project’s recordings live.',
-    more: 'Where this project’s recordings live. Changing it later does not move existing takes.',
+    more: 'Where this project’s recordings live. Changing it later does not move existing takes. With REAPER, the app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so there is nothing to set up in REAPER.',
     used: ['booth', 'editing', 'pickups', 'proof', 'master'],
     syn: 'daw reaper audacity built-in recorder',
   },
