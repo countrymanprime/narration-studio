@@ -23,6 +23,10 @@ export const scriptStates: StateEntry[] = [
     // The card's row wraps below 32 rem; it is also judged at a phone's width (#2595).
     extraViewports: [...RAIL_DEPENDS_ON_WIDTH.extraViewports, ...REFLOW.extraViewports],
   },
+  railTab(
+    'rail-words-candidates',
+    "Script, a Story Bible name's Words card with From the dictionaries open: each source's value with its source, Hear and Use (#2595)",
+  ),
   railTab('rail-story-bible', "Script, the rail on its Story Bible tab: the book's entries by kind, one opened"),
   railTab('rail-notes', "Script, the rail on its Notes tab: the chapter's notes, each with where it is"),
   {
