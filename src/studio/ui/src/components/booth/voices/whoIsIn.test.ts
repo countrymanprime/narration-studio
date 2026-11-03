@@ -86,6 +86,13 @@ describe('who is in it', () => {
     ).toBe('Extras');
   });
 
+  it('the default name is numbered past the names the chapter has, whatever their case and spaces', () => {
+    const named = [voice('2', ' extras '), voice('3', 'Extras 2'), voice('4', 'King of Hearts')];
+    expect(defaultTrackName([], named)).toBe('Extras 3');
+    expect(defaultTrackName([{ id: 'king', name: 'King of Hearts' }], named)).toBe('King of Hearts 2');
+    expect(defaultTrackName([{ id: 'cook', name: 'Cook' }], named)).toBe('Cook');
+  });
+
   it("an added voice the saved project lacks is the folder's last child; once saved it is listed once", () => {
     const tracks = [
       track('{F}', 'Chapter 1', 0, true),

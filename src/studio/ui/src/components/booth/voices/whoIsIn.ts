@@ -57,9 +57,15 @@ export function keyForNewTrack(voices: readonly Voice[], name: string): string {
   return next <= 9 ? String(next) : '';
 }
 
-/** A new track's name: the character's when one is ticked, else "Extras" (the mock's shared track). */
-export function defaultTrackName(ticked: readonly Named[]): string {
-  return ticked.length === 1 && ticked[0].name.trim() !== '' ? ticked[0].name.trim() : 'Extras';
+/** A new track's name: the character's when one is ticked, else "Extras" (the mock's shared track), numbered past the names the chapter's
+ * voices have ("Extras 2"), so the default is never a name the folder already has. */
+export function defaultTrackName(ticked: readonly Named[], voices: readonly Pick<Voice, 'name'>[] = []): string {
+  const base = ticked.length === 1 && ticked[0].name.trim() !== '' ? ticked[0].name.trim() : 'Extras';
+  const taken = (name: string) => voices.some((voice) => same(voice.name, name));
+  if (!taken(base)) return base;
+  let n = 2;
+  while (taken(`${base} ${n}`)) n += 1;
+  return `${base} ${n}`;
 }
 
 /**

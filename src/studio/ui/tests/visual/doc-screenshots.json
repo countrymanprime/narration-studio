@@ -295,6 +295,13 @@
   },
   {
     "page": "booth",
+    "state": "voices-who-is-in",
+    "viewport": "desktop",
+    "docName": "booth-voices-who-is-in",
+    "caption": "The Booth - Who is in Num 7?: the chapter's characters to tick, a new track's name and key, an existing track or the Narrator"
+  },
+  {
+    "page": "booth",
     "state": "setup",
     "viewport": "desktop",
     "docName": "booth-setup",

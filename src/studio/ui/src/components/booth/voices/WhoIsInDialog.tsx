@@ -73,7 +73,7 @@ function CharacterGroup({
       <div
         role="group"
         aria-label={label}
-        className="flex max-h-[11rem] flex-col gap-2 overflow-auto rounded-[var(--radius-button)] border border-[var(--line)] p-2"
+        className="flex max-h-[11rem] flex-col gap-2 overflow-auto rounded-[var(--radius-button)] border border-[var(--border)] p-2"
       >
         {characters.map((character) => (
           <CharacterRow key={character.id} character={character} ticked={ticked.has(character.id)} onTick={(next) => onTick(character.id, next)} />
@@ -100,7 +100,7 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const tickedCharacters = everyone.filter((character, at) => ticked.has(character.id) && everyone.findIndex((each) => each.id === character.id) === at);
   // The name follows the ticks until the narrator types one.
   const [typed, setTyped] = useState<string | null>(null);
-  const name = typed ?? defaultTrackName(tickedCharacters);
+  const name = typed ?? defaultTrackName(tickedCharacters, voices);
   const [existing, setExisting] = useState(others[0]?.guid ?? '');
   const [busy, setBusy] = useState(false);
 
@@ -202,7 +202,7 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
             <CharacterGroup label="Elsewhere in the book" characters={cast.elsewhere} ticked={ticked} onTick={tick} />
           </>
         ) : null}
-        {choice === 'new' ? <Field label="Track name" value={name} onChange={setTyped} error={nameProblem} /> : null}
+        {choice === 'new' ? <Field label="Track name" value={name} onChange={setTyped} error={nameProblem} autoFocus /> : null}
       </form>
     </Dialog>
   );

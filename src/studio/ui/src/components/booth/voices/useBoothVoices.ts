@@ -245,7 +245,7 @@ export function useBoothVoices({
         await voiceTracks
           .voiceTracksGet()
           .then(replace)
-          .catch(() => setRevision((count) => count + 1));
+          .catch((reason: unknown) => notify(`The track was added, but its characters could not be read back: ${describeApiError(reason)}`, 'error'));
         setRevision((count) => count + 1);
         return true;
       } catch (reason: unknown) {
