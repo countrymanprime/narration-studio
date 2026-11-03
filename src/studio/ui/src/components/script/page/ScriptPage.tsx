@@ -402,12 +402,16 @@ function ScriptWorkspace({
   findCountRef.current = { steps: matches.length, total: bookFind.total, searching: bookFind.status === 'searching' };
   // A screen reader hears where the search stands when its answer arrives and at each step.
   const findSaid = findState.open && bookFind.status !== 'searching' ? findWhere(findCountRef.current, findState.i, findState.q) : '';
+  const lastSaid = useRef('');
   useEffect(() => {
     if (findSaid) overlay.announce(findSaid);
+    // Closing the search takes back what was said about it, unless something else has been said since.
+    else if (lastSaid.current && overlay.getSnapshot().announcement === lastSaid.current) overlay.announce('');
+    lastSaid.current = findSaid;
   }, [findSaid]);
   const readerFind = useMemo(
-    () => (findState.open ? { matches, current: Math.min(findState.i, matches.length - 1) } : null),
-    [findState.open, findState.i, matches],
+    () => (findState.open ? { matches, current: Math.min(findState.i, matches.length - 1), request: findState.asked ?? 0 } : null),
+    [findState.open, findState.i, findState.asked, matches],
   );
 
   /* ---------- The reader's slots ---------- */

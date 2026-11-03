@@ -101,7 +101,7 @@ describe('registrations', () => {
     await waitFor(() => expect(currentPageContext()!.items.some((row) => row.group === 'Story Bible' && row.label === 'White Rabbit')).toBe(true));
     expect(searchAll('rabbit').some((hit) => hit.group === 'In the script')).toBe(false);
     const hits = await searchBook('rabbit');
-    expect(search).toHaveBeenCalledWith('rabbit');
+    expect(search).toHaveBeenCalledWith('rabbit', expect.any(AbortSignal));
     expect(hits.map((hit) => [hit.group, hit.title])).toEqual([['In the script', 'The White Rabbit ran']]);
     expect(hits.some((hit) => hit.group === 'Story Bible')).toBe(false);
   });

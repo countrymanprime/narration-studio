@@ -115,6 +115,30 @@ describe('the jump menu with a source that answers later', () => {
     ]);
   });
 
+  it('retyping a term whose source timed out asks it again, with its signal for the timed-out ask aborted, and shows Searching… again', async () => {
+    const signals: AbortSignal[] = [];
+    let answer: (term: string) => Promise<SearchHit[]> = () => new Promise<SearchHit[]>(() => {});
+    cleanups.push(
+      registerAsyncSearchSource((term, signal) => {
+        signals.push(signal);
+        return answer(term);
+      }, 'In the script'),
+    );
+    open();
+    type('mouse');
+    await settle(SEARCH_DEBOUNCE_MS + SEARCH_WAIT_MS);
+    expect(names()).toEqual([]);
+    // The timed-out ask is aborted, so a source that keeps its answers drops the one that never came.
+    expect(signals.map((signal) => signal.aborted)).toEqual([true]);
+    answer = (term) => Promise.resolve([hit(`${term} at last`, 'In the script')]);
+    type('mous');
+    type('mouse');
+    expect(names()).toEqual(['Searching…']);
+    await settle(SEARCH_DEBOUNCE_MS);
+    expect(signals).toHaveLength(2);
+    expect(names()).toEqual(['mouse at last']);
+  });
+
   it('says a failed source in a toast with its reason, and a source that throws at once too', async () => {
     cleanups.push(
       registerAsyncSearchSource(() => Promise.reject(new Error('the search term is longer than 500 characters')), 'In the script'),

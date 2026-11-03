@@ -24,7 +24,7 @@ import { bookSource, marksSource, MANUSCRIPT_GROUP, wordsSource } from './search
 
 export type ScriptRegistryOptions = MenuHandlers & {
   /** The host's whole-book search, cached per term (`useManuscriptSearch`), for the manuscript source. */
-  search: (term: string) => Promise<ManuscriptSearchResult>;
+  search: (term: string, signal?: AbortSignal) => Promise<ManuscriptSearchResult>;
   /** Where a match is, for its muted line in the menu ("Chapter 3 · ¶ 12"). */
   locationOf: (spot: { chapterId: string; paragraphId: string }) => string;
   /** The search showing in the reader: how many matches Find steps through, how many the book has, and whether its answer is awaited. */

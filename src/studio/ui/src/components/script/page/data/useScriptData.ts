@@ -244,6 +244,8 @@ export function useScriptView<T>(pick: (state: ScriptViewState) => T): [T, Scrip
 /** How many terms' answers the book search keeps, newest last. */
 const SEARCHES_KEPT = 8;
 const answers = new WeakMap<object, Map<string, Promise<ManuscriptSearchResult>>>();
+/** The kept searches the host has answered. */
+const arrived = new WeakSet<Promise<ManuscriptSearchResult>>();
 /** The kept answers for one read of the chapters. */
 function answersFor(read: object): Map<string, Promise<ManuscriptSearchResult>> {
   const found = answers.get(read);
@@ -256,24 +258,35 @@ function answersFor(read: object): Map<string, Promise<ManuscriptSearchResult>> 
 /**
  * Searches the whole book on the host (`manuscriptSearch`, #2775). An answer is kept per trimmed term until the chapters are read again
  * (a job changed the manuscript), so the jump menu's rows and Find read one answer and the menu's row n is Find's match n. A failed
- * search is not kept; the caller says it.
+ * search is not kept, and neither is one not answered yet whose asker gave up (`signal` aborted: the menu stopped waiting, or the term
+ * changed), so asking again asks the host again; the caller says a failure.
  */
-export function useManuscriptSearch(): (term: string) => Promise<ManuscriptSearchResult> {
+export function useManuscriptSearch(): (term: string, signal?: AbortSignal) => Promise<ManuscriptSearchResult> {
   const manuscript = usePort('manuscript');
   const { data } = useScriptHost();
   const chapters = useData(data, (state) => state.chapters);
   return useMemo(() => {
     // A new chapters read (after a job) starts a new store of answers: the text may have changed.
     const kept = chapters ? answersFor(chapters) : new Map<string, Promise<ManuscriptSearchResult>>();
-    return (term: string) => {
+    const forget = (key: string, answer: Promise<ManuscriptSearchResult>) => {
+      if (kept.get(key) === answer && !arrived.has(answer)) kept.delete(key);
+    };
+    return (term: string, signal?: AbortSignal) => {
       const key = term.trim();
-      const known = kept.get(key);
-      if (known) return known;
-      const answer = manuscript.manuscriptSearch(key);
-      kept.set(key, answer);
-      const oldest = kept.keys().next().value;
-      if (kept.size > SEARCHES_KEPT && oldest !== undefined) kept.delete(oldest);
-      answer.catch(() => kept.get(key) === answer && kept.delete(key));
+      let answer = kept.get(key);
+      if (!answer) {
+        const asked = manuscript.manuscriptSearch(key);
+        answer = asked;
+        kept.set(key, asked);
+        const oldest = kept.keys().next().value;
+        if (kept.size > SEARCHES_KEPT && oldest !== undefined) kept.delete(oldest);
+        asked.then(
+          () => arrived.add(asked),
+          () => forget(key, asked),
+        );
+      }
+      const shared = answer;
+      signal?.addEventListener('abort', () => forget(key, shared), { once: true });
       return answer;
     };
   }, [manuscript, chapters]);

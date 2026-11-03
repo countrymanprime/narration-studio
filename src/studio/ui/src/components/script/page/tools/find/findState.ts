@@ -15,7 +15,7 @@ export const quoteTerm = (term: string): string => `“${term.length > QUOTED ? 
 /** Shows the search for `term` with the match at `index` current. */
 export const openFind =
   (term: string, index = 0): Patch =>
-  (state) => ({ find: { ...state.find, open: true, q: term, i: index } });
+  (state) => ({ find: { ...state.find, open: true, q: term, i: index, asked: (state.find.asked ?? 0) + 1 } });
 
 export const closeFind: Patch = (state) => ({ find: { ...state.find, open: false } });
 

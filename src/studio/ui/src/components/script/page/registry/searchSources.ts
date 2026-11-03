@@ -70,7 +70,7 @@ export function manuscriptSource({ lines, ...rows }: ManuscriptSourceOptions): S
 
 export type BookSourceOptions = MatchRows & {
   /** The host's whole-book search for a term (`manuscriptSearch`, cached per term). */
-  search: (term: string) => Promise<ManuscriptSearchResult>;
+  search: (term: string, signal?: AbortSignal) => Promise<ManuscriptSearchResult>;
 };
 
 /**
@@ -78,8 +78,8 @@ export type BookSourceOptions = MatchRows & {
  * place, then a row for the rest. The host counts every match, so "N more" is exact even when it sent fewer than it found.
  */
 export function bookSource({ search, ...rows }: BookSourceOptions): AsyncSearchSource {
-  return async (term) => {
-    const result = await search(term);
+  return async (term, signal) => {
+    const result = await search(term, signal);
     return matchRows(bookMatches(result), result.total, term, rows);
   };
 }

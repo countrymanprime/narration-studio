@@ -38,8 +38,11 @@ export type SearchRegistry = {
   searchNow: (term: string) => OrderedHits[];
   /** The asynchronous sources' places and groups, without asking them: what the menu waits for. Empty for a term too short to ask. */
   waitingFor: (term: string) => { order: number; group: string }[];
-  /** Asks every asynchronous source for `term` (trimmed). A source that throws at once answers a rejected promise. */
-  searchLater: (term: string, signal: AbortSignal) => PendingHits[];
+  /**
+   * Asks every asynchronous source for `term` (trimmed), with `signal`, or with the signal `signal(order)` gives that source so the caller
+   * can give up on one source alone. A source that throws at once answers a rejected promise.
+   */
+  searchLater: (term: string, signal: AbortSignal | ((order: number) => AbortSignal)) => PendingHits[];
 };
 
 type Registration = { order: number } & ({ kind: 'now'; source: SearchSource } | { kind: 'later'; source: AsyncSearchSource; group: string });
@@ -85,7 +88,7 @@ export function createSearchRegistry(): SearchRegistry {
       return later().map(({ order, group, source }) => {
         let answer: Promise<SearchHit[]>;
         try {
-          answer = source(trimmed, signal);
+          answer = source(trimmed, typeof signal === 'function' ? signal(order) : signal);
         } catch (error) {
           answer = Promise.reject(error instanceof Error ? error : new Error(String(error)));
         }

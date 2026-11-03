@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Script page's search on the host (#2775): the whole book is searched, not only the chapters the reader has read, the jump menu's
 // row n opens Find at match n from the same answer, a refusal is a toast, and a screen reader hears where the search stands.
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -116,6 +116,15 @@ describe('script-search-on-the-host', () => {
     mount(api, '/script?find=Alice');
     await firstHeading();
     await waitFor(() => expect(overlay.getSnapshot().announcement).toMatch(new RegExp(`^1 of (the first \\d+ of )?${total} for “Alice”$`)));
+  });
+
+  it('clears what the screen reader was told once Escape closes the search', async () => {
+    mount(createMockApi(), '/script?find=Alice');
+    await firstHeading();
+    await waitFor(() => expect(overlay.getSnapshot().announcement).toMatch(/for “Alice”$/));
+    fireEvent.keyDown(document.activeElement ?? document.body, { code: 'Escape', key: 'Escape' });
+    await waitFor(() => expect(view.find.open).toBe(false));
+    expect(overlay.getSnapshot().announcement).toBe('');
   });
 
   it('says a term with no match, and a refused term in a toast with the host’s sentence', async () => {
