@@ -82,7 +82,7 @@ try {
       Get-ChildItem $work -Recurse -File -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | Set-Content (Join-Path $diag 'work-files.txt')
       foreach ($f in (Join-Path $cfg 'reaper.ini'), (Join-Path $out 'launcher-log.txt')) { if (Test-Path $f) { Copy-Item $f $diag -Force } }
       # The job log is the one place a reader can see without downloading the artifact.
-      foreach ($f in 'reaper-windows.txt', 'launcher-log.txt', 'work-files.txt', 'reaper.ini') {
+      foreach ($f in 'reaper-windows.txt', 'launcher-log.txt', 'reaper.ini') {
         Write-Host "::group::diagnostics/$f"; if (Test-Path (Join-Path $diag $f)) { Get-Content (Join-Path $diag $f) | Write-Host } else { Write-Host '(missing)' }; Write-Host '::endgroup::'
       }
     } catch { "diagnostics failed: $_" | Set-Content (Join-Path $OutDir 'diagnostics-error.txt') }
