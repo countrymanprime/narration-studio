@@ -5,6 +5,7 @@ import { DeliveryCustomBody, DeliveryDefaultBody, DeliveryProfileBody } from './
 import { EngineBody } from './EngineBody';
 import { MicBody } from './MicBody';
 import { SampleOutputBody } from './SampleOutputBody';
+import { SampleStorageBody } from './SampleStorageBody';
 import { MwKeyBody } from './MwKeyBody';
 import { SyncActivityBody } from './SyncActivityBody';
 import { TakeToneRowBody } from './TakeToneBody';
@@ -14,6 +15,7 @@ export const RECORDING_CONTROLS: Record<string, ComponentType> = {
   'daw.engine': EngineBody,
   'daw.mic': MicBody,
   'daw.sampleOutput': SampleOutputBody,
+  'daw.sampleStorage': SampleStorageBody,
   'daw.startTone': TakeToneRowBody,
   'daw.capabilities': CapabilitiesBody,
   'daw.syncActivity': SyncActivityBody,

@@ -26,10 +26,21 @@ func (s *Service) view(stored Stored, book Book) Sample {
 		}
 		break
 	}
-	return Sample{
+	sample := Sample{
 		ID: stored.ID, CharacterID: stored.CharacterID, Label: stored.Label, Note: stored.Note, Primary: stored.Primary, CreatedAt: stored.CreatedAt,
 		DurationMs: stored.Clip.DurationMs, Bytes: stored.Clip.Bytes, ClipState: s.clipSize(stored), Source: source,
 	}
+	if keptInDaw(stored) && stored.DawRegion != nil {
+		daw, _, _, _ := s.dawRegion(stored)
+		sample.Storage, sample.Daw = stored.Storage, &daw
+		if stored.Storage == StorageDAW {
+			sample.ClipState = ClipMissing
+			if playable(daw.State) {
+				sample.ClipState = ClipOK
+			}
+		}
+	}
+	return sample
 }
 
 // clipSize is the clip's state from a look at the file the id names: there, and of the saved size. The hash is checked by Clip.
@@ -243,6 +254,16 @@ func (s *Service) Clip(id string) (ClipFile, error) {
 		return ClipFile{}, ErrNotFound
 	}
 	stored := file.Samples[index]
+	if stored.Storage == StorageDAW {
+		data, err := s.dawAudio(stored)
+		if errors.Is(err, errNoDawAudio) {
+			return ClipFile{State: ClipMissing}, nil
+		}
+		if err != nil {
+			return ClipFile{}, err
+		}
+		return ClipFile{Data: data, Bytes: int64(len(data)), State: ClipOK}, nil
+	}
 	path, _ := ClipPath(s.config.Project, id)
 	if state := s.clipSize(stored); state != ClipOK {
 		return ClipFile{State: state}, nil

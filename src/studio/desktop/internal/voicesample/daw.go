@@ -1,0 +1,216 @@
+package voicesample
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"math"
+	"strings"
+
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/tracks"
+)
+
+// Where a sample is kept (VoiceSamples.storage, docs/prds/character-voice-samples.prd.md, Where a sample is kept).
+const (
+	// StorageProject copies the clip into the project folder. It is the default, and what a sample made before phase 6 is.
+	StorageProject = "project"
+	// StorageDAW keeps no copy: the sample is a region in the DAW's project, and plays the labelled range of its source.
+	StorageDAW = "daw"
+	// StorageBoth copies the clip and adds the region.
+	StorageBoth = "both"
+)
+
+// RegionPrefix starts the name of every region this package asks the DAW for. It is dawport.VoiceSampleRegionPrefix.
+const RegionPrefix = dawport.VoiceSampleRegionPrefix
+
+// regionTolerance is how far a saved region may be from where the host added it before the sample reads as moved (seconds).
+const regionTolerance = 0.01
+
+// RegionAdder is the part of the DAW's VoiceSampleRegionKeeper role the store needs.
+type RegionAdder interface {
+	AddVoiceSampleRegion(ctx context.Context, start, end float64, name string) (dawport.VoiceSampleRegionKept, error)
+}
+
+// DawState says what the DAW's saved project holds for a sample kept in the DAW. Computed on every read, never stored.
+type DawState string
+
+const (
+	// DawOK is the region where the host added it.
+	DawOK DawState = "ok"
+	// DawLabelMoved is the region found elsewhere: the narrator moved it, so the sample is the audio now under it.
+	DawLabelMoved DawState = "label_moved"
+	// DawLabelMissing is no region of that name in the saved project: the narrator deleted or renamed it, and the sample has ended.
+	DawLabelMissing DawState = "label_missing"
+	// DawNotSaved is no such region in the saved project while the DAW has unsaved edits: it may be there once the project is saved.
+	DawNotSaved DawState = "not_saved"
+	// DawSourceMissing is a region whose item or take is no longer in the saved project, so there is no audio under it.
+	DawSourceMissing DawState = "source_missing"
+	// DawProjectUnreadable is a saved project that could not be read.
+	DawProjectUnreadable DawState = "project_unreadable"
+)
+
+// DawView is a DAW-kept sample's region as the page gets it. Start and End are the project seconds the saved project holds for it
+// (zero when it holds none).
+type DawView struct {
+	State DawState `json:"state"`
+	Name  string   `json:"name"`
+	Start float64  `json:"start"`
+	End   float64  `json:"end"`
+}
+
+func (s *Service) storage() string {
+	if s.config.Storage != nil {
+		switch choice := s.config.Storage(); choice {
+		case StorageDAW, StorageBoth:
+			return choice
+		}
+	}
+	return StorageProject
+}
+
+func keptInDaw(stored Stored) bool {
+	return stored.Storage == StorageDAW || stored.Storage == StorageBoth
+}
+
+// regionName is the name the DAW's region carries: the prefix, the character, the label and the first characters of the sample id, so
+// two samples with one label never share a region name and a region is found again by name alone.
+func (s *Service) regionName(id, characterID, label string) string {
+	character := characterID
+	if s.config.CharacterName != nil {
+		if named := strings.TrimSpace(s.config.CharacterName(characterID)); named != "" {
+			character = named
+		}
+	}
+	if label == "" {
+		label = "sample"
+	}
+	name := RegionPrefix + oneLine(character) + " - " + oneLine(label) + " [" + id[:6] + "]"
+	return name
+}
+
+func oneLine(text string) string {
+	return strings.Join(strings.Fields(text), " ")
+}
+
+// projectTime is where source time t falls on the project's timeline for an item and take, and sourceTime is the way back.
+func projectTime(item tracks.Item, take tracks.Take, t float64) float64 {
+	return item.Position + (t-take.SourceStart())/take.Rate()
+}
+
+func sourceTime(item tracks.Item, take tracks.Take, t float64) float64 {
+	return take.SourceStart() + (t-item.Position)*take.Rate()
+}
+
+// cachedProject reads the saved project once per Service, so a list of many samples parses it once.
+func (s *Service) cachedProject() (tracks.Project, error) {
+	if !s.projectRead {
+		s.project, s.projectErr = s.savedProject()
+		s.projectRead = true
+	}
+	return s.project, s.projectErr
+}
+
+// dawRegion finds the stored sample's region in the saved project and says what it holds. The region is found by name, and the item
+// and take it plays by the GUIDs the sample was marked on.
+func (s *Service) dawRegion(stored Stored) (DawView, tracks.Region, tracks.Item, tracks.Take) {
+	view := DawView{Name: stored.DawRegion.Name}
+	project, err := s.cachedProject()
+	if err != nil {
+		view.State = DawProjectUnreadable
+		return view, tracks.Region{}, tracks.Item{}, tracks.Take{}
+	}
+	var found *tracks.Region
+	for index := range project.Regions {
+		if project.Regions[index].Name == stored.DawRegion.Name {
+			found = &project.Regions[index]
+			break
+		}
+	}
+	if found == nil {
+		view.State = DawLabelMissing
+		if s.config.Unsaved != nil && s.config.Unsaved() {
+			view.State = DawNotSaved
+		}
+		return view, tracks.Region{}, tracks.Item{}, tracks.Take{}
+	}
+	view.Start, view.End = found.Start, found.End
+	_, item, itemOK := project.ItemByGUID(stored.Source.ItemGUID)
+	take, takeOK := tracks.Take{}, false
+	if itemOK {
+		take, takeOK = takeOf(item, stored.Source.TakeGUID)
+	}
+	switch {
+	case !itemOK || !takeOK:
+		view.State = DawSourceMissing
+	case math.Abs(found.Start-stored.DawRegion.Start) > regionTolerance || math.Abs(found.End-stored.DawRegion.End) > regionTolerance:
+		view.State = DawLabelMoved
+	default:
+		view.State = DawOK
+	}
+	return view, *found, item, take
+}
+
+// playable says whether a DAW view's audio can be played: the region is there and so is what it plays.
+func playable(state DawState) bool { return state == DawOK || state == DawLabelMoved }
+
+// errNoDawAudio is the answer for a DAW-kept sample with nothing to play: its region or source is gone, or the region now spans a
+// length no sample may.
+var errNoDawAudio = errors.New("the DAW holds no audio for this voice sample")
+
+// dawAudio cuts the audio under a DAW-kept sample's region out of its source file into memory. The source is the take the saved
+// project names for the sample's item and take, never a path from the page or from samples.json. A region the narrator moved plays
+// the audio now under it, if that is 0.5 to 30 seconds and inside the file.
+func (s *Service) dawAudio(stored Stored) ([]byte, error) {
+	view, region, item, take := s.dawRegion(stored)
+	if !playable(view.State) {
+		return nil, errNoDawAudio
+	}
+	start, end := sourceTime(item, take, region.Start), sourceTime(item, take, region.End)
+	if !finite(start) || !finite(end) || end-start < MinSeconds-1e-6 || end-start > MaxSeconds+1e-6 {
+		return nil, errNoDawAudio
+	}
+	_, source, file, err := openSource(take)
+	if err != nil {
+		return nil, errNoDawAudio
+	}
+	defer func() { _ = file.Close() }()
+	rate := float64(source.Format.SampleRate)
+	first := int64(math.Round(math.Max(start, 0) * rate))
+	last := min(int64(math.Round(end*rate)), source.Frames)
+	if last-first < int64(math.Ceil(MinSeconds*rate-1e-6)) {
+		return nil, errNoDawAudio
+	}
+	var out bytes.Buffer
+	if err := source.Copy(&out, file, first, last-first); err != nil {
+		return nil, fmt.Errorf("could not read the recording: %w", err)
+	}
+	return out.Bytes(), nil
+}
+
+// addRegion asks the DAW for the region a new DAW-kept sample is kept as, over the window's range on the project's timeline.
+func (s *Service) addRegion(ctx context.Context, id string, req checked, item tracks.Item, take tracks.Take, first, last float64) (*StoredRegion, error) {
+	if s.config.Regions == nil {
+		return nil, refuse(ReasonDawUnavailable)
+	}
+	region := &StoredRegion{
+		Name:  s.regionName(id, req.CharacterID, req.label),
+		Start: math.Max(projectTime(item, take, first), 0), End: projectTime(item, take, last),
+	}
+	kept, err := s.config.Regions.AddVoiceSampleRegion(ctx, region.Start, region.End, region.Name)
+	switch {
+	case err != nil:
+		if _, refused := dawport.RefusedFrom(err); refused || errors.Is(err, dawport.ErrNotSupported) {
+			return nil, refuse(ReasonDawUnavailable)
+		}
+		var refusal *bridge.RefusalError
+		if errors.Is(err, bridge.ErrRecording) || errors.Is(err, bridge.ErrBadVoiceSampleRegion) || errors.As(err, &refusal) {
+			return nil, refuse(ReasonDawRefused)
+		}
+		return nil, fmt.Errorf("could not add the voice sample's region: %w", err)
+	}
+	region.Number = kept.Number
+	return region, nil
+}

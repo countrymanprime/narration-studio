@@ -719,13 +719,13 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       number: { min: 50, max: 1000, step: 1, unit: 'words' },
     },
   ],
-  // VoiceSamples.storage unset, so it reads as the default, project: the host accepts only project until the DAW label is built.
+  // VoiceSamples.storage unset, so it reads as the default, project; daw and both are offered where the DAW declares voice_sample_region.
   VoiceSamples: [
     {
       key: 'storage',
       label: 'Where voice samples are kept',
       kind: 'choice',
-      choices: ['project'],
+      choices: ['project', 'daw', 'both'],
       value: '',
       isSet: false,
       effectiveValue: 'project',

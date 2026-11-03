@@ -14,7 +14,7 @@ export type VoiceSampleClipState = 'ok' | 'missing' | 'size_changed' | 'hash_cha
 /** Whether the words the sample was marked on still read as they did, checked against the current manuscript on every read. */
 export type VoiceSampleSourceState = 'ok' | 'text_changed' | 'chapter_missing';
 
-/** Why the host refused: a mark can be refused for the first eleven, an update for `character_limit` or `not_found`. */
+/** Why the host refused: a mark can be refused for all but `not_found`, an update for `character_limit` or `not_found`. */
 export type VoiceSampleRefusalReason =
   | 'stale_alignment'
   | 'not_heard'
@@ -27,7 +27,9 @@ export type VoiceSampleRefusalReason =
   | 'project_unreadable'
   | 'character_limit'
   | 'project_limit'
-  | 'not_found';
+  | 'not_found'
+  | 'daw_unavailable'
+  | 'daw_refused';
 
 /** The sentence the host sends with each refusal (src/studio/desktop/internal/voicesample's `sentence`), so a page that refuses before it asks says the same words. */
 export const VOICE_SAMPLE_SENTENCES: Record<VoiceSampleRefusalReason, string> = {
@@ -43,7 +45,21 @@ export const VOICE_SAMPLE_SENTENCES: Record<VoiceSampleRefusalReason, string> = 
   character_limit: 'This character already has 20 samples. Delete one first.',
   project_limit: 'Voice samples already use the 200 MiB a project may hold. Delete one first.',
   not_found: 'That voice sample is no longer there.',
+  daw_unavailable: 'The DAW cannot keep a voice sample. Choose In the project folder in Settings, or link a DAW that can.',
+  daw_refused: 'The DAW did not add the voice sample\'s region. Stop recording if it is, then try again.',
 };
+
+/** Where a sample is kept (the `VoiceSamples.storage` setting): `project` copies the clip into the project folder, `daw` keeps only a
+ * region in the DAW's project, `both` does both. */
+export type VoiceSampleStorage = 'project' | 'daw' | 'both';
+
+/** What the DAW's saved project holds for a sample kept in the DAW, checked on every read: the region where it was added (`ok`), moved
+ * (`label_moved`: the sample is the audio now under it), gone (`label_missing`: the sample has ended), not in the saved file yet because
+ * the DAW has unsaved edits (`not_saved`), without the item it played (`source_missing`), or a project that could not be read. */
+export type VoiceSampleDawState = 'ok' | 'label_moved' | 'label_missing' | 'not_saved' | 'source_missing' | 'project_unreadable';
+
+/** The region of a sample kept in the DAW; `start` and `end` are the project seconds the saved project holds for it (0 when it holds none). */
+export type VoiceSampleDaw = { state: VoiceSampleDawState; name: string; start: number; end: number };
 
 export type VoiceSampleSource = {
   chapterId: string;
@@ -70,6 +86,9 @@ export type VoiceSample = {
   bytes: number;
   clipState: VoiceSampleClipState;
   source: VoiceSampleSource;
+  /** Left out for a sample kept only in the project folder. */
+  storage?: VoiceSampleStorage;
+  daw?: VoiceSampleDaw;
 };
 
 export type VoiceSampleLimits = {

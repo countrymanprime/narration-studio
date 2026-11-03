@@ -152,8 +152,18 @@ function Inner() {
 const Journalled = ({ journal, children }: { journal?: Journal; children: ReactNode }) =>
   journal ? <StudioProvider journal={journal}>{children}</StudioProvider> : <>{children}</>;
 
+/** The Settings row "Voice sample storage" as the dialog reads it; undefined leaves the mock's default, the project folder. */
+let storageSetting: string | undefined;
+
 function mount(journal?: Journal) {
-  const api = Object.assign(createMockApi(), {
+  const base = createMockApi();
+  const readSettings = base.settingsForScope.bind(base);
+  const api = Object.assign(base, {
+    settingsForScope: async (scope: Parameters<typeof base.settingsForScope>[0]) => {
+      const fields = await readSettings(scope);
+      if (!storageSetting) return fields;
+      return { ...fields, VoiceSamples: (fields.VoiceSamples ?? []).map((f) => (f.key === 'storage' ? { ...f, effectiveValue: storageSetting! } : f)) };
+    },
     guideEntities: () => entities(),
     guideDialogueCues: () => cues(),
     voiceSamplesList: () => Promise.resolve(existing),
@@ -209,6 +219,7 @@ class FakeAudio extends EventTarget {
 }
 
 beforeEach(() => {
+  storageSetting = undefined;
   throughDaw = null;
   current = workspace();
   existing = list([]);
@@ -398,6 +409,33 @@ describe('marking a voice sample', () => {
     fireEvent.change(characterSelect(), { target: { value: 'e-alice' } });
     expect(dialog().querySelector('[data-voice-sample-count]')?.textContent).toBe('0 of 20 samples');
     expect(saveButton().getAttribute('disabled')).toBeNull();
+  });
+
+  it('the line under Make primary says where the sample will be kept: the project, the DAW, or both', async () => {
+    const line = () => dialog().querySelector<HTMLElement>('[data-voice-sample-storage]')!;
+    const open = async () => {
+      mount();
+      await select('p-1:0', 'p-1:1');
+      await openDialog();
+    };
+    await open();
+    expect(line().dataset.voiceSampleStorage).toBe('project');
+    expect(line().textContent).toBe('Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.');
+    closeOverlays();
+    cleanup();
+    storageSetting = 'daw';
+    await open();
+    expect(line().textContent).toMatch(/^Adds a region named for the character and label to the DAW’s project, with no copy of the audio/);
+    closeOverlays();
+    cleanup();
+    storageSetting = 'both';
+    await open();
+    expect(line().textContent).toMatch(/into this project, and adds a region named for the character and label to the DAW’s project\.$/);
+    closeOverlays();
+    cleanup();
+    storageSetting = 'elsewhere';
+    await open();
+    expect(line().dataset.voiceSampleStorage).toBe('project');
   });
 
   it("Make primary is on for a character's first sample and the narrator's choice stays", async () => {

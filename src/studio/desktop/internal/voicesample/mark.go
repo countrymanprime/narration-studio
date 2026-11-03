@@ -110,6 +110,10 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 	if s.config.Project == "" {
 		return Sample{}, errors.New("save the project first")
 	}
+	storage := s.storage()
+	if storage != StorageProject && s.config.Regions == nil {
+		return Sample{}, refuse(ReasonDawUnavailable)
+	}
 	book := s.manuscript()
 	text, err := editlog.SpanText(book.editlog(), req.ChapterID, req.StartKey, req.EndKey)
 	switch {
@@ -180,7 +184,12 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 	if existing, ok := sameStretch(current.Samples, stored); ok {
 		return s.view(existing, book), nil
 	}
-	if err := checkLimits(current.Samples, req.CharacterID, expected); err != nil {
+	// A sample kept only in the DAW has no file, so it adds nothing to the project's clip bytes.
+	limitBytes := expected
+	if storage == StorageDAW {
+		limitBytes = 0
+	}
+	if err := checkLimits(current.Samples, req.CharacterID, limitBytes); err != nil {
 		return Sample{}, err
 	}
 
@@ -189,11 +198,25 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 	if !ok {
 		return Sample{}, fmt.Errorf("could not make a voice sample id")
 	}
-	clip, err := s.writeClip(clipPath, source, file, win, rate)
-	if err != nil {
+	var clip StoredClip
+	if storage == StorageDAW {
+		clip = StoredClip{
+			Bytes: expected, DurationMs: int(math.Round(float64(win.count) * 1000 / rate)), SampleRate: source.Format.SampleRate,
+			Channels: source.Format.Channels, BitsPerSample: source.Format.BitsPerSample,
+		}
+	} else if clip, err = s.writeClip(clipPath, source, file, win, rate); err != nil {
 		return Sample{}, err
 	}
 	stored.ID, stored.CreatedAt, stored.Clip = id, s.now().UTC(), clip
+	if storage != StorageProject {
+		// The region goes in before the row, so a refusal by the DAW leaves nothing but a clip to remove.
+		region, err := s.addRegion(ctx, id, req, item, take, stored.Source.SourceStart, stored.Source.SourceEnd)
+		if err != nil {
+			_ = os.Remove(clipPath)
+			return Sample{}, err
+		}
+		stored.Storage, stored.DawRegion = storage, region
+	}
 
 	unlock := lockFile(storePath(s.config.Project))
 	defer unlock()
@@ -203,7 +226,7 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 			_ = os.Remove(clipPath)
 			return s.view(existing, book), nil
 		}
-		err = checkLimits(current.Samples, req.CharacterID, clip.Bytes)
+		err = checkLimits(current.Samples, req.CharacterID, limitBytes)
 	}
 	if err != nil {
 		_ = os.Remove(clipPath)
