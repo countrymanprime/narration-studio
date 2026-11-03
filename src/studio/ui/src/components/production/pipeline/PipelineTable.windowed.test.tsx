@@ -65,6 +65,16 @@ describe('PipelineTable with a long book (#1764)', () => {
     expect(spacer.style.height).toBe(`${(5000 - bodyRows().length) * ROW_PX}px`);
   });
 
+  it('holds each drawn row to one height: the name clamps to two lines, and only a windowed list does it', () => {
+    mount(WINDOW_AFTER + 50);
+    expect(document.querySelectorAll('tbody tr[data-chapter-id] .line-clamp-2').length).toBe(bodyRows().length);
+    expect((bodyRows()[0] as HTMLElement).style.height).toBe(`${ROW_PX}px`);
+    cleanup();
+    mount(WINDOW_AFTER);
+    expect(document.querySelector('tbody .line-clamp-2')).toBeNull();
+    expect((bodyRows()[0] as HTMLElement).style.height).toBe('');
+  });
+
   it('draws a book of the threshold size whole, with no spacers and no row count', () => {
     mount(WINDOW_AFTER);
     expect(bodyRows()).toHaveLength(WINDOW_AFTER);

@@ -1,5 +1,5 @@
 // How to reach each `production` state in STATE_CATALOG (see app.drivers.ts).
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -20,12 +20,60 @@ import {
 // names a date (or counts days) reads the same on every run with the clock pinned here. The clock keeps ticking.
 const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
+const PIPELINE_ROWS = 'table[aria-label="Chapter pipeline"] tbody tr[data-chapter-id]';
+
+async function openManyChapters(page: Page): Promise<void> {
+  await page.goto('/?mockBooth=many-chapters');
+  await settlePage(page);
+  await page.locator(PIPELINE_ROWS).first().waitFor();
+}
+
+/** Scrolls the page (whichever element scrolls it) so the pipeline's row number `row` is near the top of the view, then waits for the window to follow. */
+async function scrollPipelineTo(page: Page, row: number): Promise<void> {
+  await page.evaluate((index) => {
+    const table = document.querySelector('table[aria-label="Chapter pipeline"]')!;
+    let scroller: Element | null = table.parentElement;
+    while (
+      scroller &&
+      !(scroller.scrollHeight > scroller.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.clientHeight > 300)
+    ) {
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+    const body = table.querySelector('tbody')!;
+    const offset = body.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    scroller.scrollTop = offset + index * 52 - 90;
+  }, row);
+  await page.waitForTimeout(400);
+  await page.locator(PIPELINE_ROWS).first().waitFor();
+}
+
 export const productionDrivers: Record<string, Driver> = {
-  // 5002 chapters: the pipeline windows its rows (#1764), so the page is ready in seconds and draws a few dozen of them.
+  // 5002 chapters: the pipeline windows its rows (#1764), so the page is ready in seconds and draws a few dozen of them. Each of these
+  // states is driven afresh at every width (reloadPerViewport) and scrolls the page to the pipeline, so the capture shows its rows.
   'many-chapters': async (page) => {
-    await page.goto('/?mockBooth=many-chapters');
-    await settlePage(page);
-    await page.locator('table[aria-label="Chapter pipeline"] tbody tr[data-chapter-id]').first().waitFor();
+    await openManyChapters(page);
+    await scrollPipelineTo(page, 0);
+  },
+  // The window moved: rows 2400 on, the spacer above holding the place of the 2400 before them.
+  'many-chapters-scrolled': async (page) => {
+    await openManyChapters(page);
+    await scrollPipelineTo(page, 2400);
+    await expect(page.locator(PIPELINE_ROWS).first()).not.toHaveAttribute('data-chapter-id', /^(credits-opening|chapter-1)$/);
+  },
+  // Keyboard focus on a cell of a drawn row far down the book: the ring shows on the cell.
+  'many-chapters-focus': async (page) => {
+    await openManyChapters(page);
+    await scrollPipelineTo(page, 2400);
+    // Named once: the focus scrolls the cell into view, the window follows, and a position in the list would then be another cell.
+    const name = (await page.locator(`${PIPELINE_ROWS} button[data-cell]`).nth(18).getAttribute('aria-label'))!;
+    const cell = page.getByRole('button', { name, exact: true });
+    await cell.focus();
+    await page.keyboard.press('Shift');
+    // The cell's tip opens with the focus; Escape closes it (a portalled popup sits outside the landmarks) and leaves the focus where it is.
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+    await expect(cell).toBeFocused();
   },
   // The overview never answers, so `openProduction` (which waits for the pipeline table) is not used.
   loading: async (page) => {
