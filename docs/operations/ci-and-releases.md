@@ -173,7 +173,9 @@ Install-time settings are written in the repository so a default that changes up
   of every lockfile entry even under `--frozen-lockfile` ("Lockfile passes supply-chain policies"), so a lockfile that
   holds a version younger than three days fails CI. That can happen with a Dependabot **security** update, which skips
   the Dependabot cooldown; list that one `name@version` in `minimumReleaseAgeExclude` in the same pull request, and
-  remove it once the version is three days old.
+  remove it once the version is three days old. Its `overrides` block raises transitive dev-tool dependencies that their parents pin below a
+  patched version (`undici`, `dompurify`, `katex` and the like, [#1133](https://github.com/countrymanprime/narration-studio/issues/1133)) as
+  `>=` floors; `pnpm audit` was clean with it on 2026-11-03, so drop an entry when the audit is clean without it.
 - **`.github/dependabot.yml`:** a `cooldown` on every ecosystem, so Dependabot waits before proposing a new release:
   7 days for `npm` and `github-actions`, 3 days for `uv` and `gomod`. Security updates ignore the cooldown.
 - **Python:** `uv sync --locked` installs only what `uv.lock` pins, and Dependabot's cooldown covers uv updates, so
