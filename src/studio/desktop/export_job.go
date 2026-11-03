@@ -9,9 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
+	"desktop/internal/audacitybridge"
 	"desktop/internal/creditsid"
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/encodeport"
@@ -59,11 +61,22 @@ type ExportItem struct {
 	Path  string `json:"path"`
 }
 
-// ExportRequest is what ExportStart is asked to master (optionally) and encode.
+// ExportRequest is what ExportStart is asked to master (optionally) and encode. Approval is the narrator's yes, given in the
+// UI's approval dialog just before this call, to master these files with a row that needs it (MasteringProvider.NeedsApproval);
+// nil when they gave none.
 type ExportRequest struct {
-	Items  []ExportItem `json:"items"`
-	Master bool         `json:"master"`
-	Format string       `json:"format"`
+	Items    []ExportItem       `json:"items"`
+	Master   bool               `json:"master"`
+	Format   string             `json:"format"`
+	Approval *MasteringApproval `json:"approval"`
+}
+
+// MasteringApproval is the narrator's approval of one export's masters: the row they approved, by name, and, for a row that
+// needs one (MasteringProvider.NeedsMacro), the effect macro they named. It holds for the one ExportStart call that carries it:
+// the host checks it against the row it would master with now, hands it to that job only, and never stores it.
+type MasteringApproval struct {
+	Provider string `json:"provider"`
+	Macro    string `json:"macro"`
 }
 
 // MasteringSummary is the built-in chain's own report (mastering.Result), narrowed to what the Master & QC page
@@ -104,17 +117,19 @@ type ExportFileResult struct {
 
 // ExportJob is the export as the UI sees it, in the shape of the other host jobs.
 type ExportJob struct {
-	ID      *string            `json:"id"`
-	Kind    string             `json:"kind"`
-	Phase   string             `json:"phase"`
-	Message string             `json:"message"`
-	Percent int                `json:"percent"`
-	Master  bool               `json:"master"`
-	Format  string             `json:"format"`
-	Logs    []string           `json:"logs"`
-	Elapsed float64            `json:"elapsed"`
-	Error   string             `json:"error,omitempty"`
-	Files   []ExportFileResult `json:"files"`
+	ID      *string `json:"id"`
+	Kind    string  `json:"kind"`
+	Phase   string  `json:"phase"`
+	Message string  `json:"message"`
+	Percent int     `json:"percent"`
+	Master  bool    `json:"master"`
+	// Provider is the mastering row the job masters with, by name; empty when it does not master.
+	Provider string             `json:"provider"`
+	Format   string             `json:"format"`
+	Logs     []string           `json:"logs"`
+	Elapsed  float64            `json:"elapsed"`
+	Error    string             `json:"error,omitempty"`
+	Files    []ExportFileResult `json:"files"`
 }
 
 type exportJob struct {
@@ -138,6 +153,8 @@ type exportJob struct {
 	// +checklocks:mu
 	format string
 	// +checklocks:mu
+	provider string
+	// +checklocks:mu
 	files []ExportFileResult
 	// +checklocks:mu
 	weights []int64
@@ -159,7 +176,7 @@ func (j *exportJob) snapshot() ExportJob {
 	defer j.mu.RUnlock()
 	id := j.id
 	return ExportJob{
-		ID: &id, Kind: jobKindRenderExport, Phase: j.phase, Message: j.message, Percent: j.percent, Master: j.master, Format: j.format,
+		ID: &id, Kind: jobKindRenderExport, Phase: j.phase, Message: j.message, Percent: j.percent, Master: j.master, Provider: j.provider, Format: j.format,
 		Logs: append([]string{}, j.logs...), Elapsed: time.Since(j.started).Seconds(), Error: j.errorText,
 		Files: append([]ExportFileResult{}, j.files...),
 	}
@@ -302,8 +319,9 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	}
 	profile, _, _ := h.selectedDeliveryProfile(svc)
 	var row port.Entry[masteringport.Mastering]
+	var approval masteringApproved
 	if req.Master {
-		if row, err = h.exportMasteringRow(svc); err != nil {
+		if row, approval, err = h.exportMasteringRow(svc, req.Approval); err != nil {
 			return ExportJob{}, err
 		}
 	}
@@ -311,7 +329,7 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	id := fmt.Sprintf("export-%d", time.Now().UnixNano())
 	ctx = runlog.WithRun(ctx, h.jobRuns.begin(h.runLog, id, jobKindRenderExport, "file_count", len(items), "master", req.Master))
-	job := &exportJob{id: id, phase: "running", started: time.Now(), cancel: cancel, master: req.Master, format: format}
+	job := &exportJob{id: id, phase: "running", started: time.Now(), cancel: cancel, master: req.Master, provider: row.Name, format: format}
 	job.message = fmt.Sprintf("Preparing %d files.", len(items))
 	job.logs = []string{job.message}
 	if req.Master {
@@ -340,7 +358,7 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	if encodeFile == nil {
 		encodeFile = encodeFor(format)
 	}
-	go h.runExport(ctx, job, items, svc.config.projectFolder, profile, req.Master, row, format, encodeFile)
+	go h.runExport(ctx, job, items, svc.config.projectFolder, profile, req.Master, row, approval, format, encodeFile)
 	return job.snapshot(), nil
 }
 
@@ -360,7 +378,7 @@ func encodeFor(format string) encodeFileFunc {
 // the app down, matching runMeasure.
 func (h *Host) runExport(
 	ctx context.Context, job *exportJob, items []ExportItem, projectFolder string, profile deliveryprofile.Profile,
-	master bool, row port.Entry[masteringport.Mastering], format string, encodeFile encodeFileFunc,
+	master bool, row port.Entry[masteringport.Mastering], approval masteringApproved, format string, encodeFile encodeFileFunc,
 ) {
 	defer job.cancel()
 	defer func() {
@@ -401,7 +419,7 @@ func (h *Host) runExport(
 			masteredPath = filepath.Join(masteredDir, fmt.Sprintf("%02d-%s.wav", index+1, string(item.Kind)))
 			_ = os.Remove(masteredPath) // a rerun's earlier scratch file is never the narrator's own data
 			mastered, err := chain.Master(ctx, masteringport.Request{
-				Source: source, Region: region, Destination: masteredPath, Profile: profile,
+				Source: source, Region: region, Macro: approval.macro, Approved: approval.approved, Destination: masteredPath, Profile: profile,
 				Progress: func(done, total int64) { job.progress(index, done, total) },
 			})
 			if ctx.Err() != nil {
@@ -441,10 +459,22 @@ func (h *Host) runExport(
 	}
 }
 
+// masteringApproved is what an export's approval allows its masters: Approved and Macro of each masteringport.Request.
+type masteringApproved struct {
+	approved bool
+	macro    string
+}
+
+// errStaleApproval is an approval of a row the project no longer masters with.
+var errStaleApproval = errors.New("approve the render again")
+
 // exportMasteringRow is the row the export masters with: the project's effective row (effectiveMasteringRow), the one
-// MasteringProviders reports, over h.masteringRows (a seam for tests; nil means masteringport.Rows). A row that needs the
-// narrator's approval for each render is refused here, before the job starts: nothing in this request carries that approval.
-func (h *Host) exportMasteringRow(svc hostServices) (port.Entry[masteringport.Mastering], error) {
+// MasteringProviders reports, over h.masteringRows (a seam for tests; nil means masteringport.Rows), and what the narrator's
+// approval allows. An approval holds only for the row it names: one for another row is refused as stale, whether or not the
+// row the project masters with now needs one. A row that needs approval is refused without one, and a row that needs a macro
+// without its name. Every refusal comes before the job starts, so nothing is mastered or encoded.
+func (h *Host) exportMasteringRow(svc hostServices, approval *MasteringApproval) (port.Entry[masteringport.Mastering], masteringApproved, error) {
+	none := port.Entry[masteringport.Mastering]{}
 	rows := h.masteringRows
 	if rows == nil {
 		rows = masteringport.Rows
@@ -455,13 +485,30 @@ func (h *Host) exportMasteringRow(svc hostServices) (port.Entry[masteringport.Ma
 	}
 	row, _, ok := effectiveMasteringRow(rows, runtime.GOOS, choice)
 	if !ok {
-		return port.Entry[masteringport.Mastering]{}, errors.New("this version has no mastering chain")
+		return none, masteringApproved{}, errors.New("this version has no mastering chain")
 	}
-	if row.New().Capabilities().NeedsApproval {
-		return port.Entry[masteringport.Mastering]{}, fmt.Errorf("%s runs only after you approve each render, which this export cannot ask for yet: %w",
-			row.Descriptor.Label, masteringport.ErrNotApproved)
+	caps := row.New().Capabilities()
+	if approval != nil && approval.Provider != row.Name {
+		approved := approval.Provider
+		if entry, err := rows.Lookup(approval.Provider); err == nil {
+			approved = entry.Descriptor.Label
+		}
+		return none, masteringApproved{}, fmt.Errorf("you approved %s, but this project now masters with %s: %w", approved, row.Descriptor.Label, errStaleApproval)
 	}
-	return row, nil
+	if caps.NeedsApproval && approval == nil {
+		return none, masteringApproved{}, fmt.Errorf("%s runs only after you approve this render: %w", row.Descriptor.Label, masteringport.ErrNotApproved)
+	}
+	allowed := masteringApproved{approved: approval != nil}
+	if caps.NeedsMacro {
+		allowed.macro = strings.TrimSpace(approval.Macro)
+		if allowed.macro == "" {
+			return none, masteringApproved{}, fmt.Errorf("%s: %w", row.Descriptor.Label, masteringport.ErrNoMacro)
+		}
+		if err := audacitybridge.CheckMacroName(allowed.macro); err != nil {
+			return none, masteringApproved{}, err
+		}
+	}
+	return row, allowed, nil
 }
 
 // exportRegion is the DAW region an item masters from with a row that renders one (masteringport.ModeDAWRegion), by the name

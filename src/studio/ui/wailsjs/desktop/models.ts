@@ -96,12 +96,15 @@ export class ExportItem {
 }
 
 /**
- * ExportRequest is what ExportStart is asked to master (optionally) and encode.
+ * ExportRequest is what ExportStart is asked to master (optionally) and encode. Approval is the narrator's yes, given in the
+ * UI's approval dialog just before this call, to master these files with a row that needs it (MasteringProvider.NeedsApproval);
+ * nil when they gave none.
  */
 export class ExportRequest {
     "items": ExportItem[];
     "master": boolean;
     "format": string;
+    "approval": MasteringApproval | null;
 
     /** Creates a new ExportRequest instance. */
     constructor($$source: Partial<ExportRequest> = {}) {
@@ -114,6 +117,9 @@ export class ExportRequest {
         if (!("format" in $$source)) {
             this["format"] = "";
         }
+        if (!("approval" in $$source)) {
+            this["approval"] = null;
+        }
 
         Object.assign(this, $$source);
     }
@@ -123,9 +129,13 @@ export class ExportRequest {
      */
     static createFrom($$source: any = {}): ExportRequest {
         const $$createField0_0 = $$createType1;
+        const $$createField3_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("items" in $$parsedSource) {
             $$parsedSource["items"] = $$createField0_0($$parsedSource["items"]);
+        }
+        if ("approval" in $$parsedSource) {
+            $$parsedSource["approval"] = $$createField3_0($$parsedSource["approval"]);
         }
         return new ExportRequest($$parsedSource as Partial<ExportRequest>);
     }
@@ -234,6 +244,36 @@ export class LineIdentityStampRow {
 }
 
 /**
+ * MasteringApproval is the narrator's approval of one export's masters: the row they approved, by name, and, for a row that
+ * needs one (MasteringProvider.NeedsMacro), the effect macro they named. It holds for the one ExportStart call that carries it:
+ * the host checks it against the row it would master with now, hands it to that job only, and never stores it.
+ */
+export class MasteringApproval {
+    "provider": string;
+    "macro": string;
+
+    /** Creates a new MasteringApproval instance. */
+    constructor($$source: Partial<MasteringApproval> = {}) {
+        if (!("provider" in $$source)) {
+            this["provider"] = "";
+        }
+        if (!("macro" in $$source)) {
+            this["macro"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MasteringApproval instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MasteringApproval {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new MasteringApproval($$parsedSource as Partial<MasteringApproval>);
+    }
+}
+
+/**
  * MultiPackageRequest is what PackageStartMulti is asked to build: every selected platform, and the same encoded
  * items a single PackageStart would be sent (an export job's own EncodedPaths for its current format).
  */
@@ -257,8 +297,8 @@ export class MultiPackageRequest {
      * Creates a new MultiPackageRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): MultiPackageRequest {
-        const $$createField0_0 = $$createType3;
-        const $$createField1_0 = $$createType5;
+        const $$createField0_0 = $$createType5;
+        const $$createField1_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("selections" in $$parsedSource) {
             $$parsedSource["selections"] = $$createField0_0($$parsedSource["selections"]);
@@ -331,7 +371,7 @@ export class PackageRequest {
      * Creates a new PackageRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): PackageRequest {
-        const $$createField2_0 = $$createType5;
+        const $$createField2_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("items" in $$parsedSource) {
             $$parsedSource["items"] = $$createField2_0($$parsedSource["items"]);
@@ -373,7 +413,7 @@ export class PassageMapMarkInput {
      * Creates a new PassageMapMarkInput instance from a string or object.
      */
     static createFrom($$source: any = {}): PassageMapMarkInput {
-        const $$createField4_0 = $$createType7;
+        const $$createField4_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("prev" in $$parsedSource) {
             $$parsedSource["prev"] = $$createField4_0($$parsedSource["prev"]);
@@ -486,9 +526,11 @@ export class ProfileSelection {
 // Private type creation functions
 const $$createType0 = ExportItem.createFrom;
 const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = ProfileSelection.createFrom;
-const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = PackageItem.createFrom;
+const $$createType2 = MasteringApproval.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = ProfileSelection.createFrom;
 const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = PassageMapMarkPlace.createFrom;
-const $$createType7 = $Create.Nullable($$createType6);
+const $$createType6 = PackageItem.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = PassageMapMarkPlace.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);

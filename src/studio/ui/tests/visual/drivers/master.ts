@@ -146,6 +146,20 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Master & encode' }).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Master to spec' }));
   },
+  'to-spec-approve-daw': async (page) => {
+    await openMaster(page, '?mockMastering=daw');
+    await pickFilesToMaster(page);
+    await page.getByRole('button', { name: 'Master & encode' }).click();
+    await page.getByRole('alertdialog', { name: "Master with Your DAW's FX chain?" }).getByRole('list', { name: 'Regions to render' }).waitFor();
+  },
+  'to-spec-approve-macro': async (page) => {
+    await openMaster(page, '?mockMastering=audacity');
+    await pickFilesToMaster(page);
+    await page.getByRole('button', { name: 'Master & encode' }).click();
+    const dialog = page.getByRole('alertdialog', { name: "Master with Audacity's effect macro?" });
+    await dialog.getByRole('button', { name: 'Approve and master' }).click();
+    await dialog.getByText('Name the macro to apply.').waitFor();
+  },
   'to-spec-running': async (page) => {
     await openMaster(page, '?mockRenderExport=running');
     await pickFilesToMaster(page);

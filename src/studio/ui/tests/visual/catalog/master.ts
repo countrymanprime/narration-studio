@@ -122,6 +122,21 @@ export const masterStates: StateEntry[] = [
       'Master & QC, Master all to spec… with five files picked and given a role - two chapters (their titles editable), opening and closing credits, a retail sample, Master before encoding on with the built-in chain, and Master & encode',
     ...KEEPS_DESKTOP_SCROLL,
   },
+  // Master & encode with a mastering row that makes the DAW render: the narrator's approval for this one export first (#2739)
+  {
+    page: 'master',
+    state: 'to-spec-approve-daw',
+    description:
+      "Master & QC, Master & encode pressed with the project mastering with its DAW's FX chain (?mockMastering=daw) - the approval dialog naming the row and the regions it renders, with Cancel and Approve and master",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-macro',
+    description:
+      "Master & QC, Master & encode pressed with the project mastering with Audacity's effect macro (?mockMastering=audacity) - the approval dialog naming the files and asking which macro, after Approve was pressed with none",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
   {
     page: 'master',
     state: 'to-spec-running',

@@ -11,6 +11,7 @@ const masteringProviderSchema = z.object({
   default: z.boolean(),
   modes: listFromNull(z.string()),
   needsApproval: z.boolean(),
+  needsMacro: z.boolean(),
   needs: listFromNull(z.string()),
   support: dawCapabilitySupportSchema,
   chain: listFromNull(masteringStepSchema),

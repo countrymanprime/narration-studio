@@ -41,6 +41,7 @@ import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
+import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
@@ -2304,14 +2305,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   it('the export job masters (when asked) and encodes every picked file, in the shape the host pins', async () => {
     const api = createMockApi();
     expectMatches(exportJobSchema, await api.exportState(), 'mock export, idle');
-    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' })).rejects.toThrow(/not chosen in the file picker/);
+    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null })).rejects.toThrow(/not chosen in the file picker/);
     const picked = await api.exportPickFiles();
     expectMatches(measurePickResultSchema, picked, 'mock export picker');
     expect(picked.paths).toEqual(MOCK_EXPORT_PATHS);
-    await expect(api.exportStart({ items: [], master: false, format: 'mp3' })).rejects.toThrow(/at least one file/);
-    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3' });
+    await expect(api.exportStart({ items: [], master: false, format: 'mp3', approval: null })).rejects.toThrow(/at least one file/);
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval: null });
     expectMatches(exportJobSchema, job, 'mock export, started');
-    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3' })).rejects.toThrow(/already running/);
+    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval: null })).rejects.toThrow(/already running/);
     let percent = job.percent;
     while (job.phase === 'running') {
       job = await api.exportState();
@@ -2322,11 +2323,37 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(job.phase).toBe('success');
     expect(job.files.every((file) => file.status === 'done' && file.encodedPath && file.mastering)).toBe(true);
 
-    await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
     await api.exportState();
     const cancelledExport = await api.exportCancel();
     expectMatches(exportJobSchema, cancelledExport, 'mock export, cancelled');
     expect(cancelledExport.files.some((file) => file.status === 'cancelled')).toBe(true);
+  });
+
+  it("the export masters with the project's row and refuses an approval as export_job.go does (#2739)", async () => {
+    const start = (api: ReturnType<typeof createMockApi>, approval: ExportRequest['approval']) =>
+      api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval });
+    const daw = createMockApi({}, { mastering: { choice: 'daw' } });
+    await daw.exportPickFiles();
+    await expect(start(daw, null)).rejects.toThrow(/Your DAW's FX chain runs only after you approve this render/);
+    await expect(start(daw, { provider: 'audacity', macro: 'Loud' })).rejects.toThrow(
+      /you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain/,
+    );
+    expect((await daw.exportState()).phase).toBe('idle');
+    let job = await start(daw, { provider: 'daw', macro: '' });
+    expectMatches(exportJobSchema, job, 'mock export, daw row approved');
+    expect(job.provider).toBe('daw');
+    while (job.phase === 'running') job = await daw.exportState();
+    expect(job.files.every((file) => file.mastering === undefined)).toBe(true);
+
+    const audacity = createMockApi({}, { mastering: { choice: 'audacity' } });
+    await audacity.exportPickFiles();
+    await expect(start(audacity, { provider: 'audacity', macro: '  ' })).rejects.toThrow(/choose the macro/);
+    expect((await start(audacity, { provider: 'audacity', macro: 'Loud' })).provider).toBe('audacity');
+
+    const builtin = createMockApi();
+    await builtin.exportPickFiles();
+    expect((await start(builtin, null)).provider).toBe('builtin');
   });
 
   it("the package job assembles the profile's book checklist from an export's own encoded files, in the shape the host pins", async () => {
@@ -2340,7 +2367,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ).rejects.toThrow(/not encoded in this session/);
 
     await api.exportPickFiles();
-    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
     while (job.phase === 'running') job = await api.exportState();
     const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
 
@@ -2363,7 +2390,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const profile = await api.deliveryProfiles();
     const acx = profile.profiles.find((candidate) => candidate.id === 'acx')!;
     await api.exportPickFiles();
-    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
     while (job.phase === 'running') job = await api.exportState();
     const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
     const built = await api.packageStart({ profileId: acx.id, profileVersion: acx.version, items });
@@ -2388,7 +2415,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       );
 
       await api.exportPickFiles();
-      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
       while (job.phase === 'running') job = await api.exportState();
       const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
 
@@ -2436,7 +2463,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
         () => [MOCK_ACX, m4b],
       );
       await api.exportPickFiles();
-      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
       while (job.phase === 'running') job = await api.exportState();
       const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
 

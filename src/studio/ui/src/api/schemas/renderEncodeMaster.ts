@@ -45,6 +45,7 @@ export const exportJobSchema = z.object({
   message: z.string(),
   percent: z.number(),
   master: z.boolean(),
+  provider: z.string(),
   format: z.string(),
   logs: listFromNull(z.string()),
   elapsed: z.number(),
