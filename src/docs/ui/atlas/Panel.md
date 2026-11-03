@@ -1,0 +1,86 @@
+# Panel
+
+Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.tsx`.
+
+## Stories
+
+- Text Only
+- Title And Description
+- Long Title Wraps
+- Title Keeps Its Width Beside Wide Actions
+- With Header And Actions
+- With Header No Actions
+- With Form Fields
+- Long Content
+- Matches The Mock
+- Header With Actions
+- Flush Table
+- Flush Table Under Text
+- Labelled Without Title
+- Leading And Rich Subtitle
+- Review Tone
+- Scrolling Body
+- Fills Its Cell
+- Header On Its Own
+- Caps Title
+
+## Used by
+
+- `src/components/booth/ReadAlongView.tsx`
+- `src/components/booth/page/BoothMessage.tsx`
+- `src/components/credits/CreditsSetupBanner.tsx`
+- `src/components/delivery/page/OutputPanel.tsx`
+- `src/components/delivery/page/Preflight.tsx`
+- `src/components/delivery/profile/ProfileCard.tsx`
+- `src/components/editing/EditingPage.tsx`
+- `src/components/engine/ChapterLinksTable.tsx`
+- `src/components/engine/ChapterSyncPanel.tsx`
+- `src/components/engine/EnginePanel.tsx`
+- `src/components/engine/TrackList.tsx`
+- `src/components/layout/AddressGate.tsx`
+- `src/components/layout/LoadError.tsx`
+- `src/components/layout/NeedManuscript.tsx`
+- `src/components/layout/NotFoundPage.tsx`
+- `src/components/layout/StartupScreen.tsx`
+- `src/components/master/DeliveryProfilePanel.tsx`
+- `src/components/master/DiagnosticsSection.tsx`
+- `src/components/master/FileRulesPanel.tsx`
+- `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/master/MasteringChain.tsx`
+- `src/components/master/MultiPlatformExportPanel.tsx`
+- `src/components/master/ReportExportPanel.tsx`
+- `src/components/masterqc/files/FileChecks.tsx`
+- `src/components/masterqc/files/FilesTable.tsx`
+- `src/components/masterqc/page/MasterPage.tsx`
+- `src/components/masterqc/page/PackageChecks.tsx`
+- `src/components/pickups/list/SessionPanel.tsx`
+- `src/components/production/ProductionPage.tsx`
+- `src/components/production/RemovedFromRecordingList.tsx`
+- `src/components/production/overview/CheckCountsCard.tsx`
+- `src/components/production/overview/ProgressChart.tsx`
+- `src/components/production/overview/StageBar.tsx`
+- `src/components/production/overview/WeekCard.tsx`
+- `src/components/production/pipeline/NoManuscript.tsx`
+- `src/components/project/ProjectPicker.tsx`
+- `src/components/proof/CompareRun.tsx`
+- `src/components/proof/NativeTakesPanel.tsx`
+- `src/components/proof/PreviewPanel.tsx`
+- `src/components/proof/ProofChapterPage.tsx`
+- `src/components/proof/ProofingStagePanel.tsx`
+- `src/components/schedule/ContractPanel.tsx`
+- `src/components/schedule/SchedulePage.tsx`
+- `src/components/schedule/WorkedOut.tsx`
+- `src/components/script/page/chapters/ChapterList.tsx`
+- `src/components/settings/ManuscriptSection.tsx`
+- `src/components/settings/analysis/AnalysisToolsSection.tsx`
+- `src/components/settings/controls/AboutSection.tsx`
+- `src/components/settings/page/CategoryPane.tsx`
+- `src/components/settings/page/MarksPanel.tsx`
+- `src/components/settings/page/ModelsPane.tsx`
+- `src/components/settings/page/PagesPane.tsx`
+- `src/components/settings/page/ReaderTextPanel.tsx`
+- `src/components/settings/page/Results.tsx`
+- `src/components/settings/page/ScopedFieldsPanel.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
+- `src/components/storybible/Guide.tsx`
+- `src/components/storybible/GuideDetail.tsx`

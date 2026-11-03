@@ -1,0 +1,27 @@
+# SlideOver
+
+Storybook title: `Primitives/SlideOver`. Source: `src/components/primitives/SlideOver.tsx`.
+
+## Stories
+
+- Open
+- Closed
+- Long Content
+- Wide
+- Custom Close Label
+- Close Button Invokes On Close
+- Backdrop Click Invokes On Close
+- Escape Invokes On Close
+- Keeps Focus Inside And Hides The Page
+- Returns Focus To The Opener
+
+## Used by
+
+- `src/components/devtools/MockStatesPanel.tsx`
+- `src/components/editing/EditingCheckPanel.tsx`
+- `src/components/engine/EnginePanel.tsx`
+- `src/components/production/ChapterTrackPanel.tsx`
+- `src/components/production/CreditsRowPanel.tsx`
+- `src/components/stages/StageEvidence.tsx`
+- `src/components/storybible/VoiceDataPanel.tsx`
+- `src/overlay/OverlayHost.tsx`

@@ -24,6 +24,11 @@ export const Information: Story = { args: { messages: [info(1, 'Entry saved.')] 
 // An error stays until it is dismissed, and carries an icon and a coloured edge so it is not told apart by colour alone.
 export const ErrorMessage: Story = { args: { messages: [failure(1, 'The Story Bible file could not be read. It was kept next to the original.')] } };
 
+// One long word (a Windows path) wraps inside the toast and the window instead of running off both edges (#2793).
+export const LongUnbrokenMessage: Story = {
+  args: { messages: [failure(1, `C:\\Users\\narrator\\Documents\\${'VeryLongProjectFolderName\\'.repeat(16)}schedule.json`)] },
+};
+
 // Messages queue up instead of replacing each other; errors sit above the information messages.
 export const Queue: Story = {
   args: {

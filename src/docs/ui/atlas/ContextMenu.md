@@ -1,0 +1,37 @@
+# ContextMenu
+
+Storybook title: `Primitives/ContextMenu`. Source: `src/components/primitives/ContextMenu.tsx`.
+
+## Stories
+
+- Closed
+- Item Unavailable
+- Opens On Right Click
+- Keyboard Chooses An Item
+- Escape Closes
+- Grouped
+- Submenu
+- Checked Rows And Key Hints
+
+## Used by
+
+- `src/App.tsx`
+- `src/components/booth/bookmarks/useBoothBookmarks.ts`
+- `src/components/booth/page/BoothNextPage.tsx`
+- `src/components/booth/page/useBoothPage.ts`
+- `src/components/editing/menu/marks/markMenuSections.ts`
+- `src/components/editing/menu/playAndCopySections.ts`
+- `src/components/editing/menu/useEditingWordMenu.ts`
+- `src/components/editing/menu/wordMenuRegistry.ts`
+- `src/components/editing/range/cut/useCutWords.tsx`
+- `src/components/editing/range/fx/fxMenu.ts`
+- `src/components/editing/range/fx/useFxWords.tsx`
+- `src/components/editing/ribbon/Ribbon.tsx`
+- `src/components/editing/ribbon/WaveDock.tsx`
+- `src/components/editing/takes/takesMenuSection.ts`
+- `src/components/layout/AppShell.tsx`
+- `src/components/layout/ContextMenuHost.tsx`
+- `src/components/pickups/list/usePickupsContextMenu.ts`
+- `src/components/production/useChapterTools.tsx`
+- `src/components/script/page/registry/contextProvider.ts`
+- `src/registries/context.ts`

@@ -1,0 +1,61 @@
+# Select
+
+Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.tsx`.
+
+## Stories
+
+- Default
+- Full Width
+- Grouped
+- Disabled
+- With Placeholder Option
+- With Placeholder
+- Choosing Reports The Value
+- Keyboard Reaches It
+
+## Used by
+
+- `src/components/booth/frame/BoothTop.tsx`
+- `src/components/booth/frame/LevelsMenu.tsx`
+- `src/components/delivery/ImportProfileField.tsx`
+- `src/components/delivery/profile/ProfileMenu.tsx`
+- `src/components/editing/menu/marks/NoteDialog.tsx`
+- `src/components/editing/output/OutputControls.tsx`
+- `src/components/editing/range/cut/CutDialog.tsx`
+- `src/components/editing/range/fx/FxDialog.tsx`
+- `src/components/editing/range/replace/ReplaceDialog.tsx`
+- `src/components/editing/takes/TakeCompare.tsx`
+- `src/components/editing/voicesample/VoiceSampleDialog.tsx`
+- `src/components/engine/ChapterSyncPanel.tsx`
+- `src/components/engine/CreateChapterRegionsDialog.tsx`
+- `src/components/engine/LinkChaptersDialog.tsx`
+- `src/components/mapping/TrackSelect.tsx`
+- `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/production/CreditsRowPanel.tsx`
+- `src/components/production/ImportReview.tsx`
+- `src/components/proof/AuditionDialog.tsx`
+- `src/components/proof/NativeTakesPanel.tsx`
+- `src/components/proof/inspector/TypeSelect.tsx`
+- `src/components/proof/notes/NotesPanel.tsx`
+- `src/components/proof/proofOptions/ProofOptions.tsx`
+- `src/components/recordingcheck/RunOptions.tsx`
+- `src/components/schedule/ContractPanel.tsx`
+- `src/components/schedule/MilestoneDialog.tsx`
+- `src/components/script/page/rail/threads/NoteCard.tsx`
+- `src/components/script/page/tools/select/MarkComposer.tsx`
+- `src/components/script/page/tools/select/MarksDialog.tsx`
+- `src/components/script/page/tools/text/TextSettings.tsx`
+- `src/components/settings/CreditsPanel.tsx`
+- `src/components/settings/DeliveryProfilesPanel.tsx`
+- `src/components/settings/RetailSamplePanel.tsx`
+- `src/components/settings/ScopedSetting.tsx`
+- `src/components/settings/controls/AppearanceBodies.tsx`
+- `src/components/settings/controls/DeliveryBodies.tsx`
+- `src/components/settings/controls/MicBody.tsx`
+- `src/components/settings/controls/SampleOutputBody.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
+- `src/components/settings/row/ValueControl.tsx`
+- `src/components/storybible/DialogueCueAttribution.tsx`
+- `src/components/storybible/SpeakerColourField.tsx`
+- `src/components/storybible/VoiceReferencesSection.tsx`
+- `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`

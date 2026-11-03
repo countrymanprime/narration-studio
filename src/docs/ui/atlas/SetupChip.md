@@ -1,0 +1,16 @@
+# SetupChip
+
+Storybook title: `Booth/SetupChip`. Source: `src/components/booth/record/SetupChip.tsx`.
+
+## Stories
+
+- Connected
+- Not Linked
+- Linked Not Started
+- Not Running
+- Records In The App
+- Other Project Open
+
+## Used by
+
+- `src/components/booth/page/BoothNextPage.tsx`

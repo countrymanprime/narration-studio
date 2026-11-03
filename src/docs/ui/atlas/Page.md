@@ -1,0 +1,21 @@
+# Page
+
+Storybook title: `Booth/Page`. Source: `src/components/booth/page/BoothNextPage.stories.tsx`.
+
+## Stories
+
+- Ready
+- Recording
+- Refusal
+- Leave Dialog
+- Roll Confirm
+- Resume
+- Unsaved Changes
+- Drawer
+- Bookmarked
+- Pickup Session
+- Room Tone Measured
+
+## Used by
+
+- nothing outside its own stories and tests yet

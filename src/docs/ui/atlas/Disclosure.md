@@ -1,0 +1,22 @@
+# Disclosure
+
+Storybook title: `Primitives/Disclosure`. Source: `src/components/primitives/Disclosure.tsx`.
+
+## Stories
+
+- Collapsed
+- Expanded
+- With Info Icon
+- Scroll Cue
+- Opens And Closes With The Keyboard
+
+## Used by
+
+- `src/components/editing/cleanup/CleanupInspector.tsx`
+- `src/components/layout/LoadError.tsx`
+- `src/components/master/DeliveryProfilePanel.tsx`
+- `src/components/production/ImportReview.tsx`
+- `src/components/production/RecordingCheckReport.tsx`
+- `src/components/settings/page/CategoryPane.tsx`
+- `src/components/settings/page/PagesPane.tsx`
+- `src/components/storybible/source/NamePronunciation.tsx`
