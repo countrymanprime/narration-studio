@@ -377,6 +377,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'app-diagnostics',
+    description:
+      'Settings, App & updates with Advanced open: the Diagnostics section, with the Debug logging switch and the folder icon button beside it that opens the log folder (issue 2730)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'about-update-available',
     description: 'Settings, App & updates with a newer release found (?mockUpdate=available): "Version 0.2.7 is available" with Download update',
     ...REFLOW,

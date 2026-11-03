@@ -596,6 +596,13 @@
   },
   {
     "page": "settings",
+    "state": "app-diagnostics",
+    "viewport": "desktop",
+    "docName": "settings-diagnostics",
+    "caption": "Settings - App & updates, Advanced: Debug logging with the Open the log folder button beside it"
+  },
+  {
+    "page": "settings",
     "state": "about-update-available",
     "viewport": "desktop",
     "docName": "settings-about-updates",

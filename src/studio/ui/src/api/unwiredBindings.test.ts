@@ -45,7 +45,6 @@ const UNWIRED = [
   'subscribeDawProjectState',
   'subscribeRecorderLevel',
   'systemCopyDiagnostics',
-  'systemOpenLogFolder',
   'takeComparisonCancel',
   'takeComparisonStart',
   'takeComparisonState',

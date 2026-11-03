@@ -14,6 +14,7 @@ import { TooltipProvider } from '../../primitives/Tooltip';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { SettingsPage } from '../page/SettingsPage';
 import { brand } from '../../../brand.gen';
+import { overlay } from '../../../overlay/overlayService';
 
 afterEach(() => {
   cleanup();
@@ -443,5 +444,57 @@ describe('Settings: App & updates', () => {
     expect(screen.queryByText('Debug logging')).toBeNull();
     await openAdvanced();
     expect(within(row('app.debug')).getByRole('switch', { name: /Debug logging/ })).toBeTruthy();
+  });
+
+  describe('Open the log folder (#2730)', () => {
+    afterEach(() => overlay.getSnapshot().toasts.forEach((t) => overlay.dismissToast(t.id)));
+    const toasts = () => overlay.getSnapshot().toasts;
+    const folderButton = () => within(row('app.debug')).getByRole('button', { name: 'Open the log folder' });
+
+    it('idle: an enabled icon button beside Debug logging, with its tooltip', async () => {
+      await renderApp();
+      await openAdvanced();
+      const button = folderButton();
+      expect(button.getAttribute('aria-disabled')).toBeNull();
+      expect(button.getAttribute('aria-busy')).toBeNull();
+      expect(button.textContent).toBe('');
+      await userEvent.hover(button);
+      expect((await screen.findByRole('tooltip')).textContent).toContain('Open the log folder');
+    });
+
+    it('success: a press asks the host once and shows no toast', async () => {
+      const { api } = await renderApp();
+      const open = vi.spyOn(api, 'systemOpenLogFolder');
+      await openAdvanced();
+      await userEvent.click(folderButton());
+      await waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBeNull());
+      expect(toasts()).toHaveLength(0);
+    });
+
+    it('pending: the button is busy and ignores a second press', async () => {
+      const { api } = await renderApp();
+      let finish: () => void = () => undefined;
+      const open = vi.spyOn(api, 'systemOpenLogFolder').mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)));
+      await openAdvanced();
+      await userEvent.click(folderButton());
+      await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBe('true'));
+      await userEvent.click(folderButton());
+      expect(open).toHaveBeenCalledTimes(1);
+      finish();
+      await waitFor(() => expect(folderButton().getAttribute('aria-busy')).toBeNull());
+    });
+
+    it('refusal: a rejected call is an error toast in the host words, and the button is ready again', async () => {
+      const { api } = await renderApp();
+      vi.spyOn(api, 'systemOpenLogFolder').mockRejectedValue(new Error('No file manager is installed.'));
+      await openAdvanced();
+      await userEvent.click(folderButton());
+      await waitFor(() => expect(toasts()).toHaveLength(1));
+      expect(toasts()[0]).toMatchObject({ tone: 'error' });
+      expect(toasts()[0].text).toContain('No file manager is installed.');
+      expect(folderButton().getAttribute('aria-busy')).toBeNull();
+      expect(row('app.debug').querySelector('[role="alert"]')).toBeNull();
+    });
   });
 });

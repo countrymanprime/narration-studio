@@ -403,6 +403,12 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'App & updates');
     await page.getByText('Not checked yet.').waitFor();
   },
+  'app-diagnostics': async (page) => {
+    await openSettings(page, 'App & updates');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'app.debug');
+    await row.getByRole('button', { name: 'Open the log folder' }).waitFor();
+  },
   'about-update-available': async (page) => {
     await openUpdates(page, 'available');
     await page.getByText('Version 0.2.7 is available').waitFor();
