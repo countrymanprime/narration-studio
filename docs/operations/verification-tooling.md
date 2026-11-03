@@ -100,18 +100,14 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 
 **Output.** A diff picture per state and a `scores.md` table in the gitignored `src/studio/ui/screenshots/mock-match/`; `MOCK_MATCH_BASELINE=<an earlier scores.json>` adds each score's change. The Nav rail and header are also scored on their own where the mock draws them (text-blind too). Rasterisers differ between machines, so compare two runs only from one machine. `MOCK_MATCH_CHROMIUM=<path>` points it at a Chromium other than Playwright's own, for a container whose browser is older than the pinned Playwright.
 
-**Baseline** (2026-09-29, one machine, before this change's text-blind score: the raw column is the number the earlier notes quoted). Recorded for the six scored mocks; 06 (the series voice bible) draws a page the app does not have and is unscored:
+**Baseline** (2026-09-29, one machine, before this change's text-blind score: the raw column is the number the earlier notes quoted). Recorded for the two scored mocks that remain (mocks 01, 02, 04 and 05 were deleted when the Studio Next swaps replaced their pages); 06 (the series voice bible) draws a page the app does not have and is unscored:
 
 | Mock                        | State                             | Theme | Match % (text-blind) | Raw pixel % |
 | --------------------------- | --------------------------------- | ----- | -------------------- | ----------- |
-| 01 Production (no longer scored: the page follows the Studio Next mock, and its state is gone) | `production/mock-fidelity-01` | light | 87.94 | 82.32 |
-| 02 Script                   | `script/prep-rail-pronunciations` | light | 93.03                | 86.33       |
 | 03 Booth                    | `booth/speaker-tags`              | dark  | 93.20                | 87.59       |
-| 04 Proof                    | `proof/default`                   | light | 93.75                | 89.44       |
-| 05 Master & QC              | `master/mock-fidelity-05`         | light | 92.06                | 85.76       |
 | 07 Companion (420×900 crop) | `booth/companion-listening`       | dark  | 92.39                | 85.86       |
 
-Since the Proof swap (SN-Q9, 2026-10-12), 04 has no target and is unscored: the Studio Next mock is the spec for Proof and Pickups (D98; `src/studio/ui/tests/visual/mock-match/mocks.ts`).
+Mocks 01, 02, 04 and 05 are deleted from the benchmark folder: their pages follow the Studio Next mock (read from history), and the `?mockFidelity` seeds that drew mock 05 are gone.
 
 The Booth (03) and the companion (07) are scored at `booth/dark` (1440×900; `booth/speaker-tags` until the Studio Next Booth replaced the old page, SN-O10, so the 03 baseline above is the old page's) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons).
 

@@ -13,7 +13,7 @@ body:
     id: prd
     attributes:
       label: PRD and slice
-      description: The PRD file and its slice id, for example `studio-next-foundations.prd.md, slice SNF-2`.
+      description: The PRD file and its slice id, for example `activity-trace.prd.md, slice 2`.
     validations:
       required: true
   - type: input

@@ -8,7 +8,7 @@ The headings below stay so that older links keep resolving. Delete this file onc
 
 ## Which mocks are the spec
 
-Now in the rebuild PRD, [Which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec), and in [the design system](../design/design-system.md#which-mocks-are-the-spec).
+Now in the rebuild PRD, Which mocks are the spec, and in [the design system](../design/design-system.md#which-mocks-are-the-spec).
 
 ## UI PRs update the how-to guide
 

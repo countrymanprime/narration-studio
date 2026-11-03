@@ -12,7 +12,6 @@ import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
 import { scenarioFromToday } from './api/productionMock';
-import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
 import {
   WIRE_CHAPTERS,
   WIRE_FINDINGS,
@@ -427,8 +426,6 @@ const mockDelivery = (['ready', 'building', 'fails', 'quiet'] as const).find((se
 // `?mockProduction=on-pace|at-risk` seeds the Production page with a time log, a running timer (on-pace only), a deadline and a
 // contracted amount; `linked` measures every chapter's linked track with no stage moved on; with none, nothing is logged or set yet.
 const mockProduction = (['on-pace', 'at-risk', 'linked'] as const).find((seed) => seed === mockParams.get('mockProduction'));
-// `?mockFidelity=05` draws the mock backend as benchmark mock 05 draws Master & QC, for the pixel-match tool (mockHost/mockFidelity.ts).
-const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 
 // `?mockRecorder=recording|failed|empty|no-devices|start-fails|meter-hangs|mic-gone|unavailable` seeds the Booth's built-in recorder
 // with `?mockEngine=builtin` choosing it: a take 42 s in; the last take ended on
@@ -468,7 +465,6 @@ function mergeDawSeeds(...parts: Array<DawMockSeed | undefined>): DawMockSeed | 
 }
 const mockInitial = {
   ...(mockScenario ? mockScenario.seed : {}),
-  ...(mockFidelity ? MOCK_FIDELITY[mockFidelity] : {}),
   ...(mockRecorder ? { recording: mockRecorder } : {}),
   ...(mockMeasure ? { measure: mockMeasure === 'running' ? ('hold' as const) : mockMeasure === 'spread' ? ('spread' as const) : ('fails' as const) } : {}),
   ...(mockDiagnostics ? { diagnostics: mockDiagnostics === 'running' ? ('hold' as const) : ('fails' as const) } : {}),
