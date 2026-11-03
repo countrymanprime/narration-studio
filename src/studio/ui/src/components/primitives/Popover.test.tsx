@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Button } from './Button';
-import { Popover, POPOVER_POPUP_ATTRIBUTE, popupBottomReserve } from './Popover';
+import { Popover, POPOVER_POPUP_ATTRIBUTE, popupBottomReserve, useWindowHeight } from './Popover';
 
 afterEach(cleanup);
 
@@ -100,5 +100,25 @@ describe('popupBottomReserve (issue 2809)', () => {
     expect(popupBottomReserve(0, 300)).toBe(0);
     expect(popupBottomReserve(210, 100)).toBe(0);
     expect(popupBottomReserve(210, 0)).toBe(0);
+  });
+});
+
+describe('useWindowHeight (issue 2809)', () => {
+  it('follows the window as it is resized, and lets go of the listener when it unmounts', () => {
+    const original = window.innerHeight;
+    const set = (height: number) => {
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
+      window.dispatchEvent(new Event('resize'));
+    };
+    const { result, unmount } = renderHook(() => useWindowHeight());
+    expect(result.current).toBe(original);
+    act(() => set(300));
+    expect(result.current).toBe(300);
+    act(() => set(844));
+    expect(result.current).toBe(844);
+    unmount();
+    act(() => set(500));
+    expect(result.current).toBe(844);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: original });
   });
 });

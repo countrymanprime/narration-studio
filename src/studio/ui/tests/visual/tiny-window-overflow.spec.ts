@@ -95,3 +95,23 @@ for (const theme of ['light', 'dark'] as const) {
     expect(m.right).toBeLessThanOrEqual(TINY.width);
   });
 }
+
+// A window shrunk while the Levels popup is open (found by the narrator walkthrough: it stayed 80 px tall): the popup is placed again for the new size.
+for (const theme of ['light', 'dark'] as const) {
+  test(`Booth: the Levels popup is placed again when the window shrinks under it to 320x300 (${theme})`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto('/booth');
+    await settlePage(page);
+    await page.getByRole('button', { name: 'Levels' }).first().click();
+    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await popup.waitFor();
+    await page.setViewportSize(TINY);
+    await expect
+      .poll(async () => (await popup.boundingBox())!.height, { message: 'the popup keeps room to read after the resize' })
+      .toBeGreaterThanOrEqual(110);
+    const box = (await popup.boundingBox())!;
+    const record = (await page.getByRole('button', { name: 'Record', exact: true }).boundingBox())!;
+    expect(box.y + box.height, 'the popup stays above Record').toBeLessThanOrEqual(record.y + 1);
+  });
+}
