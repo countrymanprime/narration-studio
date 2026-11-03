@@ -828,6 +828,7 @@ function BoothSession({
               offReason: capabilities?.capabilities.record?.message,
               device: session.device,
               onDevice: session.changeDevice,
+              micNote: standalone && listening.origin === 'last' ? 'The microphone this project last recorded with, until you choose one.' : undefined,
               listen: standalone
                 ? undefined
                 : {

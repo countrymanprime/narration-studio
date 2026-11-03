@@ -60,7 +60,7 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
 /** The Cold read toggle (#2251 item 13): pressed while a cold read runs; `disabledReason` while it cannot start (a take records). */
 export type ColdReadToggle = { on: boolean; toggle: () => void; disabledReason?: string };
 
-type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels'>;
+type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'micNote' | 'levels'>;
 
 /**
  * The Booth's footer (the mock's `bfoot`): the Record control from SN-O23 as a slot, the take timer, the Levels menu, why Record

@@ -69,7 +69,8 @@ export function resolveListeningMic({ dawRecords, answer, source, chosen, device
   if (chosen !== '') return { device: chosen, origin: 'chosen', candidates: [], dawInput };
   if (appRecords) {
     // The host's own order for the take (`builtinMicrophone`): the choice, the project's last, the only one listed, never a guess among several.
-    if (recordsOn !== '') return { device: recordsOn, origin: 'last', candidates: [], dawInput };
+    // A remembered microphone that is no longer listed is not one Record can use: it is not named, so nothing starts on it.
+    if (recordsOn !== '' && listed(recordsOn)) return { device: recordsOn, origin: 'last', candidates: [], dawInput };
     if (devices.length === 1) return { device: devices[0]!, origin: 'first', candidates: [], dawInput };
     return { device: '', origin: 'none', candidates: [], dawInput };
   }

@@ -91,8 +91,9 @@ describe('with the built-in recorder, the microphone named is the one Record use
   it('names none when several are listed and none was chosen, so nothing is guessed', () => {
     expect(app({})).toMatchObject({ device: '', origin: 'none' });
   });
-  it('still names a remembered microphone that is no longer listed, since Record would use it (the select shows it as not found)', () => {
-    expect(app({ recordsOn: 'Unplugged mic' })).toMatchObject({ device: 'Unplugged mic', origin: 'last' });
+  it('does not name a remembered microphone that is no longer listed: it resolves like none was remembered', () => {
+    expect(app({ recordsOn: 'Unplugged mic' })).toMatchObject({ device: '', origin: 'none' });
+    expect(app({ recordsOn: 'Unplugged mic', devices: [devices[0]!] })).toMatchObject({ device: devices[0], origin: 'first' });
   });
   it('names none when no microphone is listed', () => {
     expect(app({ devices: [] })).toMatchObject({ device: '', origin: 'none' });

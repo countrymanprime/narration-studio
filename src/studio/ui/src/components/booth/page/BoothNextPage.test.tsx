@@ -1811,6 +1811,63 @@ describe('the-built-in-recorder-names-the-microphone-it-records-on', () => {
     expect(teleprompterStart).not.toHaveBeenCalledWith(expect.objectContaining({ device: 'USB Mic' }));
   });
 
+  it('does not count a remembered microphone that is no longer listed, and starts nothing on it', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({
+      setup: 'builtin',
+      api: {
+        settingsForScope: noSavedDevice,
+        teleprompterDevices: two,
+        recorderDevices: two,
+        recorderState: recorderState('Unplugged mic'),
+        teleprompterStart,
+      } as never,
+    });
+    await ready();
+    expect((await levelsSelect()).value).toBe('');
+    await userEvent.keyboard('{Escape}');
+    await space();
+    await settle();
+    expect(page.overlay.getSnapshot().toasts.find((toast) => toast.text === 'Choose the microphone in Levels, then press Record.')).toBeTruthy();
+    expect(teleprompterStart).not.toHaveBeenCalled();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('says no microphone was found, not to choose one, when none is listed', async () => {
+    const none = async () => ({ devices: [], error: null });
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({
+      setup: 'builtin',
+      api: {
+        settingsForScope: noSavedDevice,
+        teleprompterDevices: none,
+        recorderDevices: none,
+        recorderState: recorderState('Unplugged mic'),
+        teleprompterStart,
+      } as never,
+    });
+    await ready();
+    await space();
+    await settle();
+    expect(page.overlay.getSnapshot().toasts.find((toast) => toast.text === 'No microphone found. Plug one in, then press Record again.')).toBeTruthy();
+    expect(teleprompterStart).not.toHaveBeenCalled();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('says why the microphone is the one shown while the narrator has not chosen it', async () => {
+    renderPage({
+      setup: 'builtin',
+      api: { settingsForScope: noSavedDevice, teleprompterDevices: two, recorderDevices: two, recorderState: recorderState('Line In') } as never,
+    });
+    await ready();
+    await waitFor(async () => expect((await levelsSelect()).value).toBe('Line In'));
+    expect(
+      within(screen.getByRole('dialog', { name: 'Levels' })).getByText('The microphone this project last recorded with, until you choose one.'),
+    ).toBeTruthy();
+    await userEvent.selectOptions(within(screen.getByRole('dialog', { name: 'Levels' })).getByRole('combobox', { name: 'Microphone' }), 'USB Mic');
+    await waitFor(() => expect(within(screen.getByRole('dialog', { name: 'Levels' })).queryByText(/last recorded with/)).toBeNull());
+  });
+
   it('shows no microphone as chosen when several are listed and none was chosen or recorded with, and never listens on the first', async () => {
     const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
     const page = renderPage({

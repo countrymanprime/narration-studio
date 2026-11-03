@@ -46,6 +46,8 @@ export type LevelsMenuProps = {
    * why. `device` is the microphone listened on.
    */
   listen?: ListenProps;
+  /** With the built-in recorder: why the microphone shown is the one shown, when the narrator did not choose it (it is the one this project last recorded with). */
+  micNote?: string;
   /**
    * What the DAW says about setting the levels (its `monitor_level` and `input_level` capabilities): the two sliders the mock's menu has, and
    * about reading its own meters (`daw_meters`), shown under them. Absent until the capabilities are read, and then there are no sliders to
@@ -404,7 +406,21 @@ function PunchPrerollRow({ dawName, support }: { dawName: string; support: DawCa
   );
 }
 
-export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDevice, listen, levels, level, error, open, onOpenChange }: LevelsMenuProps) {
+export function LevelsMenu({
+  engine,
+  dawName,
+  reachable,
+  offReason,
+  device,
+  onDevice,
+  listen,
+  micNote,
+  levels,
+  level,
+  error,
+  open,
+  onOpenChange,
+}: LevelsMenuProps) {
   const off = engine === 'daw' && !reachable;
   return (
     <Popover
@@ -424,7 +440,10 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
         <div className="flex flex-col gap-1.5">
           <span className={SECTION_LABEL}>Microphone</span>
           {engine === 'builtin' ? (
-            <Devices device={device} onDevice={onDevice} />
+            <>
+              <Devices device={device} onDevice={onDevice} />
+              {micNote ? <p className={MUTED}>{micNote}</p> : null}
+            </>
           ) : (
             <>
               {off ? <div className="text-sm text-[var(--text)]">{offReason ?? `${dawName} is not running`}</div> : null}
