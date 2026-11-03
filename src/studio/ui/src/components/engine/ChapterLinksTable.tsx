@@ -19,7 +19,7 @@ import { addressPath } from '../../navigation/address';
 import { useVoiceLayout } from './voiceLayout';
 import { folderChildren, folderLinkLabel } from './voices';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
-import { useChapterFolders } from './useChapterFolders';
+import { linksKey, useChapterFolders } from './useChapterFolders';
 
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }> = {
   linked: { label: 'Linked', tone: 'success' },
@@ -49,7 +49,7 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
   // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).
-  const nesting = useChapterFolders({ revision: mappings, notify });
+  const nesting = useChapterFolders({ revision: linksKey(mappings), notify });
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 

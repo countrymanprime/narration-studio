@@ -10,6 +10,15 @@ import type { Notify } from '../primitives/Toast';
  * narrator can change the folders in REAPER at any time. A check writes nothing; `repair` sends the moves the last check listed, and
  * the DAW writes only when it plans the same ones (else `stale`, and the panel checks again).
  */
+/** What the folder check depends on in the links: each chapter and its track. A re-read that brings the same links is the same key, so it
+ * does not check REAPER again. */
+export function linksKey(mappings: readonly { chapterId: string; trackGuid: string }[]): string {
+  return mappings
+    .map((mapping) => `${mapping.chapterId}=${mapping.trackGuid}`)
+    .sort()
+    .join('|');
+}
+
 export function useChapterFolders({ revision, notify }: { revision: unknown; notify: Notify }) {
   const trackMap = usePort('chapterTrackMap');
   const [check, setCheck] = useState<ChapterFolders | null>(null);

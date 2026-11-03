@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -8,6 +9,7 @@ import { createMockApi } from '../../api/mockApi';
 import { WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { useChapterLinks } from './useChapterLinks';
+import { linksKey, useChapterFolders } from './useChapterFolders';
 import type { Notify } from '../primitives/Toast';
 
 afterEach(cleanup);
@@ -15,6 +17,18 @@ afterEach(cleanup);
 function Table({ notify }: { notify: Notify }) {
   const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
   return <ChapterLinksTable links={links} notify={notify} />;
+}
+
+/** The hook alone, as the Chapter links panel drives it: keyed on the links it is given. */
+function FoldersProbe({ mappings }: { mappings: { chapterId: string; trackGuid: string }[] }) {
+  useChapterFolders({ revision: linksKey(mappings), notify: vi.fn() });
+  return null;
+}
+
+function wrapperFor(api: ReturnType<typeof createMockApi>) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return <ApiProvider api={api}>{children}</ApiProvider>;
+  };
 }
 
 function renderTable(api: ReturnType<typeof createMockApi>) {
@@ -105,11 +119,35 @@ describe("the Chapter links panel's nested-chapters repair (#2838)", () => {
     const check = vi.spyOn(api, 'chapterFoldersCheck');
     renderTable(api);
     await screen.findByRole('button', { name: 'Move them out…' });
-    const before = check.mock.calls.length;
+    // The mount's checks (the first render, then the links once they are read) can still be arriving: count from when they have settled,
+    // so only the focus's own check is measured (a slow CI runner read the links after the button showed).
+    let settled = -1;
+    await waitFor(
+      async () => {
+        const now = check.mock.calls.length;
+        await act(async () => new Promise((r) => setTimeout(r, 30)));
+        expect(check.mock.calls.length).toBe(now);
+        settled = now;
+      },
+      { timeout: 2000 },
+    );
+    const before = settled;
     await act(async () => {
       window.dispatchEvent(new Event('focus'));
     });
     expect(check.mock.calls.length).toBe(before + 1);
+  });
+
+  it('reading the same links again does not check REAPER again; a changed link does', async () => {
+    const api = createMockApi({}, { nestedChapters: true });
+    const check = vi.spyOn(api, 'chapterFoldersCheck');
+    const { rerender } = render(<FoldersProbe mappings={[{ chapterId: 'c1', trackGuid: '{A}' }]} />, { wrapper: wrapperFor(api) });
+    await waitFor(() => expect(check).toHaveBeenCalledTimes(1));
+    rerender(<FoldersProbe mappings={[{ chapterId: 'c1', trackGuid: '{A}' }]} />);
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(check).toHaveBeenCalledTimes(1);
+    rerender(<FoldersProbe mappings={[{ chapterId: 'c1', trackGuid: '{B}' }]} />);
+    await waitFor(() => expect(check).toHaveBeenCalledTimes(2));
   });
 
   it('a confirmation the check stops finding a nesting for closes, and never opens again by itself (qa-breaker B2)', async () => {
