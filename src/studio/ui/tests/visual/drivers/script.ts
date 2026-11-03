@@ -45,6 +45,17 @@ export const scriptDrivers: Record<string, Driver> = {
     await goToPage(page, 'Script', { keepTips: true });
     await page.getByRole('complementary', { name: 'Tip' }).waitFor();
   },
+  // The narrator picks a chapter in the jump menu: focus lands on that chapter's heading, drawn with its ring (#2902).
+  'chapter-jump-focus': async (page) => {
+    await goToPage(page, 'Script');
+    await page.keyboard.press('Control+k');
+    const field = page.getByRole('combobox', { name: 'Jump menu' });
+    await field.fill('chapter 3');
+    await page.getByRole('option').first().waitFor();
+    await page.keyboard.press('Enter');
+    await page.getByRole('dialog').waitFor({ state: 'detached' });
+    await expect(page.locator('h2:focus')).toHaveCount(1);
+  },
   'chapter-list': async (page) => {
     await goToPage(page, 'Script');
     const drawerButton = page.getByRole('button', { name: 'Chapters', exact: true });

@@ -32,6 +32,12 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'chapter-jump-focus',
+    description:
+      'Script, a chapter chosen from the jump menu: the reader scrolled to it with keyboard focus on its heading, which shows the focus ring (#2902)',
+  },
+  {
+    page: 'script',
     state: 'reader-context-menu',
     description:
       'Script, the right-click menu on a selected word, opened under the word: Mark as and Add to the Story Bible as as submenus, then Look up, Find, Copy, Bookmark here and Record from here',
