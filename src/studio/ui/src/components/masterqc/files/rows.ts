@@ -189,11 +189,9 @@ export function buildChapterRows(
     noFile: true,
     checks: [],
   });
+  const unsampled = files.filter((candidate) => !isSampleFile(candidate));
   const rows = slots.map((slot) => {
-    const file = fileOf(
-      slot,
-      files.filter((candidate) => !isSampleFile(candidate)),
-    );
+    const file = fileOf(slot, unsampled, slots);
     const name = chapterName(slot);
     if (!file) return waitingRow(slot.id, name, openPickups?.[slot.id]);
     claimed.add(file.path);

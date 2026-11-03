@@ -180,7 +180,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
-    return (chapter && fileOf(chapter, run.files)?.path) ?? picked;
+    return (chapter && fileOf(chapter, run.files, chapters)?.path) ?? picked;
   }, [picked, chapters, run.files]);
   const current = rows.find((row) => row.id === selected);
   // A link that names neither a file of this check nor a chapter (a stale or mistyped address) is said so, with a way out; it is never
@@ -212,7 +212,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const goToChapter = (id: string) => {
     const chapter = chapters.find((candidate) => candidate.id === id);
     if (!chapter) return;
-    setPicked(fileOf(chapter, run.files)?.path ?? chapter.id);
+    setPicked(fileOf(chapter, run.files, chapters)?.path ?? chapter.id);
     remember(chapter);
   };
   const stepChapter = (direction: -1 | 1) => {
