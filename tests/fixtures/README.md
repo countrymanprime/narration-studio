@@ -122,6 +122,13 @@ host's take markers and recording check (`src/studio/desktop/internal/recordingc
 (`src/studio/ui/src/components/editing/model/duplicates.ts`, `saysScriptAgain`) implement. `coverage_test.go` and
 `duplicates.test.ts` read the file, so the two copies of the rule cannot drift apart.
 
+## manuscript-search/
+
+`parity-cases.json`: where a search term is found in a paragraph (emoji, the Turkish dotted capital I, accents, right-to-left
+text, regular-expression characters, overlapping terms), as JS string indices, and the search's two caps. The host's
+`ManuscriptSearch` (`src/studio/desktop/internal/manuscript/search.go`, `search_test.go`) and the mock
+(`src/studio/ui/src/api/manuscriptSearchMock.ts`, `manuscriptSearchMock.test.ts`) both read it. Hand-written.
+
 ## compare-parity/
 
 `cases.json`: Python's own answers, on a seeded set of awkward inputs, for the text rules the host's port of Transcript Compare
