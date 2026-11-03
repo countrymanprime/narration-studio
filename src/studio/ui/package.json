@@ -24,6 +24,7 @@
     "build-storybook": "storybook build --output-dir storybook-static",
     "atlas": "pnpm run build-storybook && playwright test -c playwright.atlas.config.ts",
     "atlas:page": "node scripts/atlas-page.mjs",
+    "audit:icons": "node scripts/icon-button-audit.mjs",
     "visual:page": "node scripts/visual-page.mjs"
   },
   "dependencies": {
