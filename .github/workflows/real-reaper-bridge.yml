@@ -4,7 +4,7 @@ name: Real REAPER bridge check
 # over the file protocol: ping, project, transport, regions, per-chapter render configuration and a real render, then the scenario
 # suites (scripts/ci/real-reaper/scenarios_*.py: arrange a scratch project, send each Experimental command, assert on what REAPER holds).
 # Report per action and per capability in the job summary. Design, limits and the phased plan: docs/research/real-reaper-ci-integration.md. The runners have no audio device.
-# The Linux job ran green locally on 2026-10-19 (REAPER 7.82 under xvfb, about 9 s) but has not run on a GitHub runner; the Windows job has not run at all.
+# Both jobs ran green on GitHub-hosted runners on 2026-11-03 (the Windows job's earlier failures: docs/research/real-reaper-ci-integration.md, 'Result: GitHub-hosted runners').
 on:
   workflow_dispatch:
     inputs:

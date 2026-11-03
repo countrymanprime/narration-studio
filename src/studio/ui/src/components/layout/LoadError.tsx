@@ -43,13 +43,13 @@ export function LoadErrorPanel({ message, details, retry, exit }: { message: str
   }, [overlay, message]);
   return (
     <Panel title="This page could not be loaded" className={ARRIVE_CLASSES}>
-      <p role="alert" className="text-sm" style={{ color: 'var(--text-muted)' }}>
+      <p role="alert" className="text-sm [overflow-wrap:anywhere]" style={{ color: 'var(--text-muted)' }}>
         {message}
       </p>
       {details && (
         // The technical text (failing paths and rules, never a payload value) is closed by default, so the card's body stays the one sentence.
         <Disclosure title="Details" open={open} onOpenChange={setOpen} className="mt-3" aside={<CopyDetails text={details} />}>
-          <p className="mt-1 text-xs break-words" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-1 text-xs [overflow-wrap:anywhere]" style={{ color: 'var(--text-muted)' }}>
             {details}
           </p>
         </Disclosure>

@@ -192,4 +192,16 @@ describe('LoadErrorPanel details', () => {
     render(<LoadErrorPanel message="It failed." retry={() => {}} />);
     expect(screen.queryByRole('button', { name: /Details/ })).toBeNull();
   });
+
+  it('lets a long unbroken sentence and its details wrap inside the card (#2796)', async () => {
+    const path = `C:\\${'LongFolder\\'.repeat(40)}file.json`;
+    render(
+      <OverlayProvider service={createOverlayService()}>
+        <LoadErrorPanel message={path} details={path} retry={() => undefined} />
+      </OverlayProvider>,
+    );
+    expect(screen.getAllByText(path)[0]?.className).toContain('[overflow-wrap:anywhere]');
+    await userEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.getAllByText(path).at(-1)?.className).toContain('[overflow-wrap:anywhere]');
+  });
 });

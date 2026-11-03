@@ -29,7 +29,6 @@ const UNWIRED = [
   'replaceNarratorRemove',
   'subscribeRecorderLevel',
   'systemCopyDiagnostics',
-  'systemOpenLogFolder',
   'transcriptAddEquivalence',
 ];
 

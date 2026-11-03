@@ -24,6 +24,32 @@ export const Information: Story = { args: { messages: [info(1, 'Entry saved.')] 
 // An error stays until it is dismissed, and carries an icon and a coloured edge so it is not told apart by colour alone.
 export const ErrorMessage: Story = { args: { messages: [failure(1, 'The Story Bible file could not be read. It was kept next to the original.')] } };
 
+// One long word (a Windows path) wraps inside the toast and the window instead of running off both edges (#2793).
+export const LongUnbrokenMessage: Story = {
+  args: { messages: [failure(1, `C:\\Users\\narrator\\Documents\\${'VeryLongProjectFolderName\\'.repeat(16)}schedule.json`)] },
+};
+
+// The same long word on an information toast and on one with an action: the button keeps its size and the words give way (#2793).
+export const LongUnbrokenWithAction: Story = {
+  args: {
+    messages: [
+      info(1, `Saved to C:\\Users\\narrator\\Documents\\${'VeryLongProjectFolderName\\'.repeat(16)}notes.json`),
+      {
+        id: 2,
+        text: `Removed C:\\Users\\narrator\\${'VeryLongProjectFolderName\\'.repeat(16)}take.wav`,
+        tone: 'info',
+        action: { label: 'Undo', onAction: fn() },
+      },
+      {
+        id: 3,
+        text: `Could not read C:\\Users\\narrator\\${'VeryLongProjectFolderName\\'.repeat(16)}take.wav`,
+        tone: 'error',
+        action: { label: 'Retry', onAction: fn() },
+      },
+    ],
+  },
+};
+
 // Messages queue up instead of replacing each other; errors sit above the information messages.
 export const Queue: Story = {
   args: {

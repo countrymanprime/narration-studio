@@ -294,6 +294,8 @@ const mockChapterTagsEmbedError = mockParams.has('mockChapterTagsEmbedError');
 // `?mockRegionsCreateError=1` makes the audio engine panel's "Create chapter regions…" dialog always fail to create, so its
 // error state can be seen without a real REAPER round trip.
 const mockRegionsCreateError = mockParams.has('mockRegionsCreateError');
+// `?mockLogFolder=refused`: Settings' Reveal the log folder in the file manager is refused by the host, so its error toast can be seen.
+const mockLogFolderRefused = mockParams.get('mockLogFolder') === 'refused';
 // `?mockDawMeters=unarmed`: the DAW's meters answer with no track armed, so the Levels menu says so instead of an input level.
 const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
 // `?mockDawConnected=0` boots with REAPER declared but its bridge not connected (the app opened on its own, not from REAPER's
@@ -563,6 +565,7 @@ const mockInitial = {
   ...(mockChapterTags ? { chapterTags: mockChapterTags } : {}),
   ...(mockChapterTagsEmbedError ? { chapterTagsEmbedAlwaysErrors: true } : {}),
   ...(mockRegionsCreateError ? { regionsCreateAlwaysErrors: true } : {}),
+  ...(mockLogFolderRefused ? { logFolderRefused: true } : {}),
   ...(mockCoverage || mockCoverageRefusal || mockStages === 'mixed'
     ? {
         coverage: {
