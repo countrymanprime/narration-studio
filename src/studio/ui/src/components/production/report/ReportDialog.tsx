@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ProductionReportExport, ProductionReportInclude, ProductionReportPreview } from '../../../api/contracts/production';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -39,7 +40,6 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
   const [exportProblem, setExportProblem] = useState<string>();
   const [writing, setWriting] = useState(false);
   const [opening, setOpening] = useState(false);
-  const [openProblem, setOpenProblem] = useState<string>();
   const latest = useRef(0);
 
   useEffect(() => {
@@ -77,12 +77,14 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
     }
   };
 
+  // A failure is a toast (never an inline line in the dialog) with Retry: opening a folder changes nothing, so asking again is safe.
   const openFolder = () => {
     setOpening(true);
-    setOpenProblem(undefined);
     production
       .productionOpenReportsFolder()
-      .catch((error: unknown) => setOpenProblem(`The folder could not be opened: ${apiErrorMessage(error)}`))
+      .catch((error: unknown) =>
+        overlay.toast(`The folder could not be opened: ${apiErrorMessage(error)}`, { tone: 'error', action: { label: 'Retry', onAction: openFolder } }),
+      )
       .finally(() => setOpening(false));
   };
 
@@ -132,26 +134,7 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
           {preview && <code className="text-xs [overflow-wrap:anywhere] select-text">{reportPath(preview.folder, preview.stem, format)}</code>}
         </div>
         <div className="flex min-w-0 flex-col gap-3">
-          {previewProblem ? (
-            <p role="alert" className="text-sm" style={DANGER}>
-              The report could not be previewed: {previewProblem}
-            </p>
-          ) : (
-            <div className="h-[min(34rem,58dvh)] overflow-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)]">
-              {preview === undefined ? (
-                <p className="p-3 text-sm" style={MUTED} aria-live="polite">
-                  Building the preview…
-                </p>
-              ) : format === 'html' ? (
-                // No fill of its own: the page draws its background, light or dark as the app's theme (the frame takes the root's color-scheme, XPR2-46).
-                <iframe title="Preview of the report" sandbox="" srcDoc={preview.html} className="size-full border-0" />
-              ) : (
-                <pre aria-label="Preview of the report" className="p-3 font-mono text-xs [overflow-wrap:anywhere] whitespace-pre-wrap">
-                  {preview.json}
-                </pre>
-              )}
-            </div>
-          )}
+          {/* What the export did comes first: under a tall preview it would be out of sight. */}
           {exportProblem && (
             <p role="alert" className="text-sm" style={DANGER}>
               The report was not written: {exportProblem}
@@ -172,10 +155,25 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
                   ? 'The contracted amount and effective rate are included.'
                   : 'The contracted amount and effective rate are left out.'}
               </p>
-              {openProblem && (
-                <p role="alert" className="mt-1" style={DANGER}>
-                  {openProblem}
+            </div>
+          )}
+          {previewProblem ? (
+            <p role="alert" className="text-sm" style={DANGER}>
+              The report could not be previewed: {previewProblem}
+            </p>
+          ) : (
+            <div className="h-[min(34rem,58dvh)] overflow-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)]">
+              {preview === undefined ? (
+                <p className="p-3 text-sm" style={MUTED} aria-live="polite">
+                  Building the preview…
                 </p>
+              ) : format === 'html' ? (
+                // No fill of its own: the page draws its background, light or dark as the app's theme (the frame takes the root's color-scheme, XPR2-46).
+                <iframe title="Preview of the report" sandbox="" srcDoc={preview.html} className="size-full border-0" />
+              ) : (
+                <pre aria-label="Preview of the report" className="p-3 font-mono text-xs [overflow-wrap:anywhere] whitespace-pre-wrap">
+                  {preview.json}
+                </pre>
               )}
             </div>
           )}

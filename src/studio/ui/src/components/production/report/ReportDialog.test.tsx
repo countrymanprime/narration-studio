@@ -128,25 +128,31 @@ describe('ReportDialog', () => {
     expect(write).toHaveBeenCalledTimes(1);
   });
 
-  it('opens the reports folder once the report is written, busy while the host answers, and says why when it cannot (#2884)', async () => {
+  it('opens the reports folder once the report is written, and a refusal is a toast with Retry, never a line in the dialog (#2884)', async () => {
     let refuse = true;
     const open = vi.fn(async () => {
       if (refuse) throw new Error('export a report first; there is no reports folder to open yet');
       return { folder: `${brand.identity.projectFolder}/production/reports` };
     });
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined as never);
     mount({ productionOpenReportsFolder: open });
     await screen.findByTitle('Preview of the report');
     // Nothing to open before the export: the button is not offered.
     expect(screen.queryByRole('button', { name: /open the folder/i })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Export' }));
-    const button = await screen.findByRole('button', { name: /open the folder/i });
-    await userEvent.click(button);
+    await userEvent.click(await screen.findByRole('button', { name: /open the folder/i }));
     expect(open).toHaveBeenCalledTimes(1);
-    expect((await screen.findByRole('alert')).textContent).toContain('there is no reports folder to open yet');
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    const [text, options] = toast.mock.calls[0] as [string, { tone: string; action: { label: string; onAction: () => void } }];
+    expect(text).toContain('there is no reports folder to open yet');
+    expect(options.tone).toBe('error');
+    expect(options.action.label).toBe('Retry');
+    expect(screen.queryByRole('alert')).toBeNull();
     refuse = false;
-    await userEvent.click(screen.getByRole('button', { name: /open the folder/i }));
+    options.action.onAction();
     await waitFor(() => expect(open).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(toast).toHaveBeenCalledTimes(1);
+    toast.mockRestore();
   });
 
   it('export-failure is an alert in the host words and the dialog stays open', async () => {

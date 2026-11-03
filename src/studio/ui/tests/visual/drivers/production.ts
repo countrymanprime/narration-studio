@@ -232,6 +232,16 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByTitle('Preview of the report').waitFor();
     await dialog.getByRole('checkbox', { name: 'Contracted amount and effective rate' }).waitFor();
   },
+  // The same dialog after Export: the written files and the folder they went to, with the open-folder button beside them.
+  'report-written': async (page) => {
+    await openProduction(page, '?mockProduction=on-pace');
+    await page.getByRole('button', { name: 'Export status report' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Export status report' });
+    await dialog.getByTitle('Preview of the report').waitFor();
+    await dialog.getByRole('button', { name: 'Export', exact: true }).click();
+    await dialog.getByText(/^Wrote production-status-.*\.html and/).waitFor();
+    await dialog.getByRole('button', { name: 'Open the folder' }).waitFor();
+  },
   // The rules the check judges by, opened from the jump menu on Production: the last of them, the background switch, is in the picture.
   'recording-check-rules': async (page) => {
     await openProduction(page);
