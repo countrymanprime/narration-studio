@@ -21,14 +21,6 @@ type typeCase struct {
 	Error     string          `json:"error"`
 }
 
-// sidecarDefaults makes DefaultTypes the sidecar's own for the rest of the test: its recordings are frozen and predate the Word type
-// (#2595), which a file without a list now reads and is written with.
-func sidecarDefaults(t *testing.T) {
-	t.Helper()
-	wordIsDefault = false
-	t.Cleanup(func() { wordIsDefault = true })
-}
-
 // run calls the Service method the case's sidecar command became.
 func (c typeCase) run(s *Service) error {
 	text := func(name string) string { value, _ := c.Arguments[name].(string); return value }
@@ -64,7 +56,6 @@ func readOrNone(t *testing.T, path string) []byte {
 // deleted the Python commands and their recorder, so nothing rewrites it): the same file after it (a Story Bible started where there was none), or the same reason with the file untouched. One
 // Service runs them all, so the held document must notice every new starting file, and a file that is gone.
 func TestTypesMatchTheSidecarCases(t *testing.T) {
-	sidecarDefaults(t)
 	raw, err := os.ReadFile(filepath.Join("testdata", "type-parity.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -166,7 +157,7 @@ func TestTypeEditsStartNoSidecarAndReuseTheHeldDocument(t *testing.T) {
 	}
 	want := []Type{
 		{"Character", "green", true}, {"Location", "blue", false}, {"Organization", "violet", false},
-		{"Lore", "amber", false}, {"Item", "teal", false}, {"Word", "teal", false}, {"Creature", "amber", true},
+		{"Lore", "amber", false}, {"Item", "teal", false}, {"Creature", "amber", true},
 	}
 	if !reflect.DeepEqual(types, want) {
 		t.Fatalf("types = %v, want %v", types, want)

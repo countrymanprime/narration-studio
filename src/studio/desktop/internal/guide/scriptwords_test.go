@@ -3,32 +3,26 @@ package guide
 import (
 	"encoding/json"
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 )
 
-// scriptWordsBible holds one entry for each branch of the import: a name with nothing set, a name set the same, a typed name whose
-// value differs and has no alternate (the Script value becomes the alternate), a source's name whose value differs and already has an
-// alternate (it goes in the note), an alias, and a locked entry.
+// scriptWordsBible holds one entry for each branch of the import: a name with nothing set (its note kept), a name with a value of its
+// own, a name with an empty alias, and a locked entry.
 const scriptWordsBible = `{"schema_version": 2, "entities": [
   {"id": "e-empty", "canonical_name": "Knave", "category": "Character", "pronunciation": {"ipa": "", "source": "not generated", "confidence": "unknown", "note": "Ask."}, "aliases": []},
-  {"id": "e-same", "canonical_name": "Dodo", "category": "Character", "pronunciation": {"ipa": "doʊdoʊ", "source": "cmu", "chosen": true}, "aliases": []},
-  {"id": "e-alternate", "canonical_name": "Queen", "category": "Character", "pronunciation": {"ipa": "KWEEN", "source": "manual", "confidence": "narrator", "chosen": true}, "aliases": []},
-  {"id": "e-note", "canonical_name": "Hatter", "category": "Character", "pronunciation": {"ipa": "hætɚ", "source": "cmu", "note": "Mad.", "alternate": {"ipa": "HAT-er", "source": "manual"}}, "aliases": []},
+  {"id": "e-valued", "canonical_name": "Queen", "category": "Character", "pronunciation": {"ipa": "KWEEN", "source": "manual", "confidence": "narrator", "chosen": true}, "aliases": []},
   {"id": "e-alias", "canonical_name": "Cheshire Cat", "category": "Character", "pronunciation": {"ipa": "x", "source": "cmu"}, "aliases": [{"text": " Cheshire ", "pronunciation": {}, "occurrences": []}]},
   {"id": "e-locked", "canonical_name": "Duchess", "category": "Character", "locked": true, "pronunciation": {"ipa": "", "source": "not generated"}, "aliases": []}
 ], "types": [{"name": "Character", "colour": "green", "speaks": true, "builtin": "Character"}]}`
 
 var scriptWords = []ScriptWord{
-	{Word: "knave", Name: "Knave", Say: "NAYV", Source: "manual"},
-	{Word: "dodo", Name: "dodo", Say: "doʊdoʊ", Source: "cmu"},
-	{Word: "queen", Name: "Queen", Say: "kwiːn", Source: "cmu"},
-	{Word: "hatter", Name: "Hatter", Say: "HATTER", Source: "manual"},
-	{Word: "cheshire", Name: "CHESHIRE", Say: "ʧɛʃɚ", Source: "espeak"},
-	{Word: "duchess", Name: "Duchess", Say: "DUTCH-ess", Source: "manual"},
-	{Word: "tulgey", Name: "Tulgey", Say: "TUL-gee", Source: "manual"},
-	{Word: "frabjous", Name: "Frabjous", Say: "", Source: ""},
+	{Word: "knave", Say: "NAYV"},
+	{Word: "queen", Say: "kwiːn"},
+	{Word: "CHESHIRE", Say: "ʧɛʃɚ"},
+	{Word: "duchess", Say: "DUTCH-ess"},
+	{Word: "tulgey", Say: "TUL-gee"},
+	{Word: "frabjous", Say: ""},
 }
 
 func readBible(t *testing.T, s *Service) map[string]any {
@@ -55,6 +49,9 @@ func namedEntry(t *testing.T, document map[string]any, name string) map[string]a
 	return nil
 }
 
+// A Script value fills a name that has no pronunciation, as the narrator's chosen value from "script_imported"; a name with a value of
+// its own, a locked entry and a word no name has are left as they are, and no entry is ever made (#2595). Running it again changes
+// nothing.
 func TestImportScriptWords(t *testing.T) {
 	s, _ := createService(t)
 	if err := os.WriteFile(s.guidePath(), []byte(scriptWordsBible), 0o600); err != nil {
@@ -64,36 +61,25 @@ func TestImportScriptWords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (ScriptWordImport{Filled: 2, Same: 1, Alternates: 1, Notes: 1, Created: 2, Locked: 1}); result != want {
+	if want := (ScriptWordImport{Filled: 2, Kept: 1, Locked: 1, Unmatched: 2}); result != want {
 		t.Fatalf("result = %+v, want %+v", result, want)
 	}
 	document := readBible(t, s)
-	pronunciation := func(name string) any { return namedEntry(t, document, name)["pronunciation"] }
-	for name, want := range map[string]any{
-		"Knave":   map[string]any{"ipa": "NAYV", "source": "manual", "chosen": true, "note": "Ask."},
-		"Dodo":    map[string]any{"ipa": "doʊdoʊ", "source": "cmu", "chosen": true},
-		"Queen":   map[string]any{"ipa": "KWEEN", "source": "manual", "confidence": "narrator", "chosen": true, "alternate": map[string]any{"ipa": "kwiːn", "source": "cmu"}},
-		"Hatter":  map[string]any{"ipa": "hætɚ", "source": "cmu", "note": "Mad.\nScript page: HATTER (manual)", "alternate": map[string]any{"ipa": "HAT-er", "source": "manual"}},
-		"Duchess": map[string]any{"ipa": "", "source": "not generated"},
-		"Tulgey":  map[string]any{"ipa": "TUL-gee", "source": "manual", "chosen": true},
-		// A word flagged with no value is an entry with nothing generated: the migration asks no source.
-		"Frabjous": map[string]any{"ipa": "", "source": "not generated", "confidence": "unknown"},
+	if entities := document["entities"].([]any); len(entities) != 4 {
+		t.Fatalf("entries = %d, want the 4 there were", len(entities))
+	}
+	for name, want := range map[string]map[string]any{
+		"Knave":   {"ipa": "NAYV", "source": "script_imported", "confidence": "narrator", "chosen": true, "note": "Ask."},
+		"Queen":   {"ipa": "KWEEN", "source": "manual", "confidence": "narrator", "chosen": true},
+		"Duchess": {"ipa": "", "source": "not generated"},
 	} {
-		if got := pronunciation(name); !reflect.DeepEqual(got, want) {
-			t.Errorf("%s: %v, want %v", name, got, want)
+		if got := namedEntry(t, document, name)["pronunciation"]; !reflect.DeepEqual(got, any(want)) {
+			t.Errorf("%s = %v, want %v", name, got, want)
 		}
 	}
-	alias := namedEntry(t, document, "Cheshire Cat")["aliases"].([]any)[0].(map[string]any)["pronunciation"]
-	if want := map[string]any{"ipa": "ʧɛʃɚ", "source": "espeak", "chosen": true}; !reflect.DeepEqual(alias, want) {
-		t.Errorf("alias: %v", alias)
-	}
-	tulgey := namedEntry(t, document, "Tulgey")
-	if tulgey["category"] != "Word" || tulgey["manual"] != true || tulgey["id"] != entityID("Tulgey") || len(tulgey["occurrences"].([]any)) != 1 {
-		t.Errorf("created entry = %v", tulgey)
-	}
-	types, _ := s.Types()
-	if len(types) != 2 || types[1].Name != "Word" {
-		t.Errorf("types = %+v", types)
+	alias := namedEntry(t, document, "Cheshire Cat")["aliases"].([]any)[0].(map[string]any)
+	if want := map[string]any{"ipa": "ʧɛʃɚ", "source": "script_imported", "confidence": "narrator", "chosen": true}; !reflect.DeepEqual(alias["pronunciation"], any(want)) {
+		t.Errorf("alias = %v", alias["pronunciation"])
 	}
 
 	before, _ := os.ReadFile(s.guidePath())
@@ -101,28 +87,51 @@ func TestImportScriptWords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if again.Filled+again.Alternates+again.Notes+again.Created != 0 {
-		t.Errorf("a second import changed something: %+v", again)
+	if want := (ScriptWordImport{Kept: 3, Locked: 1, Unmatched: 2}); again != want {
+		t.Fatalf("again = %+v, want %+v", again, want)
 	}
 	if after, _ := os.ReadFile(s.guidePath()); string(after) != string(before) {
-		t.Fatal("a second import wrote the file")
+		t.Fatal("a second import changed the Story Bible")
 	}
 }
 
-// A project with no Story Bible yet gets one, as a create would start it.
-func TestImportScriptWordsStartsAStoryBible(t *testing.T) {
+// Without a Story Bible nothing matches and none is started.
+func TestImportScriptWordsStartsNoStoryBible(t *testing.T) {
 	s, _ := createService(t)
-	if err := os.RemoveAll(filepath.Dir(s.guidePath())); err != nil {
+	if err := os.Remove(s.guidePath()); err != nil {
 		t.Fatal(err)
 	}
-	result, err := s.ImportScriptWords([]ScriptWord{{Word: "tulgey", Name: "Tulgey", Say: "TUL-gee", Source: "manual"}})
-	if err != nil || result.Created != 1 {
-		t.Fatalf("result = %+v, %v", result, err)
+	result, err := s.ImportScriptWords(scriptWords)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if entry := namedEntry(t, readBible(t, s), "Tulgey"); entry["category"] != "Word" {
-		t.Fatalf("entry = %v", entry)
+	if result != (ScriptWordImport{Unmatched: 6}) {
+		t.Fatalf("result = %+v", result)
 	}
-	if result, err := s.ImportScriptWords(nil); err != nil || result != (ScriptWordImport{}) {
-		t.Fatalf("nothing to import = %+v, %v", result, err)
+	if _, err := os.Stat(s.guidePath()); !os.IsNotExist(err) {
+		t.Fatalf("a Story Bible was started: %v", err)
+	}
+}
+
+// A name goes to the first entry in list order that has it, as its canonical name or an alias, as the Script page reads it.
+func TestAScriptWordGoesToTheFirstEntryThatHasTheName(t *testing.T) {
+	s, _ := createService(t)
+	bible := `{"schema_version": 2, "entities": [
+  {"id": "e-a", "canonical_name": "Marianne", "category": "Character", "pronunciation": {"ipa": "", "source": "not generated"}, "aliases": [{"text": "Mary", "pronunciation": {}, "occurrences": []}]},
+  {"id": "e-b", "canonical_name": "Mary", "category": "Character", "pronunciation": {"ipa": "", "source": "not generated"}, "aliases": []}
+], "types": [{"name": "Character", "colour": "green", "speaks": true, "builtin": "Character"}]}`
+	if err := os.WriteFile(s.guidePath(), []byte(bible), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportScriptWords([]ScriptWord{{Word: "mary", Say: "MAIR-ee"}}); err != nil {
+		t.Fatal(err)
+	}
+	document := readBible(t, s)
+	alias := namedEntry(t, document, "Marianne")["aliases"].([]any)[0].(map[string]any)
+	if alias["pronunciation"].(map[string]any)["ipa"] != "MAIR-ee" {
+		t.Errorf("A's alias = %v", alias)
+	}
+	if ipa := namedEntry(t, document, "Mary")["pronunciation"].(map[string]any)["ipa"]; ipa != "" {
+		t.Errorf("B took the word: %v", ipa)
 	}
 }
