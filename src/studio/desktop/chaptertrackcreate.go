@@ -48,13 +48,17 @@ const (
 // windows) add one track: the second runs after the first has linked the chapter and is refused as already_linked. made holds the
 // tracks this app added this session, by GUID key, with their names: they are the chapter's even before the project is saved, when
 // neither the saved file nor (with the engine not answering) the live list has them.
-var chapterTrackCreates = struct {
-	sync.Mutex
+var chapterTrackCreates = &chapterTrackCreateLock{made: map[string]string{}}
+
+// chapterTrackCreateLock is chapterTrackCreates' type: the lock every create holds, and the tracks made under it.
+type chapterTrackCreateLock struct {
+	mu sync.Mutex
+	// +checklocks:mu
 	made map[string]string
-}{made: map[string]string{}}
+}
 
 // setChapterLink writes the new track's link; a seam so a test can make the write fail after the engine added the track.
-var setChapterLink = func(store *evidence.MappingStore, documentID, chapterID, chapterTitle, trackGUID string) (evidence.ChapterLinkSet, error) {
+var setChapterLink = func(store *evidence.MappingStore, documentID, chapterID, chapterTitle, trackGUID string) (evidence.ChapterLinkSet, error) { // +checklocksignore: a test seam, called under the create lock by chance
 	return store.SetChapter(documentID, chapterID, chapterTitle, trackGUID)
 }
 
@@ -170,15 +174,15 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 	if err != nil {
 		return nil, err
 	}
-	chapterTrackCreates.Lock()
-	defer chapterTrackCreates.Unlock()
+	chapterTrackCreates.mu.Lock()
+	defer chapterTrackCreates.mu.Unlock()
 	// Read after the lock: a create that held it may have linked this chapter.
 	_, links, err := chapterLinksFor(svc, chapterID)
 	if err != nil {
 		return nil, err
 	}
 	present, known := projectTracksNow(ctx, svc)
-	if refusal, refused := alreadyLinked(name, links, present, known); refused {
+	if refusal, refused := alreadyLinked(name, links, chapterTrackCreates.made, present, known); refused {
 		return refusal, nil
 	}
 	if taken, ok := trackNamed(present, title); ok {
@@ -228,10 +232,10 @@ func projectTracksNow(ctx context.Context, svc hostServices) ([]tracks.Track, bo
 
 // alreadyLinked refuses a create for a chapter linked to a track the project has, or to one this app added (made, not saved yet), naming
 // it. A link to a track that is gone ("Track missing") is not refused: a new track replaces it. With the tracks unknown, any link refuses.
-// The caller holds chapterTrackCreates.
-func alreadyLinked(name string, links []string, present []tracks.Track, known bool) (chapterTrackCreateRefusal, bool) {
+// made is chapterTrackCreates.made, read by a caller that holds its lock.
+func alreadyLinked(name string, links []string, made map[string]string, present []tracks.Track, known bool) (chapterTrackCreateRefusal, bool) {
 	for _, link := range links {
-		trackName, found := chapterTrackCreates.made[guidKey(link)]
+		trackName, found := made[guidKey(link)]
 		for _, track := range present {
 			if guidKey(track.GUID) == guidKey(link) {
 				trackName, found = track.Name, true
