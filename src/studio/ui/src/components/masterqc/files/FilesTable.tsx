@@ -8,7 +8,7 @@ import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import type { FileActions } from './FileActions';
-import { buildChapterRows, buildRows, sharedWaiting, type Cell, type ChapterSlot, type FileRow } from './rows';
+import { buildChapterRows, buildRows, sharedWaiting, type Cell, type ChapterSlot, type FileRow, type TextMatch } from './rows';
 import { useDawGates, type Gate } from './useDawGates';
 import { useMasterSelection } from './useMasterSelection';
 
@@ -25,7 +25,7 @@ const MUTED = { color: 'var(--text-muted)' };
  * The table's own floor (`TABLE_FLOOR`) keeps File at least about 10rem: under it the table scrolls in its box rather than breaking a
  * chapter name a letter a line (XMS-1).
  */
-const COLUMNS = ['auto', '4.5rem', '4.75rem', '4.75rem', '6rem', '6.5rem', '7.5rem'] as const;
+const COLUMNS = ['auto', '4rem', '4.25rem', '4.25rem', '5.75rem', '6.25rem', '5.75rem', '7rem'] as const;
 const TABLE_FLOOR = 'min-w-[44rem]';
 /**
  * Under the floor (a card narrower than 44 rem: the tablet width and the 390 reflow) a row is a block, not a clipped table row (#2635): the
@@ -45,6 +45,7 @@ const STAT = {
   peak: '@max-[44rem]:row-2 @max-[44rem]:col-3 @max-[44rem]:text-left!',
   noise: '@max-[44rem]:row-2 @max-[44rem]:col-4 @max-[44rem]:text-left!',
   headTail: '@max-[44rem]:row-2 @max-[44rem]:col-[5/-1] @max-[44rem]:text-left!',
+  text: '@max-[44rem]:row-3 @max-[44rem]:col-[1/-1] @max-[44rem]:text-left!',
 } as const;
 /** The message of a row with no measurements: under the name, from the second column on; empty when the card says it once. */
 const NARROW_MESSAGE = '@max-[44rem]:col-[1/-1] @max-[44rem]:row-2 @max-[44rem]:empty:hidden';
@@ -53,7 +54,16 @@ const SCROLL_AFTER = 9;
 const NOWRAP = 'whitespace-nowrap';
 
 /** The column headings: the header row draws them, and a stacked row draws each over its value (`StackedHeading`), so the two cannot differ. */
-const HEADING = { file: 'File', length: 'Length', rms: 'RMS', peak: 'Peak', noise: 'Noise floor', headTail: 'Head / tail', result: 'Result' } as const;
+const HEADING = {
+  file: 'File',
+  length: 'Length',
+  rms: 'RMS',
+  peak: 'Peak',
+  noise: 'Noise floor',
+  headTail: 'Head / tail',
+  text: 'Text',
+  result: 'Result',
+} as const;
 
 /** A measurement's heading over its value in a stacked row. The header row is read by a screen reader there (`sr-only`), so this is hidden from it. */
 function StackedHeading({ children }: { children: string }) {
@@ -69,6 +79,8 @@ const NOTHING_MEASURED = 'Nothing measured yet.';
 /** A measured value; one the profile's rule did not meet is red, bold, marked with a cross and said in words for a screen reader. */
 function Value({ cell }: { cell: Cell | undefined }) {
   if (!cell) return null;
+  // "Not checked" is a plain neutral state (no recording check backs this file), not a miss.
+  if (cell.unchecked) return <span style={MUTED}>{cell.text}</span>;
   return (
     <span className={cell.missed ? 'font-semibold' : undefined} style={cell.missed ? DANGER : undefined}>
       {cell.missed && <span aria-hidden="true">✕ </span>}
@@ -126,6 +138,7 @@ export function FilesTable({
   profile,
   slots,
   openPickups,
+  texts,
   heading,
   controls,
   notices = [],
@@ -140,6 +153,8 @@ export function FilesTable({
   slots?: readonly ChapterSlot[];
   /** Open pickups by chapter id (the Pickups page's list); a row with no file says how many it waits on. */
   openPickups?: Readonly<Record<string, number>>;
+  /** Each chapter's current Recording Check by chapter id, for the Text column; a file without one says "Not checked". */
+  texts?: Readonly<Record<string, TextMatch>>;
   /** The page title, chapter bar and profile pill, drawn in the panel's header. */
   heading?: ReactNode;
   /** The page's run controls, drawn beside the refresh icon. */
@@ -152,8 +167,8 @@ export function FilesTable({
 }) {
   const rows = useMemo(() => {
     if (!profile) return [];
-    return slots ? buildChapterRows(files, profile, slots, openPickups) : buildRows(files, profile);
-  }, [files, profile, slots, openPickups]);
+    return slots ? buildChapterRows(files, profile, slots, openPickups, texts) : buildRows(files, profile);
+  }, [files, profile, slots, openPickups, texts]);
   const { current, bind, onKeyDown } = useMasterSelection({ rows, selected, onSelect });
   // A message rows share is said once, in the card, and no row repeats it; with no file measured at all one line says so for every row.
   const shared = useMemo(() => sharedWaiting(rows), [rows]);
@@ -234,6 +249,7 @@ export function FilesTable({
                 <TableHeader className={NOWRAP}>{HEADING.peak}</TableHeader>
                 <TableHeader className={NOWRAP}>{HEADING.noise}</TableHeader>
                 <TableHeader className={NOWRAP}>{HEADING.headTail}</TableHeader>
+                <TableHeader className={NOWRAP}>{HEADING.text}</TableHeader>
                 <TableHeader className={NOWRAP}>{HEADING.result}</TableHeader>
               </TableRow>
             </TableHead>
@@ -272,7 +288,7 @@ function FileTableRow({ row, said, selected, onSelect }: { row: FileRow; said: b
           <TableCell numeric className="@max-[44rem]:hidden">
             —
           </TableCell>
-          <TableCell colSpan={4} muted className={NARROW_MESSAGE}>
+          <TableCell colSpan={5} muted className={NARROW_MESSAGE}>
             {said ? null : `${row.waiting} · not mastered`}
           </TableCell>
         </>
@@ -297,6 +313,10 @@ function FileTableRow({ row, said, selected, onSelect }: { row: FileRow; said: b
           <TableCell numeric className={STAT.headTail}>
             <StackedHeading>{HEADING.headTail}</StackedHeading>
             <Value cell={row.head} /> / <Value cell={row.tail} />
+          </TableCell>
+          <TableCell numeric className={`${NOWRAP} ${STAT.text}`}>
+            <StackedHeading>{HEADING.text}</StackedHeading>
+            <Value cell={row.text} />
           </TableCell>
         </>
       )}

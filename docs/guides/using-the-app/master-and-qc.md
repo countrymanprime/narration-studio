@@ -44,10 +44,13 @@ before any check, then lines such as **12 rows marked Waiting: no file measured 
 after a check that stopped, **2 rows marked Not measured: the check stopped before these files**. A row
 whose reason is its own (its pickups, a file that could not be read) keeps it in the row.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
-tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
-profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
-Clicks or Text column: the measurement reports clipping, not clicks, and does not compare the audio with the text, so
-nothing is drawn for them. A value that misses the
+tone at its **Head / tail** in seconds, then its **Text** and its **Result**: **Pass**, **Fail**, **Not judged** (a value the
+profile needs could not be measured), or **Waiting** / **Not measured**. **Text** is the share
+of the chapter's words the [recording check](production.md) found in its recording ("Text present"), judged by that
+check's own thresholds; a figure under them is red with a cross. The measurement itself does not compare the audio with
+the text: the figure is the chapter's current check, read back, and Master & QC never runs one. A file that matches no
+chapter, or whose chapter has no current check (never run, or out of date since the recording changed), says **Not checked**,
+never a guess. The table has no Clicks column. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the

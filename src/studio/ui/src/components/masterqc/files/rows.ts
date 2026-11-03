@@ -9,7 +9,17 @@ import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
 import { fileVerdict, type FileVerdict } from '../../master/fileVerdict';
 
 /** One value in a cell: its text (a dash when it could not be measured) and whether the profile's rule on it was not met. */
-export type Cell = { text: string; missed: boolean };
+export type Cell = { text: string; missed: boolean; unchecked?: true };
+
+/** A chapter's current Recording Check, as the Text column draws it: the share of its words present, and whether the narrator's thresholds judged it met. */
+export type TextMatch = { percent: number; met: boolean };
+
+/** The Text cell of a file nothing current backs: the file has no chapter, or its chapter has no current check. Never a guess. */
+const NOT_CHECKED: Cell = { text: 'Not checked', missed: false, unchecked: true };
+
+function textCell(match: TextMatch | undefined): Cell {
+  return match ? { text: `${match.percent}%`, missed: !match.met } : NOT_CHECKED;
+}
 
 type CheckRow = { ruleId: string; label: string; passed: boolean; value: string; limit: string };
 
@@ -33,6 +43,8 @@ export type FileRow = {
   noiseFloor?: Cell;
   head?: Cell;
   tail?: Cell;
+  /** The file's chapter's Recording Check ("Text present"); "Not checked" when there is none. */
+  text?: Cell;
   checks: CheckRow[];
 };
 
@@ -102,7 +114,7 @@ function peakCell(report: MeasureReport, file: MeasureFileResult, profile: Deliv
   return cell(sample ? report.sample_peak_dbfs : report.true_peak_dbtp, resultFor(file, profile, ['true_peak_dbtp', 'sample_peak_dbfs']), formatLevel);
 }
 
-function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: MeasureReport): FileRow {
+function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: MeasureReport, match?: TextMatch): FileRow {
   return {
     id: file.path,
     name: file.name,
@@ -113,12 +125,13 @@ function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: 
     noiseFloor: cell(report.noise_floor_dbfs, resultFor(file, profile, ['noise_floor_dbfs']), formatLevel),
     head: cell(report.head_room_tone_seconds, resultFor(file, profile, ['head_room_tone_seconds']), (n) => n.toFixed(1)),
     tail: cell(report.tail_room_tone_seconds, resultFor(file, profile, ['tail_room_tone_seconds']), (n) => n.toFixed(1)),
+    text: textCell(match),
     checks: checkRows(file, profile),
   };
 }
 
-function rowOf(file: MeasureFileResult, profile: DeliveryProfile, name = file.name): FileRow {
-  if (file.status === 'measured' && file.report) return { ...measuredRow(file, profile, file.report), name };
+function rowOf(file: MeasureFileResult, profile: DeliveryProfile, name = file.name, match?: TextMatch): FileRow {
+  if (file.status === 'measured' && file.report) return { ...measuredRow(file, profile, file.report, match), name };
   const waiting = waitingText(file);
   return { id: file.path, name, verdict: 'none', waiting: waiting.text, waitingPill: waiting.pill, waitingShared: waiting.shared, checks: [] };
 }
@@ -142,7 +155,8 @@ function noFileText(open: number | undefined): string {
  * One row per chapter, the credits and the retail sample, in the manuscript's order, whether or not they have a file (the Studio Next mock's
  * Master page, so the table is never empty): a row with a file is that file's row, named the way the manuscript names the chapter, and one
  * without says what it waits on ("Waiting on 3 pickups · not mastered") with the neutral Waiting pill. `openPickups` counts the open pickups
- * by chapter id, from the Pickups page's own list; with none (not read yet) nothing is said about pickups. A measured file no row claims keeps
+ * by chapter id, from the Pickups page's own list; `texts` is each chapter's current Recording Check by chapter id (the Text column; a measured
+ * file with no entry says "Not checked"); with none (not read yet) nothing is said about pickups. A measured file no row claims keeps
  * its own file name after them, so it still counts. A fileless row is keyed by its chapter's id, which the shared chapter selects.
  */
 export function buildChapterRows(
@@ -150,6 +164,7 @@ export function buildChapterRows(
   profile: DeliveryProfile,
   slots: readonly ChapterSlot[],
   openPickups?: Readonly<Record<string, number>>,
+  texts?: Readonly<Record<string, TextMatch>>,
 ): FileRow[] {
   const claimed = new Set<string>();
   const waitingRow = (id: string, name: string, open?: number): FileRow => ({
@@ -170,7 +185,7 @@ export function buildChapterRows(
     const name = chapterName(slot);
     if (!file) return waitingRow(slot.id, name, openPickups?.[slot.id]);
     claimed.add(file.path);
-    return rowOf(file, profile, name);
+    return rowOf(file, profile, name, texts?.[slot.id]);
   });
   const sample = files.find(isSampleFile);
   if (sample) claimed.add(sample.path);

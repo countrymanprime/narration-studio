@@ -18,6 +18,19 @@ const mount = (props: Partial<React.ComponentProps<typeof FilesDemo>> = {}, daw?
 const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) });
 
 describe('Master & QC files', () => {
+  it('draws the Text column: a chapter’s current Recording Check, a miss marked, and "Not checked" for a file without one (#2105)', () => {
+    const files = [passing('Chapter 01.wav'), passing('Chapter 03.wav'), passing('Chapter 04.wav')];
+    const texts = { [CHAPTERS[0]!.id]: { percent: 97, met: true }, [CHAPTERS[2]!.id]: { percent: 71, met: false } };
+    mount({ files, chapters: CHAPTERS, chapterRows: true, texts });
+    expect(screen.getByRole('columnheader', { name: 'Text' })).toBeTruthy();
+    const textOf = (name: string) => within(row(name)).getAllByRole('cell')[6]!;
+    expect(textOf('Chapter 1 — Down the Rabbit-Hole').textContent).toContain('97%');
+    expect(textOf('Chapter 3').textContent).toContain('71%');
+    expect(textOf('Chapter 3').textContent).toContain('(not met)');
+    expect(textOf('Chapter 4 — The Rabbit Sends in a Little Bill').textContent).toContain('Not checked');
+    expect(textOf('Chapter 4 — The Rabbit Sends in a Little Bill').textContent).not.toContain('(not met)');
+  });
+
   it('labels each file with the chapter heading in the manuscript style, and the retail sample row', () => {
     const files = [...TWO_FAIL, passing('Retail Sample.wav'), passing('Interlude.wav')];
     mount({ files, chapters: CHAPTERS });
@@ -187,7 +200,7 @@ describe('the file table at narrow widths and long books', () => {
       expect(cells[0]!.className).toContain('break-words');
       expect(cells[0]!.className).toContain('@max-[44rem]:mr-[6.5rem]');
       expect(cells[0]!.querySelector('[dir="auto"]')).toBeTruthy();
-      expect(within(cells[6]!).getByText('Pass')).toBeTruthy();
+      expect(within(cells[7]!).getByText('Pass')).toBeTruthy();
     }
     expect(screen.getAllByText(/פרק ראשון/).length).toBeTruthy();
     expect(screen.getAllByText(/🐇🐇🐇/).length).toBeGreaterThan(0);
@@ -209,11 +222,11 @@ describe('the file table at narrow widths and long books', () => {
     expect(first.className).toContain('@max-[44rem]:grid!');
     const cells = within(first).getAllByRole('cell');
     expect(cells[0]!.className).toContain('@max-[44rem]:row-1');
-    expect(cells[6]!.className).toContain('@max-[44rem]:row-1');
+    expect(cells[7]!.className).toContain('@max-[44rem]:row-1');
     // Each stacked measurement carries its heading, drawn from the same text as the column header (they cannot drift), and hidden from a
     // screen reader, which has the header row.
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    [1, 2, 3, 4, 5].forEach((index) => {
+    [1, 2, 3, 4, 5, 6].forEach((index) => {
       const heading = cells[index]!.querySelector('[aria-hidden="true"]');
       expect(heading?.textContent).toBe(headers[index]);
       expect(heading?.className).toContain('@max-[44rem]:block');
