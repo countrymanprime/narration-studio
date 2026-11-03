@@ -136,7 +136,9 @@ describe('ToastRegion', () => {
     expect(region.className).toContain('[:root[data-modal-open]_&]:bottom-[var(--page-gutter)]');
     expect(region.className).toContain('[:root[data-modal-open]_&]:right-[var(--page-gutter)]');
     expect(region.className).not.toContain('top-4');
-    expect(region.className).toContain('bottom-[calc(var(--page-gutter)+var(--toast-clear,0px))]');
+    // The bottom offset follows the bars through `--toast-reserve`, which is `--toast-clear` capped so the toasts keep 8rem of the window (#2899).
+    expect(region.className).toContain('bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))]');
+    expect(region.style.getPropertyValue('--toast-reserve')).toContain('var(--toast-clear, 0px)');
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
     const first = render(
       <Dialog dismissOnOutsidePress={false} title="Download model" actions={null}>
@@ -225,5 +227,45 @@ describe('ToastRegion with a message far taller than the window (issue 2899)', (
   it('leaves an ordinary short message out of the tab order', () => {
     render(<ToastRegion messages={[info(1, 'Entry saved.')]} dismiss={vi.fn()} />);
     expect(textOf('Entry saved.').getAttribute('tabindex')).toBeNull();
+  });
+});
+
+describe('ToastRegion, action labels and focus (issue 2899)', () => {
+  it('caps a long action label at a share of the toast and wraps it, so Dismiss and the message keep their room', () => {
+    render(
+      <ToastRegion
+        messages={[{ ...failure(1, 'Failed'), action: { label: `Retry ${'the whole export again '.repeat(10)}`, onAction: vi.fn() } }]}
+        dismiss={vi.fn()}
+      />,
+    );
+    const action = screen.getByRole('button', { name: /^Retry the whole/ });
+    // Natural width for a short label (flex-none: it never shrinks to a sliver and wraps letter by letter), a cap at 40% of the toast for a long one, which then wraps.
+    expect(action.className).toContain('max-w-[40%]');
+    expect(action.className).toContain('flex-none');
+    expect(action.className).toContain('[overflow-wrap:anywhere]');
+    // Never more than three lines, whatever the label: the whole label is the button's title.
+    expect(action.className).toContain('line-clamp-3');
+    expect(action.getAttribute('title')).toMatch(/^Retry the whole export again/);
+    expect(screen.getByRole('button', { name: 'Dismiss message' }).className).toContain('flex-none');
+  });
+
+  it('moves focus to the next toast’s Dismiss when the focused one is dismissed, else the one before, and leaves it alone when a pointer dismissed a toast that had no focus', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[failure(1), failure(2), failure(3)]} dismiss={dismiss} />);
+    const buttons = screen.getAllByRole('button', { name: 'Dismiss message' });
+    buttons[1]!.focus();
+    fireEvent.click(buttons[1]!);
+    act(() => void vi.advanceTimersByTime(1));
+    expect(dismiss).toHaveBeenLastCalledWith(2);
+    expect(document.activeElement).toBe(buttons[2]);
+    buttons[2]!.focus();
+    fireEvent.click(buttons[2]!);
+    act(() => void vi.advanceTimersByTime(1));
+    expect(document.activeElement).toBe(buttons[1]);
+    // A click that did not have focus moves nothing.
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.click(buttons[0]!);
+    act(() => void vi.advanceTimersByTime(1));
+    expect(document.activeElement).toBe(document.body);
   });
 });

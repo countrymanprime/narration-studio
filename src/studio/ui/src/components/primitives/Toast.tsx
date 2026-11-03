@@ -80,13 +80,14 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
-        className="max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-clear,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere]"
+        className="max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere]"
       >
         {message.text}
       </span>
       {message.action && (
         <button
-          className={`flex-none font-semibold underline underline-offset-2 ${HIT_AREA}`}
+          title={message.action.label}
+          className={`line-clamp-3 max-w-[40%] flex-none text-left font-semibold [overflow-wrap:anywhere] underline underline-offset-2 ${HIT_AREA}`}
           onClick={() => {
             message.action!.onAction();
             dismiss(id);
@@ -99,7 +100,15 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       <button
         aria-label="Dismiss message"
         className="inline-flex size-[var(--button-height-sm)] flex-none items-center justify-center rounded-[var(--radius-button)] hover:opacity-75"
-        onClick={() => dismiss(id)}
+        onClick={(event) => {
+          // Dismissing the button that has focus must not drop focus on the page: it moves to the next toast's Dismiss, else the one before.
+          const all = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')];
+          const at = all.indexOf(event.currentTarget);
+          const next = all[at + 1] ?? all[at - 1];
+          const hadFocus = document.activeElement === event.currentTarget;
+          dismiss(id);
+          if (hadFocus && next) window.setTimeout(() => next.focus(), 0);
+        }}
       >
         <FontAwesomeIcon icon={faXmark} />
       </button>
@@ -135,8 +144,14 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
   return createPortal(
     <div
       data-toast-region
-      style={{ '--toast-n': Math.max(1, messages.length) } as CSSProperties}
-      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
+      style={
+        {
+          '--toast-n': Math.max(1, messages.length),
+          // The bars the toasts rise above (`--toast-clear`, the Booth's footer and notice) never take more of a short window than leaves the toasts 8rem to stand in.
+          '--toast-reserve': 'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - 8rem))',
+        } as CSSProperties
+      }
+      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
         {messages

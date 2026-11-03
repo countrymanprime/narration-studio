@@ -124,7 +124,7 @@ export function createOverlayService(): OverlayService {
   };
 
   const toast = (text: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
-    if (!text) return;
+    if (text.trim() === '') return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs, undo };
     // A message that says what one on screen already says, with the same action or none, is that message again, and one on the same topic
