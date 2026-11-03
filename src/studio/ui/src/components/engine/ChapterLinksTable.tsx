@@ -5,7 +5,6 @@ import { chapterName } from '../../chapterName';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
-import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Menu, type MenuItem } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
@@ -185,23 +184,13 @@ function ChapterLinkRow({
         <span className="flex items-center justify-end gap-2 whitespace-nowrap">
           {showPicker ? (
             <>
-              <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} pending={busy} onClick={() => onConfirm(chosen)}>
-                Confirm
-              </Button>
-              {hasLink && (
-                <Button variant="secondary" disabled={busy} onClick={() => setPicking(false)}>
-                  Cancel
-                </Button>
-              )}
+              <IconButton action="confirmTrack" variant={chosen ? 'primary' : 'default'} disabled={!chosen} pending={busy} onClick={() => onConfirm(chosen)} />
+              {hasLink && <IconButton action="cancelEdit" disabled={busy} onClick={() => setPicking(false)} />}
             </>
           ) : hasLink ? (
             <>
-              <Button variant="secondary" disabled={busy} onClick={() => setPicking(true)}>
-                Change
-              </Button>
-              <Button variant="secondary" pending={busy} onClick={onClear}>
-                Clear
-              </Button>
+              <IconButton action="changeTrack" disabled={busy} onClick={() => setPicking(true)} />
+              <IconButton action="clearLink" pending={busy} onClick={onClear} />
             </>
           ) : null}
           <Menu render={<IconButton action="moreActions" label={`More actions for ${short}`} />} items={menu}>

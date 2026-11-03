@@ -72,7 +72,7 @@ describe('ChapterSyncPanel', () => {
     const onChanged = vi.fn();
     render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={onChanged} />}</ApiProvider>);
     await screen.findByText('Chapter sync is off.');
-    fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on chapter sync' }));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     await screen.findByText('Last synced');
   });
@@ -82,7 +82,7 @@ describe('ChapterSyncPanel', () => {
     const onChanged = vi.fn();
     render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={onChanged} />}</ApiProvider>);
     await screen.findByText('Last synced');
-    fireEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Turn off chapter sync' }));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     await screen.findByText('Chapter sync is off.');
   });
@@ -97,7 +97,7 @@ describe('ChapterSyncPanel', () => {
     expect(screen.getByText('Two tracks match: “Chapter 5 part 1” and “Chapter 5 part 2”. A chapter is checked from one track.')).toBeTruthy();
     const select = screen.getByLabelText('Track for Chapter 5') as HTMLSelectElement;
     expect(select.value).toBe('g5a');
-    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Link this track' }));
     await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c5', 'g5a'));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked.'));
   });
@@ -147,7 +147,7 @@ describe('ChapterSyncPanel', () => {
   });
 
   // The card header is the row that holds the card's heading.
-  const inHeader = (button: HTMLElement) => Boolean(button.parentElement?.parentElement?.querySelector('h2'));
+  const inHeader = (button: HTMLElement) => Boolean(button.parentElement?.parentElement?.parentElement?.querySelector('h2'));
 
   // Alignment audit ENX-8 and R3EN2-3: the toggle moved between the header and the body, and the status was one grey run-on line.
   it('keeps the toggle in the header and shows each fact as a labelled row', async () => {
@@ -158,7 +158,7 @@ describe('ChapterSyncPanel', () => {
     );
     const card = await screen.findByRole('region', { name: 'Chapter sync' });
     await within(card).findByText('Last synced');
-    expect(inHeader(within(card).getByRole('button', { name: 'Turn off' }))).toBe(true);
+    expect(inHeader(within(card).getByRole('button', { name: 'Turn off chapter sync' }))).toBe(true);
     expect(
       within(card)
         .getAllByRole('term')
@@ -175,7 +175,7 @@ describe('ChapterSyncPanel', () => {
     );
     const card = await screen.findByRole('region', { name: 'Chapter sync' });
     await within(card).findByText('Chapter sync is off.');
-    expect(inHeader(within(card).getByRole('button', { name: 'Turn on' }))).toBe(true);
+    expect(inHeader(within(card).getByRole('button', { name: 'Turn on chapter sync' }))).toBe(true);
   });
 
   it('says why background checks wait, when they are on and something is blocking them', async () => {

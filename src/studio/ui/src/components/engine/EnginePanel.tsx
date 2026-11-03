@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
-import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
+import type { IconName } from '../../icons.catalog';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { SlideOver } from '../primitives/SlideOver';
@@ -169,13 +170,13 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
           <Panel title="REAPER tools">
             {/* Equal cells on a grid, three across, two below 36rem and one below 26rem, so the buttons share their edges whatever their labels (ENX-9). */}
             <div className="@container">
-              <Toolbar label="REAPER tools" className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
-                {links.chapters.length > 0 && <ToolButton onClick={() => setTool('link-chapters')}>Link chapters…</ToolButton>}
-                <ToolButton onClick={() => setTool('render-config')}>Prepare chapter render…</ToolButton>
-                <ToolButton onClick={() => setTool('create-regions')}>Create chapter regions…</ToolButton>
-                <ToolButton onClick={() => setTool('chapter-tags')}>Embed chapter tags…</ToolButton>
-                <ToolButton onClick={() => setTool('cleanup-tools')}>Cleanup tools…</ToolButton>
-                <ToolButton onClick={() => setTool('retake-lanes')}>Retakes on lanes…</ToolButton>
+              <Toolbar label="REAPER tools" className="flex-wrap" gapClassName="gap-2">
+                {links.chapters.length > 0 && <ToolButton action="linkChapters" onClick={() => setTool('link-chapters')} />}
+                <ToolButton action="prepareRender" onClick={() => setTool('render-config')} />
+                <ToolButton action="createRegions" onClick={() => setTool('create-regions')} />
+                <ToolButton action="embedTags" onClick={() => setTool('chapter-tags')} />
+                <ToolButton action="cleanupTools" onClick={() => setTool('cleanup-tools')} />
+                <ToolButton action="retakeLanes" onClick={() => setTool('retake-lanes')} />
               </Toolbar>
             </div>
           </Panel>
@@ -240,9 +241,7 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
       actions={
         picking ? undefined : (
           // A short label of one width either way (ENX-25); the card's title already says it is the REAPER project file.
-          <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-            {link.dawFileLinked ? 'Change file…' : 'Link file…'}
-          </Button>
+          <IconButton action={link.dawFileLinked ? 'changeLink' : 'linkFile'} pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
         )
       }
     >
@@ -265,12 +264,8 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
             </p>
             <CheckLine waiting="Waiting for REAPER to open the linked project" unknown="REAPER has the linked project open" checkedAt={link.checkedAt} />
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-                Link the open project…
-              </Button>
-              <Button variant="secondary" onClick={link.onCheckAgain}>
-                Check again
-              </Button>
+              <IconButton action="linkFile" label="Link the open project" pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
+              <IconButton action="checkAgain" onClick={link.onCheckAgain} />
             </div>
           </InsetCard>
         )}
@@ -319,7 +314,7 @@ function RppPicker({ discovery, onSelect }: { discovery: TracksDiscovery; onSele
   );
 }
 
-// The tools' buttons: each fills its grid cell, so the two rows share their edges.
-function ToolButton({ onClick, children }: { onClick: () => void; children: string }) {
-  return <ToolbarButton render={<Button variant="secondary" className="w-full" onClick={onClick} />}>{children}</ToolbarButton>;
+// One icon per tool; the hint names it and each opens its own dialog.
+function ToolButton({ action, onClick }: { action: IconName; onClick: () => void }) {
+  return <ToolbarButton render={<IconButton action={action} onClick={onClick} />} />;
 }

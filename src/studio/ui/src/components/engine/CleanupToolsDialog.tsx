@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Dialog } from '../primitives/Dialog';
 import { ToolResult } from './ToolResult';
 import type { CleanupToolKey, CleanupToolsState } from '../../types';
@@ -23,7 +24,7 @@ const TOOLS: { key: CleanupToolKey; label: string; description: string }[] = [
 
 /** Cleanup launchers: opens a repair tool in REAPER on the
  * items selected there. The app changes nothing itself; the tool's own dialog does the work. Reachable from the audio
- * engine panel next to "Prepare chapter render…", not a new nav item. */
+ * engine panel next to "Prepare the chapter render", not a new nav item. */
 export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();
   const [state, setState] = useState<CleanupToolsState>(IDLE);
@@ -81,15 +82,13 @@ export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
                   {tool.description}
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                aria-label={`Open ${tool.label}`}
+              <IconButton
+                action="openTool"
+                label={`Open ${tool.label}`}
                 onClick={() => launch(tool.key)}
                 pending={running && state.tool === tool.key}
                 disabled={running && state.tool !== tool.key}
-              >
-                Open
-              </Button>
+              />
             </div>
             {outcomeListed && outcomeTool === tool.key && outcome}
           </li>

@@ -22,7 +22,7 @@ describe('SyncActivityLog', () => {
       .getAllByRole('listitem')
       .map((item) => item.textContent);
     expect(lines).toHaveLength(3);
-    expect(lines[0]).toMatch(/Linked “Chapter 1” to .+Undo$/);
+    expect(lines[0]).toMatch(/Linked “Chapter 1” to .+$/);
     expect(lines[1]).toMatch(/New track “Room tone”, not a chapter$/);
     expect(lines[2]).toMatch(/First sync: 1 chapter linked$/);
     fireEvent.click(screen.getByRole('button', { name: /^Undo: Linked “Chapter 1”/ }));

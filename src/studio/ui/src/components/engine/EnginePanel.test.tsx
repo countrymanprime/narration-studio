@@ -46,8 +46,15 @@ describe('EnginePanel', () => {
     expect(
       within(tools)
         .getAllByRole('button')
-        .map((button) => button.textContent),
-    ).toEqual(['Link chapters…', 'Prepare chapter render…', 'Create chapter regions…', 'Embed chapter tags…', 'Cleanup tools…', 'Retakes on lanes…']);
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual([
+      'Link chapters to tracks',
+      'Prepare the chapter render',
+      'Create chapter regions',
+      'Embed chapter tags',
+      'Open the cleanup tools',
+      'Show the retakes on lanes',
+    ]);
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     // No player: a chapter is heard in its Proof chapter view.
     expect(within(panel).queryByRole('button', { name: 'Play' })).toBeNull();
@@ -75,7 +82,7 @@ describe('EnginePanel', () => {
       .find((row) => within(row).queryByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` }));
     if (!secondRow) throw new Error('no Chapter links row with a picker for the second chapter');
     await user.selectOptions(within(secondRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
-    await user.click(within(secondRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(secondRow).getByRole('button', { name: 'Use this track' }));
 
     const trackRow = () => within(tracks).getAllByRole('row')[2];
     await waitFor(() => expect(within(trackRow()).getAllByRole('cell')[1].textContent).toContain(WIRE_CHAPTERS[1].title));
@@ -91,7 +98,7 @@ describe('EnginePanel', () => {
   it('opens a REAPER tool’s dialog from the toolbar', async () => {
     const user = userEvent.setup();
     renderPanel();
-    await user.click(await screen.findByRole('button', { name: 'Cleanup tools…' }));
+    await user.click(await screen.findByRole('button', { name: 'Open the cleanup tools' }));
     expect(await screen.findByRole('dialog', { name: 'Cleanup tools' })).toBeTruthy();
   });
 
@@ -151,11 +158,11 @@ describe('EnginePanel', () => {
   it('offers the shared DAW-link binding, worded for whether a file is already linked', async () => {
     const onLinkDawFile = vi.fn();
     renderPanel({}, {}, { dawFileLinked: false, onLinkDawFile });
-    (await screen.findByRole('button', { name: 'Link file…' })).click();
+    (await screen.findByRole('button', { name: 'Link a project file' })).click();
     expect(onLinkDawFile).toHaveBeenCalledTimes(1);
     cleanup();
     renderPanel();
-    expect(await screen.findByRole('button', { name: 'Change file…' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Change the linked file' })).toBeTruthy();
   });
 
   it('says when REAPER has a different project open than the linked one', async () => {
@@ -165,19 +172,22 @@ describe('EnginePanel', () => {
     const notice = await screen.findByText(/REAPER has a different project open than the one linked here/);
     // R3EN2-4: a callout with both ways out as buttons beside the sentence, not coloured body text.
     const callout = notice.closest('div')!;
-    await userEvent.click(within(callout).getByRole('button', { name: 'Link the open project…' }));
+    await userEvent.click(within(callout).getByRole('button', { name: 'Link the open project' }));
     await userEvent.click(within(callout).getByRole('button', { name: 'Check again' }));
     expect(onLinkDawFile).toHaveBeenCalledTimes(1);
     expect(onCheckAgain).toHaveBeenCalledTimes(1);
   });
 
-  // ENX-9: the tools were content-sized buttons wrapping 3 + 3 with ragged edges and a 4 px gap.
-  it('lays the REAPER tools out on an equal grid', async () => {
+  // ENX-9 asked for equal edges; the tools are now equal icon squares (icon-button audit, #2836) that wrap on a 8 px gap.
+  it('draws the REAPER tools as equal icon buttons', async () => {
     renderPanel();
     const tools = await screen.findByRole('toolbar', { name: 'REAPER tools' });
-    expect(tools.className).toMatch(/grid-cols-3/);
+    expect(tools.className).toMatch(/flex-wrap/);
     expect(tools.className).toMatch(/gap-2/);
-    for (const button of within(tools).getAllByRole('button')) expect(button.className).toContain('w-full');
+    for (const button of within(tools).getAllByRole('button')) {
+      expect(button.className).toContain('size-[var(--button-height)]');
+      expect(button.textContent).toBe('');
+    }
   });
 
   it('the wrong-project notice says when it last checked and has a Check again that reads again', async () => {

@@ -77,7 +77,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await openEnginePanel(page);
-    await page.getByRole('button', { name: 'Link file…' }).waitFor();
+    await page.getByRole('button', { name: 'Link a project file' }).waitFor();
   },
   'wrong-project': async (page) => {
     // The mock's live heartbeat whose open project disagrees with the linked file (see main.tsx): the card says when it last checked.
@@ -186,8 +186,8 @@ export const engineDrivers: Record<string, Driver> = {
     // instant Confirm turns it into the linked view (no combobox), so `waitFor` below would wait forever.
     const firstRow = table.locator('tbody tr').first();
     await firstRow.getByRole('combobox').selectOption({ index: 1 });
-    await firstRow.getByRole('button', { name: 'Confirm' }).click();
-    await firstRow.getByRole('button', { name: 'Change' }).waitFor();
+    await firstRow.getByRole('button', { name: 'Use this track' }).click();
+    await firstRow.getByRole('button', { name: 'Change the track' }).waitFor();
   },
   'chapter-link-missing': async (page) => {
     // Reload with the mock's missing-track seam (see main.tsx): a confirmed link whose
@@ -208,7 +208,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockChapterLink=none');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Link chapters…');
+    await clickVisible(page, 'button', 'Link chapters to tracks');
     await page.getByRole('combobox', { name: 'Track for Chapter 1', exact: true }).selectOption({ label: 'Chapter 1' });
     await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
   },
@@ -216,7 +216,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockLineIdentity=success');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Link chapters…');
+    await clickVisible(page, 'button', 'Link chapters to tracks');
     const message = page.getByText('Read 5 stamped lines.');
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
@@ -225,7 +225,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockLineIdentity=conflict');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Link chapters…');
+    await clickVisible(page, 'button', 'Link chapters to tracks');
     const message = page.getByText(/Stamped 1 line, 1 stale item, 1 conflict\./);
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
@@ -234,21 +234,21 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockLineIdentity=error');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Link chapters…');
+    await clickVisible(page, 'button', 'Link chapters to tracks');
     const message = page.getByText(/app’s script/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
   'render-config-prefilled': async (page) => {
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Prepare chapter render…');
+    await clickVisible(page, 'button', 'Prepare the chapter render');
     await page.getByRole('button', { name: 'Configure render' }).waitFor();
   },
   'render-config-success': async (page) => {
     await page.goto('/?mockRenderConfig=success');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Prepare chapter render…');
+    await clickVisible(page, 'button', 'Prepare the chapter render');
     const message = page.getByText(/Render is configured/);
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
@@ -257,7 +257,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockRenderConfig=no-regions');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Prepare chapter render…');
+    await clickVisible(page, 'button', 'Prepare the chapter render');
     const message = page.getByText(/No chapter regions were found yet/);
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
@@ -266,14 +266,14 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockRenderConfig=error');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Prepare chapter render…');
+    await clickVisible(page, 'button', 'Prepare the chapter render');
     const message = page.getByText(/cannot configure render settings/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
   'create-regions-empty': async (page) => {
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Create chapter regions…');
+    await clickVisible(page, 'button', 'Create chapter regions');
     await page
       .getByText(/No track is linked to this chapter\./)
       .first()
@@ -283,7 +283,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockChapterLink=confirmed');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Create chapter regions…');
+    await clickVisible(page, 'button', 'Create chapter regions');
     await page.getByRole('combobox', { name: 'Opening credits track' }).selectOption({ label: 'Chapter 2' });
     await page.getByRole('button', { name: 'Create 2 regions' }).waitFor();
   },
@@ -291,7 +291,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockChapterLink=confirmed');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Create chapter regions…');
+    await clickVisible(page, 'button', 'Create chapter regions');
     await page.getByRole('combobox', { name: 'Opening credits track' }).selectOption({ label: 'Chapter 2' });
     await clickVisible(page, 'button', 'Create 2 regions');
     const message = page.getByText(/^Sent 2:/);
@@ -302,7 +302,7 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockChapterLink=confirmed&mockRegionsCreateError=1');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Create chapter regions…');
+    await clickVisible(page, 'button', 'Create chapter regions');
     await clickVisible(page, 'button', 'Create 1 region');
     const message = page.getByText(/REAPER refused to write the regions/).first();
     await message.waitFor();
@@ -310,55 +310,55 @@ export const engineDrivers: Record<string, Driver> = {
   },
   'chapter-tags-idle': async (page) => {
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags…');
+    await clickVisible(page, 'button', 'Embed chapter tags');
     await page.getByText(/No chapter render is configured yet/).waitFor();
   },
   'chapter-tags-ready': async (page) => {
     await page.goto('/?mockChapterTags=ready');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags…');
+    await clickVisible(page, 'button', 'Embed chapter tags');
     await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByText('Chapter 2').waitFor();
   },
   'chapter-tags-not-rendered': async (page) => {
     await page.goto('/?mockChapterTags=not-rendered');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags…');
+    await clickVisible(page, 'button', 'Embed chapter tags');
     await page.getByText('Not rendered yet', { exact: true }).waitFor();
   },
   'chapter-tags-success': async (page) => {
     await page.goto('/?mockChapterTags=ready');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags…');
+    await clickVisible(page, 'button', 'Embed chapter tags');
     await page.getByLabel('Combined book MP3 to add chapters to').fill('C:\\Books\\Alice\\Alice in Wonderland.mp3');
     await page.getByRole('checkbox', { name: /I understand this writes a new file/ }).click();
-    await clickVisible(page, 'button', 'Embed chapter tags');
+    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByRole('button', { name: 'Embed chapter tags', exact: true }).click();
     await page.getByText(/^Wrote /).waitFor();
   },
   'chapter-tags-error': async (page) => {
     await page.goto('/?mockChapterTags=ready&mockChapterTagsEmbedError=1');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags…');
+    await clickVisible(page, 'button', 'Embed chapter tags');
     await page.getByLabel('Combined book MP3 to add chapters to').fill('C:\\Books\\Alice\\Alice in Wonderland.mp3');
     await page.getByRole('checkbox', { name: /I understand this writes a new file/ }).click();
-    await clickVisible(page, 'button', 'Embed chapter tags');
+    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByRole('button', { name: 'Embed chapter tags', exact: true }).click();
     const message = page.getByText(/could not write chapter tags/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
   'cleanup-tools-idle': async (page) => {
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Cleanup tools…');
+    await clickVisible(page, 'button', 'Open the cleanup tools');
     await page.getByRole('button', { name: 'Open Magnolius DeClick' }).waitFor();
   },
   'cleanup-tools-launched': async (page) => {
     await page.goto('/?mockCleanupTools=launched');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Cleanup tools…');
+    await clickVisible(page, 'button', 'Open the cleanup tools');
     const message = page.getByText(/is open in REAPER/);
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
@@ -367,21 +367,21 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockCleanupTools=error');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Cleanup tools…');
+    await clickVisible(page, 'button', 'Open the cleanup tools');
     const message = page.getByText(/Magnolius DeClick is not installed/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
   'retake-lanes-list': async (page) => {
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Retakes on lanes…');
+    await clickVisible(page, 'button', 'Show the retakes on lanes');
     await page.getByRole('button', { name: 'Play this lane: lane 2 for line-000013 on Chapter 1' }).waitFor();
   },
   'retake-lanes-picked': async (page) => {
     await page.goto('/?mockRetakeLanes=picked');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Retakes on lanes…');
+    await clickVisible(page, 'button', 'Show the retakes on lanes');
     const message = page.getByText(/is now the only lane playing/);
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
@@ -390,14 +390,14 @@ export const engineDrivers: Record<string, Driver> = {
     await page.goto('/?mockRetakeLanes=none');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Retakes on lanes…');
+    await clickVisible(page, 'button', 'Show the retakes on lanes');
     await page.getByText(/No track in the saved project uses fixed item lanes/).waitFor();
   },
   'retake-lanes-error': async (page) => {
     await page.goto('/?mockRetakeLanes=error');
     await settlePage(page);
     await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Retakes on lanes…');
+    await clickVisible(page, 'button', 'Show the retakes on lanes');
     const message = page.getByText(/is not in fixed item lane mode/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();

@@ -4,6 +4,7 @@ import { creditsKindOfId } from '../credits/creditsEntries';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Checkbox } from '../primitives/Checkbox';
 import { Dialog } from '../primitives/Dialog';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -79,9 +80,7 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
         <SectionLabel as="h3" id="current-stamps-heading">
           Currently stamped in REAPER
         </SectionLabel>
-        <Button variant="secondary" onClick={onRead} pending={pending}>
-          Read current stamps
-        </Button>
+        <IconButton action="checkAgain" label="Read current stamps" onClick={onRead} pending={pending} />
       </div>
       {(state.phase === 'reading' || (state.phase === 'success' && state.linesRead > 0)) && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
