@@ -522,28 +522,13 @@ keep going").
 Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-roll
 ([narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua)).
 
-## Punch from here: where a word's time comes from
+## Punch anchors and word alignment
 
-"Punch from here" on a flag (the old Booth's flags panel, removed with it in SN-O10; the bindings stay) previews a time before anything moves, and names its source
-(`TeleprompterPunchPreview`/`TeleprompterPunch`, `src/studio/desktop/teleprompterpunch.go`):
-
-- **`anchor`**: the live anchors the host records while a session reads the chapter (REAPER's play position polled
-  every 3 s beside the word being read, `teleprompterpunchpoll.go`, `internal/teleprompter/anchors.go`), exact or
-  interpolated between the two around the word.
-- **`alignment`**: when no anchor brackets the word, the word is timed from the chapter's recording
-  (`teleprompterpunchalign.go`): the resume prompt's track, REAPER's live items or the saved `.rpp`, the item holding
-  the anchors' pace estimate (else the item that ends last), at most 120 s of it, and one run of the sidecar's
-  `--align-word` mode, which decodes the stretch and prints a `heard` line; the host places the words
-  (`internal/scripttrack` `WordTimeEvent`, held to the deleted Python alignment's recorded answers: the locate's placement, then a matching-blocks pass that
-  maps each heard word to a script word). The answer is mapped back through the item's offset and rate. Nothing runs while
-  REAPER records onto the track, and nothing is downloaded
-.
-- **`estimate`**: the anchors' pace, only when the recording cannot answer.
-
-A punch after its preview reuses the preview's alignment; a successful punch drops the anchors at or after the word.
-What REAPER documents for an unsaved take's file, a `SECTION` source's file name and a take still recording is in
-[REAPER: media sources and recording](../reference/daw/reaper.md#media-sources-and-recording); none of it has been run
-in REAPER yet ([#1476](https://github.com/countrymanprime/narration-studio/issues/1476)).
+While a session reads a chapter, the host still records punch anchors: REAPER's play position polled every 3 s beside
+the word being read (`teleprompterpunchpoll.go`, `internal/teleprompter/anchors.go`). The anchor-based punch that read
+them (`TeleprompterPunchPreview`/`TeleprompterPunch`) was removed in #2754: the Booth punches with
+`readAloudRecordStartAt(chapterId, at)` at a time the page already placed. No host code reads the anchors, or the
+sidecar's `--align-word` mode, now.
 
 ## The passage map
 

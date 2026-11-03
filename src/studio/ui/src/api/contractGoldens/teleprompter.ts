@@ -8,7 +8,6 @@ import {
   teleprompterFlagFindingsSchema,
   teleprompterLocatedSchema,
   teleprompterLocateResultSchema,
-  teleprompterPunchResultSchema,
   teleprompterReadingSchema,
   teleprompterReaperInputSchema,
   teleprompterResumeFollowEventSchema,
@@ -54,7 +53,6 @@ export const teleprompterGoldens: Record<string, z.ZodType> = {
   'read-aloud-recordings-builtin.json': z.record(z.string(), readAloudRecordingSchema),
   'readaloud-record-start-at.json': z.record(z.string(), readAloudRecordingSchema),
   'teleprompter-reaper-inputs.json': z.record(z.string(), teleprompterReaperInputSchema),
-  'teleprompter-punch-results.json': z.record(z.string(), teleprompterPunchResultSchema),
   // The sidecar's own `word_time` lines (align_word.py): the host reads them (teleprompter.AlignWord) and hands
   // the UI only the punch result above, so no UI schema owns them; this pins the shape the Go and Python tests share.
   'teleprompter-word-time.json': z

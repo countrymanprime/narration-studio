@@ -187,16 +187,6 @@ export function ChapterRegionsPreview(openingTrackGUID: string, closingTrackGUID
 }
 
 /**
- * ChapterSuggestion suggests the chapter the narrator is recording from the
- * selected .rpp's record-armed (else selected) track as of its last save
- * the matcher's
- * other direction, track to chapter, with the same statuses. Read-only.
- */
-export function ChapterSuggestion(): $CancellablePromise<string> {
-    return $Call.ByID(677537319);
-}
-
-/**
  * ChapterSyncPreview plans a sync without writing anything: the consent dialog's preview.
  */
 export function ChapterSyncPreview(): $CancellablePromise<string> {
@@ -296,17 +286,6 @@ export function ChapterTrackSet(chapterID: string, trackGUID: string): $Cancella
 
 export function ChapterTrackUnlink(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(2391887305, chapterID);
-}
-
-/**
- * ChaptersForTracks is ForTrack run over every GUID in guids: the
- * Review page's chapter grouping for findings that carry only a track, item or take GUID
- * rather than a manuscript-anchored chapter. One GUID the project no longer
- * has is reported as an error alongside the others, never as a failed call.
- * Read-only.
- */
-export function ChaptersForTracks(guids: string[]): $CancellablePromise<string> {
-    return $Call.ByID(1946035715, guids);
 }
 
 /**
@@ -812,17 +791,6 @@ export function DawLaunch(): $CancellablePromise<string> {
  */
 export function DawLinkFound(): $CancellablePromise<string> {
     return $Call.ByID(3767148346);
-}
-
-/**
- * DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), for the Editing page's
- * follow-along: where each plays in the project, from where in which source file, at what rate. The saved project the alignment was read
- * against knows none of the narrator's edits since, and a split's right half has a GUID it never saw. Read-only; it adds no undo step.
- * The answer is {available, items}: available is false, with no items, when the DAW cannot be read now (not running, track_state off, no
- * linked track, the track gone or longer than one read lists), and the page then follows by the saved items. The read is never an error.
- */
-export function DawLiveItems(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1764856264, chapterID);
 }
 
 /**
@@ -1843,10 +1811,6 @@ export function ManuscriptParagraphs(chapter: string): $CancellablePromise<strin
     return $Call.ByID(3533633545, chapter);
 }
 
-export function ManuscriptReader(): $CancellablePromise<string> {
-    return $Call.ByID(3976609117);
-}
-
 export function ManuscriptReaderState(): $CancellablePromise<string> {
     return $Call.ByID(3073538398);
 }
@@ -2115,10 +2079,6 @@ export function PickupsListMarkers(): $CancellablePromise<string> {
     return $Call.ByID(2406048942);
 }
 
-export function PickupsNext(): $CancellablePromise<string> {
-    return $Call.ByID(1607807066);
-}
-
 /**
  * PickupsRemove hides a pickup of any source from the list; a note or a check keeps its own record.
  */
@@ -2195,14 +2155,6 @@ export function PreviewPinClear(): $CancellablePromise<string> {
  */
 export function PreviewPinSet(chapterID: string, paragraphIDs: string[]): $CancellablePromise<string> {
     return $Call.ByID(3856724439, chapterID, paragraphIDs);
-}
-
-/**
- * ProductionBurndown is the book's logged hours by day: data only, for a future chart primitive to
- * plot. It reads the same time log as ProductionOverview and adds nothing to it.
- */
-export function ProductionBurndown(): $CancellablePromise<string> {
-    return $Call.ByID(211479988);
 }
 
 /**
@@ -2508,10 +2460,6 @@ export function ProviderCapabilities(): $CancellablePromise<string> {
     return $Call.ByID(74377393);
 }
 
-export function ReadAloudArmOnly(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(4236043623, chapterID);
-}
-
 /**
  * ReadAloudReaperState answers whether REAPER is ready to record chapterID with reading:
  * its linked track the one track armed, and REAPER not already recording. A
@@ -2724,38 +2672,6 @@ export function ScriptWordUnflag(flagID: string): $CancellablePromise<string> {
 }
 
 /**
- * SeriesDelete removes a series by id. Deleting an id that is not present is not an error.
- */
-export function SeriesDelete(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2391274860, id);
-}
-
-/**
- * SeriesList lists every series the narrator has created, for managing series membership.
- */
-export function SeriesList(): $CancellablePromise<string> {
-    return $Call.ByID(3400757367);
-}
-
-/**
- * SeriesSave creates a series (id empty) or updates one in place (an existing id), naming it and setting its member
- * project paths. The narrator adds and removes books this way; there is no separate add/remove binding.
- */
-export function SeriesSave(id: string, name: string, memberProjectPaths: string[]): $CancellablePromise<string> {
-    return $Call.ByID(2243015706, id, name, memberProjectPaths);
-}
-
-/**
- * SeriesVoiceBible builds the current project's Series tab view: its series membership, and - only once the series has
- * a second book with data to share - every member project's characters and approved reference clips, pooled by
- * character id. A project outside any series, or in one with no other book yet, reads back with no character list at
- * all: the honest empty state, never an error.
- */
-export function SeriesVoiceBible(): $CancellablePromise<string> {
-    return $Call.ByID(2231610263);
-}
-
-/**
  * StageConfirm sets the chapter's status to target and records the basis the narrator saw, if basisKey is still the one
  * the evidence gives. It answers {status: "ok", chapter} or {status: "refused", reason, message}.
  */
@@ -2957,29 +2873,6 @@ export function TeleprompterMeterStop(): $CancellablePromise<string> {
  */
 export function TeleprompterPause(paused: boolean): $CancellablePromise<string> {
     return $Call.ByID(3709351835, paused);
-}
-
-/**
- * TeleprompterPunch resolves word's punch time again (the narrator may have kept reading since the preview; an
- * alignment of the same stretch is reused, punchAlignCache) and
- * moves REAPER's edit cursor there minus the pre-roll, through the DAW port's Puncher role. On a successful punch,
- * every anchor at or after word is dropped (the narrator is about to re-record from here, so an anchor from the take
- * being replaced would misplace the next punch, teleprompter.DropAnchorsFrom); that failing is logged, never
- * surfaced, since the punch itself already succeeded.
- */
-export function TeleprompterPunch(word: number): $CancellablePromise<string> {
-    return $Call.ByID(1321624509, word);
-}
-
-/**
- * TeleprompterPunchPreview resolves word's punch time and pre-roll without moving anything in REAPER: what the
- * narrator sees before confirming "Punch from here" (its time, its source and the pre-roll,
- * before moving). word is the flag's own script word index; the chapter is whichever one is live right now. When the
- * anchors do not bracket the word, this runs the offline alignment (a sidecar decode of up to two minutes of the
- * recording, bounded by teleprompterLocateTimeout), so it can take a few seconds.
- */
-export function TeleprompterPunchPreview(word: number): $CancellablePromise<string> {
-    return $Call.ByID(3160914767, word);
 }
 
 /**

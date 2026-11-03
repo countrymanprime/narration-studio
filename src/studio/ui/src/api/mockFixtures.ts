@@ -23,8 +23,6 @@ import type {
   RetakeLanesList,
   RetakeLanesState,
   ScopedSettingField,
-  Series,
-  SeriesVoiceBibleClip,
   TeleprompterDevice,
   TextSpan,
   TracksProject,
@@ -449,50 +447,6 @@ export const WIRE_CHARACTER_REFERENCES: ApprovedCharacterReference[] = [
     approvedAt: '2026-09-21T09:00:00.000Z',
     note: 'Re-approve once the tea-party region is finalized.',
     changedSinceApproval: true,
-  },
-];
-
-// Series, reference data only (no acoustic-drift binding reads it): a two-book series so the Series tab has something to show by default. The current project
-// (DEFAULT_PROJECT_FOLDER, 'C:/Projects/Alice-in-Wonderland') is Book 1; the second member is a sibling project this
-// mock never actually opens - its own reference clips are canned in WIRE_SERIES_SIBLING_CLIPS below rather than
-// simulated through a second MockState, since the mock always represents exactly one open project.
-export const WIRE_SERIES: Series = {
-  id: 'series-wonderland',
-  name: 'Wonderland',
-  memberProjectPaths: ['C:/Projects/Alice-in-Wonderland', 'C:/Projects/Through-the-Looking-Glass'],
-};
-
-// Book 2's own approved clips for characters that also appear in Book 1 (WIRE_CHARACTER_REFERENCES, by the same
-// characterId): grouped with them in the Series tab, each labeled by its own book.
-export const WIRE_SERIES_SIBLING_CLIPS: Array<{ characterId: string; clip: SeriesVoiceBibleClip }> = [
-  {
-    characterId: 'alice',
-    clip: {
-      id: 'ref-alice-2',
-      projectPath: 'C:/Projects/Through-the-Looking-Glass',
-      book: 'Through-the-Looking-Glass',
-      isCurrentProject: false,
-      regionGuid: '{C0FFEE00-0000-0000-0000-000000000101}',
-      name: 'Alice ref, Looking-Glass Ch. 1',
-      start: 8.0,
-      end: 14.5,
-      approvedAt: '2026-09-24T09:00:00.000Z',
-    },
-  },
-  {
-    characterId: 'mad-hatter',
-    clip: {
-      id: 'ref-hatter-2',
-      projectPath: 'C:/Projects/Through-the-Looking-Glass',
-      book: 'Through-the-Looking-Glass',
-      isCurrentProject: false,
-      regionGuid: '{C0FFEE00-0000-0000-0000-000000000102}',
-      name: 'Hatta ref, Looking-Glass Ch. 7',
-      start: 30.0,
-      end: 36.0,
-      approvedAt: '2026-09-25T09:00:00.000Z',
-      note: '"Hatta" in Book 2.',
-    },
   },
 ];
 
@@ -1266,7 +1220,7 @@ export const WIRE_PICKUPS_EXPORT_SUCCESS: PickupsState = {
   markers: [],
 };
 
-/** REAPER reported a problem importing, exporting, jumping, resolving or counting pickups. */
+/** REAPER reported a problem importing, exporting, resolving or counting pickups. */
 export const WIRE_PICKUPS_ERROR: PickupsState = {
   runId: '1790000000000003',
   phase: 'error',

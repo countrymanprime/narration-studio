@@ -36,8 +36,6 @@ import type {
   DawPunchPreroll,
   DawPlace,
   DawPosition,
-  DawLiveItem,
-  DawLiveItems,
   DawProjectEdited,
   WordTimeRow,
   WordTimeState,
@@ -142,22 +140,6 @@ export const dawPositionSchema = z.strictObject({
   sameProject: z.boolean(),
 }) satisfies z.ZodType<DawPosition>;
 
-const dawLiveItemSchema = z.strictObject({
-  guid: z.string(),
-  sourceFile: z.string(),
-  position: z.number(),
-  length: z.number().nonnegative(),
-  sourceStart: z.number(),
-  playRate: z.number().positive(),
-  muted: z.boolean(),
-}) satisfies z.ZodType<DawLiveItem>;
-
-/** DawLiveItems: every key always present, the list never null. */
-export const dawLiveItemsSchema = z.strictObject({
-  available: z.boolean(),
-  items: z.array(dawLiveItemSchema),
-}) satisfies z.ZodType<DawLiveItems>;
-
 const WORD_TIME_STATES = ['placed', 'not_in_project', 'not_heard'] as const satisfies readonly WordTimeState[];
 
 const wordTimeRowSchema = z.strictObject({
@@ -184,7 +166,7 @@ export const dawProjectEditedSchema = z.strictObject({ changeCount: z.number().i
 
 const DAW_PLAY_STATES = ['stopped', 'playing', 'recording'] as const satisfies readonly DawPlayState[];
 
-/** DawProjectState and daw_project_state_changed: every key always present, savedAt a local date-time to the minute or null. */
+/** DawProjectState: every key always present, savedAt a local date-time to the minute or null. */
 export const dawProjectStateSchema = z.strictObject({
   savedAt: z
     .string()
