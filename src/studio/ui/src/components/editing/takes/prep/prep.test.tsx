@@ -172,7 +172,7 @@ describe('hide-others-needs-a-kept-take-first', () => {
     await keepT8();
     hideTakes.mockRejectedValueOnce(new Error('the host went away'));
     await pressH();
-    expect(toast).toHaveBeenLastCalledWith(expect.stringContaining('the host went away'), { tone: 'error' });
+    expect(toast).toHaveBeenLastCalledWith('Could not hide the other takes: the host went away', { tone: 'error' });
     expect(document.querySelectorAll('[data-take]')).toHaveLength(3);
   });
 

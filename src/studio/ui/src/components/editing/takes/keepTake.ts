@@ -15,7 +15,7 @@ async function choose(daw: DawClient, passage: LinePassage, take: LineTake): Pro
   try {
     result = await daw.useTake(passage.chapterId, passage.firstToken, passage.lastToken, take.id);
   } catch (error) {
-    return { ok: false, refusal: { code: 'daw_failed', reason: apiErrorMessage(error) } };
+    return { ok: false, refusal: { code: 'daw_failed', reason: `Could not keep ${take.label}: ${apiErrorMessage(error)}` } };
   }
   if (result.ok) return { ok: true, value: result };
   return { ok: false, refusal: { code: 'daw_refused', reason: result.refused ?? result.message } };

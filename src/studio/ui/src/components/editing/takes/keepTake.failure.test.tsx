@@ -42,7 +42,7 @@ describe('Keep Take when the host rejects the call', () => {
     await act(async () => {
       await result.current.keep(passage, other);
     });
-    expect(toast).toHaveBeenCalledWith(expect.stringContaining('the host went away'), { tone: 'error' });
+    expect(toast).toHaveBeenCalledWith(`Could not keep ${other.label}: the host went away`, { tone: 'error' });
     expect(toastUndo).not.toHaveBeenCalled();
     expect(result.current.kept[passage.id]).toBe(before);
   });

@@ -53,7 +53,7 @@ function hideCommand(daw: DawClient, passage: LinePassage, keptId: string, count
       try {
         result = await daw.hideTakes(passage.chapterId, passage.firstToken, passage.lastToken, keptId);
       } catch (error) {
-        return { ok: false, refusal: { code: 'daw_failed', reason: apiErrorMessage(error) } };
+        return { ok: false, refusal: { code: 'daw_failed', reason: `Could not hide the other takes: ${apiErrorMessage(error)}` } };
       }
       if (!result.ok || !result.changed) return refusal(result);
       return { ok: true, value: result };
