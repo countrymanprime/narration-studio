@@ -1,12 +1,12 @@
 # Real-REAPER integration testing in CI
 
-**Researched 2026-10-18. Status: a design, plus a prototype in a separate pull request ([`claude/real-reaper-ci-workflow`](https://github.com/countrymanprime/narration-studio/tree/claude/real-reaper-ci-workflow)) that **ran green in a real REAPER 7.82 on Linux on 2026-10-19** (see [Result](#result-reaper-782-linux-under-xvfb-2026-10-19)); it has not run on a GitHub runner or on Windows.** Question: how do the bridge's actions get exercised against a real REAPER on a CI runner, with public-domain audiobook audio (decision D71), so the facts in [the REAPER reference](../reference/daw/reaper.md) are re-checked on every release instead of by the owner's hand?
+**Researched 2026-10-18. Status: a design, plus a prototype in a separate pull request ([`claude/real-reaper-ci-workflow`](https://github.com/countrymanprime/narration-studio/tree/claude/real-reaper-ci-workflow)) that **ran green in a real REAPER 7.82 on Linux on 2026-10-19** (see [Result](#result-reaper-782-linux-under-xvfb-2026-10-19)); it ran green on GitHub-hosted Linux and Windows runners on 2026-11-03 (see [Result: GitHub-hosted runners](#result-github-hosted-runners-2026-11-03)).** Question: how do the bridge's actions get exercised against a real REAPER on a CI runner, with public-domain audiobook audio (decision D71), so the facts in [the REAPER reference](../reference/daw/reaper.md) are re-checked on every release instead of by the owner's hand?
 
 ## What could and could not be checked here
 
 - The first pass of this note was written in a session that could not reach `www.reaper.fm`. It was run again on 2026-10-19 after the owner allowed the host: REAPER 7.82 (Linux x86_64 tarball, SHA-256 `a4aa961534f22ae5ae910e4ec0c200dcb4476c9f7556806fe09a9743cd582563`, verified against the download) ran under `xvfb-run` with no sound card (`/dev/snd` absent).
 - **Run:** the prototype in [the workflow pull request](https://github.com/countrymanprime/narration-studio/tree/claude/real-reaper-ci-workflow), against that REAPER and against the harness's fake. Results below.
-- **Not run:** anything on Windows, anything on a GitHub-hosted runner, Verification pass Part A, and every row marked "no" in the matrix that needs playback or recording.
+- **Not run:** Verification pass Part A, and every row marked "no" in the matrix that needs playback or recording.
 - **Licence:** read from `REAPER/EULA.txt` in the tarball; the owner ruled on it on 2026-10-19. See [Licence](#licence).
 
 ## What already exists
@@ -80,6 +80,16 @@ In [the workflow pull request](https://github.com/countrymanprime/narration-stud
 What the first run found: the launcher's `fixture.json` call had a missing argument (fixed), and at quit REAPER asks "Save project … before closing?" and shows its "REAPER IS NOT FREE" evaluation notice. The launcher now saves the scratch copy first, and the script kills REAPER at exit. Nothing else needed a dialog answered; the audio-device prompt of Windows did not appear.
 
 Not yet shown by this run: it is one REAPER version on one OS, S0 and S7 facts were not re-run, and Linux and Windows may differ (paths, file dialogs, the `.rpp` encoding).
+
+## Result: GitHub-hosted runners, 2026-11-03
+
+The Windows job (`windows-latest`) failed on every dispatch until 2026-11-03 (three runs, 2026-10-24 to 2026-11-03), always with `REAPER did not signal ready within 90s`. The workflow is dispatch-only and nothing requires it. REAPER itself ran: the window list showed it responding with `CiBook.rpp` open.
+
+**Cause.** The launcher asserts that `reaper.GetResourcePath()` equals the scratch `cfg` folder. The runner's `$env:TEMP` is the 8.3 form (`C:\Users\RUNNER~1\AppData\Local\Temp`) and REAPER reports the long form (`C:\Users\runneradmin\...`), so the assertion aborted the launcher before it wrote `ready`. Evidence: the launcher log line `ci_real_reaper_launcher.lua:26: resource path is not the scratch cfg`, and the run that printed `TEMP before: C:\Users\RUNNER~1\...` and `TEMP used: C:\Users\runneradmin\...`.
+
+**Fix.** `run-real-reaper-check.ps1` expands `$env:TEMP` with `GetLongPathName` before any scratch path is built; the assertion stays. A failed start now leaves the REAPER window list, a screenshot, `reaper.ini` and the launcher log (`run-reaper.ps1 -LogFile` writes each line as it happens). The new-version notice REAPER shows is closed by `run-reaper.ps1`.
+
+**Result.** After the fix the Windows base rows ran 11 of 11 with 0 FAIL on REAPER 7.82 (run 41581220230).
 
 ## Recommended CI design
 
