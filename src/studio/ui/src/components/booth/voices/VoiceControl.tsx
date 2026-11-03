@@ -22,7 +22,7 @@ function ArmDot() {
 function Who({ voice }: { voice: Voice }) {
   if (voice.characters.length === 0) return null;
   return (
-    <span className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+    <span className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
       {voice.characters.map((character) => (
         <SpeakerTag key={character.id} label={character.name} speakerId={character.id} />
       ))}
@@ -77,7 +77,8 @@ export function VoiceControl({
               {voice.guid === current?.guid && arm.state === 'armed' ? <ArmDot /> : null}
             </span>
           ),
-          trailing: <Who voice={voice} />,
+          // The characters on the row's second line: beside the name they crowd it out of a narrow window.
+          description: voice.characters.length ? <Who voice={voice} /> : undefined,
         })),
     [voices, needle, current, arm.state],
   );

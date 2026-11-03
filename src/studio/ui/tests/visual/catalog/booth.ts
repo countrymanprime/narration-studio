@@ -16,13 +16,15 @@ export const boothStates: StateEntry[] = [
     state: 'voices',
     description:
       'Booth on a chapter linked to a folder of voices (?mockVoiceFolders=1, Voice folders): the voice control on the record bar after Levels, "Num 0 Narrator", the take records on, and the key hints gaining Num 0 Narrator, Num − Num + Voice and Num . Voices',
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'voices-list',
     description:
-      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): the folder's voices in REAPER's order with their keys, Narrator (Narration, pressed), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned)",
+      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): a search box over the folder's voices in REAPER's order with their keys, Narrator (checked, the voice the take records on), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned)",
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
   },
   {
     page: 'booth',
