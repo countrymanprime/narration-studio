@@ -2,7 +2,7 @@ import type { AudacityLink, DawKind } from '../../api/contracts/daw';
 import { audacityTitle } from '../engine/audacityLinkText';
 import { dawShortName } from '../../studio/StudioProvider';
 import { statusTone, type StatusId } from '../../kinds/statusTone';
-import { HeaderChip, type HeaderChipTone } from '../primitives/HeaderChip';
+import type { HeaderChipTone } from '../primitives/HeaderChip';
 import { EngineChipButton } from '../engine/EngineChipButton';
 import { toneColors } from '../primitives/StatusBadge';
 
@@ -42,12 +42,19 @@ export function EngineChip({
   linkingDawFile?: boolean;
 }) {
   if (engine === 'builtin' || daw === 'none') {
+    // The app's own recorder has no DAW to link, so its chip goes straight to where the engine is chosen. aria-label: the visible text hides
+    // below `md`, leaving the dot as the chip's only content.
     return (
-      // role="group" (not a plain span): aria-label is only permitted on an element whose role supports naming, and
-      // below `md` the visible text hides, leaving the dot as the chip's only content (axe aria-prohibited-attr).
-      <HeaderChip role="group" aria-label="Built-in: Recording happens in the app" dot="var(--non-text)" className="flex-none">
+      <EngineChipButton
+        destination="recording-settings"
+        tooltip="Recording happens in the app"
+        tone="neutral"
+        dot="var(--non-text)"
+        label="Built-in: Recording happens in the app"
+        className="flex-none"
+      >
         Built-in
-      </HeaderChip>
+      </EngineChipButton>
     );
   }
   const label = daw ? dawShortName(daw) : '';

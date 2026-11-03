@@ -51,6 +51,29 @@ describe('every DAW chip opens the Audio engine panel', () => {
     }
   });
 
+  it('the Built-in chips, in the header and on the Booth, both open Recording settings and say so', async () => {
+    const openPanel = vi.fn();
+    const openSettings = vi.fn();
+    render(
+      <TooltipProvider>
+        <EnginePanelProvider value={openPanel} openRecordingSettings={openSettings}>
+          <EngineChip engine="builtin" dawFileLinked={false} />
+          <SetupChip capabilities={{ daw: 'none', reachable: true, capabilities: {} } as unknown as DawCapabilities} standaloneName="Recorder" />
+        </EnginePanelProvider>
+      </TooltipProvider>,
+    );
+    const chips = screen.getAllByRole('button');
+    expect(chips).toHaveLength(2);
+    for (const chip of chips) await userEvent.click(chip);
+    expect(openSettings).toHaveBeenCalledTimes(2);
+    expect(openPanel).not.toHaveBeenCalled();
+    for (const chip of chips) {
+      await userEvent.hover(chip);
+      expect((await screen.findByRole('tooltip')).textContent).toContain('Opens Recording settings');
+      await userEvent.unhover(chip);
+    }
+  });
+
   it('only EngineChipButton gives a DAW chip a click; neither chip takes a destination', () => {
     for (const file of ['components/layout/EngineChip.tsx', 'components/booth/record/SetupChip.tsx']) {
       const text = readFileSync(join(SRC, file), 'utf8');

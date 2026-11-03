@@ -249,6 +249,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
 // action beside it, not a gate (one binding, three call sites: here, Settings' DAW category, an import).
 function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDiscovery; link: EngineLinkState; onSelectRpp: (path: string) => void }) {
   const mismatch = link.dawFileLinked && link.dawReachable && !link.dawProjectMatches;
+  const notRunning = link.dawFileLinked && !link.dawReachable;
   // While the picker asks which of several files to read, the list is the choice: a second "link a file" route above it is left out (R3EN2-5).
   const picking = !!discovery && !discovery.selected && discovery.candidates.length > 1;
   return (
@@ -271,6 +272,19 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
               {discovery.selected}
             </div>
           </div>
+        )}
+        {notRunning && (
+          // The panel opens from a chip that says "Not running", so it says so too, with when the app last checked and a way to ask again.
+          <InsetCard tone="warn" fill className="space-y-2">
+            <p role="status" className="flex items-start gap-2" style={{ color: 'var(--warn-text)' }}>
+              <FontAwesomeIcon icon={faTriangleExclamation} className="mt-[0.2rem] flex-none" aria-hidden="true" />
+              <span>REAPER is not running. What is shown here is the last it reported.</span>
+            </p>
+            <CheckLine waiting="Waiting for REAPER to start" unknown="REAPER is not running" checkedAt={link.checkedAt} />
+            <Button variant="secondary" onClick={link.onCheckAgain}>
+              Check again
+            </Button>
+          </InsetCard>
         )}
         {mismatch && (
           // A problem, so a callout with its two ways out beside it, not coloured body text (R3EN2-4, ENX-25). Link the open project is the

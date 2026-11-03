@@ -107,7 +107,7 @@ dot for how it is doing, and says in words when something needs you. Hover it fo
 [audio engine panel](#the-audio-engine-panel), where the project's `.rpp` file is linked or changed:
 
 - **Green dot, "REAPER"**: the DAW is running with the linked project open.
-- **Amber dot, "REAPER: Not running"**: the DAW is not running. Open it to carry on.
+- **Amber dot, "REAPER: Not running"**: the DAW is not running. Open it to carry on. The panel says so too, with when the app last checked and **Check again**.
 - **Amber dot, "REAPER: Other project"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
 - **Quiet dot, "REAPER: Not linked"**: nothing is linked yet.
@@ -115,7 +115,7 @@ dot for how it is doing, and says in words when something needs you. Hover it fo
 On a narrow window the chip drops the DAW's name and keeps the words ("Other project").
 
 - **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#tracks) read from Audacity.
-- **Built-in**: the project records in the app. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
+- **Built-in**: the project records in the app. Clicking this chip opens Settings > Recording & DAW, not the panel, since there is no DAW to link. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
 ## Moving around: Back and Forward
 

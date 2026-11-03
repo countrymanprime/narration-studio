@@ -61,7 +61,7 @@ describe('EngineChip state words', () => {
     expect(screen.getByRole('button').querySelector('.max-md\\:hidden')).toBeNull();
     cleanup();
     renderChip({ daw: 'none' });
-    expect(screen.getByRole('group').querySelector('.max-md\\:hidden')).toBeNull();
+    expect(screen.getByRole('button').querySelector('.max-md\\:hidden')).toBeNull();
   });
 
   it('says a state that is also the tooltip once in the name', () => {
@@ -115,9 +115,19 @@ describe('EngineChip click', () => {
 
 // UI-only until native recording chooses it, so it carries no link action.
 describe('EngineChip built-in recorder', () => {
-  it('is not a button, however the project is linked', () => {
-    renderChip({ engine: 'builtin', dawFileLinked: true, dawReachable: true, dawProjectMatches: false });
-    expect(screen.queryByRole('button')).toBeNull();
+  it('opens Recording settings, not the engine panel, however the project is linked', () => {
+    const openPanel = vi.fn();
+    const openSettings = vi.fn();
+    render(
+      <TooltipProvider>
+        <EnginePanelProvider value={openPanel} openRecordingSettings={openSettings}>
+          <EngineChip engine="builtin" dawFileLinked dawReachable dawProjectMatches={false} />
+        </EnginePanelProvider>
+      </TooltipProvider>,
+    );
+    fireEvent.click(screen.getByRole('button'));
+    expect(openSettings).toHaveBeenCalledTimes(1);
+    expect(openPanel).not.toHaveBeenCalled();
     expect(screen.getByText('Built-in')).toBeTruthy();
     expect(screen.queryByText(/REAPER/)).toBeNull();
   });

@@ -13,7 +13,7 @@ While the chapters are being read, the Booth draws its top bar, text, side panel
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
 where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip is a plain status, as the header's **Built-in** chip is. The chapter is named by its number and title
+built-in recorder). The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip, like the header's **Built-in** chip, opens Settings > Recording & DAW instead, since it has no DAW to link. The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
 the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or the whole text area, whichever is less, so each choice narrows the text equally on both sides and the column follows the window up to that width; **+** and **-** change the size too, and the Booth opens at the size

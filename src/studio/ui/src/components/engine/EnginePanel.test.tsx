@@ -66,6 +66,15 @@ describe('EnginePanel', () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
+  it('says REAPER is not running, with when it last checked and Check again, when the linked DAW is quiet', async () => {
+    const onCheckAgain = vi.fn();
+    renderPanel({}, {}, { dawReachable: false, dawProjectMatches: false, onCheckAgain });
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    expect(await within(panel).findByText(/REAPER is not running\./)).toBeTruthy();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Check again' }));
+    expect(onCheckAgain).toHaveBeenCalledTimes(1);
+  });
+
   it('lists every track with the chapter it is linked to', async () => {
     renderPanel({}, { chapterSync: 'activity' });
     const table = await trackTable();

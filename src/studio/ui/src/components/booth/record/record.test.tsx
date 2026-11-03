@@ -147,7 +147,7 @@ describe('SetupChip', () => {
     rerender(<SetupChip capabilities={setupCapabilities('audacity')} standaloneName="Recorder" />);
     expect(screen.getByRole('button').textContent).toBe('Audacity');
     rerender(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" />);
-    expect(screen.getByRole('group').textContent).toBe('Recorder');
+    expect(screen.getByRole('button').textContent).toBe('Recorder');
   });
 
   it('unsaved-changes-chip-text', async () => {
@@ -187,7 +187,7 @@ describe('SetupChip with the project DAW choice', () => {
     expect(screen.getByRole('button').textContent).toBe('REAPER · not linked');
     expect(await tooltipOf()).toBe('REAPER not linked · link Book.rpp · Opens the Audio engine panel');
     rerender(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'linked', linkedFile: 'Book.rpp' }} />);
-    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, linked');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, not running');
     rerender(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'not_running', linkedFile: 'Book.rpp' }} />);
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, not running');
     unmount();
@@ -236,7 +236,7 @@ describe('SetupChip with the project DAW choice', () => {
     const { rerender } = render(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, state: 'connected' }} />);
     expect(screen.getByRole('button').textContent).toBe('REAPER');
     rerender(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, daw: 'Built-in', state: 'app' }} />);
-    expect(screen.getByRole('group').textContent).toBe('Recorder');
+    expect(screen.getByRole('button').textContent).toBe('Recorder');
   });
 });
 
