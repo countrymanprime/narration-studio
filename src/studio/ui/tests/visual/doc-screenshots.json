@@ -490,6 +490,20 @@
     "caption": "The audio engine panel - the chapter links list, one chapter confirmed to a track"
   },
   {
+    "page": "engine",
+    "state": "nested-chapters",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters",
+    "caption": "The audio engine panel - Chapter links warning that two chapters sit inside another chapter's folder in REAPER, with Move them out"
+  },
+  {
+    "page": "engine",
+    "state": "nested-chapters-confirm",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters-confirm",
+    "caption": "The audio engine panel - the confirmation listing every track that moves out of the chapter's folder"
+  },
+  {
     "page": "proof-chapter",
     "state": "never",
     "viewport": "desktop",

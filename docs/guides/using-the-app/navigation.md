@@ -317,6 +317,22 @@ change the REAPER project.
 
 ![A chapter's track picker open on a project with folders: the tree, with a search box](../../images/ui/engine-panel-folder-picker.webp)
 
+#### Chapters inside another chapter's folder
+
+If a linked chapter's track sits inside another linked chapter's folder in REAPER, the app reads it as one of that chapter's voices.
+An earlier version of the app could leave a project like this: when the last folder in a project was left open at the end, each
+chapter track it added afterwards landed inside that folder. Chapter links then shows a warning that names the chapters and the folder
+they sit in. The app checks again when the panel opens, when a link changes and when you come back to the window.
+
+Press **Move them out…** to see every track the move changes before anything happens in REAPER: each chapter, and any track that comes
+after one inside the same folder, with the folder it leaves and where it goes. Confirm to move them. Only the folder setting of the track
+just before each chapter changes, so a chapter's own voices stay inside it, and one Undo in REAPER takes the whole move back. If the
+tracks changed in REAPER since the check, nothing is moved and the app checks again. Save the project in REAPER to keep the move.
+
+![Chapter links warning that two chapters sit inside another chapter's folder in REAPER](../../images/ui/engine-panel-nested-chapters.webp)
+
+![The confirmation listing every track that moves out of the chapter's folder](../../images/ui/engine-panel-nested-chapters-confirm.webp)
+
 The **More actions** button (**⋯**) at the end of each row holds the rest. For a linked chapter it has **Open in Editing**, which opens
 the chapter on [Editing](editing.md) to hear it against its script and edit it, and **Open in Proof**, into the chapter's
 [Proof view](proof.md#the-chapter-view), where its recording is compared with the manuscript. Every row's menu has

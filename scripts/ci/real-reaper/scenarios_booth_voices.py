@@ -870,6 +870,11 @@ def chapter_folders_owner_project(env: Env) -> str:
     applied = env.send("chapter_folders", "apply", chapters, expected, until={"FOLDERS_REPAIRED", "FOLDERS_STALE"})
     assert applied[-1][0] == "FOLDERS_REPAIRED" and applied[-1][2] == "3", f"apply answered {applied[-1]}"
     undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    # One Undo takes the whole move back (checked before any reload, which clears REAPER's undo history), and Redo puts it back.
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    undone = [(r["name"], r["delta"]) for r in structure(env)]
+    assert undone == [(n, d) for n, d in OWNER_NESTED], f"one Undo left {undone}"
+    env.lua("reaper.Undo_DoRedo2(0) return true")
     env.lua("ci.save_and_reload(ci.rpp) return true")
     after = structure(env)
     got = [(r["name"], r["delta"], r["parent"]) for r in after]
@@ -883,7 +888,4 @@ def chapter_folders_owner_project(env: Env) -> str:
         ("Chapter 5", 0, ""),
         ("Chapter 6", 0, ""),
     ], got
-    env.lua("reaper.Undo_DoUndo2(0) return true")
-    undone = [(r["name"], r["delta"]) for r in structure(env)]
-    assert undone == [(n, d) for n, d in OWNER_NESTED], f"one Undo left {undone}"
-    return f"preview {[m[3] for m in moves]} wrote nothing; a stale apply wrote nothing; undo before {undo_before!r}, after {undo!r}; after save and reload {got}; one Undo: {undone}"
+    return f"preview {[m[3] for m in moves]} wrote nothing; a stale apply wrote nothing; undo before {undo_before!r}, after {undo!r}; one Undo: {undone}, Redo then save and reload: {got}"
