@@ -421,6 +421,8 @@ jobs:
     #     on the Linux runners. Here rather than in go-test so the tests do not wait behind it.
     # 25 min: the reaper step's mutation checks alone ran 12 of the 15 on Windows once the undo_last mutations joined
     # (two cancelled runs), and go lint follows them.
+    # The mutation checks run one per CPU (tests/mutations.py, spawn workers) since the folder-depth mutations took the
+    # Windows reaper step to 19 min and cancelled this job (run 41654984217); on four CPUs they take a quarter of that.
     needs: scope
     if: needs.scope.outputs.winquick == 'true'
     timeout-minutes: 25
