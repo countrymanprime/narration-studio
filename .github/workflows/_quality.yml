@@ -379,7 +379,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
-          targets: lint test
+          targets: lint test typecheck
           projects: tag:toolchain:python,fixtures
       - name: reaper (Lua)
         if: ${{ !cancelled() }}

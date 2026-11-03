@@ -50,6 +50,12 @@ go -C src/studio/desktop test ./internal/importer -run='^$' -fuzz=FuzzAppendInli
 
 When a run fails it prints the counterexample (and a `@reproduce_failure` blob or a seed for the first two; Go writes `testdata/fuzz/<Target>/<hash>`). Turn it into a plain test in the same file (`@example(...)`, a named `it`/`Test...`, or keep the `testdata/fuzz` file), fix the code, and commit both. A new Hypothesis tests folder needs a `conftest.py` that calls `hypothesis_profiles.load()`, or its tests silently run randomized. When you write a property, check that its generator reaches the branches it claims to test (`hypothesis.event`, `--hypothesis-show-statistics`, or a reach assertion) and that mutating the code makes it fail; two properties in the first pass were vacuous until this was done.
 
+## Python types (pyright, ratcheted per directory)
+
+`pyrightconfig.json` runs pyright 1.1.414 (the npm package, pinned in the root `package.json`) in basic mode over the code that ships: `src/studio/libs/python` and the `core/` folder of each sidecar. Tests are excluded. `scripts/ci/pyright-ratchet.json` holds the number of errors each of those four directories may have, and `node scripts/ci/pyright-ratchet.mjs` (the `typecheck` target of `narration-common`, run by the `python` step of `quality`) fails a directory that goes above its number, and one that goes below it until `--update` writes the lower number down. The numbers can only go down; a new directory is added to the config and starts at its real count (0 when clean). The first numbers are the first run's: 12, 25, 20 and 16 (73 in all, mostly `Optional` narrowing, the `Registry` protocol bound and `Self` returns).
+
+To work a directory down: `node scripts/ci/pyright-ratchet.mjs` for the counts, `npx pyright <dir>` for the messages, fix them without `# type: ignore` or a `reportXxx` switch-off in the config (either hides an error from the count without fixing it, so a reviewer rejects it), then `--update`. The checker needs the project's `.venv` (`uv sync`), because the third-party imports resolve there. The choice of pyright over ty, Pyrefly and mypy is a tooling choice, not an ADR ([When to write one](../adr/README.md#when-to-write-one)): swapping it means changing one script and one config file.
+
 ## Dead code (Knip)
 
 See [CI and releases](ci-and-releases.md#dead-code-check-knip). The short version: `pnpm knip` is at zero; delete the code or drop the `export`; add an ignore to `knip.jsonc` only with a reason.
