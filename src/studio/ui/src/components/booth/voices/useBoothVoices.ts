@@ -229,7 +229,14 @@ export function useBoothVoices({
   const add = useCallback(
     async (name: string, characterIds: string[]) => {
       try {
-        const answer = await voiceTracks.boothVoiceAdd(chapterId, name, characterIds);
+        // A track named for a character records that character by name until it has an assignment; the add makes one, so the
+        // character the name matches goes in it too, unless the name is assigned already (it then keeps what it had).
+        const same = (a: string) => a.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase();
+        const named = setup.tracks.some((entry) => same(entry.track))
+          ? undefined
+          : characters.find((entity) => same(entity.canonical_name) || entity.aliases.some((alias) => same(alias.text)));
+        const ids = named && characterIds.length > 0 && !characterIds.includes(named.id) ? [named.id, ...characterIds] : characterIds;
+        const answer = await voiceTracks.boothVoiceAdd(chapterId, name, ids);
         if (answer.outcome === 'refused') {
           notify(answer.message ?? 'The track was not added.', 'error');
           return false;
@@ -253,7 +260,7 @@ export function useBoothVoices({
         return false;
       }
     },
-    [voiceTracks, chapterId, notify, replace],
+    [voiceTracks, chapterId, notify, replace, setup.tracks, characters],
   );
 
   const use = useCallback(
@@ -261,8 +268,9 @@ export function useBoothVoices({
       try {
         if (characterIds.length > 0) {
           const name = voice.name.trim();
-          const had =
-            setup.tracks.find((entry) => entry.track === name)?.characters ?? voice.characters.filter((c) => c.source === 'assigned').map((c) => c.id);
+          // A track with no assignment records the character its name matches (White Rabbit on "White Rabbit"): an assignment replaces the
+          // match, so that character is kept in it, or putting another on the track would take the track from it (walkthrough, #2839).
+          const had = setup.tracks.find((entry) => entry.track === name)?.characters ?? voice.characters.map((character) => character.id);
           replace(await voiceTracks.voiceTracksSetCharacters(name, [...had, ...characterIds.filter((id) => !had.includes(id))]));
         }
         choose(voice);

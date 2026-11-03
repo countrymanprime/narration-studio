@@ -7,6 +7,7 @@ import type { ListboxOption } from '../../primitives/Listbox';
 import { Popover } from '../../primitives/Popover';
 import { SearchList } from '../../primitives/SearchList';
 import { IconButton } from '../../primitives/IconButton';
+import { TooltipTarget } from '../../primitives/Tooltip';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import type { BoothVoices } from './useBoothVoices';
 import { keyName, lineCount, voiceName, type WhoCharacter } from './whoIsIn';
@@ -219,8 +220,12 @@ export function VoiceControl({
   return (
     <span className="inline-flex flex-none items-center gap-1">
       {control}
-      <IconButton action="add" label={`Add a track for ${standingIn.name}`} onClick={() => onAddFor?.(standingIn)} />
-      <IconButton action="useExistingTrack" label={`Record ${standingIn.name} on an existing track`} onClick={() => onUseFor?.(standingIn)} />
+      <TooltipTarget text={`Add a track for ${standingIn.name}`}>
+        <IconButton action="add" label={`Add a track for ${standingIn.name}`} onClick={() => onAddFor?.(standingIn)} />
+      </TooltipTarget>
+      <TooltipTarget text={`Record ${standingIn.name} on an existing track`}>
+        <IconButton action="useExistingTrack" label={`Record ${standingIn.name} on an existing track`} onClick={() => onUseFor?.(standingIn)} />
+      </TooltipTarget>
     </span>
   );
 }

@@ -116,7 +116,17 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const options: RadioOption<WhoChoice>[] = [
     {
       value: 'new',
-      label: <span className="inline-flex flex-wrap items-center gap-2">A new track{newKey ? <Kbd keys={[keyName(newKey)]} /> : null}</span>,
+      label: (
+        <span className="inline-flex flex-wrap items-center gap-2">
+          {newKey ? (
+            <>
+              A new track on <Kbd keys={[keyName(newKey)]} />
+            </>
+          ) : (
+            'A new track, with no key'
+          )}
+        </span>
+      ),
     },
     {
       value: 'existing',

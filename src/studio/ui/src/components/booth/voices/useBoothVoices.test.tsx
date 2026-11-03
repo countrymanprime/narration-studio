@@ -335,6 +335,24 @@ describe("the Booth's voices", () => {
       expect(hook.current.current?.name).toBe('Extras');
     });
 
+    it('a new track named for a character keeps that character when others are ticked', async () => {
+      const { api, hook } = await mount({ voiceFolders: true });
+      await act(async () => {
+        await hook.current.add('Alice', ['mad-hatter']);
+      });
+      expect((await api.voiceTracksGet()).tracks.find((entry) => entry.track === 'Alice')?.characters).toEqual(['alice', 'mad-hatter']);
+    });
+
+    it('using a track matched by name keeps the character its name matched (White Rabbit stays on Num 1)', async () => {
+      const { api, hook } = await mount({ voiceFolders: true });
+      await act(async () => {
+        await hook.current.use(hook.current.voices[1], ['alice']);
+      });
+      await act(async () => new Promise((r) => setTimeout(r, 5)));
+      expect((await api.voiceTracksGet()).tracks.find((entry) => entry.track === 'White Rabbit')?.characters).toEqual(['white-rabbit', 'alice']);
+      expect(hook.current.voices[1].characters.map((character) => character.id)).toEqual(['white-rabbit', 'alice']);
+    });
+
     it('a character with no track chosen during a take records on the Narrator voice and says so until another voice is chosen', async () => {
       const { hook } = await mount({ voiceFolders: true }, true);
       await act(async () => hook.current.byKey(1));
