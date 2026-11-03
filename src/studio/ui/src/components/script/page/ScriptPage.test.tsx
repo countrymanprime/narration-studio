@@ -90,6 +90,15 @@ function selectIn(pid: string, from: number, to: number): void {
 }
 
 describe('three-columns-from-1440-and-drawers-below', () => {
+  it('Alt+Down goes to the next chapter and leaves focus on its heading (#2902)', async () => {
+    mount();
+    await firstHeading();
+    document.querySelector<HTMLElement>('section[aria-label="Reader"] [role="region"]')!.focus();
+    press('ArrowDown', 'ArrowDown', { altKey: true });
+    await waitFor(() => expect(document.activeElement?.tagName).toBe('H2'));
+    expect(document.activeElement?.closest('[data-bound]')?.getAttribute('data-ch')).not.toBe(document.querySelector('[data-bound]')?.getAttribute('data-ch'));
+  });
+
   it('lays the chapter list, the reader and the rail out as the mock does, at its widths', async () => {
     mount();
     await firstHeading();
