@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booth voices mock</title>
+<style>
+/* Recording to character sub-tracks (#2251): the Booth's voice control, voice list, "who is in it?", the no-track notice, extras tracks,
+   and the Engine page's voice folder links. Tokens copied from docs/research/mockups/studio-next/src/styles/app.css, as the folder-tracks mock does. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --ok:#2F6B3E; --ok-soft:#D9EAD9; --warn:#8A5A00; --warn-soft:#F5E6BF; --bad:#A3302A; --bad-soft:#F4D6D2; --info:#2A5C86; --info-soft:#D8E5F2; --violet:#6B4C9A; --violet-soft:#E6DDF3;
+  --page:#F3F1EB; --focus:#1F5FBF; --shadow:0 1px 2px rgba(36,33,28,.08),0 10px 28px rgba(36,33,28,.14);
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace; --f-read:Georgia,'Times New Roman',serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --page:#181611; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --page:#181611; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding-block:16px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;letter-spacing:.01em;text-wrap:balance}
+h1{font-size:30px} h2{font-size:22px;margin:40px 0 4px} h3{font-size:18px;margin:0}
+p{margin:0}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.sub{color:var(--muted);font-size:13px;max-width:80ch}
+.label{font:600 12px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.tag{display:inline-block;font:600 11px var(--f-display);letter-spacing:.12em;text-transform:uppercase;border-radius:4px;padding:1px 6px;vertical-align:middle;background:var(--copper-soft);color:var(--copper-text)}
+.tag.rec{background:var(--ok-soft);color:var(--ok)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.toc{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px}
+.toc a{color:var(--copper-text)}
+.frames{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.frame{display:flex;flex-direction:column;gap:6px;max-width:100%;min-width:0;flex:1 1 360px;container-type:inline-size}
+.frame.wide{flex-basis:100%}
+.seg{display:inline-flex;border:1px solid var(--btn-line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:0 12px;height:30px;font:600 12px var(--f-display);letter-spacing:.09em;text-transform:uppercase}
+.seg button+button{border-left:1px solid var(--btn-line)}
+.seg button[aria-pressed="true"]{background:var(--copper);color:var(--copper-ink)}
+/* the app's TooltipTarget, drawn with CSS */
+[data-tip]{position:relative}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;z-index:30;bottom:calc(100% + 6px);left:0;background:var(--ink);color:var(--bg);font:500 12px var(--f-body);padding:4px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;box-shadow:var(--shadow)}
+.tipshown{position:absolute;z-index:30;background:var(--ink);color:var(--bg);font:500 12px var(--f-body);padding:4px 8px;border-radius:5px;white-space:nowrap;box-shadow:var(--shadow)}
+
+/* primitives as drawn here */
+.btn{height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--surface);padding:0 14px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn.primary{background:var(--copper);border-color:var(--copper);color:var(--copper-ink)}
+.btn.stop{background:var(--copper);border-color:var(--copper);color:var(--copper-ink);height:34px;padding:0 14px;width:112px;justify-content:center}
+.meter{width:100px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.meter i{display:block;height:100%;width:62%;background:var(--muted)}
+.ibtn{width:32px;height:32px;border-radius:6px;border:1px solid var(--btn-line);background:var(--surface);display:inline-grid;place-items:center;flex:none;padding:0}
+.ibtn.sm{width:28px;height:28px}
+.ibtn.ghost{border-color:transparent;background:none}
+.ibtn:hover{background:var(--raised)}
+.kc{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 5px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;font:500 11px var(--f-mono);color:var(--muted);background:var(--surface);white-space:nowrap}
+.spk{display:inline-block;line-height:1.35;border-radius:99px;padding:2px 9px;font:600 12px var(--f-display);letter-spacing:.04em;background:color-mix(in srgb,var(--c,#5C564B) 16%,var(--surface));color:color-mix(in srgb,var(--c,#5C564B) 70%,var(--ink));border:1px solid color-mix(in srgb,var(--c,#5C564B) 30%,transparent);white-space:nowrap;max-width:22ch;overflow:hidden;text-overflow:ellipsis}
+.spk.narr{--c:#766F60}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:1px 8px;font-size:12px;font-weight:500;white-space:nowrap;flex:none}
+.pill.n{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.recdot{width:9px;height:9px;border-radius:50%;background:var(--bad);flex:none}
+.armdot{width:9px;height:9px;border-radius:50%;border:2px solid var(--bad);flex:none}
+
+/* Booth shell, cut down to the parts this change touches */
+.booth{background:var(--page);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) 270px;grid-template-rows:auto minmax(0,1fr) auto auto;min-height:420px}
+.b-top{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+.b-sel{height:30px;line-height:28px;border:1px solid var(--btn-line);border-radius:6px;padding:0 10px;display:block;text-overflow:ellipsis;font:600 12px var(--f-display);letter-spacing:.06em;min-width:0;flex:0 1 300px;overflow:hidden;white-space:nowrap}
+.b-meta{font:12px var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b-read{padding:26px 22px;font:26px/1.55 var(--f-read);color:var(--ink);overflow:hidden}
+.b-read .cur{background:var(--copper-soft);border-radius:3px}
+.b-read p{margin:0 0 14px}
+.b-read .dim{opacity:.45}
+.b-rail{border-left:1px solid var(--line);background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.b-rail .rr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;min-height:30px}
+.b-rail .rr .what{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-bar{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--line);background:var(--surface);flex-wrap:wrap;position:relative}
+.b-time{font:500 17px var(--f-mono);min-width:56px}
+.b-keys{grid-column:1/-1;display:flex;gap:6px 16px;flex-wrap:wrap;padding:6px 12px;border-top:1px solid var(--line);background:var(--raised);font-size:12px;color:var(--muted)}
+.b-keys span{display:inline-flex;gap:5px;align-items:center}
+.b-keys .new{color:var(--ink);font-weight:500}
+@container (max-width:700px){
+  .booth{grid-template-columns:minmax(0,1fr)}
+  .b-rail{display:none}
+  .b-read{font-size:20px;padding:16px}
+  .b-meta{display:none}
+  .b-keys .kopt{display:none}
+}
+
+/* the voice control: one button, a fixed width, so a long name or the notice never moves the bar */
+.voice{display:inline-flex;align-items:center;gap:7px;height:34px;border:1px solid var(--btn-line);border-radius:6px;background:var(--surface);padding:0 6px 0 8px;width:250px;min-width:0;position:relative}
+.voice .spk{flex:0 1 auto;min-width:0}
+.voice .car{margin-left:auto;color:var(--muted)}
+.voice.warn{border-color:var(--warn);background:var(--warn-soft)}
+.voice .to{color:var(--muted);font-size:12px}
+.voice .wi{color:var(--warn)}
+.flat .voice{opacity:.55;cursor:not-allowed}
+@container (max-width:420px){.voice{width:auto;flex:1 1 150px}}
+
+/* overlays */
+.pop{background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);width:100%;max-width:400px;display:flex;flex-direction:column;overflow:hidden}
+.pop .srch{display:flex;align-items:center;gap:6px;padding:8px;border-bottom:1px solid var(--line)}
+.pop .srch input{flex:1;height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--bg);padding:0 8px;min-width:0}
+.pop .sec{font:600 11px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:8px 12px 4px;background:var(--raised);position:sticky;top:0}
+.pop .list{max-height:min(52vh,330px);overflow:auto}
+.opt{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:40px;padding:4px 10px;border-bottom:1px solid var(--line)}
+.opt:last-child{border-bottom:0}
+.opt[aria-selected="true"]{background:var(--copper-soft)}
+.opt .tn{font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+.opt .tn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt .chars{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.opt .kcol{display:flex;justify-content:center}
+.opt.missing .tn{color:var(--muted);font-weight:500}
+.dlg{background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow);width:100%;max-width:460px;display:flex;flex-direction:column}
+.dlg-h{display:flex;align-items:center;gap:8px;padding:14px 16px 6px}
+.dlg-h h3{margin-right:auto}
+.dlg-b{padding:6px 16px 12px;display:flex;flex-direction:column;gap:10px}
+.dlg-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+.chk{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;min-height:34px;padding:2px 8px;border-radius:6px}
+.chk:hover{background:var(--raised)}
+.chk>.spk,.rr>span>.spk{justify-self:start}
+.frame.mini{flex:1 1 100%;padding-bottom:34px}
+.frame.mini .booth{overflow:visible}
+.box{width:16px;height:16px;border:1.5px solid var(--btn-line);border-radius:3px;display:grid;place-items:center;background:var(--surface)}
+.box.on{background:var(--copper);border-color:var(--copper);color:var(--copper-ink)}
+.box.on svg{width:12px;height:12px;stroke-width:3}
+.radio{width:16px;height:16px;border:1.5px solid var(--btn-line);border-radius:50%;display:grid;place-items:center}
+.radio.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--copper)}
+.grp-list{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld input,.selbox{height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--bg);padding:0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.fld .lb{font-size:12px;font-weight:500;color:var(--muted)}
+.toast{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow);max-width:380px;font-size:13px}
+.toast .ibtn{background:none;border-color:transparent;color:var(--bg)}
+
+/* Engine page cards */
+.card{container-type:inline-size;background:var(--surface);border:1px solid var(--line);border-radius:10px;width:100%}
+.card-h{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);min-height:52px;flex-wrap:wrap}
+.card-h h3{margin-right:auto}
+.card-b{padding:10px 12px}
+.kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 12px;align-items:center;font-size:13px}
+.kv .k{color:var(--muted)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;padding:8px 10px;background:var(--raised);border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .num{text-align:center;width:56px}
+.tbl .act{text-align:right;width:84px;white-space:nowrap}
+.tbl .tname{font-weight:600;display:flex;align-items:center;gap:8px}
+.tbl .src{color:var(--faint);font-size:12px;margin-left:6px}
+.tbl .chars{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.tbl tr.missing td{color:var(--muted)}
+.scroll{max-height:min(60vh,420px);overflow:auto;border-radius:0 0 10px 10px}
+.trig{display:flex;align-items:center;gap:6px;height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--bg);padding:0 10px;min-width:0;width:100%}
+.trig .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trig svg:last-child{margin-left:auto;color:var(--muted)}
+@container (max-width:560px){
+  .tbl thead{position:absolute;left:-9999px}
+  .tbl.voices tr{display:grid;grid-template-columns:44px minmax(0,1fr) auto;border-bottom:1px solid var(--line)}
+  .tbl.voices td{border:0}
+  .tbl.voices td.chars-c{grid-column:2/4;grid-row:2;padding-top:0}
+  .tbl.voices td.act{grid-column:3;grid-row:1}
+  .tbl.links tr{display:grid;grid-template-columns:minmax(0,1fr) auto;border-bottom:1px solid var(--line)}
+  .tbl.links td{border:0}
+  .tbl.links td.ch{grid-column:1/3}
+  .tbl.links td.fo{grid-column:1/3;padding-top:0}
+  .kv{grid-template-columns:minmax(0,1fr)}
+}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"/><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17v.01"/></symbol>
+</svg>
+
+<div class="wrap" id="top">
+  <header class="stack" style="gap:8px">
+    <div class="row"><h1>Booth voices</h1><span class="tag">Draft</span><span class="spacer"></span>
+      <span class="seg" role="group" aria-label="Theme"><button data-theme-set="system" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></span></div>
+    <p class="sub">Recording each character on a child track of the chapter's REAPER folder (#2251, the owner's answers of 2026-11-02). The Booth gains one voice control on the record bar, a voice list, a "who is in it?" dialog and a notice for a character with no track; the Engine page links a chapter to a folder and matches its children to characters. Fake data: chapter 8 of the sample book, folder "Ch 8" with five children.</p>
+    <nav class="toc" aria-label="Sections"><a href="#booth">Booth: the voice control</a><a href="#list">Voice list</a><a href="#who">Who is in it?</a><a href="#notice">No track for a character</a><a href="#extras">Extras tracks</a><a href="#engine">Engine: linking</a><a href="#narrow">Narrow windows</a><a href="#decide">Decisions</a></nav>
+  </header>
+
+  <!-- ===================================================================================================== BOOTH -->
+  <section class="stack" id="booth" aria-label="The voice control">
+    <h2>Booth: the voice control</h2>
+    <p class="sub">One control beside Cold read shows the armed voice: its number-pad key, the character's SpeakerTag (the Narrator child shows "Narrator") and the REAPER arm state read from <code>chapter_track_state</code>. It never follows the speaker on the page (decision 6). Pressing it opens the voice list. While recording, a voice key switches the armed child without stopping (phase 0, row 7). The key strip gains three hints. The rail's "In this chapter" rows gain the character's voice key, or an add-track icon button where none exists.</p>
+    <div class="frames">
+      <div class="frame wide"><span class="label">New · stopped, Queen of Hearts armed</span>
+        <div class="booth">
+          <div class="b-top"><button class="ibtn sm" aria-label="Previous chapter">‹</button><div class="b-sel">Chapter 8: The Queen's Croquet-Ground ▾</div><button class="ibtn sm" aria-label="Next chapter">›</button><span class="b-meta">¶ 12 of 41 · 29% · ~9:10 of audio left</span><span class="spacer"></span><span class="pill ok">REAPER</span></div>
+          <div class="b-read">
+            <p class="dim">‘Get to your places!’ shouted the Queen in a voice of thunder, and people began running about in all directions.</p>
+            <p><span class="cur">‘Off with her head!’</span> the Queen shouted at the top of her voice.</p>
+            <p class="dim">Nobody moved.</p>
+          </div>
+          <aside class="b-rail" aria-label="Chapter rail">
+            <span class="label">In this chapter</span><div style="max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:8px">
+            <div class="rr"><span class="kc" title="Num 1">1</span><span><span class="spk" style="--c:#2A5C86">Alice</span></span><button class="ibtn sm ghost" aria-label="Play Alice's voice sample" data-tip="Voice sample"><svg class="i"><use href="#i-play"/></svg></button></div>
+            <div class="rr"><span class="kc">2</span><span><span class="spk" style="--c:#A3302A">Queen of Hearts</span></span><button class="ibtn sm ghost" aria-label="Play the Queen of Hearts' voice sample" data-tip="Voice sample"><svg class="i"><use href="#i-play"/></svg></button></div>
+            <div class="rr"><span class="kc">3</span><span><span class="spk" style="--c:#6B4C9A">Cheshire Cat</span></span><button class="ibtn sm ghost" aria-label="Play the Cheshire Cat's voice sample" data-tip="Voice sample"><svg class="i"><use href="#i-play"/></svg></button></div>
+            <div class="rr"><span class="kc">4</span><span><span class="spk" style="--c:#2F6B3E">Five</span></span><button class="ibtn sm ghost" aria-label="Play Five's voice sample" data-tip="Voice sample"><svg class="i"><use href="#i-play"/></svg></button></div>
+            <div class="rr"><button class="ibtn sm" aria-label="Add a track for the King of Hearts" data-tip="Add a track for the King of Hearts"><svg class="i"><use href="#i-plus"/></svg></button><span><span class="spk" style="--c:#8A5A00">King of Hearts</span></span><button class="ibtn sm ghost" aria-label="Play the King of Hearts' voice sample" data-tip="Voice sample"><svg class="i"><use href="#i-play"/></svg></button></div>
+            <div class="rr"><button class="ibtn sm" aria-label="Add a track for the Knave of Hearts" data-tip="Add a track for the Knave of Hearts"><svg class="i"><use href="#i-plus"/></svg></button><span><span class="spk" style="--c:#5C564B">Knave of Hearts</span></span><button class="ibtn sm ghost" aria-label="Play the Knave of Hearts' voice sample" data-tip="Voice sample"><svg class="i"><use href="#i-play"/></svg></button></div></div>
+          </aside>
+          <div class="b-bar">
+            <button class="btn stop"><span class="recdot" style="background:var(--copper-ink)"></span>Record</button>
+            <span class="b-time">00:00</span>
+            <button class="ibtn" aria-label="Microphone" data-tip="Microphone"><svg class="i"><use href="#i-mic"/></svg></button>
+            <button class="btn">Cold read</button>
+            <button class="voice" aria-haspopup="listbox" aria-label="Voice: Queen of Hearts, Num 2, armed in REAPER. Choose a voice" data-tip="Voice (Num .)"><span class="kc">Num 2</span><span class="spk" style="--c:#A3302A">Queen of Hearts</span><span class="armdot" role="img" aria-label="Armed in REAPER"></span><svg class="i car"><use href="#i-down"/></svg></button>
+            <span class="spacer"></span><span class="meter" role="img" aria-label="Input level"><i></i></span><span class="pill n">Room not measured yet</span>
+          </div>
+          <div class="b-keys"><span><span class="kc">Space</span>Record / stop</span><span class="kopt"><span class="kc">R</span>Punch and roll</span><span><span class="kc">↑</span><span class="kc">↓</span>Phrase</span><span class="new"><span class="kc">Num 0–9</span>Voice</span><span class="new"><span class="kc">Num +</span><span class="kc">Num −</span>Next / previous voice</span><span class="new"><span class="kc">Num .</span>Voices</span><span class="kopt"><span class="kc">B</span>Bookmark</span></div>
+        </div>
+      </div>
+      <div class="frame mini"><span class="label">New · recording, switched live to Num 1</span>
+        <div class="booth" style="min-height:0;grid-template-rows:auto">
+          <div class="b-bar" style="border-top:0">
+            <button class="btn stop"><span style="width:10px;height:10px;background:var(--copper-ink)"></span>Stop</button>
+            <span class="b-time">01:42</span>
+            <button class="voice" aria-label="Voice: Alice, Num 1, recording. Choose a voice"><span class="kc">Num 1</span><span class="spk" style="--c:#2A5C86">Alice</span><span class="recdot" role="img" aria-label="Recording on this track"></span><svg class="i car"><use href="#i-down"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="frame mini"><span class="label">New · a flat chapter: the control is off</span>
+        <div class="booth flat" style="min-height:0;grid-template-rows:auto">
+          <div class="b-bar" style="border-top:0">
+            <button class="btn stop"><span class="recdot" style="background:var(--copper-ink)"></span>Record</button>
+            <span class="b-time">00:00</span>
+            <span style="position:relative"><button class="voice" aria-disabled="true" aria-label="Voices: this chapter's track has no voice tracks"><span class="kc">Num</span><span class="spk narr">Chapter 8</span><svg class="i car"><use href="#i-down"/></svg></button><span class="tipshown" style="top:calc(100% + 6px);left:0">This chapter records on one track (a flat project)</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="frame mini"><span class="label">New · REAPER reports two children armed</span>
+        <div class="booth" style="min-height:0;grid-template-rows:auto">
+          <div class="b-bar" style="border-top:0">
+            <button class="btn stop"><span class="recdot" style="background:var(--copper-ink)"></span>Record</button>
+            <span class="b-time">00:00</span>
+            <span style="position:relative"><button class="voice warn" aria-label="Voice: Queen of Hearts, Num 2. Choose a voice" aria-description="2 tracks armed in REAPER. Record arms only this one"><span class="kc">Num 2</span><span class="spk" style="--c:#A3302A">Queen of Hearts</span><svg class="i wi"><use href="#i-warn"/></svg><svg class="i car"><use href="#i-down"/></svg></button><span class="tipshown" style="top:calc(100% + 6px);left:0">2 tracks armed in REAPER · Record arms only this one</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== LIST -->
+  <section class="stack" id="list" aria-label="Voice list">
+    <h2>Voice list</h2>
+    <p class="sub">Num . or a click on the voice control opens it; Num + and Num − move the armed voice down and up the same list without opening it (decision 4). A Listbox in a Popover, capped, searchable by track or character name. "Tracks" is the folder's children in REAPER's order, which is the key order; "No track" lists the chapter's characters that match none, each opening the dialog in the next section. Enter picks, Escape closes.</p>
+    <div class="frames">
+      <div class="frame"><span class="label">New · the voice list</span>
+        <div class="pop" role="dialog" aria-label="Voices">
+          <div class="srch"><svg class="i" style="color:var(--muted)"><use href="#i-search"/></svg><input aria-label="Search voices" placeholder="Search voices"></div>
+          <div class="list" role="listbox" aria-label="Voices">
+            <div class="sec">Tracks · Ch 8</div>
+            <div class="opt" role="option" aria-selected="false"><span class="kcol"><span class="kc">0</span></span><div><div class="tn"><span>Narrator</span></div></div><span></span></div>
+            <div class="opt" role="option" aria-selected="false"><span class="kcol"><span class="kc">1</span></span><div><div class="tn"><span>Alice</span></div></div><span class="spk" style="--c:#2A5C86">Alice</span></div>
+            <div class="opt" role="option" aria-selected="true"><span class="kcol"><span class="kc">2</span></span><div><div class="tn"><span>Queen</span><span class="armdot" role="img" aria-label="Armed in REAPER"></span></div></div><span class="spk" style="--c:#A3302A">Queen of Hearts</span></div>
+            <div class="opt" role="option" aria-selected="false"><span class="kcol"><span class="kc">3</span></span><div><div class="tn"><span>Cheshire Cat</span></div></div><span class="spk" style="--c:#6B4C9A">Cheshire Cat</span></div>
+            <div class="opt" role="option" aria-selected="false"><span class="kcol"><span class="kc">4</span></span><div><div class="tn"><svg class="i" style="color:var(--muted)" aria-label="Several characters"><use href="#i-users"/></svg><span>Gardeners</span></div><div class="chars"><span class="spk" style="--c:#2F6B3E">Two</span><span class="spk" style="--c:#2F6B3E">Five</span><span class="spk" style="--c:#2F6B3E">Seven</span></div></div><span></span></div>
+            <div class="sec">No track</div>
+            <div class="opt missing" role="option" aria-selected="false"><span class="kcol"><svg class="i"><use href="#i-plus"/></svg></span><div><div class="tn"><span>King of Hearts</span></div></div><span class="pill n">12 lines</span></div>
+            <div class="opt missing" role="option" aria-selected="false"><span class="kcol"><svg class="i"><use href="#i-plus"/></svg></span><div><div class="tn"><span>Knave of Hearts</span></div></div><span class="pill n">1 line</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="frame"><span class="label">New · a search with no match</span>
+        <div class="pop" role="dialog" aria-label="Voices">
+          <div class="srch"><svg class="i" style="color:var(--muted)"><use href="#i-search"/></svg><input aria-label="Search voices" value="Duchess"></div>
+          <div class="list" role="listbox" aria-label="Voices"><div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No voice or character called "Duchess" in this chapter</div></div>
+        </div>
+        <span class="label" style="margin-top:12px">Key order</span>
+        <p class="sub">Keys follow the child order in REAPER: Narrator is 0 wherever it sits, the other children take 1–9 in order. A tenth voice and later have no key and are reached with Num +, Num − or the list.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== WHO -->
+  <section class="stack" id="who" aria-label="Who is in it">
+    <h2>Who is in it?</h2>
+    <p class="sub">Two dialogs, both only while stopped. <b>Who is in it?</b> opens on a number key with no child behind it (Num 5 here, with four voices): it lists the chapter's characters, those with lines in this chapter first, and makes one track for the ones ticked. Two or more ticked make one shared track, named "Extras" unless renamed. The new track becomes the next child, so it takes the next free key, Num 5. <b>Who records the King?</b> opens when the narrator chooses a character with no track (from the list or the rail): make a track (default), assign the character to an existing track, or record on the Narrator.</p>
+    <div class="frames">
+      <div class="frame"><span class="label">New · Num 5 pressed, no track behind it</span>
+        <div class="dlg" role="dialog" aria-labelledby="who-t">
+          <div class="dlg-h"><h3 id="who-t">Who is in Num 5?</h3><button class="ibtn sm ghost" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <div class="dlg-b">
+            <div class="fld"><span class="lb">In this chapter</span>
+              <div class="grp-list" role="group" aria-label="Characters">
+                <div class="chk"><span class="box on"><svg class="i"><use href="#i-check"/></svg></span><span class="spk" style="--c:#8A5A00">King of Hearts</span><span class="pill n">12 lines</span></div>
+                <div class="chk"><span class="box on"><svg class="i"><use href="#i-check"/></svg></span><span class="spk" style="--c:#5C564B">Knave of Hearts</span><span class="pill n">1 line</span></div>
+                <div class="chk"><span class="box"></span><span class="spk" style="--c:#2A5C86">Alice</span><span class="pill n">on Num 1</span></div>
+              </div>
+            </div>
+            <div class="fld"><span class="lb">Elsewhere in the book</span>
+              <div class="grp-list" role="group" aria-label="Other characters" style="max-height:110px">
+                <div class="chk"><span class="box"></span><span class="spk" style="--c:#5C564B">Duchess</span><span></span></div>
+                <div class="chk"><span class="box"></span><span class="spk" style="--c:#5C564B">Mock Turtle</span><span></span></div>
+              </div>
+            </div>
+            <label class="fld"><span class="lb">Track name</span><input value="Extras" aria-label="Track name"></label>
+          </div>
+          <div class="dlg-f"><button class="btn">Cancel</button><button class="btn primary">Add track</button></div>
+        </div>
+      </div>
+      <div class="frame"><span class="label">New · a character with no track chosen</span>
+        <div class="dlg" role="dialog" aria-labelledby="rec-t">
+          <div class="dlg-h"><h3 id="rec-t">Who records the King of Hearts?</h3><button class="ibtn sm ghost" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <div class="dlg-b" role="radiogroup" aria-labelledby="rec-t">
+            <div class="chk"><span class="radio on"></span><span>A new track, <b>King of Hearts</b></span><span class="kc">Num 5</span></div>
+            <div class="chk"><span class="radio"></span><span>An existing track</span><span></span></div>
+            <div style="padding-left:32px"><div class="selbox" aria-disabled="true" style="opacity:.55"><span>Gardeners</span><svg class="i"><use href="#i-down"/></svg></div></div>
+            <div class="chk"><span class="radio"></span><span>The Narrator, this time</span><span class="kc">Num 0</span></div>
+          </div>
+          <div class="dlg-f"><button class="btn">Cancel</button><button class="btn primary">Arm</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== NOTICE -->
+  <section class="stack" id="notice" aria-label="No track">
+    <h2>No track for a character</h2>
+    <p class="sub">During a take nothing asks: choosing the King, who has no track, arms the Narrator child at once and the voice control shows "King → Narrator" in the warning style. That control has a fixed width, so the notice never moves the bar (frontend-primitives rule 7). After the stop the control offers the two other answers as icon buttons. What was recorded stays on the Narrator child. A key with no track while recording is refused with a toast and the take goes on. A chapter whose characters have no track shows it only in the rail's rows (the add button in place of a key, in the first section), with no extra notice.</p>
+    <div class="frames">
+      <div class="frame mini"><span class="label">New · recording, the King has no track</span>
+        <div class="booth" style="min-height:0;grid-template-rows:auto">
+          <div class="b-bar" style="border-top:0">
+            <button class="btn stop"><span style="width:10px;height:10px;background:var(--copper-ink)"></span>Stop</button>
+            <span class="b-time">02:07</span>
+            <span style="position:relative"><button class="voice warn" aria-label="Voice: King of Hearts, recording on the Narrator. Choose a voice" aria-description="The King of Hearts has no track"><span class="spk" style="--c:#8A5A00">King</span><svg class="i to"><use href="#i-arrow"/></svg><span class="spk narr">Narrator</span><span class="recdot" role="img" aria-label="Recording on this track"></span><svg class="i car"><use href="#i-down"/></svg></button><span class="tipshown" style="top:calc(100% + 6px);left:0">The King of Hearts has no track · recording on Narrator (Num 0)</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="frame mini"><span class="label">New · after the stop</span>
+        <div class="booth" style="min-height:0;grid-template-rows:auto">
+          <div class="b-bar" style="border-top:0">
+            <button class="btn stop"><span class="recdot" style="background:var(--copper-ink)"></span>Record</button>
+            <span class="b-time">00:00</span>
+            <button class="voice warn" aria-label="Voice: King of Hearts has no track, Narrator armed. Choose a voice"><span class="spk" style="--c:#8A5A00">King</span><svg class="i to"><use href="#i-arrow"/></svg><span class="spk narr">Narrator</span><span class="armdot" role="img" aria-label="Armed in REAPER"></span><svg class="i car"><use href="#i-down"/></svg></button>
+            <button class="ibtn" aria-label="Add a track for the King of Hearts" data-tip="Add a track for the King of Hearts"><svg class="i"><use href="#i-plus"/></svg></button>
+            <button class="ibtn" aria-label="Record the King of Hearts on an existing track" data-tip="Use an existing track"><svg class="i"><use href="#i-link"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="frame"><span class="label">New · Num 7 while recording, four voices</span>
+        <div class="toast" role="status"><svg class="i" style="color:var(--warn)"><use href="#i-warn"/></svg><span>No track on Num 7. Still recording on Queen (Num 2).</span><button class="ibtn sm" aria-label="Dismiss"><svg class="i"><use href="#i-x"/></svg></button></div>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== EXTRAS -->
+  <section class="stack" id="extras" aria-label="Extras tracks">
+    <h2>Extras tracks</h2>
+    <p class="sub">A child that holds several characters ("Extras", "TV", "Gardeners") shows a group mark and its characters. Choosing any of them arms that child. The match is the narrator's assignment, kept by the child's name, so every chapter folder with a child named "Gardeners" uses it.</p>
+    <div class="frames">
+      <div class="frame mini"><span class="label">New · the voice control on a shared track</span>
+        <div class="booth" style="min-height:0;grid-template-rows:auto">
+          <div class="b-bar" style="border-top:0">
+            <button class="btn stop"><span class="recdot" style="background:var(--copper-ink)"></span>Record</button>
+            <span class="b-time">00:00</span>
+            <button class="voice" aria-label="Voice: Five, on the Gardeners track, Num 4, armed. Choose a voice"><span class="kc">Num 4</span><span class="spk" style="--c:#2F6B3E">Five</span><span class="to" style="white-space:nowrap">· Gardeners</span><span class="armdot" role="img" aria-label="Armed in REAPER"></span><svg class="i car"><use href="#i-down"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== ENGINE -->
+  <section class="stack" id="engine" aria-label="Engine linking">
+    <h2>Engine: linking</h2>
+    <p class="sub">Three changes to the Engine panel. Chapter sync gains the project's layout, Flat or Voice folders (decision 7; a project that has one is never converted). With Voice folders, Chapter links offers folders (today they are disabled as "No audio of its own"). A new Voices card shows the children of the linked folder of the chosen chapter: key, track, the characters matched by name or assigned, and an edit icon to change them. The Narrator row can also name a character, for a first-person book (decision 2).</p>
+    <div class="frames">
+      <div class="frame"><span class="label">Changed · Chapter sync</span>
+        <div class="card"><div class="card-h"><h3>Chapter sync</h3><button class="btn">Turn off</button></div>
+          <div class="card-b kv">
+            <span class="k">Status</span><span><span class="pill ok">On</span></span>
+            <span class="k">Layout</span><span class="row"><span class="seg" role="group" aria-label="Chapter layout"><button aria-pressed="false">Flat</button><button aria-pressed="true">Voice folders</button></span><button class="ibtn sm ghost" aria-label="What the layouts mean" data-tip="Flat: a chapter is one track · Voice folders: a chapter is a folder, one child per voice"><svg class="i"><use href="#i-help"/></svg></button></span>
+            <span class="k">Links</span><span>9 of 12 chapters linked to a folder</span>
+          </div>
+        </div>
+      </div>
+      <div class="frame"><span class="label">Changed · Chapter links, a folder as the target</span>
+        <div class="card"><div class="card-h"><h3>Chapter links</h3></div>
+          <table class="tbl links"><thead><tr><th>Chapter</th><th>Status</th><th>Folder</th></tr></thead><tbody>
+            <tr><td class="ch">Chapter 8: The Queen's Croquet-Ground</td><td style="text-align:center"><span class="pill ok">Linked</span></td><td class="fo"><div class="trig"><svg class="i" style="color:#2A5C86"><use href="#i-folder"/></svg><span class="v">Ch 8 · 5 voices</span><svg class="i"><use href="#i-down"/></svg></div></td></tr>
+            <tr><td class="ch">Chapter 9: The Mock Turtle's Story</td><td style="text-align:center"><span class="pill n">Not linked</span></td><td class="fo"><div class="trig"><span class="v" style="color:var(--muted)">Choose a folder</span><svg class="i"><use href="#i-down"/></svg></div></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div class="frame wide"><span class="label">New · Voices card</span>
+        <div class="card"><div class="card-h"><h3>Voices</h3><div style="flex:0 1 300px;min-width:0"><div class="trig"><span class="v">Chapter 8: The Queen's Croquet-Ground</span><svg class="i"><use href="#i-down"/></svg></div></div><button class="ibtn" aria-label="Add a voice track to Ch 8" data-tip="Add a voice track"><svg class="i"><use href="#i-plus"/></svg></button></div>
+          <div class="scroll"><table class="tbl voices"><thead><tr><th>Key</th><th>Track</th><th>Characters</th><th><span class="sr">Actions</span></th></tr></thead><tbody>
+            <tr><td class="num"><span class="kc">0</span></td><td><span class="tname">Narrator</span></td><td class="chars-c"><div class="chars"><span class="pill n">Narration</span><span class="src">and as</span><span class="spk" style="--c:#2A5C86">Alice</span><span class="src">assigned</span></div></td><td class="act"><button class="ibtn sm" aria-label="Change who the Narrator track records" data-tip="Change characters"><svg class="i"><use href="#i-edit"/></svg></button></td></tr>
+            <tr><td class="num"><span class="kc">1</span></td><td><span class="tname">Alice</span></td><td class="chars-c"><div class="chars"><span class="spk" style="--c:#2A5C86">Alice</span><span class="src">by name</span></div></td><td class="act"><button class="ibtn sm" aria-label="Change who the Alice track records" data-tip="Change characters"><svg class="i"><use href="#i-edit"/></svg></button></td></tr>
+            <tr><td class="num"><span class="kc">2</span></td><td><span class="tname">Queen</span></td><td class="chars-c"><div class="chars"><span class="spk" style="--c:#A3302A">Queen of Hearts</span><span class="src">by alias</span></div></td><td class="act"><button class="ibtn sm" aria-label="Change who the Queen track records" data-tip="Change characters"><svg class="i"><use href="#i-edit"/></svg></button></td></tr>
+            <tr><td class="num"><span class="kc">3</span></td><td><span class="tname">Cheshire Cat</span></td><td class="chars-c"><div class="chars"><span class="spk" style="--c:#6B4C9A">Cheshire Cat</span><span class="src">by name</span></div></td><td class="act"><button class="ibtn sm" aria-label="Change who the Cheshire Cat track records" data-tip="Change characters"><svg class="i"><use href="#i-edit"/></svg></button></td></tr>
+            <tr><td class="num"><span class="kc">4</span></td><td><span class="tname"><svg class="i" style="color:var(--muted)" aria-label="Several characters"><use href="#i-users"/></svg>Gardeners</span></td><td class="chars-c"><div class="chars"><span class="spk" style="--c:#2F6B3E">Two</span><span class="spk" style="--c:#2F6B3E">Five</span><span class="spk" style="--c:#2F6B3E">Seven</span><span class="src">assigned</span></div></td><td class="act"><button class="ibtn sm" aria-label="Change who the Gardeners track records" data-tip="Change characters"><svg class="i"><use href="#i-edit"/></svg></button></td></tr>
+            <tr class="missing"><td class="num"><svg class="i" style="color:var(--warn)" aria-label="No track"><use href="#i-warn"/></svg></td><td><span class="tname" style="font-weight:500">No track</span></td><td class="chars-c"><div class="chars"><span class="spk" style="--c:#8A5A00">King of Hearts</span><span class="spk" style="--c:#5C564B">Knave of Hearts</span></div></td><td class="act"><button class="ibtn sm" aria-label="Add tracks for the King of Hearts and the Knave of Hearts" data-tip="Add their tracks"><svg class="i"><use href="#i-plus"/></svg></button><button class="ibtn sm" aria-label="Assign them to an existing track" data-tip="Use an existing track"><svg class="i"><use href="#i-link"/></svg></button></td></tr>
+          </tbody></table></div>
+        </div>
+      </div>
+      <div class="frame"><span class="label">New · changing a track's characters (Popover)</span>
+        <div class="pop" role="dialog" aria-label="Characters on Gardeners">
+          <div class="srch"><svg class="i" style="color:var(--muted)"><use href="#i-search"/></svg><input aria-label="Search characters" placeholder="Search characters"></div>
+          <div class="list" role="listbox" aria-multiselectable="true" aria-label="Characters">
+            <div class="sec">On Gardeners</div>
+            <div class="chk" role="option" aria-selected="true"><span class="box on"><svg class="i"><use href="#i-check"/></svg></span><span class="spk" style="--c:#2F6B3E">Two</span><span></span></div>
+            <div class="chk" role="option" aria-selected="true"><span class="box on"><svg class="i"><use href="#i-check"/></svg></span><span class="spk" style="--c:#2F6B3E">Five</span><span></span></div>
+            <div class="chk" role="option" aria-selected="true"><span class="box on"><svg class="i"><use href="#i-check"/></svg></span><span class="spk" style="--c:#2F6B3E">Seven</span><span></span></div>
+            <div class="sec">Other characters</div>
+            <div class="chk" role="option" aria-selected="false"><span class="box"></span><span class="spk" style="--c:#8A5A00">King of Hearts</span><span class="pill n">no track</span></div>
+            <div class="chk" role="option" aria-selected="false"><span class="box"></span><span class="spk" style="--c:#A3302A">Queen of Hearts</span><span class="pill n">on Queen</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== NARROW -->
+  <section class="stack" id="narrow" aria-label="Narrow windows">
+    <h2>Narrow windows</h2>
+    <p class="sub">At 360 px the rail goes (as built), the voice control shares the bar's second line, and the key strip keeps the voice hints.</p>
+    <div class="frames">
+      <div class="frame" style="flex:0 0 360px;max-width:360px"><span class="label">New · 360 px</span>
+        <div class="booth" style="min-height:0">
+          <div class="b-top"><div class="b-sel">Chapter 8: The Queen's… ▾</div></div>
+          <div class="b-read"><p><span class="cur">‘Off with her head!’</span> the Queen shouted.</p></div>
+          <div class="b-bar"><button class="btn stop"><span class="recdot" style="background:var(--copper-ink)"></span>Record</button><span class="b-time">00:00</span><button class="voice" aria-label="Voice: Queen of Hearts, Num 2, armed. Choose a voice"><span class="kc">2</span><span class="spk" style="--c:#A3302A">Queen of Hearts</span><span class="armdot" role="img" aria-label="Armed in REAPER"></span><svg class="i car"><use href="#i-down"/></svg></button></div>
+          <div class="b-keys"><span><span class="kc">Space</span>Record</span><span class="new"><span class="kc">Num 0–9</span>Voice</span><span class="new"><span class="kc">Num .</span>Voices</span></div>
+        </div>
+      </div>
+      <div class="frame" style="flex:0 0 360px;max-width:360px"><span class="label">New · 360 px, the voice list</span>
+        <div class="pop">
+          <div class="list" role="listbox" aria-label="Voices">
+            <div class="sec">Tracks · Ch 8</div>
+            <div class="opt" role="option" aria-selected="false"><span class="kcol"><span class="kc">0</span></span><div class="tn"><span>Narrator</span></div><span></span></div>
+            <div class="opt" role="option" aria-selected="true"><span class="kcol"><span class="kc">2</span></span><div class="tn"><span>Queen</span></div><span class="spk" style="--c:#A3302A">Queen of Hearts</span></div>
+            <div class="opt" role="option" aria-selected="false"><span class="kcol"><span class="kc">4</span></span><div><div class="tn"><span>Gardeners</span></div><div class="chars"><span class="spk" style="--c:#2F6B3E">Two</span><span class="spk" style="--c:#2F6B3E">Five</span></div></div><span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="frame" style="flex:0 0 360px;max-width:360px"><span class="label">New · 360 px, Voices card</span>
+        <div class="card"><div class="card-h"><h3>Voices</h3><button class="ibtn" aria-label="Add a voice track" data-tip="Add a voice track"><svg class="i"><use href="#i-plus"/></svg></button></div>
+          <table class="tbl voices"><thead><tr><th>Key</th><th>Track</th><th>Characters</th><th><span class="sr">Actions</span></th></tr></thead><tbody>
+            <tr><td class="num"><span class="kc">2</span></td><td><span class="tname">Queen</span></td><td class="chars-c"><div class="chars"><span class="spk" style="--c:#A3302A">Queen of Hearts</span><span class="src">by alias</span></div></td><td class="act"><button class="ibtn sm" aria-label="Change who the Queen track records"><svg class="i"><use href="#i-edit"/></svg></button></td></tr>
+            <tr><td class="num"><span class="kc">4</span></td><td><span class="tname">Gardeners</span></td><td class="chars-c"><div class="chars"><span class="spk" style="--c:#2F6B3E">Two</span><span class="spk" style="--c:#2F6B3E">Five</span><span class="spk" style="--c:#2F6B3E">Seven</span></div></td><td class="act"><button class="ibtn sm" aria-label="Change who the Gardeners track records"><svg class="i"><use href="#i-edit"/></svg></button></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== DECIDE -->
+  <section class="stack" id="decide" aria-label="Decisions">
+    <h2>Decisions for the owner</h2>
+    <ol class="sub" style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+      <li>The voice control on the record bar, beside Cold read, as drawn (recommended), or a strip of one icon button per voice.</li>
+      <li>Opening a chapter whose characters have no track: a press on each rail row's add button (drawn), or make the tracks with no press.</li>
+      <li>A number key with no track while recording: refuse with a toast (drawn), or open the voice list.</li>
+      <li>The Voices card on the Engine panel (drawn), or the same table inside the Chapter links row.</li>
+      <li>The live switch leaves about 64 ms unrecorded at a 1024-frame buffer (phase 0, row 7): accept it, since the key is pressed between lines (recommended), or arm first and trim the overlap after the stop (row 8).</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  function press(attr,value){document.querySelectorAll('['+attr+']').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute(attr)===value))})}
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-theme-set]');
+    if(!b)return;
+    var v=b.getAttribute('data-theme-set');
+    if(v==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',v);
+    press('data-theme-set',v);
+  });
+  var t=new URLSearchParams(location.search).get('theme');
+  if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);press('data-theme-set',t)}
+})();
+</script>
+</body>
+</html>

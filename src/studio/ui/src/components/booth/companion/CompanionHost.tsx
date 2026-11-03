@@ -6,8 +6,9 @@ import { CommandScope } from '../../../input/router';
 import type { GuideEntity, GuideType, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
 import { CompanionShell } from '../CompanionShell';
-import { RecordInReaperConfirm } from '../RecordInReaperConfirm';
 import { ResumePrompt } from '../ResumePrompt';
+import { recordedStart } from './companionResume';
+import { useRecordedThrough } from './useRecordedThrough';
 import { UnresolvedCreditsWarning } from '../UnresolvedCreditsWarning';
 import { flagMarks, flagSaves, visibleFlags, withMarks } from '../readerFlags';
 import { CREDITS_LABEL, readerMarks, type ReaderMark } from '../readerModel';
@@ -97,9 +98,21 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   });
   useEffect(() => () => keepOnLeave.current(), []);
 
+  const { recorded: recordedThrough, reading: readingRecorded } = useRecordedThrough(source.chapter.id, session.active);
+  const recorded = useMemo(
+    () => (chapter ? recordedStart({ chapter, paragraphs, spans: session.session.script?.spans, recorded: recordedThrough }) : null),
+    [chapter, paragraphs, session.session.script, recordedThrough],
+  );
   const header: ReactNode =
     source.kind === 'chapter' ? (
-      <ResumePrompt chapterId={source.chapter.id} model={session.model} active={session.active} onStartWord={(word) => session.setStartWord(word)} />
+      <ResumePrompt
+        chapterId={source.chapter.id}
+        model={session.model}
+        active={session.active}
+        recorded={recorded}
+        recordedPending={readingRecorded || (recordedThrough !== undefined && paragraphs === undefined)}
+        onStartWord={(word) => session.setStartWord(word)}
+      />
     ) : source.preview.unresolved.length > 0 ? (
       <UnresolvedCreditsWarning kind={source.credits} tokens={source.preview.unresolved} onFix={onFixCredits} />
     ) : undefined;
@@ -117,7 +130,6 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
         header={header}
         onFullApp={onFullApp}
       />
-      {recording.confirmPending && <RecordInReaperConfirm chapterTitle={chapterTitle} confirm={recording.confirm} cancel={recording.cancelConfirm} />}
     </CommandScope>
   );
 }
