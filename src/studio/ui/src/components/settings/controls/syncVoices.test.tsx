@@ -68,6 +68,7 @@ async function renderSettings(seed: MockApiSeed = {}) {
 describe('the Chapter sync and Voices settings (parity audit)', () => {
   it('are project rows under Chapter sync, found by the words a narrator uses', () => {
     expect(ROWS.find((row) => row.id === 'daw.sync')).toMatchObject({ cat: 'recording', section: 'Chapter sync', scope: 'project', def: 'on' });
+    expect(ROWS.find((row) => row.id === 'daw.voices')?.desc.length).toBeLessThanOrEqual(60);
     expect(ROWS.find((row) => row.id === 'daw.voices')).toMatchObject({ cat: 'recording', section: 'Chapter sync', scope: 'project', needs: 'reaper' });
     for (const query of ['sync chapters', 'link chapters automatically']) expect(search(query).some((hit) => hit.row?.id === 'daw.sync')).toBe(true);
     for (const query of ['narrator character', 'voice tracks', 'characters per track'])
@@ -91,11 +92,12 @@ describe('the Chapter sync and Voices settings (parity audit)', () => {
     for (const radio of within(group).getAllByRole('radio')) expect(radio.getAttribute('aria-checked')).toBe('false');
   });
 
-  it('says the voices need the Voice folders layout while the project is flat', async () => {
+  it('draws nothing under the Voices label while the project is flat, and no instruction prose', async () => {
     await renderSettings();
     const row = document.querySelector<HTMLElement>('[data-row="daw.voices"]')!;
-    await waitFor(() => expect(row.textContent).toContain('Voice folders'));
+    expect(row).toBeTruthy();
     expect(within(row).queryByRole('table')).toBeNull();
+    expect(row.textContent).not.toMatch(/Choose Voice folders|Each chapter records/);
   });
 
   it('lists a folder’s voices and saves who a track records, as the Engine panel’s Voices card does', async () => {
@@ -103,6 +105,8 @@ describe('the Chapter sync and Voices settings (parity audit)', () => {
     const row = document.querySelector<HTMLElement>('[data-row="daw.voices"]')!;
     const table = await within(row).findByRole('table', { name: /^Voices of / });
     expect(table).toBeTruthy();
+    // The row's label is the title: the card draws no second "Voices" heading or frame of its own.
+    expect(within(row).getAllByText('Voices')).toHaveLength(1);
     fireEvent.click(within(row).getAllByRole('button', { name: /^Choose who the .* track records$/ })[0]!);
     const list = await screen.findByRole('list', { name: 'Characters' });
     fireEvent.click(within(list).getAllByRole('checkbox')[0]!);

@@ -39,6 +39,7 @@ export function VoicesCard({
   onTrackCharacters,
   onNarratorCharacter,
   layoutInCard,
+  bare = false,
 }: {
   tracks: readonly Track[];
   chapters: readonly ManuscriptChapter[];
@@ -50,6 +51,8 @@ export function VoicesCard({
   onNarratorCharacter: (id: string) => void;
   /** True while Chapter sync is not drawing its Layout row, so this card carries the switch. */
   layoutInCard: boolean;
+  /** Draws no card of its own (no frame, no title): inside a Settings row, whose label is the title. The chapter picker sits above the table. */
+  bare?: boolean;
 }) {
   const folderLinks = useMemo(() => {
     const folders = new Set(tracks.filter((track) => track.isFolder).map((track) => track.guid));
@@ -76,16 +79,8 @@ export function VoicesCard({
   // The layout switch is Chapter sync's Layout row (the mock); while that card is not drawn, this card carries it so it is never lost.
   if (!layoutInCard && setup.layout === 'flat') return null;
 
-  return (
-    <Panel
-      title="Voices"
-      actions={
-        <div className="flex min-w-0 items-center gap-2">
-          {chapterPicker}
-          {layoutInCard && <LayoutToggle layout={setup.layout} onLayout={onLayout} />}
-        </div>
-      }
-    >
+  const content = (
+    <>
       {setup.layout === 'flat' ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Each chapter records on one track.
@@ -139,6 +134,27 @@ export function VoicesCard({
           )}
         </div>
       )}
+    </>
+  );
+  if (bare) {
+    return (
+      <section aria-label="Voices" className="flex w-full min-w-0 flex-col gap-3">
+        {chapterPicker}
+        {content}
+      </section>
+    );
+  }
+  return (
+    <Panel
+      title="Voices"
+      actions={
+        <div className="flex min-w-0 items-center gap-2">
+          {chapterPicker}
+          {layoutInCard && <LayoutToggle layout={setup.layout} onLayout={onLayout} />}
+        </div>
+      }
+    >
+      {content}
     </Panel>
   );
 }

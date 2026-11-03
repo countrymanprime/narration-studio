@@ -13,19 +13,13 @@ const noop = () => {};
 
 /**
  * The body of "Voices": the Engine panel's Voices card (the Narrator's character and who each voice track records), on the same shared voice
- * setup. It needs the project's tracks and chapter links, which it reads as the panel does. While the layout is Flat there are no voice
- * tracks, and the row says what turns them on.
+ * setup, without its own card. It needs the project's tracks and chapter links, which it reads as the panel does. While the layout is Flat
+ * there are no voice tracks and the row's body is empty.
  */
 export function VoicesBody() {
   const { setup } = useVoiceSetup();
-  if (setup.layout === 'flat') {
-    return (
-      <p className="text-[0.8125rem] text-[var(--text-muted)]">
-        Each chapter records on one track. Choose Voice folders under Chapter layout to give each voice its own.
-      </p>
-    );
-  }
-  return <VoiceFolders />;
+  // A flat project has no voice tracks, so the row draws nothing; the row's ? says what turns them on.
+  return setup.layout === 'flat' ? null : <VoiceFolders />;
 }
 
 /** Read only while the layout is Voice folders, so the Story Bible and the tracks are not read for a flat project. */
@@ -56,6 +50,7 @@ function VoiceFolders() {
       onTrackCharacters={voices.setTrackCharacters}
       onNarratorCharacter={voices.setNarratorCharacter}
       layoutInCard={false}
+      bare
     />
   );
 }
