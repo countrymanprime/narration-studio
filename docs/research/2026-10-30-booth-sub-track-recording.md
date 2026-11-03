@@ -132,8 +132,8 @@ Run 2026-11-02 with `run-linux-check.sh` (REAPER 7.82, Linux, Xvfb, `jackd -d du
 
 ## 6b. What phase 0 changes in the bridge plan
 
-- **Live switch.** A new `switch_voice(track)` command, accepted only while a recording this bridge started runs: arm the new child, disarm the old one, remember the voice change. `record_start`'s single-armed-track check stays for the start. `stopped_at` reads the item on the last voice's track. `restore_arms` already puts back every arm it saved. The take stays one undo point, so `record_take` undo needs no new cap.
-- **Stop guard.** A voice re-take from the same place within half a second of a stop is moved back by `guard_stop` (row 4). `set_cursor` and `punch_to` should end the guard, as `record_start` does. This affects flat chapters too.
+- **Live switch.** A new `switch_voice(track)` command, accepted only while a recording this bridge started runs: arm the new child, disarm the old one, remember the voice change. `record_start`'s single-armed-track check stays for the start. `stopped_at` reads the item on the last voice's track. `restore_arms` already puts back every arm it saved. The take stays one undo point, so `record_take` undo needs no new cap. Built in phase 4a; the real-REAPER scenario `switch_voice_bridge` (2026-11-03, REAPER 7.82, Linux, JACK dummy) measured a switch at 2.707 s answered in 51 ms over the driver, 64 ms recorded on neither voice, one undo point that one Undo removed, the cursor at the end of the last voice's item and every arm put back.
+- **Stop guard.** A voice re-take from the same place within half a second of a stop is moved back by `guard_stop` (row 4). `set_cursor` and `punch_to` should end the guard, as `record_start` does. This affects flat chapters too. Done in phase 4a: both end it; row 4 now holds at once (2026-11-03).
 - **Nested `track_create`.** Insert after the folder's last child and move its closing delta (row 2), copying `I_RECINPUT` and `I_RECMODE`.
 - **Editing play.** `plays_at` counts the folder's descendants, and `isolate` solos the folder in place (rows 12 and 13).
 

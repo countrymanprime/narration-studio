@@ -294,6 +294,32 @@ H.test('7.82/Linux: Stop leaves the edit cursor where recording began, and the i
   H.eq(reaper_api.GetMediaItemInfo_Value(item, 'D_POSITION'), 20)
 end)
 
+-- Seen in REAPER 7.82 on Linux, 2026-11-02 (docs/research/2026-10-30-booth-sub-track-recording.md, section 6a, row 7): one
+-- track disarmed and another armed while REAPER records. REAPER keeps recording; the old item ends at the play position
+-- of the switch and the new one starts 64 ms later (three 1024-frame blocks at 48 kHz); the take is one "Recorded media"
+-- point, and one Undo takes both items away.
+H.test('7.82/Linux: an arm switched during a take ends one item and starts the next 64 ms later, in one undo point', function()
+  local reaper_api, fake = api()
+  local old, new = fake:add_track('Narrator'), fake:add_track('Queen')
+  old.armed = true
+  fake.cursor, fake.record_seconds = 2, 3
+  local before = reaper_api.GetProjectStateChangeCount(0)
+  reaper_api.CSurf_OnRecord()
+  fake.play_position = 3.6
+  reaper_api.SetMediaTrackInfo_Value(new, 'I_RECARM', 1)
+  reaper_api.SetMediaTrackInfo_Value(old, 'I_RECARM', 0)
+  H.eq(reaper_api.GetPlayState(), 5, 'REAPER keeps recording through the switch')
+  reaper_api.OnStopButton()
+  local spans = {}
+  for _, item in ipairs(fake.items) do
+    spans[#spans + 1] = { item.track.name, item.position, item.position + item.length }
+  end
+  H.eq(spans, { { 'Narrator', 2, 3.6 }, { 'Queen', 3.664, 5 } })
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before + 1, 'one point for the whole take')
+  H.eq(reaper_api.Undo_DoUndo2(0), 1)
+  H.eq(#fake.items, 0, 'one Undo takes both items away')
+end)
+
 -- Seen in REAPER 7.82 on Linux, 2026-11-02 (docs/research/2026-10-30-booth-sub-track-recording.md, section 6a, row 1): a new
 -- track reads I_FOLDERDEPTH 0, and the value set is the value read (1 on a folder parent, -1 on its last child).
 H.test('I_FOLDERDEPTH reads 0 on a new track and reads back what was set', function()
