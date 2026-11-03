@@ -5,7 +5,7 @@ import type { Track } from '../../api/contracts/tracks';
 import type { GuideEntity } from '../../api/contracts/storyBible';
 import type { VoiceTracksState } from '../../api/contracts/voiceTracks';
 
-export type VoiceCharacter = { id: string; name: string; source: 'assigned' | 'name' | 'alias' };
+type VoiceCharacter = { id: string; name: string; source: 'assigned' | 'name' | 'alias' };
 
 export type Voice = {
   guid: string;

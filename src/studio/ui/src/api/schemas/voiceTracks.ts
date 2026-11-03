@@ -4,7 +4,7 @@ import type { VoiceTrackAssignment, VoiceTracksState } from '../contracts/voiceT
 // The host's limits (src/studio/desktop/internal/voicetracks): a track name and an id are at most 120 characters.
 const name = z.string().min(1).max(120);
 
-export const voiceTrackAssignmentSchema = z
+const voiceTrackAssignmentSchema = z
   .object({
     track: name,
     characters: z.array(name).min(1).max(200),

@@ -1072,7 +1072,7 @@ const folderTrack = (name: string, index: number, depth: number, color: string):
  * WIRE_TRACKS_PROJECT as REAPER folders hold it (`?mockTrackFolders=1`): the Alice tracks inside Narration > Chapters, a Credits folder holding a
  * copy of the first track as "Opening credits", and an empty Co-narrator folder. Its shape is `testdata/folders-handmade.rpp`'s.
  */
-export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
+const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   const inside = WIRE_TRACKS_PROJECT.tracks.map((track) => ({ ...track, depth: 2 }));
   const opening: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{0PEN-1NG}', name: 'Opening credits', depth: 2, items: [] };
   const guest: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{GUEST-1}', name: 'Guest', depth: 1, items: [] };
@@ -1094,7 +1094,7 @@ export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
  * characters the seed's voice setup assigns it.
  */
 export const WIRE_VOICE_FOLDER_GUID = '{F0LD-V01CE}';
-export const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
+const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
   const [first, ...rest] = WIRE_TRACKS_PROJECT.tracks;
   const child = (guid: string, name: string, items: FixtureTrack['items'] = []): FixtureTrack => ({ ...first, guid, name, depth: 1, isFolder: false, items });
   const list = [
