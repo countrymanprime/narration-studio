@@ -794,3 +794,30 @@ func TestAwaitReadyWithoutASessionAnswersNil(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestStartPassesTheConfirmationModelOnlyToANonWhisperEngine(t *testing.T) {
+	for name, tc := range map[string]struct {
+		engine, confirmDir string
+		want               bool
+	}{
+		"moonshine with the model installed": {"moonshine", "C:/models/tiny", true},
+		"moonshine without it":               {"moonshine", "", false},
+		"whisper is its own second opinion":  {"whisper", "C:/models/tiny", false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t, "stream")
+			options := validOptions()
+			options["engine"], options["model"], options["modelDir"] = tc.engine, "small", "C:/models/engine/small"
+			if tc.confirmDir != "" {
+				options["confirmModel"], options["confirmModelDir"] = "tiny", tc.confirmDir
+			}
+			if err := f.service.Start(options); err != nil {
+				t.Fatal(err)
+			}
+			args := echoedArgs(t, f)
+			if got := flagValue(args, "--confirm-model-dir"); (got != "") != tc.want || (tc.want && (got != tc.confirmDir || flagValue(args, "--confirm-model") != "tiny")) {
+				t.Fatalf("--confirm-model-dir = %q, want it passed: %v (args %v)", got, tc.want, args)
+			}
+		})
+	}
+}
