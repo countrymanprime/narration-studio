@@ -2,11 +2,23 @@ import { chapterName } from '../../chapterName';
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
 import type { ProductionChapter } from '../../api/contracts/production';
 import { PIPELINE_AREA } from './useChapterTools';
+import { revealRow } from './pipeline/rowWindow';
 
-/** Scrolls the pipeline row at `index` into view and puts focus on its first control, so the chapter chosen in the menu is where the narrator is. */
-function focusPipelineRow(index: number): void {
-  const row = document.querySelectorAll<HTMLElement>(`[${PIPELINE_AREA}] tbody tr`)[index];
-  if (!row) return;
+/**
+ * Scrolls the pipeline row of chapter `id` (at `index` in the list) into view and puts focus on its first control, so the chapter chosen in the
+ * menu is where the narrator is. A long book draws only the rows near the view: a row not drawn yet is scrolled to by its place, then found a
+ * frame later.
+ */
+function focusPipelineRow(id: string, index: number, retries = 3): void {
+  const body = document.querySelector(`[${PIPELINE_AREA}] tbody`);
+  if (!body) return;
+  const row = [...body.querySelectorAll<HTMLElement>('tr[data-chapter-id]')].find((tr) => tr.dataset.chapterId === id);
+  if (!row) {
+    if (retries <= 0) return;
+    revealRow(body, index);
+    requestAnimationFrame(() => requestAnimationFrame(() => focusPipelineRow(id, index, retries - 1)));
+    return;
+  }
   row.scrollIntoView({ block: 'center' });
   row.querySelector<HTMLElement>('button')?.focus();
 }
@@ -49,7 +61,7 @@ export function useProductionPageCommands(page: {
       label: chapterName(row, 'full'),
       group: 'Chapters',
       icon: 'goToChapter',
-      run: () => focusPipelineRow(index),
+      run: () => focusPipelineRow(row.id, index),
     }));
 
     const checkReason =

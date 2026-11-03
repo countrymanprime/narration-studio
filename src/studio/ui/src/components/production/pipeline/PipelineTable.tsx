@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import type { StageChapterRecommendation } from '../../../types';
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../../primitives/Table';
 import { TitleSubtitle } from '../../primitives/TitleSubtitle';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
@@ -22,6 +23,7 @@ import {
   type RecordedFigure,
 } from './pipelineRows';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../primitives/changeHighlight';
+import { ROW_PX, useRowWindow } from './rowWindow';
 
 /** What a cell says, as a registry status: open pickups are a thing still to do (D10); the other open cell is a failed delivery check. */
 const cellStatus = (cell: PipelineCell): StatusId => {
@@ -134,13 +136,28 @@ type TableProps = {
   onCheckRecording?: (chapterId: string) => void;
 };
 
+type BodyItem = { gap: number; key: string } | { row: PipelineRow; index: number };
+
 /** Every chapter and where it stands in each stage (the mock's PipelineTable). One format for every stage: a tick when done, the percent when under way, a dash when not started. */
 export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null, onCheckRecording }: TableProps) {
+  // A long book draws the rows in view and a margin (rowWindow.ts); the row with focus stays drawn so the keyboard keeps its place.
+  const [focusedId, setFocusedId] = useState<string>();
+  const focusedIndex = focusedId ? rows.findIndex((row) => row.id === focusedId) : -1;
+  const { ref, windowed, ranges } = useRowWindow(rows.length, focusedIndex);
+  // One flat list of rows and the spacers between them, so a row keeps its element (and its focus) as the window moves.
+  const items: BodyItem[] = [];
+  let next = 0;
+  for (const { start, end } of ranges) {
+    if (start > next) items.push({ gap: start - next, key: `gap-${next}` });
+    for (let index = start; index < end; index++) items.push({ row: rows[index]!, index });
+    next = end;
+  }
+  if (next < rows.length) items.push({ gap: rows.length - next, key: `gap-${next}` });
   return (
     // The table scrolls inside its panel at a narrow width, never the page, with a shadow on the side that has more (`scroll-x-edges`);
     // the region is a tab stop so the keyboard can scroll it.
     <div className="scroll-x-edges overflow-x-auto" tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
-      <Table label="Chapter pipeline" columns={COLUMNS} className="min-w-[45.75rem]">
+      <Table label="Chapter pipeline" columns={COLUMNS} rowCount={windowed ? rows.length + 1 : undefined} className="min-w-[45.75rem]">
         <TableHead>
           <TableRow>
             <TableHeader className={STICKY_NAME}>Chapter</TableHeader>
@@ -160,18 +177,35 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
             ))}
           </TableRow>
         </TableHead>
-        <TableBody>
-          {rows.map((row) => {
+        <TableBody
+          bodyRef={ref}
+          onFocus={windowed ? (event) => setFocusedId((event.target as HTMLElement).closest<HTMLElement>('tr')?.dataset.chapterId) : undefined}
+          onBlur={windowed ? (event) => !event.currentTarget.contains(event.relatedTarget) && setFocusedId(undefined) : undefined}
+        >
+          {items.map((item) => {
+            if ('gap' in item) return <TableSpacer key={item.key} height={item.gap * ROW_PX} columns={COLUMNS.length} />;
+            const { row, index } = item;
             const recommendation = recommendations.get(row.id);
             return (
               <TableRow
                 key={row.id}
-                data={row.id === justChanged ? { 'data-just-changed': '' } : undefined}
+                data={{ 'data-chapter-id': row.id, ...(row.id === justChanged ? { 'data-just-changed': '' } : {}) }}
+                rowIndex={windowed ? index + 2 : undefined}
+                style={windowed ? { height: ROW_PX } : undefined}
                 className={row.id === justChanged ? CHANGE_HIGHLIGHT_CLASSES : ''}
               >
                 {/* Broken between words, never inside one ("Caterpill / ar", R4SM-3). */}
                 <TableCell className={`text-center font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
-                  <TitleSubtitle {...row.parts} />
+                  {windowed ? (
+                    // One row height: the name takes two lines at most and the full name is in the tip.
+                    <TooltipTarget text={row.name} className="block">
+                      <span className="line-clamp-2">
+                        <TitleSubtitle {...row.parts} />
+                      </span>
+                    </TooltipTarget>
+                  ) : (
+                    <TitleSubtitle {...row.parts} />
+                  )}
                 </TableCell>
                 <TableCell numeric align="center">
                   <RecordedCell figure={row.recorded} />
