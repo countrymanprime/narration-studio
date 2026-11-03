@@ -186,6 +186,7 @@ export const TOOLTIP_VERBS = [
   'Pin',
   'Play',
   'Prepare',
+  'Read',
   'Record',
   'Reject',
   'Remove',
