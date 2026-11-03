@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { overlay } from '../../../overlay/overlayService';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { AssetCatalog, AssetItem, NarrationApi } from '../../../types';
+import { VERIFY_WAIT_MS } from '../models/AssetsStore';
 import { SettingsPage } from './SettingsPage';
 
 let toast: MockInstance<typeof overlay.toast>;
@@ -15,6 +16,7 @@ beforeEach(() => {
   toast = vi.spyOn(overlay, 'toast');
 });
 afterEach(() => {
+  vi.useRealTimers();
   cleanup();
   localStorage.clear();
 });
@@ -27,13 +29,16 @@ async function renderModels({
   seed = {},
   go = vi.fn(),
   before,
+  reuse,
 }: {
   overrides?: Partial<NarrationApi>;
   seed?: MockApiSeed;
   go?: (path: string) => void;
   before?: (api: NarrationApi) => Promise<void>;
+  /** The host of an earlier render, for the page opened again. */
+  reuse?: NarrationApi;
 } = {}) {
-  const api = createMockApi(overrides, seed);
+  const api = reuse ?? createMockApi(overrides, seed);
   await before?.(api);
   const data = await api.bootstrap();
   render(
@@ -337,5 +342,143 @@ describe('Settings: Models & downloads', () => {
     await renderModels({ overrides: { assetsList, assetsOpenFolder } });
     fireEvent.click(within(await screen.findByRole('alert')).getByRole('button', { name: 'Open the folder' }));
     await waitFor(() => expect(assetsOpenFolder).toHaveBeenCalledTimes(1));
+  });
+});
+
+// Issue 2731: Check the files on an installed row reads every byte of the asset (assetsVerify), and the row follows the answer.
+describe('Settings: Models & downloads, Check the files', () => {
+  const CHECK_SMALL = 'Check the files of Small';
+  const checkButton = (key: string) => within(asset(key)).queryByRole('button', { name: /^Check the files of / });
+  const smallCheck = () => within(asset('whisper/small')).getByRole('button', { name: CHECK_SMALL });
+  type VerifyAnswer = Awaited<ReturnType<NarrationApi['assetsVerify']>>;
+
+  it('offers Check the files, enabled, on an installed row and on no row in another state', async () => {
+    await renderModels({ seed: { assets: 'damaged' } });
+    await ready('whisper/small');
+    // Installed: the language model. Needs repair: the Whisper model. Not installed: the preview voice.
+    const language = checkButton('spacy/en_core_web_sm')!;
+    expect(language).toBeTruthy();
+    expect(language.getAttribute('aria-disabled')).toBeNull();
+    expect(language.getAttribute('aria-busy')).toBeNull();
+    expect(checkButton('whisper/small')).toBeNull();
+    expect(checkButton('tts/en_US-ljspeech-high')).toBeNull();
+  });
+
+  it('draws no Check the files while a download runs', async () => {
+    await renderModels({ seed: { assets: 'downloading' } });
+    fireEvent.click(within(await ready('tts/en_US-ljspeech-high')).getByRole('button', { name: /^Download LJ Speech/ }));
+    await waitFor(() => expect(asset('tts/en_US-ljspeech-high').getAttribute('data-status')).toBe('downloading'));
+    expect(checkButton('tts/en_US-ljspeech-high')).toBeNull();
+  });
+
+  it('checking shows the busy row and ignores a second press; an answer of installed keeps it installed, reads the list again and says nothing', async () => {
+    const base = createMockApi();
+    let answer: (value: VerifyAnswer) => void = () => undefined;
+    const assetsVerify = vi.fn(() => new Promise<VerifyAnswer>((resolve) => (answer = resolve)));
+    const assetsList = vi.fn(base.assetsList);
+    await renderModels({ overrides: { assetsVerify, assetsList } });
+    const small = await ready('whisper/small');
+    const reads = assetsList.mock.calls.length;
+    fireEvent.click(within(small).getByRole('button', { name: CHECK_SMALL }));
+    await waitFor(() => expect(smallCheck().getAttribute('aria-busy')).toBe('true'));
+    expect(within(asset('whisper/small')).getByText('Checking the files')).toBeTruthy();
+    expect(within(asset('whisper/small')).queryByRole('button', { name: /^Cancel/ })).toBeNull();
+    expect(within(asset('whisper/small')).queryByRole('button', { name: 'Remove Small' })).toBeNull();
+    fireEvent.click(smallCheck());
+    fireEvent.click(smallCheck());
+    expect(assetsVerify).toHaveBeenCalledTimes(1);
+    expect(assetsVerify).toHaveBeenCalledWith('whisper', 'small');
+    await act(async () => answer({ kind: 'whisper', id: 'small', installState: 'installed' }));
+    await waitFor(() => expect(within(asset('whisper/small')).getByText('Installed · checked')).toBeTruthy());
+    await waitFor(() => expect(assetsList.mock.calls.length).toBeGreaterThan(reads));
+    expect(smallCheck().getAttribute('aria-busy')).toBeNull();
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('an answer of installed refreshes when the files were last checked', async () => {
+    const api = createMockApi();
+    const verifiedAt = async () => (await api.assetsList()).assets.find((item) => item.kind === 'whisper')!.verifiedAt;
+    const before = await verifiedAt();
+    await renderModels({ reuse: api });
+    fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
+    await waitFor(async () => expect(await verifiedAt()).not.toBe(before));
+  });
+
+  it('an answer of verification_failed turns the row to Needs repair with its Repair action', async () => {
+    await renderModels({ seed: { assetsVerify: 'damaged' } });
+    fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
+    await waitFor(() => expect(within(asset('whisper/small')).getByText('Needs repair')).toBeTruthy());
+    expect(within(asset('whisper/small')).getByRole('button', { name: 'Repair Small' })).toBeTruthy();
+    expect(checkButton('whisper/small')).toBeNull();
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('an answer of absent turns the row to Not installed with Download', async () => {
+    await renderModels({ seed: { assetsVerify: 'absent' } });
+    fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
+    await waitFor(() => expect(within(asset('whisper/small')).getByText('Not installed')).toBeTruthy());
+    expect(within(asset('whisper/small')).getByRole('button', { name: /^Download Small/ })).toBeTruthy();
+    expect(checkButton('whisper/small')).toBeNull();
+  });
+
+  it('an error is a toast in the host words, and the row stays installed', async () => {
+    await renderModels({ seed: { assetsVerify: 'fails' } });
+    fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith('The files of Small could not be checked: Access is denied to model.bin.', expect.objectContaining({ tone: 'error' })),
+    );
+    await waitFor(() => expect(smallCheck().getAttribute('aria-busy')).toBeNull());
+    expect(within(asset('whisper/small')).getByText('Installed · checked')).toBeTruthy();
+  });
+
+  it('an error with no words ends the sentence without a colon', async () => {
+    await renderModels({ seed: { assetsVerify: 'silent' } });
+    fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The files of Small could not be checked.', expect.objectContaining({ tone: 'error' })));
+  });
+
+  it('gives up on a host that never answers after a wait, says so in a toast, and the button works again', async () => {
+    await renderModels({ seed: { assetsVerify: 'hangs' } });
+    const small = await ready('whisper/small');
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fireEvent.click(within(small).getByRole('button', { name: CHECK_SMALL }));
+    await waitFor(() => expect(smallCheck().getAttribute('aria-busy')).toBe('true'));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(VERIFY_WAIT_MS + 100)));
+    await waitFor(() => expect(smallCheck().getAttribute('aria-busy')).toBeNull());
+    expect(toast).toHaveBeenCalledWith('The files of Small were not checked: the app did not answer in 2 minutes.', expect.objectContaining({ tone: 'error' }));
+    expect(within(asset('whisper/small')).getByText('Installed · checked')).toBeTruthy();
+  });
+
+  it('stays busy when the pane, or the whole page, is opened again while it checks', async () => {
+    const { api } = await renderModels({ seed: { assetsVerify: 'hangs' } });
+    const verify = vi.spyOn(api, 'assetsVerify');
+    fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
+    const busy = () => expect(smallCheck().getAttribute('aria-busy')).toBe('true');
+    await waitFor(busy);
+    const nav = () => within(screen.getByRole('navigation', { name: 'Settings categories' }));
+    fireEvent.click(nav().getByRole('button', { name: /^Delivery/ }));
+    await waitFor(() => expect(document.querySelector('[data-asset]')).toBeNull());
+    fireEvent.click(nav().getByRole('button', { name: /^Models & downloads/ }));
+    await ready('whisper/small');
+    await waitFor(busy);
+    cleanup();
+    await renderModels({ reuse: api });
+    await ready('whisper/small');
+    await waitFor(busy);
+    fireEvent.click(smallCheck());
+    expect(verify).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the check button on the name line of a long-named asset: the name cell shrinks and wraps, the actions do not', async () => {
+    await renderModels({ seed: { assetNames: 'long' } });
+    const small = await ready('whisper/small');
+    expect(small.querySelector('th')!.textContent!.length).toBeGreaterThan(80);
+    expect(small.querySelector('th')!.className).toContain('break-words');
+    expect(small.className).toContain('grid-cols-[minmax(0,1fr)_auto]');
+    const actions = within(small)
+      .getByRole('button', { name: /^Check the files of / })
+      .closest('td')!;
+    expect(actions.className).toContain('whitespace-nowrap');
+    expect(actions.className).toContain('row-start-1');
   });
 });

@@ -526,6 +526,13 @@
   },
   {
     "page": "settings",
+    "state": "models-checking",
+    "viewport": "desktop",
+    "docName": "settings-models-checking",
+    "caption": "Settings - Models & downloads checking the files of the Whisper model: Checking the files in its row and the check icon spinning"
+  },
+  {
+    "page": "settings",
     "state": "delivery-profile-editor",
     "viewport": "desktop",
     "docName": "settings-delivery-profile",

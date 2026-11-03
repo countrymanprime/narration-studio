@@ -1,11 +1,33 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { without } from '../data/record';
-import { isInstallRunning, type AssetCatalog, type AssetInstallJob, type AssetItem } from '../../../types';
+import { isInstallRunning, type AssetCatalog, type AssetInstallJob, type AssetItem, type AssetVerifyResult, type AssetsApi } from '../../../types';
 
 /** How often a running download is asked how far it is. */
 const POLL_MS = 400;
+
+/**
+ * How long Check the files waits for the host. A check reads every byte, seconds for a large model; a host that has not answered by then
+ * is given up on, so the row does not stay busy for good.
+ */
+export const VERIFY_WAIT_MS = 120_000;
+
+/**
+ * The checks running, per host: kept outside the page, so a row drawn again, or the Settings page opened again, while one runs still shows
+ * it busy and ignores another press. Each ends within VERIFY_WAIT_MS.
+ */
+const runningChecks = new WeakMap<object, Map<string, Promise<void>>>();
+const checksOf = (api: object): Map<string, Promise<void>> => {
+  let checks = runningChecks.get(api);
+  if (!checks) runningChecks.set(api, (checks = new Map()));
+  return checks;
+};
+
+/** The sentence for a check that could not be made: the host's words after a colon, or a full stop when it gave none. */
+const notChecked = (name: string, reason: string): string =>
+  reason.trim() ? `The files of ${name} could not be checked: ${reason.trim()}` : `The files of ${name} could not be checked.`;
 
 export type AssetStatus = 'installed' | 'missing' | 'downloading' | 'verifying' | 'failed' | 'repair' | 'unavailable';
 
@@ -16,6 +38,8 @@ export type AssetView = {
   percent: number;
   /** Why the last download or action failed, in the host's words. */
   failure: string;
+  /** Check the files is reading the installed asset. Its status stays `installed`: it is installed until the host says otherwise. */
+  checking: boolean;
 };
 
 export const assetKey = (item: Pick<AssetItem, 'kind' | 'id'> | { kind: string; id: string }): string => `${item.kind}/${item.id}`;
@@ -32,6 +56,11 @@ export type AssetsStore = {
   /** Removes the asset. Resolves with the host's sentence when it refused, or undefined when it is gone. */
   remove: (item: AssetItem) => Promise<string | undefined>;
   dismissFailure: (item: AssetItem) => void;
+  /**
+   * Check the files: reads every byte of an installed asset (assetsVerify) and moves its row to the answer, then reads the list again for
+   * `verifiedAt`. A press while one runs for the asset is ignored; a refusal, or no answer within VERIFY_WAIT_MS, is an error toast.
+   */
+  verify: (item: AssetItem) => Promise<void>;
   /** What a screen reader hears about downloads. */
   announcement: string;
 };
@@ -174,6 +203,49 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
 
   const dismissFailure = useCallback((item: AssetItem) => setFailures((current) => without(current, assetKey(item))), []);
 
+  // A check started before this page opened (the narrator left and came back) is drawn busy until it ends, then the list is read again.
+  const [checking, setChecking] = useState<Record<string, true>>(() => Object.fromEntries([...checksOf(api).keys()].map((key) => [key, true])));
+  useEffect(() => {
+    for (const [key, task] of checksOf(api)) {
+      void task.finally(() => {
+        if (!alive.current) return;
+        setChecking((current) => without(current, key));
+        void refresh();
+      });
+    }
+  }, [api, refresh]);
+
+  const verify = useCallback(
+    async (item: AssetItem) => {
+      const key = assetKey(item);
+      const checks = checksOf(api);
+      if (checks.has(key)) return;
+      const task = check(api, item).then((answer) => {
+        if (!answer || !alive.current) return;
+        // The row follows the answer at once; the read after it brings the host's `verifiedAt` (and the same state).
+        setCatalog(
+          (current) =>
+            current && {
+              ...current,
+              assets: current.assets.map((asset) => (assetKey(asset) === key ? { ...asset, installState: answer.installState } : asset)),
+            },
+        );
+      });
+      checks.set(key, task);
+      setChecking((current) => ({ ...current, [key]: true }));
+      try {
+        await task;
+      } finally {
+        checks.delete(key);
+        if (alive.current) {
+          setChecking((current) => without(current, key));
+          await refresh();
+        }
+      }
+    },
+    [api, refresh],
+  );
+
   const views = useMemo<AssetView[]>(
     () =>
       (catalog?.assets ?? []).map((item) => {
@@ -188,17 +260,39 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
         else if (item.installState === 'verification_failed') status = 'repair';
         else if (item.unavailableReason) status = 'unavailable';
         else status = 'missing';
-        return { item, status, percent: job?.percent ?? 0, failure };
+        return { item, status, percent: job?.percent ?? 0, failure, checking: status === 'installed' && checking[key] === true };
       }),
-    [catalog, jobs, failures, starting],
+    [catalog, jobs, failures, starting, checking],
   );
   const viewOf = useCallback((ref: { kind: string; id: string }) => views.find((view) => view.item.kind === ref.kind && view.item.id === ref.id), [views]);
 
   const value = useMemo<AssetsStore>(
-    () => ({ catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, announcement }),
-    [catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, announcement],
+    () => ({ catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, verify, announcement }),
+    [catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, verify, announcement],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
+}
+
+/**
+ * One check of an asset's files: the host's answer, or undefined after the error toast for a refusal or for no answer within VERIFY_WAIT_MS.
+ * The toast is raised here, not by the page, so a check that ends after the narrator left Settings is still told once.
+ */
+async function check(api: Pick<AssetsApi, 'assetsVerify'>, item: AssetItem): Promise<AssetVerifyResult | undefined> {
+  let timer: number | undefined;
+  const timedOut = new Promise<'timeout'>((resolve) => {
+    timer = window.setTimeout(() => resolve('timeout'), VERIFY_WAIT_MS);
+  });
+  try {
+    const answer = await Promise.race([api.assetsVerify(item.kind, item.id), timedOut]);
+    if (answer !== 'timeout') return answer;
+    const minutes = Math.round(VERIFY_WAIT_MS / 60_000);
+    overlay.toast(`The files of ${item.displayName} were not checked: the app did not answer in ${minutes} minutes.`, { tone: 'error' });
+  } catch (error) {
+    overlay.toast(notChecked(item.displayName, apiErrorMessage(error)), { tone: 'error' });
+  } finally {
+    window.clearTimeout(timer);
+  }
+  return undefined;
 }
 
 export function useAssetsStore(): AssetsStore {

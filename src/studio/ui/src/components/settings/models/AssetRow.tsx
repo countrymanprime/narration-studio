@@ -46,15 +46,19 @@ export type AssetRowProps = {
   cancel: () => void;
   remove: () => void;
   dismiss: () => void;
+  /** Check the files (issue 2731): offered on an installed row, busy while the check runs. */
+  verify: () => void;
 };
 
 /** One asset of the Models & downloads list: what it is, where it stands, who reads it, and the one action its status allows. Props only. */
-export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss }: AssetRowProps) {
-  const { item, status } = view;
+export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss, verify }: AssetRowProps) {
+  const { item, status, checking } = view;
   useErrorToast(status === 'failed' ? view.failure : undefined);
   const name = item.displayName;
-  const { tone, label } = installPill(status);
-  const busy = status === 'downloading' || status === 'verifying';
+  // A check of an installed asset draws the download's checking look, in its own words, with nothing to cancel.
+  const { tone, label } = checking ? { ...installPill('verifying'), label: 'Checking the files' } : installPill(status);
+  const downloading = status === 'downloading' || status === 'verifying';
+  const busy = downloading || checking;
   const size = formatSize(item.diskSize || item.downloadSize);
   return (
     <TableRow data={{ 'data-asset': `${item.kind}/${item.id}`, 'data-status': status }} className={CARD_ROW}>
@@ -69,18 +73,20 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
       </th>
       <Cell label="Status" className={CARD_WIDE}>
         <StatusBadge tone={tone} label={status === 'downloading' ? `Downloading ${view.percent}%` : label} />
-        {status === 'installed' && inUse.length > 0 && <span className="block text-[0.75rem] text-[var(--text-muted)]">In use: {inUse.join(', ')}</span>}
+        {status === 'installed' && !checking && inUse.length > 0 && (
+          <span className="block text-[0.75rem] text-[var(--text-muted)]">In use: {inUse.join(', ')}</span>
+        )}
         {busy && (
           <span className="mt-1 flex items-center gap-2">
             <ProgressBar
               className="w-30"
-              label={`Downloading ${name}`}
-              value={status === 'verifying' ? 100 : view.percent}
+              label={checking ? `Checking the files of ${name}` : `Downloading ${name}`}
+              value={status === 'downloading' ? view.percent : 100}
               running
               size="thin"
-              valueText={status === 'verifying' ? 'Checking' : undefined}
+              valueText={status === 'downloading' ? undefined : 'Checking'}
             />
-            {status === 'verifying' && <span className="text-[0.75rem] text-[var(--text-muted)]">Checking…</span>}
+            {status !== 'downloading' && <span className="text-[0.75rem] text-[var(--text-muted)]">Checking…</span>}
           </span>
         )}
         {status === 'repair' && <span className="block text-[0.75rem] text-[var(--text-muted)]">A file failed its check.</span>}
@@ -104,8 +110,12 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
       <Cell className="col-start-2 row-start-1 whitespace-nowrap">
         <span className="flex justify-end gap-1">
           {status === 'missing' && <IconButton action="download" label={`Download ${name} (${size})`} onClick={install} />}
-          {status === 'installed' && <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />}
-          {busy && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={cancel} />}
+          {/* Drawn while it checks too, spinning, so focus stays on it and a second press is ignored. */}
+          {status === 'installed' && <IconButton action="checkFiles" label={`Check the files of ${name}`} pending={checking} onClick={verify} />}
+          {status === 'installed' && !checking && (
+            <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />
+          )}
+          {downloading && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={cancel} />}
           {status === 'repair' && (
             <>
               <IconButton action="retry" label={`Repair ${name}`} onClick={install} />
