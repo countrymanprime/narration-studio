@@ -369,6 +369,7 @@ export const productionStates: StateEntry[] = [
     // 5002 chapters: each width loads the book afresh (the scroll position must not carry over), and a load takes seconds, not tens.
     reloadPerViewport: true,
     timeoutFactor: 2,
+    ...REFLOW,
     description:
       'The 5002-chapter pipeline scrolled to chapter 2400: the window has followed the scroll, rows from there on are drawn with the spacer above holding the 2400 before them',
   },
@@ -378,6 +379,7 @@ export const productionStates: StateEntry[] = [
     // 5002 chapters: each width loads the book afresh (the scroll position must not carry over), and a load takes seconds, not tens.
     reloadPerViewport: true,
     timeoutFactor: 2,
+    ...REFLOW,
     description:
       'The 5002-chapter pipeline scrolled to chapter 2400 with keyboard focus on a stage cell: the focus ring is drawn on the cell and its row stays drawn',
   },
