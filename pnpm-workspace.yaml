@@ -15,6 +15,9 @@ allowBuilds:
 # release is not picked up. Matches the Dependabot cooldown for npm's minor and patch updates. To take an urgent
 # security fix sooner, add `name@version` to minimumReleaseAgeExclude for that one install and remove it after.
 minimumReleaseAge: 4320
+# Owner-approved and temporary: stable @wailsio/runtime 3.1.0 was published 2026-11-01. Remove this entry once it is three days old.
+minimumReleaseAgeExclude:
+  - '@wailsio/runtime@3.1.0'
 # Fail the install when a dependency has a build script that allowBuilds above does not name.
 strictDepBuilds: true
 # Refuse a transitive dependency that comes from a git repository or a tarball URL instead of the registry.
