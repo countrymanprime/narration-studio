@@ -31,7 +31,6 @@ const UNWIRED = [
   'replaceNarratorRemove',
   'subscribeRecorderLevel',
   'systemCopyDiagnostics',
-  'systemOpenLogFolder',
   'takeComparisonCancel',
   'takeComparisonStart',
   'takeComparisonState',
