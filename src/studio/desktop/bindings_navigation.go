@@ -233,7 +233,7 @@ func (n *findingNavigation) setLooping(id string) {
 	n.loopingID = id
 }
 
-// The connection states FindingsReaperStatus answers, and the refusal reasons FindingNavigation carries.
+// The connection states reaperStatus reads, and the refusal reasons FindingNavigation carries.
 const (
 	reaperStandalone = "standalone"
 	reaperNotRunning = "not_running"
@@ -287,12 +287,6 @@ type FindingNavigation struct {
 	Kept        *int     `json:"kept,omitempty"`
 }
 
-// FindingsReaperStatus answers whether REAPER is there for Go to and Loop, without sending REAPER anything: it reads
-// the heartbeat REAPER's script already broadcasts (daw.Reachability), so the page can poll it.
-func (h *Host) FindingsReaperStatus() (string, error) {
-	return encodeBinding(reaperStatus(h.services()), nil)
-}
-
 // FindingsGoTo selects the finding's item in REAPER and puts the edit cursor on its spot (its item's start when it has
 // no time in its audio).
 func (h *Host) FindingsGoTo(id string) (string, error) {
@@ -317,7 +311,7 @@ func (h *Host) FindingsGoToRead(id string, read int) (string, error) {
 }
 
 // FindingsLoopRead loops one read of a finding in REAPER, as FindingsLoop does, over that read's own range. The loop is
-// the finding's, so FindingsReaperStatus names the finding and FindingsStopLoop stops it. REAPER plays the item's
+// the finding's, so FindingsStopLoop stops it. REAPER plays the item's
 // active take: a read that is another take of its item is heard as itself through the in-app audition instead.
 func (h *Host) FindingsLoopRead(id string, read int) (string, error) {
 	if h.services().audacity != nil {

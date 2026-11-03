@@ -286,8 +286,6 @@ export interface FindingsApi {
   findingsThread(id: string, change: FindingThreadChange): Promise<Finding>;
   /** Counts by status and the analyzers, categories and chapters present. */
   findingsSummary(): Promise<FindingsSummary>;
-  /** Whether REAPER is there for Go to and Loop; sends REAPER nothing, so the page may poll it. */
-  findingsReaperStatus(): Promise<ReaperStatus>;
   /** Selects the finding's item in REAPER and puts the edit cursor on its spot. */
   findingsGoTo(id: string): Promise<FindingNavigation>;
   /** Loops the finding's context in REAPER: time selection, loop points, repeat on, Play. */

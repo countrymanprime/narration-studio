@@ -35,7 +35,6 @@ var realEvents = map[string][]string{
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
 	"PICKUPS_EXPORTED":      {"PICKUPS_EXPORTED", "t1", "C:/s/pickups.txt", "2"},
 	"PICKUPS_COUNTED":       {"PICKUPS_COUNTED", "t1", "1", "2"},
-	"PICKUP_NEXT":           {"PICKUP_NEXT", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_RESOLVED":       {"PICKUP_RESOLVED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_REOPENED":       {"PICKUP_REOPENED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_MARKERS_LISTED": {"PICKUP_MARKERS_LISTED", "t1", "C:/s/markers.txt", "2", "1"},
@@ -178,6 +177,14 @@ func TestATruncatedMarkerIsAnErrorThatNamesTheEventAndCountsTheFields(t *testing
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("%q does not mention %q", err, want)
 		}
+	}
+}
+
+func TestAFolderReadsTrackItemWithMutedAndTrackPassesTheTable(t *testing.T) {
+	// track_state_test.lua: a 'children' read ends each TRACK_ITEM with muted and the item's track GUID.
+	row := append(append([]string{}, realEvents["TRACK_ITEM"]...), "0", "{00000002-0000-4000-8000-000000000002}")
+	if err := CheckEvent(row); err != nil {
+		t.Fatalf("an 11-field TRACK_ITEM: %v", err)
 	}
 }
 

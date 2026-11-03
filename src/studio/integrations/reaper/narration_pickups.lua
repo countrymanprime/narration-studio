@@ -1,4 +1,4 @@
--- Pickup list over the bridge: import_pickups, export_pickups, next_pickup, resolve_pickup, reopen_pickup,
+-- Pickup list over the bridge: import_pickups, export_pickups, resolve_pickup, reopen_pickup,
 -- list_pickup_markers and count_pickups (see
 -- docs/architecture/reaper-bridge.md). Loaded by narration_ui_bridge.lua, which passes the shared helpers as the
 -- chunk argument. This file owns the pickup marker convention.
@@ -152,36 +152,6 @@ local function export_pickups(session_dir, run_id, path)
   event(session_dir, 'PICKUPS_EXPORTED', run_id, path, count)
 end
 
--- Moves the edit cursor to the nearest open pickup after the cursor, wrapping to the earliest one when the cursor
--- is at or past every pickup, so pressing "Next pickup" keeps working once the narrator revisits an earlier spot.
-local function next_pickup(session_dir, run_id)
-  local pickups = {}
-  for _, marker in ipairs(project_markers()) do
-    if marker_kind(marker.name) == 'PICKUP' then
-      pickups[#pickups + 1] = marker
-    end
-  end
-  if #pickups == 0 then
-    event(session_dir, 'ERROR', run_id, 'No pickups remain.')
-    return
-  end
-  table.sort(pickups, function(a, b)
-    return a.pos < b.pos
-  end)
-  local cursor, chosen = reaper.GetCursorPosition(), nil
-  for _, marker in ipairs(pickups) do
-    if marker.pos > cursor then
-      chosen = marker
-      break
-    end
-  end
-  chosen = chosen or pickups[1]
-  reaper.SetEditCurPos(chosen.pos, true, false)
-  reaper.UpdateArrange()
-  local tag, note = split_pickup_body(marker_body(chosen.name))
-  event(session_dir, 'PICKUP_NEXT', run_id, chosen.pos, tag, note)
-end
-
 -- The marker of `kind` nearest `target` within the duplicate tolerance, or nil.
 local function nearest_marker(kind, target)
   local best, best_gap = nil, nil
@@ -301,9 +271,6 @@ return function(registry)
   end)
   registry.register('export_pickups', function(ctx, args)
     export_pickups(ctx.session_dir, args[1] or '', args[2] or '')
-  end)
-  registry.register('next_pickup', function(ctx, args)
-    next_pickup(ctx.session_dir, args[1] or '')
   end)
   registry.register('resolve_pickup', function(ctx, args)
     resolve_pickup(ctx.session_dir, args[1] or '', args[2] or '')

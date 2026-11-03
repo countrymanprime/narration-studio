@@ -150,18 +150,6 @@
     "replace": "if kind == 'PICKUP' or kind == 'PICKUP_DONE' then\n      remaining, total = remaining + 1, total + 1"
   },
   {
-    "name": "next_pickup ignores the edit cursor",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(pickups) do\n    if marker.pos > cursor then",
-    "replace": "for _, marker in ipairs(pickups) do\n    if true then"
-  },
-  {
-    "name": "next_pickup can land on a resolved pickup",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) == 'PICKUP' then\n      pickups[#pickups + 1] = marker",
-    "replace": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) ~= 'PICKUP_DONE' then\n      pickups[#pickups + 1] = marker"
-  },
-  {
     "name": "resolve_pickup ignores the position tolerance",
     "file": "narration_pickups.lua",
     "find": "if gap <= PICKUP_TOLERANCE and (not best_gap or gap < best_gap) then",
@@ -2508,8 +2496,8 @@
   {
     "name": "track_create inserts the track first instead of last",
     "file": "narration_track_create.lua",
-    "find": "local index = reaper.CountTracks(0)",
-    "replace": "local index = 0"
+    "find": "    index = reaper.CountTracks(0)",
+    "replace": "    index = 0"
   },
   {
     "name": "track_create makes no undo point",
@@ -3014,5 +3002,71 @@
     "file": "narration_ui_bridge.lua",
     "find": "    if timing then\n      ctx.event('PROJECT_STATUS'",
     "replace": "    if false then\n      ctx.event('PROJECT_STATUS'"
+  },
+  {
+    "name": "an unknown track read option is read as the one-track read",
+    "file": "narration_track_state.lua",
+    "find": "if option ~= '' and option ~= 'children' then",
+    "replace": "if false then"
+  },
+  {
+    "name": "the children read stops at the folder and lists none of its tracks",
+    "file": "narration_bridge_core.lua",
+    "find": "  while depth > 0 and index < count do",
+    "replace": "  while false do"
+  },
+  {
+    "name": "the children read runs on past the folder's close",
+    "file": "narration_bridge_core.lua",
+    "find": "    depth = depth + reaper.GetMediaTrackInfo_Value(inner, 'I_FOLDERDEPTH')",
+    "replace": "    depth = depth + 0"
+  },
+  {
+    "name": "Editing play reads the linked track's own items only, so a folder of voices is refused",
+    "file": "narration_transport.lua",
+    "find": "  for _, member in ipairs(core.with_descendants(track)) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do",
+    "replace": "  for _, member in ipairs({ track }) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do"
+  },
+  {
+    "name": "the children read leaves each item's track off",
+    "file": "narration_track_state.lua",
+    "find": "        fields[#fields + 1] = member_guid\n",
+    "replace": ""
+  },
+  {
+    "name": "the children read counts only the folder's own items in its total",
+    "file": "narration_track_state.lua",
+    "find": "    total = total + count\n",
+    "replace": "    total = total + (member == track and count or 0)\n"
+  },
+  {
+    "name": "a track that is not a folder walks on into the tracks after it",
+    "file": "narration_bridge_core.lua",
+    "find": "  if depth <= 0 then\n    return out\n  end",
+    "replace": "  if depth < 0 then\n    return out\n  end\n  depth = math.max(depth, 1)"
+  },
+  {
+    "name": "a voice added to a folder leaves the old last child's depth change as it was",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', parent_depth + 1 - last_depth)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder closes nothing",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', last_delta + last_depth - parent_depth - 1)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder records from its own default input",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(source, 'I_RECINPUT'))\n",
+    "replace": ""
+  },
+  {
+    "name": "a parent that is gone is answered with a track at the end",
+    "file": "narration_track_create.lua",
+    "find": "    if parent_index == nil then\n      event(session_dir, 'TRACK_STALE', run_id, parent_text)\n      return\n    end",
+    "replace": "    if false then\n    end"
   }
 ]

@@ -167,12 +167,11 @@ type ReviewSession interface {
 	ExportFindings(runID, findingsPath string, colors MarkerColors) error
 }
 
-// PickupList imports, exports, walks, resolves, reopens and lists the pickup list (PICKUPS_* and PICKUP_* events).
+// PickupList imports, exports, resolves, reopens, lists and counts the pickup list (PICKUPS_* and PICKUP_* events).
 type PickupList interface {
 	Events
 	ImportPickups(runID, payloadPath string) error
 	ExportPickups(runID, outputPath string) error
-	NextPickup(runID string) error
 	ResolvePickup(runID string, position float64) error
 	// ReopenPickup puts the resolved pickup nearest position back to open (PICKUP_REOPENED).
 	ReopenPickup(runID string, position float64) error
@@ -262,6 +261,23 @@ type TrackStateReader interface {
 	ChapterTrackState(ctx context.Context, trackGUID string) (TrackState, error)
 }
 
+// FolderStateReader is a TrackStateReader that can also read a chapter linked to a folder of voices: the folder's items and every
+// track's inside it, each item with its TrackGUID. Only an engine with folder tracks (REAPER) has it; a caller that wants a chapter's
+// audio uses ChapterAudioState, which falls back to the one-track read.
+type FolderStateReader interface {
+	ChapterFolderState(ctx context.Context, trackGUID string) (TrackState, error)
+}
+
+// ChapterAudioState reads the audio of the chapter linked to trackGUID: the folder union when reader is a FolderStateReader, else the
+// linked track's own items. It is for readers of a chapter's audio (the Editing page's live items, word times); a command that edits an
+// item keeps the one-track read.
+func ChapterAudioState(ctx context.Context, reader TrackStateReader, trackGUID string) (TrackState, error) {
+	if folder, ok := reader.(FolderStateReader); ok {
+		return folder.ChapterFolderState(ctx, trackGUID)
+	}
+	return reader.ChapterTrackState(ctx, trackGUID)
+}
+
 // TrackSelector selects one track in REAPER ("Select in REAPER"), deselecting
 // every other one. It changes nothing else.
 type TrackSelector interface {
@@ -273,6 +289,12 @@ type TrackSelector interface {
 // refuses while the engine records, and is not idempotent: each call adds a track.
 type TrackCreator interface {
 	CreateTrack(ctx context.Context, name string) (CreatedTrack, error)
+}
+
+// ChildTrackCreator adds a track inside a folder, as a direct child after the folder's last descendant (a voice in a chapter's folder). Only
+// an engine with folder tracks (REAPER) has it. A parent that is gone is a stale error and nothing is added.
+type ChildTrackCreator interface {
+	CreateChildTrack(ctx context.Context, name, parentGUID string) (CreatedTrack, error)
 }
 
 // Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected

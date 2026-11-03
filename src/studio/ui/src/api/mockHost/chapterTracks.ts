@@ -13,7 +13,6 @@ import type {
 } from '../../types';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, WIRE_TRACKS_PROJECT_FOLDERS, wireClone } from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
-import { mockChaptersForTracks, mockChapterSuggestion } from '../chapterSuggestionMock';
 import type { CoverageResult } from '../contracts/coverage';
 import { type MockApiSeed, mockDocumentId, type MockState } from './state';
 
@@ -221,10 +220,6 @@ export function createChapterTracksMock(
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid), mapping];
       return wireClone(mapping);
     },
-    chapterTrackMapClear: async (trackGuid) => {
-      s.chapterTrackMappings = s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid);
-      return { documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) };
-    },
     chapterTrackSet: async (chapterId, trackGuid) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
@@ -339,7 +334,7 @@ export function createChapterTracksMock(
       return { sent: plan.rows.length, created, existing, invalid: 0, updated, ambiguous, failed: 0 };
     },
     // "Select in REAPER" follows the same `?mockReaperState=` seed
-    // readAloudArmOnly/readAloudRecordStart already use for "REAPER is not there", so the two REAPER-connection concepts stay consistent in mock mode without a second seed dimension.
+    // readAloudRecordStart already uses for "REAPER is not there", so the two REAPER-connection concepts stay consistent in mock mode without a second seed dimension.
     trackSelectInReaper: async (trackGuid) => {
       await manuscriptReady;
       if (!trackGuid) throw new Error('choose a track before selecting it in REAPER');
@@ -355,14 +350,6 @@ export function createChapterTracksMock(
     chapterTrackMatch: async (chapterId) => {
       await manuscriptReady;
       return wireClone(mockChapterTrackMatch(chapterId, chaptersWithCredits(), project, s.chapterTrackMappings));
-    },
-    chapterSuggestion: async () => {
-      await manuscriptReady;
-      return wireClone(mockChapterSuggestion(s.chapters, project, s.chapterTrackMappings, initial.armedTracks ?? []));
-    },
-    chaptersForTracks: async (guids) => {
-      await manuscriptReady;
-      return wireClone(mockChaptersForTracks(guids, s.chapters, project, s.chapterTrackMappings));
     },
   } satisfies Partial<NarrationApi>;
   return { bindings, publishChapterSync, mockChapterSyncState, backgroundSettingsSaved };

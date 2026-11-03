@@ -53,7 +53,19 @@ export type RecordingMockSeed = {
   startFails?: boolean;
 };
 
-export function createRecordingMock(seed: RecordingMockSeed = {}): RecordingApi {
+/**
+ * The recorder's own operations, which the mock host drives the way the host's recorder service is driven: no screen calls them.
+ * `chooseEngine` is what DawChoose writes (Recording.engine), and `startTake` and `stopTake` are what the Booth's Record and Stop do
+ * through the built-in adapter (bindings_booth_record.go).
+ */
+export type RecorderMockControl = {
+  chooseEngine(engine: RecordingEngine): Promise<RecorderState>;
+  startTake(device: string): Promise<RecorderState>;
+  /** Ends a take, or a meter that is running. */
+  stopTake(): Promise<RecorderState>;
+};
+
+export function createRecordingMock(seed: RecordingMockSeed = {}): RecordingApi & RecorderMockControl {
   const hasProject = seed.hasProject ?? true;
   const support: RecorderState['support'] = seed.unavailable
     ? { level: 'unsupported', available: false, reason: 'unsupported', message: 'WASAPI is not available on Linux.' }
@@ -104,7 +116,7 @@ export function createRecordingMock(seed: RecordingMockSeed = {}): RecordingApi 
 
   return {
     recorderState: answer,
-    recorderChooseEngine: async (engine) => {
+    chooseEngine: async (engine) => {
       if (!hasProject) throw new Error('open a project before choosing how it records');
       if (state.phase === 'recording' || state.phase === 'stopping') throw new Error('stop the take before changing how the project records');
       if (engine === 'builtin' && !support.available) throw new Error(support.message);
@@ -138,7 +150,7 @@ export function createRecordingMock(seed: RecordingMockSeed = {}): RecordingApi 
       }
       return wireClone(state);
     },
-    recorderStart: async (device) => {
+    startTake: async (device) => {
       builtin();
       if (state.phase === 'recording' || state.phase === 'stopping') throw new Error('a take is already recording');
       if (!device.trim()) throw new Error('choose a microphone');
@@ -148,7 +160,7 @@ export function createRecordingMock(seed: RecordingMockSeed = {}): RecordingApi 
       publish();
       return wireClone(state);
     },
-    recorderStop: async () => {
+    stopTake: async () => {
       if (state.phase === 'metering') {
         stopLevels();
         state = { ...state, phase: 'idle' };

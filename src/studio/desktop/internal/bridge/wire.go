@@ -86,7 +86,6 @@ var eventSpecs = map[string]eventSpec{
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
 	"PICKUPS_COUNTED":       {required: []fieldSpec{text("run"), count("remaining"), count("total")}},
-	"PICKUP_NEXT":           {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_RESOLVED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_REOPENED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_MARKERS_LISTED": {required: []fieldSpec{text("run"), text("path"), count("open"), count("done")}},
@@ -139,9 +138,10 @@ var eventSpecs = map[string]eventSpec{
 	// REAPER has no device open; recInputName is REAPER's name for the input channel(s), empty when it cannot say. One TRACK_ITEM per item on the track follows, then TRACK_STATE_END (listed, and the track's total).
 	"TRACK_STATE": {required: []fieldSpec{text("run"), text("guid"), count("playState"), number("editCursor"), number("playPosition"), text("rpp"), count("unsaved"),
 		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice"), text("outputDevice"), text("recInputName")}},
-	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off.
+	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off. trackGuid, the track the item is
+	// on, follows it only in the 'children' read of a folder (ChapterFolderState).
 	"TRACK_ITEM": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), number("position"), number("length"), number("sourceOffset"), number("playrate"), text("sourceFile")},
-		optional: []fieldSpec{count("muted")}},
+		optional: []fieldSpec{count("muted"), text("trackGuid")}},
 	"TRACK_STATE_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	"TRACK_STALE":     {required: []fieldSpec{text("run"), text("guid")}},
 	// select_track (narration_track_select.lua): "Select in REAPER" deselected every other track and selected guid. It

@@ -57,7 +57,6 @@ import (
 	"desktop/internal/retakelanes"
 	"desktop/internal/roomtone"
 	"desktop/internal/runlog"
-	"desktop/internal/series"
 	"desktop/internal/settings"
 	"desktop/internal/stages"
 	"desktop/internal/takecompare"
@@ -76,7 +75,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 148
+const hostAPIVersion = 150
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -116,15 +115,13 @@ type Host struct {
 	// the same way.
 	// +checklocks:mu
 	dawTransportSnapshot string
-	// dawProjectStateSnapshot is the last daw_project_state_changed payload (bindings_daw_projectstate.go), compared the
-	// same way, and dawUnsavedTracker the edit-counter baseline its unsavedChanges is read against.
-	// +checklocks:mu
-	dawProjectStateSnapshot string
 	// dawEditCount is the change count the last daw_project_edited carried (bindings_daw_projectedited.go), and dawEditSeen whether one was sent.
 	// +checklocks:mu
 	dawEditCount int
 	// +checklocks:mu
 	dawEditSeen bool
+	// dawUnsavedTracker is the edit-counter baseline DawProjectState's unsavedChanges is read against
+	// (bindings_daw_projectstate.go), fed on every transcriptLoop tick.
 	// +checklocks:mu
 	dawUnsavedTracker dawport.UnsavedTracker
 	// readAloudRecordingChapter is the chapter id of a REAPER recording this app started with ReadAloudRecordStart and
@@ -224,10 +221,6 @@ type Host struct {
 	// *bridge.Client or *bridge.Actions themselves. Swappable like navigation and actions; nil with no bridge client.
 	dawPortResolver *dawport.Resolver
 	lineIdentity    *lineidentity.Service
-	// punchAlignments is punch and roll's last offline word-time alignment (teleprompterpunchalign.go), so a
-	// punch after its preview does not decode the same stretch twice. It has its own lock and is not per project: its
-	// key names the source file and the stretch.
-	punchAlignments punchAlignCache
 	pickups         *pickups.Service
 	projectState    *projectstate.Service
 	renderConfig    *renderconfig.Service
@@ -262,9 +255,9 @@ type Host struct {
 	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
 	// Nil with no bridge client or no such role.
 	takeStacker dawport.TakeStacker
-	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator
-	// DawPreviewFileRange, DawStopFilePreview and DawRevealFile (bindings_daw_files.go) ask them to play a stretch of
-	// a file on disk and to show one. Nil with no bridge client or no such role.
+	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator:
+	// MasterPlayQuietest, MasterOpenInDaw, WorkspacePreviewTake and DawStopFilePreview ask them to play a stretch of a file on
+	// disk, to show one, and to stop the preview. Nil with no bridge client or no such role.
 	filePreviewer dawport.FilePreviewer
 	fileRevealer  dawport.FileRevealer
 	// rangeGain is the DAW port's range_gain role over the same adapter as takeCreator: DawReduceRangeGain
@@ -321,9 +314,6 @@ type Host struct {
 	creditsSetupSession creditsSetupSession
 	// deliveryProfiles is the narrator's custom delivery profiles and their Global default: user-level like creditTemplates, set once in NewHost and never swapped by a project switch.
 	deliveryProfiles *deliveryprofile.Store
-	// series is the narrator's own series.json: user-level
-	// like recents and creditTemplates, set once in NewHost and never swapped by a project switch.
-	series *series.Store
 	// deliveryFindingsMu keeps one save of the delivery review findings at a time (delivery_findings.go), so a profile
 	// change and a measurement ending together cannot leave the findings of the profile that lost the race.
 	deliveryFindingsMu sync.Mutex
@@ -562,10 +552,8 @@ func NewHost() *Host {
 	templates.SetPersist(reporter)
 	profiles := deliveryprofile.NewStore(deliveryProfilesPath())
 	profiles.SetPersist(reporter)
-	seriesStore := series.New(seriesPath())
-	seriesStore.SetPersist(reporter)
 	notes.SetOnJobEnd(func(job manuscript.ImportJob) { host.importJobEnded(job) })
-	host = &Host{diagnostic: fmt.Sprintf("go-%d", time.Now().UnixNano()), version: version, config: config{repoRoot: repoRoot}, manuscript: notes, sidecars: process.NewSupervisor(), settings: store, installJobs: map[string]*installJob{}, recents: recent, creditTemplates: templates, deliveryProfiles: profiles, series: seriesStore, pronunciationOnline: newPronunciationOnline(), log: logger, runLog: runLog, tracer: tracer, launched: time.Now(), persist: reporter, updates: update.NewChecker(version, updateCachePath(), reporter), stager: newUpdateStager(), pendingPath: updatePendingPath()}
+	host = &Host{diagnostic: fmt.Sprintf("go-%d", time.Now().UnixNano()), version: version, config: config{repoRoot: repoRoot}, manuscript: notes, sidecars: process.NewSupervisor(), settings: store, installJobs: map[string]*installJob{}, recents: recent, creditTemplates: templates, deliveryProfiles: profiles, pronunciationOnline: newPronunciationOnline(), log: logger, runLog: runLog, tracer: tracer, launched: time.Now(), persist: reporter, updates: update.NewChecker(version, updateCachePath(), reporter), stager: newUpdateStager(), pendingPath: updatePendingPath()}
 	// NARRATION_DEBUG=1 already forced the level in runlog.New; a saved General.debug_logging=true from a previous
 	// run turns it on too, so the narrator's last choice survives a restart (SetDebug is a no-op once the
 	// environment has forced it).
@@ -619,19 +607,6 @@ func creditTemplatesPath() string {
 		return filepath.Join(value, "AppData", "Roaming", brand.DataFolder, "credit-templates.json")
 	}
 	return filepath.Join("AppData", "Roaming", brand.DataFolder, "credit-templates.json")
-}
-
-// seriesPath resolves the per-user series file, alongside
-// recent-projects.json and credit-templates.json. Like creditTemplatesPath, this mirrors settings.Store's own
-// %APPDATA%-with-%USERPROFILE%-fallback chain rather than sharing it.
-func seriesPath() string {
-	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, brand.DataFolder, "series.json")
-	}
-	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", brand.DataFolder, "series.json")
-	}
-	return filepath.Join("AppData", "Roaming", brand.DataFolder, "series.json")
 }
 
 // ServiceStartup is Wails v3's start hook for the Host service (main.go): it runs once, before the window loads the UI, with a
@@ -1306,8 +1281,9 @@ func (h *Host) transcriptLoop(ctx context.Context) {
 
 // pollTranscript is one tick of transcriptLoop: drain and poll the current
 // project's transcript service, if it has one, and check whether the DAW
-// capabilities payload, the transport or the project state changed (bindings_daw.go's pollDawCapabilities,
-// bindings_daw_transport.go's pollDawTransport, bindings_daw_projectstate.go's pollDawProjectState): this is the tick that notices a
+// capabilities payload or the transport changed (bindings_daw.go's pollDawCapabilities,
+// bindings_daw_transport.go's pollDawTransport), and feed the unsaved-edits baseline
+// (bindings_daw_projectstate.go's observeDawProjectState): this is the tick that notices a
 // heartbeat's reachability or transport change, or a project switch,
 // since neither has a callback of its own to emit from directly.
 func (h *Host) pollTranscript() {
@@ -1317,7 +1293,7 @@ func (h *Host) pollTranscript() {
 	}
 	h.pollDawCapabilities()
 	h.pollDawTransport()
-	h.pollDawProjectState()
+	h.observeDawProjectState()
 	h.pollDawProjectEdited()
 	h.pollAudacityLink()
 }
@@ -1826,9 +1802,8 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"input_source", "Microphone source", "choice", []string{"daw", "chosen"}},
 		{"engine", "Live engine", "choice", []string{teleprompter.EngineWhisper}},
 		{"model", "Model", "choice", []string{"tiny", "small"}},
-		// punch_preroll_seconds is the punch-and-roll fallback: "Punch from here" moves REAPER's edit cursor to the word's resolved
-		// time minus this many seconds. Reading REAPER's own pre-roll preference first is an owner-gated spike that
-		// has not been run; until it is, every punch uses this setting.
+		// punch_preroll_seconds is the pre-roll the Booth's Levels menu saves (usePunchPreroll.ts) for an engine with no
+		// pre-roll of its own. No host code reads it: the anchor-based punch that did was removed (#2754).
 		{"punch_preroll_seconds", "Punch pre-roll (seconds)", "number", nil},
 	},
 	// DAW.reaper_path is a global override for daw.Resolve (empty means auto-detect, src/studio/desktop/internal/daw).

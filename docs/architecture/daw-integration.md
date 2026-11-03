@@ -55,7 +55,7 @@ REAPER never parses this JSON. The Wails host owns setting resolution and passes
 
 ## The built-in recorder as an engine
 
-- **A DAW kind of its own, `Built-in`** (`dawport.KindBuiltIn`). A launch with no DAW whose project records with the built-in recorder (the `Recording.engine` row, written only by `RecorderChooseEngine`) has it as its engine; so does `--daw Built-in`. A REAPER or Audacity launch keeps its DAW whatever the project chose. `dawLaunchKind` (`src/studio/desktop/bindings_daw.go`) is the host's one reader, through `dawport.LaunchKind`.
+- **A DAW kind of its own, `Built-in`** (`dawport.KindBuiltIn`). A launch with no DAW whose project records with the built-in recorder (the `Recording.engine` row, written by `DawChoose`) has it as its engine; so does `--daw Built-in`. A REAPER or Audacity launch keeps its DAW whatever the project chose. `dawLaunchKind` (`src/studio/desktop/bindings_daw.go`) is the host's one reader, through `dawport.LaunchKind`.
 - **The adapter wraps the recorder, it does not change it.** `src/studio/desktop/internal/dawport/builtin` declares a small `Recorder` interface that `recording.Service` satisfies, and maps `record` and `takes` onto it (Experimental). It keeps no saved project, so `project_read` is Unsupported with its own sentence; punch and the edits the app will make itself are Not yet available; the rest is Unsupported. It reports its own runtime, always there and answering, since there is no bridge to connect. What it declares, and the source of each row, is [the built-in recorder reference](../reference/daw/builtin-recorder.md).
 
 ## The DAW port

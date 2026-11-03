@@ -12,7 +12,6 @@ import type {
   DawCapabilitySupport,
   DawCapabilitiesApi,
   DawKind,
-  DawLiveItem,
   DawProjectEdited,
   WordTimes,
   DawLevelsApi,
@@ -435,8 +434,6 @@ export interface DawMockControl {
   moveInDaw(change: { cursor?: number; head?: number; playing?: boolean; recording?: boolean }): void;
   /** The next transport action is refused with this sentence, as a recording or a stale REAPER would. */
   refuseNextSync(sentence: string): void;
-  /** The items the DAW has on the chapter's track now (`dawLiveItems`); null (the start) is a DAW that cannot be read, so the page follows by the saved items. */
-  setLiveItems(items: DawLiveItem[] | null): void;
   /** The word table the DAW answers (`workspaceWordTimes`); null (the start) is a DAW that cannot make one, so the page follows nothing in it. */
   setWordTimes(table: WordTimes | null): void;
   /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
@@ -458,7 +455,7 @@ export interface DawMockControl {
     recording: boolean;
     monitorLevel: number;
   };
-  /** The project's recording engine changed (`recorderChooseEngine`). */
+  /** The project's recording engine changed (`dawChoose`). */
   engineChosen(engine: 'daw' | 'builtin'): void;
   /** A record start or stop as the host answers it: a refusal sentence and its reason, or null once the transport changed. */
   record(kind: 'start' | 'stop'): { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
@@ -496,7 +493,6 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuse: string | null;
     /** The project second a `playRange` stops itself at, while it plays; null for an open play. */
     stopAt: number | null;
-    liveItems: DawLiveItem[] | null;
     wordTimes: WordTimes | null;
     changeCount: number;
     calls: { action: string; seconds: number; until?: number; chapterId?: string }[];
@@ -508,7 +504,6 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     watching: false,
     refuse: null,
     stopAt: null,
-    liveItems: null,
     wordTimes: null,
     changeCount: 0,
     calls: [],
@@ -537,7 +532,6 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   const bridgeOpen = () => live.connected ?? home === 'REAPER';
   const capSubs = new Set<(state: DawCapabilities) => void>();
   const transportSubs = new Set<(state: DawTransport) => void>();
-  const stateSubs = new Set<(state: DawProjectState) => void>();
 
   const preroll = { onRecord: false, measures: 2 };
   const prerollAnswer = (): DawPunchPreroll => {
@@ -579,21 +573,17 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   };
   let lastCaps = JSON.stringify(snapshot().capabilities);
   let lastTransport = JSON.stringify(snapshot().transport);
-  let lastState = JSON.stringify(snapshot().projectState);
   /** Push what changed, as the host does: the first tick on subscribe, then only on a change. */
   const publish = () => {
     const now = snapshot();
     const caps = JSON.stringify(now.capabilities);
     const transport = JSON.stringify(now.transport);
-    const state = JSON.stringify(now.projectState);
-    const changed = { caps: caps !== lastCaps, transport: transport !== lastTransport, state: state !== lastState };
+    const changed = { caps: caps !== lastCaps, transport: transport !== lastTransport };
     lastCaps = caps;
     lastTransport = transport;
-    lastState = state;
     if (dropped) return;
     if (changed.caps) capSubs.forEach((fn) => fn(wireClone(now.capabilities)));
     if (changed.transport) transportSubs.forEach((fn) => fn(wireClone(now.transport)));
-    if (changed.state) stateSubs.forEach((fn) => fn(wireClone(now.projectState)));
   };
   const reach = (on: boolean) => {
     live.connected = true;
@@ -645,9 +635,6 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     editInDaw: () => {
       sync.changeCount += 1;
       for (const on of editSubs) on({ changeCount: sync.changeCount });
-    },
-    setLiveItems: (items) => {
-      sync.liveItems = items === null ? null : wireClone(items);
     },
     startInDaw: () => {
       live.transport = { playing: true, recording: true, position: 0 };
@@ -778,12 +765,6 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       editSubs.add(onUpdate);
       return () => editSubs.delete(onUpdate);
     },
-    dawLiveItems: async () => {
-      const items = sync.liveItems;
-      return wireClone(
-        items === null || !currentCapabilities(live).capabilities.track_state?.available ? { available: false, items: [] } : { available: true, items },
-      );
-    },
     dawTransportSync: async (action, seconds, until = 0, chapterId = '') => {
       const support = currentCapabilities(live).capabilities.transport_sync;
       if (!support?.available) return refusedMove(support?.message ?? MESSAGE_NO_ENGINE);
@@ -818,10 +799,5 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       return () => positionSubs.delete(onUpdate);
     },
     dawProjectState: async () => wireClone(snapshot().projectState),
-    subscribeDawProjectState: (onUpdate) => {
-      stateSubs.add(onUpdate);
-      onUpdate(wireClone(snapshot().projectState));
-      return () => stateSubs.delete(onUpdate);
-    },
   };
 }

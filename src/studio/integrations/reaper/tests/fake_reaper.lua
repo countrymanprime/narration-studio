@@ -1732,6 +1732,11 @@ function Fake:add_lane_api(api)
       return track.solo or 0
     elseif key == 'I_SELECTED' then
       return track.selected and 1 or 0
+    elseif key == 'I_RECMODE' then
+      return track.rec_mode or 0
+    elseif key == 'I_FOLDERDEPTH' then
+      -- The change in folder depth after this track (1 opens a folder, 0 none, -N closes N levels); 0 on a new track.
+      return track.folder_depth or 0
     end
     local lane = key:match('^C_LANEPLAYS:(%d+)$')
     if lane then
@@ -1754,6 +1759,12 @@ function Fake:add_lane_api(api)
       track.muted = value ~= 0
     elseif key == 'I_SOLO' then
       track.solo = value
+    elseif key == 'I_FOLDERDEPTH' then
+      track.folder_depth = value
+    elseif key == 'I_RECINPUT' then
+      track.rec_input = value
+    elseif key == 'I_RECMODE' then
+      track.rec_mode = value
     elseif not lane then
       error('fake reaper: unmodelled track value setter ' .. tostring(key))
     end

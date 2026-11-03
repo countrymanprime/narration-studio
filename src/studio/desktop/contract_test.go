@@ -181,19 +181,7 @@ func contractServices(t *testing.T) contractFixture {
 	return contractFixture{registry: registry, settings: settings.New(layout.FindRoot("."), "")}
 }
 
-func TestContractCatalogsAndInstallJobs(t *testing.T) {
-	svc := contractServices(t)
-	voices, err := ttsCatalogPayload(svc.registry, svc.settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "tts-catalog", voices)
-	models, err := whisperCatalogPayload(svc.registry, svc.settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "whisper-catalog", models)
-
+func TestContractInstallJobs(t *testing.T) {
 	for name, job := range map[string]*installJob{
 		"tts-install-downloading":     {id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseDownloading, message: "Downloading and verifying the approved voice…", done: 45678901, total: 114203981},
 		"tts-install-verifying":       {id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseVerifying, message: "Checking the voice against its approved checksum…", done: 114203981, total: 114203981},
@@ -433,31 +421,6 @@ func TestContractChapterTrackMatch(t *testing.T) {
 	}
 }
 
-// ChaptersForTracks's payload: one call over a track that matches, another that
-// matches nothing, and a GUID the project no longer has, so the golden file
-// shows every per-GUID shape (matched, none, error) at once.
-func TestContractChaptersForTracks(t *testing.T) {
-	host := newTestHostForChaptersForTracksNone(t)
-	folder := host.config.projectFolder
-	raw, err := host.ChaptersForTracks([]string{
-		"{22222222-2222-4222-8222-222222222222}",
-		"{44444444-4444-4444-8444-444444444444}",
-		"{99999999-9999-4999-8999-999999999999}",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		t.Fatal(err)
-	}
-	stable, err := contractfile.PortablePaths(payload, folder, "C:/Projects/Alice")
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "chapters-for-tracks", stable)
-}
-
 // The chapter track link control's payloads: ChapterTrackLinks with a ready
 // project, with no .rpp, and with a double link, a missing track and a renamed one; ChapterTrackSet taking a track from
 // another chapter; ChapterTrackUnlink. Paths are made portable, ids and times fixed by Stabilize.
@@ -495,31 +458,6 @@ func TestContractChapterTrackLinks(t *testing.T) {
 	pin(t, "chapter-track-links-conflict", folder, call(host.ChapterTrackLinks()))
 	pin(t, "chapter-track-set-displaced", folder, call(host.ChapterTrackSet(ids[0], chapterLinksTrack)))
 	pin(t, "chapter-track-unlink", folder, call(host.ChapterTrackUnlink(ids[1])))
-}
-
-// ChapterSuggestion's payload: the armed track's
-// chapter, two armed tracks naming different chapters (a choice), and nothing armed or selected.
-func TestContractChapterSuggestion(t *testing.T) {
-	for name, flags := range map[string]map[string]string{
-		"chapter-suggestion-matched":   {suggestTrackI: armLine},
-		"chapter-suggestion-ambiguous": {suggestTrackI: armLine, suggestTrackII: armLine},
-		"chapter-suggestion-none":      nil,
-	} {
-		host, _ := newTestHostForSuggestion(t, flags)
-		raw, err := host.ChapterSuggestion()
-		if err != nil {
-			t.Fatal(err)
-		}
-		var payload map[string]any
-		if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-			t.Fatal(err)
-		}
-		stable, err := contractfile.PortablePaths(payload, host.config.projectFolder, "C:/Projects/Alice")
-		if err != nil {
-			t.Fatal(err)
-		}
-		contractfile.Check(t, name, stable)
-	}
 }
 
 // The system:notice event: something the app did for the narrator that they should read.

@@ -84,7 +84,7 @@ export function createAssetsMock(initial: MockApiSeed) {
   const otherVoice = (id: string) => otherVoices.find(({ voice }) => voice.id === id);
   const otherVoiceJob = (jobId: string) => otherVoices.find(({ voice }) => jobId.startsWith(`mock-other-voice-${voice.id}-`));
   // Whisper defaults to already installed so existing setup/run flows are not
-  // gated in every test; a dedicated scenario calls whisperRemove first to
+  // gated in every test; a dedicated scenario removes it first (assetsRemove) to
   // exercise the asset_required prompt.
   // A download seed boots without the model, so a page that needs it asks to download it.
   // The seeds for the Local assets page (installing, checking, damaged) keep it installed, so the page shows a mix of states.
@@ -244,19 +244,6 @@ export function createAssetsMock(initial: MockApiSeed) {
         };
   };
   const bindings = {
-    ttsCatalog: async () => ({
-      catalogVersion: 1,
-      provider: { id: 'piper', effectiveSource: 'repo_default' },
-      voice: { id: mockVoice.id, effectiveSource: 'repo_default' },
-      voices: [
-        { ...mockVoice, installState: ttsInstalled ? 'installed' : 'not_installed' },
-        ...otherVoices.map(({ voice: { installed, ...voice } }) => ({
-          ...voice,
-          provider: 'piper',
-          installState: installed ? ('installed' as const) : ('not_installed' as const),
-        })),
-      ],
-    }),
     ttsInstall: async (voiceId) => {
       const other = otherVoice(voiceId);
       if (other) return { ...(await other.install.start()), voiceId };
@@ -271,28 +258,12 @@ export function createAssetsMock(initial: MockApiSeed) {
       const other = otherVoiceJob(jobId);
       return other ? { ...(await other.install.cancel(jobId)), voiceId: other.voice.id } : { ...(await voiceInstall.cancel(jobId)), voiceId: mockVoice.id };
     },
-    ttsRemove: async (voiceId) => {
-      const other = otherVoice(voiceId);
-      if (other) other.voice.installed = false;
-      if (voiceId === mockVoice.id) ttsInstalled = false;
-    },
-    whisperCatalog: async () => ({
-      catalogVersion: 1,
-      model: { id: mockWhisperModel.id, effectiveSource: 'repo_default' },
-      models: [{ ...mockWhisperModel, installState: whisperState() }],
-    }),
     whisperInstall: async (modelId) => {
       if (modelId !== mockWhisperModel.id) throw new Error('Unknown approved Whisper model.');
       return { ...(await modelInstall.start()), modelId };
     },
     whisperInstallState: async (jobId) => ({ ...(await modelInstall.state(jobId)), modelId: mockWhisperModel.id }),
     whisperInstallCancel: async (jobId) => ({ ...(await modelInstall.cancel(jobId)), modelId: mockWhisperModel.id }),
-    whisperRemove: async (modelId) => {
-      if (modelId === mockWhisperModel.id) {
-        whisperInstalled = false;
-        whisperDamaged = false;
-      }
-    },
     assetsList: async () => {
       if (initial.assetsList === 'loading') return new Promise<never>(() => {});
       if (initial.assetsList === 'fails') throw new Error('The list of downloads could not be read from this computer.');

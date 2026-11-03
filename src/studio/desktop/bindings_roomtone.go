@@ -9,7 +9,7 @@ import (
 	"desktop/internal/brand"
 )
 
-// roomTonePath resolves the per-user room-tone file, alongside series.json. Like seriesPath, this mirrors
+// roomTonePath resolves the per-user room-tone file, alongside credit-templates.json. Like creditTemplatesPath, this mirrors
 // settings.Store's own %APPDATA%-with-%USERPROFILE%-fallback chain rather than sharing it.
 func roomTonePath() string {
 	if value := os.Getenv("APPDATA"); value != "" {

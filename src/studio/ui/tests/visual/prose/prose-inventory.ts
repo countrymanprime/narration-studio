@@ -459,12 +459,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/settings/DeliveryProfilesPanel.tsx', text: 'No custom profiles. Duplicate a built-in profile to make one.', class: 'empty' },
   { file: 'components/settings/KeyboardPanel.tsx', text: 'Press another key or pedal to try again. Esc cancels.', class: 'error' },
-  { file: 'components/settings/RecordingCheckSummary.tsx', text: 'Misreads, extra words and a spoken title never count against it.', class: 'explanation' },
-  {
-    file: 'components/settings/RecordingCheckSummary.tsx',
-    text: 'These values were chosen on synthetic test recordings and have not been checked against real recordings yet. Changing the first two only changes how a stored check is judged; changing either of the last two makes earlier checks out of date, so check those chapters again.',
-    class: 'explanation',
-  },
   {
     file: 'components/settings/UpdatesPanel.tsx',
     text: 'Update checks are for releases. A development build is never offered an update.',
@@ -487,11 +481,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/settings/controls/CapabilitiesBody.tsx', text: 'The recording tool’s capabilities could not be read: ….', class: 'error' },
   { file: 'components/settings/controls/DeliveryBodies.tsx', text: 'None checked. Master &amp; QC measures but does not judge.', class: 'state' },
-  {
-    file: 'components/settings/controls/EngineBody.tsx',
-    text: 'The app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so there is nothing to set up in REAPER.',
-    class: 'explanation',
-  },
   {
     file: 'components/settings/controls/EngineBody.tsx',
     text: 'This window was opened from …, so it records with … until the app is opened another way. The choice saved for this project is ….',
@@ -745,6 +734,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/storybible/voicesamples/VoiceSamplesBody.tsx',
     text: 'Mark one in Editing: select words you voiced well and press V.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/settings/RecordingCheckSummary.tsx',
+    text: 'These values were chosen on synthetic test recordings and have not been checked against real recordings yet. Changing the first two only changes how a stored check is judged; changing either of the last two makes earlier checks out of date, so check those chapters again. Misreads, extra words and a spoken title never count against it.',
     class: 'overlay',
   },
 ];

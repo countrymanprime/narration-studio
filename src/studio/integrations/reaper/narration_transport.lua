@@ -319,13 +319,16 @@ local function recover_isolation(state)
   end
 end
 
--- Whether `track` has an item playing at project second `at`: the chapter's own audio is what the page asked for.
+-- Whether `track`, or a track inside it when it is a folder of voices, has an item playing at project second `at`: the chapter's own
+-- audio is what the page asked for. Soloing the folder in place plays its children (REAPER 7.82, the sub-track note's section 6a, row 13).
 local function plays_at(track, at)
-  for index = 0, reaper.CountTrackMediaItems(track) - 1 do
-    local item = reaper.GetTrackMediaItem(track, index)
-    local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
-    if position <= at + 1e-6 and at < position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH') then
-      return true
+  for _, member in ipairs(core.with_descendants(track)) do
+    for index = 0, reaper.CountTrackMediaItems(member) - 1 do
+      local item = reaper.GetTrackMediaItem(member, index)
+      local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+      if position <= at + 1e-6 and at < position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH') then
+        return true
+      end
     end
   end
   return false
