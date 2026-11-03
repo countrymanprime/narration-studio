@@ -125,7 +125,9 @@ func recordTarget(svc hostServices, chapterID, link string) (string, *ReadAloudR
 // arms, and the one a take switched to. It holds only GUIDs the host checked are voices of the chapter, for the session only. A nil
 // one (a Host never configured) holds nothing.
 type boothVoiceChoices struct {
-	mu sync.Mutex
+	// adding serialises BoothVoiceAdd from its checks to its answer, so two adds of one name cannot both pass the name check.
+	adding sync.Mutex
+	mu     sync.Mutex
 	// +checklocks:mu
 	byChapter map[string]string
 	// The voices BoothVoiceAdd added, by the folder's GUID (upper case), in the order added.
@@ -135,6 +137,15 @@ type boothVoiceChoices struct {
 
 func newBoothVoiceChoices() *boothVoiceChoices {
 	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}}
+}
+
+// lockAdding holds an add's checks and its track_create together; the answer unlocks it. A nil one locks nothing.
+func (c *boothVoiceChoices) lockAdding() func() {
+	if c == nil {
+		return func() {}
+	}
+	c.adding.Lock()
+	return c.adding.Unlock
 }
 
 // add remembers that the Booth added voice to the folder folderGUID.

@@ -117,6 +117,12 @@ export function createBoothVoiceMock(api: Deps) {
       if (!voices) return { outcome: 'refused', reason: 'flat', message: FLAT };
       const clean = name.split(/\s+/).filter(Boolean).join(' ');
       if (!clean) return { outcome: 'refused', reason: 'no_name', message: 'The new track needs a name.' };
+      if ([...clean].length > 120)
+        return {
+          outcome: 'refused',
+          reason: 'invalid',
+          message: 'That track name or list of characters is too long (at most 120 characters in a name and 200 characters on a track).',
+        };
       const taken = voices.find((voice) => voice.name.split(/\s+/).filter(Boolean).join(' ').toLowerCase() === clean.toLowerCase());
       if (taken)
         return {

@@ -103,6 +103,18 @@ describe('Who is in Num N?', () => {
     expect(props.onAdd).not.toHaveBeenCalled();
   });
 
+  it('a name past 120 characters is refused before anything is sent; 120 is kept', async () => {
+    const props = show({ kind: 'key', key: 5 });
+    await userEvent.clear(nameField());
+    await userEvent.click(nameField());
+    await userEvent.paste('é'.repeat(121));
+    expect(screen.getByText('A track name is at most 120 characters.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Add track' }) as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.type(nameField(), '{Backspace}');
+    await userEvent.click(screen.getByRole('button', { name: 'Add track' }));
+    expect(props.onAdd).toHaveBeenCalledWith('é'.repeat(120), ['king', 'knave']);
+  });
+
   it('a name in any script is kept as typed and sent trimmed', async () => {
     const props = show({ kind: 'key', key: 5 });
     await userEvent.clear(nameField());

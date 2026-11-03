@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
@@ -272,5 +276,48 @@ func TestAnAddDuringTheTakeIsRefusedAndTheSameAddAfterTheStopGoesThrough(t *test
 	after := boothVoiceAdd(t, host, creator, ids[0], "King of Hearts", []string{"king"})
 	if after.Outcome != "added" || len(creator.children) != 1 {
 		t.Fatalf("after the stop: %+v, sent %v", after, creator.children)
+	}
+}
+
+// syncChildCreator is fakeChildCreator for calls from several goroutines: each add gets its own GUID, and each call holds the engine for a
+// moment, as REAPER's answer takes one.
+type syncChildCreator struct {
+	fakeCreator
+	mu    sync.Mutex
+	calls int
+}
+
+func (f *syncChildCreator) CreateChildTrack(_ context.Context, name, _ string) (dawport.CreatedTrack, error) {
+	f.mu.Lock()
+	f.calls++
+	n := f.calls
+	f.mu.Unlock()
+	time.Sleep(20 * time.Millisecond)
+	return dawport.CreatedTrack{GUID: fmt.Sprintf("{AAAAAAAA-0000-4000-8000-0000000000B%d}", n), Name: name, Index: 3}, nil
+}
+
+// Two adds of one name at once (two windows, a double press the page let through): one is added, the other sees it and is refused, and
+// REAPER is asked once.
+func TestTwoAddsOfOneNameAtOnceAddOneTrack(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	creator := &syncChildCreator{}
+	answers := make([]BoothVoiceAdded, 2)
+	var wg sync.WaitGroup
+	for i := range answers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			got, err := host.boothVoiceAddIn(context.Background(), host.services(), creator, createAvailable(), ids[0], "Crowd", nil)
+			if err != nil {
+				t.Error(err)
+			}
+			answers[i] = got
+		}()
+	}
+	wg.Wait()
+	outcomes := []string{answers[0].Outcome + "/" + answers[0].Reason, answers[1].Outcome + "/" + answers[1].Reason}
+	sort.Strings(outcomes)
+	if !reflect.DeepEqual(outcomes, []string{"added/", "refused/" + boothVoiceNameTaken}) || creator.calls != 1 {
+		t.Fatalf("outcomes %v, REAPER asked %d times; want one added, one name_taken, one call", outcomes, creator.calls)
 	}
 }

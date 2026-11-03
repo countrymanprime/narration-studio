@@ -52,6 +52,8 @@ func cleanTrackName(name string) string {
 // boothVoiceAddIn adds a voice named name for characterIDs to chapterID's folder with creator (support says why it is nil), then
 // assigns the characters and chooses the voice. Everything it can check is checked before anything is sent.
 func (h *Host) boothVoiceAddIn(ctx context.Context, svc hostServices, creator dawport.TrackCreator, support dawport.Support, chapterID, name string, characterIDs []string) (BoothVoiceAdded, error) {
+	// One add at a time: the name check below must see a track an add running now is making.
+	defer svc.boothVoices.lockAdding()()
 	link, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil {
 		return BoothVoiceAdded{}, err

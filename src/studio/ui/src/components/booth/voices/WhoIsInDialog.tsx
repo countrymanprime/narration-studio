@@ -17,6 +17,9 @@ export type WhoAsk = { kind: 'key'; key: number } | { kind: 'character'; charact
 
 export type WhoChoice = 'new' | 'existing' | 'narrator';
 
+/** The longest track name the voice setup keeps (voicetracks.MaxTrackName, in characters). */
+const TRACK_NAME_MAX = 120;
+
 export type WhoIsInDialogProps = {
   ask: WhoAsk;
   voices: readonly Voice[];
@@ -104,9 +107,11 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const nameProblem =
     name.trim() === ''
       ? 'The new track needs a name.'
-      : voices.some((voice) => same(voice.name, name))
-        ? `This chapter already has a track named “${name.trim()}”.`
-        : undefined;
+      : [...name.trim()].length > TRACK_NAME_MAX
+        ? `A track name is at most ${TRACK_NAME_MAX} characters.`
+        : voices.some((voice) => same(voice.name, name))
+          ? `This chapter already has a track named “${name.trim()}”.`
+          : undefined;
   const newKey = keyForNewTrack(voices, name);
   const target = others.find((voice) => voice.guid === existing);
   const blocked = choice === 'new' ? Boolean(nameProblem) : choice === 'existing' ? !target : !narrator;

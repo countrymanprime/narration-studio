@@ -6161,6 +6161,7 @@ describe('the voice tracks bindings', () => {
     const api = createMockApi({}, { voiceFolders: true });
     expect((await api.boothVoiceAdd(first, ' \n ', [])).reason).toBe('no_name');
     expect((await api.boothVoiceAdd(first, ' extras ', [])).reason).toBe('name_taken');
+    expect((await api.boothVoiceAdd(first, 'x'.repeat(121), [])).reason).toBe('invalid');
     const added = await api.boothVoiceAdd(first, '  King  of Hearts ', ['king-of-hearts']);
     expectMatches(boothVoiceAddedSchema, added, 'mock booth voice add');
     expect(added).toMatchObject({ outcome: 'added', name: 'King of Hearts' });
