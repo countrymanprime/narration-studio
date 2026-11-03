@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { SlideOver } from '../primitives/SlideOver';
@@ -161,6 +162,9 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
     <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
       <div className="space-y-[1.1rem]">
+        <div className="flex justify-end">
+          <IconButton action="gear" label="Open Recording settings" onClick={onOpenRecordingSettings} />
+        </div>
         {forAudacity ? (
           <Panel title="Audacity project">
             <AudacityLinkCard view={audacity} notify={notify} />
@@ -235,18 +239,6 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
         {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}
         {tool === 'cleanup-tools' && <CleanupToolsDialog onClose={closeTool} />}
         {tool === 'retake-lanes' && <RetakeLanesDialog onClose={closeTool} />}
-        <Panel
-          title="Recording engine"
-          actions={
-            <Button variant="secondary" onClick={onOpenRecordingSettings}>
-              Recording settings
-            </Button>
-          }
-        >
-          <p className="m-0 text-sm" style={{ color: 'var(--text-muted)' }}>
-            Which recorder this project uses.
-          </p>
-        </Panel>
       </div>
     </VoiceLayoutContext.Provider>
   );
