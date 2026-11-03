@@ -241,7 +241,7 @@ The navigation is grouped by stage: Production, Prep, Record, Review, Finish. Th
 
 ### Production home
 
-![Production home: KPIs, chapter pipeline by stage, next actions](mockups/audiobook-studio-benchmark/01-production-home.webp)
+(Mock image `01-production-home.webp` deleted from the tree, see git history: Production home: KPIs, chapter pipeline by stage, next actions.)
 
 A chapter × stage board, from prep through QC. Every cell is a link. Above it are the finished runtime against the target, the
 logged work time, hours per finished hour, the effective rate against PFH, open pickups, and how many files pass the delivery
@@ -252,7 +252,7 @@ check. A "Next up" list is ranked by risk to the deadline, and a burndown shows 
 
 ### Prep: script, speakers and pronunciations
 
-![Prep: speaker-attributed script, markup, pronunciation list with sources and author queries](mockups/audiobook-studio-benchmark/02-prep-script.webp)
+(Mock image `02-prep-script.webp` deleted from the tree, see git history: Prep: speaker-attributed script, markup, pronunciation list with sources and author queries.)
 
 - Dialogue is attributed to its speaker, and markup for stress, breaths and pauses sits in a layer over the script.
 - Pronunciations carry their source and a status (researched, author-confirmed, query sent), with one-click lookups.
@@ -280,7 +280,7 @@ Full screen and low glare, with nothing else on it:
 
 ### Proof and pickups
 
-![Proof: notes from proofer, AI and self on one timeline, detail, and a pickup session plan](mockups/audiobook-studio-benchmark/04-proof-pickups.webp)
+(Mock image `04-proof-pickups.webp` deleted from the tree, see git history: Proof: notes from proofer, AI and self on one timeline, detail, and a pickup session plan.)
 
 - Proofer CSV notes, the local AI compare and the narrator's own flags are merged on one timeline.
 - Each note has a category and a resolution: pickup, fix in edit, or waived.
@@ -291,7 +291,7 @@ Full screen and low glare, with nothing else on it:
 
 ### Master, QC and delivery
 
-![Master & QC: per-file checks by platform, why a file fails, book consistency, mastering chain, delivery package](mockups/audiobook-studio-benchmark/05-master-delivery.webp)
+(Mock image `05-master-delivery.webp` deleted from the tree, see git history: Master & QC: per-file checks by platform, why a file fails, book consistency, mastering chain, delivery package.)
 
 - Platform tabs.
 - Per-file checks on the rendered files, including clicks and text coverage.
