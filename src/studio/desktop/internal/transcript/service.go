@@ -72,6 +72,8 @@ type Service struct {
 	// app.go opts in with SetRunRecorder.
 	// +checklocks:mu
 	runRecorder func(CompletedRun)
+	// equivalences makes AddEquivalencePair's read, check and append one step, so two presses write one group.
+	equivalences sync.Mutex
 }
 
 // NewWithReview builds the service over any DAW adapter. When there is one it subscribes to the events Transcript Compare
@@ -315,32 +317,95 @@ func (s *Service) SaveHints(values []string) error {
 	}
 	return os.Rename(tmp, path)
 }
-func (s *Service) AddEquivalence(rowID string) (string, error) {
+
+// sentence makes an error whose text is a sentence for the narrator, shown as written in Proof's toast, so it starts with a capital and
+// ends with a full stop: ST1005's rule is for errors wrapped into other messages.
+func sentence(format string, args ...any) error { return fmt.Errorf(format, args...) }
+
+// errNotOneWordMisread is the refusal for anything but one word read as one other word.
+var errNotOneWordMisread = sentence("Only a note where one word was read as one other word can be treated as the same word in later checks.")
+
+// AddEquivalence makes later comparisons count a one-word misread as a match: id is a Transcript Compare note's finding id
+// (Proof, #2736), which outlives the session, or a row id of this session's run. The note's decision is not changed.
+func (s *Service) AddEquivalence(id string) (string, error) {
 	s.mu.RLock()
 	rows, _ := s.state["rows"].([]map[string]any)
 	var wanted map[string]any
 	for _, row := range rows {
-		if row["id"] == rowID {
+		if row["id"] == id {
 			wanted = row
 			break
 		}
 	}
+	store := s.findingsStore
 	s.mu.RUnlock()
-	if wanted == nil || wanted["kind"] != "MISREAD" {
-		return "", fmt.Errorf("select a single-word MISREAD result to add an equivalence")
+	if wanted != nil {
+		doc, _ := wanted["docText"].(string)
+		audio, _ := wanted["audioText"].(string)
+		if wanted["kind"] != "MISREAD" || !oneWord(doc) || !oneWord(audio) {
+			return "", errNotOneWordMisread
+		}
+		return s.AddEquivalencePair(doc, audio)
 	}
-	doc, docOK := wanted["docText"].(string)
-	audio, audioOK := wanted["audioText"].(string)
-	if !docOK || !audioOK || doc == "" || audio == "" || strings.ContainsAny(doc, " \t\r\n") || strings.ContainsAny(audio, " \t\r\n") {
-		return "", fmt.Errorf("select a single-word MISREAD result to add an equivalence")
+	if store == nil {
+		return "", errNotOneWordMisread
 	}
+	finding, found, err := store.Get(id)
+	if err != nil {
+		return "", err
+	}
+	doc, audio, ok := OneWordMisread(finding)
+	if !found || !ok {
+		return "", errNotOneWordMisread
+	}
+	return s.AddEquivalencePair(doc, audio)
+}
+
+// OneWordMisread is the script word and the heard word of a Transcript Compare note that read one word as one other word; ok is
+// false for any other note. Proof offers the equivalence button on the same notes (src/studio/ui/src/components/proof/inspector/equivalence.ts).
+func OneWordMisread(finding findings.Finding) (doc, audio string, ok bool) {
+	if finding.Analyzer != AnalyzerName || finding.Category != findings.CategoryTranscriptDiscrepancy || finding.Manuscript == nil {
+		return "", "", false
+	}
+	if kind, _ := finding.Evidence["kind"].(string); kind != "MISREAD" {
+		return "", "", false
+	}
+	doc, audio = finding.Manuscript.Expected, finding.Manuscript.Recorded
+	return doc, audio, oneWord(doc) && oneWord(audio)
+}
+
+func oneWord(word string) bool { return word != "" && !strings.ContainsAny(word, " \t\r\n") }
+
+// AddEquivalencePair appends doc and audio as one group to TranscriptCompare/equivalences.csv. A pair a group of the file already
+// holds (either order, any case, as compare.LoadEquivalenceGroups reads it) is not written again, so a second press is harmless.
+func (s *Service) AddEquivalencePair(doc, audio string) (string, error) {
+	if !oneWord(doc) || !oneWord(audio) {
+		return "", errNotOneWordMisread
+	}
+	// A comma would start another word of the group and # a comment, so either would write a group the narrator did not mean.
+	if strings.ContainsAny(doc+audio, ",#") {
+		return "", sentence("%s = %s cannot be written to the equivalences file: a word there cannot hold a comma or #.", doc, audio)
+	}
+	s.equivalences.Lock()
+	defer s.equivalences.Unlock()
 	path := filepath.Join(s.config.Project, "TranscriptCompare", "equivalences.csv")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", err
 	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	raw, err := os.ReadFile(path)
+	switch {
+	case os.IsNotExist(err):
 		if err = os.WriteFile(path, []byte("# Transcript Compare - custom word equivalences\n# One comma-separated group per line.\n"), 0o600); err != nil {
 			return "", err
+		}
+	case err != nil:
+		return "", err
+	default:
+		canon := compare.BuildCanon(compare.LoadEquivalenceGroups(string(raw)))
+		a, aOK := canon[compare.PyLower(doc)]
+		b, bOK := canon[compare.PyLower(audio)]
+		if aOK && bOK && a == b {
+			return fmt.Sprintf("Already treated as the same: %s = %s", doc, audio), nil
 		}
 	}
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)

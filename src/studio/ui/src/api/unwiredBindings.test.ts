@@ -39,7 +39,6 @@ const UNWIRED = [
   'takeReviewScanCancel',
   'takeReviewScanStart',
   'takeReviewScanState',
-  'transcriptAddEquivalence',
   'workspaceTakesCompareStart',
 ];
 

@@ -13,7 +13,7 @@ import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
 import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
-import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
 import { COVERAGE_REFUSAL_REASONS } from './api/schemas/coverage';
 import { EDITING_REFUSAL_REASONS } from './api/schemas/editing';
 import type { StageUnknownCause } from './api/contracts/stages';
@@ -375,7 +375,15 @@ const MOCK_STAGES_SEEDS = {
 };
 // `?mockFindings=empty|changed` boots the Review page with no findings at all, or with an analyzer that runs again right after the page
 // lists its findings, so the empty queue and a decision refused on changed evidence can be seen without a host.
-const mockFindings = (['empty', 'changed'] as const).find((seed) => seed === mockParams.get('mockFindings'));
+// `misread` adds a one-word misread (Dinah heard as Dina) for "Treat these two words as the same" (#2736); `misread-long` and `misread-rtl`
+// give it a 45-letter word with no place to break, and Hebrew and emoji words, so the button's place can be seen with them.
+const mockFindings = (['empty', 'changed', 'misread', 'misread-long', 'misread-rtl'] as const).find((seed) => seed === mockParams.get('mockFindings'));
+const MISREAD_WORDS = {
+  misread: ['Dinah', 'Dina'],
+  'misread-long': ['Pneumonoultramicroscopicsilicovolcanoconiosis', 'Pneumonoultramicroscopicsilicovolcanokoniosis'],
+  'misread-rtl': ['שָׁלוֹם👋🏽', 'שלם'],
+} as const;
+const misreadWords = mockFindings && mockFindings !== 'empty' && mockFindings !== 'changed' ? MISREAD_WORDS[mockFindings] : undefined;
 // `?mockReaper=standalone|not-running|stale|recording|outdated` sets what the Review page's REAPER does for Go to, Loop and Stop:
 // not there at all, gone quiet, or connected and refusing for that reason. Connected when absent.
 const mockReaper = (['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const).find((seed) => seed === mockParams.get('mockReaper'));
@@ -459,6 +467,21 @@ const mockInitial = {
   ...(mockReaper ? { reaper: mockReaper } : {}),
   ...(mockFindings === 'empty' ? { findings: [] } : {}),
   ...(mockFindings === 'changed' ? { findingsRerun: true } : {}),
+  ...(misreadWords
+    ? {
+        findings: [
+          ...WIRE_FINDINGS,
+          {
+            ...WIRE_ONE_WORD_MISREAD,
+            manuscript: {
+              ...WIRE_ONE_WORD_MISREAD.manuscript,
+              expected: misreadWords[0],
+              recorded: misreadWords[1],
+            },
+          },
+        ],
+      }
+    : {}),
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),

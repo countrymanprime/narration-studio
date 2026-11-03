@@ -30,8 +30,10 @@ function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?
     findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 12.4 })),
     findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 7, loopEnd: 14 })),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
+    transcriptAddEquivalence: vi.fn(async () => 'Added equivalence: Dinah = Dina'),
+    findingsGet: vi.fn(async () => finding),
   };
-  const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn() };
+  const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn(), onNoteRead: vi.fn() };
   render(
     <ApiProvider api={createMockApi()}>
       <PortOverrides clients={{ daw }}>

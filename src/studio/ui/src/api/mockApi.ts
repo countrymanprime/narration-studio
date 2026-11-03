@@ -53,6 +53,7 @@ import { createManuscriptMock } from './mockHost/manuscript';
 import { createCreditsMock } from './mockHost/credits';
 import { createAssetsMock } from './mockHost/assets';
 import { createProofingMock } from './mockHost/proofing';
+import { createEquivalenceMock } from './mockHost/equivalences';
 import { createReaperActionsMock } from './mockHost/reaperActions';
 import { createChapterTracksMock } from './mockHost/chapterTracks';
 import { createMergeEvents } from './mockHost/mergeEvents';
@@ -400,6 +401,7 @@ export function createMockApi(
     ...character.bindings,
     ...assets.bindings,
     ...proofing.bindings,
+    ...createEquivalenceMock(findings.findingsGet),
     ...reaperActions.bindings,
     ...project.bindings,
     ...credits.bindings,
