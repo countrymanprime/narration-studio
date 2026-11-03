@@ -141,12 +141,22 @@ export function Dialog({
   // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36).
   const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
   const finalFocus = () => {
+    // The action that closed this dialog already moved focus to its destination (a jump menu result focuses what it went to): leave it there.
+    const now = document.activeElement;
+    if (now instanceof HTMLElement && now !== document.body && !popupRef.current?.contains(now) && !now.closest('[data-base-ui-focus-guard]')) return false;
     if (opener?.isConnected && opener !== document.body) return opener;
     if (stayOnBody && (!opener || opener === document.body)) return false;
     // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark.
     const target = returnFocus?.();
     if (target?.isConnected) return target;
-    return document.querySelector<HTMLElement>('main') ?? true;
+    // The landmark: <main> is focusable (tabIndex -1) but not tabbable, so handing it over lets Base UI pick its first tabbable, the header's project
+    // button (#2902). Focus it here once the popup has gone.
+    const main = document.querySelector<HTMLElement>('main');
+    if (!main) return true;
+    window.setTimeout(() => {
+      if (!document.activeElement || document.activeElement === document.body) main.focus({ preventScroll: true });
+    }, 0);
+    return false;
   };
 
   return (
