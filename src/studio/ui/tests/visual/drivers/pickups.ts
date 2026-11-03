@@ -74,7 +74,10 @@ export const pickupsDrivers: Record<string, Driver> = {
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await openPickups(page);
-    await page.getByText('Link a REAPER project (.rpp) file to add markers.').waitFor();
+    await page
+      .getByRole('button', { name: /^Add \d+ as markers in / })
+      .and(page.locator('[aria-disabled="true"]'))
+      .waitFor();
   },
   unreadable: async (page) => {
     await page.goto('/?mockPickupList=unreadable');

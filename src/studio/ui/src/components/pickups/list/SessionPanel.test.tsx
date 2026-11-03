@@ -111,6 +111,13 @@ describe('SessionPanel', () => {
     expect(onAddMarkers).not.toHaveBeenCalled();
   });
 
+  it('keeps the markers reason out of the page flow: the tooltip and a screen-reader description carry it, so the panel does not grow', () => {
+    setup({ markers: { available: false, message: 'Link a REAPER project (.rpp) file to add markers.' } });
+    const reason = screen.getByText('Link a REAPER project (.rpp) file to add markers.');
+    expect(reason.tagName).toBe('SPAN');
+    expect(reason.className).toContain('sr-only');
+  });
+
   it('Copy puts the pickup script on the clipboard and says Copied.', async () => {
     const { user, toasts } = setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);

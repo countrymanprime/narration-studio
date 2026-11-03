@@ -140,10 +140,11 @@ export function SessionPanel({
             {emptyReason}
           </p>
         )}
+        {/* The DAW's reason is the button's tooltip and, for a screen reader, its description: not a line of the card, so the card never grows (rule 8). */}
         {!markers.available && (
-          <p id={markersId} className="text-[0.8125rem] text-pretty text-[var(--text-muted)]">
+          <span id={markersId} className="sr-only">
             {markersReason}
-          </p>
+          </span>
         )}
       </div>
     </Panel>

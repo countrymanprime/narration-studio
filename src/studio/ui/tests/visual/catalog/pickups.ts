@@ -86,7 +86,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'markers-not-linked',
     description:
-      'Pickups with no REAPER project file linked (?mockNoDaw=1): Add N as markers is off and the session card says "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar badge',
+      'Pickups with no REAPER project file linked (?mockNoDaw=1): Add N as markers is off, its tooltip and screen-reader description say "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar badge, and the session card does not grow',
     ...REFLOW,
   },
 ];
