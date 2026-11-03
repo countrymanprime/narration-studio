@@ -87,4 +87,50 @@ describe('the Chapter layout setting (parity audit)', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /Engine panel layout/ })));
     await waitFor(() => expect(within(group).getByRole('button', { name: /Flat/ }).getAttribute('aria-pressed')).toBe('true'));
   });
+
+  it('offers Reset to Flat only while the layout is Voice folders, and Reset saves Flat', async () => {
+    const { set } = await renderSettings();
+    expect(screen.queryByRole('button', { name: 'Reset Chapter layout to Flat' })).toBeNull();
+    const group = await screen.findByRole('group', { name: 'Chapter layout' });
+    fireEvent.click(within(group).getByRole('button', { name: /Voice folders/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset Chapter layout to Flat' }));
+    await waitFor(() => expect(set).toHaveBeenLastCalledWith('flat'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Reset Chapter layout to Flat' })).toBeNull());
+  });
+
+  it('does not read the Story Bible just to show the layout', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const entities = vi.spyOn(api, 'guideEntities');
+    const data = await api.bootstrap();
+    render(
+      <MemoryRouter>
+        <ThemeProvider>
+          <ApiProvider api={api}>
+            <StudioProvider>
+              <TooltipProvider>
+                <VoiceSetupProvider projectFolder={data.projectFolder}>
+                  <main tabIndex={-1}>
+                    <SettingsPage
+                      data={data}
+                      notify={vi.fn()}
+                      onDirtyChange={vi.fn()}
+                      registerActions={vi.fn()}
+                      onProjectDataCleared={async () => undefined}
+                      onLinkDawFile={vi.fn()}
+                      go={vi.fn()}
+                      refreshBootstrap={async () => undefined}
+                    />
+                  </main>
+                </VoiceSetupProvider>
+              </TooltipProvider>
+            </StudioProvider>
+          </ApiProvider>
+        </ThemeProvider>
+      </MemoryRouter>,
+    );
+    const nav = screen.getByRole('navigation', { name: 'Settings categories' });
+    fireEvent.click(within(nav).getByRole('button', { name: /^Recording & DAW/ }));
+    await screen.findByRole('group', { name: 'Chapter layout' });
+    expect(entities).not.toHaveBeenCalled();
+  });
 });
