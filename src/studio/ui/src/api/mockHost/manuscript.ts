@@ -4,6 +4,7 @@ import { aliceChapterSeeds, mockRecordedThrough, WIRE_NOTES, WIRE_READER_STATE, 
 import { loadAliceManuscript } from '../aliceManuscript';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
 import { mockImportPreview, mockImportPreviewLog } from '../mockImportPreview';
+import { searchMockManuscript } from '../manuscriptSearchMock';
 import { type MockApiSeed, type MockState } from './state';
 
 // `?mockManuscript=mixed`: a buttonless row (Front Matter, contentKind 'opening') before
@@ -223,21 +224,7 @@ export function createManuscriptMock(
     },
     manuscriptSearch: async (query) => {
       await manuscriptReady;
-      const needle = query.toLowerCase();
-      return wireClone(
-        s.paragraphs
-          .map((paragraph) => ({ paragraph, matchStart: paragraph.text.toLowerCase().indexOf(needle) }))
-          .filter(({ matchStart }) => matchStart >= 0)
-          .map(({ paragraph, matchStart }) => ({
-            chapter: paragraph.chapter,
-            chapterId: paragraph.chapterId,
-            paragraph: paragraph.index,
-            paragraphId: paragraph.id,
-            sourceLine: paragraph.sourceLine,
-            excerpt: paragraph.text,
-            matchStart,
-          })),
-      );
+      return wireClone(searchMockManuscript(s.chapters, s.paragraphs, query));
     },
     // The host's ManuscriptSetChapterKind (src/studio/desktop/chapterkind.go): only the kind changes, and a removal clears the
     // chapter's links.

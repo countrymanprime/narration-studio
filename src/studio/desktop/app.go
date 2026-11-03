@@ -40,6 +40,7 @@ import (
 	"desktop/internal/layout"
 	"desktop/internal/lineidentity"
 	"desktop/internal/manuscript"
+	"desktop/internal/masteringport"
 	"desktop/internal/persist"
 	"desktop/internal/pickups"
 	"desktop/internal/port"
@@ -73,7 +74,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 151
+const hostAPIVersion = 152
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -350,10 +351,10 @@ type Host struct {
 	// diagnoseFile is the same seam for the diagnostics job: nil means measure.DiagnoseFile.
 	// +checklocks:mu
 	diagnoseFile diagnoseFileFunc
-	// masterFile and encodeFile are seams for tests (export_job.go): nil means mastering.Master and the real
+	// masteringRows and encodeFile are seams for tests (export_job.go): nil means masteringport.Rows and the real
 	// encodeport.Encoders registry. pickPackageFolder is the same seam for package_job.go: nil means the operating
 	// system's folder picker.
-	masterFile        masterFileFunc
+	masteringRows     *port.Registry[masteringport.Mastering]
 	encodeFile        encodeFileFunc
 	assemblePackage   assembleFunc
 	pickPackageFolder func() (string, error)
@@ -616,6 +617,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.chapterSyncWatchLoop(runtimeContext)
 	go h.backgroundCheckLoop(runtimeContext)
 	go h.punchAnchorLoop(runtimeContext)
+	masteringport.UseSession(h.masteringSession)
 	h.dawAutoEnabled.Store(true)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
