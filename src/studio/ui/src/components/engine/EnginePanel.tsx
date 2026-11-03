@@ -63,15 +63,28 @@ export type EngineLinkState = {
  * is gone: a chapter is heard in its Proof chapter view. Everything loads when the panel opens (a closed SlideOver is not
  * mounted), so the panel costs nothing on a page that never opens it.
  */
-export function EnginePanel({ open, onClose, notify, link }: { open: boolean; onClose: () => void; notify: Notify; link: EngineLinkState }) {
+export function EnginePanel({
+  open,
+  onClose,
+  notify,
+  link,
+  onOpenRecordingSettings,
+}: {
+  open: boolean;
+  onClose: () => void;
+  notify: Notify;
+  link: EngineLinkState;
+  /** Opens Settings > Recording & DAW, where the project's engine is chosen. The panel is the one place every DAW chip leads, so it carries this way on. */
+  onOpenRecordingSettings: () => void;
+}) {
   return (
     <SlideOver open={open} title="Audio engine" closeLabel="Close the engine panel" size="wide" headingLevel={2} onClose={onClose}>
-      <EnginePanelBody notify={notify} link={link} />
+      <EnginePanelBody notify={notify} link={link} onOpenRecordingSettings={onOpenRecordingSettings} />
     </SlideOver>
   );
 }
 
-function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkState }) {
+function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: Notify; link: EngineLinkState; onOpenRecordingSettings: () => void }) {
   const api = useApi();
   // An Audacity project has no .rpp: its card replaces the REAPER project section, the REAPER tools are not shown, and the tracks come
   // from the snapshot the host takes while Audacity answers.
@@ -222,6 +235,18 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
         {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}
         {tool === 'cleanup-tools' && <CleanupToolsDialog onClose={closeTool} />}
         {tool === 'retake-lanes' && <RetakeLanesDialog onClose={closeTool} />}
+        <Panel
+          title="Recording engine"
+          actions={
+            <Button variant="secondary" onClick={onOpenRecordingSettings}>
+              Recording settings
+            </Button>
+          }
+        >
+          <p className="m-0 text-sm" style={{ color: 'var(--text-muted)' }}>
+            Which recorder this project uses.
+          </p>
+        </Panel>
       </div>
     </VoiceLayoutContext.Provider>
   );

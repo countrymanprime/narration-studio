@@ -34,6 +34,7 @@ import type { TeleprompterEvent } from '../../../api/contracts/teleprompter';
 import type { NarrationApi, TeleprompterState } from '../../../types';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { BoothNextPage } from './BoothNextPage';
+import { EnginePanelProvider } from '../../engine/EnginePanelContext';
 import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
 import { BoothHost, creditsChapter, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
@@ -82,6 +83,7 @@ function spied(daw: DawClient) {
 }
 
 function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true, measurements, journal: journalFor }: Options = {}) {
+  const openEnginePanel = vi.fn();
   const passageMapRecordRun = vi.fn(async () => {});
   const teleprompterStop = vi.fn(async () => {});
   const api = pageApi({ passageMapRecordRun, teleprompterStop, ...over } as Partial<NarrationApi>);
@@ -92,14 +94,16 @@ function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasM
   const view = render(
     <BoothHost api={api} daw={daw} journal={journal} overlay={overlay} search={search}>
       <PortOverrides clients={measurements ? { daw, measurements } : { daw }}>
-        <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+        <EnginePanelProvider value={openEnginePanel}>
+          <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+        </EnginePanelProvider>
       </PortOverrides>
       <Driver />
     </BoothHost>,
   );
   const dialog = () =>
     overlay.getSnapshot().dialogs[0] as { spec: { title: string; body: string; confirmLabel: string }; answer: (yes: boolean) => void } | undefined;
-  return { view, daw, journal, overlay, navigate, dialog, passageMapRecordRun, teleprompterStop };
+  return { view, daw, journal, overlay, navigate, openEnginePanel, dialog, passageMapRecordRun, teleprompterStop };
 }
 
 /** The router, from inside it: what the address is and a way to change it, as a link elsewhere in the app would. */
@@ -338,13 +342,14 @@ describe('every-way-out-asks-while-recording', () => {
     expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1);
   });
 
-  it('the setup chip asks too', async () => {
+  it('the setup chip opens the Audio engine panel, as the header chip does, and leaves the take running', async () => {
     const page = renderPage();
     await record(page);
     await userEvent.click(screen.getByRole('button', { name: 'Recording setup: REAPER' }));
-    expect(page.dialog()?.spec.title).toBe('Stop recording?');
-    await act(async () => page.dialog()!.answer(true));
-    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/settings#recording'));
+    expect(page.openEnginePanel).toHaveBeenCalledTimes(1);
+    expect(page.dialog()).toBeUndefined();
+    expect(page.navigate).not.toHaveBeenCalled();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 
   it('the shell asks before the nav, Back, Forward, Alt+Arrow or a chapter opened in Script; its Yes stops the take as the page goes', async () => {

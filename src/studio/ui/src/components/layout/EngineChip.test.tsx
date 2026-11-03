@@ -4,13 +4,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AudacityLink } from '../../api/contracts/daw';
 import { EngineChip } from './EngineChip';
 import { TooltipProvider } from '../primitives/Tooltip';
+import { EnginePanelProvider } from '../engine/EnginePanelContext';
 
 afterEach(cleanup);
 
-function renderChip(props: Partial<Parameters<typeof EngineChip>[0]> = {}) {
+function renderChip(props: Partial<Parameters<typeof EngineChip>[0]> = {}, openEnginePanel: () => void = () => {}) {
   return render(
     <TooltipProvider>
-      <EngineChip daw="REAPER" dawFileLinked onOpenEnginePanel={() => {}} {...props} />
+      <EnginePanelProvider value={openEnginePanel}>
+        <EngineChip daw="REAPER" dawFileLinked {...props} />
+      </EnginePanelProvider>
     </TooltipProvider>,
   );
 }
@@ -90,7 +93,7 @@ describe('EngineChip tooltips', () => {
 
   it('points to the engine panel when no project is linked', () => {
     renderChip({ dawFileLinked: false });
-    expect(screen.getByRole('button').getAttribute('aria-label')).toContain('Open the engine panel to link a project file');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toContain('No project file is linked');
   });
 
   it('says recording happens in the app for the built-in recorder', () => {
@@ -102,7 +105,7 @@ describe('EngineChip tooltips', () => {
 describe('EngineChip click', () => {
   it('opens the engine panel, and stays pressable while a link runs, marked busy', () => {
     const onOpenEnginePanel = vi.fn();
-    renderChip({ linkingDawFile: true, onOpenEnginePanel });
+    renderChip({ linkingDawFile: true }, onOpenEnginePanel);
     const chip = screen.getByRole('button');
     expect(chip.getAttribute('aria-busy')).toBe('true');
     fireEvent.click(chip);
@@ -148,7 +151,7 @@ describe('EngineChip for Audacity', () => {
   });
 
   it('asks to link the open project when Audacity answers with an unlabelled one', () => {
-    expect(label({ openProject: 'unlabelled', linked: false })).toContain('Open the engine panel to link the open project');
+    expect(label({ openProject: 'unlabelled', linked: false })).toContain('Link the open project');
   });
 
   it('warns when a different project is open', () => {
@@ -166,7 +169,7 @@ describe('EngineChip for Audacity', () => {
   ] as const)('names %s as "%s" and points to the engine panel', (state, title) => {
     const text = label({ state, openProject: 'unknown', running: false });
     expect(text).toContain(title);
-    expect(text).toContain('Open the engine panel for the steps.');
+    expect(text).toContain('The panel has the steps.');
   });
 
   it("keeps REAPER's words for REAPER, and for an Audacity not chosen for the project", () => {

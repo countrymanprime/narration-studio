@@ -21,12 +21,17 @@ const LINKED: EngineLinkState = {
   linkingDawFile: false,
 };
 
-function renderPanel(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, link: Partial<EngineLinkState> = {}) {
+function renderPanel(
+  overrides: Partial<NarrationApi> = {},
+  initial: Parameters<typeof createMockApi>[1] = {},
+  link: Partial<EngineLinkState> = {},
+  onOpenRecordingSettings: () => void = () => {},
+) {
   const api = createMockApi(overrides, initial);
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} />
+        <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -51,6 +56,14 @@ describe('EnginePanel', () => {
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     // No player: a chapter is heard in its Proof chapter view.
     expect(within(panel).queryByRole('button', { name: 'Play' })).toBeNull();
+  });
+
+  it('offers Recording settings, where the engine is chosen, since every DAW chip leads here', async () => {
+    const open = vi.fn();
+    renderPanel({}, {}, {}, open);
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Recording settings' }));
+    expect(open).toHaveBeenCalledTimes(1);
   });
 
   it('lists every track with the chapter it is linked to', async () => {
@@ -202,7 +215,7 @@ describe('EnginePanel', () => {
   it('is not in the page while closed', () => {
     render(
       <ApiProvider api={createMockApi()}>
-        <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} />
+        <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} onOpenRecordingSettings={() => {}} />
       </ApiProvider>,
     );
     expect(screen.queryByRole('dialog')).toBeNull();

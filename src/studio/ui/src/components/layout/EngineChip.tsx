@@ -3,13 +3,13 @@ import { audacityTitle } from '../engine/audacityLinkText';
 import { dawShortName } from '../../studio/StudioProvider';
 import { statusTone, type StatusId } from '../../kinds/statusTone';
 import { HeaderChip, type HeaderChipTone } from '../primitives/HeaderChip';
+import { EngineChipButton } from '../engine/EngineChipButton';
 import { toneColors } from '../primitives/StatusBadge';
-import { TooltipTarget } from '../primitives/Tooltip';
 
 // The header's recording-engine chip (the Studio Next mock's top bar): the name of the recorder the project is connected to, with a dot
 // for how it is doing. A state that needs the narrator also says so in words ("REAPER: Other project"), so the states do not differ by
 // colour alone, and below `md` the chip keeps a word rather than shrinking to a bare dot (alignment audit R3SL-2, R3PR1-9, XSL-12).
-// Its tooltip says more. A click opens the engine panel, which holds the link and relink action. 'builtin' is the project's recorder choice and, like a DAW of 'none', has no link to open.
+// Its tooltip says more and ends with where a press goes: every DAW chip, this one and the Booth's, is an `EngineChipButton`, which opens the Audio engine panel. 'builtin' is the project's recorder choice and, like a DAW of 'none', has no link to open.
 export type EngineState = 'daw' | 'builtin';
 
 // The word a state that needs the narrator draws after the DAW's name; a linked DAW draws its name alone, as the mock's chip does.
@@ -23,7 +23,6 @@ export function EngineChip({
   dawProjectMatches = false,
   audacity,
   followingChapter,
-  onOpenEnginePanel,
   linkingDawFile = false,
 }: {
   /** Which DAW backs the session (the capability report's `daw`); undefined until the first answer, when the chip names none. */
@@ -39,8 +38,6 @@ export function EngineChip({
   audacity?: AudacityLink;
   /** The chapter the DAW is following, when the host reports one. */
   followingChapter?: string;
-  /** Opens the engine panel: the linked project and its link action, the tracks, chapter sync and the DAW tools. */
-  onOpenEnginePanel: () => void;
   /** True while the shared DAW-link binding is running for any of its three call sites (docs/architecture/interaction-feedback.md#the-standard's ref guard). */
   linkingDawFile?: boolean;
 }) {
@@ -61,16 +58,16 @@ export function EngineChip({
   const matches = forAudacity ? forAudacity.openProject === 'linked' : dawProjectMatches;
   const mismatch = linked && reachable && !matches;
   let tooltip = !linked
-    ? 'Open the engine panel to link a project file'
+    ? 'No project file is linked'
     : !reachable
       ? 'Not running'
       : mismatch
-        ? 'A different project is open than the one linked here. Open the engine panel to link the open project, or switch to the linked file.'
+        ? 'A different project is open than the one linked here. Link the open project, or switch to the linked file.'
         : followingChapter
           ? `Linked · following ${followingChapter}`
           : 'Linked';
-  if (forAudacity && !reachable) tooltip = `${audacityTitle(forAudacity)}. Open the engine panel for the steps.`;
-  if (forAudacity && reachable && !linked) tooltip = 'Audacity is answering. Open the engine panel to link the open project.';
+  if (forAudacity && !reachable) tooltip = `${audacityTitle(forAudacity)}. The panel has the steps.`;
+  if (forAudacity && reachable && !linked) tooltip = 'Audacity is answering. Link the open project.';
   const status: StatusId =
     forAudacity && !reachable ? 'not_running' : !linked ? 'not_linked' : mismatch ? 'wrong_project' : !reachable ? 'not_running' : 'linked';
   const tone = statusTone(status) as HeaderChipTone;
@@ -79,26 +76,24 @@ export function EngineChip({
   const drawn = [label, word].filter(Boolean).join(': ');
   const dot = tone === 'neutral' ? 'var(--non-text)' : toneColors(tone).line;
   return (
-    <TooltipTarget text={tooltip}>
-      <HeaderChip
-        tone={tone}
-        dot={dot}
-        onClick={onOpenEnginePanel}
-        aria-busy={linkingDawFile}
-        aria-label={!word ? (label ? `${label}: ${tooltip}` : tooltip) : tooltip === word ? drawn : `${drawn}. ${tooltip}`}
-        className="flex-none"
-      >
-        {/* Below `md` a state word stands alone ("Other project"); the DAW's name stays in the accessible name above. */}
-        {/* One flex item, so the chip's gap does not open a second space after the colon. */}
-        {word ? (
-          <span>
-            {label && <span className="max-md:hidden">{label}: </span>}
-            {word}
-          </span>
-        ) : (
-          label
-        )}
-      </HeaderChip>
-    </TooltipTarget>
+    <EngineChipButton
+      tooltip={tooltip}
+      tone={tone}
+      dot={dot}
+      busy={linkingDawFile}
+      label={!word ? (label ? `${label}: ${tooltip}` : tooltip) : tooltip === word ? drawn : `${drawn}. ${tooltip}`}
+      className="flex-none"
+    >
+      {/* Below `md` a state word stands alone ("Other project"); the DAW's name stays in the accessible name above. */}
+      {/* One flex item, so the chip's gap does not open a second space after the colon. */}
+      {word ? (
+        <span>
+          {label && <span className="max-md:hidden">{label}: </span>}
+          {word}
+        </span>
+      ) : (
+        label
+      )}
+    </EngineChipButton>
   );
 }

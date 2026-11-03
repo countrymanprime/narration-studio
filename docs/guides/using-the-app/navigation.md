@@ -103,7 +103,7 @@ A running [production stage timer](production.md#the-stage-timer) is not in the 
 Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Search this page** (`Ctrl+F`) and a **View** submenu of the zoom steps and the theme.
 
 The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
-dot for how it is doing, and says in words when something needs you. Hover it for the detail, and click it to open the
+dot for how it is doing, and says in words when something needs you. Hover it for the detail (the tooltip ends with where a press goes), and click it to open the
 [audio engine panel](#the-audio-engine-panel), where the project's `.rpp` file is linked or changed:
 
 - **Green dot, "REAPER"**: the DAW is running with the linked project open.
@@ -163,7 +163,7 @@ follows you between projects rather than resetting when you switch.
 
 ## The audio engine panel
 
-Click the chip at the right of the header to open the audio engine panel over whatever page you are on.
+Click the chip at the right of the header, or the recording-setup chip in the [Booth](booth.md), to open the audio engine panel over whatever page you are on: every chip that names the DAW leads here. Its **Recording engine** card has **Recording settings**, which opens Settings > Recording & DAW, where the project's engine is chosen.
 It holds everything about the REAPER project itself rather than one stage of the work: the linked project
 file, the REAPER tools, chapter sync, the project's tracks and each chapter's link to its track. Close it
 with its close button, Escape or a click beside it. Every "Open the audio engine panel" pointer in the app, in a message or a dialog, opens it over the page you are on and closes the dialog it was in. (It replaced the Tracks page; an old link to that page

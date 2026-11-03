@@ -641,7 +641,6 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
-                    onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
               }

@@ -883,7 +883,6 @@ function AppRoutes() {
                 dawFileLinked={data.dawFileLinked}
                 dawReachable={data.dawReachable}
                 dawProjectMatches={data.dawProjectMatches}
-                onOpenEnginePanel={openEnginePanel}
                 linkingDawFile={dawLink.isBusy}
                 engine={engine}
                 daw={dawKind}
@@ -1096,6 +1095,10 @@ function AppRoutes() {
                   open={enginePanelOpen}
                   onClose={() => setEnginePanelOpen(false)}
                   notify={setNotice}
+                  onOpenRecordingSettings={() => {
+                    setEnginePanelOpen(false);
+                    guardedNavigate(addressPath({ page: 'settings', anchor: 'recording' }));
+                  }}
                   link={{
                     dawFileLinked: data.dawFileLinked,
                     dawReachable: data.dawReachable,

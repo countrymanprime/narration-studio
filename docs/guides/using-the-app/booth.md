@@ -13,7 +13,7 @@ While the chapters are being read, the Booth draws its top bar, text, side panel
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
 where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
+built-in recorder). The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip is a plain status, as the header's **Built-in** chip is. The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
 the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or the whole text area, whichever is less, so each choice narrows the text equally on both sides and the column follows the window up to that width; **+** and **-** change the size too, and the Booth opens at the size
@@ -26,7 +26,7 @@ The resume line is not offered while you are already in the paragraph it would t
 ![Booth - the Text settings: the font and size of the text you read](../../images/ui/booth-text-settings.webp)
 
 The chip says when the project's DAW is not ready: **REAPER · not linked**, **REAPER · not running**, or REAPER on
-its own once connected. Click it to fix that in [Settings](settings.md#link-your-reaper-project).
+its own once connected. Click it to open the [audio engine panel](navigation.md#the-audio-engine-panel), where you link the project; **Recording settings** there leads on to [Settings](settings.md#link-your-reaper-project).
 
 ![Booth - the top-bar chip warns REAPER · not linked](../../images/ui/booth-daw-not-linked.webp)
 
