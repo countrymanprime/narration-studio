@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { MasteringProviders } from '../../api/contracts/mastering';
@@ -10,21 +10,28 @@ import { Badge } from '../primitives/StatusBadge';
 const MUTED = { color: 'var(--text-muted)' };
 
 /** The mastering chains and the project's choice, read once; `undefined` while loading. */
-export function useMasteringProviders(): { providers?: MasteringProviders; problem?: string } {
+export function useMasteringProviders(): { providers?: MasteringProviders; problem?: string; reload: () => void } {
   const api = useApi();
   const [providers, setProviders] = useState<MasteringProviders>();
   const [problem, setProblem] = useState<string>();
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     api
       .masteringProviders()
-      .then((state) => active && setProviders(state))
+      .then((state) => {
+        if (!active) return;
+        setProviders(state);
+        setProblem(undefined);
+      })
       .catch((error) => active && setProblem(apiErrorMessage(error)));
     return () => {
       active = false;
     };
-  }, [api]);
-  return { providers, problem };
+  }, [api, attempt]);
+  // Reading the chains changes nothing, so the failed read's toast offers Retry, which reads them again (issue #2919).
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+  return { providers, problem, reload };
 }
 
 /**
@@ -34,8 +41,8 @@ export function useMasteringProviders(): { providers?: MasteringProviders; probl
  * platform's rules, so mock 05's "Edit chain" is not drawn, and neither is "A/B raw ↔ mastered", which needs a player
  * for a rendered file the host does not have yet.
  */
-export function MasteringChain({ providers, problem }: { providers?: MasteringProviders; problem?: string }) {
-  useErrorToast(problem && `The mastering chain could not be read: ${problem}`);
+export function MasteringChain({ providers, problem, retry }: { providers?: MasteringProviders; problem?: string; retry?: () => void }) {
+  useErrorToast(problem && `The mastering chain could not be read: ${problem}`, retry);
   const row = providers?.providers.find((candidate) => candidate.name === providers.effective);
   return (
     // The long description is the body's first line, not a subtitle squeezed beside the title, so the header is as tall as its neighbours'

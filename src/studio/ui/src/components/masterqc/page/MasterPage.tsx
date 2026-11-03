@@ -303,7 +303,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               <Consistency files={run.files} profile={profile} />
             </Panel>
             <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} onCheckFiles={() => void run.chooseOther()} />
-            <MasteringChain providers={mastering.providers} problem={mastering.problem} />
+            <MasteringChain providers={mastering.providers} problem={mastering.problem} retry={mastering.reload} />
             <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
           </div>

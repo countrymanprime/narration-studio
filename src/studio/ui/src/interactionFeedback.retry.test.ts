@@ -3,13 +3,13 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
-import { ERROR_TOAST_RETRY, UNJUDGED_ERROR_TOASTS } from './interactionFeedback.catalog';
+import { ERROR_TOAST_RETRY, RETRY_TODO_ERROR_TOASTS } from './interactionFeedback.catalog';
 
 // docs/architecture/interaction-feedback.md#retry: every error toast is judged for whether pressing Retry may repeat the action, and a
 // toast judged `yes` carries it. The scan reads the source with the TypeScript parser, like interactionFeedback.test.ts.
 
-/** The most error toasts left unjudged. Lower it when the list shrinks; raising it is how a toast would slip past, so it never goes up. */
-const UNJUDGED_CEILING = 249;
+/** The most read-failure toasts still waiting for a Retry (`retry-todo`). Lower it when the list shrinks; raising it is how a toast would slip past, so it never goes up. */
+const TODO_CEILING = 14;
 
 const uiRoot = join(__dirname, '..');
 const srcRoot = __dirname;
@@ -86,24 +86,24 @@ describe('the error toast scan', () => {
 });
 
 describe('the retry column', () => {
-  const unjudged = new Set(UNJUDGED_ERROR_TOASTS);
+  const todo = new Set(RETRY_TODO_ERROR_TOASTS);
 
-  test('every error toast is judged or on the shrink-only list', () => {
-    const missing = [...actualKeys].filter((key) => !(key in ERROR_TOAST_RETRY) && !unjudged.has(key));
+  test('every error toast is judged or on the shrink-only retry-todo list', () => {
+    const missing = [...actualKeys].filter((key) => !(key in ERROR_TOAST_RETRY) && !todo.has(key));
     expect(missing, 'judge the toast in ERROR_TOAST_RETRY: yes (and give it a Retry), no, or n/a, with the reason').toEqual([]);
   });
 
-  test('the unjudged list never grows, holds only toasts that exist, and holds nothing judged', () => {
-    expect(UNJUDGED_ERROR_TOASTS.length).toBeLessThanOrEqual(UNJUDGED_CEILING);
+  test('the retry-todo list never grows, holds only toasts that exist, and holds nothing judged', () => {
+    expect(RETRY_TODO_ERROR_TOASTS.length).toBeLessThanOrEqual(TODO_CEILING);
     expect(
-      UNJUDGED_ERROR_TOASTS.filter((key) => !actualKeys.has(key)),
+      RETRY_TODO_ERROR_TOASTS.filter((key) => !actualKeys.has(key)),
       'a gone or renumbered toast leaves the list',
     ).toEqual([]);
     expect(
-      UNJUDGED_ERROR_TOASTS.filter((key) => key in ERROR_TOAST_RETRY),
+      RETRY_TODO_ERROR_TOASTS.filter((key) => key in ERROR_TOAST_RETRY),
       'a judged toast leaves the list',
     ).toEqual([]);
-    expect(unjudged.size).toBe(UNJUDGED_ERROR_TOASTS.length);
+    expect(todo.size).toBe(RETRY_TODO_ERROR_TOASTS.length);
   });
 
   test('no judgment is for a toast that is gone, and every one says why', () => {

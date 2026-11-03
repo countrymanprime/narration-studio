@@ -91,4 +91,49 @@ describe('saving the voice setup', () => {
     expect(errors).toHaveLength(2);
     expect(errors[1]).toContain('newer version');
   });
+
+  // Issue #2919: the character list is a read the panel needs, so a failed read is an error toast with Retry, which reads it again.
+  it('a failed read of the characters offers Retry, which reads them again', async () => {
+    const api = createMockApi();
+    let reads = 0;
+    api.guideEntities = async () => {
+      reads += 1;
+      if (reads === 1) throw new Error('the Story Bible is busy');
+      return [];
+    };
+    api.voiceTracksGet = async () => state({});
+    const notify = vi.fn();
+    const stable = (message: string, tone?: string, action?: { onAction: () => void }) => notify(message, tone, action);
+    mount(api, stable as never);
+    await act(async () => {});
+    const failed = notify.mock.calls.find(([, tone]) => tone === 'error');
+    expect(failed?.[0]).toContain('busy');
+    expect(failed?.[2]).toMatchObject({ label: 'Retry' });
+    await act(async () => failed![2].onAction());
+    expect(reads).toBe(2);
+  });
+
+  it('a failed re-read after a refused save offers Retry, which reads the setup again', async () => {
+    const api = createMockApi();
+    api.guideEntities = async () => [];
+    let reads = 0;
+    api.voiceTracksGet = async () => {
+      reads += 1;
+      if (reads === 2) throw new Error('the voice tracks file is locked');
+      return state({});
+    };
+    api.voiceTracksSetLayout = async () => {
+      throw new Error('that voice setup is not valid');
+    };
+    const notify = vi.fn();
+    const stable = (message: string, tone?: string, action?: { onAction: () => void }) => notify(message, tone, action);
+    const hook = mount(api, stable as never);
+    await act(async () => {});
+    await act(async () => hook.current.setLayout('flat'));
+    await act(async () => {});
+    const failed = notify.mock.calls.filter(([, tone]) => tone === 'error').find(([message]) => String(message).includes('locked'));
+    expect(failed?.[2]).toMatchObject({ label: 'Retry' });
+    await act(async () => failed![2].onAction());
+    expect(reads).toBe(3);
+  });
 });

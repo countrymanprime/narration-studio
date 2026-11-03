@@ -3,6 +3,7 @@ import { describeApiError } from '../../api/errorMessage';
 import type { GuideEntity } from '../../api/contracts/storyBible';
 import type { VoiceTracksLayout, VoiceTracksState } from '../../api/contracts/voiceTracks';
 import type { Notify } from '../primitives/Toast';
+import { retryAction } from '../primitives/Toast';
 import { usePort } from '../../ports/usePort';
 import { useVoiceSetup } from './voiceLayout';
 
@@ -18,20 +19,34 @@ export function useVoiceTracks(notify: Notify) {
     if (readError) notify(describeApiError(readError), 'error');
   }, [readError, notify]);
 
+  // A failed read of the characters is an error toast with Retry, which reads them again (issue #2919).
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     void storyBible
       .guideEntities()
       .then((entities) => active && setCharacters(entities.filter((entity) => entity.category === 'Character')))
-      .catch((reason) => active && notify(describeApiError(reason), 'error'));
+      .catch(
+        (reason) =>
+          active &&
+          notify(
+            describeApiError(reason),
+            'error',
+            retryAction(() => setAttempt((n) => n + 1)),
+          ),
+      );
     return () => {
       active = false;
     };
-  }, [storyBible, notify]);
+  }, [storyBible, notify, attempt]);
 
   // Each change shows at once, built on the last one even before the host answers, so two quick ticks keep both (qa-breaker B3). A host
   // answer is taken only for the latest save, so a slow answer to an older one never undoes a newer change (B4); a refusal re-reads.
   const sent = useRef(0);
+  // Reading the setup again changes nothing, so a failed re-read is an error toast with Retry (issue #2919).
+  const reread = useCallback((): void => {
+    void voiceTracks.voiceTracksGet().then(replace, (again: unknown) => notify(describeApiError(again), 'error', retryAction(reread)));
+  }, [voiceTracks, replace, notify]);
   const save = useCallback(
     (change: (current: VoiceTracksState) => VoiceTracksState, call: () => Promise<VoiceTracksState>) => {
       replace(change(latest.current));
@@ -40,10 +55,10 @@ export function useVoiceTracks(notify: Notify) {
         .then((answer) => mine === sent.current && replace(answer))
         .catch((reason) => {
           notify(describeApiError(reason), 'error');
-          if (mine === sent.current) void voiceTracks.voiceTracksGet().then(replace, (again: unknown) => notify(describeApiError(again), 'error'));
+          if (mine === sent.current) reread();
         });
     },
-    [notify, replace, voiceTracks],
+    [notify, replace, reread],
   );
   const latest = useRef(setup);
   latest.current = setup;

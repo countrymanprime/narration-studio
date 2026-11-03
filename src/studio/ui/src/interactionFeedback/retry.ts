@@ -15,6 +15,8 @@ const no = (reason: string): RetryJudgment => ({ retry: 'no', reason });
 const na = (reason: string): RetryJudgment => ({ retry: 'n/a', reason });
 
 // Why a toast has no Retry, by kind. A kind says what is true of every toast filed under it.
+const MX =
+  'One message serves a read and the start of an export, a check or a save (a switch that goes back): Retry would have to know which failed, and the control that started it stays on screen.';
 const RF =
   'A refusal or a check that failed before the call (a locked entry, a missing selection, a limit): repeating it asks the same question and gets the same answer, so the narrator changes the cause instead.';
 const ED =
@@ -25,8 +27,6 @@ const DS =
   'Deletes, removes, clears, merges, imports, cancels or duplicates: not idempotent, so a repeat after a failure that half-happened could do it twice.';
 const BT = 'Safe to repeat, but the control that raised the toast stays on screen and repeats the action with one press, so a Retry button would add nothing.';
 const AU = 'An autosave written from the latest edit: a late repeat could write an older value over a newer one, and the next edit saves again anyway.';
-const RD =
-  'A read made when its page or section opens. Reading again is safe, but this hook has no re-read path to run from the toast, and the page reads again when it is opened.';
 const JM =
   'Reports how a job that already ran ended (its own failure message): repeating means starting the job again, which its own control on the page does.';
 const NA =
@@ -50,14 +50,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   ),
   'src/components/booth/page/useBoothPage.ts#4': no(RC),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),
-  'src/components/booth/pickups/usePickupSession.ts#1': no(RD),
   'src/components/booth/pickups/usePickupSession.ts#2': no(RF),
   'src/components/booth/pickups/usePickupSession.ts#3': no(DS),
-  'src/components/booth/suspected/SuspectedLines.tsx#1': no(RD),
   'src/components/booth/suspected/SuspectedLines.tsx#2': no(RF),
   'src/components/booth/suspected/useSuspectedPickups.ts#1': no(RF),
-  'src/components/booth/voices/useBoothVoices.ts#1': no(RD),
-  'src/components/booth/voices/useBoothVoices.ts#2': no(RD),
   'src/components/booth/voices/useBoothVoices.ts#3': no(RF),
   'src/components/booth/voices/useBoothVoices.ts#4': no(ED),
   'src/components/credits/CreditsSetupBanner.tsx#1': no(BT),
@@ -82,7 +78,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/editing/menu/marks/markCommands.ts#1': no(RF),
   'src/components/editing/menu/marks/markCommands.ts#2': no(RF),
   'src/components/editing/menu/marks/markCommands.ts#3': no(RF),
-  'src/components/editing/page/EditingBody.tsx#1': no(RD),
   'src/components/editing/range/cut/useCutWords.tsx#1': no(RF),
   'src/components/editing/range/cut/useCutWords.tsx#2': no(RF),
   'src/components/editing/range/cut/useCutWords.tsx#3': no(RF),
@@ -99,7 +94,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/editing/range/fx/useFxWords.tsx#6': no(RF),
   'src/components/editing/range/fx/useFxWords.tsx#7': no(RF),
   'src/components/editing/range/replace/ReplaceDialog.tsx#1': no(DS),
-  'src/components/editing/range/replace/ReplaceDialog.tsx#2': no(RD),
   'src/components/editing/range/replace/useReplaceAudio.tsx#1': no(RF),
   'src/components/editing/range/replace/useReplaceAudio.tsx#2': no(RF),
   'src/components/editing/range/replace/useReplaceAudio.tsx#3': no(RF),
@@ -127,28 +121,27 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/editing/takes/split/useSplitDuplicate.tsx#4': no(RF),
   'src/components/editing/takes/useShowInDaw.tsx#1': no(RF),
   'src/components/editing/takes/useShowInDaw.tsx#2': no(BT),
-  'src/components/engine/ChapterSyncPanel.tsx#1': no(RD),
+  'src/components/engine/ChapterSyncPanel.tsx#1': yes('The chapter sync preview read changes nothing; Retry reads it again.'),
   'src/components/engine/ChapterSyncPanel.tsx#2': no(ED),
   'src/components/engine/ChapterSyncPanel.tsx#3': no(ED),
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
-  'src/components/engine/useVoiceTracks.ts#1': no(RD),
-  'src/components/engine/useVoiceTracks.ts#2': no(RD),
-  'src/components/engine/useVoiceTracks.ts#3': no(AU),
-  'src/components/engine/useVoiceTracks.ts#4': no(RD),
+  'src/components/engine/useVoiceTracks.ts#2': yes('The Story Bible characters read for the voice setup changes nothing; Retry reads it again.'),
+  'src/components/engine/useVoiceTracks.ts#3': yes('The voice setup re-read after a refused save changes nothing; Retry reads it again.'),
+  'src/components/engine/useVoiceTracks.ts#4': no(AU),
   'src/components/layout/LoadError.tsx#1': na(NA),
-  'src/components/master/DiagnosticsSection.tsx#1': no(RD),
-  'src/components/master/DiagnosticsSection.tsx#2': no(RD),
+  'src/components/master/DiagnosticsSection.tsx#1': yes('The diagnostics state read changes nothing; Retry reads it again.'),
+  'src/components/master/DiagnosticsSection.tsx#2': no(MX),
   'src/components/master/DiagnosticsSection.tsx#3': no(JM),
-  'src/components/master/MasterToSpecPanel.tsx#1': no(RD),
+  'src/components/master/MasterToSpecPanel.tsx#1': no(MX),
   'src/components/master/MasterToSpecPanel.tsx#2': no(JM),
-  'src/components/master/MasteringChain.tsx#1': no(RD),
-  'src/components/master/MultiPlatformExportPanel.tsx#1': no(RD),
+  'src/components/master/MasteringChain.tsx#1': yes('The mastering chains read changes nothing; Retry reads them again.'),
+  'src/components/master/MultiPlatformExportPanel.tsx#1': no(MX),
   'src/components/master/MultiPlatformExportPanel.tsx#2': no(JM),
   'src/components/master/ReportExportPanel.tsx#1': no(BT),
   'src/components/masterqc/page/MasterPage.tsx#1': yes('The delivery profile read: Retry reads it again, which changes nothing.'),
   'src/components/masterqc/page/MasterPage.tsx#2': yes('The chapters read: Retry reads them again, which changes nothing.'),
   'src/components/masterqc/page/MeasureRun.tsx#1': yes('The measurement status read: Check again reads it again, which changes nothing.'),
-  'src/components/masterqc/page/MeasureRun.tsx#2': no(RD),
+  'src/components/masterqc/page/MeasureRun.tsx#2': no(MX),
   'src/components/masterqc/page/MeasureRun.tsx#3': no(JM),
   'src/components/masterqc/page/useFileActions.ts#1': no(RF),
   'src/components/masterqc/page/useFileActions.ts#2': no(BT),
@@ -172,7 +165,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/production/ManuscriptImport.tsx#6': no(DS),
   'src/components/production/ManuscriptImport.tsx#7': no(DS),
   'src/components/production/ManuscriptImport.tsx#8': no(DS),
-  'src/components/production/ProductionPage.tsx#1': no(RD),
   'src/components/production/useChapterSyncToast.ts#1': na(NA),
   'src/components/production/useChapterTools.tsx#1': no(ED),
   'src/components/production/useChapterTools.tsx#2': no(ED),
@@ -182,7 +174,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/production/useChapterTools.tsx#6': no(DS),
   'src/components/production/useChapterTools.tsx#7': no(ED),
   'src/components/proof/CompareRun.tsx#1': no(DS),
-  'src/components/proof/CompareRun.tsx#2': no(RD),
   'src/components/proof/CompareRun.tsx#3': no(AU),
   'src/components/proof/CompareRun.tsx#4': no(RC),
   'src/components/proof/CompareRun.tsx#5': no(RC),
@@ -191,15 +182,12 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/proof/CompareRun.tsx#8': no(ED),
   'src/components/proof/PreviewPanel.tsx#1': no(ED),
   'src/components/proof/PreviewPanel.tsx#2': no(ED),
-  'src/components/proof/ProofPage.tsx#1': no(RD),
-  'src/components/proof/ProofPage.tsx#2': no(RD),
   'src/components/proof/ProofPage.tsx#3': no(ED),
   'src/components/proof/ProoferSheet.tsx#1': no(JM),
   'src/components/proof/ProoferSheet.tsx#2': no(DS),
   'src/components/proof/ProoferSheet.tsx#3': no(BT),
   'src/components/proof/inspector/equivalence.ts#1': no(RF),
   'src/components/proof/inspector/equivalence.ts#2': no(ED),
-  'src/components/proof/inspector/equivalence.ts#3': no(RD),
   'src/components/proof/useProofingRender.ts#1': no(RC),
   'src/components/proof/useProofingRender.ts#2': no(RC),
   'src/components/proof/useProofingRender.ts#3': no(DS),
@@ -228,7 +216,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/CreditsPanel.tsx#5': yes('Clearing the credits values writes the same empty values again.'),
   'src/components/settings/DeliveryProfilesPanel.tsx#1': no(DS),
   'src/components/settings/KeyboardPanel.tsx#1': yes('The keymap save writes the same keymap again.'),
-  'src/components/settings/analysis/AnalysisToolsSection.tsx#1': no(RD),
+  'src/components/settings/analysis/AnalysisToolsSection.tsx#1': no(MX),
   'src/components/settings/analysis/ToolRow.tsx#1': no(RC),
   'src/components/settings/controls/AppearanceBodies.tsx#1': yes('The window zoom save sets and saves the same level again (new in this change).'),
   'src/components/settings/controls/EngineBody.tsx#1': no(RC),
@@ -248,7 +236,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/stages/useStageRecommendations.ts#2': no(ED),
   'src/components/storybible/DialogueCueAttribution.tsx#1': no(RF),
   'src/components/storybible/DialogueCueAttribution.tsx#2': no(ED),
-  'src/components/storybible/Guide.tsx#1': no(RD),
   'src/components/storybible/GuideDetail.tsx#1': no(RF),
   'src/components/storybible/GuideDetail.tsx#2': no(ED),
   'src/components/storybible/GuideDetail.tsx#3': no(DS),
@@ -268,7 +255,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/storybible/VoiceDataPanel.tsx#2': no(DS),
   'src/components/storybible/VoiceReferencesSection.tsx#1': no(ED),
   'src/components/storybible/VoiceReferencesSection.tsx#2': no(ED),
-  'src/components/storybible/source/NamePronunciation.tsx#1': no(RD),
   'src/components/storybible/source/NamePronunciation.tsx#2': no(ED),
   'src/components/storybible/suggested/import/ImportDialog.tsx#1': na(NA),
   'src/components/storybible/suggested/import/ImportDialog.tsx#2': na(NA),
@@ -277,7 +263,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     'The import prompts are a read the dialog needs: Retry reads them again (new in this change).',
   ),
   'src/components/storybible/suggested/panel/ScanStatus.tsx#1': no(JM),
-  'src/components/storybible/suggested/panel/useSuggestions.ts#1': no(RD),
+  'src/components/storybible/suggested/panel/useSuggestions.ts#1': yes(
+    'The suggestions list, sources and scan state reads change nothing; Retry makes the same read again.',
+  ),
   'src/components/storybible/suggested/row/useSuggestionDecisions.ts#1': no(RF),
   'src/components/storybible/suggested/scan/useStartScan.tsx#1': na(NA),
   'src/components/storybible/suggested/scan/useStartScan.tsx#2': no(SE),
@@ -286,13 +274,29 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/storybible/usePreviewAudio.ts#3': na(NA),
   'src/components/storybible/usePreviewAudio.ts#4': na(NA),
   'src/components/storybible/usePreviewAudio.ts#5': na(NA),
-  'src/components/storybible/voicesamples/VoiceSamplesBody.tsx#1': no(RD),
+  'src/components/storybible/voicesamples/VoiceSamplesBody.tsx#1': yes('The voice samples list read changes nothing; Retry reads it again.'),
   'src/components/storybible/voicesamples/useVoiceSampleActions.tsx#1': no(ED),
   'src/components/storybible/voicesamples/useVoiceSampleActions.tsx#2': no(ED),
   'src/tips/useFirstUseTip.ts#1': na(NA),
 };
 
 /**
- * The error toasts nobody has judged yet. The list may only shrink: a new error toast is judged in `ERROR_TOAST_RETRY`, never added here.
+ * The error toasts of a read that is safe to repeat and still has no Retry (the hook has no re-read path yet). Each leaves this list by
+ * getting a Retry and a `yes` above, test first; the list may only shrink, and a new error toast is judged in `ERROR_TOAST_RETRY`, never added here.
  */
-export const UNJUDGED_ERROR_TOASTS: readonly string[] = [];
+export const RETRY_TODO_ERROR_TOASTS: readonly string[] = [
+  'src/components/booth/pickups/usePickupSession.ts#1',
+  'src/components/booth/suspected/SuspectedLines.tsx#1',
+  'src/components/booth/voices/useBoothVoices.ts#1',
+  'src/components/booth/voices/useBoothVoices.ts#2',
+  'src/components/editing/page/EditingBody.tsx#1',
+  'src/components/editing/range/replace/ReplaceDialog.tsx#2',
+  'src/components/engine/useVoiceTracks.ts#1',
+  'src/components/production/ProductionPage.tsx#1',
+  'src/components/proof/CompareRun.tsx#2',
+  'src/components/proof/ProofPage.tsx#1',
+  'src/components/proof/ProofPage.tsx#2',
+  'src/components/proof/inspector/equivalence.ts#3',
+  'src/components/storybible/Guide.tsx#1',
+  'src/components/storybible/source/NamePronunciation.tsx#1',
+];
