@@ -42,6 +42,8 @@ type DialogSpec =
 type ToastOptions = {
   tone?: ToastTone;
   action?: ToastAction;
+  /** Leads an information message with the glyph of what it is about; an error always leads with its warning glyph. */
+  icon?: ToastMessage['icon'];
   topic?: string;
   /** How long an information message stays, when longer than the usual five seconds. */ durationMs?: number;
 };
@@ -125,7 +127,16 @@ export function createOverlayService(): OverlayService {
   const toast = (text: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     if (!text) return;
     const tone = options.tone ?? 'info';
-    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs, undo };
+    const message: ToastMessage = {
+      id: ++lastId,
+      text,
+      tone,
+      action: options.action,
+      icon: options.icon,
+      topic: options.topic,
+      durationMs: options.durationMs,
+      undo,
+    };
     // A message that says what one on screen already says, with the same action or none, is that message again, and one on the same topic
     // is its newer word: either replaces the old one (its timer starts again), so a repeated press, three adds in a row ("Milestone added."
     // with its Undo) or a lost-and-found DAW never stacks the same sentence (alignment audit cause P). An Undo that replaces another takes
