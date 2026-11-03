@@ -36,6 +36,7 @@ type (
 	StartRule     = bridge.StartRule
 	RecordStopped = bridge.RecordStopped
 	RecordEnded   = bridge.RecordEnded
+	VoiceSwitched = bridge.VoiceSwitched
 	PlayPosition  = bridge.PlayPosition
 	PunchPreroll  = bridge.PunchPreroll
 	DawMeters     = bridge.DawMeters
@@ -365,6 +366,14 @@ type Recorder interface {
 	RecordStart(ctx context.Context, trackGUID string, opts RecordOptions) (RecordStarted, error)
 	RecordStop(ctx context.Context) (RecordStopped, error)
 	OnRecordEnded(handler func(RecordEnded))
+}
+
+// VoiceSwitcher is a Recorder that can move the recording the app started to another voice track while the engine keeps
+// recording (a chapter folder of voices, docs/prds/booth-voice-tracks.prd.md). Only an engine with folder tracks (REAPER) has it. A
+// recording the app did not start is an error the caller tells apart (the take is over); a track that is gone is a stale error, the
+// old voice still recording.
+type VoiceSwitcher interface {
+	SwitchVoice(ctx context.Context, trackGUID string) (VoiceSwitched, error)
 }
 
 // Puncher punches in at a word, reads the play position, and rolls again while recording.

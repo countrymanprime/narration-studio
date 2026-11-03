@@ -20,6 +20,32 @@ export type VoiceTracksState = {
   tracks: VoiceTrackAssignment[];
 };
 
+/**
+ * What `BoothVoiceSet` did (src/studio/desktop/bindings_booth_voice.go): `selected`, the next take records on `trackGuid`; `switched`,
+ * the take this app started records on `trackGuid` from `at` (project seconds); `refused`, nothing changed and `message` says why.
+ */
+export type BoothVoice = {
+  outcome: 'selected' | 'switched' | 'refused';
+  reason?:
+    | 'flat'
+    | 'not_a_voice'
+    | 'no_voices'
+    | 'unlinked'
+    | 'several_links'
+    | 'track_missing'
+    | 'standalone'
+    | 'not_running'
+    | 'failed'
+    | 'unsupported'
+    | 'timeout'
+    | 'not_our_recording'
+    | 'already_recording'
+    | 'playing';
+  message?: string;
+  trackGuid?: string;
+  at?: number;
+};
+
 export interface VoiceTracksApi {
   /** The project's voice setup: flat with no assignments when nothing was saved. */
   voiceTracksGet(): Promise<VoiceTracksState>;
@@ -29,4 +55,7 @@ export interface VoiceTracksApi {
   voiceTracksSetCharacters(track: string, characterIds: string[]): Promise<VoiceTracksState>;
   /** Sets the character the Narrator track also voices, or clears it with "". */
   voiceTracksSetNarrator(characterId: string): Promise<VoiceTracksState>;
+  /** Chooses the voice the Booth records the chapter on, by a voice track's GUID that must be a direct child of the chapter's linked
+   * folder; during a take this app started it switches the take live. Sent only from a voice key or a press in the voice list. */
+  boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice>;
 }

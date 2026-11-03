@@ -10,7 +10,8 @@ function validName(text: string): boolean {
   return text.trim() !== '' && [...text].length <= LIMIT && !/[\u0000-\u001f\u007f-\u009f]/.test(text);
 }
 
-export function createVoiceTracksMock(initial?: Partial<VoiceTracksState>): VoiceTracksApi {
+/** Every VoiceTracksApi call but `boothVoiceSet`, which needs the links and tracks too (boothVoiceMock.ts). */
+export function createVoiceTracksMock(initial?: Partial<VoiceTracksState>): Omit<VoiceTracksApi, 'boothVoiceSet'> {
   let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], ...initial };
   const snapshot = (): VoiceTracksState => ({ ...state, tracks: state.tracks.map((entry) => ({ ...entry, characters: [...entry.characters] })) });
   return {
