@@ -38,7 +38,8 @@ export function TakeChip({
 }) {
   const n = passage.takes.length;
   if (n < 1) return null;
-  const active = passage.takes.find((t) => t.active);
+  // The take the chip names is the kept one: a keep made here shows at once, before the lines are read again with the DAW's new active take.
+  const active = (keptId ? passage.takes.find((t) => t.id === keptId) : undefined) ?? passage.takes.find((t) => t.active);
   return (
     <Button
       variant="secondary"
@@ -59,7 +60,7 @@ export function TakeChip({
         {passage.takes.map((t) => (
           <i
             key={t.id}
-            className={`block h-1.5 w-3.5 rounded-[3px] border-[1.5px] ${t.active ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line-strong)]'}`}
+            className={`block h-1.5 w-3.5 rounded-[3px] border-[1.5px] ${t.id === active?.id ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line-strong)]'}`}
           />
         ))}
       </span>
