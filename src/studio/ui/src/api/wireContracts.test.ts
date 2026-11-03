@@ -101,7 +101,7 @@ import {
   notesSchema,
   paragraphsSchema,
   readerStateSchema,
-  searchHitsSchema,
+  manuscriptSearchResultSchema,
   workJobSchema,
 } from './schemas/manuscript';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
@@ -917,7 +917,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(chaptersSchema, chapters, 'mock chapters');
     expectMatches(readerStateSchema, await api.readerState(), 'mock reader state');
     expectMatches(paragraphsSchema, await api.manuscriptParagraphs(chapters[0]?.id ?? ''), 'mock paragraphs');
-    expectMatches(searchHitsSchema, await api.manuscriptSearch('alice'), 'mock search');
+    expectMatches(manuscriptSearchResultSchema, await api.manuscriptSearch('alice'), 'mock search');
     expectMatches(notesSchema, await api.noteList(), 'mock notes');
     expectMatches(chapterSchema, await api.manuscriptSetChapterStatus(chapters[0]?.id ?? '', 'recording'), 'mock chapter status');
   });
