@@ -21,6 +21,7 @@ function hostOf(narrators: Narrator[], plan: Partial<ReplacePlan> = {}): Replace
   return {
     replaceNarrators: async () => ({ narrators }),
     replaceNarratorAdd: async (name) => ({ narrators: [...narrators, { id: 'n-9', name, addedAt: '', files: [] }], changed: ['n-9'] }),
+    replaceNarratorRemove: async (id) => ({ narrators: narrators.filter((n) => n.id !== id), changed: [id] }),
     replaceAddFile: async () => ({
       result: { ok: false, changed: false, message: 'Cancelled.', undoSteps: 0, refused: 'Cancelled.' },
       fileId: '',
@@ -104,6 +105,17 @@ export const Refused: Story = {
 // Their file is gone from where it was added: the question says so and Replace stays off.
 export const FileMissing: Story = {
   render: () => <Question api={hostOf([{ ...leach, files: leach.files.map((f) => ({ ...f, state: 'missing' as const })) }])} />,
+};
+
+// #2737: a narrator named by mistake, with no files, chosen in the list: the remove button beside it is on and named for them. (Eric Leach,
+// who has a file, is the Planned story: the button is off there, with the host's reason as its tooltip.)
+export const RemovableNarrator: Story = {
+  render: () => <Question api={hostOf([{ id: 'n-2', name: 'Jon Doe', addedAt: '', files: [] }])} />,
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: replaceTitle(3) });
+    const remove = await within(dialog).findByRole('button', { name: 'Remove Jon Doe' });
+    await expect(remove.getAttribute('aria-disabled')).toBeNull();
+  },
 };
 
 const replacement: Replacement = {

@@ -38,7 +38,6 @@ const UNWIRED = [
   'recorderMeterStop',
   'recorderStart',
   'recorderStop',
-  'replaceNarratorRemove',
   'seriesDelete',
   'seriesList',
   'seriesSave',
