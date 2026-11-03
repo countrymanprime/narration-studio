@@ -20,7 +20,8 @@ export const scheduleStates: StateEntry[] = [
     page: 'schedule',
     state: 'at-risk',
     reloadPerViewport: true,
-    description: 'Schedule with a due date the pace misses (?mockProduction=at-risk) - the Behind verdict (the seed's name is older than the wording) and the work left worked out',
+    description:
+      'Schedule with a due date the pace misses (?mockProduction=at-risk) - the Behind verdict (the seed name is older than the wording) and the work left worked out',
   },
   {
     page: 'schedule',
