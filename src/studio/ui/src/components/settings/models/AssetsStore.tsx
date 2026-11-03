@@ -15,14 +15,23 @@ const POLL_MS = 400;
 export const VERIFY_WAIT_MS = 120_000;
 
 /**
- * The checks running, per host: kept outside the page, so a row drawn again, or the Settings page opened again, while one runs still shows
- * it busy and ignores another press. Each ends within VERIFY_WAIT_MS.
+ * The checks of one host, kept outside the page, so a row drawn again, or the Settings page opened again, still shows them. `running`: the
+ * checks under way, each ending within VERIFY_WAIT_MS, so the row stays busy and ignores another press. `unchecked`: the assets whose last
+ * check was refused or not answered, whose row must not claim its files were checked until a check passes or a download replaces them.
  */
-const runningChecks = new WeakMap<object, Map<string, Promise<void>>>();
-const checksOf = (api: object): Map<string, Promise<void>> => {
-  let checks = runningChecks.get(api);
-  if (!checks) runningChecks.set(api, (checks = new Map()));
+type HostChecks = { running: Map<string, Promise<void>>; unchecked: Set<string> };
+const hostChecks = new WeakMap<object, HostChecks>();
+const checksOf = (api: object): HostChecks => {
+  let checks = hostChecks.get(api);
+  if (!checks) hostChecks.set(api, (checks = { running: new Map(), unchecked: new Set() }));
   return checks;
+};
+
+/** What the page's live region says when a check answers: the files whole, damaged or gone, and what to do next. */
+const CHECK_RESULT: Record<AssetVerifyResult['installState'], (name: string) => string> = {
+  installed: (name) => `${name}: files checked, all whole.`,
+  verification_failed: (name) => `${name}: a file failed its check. Repair it.`,
+  not_installed: (name) => `${name}: its files are gone. Download it again.`,
 };
 
 /** The sentence for a check that could not be made: the host's words after a colon, or a full stop when it gave none. */
@@ -40,6 +49,8 @@ export type AssetView = {
   failure: string;
   /** Check the files is reading the installed asset. Its status stays `installed`: it is installed until the host says otherwise. */
   checking: boolean;
+  /** The last Check the files was refused or not answered: the row does not say its files were checked. */
+  unchecked: boolean;
 };
 
 export const assetKey = (item: Pick<AssetItem, 'kind' | 'id'> | { kind: string; id: string }): string => `${item.kind}/${item.id}`;
@@ -87,6 +98,18 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // The host's record of failed checks, drawn: a page opened after one still does not claim the files were checked.
+  const [unchecked, setUnchecked] = useState<Record<string, true>>(() => Object.fromEntries([...checksOf(api).unchecked].map((key) => [key, true])));
+  const setUnverified = useCallback(
+    (key: string, failed: boolean) => {
+      const record = checksOf(api).unchecked;
+      if (failed) record.add(key);
+      else record.delete(key);
+      if (alive.current) setUnchecked((current) => (failed ? { ...current, [key]: true } : without(current, key)));
+    },
+    [api],
+  );
+
   const refresh = useCallback(async () => {
     const mine = ++latest.current;
     try {
@@ -124,6 +147,8 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
           setAnnouncement(`${item.displayName} could not be downloaded. ${reason}`);
         } else if (job.phase === 'success') {
           setAnnouncement(`${item.displayName} downloaded and checked.`);
+          // The download checked every file it wrote, so a refused Check the files before it no longer stands.
+          setUnverified(key, false);
         }
         setJobs((current) => without(current, key));
         await refresh();
@@ -137,7 +162,7 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
         following.current.delete(key);
       }
     },
-    [api, refresh],
+    [api, refresh, setUnverified],
   );
 
   // A download already running when the page opened is followed, so its bar is on screen.
@@ -191,6 +216,7 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
     async (item: AssetItem) => {
       try {
         await api.assetsRemove(item.kind, item.id);
+        setUnverified(assetKey(item), false);
         setAnnouncement(`${item.displayName} removed.`);
         await refresh();
         return undefined;
@@ -198,18 +224,19 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
         return apiErrorMessage(error);
       }
     },
-    [api, refresh],
+    [api, refresh, setUnverified],
   );
 
   const dismissFailure = useCallback((item: AssetItem) => setFailures((current) => without(current, assetKey(item))), []);
 
   // A check started before this page opened (the narrator left and came back) is drawn busy until it ends, then the list is read again.
-  const [checking, setChecking] = useState<Record<string, true>>(() => Object.fromEntries([...checksOf(api).keys()].map((key) => [key, true])));
+  const [checking, setChecking] = useState<Record<string, true>>(() => Object.fromEntries([...checksOf(api).running.keys()].map((key) => [key, true])));
   useEffect(() => {
-    for (const [key, task] of checksOf(api)) {
+    for (const [key, task] of checksOf(api).running) {
       void task.finally(() => {
         if (!alive.current) return;
         setChecking((current) => without(current, key));
+        setUnchecked(() => Object.fromEntries([...checksOf(api).unchecked].map((done) => [done, true])));
         void refresh();
       });
     }
@@ -218,10 +245,13 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
   const verify = useCallback(
     async (item: AssetItem) => {
       const key = assetKey(item);
-      const checks = checksOf(api);
-      if (checks.has(key)) return;
+      const { running } = checksOf(api);
+      if (running.has(key)) return;
       const task = check(api, item).then((answer) => {
+        // Recorded for the host whether or not this page is still open; what is drawn and said is this page's.
+        setUnverified(key, !answer);
         if (!answer || !alive.current) return;
+        setAnnouncement(CHECK_RESULT[answer.installState](item.displayName));
         // The row follows the answer at once; the read after it brings the host's `verifiedAt` (and the same state).
         setCatalog(
           (current) =>
@@ -231,19 +261,19 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
             },
         );
       });
-      checks.set(key, task);
+      running.set(key, task);
       setChecking((current) => ({ ...current, [key]: true }));
       try {
         await task;
       } finally {
-        checks.delete(key);
+        running.delete(key);
         if (alive.current) {
           setChecking((current) => without(current, key));
           await refresh();
         }
       }
     },
-    [api, refresh],
+    [api, refresh, setUnverified],
   );
 
   const views = useMemo<AssetView[]>(
@@ -260,9 +290,17 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
         else if (item.installState === 'verification_failed') status = 'repair';
         else if (item.unavailableReason) status = 'unavailable';
         else status = 'missing';
-        return { item, status, percent: job?.percent ?? 0, failure, checking: status === 'installed' && checking[key] === true };
+        const installed = status === 'installed';
+        return {
+          item,
+          status,
+          percent: job?.percent ?? 0,
+          failure,
+          checking: installed && checking[key] === true,
+          unchecked: installed && unchecked[key] === true,
+        };
       }),
-    [catalog, jobs, failures, starting, checking],
+    [catalog, jobs, failures, starting, checking, unchecked],
   );
   const viewOf = useCallback((ref: { kind: string; id: string }) => views.find((view) => view.item.kind === ref.kind && view.item.id === ref.id), [views]);
 

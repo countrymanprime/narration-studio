@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -50,13 +51,39 @@ export type AssetRowProps = {
   verify: () => void;
 };
 
+/**
+ * The installed pill's words: "checked" only while the last check stands, with the time when it was today (a check that just passed shows
+ * at once), and plain "Installed" after a check that was refused or not answered.
+ */
+export function installedLabel(verifiedAt: string, unchecked: boolean, now = new Date()): string {
+  if (unchecked) return 'Installed';
+  const at = verifiedAt ? new Date(verifiedAt) : undefined;
+  if (!at || Number.isNaN(at.getTime()) || at.toDateString() !== now.toDateString()) return 'Installed · checked';
+  return `Installed · checked ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
+
 /** One asset of the Models & downloads list: what it is, where it stands, who reads it, and the one action its status allows. Props only. */
 export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss, verify }: AssetRowProps) {
   const { item, status, checking } = view;
   useErrorToast(status === 'failed' ? view.failure : undefined);
   const name = item.displayName;
   // A check of an installed asset draws the download's checking look, in its own words, with nothing to cancel.
-  const { tone, label } = checking ? { ...installPill('verifying'), label: 'Checking the files' } : installPill(status);
+  const pill = installPill(checking ? 'verifying' : status);
+  const { tone, label } = checking
+    ? { ...pill, label: 'Checking the files' }
+    : status === 'installed'
+      ? { ...pill, label: installedLabel(item.verifiedAt, view.unchecked) }
+      : pill;
+  // A check that finds the files damaged or gone takes the pressed button away: focus goes to the action that replaced it (Repair,
+  // Download), not to the page body.
+  const actions = useRef<HTMLSpanElement>(null);
+  const pressedCheck = useRef(false);
+  useEffect(() => {
+    if (!pressedCheck.current || checking) return;
+    pressedCheck.current = false;
+    const lost = !document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected;
+    if (status !== 'installed' && lost) actions.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [status, checking]);
   const downloading = status === 'downloading' || status === 'verifying';
   const busy = downloading || checking;
   const size = formatSize(item.diskSize || item.downloadSize);
@@ -108,10 +135,20 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
         </span>
       </Cell>
       <Cell className="col-start-2 row-start-1 whitespace-nowrap">
-        <span className="flex justify-end gap-1">
+        <span ref={actions} className="flex justify-end gap-1">
           {status === 'missing' && <IconButton action="download" label={`Download ${name} (${size})`} onClick={install} />}
           {/* Drawn while it checks too, spinning, so focus stays on it and a second press is ignored. */}
-          {status === 'installed' && <IconButton action="checkFiles" label={`Check the files of ${name}`} pending={checking} onClick={verify} />}
+          {status === 'installed' && (
+            <IconButton
+              action="checkFiles"
+              label={`Check the files of ${name}`}
+              pending={checking}
+              onClick={() => {
+                pressedCheck.current = true;
+                verify();
+              }}
+            />
+          )}
           {status === 'installed' && !checking && (
             <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />
           )}

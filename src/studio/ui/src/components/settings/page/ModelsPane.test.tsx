@@ -351,6 +351,12 @@ describe('Settings: Models & downloads, Check the files', () => {
   const checkButton = (key: string) => within(asset(key)).queryByRole('button', { name: /^Check the files of / });
   const smallCheck = () => within(asset('whisper/small')).getByRole('button', { name: CHECK_SMALL });
   type VerifyAnswer = Awaited<ReturnType<NarrationApi['assetsVerify']>>;
+  /** The page's polite live region (the one downloads speak through) says this. */
+  const announced = (text: string) =>
+    waitFor(() =>
+      expect(screen.getAllByRole('status').some((region) => region.getAttribute('aria-live') === 'polite' && region.textContent === text)).toBe(true),
+    );
+  const pill = (key: string) => within(asset(key)).getByText(/^Installed/).textContent;
 
   it('offers Check the files, enabled, on an installed row and on no row in another state', async () => {
     await renderModels({ seed: { assets: 'damaged' } });
@@ -404,6 +410,17 @@ describe('Settings: Models & downloads, Check the files', () => {
     await waitFor(async () => expect(await verifiedAt()).not.toBe(before));
   });
 
+  // Walkthrough 1 and qa B2 on PR 2801: a check that passes looked like nothing happened.
+  it('a check that passes is announced and the pill says the time it was checked', async () => {
+    await renderModels();
+    await ready('whisper/small');
+    expect(pill('whisper/small')).toBe('Installed · checked');
+    fireEvent.click(smallCheck());
+    await announced('Small: files checked, all whole.');
+    await waitFor(() => expect(pill('whisper/small')).toMatch(/^Installed · checked \d{1,2}:\d{2}/));
+    expect(toast).not.toHaveBeenCalled();
+  });
+
   it('an answer of verification_failed turns the row to Needs repair with its Repair action', async () => {
     await renderModels({ seed: { assetsVerify: 'damaged' } });
     fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
@@ -411,6 +428,25 @@ describe('Settings: Models & downloads, Check the files', () => {
     expect(within(asset('whisper/small')).getByRole('button', { name: 'Repair Small' })).toBeTruthy();
     expect(checkButton('whisper/small')).toBeNull();
     expect(toast).not.toHaveBeenCalled();
+  });
+
+  // qa B1 on PR 2801: a check that found damage or nothing said so to no screen reader, and focus fell to the body with the button.
+  it('a check that finds a damaged file announces it and moves focus to Repair', async () => {
+    await renderModels({ seed: { assetsVerify: 'damaged' } });
+    await ready('whisper/small');
+    smallCheck().focus();
+    fireEvent.click(smallCheck());
+    await announced('Small: a file failed its check. Repair it.');
+    await waitFor(() => expect(document.activeElement).toBe(within(asset('whisper/small')).getByRole('button', { name: 'Repair Small' })));
+  });
+
+  it('a check that finds the files gone announces it and moves focus to Download', async () => {
+    await renderModels({ seed: { assetsVerify: 'absent' } });
+    await ready('whisper/small');
+    smallCheck().focus();
+    fireEvent.click(smallCheck());
+    await announced('Small: its files are gone. Download it again.');
+    await waitFor(() => expect(document.activeElement).toBe(within(asset('whisper/small')).getByRole('button', { name: /^Download Small/ })));
   });
 
   it('an answer of absent turns the row to Not installed with Download', async () => {
@@ -421,6 +457,24 @@ describe('Settings: Models & downloads, Check the files', () => {
     expect(checkButton('whisper/small')).toBeNull();
   });
 
+  // qa B3 and walkthrough 2 on PR 2801: after a refused check the pill still claimed the files were checked.
+  it('after a refused check the pill drops "checked" until a check passes', async () => {
+    const base = createMockApi();
+    const assetsVerify = vi.fn(base.assetsVerify).mockRejectedValueOnce(new Error('Access is denied to model.bin.'));
+    await renderModels({ overrides: { assetsVerify } });
+    await ready('whisper/small');
+    fireEvent.click(smallCheck());
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    await waitFor(() => expect(pill('whisper/small')).toBe('Installed'));
+    // The page opened again keeps it: the failed check belongs to the host, not to the page.
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Delivery/ }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Models & downloads/ }));
+    await ready('whisper/small');
+    expect(pill('whisper/small')).toBe('Installed');
+    fireEvent.click(smallCheck());
+    await waitFor(() => expect(pill('whisper/small')).toMatch(/^Installed · checked/));
+  });
+
   it('an error is a toast in the host words, and the row stays installed', async () => {
     await renderModels({ seed: { assetsVerify: 'fails' } });
     fireEvent.click(within(await ready('whisper/small')).getByRole('button', { name: CHECK_SMALL }));
@@ -428,7 +482,7 @@ describe('Settings: Models & downloads, Check the files', () => {
       expect(toast).toHaveBeenCalledWith('The files of Small could not be checked: Access is denied to model.bin.', expect.objectContaining({ tone: 'error' })),
     );
     await waitFor(() => expect(smallCheck().getAttribute('aria-busy')).toBeNull());
-    expect(within(asset('whisper/small')).getByText('Installed · checked')).toBeTruthy();
+    expect(pill('whisper/small')).toBe('Installed');
   });
 
   it('an error with no words ends the sentence without a colon', async () => {
@@ -446,7 +500,7 @@ describe('Settings: Models & downloads, Check the files', () => {
     await act(async () => void (await vi.advanceTimersByTimeAsync(VERIFY_WAIT_MS + 100)));
     await waitFor(() => expect(smallCheck().getAttribute('aria-busy')).toBeNull());
     expect(toast).toHaveBeenCalledWith('The files of Small were not checked: the app did not answer in 2 minutes.', expect.objectContaining({ tone: 'error' }));
-    expect(within(asset('whisper/small')).getByText('Installed · checked')).toBeTruthy();
+    expect(pill('whisper/small')).toBe('Installed');
   });
 
   it('stays busy when the pane, or the whole page, is opened again while it checks', async () => {
