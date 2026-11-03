@@ -78,6 +78,8 @@ export const masterDrivers: Record<string, Driver> = {
     const table = page.getByRole('grid', { name: 'Per-file checks' });
     await table.getByText('Not checked').first().waitFor();
     await scrollToTop(page, table);
+    // At a narrow width the rows stack and the box shows about three: bring the first red figure into it, so the Text line is seen where it changes.
+    await table.getByRole('row', { name: /Chapter 4/ }).scrollIntoViewIfNeeded();
   },
   'custom-profile': async (page) => {
     await measureOnMaster(page, '?mockDeliveryProfile=custom');
