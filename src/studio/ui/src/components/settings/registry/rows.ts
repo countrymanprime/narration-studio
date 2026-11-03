@@ -787,7 +787,8 @@ export const ROWS: readonly SettingMeta[] = [
     more: 'Writes the reasons behind the app’s decisions to the run log. Turn it on when asked to send a log.',
     used: [],
     advanced: true,
-    syn: 'log verbose run log diagnostics',
+    beside: 'logFolder',
+    syn: 'log logs verbose run log run.jsonl host.log diagnostics folder open file manager explorer',
   },
 ];
 

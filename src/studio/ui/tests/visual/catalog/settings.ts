@@ -1,7 +1,7 @@
 // The `settings` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: one page of eight categories and an index of what
 // moved to a page (src/studio/ui/src/components/settings), then the states of the page itself (search, a deep link, loading, unreadable, save failed).
 import type { StateEntry } from '../lib/types';
-import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK, wholePage } from './shared';
+import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK, TOAST_FADES_OUT, wholePage } from './shared';
 
 export const settingsStates: StateEntry[] = [
   {
@@ -374,6 +374,22 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, App & updates, nothing checked yet: the This version panel (the version, "Not checked yet.", Check for updates), Updates, Notifications and Diagnostics',
     ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'app-diagnostics',
+    description:
+      'Settings, App & updates with Advanced open: the Diagnostics section, with the Debug logging switch and the folder icon button beside it that opens the log folder (issue 2730)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'app-log-folder-refused',
+    description:
+      'Settings, App & updates with Advanced open, after the host refused Reveal the log folder in the file manager (?mockLogFolder=refused): the error toast "The log folder could not be opened." and the folder button ready again (issue 2730)',
+    ...REFLOW,
+    ...TOAST_FADES_OUT,
   },
   {
     page: 'settings',
