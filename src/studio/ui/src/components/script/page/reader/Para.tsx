@@ -97,7 +97,12 @@ function wrap(layer: Layer, node: ReactNode, activeMarkId: string | null | undef
       );
     case 'find':
       return (
-        <mark className={`rounded-sm ${layer.current ? 'a-find-cur ring-2 ring-[var(--search)]' : ''}`} style={kindMarkStyle('search')} data-kind="search">
+        // The current match takes the mock's .a-find-cur look, a warn fill and outline, so it stands apart from the other matches' search hue.
+        <mark
+          className={`rounded-sm ${layer.current ? 'a-find-cur ring-2 ring-[var(--warn)]' : ''}`}
+          style={layer.current ? { ...kindMarkStyle('search'), background: 'var(--warn-soft)' } : kindMarkStyle('search')}
+          data-kind="search"
+        >
           {node}
         </mark>
       );

@@ -2,14 +2,23 @@ import { useMemo, useState } from 'react';
 import type { Voice } from '../../engine/voices';
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
-import { Kbd } from '../../primitives/Kbd';
 import type { ListboxOption } from '../../primitives/Listbox';
 import { Popover } from '../../primitives/Popover';
 import { SearchList } from '../../primitives/SearchList';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import type { BoothVoices } from './useBoothVoices';
 
-const keyLabel = (voice: Voice) => (voice.key ? `Num ${voice.key}` : '');
+/** The number-pad key as the number alone ("2"); a screen reader still hears which key it is ("Num 2"). */
+function KeyNumber({ voice }: { voice: Voice }) {
+  if (!voice.key) return null;
+  return (
+    <span className="flex-none font-mono font-semibold whitespace-nowrap text-[var(--text)]">
+      <span className="sr-only">Num </span>
+      {voice.key}
+      <span className="sr-only">, </span>
+    </span>
+  );
+}
 /** A track REAPER holds with a blank name is still a voice: it is named so the row and the control say something. */
 const voiceName = (voice: Voice) => voice.name.trim() || 'Unnamed track';
 
@@ -38,8 +47,8 @@ function matches(voice: Voice, needle: string): boolean {
 }
 
 /**
- * The Booth's voice control on the record bar, beside Cold read (docs/research/mockups/booth-voices/, decision A): the voice the take
- * records on, its number-pad key, the voice as a speaker tag and REAPER's arm state, opening the chapter's voices in REAPER's order,
+ * The Booth's voice control on the record bar, left of the Record button (docs/research/mockups/booth-voices/, decision A; booth-record-bar for its place): the voice the take
+ * records on, its number-pad key as a plain number, the voice as a speaker tag and REAPER's arm state, opening the chapter's voices in REAPER's order,
  * searchable by key, track or character. A pick, or the voice's key, chooses one; during a take it switches the recording live.
  * Drawn only for a chapter linked to a folder of voices.
  */
@@ -68,7 +77,11 @@ export function VoiceControl({
         .filter((voice) => matches(voice, needle))
         .map((voice) => ({
           id: voice.guid,
-          leading: <span className="inline-flex min-w-14 flex-none whitespace-nowrap">{voice.key ? <Kbd keys={[keyLabel(voice)]} /> : null}</span>,
+          leading: (
+            <span className="inline-flex min-w-6 flex-none justify-center">
+              <KeyNumber voice={voice} />
+            </span>
+          ),
           label: (
             <span className="inline-flex min-w-0 items-center gap-2">
               <span className="truncate">
@@ -109,12 +122,8 @@ export function VoiceControl({
         <Button id="bvoice" variant="secondary" pending={choosing} title={tip}>
           <span className="flex max-w-[18rem] min-w-0 items-center gap-2 normal-case">
             {/* The name a screen reader says holds what is drawn ("Voice: Num 0 Narrator Armed in REAPER"), so a spoken command finds it. */}
-            <span className="sr-only">Voice:</span>
-            {current.key ? (
-              <span className="flex-none whitespace-nowrap">
-                <Kbd keys={[keyLabel(current)]} />
-              </span>
-            ) : null}
+            <span className="sr-only">Voice: </span>
+            <KeyNumber voice={current} />
             <span className="min-w-0 truncate">
               <SpeakerTag label={voiceName(current)} speakerId={current.characters[0]?.id ?? (current.narrator ? 'narrator' : current.guid)} />
             </span>
