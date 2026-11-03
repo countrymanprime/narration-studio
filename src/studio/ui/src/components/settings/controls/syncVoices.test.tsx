@@ -112,4 +112,29 @@ describe('the Chapter sync and Voices settings (parity audit)', () => {
     fireEvent.click(within(list).getAllByRole('checkbox')[0]!);
     await waitFor(() => expect(setCharacters).toHaveBeenCalled());
   });
+
+  it('keeps the last of two quick choices, sent once the first has answered', async () => {
+    const { setEnabled } = await renderSettings({ chapterSync: 'linked' });
+    const group = await screen.findByRole('radiogroup', { name: 'Sync chapters to tracks' });
+    fireEvent.click(within(group).getByRole('radio', { name: 'Off' }));
+    fireEvent.click(within(group).getByRole('radio', { name: 'On' }));
+    await waitFor(() => expect(setEnabled.mock.calls.map(([on]) => on)).toEqual([false, true]));
+  });
+
+  it('offers Reset to On while Chapter sync is off, and Reset turns it on', async () => {
+    const { setEnabled } = await renderSettings({ chapterSync: 'off' });
+    const reset = await screen.findByRole('button', { name: 'Reset Sync chapters to tracks to On' });
+    fireEvent.click(reset);
+    await waitFor(() => expect(setEnabled).toHaveBeenCalledWith(true));
+  });
+
+  it('reads the tracks again when the window is focused, so a track changed in REAPER is not offered stale', async () => {
+    const { api } = await renderSettings({ voiceFolders: true });
+    const list = vi.spyOn(api, 'tracksList');
+    const row = document.querySelector<HTMLElement>('[data-row="daw.voices"]')!;
+    await within(row).findByRole('table', { name: /^Voices of / });
+    const before = list.mock.calls.length;
+    fireEvent(window, new Event('focus'));
+    await waitFor(() => expect(list.mock.calls.length).toBeGreaterThan(before));
+  });
 });

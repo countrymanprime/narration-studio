@@ -65,8 +65,9 @@ export function VoicesCard({
   const current = folderLinks.find((link) => link.chapter.id === picked) ?? folderLinks[0];
   const voices = current ? folderVoices(tracks, current.folder, characters, setup) : [];
 
+  // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
   const chapterPicker = setup.layout === 'folders' && folderLinks.length > 0 && (
-    <div className="max-w-[18.75rem] min-w-0 flex-[0_1_18.75rem]">
+    <div className={bare ? 'w-full max-w-[18.75rem] min-w-0' : 'max-w-[18.75rem] min-w-0 flex-[0_1_18.75rem]'}>
       <Select
         label="Chapter"
         value={current?.chapter.id ?? ''}

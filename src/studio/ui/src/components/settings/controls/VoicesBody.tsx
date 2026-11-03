@@ -28,6 +28,13 @@ function VoiceFolders() {
   const tracksPort = usePort('tracks');
   const voices = useVoiceTracks(notify);
   const [tracks, setTracks] = useState<Track[]>(NO_TRACKS);
+  // The tracks belong to REAPER, which the narrator edits while this page is open: read them again when the window is focused again.
+  const [again, setAgain] = useState(0);
+  useEffect(() => {
+    const bump = () => setAgain((count) => count + 1);
+    window.addEventListener('focus', bump);
+    return () => window.removeEventListener('focus', bump);
+  }, []);
   useEffect(() => {
     let active = true;
     tracksPort
@@ -37,8 +44,11 @@ function VoiceFolders() {
     return () => {
       active = false;
     };
-  }, [tracksPort, notify]);
-  const links = useChapterLinks(tracks, 0, noop);
+  }, [tracksPort, notify, again]);
+  const links = useChapterLinks(tracks, again, noop);
+  useEffect(() => {
+    if (links.error) notify(links.error, 'error');
+  }, [links.error, notify]);
   return (
     <VoicesCard
       tracks={tracks}
