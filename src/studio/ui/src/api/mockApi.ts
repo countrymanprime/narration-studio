@@ -386,6 +386,10 @@ export function createMockApi(
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceGet(chapterId);
     },
+    boothVoiceAdd: (chapterId, name, characterIds) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothVoiceAdd(chapterId, name, characterIds);
+    },
     ...system.bindings,
     ...manuscript.bindings,
     manuscriptChapters: chaptersWithCredits,
