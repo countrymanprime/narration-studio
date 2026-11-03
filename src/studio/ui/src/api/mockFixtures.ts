@@ -227,14 +227,15 @@ export const withFormatting = (paragraph: ManuscriptParagraph): ManuscriptParagr
 };
 export const WIRE_PARAGRAPHS: ManuscriptParagraph[] = plainParagraphs.map(withFormatting);
 /**
- * How far the mock's chapter is recorded (`recordedThrough`): chapters 1-3 and those past recording in full by Proof, 4-6 two
- * thirds of the way by the Booth’s takes, 11 about a third by its track’s length alone (an estimate), the rest none.
+ * How far the mock's chapter is recorded (`recordedThrough`): chapters 2-3 and those past recording in full by Proof, 1 through
+ * ¶ 14 of its 24 (58%) and 4-6 two thirds of the way by the Booth’s takes, 11 about a third by its track’s length alone (an estimate),
+ * the rest none. Chapter 1 is not complete so that the Booth’s first chapter reads one story: recorded through ¶ 14, resume at ¶ 14 (#2633).
  */
 export function mockRecordedThrough(index: number, paragraphs: readonly ManuscriptParagraph[]): ManuscriptChapter['recordedThrough'] {
   const last = paragraphs.at(-1);
   if (!last) return undefined;
   const words = (paragraph: ManuscriptParagraph) => paragraph.text.split(/\s+/).filter(Boolean).length;
-  if (index < 3 || (index >= 6 && index < 10))
+  if ((index >= 1 && index < 3) || (index >= 6 && index < 10))
     return { paragraphId: last.id, paragraph: paragraphs.length, word: words(last) - 1, percent: 100, complete: true, source: 'proof', confident: true };
   const part = (share: number, source: 'booth' | 'daw') => {
     const index = Math.min(paragraphs.length - 1, Math.floor(paragraphs.length * share));
@@ -249,6 +250,7 @@ export function mockRecordedThrough(index: number, paragraphs: readonly Manuscri
       confident: source !== 'daw',
     };
   };
+  if (index === 0) return part(0.58, 'booth');
   if (index < 6) return part(0.65, 'booth');
   if (index === 10) return part(0.3, 'daw');
   return undefined;
