@@ -1,6 +1,6 @@
 // The `pickups` rows of STATE_CATALOG: the Studio Next Pickups page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { REFLOW } from './shared';
+import { REFLOW, TOAST_FADES_OUT } from './shared';
 
 export const pickupsStates: StateEntry[] = [
   {
@@ -48,6 +48,13 @@ export const pickupsStates: StateEntry[] = [
     description:
       'Pickups with Add a pickup by hand submitted with a 505-character line: "A line can be at most 500 characters." once, under the line box, no toast; the Chapter list above the time box',
     ...REFLOW,
+  },
+  {
+    page: 'pickups',
+    state: 'markers-partial-toast',
+    description:
+      'Pickups after Add 3 as markers (the button counts only the lines with a place) with one line added by hand (it has no place in the recording): the toast says "Pickup markers for 3 of 4 lines are in REAPER. 1 line has no place in the recording yet and was left out."',
+    ...TOAST_FADES_OUT,
   },
   {
     page: 'pickups',

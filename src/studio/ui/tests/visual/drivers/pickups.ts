@@ -11,6 +11,15 @@ async function openPickups(page: Page): Promise<void> {
   await list(page).getByRole('button', { name: 'Open in Booth at this line' }).first().waitFor();
 }
 
+// Adds a line by hand ("Pickup by hand") to the first chapter in the list's popover and waits for it to be listed.
+async function addByHand(page: Page): Promise<void> {
+  await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
+  await page.getByRole('textbox', { name: 'Time in the recording' }).fill('01:00.0');
+  await page.getByRole('textbox', { name: 'Line to re-record' }).fill('Pickup by hand');
+  await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
+  await page.getByRole('button', { name: /^Open 4 in Booth$/ }).waitFor();
+}
+
 export const pickupsDrivers: Record<string, Driver> = {
   list: async (page) => {
     await openPickups(page);
@@ -56,6 +65,13 @@ export const pickupsDrivers: Record<string, Driver> = {
     await page.getByRole('textbox', { name: 'Line to re-record' }).fill('word '.repeat(101));
     await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
     await page.getByText('A line can be at most 500 characters.').waitFor();
+  },
+  // A line added by hand has no place in the recording yet, so it gets no marker: the toast counts the placed lines against the session.
+  'markers-partial-toast': async (page) => {
+    await openPickups(page);
+    await addByHand(page);
+    await page.getByRole('button', { name: /^Add 3 as markers in / }).click();
+    await page.getByText(/^Pickup markers for 3 of 4 lines are in .+ 1 line has no place in the recording yet and was left out\.$/).waitFor();
   },
   'marked-recorded': async (page) => {
     await openPickups(page);

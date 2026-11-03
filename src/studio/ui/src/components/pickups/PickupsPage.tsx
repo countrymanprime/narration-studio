@@ -298,6 +298,13 @@ export function PickupsPage({
     await changing(pickupsApi.pickupsList());
   };
 
+  /* One way into the Booth for the button, a row and the jump menu, so Back keeps the chapter and focus whichever was used. */
+  const openInBooth = (picked: PickupItem[]) => {
+    if (picked.length === 1) rememberPickupLeft(picked[0].id, scope);
+    else rememberSessionLeft(scope);
+    goTo(boothSessionPath(picked));
+  };
+
   usePickupsPageCommands({
     pickups: hasManuscript ? list.pickups : [],
     chapters,
@@ -310,7 +317,7 @@ export function PickupsPage({
     onScope: choose,
     onReveal: (id) => setReveal((before) => ({ id, n: (before?.n ?? 0) + 1 })),
     onCheck: (ids) => openCheckRecordings(ids),
-    onOpenInBooth: (picked) => goTo(boothSessionPath(picked)),
+    onOpenInBooth: openInBooth,
     onAddMarkers: addMarkers,
     onError: (error) => overlay.toast(reasonSentence(error), { tone: 'error' }),
   });
@@ -326,12 +333,6 @@ export function PickupsPage({
   });
 
   if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
-
-  const openInBooth = (picked: PickupItem[]) => {
-    if (picked.length === 1) rememberPickupLeft(picked[0].id, scope);
-    else rememberSessionLeft(scope);
-    goTo(boothSessionPath(picked));
-  };
 
   return (
     <CommandScope kind="page">

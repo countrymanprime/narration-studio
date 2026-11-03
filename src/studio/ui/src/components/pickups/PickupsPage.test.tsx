@@ -468,15 +468,15 @@ describe('adding-lines-as-markers-says-what-happened', () => {
     const placed = pickup({ id: 'a', at: 10, time: 10 });
     const unplaced = pickup({ id: 'b', at: null, time: 20 });
     renderWith(true, { pickups: [placed, unplaced], leftOut: [] });
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add 2 as markers in REAPER' }));
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add 1 as markers in REAPER' }));
     expect(await screen.findByText('Pickup marker for 1 of 2 lines is in REAPER. 1 line has no place in the recording yet and was left out.')).toBeTruthy();
   });
 
-  it('says so and does not claim success when no line has a place', async () => {
+  it('turns the markers button off, saying why, when no line has a place', async () => {
     renderWith(true, { pickups: [pickup({ id: 'b', at: null, time: 20 })], leftOut: [] });
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add 1 as markers in REAPER' }));
-    expect(await screen.findByText('None of these lines has a place in the recording yet, so no marker was added.')).toBeTruthy();
-    expect(screen.queryByText(/are in|is in|already in/)).toBeNull();
+    const add = await screen.findByRole('button', { name: 'Add 0 as markers in REAPER' });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByText('None of these lines has a place in the recording yet.')).toBeTruthy();
   });
 
   it('says the markers were already there when nothing changed', async () => {

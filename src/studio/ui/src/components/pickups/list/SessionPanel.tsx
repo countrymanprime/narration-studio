@@ -47,6 +47,8 @@ export function SessionPanel({
   const picked = sessionPickups(pickups);
   const minutes = sessionMinutes(seconds);
   const count = picked.length;
+  /* A line the host cannot place in the recording gets no marker, so the markers button counts only the others. */
+  const placeable = picked.filter((pickup) => pickup.at !== null).length;
   /* The count is known once the list is read; until then the buttons name no number (R3PK-3, XPK-15). */
   const known = !loading && !unreadable;
 
@@ -56,7 +58,9 @@ export function SessionPanel({
       ? 'The list could not be read, so there is nothing to add yet.'
       : count === 0
         ? 'No lines in the session.'
-        : undefined;
+        : placeable === 0
+          ? 'None of these lines has a place in the recording yet.'
+          : undefined;
   /* Why the session is empty, said for what is true: nothing listed, nothing readable, all recorded, or all left out. */
   const showEmptyReason = count === 0 && !loading;
   const emptyReason = unreadable
@@ -127,9 +131,9 @@ export function SessionPanel({
           </Button>
           <IconButton
             action="addMarker"
-            label={known ? `Add ${count} as markers in ${dawName}` : `Add as markers in ${dawName}`}
+            label={known ? `Add ${placeable} as markers in ${dawName}` : `Add as markers in ${dawName}`}
             disabledReason={markersReason}
-            aria-describedby={!markers.available ? markersId : showEmptyReason ? emptyId : undefined}
+            aria-describedby={!markers.available || (count > 0 && placeable === 0) ? markersId : showEmptyReason ? emptyId : undefined}
             pending={adding}
             onClick={addMarkers}
           />
@@ -141,7 +145,7 @@ export function SessionPanel({
           </p>
         )}
         {/* The DAW's reason is the button's tooltip and, for a screen reader, its description: not a line of the card, so the card never grows (rule 8). */}
-        {!markers.available && (
+        {(!markers.available || (count > 0 && placeable === 0)) && (
           <span id={markersId} className="sr-only">
             {markersReason}
           </span>
