@@ -676,6 +676,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     bool('notifications', "Notify me when a long task finishes while I'm away", 'true'),
     bool('close_import_when_done', 'Close the manuscript import when it finishes', 'true'),
     bool('debug_logging', 'Debug logging', 'false'),
+    bool('activity_trace', 'Activity trace', 'false'),
     {
       key: 'narrator_name',
       label: 'Narrator name (default for credits)',

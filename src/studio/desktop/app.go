@@ -570,6 +570,7 @@ func NewHost() *Host {
 		runLog.SetDebug(true)
 	}
 	host.sidecars.SetFallbackRun(runLog.App)
+	host.sidecars.SetTracer(tracer)
 	return host
 }
 
@@ -1773,7 +1774,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// defaulting to 0, since published room-tone guidance disagrees.
 	// debug_logging turns on the run log's debug-level decision records: global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
-	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
+	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}, {"activity_trace", "Activity trace (writes how the app behaved, never your content, to logs/trace.jsonl)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
 	// default_pronunciation_source is which pronunciation source a new
 	// name's pronunciation prefers, both at build time and when the narrator adds an alias: "" (Automatic) keeps the
@@ -2079,6 +2080,9 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 		if _, ok := values["debug_logging"]; ok {
 			return fmt.Errorf("debug logging is global: it is a switch for this machine, not this project")
 		}
+		if _, ok := values["activity_trace"]; ok {
+			return fmt.Errorf("the activity trace is global: it is a switch for this machine, not this project")
+		}
 	}
 	if tool == "ManuscriptGuide" && scope != "global" {
 		if _, ok := values["analysis_prompt"]; ok {
@@ -2111,6 +2115,9 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "General" {
 		if value, ok := values["debug_logging"]; ok && value != nil {
 			h.runLog.SetDebug(*value == "true")
+		}
+		if value, ok := values["activity_trace"]; ok && value != nil {
+			h.setActivityTrace(*value == "true")
 		}
 	}
 	if tool == "DAW" {

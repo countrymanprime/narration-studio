@@ -283,7 +283,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ## App & updates
 
-**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log: turn it on when asked to send a log. **This version** follows them (see [About and updates](#about-and-updates)).
+**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log (turn it on when asked to send a log), and **Activity trace**, which records how the app behaved (the DAW connection, tool runs, crashes it survived) to `logs/trace.jsonl` and never your text, names or file paths. A build run from source has the trace on. **This version** follows them (see [About and updates](#about-and-updates)).
 
 ### About and updates
 

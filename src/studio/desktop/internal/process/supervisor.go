@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"desktop/internal/runlog"
+	"desktop/internal/trace"
 )
 
 type Child struct {
@@ -42,6 +43,7 @@ func (c *Child) ExitCode() (int, bool) {
 type Supervisor struct {
 	jobs     jobSet
 	fallback func() *runlog.Run
+	tracer   *trace.Tracer
 }
 
 func NewSupervisor() *Supervisor { return &Supervisor{jobs: newJobSet()} }
@@ -79,12 +81,14 @@ func (s *Supervisor) Start(ctx context.Context, program string, args ...string) 
 	}
 	first := &firstOutput{started: time.Now()}
 	if err := command.Start(); err != nil {
+		s.traceStartFailed("start", program, err)
 		return nil, fmt.Errorf("could not start %s: %w", program, err)
 	}
 	if err := s.jobs.assign(command.Process.Pid); err != nil {
 		_ = command.Process.Kill()
 		return nil, err
 	}
+	s.traceStart("start", program)
 	if low {
 		lowerStarted(command.Process.Pid)
 	}
@@ -128,6 +132,7 @@ func (s *Supervisor) Run(ctx context.Context, program string, args ...string) (i
 	command.Stdout, command.Stderr = io.MultiWriter(&out, first), io.MultiWriter(&failure, stderrSink)
 	command.WaitDelay = runWaitDelay
 	if err := command.Start(); err != nil {
+		s.traceStartFailed("run", program, err)
 		return 0, "", "", fmt.Errorf("could not start %s: %w", program, err)
 	}
 	if err := s.jobs.assign(command.Process.Pid); err != nil {
@@ -135,6 +140,7 @@ func (s *Supervisor) Run(ctx context.Context, program string, args ...string) (i
 		_ = command.Wait()
 		return 0, "", "", err
 	}
+	s.traceStart("run", program)
 	waitErr := command.Wait()
 	code := 0
 	if waitErr != nil && !errors.Is(waitErr, exec.ErrWaitDelay) {

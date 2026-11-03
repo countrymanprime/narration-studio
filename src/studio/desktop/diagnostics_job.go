@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/trace"
 	"fmt"
 	"log/slog"
 	"os"
@@ -280,6 +281,7 @@ func (h *Host) runDiagnostics(ctx context.Context, job *diagnosticsJob, paths []
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "diagnostics_job"))
 			runlog.FromContext(ctx).Event(slog.LevelError, "diagnostics.panic", "the diagnostics stopped unexpectedly: "+broken.Error())
 		}
 		job.finish(ctx.Err() != nil && broken == nil, broken)

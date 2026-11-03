@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"desktop/internal/runlog"
+	"desktop/internal/trace"
 )
 
 // firstOutput notes how long after the spawn a child first wrote to stdout. It is an io.Writer so Run and Start can tee their
@@ -51,6 +52,8 @@ func (s *Supervisor) recordTiming(ctx context.Context, mode, program string, fir
 	if run == nil && s.fallback != nil {
 		run = s.fallback()
 	}
+	s.tracer.Emit(trace.SidecarExit, trace.IDValue("kind", traceKind(program)), trace.EnumValue("mode", mode),
+		trace.IntValue("first_output_ms", first.milliseconds()), trace.DurValue("total", time.Since(first.started)), trace.IntValue("exit_code", int64(exitCode)))
 	run.Event(slog.LevelInfo, "sidecar.timing", "sidecar timing", "kind", programKind(program), "mode", mode,
 		"first_output_ms", first.milliseconds(), "total_ms", time.Since(first.started).Milliseconds(), "exit_code", exitCode)
 }
@@ -59,4 +62,33 @@ func (s *Supervisor) recordTiming(ctx context.Context, mode, program string, fir
 func programKind(program string) string {
 	name := filepath.Base(strings.ReplaceAll(program, `\`, "/"))
 	return strings.ToLower(strings.TrimSuffix(name, filepath.Ext(name)))
+}
+
+// SetTracer gives the supervisor the activity trace (docs/prds/activity-trace.prd.md). Set it once, before the first launch.
+func (s *Supervisor) SetTracer(tracer *trace.Tracer) { s.tracer = tracer }
+
+// traceKind is programKind made safe for an id field: lower case, anything outside the id alphabet replaced by an underscore,
+// cut to 64. A program named with a space or a non-ASCII letter is still one id.
+func traceKind(program string) string {
+	kind := []byte(programKind(program))
+	for i, b := range kind {
+		if !(b >= 'a' && b <= 'z' || b >= '0' && b <= '9' || b == '_' || b == '.' || b == ':' || b == '-') {
+			kind[i] = '_'
+		}
+	}
+	if len(kind) == 0 {
+		return "unknown"
+	}
+	if len(kind) > 64 {
+		kind = kind[:64]
+	}
+	return string(kind)
+}
+
+func (s *Supervisor) traceStart(mode, program string) {
+	s.tracer.Emit(trace.SidecarStart, trace.IDValue("kind", traceKind(program)), trace.EnumValue("mode", mode))
+}
+
+func (s *Supervisor) traceStartFailed(mode, program string, err error) {
+	s.tracer.Emit(trace.SidecarStartFailed, trace.IDValue("kind", traceKind(program)), trace.EnumValue("mode", mode), trace.ErrValue("err", err))
 }

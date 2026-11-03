@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"strings"
@@ -178,6 +179,7 @@ func (h *Host) runGuarded(ctx context.Context, spec installSpec, job *installJob
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = fmt.Errorf("the install stopped unexpectedly: %v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "install_job"))
 		}
 	}()
 	return spec.run(ctx, assets.Options{
