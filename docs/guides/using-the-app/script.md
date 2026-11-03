@@ -35,6 +35,8 @@ bookmarks the line, says "Bookmark added." and opens the bookmark's label and no
 the previous or next bookmark; **Ctrl+F** searches the script; **F3** **Shift+F3** step the matches. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 
+When you go to a chapter, from the chapter list, the [jump menu](navigation.md#jump-to-or-run) or **Alt+↑** **Alt+↓**, focus moves to that chapter's heading in the reader and the place is announced, so the next **Tab** and a screen reader start there. The heading shows a focus ring while you are using the keyboard.
+
 Each chapter card has its own prep buttons and **Record in Booth**, so a keyboard user would pass four stops per chapter on the
 way to the rail. The first Tab stop after the reader's header is **Skip to the side panel**, which is seen only while it has focus:
 Enter moves focus to the open tab of the rail (or opens the rail, where it is a drawer).

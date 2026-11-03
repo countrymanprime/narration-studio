@@ -31,4 +31,25 @@ test.describe('The jump menu hands focus to the destination', () => {
       expect(where).not.toContain('switch project');
     });
   }
+
+  test("choosing a chapter on Script puts focus on that chapter's heading", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/script');
+    await settlePage(page);
+    await page.keyboard.press('Control+k');
+    const field = page.getByRole('combobox', { name: 'Jump menu' });
+    await field.waitFor();
+    await field.fill('chapter');
+    await page.getByRole('option').first().waitFor();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.waitForTimeout(300);
+    const where = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      return { tag: el?.tagName, inBound: !!el?.closest('[data-bound]'), text: el?.textContent ?? '' };
+    });
+    expect(where.tag).toBe('H2');
+    expect(where.inBound).toBe(true);
+    expect(where.text.trim().length).toBeGreaterThan(0);
+  });
 });

@@ -166,7 +166,12 @@ const Section = memo(function Section(props: SectionProps) {
           props.renderChapterCard(chapter)
         ) : (
           <>
-            <h2 className="m-0 text-2xl font-semibold">{chapter.title}</h2>
+            <h2
+              tabIndex={-1}
+              className="m-0 text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            >
+              {chapter.title}
+            </h2>
             <div className="text-sm text-[var(--text-muted)]">{chapter.wordCount.toLocaleString()} words</div>
           </>
         )}
@@ -395,6 +400,8 @@ export function Reader(props: ReaderProps) {
       // A section outside the chapters (the credits) is always drawn.
       if (at === undefined || reach(at)) {
         jumpTo(pendingJump);
+        // The heading takes focus, so the next Tab and a screen reader start at the chapter the narrator chose (#2902).
+        root.querySelector<HTMLElement>(`[data-bound][data-ch="${pendingJump}"] h2`)?.focus({ preventScroll: true });
         onHandled?.('chapter');
         jumped = true;
       }

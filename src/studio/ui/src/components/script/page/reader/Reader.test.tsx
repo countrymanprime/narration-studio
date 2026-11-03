@@ -101,6 +101,17 @@ describe('continuous scroll with the spy', () => {
     expect(said).toHaveLength(1);
   });
 
+  it('moves focus to the chapter heading it jumped to, so the next Tab and a screen reader start there (#2902)', () => {
+    vi.spyOn(overlay, 'announce').mockImplementation(() => undefined);
+    const { rerender } = render(<Reader {...props()} />);
+    rerender(<Reader {...props({ pendingJump: 'c2' })} />);
+    const heading = document.querySelector<HTMLElement>('[data-ch="c2"] h2');
+    expect(heading?.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(heading);
+    rerender(<Reader {...props({ pendingJump: null })} />);
+    expect(document.activeElement).toBe(heading);
+  });
+
   it('tells its owner which chapter is in view, once per change', () => {
     const onChapterInView = vi.fn();
     render(<Reader {...props({ onChapterInView })} />);
