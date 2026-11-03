@@ -65,6 +65,7 @@ func newVoiceFolderHost(t *testing.T, layout string) (*Host, []string) {
 	}
 	host.reachability = liveReachability()
 	host.navigation = &findingNavigation{navigator: &fakeNavigator{}}
+	host.boothVoices = newBoothVoiceChoices()
 	return host, ids
 }
 
@@ -97,7 +98,7 @@ func boothVoiceSet(t *testing.T, host *Host, recorder dawport.Recorder, chapterI
 
 func recordStartWithVoice(t *testing.T, host *Host, recorder dawport.Recorder, chapterID string) ReadAloudRecording {
 	t.Helper()
-	result, err := readAloudRecordStartIn(context.Background(), host.servicesForRecording(chapterID), recorder, nil, chapterID)
+	result, err := readAloudRecordStartIn(context.Background(), host.services(), recorder, nil, chapterID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +133,7 @@ func TestAVoiceChosenWhileStoppedIsTheOneTheNextTakeArms(t *testing.T) {
 func TestEachChapterKeepsItsOwnVoice(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], voiceQueenTrack)
-	host.chooseBoothVoice(ids[1], voiceNarratorTrack) // another chapter's choice, as BoothVoiceSet stores it
+	host.services().boothVoices.choose(ids[1], voiceNarratorTrack) // another chapter's choice, as BoothVoiceSet stores it
 	fake := &fakeRecorder{}
 	recordStartWithVoice(t, host, fake, ids[0])
 	if fake.armGUID != voiceQueenTrack {
@@ -246,6 +247,63 @@ func TestBoothVoiceSetAnswersJSON(t *testing.T) {
 	}
 }
 
+func boothVoiceGet(t *testing.T, host *Host, chapterID string) BoothVoice {
+	t.Helper()
+	got, err := boothVoiceGetIn(host.services(), chapterID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return got
+}
+
+func TestTheBoothReadsTheVoiceTheHostRecordsOn(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	if got := boothVoiceGet(t, host, ids[0]); got.Outcome != "selected" || got.TrackGUID != voiceNarratorTrack {
+		t.Fatalf("before a choice: got %+v, want the Narrator voice", got)
+	}
+	// A choice made, then the Booth left and opened again: the read is the choice, as the next record start arms it.
+	boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], voiceQueenTrack)
+	if got := boothVoiceGet(t, host, ids[0]); got.TrackGUID != voiceQueenTrack {
+		t.Fatalf("after choosing Queen: got %+v", got)
+	}
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, ids[0])
+	if fake.armGUID != voiceQueenTrack {
+		t.Fatalf("the read said Queen, the start armed %q", fake.armGUID)
+	}
+	// A switch the DAW refused keeps the voice the take has, and the read says so.
+	recording := &fakeVoiceRecorder{switchErr: &bridge.TrackStaleError{GUID: voiceNarratorTrack}}
+	host.setReadAloudRecording(ids[0], recording)
+	boothVoiceSet(t, host, recording, ids[0], voiceNarratorTrack)
+	if got := boothVoiceGet(t, host, ids[0]); got.TrackGUID != voiceQueenTrack {
+		t.Fatalf("after a refused switch: got %+v, want the take's Queen voice", got)
+	}
+	host.clearReadAloudRecording()
+}
+
+func TestTheVoiceReadRefusesWhatARecordStartWouldRefuse(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	if got := boothVoiceGet(t, host, ids[2]); got.Outcome != "refused" {
+		t.Fatalf("unlinked chapter: got %+v", got)
+	}
+	linkChapter(t, host, ids[1], voiceEmptyFolder)
+	if got := boothVoiceGet(t, host, ids[1]); got.Outcome != "refused" || got.Reason != boothVoiceNoVoices {
+		t.Fatalf("empty folder: got %+v", got)
+	}
+	flat, flatIDs := newVoiceFolderHost(t, voicetracks.LayoutFlat)
+	if got := boothVoiceGet(t, flat, flatIDs[0]); got.Outcome != "refused" || got.Reason != boothVoiceFlat {
+		t.Fatalf("flat: got %+v", got)
+	}
+}
+
+func TestBoothVoiceGetAnswersJSON(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	raw, err := host.BoothVoiceGet(ids[0])
+	if err != nil || !strings.Contains(raw, voiceNarratorTrack) {
+		t.Fatalf("raw %q, err %v", raw, err)
+	}
+}
+
 func TestContractBoothVoice(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	answers := map[string]any{}
@@ -262,5 +320,28 @@ func TestContractBoothVoice(t *testing.T) {
 	answers["record_start_no_voices"] = recordStartWithVoice(t, host, &fakeRecorder{}, ids[1])
 	flat, flatIDs := newVoiceFolderHost(t, voicetracks.LayoutFlat)
 	answers["flat"] = boothVoiceSet(t, flat, &fakeVoiceRecorder{}, flatIDs[0], voiceQueenTrack)
+	answers["get_selected"] = boothVoiceGet(t, host, ids[0])
+	answers["get_flat"] = boothVoiceGet(t, flat, flatIDs[0])
 	contractfile.Check(t, "booth-voice", answers)
+}
+
+func TestREAPERsArmStateIsReadOnTheChaptersVoiceNotItsFolder(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	reader := &fakeTrackStates{state: bridge.TrackState{TrackArmed: true, ArmedCount: 1}}
+	got, err := readAloudReaperStateIn(context.Background(), host.services(), reader, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reader.asked) != 1 || reader.asked[0] != voiceNarratorTrack || got.TrackGUID != voiceNarratorTrack {
+		t.Fatalf("asked %v, answered %+v; want the Narrator voice read, never the folder", reader.asked, got)
+	}
+	boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], voiceQueenTrack)
+	reader.asked = nil
+	got, err = readAloudReaperStateIn(context.Background(), host.services(), reader, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reader.asked) != 1 || reader.asked[0] != voiceQueenTrack || got.TrackGUID != voiceQueenTrack {
+		t.Fatalf("asked %v, answered %+v; want the chosen Queen voice", reader.asked, got)
+	}
 }

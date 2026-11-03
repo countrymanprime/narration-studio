@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -82,7 +83,7 @@ func voiceFor(voices []tracks.Track, chosen string) string {
 }
 
 // recordTarget is the track a record start for chapterID arms: its one linked track, or in a Voice folders chapter the Booth's voice
-// (svc.boothVoice) among the folder's children. A folder with no children is refused before anything is armed.
+// (svc.boothVoices) among the folder's children. A folder with no children is refused before anything is armed.
 func recordTarget(svc hostServices, chapterID, link string) (string, *ReadAloudRecording, error) {
 	voices, folder, err := chapterVoices(svc, link)
 	if err != nil {
@@ -99,25 +100,39 @@ func recordTarget(svc hostServices, chapterID, link string) (string, *ReadAloudR
 		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. Add a track inside the folder in %s, and save.", title, readAloudAdapterName(svc)))
 		return "", &refused, nil
 	}
-	return voiceFor(voices, svc.boothVoice), nil, nil
+	return voiceFor(voices, svc.boothVoices.For(chapterID)), nil, nil
 }
 
-// servicesForRecording is h.services() with the Booth's voice for chapterID, for a record start.
-func (h *Host) servicesForRecording(chapterID string) hostServices {
-	svc := h.services()
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	svc.boothVoice = h.boothVoices[chapterID]
-	return svc
+// boothVoiceChoices is the voice the Booth chose for each chapter of one project, by chapter id: the track its next record start
+// arms, and the one a take switched to. It holds only GUIDs the host checked are voices of the chapter, for the session only. A nil
+// one (a Host never configured) holds nothing.
+type boothVoiceChoices struct {
+	mu sync.Mutex
+	// +checklocks:mu
+	byChapter map[string]string
 }
 
-func (h *Host) chooseBoothVoice(chapterID, guid string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.boothVoices == nil {
-		h.boothVoices = map[string]string{}
+func newBoothVoiceChoices() *boothVoiceChoices {
+	return &boothVoiceChoices{byChapter: map[string]string{}}
+}
+
+// For is the voice chosen for chapterID, "" when none was.
+func (c *boothVoiceChoices) For(chapterID string) string {
+	if c == nil {
+		return ""
 	}
-	h.boothVoices[chapterID] = guid
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.byChapter[chapterID]
+}
+
+func (c *boothVoiceChoices) choose(chapterID, guid string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.byChapter[chapterID] = guid
 }
 
 func (h *Host) readAloudRecordingActive() bool {
@@ -159,7 +174,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		return boothVoiceRefused(boothVoiceNotAVoice, "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project."), nil
 	}
 	if !h.readAloudRecordingFor(chapterID) {
-		h.chooseBoothVoice(chapterID, target)
+		svc.boothVoices.choose(chapterID, target)
 		return BoothVoice{Outcome: "selected", TrackGUID: target}, nil
 	}
 	name := readAloudAdapterName(svc)
@@ -171,7 +186,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	if errors.Is(err, bridge.ErrNotOurRecording) {
 		// The take is over (the narrator stopped it in the DAW): the voice is the next take's.
 		h.clearReadAloudRecording()
-		h.chooseBoothVoice(chapterID, target)
+		svc.boothVoices.choose(chapterID, target)
 		return BoothVoice{Outcome: "selected", TrackGUID: target}, nil
 	}
 	var stale *bridge.TrackStaleError
@@ -182,7 +197,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		refused := readAloudRecordRefusal(name, err)
 		return boothVoiceRefused(refused.Reason, refused.Message), nil
 	}
-	h.chooseBoothVoice(chapterID, target)
+	svc.boothVoices.choose(chapterID, target)
 	at := switched.At
 	return BoothVoice{Outcome: "switched", TrackGUID: target, At: &at}, nil
 }
@@ -195,4 +210,38 @@ func (h *Host) BoothVoiceSet(chapterID, trackGUID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceSetIn(ctx, svc, recorderFrom(svc), chapterID, trackGUID))
+}
+
+// boothVoiceGetIn is the voice the next take of chapterID records on, or the take this app records now: the one svc.boothVoices
+// chose (svc.boothVoices) when it is still a voice of the chapter's folder, else the Narrator voice, as a record start resolves
+// it. A flat chapter, an unlinked one and a folder with no voices are refused with the reason a record start would give.
+func boothVoiceGetIn(svc hostServices, chapterID string) (BoothVoice, error) {
+	link, refused, err := readAloudTrackGUID(svc, chapterID)
+	if err != nil {
+		return BoothVoice{}, err
+	}
+	if refused != nil {
+		return boothVoiceRefused(refused.Reason, refused.Message), nil
+	}
+	_, folder, err := chapterVoices(svc, link)
+	if err != nil {
+		return BoothVoice{}, err
+	}
+	if !folder {
+		return boothVoiceRefused(boothVoiceFlat, "This chapter records on one track."), nil
+	}
+	guid, refusedStart, err := recordTarget(svc, chapterID, link)
+	if err != nil {
+		return BoothVoice{}, err
+	}
+	if refusedStart != nil {
+		return boothVoiceRefused(refusedStart.Reason, refusedStart.Message), nil
+	}
+	return BoothVoice{Outcome: "selected", TrackGUID: guid}, nil
+}
+
+// BoothVoiceGet is the voice the Booth records chapterID on, as the host holds it: the page shows this, never a voice it assumed,
+// so a choice made before the Booth was left, or one a refused switch kept, is what the record bar says.
+func (h *Host) BoothVoiceGet(chapterID string) (string, error) {
+	return encodeBinding(boothVoiceGetIn(h.services(), chapterID))
 }

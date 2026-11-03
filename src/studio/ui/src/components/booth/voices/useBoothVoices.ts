@@ -48,30 +48,43 @@ export function useBoothVoices({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [link, setLink] = useState('');
   const [characters, setCharacters] = useState<GuideEntity[]>([]);
-  // The voice chosen in each chapter this session, as the host keeps it.
-  const [chosen, setChosen] = useState<Record<string, string>>({});
+  // The voice the host records this chapter on (BoothVoiceGet), read with the tracks: never a voice the page assumed, so a choice made
+  // before the Booth was left, or the voice a refused switch kept, is what the control shows.
+  const [hostVoice, setHostVoice] = useState<{ chapterId: string; guid: string }>({ chapterId: '', guid: '' });
   const [choosing, setChoosing] = useState(false);
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     if (!chapterId || setup.layout !== 'folders') return;
     let live = true;
-    void Promise.all([tracksPort.tracksList(), links.chapterTrackMapList(), storyBible.guideEntities()])
-      .then(([project, map, entities]) => {
+    void Promise.all([
+      tracksPort.tracksList(),
+      links.chapterTrackMapList(),
+      storyBible.guideEntities(),
+      // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
+      voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
+        if (live) notify(describeApiError(reason), 'error');
+        return undefined;
+      }),
+    ])
+      .then(([project, map, entities, voice]) => {
         if (!live) return;
         const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
         setTracks(project.tracks);
         setLink(mine.length === 1 ? mine[0].trackGuid : '');
         setCharacters(entities.filter((entity) => entity.category === 'Character'));
+        setHostVoice({ chapterId, guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '' });
       })
       .catch((reason: unknown) => live && notify(describeApiError(reason), 'error'));
     return () => {
       live = false;
     };
-  }, [chapterId, setup.layout, tracksPort, links, storyBible, notify, revision]);
+  }, [chapterId, setup.layout, tracksPort, links, storyBible, voiceTracks, notify, revision]);
 
   const voices = useMemo(() => (setup.layout === 'folders' && link ? folderVoices(tracks, link, characters, setup) : []), [setup, link, tracks, characters]);
-  const current = voices.find((voice) => voice.guid === chosen[chapterId]) ?? voices.find((voice) => voice.narrator) ?? voices[0];
+  // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
+  const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
+  const current = fromHost ?? voices.find((voice) => voice.narrator) ?? voices[0];
 
   const choose = useCallback(
     (voice: Voice) => {
@@ -81,7 +94,7 @@ export function useBoothVoices({
         .boothVoiceSet(chapterId, voice.guid)
         .then((answer) => {
           if (answer.outcome === 'refused') notify(answer.message ?? 'The voice was not changed.', 'error');
-          else if (answer.trackGuid) setChosen((before) => ({ ...before, [chapterId]: answer.trackGuid ?? '' }));
+          else if (answer.trackGuid) setHostVoice({ chapterId, guid: answer.trackGuid });
         })
         .catch((reason: unknown) => notify(describeApiError(reason), 'error'))
         .finally(() => setChoosing(false));

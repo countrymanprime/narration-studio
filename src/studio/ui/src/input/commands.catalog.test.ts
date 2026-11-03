@@ -94,7 +94,7 @@ describe('the Booth rows', () => {
       'booth.roll': ['KeyR'],
       'booth.view.down': ['PageDown'],
       'booth.view.up': ['PageUp'],
-      // Num + and Num − moved to the next and previous voice (docs/prds/booth-voice-tracks.prd.md, decision A).
+      // Num + and Num − moved to the next and previous voice (docs/research/2026-10-30-booth-sub-track-recording.md, section 8, decision 4).
       'booth.text.larger': ['Equal'],
       'booth.text.smaller': ['Minus'],
       ...Object.fromEntries(Array.from({ length: 10 }, (_, n) => [`booth.voice.${n}`, [`Numpad${n}`]])),

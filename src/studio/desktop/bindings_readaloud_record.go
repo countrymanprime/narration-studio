@@ -270,7 +270,7 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartIn(ctx, h.servicesForRecording(chapterID), recorder, trackStateReaderFrom(svc), chapterID)
+	result, err := readAloudRecordStartIn(ctx, h.services(), recorder, trackStateReaderFrom(svc), chapterID)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}
@@ -300,7 +300,7 @@ func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, err
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartAtIn(ctx, h.servicesForRecording(chapterID), recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
+	result, err := readAloudRecordStartAtIn(ctx, h.services(), recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}

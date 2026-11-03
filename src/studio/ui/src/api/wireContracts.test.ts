@@ -4300,6 +4300,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'voiceTracksSetCharacters',
       'voiceTracksSetNarrator',
       'boothVoiceSet',
+      'boothVoiceGet',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -6234,6 +6235,20 @@ describe('the voice tracks bindings', () => {
     const switched = await api.boothVoiceSet(chapterId, '{V01CE-EXTRAS}');
     expectMatches(boothVoiceSchema, switched, 'mock booth voice (switched)');
     expect(switched.outcome).toBe('switched');
+  });
+
+  it("the Booth's voice read: the Narrator voice until one is chosen, then the choice, per chapter, each through the schema", async () => {
+    const [first, second] = WIRE_CHAPTERS.map((chapter) => chapter.id);
+    const flat = await createMockApi().boothVoiceGet(first);
+    expectMatches(boothVoiceSchema, flat, 'mock booth voice read (unlinked)');
+    expect(flat.outcome).toBe('refused');
+    const api = createMockApi({}, { voiceFolders: true });
+    const before = await api.boothVoiceGet(first);
+    expectMatches(boothVoiceSchema, before, 'mock booth voice read');
+    expect(before.trackGuid).not.toBe('{V01CE-EXTRAS}');
+    await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
+    expect(await api.boothVoiceGet(first)).toEqual({ outcome: 'selected', trackGuid: '{V01CE-EXTRAS}' });
+    expect((await api.boothVoiceGet(second)).trackGuid).not.toBe('{V01CE-EXTRAS}');
   });
 
   it('the schema refuses an unknown layout and an empty assignment', () => {

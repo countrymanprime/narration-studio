@@ -38,7 +38,8 @@ function voiceFor(voices: readonly Track[], chosen: string): string {
 }
 
 export function createBoothVoiceMock(api: Deps) {
-  let chosen: { chapterId: string; guid: string } | undefined;
+  // The voice chosen in each chapter this session, as the host keeps it (Host.boothVoices).
+  const chosen = new Map<string, string>();
   let recording: { chapterId: string; since: number; from: number } | undefined;
 
   /** The chapter's one link and, in a Voice folders project with that link a folder, its voices. */
@@ -48,7 +49,7 @@ export function createBoothVoiceMock(api: Deps) {
     const voices = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
     return { links, voices };
   };
-  const chosenFor = (chapterId: string) => (chosen?.chapterId === chapterId ? chosen.guid : '');
+  const chosenFor = (chapterId: string) => chosen.get(chapterId) ?? '';
 
   const startedOn = async (chapterId: string, start: () => ReturnType<Deps['readAloudRecordStart']>) => {
     const { voices } = await voicesOf(chapterId);
@@ -64,16 +65,32 @@ export function createBoothVoiceMock(api: Deps) {
     return voices ? { ...result, trackGuid: voiceFor(voices, chosenFor(chapterId)) } : result;
   };
 
+  /** The refusal a chapter with no single link gets, as readAloudTrackGUID gives it; undefined when it has one. */
+  const linkRefusal = (links: readonly string[]): BoothVoice | undefined => {
+    if (links.length === 0) return refused('unlinked', 'This chapter has no linked track. Link it to its REAPER track in the audio engine panel.');
+    if (links.length > 1)
+      return refused('several_links', `This chapter is linked to ${links.length} tracks. Keep the one to record on, in the audio engine panel.`);
+    return undefined;
+  };
+
   return {
+    async boothVoiceGet(chapterId: string): Promise<BoothVoice> {
+      const { links, voices } = await voicesOf(chapterId);
+      const notOne = linkRefusal(links);
+      if (notOne) return notOne;
+      if (!voices) return refused('flat', 'This chapter records on one track.');
+      if (voices.length === 0)
+        return refused('no_voices', 'This chapter is linked to a folder with no voice tracks in it. Add a track inside the folder in REAPER, and save.');
+      return { outcome: 'selected', trackGuid: voiceFor(voices, chosenFor(chapterId)) };
+    },
     async boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice> {
       const { links, voices } = await voicesOf(chapterId);
-      if (links.length === 0) return refused('unlinked', 'This chapter has no linked track. Link it to its REAPER track in the audio engine panel.');
-      if (links.length > 1)
-        return refused('several_links', `This chapter is linked to ${links.length} tracks. Keep the one to record on, in the audio engine panel.`);
+      const notOne = linkRefusal(links);
+      if (notOne) return notOne;
       if (!voices) return refused('flat', FLAT);
       const target = voices.find((voice) => voice.guid.toLowerCase() === trackGuid.toLowerCase());
       if (!target) return refused('not_a_voice', NOT_A_VOICE);
-      chosen = { chapterId, guid: target.guid };
+      chosen.set(chapterId, target.guid);
       if (recording?.chapterId !== chapterId) return { outcome: 'selected', trackGuid: target.guid };
       return { outcome: 'switched', trackGuid: target.guid, at: recording.from + (Date.now() - recording.since) / 1000 };
     },

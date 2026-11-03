@@ -38,6 +38,7 @@ var swappableHostFields = map[string]bool{
 	"reachability":     true,
 	"bridge":           true,
 	"navigation":       true,
+	"boothVoices":      true,
 	"takeCreator":      true,
 	"takeSelector":     true,
 	"puncher":          true,

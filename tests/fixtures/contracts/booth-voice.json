@@ -4,6 +4,15 @@
     "reason": "flat",
     "message": "This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel)."
   },
+  "get_flat": {
+    "outcome": "refused",
+    "reason": "flat",
+    "message": "This chapter records on one track."
+  },
+  "get_selected": {
+    "outcome": "selected",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000002}"
+  },
   "not_a_voice": {
     "outcome": "refused",
     "reason": "not_a_voice",

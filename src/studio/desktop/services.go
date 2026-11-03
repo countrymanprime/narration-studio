@@ -30,10 +30,8 @@ import (
 // nil checks. The asset managers are not here: they are not project-scoped,
 // and the registry that holds them is built once (assetregistry.go).
 type hostServices struct {
-	config config
-	// boothVoice is the voice track the Booth chose for the chapter a record start is for (BoothVoiceSet), set only by the record
-	// bindings (servicesForRecording); "" lets the start take the chapter's Narrator voice.
-	boothVoice   string
+	config       config
+	boothVoices  *boothVoiceChoices
 	findings     *findings.Store
 	guide        *guide.Service
 	lineIdentity *lineidentity.Service
@@ -174,6 +172,7 @@ func (h *Host) services() hostServices {
 		bridge:           h.bridge,
 		actions:          h.actions,
 		navigation:       h.navigation,
+		boothVoices:      h.boothVoices,
 		takeCreator:      h.takeCreator,
 		takeSelector:     h.takeSelector,
 		puncher:          h.puncher,

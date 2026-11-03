@@ -11,8 +11,8 @@ afterEach(cleanup);
 
 const chapterId = WIRE_CHAPTERS[0].id;
 
-async function mount(seed: Parameters<typeof createMockApi>[1], recording = false) {
-  const api = createMockApi({}, seed);
+async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>) {
+  const api = given ?? createMockApi({}, seed);
   const notify = vi.fn();
   const hook: { current?: BoothVoices } = {};
   function Probe() {
@@ -47,6 +47,27 @@ describe("the Booth's voices", () => {
     await act(async () => new Promise((r) => setTimeout(r, 5)));
     expect(hook.current.current?.name).toBe('Extras');
     expect((await api.readAloudRecordStart(chapterId)).trackGuid).toBe('{V01CE-EXTRAS}');
+  });
+
+  it("the control shows the host's voice: a choice made before the Booth was left is still the one shown", async () => {
+    const first = await mount({ voiceFolders: true });
+    await act(async () => first.hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    cleanup();
+    const again = await mount({}, false, first.api);
+    for (let i = 0; i < 10 && again.hook.current.current?.name !== 'White Rabbit'; i++) await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(again.hook.current.current?.name).toBe('White Rabbit');
+    expect((await first.api.readAloudRecordStart(chapterId)).trackGuid).toBe('{V01CE-RABB1T}');
+  });
+
+  it("a failed read of the host's voice is a toast, and the voices are still listed", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.boothVoiceGet = async () => {
+      throw new Error('The host did not answer.');
+    };
+    const { notify, hook } = await mount({}, false, api);
+    expect(hook.current.voices.map((voice) => voice.name)).toEqual(['Narrator', 'White Rabbit', 'Extras']);
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('The host did not answer.'), 'error');
   });
 
   it('a key with no track changes nothing and says which', async () => {
