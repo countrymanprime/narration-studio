@@ -54,11 +54,13 @@ Add-Content -Path $project -Value '>' -Encoding ascii
 $env:NARRATION_CI_SESSION = $session; $env:NARRATION_CI_OUT = $out; $env:NARRATION_CI_CFG = $cfg
 $env:NARRATION_CI_AUDIO = $audio; $env:NARRATION_CI_REAPER_DIR = Join-Path $repo 'src\studio\integrations\reaper'
 
-# REAPER and its dialog handler run in the background; the driver talks to the bridge in the foreground.
+# REAPER and its dialog handler run in the background; the driver talks to the bridge in the foreground. The handler closes REAPER at
+# -TimeoutSec, so that must outlast the scenario suites (about 6 minutes here; 240 s closed REAPER mid-suite on 2026-11-03). The step's own
+# 25-minute limit still bounds a hang.
 $job = Start-Job -ArgumentList $repo, $cfg, $out, $project, $PSScriptRoot -ScriptBlock {
   param($repo, $cfg, $out, $project, $here)
   & pwsh -NoProfile -File (Join-Path $repo 'src\studio\integrations\reaper\spikes\run-reaper.ps1') -Cfg $cfg -Out $out `
-    -Script (Join-Path $repo 'src\studio\integrations\reaper\spikes\ci_real_reaper_launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 240 -LogFile (Join-Path $out 'launcher-log.txt') -IgnoreErrors
+    -Script (Join-Path $repo 'src\studio\integrations\reaper\spikes\ci_real_reaper_launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 1200 -LogFile (Join-Path $out 'launcher-log.txt') -IgnoreErrors
 }
 $rc = 1
 try {

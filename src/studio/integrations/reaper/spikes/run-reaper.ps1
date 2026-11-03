@@ -80,6 +80,7 @@ while ((Get-Date) -lt $deadline) {
       elseif ($text -match 'ReaScript Error' -or $w -match "title='ReaScript Error'") { $log += "ReaScript error dialog: $text"; [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]1, [IntPtr]0) }
       elseif ($w -match "title='REAPER New Version Notification'") { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]2, [IntPtr]0); $log += 'closed the new-version notice' }
       elseif ($w -match "title='Scanning VST plugins") { $log += 'plug-in scan dialog (ignored)' }
+      elseif ($w -match "title='Rendering to file") { $log += 'render progress window (ignored)' }
       elseif ($text -match 'Analyzing') { $log += 'peak building dialog (ignored)' }
       elseif ($text -match 'before closing') { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]7, [IntPtr]0); $log += 'answered No to a save prompt on close (the scratch copy is not kept)' }
       else { $log += "UNKNOWN DIALOG: $w :: $text" }
