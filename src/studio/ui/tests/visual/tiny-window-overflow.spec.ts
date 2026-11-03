@@ -115,3 +115,25 @@ for (const theme of ['light', 'dark'] as const) {
     expect(box.y + box.height, 'the popup stays above Record').toBeLessThanOrEqual(record.y + 1);
   });
 }
+
+// The footer's controls (Record, the timer, Levels, Cold read) wrap onto a second line rather than leaving the window (found by the QA pass: Cold read was cut off at 320 px).
+for (const theme of ['light', 'dark'] as const) {
+  for (const query of ['', '?mockEngine=builtin']) {
+    test(`Booth: every footer control is inside the window at 320x300 (${theme}${query ? ', built-in recorder' : ''})`, async ({ page }) => {
+      await open(page, `/booth${query}`, theme);
+      const out = await page.evaluate(() => {
+        const found: string[] = [];
+        for (const id of ['#btimer', '#blevels', '#bcold']) {
+          const el = document.querySelector<HTMLElement>(id);
+          if (!el) continue;
+          const r = el.getBoundingClientRect();
+          if (r.right > innerWidth + 0.5 || r.left < -0.5) found.push(`${id} ${Math.round(r.left)}-${Math.round(r.right)} of ${innerWidth}`);
+        }
+        const record = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim().toLowerCase() === 'record');
+        if (record && record.getBoundingClientRect().right > innerWidth + 0.5) found.push('Record');
+        return found;
+      });
+      expect(out).toEqual([]);
+    });
+  }
+}

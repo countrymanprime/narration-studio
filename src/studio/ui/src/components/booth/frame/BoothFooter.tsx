@@ -123,7 +123,8 @@ export function BoothFooter({
         little rows with the meter alone (R4BO1-1, R4BO2-7, XBO-10).
       */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] py-2.5">
-        <div className="flex flex-none items-center gap-4">
+        {/* The controls wrap onto a second line in a window too narrow for all four (320 px: Cold read would end 13 px past the edge). */}
+        <div className="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2">
           {record}
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
