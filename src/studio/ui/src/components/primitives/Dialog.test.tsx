@@ -162,6 +162,8 @@ describe('Dialog is a real modal', () => {
           {open && (
             <Dialog
               title="Go"
+              dismissOnOutsidePress={false}
+              actions={null}
               onClose={() => {
                 setOpen(false);
                 document.getElementById('destination')?.focus();
