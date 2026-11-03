@@ -391,6 +391,12 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'diagnostics-preview',
+    description: 'Settings, App & updates: the diagnostics bundle preview dialog, with the files it holds, what it leaves out and the leak check',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'about-download-confirm',
     description: 'Settings, App & updates: the confirm before an update is downloaded (?mockUpdate=available)',
     ...REFLOW,

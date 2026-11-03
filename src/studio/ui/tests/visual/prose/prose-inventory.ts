@@ -520,6 +520,16 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'state',
   },
   {
+    file: 'components/settings/controls/DiagnosticsSection.tsx',
+    text: 'A zip of how the app behaved, with no text, names or file paths from your books. Nothing is sent anywhere.',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/DiagnosticsSection.tsx',
+    text: 'Leak check: … … dropped for naming you or your project.',
+    class: 'state',
+  },
+  {
     file: 'components/settings/controls/AboutSection.tsx',
     text: 'The app is free software, licensed under the GNU Affero General Public License, version 3 or later.',
     class: 'state',

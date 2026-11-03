@@ -16,6 +16,7 @@ import { SettingsStoreProvider, useSettingsStore } from '../data/SettingsStore';
 import { isAnyChanged, isBrowserChanged, overrideValue } from '../data/values';
 import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
+import { DiagnosticsSection } from '../controls/DiagnosticsSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
 import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
@@ -251,7 +252,14 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
             onReset={() => void resetCategory(categoryRows(cat), store)}
             lit={lit}
-            extra={cat === 'app' ? <AboutSection /> : undefined}
+            extra={
+              cat === 'app' ? (
+                <>
+                  <AboutSection />
+                  <DiagnosticsSection />
+                </>
+              ) : undefined
+            }
           />
         )}
       </fieldset>

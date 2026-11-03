@@ -43,8 +43,6 @@ const UNWIRED = [
   'seriesSave',
   'subscribeDawProjectState',
   'subscribeRecorderLevel',
-  'systemDiagnosticsPreview',
-  'systemSaveDiagnostics',
   'systemOpenLogFolder',
   'takeComparisonCancel',
   'takeComparisonStart',

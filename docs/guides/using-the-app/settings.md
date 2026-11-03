@@ -285,6 +285,18 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 **Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log (turn it on when asked to send a log), and **Activity trace**, which records how the app behaved (the DAW connection, tool runs, crashes it survived) to `logs/trace.jsonl` and never your text, names or file paths. A build run from source has the trace on. **This version** follows them (see [About and updates](#about-and-updates)).
 
+### Diagnostics
+
+Under **This version**, the **Diagnostics** section has one row, **Diagnostics bundle**, with two icon buttons. **Preview the
+diagnostics bundle** opens a window that lists the files the bundle would hold, what it leaves out and why (sidecar
+output, the host log and the REAPER bridge's log are not included), and how many lines the leak check dropped for naming
+you or your project. It writes nothing. **Save the diagnostics bundle** asks for a folder, saves one zip there and copies its path;
+attach the zip to a GitHub issue yourself, since the app sends nothing. The bundle holds how the app behaved (screens,
+tool runs, the DAW connection, failures) and never your text, names or file paths. The **Activity trace** row above records
+it to disk; with it off, the bundle holds only what the app kept in memory since it started.
+
+![Settings - the diagnostics bundle preview](../../images/ui/settings-diagnostics-preview.webp)
+
 ### About and updates
 
 Under the rows of **App & updates**, the **This version** section has two rows: the version of the app you are running,
