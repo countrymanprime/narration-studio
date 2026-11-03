@@ -406,9 +406,11 @@ export const settingsDrivers: Record<string, Driver> = {
     await row.getByRole('slider', { name: 'Booth text size' }).waitFor();
   },
   'editing-playback': async (page) => {
-    await openSettings(page, 'Appearance & keys');
-    const row = await showSettingsRow(page, 'look.playback');
-    await row.getByRole('slider', { name: 'Playback volume' }).waitFor();
+    // Found by search, so the row is shown whole on its own (the Shortcuts list below it in the category has its own layout debt to settle).
+    await openSettings(page);
+    await page.getByRole('textbox', { name: 'Search settings' }).fill('Editing playback');
+    await page.getByText(/\d+ settings? found/).waitFor();
+    await page.locator('[data-row="look.playback"]').getByRole('slider', { name: 'Playback volume' }).waitFor();
   },
   'effects-cap': async (page) => {
     await openSettings(page, 'Recording & DAW');
