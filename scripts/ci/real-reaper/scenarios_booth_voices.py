@@ -444,6 +444,7 @@ def switch_voice_bridge(env: Env) -> str:
     assert armed == [0, 1], f"arms during the take {armed}"
     env.wait_for(lambda: position(env) > at + 1.5, timeout=8, what="Veyra's part to run")
     stopped = env.ok("record_stop", until="RECORD_STOPPED")
+    assert stopped[4] == "1", f"undo points {stopped[4]}: the arm writes of the switch must not count, or record_take undoes too much"
     env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
     tracks = per_track(settled_items(env, 2))
     assert set(tracks) == {"Narrator", "Veyra"} and all(len(rows) == 1 for rows in tracks.values()), tracks

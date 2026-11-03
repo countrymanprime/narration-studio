@@ -27,6 +27,10 @@
 -- GetPlayState reports recording, which may be a few defer cycles later. An optional third argument `end` first moves
 -- the edit cursor to the end of the last item on the named track (0 when empty), once every check has passed.
 --
+-- switch_voice moves a recording this bridge started to another voice track while REAPER keeps recording: the new track
+-- armed and the old one disarmed in one call (docs/research/2026-10-30-booth-sub-track-recording.md, sections 6a row 7 and
+-- 6b; pinned by transport_test.lua and roll_test.lua until the verification pass runs it with a real input).
+--
 -- RECORD_STOPPED and RECORD_ENDED end with undoPoints: how many points REAPER's undo history gained while the recording ran,
 -- read as the rise of GetProjectStateChangeCount from the start to the stop (REAPER 7.82 added one, "Recorded media", per
 -- stop, and two for a take with one roll, docs/research/reaper-recording-undo-2026-10-23.md). The bridge also keeps, for
@@ -108,22 +112,27 @@ end
 -- latest when several start there), else the last play position read while it recorded (auto-punch records only the
 -- time selection, so its item starts elsewhere), else nil.
 local STOP_EPSILON = 0.0005
---
--- After switch_voice the last voice's item starts just after the switch (64 ms in REAPER 7.82, section 6a row 7 of
--- docs/research/2026-10-30-booth-sub-track-recording.md), so on that voice it is the item starting within SWITCH_WINDOW
--- after the play position of the switch.
-local SWITCH_WINDOW = 0.5
+-- After switch_voice the last voice's item starts just after the switch (64 ms later in REAPER 7.82 at a 1024-frame device,
+-- section 6a row 7 of docs/research/2026-10-30-booth-sub-track-recording.md; the delay grows with the device's buffer), so on
+-- that voice it is the earliest item starting at or after the switch: audio already on that track later in the project
+-- starts after it.
 local function stopped_at(record)
   local track = find_track(record.track)
   local found
-  if track then
+  if track and record.switched_at then
+    local first
     for index = 0, reaper.CountTrackMediaItems(track) - 1 do
       local item = reaper.GetTrackMediaItem(track, index)
       local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
-      local switched_from = record.switched_at
-      local ours = switched_from and position >= switched_from - STOP_EPSILON and position <= switched_from + SWITCH_WINDOW
-        or not switched_from and math.abs(position - record.position) <= STOP_EPSILON
-      if ours then
+      if position >= record.switched_at - STOP_EPSILON and (not first or position < first) then
+        first, found = position, position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+      end
+    end
+  elseif track then
+    for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+      local item = reaper.GetTrackMediaItem(track, index)
+      local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+      if math.abs(position - record.position) <= STOP_EPSILON then
         local stop = position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
         found = math.max(found or stop, stop)
       end
@@ -452,6 +461,8 @@ local function play_from(session_dir, state, run_id, text, track_text)
     release_isolation(state)
   end
   local play_state = reaper.GetPlayState()
+  -- The app moves the cursor here: the stop guard must not put it back.
+  core.cursor_moved()
   if play_state % 2 == 1 then
     reaper.SetEditCurPos(seconds, true, true)
   else
@@ -514,6 +525,8 @@ local function play_range(session_dir, state, run_id, start_text, end_text, trac
     release_isolation(state)
   end
   local play_state = reaper.GetPlayState()
+  -- The app moves the cursor here: the stop guard must not put it back.
+  core.cursor_moved()
   if play_state % 2 == 1 then
     reaper.SetEditCurPos(start, true, true)
   else
@@ -789,6 +802,11 @@ local function switch_voice(session_dir, state, run_id, guid_text)
   end
   if not record.started then
     event(session_dir, 'ERROR', run_id, 'REAPER has not started recording yet.')
+    return
+  end
+  if not recording() then
+    -- The narrator stopped REAPER in this same cycle and the watch has not seen it yet: the take is over.
+    event(session_dir, 'RECORD_NOT_OURS', run_id)
     return
   end
   local target = find_track(guid_text)

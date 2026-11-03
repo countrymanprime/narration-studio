@@ -630,6 +630,30 @@ H.test('punch_to sent at once after a stop ends the guard too', function()
   H.eq(s.fake.cursor, 2)
 end)
 
+H.test('go_to and play_from sent at once after a stop end the guard too', function()
+  for _, send in ipairs({
+    function(s, track)
+      s:send('go_to', 'g1', track.guid, 'at', '2')
+    end,
+    function(s)
+      s:send('play_from', 'p1', '2')
+      s.fake.play_state = 0
+    end,
+  }) do
+    local s, chapter = new_session()
+    chapter.armed = true
+    s.fake.cursor, s.fake.record_seconds = 2, 5
+    s:send('record_start', 'r1', chapter.guid)
+    s:send('record_stop', 's1')
+    send(s, chapter)
+    s:events()
+    for _ = 1, 3 do
+      s:tick()
+    end
+    H.eq(s.fake.cursor, 2)
+  end
+end)
+
 -- switch_voice --------------------------------------------------------------------------------------------------
 
 -- A chapter folder of voices: Narrator and Queen, with the narrator's own arms on Pickups before the app armed anything.
@@ -707,7 +731,7 @@ H.test('switch_voice back to the voice already armed changes nothing and says so
 end)
 
 H.test('two switches in one take make three items, each voice where it was armed', function()
-  local s, narrator, queen = voice_session()
+  local s, narrator, queen, pickups = voice_session()
   s.fake.play_position = 2.5
   s:send('switch_voice', 'v1', queen.guid)
   s.fake.play_position = 3.5
@@ -720,6 +744,49 @@ H.test('two switches in one take make three items, each voice where it was armed
   end
   H.eq(spans, { { 'Narrator', 2, 2.5 }, { 'Queen', 2.564, 3.5 }, { 'Narrator', 3.564, 5 } })
   H.eq(s.fake.cursor, 5)
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { false, false, true }, "the narrator's own arms are back")
+end)
+
+H.test('switch_voice after the narrator stopped REAPER, before the watch noticed, changes nothing', function()
+  local registry
+  local s = H.session({
+    project_path = H.join(host.tmpdir(), 'Book.rpp'),
+    setup = function(r)
+      registry = r
+    end,
+  })
+  local narrator, queen = s.fake:add_track('Narrator'), s.fake:add_track('Queen')
+  s:send('arm_only', 'a1', narrator.guid)
+  s:send('record_start', 'r1', narrator.guid)
+  s:events()
+  s.fake:stop_recording()
+  -- The command runs in the same defer cycle as the stop, before the watch's tick sees it.
+  registry.lookup('switch_voice')({ session_dir = s.dir }, { 'v1', queen.guid })
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 'v1' } })
+  H.eq({ narrator.armed, queen.armed }, { true, false })
+end)
+
+H.test('a switch in a take started without arm_only remembers the arms then, and puts them back at the stop', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator, queen, pickups = s.fake:add_track('Narrator'), s.fake:add_track('Queen'), s.fake:add_track('Pickups')
+  narrator.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 3
+  s:send('record_start', 'r1', narrator.guid)
+  s.fake.play_position = 3
+  s:send('switch_voice', 'v1', queen.guid)
+  s:send('record_stop', 's1')
+  H.eq(s:events()[3], { 'RECORD_STOPPED', 's1', '2', '0', '1' })
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { true, false, false }, 'as before the take')
+end)
+
+H.test('a voice track added after arm_only is put back to unarmed at the stop', function()
+  local s, narrator, queen, pickups = voice_session()
+  local crowd = s.fake:add_track('Crowd')
+  s.fake.play_position = 3
+  s:send('switch_voice', 'v1', crowd.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq({ narrator.armed, queen.armed, pickups.armed, crowd.armed }, { false, false, true, false })
 end)
 
 H.test('switch_voice is refused with no recording this bridge started, and nothing changes', function()
@@ -748,4 +815,14 @@ H.test('switch_voice to a track that is gone answers TRACK_STALE and keeps recor
   s:send('switch_voice', 'v1', '{00000000-0000-0000-0000-000000000000}')
   H.eq(s:events(), { { 'TRACK_STALE', 'v1', '{00000000-0000-0000-0000-000000000000}' } })
   H.eq(narrator.armed, true)
+end)
+
+H.test('after a switch, audio already on the new voice later in the project does not move where the take stopped', function()
+  local s, _, queen = voice_session()
+  s.fake:add_item(queen, { position = 10, length = 2, source = 'later.wav' })
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 5, 'the end of the item the switch began, not of the later one')
 end)
