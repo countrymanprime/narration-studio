@@ -139,7 +139,9 @@ export function MasteringChain({
       actions={
         row && (
           <HelpButton label="About the mastering chain">
-            {`One chain for the book: ${row.label}, the same for every platform, with each platform's own RMS window and peak limit.`}
+            {
+              "One chain masters the whole book, for every platform. Master with chooses it: the built-in chain brings each file to the platform's RMS window and peak limit; your DAW's FX chain or an Audacity macro runs your own steps, and asks your approval before each export."
+            }
           </HelpButton>
         )
       }
@@ -191,7 +193,7 @@ export function MasteringChain({
             </ol>
           ) : (
             <p className="mt-2 text-sm" style={MUTED}>
-              The chain&apos;s steps are your DAW&apos;s own FX chain.
+              Its steps are set in your DAW, not by the app.
             </p>
           )}
         </>

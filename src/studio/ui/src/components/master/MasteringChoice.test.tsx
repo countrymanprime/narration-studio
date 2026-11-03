@@ -11,6 +11,8 @@ import { clearToasts, findToast, toastTexts } from '../../fixtures/toasts';
 import { overlay } from '../../overlay/overlayService';
 import { MASTERING_SAVE_NO_ANSWER, MasteringChain, useMasteringProviders } from './MasteringChain';
 import { MASTER_REQUEST_WAIT_MS } from './masterRequests';
+import { MasterToSpecPanel } from './MasterToSpecPanel';
+import { useExportJobs } from './useExportJobs';
 
 beforeEach(clearToasts);
 afterEach(() => {
@@ -173,5 +175,96 @@ describe("Master & QC's chain card: choosing the project's mastering row (#2739)
     await mount({ choice: 'audacity', unavailable: { audacity: "Audacity's effect macro is not available on this computer." } });
     expect(radio('Built-in chain (EQ, limiter, gain)').getAttribute('aria-checked')).toBe('true');
     expect(screen.getByRole('status').textContent).toContain('This project masters with the default');
+  });
+});
+
+// The chain card and Master to spec as MasterPage wires them: one save of the chain and one plan or start of the export share a
+// lock, so neither runs while the other waits (qa on #2929).
+function Page() {
+  const jobs = useExportJobs();
+  const mastering = useMasteringProviders();
+  const chain = mastering.providers?.providers.find((row) => row.name === mastering.providers?.effective);
+  return (
+    <>
+      <button type="button" onClick={() => void jobs.pick()}>
+        Pick
+      </button>
+      <MasterToSpecPanel jobs={jobs} chain={chain} onStartRefused={mastering.reload} />
+      <MasteringChain
+        providers={mastering.providers}
+        problem={mastering.problem}
+        saveProblem={mastering.saveProblem}
+        saving={mastering.saving}
+        locked={jobs.exportRunning || jobs.starting}
+        onChoose={mastering.choose}
+      />
+    </>
+  );
+}
+
+describe('the chain save and the export share one lock (qa on #2929)', () => {
+  it('Master & encode is held while a mastering save waits', async () => {
+    const api = createMockApi();
+    const choose = vi.spyOn(api, 'masteringChooseProvider').mockImplementation(() => new Promise(() => undefined));
+    const plan = vi.spyOn(api, 'exportPlan');
+    render(
+      <ApiProvider api={api}>
+        <Page />
+      </ApiProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Pick' }));
+    await screen.findByRole('radiogroup', { name: 'Master with' });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await userEvent.click(radio("Your DAW's FX chain"));
+    expect(choose).toHaveBeenCalledTimes(1);
+    const button = screen.getByRole('button', { name: /Master & encode/ });
+    expect(button.hasAttribute('disabled') || button.getAttribute('aria-disabled') === 'true').toBe(true);
+    await userEvent.click(button);
+    expect(plan).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    // The save that never answers frees the lock at the bound, for the tests after this one.
+    await act(async () => {
+      vi.advanceTimersByTime(MASTER_REQUEST_WAIT_MS + 1);
+    });
+  });
+
+  it('a press on a row while the export plan waits saves nothing', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'exportPlan').mockImplementation(() => new Promise(() => undefined));
+    const choose = vi.spyOn(api, 'masteringChooseProvider');
+    render(
+      <ApiProvider api={api}>
+        <Page />
+      </ApiProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Pick' }));
+    await screen.findByRole('radiogroup', { name: 'Master with' });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await userEvent.click(screen.getByRole('button', { name: 'Master & encode' }));
+    await userEvent.click(radio("Your DAW's FX chain"));
+    expect(choose).not.toHaveBeenCalled();
+    await act(async () => {
+      vi.advanceTimersByTime(MASTER_REQUEST_WAIT_MS + 1);
+    });
+  });
+});
+
+describe("the chain card's words (walkthrough of #2929)", () => {
+  it.each([
+    ['daw', "Your DAW's FX chain"],
+    ['audacity', "Audacity's effect macro"],
+  ])("a %s row whose steps are not the app's says they are set in the DAW, not that they are the DAW's FX chain", async (choice) => {
+    await mount({ choice });
+    expect(screen.getByText('Its steps are set in your DAW, not by the app.')).toBeTruthy();
+    expect(screen.queryByText(/your DAW's own FX chain/)).toBeNull();
+  });
+
+  it('the help describes the choice, not only the row chosen', async () => {
+    await mount({ choice: 'audacity' });
+    await userEvent.click(screen.getByRole('button', { name: 'About the mastering chain' }));
+    const help = await screen.findByText(/One chain masters the whole book/);
+    expect(help.textContent).toContain('built-in chain');
+    expect(help.textContent).toContain('your DAW');
+    cleanup();
   });
 });

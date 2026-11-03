@@ -135,7 +135,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'chain-saved',
     description:
-      "Master & QC's Mastering chain card after choosing Your DAW's FX chain - the choice moved once the host answered, and the card says the steps are the DAW's own FX chain",
+      "Master & QC's Mastering chain card after choosing Your DAW's FX chain - the choice moved once the host answered, and the card says its steps are set in the DAW",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

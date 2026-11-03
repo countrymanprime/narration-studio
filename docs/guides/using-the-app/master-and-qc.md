@@ -118,7 +118,7 @@ side by side.
 each chapter's region through the project's own track and master FX) or **Audacity's effect macro** (Audacity applies a macro of
 yours). Each export through the last two asks your approval first ([Mastering to spec](#mastering-to-spec)).
 The choice moves once the project has saved it. A chain this computer cannot use is off; rest the pointer on it, or move to it with
-the keyboard, to read why. While an export runs, the choice is held. If the project's saved chain cannot be used, the card says so
+the keyboard, to read why. While an export starts or runs, the choice is held, and while a choice is being saved, **Master & encode** waits. If the project's saved chain cannot be used, the card says so
 and the built-in chain is used until it can.
 
 ![The Mastering chain card with Master with: the built-in chain chosen, the DAW's FX chain and Audacity's effect macro beside it](../../images/ui/master-chain-choice.webp)

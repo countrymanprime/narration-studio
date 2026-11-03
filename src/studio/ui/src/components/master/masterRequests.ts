@@ -70,20 +70,19 @@ function createHostRequest() {
   };
 }
 
-// Starting the export: Master & encode's read of the plan, and the approval dialog's Approve.
-const exportStart = createHostRequest();
+// One lock for every Master & QC request that decides how the book is mastered: Master & encode's read of the plan, the approval
+// dialog's start, and the chain card's save of the mastering row. A save that lands while an export is being planned or started
+// would export with one row and then show another, so neither runs while the other waits (qa on #2929).
+const masteringLock = createHostRequest();
 
-/** Whether a request to plan or start the export is waiting for the host. */
-export const useExportStarting = exportStart.useWaiting;
+/** Whether a plan, a start or a save of the mastering row is waiting for the host. */
+export const useExportStarting = masteringLock.useWaiting;
 
-/** Sends a request to plan or start the export unless one waits (`createHostRequest`). */
-export const startExportRequest = exportStart.send;
+/** Sends a request to plan or start the export unless any request of the lock waits (`createHostRequest`). */
+export const startExportRequest = masteringLock.send;
 
-// Saving the project's mastering chain from the chain card.
-const masteringChoice = createHostRequest();
+/** Whether a plan, a start or a save of the mastering row is waiting for the host: the chain card holds its rows while it is. */
+export const useMasteringChoiceSaving = masteringLock.useWaiting;
 
-/** Whether a save of the project's mastering chain is waiting for the host. */
-export const useMasteringChoiceSaving = masteringChoice.useWaiting;
-
-/** Sends a save of the project's mastering chain unless one waits (`createHostRequest`). */
-export const saveMasteringChoiceRequest = masteringChoice.send;
+/** Sends a save of the project's mastering row unless any request of the lock waits (`createHostRequest`). */
+export const saveMasteringChoiceRequest = masteringLock.send;

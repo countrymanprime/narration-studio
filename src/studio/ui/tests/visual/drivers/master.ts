@@ -173,7 +173,7 @@ export const masterDrivers: Record<string, Driver> = {
     await openMaster(page);
     const daw = page.getByRole('radio', { name: "Your DAW's FX chain" });
     await daw.click();
-    await page.getByText("The chain's steps are your DAW's own FX chain.").waitFor();
+    await page.getByText('Its steps are set in your DAW, not by the app.').waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Mastering chain' }));
   },
   'chain-unavailable': async (page) => {
