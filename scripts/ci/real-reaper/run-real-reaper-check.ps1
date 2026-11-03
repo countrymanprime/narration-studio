@@ -62,7 +62,7 @@ $job = Start-Job -ArgumentList $repo, $cfg, $out, $project, $PSScriptRoot -Scrip
 }
 $rc = 1
 try {
-  & python (Join-Path $PSScriptRoot 'drive.py') run --session $session --out $out --target real --timeout 90
+  & python (Join-Path $PSScriptRoot 'drive.py') run --session $session --out $out --target real --timeout 90 --suite
   $rc = $LASTEXITCODE
 } finally {
   # A failed or stalled run must leave evidence of what REAPER showed: windows, a screenshot, the scratch cfg and session folders.
