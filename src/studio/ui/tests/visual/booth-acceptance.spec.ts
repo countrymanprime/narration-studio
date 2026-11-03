@@ -3,6 +3,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
+import { showChapterTop } from './helpers/viewTop';
 import { chooseMicrophone, chooseTheme, goToPage } from './drivers/shared';
 
 // The side panel is a drawer below 1360 px; the rows that read it are driven at the desktop size.
@@ -45,6 +46,8 @@ test('row 1: open the Booth on a chosen chapter', async ({ page }) => {
 
 test('row 2: the text reads whole words, in order', async ({ page }) => {
   await open(page);
+  // Chapter 1 opens at ¶ 14; the browser leaves the paragraphs far from the view undrawn, so look at the top first.
+  await showChapterTop(page);
   const words = await page.locator('[data-booth-text] [data-word]').allTextContents();
   expect(words.length).toBeGreaterThan(50);
   for (const word of words) expect(word, `a word with a space inside: "${word}"`).not.toMatch(/\s\S|\S\s/);

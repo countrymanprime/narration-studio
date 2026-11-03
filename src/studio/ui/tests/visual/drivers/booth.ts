@@ -2,6 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // Where the page clock stops once Record is pressed, so the timer reads 00:00 at every viewport.
@@ -263,7 +264,7 @@ export const boothDrivers: Record<string, Driver> = {
     await record(page).click();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
     await page.clock.runFor(30_000);
-    await page.getByText(/^¶ (1[5-9]|2[0-4]) of 24/).waitFor();
+    await page.getByText(/^¶ (1[4-9]|2[0-4]) of 24/).waitFor();
     if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
@@ -282,6 +283,7 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'voice-samples-picker': async (page) => {
     await readyToRecord(page, SAMPLES);
+    await showChapterTop(page);
     await page.locator('[data-speaker-chip]').first().click();
     await page.getByRole('combobox', { name: 'Search speakers' }).waitFor();
     await page

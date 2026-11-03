@@ -28,7 +28,7 @@ async function openLive(page: Page, script: string, extra = ''): Promise<void> {
   await page.goto(`/?mockDaw=${script}${extra}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
-  await page.getByRole('group', { name: /^Recorded through/ }).waitFor();
+  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
 }
 
 /** What the mock DAW holds, read through the handle a driver plays REAPER's side with. */
@@ -40,7 +40,7 @@ async function linkProject(page: Page): Promise<void> {
   await dialog(page).getByRole('button', { name: 'Link in Settings' }).click();
   await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
   await goToPage(page, 'Booth');
-  await page.getByRole('group', { name: /^Recorded through/ }).waitFor();
+  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
 }
 
 // Nothing to switch on: on a fresh machine Record is off only because REAPER is not connected, and the connect steps are up.

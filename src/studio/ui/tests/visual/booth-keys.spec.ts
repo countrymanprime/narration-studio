@@ -5,6 +5,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
+import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
@@ -104,6 +105,7 @@ const OVERLAYS: Overlay[] = [
     name: 'speaker popover (a named speaker)',
     typesSpace: true,
     open: async (page) => {
+      await showChapterTop(page);
       const opener = page.getByRole('button', { name: /^Speaker Hatter\. Change speaker/ });
       await opener.click();
       return { popup: page.locator('[data-popover-popup]').last(), opener };
@@ -131,6 +133,7 @@ const OVERLAYS: Overlay[] = [
     name: 'right-click menu on a word',
     menu: true,
     open: async (page) => {
+      await showChapterTop(page);
       await page.locator('[data-word]').nth(40).click({ button: 'right' });
       return { popup: page.getByRole('menu').last(), opener: null };
     },
