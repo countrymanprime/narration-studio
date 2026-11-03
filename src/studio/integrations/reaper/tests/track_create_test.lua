@@ -242,3 +242,137 @@ H.test('track_create with a parent refuses while REAPER records and adds nothing
   H.eq(s:events(), { { 'ERROR', 'c1', 'REAPER is recording. Stop recording first.' } })
   H.eq(#s.fake.tracks, before)
 end)
+
+-- A chapter folder for a Voice folders project (#2840, part 2): track_create|run|name||childName appends, after every track, a folder named
+-- name holding one child named childName (the Narrator), in one undo block, and answers TRACK_CREATED with the folder, then the child. A
+-- folder left open at the end of the project is closed on its last track first, so the new folder is never nested inside the chapter before
+-- it: that is the only depth change to a track that was there.
+local FOLDER = '{00000003-0000-4000-8000-000000000003}'
+local CHILD = '{00000004-0000-4000-8000-000000000004}'
+
+local function snapshot(s)
+  local out = {}
+  for _, track in ipairs(s.fake.tracks) do
+    out[#out + 1] = { track.guid, track.name, track.folder_depth or 0, track.selected or false, track.armed or false, track.muted or false }
+  end
+  return out
+end
+
+H.test('track_create with a child name appends a folder and its one child at the end and answers both', function()
+  local s, first, pickups = new_session()
+  s:send('track_create', 'c1', 'Chapter 2: The Storm', '', 'Narrator')
+  H.eq(s:events(), { { 'TRACK_CREATED', 'c1', FOLDER, '2', 'Chapter 2: The Storm', CHILD, '3', 'Narrator' } })
+  H.eq(s.fake.tracks[1], first)
+  H.eq(s.fake.tracks[2], pickups)
+  H.eq(depths(s), { { 'Chapter 1', 0 }, { 'Pickups', 0 }, { 'Chapter 2: The Storm', 1 }, { 'Narrator', -1 } })
+end)
+
+H.test('track_create of a folder inserts only after the last track', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator')
+  local inserts = {}
+  for _, call in ipairs(s.fake.calls) do
+    if call.name == 'InsertTrackAtIndex' then
+      inserts[#inserts + 1] = call.index
+    end
+  end
+  H.eq(inserts, { 2, 3 })
+end)
+
+H.test('track_create of a folder leaves every track that was there as it was when every folder closes', function()
+  local s, t = folder_session()
+  t.book.selected, t.narrator.armed, t.after.muted = true, true, true
+  local before = snapshot(s)
+  s:send('track_create', 'c1', 'Chapter 4', '', 'Narrator')
+  local after = snapshot(s)
+  H.eq(#after, #before + 2)
+  for index, row in ipairs(before) do
+    H.eq(after[index], row)
+  end
+  H.eq({ after[#after - 1][2], after[#after - 1][3], after[#after][2], after[#after][3] }, { 'Chapter 4', 1, 'Narrator', -1 })
+end)
+
+H.test('track_create of a folder closes a folder left open at the end on its last track, and changes no other depth', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local fake = s.fake
+  local ch7 = fake:add_track('Ch 7')
+  fake:add_track('Narrator')
+  local alice = fake:add_track('Alice')
+  local ch8 = fake:add_track('Ch 8')
+  fake:add_track('Narrator')
+  fake:add_track('Queen')
+  ch7.folder_depth, alice.folder_depth, ch8.folder_depth = 1, -1, 1
+  s:send('track_create', 'c1', 'Chapter 9', '', 'Narrator')
+  H.eq(depths(s), {
+    { 'Ch 7', 1 },
+    { 'Narrator', 0 },
+    { 'Alice', -1 },
+    { 'Ch 8', 1 },
+    { 'Narrator', 0 },
+    { 'Queen', -1 },
+    { 'Chapter 9', 1 },
+    { 'Narrator', -1 },
+  })
+end)
+
+H.test('track_create of a folder closes two nested folders left open at the end', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local book, ch1 = s.fake:add_track('Book'), s.fake:add_track('Chapter 1')
+  s.fake:add_track('Narrator')
+  book.folder_depth, ch1.folder_depth = 1, 1
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator')
+  H.eq(depths(s), { { 'Book', 1 }, { 'Chapter 1', 1 }, { 'Narrator', -2 }, { 'Chapter 2', 1 }, { 'Narrator', -1 } })
+end)
+
+H.test('track_create of a folder in an empty project adds the folder at index 0 and its child at 1', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  s:send('track_create', 'c1', 'Chapter 1', '', 'Narrator')
+  H.eq(s:events(), {
+    { 'TRACK_CREATED', 'c1', '{00000001-0000-4000-8000-000000000001}', '0', 'Chapter 1', '{00000002-0000-4000-8000-000000000002}', '1', 'Narrator' },
+  })
+  H.eq(depths(s), { { 'Chapter 1', 1 }, { 'Narrator', -1 } })
+end)
+
+H.test('track_create of a folder is one undo point named for the app and leaves no block open', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator')
+  H.eq(#s.fake.undo, 1)
+  H.eq(s.fake.undo[1].label, H.brand.name .. ': add track')
+  H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('track_create of a folder refuses while REAPER records and changes nothing, not even an open folder', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local ch = s.fake:add_track('Ch 8')
+  s.fake:add_track('Narrator')
+  ch.folder_depth = 1
+  s.fake.play_state = 5
+  s:send('track_create', 'c1', 'Chapter 9', '', 'Narrator')
+  H.eq(s:events(), { { 'ERROR', 'c1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(depths(s), { { 'Ch 8', 1 }, { 'Narrator', 0 } })
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('track_create of a folder refuses a blank folder name and adds nothing', function()
+  local s = new_session()
+  s:send('track_create', 'c1', '  ', '', 'Narrator')
+  H.eq(s:events(), { { 'ERROR', 'c1', 'The new track needs a name.' } })
+  H.eq(#s.fake.tracks, 2)
+end)
+
+H.test('track_create refuses both a parent and a child name, and adds nothing', function()
+  local s, t = folder_session()
+  local before = #s.fake.tracks
+  s:send('track_create', 'c1', 'Chapter 4', t.folder.guid, 'Narrator')
+  H.eq(s:events(), { { 'ERROR', 'c1', 'A new track goes inside a folder or makes a folder, not both.' } })
+  H.eq(#s.fake.tracks, before)
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('track_create of a folder keeps emoji and right-to-left text in the folder name and cleans line breaks', function()
+  local s = new_session()
+  local name = 'Chapter 7 \u{1F30A} \u{05D4}\u{05D9}\u{05DD} \u{0627}\u{0644}\u{0628}\u{062D}\u{0631} | 100%'
+  s:send('track_create', 'c1', name .. '\nPart\tOne', '', 'Narrator')
+  H.eq(s.fake.tracks[3].name, name .. ' Part One')
+  H.eq(s:events()[1][5], name .. ' Part One')
+end)

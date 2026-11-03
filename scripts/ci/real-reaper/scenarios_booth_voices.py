@@ -697,3 +697,75 @@ def track_create_in_folder(env: Env) -> str:
     stale = env.send("track_create", "Ghost", "{00000000-0000-4000-8000-0000000000DE}", until={"TRACK_CREATED", "TRACK_STALE"})
     assert stale[-1][0] == "TRACK_STALE" and len(structure(env)) == count + 1, f"stale parent answered {stale}"
     return f"created at index {created[3]}, undo {undo!r}; after save and reload {[(r['name'], r['delta']) for r in rows]}; ISBUS {isbus_lines(env)}; Veyra input {veyra['input']}; a gone parent answered TRACK_STALE and added nothing"
+
+
+@scenario(
+    "booth_voices",
+    "track_create, (snippet) Undo_DoUndo2",
+    "#2840 part 2: track_create with a child name appends a chapter folder and its Narrator after a project whose last folder is left open; the "
+    "open folder is closed on its last track, no other depth moves, both survive save and reload, and one Undo removes the folder, its child and "
+    "the close",
+)
+def track_create_chapter_folder(env: Env) -> str:
+    env.lua(
+        """
+        local ch7 = ci.add_track('Ch 7')
+        ci.add_track('Narrator')
+        local alice = ci.add_track('Alice')
+        local ch8 = ci.add_track('Ch 8')
+        ci.add_track('Narrator')
+        ci.add_track('Queen')
+        reaper.SetMediaTrackInfo_Value(ch7, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(alice, 'I_FOLDERDEPTH', -1)
+        reaper.SetMediaTrackInfo_Value(ch8, 'I_FOLDERDEPTH', 1)
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    before = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    # REAPER keeps the last folder open on a last track whose depth change leaves it open (#2251): Queen is inside Ch 8 with a 0 change.
+    assert before == [
+        ("Ch 7", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 7"),
+        ("Alice", -1, 1, "Ch 7"),
+        ("Ch 8", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 8"),
+        ("Queen", 0, 1, "Ch 8"),
+    ], before
+    undo_before = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    created = env.ok("track_create", "Chapter 9: The Mock Turtle's Story", "", "Narrator", until="TRACK_CREATED")
+    assert created[3:5] == ["6", "Chapter 9: The Mock Turtle's Story"] and created[6:8] == ["7", "Narrator"], f"created {created}"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    assert undo.endswith(": add track"), f"undo point {undo!r}"
+    after = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    want = [
+        ("Ch 7", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 7"),
+        ("Alice", -1, 1, "Ch 7"),
+        ("Ch 8", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 8"),
+        ("Queen", -1, 1, "Ch 8"),
+        ("Chapter 9: The Mock Turtle's Story", 1, 0, ""),
+        ("Narrator", -1, 1, "Chapter 9: The Mock Turtle's Story"),
+    ]
+    assert after == want, after
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    reloaded = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert reloaded == want, reloaded
+    isbus = isbus_lines(env)
+    # One Undo takes back the whole create: the two tracks and Queen's close. The reload above cleared the history, so make it again.
+    env.lua(
+        """
+        local queen = ci.track_by_name('Queen')
+        reaper.SetMediaTrackInfo_Value(queen, 'I_FOLDERDEPTH', 0)
+        for i = reaper.CountTracks(0) - 1, 6, -1 do reaper.DeleteTrack(reaper.GetTrack(0, i)) end
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    assert [(r["name"], r["delta"]) for r in structure(env)] == [(n, d) for n, d, _, _ in before], "the reset project differs from the first"
+    env.ok("track_create", "Chapter 9: The Mock Turtle's Story", "", "Narrator", until="TRACK_CREATED")
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    undone = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert undone == before, f"one Undo left {undone}"
+    return f"undo before {undo_before!r}, after {undo!r}; tracks after {[(n, d) for n, d, _, _ in after]}; same after save and reload; ISBUS {isbus}; one Undo restored {[(n, d) for n, d, _, _ in undone]}"

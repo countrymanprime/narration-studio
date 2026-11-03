@@ -15,7 +15,13 @@
 -- its child. The new track records from the same input and mode as the folder's first child (the parent's own when it has none). A parent
 -- that is gone answers TRACK_STALE and adds nothing.
 --
--- Events: TRACK_CREATED|run|guid|index|name, TRACK_STALE|run|parentGuid, or ERROR|run|message.
+-- track_create|run|name||childName adds a chapter folder for a Voice folders project (#2840, part 2): a folder named name and, inside it,
+-- one child named childName (the host sends "Narrator"), both after every other track, in the same one undo block. A folder left open at the
+-- end of the project (REAPER accepts a last track whose I_FOLDERDEPTH leaves one open) is first closed on that last track, so the new folder
+-- is never nested inside the chapter before it; that is the only change to a track that was there. It answers
+-- TRACK_CREATED|run|guid|index|name|childGuid|childIndex|childName. A parent and a child name together are refused.
+--
+-- Events: TRACK_CREATED|run|guid|index|name[|childGuid|childIndex|childName], TRACK_STALE|run|parentGuid, or ERROR|run|message.
 
 local core = ...
 local event = core.event
@@ -23,6 +29,7 @@ local event = core.event
 local UNDO_ADD_TRACK = core.brand.name .. ': add track'
 local RECORDING = 'REAPER is recording. Stop recording first.'
 local NO_NAME = 'The new track needs a name.'
+local BOTH = 'A new track goes inside a folder or makes a folder, not both.'
 
 local function recording()
   return math.floor(reaper.GetPlayState() / 4) % 2 == 1
@@ -79,7 +86,40 @@ local function insert_child(parent_index, depths)
   return index
 end
 
-local function track_create(session_dir, run_id, name_text, parent_text)
+-- Closes every folder the last track leaves open by lowering its depth change by that many, and answers the index after it. This is the
+-- open-folder close #2877 adds to every append as core.append_track; only the folder append uses it here until that lands.
+local function close_open_folders()
+  local count = reaper.CountTracks(0)
+  local open = 0
+  for index = 0, count - 1 do
+    open = math.max(open + reaper.GetMediaTrackInfo_Value(reaper.GetTrack(0, index), 'I_FOLDERDEPTH'), 0)
+  end
+  if open > 0 then
+    local last = reaper.GetTrack(0, count - 1)
+    reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', reaper.GetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH') - open)
+  end
+  return count
+end
+
+-- Inside the undo block: the folder named name and its one child named child_name, appended after every track. Answers both and their indexes.
+local function append_folder(name, child_name)
+  local index = close_open_folders()
+  reaper.InsertTrackAtIndex(index, false)
+  reaper.InsertTrackAtIndex(index + 1, false)
+  local folder, child = reaper.GetTrack(0, index), reaper.GetTrack(0, index + 1)
+  reaper.SetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH', 1)
+  reaper.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)
+  reaper.GetSetMediaTrackInfo_String(folder, 'P_NAME', name, true)
+  reaper.GetSetMediaTrackInfo_String(child, 'P_NAME', child_name, true)
+  return folder, index, child, index + 1
+end
+
+local function stored_name(track)
+  local _, stored = reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', '', false)
+  return stored
+end
+
+local function track_create(session_dir, run_id, name_text, parent_text, child_text)
   local name = clean_name(name_text)
   if name == '' then
     event(session_dir, 'ERROR', run_id, NO_NAME)
@@ -90,6 +130,29 @@ local function track_create(session_dir, run_id, name_text, parent_text)
     return
   end
   local parent_guid = normalize_guid(parent_text)
+  local child_name = clean_name(child_text)
+  if child_name ~= '' then
+    if parent_guid ~= '' then
+      event(session_dir, 'ERROR', run_id, BOTH)
+      return
+    end
+    reaper.Undo_BeginBlock2(0)
+    local folder, index, child, child_index = append_folder(name, child_name)
+    reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)
+    reaper.UpdateArrange()
+    event(
+      session_dir,
+      'TRACK_CREATED',
+      run_id,
+      reaper.GetTrackGUID(folder),
+      index,
+      stored_name(folder),
+      reaper.GetTrackGUID(child),
+      child_index,
+      stored_name(child)
+    )
+    return
+  end
   local parent_index, depths
   if parent_guid ~= '' then
     parent_index, depths = locate(parent_guid)
@@ -116,6 +179,6 @@ end
 
 return function(registry)
   registry.register('track_create', function(ctx, args)
-    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
+    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
   end)
 end
