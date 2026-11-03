@@ -139,13 +139,15 @@ func newBoothVoiceChoices() *boothVoiceChoices {
 	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}}
 }
 
-// lockAdding holds an add's checks and its track_create together; the answer unlocks it. A nil one locks nothing.
-func (c *boothVoiceChoices) lockAdding() func() {
+// whileAdding runs one add's checks, its track_create and its answer while no other add runs. A nil one runs it unguarded.
+func (c *boothVoiceChoices) whileAdding(run func()) {
 	if c == nil {
-		return func() {}
+		run()
+		return
 	}
 	c.adding.Lock()
-	return c.adding.Unlock
+	defer c.adding.Unlock()
+	run()
 }
 
 // add remembers that the Booth added voice to the folder folderGUID.
