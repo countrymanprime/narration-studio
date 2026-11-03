@@ -330,6 +330,8 @@ saves from the note, and **Esc** closes. So with the right character already cho
 
 ![Editing - Voice sample on four selected words: the character, the words with Play range, the label and note, and Save sample](../../images/ui/editing-voice-sample-dialog.webp)
 
+The line under **Make primary** says where the sample will be kept, from **Voice sample storage** in [Settings](settings.md#recording--daw): in the project folder, as a region in REAPER's project, or both. With a region, saving adds a region named for the character and label to REAPER's project (one undo step in REAPER) and the sample plays whatever lies under it, so save the project in REAPER before expecting it to play; if REAPER cannot add it (it is recording, or not linked) nothing is saved and the dialog says so.
+
 Saving copies the raw recording of those words, as it was before editing, with a short margin either side cut at a quiet point,
 into <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples in the project folder. Nothing leaves your computer, and the clip does not change if you
 later cut, re-record or move the chapter. A message says "Saved voice sample for" the character, with **Undo** for ten seconds, which removes

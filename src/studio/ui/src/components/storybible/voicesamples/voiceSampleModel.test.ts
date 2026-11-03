@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GuideEntity, GuideType } from '../../../api/contracts/storyBible';
 import type { VoiceSample, VoiceSamples } from '../../../api/contracts/voiceSamples';
-import { clipProblem, mebibytes, moveChoices, orphanSamples, passageBadge, sampleLength, sampleName, samplesOf } from './voiceSampleModel';
+import { clipProblem, dawBadge, mebibytes, moveChoices, orphanSamples, passageBadge, sampleLength, sampleName, samplesOf } from './voiceSampleModel';
 
 const sample = (over: Partial<VoiceSample> = {}): VoiceSample => ({
   id: 'a'.repeat(32),
@@ -108,5 +108,34 @@ describe('names and groups', () => {
       { id: 'z', name: 'Zed' },
     ]);
     expect(moveChoices([], [])).toEqual([{ id: 'narration', name: 'Narration' }]);
+  });
+});
+
+describe('a sample kept in the DAW', () => {
+  const daw = (state: NonNullable<VoiceSample['daw']>['state']): NonNullable<VoiceSample['daw']> => ({ state, name: 'Voice sample: Queen - Furious [aaaaaa]', start: 0, end: 0 });
+  const only = (state: NonNullable<VoiceSample['daw']>['state'], clipState: VoiceSample['clipState']) => sample({ storage: 'daw', daw: daw(state), clipState });
+
+  it('plays while its region is there, moved or not', () => {
+    expect(clipProblem(only('ok', 'ok'))).toBeUndefined();
+    expect(clipProblem(only('label_moved', 'ok'))).toBeUndefined();
+  });
+
+  it('says why it cannot play: the region ended, is not saved yet, has no audio, or the project cannot be read', () => {
+    expect(clipProblem(only('label_missing', 'missing'))?.badge).toBe('Region removed');
+    expect(clipProblem(only('not_saved', 'missing'))?.badge).toBe('Not saved in REAPER yet');
+    expect(clipProblem(only('not_saved', 'missing'))?.sentence).toMatch(/Save the project in REAPER/);
+    expect(clipProblem(only('source_missing', 'missing'))?.badge).toBe('Audio missing');
+    expect(clipProblem(only('project_unreadable', 'missing'))?.badge).toBe('Project unreadable');
+  });
+
+  it('a copy kept as well still plays, with a badge when its region is not as it was', () => {
+    const both = (state: NonNullable<VoiceSample['daw']>['state']) => sample({ storage: 'both', daw: daw(state) });
+    expect(clipProblem(both('label_missing'))).toBeUndefined();
+    expect(dawBadge(both('ok'))).toBeUndefined();
+    expect(dawBadge(both('label_moved'))?.badge).toBe('Region moved');
+    expect(dawBadge(both('label_missing'))?.badge).toBe('Region removed');
+    expect(dawBadge(both('not_saved'))?.badge).toBe('Not saved in REAPER yet');
+    expect(dawBadge(sample())).toBeUndefined();
+    expect(dawBadge(only('label_missing', 'missing'))).toBeUndefined();
   });
 });

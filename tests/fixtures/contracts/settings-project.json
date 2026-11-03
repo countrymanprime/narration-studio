@@ -1193,7 +1193,9 @@
   "VoiceSamples": [
     {
       "choices": [
-        "project"
+        "project",
+        "daw",
+        "both"
       ],
       "effectiveSource": "repo_default",
       "effectiveValue": "project",

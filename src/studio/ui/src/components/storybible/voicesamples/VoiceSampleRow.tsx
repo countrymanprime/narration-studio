@@ -7,7 +7,7 @@ import { Menu, type MenuItem } from '../../primitives/Menu';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { SamplePlayButton } from '../../voicesamples/SamplePlayButton';
 import type { SamplePlayerStatus } from '../../voicesamples/samplePlayerStore';
-import { clipProblem, passageBadge, sampleLength, sampleName } from './voiceSampleModel';
+import { clipProblem, dawBadge, passageBadge, sampleLength, sampleName } from './voiceSampleModel';
 
 /** The DOM id of a sample's row, so focus can move to it after a delete. */
 export const voiceSampleRowId = (id: string): string => `voice-sample-${id}`;
@@ -59,6 +59,7 @@ export function VoiceSampleRow({
 }: VoiceSampleRowProps) {
   const problem = clipProblem(sample);
   const passage = passageBadge(sample);
+  const region = dawBadge(sample);
   const name = sampleName(sample, characterName);
   const chapterThere = sample.source.state !== 'chapter_missing';
   // Marking again is offered only while the words are as they were: otherwise the range would be found in text that moved.
@@ -112,6 +113,11 @@ export function VoiceSampleRow({
           {passage ? (
             <span title={passage.hint}>
               <StatusBadge tone="warning" label={passage.badge} />
+            </span>
+          ) : null}
+          {region ? (
+            <span title={region.hint}>
+              <StatusBadge tone="warning" label={region.badge} />
             </span>
           ) : null}
           {problem ? <StatusBadge tone="danger" label={problem.badge} /> : null}
