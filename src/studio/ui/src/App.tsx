@@ -645,8 +645,8 @@ function AppRoutes() {
   // The jump menu's own commands: Settings categories, Import and Replace manuscript, the theme, fixed zoom steps and a labelled Undo.
   useShellCommands({
     hasManuscript,
+    // No `isModalOpen()` guard: these run from a jump-menu row, and the menu is still in the document while its row runs (#2792).
     openSettings: (categoryId) => {
-      if (isModalOpen()) return;
       settingsOrigin.markLink();
       guardedNavigateRef.current(categoryId ? `${addressPagePath('settings')}#category-${categoryId}` : addressPagePath('settings'));
     },
