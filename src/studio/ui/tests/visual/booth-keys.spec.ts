@@ -105,8 +105,8 @@ const OVERLAYS: Overlay[] = [
     name: 'speaker popover (a named speaker)',
     typesSpace: true,
     open: async (page) => {
-      await showChapterTop(page);
       const opener = page.getByRole('button', { name: /^Speaker Hatter\. Change speaker/ });
+      await showChapterTop(page, opener);
       await opener.click();
       return { popup: page.locator('[data-popover-popup]').last(), opener };
     },

@@ -1,26 +1,26 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 /**
- * Moves the Booth's view to the top of the chapter without moving the reading position. The mock's Chapter 1 opens at ¶ 14, where its
- * recording ends (#2633), so its first lines sit above the view; a test that works on them wheels up first. The wheel moves the view
- * by pixels and stops at the top (`useBrowseView`); the text eases there, so the first paragraph is waited for inside the window.
+ * Moves the Booth's view so `target` (default: the first word of the first body paragraph) is well inside the window, without moving the
+ * reading position. The mock's Chapter 1 opens at ¶ 14, where its recording ends (#2633), so its first lines sit above the view; a test
+ * that works on them wheels up first. The wheel moves the view by pixels and stops at the top (`useBrowseView`), the column starts 30vh
+ * below that stop, and the text eases, so the view is then nudged either way until the target is in the window.
  */
-export async function showChapterTop(page: Page): Promise<void> {
-  const word = page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first();
+export async function showChapterTop(page: Page, target?: Locator): Promise<void> {
+  const word = target ?? page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first();
   const size = page.viewportSize() ?? { width: 1280, height: 800 };
   await word.waitFor({ state: 'attached' });
   const inWindow = async (): Promise<boolean> => {
     const box = await word.boundingBox();
-    return !!box && box.x >= 0 && box.x + box.width <= size.width && box.y > 0 && box.y + box.height < size.height;
+    return !!box && box.x >= 0 && box.x + box.width <= size.width && box.y > 0 && box.y + box.height < size.height * 0.9;
   };
   await page.locator('[data-booth-text]').hover();
   await page.mouse.wheel(0, -200_000);
-  // The column starts 30vh below the top of the view's range, so on a tall narrow window the first paragraph sits below the fold until the
-  // view is moved down a little; it is nudged until the word is well inside the window.
-  for (let tries = 0; tries < 30; tries++) {
+  for (let tries = 0; tries < 40; tries++) {
     if (await inWindow()) return;
     const box = await word.boundingBox();
     if (box && box.y >= size.height * 0.6) await page.mouse.wheel(0, 120);
+    else if (box && box.y <= 0) await page.mouse.wheel(0, -120);
     await page.waitForTimeout(100);
   }
   if (await inWindow()) return;
