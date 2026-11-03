@@ -56,17 +56,13 @@ describe('useTextMatches, keyed by the measured file (#2105)', () => {
     await waitFor(() => expect(Object.keys(result.current)).toEqual([files[0]!.path]));
   });
 
-  // Q1: "chapter 1" is inside "chapter 10", so the file-to-chapter rule can name more than one chapter; then the file has no figure.
-  it('gives a file no figure when its name matches more than one chapter: Chapter 10.wav is not Chapter 1', async () => {
+  // Q1: "chapter 1" is inside "chapter 10"; the whole-word title decides, so Chapter 10.wav is Chapter 10's, never Chapter 1's.
+  it('credits Chapter 10.wav to Chapter 10, and carries the chapter it was read for', async () => {
     const chapters = makeChapters({ shape: 'titleAndSubtitle', count: 11 });
     const read = vi.fn(async (id: string) => current(id, id === 'chapter-1' ? 100 : 40));
     const files = [passing('Chapter 10.wav')];
     const { result } = renderHook(() => useTextMatches(chapters, files), { wrapper: reads(read) });
-    await Promise.resolve();
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(result.current[files[0]!.path]).toBeUndefined();
+    await waitFor(() => expect(result.current[files[0]!.path]).toEqual({ percent: 40, met: true, chapterId: 'chapter-10' }));
     expect(read).not.toHaveBeenCalledWith('chapter-1');
   });
 
@@ -132,13 +128,13 @@ describe('useTextMatches, keyed by the measured file (#2105)', () => {
     const files = [passing('Chapter 01.wav')];
     const path = files[0]!.path;
     const { result } = renderHook(() => useTextMatches(chapters, files), { wrapper });
-    await waitFor(() => expect(result.current[path]).toEqual({ percent: 90, met: true }));
+    await waitFor(() => expect(result.current[path]).toMatchObject({ percent: 90, met: true }));
 
     // The check runs again and finds less: a running state changes nothing, the ended one is read.
     stored = { ...current(id), result: { bodyTokens: 100, presentTokens: 70 } as never, judgement: { ...current(id).judgement!, state: 'not_met' } };
     act(() => notify({ phase: 'running', percent: 10, message: '' }));
     act(() => notify({ phase: 'complete', percent: 100, message: '' }));
-    await waitFor(() => expect(result.current[path]).toEqual({ percent: 70, met: false }));
+    await waitFor(() => expect(result.current[path]).toMatchObject({ percent: 70, met: false }));
 
     // The recording changes after that: the stored check is stale, so the figure goes ("Not checked") when the window comes back.
     stored = { chapterId: id, state: 'stale', reasons: ['item_trimmed'], result: stored.result, judgement: stored.judgement };

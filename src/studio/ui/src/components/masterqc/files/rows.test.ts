@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildChapterRows, openingId, SAMPLE_ROW_ID } from './rows';
 import { CHAPTERS, failingTwo, passing, profile } from './testFiles';
+import { makeChapters } from '../../../fixtures/chapters';
 import type { ManuscriptChapter } from '../../../types';
 
 const chapters: ManuscriptChapter[] = CHAPTERS;
@@ -50,6 +51,14 @@ describe('buildChapterRows: one row per chapter and the retail sample, measured 
     expect(rows[1]!.text).toEqual({ text: 'Not checked', missed: false, unchecked: true });
     expect(rows.find((row) => row.name === 'Interview bonus.wav')!.text).toEqual({ text: 'Not checked', missed: false, unchecked: true });
     expect(rows[2]!.text).toBeUndefined();
+  });
+
+  it('shows a file’s Text figure only on the row of the chapter it was read for: Chapter 10.wav under Chapter 1 says Not checked', () => {
+    const eleven = makeChapters({ shape: 'titleAndSubtitle', count: 11 });
+    const file = passing('Chapter 10.wav');
+    const rows = buildChapterRows([file], profile, eleven, undefined, { [file.path]: { percent: 50, met: false, chapterId: 'chapter-10' } });
+    expect(rows[0]!.text).toEqual({ text: 'Not checked', missed: false, unchecked: true });
+    expect(rows[9]!.text).toEqual({ text: '50%', missed: true });
   });
 
   it('opens on the first file when none fails, never on a waiting row', () => {

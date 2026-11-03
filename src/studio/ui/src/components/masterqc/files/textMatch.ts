@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import { isNarrationChapter } from '../../../chapterKinds';
 import type { CoverageResult, ManuscriptChapter, MeasureFileResult } from '../../../types';
-import { chapterOfFile } from '../../master/chapterFile';
 import type { TextMatch } from './rows';
 
 /**
@@ -27,18 +26,45 @@ const READ_AT_ONCE = 8;
 /** The measured files the Text column can name: the retail sample is no chapter's. */
 const isChapterFile = (file: MeasureFileResult): boolean => file.status === 'measured' && !/sample/i.test(file.name);
 
-/**
- * The chapter a file belongs to when the page's pairing rule (`chapterOfFile`) names exactly one: a name that fits several ("Chapter 10.wav"
- * fits Chapter 1 and Chapter 10) credits no chapter, so its row says "Not checked" rather than another chapter's figure.
- */
-function uniqueChapterOf(file: MeasureFileResult, chapters: readonly ManuscriptChapter[]): ManuscriptChapter | undefined {
-  let found: ManuscriptChapter | undefined;
-  for (const chapter of chapters) {
-    if (!chapterOfFile(file, [chapter])) continue;
-    if (found) return undefined;
-    found = chapter;
+const WORD = /[\p{L}\p{N}]/u;
+const stem = (name: string): string => name.replace(/\.[^.]+$/, '').toLowerCase();
+
+/** Whether `title` is in `name` as whole words: a non-letter, non-digit (or an end of the name) on both sides, so "chapter 1" is not in "chapter 10". */
+function hasTitle(name: string, title: string): boolean {
+  for (let at = name.indexOf(title); at !== -1; at = name.indexOf(title, at + 1)) {
+    const before = name.slice(0, at).at(-1);
+    const after = name[at + title.length];
+    if ((before === undefined || !WORD.test(before)) && (after === undefined || !WORD.test(after))) return true;
   }
-  return found;
+  return false;
+}
+
+/**
+ * The chapter a file belongs to: the chapter whose whole-word title is in the file's name, else the one its number names (the only number in
+ * the name is the chapter's, counting from 1; the page's pairing rule, `chapterOfFile`, read with word boundaries). When several chapters fit,
+ * the longest title wins ("Chapter 10" over "Chapter 1"); when two fit equally well, or none, the file belongs to no chapter and its row
+ * says "Not checked" rather than another chapter's figure.
+ */
+export function chapterForFile(file: Pick<MeasureFileResult, 'name'>, chapters: readonly ManuscriptChapter[]): ManuscriptChapter | undefined {
+  const name = stem(file.name);
+  const digits = name.match(/\d+/g);
+  const number = digits?.length === 1 ? Number(digits[0]) : undefined;
+  let best: ManuscriptChapter | undefined;
+  let bestLength = -1;
+  let tied = false;
+  for (const chapter of chapters) {
+    const title = chapter.title.trim().toLowerCase();
+    const length = title && hasTitle(name, title) ? title.length : number !== undefined && number === chapter.index + 1 ? 0 : -1;
+    if (length < 0) continue;
+    if (length > bestLength) {
+      best = chapter;
+      bestLength = length;
+      tied = false;
+    } else if (length === bestLength) {
+      tied = true;
+    }
+  }
+  return tied ? undefined : best;
 }
 
 /**
@@ -57,7 +83,7 @@ export function useTextMatches(chapters: readonly ManuscriptChapter[], files: re
     const pairs: [string, string, string][] = [];
     for (const file of files) {
       if (!isChapterFile(file)) continue;
-      const chapter = uniqueChapterOf(file, narration);
+      const chapter = chapterForFile(file, narration);
       if (chapter)
         pairs.push([file.path, chapter.id, `${file.fingerprint?.sha256 ?? ''}:${file.fingerprint?.size_bytes ?? ''}:${file.fingerprint?.modified_at ?? ''}`]);
     }
@@ -87,13 +113,13 @@ export function useTextMatches(chapters: readonly ManuscriptChapter[], files: re
         const batch = await Promise.all(
           pairs.slice(start, start + READ_AT_ONCE).map(async ([path, id]) => {
             try {
-              return [path, textMatchOf(await coverage.coverageResult(id))] as const;
+              return [path, textMatchOf(await coverage.coverageResult(id)), id] as const;
             } catch {
-              return [path, undefined] as const; // `silent`: a check that cannot be read is "Not checked", which the cell already says
+              return [path, undefined, id] as const; // `silent`: a check that cannot be read is "Not checked", which the cell already says
             }
           }),
         );
-        for (const [path, match] of batch) if (match) known[path] = match;
+        for (const [path, match, id] of batch) if (match) known[path] = { ...match, chapterId: id };
         if (live) setMatches({ ...known }); // a batch at a time: the first figures show while the rest are read
       }
     })();

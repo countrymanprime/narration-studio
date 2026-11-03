@@ -48,8 +48,8 @@ tone at its **Head / tail** in seconds, then its **Text** and its **Result**: **
 profile needs could not be measured), or **Waiting** / **Not measured**. **Text** is the share
 of the chapter's words the [recording check](production.md) found in its recording ("Text present"), judged by that
 check's own thresholds; a figure under them is red with a cross. The measurement itself does not compare the audio with
-the text: the figure is the chapter's current check, read back, and Master & QC never runs one. A file whose name fits no
-chapter, or more than one ("Chapter 10.wav" also fits Chapter 1), or whose chapter has no current check (never run, or out of date since the recording changed), says **Not checked**,
+the text: the figure is the chapter's current check, read back, and Master & QC never runs one. A file is paired with a chapter by its name, a chapter's title as whole words or its number, the longest title
+winning ("Chapter 10.wav" is Chapter 10, not Chapter 1). A file that fits no chapter, or two equally well, or whose chapter has no current check (never run, or out of date since the recording changed), says **Not checked**,
 never a guess. A red Text figure does not change **Pass** or **Fail**, which come from the profile's rules alone. The table has no Clicks column. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not

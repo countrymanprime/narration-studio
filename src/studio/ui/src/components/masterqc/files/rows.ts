@@ -12,13 +12,19 @@ import { fileVerdict, type FileVerdict } from '../../master/fileVerdict';
 export type Cell = { text: string; missed: boolean; unchecked?: true };
 
 /** A chapter's current Recording Check, as the Text column draws it: the share of its words present, and whether the narrator's thresholds judged it met. */
-export type TextMatch = { percent: number; met: boolean };
+export type TextMatch = {
+  percent: number;
+  met: boolean;
+  /** The chapter the check belongs to: a row of another chapter that shares the file does not show it. */ chapterId?: string;
+};
 
 /** The Text cell of a file nothing current backs: the file has no chapter, or its chapter has no current check. Never a guess. */
 const NOT_CHECKED: Cell = { text: 'Not checked', missed: false, unchecked: true };
 
-function textCell(match: TextMatch | undefined): Cell {
-  return match ? { text: `${match.percent}%`, missed: !match.met } : NOT_CHECKED;
+function textCell(match: TextMatch | undefined, slotId?: string): Cell {
+  return match && (match.chapterId === undefined || slotId === undefined || match.chapterId === slotId)
+    ? { text: `${match.percent}%`, missed: !match.met }
+    : NOT_CHECKED;
 }
 
 type CheckRow = { ruleId: string; label: string; passed: boolean; value: string; limit: string };
@@ -114,7 +120,13 @@ function peakCell(report: MeasureReport, file: MeasureFileResult, profile: Deliv
   return cell(sample ? report.sample_peak_dbfs : report.true_peak_dbtp, resultFor(file, profile, ['true_peak_dbtp', 'sample_peak_dbfs']), formatLevel);
 }
 
-function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: MeasureReport, texts?: Readonly<Record<string, TextMatch>>): FileRow {
+function measuredRow(
+  file: MeasureFileResult,
+  profile: DeliveryProfile,
+  report: MeasureReport,
+  texts?: Readonly<Record<string, TextMatch>>,
+  slotId?: string,
+): FileRow {
   return {
     id: file.path,
     name: file.name,
@@ -125,13 +137,13 @@ function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: 
     noiseFloor: cell(report.noise_floor_dbfs, resultFor(file, profile, ['noise_floor_dbfs']), formatLevel),
     head: cell(report.head_room_tone_seconds, resultFor(file, profile, ['head_room_tone_seconds']), (n) => n.toFixed(1)),
     tail: cell(report.tail_room_tone_seconds, resultFor(file, profile, ['tail_room_tone_seconds']), (n) => n.toFixed(1)),
-    text: textCell(texts?.[file.path]),
+    text: textCell(texts?.[file.path], slotId),
     checks: checkRows(file, profile),
   };
 }
 
-function rowOf(file: MeasureFileResult, profile: DeliveryProfile, name = file.name, texts?: Readonly<Record<string, TextMatch>>): FileRow {
-  if (file.status === 'measured' && file.report) return { ...measuredRow(file, profile, file.report, texts), name };
+function rowOf(file: MeasureFileResult, profile: DeliveryProfile, name = file.name, texts?: Readonly<Record<string, TextMatch>>, slotId?: string): FileRow {
+  if (file.status === 'measured' && file.report) return { ...measuredRow(file, profile, file.report, texts, slotId), name };
   const waiting = waitingText(file);
   return { id: file.path, name, verdict: 'none', waiting: waiting.text, waitingPill: waiting.pill, waitingShared: waiting.shared, checks: [] };
 }
@@ -185,7 +197,7 @@ export function buildChapterRows(
     const name = chapterName(slot);
     if (!file) return waitingRow(slot.id, name, openPickups?.[slot.id]);
     claimed.add(file.path);
-    return rowOf(file, profile, name, texts);
+    return rowOf(file, profile, name, texts, slot.id);
   });
   const sample = files.find(isSampleFile);
   if (sample) claimed.add(sample.path);
