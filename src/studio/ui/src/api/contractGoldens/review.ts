@@ -1,13 +1,6 @@
 // The golden payloads for findings, take review and take comparison: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import { z } from 'zod';
-import {
-  findingMarkerSchema,
-  findingNavigationSchema,
-  findingSchema,
-  findingsPageSchema,
-  findingsSummarySchema,
-  reaperStatusSchema,
-} from '../schemas/findings';
+import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from '../schemas/findings';
 import { takeComparisonJobSchema, takeReviewCreateTakeResultSchema, takeReviewScanJobSchema } from '../schemas/takeReview';
 
 export const reviewGoldens: Record<string, z.ZodType> = {
@@ -34,9 +27,6 @@ export const reviewGoldens: Record<string, z.ZodType> = {
   'findings-retype.json': findingSchema,
   'findings-thread.json': findingSchema,
   'findings-summary.json': findingsSummarySchema,
-  'findings-reaper-status-looping.json': reaperStatusSchema,
-  'findings-reaper-status-not-running.json': reaperStatusSchema,
-  'findings-reaper-status-standalone.json': reaperStatusSchema,
   'findings-go-to.json': findingNavigationSchema,
   'findings-go-to-read.json': findingNavigationSchema,
   'findings-loop-read.json': findingNavigationSchema,
@@ -46,6 +36,7 @@ export const reviewGoldens: Record<string, z.ZodType> = {
   'findings-navigation-recording.json': findingNavigationSchema,
   'findings-navigation-no-item.json': findingNavigationSchema,
   'findings-navigation-not-running.json': findingNavigationSchema,
+  'findings-navigation-standalone.json': findingNavigationSchema,
   'findings-add-marker.json': findingMarkerSchema,
   'findings-add-marker-existing.json': findingMarkerSchema,
   'findings-add-marker-stale.json': findingMarkerSchema,

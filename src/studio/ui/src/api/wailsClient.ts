@@ -128,11 +128,11 @@ import {
   productionStopResultSchema,
 } from './schemas/production';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
-import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema, reaperStatusSchema } from './schemas/findings';
+import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
-import { ttsCatalogSchema, ttsInstallJobSchema } from './schemas/tts';
+import { ttsInstallJobSchema } from './schemas/tts';
 import { updateJobSchema, updateStatusSchema } from './schemas/update';
-import { startResultSchema, whisperCatalogSchema, whisperInstallJobSchema } from './schemas/whisper';
+import { startResultSchema, whisperInstallJobSchema } from './schemas/whisper';
 import {
   bootstrapSchema,
   copyDiagnosticsResultSchema,
@@ -394,16 +394,12 @@ export const wailsClient: NarrationApi = {
   seriesList: () => decode(seriesListSchema, 'SeriesList', host.SeriesList()),
   seriesSave: (id, name, memberProjectPaths) => decode(seriesSchema, 'SeriesSave', host.SeriesSave(id, name, memberProjectPaths)),
   seriesDelete: (id) => decode(voidResult, 'SeriesDelete', host.SeriesDelete(id)),
-  ttsCatalog: () => decode(ttsCatalogSchema, 'TtsCatalog', host.TtsCatalog()),
   ttsInstall: (voiceId) => decode(ttsInstallJobSchema, 'TtsInstall', host.TtsInstall(voiceId)),
   ttsInstallState: (jobId) => decode(ttsInstallJobSchema, 'TtsInstallState', host.TtsInstallState(jobId)),
   ttsInstallCancel: (jobId) => decode(ttsInstallJobSchema, 'TtsInstallCancel', host.TtsInstallCancel(jobId)),
-  ttsRemove: (voiceId) => decode(voidResult, 'TtsRemove', host.TtsRemove(voiceId)),
-  whisperCatalog: () => decode(whisperCatalogSchema, 'WhisperCatalog', host.WhisperCatalog()),
   whisperInstall: (modelId) => decode(whisperInstallJobSchema, 'WhisperInstall', host.WhisperInstall(modelId)),
   whisperInstallState: (jobId) => decode(whisperInstallJobSchema, 'WhisperInstallState', host.WhisperInstallState(jobId)),
   whisperInstallCancel: (jobId) => decode(whisperInstallJobSchema, 'WhisperInstallCancel', host.WhisperInstallCancel(jobId)),
-  whisperRemove: (modelId) => decode(voidResult, 'WhisperRemove', host.WhisperRemove(modelId)),
   assetsList: () => decode(assetCatalogSchema, 'AssetsList', host.AssetsList()),
   assetsInstall: (kind, id) => decode(assetInstallJobSchema, 'AssetsInstall', host.AssetsInstall(kind, id)),
   assetsInstallState: (jobId) => decode(assetInstallJobSchema, 'AssetsInstallState', host.AssetsInstallState(jobId)),
@@ -416,7 +412,6 @@ export const wailsClient: NarrationApi = {
   transcriptReset: () => decode(voidResult, 'TranscriptReset', host.TranscriptReset()),
   transcriptLastCompleted: () => decode(lastCompletedSchema, 'TranscriptLastCompleted', host.TranscriptLastCompleted()),
   transcriptAddEquivalence: (id) => decode(equivalenceSchema, 'TranscriptAddEquivalence', host.TranscriptAddEquivalence(id)).then((value) => value.message),
-  transcriptJump: (id) => decode(voidResult, 'TranscriptJump', host.TranscriptJump(id)),
   transcriptExportMarkers: () => decode(voidResult, 'TranscriptExportMarkers', host.TranscriptExportMarkers()),
   transcriptSuggestHints: () => decode(hintSuggestionsSchema, 'TranscriptSuggestHints', host.TranscriptSuggestHints()),
   transcriptHints: () => decode(hintsSchema, 'TranscriptHints', host.TranscriptHints()),
@@ -626,7 +621,6 @@ export const wailsClient: NarrationApi = {
   projectStateCheck: () => decode(projectStateStartResultSchema, 'ProjectStateCheck', host.ProjectStateCheck()),
   projectStateChangedSince: (current, baseline) =>
     decode(projectStateChangedSchema, 'ProjectStateChangedSince', host.ProjectStateChangedSince(current, baseline)),
-  projectStateState: () => decode(projectStateStateSchema, 'ProjectStateState', host.ProjectStateState()),
   subscribeProjectState: (onUpdate) => subscribeChecked('projectstate:state', projectStateStateSchema, onUpdate),
   retakeLanesList: () => decode(retakeLanesListSchema, 'RetakeLanesList', host.RetakeLanesList()),
   retakeLanesPick: (lineId, itemGuid) => decode(retakeLanesStartResultSchema, 'RetakeLanesPick', host.RetakeLanesPick(lineId, itemGuid)),
@@ -708,12 +702,9 @@ export const wailsClient: NarrationApi = {
   masteringProviders: () => decode(masteringProvidersSchema, 'MasteringProviders', host.MasteringProviders()),
   masteringChooseProvider: (name) => decode(masteringProvidersSchema, 'MasteringChooseProvider', host.MasteringChooseProvider(name)),
   recorderState: () => decode(recorderStateSchema, 'RecorderState', host.RecorderState()),
-  recorderChooseEngine: (engine) => decode(recorderStateSchema, 'RecorderChooseEngine', host.RecorderChooseEngine(engine)),
   recorderDevices: () => decode(recorderDevicesResultSchema, 'RecorderDevices', host.RecorderDevices()),
   recorderMeterStart: (device) => decode(recorderStateSchema, 'RecorderMeterStart', host.RecorderMeterStart(device)),
   recorderMeterStop: () => decode(recorderStateSchema, 'RecorderMeterStop', host.RecorderMeterStop()),
-  recorderStart: (device) => decode(recorderStateSchema, 'RecorderStart', host.RecorderStart(device)),
-  recorderStop: () => decode(recorderStateSchema, 'RecorderStop', host.RecorderStop()),
   recorderSetTakeLine: (takeName, entityId) => decode(recorderStateSchema, 'RecorderSetTakeLine', host.RecorderSetTakeLine(takeName, entityId)),
   recorderSetTakeKeeper: (takeName, keeper) => decode(recorderStateSchema, 'RecorderSetTakeKeeper', host.RecorderSetTakeKeeper(takeName, keeper)),
   subscribeRecorderState: (onUpdate) => subscribeChecked('recording:state', recorderStateSchema, onUpdate),
@@ -766,9 +757,7 @@ export const wailsClient: NarrationApi = {
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),
-  dawPreviewFileRange: (path, start, length) => decode(dawResultSchema, 'DawPreviewFileRange', host.DawPreviewFileRange(path, start, length)),
   dawStopFilePreview: () => decode(dawResultSchema, 'DawStopFilePreview', host.DawStopFilePreview()),
-  dawRevealFile: (path) => decode(dawResultSchema, 'DawRevealFile', host.DawRevealFile(path)),
   masterPlayQuietest: (fileId) => decode(dawResultSchema, 'MasterPlayQuietest', host.MasterPlayQuietest(fileId)),
   masterOpenInDaw: (fileId) => decode(dawResultSchema, 'MasterOpenInDaw', host.MasterOpenInDaw(fileId)),
   dawBackups: () => decode(dawBackupsFileSchema, 'DawBackups', host.DawBackups()),
@@ -779,7 +768,6 @@ export const wailsClient: NarrationApi = {
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackMapConfirm: (trackGuid, chapterId) => decode(trackMappingSchema, 'ChapterTrackMapConfirm', host.ChapterTrackMapConfirm(trackGuid, chapterId)),
-  chapterTrackMapClear: (trackGuid) => decode(chapterTrackMappingSchema, 'ChapterTrackMapClear', host.ChapterTrackMapClear(trackGuid)),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
   chapterTrackCreate: (chapterId) => decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId)),
   chapterTrackUnlink: (chapterId) => decode(chapterTrackMappingSchema, 'ChapterTrackUnlink', host.ChapterTrackUnlink(chapterId)),
@@ -814,7 +802,6 @@ export const wailsClient: NarrationApi = {
       ),
     ),
   findingsSummary: () => decode(findingsSummarySchema, 'FindingsSummary', host.FindingsSummary()),
-  findingsReaperStatus: () => decode(reaperStatusSchema, 'FindingsReaperStatus', host.FindingsReaperStatus()),
   findingsGoTo: (id) => decode(findingNavigationSchema, 'FindingsGoTo', host.FindingsGoTo(id)),
   findingsLoop: (id) => decode(findingNavigationSchema, 'FindingsLoop', host.FindingsLoop(id)),
   findingsGoToRead: (id, read) => decode(findingNavigationSchema, 'FindingsGoToRead', host.FindingsGoToRead(id, read)),

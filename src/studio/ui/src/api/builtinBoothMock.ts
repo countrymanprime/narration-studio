@@ -4,6 +4,7 @@
 // Its answers follow tests/fixtures/contracts/read-aloud-recordings-builtin.json (wireContracts.test.ts pins them).
 import type { DawCapabilities, DawCapabilityReason } from './contracts/daw';
 import type { RecordingApi } from './contracts/recording';
+import type { RecorderMockControl } from './recordingMock';
 import type { ReadAloudRecordReason, ReadAloudRecording, TeleprompterApi } from './contracts/teleprompter';
 import type { DawMockControl } from './dawMock';
 
@@ -12,7 +13,7 @@ type Deps = {
   delegate: Pick<TeleprompterApi, 'readAloudRecordStart' | 'readAloudRecordStartAt' | 'readAloudRecordStop'>;
   capabilities: () => Promise<DawCapabilities>;
   control: Pick<DawMockControl, 'record'>;
-  recorder: Pick<RecordingApi, 'recorderState' | 'recorderDevices' | 'recorderStart' | 'recorderStop'>;
+  recorder: Pick<RecordingApi, 'recorderState' | 'recorderDevices'> & Pick<RecorderMockControl, 'startTake' | 'stopTake'>;
   /** The microphone the Booth's Levels menu chose (the global Teleprompter.input_device row); '' when none. */
   chosenMicrophone: () => Promise<string>;
 };
@@ -53,7 +54,7 @@ export function createBuiltinBoothRecordMock(deps: Deps): Pick<TeleprompterApi, 
       const gate = deps.control.record('start');
       if (gate) return refused('failed', gate.message);
       try {
-        await deps.recorder.recorderStart(picked.device);
+        await deps.recorder.startTake(picked.device);
       } catch (error) {
         deps.control.record('stop');
         return refused('failed', error instanceof Error ? error.message : String(error));
@@ -69,7 +70,7 @@ export function createBuiltinBoothRecordMock(deps: Deps): Pick<TeleprompterApi, 
       if (!(await inApp())) return deps.delegate.readAloudRecordStop();
       if ((await deps.recorder.recorderState()).phase !== 'recording')
         return refused('not_recording', 'The built-in recorder is not recording, so nothing was stopped.');
-      await deps.recorder.recorderStop();
+      await deps.recorder.stopTake();
       deps.control.record('stop');
       return { outcome: 'stopped' };
     },

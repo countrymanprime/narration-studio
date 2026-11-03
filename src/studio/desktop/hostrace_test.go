@@ -35,7 +35,7 @@ import (
 // stressMinReads times), so every switch overlaps reads. Measured on the
 // unconverted code (all of its direct-read bindings in stressReaders) in CI with
 // -race: 20 of 20 separate test processes reported the race, naming
-// TranscriptCancel, TtsCatalog, GuidePreview, SystemSettingsForScope, Bootstrap
+// TranscriptCancel, TtsCatalog (since removed), GuidePreview, SystemSettingsForScope, Bootstrap
 // and others. Run the processes separately when measuring: the detector
 // reports each racing pair once per process, so `-count=20` in one process
 // makes most runs look clean.
@@ -151,7 +151,6 @@ var stressReaders = []stressReader{
 	{"ProviderCapabilities", func(h *Host) { _, _ = h.ProviderCapabilities() }},
 	{"MasteringProviders", func(h *Host) { _, _ = h.MasteringProviders() }},
 	{"RecorderState", func(h *Host) { _, _ = h.RecorderState() }},
-	{"RecorderStop", func(h *Host) { _, _ = h.RecorderStop() }},
 	{"RecorderMeterStop", func(h *Host) { _, _ = h.RecorderMeterStop() }},
 	{"MasteringChooseProvider (clear)", func(h *Host) { _, _ = h.MasteringChooseProvider("") }},
 	{"TracksDiscover", func(h *Host) { _, _ = h.TracksDiscover() }},
@@ -169,14 +168,10 @@ var stressReaders = []stressReader{
 	{"AssetsInstallCancel", func(h *Host) { _, _ = h.AssetsInstallCancel("missing") }},
 	{"AssetsVerify (unknown asset)", func(h *Host) { _, _ = h.AssetsVerify("tts", "missing") }},
 	{"AssetsRemove (unknown asset)", func(h *Host) { _, _ = h.AssetsRemove("tts", "missing") }},
-	{"TtsCatalog", func(h *Host) { _, _ = h.TtsCatalog() }},
 	{"TtsInstall (unknown voice)", func(h *Host) { _, _ = h.TtsInstall("missing") }},
 	{"TtsInstallState", func(h *Host) { _, _ = h.TtsInstallState("missing") }},
-	{"TtsRemove (unknown voice)", func(h *Host) { _, _ = h.TtsRemove("missing") }},
-	{"WhisperCatalog", func(h *Host) { _, _ = h.WhisperCatalog() }},
 	{"WhisperInstall (unknown model)", func(h *Host) { _, _ = h.WhisperInstall("missing") }},
 	{"WhisperInstallState", func(h *Host) { _, _ = h.WhisperInstallState("missing") }},
-	{"WhisperRemove (unknown model)", func(h *Host) { _, _ = h.WhisperRemove("missing") }},
 	{"pollTranscript (one transcriptLoop tick)", func(h *Host) { h.pollTranscript() }},
 	{"LineIdentityState", func(h *Host) { _, _ = h.LineIdentityState() }},
 	{"LineIdentityStamp (empty rows)", func(h *Host) { _, _ = h.LineIdentityStamp(nil, false) }},
@@ -186,7 +181,6 @@ var stressReaders = []stressReader{
 	{"FindingsReview (unknown finding)", func(h *Host) { _, _ = h.FindingsReview("missing", "", "accepted", "") }},
 	{"FindingsSetType (unknown finding)", func(h *Host) { _, _ = h.FindingsSetType("missing", "", "pron") }},
 	{"FindingsSummary", func(h *Host) { _, _ = h.FindingsSummary() }},
-	{"FindingsReaperStatus", func(h *Host) { _, _ = h.FindingsReaperStatus() }},
 	{"FindingsGoTo (unknown finding)", func(h *Host) { _, _ = h.FindingsGoTo("missing") }},
 	{"FindingsLoop (unknown finding)", func(h *Host) { _, _ = h.FindingsLoop("missing") }},
 	{"FindingsStopLoop (no bridge)", func(h *Host) { _, _ = h.FindingsStopLoop() }},

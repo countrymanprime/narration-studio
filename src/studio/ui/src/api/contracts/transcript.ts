@@ -65,7 +65,6 @@ export interface TranscriptApi {
   transcriptReset(): Promise<void>;
   transcriptLastCompleted(): Promise<TranscriptState | undefined>;
   transcriptAddEquivalence(id: string): Promise<string>;
-  transcriptJump(id: string): Promise<void>;
   transcriptExportMarkers(): Promise<void>;
   transcriptSuggestHints(): Promise<HintSuggestions>;
   transcriptHints(): Promise<string[]>;
