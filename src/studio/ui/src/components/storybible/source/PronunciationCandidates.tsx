@@ -94,34 +94,40 @@ export function PronunciationCandidateList({
         const playing = preview.playingPreview === key;
         const used = inUse !== undefined && candidate.say === inUse.say && candidate.sourceId === inUse.source;
         return (
-          <li key={`${candidate.sourceId}:${candidate.say}`} className="flex flex-wrap items-center gap-2" data-source={candidate.sourceId}>
-            <span className="min-w-[7rem] text-xs text-[var(--text-muted)]">{candidate.label}</span>
-            <span className="min-w-0 flex-1 font-['IBM_Plex_Mono',ui-monospace,monospace] break-words">{candidate.say}</span>
-            <IconButton
-              action={hearNameAction(playing)}
-              label={`${playing ? 'Stop' : 'Hear'} ${candidate.label}: ${candidate.say}`}
-              aria-pressed={playing}
-              pending={preview.loadingPreview === key}
-              onClick={() => void preview.playPreview(index)}
-            />
-            {onRemove && candidate.sourceId === USER_DICTIONARY_SOURCE && (
-              <IconButton action="remove" label={`Remove ${candidate.say} from my dictionary`} disabled={disabled} onClick={() => onRemove(candidate)} />
-            )}
-            {used ? (
-              <StatusBadge tone="success" label="In use" />
-            ) : (
-              onUse && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={disabled}
-                  aria-label={`Use ${candidate.label}: ${candidate.say}`}
-                  onClick={() => onUse(candidate)}
-                >
-                  Use
-                </Button>
-              )
-            )}
+          <li key={`${candidate.sourceId}:${candidate.say}`} data-source={candidate.sourceId}>
+            {/* The source on its own line and the value beside its controls: in the Script rail and at 390 px a value keeps the width
+                and wraps whole, and the controls stay on its line (walkthrough #2595). */}
+            <div className="text-xs text-[var(--text-muted)]">{candidate.label}</div>
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 font-['IBM_Plex_Mono',ui-monospace,monospace] [overflow-wrap:anywhere]">{candidate.say}</span>
+              <span className="flex flex-none items-center gap-2">
+                <IconButton
+                  action={hearNameAction(playing)}
+                  label={`${playing ? 'Stop' : 'Hear'} ${candidate.label}: ${candidate.say}`}
+                  aria-pressed={playing}
+                  pending={preview.loadingPreview === key}
+                  onClick={() => void preview.playPreview(index)}
+                />
+                {onRemove && candidate.sourceId === USER_DICTIONARY_SOURCE && (
+                  <IconButton action="remove" label={`Remove ${candidate.say} from my dictionary`} disabled={disabled} onClick={() => onRemove(candidate)} />
+                )}
+                {used ? (
+                  <StatusBadge tone="success" label="In use" />
+                ) : (
+                  onUse && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={disabled}
+                      aria-label={`Use ${candidate.label}: ${candidate.say}`}
+                      onClick={() => onUse(candidate)}
+                    >
+                      Use
+                    </Button>
+                  )
+                )}
+              </span>
+            </div>
           </li>
         );
       })}
