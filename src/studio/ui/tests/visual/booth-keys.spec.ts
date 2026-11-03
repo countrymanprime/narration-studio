@@ -13,7 +13,7 @@ async function openBooth(page: Page, query = '', recordReady = true): Promise<vo
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
-  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  await page.getByRole('group', { name: /^Recorded through/ }).waitFor();
   if (recordReady) await expect(record(page)).toBeEnabled();
 }
 

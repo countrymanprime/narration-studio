@@ -290,17 +290,27 @@ test('row 25: R during a take on a DAW that keeps the take rolls without asking,
 
 test('row 26: Resume at ¶ n moves the reading position to where the recording ends', async ({ page }) => {
   await open(page);
+  // Chapter 1 opens at ¶ 14, where its recording ends, so no chip is offered until the narrator looks elsewhere: the next paragraph.
+  await page.locator('[data-booth-text] [data-paragraph]:has([data-current]) + [data-paragraph] [data-word="0"]').click();
   const before = await wordIndex(page);
   await page.getByRole('button', { name: /^Resume at ¶/ }).click();
   await expect.poll(() => wordIndex(page)).not.toBe(before);
 });
 
-// The Booth opens on the chapter title, which is no manuscript paragraph a bookmark can name (#2251 item 7): the reading moves onto
-// the first paragraph's first word first.
+// A chapter that opens on its title (Chapter 2 here) has no manuscript paragraph a bookmark can name (#2251 item 7): the reading moves
+// onto the first paragraph's first word first. Chapter 1 opens at ¶ 14, where its recording ends (#2633), so its reading paragraph is used.
+const toReadingParagraph = (page: Page) =>
+  page.locator('[data-booth-text] [data-paragraph]:has([data-current]):not([data-heading]) [data-word="0"]').first().click();
 const toFirstParagraph = (page: Page) => page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
+const nextChapter = async (page: Page) => {
+  await page.getByRole('button', { name: 'Next chapter' }).click();
+  await expect(page.locator('[data-booth-text] [data-heading="title"]')).toHaveText(/Chapter 2/);
+};
 
 test('row 27: B bookmarks the word: a ribbon in the margin, and the toast offers Undo', async ({ page }) => {
   await open(page);
+  // Chapter 2 opens on its title.
+  await nextChapter(page);
   // On the title, B says why it adds nothing.
   await page.keyboard.press('b');
   await expect(page.getByText('A bookmark goes on a line of the text, not on the chapter title.')).toBeVisible();
@@ -314,7 +324,7 @@ test('row 27: B bookmarks the word: a ribbon in the margin, and the toast offers
 
 test('row 28: Alt+[ and Alt+] step between bookmarks', async ({ page }) => {
   await open(page);
-  await toFirstParagraph(page);
+  await toReadingParagraph(page);
   await page.keyboard.press('b');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
