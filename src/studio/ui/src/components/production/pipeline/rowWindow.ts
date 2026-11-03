@@ -42,7 +42,7 @@ const scrolls = (element: Element): boolean => {
 };
 
 /** The nearest ancestor that scrolls vertically (the page's main area), or the window. */
-export function scrollerOf(element: Element): HTMLElement | Window {
+function scrollerOf(element: Element): HTMLElement | Window {
   for (let parent = element.parentElement; parent; parent = parent.parentElement) {
     if (scrolls(parent)) return parent;
   }
