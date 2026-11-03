@@ -46,7 +46,7 @@ export const VOICE_SAMPLE_SENTENCES: Record<VoiceSampleRefusalReason, string> = 
   project_limit: 'Voice samples already use the 200 MiB a project may hold. Delete one first.',
   not_found: 'That voice sample is no longer there.',
   daw_unavailable: 'The DAW cannot keep a voice sample. Choose In the project folder in Settings, or link a DAW that can.',
-  daw_refused: 'The DAW did not add the voice sample\'s region. Stop recording if it is, then try again.',
+  daw_refused: "The DAW did not add the voice sample's region. Stop recording if it is, then try again.",
 };
 
 /** Where a sample is kept (the `VoiceSamples.storage` setting): `project` copies the clip into the project folder, `daw` keeps only a

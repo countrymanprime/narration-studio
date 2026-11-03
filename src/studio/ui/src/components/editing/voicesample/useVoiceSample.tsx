@@ -177,7 +177,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
         });
       })();
     },
-    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples, journal],
+    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples, system, journal],
   );
 
   const latest = useRef(open);
