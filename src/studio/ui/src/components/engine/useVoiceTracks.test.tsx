@@ -136,4 +136,23 @@ describe('saving the voice setup', () => {
     await act(async () => failed![2].onAction());
     expect(reads).toBe(3);
   });
+
+  it('a failed read of the project voice setup offers Retry, which reads it again', async () => {
+    const api = createMockApi();
+    api.guideEntities = async () => [];
+    let reads = 0;
+    api.voiceTracksGet = async () => {
+      reads += 1;
+      if (reads === 1) throw new Error('the voice tracks file is unreadable');
+      return state({});
+    };
+    const notify = vi.fn();
+    const stable = (message: string, tone?: string, action?: { onAction: () => void }) => notify(message, tone, action);
+    mount(api, stable as never);
+    await act(async () => {});
+    const failed = notify.mock.calls.find(([message]) => String(message).includes('unreadable'));
+    expect(failed?.[2]).toMatchObject({ label: 'Retry' });
+    await act(async () => failed![2].onAction());
+    expect(reads).toBe(2);
+  });
 });

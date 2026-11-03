@@ -758,6 +758,20 @@ describe('EditingPage', () => {
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('1 word')).toBeTruthy();
       expect(document.querySelector('[data-flagcard]')).not.toBeNull();
     });
+    // Issue #2919: reading the finding a link names changes nothing, so the failed read's toast carries Retry, which reads it again.
+    it('a failed read of the finding is an error toast with Retry, which reads it again and opens the finding', async () => {
+      const toast = vi.spyOn(overlay, 'toast');
+      const findingsGet = vi.fn().mockRejectedValueOnce(new Error('the findings are locked'));
+      findingsGet.mockImplementation(async () => FINDING);
+      mount({ findingId: FINDING.id, api: { findingsGet } as never });
+      await script();
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('the findings are locked'), expect.objectContaining({ tone: 'error' })));
+      const options = toast.mock.calls.find((call) => String(call[0]).includes('locked'))![1] as { action: { label: string; onAction: () => void } };
+      expect(options.action.label).toBe('Retry');
+      act(() => options.action.onAction());
+      await waitFor(() => expect(findingsGet).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(cursorKey()).toBe('w-p1:3'));
+    });
     it('opens a finding on all the words it names: its expected text in its paragraph, not the first word', async () => {
       const named = { id: 'f-run', manuscript: { chapter_id: 'c1', expected: 'turned and walked', span: { paragraph_id: 'p2' } } };
       mount({ findingId: 'f-run', api: { findingsGet: async () => named } as never });

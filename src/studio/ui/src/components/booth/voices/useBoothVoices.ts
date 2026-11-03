@@ -1,3 +1,4 @@
+import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { Track } from '../../../api/contracts/tracks';
@@ -41,7 +42,7 @@ export function useBoothVoices({
 }: {
   chapterId: string;
   recording: boolean;
-  notify: (text: string, tone?: 'error' | 'info') => void;
+  notify: (text: string, tone?: 'error' | 'info', action?: ToastAction) => void;
 }): BoothVoices {
   const tracksPort = usePort('tracks');
   const teleprompter = usePort('teleprompter');
@@ -68,7 +69,12 @@ export function useBoothVoices({
       storyBible.guideEntities(),
       // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
       voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
-        if (live) notify(describeApiError(reason), 'error');
+        if (live)
+          notify(
+            describeApiError(reason),
+            'error',
+            retryAction(() => setRevision((n) => n + 1)),
+          );
         return undefined;
       }),
     ])
@@ -80,7 +86,15 @@ export function useBoothVoices({
         setCharacters(entities.filter((entity) => entity.category === 'Character'));
         setHostVoice({ chapterId, guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '' });
       })
-      .catch((reason: unknown) => live && notify(describeApiError(reason), 'error'));
+      .catch(
+        (reason: unknown) =>
+          live &&
+          notify(
+            describeApiError(reason),
+            'error',
+            retryAction(() => setRevision((n) => n + 1)),
+          ),
+      );
     return () => {
       live = false;
     };

@@ -19,6 +19,7 @@ import { usePort } from '../../../ports/usePort';
 import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
+import type { ToastAction } from '../../primitives/Toast';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { NeedManuscript } from '../../layout/NeedManuscript';
@@ -478,7 +479,10 @@ function BoothSession({
 
   // The chapter's voices in a Voice folders project (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
   // step through them, Num . opens the list; during a take the choice switches the recording live.
-  const voiceToast = useCallback((text: string, tone?: 'error' | 'info') => overlay.toast(text, tone === 'error' ? { tone } : undefined), [overlay]);
+  const voiceToast = useCallback(
+    (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
+    [overlay],
+  );
   const voices = useBoothVoices({ chapterId: recordId, recording: control.recording, notify: voiceToast });
   const [voiceListOpen, setVoiceListOpen] = useState(false);
   useCommand('booth.voice.0', () => voices.byKey(0));

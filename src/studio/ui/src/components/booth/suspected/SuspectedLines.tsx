@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
 import { putBack } from '../../../studio/commands/reviewFinding';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
@@ -44,7 +45,10 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
   // Reading the same place again changes nothing: the host answers each flag with its stored decision.
   useEffect(() => {
     if (flags.length === 0) return;
-    keep(flags, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
+    // Reading again is what Retry does (issue #2919).
+    const read = (): void =>
+      void keep(flags, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error', action: retryAction(read) }));
+    read();
   }, [flags, keep]);
 
   const dismiss = async (flag: SuspectedFlag) => {

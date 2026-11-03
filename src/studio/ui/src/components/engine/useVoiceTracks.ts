@@ -12,12 +12,13 @@ import { useVoiceSetup } from './voiceLayout';
 export function useVoiceTracks(notify: Notify) {
   const voiceTracks = usePort('voiceTracks');
   const storyBible = usePort('storyBible');
-  const { setup, readError, replace } = useVoiceSetup();
+  const { setup, readError, replace, reload } = useVoiceSetup();
   const [characters, setCharacters] = useState<GuideEntity[]>([]);
 
   useEffect(() => {
-    if (readError) notify(describeApiError(readError), 'error');
-  }, [readError, notify]);
+    // Reading the setup changes nothing, so Retry reads it again (issue #2919).
+    if (readError) notify(describeApiError(readError), 'error', retryAction(reload));
+  }, [readError, notify, reload]);
 
   // A failed read of the characters is an error toast with Retry, which reads them again (issue #2919).
   const [attempt, setAttempt] = useState(0);

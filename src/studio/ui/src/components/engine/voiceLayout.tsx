@@ -10,9 +10,11 @@ type VoiceSetup = {
   readError: unknown;
   /** Takes the state a save answered with, so every picker sees the new layout at once. */
   replace: (next: VoiceTracksState) => void;
+  /** Reads the setup again, for the Retry of a failed read. */
+  reload: () => void;
 };
 
-const VoiceSetupContext = createContext<VoiceSetup>({ setup: FLAT, readError: '', replace: () => {} });
+const VoiceSetupContext = createContext<VoiceSetup>({ setup: FLAT, readError: '', replace: () => {}, reload: () => {} });
 
 /** An override of the project's layout for the pickers under it: the Engine panel of an Audacity project, which has no folders, is flat. */
 export const VoiceLayoutContext = createContext<VoiceTracksLayout | null>(null);
@@ -26,6 +28,7 @@ export function VoiceSetupProvider({ projectFolder, children }: { projectFolder:
   const port = usePort('voiceTracks');
   const [setup, setSetup] = useState<VoiceTracksState>(FLAT);
   const [readError, setReadError] = useState<unknown>('');
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     setSetup(FLAT);
@@ -38,9 +41,10 @@ export function VoiceSetupProvider({ projectFolder, children }: { projectFolder:
     return () => {
       active = false;
     };
-  }, [port, projectFolder]);
+  }, [port, projectFolder, attempt]);
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
   const replace = useCallback((next: VoiceTracksState) => setSetup(next), []);
-  const value = useMemo(() => ({ setup, readError, replace }), [setup, readError, replace]);
+  const value = useMemo(() => ({ setup, readError, replace, reload }), [setup, readError, replace, reload]);
   return <VoiceSetupContext.Provider value={value}>{children}</VoiceSetupContext.Provider>;
 }
 

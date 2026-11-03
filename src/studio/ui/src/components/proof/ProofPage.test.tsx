@@ -11,6 +11,7 @@ import { CommandRouter } from '../../input/router';
 import { createJournal } from '../../studio/journal/createJournal';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { OverlayHost } from '../../overlay/OverlayHost';
+import { findToast, pressToastAction } from '../../fixtures/toasts';
 import { overlay } from '../../overlay/overlayService';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
@@ -646,6 +647,28 @@ describe('the jump menu on Proof', () => {
 
 // The loading state (definition-of-done.md state matrix): the title and one busy region while the chapters and the notes are first read, then the
 // page, or the error with Retry; a later re-read does not bring the blocks back. Never an endless skeleton.
+// Issue #2919: a read that fails after the page has loaded is an error toast with Retry, which reads the chapters and the notes again.
+describe('ProofPage later read failures', () => {
+  it('a failed notes read offers Retry, and a failed chapters read after it offers Retry too', async () => {
+    const api = createMockApi();
+    const findingsList = vi.spyOn(api, 'findingsList');
+    const manuscriptChapters = vi.spyOn(api, 'manuscriptChapters');
+    renderPage({ api });
+    await noteRows();
+    findingsList.mockRejectedValueOnce(new Error('the notes are locked'));
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
+    const notes = await findToast('the notes are locked');
+    expect(notes.action?.label).toBe('Retry');
+    manuscriptChapters.mockRejectedValueOnce(new Error('the chapters are locked'));
+    pressToastAction(notes);
+    const chapters = await findToast('the chapters are locked');
+    expect(chapters.action?.label).toBe('Retry');
+    const reads = manuscriptChapters.mock.calls.length;
+    pressToastAction(chapters);
+    await waitFor(() => expect(manuscriptChapters.mock.calls.length).toBe(reads + 1));
+  });
+});
+
 describe('ProofPage loading state', () => {
   const never = () => new Promise<never>(() => {});
   const region = () => screen.queryByRole('group', { name: 'Loading Proof' });
