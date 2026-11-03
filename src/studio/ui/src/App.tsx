@@ -75,6 +75,7 @@ import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
+import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
 import { describeApiError } from './api/errorMessage';
@@ -175,7 +176,11 @@ function AppRoutes() {
   const dawSession = useDawSession();
   const navigate = useNavigate();
   const location = useLocation();
-  useEffect(() => logUi('ui.nav', location.pathname), [location.pathname]);
+  useEffect(() => {
+    logUi('ui.nav', location.pathname);
+    // Only the first path segment (the page): a deeper one can carry a chapter or a name.
+    trace('ui.nav', { page: traceId(location.pathname.split('/')[1] || 'production') });
+  }, [location.pathname]);
   const history = useAppHistory();
   const settingsOrigin = useSettingsOrigin();
   const zoom = useZoom(api);
@@ -888,7 +893,7 @@ function AppRoutes() {
               contextMenu={contextMenu}
               zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
             >
-              <ErrorBoundary key={location.pathname.split('/')[1] || 'production'}>
+              <ErrorBoundary key={location.pathname.split('/')[1] || 'production'} onError={() => trace('ui.error', { source: 'boundary' })}>
                 <Routes>
                   <Route
                     path="/"

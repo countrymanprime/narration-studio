@@ -149,6 +149,7 @@ export function createSystemMock(
       leakCheck: { terms: 6, linesDropped: 0 },
       note: 'Nothing is sent anywhere. Attach this file to a GitHub issue by hand.',
     }),
+    systemTraceBatch: async () => ({ accepted: 0, refused: 0 }),
     systemSaveDiagnostics: async () => ({ path: 'C:/Users/narrator/Documents/diagnostics-20260926T120000.zip' }),
     // The mock has no real webview zoom to read, so it keeps its own level in memory (`?mockZoom=`). Unlike the real host it does not snap to the header's steps: the mock only ever
     // sees the exact values the UI's own hook computes.

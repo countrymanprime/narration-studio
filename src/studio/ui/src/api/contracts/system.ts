@@ -57,6 +57,9 @@ export type ProjectAttachState = { attached: boolean; reason?: string };
  */
 export type JobEnded = { id: string; kind: string; outcome: 'success' | 'error' | 'cancelled'; message: string; durationMs: number };
 
+/** SystemTraceBatch's answer: how many events the host wrote and how many it refused. */
+export type TraceBatchResult = { accepted: number; refused: number };
+
 /** SystemSaveDiagnostics's answer: the .zip it saved. Empty when the narrator cancelled the folder picker — no file was written. */
 export type SaveDiagnosticsResult = { path: string };
 
@@ -100,6 +103,11 @@ export interface SystemApi {
   subscribeLiveUpdateHealth(onDegraded: () => void): () => void;
   /** Shows the run log's folder in the file manager. */
   systemOpenLogFolder(): Promise<void>;
+  /**
+   * Hands the host the activity-trace events the page collected, as `{"events":[{"event":"ui.nav","fields":{...}}]}` JSON. The host checks each
+   * against its registry and refuses what it does not list. Called only by the tracing layer (`api/tracing.ts`), never by a page.
+   */
+  systemTraceBatch(batch: string): Promise<TraceBatchResult>;
   /** What a saved diagnostics bundle would hold, and what it leaves out. Writes nothing. */
   systemDiagnosticsPreview(): Promise<DiagnosticsPreview>;
   /** Saves the diagnostics bundle (a zip with a manifest) in a folder the narrator chooses and answers its path so the UI can copy

@@ -2909,6 +2909,17 @@ export function SystemSettingsForScope(scope: string): $CancellablePromise<strin
 }
 
 /**
+ * SystemTraceBatch takes the activity-trace events the page collected (screen changes, host calls, live events, overlays, caught
+ * errors) as `{"events":[{"event":"ui.nav","fields":{"page":"settings"}}]}` and writes each through the trace's registry
+ * (docs/prds/activity-trace.prd.md). An event the registry does not list under `ui`, or a field of the wrong shape, is dropped and
+ * counted; the page cannot write a host event or a path. It answers how many events were written and how many were refused. The
+ * page sends nothing while the trace is off and the ring is the only reader, so a call costs one JSON parse.
+ */
+export function SystemTraceBatch(batch: string): $CancellablePromise<string> {
+    return $Call.ByID(82054732, batch);
+}
+
+/**
  * TakeComparisonCancel stops a running comparison; nothing is saved. With none running it changes nothing.
  */
 export function TakeComparisonCancel(): $CancellablePromise<string> {

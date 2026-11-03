@@ -137,6 +137,7 @@ import {
   bootstrapSchema,
   diagnosticsPreviewSchema,
   saveDiagnosticsResultSchema,
+  traceBatchResultSchema,
   jobEndedSchema,
   noticeSchema,
   projectAttachStateSchema,
@@ -204,6 +205,7 @@ import type { NarrationApi } from '../types';
 import * as host from '../../wailsjs/desktop/host';
 import { Events } from '@wailsio/runtime';
 import { logUi } from './uiLog';
+import { traceHostEvent } from './tracing';
 
 /**
  * A Go method that returns an error rejected with the error's text on Wails v2. Wails v3 rejects with a `RuntimeError` whose `message`
@@ -281,7 +283,10 @@ function subscribeChecked<S extends StandardSchemaV1>(event: string, schema: S, 
 // Wails v3 delivers each event as a WailsEvent; what the host emitted is its `data` (src/studio/desktop/wailsapp.go emitEvent), which is
 // what every subscriber below checks. The name is the host's; the sender (a window name) is not used.
 function onHostEvent(event: string, onPayload: (payload: unknown) => void): () => void {
-  return Events.On(event, (wailsEvent) => onPayload(wailsEvent.data));
+  return Events.On(event, (wailsEvent) => {
+    traceHostEvent(event);
+    onPayload(wailsEvent.data);
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -444,6 +449,7 @@ export const wailsClient: NarrationApi = {
     await hostResult(host.CompanionModeExit());
   },
   systemDiagnosticsPreview: () => decode(diagnosticsPreviewSchema, 'SystemDiagnosticsPreview', host.SystemDiagnosticsPreview()),
+  systemTraceBatch: (batch) => decode(traceBatchResultSchema, 'SystemTraceBatch', host.SystemTraceBatch(batch)),
   systemSaveDiagnostics: () => decode(saveDiagnosticsResultSchema, 'SystemSaveDiagnostics', host.SystemSaveDiagnostics()),
   windowZoom: () => decode(windowZoomSchema, 'WindowZoom', host.WindowZoom()),
   windowSetZoom: (factor) => decode(windowZoomSchema, 'WindowSetZoom', host.WindowSetZoom(factor)),
