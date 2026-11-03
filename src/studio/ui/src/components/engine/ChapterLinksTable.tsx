@@ -5,6 +5,7 @@ import { chapterName } from '../../chapterName';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
+import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Menu, type MenuItem } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
@@ -184,7 +185,9 @@ function ChapterLinkRow({
         <span className="flex items-center justify-end gap-2 whitespace-nowrap">
           {showPicker ? (
             <>
-              <IconButton action="confirmTrack" variant={chosen ? 'primary' : 'default'} disabled={!chosen} pending={busy} onClick={() => onConfirm(chosen)} />
+              <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} pending={busy} onClick={() => onConfirm(chosen)}>
+                Confirm
+              </Button>
               {hasLink && <IconButton action="cancelEdit" disabled={busy} onClick={() => setPicking(false)} />}
             </>
           ) : hasLink ? (

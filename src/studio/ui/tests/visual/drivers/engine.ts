@@ -186,7 +186,7 @@ export const engineDrivers: Record<string, Driver> = {
     // instant Confirm turns it into the linked view (no combobox), so `waitFor` below would wait forever.
     const firstRow = table.locator('tbody tr').first();
     await firstRow.getByRole('combobox').selectOption({ index: 1 });
-    await firstRow.getByRole('button', { name: 'Use this track' }).click();
+    await firstRow.getByRole('button', { name: 'Confirm' }).click();
     await firstRow.getByRole('button', { name: 'Change the track' }).waitFor();
   },
   'chapter-link-missing': async (page) => {

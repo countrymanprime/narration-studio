@@ -97,7 +97,7 @@ describe('ChapterSyncPanel', () => {
     expect(screen.getByText('Two tracks match: “Chapter 5 part 1” and “Chapter 5 part 2”. A chapter is checked from one track.')).toBeTruthy();
     const select = screen.getByLabelText('Track for Chapter 5') as HTMLSelectElement;
     expect(select.value).toBe('g5a');
-    fireEvent.click(screen.getByRole('button', { name: 'Link this track' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
     await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c5', 'g5a'));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked.'));
   });

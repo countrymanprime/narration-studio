@@ -102,7 +102,7 @@ const linkChapterOne = async () => {
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });
-  fireEvent.click(within(row).getByRole('button', { name: 'Use this track' }));
+  fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
   await within(row).findByRole('button', { name: 'Change the track' });
   return row;
 };

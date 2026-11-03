@@ -82,7 +82,7 @@ describe('EnginePanel', () => {
       .find((row) => within(row).queryByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` }));
     if (!secondRow) throw new Error('no Chapter links row with a picker for the second chapter');
     await user.selectOptions(within(secondRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
-    await user.click(within(secondRow).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(secondRow).getByRole('button', { name: 'Confirm' }));
 
     const trackRow = () => within(tracks).getAllByRole('row')[2];
     await waitFor(() => expect(within(trackRow()).getAllByRole('cell')[1].textContent).toContain(WIRE_CHAPTERS[1].title));

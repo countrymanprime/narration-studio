@@ -80,7 +80,7 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
         <SectionLabel as="h3" id="current-stamps-heading">
           Currently stamped in REAPER
         </SectionLabel>
-        <IconButton action="checkAgain" label="Read current stamps" onClick={onRead} pending={pending} />
+        <IconButton action="readStamps" onClick={onRead} pending={pending} />
       </div>
       {(state.phase === 'reading' || (state.phase === 'success' && state.linesRead > 0)) && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>

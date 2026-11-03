@@ -4,6 +4,7 @@ import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import type { Notify } from '../primitives/Toast';
+import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
@@ -173,13 +174,9 @@ export function ChapterSyncPanel({
                       onChange={(value) => setPicked((current) => ({ ...current, [item.chapterId]: value }))}
                       options={item.candidates.map((candidate) => ({ value: candidate.trackGuid, label: candidate.trackName }))}
                     />
-                    <IconButton
-                      action="linkTrack"
-                      variant="primary"
-                      pending={linkingChapterId === item.chapterId}
-                      disabled={!selected}
-                      onClick={() => void link(item.chapterId, fallback)}
-                    />
+                    <Button pending={linkingChapterId === item.chapterId} disabled={!selected} onClick={() => void link(item.chapterId, fallback)}>
+                      Link
+                    </Button>
                   </div>
                 )}
               </InsetCard>

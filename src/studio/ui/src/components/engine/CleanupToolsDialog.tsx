@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
+import type { IconName } from '../../icons.catalog';
 import { Dialog } from '../primitives/Dialog';
 import { ToolResult } from './ToolResult';
 import type { CleanupToolKey, CleanupToolsState } from '../../types';
@@ -9,14 +10,16 @@ import type { CleanupToolKey, CleanupToolsState } from '../../types';
 const IDLE: CleanupToolsState = { phase: 'idle', message: '', tool: '', action: '' };
 
 /** The allow-listed tools, in the order the host's cleanuptools.Tools lists them. */
-const TOOLS: { key: CleanupToolKey; label: string; description: string }[] = [
+const TOOLS: { key: CleanupToolKey; action: IconName; label: string; description: string }[] = [
   {
     key: 'repair_pops_clicks',
+    action: 'repairPopsClicks',
     label: 'Repair Pops/Clicks',
     description: 'REAPER’s own dialog (REAPER 7.80 or later). It finds pops and clicks in the selected items; nothing is repaired until you apply it.',
   },
   {
     key: 'magnolius_declick',
+    action: 'magnoliusDeclick',
     label: 'Magnolius DeClick',
     description: 'A free third-party script for mouth clicks. Only if you installed it in REAPER yourself: The app never installs it.',
   },
@@ -83,8 +86,7 @@ export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
                 </p>
               </div>
               <IconButton
-                action="openTool"
-                label={`Open ${tool.label}`}
+                action={tool.action}
                 onClick={() => launch(tool.key)}
                 pending={running && state.tool === tool.key}
                 disabled={running && state.tool !== tool.key}

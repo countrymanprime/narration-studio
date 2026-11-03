@@ -64,7 +64,7 @@ describe('ChapterLinksTable', () => {
 
     const opening = chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(opening).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
     expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
   });
@@ -77,7 +77,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    const confirm = within(opening).getByRole('button', { name: 'Use this track' });
+    const confirm = within(opening).getByRole('button', { name: 'Confirm' });
     await user.dblClick(confirm);
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
     expect(set).toHaveBeenCalledTimes(1);
@@ -90,7 +90,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(opening).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
 
     await user.click(within(chapterRow(table, 'Opening credits')).getByRole('button', { name: /^More actions for / }));
@@ -115,7 +115,7 @@ describe('ChapterLinksTable', () => {
     const secondRow = chapterRow(table, headingName(WIRE_CHAPTERS[1]));
     const select = within(secondRow).getByRole('combobox') as HTMLSelectElement;
     expect(select.selectedOptions[0]?.textContent).toBe('Choose a track');
-    const confirm = within(secondRow).getByRole('button', { name: 'Use this track' }) as HTMLButtonElement;
+    const confirm = within(secondRow).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
 
     await user.selectOptions(select, WIRE_TRACKS_PROJECT.tracks[1].guid);
@@ -163,7 +163,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: /^More actions for / }));
@@ -193,7 +193,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
   });
@@ -205,7 +205,7 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
 
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
     expect(within(firstRow).getAllByText(WIRE_TRACKS_PROJECT.tracks[0].name).length).toBeGreaterThan(0);
@@ -217,7 +217,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: 'Clear the link' }));
@@ -231,12 +231,12 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: 'Change the track' }));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Use this track' }));
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(within(firstRow).getAllByText(WIRE_TRACKS_PROJECT.tracks[1].name).length).toBeGreaterThan(0));
     const { mappings } = await api.chapterTrackMapList();
