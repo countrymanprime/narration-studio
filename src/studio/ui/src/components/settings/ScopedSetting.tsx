@@ -121,20 +121,20 @@ function numberPlaceholder(field: ScopedSettingField, scope: Scope): string {
 }
 
 /**
- * A field's label with its hint icon. From `md` the icon stays on the line of the label's last word, so it never wraps to a line of its own
- * (XSE2-22); below `md`, where the label sits above its control, the icon is pinned to the row's right edge, so the icons of a stacked list
- * line up in one column (alignment audit A4 at 390 px).
+ * A field's label with its hint icon. From `md` the icon stays on the line of the label's last word (the two share one `nowrap` span), so it
+ * never wraps to a line of its own (XSE2-22); below `md`, where the label sits above its control, the icon is pinned to the row's right edge,
+ * so the icons of a stacked list line up in one column (alignment audit A4 at 390 px).
  */
 function LabelWithHint({ field }: { field: ScopedSettingField }) {
   const cut = field.label.lastIndexOf(' ');
   return (
-    <span className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 md:contents">
-      <span className="min-w-0 md:contents">
-        {cut > 0 ? `${field.label.slice(0, cut)} ` : ''}
-        <span className="md:whitespace-nowrap">{cut > 0 ? field.label.slice(cut + 1) : field.label}</span>
-      </span>
-      <span className="md:contents">
-        <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+    <span className="relative block pr-8 md:static md:inline md:pr-0">
+      {cut > 0 ? `${field.label.slice(0, cut)} ` : ''}
+      <span className="md:whitespace-nowrap">
+        {cut > 0 ? field.label.slice(cut + 1) : field.label}
+        <span className="absolute top-0 right-0 md:static">
+          <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+        </span>
       </span>
     </span>
   );
