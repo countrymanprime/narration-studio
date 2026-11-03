@@ -90,3 +90,32 @@ export const DismissRemovesOne: Story = {
     await expect(canvas.getByText('Second failure.')).toBeInTheDocument();
   },
 };
+
+// One word with no spaces, 10,000 letters long, on a toast that has an action (#2899): the text wraps inside a box that is never taller than the window,
+// scrolls inside itself, and the action and Dismiss stay on screen and reachable. In a real browser this fails if the toast grows past the window.
+export const HugeWord: Story = {
+  args: { messages: [{ ...failure(1, 'x'.repeat(10_000)), action: { label: 'Retry', onAction: fn() } }] },
+  play: async ({ canvasElement }) => {
+    const toast = document.body.querySelector<HTMLElement>('[data-toast-region] [data-tone]');
+    await expect(toast).not.toBeNull();
+    const box = toast!.getBoundingClientRect();
+    await expect(box.top).toBeGreaterThanOrEqual(0);
+    await expect(box.bottom).toBeLessThanOrEqual(window.innerHeight);
+    await expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+    for (const name of ['Retry', 'Dismiss message']) {
+      const button = within(document.body).getByRole('button', { name }).getBoundingClientRect();
+      await expect(button.top).toBeGreaterThanOrEqual(0);
+      await expect(button.bottom).toBeLessThanOrEqual(window.innerHeight);
+      await expect(button.right).toBeLessThanOrEqual(window.innerWidth);
+    }
+    // The text is all reachable: it wraps inside the box (nothing cut off sideways) and, being taller than the box allows, scrolls inside itself. A browser
+    // with layout only: the unit run has none (every size is 0), where this is skipped.
+    const text = toast!.querySelector<HTMLElement>('[data-toast-text]');
+    await expect(text).not.toBeNull();
+    if (text!.clientHeight > 0) {
+      await expect(text!.scrollWidth).toBeLessThanOrEqual(text!.clientWidth + 1);
+      await expect(['auto', 'scroll']).toContain(getComputedStyle(text!).overflowY);
+    }
+    void canvasElement;
+  },
+};

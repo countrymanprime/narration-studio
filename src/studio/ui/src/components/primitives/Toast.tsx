@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HIT_AREA } from './hitArea';
 
@@ -36,6 +36,18 @@ const FADE_MS = 150;
 
 function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: number) => void }) {
   const [leaving, setLeaving] = useState(false);
+  // A message taller than the toast may be is read by scrolling its text, which then needs the keyboard too: it takes focus only while it overflows.
+  const text = useRef<HTMLSpanElement>(null);
+  const [scrolls, setScrolls] = useState(false);
+  useEffect(() => {
+    const el = text.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () => setScrolls(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [message.text]);
   const sticky = message.tone === 'error';
   const { id } = message;
   const stays = message.durationMs ?? TOAST_INFO_MS;
@@ -62,7 +74,16 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       ) : (
         message.icon && <FontAwesomeIcon icon={message.icon} aria-hidden="true" className="flex-none" />
       )}
-      <span className="min-w-0 break-words">{message.text}</span>
+      <span
+        ref={text}
+        data-toast-text
+        tabIndex={scrolls ? 0 : undefined}
+        // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast, which is never taller than the window less its
+        // gutters and the bars it rises above, so its action and Dismiss stay on screen (#2899).
+        className="max-h-[calc(100dvh-2*var(--page-gutter)-var(--toast-clear,0px)-1.5rem)] min-w-0 overflow-y-auto [overflow-wrap:anywhere]"
+      >
+        {message.text}
+      </span>
       {message.action && (
         <button
           className={`flex-none font-semibold underline underline-offset-2 ${HIT_AREA}`}

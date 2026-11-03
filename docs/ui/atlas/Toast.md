@@ -11,6 +11,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - Queue
 - With Action
 - Long Message
+- Huge Word
 - Live Regions
 - Dismiss Removes One
 

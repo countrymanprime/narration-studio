@@ -165,3 +165,53 @@ describe('ToastRegion', () => {
     expect(toast.querySelector('[data-toast-edge]')!.className).toContain('bg-[var(--danger)]');
   });
 });
+
+describe('ToastRegion with a message far taller than the window (issue 2899)', () => {
+  const HUGE = 'x'.repeat(10_000);
+  const textOf = (id: string) => screen.getByText(id, { exact: false }).closest('[data-toast-text]') as HTMLElement;
+
+  it.each([
+    ['one 10,000-letter word', HUGE],
+    ['emoji and right-to-left text', 'שלום \u{1F3A4} '.repeat(2_000)],
+  ])('wraps %s anywhere and caps the text to the window, scrolling inside the toast', (_name, text) => {
+    render(<ToastRegion messages={[{ ...failure(1, text), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
+    const el = document.querySelector('[data-toast-text]') as HTMLElement;
+    expect(el.className).toContain('[overflow-wrap:anywhere]');
+    expect(el.className).toContain('overflow-y-auto');
+    expect(el.className).toContain('max-h-[calc(100dvh-');
+    // The action and Dismiss are siblings of the scrolling text, so they never scroll away with it.
+    expect(within(el.parentElement!).getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(within(el.parentElement!).getByRole('button', { name: 'Dismiss message' })).toBeTruthy();
+    expect(el.contains(screen.getByRole('button', { name: 'Retry' }))).toBe(false);
+  });
+
+  it('puts the text in the tab order only while it overflows, so a short message adds no Tab stop', () => {
+    const observers: Array<() => void> = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(cb: () => void) {
+          observers.push(cb);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const sizes = { scrollHeight: 10, clientHeight: 10 };
+    const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(() => sizes.scrollHeight);
+    const clientHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => sizes.clientHeight);
+    render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
+    expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
+    sizes.scrollHeight = 500;
+    act(() => observers.forEach((cb) => cb()));
+    expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
+    scrollHeight.mockRestore();
+    clientHeight.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('leaves an ordinary short message out of the tab order', () => {
+    render(<ToastRegion messages={[info(1, 'Entry saved.')]} dismiss={vi.fn()} />);
+    expect(textOf('Entry saved.').getAttribute('tabindex')).toBeNull();
+  });
+});
