@@ -58,7 +58,6 @@ import { createChapterTracksMock } from './mockHost/chapterTracks';
 import { createMergeEvents } from './mockHost/mergeEvents';
 import { createStoryBibleMock } from './mockHost/storyBible';
 import { createCharacterMock } from './mockHost/character';
-import { createSeriesMock } from './mockHost/series';
 import { createSystemMock, invalidPayloadOverrides } from './mockHost/system';
 import { createPronunciationLookupMock } from './mockHost/pronunciationLookup';
 import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommonsAudio';
@@ -195,7 +194,6 @@ export function createMockApi(
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
   const { clearSuggestions, ...extraction } = createExtractionMock(endJob);
   const character = createCharacterMock(s);
-  const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
   const mockStartedAt = Date.now();
   const teleprompter = createTeleprompterMock({
     ready: manuscriptReady,
@@ -322,16 +320,11 @@ export function createMockApi(
     seed: initial.production,
   });
   // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
-  // `?mockHold=overview,entities,series`: those reads never answer, so Production, the Story Bible and its Series tab stay on their loading skeleton.
+  // `?mockHold=overview,entities`: those reads never answer, so Production and the Story Bible stay on their loading skeleton.
   const held = new Set(initial.held ?? []);
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
-  if (held.has('series')) series.bindings.seriesVoiceBible = never;
-  if (initial.seriesVoiceBible === 'fails')
-    series.bindings.seriesVoiceBible = async () => {
-      throw new Error('The series could not be read from this project.');
-    };
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
   const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
@@ -405,7 +398,6 @@ export function createMockApi(
     ...settings.bindings,
     ...storyBible.bindings,
     ...character.bindings,
-    ...series.bindings,
     ...assets.bindings,
     ...proofing.bindings,
     ...reaperActions.bindings,

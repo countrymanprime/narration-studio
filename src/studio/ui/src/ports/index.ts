@@ -6,7 +6,6 @@ import type { SystemApi } from '../api/contracts/system';
 import type { ManuscriptApi } from '../api/contracts/manuscript';
 import type { StoryBibleApi } from '../api/contracts/storyBible';
 import type { CharacterApi } from '../api/contracts/character';
-import type { SeriesApi } from '../api/contracts/series';
 import type { TranscriptApi } from '../api/contracts/transcript';
 import type { TtsApi } from '../api/contracts/tts';
 import type { WhisperApi } from '../api/contracts/whisper';
@@ -93,7 +92,6 @@ export type {
   ManuscriptApi,
   StoryBibleApi,
   CharacterApi,
-  SeriesApi,
   TranscriptApi,
   TtsApi,
   WhisperApi,
@@ -174,7 +172,6 @@ export interface PortMap {
   manuscript: ManuscriptApi;
   storyBible: StoryBibleApi;
   character: CharacterApi;
-  series: SeriesApi;
   transcript: TranscriptApi;
   tts: TtsApi;
   whisper: WhisperApi;

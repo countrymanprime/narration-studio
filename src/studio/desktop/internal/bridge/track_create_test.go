@@ -104,3 +104,53 @@ func TestCreateTrackSaysWhenTheScriptIsOlderThanTheApp(t *testing.T) {
 		t.Fatalf("err = %v, want ErrScriptOutdated", err)
 	}
 }
+
+func TestCreateChildTrackSendsTheNameAndTheFolder(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"TRACK_CREATED", run(command), createdTrack, "5", command[3]}}
+	})
+	got, err := actions.CreateChildTrack(context.Background(), "Veyra", "{00000002-0000-4000-8000-000000000002}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if len(commands) != 1 || len(commands[0]) < 5 || commands[0][3] != "Veyra" || commands[0][4] != "{00000002-0000-4000-8000-000000000002}" {
+		t.Fatalf("commands = %v, want one track_create naming the track and the folder", commands)
+	}
+	if got != (CreatedTrack{GUID: createdTrack, Name: "Veyra", Index: 5}) {
+		t.Fatalf("got %+v", got)
+	}
+}
+
+func TestCreateChildTrackInAFolderThatIsGoneIsStale(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"TRACK_STALE", run(command), command[4]}}
+	})
+	_, err := actions.CreateChildTrack(context.Background(), "Veyra", "{DEAD}")
+	var stale *TrackStaleError
+	if !errors.As(err, &stale) || !errors.Is(err, ErrStale) {
+		t.Fatalf("err = %v, want a TrackStaleError", err)
+	}
+}
+
+func TestCreateChildTrackNeedsAFolder(t *testing.T) {
+	actions, _, _ := newActionsSession(t, true)
+	if _, err := actions.CreateChildTrack(context.Background(), "Veyra", " "); err == nil {
+		t.Fatal("a child track with no folder was sent")
+	}
+}
+
+func TestCreateTrackSendsNoFolder(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"TRACK_CREATED", run(command), createdTrack, "2", command[3]}}
+	})
+	if _, err := actions.CreateTrack(context.Background(), "Chapter 2"); err != nil {
+		t.Fatal(err)
+	}
+	if commands := fake.commands(); len(commands[0]) > 4 {
+		t.Fatalf("the end-of-list create sent a folder: %v", commands[0])
+	}
+}

@@ -63,7 +63,6 @@ var stressReaders = []stressReader{
 	{"PreviewPinSet (unknown chapter)", func(h *Host) { _, _ = h.PreviewPinSet("missing", []string{"missing"}) }},
 	{"PreviewPinAdjust (nothing pinned)", func(h *Host) { _, _ = h.PreviewPinAdjust("end", true) }},
 	{"PreviewPinClear", func(h *Host) { _, _ = h.PreviewPinClear() }},
-	{"ManuscriptReader", func(h *Host) { _, _ = h.ManuscriptReader() }},
 	{"ManuscriptReaderState", func(h *Host) { _, _ = h.ManuscriptReaderState() }},
 	{"ManuscriptSearch", func(h *Host) { _, _ = h.ManuscriptSearch("word") }},
 	{"BookmarksList", func(h *Host) { _, _ = h.BookmarksList() }},
@@ -125,7 +124,6 @@ var stressReaders = []stressReader{
 	{"ChapterTrackSet (unknown chapter)", func(h *Host) { _, _ = h.ChapterTrackSet("missing", "track-guid") }},
 	{"ChapterTrackUnlink (unknown chapter)", func(h *Host) { _, _ = h.ChapterTrackUnlink("missing") }},
 	{"ManuscriptSetChapterKind (unknown chapter)", func(h *Host) { _, _ = h.ManuscriptSetChapterKind("missing", "reference") }},
-	{"ChapterSuggestion", func(h *Host) { _, _ = h.ChapterSuggestion() }},
 	{"ChapterSyncState", func(h *Host) { _, _ = h.ChapterSyncState() }},
 	{"ChapterSyncPreview", func(h *Host) { _, _ = h.ChapterSyncPreview() }},
 	{"ChapterSyncUndo (no link)", func(h *Host) { _, _ = h.ChapterSyncUndo("missing") }},
@@ -246,7 +244,6 @@ var stressReaders = []stressReader{
 	{"ProductionStopTimer", func(h *Host) { _, _ = h.ProductionStopTimer() }},
 	{"ProductionStatusReport", func(h *Host) { _, _ = h.ProductionStatusReport(ProductionReportInclude{}) }},
 	{"ProductionStatusReportPreview", func(h *Host) { _, _ = h.ProductionStatusReportPreview(ProductionReportInclude{}) }},
-	{"ProductionBurndown", func(h *Host) { _, _ = h.ProductionBurndown() }},
 	{"emit callbacks", func(h *Host) {
 		h.emitTranscript(emptyTranscript())
 		h.emitTeleprompterState(map[string]any{"phase": "idle"})

@@ -10,7 +10,6 @@ import type {
   CharacterRegion,
   ManuscriptChapter,
   ManuscriptParagraph,
-  Series,
   TeleprompterDevice,
   TrackMapping,
   TracksDiscovery,
@@ -23,7 +22,6 @@ import {
   WIRE_DIALOGUE_CUES,
   WIRE_ENTITIES,
   WIRE_PARAGRAPHS,
-  WIRE_SERIES,
   WIRE_TRACKS_PROJECT,
   wireClone,
 } from '../mockFixtures';
@@ -112,8 +110,8 @@ export type MockApiSeed = {
   assetsVerify?: 'damaged' | 'absent' | 'fails' | 'silent' | 'hangs';
   /** `?mockAssetNames=long`: the Whisper model's name is a long one, to see a row hold its actions at 390 px. */
   assetNames?: 'long';
-  /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries, the Series tab's voice bible. */
-  held?: readonly ('overview' | 'entities' | 'series')[];
+  /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries. */
+  held?: readonly ('overview' | 'entities')[];
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
   /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error.
@@ -175,9 +173,6 @@ export type MockApiSeed = {
   /** Seeds the confirmed chapter-track mapping, so a link's state (a
    * missing track, in particular) can be seen without going through Confirm in the UI first. */
   chapterTrackMappings?: TrackMapping[];
-  /** The mock .rpp's record-armed track GUIDs, which `chapterSuggestion` reads. Defaults to none, so the
-   * Teleprompter keeps its usual default chapter. */
-  armedTracks?: readonly string[];
   /** Boots LineIdentityState already at this result, so "Link chapters" states can be seen without stepping through a run. */
   lineIdentity?: 'success' | 'conflict' | 'error';
   /** Boots PickupsState already at this result, so the pickup list's states can be seen without stepping through a run. */
@@ -264,12 +259,6 @@ export type MockApiSeed = {
    * `WIRE_CHARACTER_REGIONS` and `WIRE_CHARACTER_REFERENCES` (one changed-since-approval reference among them).
    */
   characterContinuity?: 'empty';
-  /**
-   * Boots the current project outside any series, so the Series
-   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books). `fails` makes the read of the
-   * series voice bible fail, so the tab's error and its Retry can be seen.
-   */
-  seriesVoiceBible?: 'not-in-series' | 'single-book' | 'fails';
   /** Boots with voice samples saved (`?mockVoiceSamples=`), see `VoiceSamplesSeed`. Unset boots with none. */
   voiceSamples?: VoiceSamplesSeed;
   /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed`. */
@@ -306,8 +295,6 @@ export type MockState = {
   regions: CharacterRegion[];
   /** Every approved (or previously approved) voice reference. */
   characterReferences: ApprovedCharacterReference[];
-  /** The narrator's own series list. */
-  series: Series[];
 };
 
 export function createMockState(initial: MockApiSeed): MockState {
@@ -331,13 +318,5 @@ export function createMockState(initial: MockApiSeed): MockState {
     dialogueCues: wireClone(WIRE_DIALOGUE_CUES),
     regions: initial.characterContinuity === 'empty' ? [] : wireClone(WIRE_CHARACTER_REGIONS),
     characterReferences: initial.characterContinuity === 'empty' ? [] : wireClone(WIRE_CHARACTER_REFERENCES),
-    series: seriesSeed(initial.seriesVoiceBible),
   };
-}
-
-function seriesSeed(seed: MockApiSeed['seriesVoiceBible']): Series[] {
-  if (seed === 'not-in-series') return [];
-  const wonderland = wireClone(WIRE_SERIES);
-  if (seed === 'single-book') wonderland.memberProjectPaths = wonderland.memberProjectPaths.slice(0, 1);
-  return [wonderland];
 }

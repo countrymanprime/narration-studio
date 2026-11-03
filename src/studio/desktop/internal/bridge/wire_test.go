@@ -35,7 +35,6 @@ var realEvents = map[string][]string{
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
 	"PICKUPS_EXPORTED":      {"PICKUPS_EXPORTED", "t1", "C:/s/pickups.txt", "2"},
 	"PICKUPS_COUNTED":       {"PICKUPS_COUNTED", "t1", "1", "2"},
-	"PICKUP_NEXT":           {"PICKUP_NEXT", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_RESOLVED":       {"PICKUP_RESOLVED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_REOPENED":       {"PICKUP_REOPENED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_MARKERS_LISTED": {"PICKUP_MARKERS_LISTED", "t1", "C:/s/markers.txt", "2", "1"},

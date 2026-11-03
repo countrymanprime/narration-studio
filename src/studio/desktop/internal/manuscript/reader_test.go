@@ -42,13 +42,6 @@ func TestReaderStatusAndSearch(t *testing.T) {
 	if err != nil || text(status, "status") != "recording" {
 		t.Fatalf("status = %#v, %v", status, err)
 	}
-	reader, err := service.Reader()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(objects(reader["chapters"])) == 0 || len(objects(reader["paragraphs"])) == 0 {
-		t.Fatalf("reader = %#v", reader)
-	}
 	hits, err := service.Search("alice")
 	if err != nil || len(hits) == 0 {
 		t.Fatalf("hits = %#v, %v", hits, err)
@@ -278,15 +271,11 @@ func TestRecordedFractionComesOnlyFromTheMeasurementProvider(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reader, err := service.Reader()
-	if err != nil {
-		t.Fatal(err)
-	}
 	status, err := service.SetChapterStatus(chapterID, "recording")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for name, list := range map[string][]map[string]any{"Chapters": chapters, "Reader": objects(reader["chapters"])} {
+	for name, list := range map[string][]map[string]any{"Chapters": chapters} {
 		for _, chapter := range list {
 			fraction, ok := chapter["recordedFraction"]
 			if text(chapter, "id") == chapterID {
@@ -301,7 +290,7 @@ func TestRecordedFractionComesOnlyFromTheMeasurementProvider(t *testing.T) {
 	if status["recordedFraction"] != 0.8 {
 		t.Fatalf("SetChapterStatus payload = %#v", status)
 	}
-	if calls != 3 {
+	if calls != 2 {
 		t.Fatalf("the provider is asked once per payload, got %d calls", calls)
 	}
 }

@@ -519,9 +519,6 @@ func (h *Host) ManuscriptChapters() (string, error) {
 func (h *Host) ManuscriptParagraphs(chapter string) (string, error) {
 	return encodeBinding(h.services().manuscript.Paragraphs(chapter))
 }
-func (h *Host) ManuscriptReader() (string, error) {
-	return encodeBinding(h.services().manuscript.Reader())
-}
 func (h *Host) ManuscriptSearch(query string) (string, error) {
 	return encodeBinding(h.services().manuscript.Search(query))
 }
@@ -921,23 +918,6 @@ func (h *Host) TracksList() (string, error) { return encodeBinding(h.tracksList(
 // and region names. It only reads; it never creates a track or a link.
 func (h *Host) ChapterTrackMatch(chapterID string) (string, error) {
 	return encodeBinding(h.chapterTrackMatchFor(chapterID))
-}
-
-// ChapterSuggestion suggests the chapter the narrator is recording from the
-// selected .rpp's record-armed (else selected) track as of its last save
-// the matcher's
-// other direction, track to chapter, with the same statuses. Read-only.
-func (h *Host) ChapterSuggestion() (string, error) {
-	return encodeBinding(h.chapterSuggestionFor())
-}
-
-// ChaptersForTracks is ForTrack run over every GUID in guids: the
-// Review page's chapter grouping for findings that carry only a track, item or take GUID
-// rather than a manuscript-anchored chapter. One GUID the project no longer
-// has is reported as an error alongside the others, never as a failed call.
-// Read-only.
-func (h *Host) ChaptersForTracks(guids []string) (string, error) {
-	return encodeBinding(h.chaptersForTracks(guids))
 }
 
 // TakeReviewScanStart starts a pickup and duplicate scan of scope as a job: the chapter track's
