@@ -21,6 +21,9 @@ export type BoothVoices = {
   /** Number-pad key n (0 the Narrator, 1 to 9 the others). */
   byKey: (n: number) => void;
   step: (by: 1 | -1) => void;
+  /** What REAPER reports of the arms: `armed` when the current voice is the one track armed (or the voice this app's take records
+   * on), `several` the number armed when that is more than one, `unknown` before the first read or after a failed one. */
+  arm: { state: 'armed' | 'not_armed' | 'several' | 'unknown'; count?: number };
   /** Reads the tracks, links and characters again (the voice list opening, a take stopping). */
   reload: () => void;
 };
@@ -41,6 +44,7 @@ export function useBoothVoices({
   notify: (text: string, tone?: 'error' | 'info') => void;
 }): BoothVoices {
   const tracksPort = usePort('tracks');
+  const teleprompter = usePort('teleprompter');
   const links = usePort('chapterTrackMap');
   const storyBible = usePort('storyBible');
   const voiceTracks = usePort('voiceTracks');
@@ -53,6 +57,7 @@ export function useBoothVoices({
   const [hostVoice, setHostVoice] = useState<{ chapterId: string; guid: string }>({ chapterId: '', guid: '' });
   const [choosing, setChoosing] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
 
   useEffect(() => {
     if (!chapterId || setup.layout !== 'folders') return;
@@ -80,6 +85,20 @@ export function useBoothVoices({
       live = false;
     };
   }, [chapterId, setup.layout, tracksPort, links, storyBible, voiceTracks, notify, revision]);
+
+  // REAPER's arms, read on the voice the host records on (ReadAloudReaperState reads the chosen voice of a folder): again after a choice,
+  // and when a take starts or stops, which arms and puts back. A failed read is unknown, never the last answer given as fact.
+  useEffect(() => {
+    if (!chapterId || setup.layout !== 'folders') return;
+    let live = true;
+    teleprompter
+      .readAloudReaperState(chapterId)
+      .then((state) => live && setReaper({ chapterId, status: state.status, trackGuid: state.trackGuid ?? '', armedCount: state.armedCount }))
+      .catch(() => live && setReaper(null));
+    return () => {
+      live = false;
+    };
+  }, [chapterId, setup.layout, teleprompter, hostVoice.guid, recording, revision]);
 
   const voices = useMemo(() => (setup.layout === 'folders' && link ? folderVoices(tracks, link, characters, setup) : []), [setup, link, tracks, characters]);
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
@@ -156,5 +175,16 @@ export function useBoothVoices({
   );
 
   const reload = useCallback(() => setRevision((n) => n + 1), []);
-  return { voices, current, choosing, choose, byKey, step, reload };
+  const read = reaper?.chapterId === chapterId ? reaper : null;
+  // During this app's take the voice it records on is armed: the start and every switch answer say so, and the state read then only says REAPER records.
+  const arm: BoothVoices['arm'] = recording
+    ? { state: 'armed' }
+    : !read || !current
+      ? { state: 'unknown' }
+      : read.status === 'several_armed'
+        ? { state: 'several', count: read.armedCount }
+        : read.status === 'ready' && read.trackGuid.toLowerCase() === current.guid.toLowerCase()
+          ? { state: 'armed' }
+          : { state: 'not_armed' };
+  return { voices, current, choosing, choose, byKey, step, arm, reload };
 }

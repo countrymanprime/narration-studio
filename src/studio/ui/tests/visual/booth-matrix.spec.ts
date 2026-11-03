@@ -178,6 +178,31 @@ test.describe('with a take running', () => {
     });
   }
 
+  // Every control of the record bar stays inside a narrow window, in a flat chapter and with the voice control (qa-breaker B2).
+  for (const [size, query] of [
+    [{ width: 360, height: 500 }, ''],
+    [{ width: 320, height: 300 }, ''],
+    [{ width: 360, height: 500 }, '?mockVoiceFolders=1'],
+    [{ width: 320, height: 300 }, '?mockVoiceFolders=1'],
+  ] as const) {
+    test(`the record bar's controls are inside a ${size.width}x${size.height} window${query ? ' with the voice control' : ''}`, async ({ page }) => {
+      const errors = watch(page);
+      await page.setViewportSize(size);
+      await openBooth(page, query);
+      if (query) await expect(page.locator('#bvoice')).toBeVisible();
+      const outside = await page.evaluate(() =>
+        [...(document.getElementById('btimer')?.parentElement?.querySelectorAll<HTMLElement>('button') ?? [])]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && (r.left < -1 || r.right > innerWidth + 1);
+          })
+          .map((el) => `${el.id || el.textContent?.trim()} at ${Math.round(el.getBoundingClientRect().left)}-${Math.round(el.getBoundingClientRect().right)}`),
+      );
+      expect(outside, 'controls leaving the window').toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  }
+
   // The voice list opens upward from the record bar, beside Cold read, and lists every voice of the chapter's folder (phase 4b, #2251).
   for (const size of [
     { width: 1440, height: 900 },
@@ -195,7 +220,7 @@ test.describe('with a take running', () => {
         page,
         async () => {
           await opener.click();
-          await expect(popup.getByRole('button', { name: /Extras/ })).toBeVisible();
+          await expect(popup.getByRole('option', { name: /Extras/ })).toBeVisible();
         },
         { root: popup, label: 'the voice list' },
       );

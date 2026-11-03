@@ -7,7 +7,7 @@ import type { Track } from './contracts/tracks';
 
 type Deps = Pick<
   NarrationApi,
-  'voiceTracksGet' | 'chapterTrackMapList' | 'tracksList' | 'readAloudRecordStart' | 'readAloudRecordStartAt' | 'readAloudRecordStop'
+  'voiceTracksGet' | 'chapterTrackMapList' | 'tracksList' | 'readAloudRecordStart' | 'readAloudRecordStartAt' | 'readAloudRecordStop' | 'readAloudReaperState'
 >;
 
 const FLAT =
@@ -93,6 +93,12 @@ export function createBoothVoiceMock(api: Deps) {
       chosen.set(chapterId, target.guid);
       if (recording?.chapterId !== chapterId) return { outcome: 'selected', trackGuid: target.guid };
       return { outcome: 'switched', trackGuid: target.guid, at: recording.from + (Date.now() - recording.since) / 1000 };
+    },
+    // As ReadAloudReaperState does for a chapter linked to a folder of voices: the arms read are its voice's, never the folder's.
+    async readAloudReaperState(chapterId: string) {
+      const state = await api.readAloudReaperState(chapterId);
+      const { voices } = await voicesOf(chapterId);
+      return voices?.length ? { ...state, trackGuid: voiceFor(voices, chosenFor(chapterId)) } : state;
     },
     readAloudRecordStart: (chapterId: string) => startedOn(chapterId, () => api.readAloudRecordStart(chapterId)),
     readAloudRecordStartAt: (chapterId: string, at: number) => startedOn(chapterId, () => api.readAloudRecordStartAt(chapterId, at)),

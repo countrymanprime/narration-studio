@@ -810,6 +810,7 @@ function BoothSession({
                 voices={voices.voices}
                 current={voices.current}
                 choosing={voices.choosing}
+                arm={voices.arm}
                 onChoose={voices.choose}
                 open={voiceListOpen}
                 onOpenChange={(next) => {

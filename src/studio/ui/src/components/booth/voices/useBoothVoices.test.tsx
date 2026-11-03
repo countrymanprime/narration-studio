@@ -137,6 +137,29 @@ describe("the Booth's voices", () => {
     expect(hook.current.current?.name).toBe('Extras');
   });
 
+  it("the arm state is REAPER's report on the voice the host records on", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const answer = { status: 'ready' as const, message: '', trackGuid: '{V01CE-RABB1T}', armedCount: 1, playing: false, recording: false };
+    api.readAloudReaperState = async () => answer;
+    const { hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    // The Narrator is the voice; REAPER has White Rabbit armed: the Narrator is not armed.
+    expect(hook.current.arm.state).toBe('not_armed');
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    expect(hook.current.arm.state).toBe('armed');
+    api.readAloudReaperState = async () => ({ ...answer, status: 'several_armed', armedCount: 3 });
+    await act(async () => hook.current.reload());
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    expect(hook.current.arm).toEqual({ state: 'several', count: 3 });
+    api.readAloudReaperState = async () => {
+      throw new Error('no answer');
+    };
+    await act(async () => hook.current.reload());
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    expect(hook.current.arm.state).toBe('unknown');
+  });
+
   it('a refusal because the tracks changed reads the voices again', async () => {
     const { api, hook } = await mount({ voiceFolders: true });
     const reads = vi.spyOn(api, 'tracksList');

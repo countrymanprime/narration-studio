@@ -103,8 +103,9 @@ const OVERLAYS: Overlay[] = [
   },
   {
     name: 'voice list (a chapter linked to a folder of voices)',
-    // Enter on a voice chooses it and closes the list, as a menu closes on the item it chose.
+    // Enter picks the highlighted voice and closes the list, as a menu closes on the item it chose; focus opens in its search box.
     menu: true,
+    typesSpace: true,
     query: '?mockVoiceFolders=1',
     open: async (page) => {
       const opener = page.getByRole('button', { name: /^Voice:.*Narrator/ });

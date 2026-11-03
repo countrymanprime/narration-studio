@@ -122,8 +122,8 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page, '?mockVoiceFolders=1');
     await page.getByRole('button', { name: /^Voice:.*Narrator/ }).click();
     await page
-      .getByRole('list', { name: 'Voices of this chapter' })
-      .getByRole('button', { name: /Extras/ })
+      .getByRole('listbox', { name: 'Voices of this chapter' })
+      .getByRole('option', { name: /Extras/ })
       .waitFor();
   },
   // The mixed manuscript's second chapter has a title and no subtitle, its third a subtitle long enough to wrap (applyMixedManuscriptMock).
