@@ -246,3 +246,11 @@ func TestChapterFolderStateNeedsATrack(t *testing.T) {
 		t.Fatal("a folder read with no track was sent")
 	}
 }
+
+func TestChapterFolderStateRefusesAnOlderScriptsOneTrackAnswer(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, trackStateAnswer) // items with no track field, as a script that ignores the option answers
+	if _, err := actions.ChapterFolderState(context.Background(), testTrack); !errors.Is(err, ErrFolderReadUnsupported) {
+		t.Fatalf("err = %v, want ErrFolderReadUnsupported", err)
+	}
+}

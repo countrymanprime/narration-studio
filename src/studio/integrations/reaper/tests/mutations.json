@@ -3038,5 +3038,23 @@
     "file": "narration_transport.lua",
     "find": "  for _, member in ipairs(core.with_descendants(track)) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do",
     "replace": "  for _, member in ipairs({ track }) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do"
+  },
+  {
+    "name": "the children read leaves each item's track off",
+    "file": "narration_track_state.lua",
+    "find": "        fields[#fields + 1] = member_guid\n",
+    "replace": ""
+  },
+  {
+    "name": "the children read counts only the folder's own items in its total",
+    "file": "narration_track_state.lua",
+    "find": "    total = total + count\n",
+    "replace": "    total = total + (member == track and count or 0)\n"
+  },
+  {
+    "name": "a track that is not a folder walks on into the tracks after it",
+    "file": "narration_bridge_core.lua",
+    "find": "  if depth <= 0 then\n    return out\n  end",
+    "replace": "  if depth < 0 then\n    return out\n  end\n  depth = math.max(depth, 1)"
   }
 ]

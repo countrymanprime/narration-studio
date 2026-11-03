@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -62,8 +63,23 @@ func (a *Actions) ChapterFolderState(ctx context.Context, trackGUID string) (Tra
 	if normalizeGUID(trackGUID) == "" {
 		return TrackState{}, fmt.Errorf("no track to read the folder of")
 	}
-	return a.chapterTrackState(ctx, trackGUID, "children")
+	state, err := a.chapterTrackState(ctx, trackGUID, "children")
+	if err != nil {
+		return TrackState{}, err
+	}
+	// A bridge script older than the option ignores it and answers the one-track read, whose items carry no track: that is less
+	// than was asked for, so it is an error, never a folder that looks empty.
+	for _, item := range state.Items {
+		if item.TrackGUID == "" {
+			return TrackState{}, ErrFolderReadUnsupported
+		}
+	}
+	return state, nil
 }
+
+// ErrFolderReadUnsupported is ChapterFolderState's answer when the REAPER bridge script predates the 'children' read: update the
+// script (the launcher installs the one this app ships).
+var ErrFolderReadUnsupported = errors.New("the REAPER bridge script is older than this app and cannot read a folder of voices")
 
 func (a *Actions) chapterTrackState(ctx context.Context, trackGUID string, option ...string) (TrackState, error) {
 	events, err := a.request(ctx, "chapter_track_state", []string{"TRACK_STATE_END", "TRACK_STALE"}, append([]string{trackGUID}, option...)...)
