@@ -1,16 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"time"
 
 	"desktop/internal/dawport"
 )
 
-// DawProjectState and its live event daw_project_state_changed tell the UI the DAW project as last saved against the live
-// one: when the saved file was written, whether REAPER has edits it does not have, and the transport. Everything is read
-// from what the host already has, through the Heartbeat role the resolver hands out (as daw_transport_changed is,
+// DawProjectState tells the UI the DAW project as last saved against the live one: when the saved file was written,
+// whether REAPER has edits it does not have, and the transport. Everything is read from what the host already has, through the Heartbeat role the resolver hands out (as daw_transport_changed is,
 // bindings_daw_transport.go): the open .rpp and the edit counter from the heartbeat, and the file's modification time
 // from a stat here, never from Lua. The wire schema, golden payloads, wireContracts row and mock live in src/studio/ui/src/api
 // (docs/architecture/wire-contracts.md).
@@ -57,30 +55,9 @@ func (h *Host) observeUnsaved(path string, savedAt time.Time, count int, counted
 	return h.dawUnsavedTracker.Observe(path, savedAt, count, counted)
 }
 
-// dawProjectStateChanged computes the payload and reports whether it differs from the last one it saw (a marshalled
-// JSON comparison, as dawTransportChanged does), recording it as the new last one.
-func (h *Host) dawProjectStateChanged() (dawport.ProjectState, bool) {
-	payload := h.dawProjectState()
-	encodedBytes, err := json.Marshal(payload)
-	if err != nil {
-		return payload, false
-	}
-	encoded := string(encodedBytes)
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	changed := encoded != h.dawProjectStateSnapshot
-	h.dawProjectStateSnapshot = encoded
-	return payload, changed
-}
-
-// pollDawProjectState is one tick of transcriptLoop (app.go), next to pollDawTransport: it emits
-// daw_project_state_changed on the first tick after launch and then only when the payload changed.
-func (h *Host) pollDawProjectState() {
-	payload, changed := h.dawProjectStateChanged()
-	h.mu.RLock()
-	ctx := h.ctx
-	h.mu.RUnlock()
-	if changed && ctx != nil {
-		emitEvent("daw_project_state_changed", payload)
-	}
+// observeDawProjectState is one tick of transcriptLoop (app.go): it reads the project state and drops it, so
+// dawUnsavedTracker takes its baseline at launch and after each save as they happen, not only when a page next asks
+// DawProjectState (an edit made before that first ask would otherwise become the baseline and read as saved).
+func (h *Host) observeDawProjectState() {
+	_ = h.dawProjectState()
 }

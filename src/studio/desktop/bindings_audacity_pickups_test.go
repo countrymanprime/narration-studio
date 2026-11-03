@@ -66,18 +66,6 @@ func TestAudacityPickupsRunThroughTheHostsPickupService(t *testing.T) {
 	if len(markers) != 2 || markers[0].(map[string]any)["state"] != "done" || markers[1].(map[string]any)["state"] != "open" {
 		t.Errorf("markers = %v", state["markers"])
 	}
-	// Next goes from the cursor to the next open pickup.
-	if _, err := f.host.PickupsNext(); err != nil {
-		t.Fatal(err)
-	}
-	if state = settledPickups(t, f); state["phase"] != "success" {
-		t.Errorf("next = %v", state)
-	}
-	f.server.With(func(p *abt.Project) {
-		if p.SelStart != 40 {
-			t.Errorf("the cursor is at %v, want 40", p.SelStart)
-		}
-	})
 }
 
 func TestAudacityPickupsAreGatedAndNameAudacity(t *testing.T) {

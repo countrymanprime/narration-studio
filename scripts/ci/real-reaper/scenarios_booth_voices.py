@@ -610,3 +610,46 @@ def folder_solo_plays_children(env: Env) -> str:
     assert a > 0.1 and b > 0.1, f"a child is silent with the folder soloed: Narrator {a:.3f}, Veyra {b:.3f}"
     assert c < 0.02, f"Chapter 4 is audible with only the folder soloed: {c:.3f}"
     return f"folder soloed in place: Narrator {a:.2f}, Veyra {b:.2f}, Chapter 4 {c:.3f} in the rendered mix"
+
+
+@scenario(
+    "booth_voices",
+    "track_create",
+    "voices phase 3: track_create with a parent adds a voice as the folder's new last child; both folders still close after save and reload, "
+    "and the voice records from the first child's input; a parent that is gone adds nothing",
+)
+def track_create_in_folder(env: Env) -> str:
+    env.lua(
+        """
+        local book = ci.add_track('Book')
+        local chapter = ci.add_track('Chapter 3')
+        local narrator = ci.add_track('Narrator')
+        ci.add_track('After')
+        reaper.SetMediaTrackInfo_Value(book, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(chapter, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(narrator, 'I_FOLDERDEPTH', -2)
+        reaper.SetMediaTrackInfo_Value(narrator, 'I_RECINPUT', 1024)
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    folder = env.lua("return reaper.GetTrackGUID(ci.track_by_name('Chapter 3'))")
+    count = len(structure(env))
+    created = env.ok("track_create", "Veyra", folder, until="TRACK_CREATED")
+    assert created[3:5] == ["3", "Veyra"], f"created {created}"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    rows = structure(env)
+    shape = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in rows]
+    assert shape == [
+        ("Book", 1, 0, ""),
+        ("Chapter 3", 1, 1, "Book"),
+        ("Narrator", 0, 2, "Chapter 3"),
+        ("Veyra", -2, 2, "Chapter 3"),
+        ("After", 0, 0, ""),
+    ], shape
+    veyra = next(r for r in rows if r["name"] == "Veyra")
+    assert veyra["input"] == 1024, f"Veyra records from input {veyra['input']}, not the narrator's 1024"
+    stale = env.send("track_create", "Ghost", "{00000000-0000-4000-8000-0000000000DE}", until={"TRACK_CREATED", "TRACK_STALE"})
+    assert stale[-1][0] == "TRACK_STALE" and len(structure(env)) == count + 1, f"stale parent answered {stale}"
+    return f"created at index {created[3]}, undo {undo!r}; after save and reload {[(r['name'], r['delta']) for r in rows]}; ISBUS {isbus_lines(env)}; Veyra input {veyra['input']}; a gone parent answered TRACK_STALE and added nothing"

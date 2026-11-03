@@ -1,5 +1,5 @@
 // Package pickups is the host's end of the REAPER pickup-list commands over the file bridge (import_pickups,
-// export_pickups, next_pickup, resolve_pickup, reopen_pickup, list_pickup_markers, count_pickups; see docs/architecture/reaper-bridge.md and
+// export_pickups, resolve_pickup, reopen_pickup, list_pickup_markers, count_pickups; see docs/architecture/reaper-bridge.md and
 // src/studio/integrations/reaper/narration_pickups.lua). It is the third consumer built on the event fan-out
 // (src/studio/desktop/internal/bridge), alongside the transcript and line-identity services.
 //
