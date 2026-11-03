@@ -3014,5 +3014,29 @@
     "file": "narration_ui_bridge.lua",
     "find": "    if timing then\n      ctx.event('PROJECT_STATUS'",
     "replace": "    if false then\n      ctx.event('PROJECT_STATUS'"
+  },
+  {
+    "name": "an unknown track read option is read as the one-track read",
+    "file": "narration_track_state.lua",
+    "find": "if option ~= '' and option ~= 'children' then",
+    "replace": "if false then"
+  },
+  {
+    "name": "the children read stops at the folder and lists none of its tracks",
+    "file": "narration_bridge_core.lua",
+    "find": "  while depth > 0 and index < count do",
+    "replace": "  while false do"
+  },
+  {
+    "name": "the children read runs on past the folder's close",
+    "file": "narration_bridge_core.lua",
+    "find": "    depth = depth + reaper.GetMediaTrackInfo_Value(inner, 'I_FOLDERDEPTH')",
+    "replace": "    depth = depth + 0"
+  },
+  {
+    "name": "Editing play reads the linked track's own items only, so a folder of voices is refused",
+    "file": "narration_transport.lua",
+    "find": "  for _, member in ipairs(core.with_descendants(track)) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do",
+    "replace": "  for _, member in ipairs({ track }) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do"
   }
 ]

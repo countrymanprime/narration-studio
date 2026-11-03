@@ -30,12 +30,14 @@ type TrackState struct {
 }
 
 // TrackItem is one item on the track with its active take ("" TakeGUID and SourceFile when it has none). Muted is nil
-// when the bridge script is older than the field.
+// when the bridge script is older than the field. TrackGUID is the track the item is on, set only by ChapterFolderState
+// (the one-track read leaves it "", since every item is on the track asked for).
 type TrackItem struct {
 	ItemGUID, TakeGUID                       string
 	Position, Length, SourceOffset, PlayRate float64
 	SourceFile                               string
 	Muted                                    *bool
+	TrackGUID                                string
 }
 
 // TrackStaleError reports a track GUID REAPER could not find; nothing was read for another track.
@@ -49,7 +51,22 @@ func (e *TrackStaleError) Is(target error) bool { return target == ErrStale }
 // ChapterTrackState reads REAPER's transport and the track trackGUID names (or the transport and the arms only, when
 // trackGUID is empty). It changes nothing in REAPER. A track that is gone is a *TrackStaleError.
 func (a *Actions) ChapterTrackState(ctx context.Context, trackGUID string) (TrackState, error) {
-	events, err := a.request(ctx, "chapter_track_state", []string{"TRACK_STATE_END", "TRACK_STALE"}, trackGUID)
+	return a.chapterTrackState(ctx, trackGUID)
+}
+
+// ChapterFolderState reads like ChapterTrackState, with the items of the track trackGUID names and of every track inside it when it
+// is a REAPER folder (a chapter linked to a folder of voices, docs/prds/booth-voice-tracks.prd.md), in track order, each with its
+// TrackGUID. Items and ItemsTotal count the whole folder. On a track that is not a folder it reads that track's items. It changes
+// nothing in REAPER.
+func (a *Actions) ChapterFolderState(ctx context.Context, trackGUID string) (TrackState, error) {
+	if normalizeGUID(trackGUID) == "" {
+		return TrackState{}, fmt.Errorf("no track to read the folder of")
+	}
+	return a.chapterTrackState(ctx, trackGUID, "children")
+}
+
+func (a *Actions) chapterTrackState(ctx context.Context, trackGUID string, option ...string) (TrackState, error) {
+	events, err := a.request(ctx, "chapter_track_state", []string{"TRACK_STATE_END", "TRACK_STALE"}, append([]string{trackGUID}, option...)...)
 	if err != nil {
 		return TrackState{}, err
 	}
@@ -125,7 +142,16 @@ func readTrackItem(fields []string) TrackItem {
 		PlayRate:     numberAt(fields, 7),
 		SourceFile:   fields[8],
 		Muted:        muted,
+		TrackGUID:    guidAt(fields, 10),
 	}
+}
+
+// guidAt is the GUID at fields[index] in braces and upper case, or "" past the end (an optional field an older script leaves off).
+func guidAt(fields []string, index int) string {
+	if index < len(fields) {
+		return normalizeGUID(fields[index])
+	}
+	return ""
 }
 
 // maxDeviceName is the longest device or channel name kept, in runes. REAPER passes on what an audio driver calls itself,

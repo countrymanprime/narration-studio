@@ -79,6 +79,14 @@ type stackSources struct {
 // stackSourcesIn reads svc's passage map against the current manuscript, the chapter's one linked track through the
 // track_state role (trackState is that capability's support), and the selected .rpp.
 func (h *Host) stackSourcesIn(svc hostServices, trackState dawport.Support) stackSources {
+	return h.stackSourcesReading(svc, trackState, func(ctx context.Context, reader trackStateReader, guid string) (dawport.TrackState, error) {
+		return reader.ChapterTrackState(ctx, guid)
+	})
+}
+
+// stackSourcesReading is stackSourcesIn with the live read given: a command that edits an item reads the linked track's own items
+// (stackSourcesIn); a reader of the chapter's audio passes dawport.ChapterAudioState, which also reads a folder of voices.
+func (h *Host) stackSourcesReading(svc hostServices, trackState dawport.Support, read func(context.Context, trackStateReader, string) (dawport.TrackState, error)) stackSources {
 	return stackSources{
 		passages: func(chapterID string) ([]passagetakes.StackPassage, error) {
 			book, err := passageMapBook(svc.manuscript)()
@@ -108,7 +116,7 @@ func (h *Host) stackSourcesIn(svc hostServices, trackState dawport.Support) stac
 				}
 				return nil, nil, bridge.ErrUnavailable
 			}
-			state, err := reader.ChapterTrackState(ctx, guid)
+			state, err := read(ctx, reader, guid)
 			if err != nil {
 				return nil, nil, err
 			}

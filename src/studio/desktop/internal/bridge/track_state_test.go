@@ -191,3 +191,58 @@ func TestChapterTrackStateFromAnOlderScriptHasNoOutputDeviceOrChannel(t *testing
 		t.Fatalf("got %+v", state)
 	}
 }
+
+const testChild = "{00000002-0000-4000-8000-000000000002}"
+
+// folderStateAnswer is what track_state_test.lua pins for a 'children' read: each TRACK_ITEM ends with its track's GUID.
+func folderStateAnswer(command []string) [][]string {
+	return [][]string{
+		{"TRACK_STATE", run(command), testTrack, "0", "0.000000", "0.000000", "C:/p/Book.rpp", "0", "7", "0", "0", "0", "", "", ""},
+		{"TRACK_ITEM", run(command), testItem, testTake, "0.000000", "4.000000", "0.000000", "1.000000", "narrator.wav", "0", testTrack},
+		{"TRACK_ITEM", run(command), "{AAAAAAAA-0000-4000-8000-000000000002}", "", "4.000000", "1.000000", "0.000000", "1.000000", "veyra.wav", "0", strings.ToLower(testChild)},
+		{"TRACK_STATE_END", run(command), "2", "2"},
+	}
+}
+
+func TestChapterFolderStateSendsChildrenAndReadsEachItemsTrack(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, folderStateAnswer)
+	got, err := actions.ChapterFolderState(context.Background(), testTrack)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if len(commands) != 1 || commands[0][1] != "chapter_track_state" || commands[0][3] != testTrack || len(commands[0]) < 5 || commands[0][4] != "children" {
+		t.Fatalf("commands = %v, want one chapter_track_state naming the track with the children option", commands)
+	}
+	if len(got.Items) != 2 || got.ItemsTotal != 2 {
+		t.Fatalf("items = %+v, total %d", got.Items, got.ItemsTotal)
+	}
+	if got.Items[0].TrackGUID != testTrack || got.Items[1].TrackGUID != testChild {
+		t.Fatalf("track GUIDs = %q, %q; want each item's own track, normalised", got.Items[0].TrackGUID, got.Items[1].TrackGUID)
+	}
+}
+
+func TestChapterTrackStateLeavesTheItemsTrackEmpty(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, trackStateAnswer)
+	got, err := actions.ChapterTrackState(context.Background(), testTrack)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if commands := fake.commands(); len(commands[0]) > 4 {
+		t.Fatalf("the one-track read sent an option: %v", commands[0])
+	}
+	for _, item := range got.Items {
+		if item.TrackGUID != "" {
+			t.Fatalf("one-track read set TrackGUID %q", item.TrackGUID)
+		}
+	}
+}
+
+func TestChapterFolderStateNeedsATrack(t *testing.T) {
+	actions, _, _ := newActionsSession(t, true)
+	if _, err := actions.ChapterFolderState(context.Background(), " "); err == nil {
+		t.Fatal("a folder read with no track was sent")
+	}
+}
