@@ -98,7 +98,7 @@ No new trust boundary: `voice-tracks.json` is written and read back by the host 
 | --- | --- | --- | --- | --- | --- |
 | 0 | Real-REAPER proof | Scenarios, measurements, design note | complete (#2716) | n/a | n/a |
 | 1 | Mock | This PRD and the mock, approved by the owner | in review | n/a | 0 |
-| 2 | Union reads | `chapter_track_state` children; Editing play solos the folder; live items, word times, recording check read the union | pending | with 3 | 1 |
+| 2 | Union reads | `chapter_track_state` children; Editing play solos the folder; live items, word times, recording check read the union | 2a in review (bridge, Editing play, live items, word times); 2b pending (recording check from the saved project) | with 3 | 1 |
 | 3 | Layout and assignments | `DAW.chapter_layout`, `voice-tracks.json`, `BoothVoices`, folder links, Engine Voices card, nested `track_create` | pending | with 2 | 1 |
 | 4 | Booth voices | Catalog rows, voice control and list, `switch_voice`, stop-guard fix, the no-track rule and its notice | pending | no | 2, 3 |
 | 5 | Who is in it | The dialog on an empty key, making a chapter's missing tracks | pending | no | 4 |

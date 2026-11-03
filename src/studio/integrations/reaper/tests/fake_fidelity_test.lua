@@ -293,3 +293,14 @@ H.test('7.82/Linux: Stop leaves the edit cursor where recording began, and the i
   local item = fake.items[#fake.items]
   H.eq(reaper_api.GetMediaItemInfo_Value(item, 'D_POSITION'), 20)
 end)
+
+-- Seen in REAPER 7.82 on Linux, 2026-11-02 (docs/research/2026-10-30-booth-sub-track-recording.md, section 6a, row 1): a new
+-- track reads I_FOLDERDEPTH 0, and the value set is the value read (1 on a folder parent, -1 on its last child).
+H.test('I_FOLDERDEPTH reads 0 on a new track and reads back what was set', function()
+  local reaper_api, fake = api()
+  local folder, child = fake:add_track('Folder'), fake:add_track('Child')
+  H.eq(reaper_api.GetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH'), 0)
+  reaper_api.SetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH', 1)
+  reaper_api.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)
+  H.eq({ reaper_api.GetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH'), reaper_api.GetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH') }, { 1, -1 })
+end)

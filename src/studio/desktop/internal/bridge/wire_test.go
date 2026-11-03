@@ -180,6 +180,14 @@ func TestATruncatedMarkerIsAnErrorThatNamesTheEventAndCountsTheFields(t *testing
 	}
 }
 
+func TestAFolderReadsTrackItemWithMutedAndTrackPassesTheTable(t *testing.T) {
+	// track_state_test.lua: a 'children' read ends each TRACK_ITEM with muted and the item's track GUID.
+	row := append(append([]string{}, realEvents["TRACK_ITEM"]...), "0", "{00000002-0000-4000-8000-000000000002}")
+	if err := CheckEvent(row); err != nil {
+		t.Fatalf("an 11-field TRACK_ITEM: %v", err)
+	}
+}
+
 func TestAnOlderScriptThatSendsFewerOptionalMarkerFieldsIsAccepted(t *testing.T) {
 	// Version skew is real for the Lua script: the user imports it into REAPER, so it can be older than the host. The fields after the
 	// ninth are optional and default when absent, including the three GUIDs a script that predates them does not send.

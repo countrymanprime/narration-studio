@@ -270,3 +270,26 @@ func Discover(folder string) ([]string, error) {
 	sort.Strings(found)
 	return found, nil
 }
+
+// WithDescendants answers the track guid names followed by every track inside it when it is a folder: the tracks after it whose
+// Depth is greater than its own, up to the first that is not (a chapter linked to a folder of voices). A track that is not a folder
+// answers itself alone; a guid the project does not hold answers false.
+func (p Project) WithDescendants(guid string) ([]Track, bool) {
+	for index, track := range p.Tracks {
+		if track.GUID != guid {
+			continue
+		}
+		out := []Track{track}
+		if !track.IsFolder {
+			return out, true
+		}
+		for _, inner := range p.Tracks[index+1:] {
+			if inner.Depth <= track.Depth {
+				break
+			}
+			out = append(out, inner)
+		}
+		return out, true
+	}
+	return nil, false
+}

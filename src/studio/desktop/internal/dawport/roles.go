@@ -261,6 +261,23 @@ type TrackStateReader interface {
 	ChapterTrackState(ctx context.Context, trackGUID string) (TrackState, error)
 }
 
+// FolderStateReader is a TrackStateReader that can also read a chapter linked to a folder of voices: the folder's items and every
+// track's inside it, each item with its TrackGUID. Only an engine with folder tracks (REAPER) has it; a caller that wants a chapter's
+// audio uses ChapterAudioState, which falls back to the one-track read.
+type FolderStateReader interface {
+	ChapterFolderState(ctx context.Context, trackGUID string) (TrackState, error)
+}
+
+// ChapterAudioState reads the audio of the chapter linked to trackGUID: the folder union when reader is a FolderStateReader, else the
+// linked track's own items. It is for readers of a chapter's audio (the Editing page's live items, word times); a command that edits an
+// item keeps the one-track read.
+func ChapterAudioState(ctx context.Context, reader TrackStateReader, trackGUID string) (TrackState, error) {
+	if folder, ok := reader.(FolderStateReader); ok {
+		return folder.ChapterFolderState(ctx, trackGUID)
+	}
+	return reader.ChapterTrackState(ctx, trackGUID)
+}
+
 // TrackSelector selects one track in REAPER ("Select in REAPER"), deselecting
 // every other one. It changes nothing else.
 type TrackSelector interface {
