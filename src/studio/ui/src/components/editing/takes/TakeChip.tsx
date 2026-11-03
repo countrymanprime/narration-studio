@@ -7,7 +7,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import type { LinePassage } from './types';
 
 /**
- * The chip under a line that has takes, one take included: how many, which is active, and where the choice stands (Kept, Stacked, Duplicate read
+ * The chip under a line that has takes, one take included: how many, which one it names (the kept take, else the one the DAW has active), and where the choice stands (Kept, Stacked, Duplicate read
  * or To choose). It opens the takes in place. A line with no takes has no chip. `keptId` is the take the DAW said it kept; nothing is "kept"
  * before it does.
  */
