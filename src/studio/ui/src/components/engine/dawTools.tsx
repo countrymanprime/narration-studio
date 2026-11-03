@@ -20,7 +20,7 @@ export type DawToolId = 'link-chapters' | 'render-config' | 'create-regions' | '
 export type DawToolGroup = 'map' | 'structure' | 'repair' | 'export' | 'takes';
 
 /** What a tool's dialog gets: the chapter links the menu was given (its tracks too), a way to close, and a way to open another tool. */
-export type DawToolDialogProps = { links: ChapterLinks; onClose: () => void; onOpenTool: (id: DawToolId) => void };
+type DawToolDialogProps = { links: ChapterLinks; onClose: () => void; onOpenTool: (id: DawToolId) => void };
 
 export type DawTool = {
   id: DawToolId;
