@@ -32,6 +32,51 @@ function setup(onAdd = vi.fn().mockResolvedValue(undefined)) {
   return { onAdd, onDone, user: userEvent.setup(), toasts: () => service.getSnapshot().toasts.map((t) => t.text) };
 }
 
+describe('AddPickup, the rest of the form', () => {
+  it('refuses a line over 500 characters under the line box, not as a toast', async () => {
+    const { onAdd, user, toasts } = setup();
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
+    await user.click(screen.getByRole('textbox', { name: 'Line to re-record' }));
+    await user.paste('a'.repeat(501));
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(problemWith(screen.getByRole('textbox', { name: 'Line to re-record' })).says).toBe('A line can be at most 500 characters.');
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(toasts()).toEqual([]);
+  });
+
+  it('shows 5:12 as 05:12.0 once the box is left', async () => {
+    const { user } = setup();
+    const time = screen.getByRole('textbox', { name: 'Time in the recording' });
+    await user.type(time, '5:12');
+    await user.tab();
+    expect((time as HTMLInputElement).value).toBe('05:12.0');
+  });
+
+  it('lets the narrator choose the chapter when every chapter is showing', async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    render(
+      <OverlayProvider service={createOverlayService()}>
+        <AddPickup
+          chapterId="c1"
+          chapterName="Chapter 1"
+          choices={[
+            { id: 'c1', name: 'Chapter 1' },
+            { id: 'c2', name: 'Chapter 2' },
+          ]}
+          onAdd={onAdd}
+          onDone={vi.fn()}
+        />
+      </OverlayProvider>,
+    );
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Chapter' }), 'c2');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '01:00.0');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith('c2', 60, 'A line'));
+  });
+});
+
 describe('AddPickup', () => {
   it('add-by-hand-validates: an empty line is refused', async () => {
     const { onAdd, onDone, user } = setup();
@@ -109,7 +154,7 @@ describe('AddPickup', () => {
     await waitFor(() => expect(toasts()).toEqual(['That time is outside the chapter.']));
     expect(onDone).not.toHaveBeenCalled();
     expect((screen.getByRole('textbox', { name: 'Line to re-record' }) as HTMLInputElement).value).toBe('A line');
-    expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('99:00');
+    expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('99:00.0');
   });
 
   it.each(['-1', '0', '5:99', '05:12.55', '1e3', '∞', 'Infinity', '5:12 pm', '', '   ', '１２:００', '99999999:00'])(
@@ -126,8 +171,8 @@ describe('AddPickup', () => {
     },
   );
 
-  it.each(['مرحبا بالعالم', 'שלום עולם', '🦎 asks for a 🍺', 'a pop tart in the floppy drive', 'x'.repeat(501)])(
-    'the line %j goes to the host as typed; the host decides what is too much',
+  it.each(['مرحبا بالعالم', 'שלום עולם', '🦎 asks for a 🍺', 'a pop tart in the floppy drive', 'x'.repeat(500)])(
+    'the line %j goes to the host as typed; the host decides anything but its length',
     async (line) => {
       const { onAdd, user } = setup();
       await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '00:00');

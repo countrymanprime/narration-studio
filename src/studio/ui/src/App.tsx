@@ -1022,7 +1022,12 @@ function AppRoutes() {
                     <Route
                       path="/pickups"
                       element={
-                        <PickupsPage hasManuscript={Boolean(data.manuscript)} goTo={guardedNavigate} goToScript={(chapterId) => goToScript(chapterId)} />
+                        <PickupsPage
+                          hasManuscript={Boolean(data.manuscript)}
+                          dawFileLinked={data.dawFileLinked}
+                          goTo={guardedNavigate}
+                          goToScript={(chapterId) => goToScript(chapterId)}
+                        />
                       }
                     />
                     {/* Retired by Proof: old links land, query and hash kept. */}

@@ -198,7 +198,17 @@ export function PickupsTable({
     void run().finally(() => inFlight.current.delete(id));
   };
   const setIncluded = (id: string, included: boolean) => once(id, () => said(overlay, () => onSetIncluded(id, included)));
-  const setDone = (id: string, done: boolean) => once(id, () => said(overlay, () => onSetDone(id, done)));
+  /* Marking a line changes only its row (and clears its session tick), so the change is said as well. */
+  const setDone = (id: string, done: boolean) =>
+    once(id, async () => {
+      const pickup = pickups.find((p) => p.id === id);
+      let changed = false;
+      await said(overlay, async () => {
+        await onSetDone(id, done);
+        changed = true;
+      });
+      if (changed && pickup) overlay.announce(done ? `${clock(pickup.time)} marked recorded. It leaves the session.` : `${clock(pickup.time)} is open again.`);
+    });
   const remove = (pickup: PickupItem) =>
     once(pickup.id, async () => {
       let undo: { undo: RemoveUndo; entry: number } | undefined;
@@ -289,6 +299,7 @@ export function PickupsTable({
 
   const checkReason = daw.available ? undefined : daw.message || 'The DAW is not answering.';
   const checkReasonId = useId();
+  const playOffId = useId();
 
   return (
     /* tabIndex -1: with no line left to focus, the region itself takes focus so the narrator is not dropped to the top of the page. */
@@ -316,7 +327,13 @@ export function PickupsTable({
           {read.kind === 'ready' ? (
             <Popover label="Add a pickup by hand" open={adding} onOpenChange={setAdding} trigger={<IconButton action="add" label="Add a pickup by hand" />}>
               {addTo ? (
-                <AddPickup chapterId={addTo.id} chapterName={addTo.name} onAdd={onAdd} onDone={() => setAdding(false)} />
+                <AddPickup
+                  chapterId={addTo.id}
+                  chapterName={addTo.name}
+                  choices={scope === ALL_SCOPE ? chapters.filter((chapter) => !chapter.credits) : undefined}
+                  onAdd={onAdd}
+                  onDone={() => setAdding(false)}
+                />
               ) : (
                 <p className="m-0 max-w-[18rem] text-[var(--text-muted)]">
                   A pickup can be added once the list has been read. If it could not be read, use Retry.
@@ -445,12 +462,19 @@ export function PickupsTable({
                         </TableCell>
                         <TableCell valign="top" className={`${CELL_TOP} ${NARROW_ACTIONS}`}>
                           <div className="flex flex-nowrap items-center justify-end gap-1">
+                            {/* The reason a line cannot be played is read with the button, not only shown on focus as a hint. */}
                             <IconButton
                               action={original?.playingId === pickup.id ? 'stop' : 'play'}
                               label={original?.playingId === pickup.id ? 'Stop the original' : 'Hear the original in context'}
                               disabledReason={original ? original.unavailable(pickup) : PLAY_OFF}
+                              aria-describedby={(original ? original.unavailable(pickup) : PLAY_OFF) ? `${playOffId}-${pickup.id}` : undefined}
                               onClick={() => original?.play(pickup)}
                             />
+                            {(original ? original.unavailable(pickup) : PLAY_OFF) && (
+                              <span id={`${playOffId}-${pickup.id}`} className="sr-only">
+                                {original ? original.unavailable(pickup) : PLAY_OFF}
+                              </span>
+                            )}
                             <IconButton action="openInBooth" label="Open in Booth at this line" onClick={() => onOpenInBooth([pickup])} />
                             <IconButton
                               action={pickup.done ? 'markedDone' : 'markDone'}

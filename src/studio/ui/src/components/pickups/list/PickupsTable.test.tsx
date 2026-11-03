@@ -223,6 +223,19 @@ describe('PickupsTable', () => {
     expect(play.getAttribute('aria-disabled')).toBe('true');
   });
 
+  it('describes an off Play with its reason for a screen reader', () => {
+    setup();
+    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
+    const ids = (play.getAttribute('aria-describedby') ?? '').split(' ');
+    expect(document.getElementById(ids[0])?.textContent).toMatch(/not available here/);
+  });
+
+  it('announces Mark recorded and Mark open again, since only the row changes', async () => {
+    const { user, service } = setup();
+    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Mark recorded' }));
+    await waitFor(() => expect(service.getSnapshot().announcement).toBe('05:12.0 marked recorded. It leaves the session.'));
+  });
+
   it('status-is-a-word-and-a-shape: Recorded and Open, and Mark recorded calls onSetDone', async () => {
     const { onSetDone, user } = setup();
     expect(within(rowOf('05:12.0')).getByText('Open')).toBeTruthy();
@@ -402,7 +415,9 @@ describe('PickupsTable', () => {
     const { user } = setup();
     await user.click(screen.getByRole('button', { name: 'Add a pickup by hand' }));
     expect(await screen.findByRole('textbox', { name: 'Time in the recording' })).toBeTruthy();
-    expect(screen.getByText('Chapter 1 · The Orchard', { selector: 'span' })).toBeTruthy();
+    /* Every chapter is showing, so the line's chapter is the narrator's to pick; it starts on the chapter the page is on. */
+    const chapter = screen.getByRole('combobox', { name: 'Chapter' }) as HTMLSelectElement;
+    expect(chapter.selectedOptions[0].textContent).toBe('Chapter 1 · The Orchard');
   });
 });
 

@@ -30,6 +30,7 @@ function renderPage(
   api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) }),
   chapters: readonly object[] = CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })),
   journal: Journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
+  dawFileLinked = true,
 ) {
   vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters as never);
   const goTo = vi.fn();
@@ -40,7 +41,7 @@ function renderPage(
         <StudioProvider journal={journal}>
           <TooltipProvider>
             <CommandRouter>
-              <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+              <PickupsPage hasManuscript dawFileLinked={dawFileLinked} goTo={goTo} goToScript={goToScript} />
             </CommandRouter>
             <OverlayHost />
           </TooltipProvider>
@@ -470,6 +471,24 @@ describe('adding-lines-as-markers-says-what-happened', () => {
   });
 });
 
+describe('adding-markers-needs-a-linked-project', () => {
+  const NOT_LINKED = 'Link a REAPER project (.rpp) file to add markers.';
+
+  it('turns the markers button off with the same ask the top bar makes when no project file is linked', async () => {
+    renderPage(undefined, undefined, undefined, false);
+    const add = await screen.findByRole('button', { name: /^Add \d+ as markers in / });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    expect(await screen.findByText(NOT_LINKED)).toBeTruthy();
+  });
+
+  it('keeps the button on when a project file is linked', async () => {
+    renderPage();
+    const add = await screen.findByRole('button', { name: /^Add \d+ as markers in / });
+    expect(add.getAttribute('aria-disabled')).toBeNull();
+    expect(screen.queryByText(NOT_LINKED)).toBeNull();
+  });
+});
+
 describe('coming-back-from-the-booth', () => {
   it('puts the selection and focus back on the line that was opened', async () => {
     const first = renderPage();
@@ -484,5 +503,31 @@ describe('coming-back-from-the-booth', () => {
     renderPage();
     await waitFor(() => expect(document.activeElement?.getAttribute('data-pk')).toBe(id));
     expect(document.activeElement?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('returns to the chapter the narrator had picked, not to all chapters', async () => {
+    const first = renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^Chapter: .*\. Change chapter$/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /^Chapter 3(: | |$)/ }));
+    const line = (await screen.findAllByRole('row')).find((row) => row.hasAttribute('data-pk'))!;
+    line.focus();
+    await user.keyboard('{Enter}');
+    expect(first.goTo).toHaveBeenCalled();
+    cleanup();
+    renderPage();
+    const stepper = await screen.findByRole('button', { name: /^Chapter: .*\. Change chapter$/ });
+    expect(stepper.getAttribute('aria-label')).toMatch(/Chapter 3/);
+    expect(document.activeElement?.getAttribute('data-pk')).toBe(line.getAttribute('data-pk'));
+  });
+
+  it('puts focus back on Open N in Booth after the whole session was opened', async () => {
+    const first = renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^Open \d+ in Booth$/ }));
+    expect(first.goTo).toHaveBeenCalled();
+    cleanup();
+    renderPage();
+    await waitFor(() => expect(document.activeElement?.textContent).toMatch(/^Open \d+ in Booth$/));
   });
 });

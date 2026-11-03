@@ -75,4 +75,11 @@ export const pickupsStates: StateEntry[] = [
       'Pickups while the list is still being read (?mockPickupList=loading): the page title, chapter stepper and header buttons, and grey blocks where the table rows will be, with one polite "Reading the pickup list…" status; the Pickup session panel beside it shows blocks for Lines and Length, and no "no pickups yet" line',
     ...REFLOW,
   },
+  {
+    page: 'pickups',
+    state: 'markers-not-linked',
+    description:
+      'Pickups with no REAPER project file linked (?mockNoDaw=1): Add N as markers is off and the session card says "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar badge',
+    ...REFLOW,
+  },
 ];

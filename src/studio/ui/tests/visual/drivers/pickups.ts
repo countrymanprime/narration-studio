@@ -60,6 +60,13 @@ export const pickupsDrivers: Record<string, Driver> = {
     await goToPage(page, 'Pickups');
     await page.getByRole('group', { name: 'Loading the pickups' }).waitFor();
   },
+  // REAPER with no project file linked: the markers button is off and says why, as the top bar's badge does.
+  'markers-not-linked': async (page) => {
+    await page.goto('/?mockNoDaw=1');
+    await settlePage(page);
+    await openPickups(page);
+    await page.getByText('Link a REAPER project (.rpp) file to add markers.').waitFor();
+  },
   unreadable: async (page) => {
     await page.goto('/?mockPickupList=unreadable');
     await settlePage(page);
