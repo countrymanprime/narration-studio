@@ -22,6 +22,24 @@ export type MasteringApproval = { provider: string; macro: string };
 /** What ExportStart is asked to master (optionally) and encode; `approval` is null unless the narrator just gave one. */
 export type ExportRequest = { items: ExportItem[]; master: boolean; format: string; approval: MasteringApproval | null };
 
+/** One item as the host will export it (ExportPlanItem in Go): its path cleaned, its title trimmed, and the DAW region it renders
+ * from when the mastering row renders regions; `region` is '' with any other row. */
+export type ExportPlanItem = { kind: PackageItemKind; title: string; path: string; region: string };
+
+/**
+ * What ExportStart would do with a request, answered by ExportPlan without starting anything: the mastering row (`provider` and
+ * `label` empty when it does not master), whether each master needs the narrator's approval or a macro, and the items as the host
+ * will export them. The approval dialog draws exactly this.
+ */
+export type ExportPlan = {
+  master: boolean;
+  provider: string;
+  label: string;
+  needsApproval: boolean;
+  needsMacro: boolean;
+  items: ExportPlanItem[];
+};
+
 /** The built-in chain's own report (internal/mastering.Result), narrowed to what the page shows per file; absent for a file another
  * row mastered. */
 export type MasteringSummary = {
@@ -134,6 +152,9 @@ export type MultiPackageJob = {
 export interface RenderEncodeMasterApi {
   /** Opens the picker for the files to master and encode. Only paths chosen here can be exported. */
   exportPickFiles(): Promise<MeasurePickResult>;
+  /** What exportStart would do with `req`, starting nothing (ExportPlan): refuses what exportStart refuses before a job starts,
+   * except a missing or stale approval. */
+  exportPlan(req: ExportRequest): Promise<ExportPlan>;
   /** Masters (when requested) with the project's mastering row and encodes the picked files as a job; rejects a path that was
    * not picked, an empty request, a second export while one runs, a row that needs approval without one, an approval of another
    * row (stale), and a row that needs a macro without its name. */

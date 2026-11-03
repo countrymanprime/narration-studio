@@ -22,6 +22,8 @@ import type {
   RenderEncodeMasterApi,
 } from '../types';
 import type { MasteringProviders } from './contracts/mastering';
+import type { ExportPlan } from './contracts/renderEncodeMaster';
+import { macroNameProblem } from './macroName';
 import { MOCK_ACX, deliveryProfileKey } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
 import { brand } from '../brand.gen';
@@ -33,6 +35,21 @@ export const MOCK_EXPORT_PATHS = [
   'C:/Users/Narrator/Renders/Alice/Chapter 02.wav',
   'C:/Users/Narrator/Renders/Alice/00 Closing credits.wav',
   'C:/Users/Narrator/Renders/Alice/Retail sample.wav',
+];
+
+/** A 40-chapter book's renders and its credits, for the approval dialog's capped list. */
+export const MOCK_EXPORT_MANY_PATHS = [
+  'C:/Users/Narrator/Renders/Alice/00 Opening credits.wav',
+  ...Array.from({ length: 40 }, (_, i) => `C:/Users/Narrator/Renders/Alice/Chapter ${String(i + 1).padStart(2, '0')}.wav`),
+  'C:/Users/Narrator/Renders/Alice/00 Closing credits.wav',
+];
+
+/** Renders with very long names, as a book with long chapter titles exports them. */
+export const MOCK_EXPORT_LONG_PATHS = [
+  'C:/Users/Narrator/Renders/Alice/00 Opening credits read by the narrator with the publisher and the full cast named.wav',
+  'C:/Users/Narrator/Renders/Alice/Chapter 01 Down the Rabbit-Hole where Alice follows a White Rabbit in a waistcoat.wav',
+  'C:/Users/Narrator/Renders/Alice/Chapter 02 The Pool of Tears in which Alice grows and shrinks and nearly drowns.wav',
+  'C:/Users/Narrator/Renders/Alice/00 Closing credits with the copyright notice and the production company named.wav',
 ];
 
 /** The export items ExportPickFiles' paths become once the narrator assigns each a role in the picker dialog. */
@@ -167,6 +184,8 @@ export function createRenderEncodeMasterMock(
   multiPackageSeed?: MockExportSeed,
   // The mastering mock's answer: the row the export masters with, and what its approval needs. Without one, the built-in chain.
   masteringProviders?: () => Promise<MasteringProviders>,
+  // What the picker chooses.
+  pickPaths: readonly string[] = MOCK_EXPORT_PATHS,
 ): RenderEncodeMasterApi {
   const delivery = seed === 'ready' || seed === 'building' || seed === 'fails' || seed === 'quiet';
   const hold = seed === 'hold' || seed === 'building' || seed === 'quiet';
@@ -295,36 +314,70 @@ export function createRenderEncodeMasterMock(
     }
   };
 
-  // export_job.go's exportMasteringRow: the effective row, refused before a job starts when the approval is for another row
-  // (stale), missing for a row that needs one, or without the macro a row needs.
-  const approvedRow = async (req: ExportRequest) => {
+  // export_plan.go's planExport: the items checked (picked, a chapter title that is more than spaces, trimmed), and with mastering
+  // the effective row and, for a row that renders regions, each item's region, refusing the whole export when an item has none.
+  const planOf = async (req: ExportRequest): Promise<ExportPlan> => {
+    if (req.items.length === 0) throw new Error('choose at least one file to export');
+    const unpicked = req.items.find((item) => !picked.has(item.path));
+    if (unpicked !== undefined) throw new Error(`"${unpicked.path}" was not chosen in the file picker; choose the files to export again`);
+    const items = req.items.map((item) => ({ ...item, title: item.title.trim() }));
+    const untitled = items.find((item) => item.kind === 'chapter' && item.title === '');
+    if (untitled !== undefined) throw new Error(`"${untitled.path}" has no chapter title`);
+    const plan: ExportPlan = {
+      master: req.master,
+      provider: '',
+      label: '',
+      needsApproval: false,
+      needsMacro: false,
+      items: items.map((item) => ({ ...item, region: '' })),
+    };
+    if (!req.master) return plan;
     const state = masteringProviders ? await masteringProviders() : undefined;
     const row = state?.providers.find((candidate) => candidate.name === state.effective);
-    if (!row) return { name: 'builtin', label: 'Built-in chain (EQ, limiter, gain)' };
+    if (!row) return { ...plan, provider: 'builtin', label: 'Built-in chain (EQ, limiter, gain)' };
+    const regionsOnly = !row.modes.includes('wav');
+    const regionOf = (kind: string, title: string) =>
+      kind === 'chapter' ? title : kind === 'credits_opening' ? 'Opening credits' : kind === 'credits_closing' ? 'Closing credits' : '';
+    const planned = plan.items.map((item) => ({ ...item, region: regionsOnly ? regionOf(item.kind, item.title) : '' }));
+    const none = planned.filter((item) => regionsOnly && item.region === '').map((item) => baseName(item.path));
+    if (none.length > 0)
+      throw new Error(
+        `${row.label} masters the regions your DAW renders, and ${none.join(', ')} has no region: remove it from this export, or encode it without mastering`,
+      );
+    return { ...plan, provider: row.name, label: row.label, needsApproval: row.needsApproval, needsMacro: row.needsMacro, items: planned };
+  };
+
+  // export_plan.go's approvalFor: refused when the approval is for another row (stale), missing for a row that needs one, or
+  // without a macro the host can run for a row that needs one.
+  const approve = async (plan: ExportPlan, req: ExportRequest) => {
+    if (!plan.master) return;
     const approval = req.approval;
-    if (approval && approval.provider !== row.name) {
+    if (approval && approval.provider !== plan.provider) {
+      const state = masteringProviders ? await masteringProviders() : undefined;
       const approved = state?.providers.find((candidate) => candidate.name === approval.provider)?.label ?? approval.provider;
-      throw new Error(`you approved ${approved}, but this project now masters with ${row.label}: approve the render again`);
+      throw new Error(`you approved ${approved}, but this project now masters with ${plan.label}: approve the render again`);
     }
-    if (row.needsApproval && !approval)
-      throw new Error(`${row.label} runs only after you approve this render: this mastering chain runs only after you approve it`);
-    if (row.needsMacro && (approval?.macro.trim() ?? '') === '') throw new Error(`${row.label}: choose the macro this master applies`);
-    return row;
+    if (plan.needsApproval && !approval)
+      throw new Error(`${plan.label} runs only after you approve this render: this mastering chain runs only after you approve it`);
+    if (plan.needsMacro) {
+      const macro = approval?.macro.trim() ?? '';
+      if (macro === '') throw new Error(`${plan.label}: choose the macro this master applies`);
+      const problem = macroNameProblem(macro);
+      if (problem) throw new Error(`invalid value: macro name "${macro}": ${problem}`);
+    }
   };
 
   return {
     exportPickFiles: async (): Promise<MeasurePickResult> => {
-      MOCK_EXPORT_PATHS.forEach((path) => picked.add(path));
-      return { paths: [...MOCK_EXPORT_PATHS] };
+      pickPaths.forEach((path) => picked.add(path));
+      return { paths: [...pickPaths] };
     },
+    exportPlan: async (req: ExportRequest): Promise<ExportPlan> => wireClone(await planOf(req)),
     exportStart: async (req: ExportRequest): Promise<ExportJob> => {
-      if (req.items.length === 0) throw new Error('choose at least one file to export');
-      const unpicked = req.items.find((item) => !picked.has(item.path));
-      if (unpicked !== undefined) throw new Error(`"${unpicked.path}" was not chosen in the file picker; choose the files to export again`);
-      const untitled = req.items.find((item) => item.kind === 'chapter' && item.title === '');
-      if (untitled !== undefined) throw new Error(`"${untitled.path}" has no chapter title`);
+      const plan = await planOf(req);
+      await approve(plan, req);
       if (exportJob.phase === 'running') throw new Error('an export is already running');
-      const provider = req.master ? await approvedRow(req) : undefined;
+      const provider = plan.master ? { name: plan.provider, label: plan.label } : undefined;
       const message = `Preparing ${files(req.items.length)}.`;
       exportJob = {
         id: 'export-1',
@@ -337,7 +390,7 @@ export function createRenderEncodeMasterMock(
         format: req.format || 'mp3',
         logs: provider ? [message, `Mastering with ${provider.label}.`] : [message],
         elapsed: 0,
-        files: req.items.map((item) => ({ kind: item.kind, title: item.title, path: item.path, status: 'pending' })),
+        files: plan.items.map((item) => ({ kind: item.kind, title: item.title, path: item.path, status: 'pending' })),
       };
       if (hold)
         exportJob = {

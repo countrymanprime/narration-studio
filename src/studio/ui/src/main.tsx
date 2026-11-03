@@ -422,6 +422,9 @@ const mockPackageMultiHold = mockParams.get('mockPackageMulti') === 'running';
 // `?mockMastering=daw|audacity` boots the project with that mastering row chosen, so Master & encode asks the narrator's approval
 // for the render (#2739) without choosing the row on the chain card first.
 const mockMastering = (['daw', 'audacity'] as const).find((seed) => seed === mockParams.get('mockMastering'));
+// `?mockExportPick=many|long` makes Master & QC's export picker choose a 40-chapter book, or files with very long names, so the
+// approval dialog's capped list can be seen full.
+const mockExportPick = (['many', 'long'] as const).find((seed) => seed === mockParams.get('mockExportPick'));
 const mockDeliveryProfile = mockParams.get('mockDeliveryProfile') === 'custom' ? ('custom' as const) : undefined;
 // `?mockDelivery=ready|building|fails|quiet` boots Delivery with every chapter and both credits files measured and passing and the files
 // mastered and encoded, so Build is on: `ready` waits for a press (which builds at once), `building` holds a started build running,
@@ -479,6 +482,7 @@ const mockInitial = {
   ...(mockRenderExportHold ? { renderExport: 'hold' as const } : {}),
   ...(mockPackageMultiHold ? { renderPackageMulti: 'hold' as const } : {}),
   ...(mockMastering ? { mastering: { choice: mockMastering } } : {}),
+  ...(mockExportPick ? { renderExportPick: mockExportPick } : {}),
   ...(mockDeliveryProfile ? { deliveryProfile: mockDeliveryProfile } : {}),
   ...(mockProduction ? { production: scenarioFromToday(mockProduction) } : {}),
   ...(mockReaper ? { reaper: mockReaper } : {}),

@@ -88,7 +88,7 @@ import { MOCK_MEASURE_PATHS } from './measureMock';
 import { judgeMock } from './coverageMock';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './teleprompterMock';
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
-import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
+import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
@@ -2331,10 +2331,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it("the export masters with the project's row and refuses an approval as export_job.go does (#2739)", async () => {
-    const start = (api: ReturnType<typeof createMockApi>, approval: ExportRequest['approval']) =>
-      api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval });
+    const withRegions = MOCK_EXPORT_ITEMS.filter((item) => item.kind !== 'retail_sample');
+    const start = (api: ReturnType<typeof createMockApi>, approval: ExportRequest['approval'], items = withRegions) =>
+      api.exportStart({ items, master: true, format: 'mp3', approval });
     const daw = createMockApi({}, { mastering: { choice: 'daw' } });
     await daw.exportPickFiles();
+    // The plan, as export_plan.go answers it: the row, what it needs, and each item's region; a retail sample has none, so an
+    // export with one is refused whole, by the plan and the start alike.
+    const plan = await daw.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null });
+    expectMatches(exportPlanSchema, plan, 'mock export plan, daw row');
+    expect([plan.provider, plan.needsApproval, plan.needsMacro]).toEqual(['daw', true, false]);
+    expect(plan.items.map((item) => item.region)).toEqual(
+      withRegions.map((item) => (item.kind === 'chapter' ? item.title : item.kind === 'credits_opening' ? 'Opening credits' : 'Closing credits')),
+    );
+    await expect(daw.exportPlan({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval: null })).rejects.toThrow(/Retail sample\.wav has no region/);
+    await expect(start(daw, { provider: 'daw', macro: '' }, MOCK_EXPORT_ITEMS)).rejects.toThrow(/Retail sample\.wav has no region/);
+    await expect(start(daw, null, [{ ...withRegions[1]!, title: '   ' }])).rejects.toThrow(/has no chapter title/);
     await expect(start(daw, null)).rejects.toThrow(/Your DAW's FX chain runs only after you approve this render/);
     await expect(start(daw, { provider: 'audacity', macro: 'Loud' })).rejects.toThrow(
       /you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain/,
@@ -2349,6 +2361,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const audacity = createMockApi({}, { mastering: { choice: 'audacity' } });
     await audacity.exportPickFiles();
     await expect(start(audacity, { provider: 'audacity', macro: '  ' })).rejects.toThrow(/choose the macro/);
+    await expect(start(audacity, { provider: 'audacity', macro: 'ACX – Master' })).rejects.toThrow(/macro name/);
     expect((await start(audacity, { provider: 'audacity', macro: 'Loud' })).provider).toBe('audacity');
 
     const builtin = createMockApi();
@@ -4199,6 +4212,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'coverageGapIgnore',
       'coverageGapReviews',
       'exportPickFiles',
+      'exportPlan',
       'exportStart',
       'exportState',
       'exportCancel',

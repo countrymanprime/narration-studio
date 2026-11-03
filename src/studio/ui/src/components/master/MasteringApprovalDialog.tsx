@@ -1,96 +1,100 @@
 import { useState } from 'react';
-import type { MasteringProvider } from '../../api/contracts/mastering';
-import type { ExportItem } from '../../types';
+import { MACRO_NAME_CHARACTERS, macroNameProblem } from '../../api/macroName';
+import type { ExportPlan } from '../../types';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
+import { Panel } from '../primitives/Panel';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { fileName } from './useExportJobs';
 
-// The macro named in this session's last approval, offered again the next time: the host never keeps one (each render's approval
-// is the narrator's own), but retyping the same name for every export would be a chore.
+// The macro name of this session's last export the host started with one, offered again the next time a row needs a macro: the
+// host never keeps one (each render's approval is the narrator's own), but retyping it for every export would be a chore. A name
+// the host refused is never kept.
 let lastMacro = '';
 
-/** What a row that renders a region from the DAW renders for an item: the region named for a chapter's title or for the credits
- * (export_job.go's exportRegion); a retail sample has none. */
-function regionOf(item: ExportItem): string | undefined {
-  switch (item.kind) {
-    case 'chapter':
-      return item.title;
-    case 'credits_opening':
-      return 'Opening credits';
-    case 'credits_closing':
-      return 'Closing credits';
-    default:
-      return undefined;
-  }
-}
-
 /**
- * The narrator's approval of one Master & encode with a mastering row that makes their DAW render (`needsApproval`): it names the
- * row and what it will master, and, for a row that applies their own effect macro (`needsMacro`), asks which. Approve sends the
- * approval with this one start and nothing keeps it, so the next export asks again. While the start waits, nothing in the dialog
- * can be pressed (`pending`); the panel closes it when the host answers or the wait runs out.
+ * The narrator's approval of one Master & encode with a mastering row that makes their DAW render (`plan.needsApproval`). It draws
+ * the host's own plan (ExportPlan): the row, and each file with the DAW region it renders from when the row renders regions, in a
+ * list capped to its own scroll. For a row that applies the narrator's effect macro (`plan.needsMacro`) it asks which, and checks
+ * the name with the host's rule (macroName.ts) before sending, staying open on a name the host could not run. Approve sends the
+ * approval with this one start (the macro only to a row that needs one); nothing keeps it, so the next export asks again. Focus
+ * opens on Cancel, the safe answer, so the question stays in view at any height; while the start waits nothing can be pressed.
  */
 export function MasteringApprovalDialog({
-  row,
-  items,
+  plan,
   pending,
   onApprove,
   onCancel,
   returnFocus,
 }: {
-  row: MasteringProvider;
-  items: ExportItem[];
+  plan: ExportPlan;
   pending: boolean;
-  onApprove: (macro: string) => void;
+  /** Sends the approval; answers whether the export started. */
+  onApprove: (macro: string) => Promise<boolean>;
   onCancel: () => void;
   returnFocus?: () => HTMLElement | null;
 }) {
-  const [macro, setMacro] = useState(lastMacro);
-  const [missing, setMissing] = useState(false);
-  const fromRegions = row.modes.includes('daw_region') && !row.modes.includes('wav');
-  const count = items.length === 1 ? '1 file' : `${items.length} files`;
+  const [macro, setMacro] = useState(plan.needsMacro ? lastMacro : '');
+  const [problem, setProblem] = useState<string>();
+  const regions = plan.items.some((item) => item.region !== '');
+  const count = plan.items.length === 1 ? '1 file' : `${plan.items.length} files`;
+  const listLabel = regions ? 'Files and the regions they render' : 'Files to master';
   const approve = () => {
-    const name = macro.trim();
-    if (row.needsMacro && name === '') {
-      setMissing(true);
+    if (!plan.needsMacro) {
+      void onApprove('');
       return;
     }
-    lastMacro = name;
-    onApprove(name);
+    const name = macro.trim();
+    const refusal = macroNameProblem(name);
+    if (refusal) {
+      setProblem(refusal);
+      return;
+    }
+    void onApprove(name).then((started) => {
+      if (started) lastMacro = name;
+    });
   };
   return (
     <ConfirmDialog
-      title={`Master with ${row.label}?`}
-      body={`${row.label} masters ${count} for this export only.`}
+      title="Approve this render?"
+      body={`${plan.label} masters ${count} for this export only.`}
       confirmLabel="Approve and master"
       confirm={approve}
       cancel={onCancel}
       pending={pending}
+      focusCancel
       returnFocus={returnFocus}
     >
-      {/* The dialog's body scrolls when the list is long (it is never taller than the window), so the list has no scroll of its own. */}
-      <ul aria-label={fromRegions ? 'Regions to render' : 'Files to master'} className="mt-1 text-sm">
-        {items.map((item) => {
-          const region = fromRegions ? regionOf(item) : undefined;
-          return (
-            <li key={item.path} className="py-0.5 break-words">
-              {fromRegions ? (region ?? `${fileName(item.path)} (no region, so it fails)`) : fileName(item.path)}
-            </li>
-          );
-        })}
-      </ul>
-      {row.needsMacro && (
+      <Panel flush scroll label={listLabel} className="mt-2 max-h-[14rem]">
+        <Table label={listLabel} columns={regions ? ['minmax(0,1fr)', 'minmax(0,1fr)'] : ['minmax(0,1fr)']}>
+          <TableHead>
+            <TableRow>
+              <TableHeader>File</TableHeader>
+              {regions && <TableHeader>Region</TableHeader>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {plan.items.map((item) => (
+              <TableRow key={item.path}>
+                <TableCell className="break-words">{fileName(item.path)}</TableCell>
+                {regions && <TableCell className="break-words">{item.region}</TableCell>}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Panel>
+      {plan.needsMacro && (
         <div className="mt-3">
           <Field
             label="Macro"
             value={macro}
             onChange={(value) => {
               setMacro(value);
-              setMissing(false);
+              setProblem(undefined);
             }}
-            autoFocus
             disabled={pending}
-            error={missing ? 'Name the macro to apply.' : undefined}
+            hint={`Its name as Audacity's Macro Manager lists it: ${MACRO_NAME_CHARACTERS}.`}
+            error={problem}
           />
         </div>
       )}
