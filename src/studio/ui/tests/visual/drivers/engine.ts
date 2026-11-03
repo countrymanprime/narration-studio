@@ -130,7 +130,7 @@ export const engineDrivers: Record<string, Driver> = {
     await table.evaluate((node) => node.scrollIntoView({ block: 'start' }));
   },
   'voice-folders-link-picker': async (page) => {
-    await page.goto('/?mockVoiceFolders=1');
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=confirmed');
     await settlePage(page);
     await openEnginePanel(page);
     const table = page.getByRole('table', { name: 'Chapter links' });
