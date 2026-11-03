@@ -630,7 +630,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       window.history.replaceState(null, '', `/settings${anchor}`);
       renderApp();
       expect(await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' })).toBeTruthy();
-      expect(await screen.findByRole('combobox', { name: /Microphone/ })).toBeTruthy();
+      // The row's own label, not its select: the select is drawn only until the DAW says which input it records from.
+      expect(await screen.findByText('Microphone')).toBeTruthy();
       cleanup();
     }
   });
