@@ -75,11 +75,8 @@ test.describe('The jump menu hands focus to the destination', () => {
     ['a first jump', async () => {}],
     [
       'the reader clicked',
-      async (page: Page) =>
-        void (await page
-          .locator('[data-script]')
-          .first()
-          .click({ position: { x: 5, y: 5 } })),
+      // A click in the middle of the window, inside the reader at 1440 px wide.
+      async (page: Page) => void (await page.mouse.click(760, 600)),
     ],
     ['the header project button focused', async (page: Page) => void (await page.getByRole('button', { name: /switch project/i }).focus())],
   ] as const) {
