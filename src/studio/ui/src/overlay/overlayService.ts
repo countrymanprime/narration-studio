@@ -60,7 +60,7 @@ type OverlaySnapshot = {
   announcement: string;
 };
 
-/** How many toasts show at once; the oldest information toast goes first, then the oldest error. */
+/** How many toasts show at once; the oldest plain information toast goes first, then the oldest information toast with an action, then the oldest error. */
 const OVERLAY_TOAST_LIMIT = 4;
 
 /**
@@ -145,7 +145,10 @@ export function createOverlayService(): OverlayService {
       (options.topic !== undefined && old.topic === options.topic) || (old.action?.label === options.action?.label && old.text === text && old.tone === tone);
     const queue = [...snapshot.toasts.filter((old) => !again(old)), message];
     while (queue.length > OVERLAY_TOAST_LIMIT) {
-      const info = queue.slice(0, -1).findIndex((m) => m.tone === 'info');
+      // The oldest plain notice goes first: a toast with an action (an Undo) is something to press, so a burst of notices does not take it.
+      const older = queue.slice(0, -1);
+      const plain = older.findIndex((m) => m.tone === 'info' && !m.action && !m.undo);
+      const info = plain >= 0 ? plain : older.findIndex((m) => m.tone === 'info');
       queue.splice(info >= 0 ? info : 0, 1);
     }
     update({ toasts: queue });
