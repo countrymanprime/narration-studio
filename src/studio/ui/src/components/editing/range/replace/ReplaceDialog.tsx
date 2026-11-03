@@ -33,8 +33,9 @@ function Captioned({ caption, children }: { caption: string; children: ReactNode
   );
 }
 
-/** Why a narrator with files cannot be removed: the host's sentence (internal/editlog NarratorRemove), shown on the remove button before it is pressed. */
-const keptNarrator = (name: string): string => `${name}'s audio is in the project, so they stay on the list.`;
+/** Why a narrator with files cannot be removed: the host's sentence word for word (internal/editlog NarratorRemove), so the off button's tooltip and a
+ * refusal's toast agree. */
+const keptNarrator = (name: string): string => `${name}'s audio is in the project, so they stay on the list`;
 
 /** The dialog's title: how many words are replaced. */
 export const replaceTitle = (n: number): string => `Replace ${plural(n, 'word', 'words')} with another narrator's audio`;
@@ -83,6 +84,9 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
   const narratorList = useRef<HTMLSelectElement>(null);
   const nameBox = useRef<HTMLDivElement>(null);
   const focusAfterRemove = useRef(false);
+  // The choice as it is now, for an answer that arrives after the narrator chose someone else.
+  const chosen = useRef({ narratorId, fileId });
+  chosen.current = { narratorId, fileId };
   const mine = end - start;
 
   const take = useCallback((list: Narrator[], pick?: { narrator?: string; file?: string }) => {
@@ -167,8 +171,10 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
       setBusy(false);
     }
   };
-  // Removes the chosen narrator; the answer is the new list, and nobody is chosen after it. A refusal or a failure is the host's sentence in a toast.
-  const removeNarrator = async (id: string) => {
+  // Removes a narrator; the answer is the new list, said through the announcer. Only when the removed narrator is still the chosen one is nobody
+  // chosen after it. A refusal or a failure is the host's sentence in a toast, and the list is read again: the host refuses a narrator who gained a
+  // file since the dialog read it, and the re-read turns the button off with its reason.
+  const removeNarrator = async (id: string, name: string) => {
     if (removingRef.current) return;
     removingRef.current = true;
     setRemoving(true);
@@ -176,10 +182,19 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
       const change = await api.replaceNarratorRemove(id);
       focusAfterRemove.current = true;
       setNarrators(change.narrators);
-      setNarratorId((current) => (change.changed.includes(current) ? '' : current));
-      setFileId('');
+      if (change.changed.includes(chosen.current.narratorId)) {
+        setNarratorId('');
+        setFileId('');
+      }
+      overlay.announce(`Removed ${name} from the list`);
     } catch (e) {
       overlay.toast(why(e), { tone: 'error' });
+      try {
+        const list = await api.replaceNarrators();
+        take(list.narrators, { narrator: chosen.current.narratorId, file: chosen.current.fileId });
+      } catch {
+        // The toast has said what went wrong; the list stays as it was.
+      }
     } finally {
       removingRef.current = false;
       setRemoving(false);
@@ -226,10 +241,13 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
         ) : (
           <div className="flex flex-wrap items-end gap-3">
             <Captioned caption="Other narrator">
-              <div className="flex items-center gap-1.5">
+              {/* A long name (the host allows 80 characters) shrinks the list and ends in an ellipsis, so the remove button stays in the dialog; the
+                  option keeps the whole name for a screen reader. */}
+              <div className="flex max-w-full min-w-0 items-center gap-1.5">
                 <Select
                   ref={narratorList}
                   label="Other narrator"
+                  className="min-w-0 truncate"
                   value={narratorId}
                   placeholder="Choose the other narrator"
                   onChange={(id) => take(narrators, { narrator: id })}
@@ -242,7 +260,7 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
                     data-replace-remove
                     pending={removing}
                     disabledReason={narrator.files.length ? keptNarrator(narrator.name) : undefined}
-                    onClick={() => void removeNarrator(narrator.id)}
+                    onClick={() => void removeNarrator(narrator.id, narrator.name)}
                   />
                 ) : null}
               </div>

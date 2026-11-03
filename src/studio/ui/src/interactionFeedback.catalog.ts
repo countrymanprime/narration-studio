@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/editing/range/replace/ReplaceDialog.tsx#1':
+    "Re-reading the narrators after the host refused a removal failed: the refusal's error toast has already said what went wrong, the list stays as the dialog last read it, and the host still refuses a narrator with files.",
   'src/components/editing/takes/useTakeAudition.ts#1':
     "Stopping the DAW's preview of a take failed, as the narrator pressed Stop or left the page: at most the rest of one take plays on in the DAW, which ends by itself, and Play on any take stops it again.",
   'src/components/proof/inspector/HearIt.tsx#1':

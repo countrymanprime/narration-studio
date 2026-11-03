@@ -278,7 +278,8 @@ describe('ReplaceDialog', () => {
 // #2737: the remove button beside the other narrator, one test per row of the issue's state matrix, against the browser mock of the host.
 describe('ReplaceDialog: remove a narrator', () => {
   type Change = Awaited<ReturnType<DialogApi['replaceNarratorRemove']>>;
-  const HAS_FILES = "Eric Leach's audio is in the project, so they stay on the list.";
+  // The host's sentence, word for word (internal/editlog NarratorRemove): the tooltip and the refusal's toast say the same thing.
+  const HAS_FILES = "Eric Leach's audio is in the project, so they stay on the list";
   /** The mock host with Eric Leach (one file) and Jon Doe (none), in that order; the plan and the waveform are stubbed. */
   async function mockHost() {
     const host = createReplaceAudioMock({
@@ -355,6 +356,58 @@ describe('ReplaceDialog: remove a narrator', () => {
     expect(screen.queryByRole('button', { name: /^Remove / })).toBeNull();
     expect(document.activeElement).toBe(narratorSelect());
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Add a file of theirs…' }).disabled).toBe(true);
+  });
+
+  // Walkthrough F2: the removal is said through the app's polite announcer, not in the dialog's flow.
+  it('announces the removal', async () => {
+    const announce = vi.spyOn(overlay, 'announce').mockImplementation(() => undefined);
+    const api = await mockHost();
+    renderDialog(api);
+    await screen.findByLabelText('Other narrator');
+    choose('n-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Jon Doe' }));
+    await waitFor(() => expect(announce).toHaveBeenCalledWith('Removed Jon Doe from the list'));
+    expect(screen.queryByText(/Removed Jon Doe/)).toBeNull();
+  });
+
+  // qa B1: the answer comes after the narrator chose someone else; only the removed narrator's choice is cleared.
+  it("removing a narrator other than the chosen one keeps the chosen narrator's file", async () => {
+    const api = await mockHost();
+    const ericFile = (await api.replaceNarrators()).narrators[0].files[0].id;
+    let answer: () => Promise<void> = async () => undefined;
+    const remove = vi.fn(
+      (id: string) =>
+        new Promise<Change>((resolve) => {
+          answer = async () => resolve(await api.replaceNarratorRemove(id));
+        }),
+    );
+    renderDialog({ ...api, replaceNarratorRemove: remove });
+    await screen.findByLabelText('Other narrator');
+    choose('n-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Jon Doe' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('n-2'));
+    choose('n-1');
+    await act(async () => answer());
+    await waitFor(() => expect([...narratorSelect().options].map((o) => o.textContent)).toEqual(['Eric Leach']));
+    expect(narratorSelect().value).toBe('n-1');
+    expect(screen.getByLabelText<HTMLSelectElement>('Their file').value).toBe(ericFile);
+  });
+
+  // qa B2: Jon Doe gained a file on the host after the dialog read the list; the refusal re-reads it, so the dialog stops offering the removal.
+  it('a refused removal re-reads the narrators, so the button is off with its reason', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const host = createReplaceAudioMock({ ready: Promise.resolve(), alignment: () => Promise.reject(new Error('none')), paragraphText: () => undefined });
+    await host.replaceNarratorAdd('Jon Doe');
+    renderDialog({ ...host, replacePlan: () => new Promise<ReplacePlan>(() => undefined) });
+    const remove = await screen.findByRole('button', { name: 'Remove Jon Doe' });
+    expect(remove.getAttribute('aria-disabled')).toBeNull();
+    const added = await host.replaceAddFile('n-1');
+    fireEvent.click(remove);
+    const sentence = "Jon Doe's audio is in the project, so they stay on the list";
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(sentence, { tone: 'error' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Remove Jon Doe' }).getAttribute('aria-disabled')).toBe('true'));
+    expect(screen.getByLabelText<HTMLSelectElement>('Their file').value).toBe(added.fileId);
+    expect(await tooltipOf(screen.getByRole('button', { name: 'Remove Jon Doe' }))).toBe(sentence);
   });
 
   it('moves the focus to the name field when the last narrator is removed', async () => {

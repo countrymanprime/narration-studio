@@ -126,7 +126,7 @@ export const KeptNarratorReason: Story = {
     await expect(remove.getAttribute('aria-disabled')).toBe('true');
     remove.focus();
     const tooltip = await screen.findByRole('tooltip');
-    await expect(tooltip.textContent).toBe("Eric Leach's audio is in the project, so they stay on the list.");
+    await expect(tooltip.textContent).toBe("Eric Leach's audio is in the project, so they stay on the list");
   },
 };
 
