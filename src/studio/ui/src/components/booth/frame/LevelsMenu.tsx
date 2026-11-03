@@ -8,6 +8,7 @@ import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
+import { SplitSide } from '../../primitives/SplitButton';
 import { Select } from '../../primitives/Select';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Slider } from '../../primitives/Slider';
@@ -67,6 +68,8 @@ export type LevelsMenuProps = {
   recorderMeter?: boolean;
   /** A take records: the built-in meter is not started, and the take's own level moves its row. */
   recording?: boolean;
+  /** Something about listening needs attention: a dot on the side button, so it is seen with the menu closed. */
+  warn?: boolean;
   level: InputLevel | null;
   error: string | null;
   open: boolean;
@@ -504,6 +507,7 @@ export function LevelsMenu({
   levels,
   recorderMeter = false,
   recording = false,
+  warn = false,
   level,
   error,
   open,
@@ -520,7 +524,7 @@ export function LevelsMenu({
       focusPopup
       open={open}
       onOpenChange={onOpenChange}
-      trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
+      trigger={<SplitSide label="Levels" id="blevels" aria-haspopup="dialog" badge={warn} />}
     >
       <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
         {ownMeter ? (

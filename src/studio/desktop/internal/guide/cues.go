@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"desktop/internal/persist"
 )
 
 // This file writes the dialogue cues (the quoted lines and who speaks them): manuscript_guide.py refresh_cues, the sidecar's cues
@@ -48,6 +50,9 @@ func (s *Service) RefreshCues(ctx context.Context, chapterIDs ...string) (CueCou
 func refreshCues(ctx context.Context, manuscriptPath, guidePath string, chapterIDs []string) (CueCounts, error) {
 	loaded, err := cueBible(guidePath)
 	if err != nil {
+		return CueCounts{}, err
+	}
+	if err := refuseNewerBible(loaded); err != nil {
 		return CueCounts{}, err
 	}
 	if !pyTruthy(loaded) {
@@ -142,6 +147,25 @@ func cueBible(path string) (any, error) {
 		return nil, nil //nolint:nilerr // load_json reads an OSError as no file
 	}
 	return pyLoadBible(raw, errCuesShape)
+}
+
+// refuseNewerBible refuses a Story Bible a newer version of the app wrote, in the words every other host edit uses (persist.CheckVersion),
+// so a writer that rewrites the file in this version's layout never drops what it does not know. A file with no schema_version, or one
+// that is not an object, passes, as it does for the other edits.
+func refuseNewerBible(loaded any) error {
+	document, ok := loaded.(*pyObject)
+	if !ok {
+		return nil
+	}
+	value, _ := document.get("schema_version")
+	version, ok := value.(pyInt)
+	if !ok {
+		return nil
+	}
+	if !version.value.IsInt64() {
+		return persist.CheckVersion(schemaVersion+1, schemaVersion, "Story Bible") // too large for any version this app knows
+	}
+	return persist.CheckVersion(int(version.value.Int64()), schemaVersion, "Story Bible")
 }
 
 // pyLoadBible is manuscript_guide.py load_json over a file's bytes: nil when they are not JSON; the value otherwise, its entries'

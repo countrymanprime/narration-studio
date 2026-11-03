@@ -85,13 +85,19 @@ Test: `input/pageCommands.test.tsx`.
 | A term starting with `>` | The page's items and commands, no search hits |
 | `scope: 'page'` (`jump.page`, Ctrl+F) | Page items and search hits only; Backspace on an empty field widens to everything. With no page registered the whole menu opens |
 
-The text field keeps focus and names the active option with `aria-activedescendant`; the list is a `Listbox` primitive. A catalogue row draws the first gesture of the narrator's keymap as key caps. The field is described by the page's name and a live region says the result count. The menu reads memory only, so it opens and filters without waiting for the host ([The standard](interaction-feedback.md#the-standard)). A catalogue row runs through `shellCommands` in `App.tsx`, the same action as its key or header button.
+The text field keeps focus and names the active option with `aria-activedescendant`; the list is a `Listbox` primitive. A catalogue row draws the first gesture of the narrator's keymap as key caps. The field is described by the page's name and a live region says the result count, with "so far. Still searching." while a source that answers later is waited for. The menu opens and filters from memory without waiting for the host ([The standard](interaction-feedback.md#the-standard)); only an asynchronous search source's hits come later, in their own place. The active row is kept by id, so an answer that lands above it does not move it. A catalogue row runs through `shellCommands` in `App.tsx`, the same action as its key or header button.
 
-Tests: `components/layout/JumpMenu.test.tsx`, `JumpMenu.pageContext.test.tsx`; stories in `JumpMenu.stories.tsx`.
+Tests: `components/layout/JumpMenu.test.tsx`, `JumpMenu.pageContext.test.tsx`, `JumpMenu.async.test.tsx`; stories in `JumpMenu.stories.tsx`.
 
 ## Search sources
 
 A `SearchSource` is `(term) => SearchHit[]` with `SearchHit = { group, title, sub?, snippet?, run }`; `snippet` splits the title around the match so the menu marks it. `registries/search.ts` keeps them: `registerSearchSource` and `useSearchSource` add one, `searchAll(term)` asks every source in registration order. A term under two characters asks nobody, and a source that throws is skipped with a console warning so the others still answer.
+
+An `AsyncSearchSource` is `(term, signal) => Promise<SearchHit[]>`, for a search the host runs; `registerAsyncSearchSource` and `useAsyncSearchSource` add one under the group its hits use. `searchAll` leaves it out. The jump menu asks it through `components/layout/useJumpSearch.ts`:
+
+- At once, the menu draws a "Searching…" row, off, in the source's place in registration order. Synchronous sources answer in the same render, as before.
+- Once the typing pauses for 150 ms (`SEARCH_DEBOUNCE_MS`), the menu asks the source. A new term aborts the earlier `signal`, and an answer to a term no longer typed is dropped.
+- A source that has not answered in 8 s (`SEARCH_WAIT_MS`), or that fails, gets an error toast naming its group. Its waiting row goes and the other hits stay.
 
 | Source | Registered in |
 | --- | --- |

@@ -9,22 +9,28 @@ import { Badge } from '../primitives/StatusBadge';
 
 const MUTED = { color: 'var(--text-muted)' };
 
-/** The mastering chains and the project's choice, read once; `undefined` while loading. */
-export function useMasteringProviders(): { providers?: MasteringProviders; problem?: string } {
+/** The mastering chains and the project's choice, read on opening and again on `reload` (after a refusal that may mean they
+ * changed); `undefined` while loading. */
+export function useMasteringProviders(): { providers?: MasteringProviders; problem?: string; reload: () => void } {
   const api = useApi();
   const [providers, setProviders] = useState<MasteringProviders>();
   const [problem, setProblem] = useState<string>();
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     api
       .masteringProviders()
-      .then((state) => active && setProviders(state))
+      .then((state) => {
+        if (!active) return;
+        setProviders(state);
+        setProblem(undefined);
+      })
       .catch((error) => active && setProblem(apiErrorMessage(error)));
     return () => {
       active = false;
     };
-  }, [api]);
-  return { providers, problem };
+  }, [api, attempt]);
+  return { providers, problem, reload: () => setAttempt((n) => n + 1) };
 }
 
 /**
