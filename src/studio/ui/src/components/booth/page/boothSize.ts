@@ -18,11 +18,12 @@ export function readBoothSize(): number {
   }
 }
 
+/** Saves a size, snapped to the steps (a slider's Page Up and Page Down step by more than one), and says so to the windows that show it. */
 export function writeBoothSize(size: number): void {
   try {
-    window.localStorage.setItem(BOOTH_SIZE_STORAGE_KEY, String(size));
+    window.localStorage.setItem(BOOTH_SIZE_STORAGE_KEY, String(textSizePx(size)));
     announceBrowserSettingChange();
   } catch {
-    /* storage unavailable: the size lasts for this visit only */
+    /* storage unavailable: the choice is not kept, and the Booth reads the default when it next opens */
   }
 }

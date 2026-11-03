@@ -14,7 +14,7 @@ import { Slider } from '../../primitives/Slider';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
 import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
 import { readBoothSize, writeBoothSize } from '../../booth/page/boothSize';
-import { TEXT_SIZE } from '../../booth/reading/BoothText';
+import { TEXT_SIZE, textSizePx } from '../../booth/reading/BoothText';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
 
@@ -102,8 +102,10 @@ export function BoothTextSizeBody() {
       step={TEXT_SIZE.step}
       value={size}
       onValueChange={(next) => {
-        writeBoothSize(next);
-        setSize(next);
+        // Page Up and Page Down step by 10, which is not a size: take the nearest one.
+        const chosen = textSizePx(next);
+        writeBoothSize(chosen);
+        setSize(chosen);
       }}
       className={READER_FIELD}
     />

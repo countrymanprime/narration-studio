@@ -45,4 +45,13 @@ describe('the Booth text size setting (parity audit)', () => {
     localStorage.setItem(BOOTH_SIZE_STORAGE_KEY, '31');
     expect(readBoothSize()).toBe(40);
   });
+
+  it('only ever stores one of the sizes, even when the slider offers a value between them (Page Up and Page Down step by 10)', () => {
+    render(<BoothTextSizeBody />);
+    fireEvent.change(screen.getByRole('slider', { name: 'Booth text size' }), { target: { value: '50' } });
+    const stored = Number(localStorage.getItem(BOOTH_SIZE_STORAGE_KEY));
+    expect(stored % 4).toBe(0);
+    expect(readBoothSize()).toBe(stored);
+    expect(screen.getByRole('slider', { name: 'Booth text size' }).getAttribute('aria-valuetext')).toBe(`${stored} px`);
+  });
 });

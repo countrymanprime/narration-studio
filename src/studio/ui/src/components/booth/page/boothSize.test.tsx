@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { StrictMode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { BOOTH_SIZE_STORAGE_KEY, DEFAULT_BOOTH_SIZE, readBoothSize, writeBoothSize } from './boothSize';
 import { useTextChoices } from './useTextChoices';
@@ -42,5 +43,36 @@ describe('the Booth text size shared with Settings', () => {
     } finally {
       Storage.prototype.setItem = original;
     }
+  });
+
+  it('writes once per change, outside rendering, even under StrictMode', () => {
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let setSize: (size: number) => void = () => {};
+    function Listener() {
+      useBrowserSettingsVersion();
+      return null;
+    }
+    function Probe() {
+      setSize = useTextChoices().setSize;
+      return null;
+    }
+    render(
+      <StrictMode>
+        <Listener />
+        <Probe />
+      </StrictMode>,
+    );
+    act(() => setSize(48));
+    expect(write.mock.calls.filter(([key]) => key === BOOTH_SIZE_STORAGE_KEY)).toHaveLength(1);
+    expect(errors).not.toHaveBeenCalled();
+    write.mockRestore();
+    errors.mockRestore();
+  });
+
+  it('snaps a size that is not a step before storing it', () => {
+    writeBoothSize(50);
+    expect(Number(localStorage.getItem(BOOTH_SIZE_STORAGE_KEY)) % 4).toBe(0);
+    expect(readBoothSize()).toBe(Number(localStorage.getItem(BOOTH_SIZE_STORAGE_KEY)));
   });
 });
