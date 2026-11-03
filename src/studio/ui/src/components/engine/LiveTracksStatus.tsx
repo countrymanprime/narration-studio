@@ -1,31 +1,53 @@
 import { useSecondsSince } from '../layout/CheckLine';
 import { IconButton } from '../primitives/IconButton';
+import { TooltipTarget } from '../primitives/Tooltip';
 import type { LiveTracks } from './useLiveTracks';
 
-/** The sentence that says whose tracks these are: REAPER's now, the saved project's and why, or a read that has gone quiet. */
-export function liveTracksSentence(live: LiveTracks): string {
-  if (live.readAt === null) return live.busy ? 'Reading the tracks from REAPER…' : 'The tracks have not been read yet.';
-  if (live.stale) return 'Can’t tell whether these are REAPER’s tracks now.';
-  if (live.source === 'live') return 'REAPER’s tracks now, saved or not.';
-  return live.message || 'The tracks in the saved project.';
+type Line = {
+  /** What a screen reader is told when the state changes, with no ticking seconds. */
+  announce: string;
+  /** The one short line drawn in the header. */
+  short: string;
+  /** The whole sentence, the short line's hint. */
+  full: string;
+};
+
+/** Whose tracks these are and when they were read: REAPER's now, the saved project's and why, or a read that has gone quiet. */
+export function liveTracksLine(live: LiveTracks, seconds: number | null): Line {
+  const ago = seconds === null ? '' : ` ${live.stale ? 'Last read' : 'Read'} ${seconds} s ago.`;
+  const line = (announce: string, short: string): Line => ({ announce, short, full: `${announce}${ago}` });
+  if (live.readAt === null) {
+    if (live.error) return line(`The tracks could not be read: ${live.error}`, 'Tracks not read yet');
+    return live.busy ? line('Reading the tracks from REAPER…', 'Reading tracks…') : line('The tracks have not been read yet.', 'Tracks not read yet');
+  }
+  if (live.stale) return line(`Can’t tell whether these are REAPER’s tracks now: ${live.error}`, `REAPER did not answer · last read ${seconds} s ago`);
+  if (live.source === 'live') return line('REAPER’s tracks now, saved or not.', `REAPER now · read ${seconds} s ago`);
+  return line(live.message || 'The tracks in the saved project.', `Saved project · read ${seconds} s ago`);
 }
 
 /**
- * Where the engine panel's tracks came from and when they were last read, with the Refresh that reads them again (#2840). It holds the same
- * one line in every state, so a read that fails or answers never moves what is under it; a failed read itself is a toast (useLiveTracks).
- * Only the sentence is announced: the seconds tick every second and are not.
+ * Where the engine panel's tracks came from and when they were last read (#2840). One short line in every state and at every width, cut
+ * with an ellipsis, so a read that fails or answers never changes the header's height; the whole sentence is its hint. A screen reader is
+ * told the sentence when it changes, never the ticking seconds. A failed read itself is a toast (useLiveTracks).
  */
-export function LiveTracksStatus({ live, className = '' }: { live: LiveTracks; className?: string }) {
+export function LiveTracksStatus({ live }: { live: LiveTracks }) {
   const seconds = useSecondsSince(live.readAt);
+  const { announce, short, full } = liveTracksLine(live, seconds);
   return (
-    <span className={`inline-flex min-w-0 flex-wrap items-baseline gap-x-1.5 ${className}`}>
-      <span role="status">{liveTracksSentence(live)}</span>
-      {seconds !== null && <span>{live.stale ? `Last read ${seconds} s ago.` : `Read ${seconds} s ago.`}</span>}
-    </span>
+    <>
+      <span role="status" className="sr-only">
+        {announce}
+      </span>
+      <TooltipTarget text={full} className="block! max-w-full min-w-0">
+        <span aria-hidden="true" className="block truncate whitespace-nowrap">
+          {short}
+        </span>
+      </TooltipTarget>
+    </>
   );
 }
 
-/** Reads the tracks from REAPER again now: a track or folder added there since the last read shows. */
+/** Reads the tracks from REAPER again now: a track or folder added there since the last read shows. Its hint is IconButton's own. */
 export function LiveTracksRefresh({ live }: { live: LiveTracks }) {
   return <IconButton action="retry" label="Read the tracks from REAPER again" size="sm" pending={live.refreshing} onClick={live.refresh} />;
 }

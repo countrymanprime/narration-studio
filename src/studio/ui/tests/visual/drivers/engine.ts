@@ -196,7 +196,7 @@ export const engineDrivers: Record<string, Driver> = {
     const panel = await openEnginePanel(page);
     const links = panel.getByRole('region', { name: 'Chapter links' });
     await links.scrollIntoViewIfNeeded();
-    await links.getByText('REAPER is not answering, so these are the tracks as of the last save.').waitFor();
+    await links.getByText(/^Saved project · read \d+ s ago$/).waitFor();
   },
   'live-tracks-stale': async (page) => {
     // The mock answers the first live read and refuses every later one (see main.tsx): Refresh fails, the header says it can't tell and
@@ -206,9 +206,9 @@ export const engineDrivers: Record<string, Driver> = {
     const panel = await openEnginePanel(page);
     const links = panel.getByRole('region', { name: 'Chapter links' });
     await links.scrollIntoViewIfNeeded();
-    await links.getByText('REAPER’s tracks now, saved or not.').waitFor();
+    await links.getByText(/^REAPER now · read \d+ s ago$/).waitFor();
     await links.getByRole('button', { name: 'Read the tracks from REAPER again' }).click();
-    await links.getByText('Can’t tell whether these are REAPER’s tracks now.').waitFor();
+    await links.getByText(/^REAPER did not answer · last read \d+ s ago$/).waitFor();
     await page.getByText('REAPER did not answer in time.').first().waitFor();
   },
   'chapter-link-missing': async (page) => {

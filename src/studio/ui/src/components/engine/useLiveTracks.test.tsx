@@ -8,13 +8,16 @@
 //   a track added in REAPER after the open     'a track added in REAPER after the panel opened appears on the next read: focus, timer, Refresh, a new read key'
 //   timer only while the window is visible     'the timer reads only while the window is visible, and coming back reads at once'
 //   refused (REAPER closed, other project)     'a saved answer keeps its reason and sentence'
-//   failed, first read                         'a first read that fails is the error, with no tracks and no toast'
+//   failed, first read                         'a first read that fails is the error, with no tracks, and a toast whose Retry reads again'
 //   failed after a good read (gone quiet)      'a read that fails after a good one keeps the tracks, marks them stale and toasts once'
+//   a run of automatic failures                'a run of automatic failures toasts once, whatever starts them; a press toasts again'
 //   stale, then answering again                'a good read after a failed one clears the stale mark'
 //   rapid double-fire                          'two Refresh presses send two reads and only the newer answer is kept'
 //   answers out of order                       'an older read answering after a newer one never replaces it'
 //   repeats an event                           'the same answer twice changes nothing the panel draws' (one render's worth: the project is replaced, not merged)
-//   never answers                              'a read that never answers stays busy, and the timer does not pile reads behind it'
+//   never answers                              'a read still unanswered after LIVE_TRACKS_TIMEOUT_MS is treated as failed and the poll resumes'
+//   answers late, after its limit              same test: its late answer never replaces the newer read's
+//   two readers at once (the dialog opening)   'joining while a read is in flight sends nothing more, and reads when none is'
 //   leave mid-action (unmount mid-read)        'an answer after the panel closed is dropped'
 //   Audacity (disabled)                        'disabled, it never reads'
 //   long, RTL and emoji names                  not tested here: the hook passes names through untouched (tracks_read_test.lua and tracks_read_test.go send them)
@@ -24,7 +27,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { Track, TracksLive } from '../../api/contracts/tracks';
-import { LIVE_TRACKS_POLL_MS, useLiveTracks, type LiveTracks } from './useLiveTracks';
+import { LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS, useLiveTracks, type LiveTracks } from './useLiveTracks';
 
 afterEach(() => {
   cleanup();
@@ -170,16 +173,45 @@ describe('reading the live track list', () => {
     expect(hook.current.stale).toBe(false);
   });
 
-  it('a first read that fails is the error, with no tracks and no toast', async () => {
+  it('a first read that fails is the error, with no tracks, and a toast whose Retry reads again', async () => {
     const api = createMockApi();
-    api.tracksLive = async () => {
-      throw new Error('choose which REAPER project file to use before viewing tracks');
-    };
+    let fail = true;
+    api.tracksLive = vi.fn(async () => {
+      if (fail) throw new Error('REAPER did not answer in time.');
+      return answer([track(0, 'Chapter 1')]);
+    });
     const { hook, notify } = mount(api);
     await settle();
     expect(hook.current.project).toBeUndefined();
-    expect(hook.current.error).toContain('choose which REAPER project file');
-    expect(notify).not.toHaveBeenCalled();
+    expect(hook.current.stale).toBe(false);
+    expect(hook.current.error).toContain('REAPER did not answer');
+    expect(notify).toHaveBeenCalledTimes(1);
+    const [, tone, action] = notify.mock.calls[0];
+    expect(tone).toBe('error');
+    expect(action?.label).toBe('Retry');
+    fail = false;
+    await act(async () => action.onAction());
+    expect(api.tracksLive).toHaveBeenCalledTimes(2);
+    expect(hook.current.project?.tracks).toHaveLength(1);
+    expect(hook.current.error).toBe('');
+  });
+
+  it('a run of automatic failures toasts once, whatever starts them; a press toasts again', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = createMockApi();
+    api.tracksLive = vi.fn(async () => {
+      throw new Error('REAPER did not answer in time.');
+    });
+    const { notify, rerender, hook } = mount(api);
+    await settle();
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 3));
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    rerender({ readKey: 'checked again' });
+    await settle();
+    expect(vi.mocked(api.tracksLive).mock.calls.length).toBeGreaterThanOrEqual(4);
+    expect(notify).toHaveBeenCalledTimes(1);
+    await act(async () => hook.current.refresh());
+    expect(notify).toHaveBeenCalledTimes(2);
   });
 
   it('a read that fails after a good one keeps the tracks, marks them stale and toasts once', async () => {
@@ -200,7 +232,7 @@ describe('reading the live track list', () => {
     expect(hook.current.stale).toBe(true);
     expect(hook.current.readAt).toBe(readAt);
     expect(notify).toHaveBeenCalledTimes(1);
-    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error');
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' }));
     // A Refresh press that fails says so again: the narrator asked.
     await act(async () => hook.current.refresh());
     expect(notify).toHaveBeenCalledTimes(2);
@@ -265,17 +297,51 @@ describe('reading the live track list', () => {
     expect(hook.current.project).toEqual(first);
   });
 
-  it('a read that never answers stays busy, and the timer does not pile reads behind it', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const { api } = heldHost();
+  // Ported from 'a read that never answers stays busy': such a read used to hold every automatic read back for good (breaker B2); it now
+  // counts as failed after its limit, and the poll goes on.
+  it('a read still unanswered after LIVE_TRACKS_TIMEOUT_MS is treated as failed and the poll resumes', async () => {
+    vi.useFakeTimers();
+    const { api, pending } = heldHost();
+    const { hook, notify } = mount(api);
+    await settle();
+    await act(async () => pending[0].resolve(answer([track(0, 'Chapter 1')])));
+    // The next poll's read never answers.
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+    expect(pending).toHaveLength(2);
+    // Within its limit the timer and focus wait for it, and the Refresh button does not spin for it.
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    expect(pending).toHaveLength(2);
+    expect(hook.current.busy).toBe(true);
+    expect(hook.current.refreshing).toBe(false);
+    expect(hook.current.stale).toBe(false);
+    // Past its limit it is a failure: stale, busy no more, one toast.
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_TIMEOUT_MS - LIVE_TRACKS_POLL_MS));
+    expect(hook.current.stale).toBe(true);
+    expect(hook.current.busy).toBe(false);
+    expect(notify).toHaveBeenCalledTimes(1);
+    // The poll resumes.
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+    expect(pending).toHaveLength(3);
+    await act(async () => pending[2].resolve(answer([track(0, 'Chapter 1'), track(1, 'Added')])));
+    expect(hook.current.stale).toBe(false);
+    // The read that went quiet answering at last changes nothing.
+    await act(async () => pending[1].resolve(answer([])));
+    expect(hook.current.project?.tracks.map((t) => t.name)).toEqual(['Chapter 1', 'Added']);
+  });
+
+  it('joining while a read is in flight sends nothing more, and reads when none is', async () => {
+    const { api, pending } = heldHost();
     const { hook } = mount(api);
     await settle();
-    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 4));
-    await act(async () => window.dispatchEvent(new Event('focus')));
-    expect(api.tracksLive).toHaveBeenCalledTimes(1);
-    expect(hook.current.busy).toBe(true);
-    // The timer's and focus's reads never spin the Refresh button; only a press does.
-    expect(hook.current.refreshing).toBe(false);
+    await act(async () => {
+      hook.current.join();
+      hook.current.join();
+    });
+    expect(pending).toHaveLength(1);
+    await act(async () => pending[0].resolve(answer([track(0, 'Chapter 1')])));
+    await act(async () => hook.current.join());
+    expect(pending).toHaveLength(2);
   });
 
   it('an answer after the panel closed is dropped', async () => {

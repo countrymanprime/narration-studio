@@ -26,6 +26,7 @@ import { RenderConfigDialog } from './RenderConfigDialog';
 import { RetakeLanesDialog } from './RetakeLanesDialog';
 import { useAudacityLink } from './useAudacityLink';
 import { useLiveTracks } from './useLiveTracks';
+import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { Track, TracksDiscovery, TracksProject } from '../../types';
 
 function basename(path: string): string {
@@ -152,8 +153,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   };
 
   const hasTracks = !!project && project.tracks.length > 0;
-  // A live read that failed before any answered is shown where the tracks would be, as the saved read's failure was; a later one is a toast.
-  const shownError = error || (!forAudacity && !project ? live.error : '');
+  // A REAPER project whose tracks have not been read yet (the first read is running, or failed and was a toast with Retry): Chapter links'
+  // header holds the status and the Refresh until they are, so the narrator always has a way to read them again (UX rule 7, breaker B1).
+  const awaitingTracks = !forAudacity && !!discovery?.selected && !project;
   const closeTool = () => setTool(undefined);
 
   return (
@@ -172,9 +174,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             No tracks have been read from Audacity yet. They appear here once Audacity answers with this project open.
           </p>
         )}
-        {shownError && (
+        {error && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-            {shownError}
+            {error}
           </p>
         )}
         {hasTracks && !forAudacity && (
@@ -215,6 +217,11 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
           </p>
         )}
         {project && <ChapterLinksTable links={links} notify={notify} live={forAudacity ? undefined : live} />}
+        {awaitingTracks && (
+          <Panel title="Chapter links" flush subtitle={<LiveTracksStatus live={live} />} actions={<LiveTracksRefresh live={live} />}>
+            {null}
+          </Panel>
+        )}
         {hasTracks && !forAudacity && (
           <VoicesCard
             tracks={project.tracks}

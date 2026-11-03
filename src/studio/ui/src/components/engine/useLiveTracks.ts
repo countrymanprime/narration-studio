@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
-import type { TracksProject, TracksSavedReason, TracksSource } from '../../api/contracts/tracks';
+import type { TracksLive, TracksProject, TracksSavedReason, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
-import type { Notify } from '../primitives/Toast';
+import { retryAction, type Notify } from '../primitives/Toast';
 
 /** How often the panel reads REAPER's tracks again while the window is visible. */
 export const LIVE_TRACKS_POLL_MS = 5_000;
+
+/** How long one read may go unanswered before it counts as failed: the host gives REAPER 3 s (tracksLiveTimeout in tracks_live.go), and
+ * this leaves time for the saved file's parse and the binding's own trip. A read that never answers must not hold every later read back. */
+export const LIVE_TRACKS_TIMEOUT_MS = 8_000;
 
 export type LiveTracks = {
   /** The project's tracks from the last read that answered; undefined before the first. */
@@ -21,25 +25,44 @@ export type LiveTracks = {
   busy: boolean;
   /** A read the narrator asked for (Refresh) is in flight; the timer's and focus's reads are not shown as busy. */
   refreshing: boolean;
-  /** The last read failed: the tracks shown are from `readAt` and may not be what REAPER has now. */
+  /** The last read failed after a good one: the tracks shown are from `readAt` and may not be what REAPER has now. */
   stale: boolean;
   /** Why the last read failed; empty when it did not. */
   error: string;
-  /** Reads the tracks now (the Refresh button, the dialog opening). */
+  /** Reads the tracks now (the Refresh button, a toast's Retry). */
   refresh: () => void;
+  /** Reads the tracks unless a read is already in flight, which it then shares (the Link chapters dialog opening). */
+  join: () => void;
 };
+
+class UnansweredError extends Error {}
+
+/** `read`, or a failure once LIVE_TRACKS_TIMEOUT_MS passes with no answer; the late answer is then dropped. */
+function withinLimit(read: Promise<TracksLive>): Promise<TracksLive> {
+  let timer = 0;
+  const limit = new Promise<never>((_, reject) => {
+    timer = window.setTimeout(() => reject(new UnansweredError('REAPER did not answer.')), LIVE_TRACKS_TIMEOUT_MS);
+  });
+  return Promise.race([read, limit]).finally(() => window.clearTimeout(timer));
+}
 
 /**
  * The engine panel's one reader of the project's tracks (#2840): REAPER's track list now when REAPER has the linked project open, else the
  * saved .rpp with why (`TracksLive`). It reads when the panel opens and when `readKey` changes (the linked file, Check again), on window
  * focus, every LIVE_TRACKS_POLL_MS while the window is visible, and on `refresh`. A newer read always wins: an older one that answers late is
- * dropped, and an automatic read waits while one is in flight. A failure after a good read keeps the tracks, marks them stale and says so
- * once in a toast (and again on each Refresh press); a failure before any read is `error`, which the panel shows where the tracks would be.
- * Disabled (an Audacity project, whose tracks come from its snapshot), it never reads.
+ * dropped, and an automatic read waits while one is in flight. A read unanswered after LIVE_TRACKS_TIMEOUT_MS counts as failed, so the poll
+ * goes on. A failure is a toast with Retry: once for a run of automatic failures, and again on each press. After a good read the tracks are
+ * kept and marked stale. Disabled (an Audacity project, whose tracks come from its snapshot), it never reads.
  */
 export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; readKey: unknown; notify: Notify }): LiveTracks {
   const tracks = usePort('tracks');
-  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'busy' | 'refreshing'>>({ reason: '', message: '', readAt: null, stale: false, error: '' });
+  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'join' | 'busy' | 'refreshing'>>({
+    reason: '',
+    message: '',
+    readAt: null,
+    stale: false,
+    error: '',
+  });
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   // The newest read the narrator asked for, so its button stops spinning when that read ends.
@@ -48,11 +71,12 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
   const latest = useRef(0);
   const inFlight = useRef(0);
   const mounted = useRef(true);
-  // Whether the last read failed, so a run of failed timer reads toasts once.
+  // Whether the last read failed, so a run of failed automatic reads toasts once.
   const failing = useRef(false);
   const hasProject = useRef(false);
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
+  const refreshRef = useRef<() => void>(() => {});
 
   const read = useCallback(
     (force: boolean, pressed: boolean) => {
@@ -64,8 +88,7 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
         pressedRead.current = id;
         setRefreshing(true);
       }
-      tracks
-        .tracksLive()
+      withinLimit(tracks.tracksLive())
         .then((answer) => {
           if (!mounted.current || id !== latest.current) return;
           failing.current = false;
@@ -83,7 +106,12 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
         .catch((reason: unknown) => {
           if (!mounted.current || id !== latest.current) return;
           const text = describeApiError(reason);
-          if (hasProject.current && (pressed || !failing.current)) notifyRef.current(text, 'error');
+          if (pressed || !failing.current)
+            notifyRef.current(
+              text,
+              'error',
+              retryAction(() => refreshRef.current()),
+            );
           failing.current = true;
           setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));
         })
@@ -124,5 +152,7 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
   }, [enabled, read]);
 
   const refresh = useCallback(() => read(true, true), [read]);
-  return { ...state, busy, refreshing, refresh };
+  refreshRef.current = refresh;
+  const join = useCallback(() => read(false, false), [read]);
+  return { ...state, busy, refreshing, refresh, join };
 }

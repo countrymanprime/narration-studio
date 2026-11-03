@@ -121,9 +121,10 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
  * read, and has its own Refresh, so a track added in REAPER while the dialog is open can be picked without closing it. */
 export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLinks; live?: LiveTracks; onClose: () => void }) {
   const api = useApi();
-  // Opening the dialog reads the tracks again, once: a track added in REAPER since the panel's last read is in the pickers.
-  const refreshOnOpen = useRef(live?.refresh);
-  useEffect(() => refreshOnOpen.current?.(), []);
+  // Opening the dialog reads the tracks again through the panel's reader, sharing a read already in flight (breaker 8): a track added in REAPER
+  // since the panel's last read is in the pickers.
+  const joinOnOpen = useRef(live?.join);
+  useEffect(() => joinOnOpen.current?.(), []);
   const { tracks, rows } = links;
   const [overwrite, setOverwrite] = useState(false);
   const [state, setState] = useState<LineIdentityState>({
@@ -154,6 +155,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
 
   const preview = useMemo(() => stampRows(rows, tracks), [rows, tracks]);
   const running = state.phase === 'stamping';
+  // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const trackOptions = [{ value: '', label: 'Not linked' }, ...tracks.map((track) => ({ value: track.guid, label: track.name || `Track ${track.index + 1}` }))];
 
   const approve = () => {
@@ -188,7 +190,9 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
     >
       {live && (
         <div className="mb-3 flex items-center justify-between gap-2 text-[0.8125rem]" style={{ color: 'var(--text-muted)' }}>
-          <LiveTracksStatus live={live} />
+          <span className="min-w-0 flex-1">
+            <LiveTracksStatus live={live} />
+          </span>
           <LiveTracksRefresh live={live} />
         </div>
       )}

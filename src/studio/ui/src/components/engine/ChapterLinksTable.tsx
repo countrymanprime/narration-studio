@@ -176,7 +176,7 @@ function ChapterLinkRow({
           </span>
         ) : row.trackName ? (
           <span className="block truncate" title={linkedName}>
-            {linkedName}
+            <bdi>{linkedName}</bdi>
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>

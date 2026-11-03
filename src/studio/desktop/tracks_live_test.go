@@ -228,6 +228,43 @@ func TestChapterTrackLinksJudgesALinkAgainstREAPERsTracksWhenLive(t *testing.T) 
 	}
 }
 
+// Breaker 4: a chapter linked (by Chapter links, while REAPER answered) to a track REAPER has but the saved file does not, read again
+// with REAPER down. The link is kept and listed, the chapter is not confirmed and carries the missing-track warning, no track is
+// claimed for it, and no recorded end is made up: the saved project cannot see that track until it is saved in REAPER.
+func TestChapterTrackLinksWithREAPERDownShowsALiveOnlyTrackAsMissing(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	if _, err := host.chapterTrackSet(ids[2], liveAdded); err != nil {
+		t.Fatal(err)
+	}
+	links, err := chapterTrackLinksLive(context.Background(), host.services(), nil, dawport.Support{Reason: dawport.ReasonNotRunning})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if links.Project != linksProjectReady || len(links.Tracks) != 3 {
+		t.Fatalf("project %q with %d tracks, want the saved file's three", links.Project, len(links.Tracks))
+	}
+	for _, track := range links.Tracks {
+		if track.GUID == liveAdded {
+			t.Fatal("a track only REAPER has is listed from the saved file")
+		}
+	}
+	var row *chapterTrackLink
+	for i := range links.Chapters {
+		if links.Chapters[i].ChapterID == ids[2] {
+			row = &links.Chapters[i]
+		}
+	}
+	if row == nil {
+		t.Fatalf("no row for %s", ids[2])
+	}
+	if row.Status == "confirmed" || !hasWarning(row.Warnings, "confirmed-track-missing") || row.Track != nil || row.RecordedEnd != nil {
+		t.Fatalf("row = %+v, want unconfirmed, the missing-track warning, no track and no recorded end", row.Result)
+	}
+	if len(row.Links) != 1 || row.Links[0].TrackGUID != liveAdded {
+		t.Fatalf("links = %+v, want the narrator's link kept", row.Links)
+	}
+}
+
 // go-goldens: UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/tracks-live-live.json and tracks-live-saved.json, the two shapes
 // TracksLive answers.
 func TestContractTracksLive(t *testing.T) {
