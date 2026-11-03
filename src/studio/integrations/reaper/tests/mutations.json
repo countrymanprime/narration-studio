@@ -2508,8 +2508,8 @@
   {
     "name": "track_create inserts the track first instead of last",
     "file": "narration_track_create.lua",
-    "find": "local index = reaper.CountTracks(0)",
-    "replace": "local index = 0"
+    "find": "    index = reaper.CountTracks(0)",
+    "replace": "    index = 0"
   },
   {
     "name": "track_create makes no undo point",
@@ -3056,5 +3056,29 @@
     "file": "narration_bridge_core.lua",
     "find": "  if depth <= 0 then\n    return out\n  end",
     "replace": "  if depth < 0 then\n    return out\n  end\n  depth = math.max(depth, 1)"
+  },
+  {
+    "name": "a voice added to a folder leaves the old last child's depth change as it was",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', parent_depth + 1 - last_depth)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder closes nothing",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', last_delta + last_depth - parent_depth - 1)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder records from its own default input",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(source, 'I_RECINPUT'))\n",
+    "replace": ""
+  },
+  {
+    "name": "a parent that is gone is answered with a track at the end",
+    "file": "narration_track_create.lua",
+    "find": "    if parent_index == nil then\n      event(session_dir, 'TRACK_STALE', run_id, parent_text)\n      return\n    end",
+    "replace": "    if false then\n    end"
   }
 ]

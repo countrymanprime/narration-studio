@@ -292,6 +292,12 @@ type TrackCreator interface {
 	CreateTrack(ctx context.Context, name string) (CreatedTrack, error)
 }
 
+// ChildTrackCreator adds a track inside a folder, as a direct child after the folder's last descendant (a voice in a chapter's folder). Only
+// an engine with folder tracks (REAPER) has it. A parent that is gone is a stale error and nothing is added.
+type ChildTrackCreator interface {
+	CreateChildTrack(ctx context.Context, name, parentGUID string) (CreatedTrack, error)
+}
+
 // Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected
 // track ("" when none or several are selected, so a caller never guesses), Selected how many tracks are selected, and Cursor the edit
 // cursor in project seconds.
