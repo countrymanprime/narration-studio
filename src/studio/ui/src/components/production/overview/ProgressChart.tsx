@@ -19,7 +19,7 @@ function Leader({ from, to }: { from: { x: number; y: number }; to: { x: number;
 }
 
 /** A band of the card's colour round a label, so a line that still passes behind it does not strike it through. */
-const HALO = { stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' } as const;
+const HALO = { stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke' } as const;
 const monthYear = (d: Date): string => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 const MONO = 'IBM Plex Mono, monospace';
 /** One character of the axis font at 11 px. */
