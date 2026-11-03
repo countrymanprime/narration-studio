@@ -49,11 +49,22 @@ local function split(line, count)
   fields[#fields + 1] = decode(line:sub(start):gsub('[\r\n]+$', ''))
   return fields
 end
+-- events.log is read by the host every 150 ms and never trimmed by it, so a long session would grow it without bound (and a diagnostics export
+-- would carry it). Past this size the next append starts the file again: the host notices a log shorter than its read offset and reads from the start
+-- (events.go, newEventLines), and by then it has read everything but at most the last tick's lines.
+local EVENTS_LOG_CAP = 8 * 1024 * 1024
 local function append(path, text)
   local handle = io.open(path, 'a')
   if handle then
-    handle:write(text)
-    handle:close()
+    local size = handle:seek('end')
+    if size and size > EVENTS_LOG_CAP then
+      handle:close()
+      handle = io.open(path, 'w') or io.open(path, 'a')
+    end
+    if handle then
+      handle:write(text)
+      handle:close()
+    end
   end
 end
 -- The lines events sent while `batched` runs a command, by file, and the files in the order each was first written.

@@ -113,7 +113,7 @@ func TestTheManifestSaysWhatIsAndIsNotIncluded(t *testing.T) {
 	for _, item := range manifest.Excluded {
 		excluded[item.Name] = item.Reason
 	}
-	for _, name := range []string{"sidecar stderr", "host.log", "bridge.jsonl"} {
+	for _, name := range []string{"sidecar stderr (plain lines)", "host.log", "bridge.jsonl (free-text values)"} {
 		if excluded[name] == "" {
 			t.Errorf("manifest does not say %q is left out: %v", name, excluded)
 		}
@@ -203,5 +203,45 @@ func TestSummaryCountsEventsAndListsProblemsWithoutValues(t *testing.T) {
 	}
 	if strings.Contains(text, "ch-1") {
 		t.Errorf("summary printed a field value: %q", text)
+	}
+}
+
+func TestOnlyTypedSidecarAndBridgeLinesAreKeptAndFreeTextValuesAreDropped(t *testing.T) {
+	opts, _, dir := fixture(t)
+	runs := filepath.Join(dir, "runs")
+	if err := os.MkdirAll(runs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stderr := strings.Join([]string{
+		`{"ts":"2026-11-03T10:00:00.000Z","level":"info","msg":"Using vocabulary hints: ` + canaryWord + `"}`,
+		`{"ts":"2026-11-03T10:00:01.000Z","level":"info","event":"asr.hotwords_used","run":"r1","count":3}`,
+		`{"ts":"2026-11-03T10:00:02.000Z","level":"warn","event":"gliner.chunk_failed","chapter":"ch-1","err":"ValueError","note":"` + canaryWord + ` and more"}`,
+		`{"event":"Not An Event","count":1}`,
+		`plain text line ` + canaryWord,
+	}, "\n") + "\n"
+	if err := os.WriteFile(filepath.Join(runs, "r1.stderr.jsonl"), []byte(stderr), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	bridge := filepath.Join(dir, "bridge.jsonl")
+	if err := os.WriteFile(bridge, []byte(`{"ts":"2026-11-03T10:00:00.000Z","level":"debug","run":"r1","event":"launch_cleanup_tool.refused","reason":"no_selection","detail":"`+canaryWord+` is not a word"}`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	opts.RunsDir, opts.BridgeLogPath = runs, bridge
+	bundle, err := Build(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events := string(bundle.File("sidecar-events.jsonl"))
+	if !strings.Contains(events, `"count":3`) || !strings.Contains(events, "gliner.chunk_failed") || strings.Count(events, "\n") != 2 {
+		t.Errorf("sidecar-events.jsonl = %s, want the two typed lines", events)
+	}
+	bridgeOut := string(bundle.File("bridge.jsonl"))
+	if !strings.Contains(bridgeOut, "no_selection") {
+		t.Errorf("bridge.jsonl = %s, want the refusal reason", bridgeOut)
+	}
+	for _, name := range []string{"sidecar-events.jsonl", "bridge.jsonl", "run.jsonl", "trace.jsonl"} {
+		if strings.Contains(string(bundle.File(name)), "CANARYWORD") {
+			t.Errorf("%s holds the canary: %s", name, bundle.File(name))
+		}
 	}
 }

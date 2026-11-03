@@ -36,6 +36,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 
+from narration_common.logging_utils import event
+
 MANIFEST_SCHEMA_VERSION = 1
 TRANSCRIBE_START_PCT = 2
 TRANSCRIBE_END_PCT = 94
@@ -205,14 +207,14 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> Non
         engine.check_cancelled(progress)
         pct = TRANSCRIBE_START_PCT + (TRANSCRIBE_END_PCT - TRANSCRIBE_START_PCT) * index // count
         engine.write_progress(progress, "TRANSCRIBE", pct, f"Transcribing take {index + 1}/{count}")
-        engine.log(f"Take {index}: {take.take_guid} ({take.source_file} [{take.start_offset:.2f}s, {take.length:.2f}s])")
+        event("compare.item_decoded", item=index, start_ms=take.start_offset * 1000, length_ms=take.length * 1000)
         words = transcriber(take)
         engine.check_cancelled(progress)
         lines.append(_words_line(index, take, words))
 
     engine.write_progress(progress, "WRITE", WRITE_PCT, "Writing the words...")
     _write_atomically(args.out, "".join(lines))
-    engine.log(f"Wrote the words of {count} take(s) to {args.out}")
+    event("takes.words_written", count=count)
     engine.write_progress(progress, "DONE", 100, "Finished")
 
 

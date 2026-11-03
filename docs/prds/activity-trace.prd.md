@@ -82,7 +82,7 @@ Risks: a scrubbed error message is the one place a deny-list remains, so it is d
 | 2 | Host and UI instrumentation | `withTracing`, `emitEvent`, the supervisor, lifecycle and recover wrapper; the batched UI binding | built: supervisor, survived panics, `withTracing`, `onHostEvent`, route, overlays, error handlers, `SystemTraceBatch`; `emitEvent` is not instrumented | - | 1 |
 | 3 | DAW connection events | Reachability flips, nil client, dispatch errors and rejected events, project match, capability availability | built: host events in `trace_host.go` | 2 | 1 |
 | 4 | Guards | The reflection test over `Host` methods, the UI coverage test, the silent-catch scan and the canary suite | partly built: the UI coverage test and canary tests for the trace, the page batch and the export; the `Host` reflection test and the silent-catch scan are not | - | 2, 3 |
-| 5 | Export and sidecar `event()` | The diagnostics export with its preview and manifest; the sidecar call; `host.log` retires | partly built: the export (zip, manifest, preview, leak check, `--logs-summary`, Settings panel); the sidecar `event()` and retiring `host.log` are not | - | 4 |
+| 5 | Export and sidecar `event()` | The diagnostics export with its preview and manifest; the sidecar call; `host.log` retires | partly built: the export (zip, manifest, preview, leak check, `--logs-summary`, Settings panel); the sidecar `event()` (with `sidecar-events.jsonl` and typed `bridge.jsonl` in the export) is built; retiring `host.log` is not | - | 4 |
 
 ## Decisions Log
 
