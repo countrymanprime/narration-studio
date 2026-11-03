@@ -37,6 +37,13 @@ export const productionStates: StateEntry[] = [
       'Production with every chapter linked to its track and no stage moved on (?mockProduction=linked): the Recorded audio tile sums the measured audio, and each pipeline row shows its Rec. length beside its Est. length - recorded in full, part-way, under a minute ("<0:01"), "None yet" for a linked track with nothing on it, and "No track", "2+ tracks", "Track gone" and "No project" for the four that measure nothing - with Record under way from the audio while the stage still says not started',
   },
 
+  {
+    page: 'production',
+    state: 'record-ticked-no-track',
+    description:
+      'Production with Chapter 2 recorded by its stage but no track linked (the default mock links Chapter 1 only): its Rec. cell says "No track" beside a ticked Record, and the Record cell\u2019s tip, hovered, says the tick is the chapter\u2019s stage and no length is measured (#2634)',
+  },
+
   // Home's surfaces, opened from the board
   {
     page: 'production',

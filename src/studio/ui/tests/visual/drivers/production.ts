@@ -60,6 +60,14 @@ export const productionDrivers: Record<string, Driver> = {
       .waitFor();
     await table.getByRole('img', { name: /^Chapter 9\b.*: recorded no track(,|$)/ }).waitFor();
   },
+  'record-ticked-no-track': async (page) => {
+    await openProduction(page);
+    const table = page.getByRole('table', { name: 'Chapter pipeline' });
+    await table.getByRole('img', { name: /^Chapter 2\b.*: recorded no track(,|$)/ }).waitFor();
+    // The tick beside "No track" says what it is when hovered.
+    await table.getByRole('button', { name: /^Chapter 2\b.*: Record done$/ }).hover();
+    await page.getByText(/the chapter’s stage; no track is linked/).waitFor();
+  },
 
   'live-updates-degraded': async (page) => {
     await page.goto('/?mockLiveDegraded=1');
