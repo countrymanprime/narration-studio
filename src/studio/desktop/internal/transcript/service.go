@@ -21,6 +21,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"desktop/internal/dawport"
 	"desktop/internal/findings"
@@ -325,6 +326,9 @@ func sentence(format string, args ...any) error { return fmt.Errorf(format, args
 // errNotOneWordMisread is the refusal for anything but one word read as one other word.
 var errNotOneWordMisread = sentence("Only a note where one word was read as one other word can be treated as the same word in later checks.")
 
+// errNoProject is the refusal with no project open: there is no folder for the equivalences file.
+var errNoProject = sentence("Open a project before treating two words as the same.")
+
 // AddEquivalence makes later comparisons count a one-word misread as a match: id is a Transcript Compare note's finding id
 // (Proof, #2736), which outlives the session, or a row id of this session's run. The note's decision is not changed.
 func (s *Service) AddEquivalence(id string) (string, error) {
@@ -371,10 +375,23 @@ func OneWordMisread(finding findings.Finding) (doc, audio string, ok bool) {
 		return "", "", false
 	}
 	doc, audio = finding.Manuscript.Expected, finding.Manuscript.Recorded
-	return doc, audio, oneWord(doc) && oneWord(audio)
+	return doc, audio, oneWord(doc) && oneWord(audio) && !strings.ContainsAny(doc+audio, ",#") && compare.PyLower(doc) != compare.PyLower(audio)
 }
 
-func oneWord(word string) bool { return word != "" && !strings.ContainsAny(word, " \t\r\n") }
+// oneWord is a word the equivalences file can hold as one member of a group: something is left after the parser's own stripping,
+// and there is no Unicode space, control character or byte-order mark inside it (qa B4 on #2807), so what is written is what the
+// comparison reads.
+func oneWord(word string) bool {
+	if compare.PyStrip(word) == "" {
+		return false
+	}
+	for _, r := range word {
+		if unicode.IsSpace(r) || unicode.IsControl(r) || compare.IsPySpace(r) || r == '\ufeff' {
+			return false
+		}
+	}
+	return true
+}
 
 // AddEquivalencePair appends doc and audio as one group to TranscriptCompare/equivalences.csv. A pair a group of the file already
 // holds (either order, any case, as compare.LoadEquivalenceGroups reads it) is not written again, so a second press is harmless.
@@ -386,6 +403,13 @@ func (s *Service) AddEquivalencePair(doc, audio string) (string, error) {
 	if strings.ContainsAny(doc+audio, ",#") {
 		return "", sentence("%s = %s cannot be written to the equivalences file: a word there cannot hold a comma or #.", doc, audio)
 	}
+	// The same word in another case is already one word to the comparison, so a group of the two would change nothing.
+	if compare.PyLower(doc) == compare.PyLower(audio) {
+		return "", sentence("%s and %s differ only in case, which later checks already ignore.", doc, audio)
+	}
+	if s.config.Project == "" {
+		return "", errNoProject
+	}
 	s.equivalences.Lock()
 	defer s.equivalences.Unlock()
 	path := filepath.Join(s.config.Project, "TranscriptCompare", "equivalences.csv")
@@ -393,6 +417,12 @@ func (s *Service) AddEquivalencePair(doc, audio string) (string, error) {
 		return "", err
 	}
 	raw, err := os.ReadFile(path)
+	// A file saved without a final line break (Notepad, many editors) would have the pair glued onto its last line, or swallowed by a
+	// comment there (qa B1 on #2807), so the pair then starts a line of its own.
+	lead := ""
+	if len(raw) > 0 && raw[len(raw)-1] != '\n' && raw[len(raw)-1] != '\r' {
+		lead = "\n"
+	}
 	switch {
 	case os.IsNotExist(err):
 		if err = os.WriteFile(path, []byte("# Transcript Compare - custom word equivalences\n# One comma-separated group per line.\n"), 0o600); err != nil {
@@ -412,7 +442,7 @@ func (s *Service) AddEquivalencePair(doc, audio string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if _, err = fmt.Fprintf(file, "%s, %s\n", doc, audio); err != nil {
+	if _, err = fmt.Fprintf(file, "%s%s, %s\n", lead, doc, audio); err != nil {
 		_ = file.Close() // the write already failed; report that error
 		return "", err
 	}

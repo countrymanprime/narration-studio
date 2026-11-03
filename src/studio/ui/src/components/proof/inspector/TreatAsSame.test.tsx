@@ -12,6 +12,8 @@ import { inspectorFinding } from './testFinding';
 import { TreatAsSame } from './TreatAsSame';
 
 const NAME = 'Treat these two words as the same in later checks';
+const TREATED = 'Already treated as the same';
+const NEXT = 'Later checks count them as one word, so this note can be marked Fine as read.';
 
 const misread = (overrides: Partial<Finding> = {}): Finding =>
   inspectorFinding({
@@ -60,6 +62,26 @@ describe('oneWordMisread', () => {
     // Emoji and right-to-left words are words like any other.
     expect(oneWordMisread(misread({ manuscript: { expected: 'שלום', recorded: 'שלם' } }))).toBe(true);
     expect(oneWordMisread(misread({ manuscript: { expected: '👋🏽', recorded: '👋' } }))).toBe(true);
+    expect(oneWordMisread(misread({ manuscript: { expected: '👨\u200d👩\u200d👧', recorded: '👪' } }))).toBe(true);
+  });
+
+  // qa B2 and B4 on #2807: the words the host refuses (a comma or # the file would split, any Unicode space, control character or
+  // byte-order mark, nothing left after stripping, or the same word in another case) get no button, so it never offers a refusal.
+  it.each([
+    ['a comma', 'a,b', 'ab'],
+    ['a #', 'ab', 'a#b'],
+    ['a no-break space', 'x\u00a0y', 'xy'],
+    ['a line separator', 'x\u2028y', 'xy'],
+    ['a next-line control', 'x\u0085y', 'xy'],
+    ['a vertical tab', 'x\vy', 'xy'],
+    ['a form feed', 'x\fy', 'xy'],
+    ['an ideographic space', 'x\u3000y', 'xy'],
+    ['a NUL', 'x\u0000y', 'xy'],
+    ['a byte-order mark', '\ufeffDinah', 'Dina'],
+    ['only a no-break space', '\u00a0', 'Dina'],
+    ['the same word in another case', 'Dinah', 'dinah'],
+  ])('is false for %s', (_name, expected, recorded) => {
+    expect(oneWordMisread(misread({ manuscript: { expected, recorded } }))).toBe(false);
   });
 });
 
@@ -97,26 +119,54 @@ describe('TreatAsSame: the state matrix', () => {
     await waitFor(() => expect(button.getAttribute('aria-busy')).toBeNull());
   });
 
-  it("Added: the host's answer is said in a toast and the note's decision is left alone", async () => {
+  // Walkthrough 1 on #2807: the answer says what happens next, since the note itself stays as the narrator decided it.
+  it("Added: the host's answer and what comes next are said in a toast, and the note's decision is left alone", async () => {
     const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
     const note = misread({ review: { status: 'accepted' } });
     const { onNoteRead } = show(note, createMockApi({}, { findings: [note] }));
     await userEvent.click(screen.getByRole('button', { name: NAME }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Added equivalence: Dinah = Dina', { topic: 'equivalence' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(`Added equivalence: Dinah = Dina. ${NEXT}`, { topic: 'equivalence' }));
     expect(onNoteRead).not.toHaveBeenCalled();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('Already in the file: the mock host says so instead of adding it again', async () => {
-    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+  // Walkthrough 4 on #2807: the button is not a toggle, so after an answer it does not stay looking pressed: it is off, with the reason as
+  // its tooltip, for every note of the same two words, until the app starts again.
+  it('Added: the button is then off with the reason "Already treated as the same", and stays so when the note is shown again', async () => {
+    vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
     const api = createMockApi({}, { findings: [misread()] });
-    show(misread(), api);
+    const first = show(misread(), api);
     const button = screen.getByRole('button', { name: NAME });
     await userEvent.click(button);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Added equivalence: Dinah = Dina', { topic: 'equivalence' }));
-    await waitFor(() => expect(button.getAttribute('aria-busy')).toBeNull());
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+    expect(button.getAttribute('aria-busy')).toBeNull();
+    expect(button.getAttribute('aria-pressed')).toBeNull();
+    // The click left the focus on it: move away and come back, as a keyboard narrator would, to open its tooltip.
+    act(() => button.blur());
+    act(() => button.focus());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(TREATED);
     await userEvent.click(button);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Already treated as the same: Dinah = Dina', { topic: 'equivalence' }));
+    expect(await api.transcriptAddEquivalence('f1')).toMatch(/^Already treated/);
+    first.unmount();
+    // The same pair on another note, in another case, is off too; another pair is not.
+    show(misread({ id: 'f9', manuscript: { expected: 'DINA', recorded: 'dinah' } }), api);
+    expect(screen.getByRole('button', { name: NAME }).getAttribute('aria-disabled')).toBe('true');
+    cleanup();
+    show(misread({ id: 'f2', manuscript: { expected: 'Alice', recorded: 'Alyss' } }), api);
+    expect(screen.getByRole('button', { name: NAME }).getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('Already in the file: the mock host says so, with what comes next, and the button is off', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const api = createMockApi({}, { findings: [misread()] });
+    // An earlier session added the pair: this one does not know until it asks.
+    await api.transcriptAddEquivalence('f1');
+    show(misread(), api);
+    const button = screen.getByRole('button', { name: NAME });
+    expect(button.getAttribute('aria-disabled')).toBeNull();
+    await userEvent.click(button);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(`Already treated as the same: Dinah = Dina. ${NEXT}`, { topic: 'equivalence' }));
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
   });
 
   it("Refused or error: the host's sentence in an error toast, nothing in the flow, and the note is read again", async () => {
@@ -166,9 +216,10 @@ describe('TreatAsSame: the host that never answers, and the narrator who moves o
     await waitFor(() => expect(button.getAttribute('aria-busy')).toBe('true'));
     await act(async () => answers[0]!.resolve('Added equivalence: Dinah = Dina'));
     expect(button.getAttribute('aria-busy')).toBe('true');
-    expect(toast).not.toHaveBeenCalledWith('Added equivalence: Dinah = Dina', { topic: 'equivalence' });
+    expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/^Added equivalence/), { topic: 'equivalence' });
     await act(async () => answers[1]!.resolve('Already treated as the same: Dinah = Dina'));
     await waitFor(() => expect(button.getAttribute('aria-busy')).toBeNull());
+    expect(button.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('keeps the note busy when the narrator selects another note and comes back, so there is no second request', async () => {

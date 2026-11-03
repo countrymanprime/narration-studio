@@ -126,7 +126,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'treat-as-same-added',
     description:
-      'Proof, the equals button pressed on the one-word misread: the information toast "Added equivalence: Dinah = Dina", and the note still To review (#2736)',
+      'Proof, the equals button pressed on the one-word misread: the information toast "Added equivalence: Dinah = Dina" with what comes next, the button off (its reason "Already treated as the same"), and the note still To review (#2736)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

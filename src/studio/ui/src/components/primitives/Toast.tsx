@@ -53,8 +53,10 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       data-tone={message.tone}
       // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
-      // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
-      className={`relative flex min-h-[2.8125rem] items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4). It is no wider
+      // than the region, which is no wider than the window, and its text breaks anywhere: a word with no place to break (a long name in
+      // Proof's answer to Treat as the same) wraps inside it rather than widening it past the window's edge (qa B3 on #2807).
+      className={`relative flex min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {sticky && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {sticky ? (
@@ -62,7 +64,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       ) : (
         message.icon && <FontAwesomeIcon icon={message.icon} aria-hidden="true" className="flex-none" />
       )}
-      <span className="min-w-0 break-words">{message.text}</span>
+      <span className="min-w-0 [overflow-wrap:anywhere]">{message.text}</span>
       {message.action && (
         <button
           className={`flex-none font-semibold underline underline-offset-2 ${HIT_AREA}`}

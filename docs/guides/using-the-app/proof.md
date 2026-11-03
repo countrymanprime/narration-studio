@@ -175,9 +175,11 @@ says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and o
 When the check hears one word as another every time, a name you say your own way or a word your accent changes, the equals button
 on that note, **Treat these two words as the same in later checks**, stops the next comparisons flagging it. It shows on a recording
 check note where one word was heard as one other word. The two words are added to the project's word equivalences
-(`TranscriptCompare/equivalences.csv`), and a message says which, "Added equivalence: Dinah = Dina". A pair already there is not
-added again, and the message says so. The note itself keeps whatever you decided about it: mark it **Fine as read** too if this
-reading is right.
+(`TranscriptCompare/equivalences.csv`), and a message says which, "Added equivalence: Dinah = Dina", and that later checks count
+them as one word. A pair already there is not added again, and the message says so. Either way the button is then off, with "Already
+treated as the same" as its tooltip. The note itself keeps whatever you decided about it: mark it **Fine as read** too if this reading
+is right. It shows only for words the equivalences file can hold: not for a word with a comma, a # or a space in it, nor for the same
+word in another case.
 
 ![Proof - the equals button, Treat these two words as the same in later checks, on a one-word misread](../../images/ui/proof-treat-as-same.webp)
 

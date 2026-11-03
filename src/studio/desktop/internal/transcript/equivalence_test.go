@@ -3,10 +3,12 @@ package transcript
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
 
+	"desktop/internal/compare"
 	"desktop/internal/findings"
 )
 
@@ -62,6 +64,69 @@ func TestAddEquivalencePairReadsGroupsWrittenByHand(t *testing.T) {
 	}
 	if message, err := service.AddEquivalencePair("colour", "kolor"); err != nil || message != "Added equivalence: colour = kolor" {
 		t.Fatalf("new pair = %q, %v", message, err)
+	}
+}
+
+// qa B1 on #2807: a file saved without a final line break (Notepad, many editors), or ending in a comment, had the new pair glued
+// onto its last line or swallowed by the comment, while the host said "Added". The pair starts a line of its own.
+func TestAddEquivalencePairStartsANewLineWhenTheFileDoesNotEndInOne(t *testing.T) {
+	for name, last := range map[string]string{"no final line break": "Alice, Alyss", "a comment last": "Alice, Alyss # my note"} {
+		t.Run(name, func(t *testing.T) {
+			service, _ := testService(t)
+			path := filepath.Join(service.config.Project, "TranscriptCompare", "equivalences.csv")
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte(last), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if message, err := service.AddEquivalencePair("Dinah", "Dina"); err != nil || message != "Added equivalence: Dinah = Dina" {
+				t.Fatalf("add = %q, %v", message, err)
+			}
+			groups := compare.LoadEquivalenceGroups(equivalencesFile(t, service))
+			if !reflect.DeepEqual(groups, [][]string{{"alice", "alyss"}, {"dinah", "dina"}}) {
+				t.Fatalf("groups = %#v", groups)
+			}
+		})
+	}
+}
+
+// qa B4 on #2807: a word the parser strips to nothing, or one holding any Unicode space or control character (NBSP, U+2028,
+// U+0085, VT, FF, U+3000, NUL, a byte-order mark), is refused, as is the same word in another case: either would be written and
+// called "Added" while the comparison reads no group from it.
+func TestAddEquivalencePairRefusesWordsThatAreNotOneWord(t *testing.T) {
+	service, _ := testService(t)
+	for _, pair := range [][2]string{
+		{"x\u00a0y", "xy"}, {"x\u2028y", "xy"}, {"x\u0085y", "xy"}, {"x\vy", "xy"}, {"x\fy", "xy"}, {"x\u3000y", "xy"},
+		{"x\x00y", "xy"}, {"\ufeffDinah", "Dina"}, {"\u00a0", "Dina"}, {"Dinah", "\u3000"},
+		{"Dinah", "dinah"}, {"DINAH", "Dinah"},
+	} {
+		if message, err := service.AddEquivalencePair(pair[0], pair[1]); err == nil {
+			t.Errorf("%q was accepted: %q", pair, message)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(service.config.Project, "TranscriptCompare", "equivalences.csv")); !os.IsNotExist(err) {
+		t.Fatalf("a refused pair created the file: %v", err)
+	}
+	// Emoji joined by a zero-width joiner, and right-to-left words, are words like any other.
+	for _, pair := range [][2]string{{"👨\u200d👩\u200d👧", "👪"}, {"שָׁלוֹם", "שלם"}} {
+		if _, err := service.AddEquivalencePair(pair[0], pair[1]); err != nil {
+			t.Errorf("%q was refused: %v", pair, err)
+		}
+	}
+}
+
+// qa B5 on #2807: with no project open the service has no folder to write in, and must not write into the working directory.
+func TestAddEquivalencePairRefusesWithoutAProject(t *testing.T) {
+	service, _ := testService(t)
+	service.config.Project = ""
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if _, err := service.AddEquivalencePair("Dinah", "Dina"); err == nil || err.Error() != errNoProject.Error() {
+		t.Fatalf("no project = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "TranscriptCompare")); !os.IsNotExist(err) {
+		t.Fatalf("wrote into the working directory: %v", err)
 	}
 }
 
@@ -151,14 +216,18 @@ func TestOneWordMisread(t *testing.T) {
 	noManuscript := misreadFinding("Dinah", "Dina")
 	noManuscript.Manuscript = nil
 	for name, finding := range map[string]findings.Finding{
-		"several words":  misreadFinding("pink eyes", "pale eyes"),
-		"nothing heard":  misreadFinding("Dinah", ""),
-		"another check":  other,
-		"a skip":         skipped,
-		"a pickup":       pickup,
-		"no manuscript":  noManuscript,
-		"no kind":        {Analyzer: AnalyzerName, Category: findings.CategoryTranscriptDiscrepancy, Manuscript: &findings.Manuscript{Expected: "a", Recorded: "b"}},
-		"newline inside": misreadFinding("a\nb", "ab"),
+		"several words":    misreadFinding("pink eyes", "pale eyes"),
+		"nothing heard":    misreadFinding("Dinah", ""),
+		"another check":    other,
+		"a skip":           skipped,
+		"a pickup":         pickup,
+		"no manuscript":    noManuscript,
+		"no kind":          {Analyzer: AnalyzerName, Category: findings.CategoryTranscriptDiscrepancy, Manuscript: &findings.Manuscript{Expected: "a", Recorded: "b"}},
+		"newline inside":   misreadFinding("a\nb", "ab"),
+		"a comma":          misreadFinding("a,b", "ab"),
+		"a hash":           misreadFinding("ab", "a#b"),
+		"only the case":    misreadFinding("Dinah", "dinah"),
+		"a no-break space": misreadFinding("x\u00a0y", "xy"),
 	} {
 		if _, _, ok := OneWordMisread(finding); ok {
 			t.Errorf("%s: accepted", name)
