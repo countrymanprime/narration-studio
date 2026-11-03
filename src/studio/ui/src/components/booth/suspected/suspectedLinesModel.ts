@@ -16,6 +16,8 @@ export type SuspectedFlag = {
   scriptEnd: number;
   script: string;
   heard: string;
+  /** A second listen heard it too (`confirmed`); a flag it cleared is never listed. */
+  check?: 'confirmed';
 };
 
 /**
@@ -50,6 +52,7 @@ export const toFlagSave = (flag: SuspectedFlag, dismissed: boolean): Teleprompte
   scriptEnd: flag.scriptEnd,
   heard: flag.heard,
   dismissed,
+  ...(flag.check ? { check: flag.check } : {}),
 });
 
 export const KIND_LABELS: Record<TeleprompterFlagKind, string> = {

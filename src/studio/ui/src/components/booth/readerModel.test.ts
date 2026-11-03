@@ -484,3 +484,24 @@ describe('readerMarks', () => {
     expect(marks.size).toBe(0);
   });
 });
+
+describe('reduceEvent: the confirmation pass settling a flag', () => {
+  const raised = { type: 'flag', id: 1, kind: 'skipped', start: 7, end: 9, heard: '' } as const;
+  const withFlag = reduceEvent(initialSession, raised);
+
+  it('puts the verdict on the flag it names', () => {
+    expect(reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'cleared' }).flags).toEqual([{ ...raised, check: 'cleared' }]);
+  });
+
+  it('settles a flag once: a second verdict, or one for a flag it never saw, changes nothing', () => {
+    const settled = reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'confirmed' });
+    expect(reduceEvent(settled, { type: 'flag_check', id: 1, state: 'cleared' })).toBe(settled);
+    expect(reduceEvent(withFlag, { type: 'flag_check', id: 9, state: 'cleared' })).toBe(withFlag);
+    expect(reduceEvent(initialSession, { type: 'flag_check', id: 1, state: 'cleared' })).toBe(initialSession);
+  });
+
+  it('keeps the verdict when the same flag is raised again', () => {
+    const settled = reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'confirmed' });
+    expect(reduceEvent(settled, raised).flags).toEqual([{ ...raised, check: 'confirmed' }]);
+  });
+});

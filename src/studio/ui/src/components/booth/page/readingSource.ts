@@ -155,6 +155,8 @@ export function suspectedFrom(
   const own = paragraphSpans(spans);
   const body = paragraphs.filter((paragraph) => !paragraph.heading);
   return flags.flatMap((flag) => {
+    // The confirmation pass read the script where the live engine heard a fault: not a suspicion any more.
+    if (flag.check === 'cleared') return [];
     const at = own.findIndex((span) => flag.start >= span.start && flag.start < span.start + span.count);
     const span = own[at];
     const paragraph = body[at];
@@ -173,6 +175,7 @@ export function suspectedFrom(
         scriptEnd: flag.end,
         script: words.slice(wordStart, wordEnd).join(' '),
         heard: flag.heard,
+        ...(flag.check === 'confirmed' ? { check: 'confirmed' as const } : {}),
       },
     ];
   });
