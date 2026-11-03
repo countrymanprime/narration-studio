@@ -78,6 +78,8 @@ while ((Get-Date) -lt $deadline) {
       elseif ($w -match "title='Error opening devices'") { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]1, [IntPtr]0); $log += 'dismissed Error opening devices (no audio hardware)' }
       elseif ($text -match 'REAPER IS NOT FREE') { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]1, [IntPtr]0); $log += 'dismissed the evaluation notice' }
       elseif ($text -match 'ReaScript Error' -or $w -match "title='ReaScript Error'") { $log += "ReaScript error dialog: $text"; [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]1, [IntPtr]0) }
+      elseif ($w -match "title='REAPER New Version Notification'") { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]2, [IntPtr]0); $log += 'closed the new-version notice' }
+      elseif ($w -match "title='Scanning VST plugins") { $log += 'plug-in scan dialog (ignored)' }
       elseif ($text -match 'Analyzing') { $log += 'peak building dialog (ignored)' }
       elseif ($text -match 'before closing') { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]7, [IntPtr]0); $log += 'answered No to a save prompt on close (the scratch copy is not kept)' }
       else { $log += "UNKNOWN DIALOG: $w :: $text" }

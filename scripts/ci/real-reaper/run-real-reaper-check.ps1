@@ -10,6 +10,18 @@ param(
   [long]$ExpectedSize = 0
 )
 $ErrorActionPreference = 'Stop'
+# GitHub's Windows runners give $env:TEMP in 8.3 form (C:\Users\RUNNER~1\...), and REAPER reports its resource path in the long form
+# (C:\Users\runneradmin\...). The launcher refuses to run unless the two strings match, so every scratch path is built from the long form.
+Add-Type -Namespace Win -Name Paths -MemberDefinition '[DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern uint GetLongPathName(string path, System.Text.StringBuilder buffer, uint size);'
+function Get-LongPath([string]$path) {
+  $buffer = New-Object System.Text.StringBuilder 1024
+  $n = [Win.Paths]::GetLongPathName($path, $buffer, 1024)
+  if ($n -gt 0 -and $n -lt 1024) { return $buffer.ToString() }
+  return $path
+}
+Write-Host "TEMP before: $env:TEMP"
+$env:TEMP = Get-LongPath $env:TEMP; $env:TMP = $env:TEMP
+Write-Host "TEMP used:   $env:TEMP"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $tag = $Version -replace '\.', ''
