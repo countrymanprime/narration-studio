@@ -413,4 +413,11 @@ func TestAnAnswerFromAFakeREAPERThatStallsPastTheOldDeadlineIsStillAnAnswer(t *t
 	if !errors.As(err, &stale) {
 		t.Fatalf("err = %v, want a StaleError from the late answer", err)
 	}
+	// The diagnosis must be able to tell a stalled tick from a starved goroutine: the stall is inside one tick, so it shows as the longest tick.
+	fake.mu.Lock()
+	longest := fake.seen.longestTick
+	fake.mu.Unlock()
+	if longest < 2*time.Second {
+		t.Fatalf("longest tick = %v, want the 2.5 s stall recorded", longest)
+	}
 }

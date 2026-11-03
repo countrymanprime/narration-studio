@@ -94,7 +94,9 @@ func startFakeReaper(t *testing.T, client *Client, dir string, answer func(comma
 				return
 			case <-ticker.C:
 				fake.noteTick()
+				began := time.Now()
 				fake.tick(t, client, dir, answer)
+				fake.noteTickTook(time.Since(began))
 			}
 		}
 	}()
