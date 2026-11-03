@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import type { DawClient } from '../../../ports/daw';
@@ -10,7 +11,12 @@ import type { LinePassage, LineTake } from './types';
 export type KeepJournal = Pick<Journal, 'act' | 'undo'>;
 
 async function choose(daw: DawClient, passage: LinePassage, take: LineTake): Promise<Result<DawResult>> {
-  const result = await daw.useTake(passage.chapterId, passage.firstToken, passage.lastToken, take.id);
+  let result: DawResult;
+  try {
+    result = await daw.useTake(passage.chapterId, passage.firstToken, passage.lastToken, take.id);
+  } catch (error) {
+    return { ok: false, refusal: { code: 'daw_failed', reason: apiErrorMessage(error) } };
+  }
   if (result.ok) return { ok: true, value: result };
   return { ok: false, refusal: { code: 'daw_refused', reason: result.refused ?? result.message } };
 }
@@ -94,7 +100,7 @@ export function useKeepTakes(journal: KeepJournal, lines: ReadonlyMap<string, Li
     [journal, lines, kept, choose],
   );
   const backTo = useRef<Record<string, string | undefined>>({});
-  const keep = useCallback(
+  const keepNow = useCallback(
     async (passage: LinePassage, take: LineTake) => {
       if (kept[passage.id] === take.id) {
         overlay.toast(`${take.label} is already kept.`);
@@ -124,6 +130,20 @@ export function useKeepTakes(journal: KeepJournal, lines: ReadonlyMap<string, Li
       );
     },
     [daw, journal, kept, choose],
+  );
+  /** The lines with a keep on its way: a second press for the same line sends nothing until the DAW has answered. */
+  const sending = useRef(new Set<string>());
+  const keep = useCallback(
+    async (passage: LinePassage, take: LineTake) => {
+      if (sending.current.has(passage.id)) return;
+      sending.current.add(passage.id);
+      try {
+        await keepNow(passage, take);
+      } finally {
+        sending.current.delete(passage.id);
+      }
+    },
+    [keepNow],
   );
   return { kept, undoable, keep, undoKeep };
 }

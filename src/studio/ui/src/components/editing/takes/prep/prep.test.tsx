@@ -166,6 +166,16 @@ describe('hide-others-needs-a-kept-take-first', () => {
     expect(confirm).toHaveBeenCalledTimes(1);
   });
 
+  it('a hide the host rejects shows an error toast and hides nothing', async () => {
+    mount();
+    await flush();
+    await keepT8();
+    hideTakes.mockRejectedValueOnce(new Error('the host went away'));
+    await pressH();
+    expect(toast).toHaveBeenLastCalledWith(expect.stringContaining('the host went away'), { tone: 'error' });
+    expect(document.querySelectorAll('[data-take]')).toHaveLength(3);
+  });
+
   it('cancelling the question hides nothing', async () => {
     confirm.mockResolvedValue(false);
     mount();

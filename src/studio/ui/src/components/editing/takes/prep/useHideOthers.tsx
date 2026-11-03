@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DawResult } from '../../../../api/contracts/daw';
+import { apiErrorMessage } from '../../../../api/errorMessage';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import type { DawClient } from '../../../../ports/daw';
@@ -48,7 +49,12 @@ function hideCommand(daw: DawClient, passage: LinePassage, keptId: string, count
     touches: [`takes/${passage.id}`],
     daw: true,
     async run() {
-      const result = await daw.hideTakes(passage.chapterId, passage.firstToken, passage.lastToken, keptId);
+      let result: DawResult;
+      try {
+        result = await daw.hideTakes(passage.chapterId, passage.firstToken, passage.lastToken, keptId);
+      } catch (error) {
+        return { ok: false, refusal: { code: 'daw_failed', reason: apiErrorMessage(error) } };
+      }
       if (!result.ok || !result.changed) return refusal(result);
       return { ok: true, value: result };
     },
