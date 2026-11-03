@@ -1412,11 +1412,9 @@ export const WIRE_CHAPTER_TAGS_EMBED_SUCCESS: ChapterTagsEmbedResult = {
   outputPath: 'C:\\Books\\Alice\\renders\\Alice in Wonderland.chapters.mp3',
 };
 
-// What a pickup and duplicate scan of "Chapter 1" of WIRE_TRACKS_PROJECT saves: one partial pickup (a
-// re-read of part of the span, below the near-duplicate quality bar) and one near-identical duplicate_read, in the shape
-// src/studio/desktop/contract_test.go's TestContractTakeReviewFindings pins as tests/fixtures/contracts/findings-list-take-review.json.
-// The mock scan saves them into the findings store, so they reach the Review page the way the host's do. No composite score
-// anywhere in this fixture: only per-category evidence.
+// What the retired pickup and duplicate scan (#2765) saved for "Chapter 1" of WIRE_TRACKS_PROJECT: one partial pickup and one
+// near-identical duplicate_read, in the shape the take review wrote (tests/fixtures/contracts/findings-list-take-review.json
+// pins the host's listing of one). Nothing writes these any more; a project that holds some lists them as plain findings.
 export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
   {
     schema_version: 1,
@@ -1637,8 +1635,38 @@ export const WIRE_FINDINGS: Finding[] = [
   },
 ];
 
-/** One unreviewed take-review pickup finding for chapterId: the
- * summary's "Take review" count and Open Review link demo, seeded additively (never into the default
+/** A one-word Transcript Compare misread (Dinah heard as Dina) for "Treat these two words as the same" (#2736): `?mockFindings=misread`
+ * adds it to WIRE_FINDINGS, and the contract test asks the mock host to add its pair. */
+export const WIRE_ONE_WORD_MISREAD: Finding = {
+  schema_version: 1,
+  id: '4e5f60718293a4b5c6d7e8f9',
+  analyzer: 'transcript-compare',
+  project: { path: 'C:/Projects/Alice-in-Wonderland' },
+  source: {
+    file: 'C:/Projects/Alice-in-Wonderland/media/ch1_take1.wav',
+    track_guid: '{5E1F0000-0000-4000-8000-0000000000F1}',
+    item_guid: '{5E1F0000-0000-4000-8000-000000000001}',
+    take_guid: '{5E1F0000-0000-4000-8000-0000000000A1}',
+  },
+  time_range: { start: 8.6, end: 8.6, source_start: 8.6, source_end: 8.6 },
+  manuscript: { chapter_id: 'chapter-1', chapter_title: 'Chapter 1', expected: 'Dinah', recorded: 'Dina', span: { paragraph_id: 'p-2' } },
+  category: 'transcript_discrepancy',
+  severity: 'warning',
+  confidence: 0.6,
+  confidence_reason: 'compare.py measured a middling pause at this discrepancy’s audio boundary — a provisional signal, not proof.',
+  evidence_version: 'sha256:7b3e2a2f7f4d6e8c0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6a7b',
+  evidence: {
+    kind: 'MISREAD',
+    marker_state: 'pending',
+    script_context: 'Dinah my dear! I wish you were down here with me!',
+    audio_context: 'Dina my dear! I wish you were down here with me!',
+    sound_alike: 0.89,
+  },
+  review: { status: 'unreviewed' },
+};
+
+/** One unreviewed pickup finding the retired take review saved for chapterId: the
+ * summary's repeated-reads count and Open Proof link demo, seeded additively (never into the default
  * `WIRE_FINDINGS` other tests hardcode exact counts against) alongside the coverage mock's own interior-pickups
  * seed for the same chapter. */
 export function takeReviewPickupFor(chapterId: string, chapterTitle: string): Finding {

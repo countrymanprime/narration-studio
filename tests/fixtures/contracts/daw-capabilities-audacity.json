@@ -202,12 +202,6 @@
       "mode": "steps",
       "reason": "standalone"
     },
-    "take_create": {
-      "available": false,
-      "level": "not_yet_available",
-      "message": "Create takes is not available with Audacity yet.",
-      "reason": "not_yet"
-    },
     "takes": {
       "available": false,
       "level": "experimental",

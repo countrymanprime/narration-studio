@@ -44,7 +44,6 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'configure_chapter_render',
     'count_pickups',
     'create_regions',
-    'create_take',
     'daw_meters',
     'delete_range',
     'export_compare_markers',

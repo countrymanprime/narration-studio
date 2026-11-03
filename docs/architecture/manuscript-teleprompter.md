@@ -81,8 +81,7 @@ Reading, and open equivalents
 [syncabook](https://github.com/r4victor/syncabook) — all do Whisper
 transcription plus Levenshtein/DTW alignment against known text, which
 validates the diff-based approach `compare.py` already takes, but all of it
-is offline/post-hoc on a complete recording. It informs the existing
-take-review side of the roadmap, not this live path.
+is offline/post-hoc on a complete recording, not this live path.
 [book-karaoke](https://github.com/liorwn/book-karaoke) (MIT) is the one
 project doing live word-by-word karaoke rendering, but its alignment is
 offline and Apple-MLX-specific — irrelevant here — though it confirms the

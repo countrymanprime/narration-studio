@@ -20,7 +20,6 @@ const (
 	CapCleanupTools Capability = "cleanup_tools"
 	CapRetakeLanes  Capability = "retake_lanes"
 	CapProjectState Capability = "project_state"
-	CapTakeCreate   Capability = "take_create"
 	CapHeartbeat    Capability = "heartbeat"
 	CapProjectRead  Capability = "project_read"
 	CapTrackState   Capability = "track_state"
@@ -118,7 +117,6 @@ var specs = []Spec{
 	{CapCleanupTools, "Cleanup tools", NeedsRunning, reflect.TypeFor[CleanupLauncher](), nil},
 	{CapRetakeLanes, "Retake lanes", NeedsRunning, reflect.TypeFor[RetakeLanePicker](), nil},
 	{CapProjectState, "Project change check", NeedsRunning, reflect.TypeFor[ProjectStateReader](), nil},
-	{CapTakeCreate, "Create takes", NeedsRunning, reflect.TypeFor[TakeCreator](), nil},
 	{CapHeartbeat, "Connection status", NeedsBridge, reflect.TypeFor[Heartbeat](), nil},
 	{CapProjectRead, "Read the saved project", NeedsNothing, reflect.TypeFor[ProjectReader](), nil},
 	{CapTrackState, "Read track arm state", NeedsRunning, reflect.TypeFor[TrackStateReader](), nil},

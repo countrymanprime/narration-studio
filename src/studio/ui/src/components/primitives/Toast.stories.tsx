@@ -88,6 +88,20 @@ export const LongMessage: Story = {
   },
 };
 
+// A word with no place to break, 10,000 letters long, wraps inside the toast, which stays inside the window (qa B3 on #2807: it once
+// made the toast 121,864 px wide). The atlas measures it at its narrow viewport; jsdom lays nothing out, so the check bails there.
+export const UnbreakableWord: Story = {
+  args: { messages: [info(1, `Added equivalence: ${'a'.repeat(10_000)} = b`)] },
+  play: async ({ canvasElement }) => {
+    // The region is portalled to <body>, outside the story's canvas.
+    const toast = within(canvasElement.ownerDocument.body).getByRole('status').firstElementChild;
+    const box = toast?.getBoundingClientRect();
+    if (!box || box.width === 0) return;
+    await expect(box.left).toBeGreaterThanOrEqual(0);
+    await expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+  },
+};
+
 // Two live regions are always in the page: errors interrupt (alert), everything else waits (status).
 export const LiveRegions: Story = {
   args: { messages: [failure(1, 'Could not save.'), info(2, 'Saved.')] },

@@ -15,7 +15,8 @@ import (
 // src/studio/sidecars/transcript-compare/tests/fixtures/compare/results.golden.json. The file was written by the
 // sidecar's compare.py run before its markers moved to the host; this port reproduces it unchanged. The cases are the
 // recording check's corpus (coverage-words.golden.json over coverage/manuscript.json, each item one segment laid end
-// to end), every take-divergence case in both timings (divergence/words.golden.json, one segment each) and seeded
+// to end), every scripted take of divergence/cases.json in both timings (divergence/words.golden.json, written by the
+// retired take comparison's harness and kept as input, one segment each) and seeded
 // random chapters and takes (compare/random-cases.json). Regenerate with UPDATE_CONTRACTS=1 only for an intended
 // change, and say why in the PR.
 

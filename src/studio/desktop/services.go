@@ -60,9 +60,6 @@ type hostServices struct {
 	actions *bridge.Actions
 	// navigation is the Review page's REAPER navigator (bindings_navigation.go); standalone when there is no bridge.
 	navigation *findingNavigation
-	// takeCreator is the DAW port's take_create role over the same bridge client; nil (a true nil
-	// interface) with no bridge client or no such role.
-	takeCreator dawport.TakeCreator
 	// takeSelector is the DAW port's takes role over the same bridge client; nil (a true nil interface) with no bridge
 	// client or no such role.
 	takeSelector dawport.TakeSelector
@@ -173,7 +170,6 @@ func (h *Host) services() hostServices {
 		actions:          h.actions,
 		navigation:       h.navigation,
 		boothVoices:      h.boothVoices,
-		takeCreator:      h.takeCreator,
 		takeSelector:     h.takeSelector,
 		puncher:          h.puncher,
 		rangeCutter:      h.rangeCutter,

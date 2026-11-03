@@ -41,7 +41,7 @@ import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
-import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
+import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { createVoiceTracksMock } from './voiceTracksMock';
@@ -83,7 +83,6 @@ import { editingSourceChoiceSchema } from './schemas/editing';
 import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema, takeFigureSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
-import { WIRE_TAKE_COMPARISON_FINDING } from './takeComparisonMock';
 import { MOCK_MEASURE_PATHS } from './measureMock';
 import { judgeMock } from './coverageMock';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './teleprompterMock';
@@ -108,13 +107,6 @@ import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chap
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
 import { definitionSourceOf, definitionSourceSchema, settingsForScopeSchema } from './schemas/settings';
 import { keymapOverridesSchema } from './schemas/keymap';
-import {
-  takeComparisonEvidenceSchema,
-  takeComparisonJobSchema,
-  takeReviewCreateTakeResultSchema,
-  takeReviewEvidenceSchema,
-  takeReviewScanJobSchema,
-} from './schemas/takeReview';
 import {
   COVERAGE_EVALUATOR_REASONS,
   COVERAGE_REFUSAL_REASONS,
@@ -974,10 +966,10 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(chapterSyncStateSchema, staleState, 'mock chapter sync, a stale row');
     expect(staleState.chapters[0]).toMatchObject({ freshness: 'stale', reasons: ['item_trimmed'] });
 
-    // A chapter's pickup track, changed since its last scan.
+    // A chapter's pickup track, named on its row.
     const pickups = await createMockApi({}, { chapterSync: 'pickups' }).chapterSyncState();
-    expectMatches(chapterSyncStateSchema, pickups, 'mock chapter sync, pickups changed');
-    expect(pickups.chapters.filter((row) => row.pickupsChanged)).toHaveLength(1);
+    expectMatches(chapterSyncStateSchema, pickups, 'mock chapter sync, a pickup track');
+    expect(pickups.chapters.filter((row) => row.pickupTrackGuid !== '')).toHaveLength(1);
   });
 
   // Remove from recording clears the chapter's links, and Restore brings it back.
@@ -1513,7 +1505,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(lastCompletedSchema, (await api.transcriptLastCompleted()) ?? null, 'mock last completed run');
     expectMatches(hintSuggestionsSchema, await api.transcriptSuggestHints(), 'mock hint suggestions');
     expectMatches(hintsSchema, await api.transcriptHints(), 'mock hints');
-    expectMatches(equivalenceSchema, { message: await api.transcriptAddEquivalence('row-1') }, 'mock equivalence');
+    const withMisread = createMockApi({}, { findings: [...WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD] });
+    expectMatches(equivalenceSchema, { message: await withMisread.transcriptAddEquivalence(WIRE_ONE_WORD_MISREAD.id) }, 'mock equivalence');
   });
 
   it.each(['available', 'found', 'failed', 'current', 'development', undefined] as const)('the update status the mock host answers (%s)', async (seed) => {
@@ -2279,51 +2272,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ).rejects.toThrow();
   });
 
-  it('the take-review scan job answers, and the reads of every finding it saves', async () => {
-    const api = createMockApi();
-    expectMatches(takeReviewScanJobSchema, await api.takeReviewScanState(), 'mock take-review scan, idle');
-    const started = await api.takeReviewScanStart({ chapterTrackName: 'Chapter 1' });
-    expectMatches(takeReviewScanJobSchema, started, 'mock take-review scan, started');
-    let job = started;
-    while (job.phase === 'running') {
-      job = await api.takeReviewScanState();
-      expectMatches(takeReviewScanJobSchema, job, `mock take-review scan, ${job.phase} at ${job.percent}%`);
-    }
-    expect(job).toMatchObject({ phase: 'success', found: 2 });
-    const { findings } = await api.findingsList({ analyzer: 'take-review' });
-    expect(findings).toHaveLength(2);
-    for (const finding of findings) expectMatches(takeReviewEvidenceSchema, finding.evidence, `mock take-review evidence of ${finding.id}`);
-    await api.takeReviewScanStart({ chapterTrackName: 'Chapter 2' });
-    expectMatches(takeReviewScanJobSchema, await api.takeReviewScanCancel(), 'mock take-review scan, cancelled');
-    await expect(api.takeReviewScanStart({ chapterTrackName: '' })).rejects.toThrow(/choose a track/);
-  });
-
-  it('the evidence of the take comparison the host pins, and of the mock fixture', () => {
-    const pinned = findingsPageSchema.parse(readGolden('findings-list-take-comparison.json'));
-    expect(pinned.findings).toHaveLength(1);
-    for (const finding of [...pinned.findings, WIRE_TAKE_COMPARISON_FINDING]) {
-      expectMatches(takeComparisonEvidenceSchema, finding.evidence, `take-comparison evidence of ${finding.id}`);
-    }
-  });
-
-  it('the take comparison job answers, and the comparison it saves', async () => {
-    const api = createMockApi({}, { findings: WIRE_TAKE_REVIEW_FINDINGS });
-    expectMatches(takeComparisonJobSchema, await api.takeComparisonState(), 'mock take comparison, idle');
-    let job = await api.takeComparisonStart(WIRE_TAKE_REVIEW_FINDINGS[0].id);
-    expectMatches(takeComparisonJobSchema, job, 'mock take comparison, started');
-    await expect(api.takeComparisonStart(WIRE_TAKE_REVIEW_FINDINGS[0].id)).rejects.toThrow(/already running/);
-    while (job.phase === 'running') {
-      job = await api.takeComparisonState();
-      expectMatches(takeComparisonJobSchema, job, `mock take comparison, ${job.phase} at ${job.percent}%`);
-    }
-    expect(job.phase).toBe('success');
-    const saved = await api.findingsGet(job.comparisonId ?? '');
-    expectMatches(takeComparisonEvidenceSchema, saved.evidence, 'mock take comparison evidence');
-    await api.takeComparisonStart(WIRE_TAKE_REVIEW_FINDINGS[1].id);
-    expectMatches(takeComparisonJobSchema, await api.takeComparisonCancel(), 'mock take comparison, cancelled');
-    await expect(api.takeComparisonStart('missing')).rejects.toThrow(/not in the review list/);
-  });
-
   it('the measurement job answers, with every file measured, unavailable or refused', async () => {
     const api = createMockApi();
     expectMatches(measureJobSchema, await api.measureState(), 'mock measurement, idle');
@@ -2659,24 +2607,16 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(cancelled.files.map((file) => file.status)).toEqual(['cancelled', 'cancelled', 'cancelled']);
   });
 
-  it('the evidence of every take-review finding the host pins, and of the mock fixture', () => {
-    const pinned = findingsPageSchema.parse(readGolden('findings-list-take-review.json'));
-    for (const finding of [...pinned.findings, ...WIRE_TAKE_REVIEW_FINDINGS]) {
-      expectMatches(takeReviewEvidenceSchema, finding.evidence, `take-review evidence of ${finding.id}`);
+  // The retired take review and take comparison (#2765): what a project already holds is listed as plain findings, and the
+  // page reads nothing from their evidence. The host pins both pages; the mock fixture is the same shape.
+  it('the findings the retired take review and take comparison saved still list as plain findings', async () => {
+    for (const file of ['findings-list-take-review.json', 'findings-list-take-comparison.json']) {
+      expect(findingsPageSchema.parse(readGolden(file)).findings).toHaveLength(1);
     }
-  });
-
-  it('the answers for going to and looping one read of a take-review finding', async () => {
-    const api = createMockApi();
-    await api.takeReviewScanStart({ chapterTrackName: 'Chapter 1' });
-    while ((await api.takeReviewScanState()).phase === 'running');
-    const [finding] = (await api.findingsList({ analyzer: 'take-review' })).findings;
-    expectMatches(findingNavigationSchema, await api.findingsGoToRead(finding.id, 1), 'mock go to read');
-    expectMatches(findingNavigationSchema, await api.findingsLoopRead(finding.id, 1), 'mock loop read');
-    for (const reaper of ['standalone', 'stale'] as const) {
-      const refusing = createMockApi({}, { reaper, findings: WIRE_TAKE_REVIEW_FINDINGS });
-      expectMatches(findingNavigationSchema, await refusing.findingsGoToRead(WIRE_TAKE_REVIEW_FINDINGS[0].id, 0), `mock ${reaper} go to read`);
-    }
+    const api = createMockApi({}, { findings: WIRE_TAKE_REVIEW_FINDINGS });
+    const page = await api.findingsList({ analyzer: 'take-review' });
+    expectMatches(findingsPageSchema, page, 'mock retired take-review findings');
+    expect(page.findings.map((finding) => finding.id).sort()).toEqual(WIRE_TAKE_REVIEW_FINDINGS.map((finding) => finding.id).sort());
   });
 
   it('the review bindings answers', async () => {
@@ -2758,20 +2698,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       answers.push([reaper, await refusing.findingsAddMarker(placed.id)]);
     }
     for (const [name, answer] of answers) expectMatches(findingMarkerSchema, answer, `mock add marker, ${name}`);
-  });
-
-  it('the take-creation answer', async () => {
-    const api = createMockApi();
-    const result = await api.takeReviewCreateTake({
-      findingId: 'finding-1',
-      targetItemGuid: '{AAAAAAAA-0000-4000-8000-000000000001}',
-      candidateItemGuid: '',
-      sourceFile: 'C:/Projects/Alice/media/chapter1-take2.wav',
-      sourceRangeStart: 0,
-      sourceRangeEnd: 3,
-    });
-    expectMatches(takeReviewCreateTakeResultSchema, result, 'mock take creation');
-    expect(result.targetItemGuid).toBe('{AAAAAAAA-0000-4000-8000-000000000001}');
   });
 
   it('the recording coverage answers: a current, a never and a stale result, a check to its end, and every refusal', async () => {
@@ -3036,10 +2962,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
     const takes = await api.workspaceTakes(measured.id, 0, 1);
     expectMatches(workspaceTakesResultSchema, takes, 'mock workspace takes');
-    expect(takes.candidates.map((candidate) => candidate.source)).toEqual(['item_take', 'item_take', 'lane_retake', 'take_review']);
+    expect(takes.candidates.map((candidate) => candidate.source)).toEqual(['item_take', 'item_take', 'lane_retake']);
     expect(takes.candidates.filter((candidate) => candidate.active)).toHaveLength(1);
-    expect(takes.candidates.find((candidate) => candidate.source === 'take_review')?.confirm).toBe(true);
-    expect(takes.comparisonId).toBeUndefined();
     await expect(api.workspaceTakes(measured.id, 0, 99999)).rejects.toThrow(/not in this chapter's alignment/);
 
     // A passage nothing was heard on has no takes and says why (the mock chapter's unheard words are its skipped paragraph).
@@ -3052,27 +2976,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       expect(none.message).toMatch(/wasn't heard/);
     }
 
-    // Comparing them is the one take comparison job, and it marks what it covered.
-    let job = await api.workspaceTakesCompareStart(measured.id, 0, 1);
-    expectMatches(takeComparisonJobSchema, job, 'mock passage comparison, started');
-    expect(job.findingId).toBe(takes.passageId);
-    while (job.phase === 'running') job = await api.takeComparisonState();
-    expect(job.phase).toBe('success');
-    const saved = await api.findingsGet(job.comparisonId ?? '');
-    expectMatches(takeComparisonEvidenceSchema, saved.evidence, 'mock passage comparison evidence');
-    const compared = await api.workspaceTakes(measured.id, 0, 1);
-    expect(compared.comparisonId).toBe(saved.id);
-    expect(compared.candidates.every((candidate) => candidate.compared && candidate.fidelity !== undefined)).toBe(true);
-
-    // Using a take: another take is made active, an already-playing one changes nothing, a lane pick starts, a read is added.
-    const [first, second, lane, read] = takes.candidates;
+    // Using a take: another take is made active, an already-playing one changes nothing, a lane pick starts.
+    const [first, second, lane] = takes.candidates;
     const changed = await api.workspaceUseTake(measured.id, 0, 1, second.id);
     expectMatches(workspaceUseTakeResultSchema, changed, 'mock use take, done');
     expect(changed).toMatchObject({ outcome: 'done', changed: true });
     expect((await api.workspaceTakes(measured.id, 0, 1)).candidates.find((candidate) => candidate.active)?.id).toBe(second.id);
     expect(await api.workspaceUseTake(measured.id, 0, 1, second.id)).toMatchObject({ outcome: 'done', changed: false });
     expect(await api.workspaceUseTake(measured.id, 0, 1, lane.id)).toMatchObject({ outcome: 'started' });
-    expect(await api.workspaceUseTake(measured.id, 0, 1, read.id)).toMatchObject({ outcome: 'done', changed: true });
     expect(await api.workspaceUseTake(measured.id, 0, 1, first.id)).toMatchObject({ outcome: 'done', changed: true });
     // Hearing a take through the DAW's preview: an offered take answers a DawResult (the preview's sentence while file_preview is off),
     // and one the passage no longer offers is refused stale.
@@ -4458,10 +4369,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'retakeLanesState',
       'chapterTagsPreview',
       'chapterTagsEmbed',
-      'takeReviewScanStart',
-      'takeReviewScanState',
-      'takeReviewScanCancel',
-      'takeReviewCreateTake',
       'coverageStart',
       'coverageState',
       'coverageResult',
@@ -4470,7 +4377,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceListFXChains',
       'workspaceTakes',
       'workspaceTakeEvidence',
-      'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspacePreviewTake',
       'workspaceProjectFx',
@@ -4533,9 +4439,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionStopTimer',
       'productionStatusReport',
       'productionStatusReportPreview',
-      'takeComparisonStart',
-      'takeComparisonState',
-      'takeComparisonCancel',
       'measurePickFiles',
       'measureAnalyze',
       'measureState',
@@ -4564,8 +4467,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'findingsSummary',
       'findingsGoTo',
       'findingsLoop',
-      'findingsGoToRead',
-      'findingsLoopRead',
       'findingsStopLoop',
       'findingsAddMarker',
       'teleprompterStart',

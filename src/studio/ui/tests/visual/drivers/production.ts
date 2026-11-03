@@ -207,6 +207,13 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByText('Skipped').waitFor();
     await dialog.getByText('Read short').waitFor();
   },
+  // The same result scrolled to the chapter's pickup notes row, so the row is in frame at every width.
+  'recording-check-pickup-notes': async (page) => {
+    const dialog = await showResult(page, 'Chapter 4', 'mockCoverage=pickups');
+    const row = dialog.getByText(/^Pickup notes \(Proof\)/);
+    await row.waitFor();
+    await row.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  },
   'recording-check-stale': async (page) => {
     const dialog = await showResult(page, 'Chapter 4', 'mockCoverage=stale');
     await dialog.getByText('This result is out of date').waitFor();

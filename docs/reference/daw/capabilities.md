@@ -107,15 +107,6 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - `playState` is `stopped`, `playing` or `recording`, and `playPosition` is the heartbeat's position while playing or recording, 0 when stopped. It is a display value, not an anchor for a word.
 - With no engine, the engine not answering or `heartbeat` turned off, the payload is stopped, 0, null, false. The event goes out from the same `transcriptLoop` tick as `daw_transport_changed`, on the first tick and then only on a change.
 
-### `take_create`
-
-- **Intent:** add a chosen read as a take of an existing item, from a source range of another item.
-- **Role:** `TakeCreator`, asynchronous.
-- **Result:** `TAKE_CREATED` with the target item and the new take's GUID, or `TAKE_STALE` when the item is gone. One undo step.
-- **REAPER:** `create_take`.
-- **Audacity:** none (take management).
-- **Checked:** REAPER, harness (`take_review_test.lua`). The check in REAPER is pending with the owner ([take review](../../utilities/take-review.md)).
-
 ### `heartbeat`
 
 - **Intent:** know without asking whether the engine is answering, which project it has open, whether that project has unsaved changes, its change count, and the transport state.

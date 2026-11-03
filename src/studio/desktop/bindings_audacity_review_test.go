@@ -83,8 +83,6 @@ func TestAudacityFindingsAreRefusedInAudacitysWords(t *testing.T) {
 		says string
 	}{
 		{"a finding with no time", func() (string, error) { return f.host.FindingsGoTo("no-time") }, "no place in the Audacity project"},
-		{"one read of a grouped finding", func() (string, error) { return f.host.FindingsGoToRead("heard", 0) }, "keeps no separate takes"},
-		{"one read to loop", func() (string, error) { return f.host.FindingsLoopRead("heard", 0) }, "keeps no separate takes"},
 	}
 	for _, c := range cases {
 		got := bindingAnswer[FindingNavigation](t)(c.call())

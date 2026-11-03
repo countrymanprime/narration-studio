@@ -92,10 +92,3 @@ type projectStateReader struct{ events }
 func (p projectStateReader) RequestProjectState(runID string) error {
 	return p.send("project_state", runID)
 }
-
-// takeCreator is internal/takereview's create_take command.
-type takeCreator struct{ events }
-
-func (t takeCreator) CreateTake(runID, payloadPath string) error {
-	return t.send("create_take", runID, payloadPath)
-}

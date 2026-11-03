@@ -773,6 +773,8 @@ function BoothSession({
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
+              // The built-in recorder's own meter: only when it is what records, not for a project with no recorder at all.
+              recorderMeter: recordsInApp(capabilities?.daw),
               dawName: page.dawName,
               reachable: capabilities?.reachable ?? true,
               offReason: capabilities?.capabilities.record?.message,

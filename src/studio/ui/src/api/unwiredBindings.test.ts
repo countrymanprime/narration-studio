@@ -20,25 +20,7 @@ function sources(dir: string): string[] {
  * Host bindings no screen calls (audit cluster 25, docs/research/ui-function-audit/inventory-shell.md section 1.7): either retired or never
  * wired. The list only shrinks: wire a binding (or delete it from the host) and take its name out, and a new binding cannot arrive without a caller.
  */
-const UNWIRED = [
-  'findingsGoToRead',
-  'findingsLoopRead',
-  'manuscriptSearch',
-  'masteringChooseProvider',
-  'recorderMeterStart',
-  'recorderMeterStop',
-  'subscribeRecorderLevel',
-  'systemCopyDiagnostics',
-  'takeComparisonCancel',
-  'takeComparisonStart',
-  'takeComparisonState',
-  'takeReviewCreateTake',
-  'takeReviewScanCancel',
-  'takeReviewScanStart',
-  'takeReviewScanState',
-  'transcriptAddEquivalence',
-  'workspaceTakesCompareStart',
-];
+const UNWIRED = ['manuscriptSearch', 'masteringChooseProvider', 'systemCopyDiagnostics'];
 
 const text = sources(root)
   .map((path) => readFileSync(path, 'utf8'))

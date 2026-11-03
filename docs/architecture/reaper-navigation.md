@@ -87,7 +87,6 @@ The Navigator sits behind host bindings (`src/studio/desktop/bindings_navigation
 | `FindingsGoTo(id)` | `navigate_item` | `navigated` with `projectTime`, or `refused` |
 | `FindingsLoop(id)` | `loop_context` | `looping` with `loopStart` and `loopEnd`, or `refused` |
 | `FindingsStopLoop()` | `stop_loop` | `stopped` with `restored` and `kept`, or `refused` |
-| `FindingsGoToRead(id, read)`, `FindingsLoopRead(id, read)` | `navigate_item`, `loop_context` | as Go to and Loop, for one read of a grouped finding: `evidence.members[read]`'s own item and take GUIDs and its range in its source (a take-review group, or a take comparison of one) ([Take review](../utilities/take-review.md)); a read the finding does not have is an error |
 | `FindingsAddMarker(id)` | `add_finding_marker` | `added` or `existing` with the marker's `name` and `sourceTime`, or `refused` (see [adding the approved marker](#adding-the-approved-marker)) |
 
 The page sends only the finding's id; the host reads its item and take GUIDs and source times from the project's findings store. The host reads REAPER's presence from `daw.Reachability` (the heartbeat REAPER's script sends every 1.5 s): `standalone` when there is no bridge client, `not_running` when the heartbeat is stale. The page turns the buttons off from the DAW's capabilities (`DawCapabilities`) and from the finding's own fields (no item GUID, or for Loop no source time); the narrator's view is in [the Proof guide](../guides/using-the-app/proof.md#going-to-a-note-in-the-daw).

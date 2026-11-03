@@ -93,7 +93,7 @@ No new trust boundary: `voice-tracks.json` is written and read back by the host 
 | 1 | Mock | This PRD and the mock, approved by the owner | complete (#2718, approved 2026-11-03) | n/a | 0 |
 | 2 | Union reads | `chapter_track_state` children; Editing play solos the folder; live items, word times, recording check read the union | 2a complete (#2783: bridge, Editing play, live items, word times); 2b pending (recording check from the saved project) | with 3 | 1 |
 | 3 | Layout and assignments | `voice-tracks.json` (layout and assignments), folder links, Engine Voices card, nested `track_create` | 3a complete (#2791, nested `track_create`); 3b and 3c in review (#2799) | with 2 | 1 |
-| 4 | Booth voices | Catalog rows, voice control and list, `switch_voice`, stop-guard fix, the no-track rule and its notice | 4a in review (#2811: `switch_voice` in the bridge, stop-guard fix); 4b in review (the Booth's keys, control and list, `BoothVoiceSet`) | no | 2, 3 |
+| 4 | Booth voices | Catalog rows, voice control and list, `switch_voice`, stop-guard fix, the no-track rule and its notice | 4a complete (#2811: `switch_voice` in the bridge, stop-guard fix); 4b in review (the Booth's keys, control and list, `BoothVoiceSet`) | no | 2, 3 |
 | 5 | Who is in it | The dialog on an empty key, making a chapter's missing tracks, the Voices card's "No track" row and its make-track press, `BoothVoices` | pending | no | 4 |
 
 ### Phase details

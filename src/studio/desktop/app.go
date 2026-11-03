@@ -59,8 +59,6 @@ import (
 	"desktop/internal/runlog"
 	"desktop/internal/settings"
 	"desktop/internal/stages"
-	"desktop/internal/takecompare"
-	"desktop/internal/takereview"
 	"desktop/internal/teleprompter"
 	"desktop/internal/trace"
 	"desktop/internal/transcript"
@@ -75,7 +73,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 150
+const hostAPIVersion = 151
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -150,12 +148,8 @@ type Host struct {
 	removing map[string]bool
 	guide    *guide.Service
 	guideJob *workJob
-	// takeReviewJob is the Review page's pickup and duplicate scan (takereview_job.go); h.mu guards the pointer, the job its fields.
-	takeReviewJob *takeReviewScanJob
 	// extractionJob is the Story Bible's scan for suggestions (extraction_job.go); h.mu guards the pointer, the job its fields.
 	extractionJob *extractionScanJob
-	// takeComparisonJob compares the takes of one take-review group (takecompare_job.go); h.mu guards the pointer.
-	takeComparisonJob *takeComparisonJob
 	// measureJob measures the narrator's picked audio files (measure_job.go); measurePicked is every path the picker
 	// chose this session, the only paths MeasureAnalyze accepts. h.mu guards both; neither is per project.
 	measureJob *measureJob
@@ -200,10 +194,8 @@ type Host struct {
 	// benched, owner decision on #509).
 	character *character.Service
 	// findings is the project's findings store: Transcript Compare's and the
-	// Guide's adapters save into it on every completed run, and
-	// take-review's scan binding (takereview.go) writes and reads it back,
-	// all through the same swap-on-project-switch pattern as
-	// guide/manuscript/transcript.
+	// Guide's adapters save into it on every completed run, through the same
+	// swap-on-project-switch pattern as guide/manuscript/transcript.
 	findings *findings.Store
 	// reachability tracks the current project's bridge client PROJECT_STATUS heartbeat, behind the
 	// DAW port's Heartbeat role (dawport.Heartbeat) rather than the concrete *daw.Reachability, so a
@@ -233,47 +225,42 @@ type Host struct {
 	// recorder is the built-in recorder, rebuilt with the project like teleprompter.
 	recorder *recording.Service
 	// bridge is the REAPER session's file-based IPC client (nil when launched
-	// without a REAPER session directory); take-review's create-take action
-	// (takereview.go) is its first direct consumer outside transcript.Service,
-	// which is handed the same client rather than building its own.
+	// without a REAPER session directory); transcript.Service is handed the same
+	// client rather than building its own.
 	bridge *bridge.Client
-	// takeCreator is the DAW port's take_create role over the same bridge client; takereview.go's
-	// take-creation binding asks for it instead of holding bridge directly. Nil (a true nil interface) with no bridge
-	// client or no such role.
-	takeCreator dawport.TakeCreator
-	// takeSelector is the DAW port's takes role over the same adapter as takeCreator: WorkspaceHideTakes
+	// takeSelector is the DAW port's takes role over the bridge client's adapter: WorkspaceHideTakes
 	// (bindings_workspace_hide.go) asks it to hide a passage's other takes. Nil with no bridge client or no such role.
 	takeSelector dawport.TakeSelector
-	// puncher is the DAW port's punch role over the same adapter as takeCreator: DawRoll (bindings_daw_roll.go)
+	// puncher is the DAW port's punch role over the same adapter as takeSelector: DawRoll (bindings_daw_roll.go)
 	// asks it to roll. Nil with no bridge client or no such role.
 	puncher dawport.Puncher
-	// rangeCutter is the DAW port's cut_range role over the same adapter as takeCreator: DawDeleteRange
+	// rangeCutter is the DAW port's cut_range role over the same adapter as takeSelector: DawDeleteRange
 	// (bindings_daw_range.go) asks it to cut words and their audio. Nil with no bridge client or no such role.
 	rangeCutter dawport.RangeCutter
-	// rangeFX is the DAW port's fx_range role over the same adapter as takeCreator: DawApplyFxToRange and
+	// rangeFX is the DAW port's fx_range role over the same adapter as takeSelector: DawApplyFxToRange and
 	// DawRemoveFxFromRange (bindings_daw_fx_range.go) ask it to put a chain on words and take it off. Nil with no bridge client
 	// or no such role.
 	rangeFX dawport.RangeFXApplier
-	// takeStacker is the DAW port's stack_takes role over the same adapter as takeCreator: DawStackTakes and
+	// takeStacker is the DAW port's stack_takes role over the same adapter as takeSelector: DawStackTakes and
 	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
 	// Nil with no bridge client or no such role.
 	takeStacker dawport.TakeStacker
-	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator:
+	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeSelector:
 	// MasterPlayQuietest, MasterOpenInDaw, WorkspacePreviewTake and DawStopFilePreview ask them to play a stretch of a file on
 	// disk, to show one, and to stop the preview. Nil with no bridge client or no such role.
 	filePreviewer dawport.FilePreviewer
 	fileRevealer  dawport.FileRevealer
-	// rangeGain is the DAW port's range_gain role over the same adapter as takeCreator: DawReduceRangeGain
+	// rangeGain is the DAW port's range_gain role over the same adapter as takeSelector: DawReduceRangeGain
 	// (bindings_daw_reduce_range_gain.go) asks it to lower stretches of a take. Nil with no bridge client or no such role.
 	rangeGain dawport.RangeGainReducer
-	// clickRepairer is the DAW port's click_repair role over the same adapter as takeCreator: DawRepairClick
+	// clickRepairer is the DAW port's click_repair role over the same adapter as takeSelector: DawRepairClick
 	// (bindings_daw_repair_click.go) asks it to smooth clicks in a take. Nil with no bridge client or no such role.
 	clickRepairer dawport.ClickRepairer
-	// lastActionUndoer is the DAW port's undo_last role over the same adapter as takeCreator: DawLastAction and
+	// lastActionUndoer is the DAW port's undo_last role over the same adapter as takeSelector: DawLastAction and
 	// DawUndoLast (bindings_daw_undo_last.go) ask it to read and undo the app's own last action. Nil with no bridge client or no such
 	// role.
 	lastActionUndoer dawport.LastActionUndoer
-	// monitorLeveler is the DAW port's monitor_level role over the same adapter as takeCreator: DawMonitorLevel and
+	// monitorLeveler is the DAW port's monitor_level role over the same adapter as takeSelector: DawMonitorLevel and
 	// DawSetMonitorLevel (bindings_daw_levels.go) ask it to read and set the monitor level. Nil with no bridge client or no such role.
 	monitorLeveler dawport.MonitorLeveler
 	// prerollReader is the DAW port's punch_preroll role over the same adapter: DawPunchPreroll (bindings_daw_preroll.go)
@@ -327,11 +314,6 @@ type Host struct {
 	// jobRuns is runLog's other half for most job kinds (runlog_jobs.go): the run each carries from its own start
 	// site to publishJobEnded, which ends it. Its zero value is ready to use, like installJobs.
 	jobRuns jobRuns
-	// takeReviewRunner is a seam for tests: nil means the real
-	// takereview.ProcessRunner built from project config (takereview.go).
-	takeReviewRunner takereview.SidecarRunner
-	// takeCompareRunner is the same seam for the take comparison's --take-divergence run (takecompare_job.go).
-	takeCompareRunner takecompare.SidecarRunner
 	// pickAudioFiles and measureFile are seams for tests (measure_job.go): nil means the operating system's multiple-file
 	// picker and measure.MeasureFile.
 	pickAudioFiles func() ([]string, error)
@@ -823,7 +805,6 @@ func (h *Host) configureLocked(next config) {
 		restAdapter = dawAdapter
 		retakePicker, _ = dawAdapter.Role(dawport.CapRetakeLanes).(dawport.RetakeLanePicker)
 		projectStateReader, _ = dawAdapter.Role(dawport.CapProjectState).(dawport.ProjectStateReader)
-		h.takeCreator, _ = dawAdapter.Role(dawport.CapTakeCreate).(dawport.TakeCreator)
 		h.takeSelector, _ = dawAdapter.Role(dawport.CapTakes).(dawport.TakeSelector)
 		h.puncher, _ = dawAdapter.Role(dawport.CapPunch).(dawport.Puncher)
 		h.rangeCutter, _ = dawAdapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
@@ -844,7 +825,7 @@ func (h *Host) configureLocked(next config) {
 			h.transportSyncer.OnPosition(h.emitDawPosition)
 		}
 	} else {
-		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
+		h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
 		h.monitorLeveler, h.placeFollower, h.transportSyncer, h.prerollReader, h.meterReader, h.rangeReplacer = nil, nil, nil, nil, nil, nil
 		// An Audacity project's place and track-selection roles are the Audacity adapter's, over the project's one pipe client.
@@ -1527,13 +1508,7 @@ func (h *Host) idleLockedFor(background bool) bool {
 			return false
 		}
 	}
-	if h.takeReviewJob != nil && h.takeReviewJob.running() {
-		return false
-	}
 	if h.extractionJob != nil && h.extractionJob.running() {
-		return false
-	}
-	if h.takeComparisonJob != nil && h.takeComparisonJob.running() {
 		return false
 	}
 	if h.measureJob != nil && h.measureJob.running() {

@@ -52,6 +52,16 @@ async function startTake(page: Page, query = ''): Promise<void> {
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 }
 
+// The Booth recording with the built-in recorder, the microphone `name` chosen in Levels and the menu left open on the built-in meter,
+// its level the mock recorder's steady −14.2 dB peak.
+async function openBuiltinLevels(page: Page, query: string, name: string): Promise<void> {
+  await readyToRecord(page, query);
+  await page.getByRole('button', { name: 'Levels' }).click();
+  const menu = page.getByRole('dialog', { name: 'Levels' });
+  await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: name });
+  await menu.getByRole('meter', { name: 'Input level' }).and(page.locator('[aria-valuenow="-25"]')).waitFor();
+}
+
 // The Companion has no rail item: the jump menu's Open Companion opens it (commands.catalog.ts `companion.open`).
 async function openCompanion(page: Page, query = ''): Promise<void> {
   await page.goto(`/${query}`);
@@ -371,6 +381,41 @@ export const boothDrivers: Record<string, Driver> = {
     // REAPER's meters, and the monitor slider, show whenever REAPER is linked and answering (#2251).
     await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
   },
+  // The built-in recorder's own level (#2732) as the menu's one Input meter: started on the chosen microphone when Levels opens, moving with the
+  // mock's steady level.
+  'levels-menu-builtin': (page) => openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)'),
+  'levels-menu-builtin-refused': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=start-fails');
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    await menu.getByText('The meter did not start.').waitFor();
+    await menu.getByRole('button', { name: 'Check again' }).waitFor();
+    // The recorder's own words come as an error toast beside the menu.
+    await page
+      .getByText(/could not open/)
+      .first()
+      .waitFor();
+  },
+  'levels-menu-builtin-opening': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=meter-hangs');
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    await menu.getByText('Opening the microphone…').waitFor();
+  },
+  'levels-menu-builtin-paused': async (page) => {
+    await openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.getByRole('dialog', { name: 'Levels' }).getByText('Paused while the app is in the background.').waitFor();
+  },
+  'levels-menu-builtin-no-mic': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=mic-gone');
+    await page.getByRole('button', { name: 'Levels' }).click();
+    await page.getByRole('dialog', { name: 'Levels' }).getByText('No microphone chosen.').waitFor();
+  },
+  'levels-menu-builtin-long-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=long', `Long ${'microphone name '.repeat(19)}end`),
+  'levels-menu-builtin-rtl-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=weird', 'ميكروفون 🎤 (USB)'),
   // REAPER's input fits two microphones (#2251): Levels says so with one button each, and listens on the first meanwhile.
   'levels-menu-mic-uncertain': async (page) => {
     await readyToRecord(page, '?mockReaperInput=uncertain');

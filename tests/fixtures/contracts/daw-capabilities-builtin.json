@@ -195,12 +195,6 @@
       "message": "Not available with the built-in recorder yet.",
       "reason": "not_yet"
     },
-    "take_create": {
-      "available": false,
-      "level": "unsupported",
-      "message": "Not available with the built-in recorder.",
-      "reason": "unsupported"
-    },
     "takes": {
       "available": true,
       "level": "experimental"

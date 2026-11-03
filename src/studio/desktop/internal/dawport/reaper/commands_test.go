@@ -12,7 +12,7 @@ import (
 )
 
 // Each asynchronous role method writes exactly the line its service's `Send` writes today (internal/pickups, lineidentity,
-// renderconfig, cleanuptools, retakelanes, projectstate, takereview/createtake.go), so moving a service from its own Send to the
+// renderconfig, cleanuptools, retakelanes, projectstate), so moving a service from its own Send to the
 // method changes nothing REAPER sees.
 func TestAsynchronousRolesWriteTodaysCommandLines(t *testing.T) {
 	trace := dawport.Trace{RunID: "log-run", Level: "debug"}
@@ -46,9 +46,6 @@ func TestAsynchronousRolesWriteTodaysCommandLines(t *testing.T) {
 		"project_state": {func(a *Adapter) error {
 			return a.Role(dawport.CapProjectState).(dawport.ProjectStateReader).RequestProjectState("r1")
 		}, []string{"project_state", "r1"}},
-		"create_take": {func(a *Adapter) error {
-			return a.Role(dawport.CapTakeCreate).(dawport.TakeCreator).CreateTake("r1", "C:/take.json")
-		}, []string{"create_take", "r1", "C:/take.json"}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			adapter, dir := newAdapter(t, nil)
