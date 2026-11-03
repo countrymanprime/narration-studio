@@ -295,6 +295,8 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ![Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote](../../images/ui/settings-reader-text.webp)
 
+![Settings - Booth text size under Look: a slider from 24 to 72 px, 40 px by default](../../images/ui/settings-booth-text-size.webp)
+
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
 ![Settings - Shortcuts: every command by scope, with its key or pedal](../../images/ui/settings-keyboard.webp)
