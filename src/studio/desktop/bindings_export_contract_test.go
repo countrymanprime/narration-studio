@@ -19,7 +19,7 @@ import (
 var contractExportPaths = []string{"C:/Renders/Chapter 01.wav", "C:/Renders/Chapter 02.wav"}
 
 func contractExportJob() *exportJob {
-	job := &exportJob{id: "export-1", phase: "running", started: time.Now(), cancel: func() {}, master: true, format: "mp3", message: "Preparing 2 files."}
+	job := &exportJob{id: "export-1", phase: "running", started: time.Now(), cancel: func() {}, master: true, provider: "builtin", format: "mp3", message: "Preparing 2 files."}
 	job.logs = []string{job.message}
 	for i, path := range contractExportPaths {
 		job.files = append(job.files, ExportFileResult{Kind: string(packager.KindChapter), Title: []string{"Chapter 01", "Chapter 02"}[i], Path: path, Status: exportFilePending})
