@@ -9,9 +9,11 @@ import type {
   ManuscriptImportSection,
   ManuscriptNote,
   ManuscriptParagraph,
+  ManuscriptSearchHit,
+  ManuscriptSearchMatch,
+  ManuscriptSearchResult,
   ReaderState,
   RecordedThrough,
-  SearchHit,
   TextSpan,
   WorkJob,
 } from '../contracts/manuscript';
@@ -94,15 +96,31 @@ export const readerStateSchema = z.object({
   expandedChapters: optionalFromNull(z.array(z.string())),
 }) satisfies z.ZodType<ReaderState>;
 
-const searchHitSchema = z.object({
-  chapter: z.string(),
-  chapterId: optionalFromNull(z.string()),
-  paragraph: z.number(),
-  paragraphId: optionalFromNull(z.string()),
-  sourceLine: optionalFromNull(z.number()),
-  excerpt: z.string(),
-  matchStart: optionalFromNull(z.number()),
-}) satisfies z.ZodType<SearchHit>;
+const searchMatchSchema = z
+  .object({ start: z.number().int().nonnegative(), end: z.number().int().nonnegative() })
+  .refine((match) => match.end > match.start, 'A search match ends after it starts.') satisfies z.ZodType<ManuscriptSearchMatch>;
+
+// Each match must lie inside its excerpt, and the hits can hold no more matches than the total counts.
+const searchHitSchema = z
+  .object({
+    chapter: z.string(),
+    chapterId: z.string(),
+    paragraph: z.number(),
+    paragraphId: z.string(),
+    excerpt: z.string(),
+    matches: z.array(searchMatchSchema).min(1),
+  })
+  .refine(
+    (hit) => hit.matches.every((match) => match.end <= hit.excerpt.length),
+    'A search match lies outside its excerpt.',
+  ) satisfies z.ZodType<ManuscriptSearchHit>;
+
+export const manuscriptSearchResultSchema = z
+  .object({ hits: listFromNull(searchHitSchema), total: z.number().int().nonnegative(), truncated: z.boolean() })
+  .refine((result) => {
+    const sent = result.hits.reduce((count, hit) => count + hit.matches.length, 0);
+    return result.truncated ? sent < result.total : sent === result.total;
+  }, 'A search result says truncated exactly when its hits hold fewer matches than its total.') satisfies z.ZodType<ManuscriptSearchResult>;
 
 const importSectionSchema = z.object({
   id: z.string(),
@@ -172,4 +190,3 @@ export const workJobSchema = z.object({
 export const chaptersSchema = listFromNull(chapterSchema);
 export const paragraphsSchema = listFromNull(paragraphSchema);
 export const notesSchema = listFromNull(noteSchema);
-export const searchHitsSchema = listFromNull(searchHitSchema);
