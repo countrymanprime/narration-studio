@@ -19,7 +19,7 @@ func newActionsSession(t *testing.T, enabled bool) (*Actions, *Client, string) {
 		t.Fatal(err)
 	}
 	actions := NewActions(client, switchGate(enabled))
-	actions.SetTimeout(2 * time.Second)
+	actions.SetTimeout(fakeAnswersWithin)
 	return actions, client, dir
 }
 

@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// fakeAnswersWithin is the deadline for a test whose fake REAPER always answers. It only catches a hang, so it is far above how long a
+// starved CI runner stalled the fake (3.35 s observed, with every command answered); a test of the no-answer path sets its own short one.
+const fakeAnswersWithin = 30 * time.Second
+
 const (
 	testItem = "{AAAAAAAA-0000-4000-8000-000000000001}"
 	testTake = "{AAAAAAAA-0000-4000-8000-0000000000A1}"
@@ -35,6 +39,8 @@ type fakeReaperSeen struct {
 	lastReadError, lastRemoveError            string
 	lastTick                                  time.Time
 	longestGap                                time.Duration
+	longestTick                               time.Duration // the longest one tick's own work took: a gap with a short tick is a goroutine not scheduled, a long tick is file-system latency
+	stallNext                                 time.Duration // set by stall: the next tick sleeps this long first
 }
 
 // diagnosticLog is the part of *testing.T diagnose uses, so a test can read what it would write.
@@ -61,10 +67,10 @@ func (f *fakeReaper) diagnose(t diagnosticLog, client *Client, dir string) {
 	f.mu.Lock()
 	seen, received := f.seen, len(f.received)
 	f.mu.Unlock()
-	t.Logf("bridge diagnosis: commands received=%d answered=%d ticks=%d longest gap between ticks=%v\n"+
+	t.Logf("bridge diagnosis: commands received=%d answered=%d ticks=%d longest gap between ticks=%v longest tick=%v\n"+
 		"  fake: read errors=%d (last %q) remove errors=%d (last %q); files left in commands/: %v\n"+
 		"  client: events.log size=%d dispatch offset=%d dispatches=%d undelivered=%d malformed=%d invalid=%d",
-		received, seen.answered, seen.ticks, seen.longestGap, seen.readErrors, seen.lastReadError, seen.removeErrors, seen.lastRemoveError,
+		received, seen.answered, seen.ticks, seen.longestGap, seen.longestTick, seen.readErrors, seen.lastReadError, seen.removeErrors, seen.lastRemoveError,
 		pending, log, offset, client.events.dispatches.Load(), undelivered, malformed, invalid)
 }
 
@@ -96,6 +102,11 @@ func startFakeReaper(t *testing.T, client *Client, dir string, answer func(comma
 }
 
 func (f *fakeReaper) tick(t *testing.T, client *Client, dir string, answer func([]string) [][]string) {
+	f.mu.Lock()
+	stall := f.seen.stallNext
+	f.seen.stallNext = 0
+	f.mu.Unlock()
+	time.Sleep(stall)
 	names, _ := filepath.Glob(filepath.Join(dir, "commands", "*.cmd"))
 	sort.Strings(names)
 	for _, name := range names {
@@ -139,6 +150,15 @@ func (f *fakeReaper) noteTick() {
 	})
 }
 
+// noteTickTook records how long one tick's own work took.
+func (f *fakeReaper) noteTickTook(took time.Duration) {
+	f.note(func(s *fakeReaperSeen) { s.longestTick = max(s.longestTick, took) })
+}
+
+// stall makes the fake's next tick sleep for d before it reads anything, the way a loaded CI runner starves it: a test uses it to prove the
+// exchange does not depend on the fake running promptly.
+func (f *fakeReaper) stall(d time.Duration) { f.note(func(s *fakeReaperSeen) { s.stallNext = d }) }
+
 func (f *fakeReaper) commands() [][]string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -167,7 +187,7 @@ func newNavigatorSession(t *testing.T) (*Navigator, *Client, string) {
 		t.Fatal(err)
 	}
 	navigator := NewNavigator(client)
-	navigator.SetTimeout(2 * time.Second)
+	navigator.SetTimeout(fakeAnswersWithin)
 	return navigator, client, dir
 }
 

@@ -399,3 +399,18 @@ func TestFXRangeEditsRefuseABadTargetAndAnAnswerForAnotherEffect(t *testing.T) {
 		}
 	}
 }
+
+// The fake REAPER's loop stalled 3.35 s on a loaded CI runner while every command was answered, and the 2 s deadline of the session helpers
+// turned that into "REAPER did not answer". A stalled fake that answers late is still an answer: the session helpers' deadline only catches a hang.
+func TestAnAnswerFromAFakeREAPERThatStallsPastTheOldDeadlineIsStillAnAnswer(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ITEM_STALE", run(command), fxRangePiece, "fx"}}
+	})
+	fake.stall(2500 * time.Millisecond)
+	_, err := actions.FXRangeParams(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain)
+	var stale *StaleError
+	if !errors.As(err, &stale) {
+		t.Fatalf("err = %v, want a StaleError from the late answer", err)
+	}
+}
