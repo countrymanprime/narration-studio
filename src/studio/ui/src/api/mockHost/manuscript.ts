@@ -269,10 +269,6 @@ export function createManuscriptMock(
       return wireClone(withMeasurement(found));
     },
     noteList: async (chapter) => wireClone(chapter ? notes.filter((note) => note.chapter === chapter) : notes),
-    manuscriptReader: async () => {
-      await manuscriptReady;
-      return { chapters: wireClone(s.chapters.map(withMeasurement)), paragraphs: wireClone(s.paragraphs), notes: wireClone(notes) };
-    },
     readerState: async () => wireClone(readerState),
   } satisfies Partial<NarrationApi>;
   return { bindings, manuscriptReady, hasImported: () => imported };

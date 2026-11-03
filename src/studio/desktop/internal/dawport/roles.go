@@ -167,12 +167,11 @@ type ReviewSession interface {
 	ExportFindings(runID, findingsPath string, colors MarkerColors) error
 }
 
-// PickupList imports, exports, walks, resolves, reopens and lists the pickup list (PICKUPS_* and PICKUP_* events).
+// PickupList imports, exports, resolves, reopens, lists and counts the pickup list (PICKUPS_* and PICKUP_* events).
 type PickupList interface {
 	Events
 	ImportPickups(runID, payloadPath string) error
 	ExportPickups(runID, outputPath string) error
-	NextPickup(runID string) error
 	ResolvePickup(runID string, position float64) error
 	// ReopenPickup puts the resolved pickup nearest position back to open (PICKUP_REOPENED).
 	ReopenPickup(runID string, position float64) error

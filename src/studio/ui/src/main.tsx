@@ -236,10 +236,8 @@ const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'i
 );
 // `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
 const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
-// `?mockHold=overview,entities,series` makes those reads never answer, so Production, the Story Bible and its Series tab show their loading skeleton.
-const mockHold = (mockParams.get('mockHold') ?? '')
-  .split(',')
-  .filter((name): name is 'overview' | 'entities' | 'series' => name === 'overview' || name === 'entities' || name === 'series');
+// `?mockHold=overview,entities` makes those reads never answer, so Production and the Story Bible show their loading skeleton.
+const mockHold = (mockParams.get('mockHold') ?? '').split(',').filter((name): name is 'overview' | 'entities' => name === 'overview' || name === 'entities');
 // `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
 const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockPlan'));
 // `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
@@ -252,14 +250,10 @@ const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
-// `?mockSeries=not-in-series|single-book` boots the Series tab outside any
-// series, or in one with no other book yet, so its honest empty state can be seen; `?mockSeries=fails` makes its read fail, so its error and Retry can be seen. Unset boots as a member of a two-book
-// series (WIRE_SERIES), matching the approved concept mock.
 // `?mockVoiceSamples=bible|full` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
 // Hearts with four samples, one whose passage changed and one whose audio file is missing, the Hatter's, Narration's, and one for a character who left
 // the Story Bible); `full` is a Queen with the 20 a character may have.
 const mockVoiceSamples = (['bible', 'full'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
-const mockSeries = (['not-in-series', 'single-book', 'fails'] as const).find((seed) => seed === mockParams.get('mockSeries'));
 // `?mockDictionary=missing|damaged` boots without the offline dictionary, or with one whose index fails its check, so the reader's Look up asks to
 // download it (or to download it again) first.
 const mockDictionary = (['missing', 'damaged'] as const).find((seed) => seed === mockParams.get('mockDictionary'));
@@ -379,14 +373,6 @@ const MOCK_STAGES_SEEDS = {
   },
   error: { unavailable: 'the saved REAPER project could not be read' },
 };
-// `?mockChapterSuggestion=matched|ambiguous` arms tracks in the mock .rpp: the
-// "Chapter 2" track alone, so the Teleprompter preselects Chapter 2 from it, or both chapter
-// tracks, so it offers the two chapters as a choice instead.
-const MOCK_ARMED_TRACKS = {
-  matched: [WIRE_TRACKS_PROJECT.tracks[1].guid],
-  ambiguous: [WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_TRACKS_PROJECT.tracks[1].guid],
-} as const;
-const mockChapterSuggestion = (['matched', 'ambiguous'] as const).find((seed) => seed === mockParams.get('mockChapterSuggestion'));
 // `?mockFindings=empty|changed` boots the Review page with no findings at all, or with an analyzer that runs again right after the page
 // lists its findings, so the empty queue and a decision refused on changed evidence can be seen without a host.
 const mockFindings = (['empty', 'changed'] as const).find((seed) => seed === mockParams.get('mockFindings'));
@@ -440,9 +426,9 @@ const mockRecorder = Object.hasOwn(MOCK_RECORDER_SEEDS, mockRecorderParam) ? MOC
 // `?mockChapters=12|40` and `?mockHeadings=titleAndSubtitle|titleOnly|legacyNewline` boot the scenario book (SN-S61,
 // fixtures/scenario.ts) in place of the Alice chapters; an unknown value is ignored.
 const mockScenario = scenarioFromParams(mockParams);
-// The chapter link the mock boots with: the seed, else Chapter 1 linked to its track. The consent and suggestion seeds show the flow that makes the
-// first link, so they start from none.
-const chapterLink = mockChapterLinkSeed ?? (mockChapterSync || mockChapterSuggestion ? 'none' : 'confirmed');
+// The chapter link the mock boots with: the seed, else Chapter 1 linked to its track. The consent seed shows the flow that makes the
+// first link, so it starts from none.
+const chapterLink = mockChapterLinkSeed ?? (mockChapterSync ? 'none' : 'confirmed');
 /** The DAW seed every `mockDaw*` param adds to, merged: a later param adds to what an earlier one set (their depths together) instead of
  * replacing it. */
 function mergeDawSeeds(...parts: Array<DawMockSeed | undefined>): DawMockSeed | undefined {
@@ -482,7 +468,6 @@ const mockInitial = {
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),
-  ...(mockSeries ? { seriesVoiceBible: mockSeries } : {}),
   ...(mockVoiceSamples ? { voiceSamples: mockVoiceSamples } : {}),
   ...(mockDictionary ? { dictionary: mockDictionary } : {}),
   ...(mockUpdate ? { update: mockUpdate } : {}),
@@ -608,7 +593,6 @@ const mockInitial = {
   // The proofer's project-wide pickup list: two still open, so the
   // summary's "Pickup list" line reads a real count alongside the check's own gaps and take review's, as the mockup does.
   ...(mockCoverage === 'pickups' ? { pickups: 'next-success' as const } : {}),
-  ...(mockChapterSuggestion ? { armedTracks: MOCK_ARMED_TRACKS[mockChapterSuggestion] } : {}),
   ...(mockStages ? { stages: MOCK_STAGES_SEEDS[mockStages] } : {}),
   ...(mockEditing || mockEditingRefusal
     ? {

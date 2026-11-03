@@ -150,18 +150,6 @@
     "replace": "if kind == 'PICKUP' or kind == 'PICKUP_DONE' then\n      remaining, total = remaining + 1, total + 1"
   },
   {
-    "name": "next_pickup ignores the edit cursor",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(pickups) do\n    if marker.pos > cursor then",
-    "replace": "for _, marker in ipairs(pickups) do\n    if true then"
-  },
-  {
-    "name": "next_pickup can land on a resolved pickup",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) == 'PICKUP' then\n      pickups[#pickups + 1] = marker",
-    "replace": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) ~= 'PICKUP_DONE' then\n      pickups[#pickups + 1] = marker"
-  },
-  {
     "name": "resolve_pickup ignores the position tolerance",
     "file": "narration_pickups.lua",
     "find": "if gap <= PICKUP_TOLERANCE and (not best_gap or gap < best_gap) then",

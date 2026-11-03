@@ -1,7 +1,6 @@
 // The golden payloads for production tracking: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import {
-  productionBurndownSchema,
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
@@ -31,6 +30,4 @@ export const productionGoldens: Record<string, z.ZodType> = {
   'production-status-report.json': productionReportExportSchema,
   // SN-P621: the preview of that report (ProductionStatusReportPreview).
   'production-status-report-preview.json': productionReportPreviewSchema,
-  // The burndown data (ProductionBurndown).
-  'production-burndown.json': productionBurndownSchema,
 };
