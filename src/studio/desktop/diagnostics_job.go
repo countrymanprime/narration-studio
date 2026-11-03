@@ -100,7 +100,11 @@ type diagnosticsJob struct {
 	totalWeight int64
 	// +checklocks:mu
 	doneWeight int64
-	cancel     context.CancelFunc
+	// loudness is what the level consistency comparison needs of each checked file (measure.LevelConsistencyFindings), by file
+	// index; a file that was not checked stays empty and is never compared.
+	// +checklocks:mu
+	loudness []measure.Diagnostics
+	cancel   context.CancelFunc
 }
 
 func (j *diagnosticsJob) running() bool {
@@ -152,6 +156,10 @@ func (j *diagnosticsJob) complete(index int, result measure.Diagnostics, err err
 	} else {
 		summary := result.Summary()
 		file.Status, file.Summary, file.Findings, file.CleanupFindings = diagnosticsFileChecked, &summary, result.Findings(), result.CleanupFindings()
+		for len(j.loudness) <= index {
+			j.loudness = append(j.loudness, measure.Diagnostics{})
+		}
+		j.loudness[index] = measure.Diagnostics{File: result.File, SourceKind: result.SourceKind, Range: result.Range, DurationSeconds: result.DurationSeconds, ShortTermLoudness: result.ShortTermLoudness}
 		j.logs = append(j.logs, fmt.Sprintf("Checked %s: %s.", file.Name, countFindings(len(file.Findings))))
 	}
 	j.doneWeight += j.weights[index]
@@ -193,6 +201,10 @@ func (j *diagnosticsJob) finish(cancelled bool, broken error) {
 		}
 		j.phase, j.message = "cancelled", fmt.Sprintf("Diagnostics cancelled. %d of %s %s checked.", checked, countFiles(len(j.files)), verb)
 	default:
+		// Each file is judged against the others only once the whole check ran: a cancelled or broken check compares nothing.
+		for index, raised := range measure.LevelConsistencyFindings(j.loudness) {
+			j.files[index].Findings = append(j.files[index].Findings, raised...)
+		}
 		j.phase, j.percent, j.message = "success", 100, checkedMessage(checked, failed)
 	}
 	j.logs = append(j.logs, j.message)
