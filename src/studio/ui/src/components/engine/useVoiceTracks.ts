@@ -40,7 +40,7 @@ export function useVoiceTracks(notify: Notify) {
         .then((answer) => mine === sent.current && replace(answer))
         .catch((reason) => {
           notify(describeApiError(reason), 'error');
-          if (mine === sent.current) void voiceTracks.voiceTracksGet().then(replace, () => {});
+          if (mine === sent.current) void voiceTracks.voiceTracksGet().then(replace, (again: unknown) => notify(describeApiError(again), 'error'));
         });
     },
     [notify, replace, voiceTracks],
