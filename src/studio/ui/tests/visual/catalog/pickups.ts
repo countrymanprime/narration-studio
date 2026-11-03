@@ -44,6 +44,13 @@ export const pickupsStates: StateEntry[] = [
   },
   {
     page: 'pickups',
+    state: 'add-popover-too-long',
+    description:
+      'Pickups with Add a pickup by hand submitted with a 505-character line: "A line can be at most 500 characters." once, under the line box, no toast; the Chapter list above the time box',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
     state: 'empty',
     description: 'Pickups after every line is removed: "No pickups queued", the way to Proof, and an empty session',
     ...REFLOW,

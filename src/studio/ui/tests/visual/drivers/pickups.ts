@@ -48,6 +48,15 @@ export const pickupsDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
     await page.getByText('Type the line first.').waitFor();
   },
+  // A line over 500 characters: the one message under the line box, no toast.
+  'add-popover-too-long': async (page) => {
+    await openPickups(page);
+    await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
+    await page.getByRole('textbox', { name: 'Time in the recording' }).fill('05:12.0');
+    await page.getByRole('textbox', { name: 'Line to re-record' }).fill('word '.repeat(101));
+    await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
+    await page.getByText('A line can be at most 500 characters.').waitFor();
+  },
   'marked-recorded': async (page) => {
     await openPickups(page);
     await list(page).getByRole('button', { name: 'Mark recorded' }).first().click();
