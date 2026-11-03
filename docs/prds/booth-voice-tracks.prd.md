@@ -4,7 +4,7 @@
 
 **Constraints:** [Design principles](../architecture/principles.md), [Wire contracts](../architecture/wire-contracts.md), [REAPER reference](../reference/daw/reaper.md), [DAW capabilities](../reference/daw/capabilities.md), [Data files](../reference/data-files.md), [frontend-primitives](../../.claude/skills/frontend-primitives/SKILL.md).
 
-**Status (2026-11-02):** draft. Phase 0 (real-REAPER scenarios) ran ([#2716](https://github.com/countrymanprime/narration-studio/pull/2716)). The mock in [`mockups/booth-voices/`](../research/mockups/booth-voices/README.md) awaits the owner's review; nothing is built until the owner approves it.
+**Status (2026-11-03):** in delivery. Phase 0 (real-REAPER scenarios) ran ([#2716](https://github.com/countrymanprime/narration-studio/pull/2716)). The owner approved the mock in [`mockups/booth-voices/`](../research/mockups/booth-voices/README.md) and answered its decisions on 2026-11-03.
 
 ## Problem Statement
 
@@ -46,13 +46,7 @@ If the voice change is one key and never stops the transport, the narrator recor
 
 ## Open Questions
 
-From the mock's [decisions](../research/mockups/booth-voices/README.md#decisions-for-the-owner):
-
-1. The voice control on the record bar (drawn), or a strip of voice buttons.
-2. Characters in the chapter with no track: a press on each rail row makes its track (drawn), or the Booth makes them with no press.
-3. A voice key with no track during a take: toast (drawn), or open the list.
-4. The Voices card on the Engine panel (drawn), or inside each Chapter links row.
-5. The switch: accept the 64 ms unrecorded at 1024 frames (recommended), or arm first and trim the overlap after the stop.
+None. The mock's five questions and two more (key order, default layout) were answered on 2026-11-03 ([#2251 comment](https://github.com/countrymanprime/narration-studio/issues/2251#issuecomment-6594214485)); the answers are [the mock's decisions](../research/2026-10-30-booth-sub-track-recording.md#8-owner-decisions) in the design note.
 
 ## Users & Context
 
@@ -64,8 +58,7 @@ Narrators who voice several characters and use REAPER, and the owner, whose exam
 | --- | --- |
 | Must | Layout setting per project; folder link; union reads; voice keys and the live switch; name matching; the no-track rule; the voice control and list |
 | Should | Hand assignment, several characters per child, the Narrator as a character; nested `track_create`; "Who is in it?" |
-| Could | Making the missing tracks for a chapter in one press |
-| Won't | Follow the script; conversion; split by speaker |
+| Won't | Follow the script; conversion; split by speaker; making a chapter's missing tracks with no press (decision B) |
 
 ## Technical Approach
 
@@ -97,9 +90,9 @@ No new trust boundary: `voice-tracks.json` is written and read back by the host 
 | # | Phase | Description | Status | Parallel | Depends |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Real-REAPER proof | Scenarios, measurements, design note | complete (#2716) | n/a | n/a |
-| 1 | Mock | This PRD and the mock, approved by the owner | in review | n/a | 0 |
-| 2 | Union reads | `chapter_track_state` children; Editing play solos the folder; live items, word times, recording check read the union | 2a in review (bridge, Editing play, live items, word times); 2b pending (recording check from the saved project) | with 3 | 1 |
-| 3 | Layout and assignments | `voice-tracks.json` (layout and assignments), folder links, Engine Voices card, nested `track_create` | 3a merged (nested `track_create`); 3b and 3c in review (#2799) | with 2 | 1 |
+| 1 | Mock | This PRD and the mock, approved by the owner | complete (#2718, approved 2026-11-03) | n/a | 0 |
+| 2 | Union reads | `chapter_track_state` children; Editing play solos the folder; live items, word times, recording check read the union | 2a complete (#2783: bridge, Editing play, live items, word times); 2b pending (recording check from the saved project) | with 3 | 1 |
+| 3 | Layout and assignments | `voice-tracks.json` (layout and assignments), folder links, Engine Voices card, nested `track_create` | 3a complete (#2791, nested `track_create`); 3b and 3c in review (#2799) | with 2 | 1 |
 | 4 | Booth voices | Catalog rows, voice control and list, `switch_voice`, stop-guard fix, the no-track rule and its notice | pending | no | 2, 3 |
 | 5 | Who is in it | The dialog on an empty key, making a chapter's missing tracks, the Voices card's "No track" row and its make-track press, `BoothVoices` | pending | no | 4 |
 
@@ -121,4 +114,5 @@ Phase 3 as built (#2799): the layout is kept in `voice-tracks.json` with the ass
 | Date | Decision | By |
 | --- | --- | --- |
 | 2026-11-02 | The eight answers in [section 8](../research/2026-10-30-booth-sub-track-recording.md#8-owner-decisions) | Owner |
-| 2026-11-02 | Live switch (option B) for phase 4, since phase 0 showed REAPER supports it | Plan, pending owner review |
+| 2026-11-02 | Live switch (option B) for phase 4, since phase 0 showed REAPER supports it | Plan |
+| 2026-11-03 | The mock is approved; decisions A to G in [section 8](../research/2026-10-30-booth-sub-track-recording.md#8-owner-decisions): the voice control on the record bar, add-track buttons with no automatic tracks, a brief message for an empty key while recording, the Voices card on the Engine panel, arm and disarm together on a switch, keys in REAPER folder order with the Narrator at 0, flat by default | Owner ([#2251 comment](https://github.com/countrymanprime/narration-studio/issues/2251#issuecomment-6594214485)) |

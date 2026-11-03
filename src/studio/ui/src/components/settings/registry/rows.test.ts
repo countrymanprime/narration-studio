@@ -76,6 +76,16 @@ describe('the Parallel processes row (#2251)', () => {
   });
 });
 
+describe('app.debug', () => {
+  it('is found by the words a narrator uses for the log and its folder (#2730)', () => {
+    for (const query of ['logs', 'log folder', 'file manager', 'run.jsonl', 'explorer'])
+      expect(
+        search(query).some((hit) => hit.row?.id === 'app.debug'),
+        query,
+      ).toBe(true);
+  });
+});
+
 describe('search', () => {
   it('finds a setting by a word that is not in its name', () => {
     expect(search('whisper').some((hit) => hit.row?.id === 'stt.model')).toBe(true);

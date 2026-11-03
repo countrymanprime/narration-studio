@@ -403,6 +403,20 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'App & updates');
     await page.getByText('Not checked yet.').waitFor();
   },
+  'app-diagnostics': async (page) => {
+    await openSettings(page, 'App & updates');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'app.debug');
+    await row.getByRole('button', { name: 'Reveal the log folder in the file manager' }).waitFor();
+  },
+  'app-log-folder-refused': async (page) => {
+    await openSettings(page, 'App & updates', '?mockLogFolder=refused');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'app.debug');
+    await row.getByRole('button', { name: 'Reveal the log folder in the file manager' }).click();
+    await page.getByText('The log folder could not be opened.').waitFor();
+    await row.getByRole('button', { name: 'Reveal the log folder in the file manager' }).and(page.locator(':not([aria-busy])')).waitFor();
+  },
   'about-update-available': async (page) => {
     await openUpdates(page, 'available');
     await page.getByText('Version 0.2.7 is available').waitFor();
