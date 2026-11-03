@@ -32,6 +32,7 @@ import { createDiagnosticsMock } from './diagnosticsMock';
 import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createBookmarksMock } from './bookmarksMock';
+import { createVoiceTracksMock } from './voiceTracksMock';
 import { createVoiceSamplesMock } from './voiceSamplesMock';
 import { createPassageMapMock } from './passageMapMock';
 import { takesPerParagraph } from './passageMapSpans';
@@ -51,6 +52,7 @@ import { createManuscriptMock } from './mockHost/manuscript';
 import { createCreditsMock } from './mockHost/credits';
 import { createAssetsMock } from './mockHost/assets';
 import { createProofingMock } from './mockHost/proofing';
+import { createEquivalenceMock } from './mockHost/equivalences';
 import { createReaperActionsMock } from './mockHost/reaperActions';
 import { createChapterTracksMock } from './mockHost/chapterTracks';
 import { createMergeEvents } from './mockHost/mergeEvents';
@@ -389,6 +391,7 @@ export function createMockApi(
     ...character.bindings,
     ...assets.bindings,
     ...proofing.bindings,
+    ...createEquivalenceMock(findings.findingsGet),
     ...reaperActions.bindings,
     ...project.bindings,
     ...credits.bindings,
@@ -414,6 +417,9 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
+    ...createVoiceTracksMock(
+      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+    ),
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,

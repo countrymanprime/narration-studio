@@ -637,6 +637,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
+    file: 'components/engine/VoicesCard.tsx',
+    text: 'Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.',
+    class: 'overlay',
+  },
+  {
     file: 'components/layout/StartupScreen.tsx',
     text: 'Lost connection to the app’s server. It may have been closed or crashed - check that it is still running.',
     class: 'error',

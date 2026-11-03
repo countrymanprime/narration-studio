@@ -1074,7 +1074,7 @@ const folderTrack = (name: string, index: number, depth: number, color: string):
  * WIRE_TRACKS_PROJECT as REAPER folders hold it (`?mockTrackFolders=1`): the Alice tracks inside Narration > Chapters, a Credits folder holding a
  * copy of the first track as "Opening credits", and an empty Co-narrator folder. Its shape is `testdata/folders-handmade.rpp`'s.
  */
-export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
+const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   const inside = WIRE_TRACKS_PROJECT.tracks.map((track) => ({ ...track, depth: 2 }));
   const opening: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{0PEN-1NG}', name: 'Opening credits', depth: 2, items: [] };
   const guest: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{GUEST-1}', name: 'Guest', depth: 1, items: [] };
@@ -1089,6 +1089,30 @@ export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   ];
   return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
 })();
+
+/**
+ * WIRE_TRACKS_PROJECT in a Voice folders project (`?mockVoiceFolders=1`, docs/prds/booth-voice-tracks.prd.md): Chapter 1 is a folder whose
+ * children are its voices. Its take sits on the Narrator child; White Rabbit matches its character by name and Extras holds the two
+ * characters the seed's voice setup assigns it.
+ */
+export const WIRE_VOICE_FOLDER_GUID = '{F0LD-V01CE}';
+const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
+  const [first, ...rest] = WIRE_TRACKS_PROJECT.tracks;
+  const child = (guid: string, name: string, items: FixtureTrack['items'] = []): FixtureTrack => ({ ...first, guid, name, depth: 1, isFolder: false, items });
+  const list = [
+    { ...first, guid: WIRE_VOICE_FOLDER_GUID, isFolder: true, depth: 0, items: [] },
+    child(first.guid, 'Narrator', first.items),
+    child('{V01CE-RABB1T}', 'White Rabbit'),
+    child('{V01CE-EXTRAS}', 'Extras'),
+    ...rest.map((track) => ({ ...track, depth: 0 })),
+  ];
+  return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
+})();
+
+/** The REAPER project a mock seed's host reads: the voice-folder or folder variant, or the flat Alice tracks. */
+export function mockTracksProject(seed: { voiceFolders?: boolean; trackFolders?: boolean }): TracksProject {
+  return seed.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : seed.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+}
 
 /** One row of every status the classifier produces, keyed to WIRE_TRACKS_PROJECT's own chapter track item GUIDs where it helps a screenshot read naturally (mirrors tests/fixtures/contracts/line-identity-read-success.json). */
 export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [
@@ -1610,6 +1634,36 @@ export const WIRE_FINDINGS: Finding[] = [
     not_in_latest_run: true,
   },
 ];
+
+/** A one-word Transcript Compare misread (Dinah heard as Dina) for "Treat these two words as the same" (#2736): `?mockFindings=misread`
+ * adds it to WIRE_FINDINGS, and the contract test asks the mock host to add its pair. */
+export const WIRE_ONE_WORD_MISREAD: Finding = {
+  schema_version: 1,
+  id: '4e5f60718293a4b5c6d7e8f9',
+  analyzer: 'transcript-compare',
+  project: { path: 'C:/Projects/Alice-in-Wonderland' },
+  source: {
+    file: 'C:/Projects/Alice-in-Wonderland/media/ch1_take1.wav',
+    track_guid: '{5E1F0000-0000-4000-8000-0000000000F1}',
+    item_guid: '{5E1F0000-0000-4000-8000-000000000001}',
+    take_guid: '{5E1F0000-0000-4000-8000-0000000000A1}',
+  },
+  time_range: { start: 8.6, end: 8.6, source_start: 8.6, source_end: 8.6 },
+  manuscript: { chapter_id: 'chapter-1', chapter_title: 'Chapter 1', expected: 'Dinah', recorded: 'Dina', span: { paragraph_id: 'p-2' } },
+  category: 'transcript_discrepancy',
+  severity: 'warning',
+  confidence: 0.6,
+  confidence_reason: 'compare.py measured a middling pause at this discrepancy’s audio boundary — a provisional signal, not proof.',
+  evidence_version: 'sha256:7b3e2a2f7f4d6e8c0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6a7b',
+  evidence: {
+    kind: 'MISREAD',
+    marker_state: 'pending',
+    script_context: 'Dinah my dear! I wish you were down here with me!',
+    audio_context: 'Dina my dear! I wish you were down here with me!',
+    sound_alike: 0.89,
+  },
+  review: { status: 'unreviewed' },
+};
 
 /** One unreviewed pickup finding the retired take review saved for chapterId: the
  * summary's repeated-reads count and Open Proof link demo, seeded additively (never into the default

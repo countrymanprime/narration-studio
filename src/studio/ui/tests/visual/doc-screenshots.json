@@ -168,6 +168,13 @@
     "caption": "Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing"
   },
   {
+    "page": "proof",
+    "state": "treat-as-same",
+    "viewport": "desktop",
+    "docName": "proof-treat-as-same",
+    "caption": "Proof - the equals button, Treat these two words as the same in later checks, on a one-word misread"
+  },
+  {
     "page": "production",
     "state": "stage-suggestion-options",
     "viewport": "desktop",
@@ -425,6 +432,34 @@
     "viewport": "desktop",
     "docName": "engine-panel-folder-tracks",
     "caption": "The audio engine panel - the Tracks card with REAPER folders drawn as a tree"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-sync",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-layout",
+    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Tracks card with a chapter folder and its voice tracks"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-link-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-folder-picker",
+    "caption": "The audio engine panel - a chapter's folder picker in a Voice folders project, the voice tracks inside a chapter folder off"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices",
+    "caption": "The audio engine panel - the Voices card for a Voice folders project: a chapter's voice tracks with their number-pad keys and characters"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-picker",
+    "caption": "The audio engine panel - the character list of a voice track on the Voices card"
   },
   {
     "page": "engine",

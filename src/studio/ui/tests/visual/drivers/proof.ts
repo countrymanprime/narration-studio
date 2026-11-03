@@ -1,5 +1,5 @@
 // How to reach each `proof` state (the Studio Next Proof page) in STATE_CATALOG (see app.drivers.ts).
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
@@ -44,6 +44,36 @@ async function checkHeld(page: Page, seed: 'hold' | 'hold-recheck' | 'hold-none'
     .getByLabel(/^Chunks: 8 of 8/)
     .waitFor();
   await page.getByText('Checking the recording against the script…').waitFor({ state: 'attached' });
+}
+
+const TREAT_AS_SAME = 'Treat these two words as the same in later checks';
+
+// Opens Proof on a `?mockFindings=misread…` seed, selects the one-word misread and returns its equals button (#2736), after checking that
+// the button is inside the Inspector, nothing covers it and nothing in the Inspector sticks out of it (qa B3 on #2788: a long name once
+// pushed a button out of its panel).
+async function openMisread(page: Page, seed: 'misread' | 'misread-long' | 'misread-rtl', row: RegExp): Promise<Locator> {
+  await openProof(page, `mockFindings=${seed}`, true, true);
+  await notes(page).locator('tr[data-row]').filter({ hasText: row }).click();
+  const button = inspector(page).getByRole('button', { name: TREAT_AS_SAME });
+  await button.waitFor();
+  await button.scrollIntoViewIfNeeded();
+  const placed = await button.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const panel = el.closest('aside')!.getBoundingClientRect();
+    const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    const out = [...el.closest('aside')!.querySelectorAll('button, p, [data-quote]')].find((child) => {
+      const r = child.getBoundingClientRect();
+      // A hidden element (the empty status line) has no box at all.
+      return r.width + r.height > 0 && (r.left < panel.left - 1 || r.right > panel.right + 1);
+    });
+    return {
+      inside: box.left >= panel.left && box.right <= panel.right,
+      topmost: !!top && el.contains(top),
+      wide: out ? `${out.tagName} ${out.getAttribute('aria-label') ?? out.textContent?.slice(0, 40) ?? ''}` : null,
+    };
+  });
+  expect(placed).toEqual({ inside: true, topmost: true, wide: null });
+  return button;
 }
 
 export const proofDrivers: Record<string, Driver> = {
@@ -104,6 +134,25 @@ export const proofDrivers: Record<string, Driver> = {
     await inspector(page)
       .getByRole('region', { name: 'In the script' })
       .evaluate((region) => region.scrollIntoView({ block: 'start' }));
+  },
+  'treat-as-same': async (page) => {
+    const button = await openMisread(page, 'misread', /Dinah/);
+    await button.focus();
+  },
+  'treat-as-same-added': async (page) => {
+    const button = await openMisread(page, 'misread', /Dinah/);
+    await button.click();
+    await page.getByRole('status').getByText('Added equivalence: Dinah = Dina').waitFor();
+    await button.and(page.locator(':not([aria-busy])')).waitFor();
+  },
+  'treat-as-same-long': async (page) => {
+    await openMisread(page, 'misread-long', /Pneumono/);
+    // The capture shows the quotes the long words are in.
+    await inspector(page).locator('[data-quote="script"]').scrollIntoViewIfNeeded();
+  },
+  'treat-as-same-rtl': async (page) => {
+    await openMisread(page, 'misread-rtl', /שלם/);
+    await inspector(page).locator('[data-quote="script"]').scrollIntoViewIfNeeded();
   },
   'chapter-no-recording': async (page) => {
     await openProof(page);
