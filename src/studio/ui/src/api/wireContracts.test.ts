@@ -41,7 +41,7 @@ import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
-import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
+import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { voiceTracksStateSchema } from './schemas/voiceTracks';
 import { createVoiceTracksMock } from './voiceTracksMock';
@@ -1513,7 +1513,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(lastCompletedSchema, (await api.transcriptLastCompleted()) ?? null, 'mock last completed run');
     expectMatches(hintSuggestionsSchema, await api.transcriptSuggestHints(), 'mock hint suggestions');
     expectMatches(hintsSchema, await api.transcriptHints(), 'mock hints');
-    expectMatches(equivalenceSchema, { message: await api.transcriptAddEquivalence('row-1') }, 'mock equivalence');
+    const withMisread = createMockApi({}, { findings: [...WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD] });
+    expectMatches(equivalenceSchema, { message: await withMisread.transcriptAddEquivalence(WIRE_ONE_WORD_MISREAD.id) }, 'mock equivalence');
   });
 
   it.each(['available', 'found', 'failed', 'current', 'development', undefined] as const)('the update status the mock host answers (%s)', async (seed) => {

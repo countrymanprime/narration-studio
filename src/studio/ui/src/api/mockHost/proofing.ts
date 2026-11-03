@@ -4,7 +4,8 @@ import { WIRE_DISCREPANCIES, WIRE_LOGS, WIRE_TRANSCRIPT, wireClone } from '../mo
 import type { MockState } from './state';
 import { type AssetsMock, MOCK_ASSET_ROOT } from './assets';
 
-/** The proofing bindings: the comparison run, its markers and the vocabulary hints. */
+/** The proofing bindings: the comparison run, its markers and the vocabulary hints. The equivalence add reads notes, so it is
+ * `mockHost/equivalences.ts`, built beside the findings mock. */
 export function createProofingMock(
   s: MockState,
   { whisperInstalled, mockWhisperIdentity, mockWhisperModel }: Pick<AssetsMock, 'whisperInstalled' | 'mockWhisperIdentity' | 'mockWhisperModel'>,
@@ -99,7 +100,6 @@ export function createProofingMock(
       publish();
     },
     transcriptLastCompleted: async () => wireClone(lastCompleted),
-    transcriptAddEquivalence: async () => 'Added pronunciation equivalence.',
     transcriptExportMarkers: async () => {
       const exportable = transcript.rows.filter((row) => (row.markerState ?? 'pending') === 'pending');
       transcript = {

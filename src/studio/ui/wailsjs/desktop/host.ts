@@ -2974,6 +2974,11 @@ export function TracksSelect(path: string): $CancellablePromise<string> {
     return $Call.ByID(2374312442, path);
 }
 
+/**
+ * TranscriptAddEquivalence makes later comparisons count a one-word misread as a match, by adding its script word and heard word as
+ * one group to TranscriptCompare/equivalences.csv. id is the note's finding id (Proof's note inspector) or a row id of this
+ * session's run. A pair the file already holds is not written again; anything but a one-word misread is refused.
+ */
 export function TranscriptAddEquivalence(id: string): $CancellablePromise<string> {
     return $Call.ByID(196067889, id);
 }

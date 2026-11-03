@@ -141,8 +141,9 @@ The Inspector shows:
   [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;
 - **Trim the gap to 1.2 s**, on a gap note not decided yet (see [Trimming a gap](#trimming-a-gap));
 - **Hear it** (Space), which plays the note with 3 s either side (see [Hearing a note](#hearing-a-note)), **Show in** and
-  **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the DAW](#going-to-a-note-in-the-daw)), **Open this chapter in Script** and **Open this chapter in Booth**, and **Reopen**
-  once the note is decided;
+  **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the DAW](#going-to-a-note-in-the-daw)), on a
+  misread of one word for one word the equals button (see [The same word, said your way](#the-same-word-said-your-way)), **Open this
+  chapter in Script** and **Open this chapter in Booth**, and **Reopen** once the note is decided;
 - the decisions, **Needs pickup**, **Fix in edit**, **Fine as read** and **Defer** (keys P, E, W and D) as four equal buttons in two
   columns, each with its key, the decision taken outlined; an optional note with the decision (a box with a placeholder,
   up to 2,000 characters), and the check's confidence, or why it has none. All four work on any note. Whether a note
@@ -168,6 +169,19 @@ and decide.
 
 Right-click a note in the table, or its pin, for the same actions: **Hear it**, the four decisions (the one that does not fit the note
 says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+
+## The same word, said your way
+
+When the check hears one word as another every time, a name you say your own way or a word your accent changes, the equals button
+on that note, **Treat these two words as the same in later checks**, stops the next comparisons flagging it. It shows on a recording
+check note where one word was heard as one other word. The two words are added to the project's word equivalences
+(`TranscriptCompare/equivalences.csv`), and a message says which, "Added equivalence: Dinah = Dina", and that later checks count
+them as one word. A pair already there is not added again, and the message says so. Either way the button is then off, with "Already
+treated as the same" as its tooltip. The note itself keeps whatever you decided about it: mark it **Fine as read** too if this reading
+is right. It shows only for words the equivalences file can hold: not for a word with a comma, a # or a space in it, nor for the same
+word in another case.
+
+![Proof - the equals button, Treat these two words as the same in later checks, on a one-word misread](../../images/ui/proof-treat-as-same.webp)
 
 ## Notes on a finding
 

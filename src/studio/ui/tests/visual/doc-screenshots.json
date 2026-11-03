@@ -168,6 +168,13 @@
     "caption": "Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing"
   },
   {
+    "page": "proof",
+    "state": "treat-as-same",
+    "viewport": "desktop",
+    "docName": "proof-treat-as-same",
+    "caption": "Proof - the equals button, Treat these two words as the same in later checks, on a one-word misread"
+  },
+  {
     "page": "production",
     "state": "stage-suggestion-options",
     "viewport": "desktop",

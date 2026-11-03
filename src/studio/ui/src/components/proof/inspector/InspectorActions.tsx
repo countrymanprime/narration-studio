@@ -7,10 +7,12 @@ import type { Finding, NarrationApi } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { noteTime } from '../findingFormat';
+import type { EquivalenceApi } from './equivalence';
 import { HearIt, type HearItApi } from './HearIt';
+import { TreatAsSame } from './TreatAsSame';
 
-/** The host calls the icon row makes itself (Go to, and Hear it's loop); the marker goes through the DAW port. */
-export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'> & HearItApi;
+/** The host calls the icon row makes itself (Go to, Hear it's loop and Treat as the same); the marker goes through the DAW port. */
+export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'> & HearItApi & EquivalenceApi;
 
 // Why a control is off when the note itself cannot be placed; the host refuses the same notes in the same words
 // (src/studio/desktop/bindings_navigation.go and bindings_marker.go), so a button is never on for a request that can only be refused. Any note
@@ -34,7 +36,8 @@ function gateOf(capabilities: DawCapabilities | undefined, name: string): Gate {
 }
 
 /**
- * The Studio Next Inspector's icon row: Hear it (the note with 3 s either side, `HearIt`), Show in <DAW>, Add marker in <DAW>, Open this chapter in Script, Open this chapter in Booth,
+ * The Studio Next Inspector's icon row: Hear it (the note with 3 s either side, `HearIt`), Show in <DAW>, Add marker in <DAW>, on a one-word
+ * misread Treat these two words as the same in later checks (`TreatAsSame`, #2736), Open this chapter in Script, Open this chapter in Booth,
  * and Reopen once a decision is made. The two DAW actions follow `usePort('daw').capabilities()` (`navigate` and `markers`), which also
  * names the DAW, and the note itself; when one is off, the capability's own sentence is shown beside the row. The two links are the
  * caller's: this file imports no router. While the evidence is changed (`inert`) every control in the row is off.
@@ -46,6 +49,7 @@ export function InspectorActions({
   onOpenScript,
   onOpenBooth,
   onReopen,
+  onNoteRead,
 }: {
   finding: Finding;
   api: InspectorActionsApi;
@@ -55,6 +59,8 @@ export function InspectorActions({
   onOpenBooth: (chapterId: string) => void;
   /** Puts a decided note back to `unreviewed` through the page's decision handler. */
   onReopen: () => void;
+  /** The note as the host now holds it, read again after a refused Treat as the same. */
+  onNoteRead: (finding: Finding) => void;
 }) {
   const daw = usePort('daw');
   const action = usePendingAction();
@@ -132,6 +138,7 @@ export function InspectorActions({
           pending={action.isPending('marker')}
           onClick={() => void addMarker()}
         />
+        <TreatAsSame finding={finding} api={api} inert={inert} onNoteRead={onNoteRead} />
         <IconButton
           action="openInScript"
           label="Open this chapter in Script"
