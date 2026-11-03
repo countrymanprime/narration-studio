@@ -38,6 +38,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'apply_fx_range',
     'apply_item_gain',
     'arm_only',
+    'chapter_folders',
     'chapter_track_state',
     'choose_range_fx',
     'close',
