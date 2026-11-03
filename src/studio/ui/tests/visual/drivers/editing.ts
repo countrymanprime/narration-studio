@@ -218,6 +218,19 @@ export const editingDrivers: Record<string, Driver> = {
   'replace-dialog': async (page) => {
     await openReplace(page);
   },
+  'replace-dialog-removable': async (page) => {
+    const dialog = await openReplace(page);
+    await addNarrator(dialog, 'Jon Doe');
+    await dialog.getByRole('button', { name: 'Remove Jon Doe' }).waitFor();
+    await dialog.getByRole('button', { name: 'Cancel' }).focus();
+  },
+  'replace-dialog-removed': async (page) => {
+    const dialog = await openReplace(page);
+    await addNarrator(dialog, 'Jon Doe');
+    await dialog.getByRole('button', { name: 'Remove Jon Doe' }).click();
+    await dialog.getByRole('button', { name: /^Remove / }).waitFor({ state: 'detached' });
+    await dialog.getByRole('combobox', { name: 'Other narrator' }).and(page.locator(':focus')).waitFor();
+  },
   'replace-mark-open': async (page) => {
     const dialog = await openReplace(page);
     await dialog.getByRole('button', { name: /^Replace \d+ words$/ }).click();
@@ -414,6 +427,13 @@ async function openReplace(page: Page): Promise<Locator> {
   await dialog.getByText(/target -?\d+ LUFS|could not be measured/).waitFor();
   await dialog.getByRole('button', { name: 'Cancel' }).focus();
   return dialog;
+}
+
+/** Names another narrator in the open Replace dialog; the host chooses them in the list. */
+async function addNarrator(dialog: Locator, name: string): Promise<void> {
+  await dialog.getByRole('textbox', { name: 'Name another narrator' }).fill(name);
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Other narrator' }).getByRole('option', { name, selected: true }).waitFor({ state: 'attached' });
 }
 
 /** The dot after the last word of the range just saved. */

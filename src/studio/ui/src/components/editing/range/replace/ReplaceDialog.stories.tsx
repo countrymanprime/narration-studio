@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import type { DawResult } from '../../../../api/contracts/daw';
 import type { Narrator, ReplacePlan, Replacement } from '../../../../api/contracts/replace';
 import { Dialog } from '../../../primitives/Dialog';
@@ -107,14 +107,41 @@ export const FileMissing: Story = {
   render: () => <Question api={hostOf([{ ...leach, files: leach.files.map((f) => ({ ...f, state: 'missing' as const })) }])} />,
 };
 
-// #2737: a narrator named by mistake, with no files, chosen in the list: the remove button beside it is on and named for them. (Eric Leach,
-// who has a file, is the Planned story: the button is off there, with the host's reason as its tooltip.)
+// #2737: a narrator named by mistake, with no files, chosen in the list: the remove button beside it is on and named for them.
 export const RemovableNarrator: Story = {
   render: () => <Question api={hostOf([{ id: 'n-2', name: 'Jon Doe', addedAt: '', files: [] }])} />,
   play: async () => {
     const dialog = await screen.findByRole('dialog', { name: replaceTitle(3) });
     const remove = await within(dialog).findByRole('button', { name: 'Remove Jon Doe' });
     await expect(remove.getAttribute('aria-disabled')).toBeNull();
+  },
+};
+
+// #2737: Eric Leach has a file in the project, so the remove button is off; focused, its tooltip gives the reason the host would refuse with.
+export const KeptNarratorReason: Story = {
+  render: () => <Question api={hostOf([leach])} />,
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: replaceTitle(3) });
+    const remove = await within(dialog).findByRole('button', { name: 'Remove Eric Leach' });
+    await expect(remove.getAttribute('aria-disabled')).toBe('true');
+    remove.focus();
+    const tooltip = await screen.findByRole('tooltip');
+    await expect(tooltip.textContent).toBe("Eric Leach's audio is in the project, so they stay on the list.");
+  },
+};
+
+// #2737: Jon Doe, chosen and then removed: Eric Leach is left, nobody is chosen (the list's placeholder shows), and the list has the focus.
+export const NarratorRemoved: Story = {
+  render: () => <Question api={hostOf([{ id: 'n-2', name: 'Jon Doe', addedAt: '', files: [] }, leach])} />,
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: replaceTitle(3) });
+    // The dialog chooses the narrator with a file first; choose Jon Doe, then remove him.
+    const list = await within(dialog).findByRole<HTMLSelectElement>('combobox', { name: 'Other narrator' });
+    await userEvent.selectOptions(list, 'n-2');
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Remove Jon Doe' }));
+    await waitFor(() => expect([...list.options].map((o) => o.textContent)).toEqual(['Choose the other narrator', 'Eric Leach']));
+    await expect(list.selectedOptions[0]?.textContent).toBe('Choose the other narrator');
+    await waitFor(() => expect(document.activeElement).toBe(list));
   },
 };
 

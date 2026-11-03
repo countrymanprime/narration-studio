@@ -375,6 +375,9 @@ describe('ReplaceDialog: remove a narrator', () => {
     choose('n-2');
     fireEvent.click(screen.getByRole('button', { name: 'Remove Jon Doe' }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith(sentence, { tone: 'error' }));
+    // The toast is the only place it is said: no note or alert in the dialog's flow.
+    expect(screen.queryByText(new RegExp(sentence))).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(narratorSelect().value).toBe('n-2');
     expect(screen.getByRole('button', { name: 'Remove Jon Doe' }).getAttribute('aria-busy')).toBeNull();
   });

@@ -136,6 +136,18 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'replace-dialog-removable',
+    description:
+      "Editing, Replace with another narrator's audio - Jon Doe, named by mistake and with no files, chosen under Other narrator: the remove button beside the list is on (#2737)",
+  },
+  {
+    page: 'editing',
+    state: 'replace-dialog-removed',
+    description:
+      "Editing, Replace with another narrator's audio - Jon Doe just removed: Eric Leach is left on the list, nobody is chosen (the list reads Choose the other narrator), Add a file of theirs is off and the list has the focus (#2737)",
+  },
+  {
+    page: 'editing',
     state: 'replace-mark-open',
     description:
       "Editing, four words replaced with another narrator's audio - the narrator's name after the last word, opened: their stretch, the level change and Put my audio back",
