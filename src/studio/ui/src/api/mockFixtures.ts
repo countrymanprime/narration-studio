@@ -1074,7 +1074,7 @@ const folderTrack = (name: string, index: number, depth: number, color: string):
  * WIRE_TRACKS_PROJECT as REAPER folders hold it (`?mockTrackFolders=1`): the Alice tracks inside Narration > Chapters, a Credits folder holding a
  * copy of the first track as "Opening credits", and an empty Co-narrator folder. Its shape is `testdata/folders-handmade.rpp`'s.
  */
-export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
+const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   const inside = WIRE_TRACKS_PROJECT.tracks.map((track) => ({ ...track, depth: 2 }));
   const opening: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{0PEN-1NG}', name: 'Opening credits', depth: 2, items: [] };
   const guest: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{GUEST-1}', name: 'Guest', depth: 1, items: [] };
@@ -1089,6 +1089,30 @@ export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   ];
   return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
 })();
+
+/**
+ * WIRE_TRACKS_PROJECT in a Voice folders project (`?mockVoiceFolders=1`, docs/prds/booth-voice-tracks.prd.md): Chapter 1 is a folder whose
+ * children are its voices. Its take sits on the Narrator child; White Rabbit matches its character by name and Extras holds the two
+ * characters the seed's voice setup assigns it.
+ */
+export const WIRE_VOICE_FOLDER_GUID = '{F0LD-V01CE}';
+const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
+  const [first, ...rest] = WIRE_TRACKS_PROJECT.tracks;
+  const child = (guid: string, name: string, items: FixtureTrack['items'] = []): FixtureTrack => ({ ...first, guid, name, depth: 1, isFolder: false, items });
+  const list = [
+    { ...first, guid: WIRE_VOICE_FOLDER_GUID, isFolder: true, depth: 0, items: [] },
+    child(first.guid, 'Narrator', first.items),
+    child('{V01CE-RABB1T}', 'White Rabbit'),
+    child('{V01CE-EXTRAS}', 'Extras'),
+    ...rest.map((track) => ({ ...track, depth: 0 })),
+  ];
+  return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
+})();
+
+/** The REAPER project a mock seed's host reads: the voice-folder or folder variant, or the flat Alice tracks. */
+export function mockTracksProject(seed: { voiceFolders?: boolean; trackFolders?: boolean }): TracksProject {
+  return seed.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : seed.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+}
 
 /** One row of every status the classifier produces, keyed to WIRE_TRACKS_PROJECT's own chapter track item GUIDs where it helps a screenshot read naturally (mirrors tests/fixtures/contracts/line-identity-read-success.json). */
 export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [

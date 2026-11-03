@@ -159,6 +159,7 @@ import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSug
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { voiceTracksStateSchema } from './schemas/voiceTracks';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
@@ -446,6 +447,11 @@ export const wailsClient: NarrationApi = {
   bookmarksSetStop: (chapterId, paragraphId, offset) => decode(bookmarksSchema, 'BookmarksSetStop', host.BookmarksSetStop(chapterId, paragraphId, offset)),
   bookmarksUpdate: (id, label, note) => decode(spotBookmarkSchema, 'BookmarksUpdate', host.BookmarksUpdate(id, label, note)),
   bookmarksRemove: (id) => decode(bookmarksSchema, 'BookmarksRemove', host.BookmarksRemove(id)),
+  voiceTracksGet: () => decode(voiceTracksStateSchema, 'VoiceTracksGet', host.VoiceTracksGet()),
+  voiceTracksSetLayout: (layout) => decode(voiceTracksStateSchema, 'VoiceTracksSetLayout', host.VoiceTracksSetLayout(layout)),
+  voiceTracksSetCharacters: (track, characterIds) =>
+    decode(voiceTracksStateSchema, 'VoiceTracksSetCharacters', host.VoiceTracksSetCharacters(track, characterIds)),
+  voiceTracksSetNarrator: (characterId) => decode(voiceTracksStateSchema, 'VoiceTracksSetNarrator', host.VoiceTracksSetNarrator(characterId)),
   voiceSamplesList: () => decode(voiceSamplesSchema, 'VoiceSamplesList', host.VoiceSamplesList()),
   voiceSampleMark: (request) => decode(voiceSampleAnswerSchema, 'VoiceSampleMark', host.VoiceSampleMark(request)),
   voiceSampleUpdate: (id, change) => decode(voiceSampleAnswerSchema, 'VoiceSampleUpdate', host.VoiceSampleUpdate(id, change)),

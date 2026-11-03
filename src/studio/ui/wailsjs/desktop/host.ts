@@ -3129,6 +3129,35 @@ export function VoiceSamplesRemoveAll(): $CancellablePromise<string> {
     return $Call.ByID(2655911602);
 }
 
+/**
+ * VoiceTracksGet answers the project's voice setup: flat with no assignments when nothing was saved.
+ */
+export function VoiceTracksGet(): $CancellablePromise<string> {
+    return $Call.ByID(866350912);
+}
+
+/**
+ * VoiceTracksSetCharacters replaces the characters assigned to the voice track named track (as REAPER shows it, trimmed); an empty
+ * list clears the assignment, so the track matches characters by name again. Character ids are the Story Bible's.
+ */
+export function VoiceTracksSetCharacters(track: string, characterIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(808111104, track, characterIDs);
+}
+
+/**
+ * VoiceTracksSetLayout sets the project's chapter layout, "flat" or "folders". It converts no chapter.
+ */
+export function VoiceTracksSetLayout(layout: string): $CancellablePromise<string> {
+    return $Call.ByID(1984145122, layout);
+}
+
+/**
+ * VoiceTracksSetNarrator sets the character the Narrator track also voices (a first-person book), or clears it with "".
+ */
+export function VoiceTracksSetNarrator(characterID: string): $CancellablePromise<string> {
+    return $Call.ByID(4074868469, characterID);
+}
+
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {
     return $Call.ByID(477322835, modelID);
 }

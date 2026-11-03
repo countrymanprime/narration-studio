@@ -43,6 +43,8 @@ import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
 import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { voiceTracksStateSchema } from './schemas/voiceTracks';
+import { createVoiceTracksMock } from './voiceTracksMock';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
@@ -4293,6 +4295,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'bookmarksSetStop',
       'bookmarksUpdate',
       'bookmarksRemove',
+      'voiceTracksGet',
+      'voiceTracksSetLayout',
+      'voiceTracksSetCharacters',
+      'voiceTracksSetNarrator',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -6177,5 +6183,37 @@ describe('Replace audio (bindings_replace.go): the mock answers through the sche
     );
     expect((await api.dawReplaceRange(chapterId, first, last, 'f-1', 1, 2, 10, 24.5)).result.refused).toBe('The level change must be from -24 to 24 dB.');
     expect((await api.editingReplacementsList(chapterId)).replacements).toEqual([]);
+  });
+});
+
+// A project's voice setup: the mock answers through the schema the host's goldens are checked against, and keeps the host's rules.
+describe('the voice tracks bindings', () => {
+  it('the mock starts flat, saves the layout, assignments by track name and the narrator, each through the schema', async () => {
+    const api = createVoiceTracksMock();
+    expectMatches(voiceTracksStateSchema, await api.voiceTracksGet(), 'mock voice tracks (empty)');
+    expectMatches(voiceTracksStateSchema, await api.voiceTracksSetLayout('folders'), 'mock voice tracks layout');
+    await api.voiceTracksSetCharacters('Queen', ['queen-of-hearts']);
+    const shared = await api.voiceTracksSetCharacters(' Gardeners ', ['two', 'five', 'two']);
+    expectMatches(voiceTracksStateSchema, shared, 'mock voice tracks characters');
+    expect(shared.tracks).toEqual([
+      { track: 'Gardeners', characters: ['two', 'five'] },
+      { track: 'Queen', characters: ['queen-of-hearts'] },
+    ]);
+    const narrator = await api.voiceTracksSetNarrator('alice');
+    expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
+    expect((await api.voiceTracksSetCharacters('Queen', [])).tracks.map((entry) => entry.track)).toEqual(['Gardeners']);
+  });
+
+  it('the mock refuses what the host refuses, and keeps nothing of it', async () => {
+    const api = createVoiceTracksMock();
+    await expect(api.voiceTracksSetLayout('nested' as 'flat')).rejects.toThrow();
+    await expect(api.voiceTracksSetCharacters('a\nb', ['two'])).rejects.toThrow();
+    await expect(api.voiceTracksSetCharacters('Queen', [''])).rejects.toThrow();
+    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [] });
+  });
+
+  it('the schema refuses an unknown layout and an empty assignment', () => {
+    expect(voiceTracksStateSchema.safeParse({ layout: 'nested', narratorCharacter: '', tracks: [] }).success).toBe(false);
+    expect(voiceTracksStateSchema.safeParse({ layout: 'flat', narratorCharacter: '', tracks: [{ track: 'A', characters: [] }] }).success).toBe(false);
   });
 });

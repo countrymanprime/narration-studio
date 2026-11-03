@@ -58,6 +58,8 @@ export type MockApiSeed = {
   tracksCandidates?: string[];
   /** The project's tracks sit in REAPER folders (`?mockTrackFolders=1`). */
   trackFolders?: boolean;
+  /** A Voice folders project: Chapter 1 linked to a folder of voice tracks, Extras assigned two characters (`?mockVoiceFolders=1`). */
+  voiceFolders?: boolean;
   noManuscript?: boolean;
   /** The Pickups list cannot be read: every read is refused with a reason (`unreadable`), or never answers (`loading`). */
   pickupList?: 'unreadable' | 'loading';

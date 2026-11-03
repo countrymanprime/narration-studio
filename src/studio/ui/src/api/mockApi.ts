@@ -34,6 +34,7 @@ import { createDiagnosticsMock } from './diagnosticsMock';
 import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createBookmarksMock } from './bookmarksMock';
+import { createVoiceTracksMock } from './voiceTracksMock';
 import { createVoiceSamplesMock } from './voiceSamplesMock';
 import { createPassageMapMock } from './passageMapMock';
 import { takesPerParagraph } from './passageMapSpans';
@@ -427,6 +428,9 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
+    ...createVoiceTracksMock(
+      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+    ),
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,
