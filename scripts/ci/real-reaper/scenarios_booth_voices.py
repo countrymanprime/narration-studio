@@ -560,29 +560,30 @@ def fx_child_and_folder(env: Env) -> str:
 @scenario(
     "booth_voices",
     "play_range, chapter_track_state",
-    "voices phase 0: a folder whose items are all on its children: play_range naming the folder is refused today, naming a child plays it; chapter_track_state lists the folder as empty",
+    "voices phase 2: a folder whose items are all on its children: chapter_track_state with children lists both children's items with their tracks, "
+    "the one-track read still lists none, and play_range naming the folder plays both children and not the next chapter",
     needs_audio=True,
 )
-def folder_reads_today(env: Env) -> str:
+def folder_reads(env: Env) -> str:
     g = folder_book(env, audio=True)
-    refusal = env.refused("play_range", "1", "3", g["Chapter 3"])
-    assert play_state(env) == 0, "a refused play started REAPER"
-    folder_state = env.send("chapter_track_state", g["Chapter 3"], until={"TRACK_STATE_END", "TRACK_STALE"})
-    folder_end = folder_state[-1]
-    folder_items = [e for e in folder_state if e[0] == "TRACK_ITEM"]
-    child_state = env.send("chapter_track_state", g["Veyra"], until={"TRACK_STATE_END", "TRACK_STALE"})
-    child_items = [e for e in child_state if e[0] == "TRACK_ITEM"]
-    assert folder_end[0] == "TRACK_STATE_END" and folder_end[2:4] == ["0", "0"] and not folder_items, f"folder state {folder_state}"
-    assert len(child_items) == 1, f"Veyra state {child_state}"
+    plain = env.send("chapter_track_state", g["Chapter 3"], until={"TRACK_STATE_END", "TRACK_STALE"})
+    assert plain[-1][0] == "TRACK_STATE_END" and plain[-1][2:4] == ["0", "0"], f"one-track read of the folder {plain}"
+    union = env.send("chapter_track_state", g["Chapter 3"], "children", until={"TRACK_STATE_END", "TRACK_STALE"})
+    rows = [(e[8].replace("\\", "/").rsplit("/", 1)[-1], e[10]) for e in union if e[0] == "TRACK_ITEM"]
+    assert rows == [("tone_a.wav", g["Narrator"]), ("tone_b.wav", g["Veyra"])], f"children read {rows}"
+    assert union[-1][2:4] == ["2", "2"], f"listed/total {union[-1][2:4]}"
     before = narrator_state(env)
-    play_range(env, 0.5, 4.0, g["Veyra"])
-    narrator, veyra = mix_tones(env, "voices_child_play")
+    play_range(env, 0.5, 4.0, g["Chapter 3"])
+    # One render: it takes the transport, so the bridge sees REAPER stop and puts the solos back before any second render.
+    mix = env.render_mix("voices_folder_play", 1.0, 2.0)
+    narrator, veyra, chapter4 = (mix.tone(0.0, 1.0, hz) for hz in (440.0, 660.0, 880.0))
     stop_by_hand(env)
     env.wait_for(lambda: narrator_state(env) == before, timeout=8, what="the tracks to be put back")
-    assert veyra > 0.1 and narrator < 0.02, f"playing Veyra: Veyra {veyra:.3f}, Narrator {narrator:.3f}"
+    assert narrator > 0.1 and veyra > 0.1, f"playing the folder: Narrator {narrator:.3f}, Veyra {veyra:.3f}"
+    assert chapter4 < 0.02, f"Chapter 4 is audible while the folder plays: {chapter4:.3f}"
     return (
-        f"play_range on the folder refused ({refusal[2]!r}); chapter_track_state on the folder listed/total {folder_end[2:4]}, on Veyra 1 item; "
-        f"play_range on Veyra: Veyra {veyra:.2f}, Narrator {narrator:.3f} in the mix, tracks put back"
+        f"one-track read of the folder 0 of 0; children read {len(rows)} items, each with its child's GUID; play_range on the folder: "
+        f"Narrator {narrator:.2f}, Veyra {veyra:.2f}, Chapter 4 {chapter4:.3f} in the mix, tracks put back"
     )
 
 
