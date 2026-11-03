@@ -90,7 +90,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
   let pickupsDone: PickupsMoment[] = [];
   // The 'error' seed models a broken REAPER script (the recurring cause a real ERROR event reports), not a
   // one-off: every action keeps failing the same way until the narrator fixes REAPER and reopens, the same as
-  // a real session import_pickups/next_pickup/etc. would if the script itself is what's wrong.
+  // a real session import_pickups/resolve_pickup/etc. would if the script itself is what's wrong.
   const pickupsAlwaysErrors = initial.pickups === 'error';
   const pickupsSubscribers = new Set<(state: PickupsState) => void>();
   const publishPickups = () => pickupsSubscribers.forEach((fn) => fn(wireClone(pickups)));
@@ -250,21 +250,6 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
             remaining: pickupsOpen.length,
             total: pickupsOpen.length + pickupsDone.length,
           };
-        });
-      }, 300);
-      return { status: 'started' };
-    },
-    pickupsNext: async () => {
-      beginPickups('jumping', 'Jumping to the next pickup…');
-      publishPickups();
-      setTimeout(() => {
-        if (pickups.phase !== 'jumping') return;
-        settlePickups(() => {
-          if (pickupsOpen.length === 0) {
-            pickups = { ...pickups, phase: 'error', message: 'No pickups remain.' };
-          } else {
-            pickups = { ...pickups, phase: 'success', message: 'Jumped to the next pickup.', next: pickupsOpen[0] };
-          }
         });
       }, 300);
       return { status: 'started' };

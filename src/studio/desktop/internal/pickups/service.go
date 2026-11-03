@@ -46,7 +46,7 @@ func New(config Config, role dawport.PickupList, changed func(map[string]any)) *
 	s := &Service{config: config, role: role, changed: changed, state: empty()}
 	if role != nil {
 		role.Subscribe(dawport.Subscription{
-			Tags: []string{"PICKUPS_IMPORTED", "PICKUPS_EXPORTED", "PICKUPS_COUNTED", "PICKUP_NEXT", "PICKUP_RESOLVED", "PICKUP_REOPENED",
+			Tags: []string{"PICKUPS_IMPORTED", "PICKUPS_EXPORTED", "PICKUPS_COUNTED", "PICKUP_RESOLVED", "PICKUP_REOPENED",
 				"PICKUP_MARKERS_LISTED", "ERROR"},
 			Owns:    s.ownsRun,
 			Handle:  func(event dawport.Event) { s.Handle(event.Fields) },
@@ -138,22 +138,6 @@ func (s *Service) Export() error {
 	path := filepath.Join(s.config.SessionDir, "pickups_export_"+runID+".txt")
 	s.begin(runID, "exporting", "Exporting pickups from REAPER…")
 	if err := s.role.ExportPickups(runID, path); err != nil {
-		s.fail(err.Error())
-		return err
-	}
-	s.notify()
-	return nil
-}
-
-// Next asks REAPER to move the edit cursor to the next open pickup after the cursor (wrapping to the earliest
-// one), read-only otherwise.
-func (s *Service) Next() error {
-	if s.role == nil {
-		return s.unavailable()
-	}
-	runID := newRunID()
-	s.begin(runID, "jumping", "Jumping to the next pickup…")
-	if err := s.role.NextPickup(runID); err != nil {
 		s.fail(err.Error())
 		return err
 	}
@@ -254,7 +238,7 @@ func (s *Service) begin(runID, phase, message string) {
 	s.state = empty()
 	s.state["runId"], s.state["phase"], s.state["message"] = runID, phase, s.words(message)
 	// Counts survive into the next run's state so the UI keeps showing the last known remaining/total while a
-	// different action (import, next, resolve) is in flight, instead of flashing back to zero.
+	// different action (import, resolve, count) is in flight, instead of flashing back to zero.
 	s.state["remaining"], s.state["total"] = remaining, total
 	s.mu.Unlock()
 }
@@ -296,7 +280,7 @@ func (s *Service) handleInvalid(event dawport.Event, reason error) {
 
 func runInProgress(state map[string]any) bool {
 	switch state["phase"] {
-	case "importing", "exporting", "jumping", "resolving", "reopening", "listing", "counting":
+	case "importing", "exporting", "resolving", "reopening", "listing", "counting":
 		return true
 	}
 	return false
@@ -345,13 +329,6 @@ func (s *Service) Handle(fields []string) {
 				s.state["csv"] = csvText
 				s.state["phase"], s.state["message"] = "success", fmt.Sprintf("Exported %d pickup%s.", count, plural(count))
 			}
-			changed = true
-		}
-	case "PICKUP_NEXT":
-		if len(fields) >= 5 && s.state["phase"] == "jumping" {
-			position, tag, note := floatAt(fields, 2), textAt(fields, 3), textAt(fields, 4)
-			s.state["next"] = map[string]any{"position": position, "tag": tag, "note": note}
-			s.state["phase"], s.state["message"] = "success", "Jumped to the next pickup."
 			changed = true
 		}
 	case "PICKUP_RESOLVED":

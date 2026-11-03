@@ -138,31 +138,6 @@ func (s *Service) Paragraphs(chapterID string) ([]map[string]any, error) {
 	return result, nil
 }
 
-func (s *Service) Reader() (map[string]any, error) {
-	data, err := s.Load()
-	if err != nil {
-		return nil, err
-	}
-	notes := s.loadNotes()
-	recorded := s.recordedFractions()
-	chapters := []map[string]any{}
-	for _, chapter := range objects(data["chapters"]) {
-		if isFrontMatter(chapter) {
-			continue
-		}
-		chapters = append(chapters, chapterPayload(chapter, notes, recorded, nil, false))
-	}
-	hidden := frontMatterChapterIDs(data)
-	paragraphs := []map[string]any{}
-	for _, paragraph := range objects(data["paragraphs"]) {
-		if hidden[text(paragraph, "chapterId")] {
-			continue
-		}
-		paragraphs = append(paragraphs, paragraphPayload(paragraph))
-	}
-	return map[string]any{"chapters": chapters, "paragraphs": paragraphs, "notes": notes["notes"]}, nil
-}
-
 func (s *Service) Search(query string) ([]map[string]any, error) {
 	if strings.TrimSpace(query) == "" {
 		return []map[string]any{}, nil

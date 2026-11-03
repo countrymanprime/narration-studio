@@ -105,7 +105,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours) | EXTEND | Entry colour override |
 | [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py) | KEEP | Stable ids; appearances |
 | , [The narrator's pin](../architecture/preview-suggestion.md#the-narrators-pin) | KEEP | Markup and pin sidecars; bookmarks follow the same pattern |
-| [Data files](../reference/data-files.md), [voicebible.go](../../src/studio/desktop/internal/series/voicebible.go) to [readonly.go](../../src/studio/desktop/internal/guide/readonly.go) | KEEP (DQ-12) | Series untouched; no equivalent in the mock |
+| [Data files](../reference/data-files.md), [voicebible.go](https://github.com/countrymanprime/narration-studio/blob/e95ce0c3c8d5d2bf3860d95e8184b6d308da1ef4/src/studio/desktop/internal/series/voicebible.go) to [readonly.go](../../src/studio/desktop/internal/guide/readonly.go) | KEEP (DQ-12) | Series untouched; no equivalent in the mock |
 | , [Design system reference](../design/design-system.md), | SUPERSEDE where the mock differs (DQ-1) | Script layout follows `studio-next/src/pages/script/` |
 
 ## Technical Approach

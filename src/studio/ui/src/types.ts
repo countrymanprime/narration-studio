@@ -4,7 +4,6 @@ export * from './api/contracts/system';
 export * from './api/contracts/manuscript';
 export * from './api/contracts/storyBible';
 export * from './api/contracts/character';
-export * from './api/contracts/series';
 export * from './api/contracts/transcript';
 export * from './api/contracts/assets';
 export * from './api/contracts/tts';
@@ -67,7 +66,6 @@ import type { ManuscriptApi } from './api/contracts/manuscript';
 import type { ProjectApi } from './api/contracts/project';
 import type { StoryBibleApi } from './api/contracts/storyBible';
 import type { CharacterApi } from './api/contracts/character';
-import type { SeriesApi } from './api/contracts/series';
 import type { SystemApi } from './api/contracts/system';
 import type { TakeReviewApi } from './api/contracts/takeReview';
 import type { TeleprompterApi } from './api/contracts/teleprompter';
@@ -145,7 +143,6 @@ export interface NarrationApi
     ManuscriptApi,
     StoryBibleApi,
     CharacterApi,
-    SeriesApi,
     TranscriptApi,
     TtsApi,
     WhisperApi,

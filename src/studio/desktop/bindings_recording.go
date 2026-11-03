@@ -225,7 +225,6 @@ func (h *Host) emitRecordingState(from *recording.Service, state recording.State
 		emitEvent("recording:state", h.recorderState(svc, &state))
 		// The Booth hears a take start or end through the DAW port's transport, not by waiting for the next tick.
 		h.pollDawTransport()
-		h.pollDawProjectState()
 	}
 }
 

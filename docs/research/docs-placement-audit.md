@@ -754,8 +754,8 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0525](../../src/studio/desktop/internal/proofing/pickups.go) | UX | N | Proposed | PRD proofing signals | Defines when a proofing signal reads met/not_met/unknown; product rule |
 | [0545](../guides/using-the-app/proof.md#the-chapter-view) | UX | Y | Proposed | PRD native takes | Panel placement, assignment UI, keeper marks and a new keeper.json bundled |
 | [0550](../guides/using-the-app/navigation.md#editing-check) | ARCH | Y | Proposed | keep | Editing reuses proofing's render store, adds a choice store and fingerprint-scoped ledger; module boundaries |
-| [0560](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from) | ARCH | N | Proposed | keep | Adds a sidecar align-word mode as a punch-time source; external integration approach |
-| [0565](../../src/studio/desktop/internal/series/voicebible.go) | UX | Y | Accepted | PRD series voice bible | Grouping, labels, display names, empty state and error reporting for one feature |
+| [0560](https://github.com/countrymanprime/narration-studio/blob/e95ce0c3c8d5d2bf3860d95e8184b6d308da1ef4/docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from) | ARCH | N | Proposed | keep | Adds a sidecar align-word mode as a punch-time source; external integration approach |
+| [0565](https://github.com/countrymanprime/narration-studio/blob/e95ce0c3c8d5d2bf3860d95e8184b6d308da1ef4/src/studio/desktop/internal/series/voicebible.go) | UX | Y | Accepted | PRD series voice bible | Grouping, labels, display names, empty state and error reporting for one feature |
 | [0566](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD series | Where series membership is managed and which picker it reuses |
 | [0567](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD series | Series tab placement in Story Bible and what is left out of the UI |
 | [0568](../../src/studio/desktop/internal/guide/readonly.go) | IMPL | N | Accepted | code comment in internal/guide/readonly.go | One read-only function's behaviour and missing-file rule |

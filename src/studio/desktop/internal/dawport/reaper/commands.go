@@ -36,8 +36,6 @@ func (p pickupList) ExportPickups(runID, outputPath string) error {
 	return p.send("export_pickups", runID, outputPath)
 }
 
-func (p pickupList) NextPickup(runID string) error { return p.send("next_pickup", runID) }
-
 func (p pickupList) ResolvePickup(runID string, position float64) error {
 	return p.send("resolve_pickup", runID, strconv.FormatFloat(position, 'f', 6, 64))
 }
