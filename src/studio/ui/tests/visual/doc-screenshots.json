@@ -1163,6 +1163,13 @@
   },
   {
     "page": "script",
+    "state": "search-steps",
+    "viewport": "desktop",
+    "docName": "script-search-steps",
+    "caption": "Script - a search showing, then Ctrl+F and Search: Next match and Previous match with where you are (1 of 397 for “alice”), and Clear the search"
+  },
+  {
+    "page": "script",
     "state": "define-marks",
     "viewport": "desktop",
     "docName": "script-define-marks",

@@ -57,6 +57,8 @@ A word found more than 1,000 times lights and steps through the first 1,000, and
 
 ![Script - Ctrl+F then "Alice": the menu lists the matches under In the script, the matched word marked](../../images/ui/script-search.webp)
 
+![Script - a search showing, then Ctrl+F and Search: Next match and Previous match with where you are (1 of 397 for “alice”), and Clear the search](../../images/ui/script-search-steps.webp)
+
 **Find in the manuscript** on a Story Bible entry and **Find** in the right-click menu light the matches in the text the same way, without opening the menu.
 
 At 1280 px and narrower the rail opens as a drawer over the text from the header's side panel button, and below 1180 px the
