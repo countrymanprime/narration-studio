@@ -112,3 +112,15 @@ func TestASkippedFlagIsConfirmedByACheckThatAlsoSkipsAndClearedByOneThatReadsIt(
 		t.Fatalf("read in full: %+v", got)
 	}
 }
+
+func TestACheckWithMoreWordsThanASegmentCanHoldIsIgnored(t *testing.T) {
+	tracker := flagTracker(flagScript)
+	readSegment(tracker, 0, misheard)
+	words := make([]CheckedWord, maxCheckedWords+1)
+	for i := range words {
+		words[i] = CheckedWord{Word: "word", Start: float64(i), End: float64(i) + 0.1}
+	}
+	if got := tracker.Check(0, words); len(got) != 0 {
+		t.Fatalf("a check of %d words says nothing: %+v", len(words), got)
+	}
+}
