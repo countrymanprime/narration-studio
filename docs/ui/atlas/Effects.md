@@ -20,6 +20,8 @@ Storybook title: `Editing/Effects`. Source: `src/components/editing/effects/Effe
 - Strip Cap Read Only
 - On Words Many
 - Inspector Reaper
+- Inspector Stepping
+- Inspector Last
 - Inspector Settings
 - Inspector Bypassed
 - Inspector Settings Narrow
@@ -31,7 +33,15 @@ Storybook title: `Editing/Effects`. Source: `src/components/editing/effects/Effe
 - Add Far Over Cap
 - Add Daw Cannot
 - Add With Favourites
+- Add Choose In Reaper
+- Add Choosing Nothing Yet
+- Add Choosing Chosen
+- Add Choosing Narrow
 - Add Favourites Refused
+- Project Fx List
+- Project Fx None
+- Project Fx Unread
+- Project Fx Reading
 - Tab
 
 ## Used by

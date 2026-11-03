@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "kind": "credits_opening",
+      "path": "C:/Renders/00 Opening credits.wav",
+      "region": "Opening credits",
+      "title": ""
+    },
+    {
+      "kind": "chapter",
+      "path": "C:/Renders/Chapter 01.wav",
+      "region": "Chapter 1",
+      "title": "Chapter 1"
+    }
+  ],
+  "label": "Your DAW's FX chain",
+  "master": true,
+  "needsApproval": true,
+  "needsMacro": false,
+  "provider": "daw"
+}

@@ -65,8 +65,10 @@ how many punches). In a [pickup session](#a-pickup-session) the pickup lines com
 behind it is dimmed while it is open, and a click on the dimmed text closes it; in a window under 480 pixels wide the drawer
 takes the whole width.
 
-The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), **Cold read**, a level bar and the
-room tone of that microphone at the right, and the keys the Booth answers, drawn from your keymap. One sentence at a time sits
+The footer has one **Record** button with two attached parts, the **Cold read** switch and, on its side, **Levels** (the caret that
+opens the microphone in use and two sliders). The take's timer follows it, and in a chapter that records on voice folders the
+[voice control](#recording-each-voice-on-its-own-track) sits to its left. A level bar and the room tone of that microphone are at the
+right, then the keys the Booth answers, drawn from your keymap. One sentence at a time sits
 between the controls and the level bar: why the text cannot follow your voice, or else why Record cannot start. In a window
 narrower than 1024 pixels the sentence moves to its own line under **Record**; the level bar stays on Record's line.
 
@@ -297,7 +299,7 @@ to start), the footer says why. Listening starts at the same time as the DAW, so
 
 ### A cold read
 
-To read a passage through before recording it, press **Cold read** in the footer beside **Levels**, or choose **Start cold read** in the jump menu (Ctrl+K). The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
+To read a passage through before recording it, press **Cold read** in the footer, between **Record** and **Levels**, or choose **Start cold read** in the jump menu (Ctrl+K). The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
 
 A second cursor, the **ghost**, follows your voice: the word you have reached has a dashed outline and a muted tint, with a dashed tick above it. The text keeps the ghost in view, so you can read on without touching anything. The real cursor, a filled word with a caret, stays where you left it: the next take starts from there. The progress line and the resume line follow the real cursor too. A click, an arrow key or **Start from here** moves the real cursor, not the ghost. What you read during a cold read is not kept: it never moves the real cursor, sets where you stopped, adds a suspected line or touches a bookmark.
 
@@ -309,7 +311,7 @@ A cold read keeps listening until you stop it: press **Cold read** again, press 
 
 In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), a chapter linked to a REAPER folder records on
 one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
-voice a take records on, beside **Cold read**: its number-pad key and the track's name, with a red ring when REAPER reports that track
+voice a take records on, to the left of **Record**: its number-pad key (the number alone, "2") and the track's name, with a red ring when REAPER reports that track
 armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
 named **Narrator**.
 

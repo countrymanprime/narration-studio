@@ -5,6 +5,7 @@
   "message": "Export cancelled. 1 of 2 files were prepared.",
   "percent": 0,
   "master": true,
+  "provider": "builtin",
   "format": "mp3",
   "logs": [
     "Preparing 2 files.",

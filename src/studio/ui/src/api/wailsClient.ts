@@ -12,7 +12,7 @@ import {
   chapterSchema,
   paragraphsSchema,
   readerStateSchema,
-  searchHitsSchema,
+  manuscriptSearchResultSchema,
   workJobSchema,
 } from './schemas/manuscript';
 import {
@@ -191,7 +191,7 @@ import { levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './sc
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
 import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
-import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
+import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import type { NarrationApi } from '../types';
 import * as host from '../../wailsjs/desktop/host';
 import { Events } from '@wailsio/runtime';
@@ -437,7 +437,7 @@ export const wailsClient: NarrationApi = {
   manuscriptChapters: () => decode(chaptersSchema, 'ManuscriptChapters', host.ManuscriptChapters()),
   readerState: () => decode(readerStateSchema, 'ManuscriptReaderState', host.ManuscriptReaderState()),
   manuscriptParagraphs: (chapter) => decode(paragraphsSchema, 'ManuscriptParagraphs', host.ManuscriptParagraphs(chapter)),
-  manuscriptSearch: (query) => decode(searchHitsSchema, 'ManuscriptSearch', host.ManuscriptSearch(query)),
+  manuscriptSearch: (query) => decode(manuscriptSearchResultSchema, 'ManuscriptSearch', host.ManuscriptSearch(query)),
   manuscriptSetChapterStatus: (chapter, status) => decode(chapterSchema, 'ManuscriptSetChapterStatus', host.ManuscriptSetChapterStatus(chapter, status)),
   manuscriptSetChapterKind: (chapterId, kind) => decode(chapterKindResultSchema, 'ManuscriptSetChapterKind', host.ManuscriptSetChapterKind(chapterId, kind)),
   noteList: (chapter) => decode(notesSchema, 'ManuscriptNotes', host.ManuscriptNotes(chapter ?? '')),
@@ -832,6 +832,7 @@ export const wailsClient: NarrationApi = {
   subscribeTeleprompterResumeFollow: (onEvent) => subscribeChecked('teleprompter_resume_follow', teleprompterResumeFollowEventSchema, onEvent),
   mediaUrl: (sourceFile) => `${mediaRoute}?path=${encodeURIComponent(sourceFile)}`,
   exportPickFiles: () => decode(measurePickResultSchema, 'ExportPickFiles', host.ExportPickFiles()),
+  exportPlan: (req) => decode(exportPlanSchema, 'ExportPlan', host.ExportPlan(req)),
   exportStart: (req) => decode(exportJobSchema, 'ExportStart', host.ExportStart(req)),
   exportState: () => decode(exportJobSchema, 'ExportState', host.ExportState()),
   exportCancel: () => decode(exportJobSchema, 'ExportCancel', host.ExportCancel()),

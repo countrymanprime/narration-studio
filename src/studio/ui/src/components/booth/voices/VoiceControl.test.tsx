@@ -46,6 +46,15 @@ describe('the voice control', () => {
     expect(screen.queryByRole('listbox', { name: 'Voices of this chapter' })).toBeNull();
   });
 
+  it('draws the key as a plain number, with no keycap, and a screen reader still hears "Num"', () => {
+    render(<Harness onChoose={vi.fn()} current={voices[1]} />);
+    const trigger = screen.getByRole('button', { name: /^Voice:/ });
+    expect(trigger.querySelector('kbd')).toBeNull();
+    // The name reads as words: "Voice: Num 1, Queen".
+    expect(trigger.getAttribute('aria-label') ?? trigger.textContent).toMatch(/^Voice: Num 1, /);
+    expect(trigger.querySelector('.font-mono')?.textContent).toBe('Num 1, ');
+  });
+
   it('the search finds a voice by its key, its track or a character it records, and Enter picks it', async () => {
     const onChoose = vi.fn();
     render(<Harness onChoose={onChoose} />);
