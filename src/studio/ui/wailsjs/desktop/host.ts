@@ -163,6 +163,23 @@ export function BookmarksUpdate(id: string, label: string, note: string): $Cance
     return $Call.ByID(3562503062, id, label, note);
 }
 
+/**
+ * BoothVoiceGet is the voice the Booth records chapterID on, as the host holds it: the page shows this, never a voice it assumed,
+ * so a choice made before the Booth was left, or one a refused switch kept, is what the record bar says.
+ */
+export function BoothVoiceGet(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2379384316, chapterID);
+}
+
+/**
+ * BoothVoiceSet chooses the voice the Booth records chapterID on, by the voice track's GUID, which must be a direct child of the
+ * chapter's one linked folder; during a take this app started it switches the take live. Sent only from a voice key or a press in
+ * the Booth's voice list.
+ */
+export function BoothVoiceSet(chapterID: string, trackGUID: string): $CancellablePromise<string> {
+    return $Call.ByID(2840991728, chapterID, trackGUID);
+}
+
 export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(2880307428).then(($result: any) => {
         return $$createType0($result);

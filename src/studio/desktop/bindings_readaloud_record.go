@@ -187,7 +187,15 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 	if recorder == nil || (at != nil && puncher == nil) {
 		return readAloudUnsupportedRefusal(name), nil
 	}
-	guid, refused, err := readAloudTrackGUID(svc, chapterID)
+	link, refused, err := readAloudTrackGUID(svc, chapterID)
+	if err != nil {
+		return ReadAloudRecording{}, err
+	}
+	if refused != nil {
+		return *refused, nil
+	}
+	// In a Voice folders chapter the link is a folder: the take records on one of its voices (bindings_booth_voice.go).
+	guid, refused, err := recordTarget(svc, chapterID, link)
 	if err != nil {
 		return ReadAloudRecording{}, err
 	}
@@ -262,7 +270,7 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartIn(ctx, svc, recorder, trackStateReaderFrom(svc), chapterID)
+	result, err := readAloudRecordStartIn(ctx, h.services(), recorder, trackStateReaderFrom(svc), chapterID)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}
@@ -292,7 +300,7 @@ func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, err
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartAtIn(ctx, svc, recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
+	result, err := readAloudRecordStartAtIn(ctx, h.services(), recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}

@@ -114,6 +114,18 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },
   setup: (page) => readyToRecord(page),
+  voices: async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).waitFor();
+  },
+  'voices-list': async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).click();
+    await page
+      .getByRole('listbox', { name: 'Voices of this chapter' })
+      .getByRole('option', { name: /Extras/ })
+      .waitFor();
+  },
   // The mixed manuscript's second chapter has a title and no subtitle, its third a subtitle long enough to wrap (applyMixedManuscriptMock).
   'heading-title-only': async (page) => {
     await openHeadings(page, 'A Message from the Author');

@@ -81,6 +81,8 @@ export function BoothFooter({
   keymap,
   pickupSession = false,
   coldRead,
+  voice,
+  voiceFolders = false,
 }: {
   record: ReactNode;
   seconds: number;
@@ -102,13 +104,23 @@ export function BoothFooter({
   pickupSession?: boolean;
   /** Beside the microphone's Levels; absent, the footer has no Cold read. */
   coldRead?: ColdReadToggle;
+  /** The voice control, after Cold read (a chapter linked to a folder of voices draws one; otherwise it draws nothing). */
+  voice?: ReactNode;
+  /** The chapter records on a folder of voices: the footer hints show the voice keys. */
+  voiceFolders?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   // One reading for the menu and the inline meter, running for as long as the Booth shows: the meter beside the room tone follows the
   // microphone without the Levels menu being opened, and the DAW's own meters are read for as long as the footer is mounted too.
   useDawMeterLease();
   const { level, error } = useLevels(mic.device, { active: recording, enabled: true });
-  const hints = footerHints('booth', keymap, undefined, undefined, new Set(pickupSession ? ['pickupSession' as const] : []));
+  const hints = footerHints(
+    'booth',
+    keymap,
+    undefined,
+    undefined,
+    new Set([...(pickupSession ? ['pickupSession' as const] : []), ...(voiceFolders ? ['voiceFolders' as const] : [])]),
+  );
   // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
@@ -123,7 +135,8 @@ export function BoothFooter({
         little rows with the meter alone (R4BO1-1, R4BO2-7, XBO-10).
       */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] py-2.5">
-        <div className="flex flex-none items-center gap-4">
+        {/* Wraps in a narrow window, so the voice control and Cold read drop to a second row instead of leaving the window. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
           {record}
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
@@ -142,6 +155,7 @@ export function BoothFooter({
               Cold read
             </Button>
           ) : null}
+          {voice}
           {why && !shownWhy ? (
             <span id="brec-why" className="sr-only">
               {why}

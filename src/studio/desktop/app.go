@@ -208,6 +208,9 @@ type Host struct {
 	// navigation is the Review page's REAPER navigator on the same bridge client (bindings_navigation.go); swappable
 	// like transcript. Never nil once configured: with no bridge client it is standalone and refuses every request.
 	navigation *findingNavigation
+	// boothVoices is the voice the Booth chose for each chapter of the project (bindings_booth_voice.go); swappable like transcript,
+	// so a project switch forgets the last project's choices, whose GUIDs name its tracks. Never nil once configured.
+	boothVoices *boothVoiceChoices
 	// dawPortResolver is the DAW port's resolver over p5aAdapter: bindings_navigation.go,
 	// readaloudreaper.go, teleprompterinput.go and chapterregions.go ask it for their roles instead of holding
 	// *bridge.Client or *bridge.Actions themselves. Swappable like navigation and actions; nil with no bridge client.
@@ -698,6 +701,7 @@ func (h *Host) configureLocked(next config) {
 	// Reachability subscribes to the same client transcript.New below also subscribes: both are independent
 	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events.
 	h.reachability = daw.NewReachability(client)
+	h.boothVoices = newBoothVoiceChoices()
 	h.bridge = client
 	// The project's Audacity connection (audacityconn.go) is made before the services that take its roles; a project that records with
 	// anything else has none. The previous project's is closed, which drops its pipe.

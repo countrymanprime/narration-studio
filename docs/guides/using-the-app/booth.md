@@ -305,6 +305,27 @@ A cold read keeps listening until you stop it: press **Cold read** again, press 
 
 ![Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar](../../images/ui/booth-cold-read.webp)
 
+### Recording each voice on its own track
+
+In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), a chapter linked to a REAPER folder records on
+one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
+voice a take records on, beside **Cold read**: its number-pad key and the track's name, with a red ring when REAPER reports that track
+armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
+named **Narrator**.
+
+Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
+narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
+previous voice. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
+and one undo point, and about a twentieth of a second at the switch is recorded on neither track, so press the key in a pause between
+lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
+behind it changes nothing and says so. Each chapter keeps the voice you chose until you close the app or open another project, and the
+control shows the voice the app will record on, also after you leave the Booth and come back. In a
+chapter that records on one track the voice keys say why they do nothing, and **=** and **-** still change the text size.
+
+![Booth - the voice control on the record bar, with the voice keys among the key hints](../../images/ui/booth-voices.webp)
+
+![Booth - the voice list: the chapter folder's voices with their keys and characters](../../images/ui/booth-voices-list.webp)
+
 ## Where the Booth opens in your DAW
 
 When your DAW is connected and following is on, the Booth and the DAW stay together at the start:

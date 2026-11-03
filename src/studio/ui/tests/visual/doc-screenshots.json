@@ -281,6 +281,20 @@
   },
   {
     "page": "booth",
+    "state": "voices",
+    "viewport": "desktop",
+    "docName": "booth-voices",
+    "caption": "The Booth - the voice control on the record bar in a chapter linked to a folder of voices"
+  },
+  {
+    "page": "booth",
+    "state": "voices-list",
+    "viewport": "desktop",
+    "docName": "booth-voices-list",
+    "caption": "The Booth - the voice list: the chapter folder's voices with their keys and characters"
+  },
+  {
+    "page": "booth",
     "state": "setup",
     "viewport": "desktop",
     "docName": "booth-setup",
