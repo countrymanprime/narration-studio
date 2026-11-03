@@ -103,7 +103,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'nested-chapters',
     description:
-      "Chapter links when two linked chapters' tracks sit inside another linked chapter's folder in REAPER (?mockNestedChapters=1, #2838): the warning notice at the top of the panel naming them and the folder, with Move them out…",
+      "Chapter links when two linked chapters' tracks sit inside another linked chapter's folder in REAPER (?mockNestedChapters=1, #2838): the panel header's warning badge, 2 chapters nested, and Move them out…",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

@@ -321,15 +321,16 @@ change the REAPER project.
 
 If a linked chapter's track sits inside another linked chapter's folder in REAPER, the app reads it as one of that chapter's voices.
 An earlier version of the app could leave a project like this: when the last folder in a project was left open at the end, each
-chapter track it added afterwards landed inside that folder. Chapter links then shows a warning that names the chapters and the folder
-they sit in. The app checks again when the panel opens, when a link changes and when you come back to the window.
+chapter track it added afterwards landed inside that folder. Chapter links' header then shows how many chapters are nested, and
+**Move them out…**, whose tooltip names them and the folder they sit in. The app checks again when the panel opens, when a link changes
+and when you come back to the window.
 
 Press **Move them out…** to see every track the move changes before anything happens in REAPER: each chapter, and any track that comes
 after one inside the same folder, with the folder it leaves and where it goes. Confirm to move them. Only the folder setting of the track
 just before each chapter changes, so a chapter's own voices stay inside it, and one Undo in REAPER takes the whole move back. If the
 tracks changed in REAPER since the check, nothing is moved and the app checks again. Save the project in REAPER to keep the move.
 
-![Chapter links warning that two chapters sit inside another chapter's folder in REAPER](../../images/ui/engine-panel-nested-chapters.webp)
+![Chapter links' header: two chapters nested in REAPER, and Move them out](../../images/ui/engine-panel-nested-chapters.webp)
 
 ![The confirmation listing every track that moves out of the chapter's folder](../../images/ui/engine-panel-nested-chapters-confirm.webp)
 

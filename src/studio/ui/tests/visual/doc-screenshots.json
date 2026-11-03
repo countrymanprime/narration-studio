@@ -494,7 +494,7 @@
     "state": "nested-chapters",
     "viewport": "desktop",
     "docName": "engine-panel-nested-chapters",
-    "caption": "The audio engine panel - Chapter links warning that two chapters sit inside another chapter's folder in REAPER, with Move them out"
+    "caption": "The audio engine panel - Chapter links' header: two chapters nested in another chapter's folder in REAPER, and Move them out"
   },
   {
     "page": "engine",

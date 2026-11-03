@@ -32,7 +32,8 @@ function renderTable(api: ReturnType<typeof createMockApi>) {
 describe("the Chapter links panel's nested-chapters repair (#2838)", () => {
   it('says which chapters sit inside which chapter folder in REAPER, and nothing when none do', async () => {
     renderTable(createMockApi({}, { nestedChapters: true }));
-    expect(await screen.findByText(/sit inside/)).toBeTruthy();
+    expect(await screen.findByText('2 chapters nested')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Move them out…' }).getAttribute('title')).toMatch(/sit inside .*’s folder/);
     expect(screen.getByRole('button', { name: 'Move them out…' })).toBeTruthy();
     cleanup();
     renderTable(createMockApi());
