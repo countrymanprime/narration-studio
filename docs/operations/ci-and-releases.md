@@ -378,10 +378,9 @@ come with the package data and English does not need them, a saving left for a l
 `--exclude-module` for `gliner`, `booknlp`, `transformers` and `torch`, and verify-installable fails a guide tree that holds any of them: the
 optional GLiNER and BookNLP downloads load them from its own install folder.
 
-**Known gap, not fixed here:** the IPA shown for a name the CMU dictionary lacks comes from the `phonemizer` package, which needs a
-system `libespeak-ng` that no build ships (it fails with "espeak not installed on your system" on a developer machine too), so
-such a name gets no pronunciation in any build. That is a Story Bible behaviour, separate from previews, which speak through Piper's
-own bundled espeak-ng; `guide:espeak` checks the latter. Using Piper's phonemizer for the IPA fallback would close it.
+The IPA shown for a name the CMU dictionary lacks comes from Piper's own bundled espeak-ng (`EspeakSource` in `core/providers.py`), from the same
+`piper/espeak-ng-data` that previews speak through and `guide:espeak` checks, so it needs no system `libespeak-ng` (#232). The `phonemizer` package is
+used only when `--espeak-library` names a library, which the host never passes.
 
 The smoke test's `resources` step unpacks into the same per-user cache the app uses, so do not run it while the app is open.
 

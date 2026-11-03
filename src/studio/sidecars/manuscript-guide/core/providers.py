@@ -154,15 +154,28 @@ class EspeakSource:
     def __init__(self) -> None:
         # Set by pronounce_source() from the sidecar's --espeak-library flag before each call; None uses phonemizer's own.
         self.espeak_library: str | None = None
+        self._piper: Any = None
+
+    def _through_phonemizer(self, name: str) -> str:
+        from phonemizer import phonemize
+        from phonemizer.backend.espeak.wrapper import EspeakWrapper
+
+        EspeakWrapper.set_library(self.espeak_library)
+        return phonemize(name, language="en-us", backend="espeak", strip=True, with_stress=True)
+
+    def _through_piper(self, name: str) -> str:
+        if self._piper is None:
+            from piper.phonemize_espeak import ESPEAK_DATA_DIR, EspeakPhonemizer
+
+            self._piper = EspeakPhonemizer(Path(ESPEAK_DATA_DIR))
+        sentences = self._piper.phonemize("en-us", name)
+        return "".join("".join(sentence) for sentence in sentences).strip()
 
     def pronounce(self, name: str) -> dict[str, str]:
-        from phonemizer import phonemize
-
-        if self.espeak_library:
-            from phonemizer.backend.espeak.wrapper import EspeakWrapper
-
-            EspeakWrapper.set_library(self.espeak_library)
-        ipa = phonemize(name, language="en-us", backend="espeak", strip=True, with_stress=True)
+        # An explicit --espeak-library goes through the phonemizer package. Without one (every shipped build: the host never
+        # passes it) Piper's own espeak-ng answers, from the data every build carries (the guide:espeak self-check), so a
+        # name the dictionaries lack still gets an IPA guess without a system libespeak-ng (#232).
+        ipa = self._through_phonemizer(name) if self.espeak_library else self._through_piper(name)
         if not ipa:
             raise ValueError(f'eSpeak produced no pronunciation for "{name}".')
         return {"ipa": ipa, "source": self.guess_label, "confidence": "low"}
