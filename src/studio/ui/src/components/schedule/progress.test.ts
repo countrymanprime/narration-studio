@@ -158,6 +158,10 @@ describe('a milestone status: what the cell says (issue 1943)', () => {
     expect(milestoneStatus({ dueDate: date(-9), done: true }, book, TODAY).kind).toBe('done');
   });
 
+  it('writes a long past-due count with a thousands separator, as the header does', () => {
+    expect(milestoneStatus({ dueDate: '1000-01-01' }, book, TODAY).sentence).toMatch(/^Past due by \d{3},\d{3} d/);
+  });
+
   it('says "late" and "est." in the cell, not a bare "+8 d" or a bare date', () => {
     expect(milestoneStatus({ dueDate: date(need - 8), measure: 'rec' }, book, TODAY).short).toBe('8 d late');
     expect(milestoneStatus({ dueDate: date(need), measure: 'rec' }, book, TODAY).short).toMatch(/^est\. [A-Z][a-z]{2} \d+$/);

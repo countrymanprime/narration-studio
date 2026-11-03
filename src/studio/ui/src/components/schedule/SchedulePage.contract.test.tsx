@@ -177,6 +177,15 @@ describe('how the book pays', () => {
   });
 });
 
+describe('the sentence for a refused amount fits what was typed (issue 1943)', () => {
+  it('says "could mean 1.5 or 15" only for a single decimal comma, not for 1 250,5', async () => {
+    await mountSchedule();
+    await commit('1 250,5');
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/Write the rate as a number/));
+    expect(toasts().join(' ')).not.toMatch(/could mean/);
+  });
+});
+
 describe('a refused amount stays in the box, marked invalid (issue 1943)', () => {
   it('keeps `1,5` marked aria-invalid with the sentence for a screen reader, and puts the stored amount back on leaving again', async () => {
     await mountSchedule();

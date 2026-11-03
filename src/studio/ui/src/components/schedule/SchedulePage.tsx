@@ -128,7 +128,8 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
             async () => {
               const undone = await journal.undo(result.value.id);
               await reload();
-              restoreFocus?.();
+              // Undo takes its own button away, and a refused one (an older toast, when the row has since changed) leaves focus on the page: put it somewhere that exists.
+              (restoreFocus ?? (() => focusSoon('button[aria-label="Add milestone"]')))();
               return undone;
             },
             { entry: result.value.id },

@@ -49,7 +49,7 @@ export function ContractPanel({ plan, words, wph, onPayment, onAmount, onRefuse,
     if (amount === null) {
       const sentence = isTooLarge(text)
         ? `That rate is too large. Write it as ${MAX_AMOUNT.toLocaleString('en-US')} or less.`
-        : text.includes(',') && !text.includes('.')
+        : /^\d+,\d{1,2}$/.test(text)
           ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
           : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.';
       setTyped(typed);

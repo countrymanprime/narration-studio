@@ -5,7 +5,7 @@ import { reached } from '../../chapterStatus';
 import { isNarrationChapter } from '../../chapterKinds';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import type { CreditsKind } from '../credits/useCreditsRows';
-import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
+import { addDays, diffDays, fmtD, isIsoDate, num, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
 
@@ -157,7 +157,7 @@ export function milestoneStatus(
   if (measOf(m.measure) === 'custom') {
     // A custom milestone has no estimate, but a date that has passed with the box unticked is a miss the narrator should see, not a dash.
     const over = isIsoDate(m.dueDate) ? diffDays(today, parseIso(m.dueDate)) : 0;
-    if (over > 0) return { kind: 'late', sentence: `Past due by ${over} d: not marked done`, short: 'Past due' };
+    if (over > 0) return { kind: 'late', sentence: `Past due by ${num(over)} d: not marked done`, short: 'Past due' };
     return { kind: 'none', sentence: 'Not estimated', short: '—' };
   }
   if (!isIsoDate(m.dueDate)) return { kind: 'none', sentence: `Not estimated: ${m.dueDate || 'no date'} is not a real date`, short: '—' };

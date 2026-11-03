@@ -304,6 +304,16 @@ describe('the milestone dialog', () => {
     await waitFor(() => expect(document.activeElement?.getAttribute('aria-label')).toBe('Edit Retail sample'));
   });
 
+  it('does not drop focus to the page when an older Undo is refused', async () => {
+    await mount({ seed: { milestones: [CUSTOM] } });
+    await screen.findByText('Retail sample');
+    fireEvent.click(within(rowOf('Retail sample')).getByRole('button', { name: 'Remove Retail sample' }));
+    const first = await screen.findByRole('button', { name: 'Undo' });
+    first.focus();
+    fireEvent.click(first);
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
+  });
+
   it('keeps focus in the list after Remove, and on Add milestone when no milestone is left', async () => {
     await mount({ seed: { milestones: [CUSTOM] } });
     await screen.findByText('Retail sample');
