@@ -35,6 +35,27 @@ async function expectFixedRowHeight(page: Page): Promise<void> {
   expect(heights.length).toBeGreaterThan(5);
   for (const height of heights) expect(Math.abs(height - 52)).toBeLessThanOrEqual(1);
   expect(new Set(heights.map(Math.round)).size).toBe(1);
+  // The name clamp is a real line clamp on the element that holds the text (so a name of three lines ends in an ellipsis, not a silent cut), and
+  // no name is taller than its two lines.
+  const names = await page.locator(`${PIPELINE_ROWS} .line-clamp-2`).evaluateAll((elements) =>
+    elements.map((element) => {
+      const style = getComputedStyle(element);
+      return {
+        display: style.display,
+        clamp: style.getPropertyValue('-webkit-line-clamp'),
+        overflow: style.overflow,
+        height: element.getBoundingClientRect().height,
+      };
+    }),
+  );
+  expect(names.length).toBe(heights.length);
+  for (const name of names) {
+    // The clamp is on the element that holds the text. This Chromium serialises `display: -webkit-box` as `flow-root`; a plain `block` (what a
+    // stray `block` class made of it) clamps nothing, so the name was cut with no ellipsis.
+    expect(name).toMatchObject({ clamp: '2', overflow: 'hidden' });
+    expect(['-webkit-box', 'flow-root']).toContain(name.display);
+    expect(name.height).toBeLessThanOrEqual(41);
+  }
 }
 
 async function scrollPipelineTo(page: Page, row: number): Promise<void> {
