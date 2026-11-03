@@ -9,15 +9,13 @@ import { SearchList } from '../../primitives/SearchList';
 import { IconButton } from '../../primitives/IconButton';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import type { BoothVoices } from './useBoothVoices';
-import type { WhoCharacter } from './whoIsIn';
+import { keyName, lineCount, voiceName, type WhoCharacter } from './whoIsIn';
+import { StatusBadge } from '../../primitives/StatusBadge';
 
 /** A "No track" row's option id: a character, never a track GUID. */
 const CHARACTER = 'character:';
-const lineCount = (lines: number) => `${lines} ${lines === 1 ? 'line' : 'lines'}`;
 
-const keyLabel = (voice: Voice) => (voice.key ? `Num ${voice.key}` : '');
-/** A track REAPER holds with a blank name is still a voice: it is named so the row and the control say something. */
-const voiceName = (voice: Voice) => voice.name.trim() || 'Unnamed track';
+const keyLabel = (voice: Voice) => (voice.key ? keyName(voice.key) : '');
 
 /** The mock's arm dot: drawn only when REAPER reports the voice armed. */
 function ArmDot() {
@@ -119,7 +117,8 @@ export function VoiceControl({
             <bdi>{character.name}</bdi>
           </span>
         ),
-        trailing: <span className="text-[var(--text-muted)]">{lineCount(character.lines)}</span>,
+        // The same badge as the dialog's (the mock's `pill n`), so a line count is drawn one way.
+        trailing: <StatusBadge tone="neutral" label={lineCount(character.lines)} />,
       })),
     ],
     [voices, needle, current, arm.state, missing, grouped],

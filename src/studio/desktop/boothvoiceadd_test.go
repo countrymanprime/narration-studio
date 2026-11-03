@@ -253,3 +253,24 @@ func TestBoothVoiceAddedPayloadsMatchTheContract(t *testing.T) {
 	}
 	contractfile.Check(t, "booth-voice-added", answers)
 }
+
+// The order the Booth sends during a take (#2839): an add while this app records is refused and sends nothing; once the take has stopped
+// (ReadAloudRecordStop clears it, as REAPER's RECORD_ENDED does) the same add goes through.
+func TestAnAddDuringTheTakeIsRefusedAndTheSameAddAfterTheStopGoesThrough(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	recorder := &fakeRecorder{}
+	if started := recordStartWithVoice(t, host, recorder, ids[0]); started.Outcome != "started" {
+		t.Fatalf("start %+v", started)
+	}
+	host.setReadAloudRecording(ids[0], recorder) // as ReadAloudRecordStart marks this app's take
+
+	creator := &fakeChildCreator{}
+	if during := boothVoiceAdd(t, host, creator, ids[0], "King of Hearts", []string{"king"}); during.Reason != trackCreateRecording || len(creator.children) != 0 {
+		t.Fatalf("during the take: %+v, sent %v", during, creator.children)
+	}
+	host.clearReadAloudRecording()
+	after := boothVoiceAdd(t, host, creator, ids[0], "King of Hearts", []string{"king"})
+	if after.Outcome != "added" || len(creator.children) != 1 {
+		t.Fatalf("after the stop: %+v, sent %v", after, creator.children)
+	}
+}

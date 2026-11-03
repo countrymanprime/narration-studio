@@ -10,7 +10,7 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 import { Select } from '../../primitives/Select';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { StatusBadge } from '../../primitives/StatusBadge';
-import { defaultTrackName, keyForNewTrack, type Cast, type WhoCharacter } from './whoIsIn';
+import { defaultTrackName, keyForNewTrack, keyName, lineCount, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
 export type WhoAsk = { kind: 'key'; key: number } | { kind: 'character'; character: WhoCharacter; choice?: WhoChoice };
@@ -30,9 +30,6 @@ export type WhoIsInDialogProps = {
   onClose: () => void;
 };
 
-const keyName = (key: string) => `Num ${key}`;
-const voiceName = (voice: Voice) => voice.name.trim() || 'Unnamed track';
-const lineCount = (lines: number) => `${lines} ${lines === 1 ? 'line' : 'lines'}`;
 const same = (a: string, b: string) =>
   a.split(/\s+/).filter(Boolean).join(' ').toLocaleLowerCase() === b.split(/\s+/).filter(Boolean).join(' ').toLocaleLowerCase();
 
@@ -187,6 +184,8 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
         }}
       >
         <RadioGroup label={asked ? `How to record ${asked.name}` : 'How to record them'} value={choice} onChange={setChoice} options={options} />
+        {/* Under the choice it names, so the field that has focus when the dialog opens is in view at every height (ux review). */}
+        {choice === 'new' ? <Field label="Track name" value={name} onChange={setTyped} error={nameProblem} autoFocus /> : null}
         {choice === 'existing' && others.length > 0 ? (
           <Select
             label="Track"
@@ -202,7 +201,6 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
             <CharacterGroup label="Elsewhere in the book" characters={cast.elsewhere} ticked={ticked} onTick={tick} />
           </>
         ) : null}
-        {choice === 'new' ? <Field label="Track name" value={name} onChange={setTyped} error={nameProblem} autoFocus /> : null}
       </form>
     </Dialog>
   );
