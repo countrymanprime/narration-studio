@@ -397,7 +397,7 @@ func documentRecords(content []byte, styles wordStyles) []paragraphRecord {
 }
 
 func docxTooLarge() error {
-	return &Error{"This Word document expands to more text than Narration Studio will read (over 256 MB). It may be damaged or not a real manuscript."}
+	return &Error{"This Word document expands to more text than the app will read (over 256 MB). It may be damaged or not a real manuscript."}
 }
 
 func docxWithProgress(path string, progress Progress) (Draft, error) {
