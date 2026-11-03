@@ -15,16 +15,20 @@ export function ZoomRow({ t0, ribbon, head, gestures }: { t0: number; ribbon: Ri
   return (
     <div className="flex h-8 min-w-0 flex-none items-center gap-2 px-3 text-xs text-[var(--text-muted)]">
       {head}
-      <span className="flex min-w-0 items-center gap-1.5" title={`Showing ${range}`}>
+      {/* The range being shown is secondary: in a window narrower than 30rem it gives way, so the head and the controls beside it are never squeezed or overlapped. */}
+      <span className="flex min-w-0 items-center gap-1.5 max-[30rem]:hidden" title={`Showing ${range}`}>
         <span className="flex-none">Showing</span>
         <span className="min-w-0 truncate font-mono text-[var(--text)]" data-view-label>
           {range}
         </span>
       </span>
       <span className="flex-1" />
-      {gestures ? <Tooltip text={gestures} label="Waveform gestures" icon="?" /> : null}
-      <IconButton action="zoomOut" size="sm" disabledReason={canZoomOut ? undefined : 'The whole recording is showing'} onClick={() => zoom(1)} />
-      <IconButton action="zoomIn" size="sm" disabledReason={canZoomIn ? undefined : 'One second is the closest view'} onClick={() => zoom(-1)} />
+      {/* The hint and the zoom buttons keep their size: only the head and the range text may shrink. */}
+      <span className="flex flex-none items-center gap-2">
+        {gestures ? <Tooltip text={gestures} label="Waveform gestures" icon="?" /> : null}
+        <IconButton action="zoomOut" size="sm" disabledReason={canZoomOut ? undefined : 'The whole recording is showing'} onClick={() => zoom(1)} />
+        <IconButton action="zoomIn" size="sm" disabledReason={canZoomIn ? undefined : 'One second is the closest view'} onClick={() => zoom(-1)} />
+      </span>
     </div>
   );
 }
