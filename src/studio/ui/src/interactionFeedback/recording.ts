@@ -24,6 +24,20 @@ export const recordingFeedback = {
     'ok',
     'Closing the Levels menu, leaving the Booth, the window losing focus or Record starting stops the built-in meter; the menu is gone by then, so a refusal or no answer within METER_WAIT_MS is an error toast.',
   ),
+  'src/components/booth/frame/recorderMeter.ts::recorderState#1': row(
+    'effect',
+    'instant',
+    'na',
+    'pending',
+    'ui',
+    'inline',
+    'yes',
+    'ok',
+    "Opening the Levels menu with the built-in recorder reads whether a take already records (a take the Booth did not start, after a reload), so no meter is started against it; no meter is started until it answers. Unreadable, or unanswered within METER_WAIT_MS, it is taken as no take: the start goes ahead and a take's refusal is the menu's sentence.",
+  ),
+  'src/components/booth/frame/recorderMeter.ts::subscribeRecorderState#1': subscription(
+    "While the Levels menu is open with the built-in recorder: a take starting or ending elsewhere stops or starts the menu's meter.",
+  ),
   'src/components/booth/frame/recorderMeter.ts::subscribeRecorderLevel#1': subscription(
     "The built-in recorder's level (recording:level) under the Levels menu's microphone, held only while the menu is open: the pre-take meter's level, or a take's.",
   ),

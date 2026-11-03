@@ -72,21 +72,33 @@ export type LevelsMenuProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-function Devices({ device, onDevice }: { device: string; onDevice: (device: string) => void }) {
+/** The built-in recorder's microphones, listed when the menu opens: null while listing; a listing problem is the result's own sentence. */
+function useRecorderDevices(): { devices: RecorderDevice[] | null; problem: string | null } {
   const recording = usePort('recording');
-  const [devices, setDevices] = useState<RecorderDevice[] | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [listed, setListed] = useState<{ devices: RecorderDevice[] | null; problem: string | null }>({ devices: null, problem: null });
   useEffect(() => {
     let cancelled = false;
     void recording.recorderDevices().then((result) => {
-      if (cancelled) return;
-      setDevices(result.devices);
-      setProblem(result.error);
+      if (!cancelled) setListed({ devices: result.devices, problem: result.error });
     });
     return () => {
       cancelled = true;
     };
   }, [recording]);
+  return listed;
+}
+
+function Devices({
+  devices,
+  problem,
+  device,
+  onDevice,
+}: {
+  devices: RecorderDevice[] | null;
+  problem: string | null;
+  device: string;
+  onDevice: (device: string) => void;
+}) {
   if (devices === null) return <p className="text-sm text-[var(--text-muted)]">Listing microphones…</p>;
   if (devices.length === 0)
     return (
@@ -100,6 +112,12 @@ function Devices({ device, onDevice }: { device: string; onDevice: (device: stri
     ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
   ];
   return <Select label="Microphone" fullWidth value={device} options={options} onChange={onDevice} />;
+}
+
+/** The recorder's microphones in the picker, for a built-in engine with no meter of its own to show. */
+function BuiltinDevices({ device, onDevice }: { device: string; onDevice: (device: string) => void }) {
+  const { devices, problem } = useRecorderDevices();
+  return <Devices devices={devices} problem={problem} device={device} onDevice={onDevice} />;
 }
 
 /**
@@ -275,41 +293,52 @@ function DawMeter({ caption, label, db, why }: { caption: string; label: string;
   );
 }
 
-/** Why the built-in meter row shows no level, or what it is doing: one line, in the slot under the meter. */
-function recorderWhy(view: RecorderMeterView, device: string): string | undefined {
-  if (view.status === 'none') return 'No microphone chosen.';
-  if (view.status === 'starting') return `Opening ${device}…`;
+/** What the built-in meter's sentence line says: what it is doing, why it shows no level, or nothing while it reads. */
+function recorderWhy(view: RecorderMeterView, device: string, listed: boolean): string | undefined {
+  // With no microphone listed, the picker under the meter already says so.
+  if (view.status === 'none') return listed ? 'No microphone chosen.' : undefined;
+  if ((view.status === 'starting' || view.status === 'take') && view.level === null) return `Opening ${device}…`;
+  if (view.status === 'paused') return 'Paused while the app is in the background.';
   if (view.status === 'refused') return view.message ?? undefined;
   return undefined;
 }
 
-/** The built-in recorder's own level for the chosen microphone (#2732), on the shared meter the DAW's meters use. Mounted only while the menu is open. */
-function RecorderMeterRow({ device, recording }: { device: string; recording: boolean }) {
-  const view = useRecorderMeter(device, recording);
-  const db = view.status === 'live' || view.status === 'take' ? (view.level?.peak ?? null) : null;
+/**
+ * The menu's Input and Microphone with the built-in recorder (#2732): the one input meter is the recorder's own level for the microphone the
+ * picker shows (the mock's Input meter, "the real level comes from the recorder"), started only on a microphone the recorder lists. Under it,
+ * one line kept for its sentence (opening, paused, refused) with Check again after a refusal. A meter with no reading yet is drawn dimmed
+ * and hidden from screen readers, so an opening microphone never reads as a silent one. Mounted only while the menu is open.
+ */
+function BuiltinInput({ device, onDevice, recording }: { device: string; onDevice: (device: string) => void; recording: boolean }) {
+  const { devices, problem } = useRecorderDevices();
+  const listedDevice = devices === null ? null : devices.some((d) => d.name === device) ? device : '';
+  const view = useRecorderMeter(listedDevice, recording);
+  const reading = (view.status === 'live' || view.status === 'take') && view.level !== null ? view.level : null;
+  const why = recorderWhy(view, device, (devices?.length ?? 0) > 0);
+  const refused = view.status === 'refused';
   return (
-    <div data-testid="recorder-meter" className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-2">
-        <span aria-hidden="true" className="shrink-0 text-xs text-[var(--text-muted)]">
-          Recorder
-        </span>
-        <div className="min-w-0 flex-1">
-          <LevelMeter
-            label="Built-in recorder input level"
-            peak={db}
-            rms={view.status === 'live' || view.status === 'take' ? (view.level?.rms ?? null) : null}
-            size="compact"
-          />
+    <>
+      <div className="flex flex-col gap-1.5">
+        <span className={SECTION_LABEL}>Input</span>
+        <div data-testid="input-meter" className={reading === null ? 'opacity-50' : ''}>
+          <LevelMeter label="Input level" peak={reading?.peak ?? null} rms={reading?.rms ?? null} size="regular" decorative={reading === null} />
+        </div>
+        {/* One line is kept for the sentence, so the menu does not jump as the meter starts; Check again, after a refusal, makes it taller. */}
+        <div className="flex min-h-4 items-center gap-2">
+          <span
+            role={refused ? 'alert' : 'status'}
+            className={`min-w-0 flex-1 text-xs [overflow-wrap:anywhere] ${refused ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`}
+          >
+            {why}
+          </span>
+          {refused ? <IconButton action="retry" label="Check again" size="xs" onClick={view.retry} /> : null}
         </div>
       </div>
-      {/* One line is kept for the sentence, so the menu does not jump as the meter starts. */}
-      <span
-        role={view.status === 'refused' ? 'alert' : undefined}
-        className={`min-h-4 text-xs [overflow-wrap:anywhere] ${view.status === 'refused' ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`}
-      >
-        {recorderWhy(view, device)}
-      </span>
-    </div>
+      <div className="flex flex-col gap-1.5">
+        <span className={SECTION_LABEL}>Microphone</span>
+        <Devices devices={devices} problem={problem} device={device} onDevice={onDevice} />
+      </div>
+    </>
   );
 }
 
@@ -469,6 +498,8 @@ export function LevelsMenu({
   onOpenChange,
 }: LevelsMenuProps) {
   const off = engine === 'daw' && !reachable;
+  // With the built-in recorder recording, the menu's one input meter is the recorder's own (#2732).
+  const ownMeter = engine === 'builtin' && recorderMeter;
   return (
     <Popover
       label="Levels"
@@ -480,34 +511,37 @@ export function LevelsMenu({
       trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
     >
       <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <span className={SECTION_LABEL}>Input</span>
-          <LevelMeter label="Input level" peak={off ? null : (level?.peak ?? null)} rms={off ? null : (level?.rms ?? null)} size="regular" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <span className={SECTION_LABEL}>Microphone</span>
-          {engine === 'builtin' ? (
-            <>
-              <Devices device={device} onDevice={onDevice} />
-              {recorderMeter ? <RecorderMeterRow device={device} recording={recording} /> : null}
-            </>
-          ) : (
-            <>
-              {off ? <div className="text-sm text-[var(--text)]">{offReason ?? `${dawName} is not running`}</div> : null}
-              {listen ? (
-                <Listening dawName={dawName} device={device} listen={listen} />
-              ) : off ? null : (
-                <div className="text-sm text-[var(--text)]">Chosen in {dawName}</div>
+        {ownMeter ? (
+          <BuiltinInput device={device} onDevice={onDevice} recording={recording} />
+        ) : (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <span className={SECTION_LABEL}>Input</span>
+              <LevelMeter label="Input level" peak={off ? null : (level?.peak ?? null)} rms={off ? null : (level?.rms ?? null)} size="regular" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className={SECTION_LABEL}>Microphone</span>
+              {engine === 'builtin' ? (
+                <BuiltinDevices device={device} onDevice={onDevice} />
+              ) : (
+                <>
+                  {off ? <div className="text-sm text-[var(--text)]">{offReason ?? `${dawName} is not running`}</div> : null}
+                  {listen ? (
+                    <Listening dawName={dawName} device={device} listen={listen} />
+                  ) : off ? null : (
+                    <div className="text-sm text-[var(--text)]">Chosen in {dawName}</div>
+                  )}
+                </>
               )}
-            </>
-          )}
-          {error ? (
-            <span role="alert" className="text-xs text-[var(--danger-text)]">
-              {error}
-            </span>
-          ) : null}
-        </div>
-        {levels ? <LevelSliders levels={levels} dawName={dawName} ownMeter={engine === 'builtin' && recorderMeter} /> : null}
+              {error ? (
+                <span role="alert" className="text-xs text-[var(--danger-text)]">
+                  {error}
+                </span>
+              ) : null}
+            </div>
+          </>
+        )}
+        {levels ? <LevelSliders levels={levels} dawName={dawName} ownMeter={ownMeter} /> : null}
         {engine === 'daw' ? <PunchPrerollRow dawName={dawName} support={levels?.preroll} /> : null}
       </div>
     </Popover>

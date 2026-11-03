@@ -49,7 +49,7 @@ export type RecordingMockSeed = {
   devices?: 'ok' | 'none' | 'error';
   /** The device names listed instead of the two defaults (`?mockMics=`). */
   deviceNames?: readonly string[];
-  /** Start is refused with the sidecar's sentence (a device that will not open). */
+  /** Start, and the meter's start, are refused with the sidecar's sentence (a device that will not open). */
   startFails?: boolean;
 };
 
@@ -137,6 +137,8 @@ export function createRecordingMock(seed: RecordingMockSeed = {}): RecordingApi 
       builtin();
       if (state.phase === 'recording' || state.phase === 'stopping') throw new Error('a take is recording; its level shows in the Booth');
       if (!device.trim()) throw new Error('choose a microphone');
+      // A device that will not open for a take will not open for the meter either.
+      if (seed.startFails) throw new Error(`The built-in recorder could not open ${device}: the device is in use by another application`);
       state = { ...state, phase: 'metering', device, message: '' };
       startLevels();
       publish();

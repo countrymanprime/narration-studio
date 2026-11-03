@@ -1236,7 +1236,7 @@
     "state": "levels-menu-builtin",
     "viewport": "desktop",
     "docName": "booth-levels-menu-builtin",
-    "caption": "Booth - the Levels menu with the built-in recorder: its own level under the microphone"
+    "caption": "Booth - the Levels menu with the built-in recorder: its Input meter is the recorder's own level"
   },
   {
     "page": "booth",

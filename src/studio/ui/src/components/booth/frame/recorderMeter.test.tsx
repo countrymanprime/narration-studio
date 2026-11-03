@@ -19,8 +19,9 @@ afterEach(() => {
 });
 
 // The built-in recorder's own meter in the Levels menu (#2732, #2734, #2735): started on the chosen microphone when the menu opens, its
-// `recording:level` stream drawn on the shared meter under the microphone picker, stopped when the menu closes, the Booth unmounts, the
-// window loses focus or Record starts. The meter's aria value is the RMS, rounded (LevelMeter).
+// `recording:level` stream drawn on the menu's one Input meter, stopped when the menu closes, the Booth unmounts, the page goes, the window
+// loses focus or Record starts. The meter's aria value is the RMS, rounded (LevelMeter); with no reading yet it is hidden from screen
+// readers and the line under it says why.
 
 const IDLE = (): RecorderState => ({
   hasProject: true,
@@ -39,17 +40,27 @@ const IDLE = (): RecorderState => ({
 type Answer = { resolve: () => void; reject: (reason: Error) => void };
 
 /** A host recorder whose start and stop answer when the test says (`manual`) or at once, and whose level stream the test drives. */
-function fakeRecorder({ manual = false }: { manual?: boolean } = {}) {
+function fakeRecorder({
+  manual = false,
+  devices = ['USB Mic', 'Focusrite'],
+  phase = 'idle',
+}: { manual?: boolean; devices?: string[]; phase?: RecorderState['phase'] } = {}) {
   const calls: string[] = [];
   const pending: Answer[] = [];
   const listeners = new Set<(level: RecorderLevel) => void>();
+  const states = new Set<(state: RecorderState) => void>();
   const answer = (name: string): Promise<RecorderState> => {
     calls.push(name);
     if (!manual) return Promise.resolve(IDLE());
     return new Promise<RecorderState>((resolve, reject) => pending.push({ resolve: () => resolve(IDLE()), reject }));
   };
   const api: Partial<NarrationApi> = {
-    recorderDevices: async () => ({ devices: [{ name: 'USB Mic' }, { name: 'Focusrite' }], error: null }),
+    recorderDevices: async () => ({ devices: devices.map((name) => ({ name })), error: null }),
+    recorderState: async () => ({ ...IDLE(), phase }),
+    subscribeRecorderState: (onState) => {
+      states.add(onState);
+      return () => states.delete(onState);
+    },
     recorderMeterStart: (device: string) => answer(`start:${device}`),
     recorderMeterStop: () => answer('stop'),
     subscribeRecorderLevel: (onLevel) => {
@@ -57,7 +68,15 @@ function fakeRecorder({ manual = false }: { manual?: boolean } = {}) {
       return () => listeners.delete(onLevel);
     },
   };
-  return { api, calls, pending, listeners, emit: (level: RecorderLevel) => act(() => listeners.forEach((fn) => fn(level))) };
+  return {
+    api,
+    calls,
+    pending,
+    listeners,
+    states,
+    emit: (level: RecorderLevel) => act(() => listeners.forEach((fn) => fn(level))),
+    say: (next: RecorderState['phase']) => act(() => states.forEach((fn) => fn({ ...IDLE(), phase: next }))),
+  };
 }
 
 const NO_DAW_METERS = { level: 'unsupported', available: false, reason: 'unsupported', message: 'Not available with the built-in recorder.' } as const;
@@ -94,7 +113,8 @@ function booth(overrides: Partial<NarrationApi>, { device = 'USB Mic', recording
 }
 
 const popup = () => screen.getByRole('dialog', { name: 'Levels' });
-const meter = () => within(popup()).getByRole('meter', { name: 'Built-in recorder input level' });
+const meter = () => within(popup()).getByRole('meter', { name: 'Input level' });
+const drawnMeters = () => within(popup()).getAllByRole('meter', { name: 'Input level' });
 const settle = () => act(async () => void (await Promise.resolve()));
 
 describe("the built-in recorder's meter in the Levels menu", () => {
@@ -114,7 +134,8 @@ describe("the built-in recorder's meter in the Levels menu", () => {
       </ApiProvider>,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    expect(within(popup()).queryByRole('meter', { name: /Built-in/ })).toBeNull();
+    expect(drawnMeters()).toHaveLength(1);
+    await settle();
     expect(recorder.calls).toEqual([]);
   });
 
@@ -122,7 +143,8 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     const recorder = fakeRecorder();
     const { open } = booth(recorder.api, { recorderMeter: false });
     await open();
-    expect(within(popup()).queryByRole('meter', { name: /Built-in/ })).toBeNull();
+    expect(drawnMeters()).toHaveLength(1);
+    await settle();
     expect(recorder.calls).toEqual([]);
   });
 
@@ -131,7 +153,6 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     const { open } = booth(recorder.api);
     await open();
     await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
-    expect(meter().getAttribute('aria-valuetext')).toBe('silent');
     recorder.emit({ peak: -14.2, rms: -24.6 });
     await waitFor(() => expect(meter().getAttribute('aria-valuenow')).toBe('-25'));
   });
@@ -190,7 +211,7 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     expect(recorder.listeners.size).toBe(0);
   });
 
-  it('a refusal is the meter row’s sentence, and the meter stays silent', async () => {
+  it('a refusal is the meter’s sentence, and the meter shows no reading', async () => {
     const recorder = fakeRecorder();
     recorder.api.recorderMeterStart = async () => {
       throw new Error('a take is recording; its level shows in the Booth');
@@ -198,7 +219,7 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     const { open } = booth(recorder.api);
     await open();
     expect(await within(popup()).findByRole('alert')).toHaveProperty('textContent', 'a take is recording; its level shows in the Booth');
-    expect(meter().getAttribute('aria-valuetext')).toBe('silent');
+    expect(within(popup()).queryByRole('meter', { name: 'Input level' })).toBeNull();
   });
 
   it('changing the microphone restarts the meter on the new one, with no stop between', async () => {
@@ -304,7 +325,7 @@ describe("the built-in recorder's meter in the Levels menu", () => {
 
   it('long, emoji and right-to-left microphone names are sent as they are and wrap in the row', async () => {
     for (const name of ['Микрофон 🎙️ Studio — '.repeat(6), 'ميكروفون الاستوديو 🎧']) {
-      const recorder = fakeRecorder({ manual: true });
+      const recorder = fakeRecorder({ manual: true, devices: [name] });
       const { open, unmount } = booth(recorder.api, { device: name });
       await open();
       await waitFor(() => expect(recorder.calls).toEqual([`start:${name}`]));
@@ -315,14 +336,114 @@ describe("the built-in recorder's meter in the Levels menu", () => {
     }
   });
 
+  // Walkthrough 1: the menu showed two live meters both named "Input level" (the teleprompter's and the recorder's) that disagreed.
+  it('shows one input meter with the built-in recorder, the recorder’s own level', async () => {
+    const recorder = fakeRecorder();
+    const { open } = booth(recorder.api);
+    await open();
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
+    recorder.emit({ peak: -9, rms: -20 });
+    await waitFor(() => expect(meter().getAttribute('aria-valuenow')).toBe('-20'));
+    expect(drawnMeters()).toHaveLength(1);
+  });
+
+  // Walkthrough 3 / qa 6: the picker said "No microphone found" while the meter started on the teleprompter's microphone.
+  it('starts nothing on a microphone the recorder does not list, and says none is found', async () => {
+    const recorder = fakeRecorder({ devices: [] });
+    const { open } = booth(recorder.api);
+    await open();
+    expect(await within(popup()).findByText('No microphone found')).toBeTruthy();
+    await settle();
+    expect(recorder.calls).toEqual([]);
+  });
+
+  it('starts nothing on a chosen microphone the recorder no longer lists', async () => {
+    const recorder = fakeRecorder({ devices: ['Focusrite'] });
+    const { open } = booth(recorder.api);
+    await open();
+    expect(await within(popup()).findByText('No microphone chosen.')).toBeTruthy();
+    await settle();
+    expect(recorder.calls).toEqual([]);
+  });
+
+  // Walkthrough 4: while the start was on its way the meter read "silent", like a dead microphone.
+  it('while the start is on its way, says it is opening the microphone and gives no silent reading', async () => {
+    const recorder = fakeRecorder({ manual: true });
+    const { open } = booth(recorder.api);
+    await open();
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
+    expect(within(popup()).getByText('Opening USB Mic…')).toBeTruthy();
+    expect(within(popup()).queryByRole('meter', { name: 'Input level' })).toBeNull();
+    expect(within(popup()).getByTestId('input-meter').className).toContain('opacity-50');
+  });
+
+  // qa 1: the Booth loaded while a take recorded (it did not know of the take) and the menu asked for a meter against it.
+  it('starts no meter while the host reports a take recording, shows the take’s level, and starts one once the take ends', async () => {
+    const recorder = fakeRecorder({ phase: 'recording' });
+    const { open } = booth(recorder.api);
+    await open();
+    recorder.emit({ peak: -11, rms: -22 });
+    await waitFor(() => expect(meter().getAttribute('aria-valuenow')).toBe('-22'));
+    await settle();
+    expect(recorder.calls).toEqual([]);
+    recorder.say('idle');
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
+  });
+
+  // qa 2: a refused or timed-out meter could only be retried by closing and reopening the menu.
+  it('a refused meter offers Check again, which asks the host once more', async () => {
+    const recorder = fakeRecorder();
+    let refuse = true;
+    const start = recorder.api.recorderMeterStart!;
+    recorder.api.recorderMeterStart = (device: string) => (refuse ? Promise.reject(new Error('USB Mic is in use by another program')) : start(device));
+    const { open } = booth(recorder.api);
+    await open();
+    expect(await within(popup()).findByRole('alert')).toHaveProperty('textContent', 'USB Mic is in use by another program');
+    refuse = false;
+    await userEvent.click(within(popup()).getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
+    expect(within(popup()).queryByRole('alert')).toBeNull();
+    expect(within(popup()).queryByRole('button', { name: 'Check again' })).toBeNull();
+  });
+
+  // qa 3: reloading with the menu open sent no stop, so the microphone could stay open.
+  it('the page going away with a meter running stops it once', async () => {
+    const recorder = fakeRecorder();
+    const { open } = booth(recorder.api);
+    await open();
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
+    fireEvent(window, new Event('pagehide'));
+    await settle();
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic', 'stop']));
+    await settle();
+    expect(recorder.calls).toEqual(['start:USB Mic', 'stop']);
+  });
+
+  // qa 5: in the background the meter decayed to empty with nothing said.
+  it('says the meter is paused while the window is in the background', async () => {
+    const recorder = fakeRecorder();
+    const { open } = booth(recorder.api);
+    await open();
+    await waitFor(() => expect(recorder.calls).toEqual(['start:USB Mic']));
+    fireEvent.blur(window);
+    expect(await within(popup()).findByText('Paused while the app is in the background.')).toBeTruthy();
+    fireEvent.focus(window);
+    await waitFor(() => expect(within(popup()).queryByText('Paused while the app is in the background.')).toBeNull());
+  });
+
   it('runs against the mock recorder: a steady level while the menu is open, none after it closes', async () => {
     const mock = createRecordingMock({ engine: 'builtin' });
-    const { open, close } = booth({
-      recorderMeterStart: mock.recorderMeterStart,
-      recorderMeterStop: mock.recorderMeterStop,
-      subscribeRecorderLevel: mock.subscribeRecorderLevel,
-      recorderDevices: mock.recorderDevices,
-    });
+    const { open, close } = booth(
+      {
+        recorderMeterStart: mock.recorderMeterStart,
+        recorderMeterStop: mock.recorderMeterStop,
+        subscribeRecorderLevel: mock.subscribeRecorderLevel,
+        recorderDevices: mock.recorderDevices,
+        recorderState: mock.recorderState,
+        subscribeRecorderState: mock.subscribeRecorderState,
+      },
+      { device: 'Analogue 1 + 2 (Focusrite USB Audio)' },
+    );
     await open();
     await waitFor(() => expect(meter().getAttribute('aria-valuenow')).toBe('-25'));
     await close();

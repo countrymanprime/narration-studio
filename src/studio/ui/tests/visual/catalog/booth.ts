@@ -224,21 +224,28 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu-builtin',
     description:
-      'Booth for a project that records with the built-in recorder (?mockEngine=builtin), a microphone chosen and the Levels menu open: under the microphone picker, the built-in recorder\'s own meter ("Recorder"), started on that microphone when the menu opened and moving with its recording:level stream (#2732)',
+      "Booth for a project that records with the built-in recorder (?mockEngine=builtin), a microphone chosen and the Levels menu open: its one Input meter is the built-in recorder's own level, started on that microphone when the menu opened and moving with its recording:level stream (#2732)",
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'levels-menu-builtin-long-name',
     description:
-      'The Levels menu of levels-menu-builtin with a microphone whose name is very long (?mockMics=long): the picker and the built-in meter keep the menu its bounded width, the name wraps',
+      'The Levels menu of levels-menu-builtin with a microphone whose name is very long (?mockMics=long): the picker and the Input meter keep the menu its bounded width, the name wraps',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'levels-menu-builtin-rtl-name',
     description:
-      'The Levels menu of levels-menu-builtin with an Arabic microphone name with an emoji (?mockMics=weird, "ميكروفون 🎤 (USB)") chosen: the name reads right to left in the picker and the built-in meter runs on it',
+      'The Levels menu of levels-menu-builtin with an Arabic microphone name with an emoji (?mockMics=weird, "ميكروفون 🎤 (USB)") chosen: the name reads right to left in the picker and the Input meter runs on it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-refused',
+    description:
+      "The Levels menu of levels-menu-builtin when the built-in recorder cannot open the microphone (?mockRecorder=start-fails): the Input meter dimmed with no reading, the recorder's sentence under it in the error colour, and Check again beside it",
     ...REFLOW,
   },
   {

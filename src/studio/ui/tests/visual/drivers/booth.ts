@@ -58,7 +58,7 @@ async function openBuiltinLevels(page: Page, query: string, name: string): Promi
   await page.getByRole('button', { name: 'Levels' }).click();
   const menu = page.getByRole('dialog', { name: 'Levels' });
   await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: name });
-  await menu.getByRole('meter', { name: 'Built-in recorder input level' }).and(page.locator('[aria-valuenow="-25"]')).waitFor();
+  await menu.getByRole('meter', { name: 'Input level' }).and(page.locator('[aria-valuenow="-25"]')).waitFor();
 }
 
 // The Companion has no rail item: the jump menu's Open Companion opens it (commands.catalog.ts `companion.open`).
@@ -369,8 +369,20 @@ export const boothDrivers: Record<string, Driver> = {
     // REAPER's meters, and the monitor slider, show whenever REAPER is linked and answering (#2251).
     await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
   },
-  // The built-in recorder's own meter (#2732): started on the chosen microphone when Levels opens, moving with the mock's steady level.
+  // The built-in recorder's own level (#2732) as the menu's one Input meter: started on the chosen microphone when Levels opens, moving with the
+  // mock's steady level.
   'levels-menu-builtin': (page) => openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)'),
+  'levels-menu-builtin-refused': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=start-fails');
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    await menu
+      .getByRole('alert')
+      .filter({ hasText: /could not open/ })
+      .waitFor();
+    await menu.getByRole('button', { name: 'Check again' }).waitFor();
+  },
   'levels-menu-builtin-long-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=long', `Long ${'microphone name '.repeat(19)}end`),
   'levels-menu-builtin-rtl-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=weird', 'ميكروفون 🎤 (USB)'),
   // REAPER's input fits two microphones (#2251): Levels says so with one button each, and listens on the first meanwhile.
