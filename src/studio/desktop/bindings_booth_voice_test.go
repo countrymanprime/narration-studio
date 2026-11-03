@@ -129,6 +129,17 @@ func TestAVoiceChosenWhileStoppedIsTheOneTheNextTakeArms(t *testing.T) {
 	}
 }
 
+func TestEachChapterKeepsItsOwnVoice(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], voiceQueenTrack)
+	host.chooseBoothVoice(ids[1], voiceNarratorTrack) // another chapter's choice, as BoothVoiceSet stores it
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, ids[0])
+	if fake.armGUID != voiceQueenTrack {
+		t.Fatalf("armed %q: choosing a voice for another chapter forgot this one's", fake.armGUID)
+	}
+}
+
 func TestOnlyAVoiceOfTheChaptersFolderCanBeChosen(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	for _, guid := range []string{voiceFolderTrack, voiceEmptyFolder, "{22222222-2222-4222-8222-222222222222}", "", "{not-a-guid}"} {

@@ -3,6 +3,11 @@ import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const teleprompterFeedback: Record<string, FeedbackRow> = {
+  // The Booth's voices in a Voice folders project (components/booth/voices/useBoothVoices.ts; src/studio/desktop/bindings_booth_voice.go)
+  'src/components/booth/voices/useBoothVoices.ts::tracksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The saved project\'s tracks, read when the chapter changes and when the voice list opens, for the folder\'s voices; a failed read is a toast and the control keeps what it showed.'),
+  'src/components/booth/voices/useBoothVoices.ts::chapterTrackMapList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The chapter\'s link, read with the tracks: a chapter linked to one folder has voices; a failed read is a toast.'),
+  'src/components/booth/voices/useBoothVoices.ts::guideEntities#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The Story Bible\'s characters, read with the tracks, to show who each voice records; a failed read is a toast.'),
+  'src/components/booth/voices/useBoothVoices.ts::boothVoiceSet#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'na', 'ok', 'A voice key, Num + or Num −, or a press in the voice list: the control is busy until the host answers and a second press waits; during a take the DAW switches the recording (about 50 ms), and a refusal is a toast that keeps the voice.'),
   // The reading session core is `useTeleprompterSession`, mounted by the Booth page and the Companion host.
   // booth/passagemap/usePassageMapWriter.ts: the marks of a take are sent once, at stop; a refused run is kept, toasted once and sent again at the next stop or flush.
   // booth/pickups/usePickupSession.ts: the pickup session (SN-O82), opened from Pickups at a pickup.

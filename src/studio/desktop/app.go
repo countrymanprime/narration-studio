@@ -129,13 +129,11 @@ type Host struct {
 	// ServiceShutdown knows whether to stop one before the app quits.
 	// +checklocks:mu
 	readAloudRecordingChapter string
-	// boothVoiceChapter and boothVoiceTrack are the voice track the Booth chose for a chapter in a Voice folders project
-	// (bindings_booth_voice.go): the track the next record start arms, and the one a take switched to. One chapter at a time; a choice
-	// for another chapter replaces it. Never sent from the page as anything but a GUID the host checks is a voice of the chapter.
+	// boothVoices is the voice track the Booth chose for each chapter in a Voice folders project (bindings_booth_voice.go), by chapter
+	// id: the track its next record start arms, and the one a take switched to. Never sent from the page as anything but a GUID the
+	// host checks is a voice of the chapter. Kept for the session only.
 	// +checklocks:mu
-	boothVoiceChapter string
-	// +checklocks:mu
-	boothVoiceTrack string
+	boothVoices map[string]string
 	// voiceSamplesRevision rises with every change to the voice samples this process makes (bindings_voicesamples.go): the
 	// voice_samples_changed event's payload, so a page that missed an event still sees that something changed.
 	voiceSamplesRevision atomic.Int64

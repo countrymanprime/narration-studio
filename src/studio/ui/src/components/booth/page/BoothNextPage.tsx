@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { FLAT_VOICE_KEYS, useBoothVoices } from '../voices/useBoothVoices';
+import { VoiceControl } from '../voices/VoiceControl';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useSearchParams } from 'react-router-dom';
 import { headingName } from '../../../chapterHeading';
@@ -474,6 +476,29 @@ function BoothSession({
     samples.toggleSpeaker(unit.quoted ? unit.speaker : NARRATION_SPEAKER);
   });
 
+  // The chapter's voices in a Voice folders project (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
+  // step through them, Num . opens the list; during a take the choice switches the recording live.
+  const voiceToast = useCallback((text: string, tone?: 'error' | 'info') => overlay.toast(text, tone === 'error' ? { tone } : undefined), [overlay]);
+  const voices = useBoothVoices({ chapterId: recordId, recording: control.recording, notify: voiceToast });
+  const [voiceListOpen, setVoiceListOpen] = useState(false);
+  useCommand('booth.voice.0', () => voices.byKey(0));
+  useCommand('booth.voice.1', () => voices.byKey(1));
+  useCommand('booth.voice.2', () => voices.byKey(2));
+  useCommand('booth.voice.3', () => voices.byKey(3));
+  useCommand('booth.voice.4', () => voices.byKey(4));
+  useCommand('booth.voice.5', () => voices.byKey(5));
+  useCommand('booth.voice.6', () => voices.byKey(6));
+  useCommand('booth.voice.7', () => voices.byKey(7));
+  useCommand('booth.voice.8', () => voices.byKey(8));
+  useCommand('booth.voice.9', () => voices.byKey(9));
+  useCommand('booth.voice.next', () => voices.step(1));
+  useCommand('booth.voice.prev', () => voices.step(-1));
+  useCommand('booth.voice.list', () => {
+    if (voices.voices.length === 0) return voiceToast(FLAT_VOICE_KEYS, 'info');
+    voices.reload();
+    setVoiceListOpen(true);
+  });
+
   // The chapter list is the picker, the credits included (opening first, closing last, as the host lists them).
   const pickerChapters = (data.chapters ?? []).map((item) => {
     const detail = chapterRecordedDetail({ recordedThrough: data.recorded[item.id] });
@@ -777,6 +802,20 @@ function BoothSession({
             keymap={keymap}
             pickupSession={pickups.active}
             coldRead={page.coldRead}
+            voiceFolders={voices.voices.length > 0}
+            voice={
+              <VoiceControl
+                voices={voices.voices}
+                current={voices.current}
+                choosing={voices.choosing}
+                onChoose={voices.choose}
+                open={voiceListOpen}
+                onOpenChange={(next) => {
+                  if (next) voices.reload();
+                  setVoiceListOpen(next);
+                }}
+              />
+            }
           />
         </div>
         <ListeningModelPrompt session={session} />

@@ -1,0 +1,85 @@
+// @vitest-environment jsdom
+import { act, cleanup, render } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
+import { WIRE_CHAPTERS } from '../../../api/mockFixtures';
+import { VoiceSetupProvider } from '../../engine/voiceLayout';
+import { FLAT_VOICE_KEYS, useBoothVoices, type BoothVoices } from './useBoothVoices';
+
+afterEach(cleanup);
+
+const chapterId = WIRE_CHAPTERS[0].id;
+
+async function mount(seed: Parameters<typeof createMockApi>[1], recording = false) {
+  const api = createMockApi({}, seed);
+  const notify = vi.fn();
+  const hook: { current?: BoothVoices } = {};
+  function Probe() {
+    hook.current = useBoothVoices({ chapterId, recording, notify });
+    return null;
+  }
+  render(
+    <ApiProvider api={api}>
+      <VoiceSetupProvider projectFolder="C:/Projects/Alice">
+        <Probe />
+      </VoiceSetupProvider>
+    </ApiProvider>,
+  );
+  for (let i = 0; i < 10 && (hook.current?.voices.length ?? 0) === 0; i++) await act(async () => new Promise((r) => setTimeout(r, 5)));
+  return { api, notify, hook: hook as { current: BoothVoices } };
+}
+
+describe("the Booth's voices", () => {
+  it('a voice folder lists its tracks with their keys and starts on the Narrator voice', async () => {
+    const { hook } = await mount({ voiceFolders: true });
+    expect(hook.current.voices.map((voice) => [voice.key, voice.name])).toEqual([
+      ['0', 'Narrator'],
+      ['1', 'White Rabbit'],
+      ['2', 'Extras'],
+    ]);
+    expect(hook.current.current?.name).toBe('Narrator');
+  });
+
+  it('a voice key chooses that voice through the host, and the next take records on it', async () => {
+    const { api, hook } = await mount({ voiceFolders: true });
+    await act(async () => hook.current.byKey(2));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(hook.current.current?.name).toBe('Extras');
+    expect((await api.readAloudRecordStart(chapterId)).trackGuid).toBe('{V01CE-EXTRAS}');
+  });
+
+  it('a key with no track changes nothing and says which', async () => {
+    const { notify, hook } = await mount({ voiceFolders: true });
+    await act(async () => hook.current.byKey(7));
+    expect(notify).toHaveBeenCalledWith('No track on Num 7.', 'info');
+    expect(hook.current.current?.name).toBe('Narrator');
+  });
+
+  it('next and previous wrap around the voices in REAPER order', async () => {
+    const { hook } = await mount({ voiceFolders: true });
+    await act(async () => hook.current.step(-1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(hook.current.current?.name).toBe('Extras');
+    await act(async () => hook.current.step(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(hook.current.current?.name).toBe('Narrator');
+  });
+
+  it('a flat project has no voices, and its voice keys say why they do nothing', async () => {
+    const { notify, hook } = await mount({});
+    expect(hook.current.voices).toEqual([]);
+    await act(async () => hook.current.byKey(1));
+    await act(async () => hook.current.step(1));
+    expect(notify).toHaveBeenCalledWith(FLAT_VOICE_KEYS, 'info');
+  });
+
+  it('a refused choice is a toast and keeps the voice', async () => {
+    const { api, notify, hook } = await mount({ voiceFolders: true });
+    api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'That track is not a voice of this chapter.' });
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(notify).toHaveBeenCalledWith('That track is not a voice of this chapter.', 'error');
+    expect(hook.current.current?.name).toBe('Narrator');
+  });
+});

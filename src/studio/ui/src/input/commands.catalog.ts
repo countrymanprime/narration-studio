@@ -476,15 +476,37 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'booth.roll', label: 'Punch and roll from here', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.down', label: 'Scroll the text down', scope: 'booth', defaults: [key('PageDown')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.up', label: 'Scroll the text up', scope: 'booth', defaults: [key('PageUp')], group: 'Booth', surfaces: ['help', 'settings'] },
-  { id: 'booth.text.larger', label: 'Larger text', scope: 'booth', defaults: [key('Equal'), key('NumpadAdd')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // Num + and Num − are the next and previous voice (docs/prds/booth-voice-tracks.prd.md, decision A): the text size keeps = and −.
+  { id: 'booth.text.larger', label: 'Larger text', scope: 'booth', defaults: [key('Equal')], group: 'Booth', surfaces: ['help', 'settings'] },
   {
     id: 'booth.text.smaller',
     label: 'Smaller text',
     scope: 'booth',
-    defaults: [key('Minus'), key('NumpadSubtract')],
+    defaults: [key('Minus')],
     group: 'Booth',
     surfaces: ['help', 'settings'],
   },
+  // The voices of a chapter linked to a REAPER folder (Voice folders, docs/prds/booth-voice-tracks.prd.md): Num 0 is the Narrator track,
+  // Num 1 to Num 9 the others in REAPER's order, Num + and Num − the next and previous voice, Num . the list. During a take a voice key
+  // switches the recording live; in a flat chapter the keys say why they do nothing.
+  ...Array.from({ length: 10 }, (_, n) => ({
+    id: `booth.voice.${n}` as const,
+    label: n === 0 ? 'Record the Narrator voice' : `Record voice ${n}`,
+    scope: 'booth' as const,
+    defaults: [key(`Numpad${n}`)],
+    group: 'Booth' as const,
+    surfaces: ['help', 'settings'] as const,
+  })),
+  { id: 'booth.voice.next', label: 'Record the next voice', scope: 'booth', defaults: [key('NumpadAdd')], group: 'Booth', surfaces: ['help', 'settings'] },
+  {
+    id: 'booth.voice.prev',
+    label: 'Record the previous voice',
+    scope: 'booth',
+    defaults: [key('NumpadSubtract')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'booth.voice.list', label: 'Show the voices', scope: 'booth', defaults: [key('NumpadDecimal')], group: 'Booth', surfaces: ['help', 'settings'] },
   {
     id: 'booth.voice-sample',
     label: "Hear the current speaker's voice sample",

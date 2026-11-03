@@ -107,16 +107,17 @@ func (h *Host) servicesForRecording(chapterID string) hostServices {
 	svc := h.services()
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	if h.boothVoiceChapter == chapterID {
-		svc.boothVoice = h.boothVoiceTrack
-	}
+	svc.boothVoice = h.boothVoices[chapterID]
 	return svc
 }
 
 func (h *Host) chooseBoothVoice(chapterID, guid string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.boothVoiceChapter, h.boothVoiceTrack = chapterID, guid
+	if h.boothVoices == nil {
+		h.boothVoices = map[string]string{}
+	}
+	h.boothVoices[chapterID] = guid
 }
 
 func (h *Host) readAloudRecordingActive() bool {
