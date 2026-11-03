@@ -62,6 +62,8 @@ const mockMultipleRpp = mockParams.has('mockMultipleRpp');
 const mockNoRpp = mockParams.has('mockNoRpp');
 // `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the Tracks card and the track pickers draw the tree.
 const mockTrackFolders = mockParams.has('mockTrackFolders');
+// `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
+const mockVoiceFolders = mockParams.has('mockVoiceFolders');
 // `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
 // linked", Proofing's nav item/Home card/Start are gated, and
 // Tracks/Settings show their unlinked DAW-link controls. The mock otherwise defaults `dawFileLinked` to true so every
@@ -236,6 +238,10 @@ const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'i
 );
 // `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
 const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
+// `?mockAssetsVerify=damaged|absent|fails|silent|hangs` sets what Settings > Models & downloads' Check the files answers: the asset damaged,
+// gone, a refusal in the host's words, a refusal with no words, or no answer. `?mockAssetNames=long` gives the Whisper model a long name.
+const mockAssetsVerify = (['damaged', 'absent', 'fails', 'silent', 'hangs'] as const).find((seed) => seed === mockParams.get('mockAssetsVerify'));
+const mockAssetNames = mockParams.get('mockAssetNames') === 'long' ? ('long' as const) : undefined;
 // `?mockHold=overview,entities` makes those reads never answer, so Production and the Story Bible show their loading skeleton.
 const mockHold = (mockParams.get('mockHold') ?? '').split(',').filter((name): name is 'overview' | 'entities' => name === 'overview' || name === 'entities');
 // `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
@@ -294,6 +300,8 @@ const mockChapterTagsEmbedError = mockParams.has('mockChapterTagsEmbedError');
 // `?mockRegionsCreateError=1` makes the audio engine panel's "Create chapter regions…" dialog always fail to create, so its
 // error state can be seen without a real REAPER round trip.
 const mockRegionsCreateError = mockParams.has('mockRegionsCreateError');
+// `?mockLogFolder=refused`: Settings' Reveal the log folder in the file manager is refused by the host, so its error toast can be seen.
+const mockLogFolderRefused = mockParams.get('mockLogFolder') === 'refused';
 // `?mockDawMeters=unarmed`: the DAW's meters answer with no track armed, so the Levels menu says so instead of an input level.
 const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
 // `?mockDawConnected=0` boots with REAPER declared but its bridge not connected (the app opened on its own, not from REAPER's
@@ -485,6 +493,8 @@ const mockInitial = {
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
+  ...(mockAssetsVerify ? { assetsVerify: mockAssetsVerify } : {}),
+  ...(mockAssetNames ? { assetNames: mockAssetNames } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
@@ -546,6 +556,7 @@ const mockInitial = {
   ...(mockMultipleRpp ? { tracksCandidates: ['C:/Projects/Alice-in-Wonderland/Alice.rpp', 'C:/Projects/Alice-in-Wonderland/Alice-alt-mix.rpp'] } : {}),
   ...(mockNoRpp ? { tracksCandidates: [] } : {}),
   ...(mockTrackFolders ? { trackFolders: true } : {}),
+  ...(mockVoiceFolders ? { voiceFolders: true } : {}),
   ...(mockManuscriptCandidate ? { manuscriptCandidate: { path: 'C:/Projects/Alice-in-Wonderland/manuscript.docx', name: 'manuscript.docx' } } : {}),
   ...(mockManuscriptMixed ? { mockManuscript: 'mixed' as const } : {}),
   ...(chapterLink === 'missing'
@@ -593,6 +604,7 @@ const mockInitial = {
   ...(mockChapterTags ? { chapterTags: mockChapterTags } : {}),
   ...(mockChapterTagsEmbedError ? { chapterTagsEmbedAlwaysErrors: true } : {}),
   ...(mockRegionsCreateError ? { regionsCreateAlwaysErrors: true } : {}),
+  ...(mockLogFolderRefused ? { logFolderRefused: true } : {}),
   ...(mockCoverage || mockCoverageRefusal || mockStages === 'mixed'
     ? {
         coverage: {

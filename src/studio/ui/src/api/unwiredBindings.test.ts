@@ -21,17 +21,14 @@ function sources(dir: string): string[] {
  * wired. The list only shrinks: wire a binding (or delete it from the host) and take its name out, and a new binding cannot arrive without a caller.
  */
 const UNWIRED = [
-  'assetsVerify',
   'findingsGoToRead',
   'findingsLoopRead',
   'manuscriptSearch',
   'masteringChooseProvider',
   'recorderMeterStart',
   'recorderMeterStop',
-  'replaceNarratorRemove',
   'subscribeRecorderLevel',
   'systemCopyDiagnostics',
-  'systemOpenLogFolder',
   'takeComparisonCancel',
   'takeComparisonStart',
   'takeComparisonState',

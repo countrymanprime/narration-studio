@@ -224,6 +224,7 @@ export function ModelsPane({ category }: { category: Category }) {
                   setRemoving(view);
                 }}
                 dismiss={() => assets.dismissFailure(view.item)}
+                verify={() => void assets.verify(view.item)}
               />
             );
           })}

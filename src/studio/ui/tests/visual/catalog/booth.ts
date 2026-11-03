@@ -8,7 +8,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      'Booth, ready to record (REAPER linked and answering, the mock\'s default): the top bar with the chapter stepper, the progress line, "Resume at ¶ 14 from the saved project" and the REAPER setup chip; the text full-bleed, opening with the chapter\'s title and subtitle as its first lines (#2251 item 7: "CHAPTER ONE", then "Bad Ideas Look Great in Neon"), the reading position on the title\'s first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock\'s .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock\'s .btop does, the chapter picker at the mock\'s medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker',
+      "Booth, ready to record (REAPER linked and answering, the mock's default): the top bar with the chapter stepper, the progress line, the \"Recorded through …\" chip (Chapter 1 is recorded through ¶ 14, #2633) and the REAPER setup chip, with no resume line since the chapter opens at ¶ 14, where its recording ends; the text full-bleed, scrolled to that paragraph, the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
   },
   {
@@ -203,7 +203,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'resume',
     description:
-      'Booth, "Resume at ¶ 14" chosen: the reading position moves to where the recording ends, in ¶ 14, the text scrolls there, the progress line reads ¶ 14 of 24 and the chip is gone, since the reader is at its place',
+      'Booth, looked elsewhere in the chapter: Chapter 1 opens at ¶ 14, where its recording ends, and a click on a word in the next paragraph offers "Resume at ¶ 14" in the top bar; the progress line and the Recorded through chip stay, the chip is the way back',
     ...REFLOW,
   },
   {
