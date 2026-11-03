@@ -63,7 +63,7 @@ func TestTraceKindKeepsOnlyIDCharacters(t *testing.T) {
 		"":                                                "unknown",
 	}
 	for program, want := range cases {
-		if got := traceKind(program); got != want && !(program == "/opt/ünï/side car" && got == "side_car") {
+		if got := traceKind(program); got != want {
 			t.Errorf("traceKind(%q) = %q, want %q", program, got, want)
 		}
 	}
