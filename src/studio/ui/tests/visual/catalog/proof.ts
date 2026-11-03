@@ -53,6 +53,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'retired-take-review-note',
+    description:
+      'Proof, Chapter 4 with a pickup the retired take review saved (?mockCoverage=pickups): a plain note with no time, listed under In view, worded as its group and typed Repeat, From Take review, with Show in REAPER, Hear it and Add marker off for the note having no time',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'check-findings',
     description:
       'Proof, Chapter 1 linked, its recording check’s findings shown: a line said twice listed as Said twice with the words said again, Fix in edit and Open in Editing, above the gaps',

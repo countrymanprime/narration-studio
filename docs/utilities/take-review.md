@@ -27,12 +27,16 @@ Pickups are recorded in the Booth; a read on a separate pickup track is not grou
 A project scanned before the removal keeps its take-review findings (analyzer `take-review`, categories `pickup` and
 `duplicate_read`) and take comparisons (analyzer `take-comparison`, category `take_comparison`). They are plain findings:
 
-- Proof lists them and the narrator decides them like any other; Go to and Loop use the finding's own item. Nothing reads
-  their reads (`evidence.members`) any more: no list of reads, no audition, no add as take, no comparison panel.
+- Proof lists them and the narrator decides them like any other. A group's line says what it was from its own evidence
+  ("Partial pickup: 2 reads of sentences 4–8") and its type is Repeat ([`findingFormat.ts`](../../src/studio/ui/src/components/proof/findingFormat.ts),
+  `findings.DefaultNoteType`). They have no time in their audio, so the In view filter always lists them, and Hear it,
+  Show in the DAW and Add marker are off with that reason. Nothing acts on their reads any more: no list of reads, no
+  audition, no add as take, no comparison panel.
 - An open take-review pickup still counts against the chapter's pickups signal, under the label "Take review", until the
   narrator decides it ([`internal/proofing/sources.go`](../../src/studio/desktop/internal/proofing/sources.go)). A chapter
   with none is not told about take review.
 - Editing does not offer their reads as takes.
 
 `bindings_retired_findings_test.go`, `TestWorkspaceTakesOffersNoReadsFromASavedTakeReviewGroup`,
-`TestSignalProviderRetiredTakeReview` and `findingFormat.test.ts` pin this.
+`TestSignalProviderRetiredTakeReview`, `TestARetiredTakeReviewPickupIsARepeat`, `findingFormat.test.ts`, `noteRows.test.ts`,
+`NotesPanel.test.tsx` and `InspectorActions.test.tsx` pin this.

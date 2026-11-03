@@ -119,7 +119,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/production/report/ReportDialog.tsx`
 - `src/components/project/NewProjectDialog.tsx`
 - `src/components/project/ProjectPicker.tsx`
-- `src/components/proof/AuditionDialog.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/ProofChapterPage.tsx`

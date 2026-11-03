@@ -87,7 +87,8 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 - chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count;
 - **In view**, on one chapter while the waveform window shows only part of it, set apart after the chips because it works
-  with any of them. It starts on, so the list keeps to the notes in the window; press it to list the whole chapter;
+  with any of them. It starts on, so the list keeps to the notes in the window, and a note with no time in its recording
+  always stays listed; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
 - **Check recordings…**, the same check the card runs, starting with the chapter in view;
@@ -210,7 +211,8 @@ the DAW removes it.
 With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
-under the row. A note found by an older check that did not record its item cannot be placed; run the check again. When
+under the row. A note found by an older check that did not record its item cannot be placed; run the check again. A note
+with no time in its recording has no spot to show, so **Show in** is off too. When
 the DAW refuses (the note's item was deleted or trimmed, or the DAW is recording), nothing changes and the Inspector says
 why.
 

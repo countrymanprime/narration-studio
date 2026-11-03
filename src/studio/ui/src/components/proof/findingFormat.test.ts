@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WIRE_FINDINGS, WIRE_TAKE_REVIEW_FINDINGS } from '../../api/mockFixtures';
-import { FINDING_CATEGORIES } from '../../api/contracts/findings';
+import { FINDING_CATEGORIES, shownFindingNoteType } from '../../api/contracts/findings';
 import type { Finding } from '../../types';
 import {
   analyzerLabel,
@@ -96,10 +96,16 @@ describe('findingFormat', () => {
 
   // The take review no longer runs (#2765): a group a project already holds is a plain note, worded by its category and
   // its evidence's kind, never as a list of reads.
+  // #2800 (walkthrough 1): the summary says what the group was, from the kind, the read count and the script span it saved; its
+  // type is a repeat, not a misread.
   it('words a saved take-review group as a plain note, not as its reads', () => {
     const [pickup, duplicate] = WIRE_TAKE_REVIEW_FINDINGS;
-    expect(findingSummary(pickup)).toBe('Pickup');
-    expect(findingSummary(duplicate)).toBe('Duplicate read');
+    expect(findingSummary(pickup)).toBe('Partial pickup: 2 reads of sentences 4–8');
+    expect(findingSummary(duplicate)).toBe('Near duplicate: 2 reads of sentences 13–16');
+    expect(findingSummary({ ...pickup, evidence: { ...pickup.evidence, matched_span_last: 3, members: [{}] } })).toBe('Partial pickup: 1 read of sentence 4');
+    expect(findingSummary({ ...pickup, evidence: { kind: 'restart', members: 'lost' } })).toBe('Pickup');
+    expect(shownFindingNoteType(pickup)).toBe('repeat');
+    expect(shownFindingNoteType({ ...pickup, analyzer: 'teleprompter' })).toBe('misread');
     expect(evidenceRows(pickup)).toEqual([{ label: 'Kind', value: 'Pickup' }]);
     expect(evidenceRows(duplicate)).toEqual([{ label: 'Kind', value: 'Near duplicate' }]);
     expect(analyzerLabel(pickup.analyzer)).toBe('Take review');

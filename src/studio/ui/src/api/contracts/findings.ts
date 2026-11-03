@@ -88,11 +88,12 @@ export type FindingNoteType = (typeof FINDING_NOTE_TYPES)[number];
 
 /**
  * The word shown for a finding while the narrator has not chosen one: its category, refined by evidence.kind where the
- * category covers more than one word. The same mapping as findings.DefaultNoteType; choosing this word
- * again returns the finding to "not chosen".
+ * category covers more than one word. A pickup the retired take review saved is a group of reads of one span, so a repeat.
+ * The same mapping as findings.DefaultNoteType; choosing this word again returns the finding to "not chosen".
  */
-export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evidence'>): FindingNoteType {
+export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evidence'> & Partial<Pick<Finding, 'analyzer'>>): FindingNoteType {
   const kind = typeof finding.evidence?.kind === 'string' ? finding.evidence.kind.toLowerCase() : '';
+  if (finding.category === 'pickup' && finding.analyzer === 'take-review') return 'repeat';
   switch (finding.category) {
     case 'transcript_discrepancy':
       return kind === 'skipped' ? 'skip' : 'misread';
@@ -121,7 +122,7 @@ export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evid
 }
 
 /** The type a note shows everywhere (the table's Type column and the inspector's select): the narrator's choice, else the analyzer's mapped word. */
-export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'>): FindingNoteType {
+export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'> & Partial<Pick<Finding, 'analyzer'>>): FindingNoteType {
   return finding.review.type ?? defaultFindingNoteType(finding);
 }
 

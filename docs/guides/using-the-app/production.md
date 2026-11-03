@@ -214,8 +214,8 @@ chapter's own figures (text present, paragraphs fully read, audio checked, pace 
 again** and **Open in Editing**. Under that, **Pickups** lists only the check's own interior gaps worth reading again on their own —
 a skipped block, a short read or different text read — each with its paragraphs, word count, first and last missing words, where
 the gap sits in the audio, and **Go to paragraph** to open the manuscript there. An unread start or end is unfinished recording, not
-a pickup, so it never appears in that list. Below the check's own gaps, **Repeated reads (Proof)** shows the chapter's other unreviewed
-pickup notes as a count with **Open Proof**, or "none waiting", and **Pickup list** shows the open lines of the Pickups list
+a pickup, so it never appears in that list. Below the check's own gaps, **Pickup notes (Proof)** shows the chapter's other unreviewed
+pickup notes as a count with **Open Proof**, which opens Proof on that chapter, or "none waiting", and **Pickup list** shows the open lines of the Pickups list
 as one project-wide count with **Open pickups** ("open REAPER to count" when REAPER is not running). **Paragraph detail** stays
 folded by default. **Back to chapters** returns to the form and **Done** closes the dialog. On Proof the same check's findings are
 on the [Recording check card](proof.md#one-chapter), each to accept or ignore. Misreads, false starts, retakes and a spoken chapter

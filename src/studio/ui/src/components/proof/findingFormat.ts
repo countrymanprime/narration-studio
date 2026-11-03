@@ -74,8 +74,28 @@ export const chapterLabel = (finding: Finding): string =>
 export const repeatOf = (finding: Pick<Finding, 'category' | 'evidence'>): string | undefined =>
   finding.category === 'duplicate_read' ? text(finding.evidence?.repeat_of) : undefined;
 
+// evidence.kind of a group the retired take review saved (#2765).
+const TAKE_REVIEW_KINDS: Record<string, string> = {
+  exact_copy: 'Exact copy',
+  restart: 'Restart',
+  pickup: 'Partial pickup',
+  near_duplicate: 'Near duplicate',
+};
+
+/** What a group the retired take review saved was, from its own evidence: its kind, how many reads and the script sentences
+ * they covered (counted from 1). Undefined for any other finding, or evidence missing one of them. */
+function takeReviewSummary(finding: Finding): string | undefined {
+  if (finding.analyzer !== 'take-review') return undefined;
+  const { kind, members, matched_span_first: first, matched_span_last: last } = finding.evidence ?? {};
+  if (typeof kind !== 'string' || !Array.isArray(members) || typeof first !== 'number' || typeof last !== 'number') return undefined;
+  const span = first === last ? `sentence ${first + 1}` : `sentences ${first + 1}–${last + 1}`;
+  return `${TAKE_REVIEW_KINDS[kind] ?? humanize(kind)}: ${members.length} read${members.length === 1 ? '' : 's'} of ${span}`;
+}
+
 /** One line that says what the finding is about, for the list: what was expected and what was heard, or the entry it names. */
 export function findingSummary(finding: Finding): string {
+  const group = takeReviewSummary(finding);
+  if (group) return group;
   const delivery = deliveryEvidence(finding);
   if (delivery) return deliverySummary(delivery);
   const again = repeatOf(finding);
