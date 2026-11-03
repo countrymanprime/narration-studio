@@ -8,8 +8,6 @@
 - status: /4 words selected, 0:\d+ to 0:\d+/
 - alert
 - status
-- alert
-- status
 - dialog "Voice sample":
   - heading "Voice sample" [level=2]
   - button "Close"
