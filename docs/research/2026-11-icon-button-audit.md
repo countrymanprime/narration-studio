@@ -23,6 +23,7 @@ cd src/studio/ui
 node scripts/icon-button-audit.mjs            # one line per button
 node scripts/icon-button-audit.mjs --md       # the table below
 node scripts/icon-button-audit.mjs --summary  # counts by class
+sh scripts/icon-button-audit-doc.sh <base>    # the table against the tree before the change
 ```
 
 `scripts/iconButtonAudit.mjs` walks the TypeScript syntax tree of every component file, takes each `Button` and `button` element, reads its
@@ -41,7 +42,7 @@ A row's state in the table is read from the tree after the change, so `converted
 
 ## Totals
 
-Totals: **457** buttons found; **14** converted in this change; **123** mapped to a catalogue action and queued; **93** need a catalogue decision; **227** kept as text with a reason.
+Totals: **457** buttons found; **14** converted in this change; **121** mapped to a catalogue action and queued; **90** need a catalogue decision; **232** kept as text with a reason.
 
 Per page group (before this change), `converted` + `convert` + `decide` are the buttons the owner's rule asks to become icons:
 
@@ -51,19 +52,19 @@ Per page group (before this change), `converted` + `convert` + `decide` are the 
 | settings | 0 | 28 | 17 | 29 |
 | editing | 0 | 13 | 21 | 31 |
 | storybible | 0 | 16 | 8 | 16 |
-| proof | 0 | 13 | 6 | 15 |
-| production | 0 | 10 | 5 | 18 |
+| proof | 0 | 12 | 6 | 16 |
+| production | 0 | 10 | 4 | 19 |
 | script | 0 | 5 | 6 | 14 |
-| booth | 0 | 3 | 7 | 20 |
+| booth | 0 | 3 | 6 | 21 |
 | stages | 0 | 4 | 5 | 0 |
 | master | 0 | 4 | 4 | 4 |
 | recordingcheck | 0 | 7 | 1 | 9 |
 | layout | 0 | 4 | 2 | 7 |
 | delivery | 0 | 4 | 1 | 2 |
 | project | 0 | 3 | 2 | 4 |
-| mapping | 0 | 2 | 2 | 0 |
-| pickups | 0 | 3 | 1 | 3 |
+| mapping | 0 | 1 | 2 | 1 |
 | masterqc | 0 | 2 | 1 | 1 |
+| pickups | 0 | 3 | 0 | 4 |
 | credits | 0 | 0 | 2 | 4 |
 | schedule | 0 | 2 | 0 | 2 |
 | connection | 0 | 0 | 1 | 2 |
@@ -79,7 +80,7 @@ and intent-reviewer. The last PR closes #2836.
 1. Engine panel (the Link chapters dialog, Chapter links, Chapter sync, the REAPER project card, the REAPER tools, the Audacity card): done in the first PR.
 2. Settings, Editing, Story Bible, Proof, Production, Script, Booth, then the smaller groups in the table's order.
 
-Three queued decisions need the owner, because the catalogue has no row and an icon would be ambiguous: the Inspector's decision buttons
+The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter links) as text because they are the primary action of their row, and `Create chapter regions…` in the render dialog because it opens a flow rather than deciding. The guard sees `row` and `toolbar` contexts only; there is no `list` context in the audit's classifier yet. Three queued decisions need the owner, because the catalogue has no row and an icon would be ambiguous: the Inspector's decision buttons
 (`FlagCard`, `DecisionButtons`), the `StageEvidence` and `StageSuggestion` chips whose label is data, and the `Pick a word` buttons of the Booth resume prompt.
 
 ## The table
@@ -92,9 +93,9 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `booth/frame/BoothFooter.tsx:146` | {coldRead.on ? 'danger' : 'secondary'} | dialog | Cold read | decide (queued) | needs a catalogue decision |
 | `booth/frame/LevelsMenu.tsx:174` | secondary | page | {`Use ${dawName}'s input`} | keep | sentence-length action that names its object, not one verb |
 | `booth/frame/LevelsMenu.tsx:189` | ghost | page | Choose a different one | keep | sentence-length action that names its object, not one verb |
-| `booth/frame/LevelsMenu.tsx:198` | {candidate === device && mic.origin === 'daw' ? 'primary' : 'secondary | row | {candidate} | keep | option in a pick list: the label is the choice |
+| `booth/frame/LevelsMenu.tsx:198` | {candidate === device && mic.origin === 'daw' ? 'primary' : 'secondary | row | {candidate} | keep | primary action of its row or card while its state allows it |
 | `booth/page/BoothUnavailable.tsx:32` | primary | page | Set up credits in Settings | keep | primary action of its card, page or dialog |
-| `booth/page/BoothUnavailable.tsx:33` | {credits ? 'secondary' : 'primary'} | page | Back to the chapters | keep | navigation back, names its destination |
+| `booth/page/BoothUnavailable.tsx:33` | {credits ? 'secondary' : 'primary'} | page | Back to the chapters | keep | primary action of its row or card while its state allows it |
 | `booth/pickups/PickupSession.tsx:50` | native | panel | {rowLabel(line, chapterLabel)} {line.script} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `booth/ReaderText.tsx:81` | native | page | {wordNode} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `booth/reading/BoothText.tsx:335` | native | row | {note.name} : {note.text} | keep | native button that is a whole row or a menu item (the label is the cho |
@@ -107,7 +108,7 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `booth/ResumePrompt.tsx:333` | secondary | page | Retry | convert (queued) | retry |
 | `booth/ResumePrompt.tsx:344` | primary | page | Download model… | keep | primary action of its card, page or dialog |
 | `booth/ResumePrompt.tsx:393` | secondary | page | Pick a word | keep | sentence-length action that names its object, not one verb |
-| `booth/ResumePrompt.tsx:430` | {located.confident ? 'primary' : 'secondary'} | page | Resume from here | decide (queued) | needs a catalogue decision |
+| `booth/ResumePrompt.tsx:430` | {located.confident ? 'primary' : 'secondary'} | page | Resume from here | keep | primary action of its row or card while its state allows it |
 | `booth/ResumePrompt.tsx:436` | secondary | page | Start from the top | decide (queued) | needs a catalogue decision |
 | `booth/ResumePrompt.tsx:439` | secondary | page | Pick a word | keep | sentence-length action that names its object, not one verb |
 | `booth/ResumePrompt.tsx:464` | secondary | page | Pick a word | keep | sentence-length action that names its object, not one verb |
@@ -204,7 +205,7 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `engine/AudacityLinkCard.tsx:113` | secondary | panel | {link.linkedFile ? 'Change Audacity project file' : 'Choose A} | converted | needs a catalogue decision |
 | `engine/AudacityLinkCard.tsx:118` | secondary | panel | Unlink | converted | +unlink |
 | `engine/AudacityLinkCard.tsx:123` | secondary | panel | {busy === 'check' ? 'Checking…' : 'Check again'} | converted | needs a catalogue decision |
-| `engine/ChapterLinksTable.tsx:188` | {chosen ? 'primary' : 'secondary'} | row | Confirm | converted | accept |
+| `engine/ChapterLinksTable.tsx:188` | {chosen ? 'primary' : 'secondary'} | row | Confirm | keep | primary action of its row or card while its state allows it |
 | `engine/ChapterLinksTable.tsx:192` | secondary | row | Cancel | converted | cancelEdit |
 | `engine/ChapterLinksTable.tsx:199` | secondary | row | Change | converted | +changeLink |
 | `engine/ChapterLinksTable.tsx:202` | secondary | row | Clear | converted | +clearLink |
@@ -212,12 +213,12 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `engine/ChapterSyncConsentDialog.tsx:46` | primary | dialog | {preview ? `Sync ${preview.autoLink.length} chapters` : 'Sync} | keep | primary action of its card, page or dialog |
 | `engine/ChapterSyncPanel.tsx:83` | secondary | page | {on ? 'Turn on' : 'Turn off'} | converted | needs a catalogue decision |
 | `engine/ChapterSyncPanel.tsx:173` | primary | row | Link | keep | primary action of its card, page or dialog |
-| `engine/ChapterTagsDialog.tsx:68` | {outputPath ? 'primary' : 'secondary'} | dialog | Close | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
-| `engine/ChapterTagsDialog.tsx:71` | {outputPath ? 'secondary' : 'primary'} | dialog | Embed chapter tags | keep | sentence-length action that names its object, not one verb |
+| `engine/ChapterTagsDialog.tsx:68` | {outputPath ? 'primary' : 'secondary'} | dialog | Close | keep | primary action of its row or card while its state allows it |
+| `engine/ChapterTagsDialog.tsx:71` | {outputPath ? 'secondary' : 'primary'} | dialog | Embed chapter tags | keep | primary action of its row or card while its state allows it |
 | `engine/CleanupToolsDialog.tsx:69` | secondary | dialog | Close | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `engine/CleanupToolsDialog.tsx:84` | secondary | row | Open | converted | +openItem |
-| `engine/CreateChapterRegionsDialog.tsx:132` | {created ? 'primary' : 'secondary'} | dialog | {created ? 'Close' : 'Cancel'} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
-| `engine/CreateChapterRegionsDialog.tsx:137` | {created ? 'secondary' : 'primary'} | dialog | {`Create ${rows.length} region${rows.length === 1 ? '' : 's'}} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
+| `engine/CreateChapterRegionsDialog.tsx:132` | {created ? 'primary' : 'secondary'} | dialog | {created ? 'Close' : 'Cancel'} | keep | primary action of its row or card while its state allows it |
+| `engine/CreateChapterRegionsDialog.tsx:137` | {created ? 'secondary' : 'primary'} | dialog | {`Create ${rows.length} region${rows.length === 1 ? '' : 's'}} | keep | primary action of its row or card while its state allows it |
 | `engine/EnginePanel.tsx:243` | secondary | panel | {link.dawFileLinked ? 'Change file…' : 'Link file…'} | converted | needs a catalogue decision |
 | `engine/EnginePanel.tsx:268` | secondary | panel | Link the open project… | converted | +linkFile |
 | `engine/EnginePanel.tsx:271` | secondary | panel | Check again | converted | +checkAgain |
@@ -227,12 +228,12 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `engine/LinkChaptersDialog.tsx:82` | secondary | page | Read current stamps | converted | +checkAgain |
 | `engine/LinkChaptersDialog.tsx:173` | secondary | dialog | {state.phase === 'success' && state.stamp.applied > 0 ? 'Clos} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `engine/LinkChaptersDialog.tsx:176` | primary | dialog | {`Stamp ${preview.length} item${preview.length === 1 ? '' : '} | keep | primary action of its card, page or dialog |
-| `engine/RenderConfigDialog.tsx:53` | {configured ? 'primary' : 'secondary'} | dialog | Close | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
-| `engine/RenderConfigDialog.tsx:56` | {configured ? 'secondary' : 'primary'} | dialog | Configure render | keep | sentence-length action that names its object, not one verb |
+| `engine/RenderConfigDialog.tsx:53` | {configured ? 'primary' : 'secondary'} | dialog | Close | keep | primary action of its row or card while its state allows it |
+| `engine/RenderConfigDialog.tsx:56` | {configured ? 'secondary' : 'primary'} | dialog | Configure render | keep | primary action of its row or card while its state allows it |
 | `engine/RenderConfigDialog.tsx:93` | secondary | dialog | Create chapter regions… | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `engine/RetakeLanesDialog.tsx:54` | secondary | row | Play this lane | converted | play |
 | `engine/RetakeLanesDialog.tsx:135` | secondary | dialog | Close | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
-| `engine/SyncActivityLog.tsx:45` | link | row | Undo | keep | inline text action inside a sentence |
+| `engine/SyncActivityLog.tsx:45` | link | row | Undo | converted | undo |
 | `help/ShortcutSheet.tsx:53` | primary | dialog | Show all shortcuts | keep | primary action of its card, page or dialog |
 | `layout/AddressGate.tsx:144` | secondary | page | Go to Production | convert (queued) | pageLink |
 | `layout/AddressGate.tsx:183` | primary | panel | Open {TITLE[page]} | keep | primary action of its card, page or dialog |
@@ -249,7 +250,7 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `layout/StartupScreen.tsx:76` | secondary | panel | {copied ? 'Copied' : 'Copy details'} | decide (queued) | needs a catalogue decision |
 | `mapping/MappingConfirm.tsx:60` | secondary | page | {changeLabel} | decide (queued) | needs a catalogue decision |
 | `mapping/MappingConfirm.tsx:63` | secondary | page | {clearLabel} | decide (queued) | needs a catalogue decision |
-| `mapping/MappingConfirm.tsx:81` | {chosen ? 'primary' : 'secondary'} | page | Confirm | convert (queued) | accept |
+| `mapping/MappingConfirm.tsx:81` | {chosen ? 'primary' : 'secondary'} | page | Confirm | keep | primary action of its row or card while its state allows it |
 | `mapping/MappingConfirm.tsx:85` | secondary | page | Cancel | convert (queued) | cancelEdit |
 | `master/DiagnosticsSection.tsx:78` | secondary | panel | Open Settings | decide (queued) | needs a catalogue decision |
 | `master/DiagnosticsSection.tsx:227` | secondary | panel | {`Check the ${plural(measuredPaths.length, 'measured file', '} | decide (queued) | needs a catalogue decision |
@@ -273,13 +274,13 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `pickups/list/PickupsTable.tsx:491` | secondary | page | Go to Proof | convert (queued) | pageLink |
 | `pickups/list/PickupsTable.tsx:525` | secondary | row | {FINE_LABEL} | keep | option in a pick list: the label is the choice |
 | `pickups/list/PickupsTable.tsx:529` | secondary | row | Go to the note in Proof | convert (queued) | pageLink |
-| `pickups/list/SessionPanel.tsx:113` | {count === 0 ? 'secondary' : 'primary'} | panel | {known ? `Open ${count} in Booth` : 'Open in Booth'} | decide (queued) | needs a catalogue decision |
+| `pickups/list/SessionPanel.tsx:113` | {count === 0 ? 'secondary' : 'primary'} | panel | {known ? `Open ${count} in Booth` : 'Open in Booth'} | keep | primary action of its row or card while its state allows it |
 | `primitives/Button.tsx:64` | native | page | {pending && <FontAwesomeIcon icon={faCircleNotch} className="} {childr | keep | native button that is a whole row or a menu item (the label is the cho |
 | `primitives/ChapterStepper.tsx:60` | secondary | page | (icon) | keep | icon or custom content child (no text label) |
 | `primitives/ConfirmDialog.tsx:70` | secondary | dialog | {cancelLabel} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `primitives/ConfirmDialog.tsx:75` | danger-solid | dialog | {dangerLabel} | keep | primary action of its card, page or dialog |
 | `primitives/ConfirmDialog.tsx:80` | secondary | dialog | {secondaryLabel} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
-| `primitives/ConfirmDialog.tsx:85` | {confirmVariant === 'danger' ? 'danger-solid' : 'primary'} | dialog | {confirmLabel} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
+| `primitives/ConfirmDialog.tsx:85` | {confirmVariant === 'danger' ? 'danger-solid' : 'primary'} | dialog | {confirmLabel} | keep | primary action of its row or card while its state allows it |
 | `primitives/ErrorBoundary.tsx:30` | primary | page | Retry | keep | primary action of its card, page or dialog |
 | `primitives/HeaderChip.tsx:70` | native | page | {content} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `primitives/HelpButton.tsx:21` | native | page | ? | keep | native button that is a whole row or a menu item (the label is the cho |
@@ -296,7 +297,7 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `primitives/TreeSelect.tsx:159` | native | page | {shown ? ( <span className="flex min-w-0 flex-1"> {shown.path} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `primitives/WorkDialog.tsx:76` | secondary | dialog | Continue in background | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `primitives/WorkDialog.tsx:81` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
-| `primitives/WorkDialog.tsx:86` | {showRetry ? 'secondary' : 'primary'} | dialog | Close | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
+| `primitives/WorkDialog.tsx:86` | {showRetry ? 'secondary' : 'primary'} | dialog | Close | keep | primary action of its row or card while its state allows it |
 | `primitives/WorkDialog.tsx:91` | primary | dialog | Retry | keep | primary action of its card, page or dialog |
 | `production/ChapterTrackPanel.tsx:211` | secondary | dialog | 30s | keep | skip link or a text-only value control (A/B, 30 s) |
 | `production/ChapterTrackPanel.tsx:214` | primary | dialog | (icon) | keep | primary action of its card, page or dialog |
@@ -309,9 +310,9 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `production/ImportChooseDialog.tsx:75` | primary | dialog | Choose a file… | keep | primary action of its card, page or dialog |
 | `production/ImportReview.tsx:277` | secondary | page | Select all | keep | a pair of group toggles; no unambiguous icon (catalogue rule 6) |
 | `production/ImportReview.tsx:283` | secondary | page | Select none | keep | a pair of group toggles; no unambiguous icon (catalogue rule 6) |
-| `production/ManuscriptImport.tsx:240` | {found ? 'danger' : 'primary'} | page | {found ? 'Replace manuscript…' : 'Import manuscript'} | decide (queued) | needs a catalogue decision |
+| `production/ManuscriptImport.tsx:240` | {found ? 'danger' : 'primary'} | page | {found ? 'Replace manuscript…' : 'Import manuscript'} | keep | primary action of its row or card while its state allows it |
 | `production/ManuscriptImport.tsx:295` | secondary | dialog | Back | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
-| `production/ManuscriptImport.tsx:307` | {replacing \|\| importJob.requiresReset ? 'danger' : 'primary'} | dialog | {replacing \|\| importJob.requiresReset ? 'Replace and reset' :} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
+| `production/ManuscriptImport.tsx:307` | {replacing \|\| importJob.requiresReset ? 'danger' : 'primary'} | dialog | {replacing \|\| importJob.requiresReset ? 'Replace and reset' :} | keep | primary action of its row or card while its state allows it |
 | `production/overview/KpiRow.tsx:26` | native | row | (icon) | keep | native button that is a whole row or a menu item (the label is the cho |
 | `production/pipeline/NextUp.tsx:55` | primary | page | Open Booth | keep | primary action of its card, page or dialog |
 | `production/pipeline/NextUp.tsx:59` | secondary | page | Start timer | convert (queued) | play |
@@ -341,7 +342,7 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `project/ProjectPicker.tsx:268` | secondary | panel | New project | decide (queued) | needs a catalogue decision |
 | `project/ProjectPicker.tsx:311` | secondary | row | Open | convert (queued) | +openItem |
 | `proof/checkcard/CheckCard.tsx:235` | secondary | panel | Stop checking | convert (queued) | stop |
-| `proof/checkcard/CheckCard.tsx:239` | {state === 'current' ? 'secondary' : 'primary'} | panel | Check recordings | convert (queued) | checkRecordings |
+| `proof/checkcard/CheckCard.tsx:239` | {state === 'current' ? 'secondary' : 'primary'} | panel | Check recordings | keep | primary action of its row or card while its state allows it |
 | `proof/checkcard/FindingRow.tsx:51` | secondary | row | Accept | convert (queued) | accept |
 | `proof/checkcard/FindingRow.tsx:54` | secondary | row | Ignore | convert (queued) | dismiss |
 | `proof/CompareRun.tsx:429` | secondary | panel | Review last run | decide (queued) | needs a catalogue decision |
@@ -435,7 +436,7 @@ Three queued decisions need the owner, because the catalogue has no row and an i
 | `settings/controls/MicBody.tsx:77` | secondary | page | {`Use ${dawName}'s input`} | keep | sentence-length action that names its object, not one verb |
 | `settings/controls/MicBody.tsx:95` | ghost | page | Choose a different one | keep | sentence-length action that names its object, not one verb |
 | `settings/controls/MicBody.tsx:102` | secondary | page | {`Ask ${dawName} again`} | keep | sentence-length action that names its object, not one verb |
-| `settings/controls/MicBody.tsx:127` | {picked ? 'primary' : 'secondary'} | row | {candidate} | keep | option in a pick list: the label is the choice |
+| `settings/controls/MicBody.tsx:127` | {picked ? 'primary' : 'secondary'} | row | {candidate} | keep | primary action of its row or card while its state allows it |
 | `settings/controls/MicBody.tsx:208` | secondary | page | Refresh the list | convert (queued) | +checkAgain |
 | `settings/controls/MicBody.tsx:232` | secondary | page | Refresh the list | convert (queued) | +checkAgain |
 | `settings/controls/MwKeyBody.tsx:63` | link | page | Retry | keep | inline text action inside a sentence |

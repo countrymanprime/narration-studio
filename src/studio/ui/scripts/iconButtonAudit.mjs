@@ -66,7 +66,12 @@ const DIALOG_FOOTER =
   /^(Cancel|Close|Save|Done|Not now|Back|Confirm|Create|Move|Export|Download|Add milestone|Save note|Save sample|Save profile|Continue in background|Retry|Don.t ask|Check in the background)/;
 function classify(r) {
   const L = r.label;
-  if (r.variant === 'link') return ['keep', 'inline text action inside a sentence'];
+  if (r.variant === 'link') {
+    // A link-styled button in a row that names a catalogue verb is a row action drawn small (the sync log's Undo); elsewhere it sits in a sentence.
+    const hit = r.context === 'row' ? CONVERT.find(([re]) => re.test(r.label)) : undefined;
+    return hit && hit[1] !== 'review' ? ['convert', hit[1]] : ['keep', 'inline text action inside a sentence'];
+  }
+  if (/^\{.*'primary'/.test(String(r.variant))) return ['keep', 'primary action of its row or card while its state allows it'];
   if (r.variant === 'primary' || r.variant === 'danger-solid') return ['keep', 'primary action of its card, page or dialog'];
   if (r.context === 'dialog' && (DIALOG_FOOTER.test(L) || L.startsWith('{')))
     return ['keep', 'dialog footer decision (the catalogue lists Cancel and Save as text rows)'];
