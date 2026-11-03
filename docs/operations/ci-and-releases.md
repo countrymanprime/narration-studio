@@ -175,7 +175,7 @@ Install-time settings are written in the repository so a default that changes up
   the Dependabot cooldown; list that one `name@version` in `minimumReleaseAgeExclude` in the same pull request, and
   remove it once the version is three days old. Its `overrides` block raises transitive dev-tool dependencies that their parents pin below a
   patched version (`undici`, `dompurify`, `katex` and the like, [#1133](https://github.com/countrymanprime/narration-studio/issues/1133)) as
-  `>=` floors; `pnpm audit` was clean with it on 2026-11-03, so drop an entry when the audit is clean without it.
+  `>=` floors; `pnpm audit` was clean with it on 2026-11-03, so drop an entry when the audit is clean without it. `minimatch` is not overridden: version 11 dropped `makeRe`, which nx calls, and `scripts/ci/nx-minimatch.test.mjs` fails if nx resolves a minimatch without it; the one moderate advisory left in `pnpm audit` is that package inside nx's own dev-tool tree.
 - **`.github/dependabot.yml`:** a `cooldown` on every ecosystem, so Dependabot waits before proposing a new release:
   7 days for `npm` and `github-actions`, 3 days for `uv` and `gomod`. Security updates ignore the cooldown.
 - **Python:** `uv sync --locked` installs only what `uv.lock` pins, and Dependabot's cooldown covers uv updates, so
