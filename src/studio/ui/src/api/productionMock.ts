@@ -9,7 +9,6 @@ import { STATUS_ORDER } from '../chapterStatus';
 import type { ChapterStatus, ManuscriptChapter, RecordedUnavailable } from './contracts/manuscript';
 import type {
   ProductionApi,
-  ProductionBurndownPoint,
   ProductionChapter,
   ProductionMilestone,
   ProductionNextUpItem,
@@ -242,27 +241,6 @@ const hoursOf = (session: ProductionSession) =>
 
 const perFinishedHour = (hours: number, seconds: number) => (hours > 0 && seconds > 0 ? hours / (seconds / 3600) : null);
 
-// The host's Burndown (internal/production/burndown.go): one point per calendar date from the first stopped
-// session's day to the last, running cumulatively; only stopped sessions count.
-function burndownOf(sessions: ProductionSession[]): ProductionBurndownPoint[] {
-  const byDay = new Map<string, number>();
-  for (const session of sessions) {
-    if (session.endedAt === undefined) continue;
-    const day = session.startedAt.slice(0, 10);
-    byDay.set(day, (byDay.get(day) ?? 0) + hoursOf(session));
-  }
-  if (byDay.size === 0) return [];
-  const days = [...byDay.keys()].sort();
-  const points: ProductionBurndownPoint[] = [];
-  let running = 0;
-  for (let d = Date.parse(`${days[0]}T00:00:00Z`); d <= Date.parse(`${days[days.length - 1]}T00:00:00Z`); d += 86_400_000) {
-    const day = new Date(d).toISOString().slice(0, 10);
-    running += byDay.get(day) ?? 0;
-    points.push({ date: day, hoursLogged: running });
-  }
-  return points;
-}
-
 function readinessOf(recommendation: StageRecommendations['chapters'][number]): ProductionReadiness {
   const held = recommendation.signals.find((signal) => signal.state === 'not_met') ?? recommendation.signals.find((signal) => signal.state === 'unknown');
   return { verdict: recommendation.verdict, ...(recommendation.target ? { target: recommendation.target } : {}), reason: held?.reason ?? '' };
@@ -460,6 +438,5 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         include: { ...include },
       };
     },
-    productionBurndown: async () => burndownOf(sessions),
   };
 }

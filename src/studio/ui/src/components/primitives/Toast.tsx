@@ -54,7 +54,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
-      className={`relative flex min-h-[2.8125rem] items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      className={`relative flex min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {sticky && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {sticky ? (
@@ -62,7 +62,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       ) : (
         message.icon && <FontAwesomeIcon icon={message.icon} aria-hidden="true" className="flex-none" />
       )}
-      <span className="min-w-0 break-words">{message.text}</span>
+      <span className="min-w-0 [overflow-wrap:anywhere]">{message.text}</span>
       {message.action && (
         <button
           className={`flex-none font-semibold underline underline-offset-2 ${HIT_AREA}`}
@@ -116,14 +116,14 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
       data-toast-region
       className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
-      <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
+      <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {messages
           .filter((message) => message.tone === 'error')
           .map((message) => (
             <ToastItem key={message.id} message={message} dismiss={dismiss} />
           ))}
       </div>
-      <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
+      <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {messages
           .filter((message) => message.tone === 'info')
           .map((message) => (

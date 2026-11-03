@@ -14,6 +14,9 @@ import { CheckLine } from '../layout/CheckLine';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
 import { TrackList } from './TrackList';
+import { LayoutToggle, VoicesCard } from './VoicesCard';
+import { VoiceLayoutContext } from './voiceLayout';
+import { useVoiceTracks } from './useVoiceTracks';
 import { ChapterTagsDialog } from './ChapterTagsDialog';
 import { CleanupToolsDialog } from './CleanupToolsDialog';
 import { CreateChapterRegionsDialog } from './CreateChapterRegionsDialog';
@@ -84,6 +87,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
   const [tool, setTool] = useState<Tool>();
+  const voices = useVoiceTracks(notify);
+  // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
+  const [layoutInSync, setLayoutInSync] = useState(false);
   // The one reader of the chapter links: the Link chapters button and dialog, the Tracks card and the Chapter links section all use it.
   const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1));
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
@@ -140,67 +146,84 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
 
   return (
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
-    <div className="space-y-[1.1rem]">
-      {forAudacity ? (
-        <Panel title="Audacity project">
-          <AudacityLinkCard view={audacity} notify={notify} />
-        </Panel>
-      ) : (
-        <ProjectSection discovery={discovery} link={link} onSelectRpp={selectRpp} />
-      )}
-      {forAudacity && discovery && !discovery.selected && (
-        <p role="status" className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No tracks have been read from Audacity yet. They appear here once Audacity answers with this project open.
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-          {error}
-        </p>
-      )}
-      {hasTracks && !forAudacity && (
-        <Panel title="REAPER tools">
-          {/* Equal cells on a grid, three across, two below 36rem and one below 26rem, so the buttons share their edges whatever their labels (ENX-9). */}
-          <div className="@container">
-            <Toolbar label="REAPER tools" className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
-              {links.chapters.length > 0 && <ToolButton onClick={() => setTool('link-chapters')}>Link chapters…</ToolButton>}
-              <ToolButton onClick={() => setTool('render-config')}>Prepare chapter render…</ToolButton>
-              <ToolButton onClick={() => setTool('create-regions')}>Create chapter regions…</ToolButton>
-              <ToolButton onClick={() => setTool('chapter-tags')}>Embed chapter tags…</ToolButton>
-              <ToolButton onClick={() => setTool('cleanup-tools')}>Cleanup tools…</ToolButton>
-              <ToolButton onClick={() => setTool('retake-lanes')}>Retakes on lanes…</ToolButton>
-            </Toolbar>
-          </div>
-        </Panel>
-      )}
-      <ChapterSyncPanel
-        notify={notify}
-        onChanged={() => setRefresh((count) => count + 1)}
-        daw={forAudacity ? { daw: 'Audacity', linkedFile: audacity.link?.linkedFile ?? null } : { daw: 'REAPER' }}
-      />
-      {project && project.tracks.length === 0 && (
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          {forAudacity
-            ? 'Audacity has no audio tracks yet, or has not answered since this project opened. The tracks shown here are read from the last time it did.'
-            : 'This REAPER project has no tracks yet.'}
-        </p>
-      )}
-      {hasTracks && <TrackList tracks={project.tracks} mappings={links.mappings} />}
-      {project && unmappedCount > 0 && (
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          {unmappedCount === 1
-            ? 'One chapter can’t get a stage suggestion until its track link is confirmed below.'
-            : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
-        </p>
-      )}
-      {project && <ChapterLinksTable links={links} notify={notify} />}
-      {tool === 'link-chapters' && project && <LinkChaptersDialog links={links} onClose={closeTool} />}
-      {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} onCreateRegions={() => setTool('create-regions')} />}
-      {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}
-      {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}
-      {tool === 'cleanup-tools' && <CleanupToolsDialog onClose={closeTool} />}
-      {tool === 'retake-lanes' && <RetakeLanesDialog onClose={closeTool} />}
-    </div>
+    <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
+      <div className="space-y-[1.1rem]">
+        {forAudacity ? (
+          <Panel title="Audacity project">
+            <AudacityLinkCard view={audacity} notify={notify} />
+          </Panel>
+        ) : (
+          <ProjectSection discovery={discovery} link={link} onSelectRpp={selectRpp} />
+        )}
+        {forAudacity && discovery && !discovery.selected && (
+          <p role="status" className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            No tracks have been read from Audacity yet. They appear here once Audacity answers with this project open.
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
+            {error}
+          </p>
+        )}
+        {hasTracks && !forAudacity && (
+          <Panel title="REAPER tools">
+            {/* Equal cells on a grid, three across, two below 36rem and one below 26rem, so the buttons share their edges whatever their labels (ENX-9). */}
+            <div className="@container">
+              <Toolbar label="REAPER tools" className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
+                {links.chapters.length > 0 && <ToolButton onClick={() => setTool('link-chapters')}>Link chapters…</ToolButton>}
+                <ToolButton onClick={() => setTool('render-config')}>Prepare chapter render…</ToolButton>
+                <ToolButton onClick={() => setTool('create-regions')}>Create chapter regions…</ToolButton>
+                <ToolButton onClick={() => setTool('chapter-tags')}>Embed chapter tags…</ToolButton>
+                <ToolButton onClick={() => setTool('cleanup-tools')}>Cleanup tools…</ToolButton>
+                <ToolButton onClick={() => setTool('retake-lanes')}>Retakes on lanes…</ToolButton>
+              </Toolbar>
+            </div>
+          </Panel>
+        )}
+        <ChapterSyncPanel
+          notify={notify}
+          onChanged={() => setRefresh((count) => count + 1)}
+          daw={forAudacity ? { daw: 'Audacity', linkedFile: audacity.link?.linkedFile ?? null } : { daw: 'REAPER' }}
+          layout={hasTracks && !forAudacity ? <LayoutToggle layout={voices.setup.layout} onLayout={voices.setLayout} /> : undefined}
+          onLayoutShown={setLayoutInSync}
+        />
+        {project && project.tracks.length === 0 && (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {forAudacity
+              ? 'Audacity has no audio tracks yet, or has not answered since this project opened. The tracks shown here are read from the last time it did.'
+              : 'This REAPER project has no tracks yet.'}
+          </p>
+        )}
+        {hasTracks && <TrackList tracks={project.tracks} mappings={links.mappings} />}
+        {project && unmappedCount > 0 && (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {unmappedCount === 1
+              ? 'One chapter can’t get a stage suggestion until its track link is confirmed below.'
+              : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
+          </p>
+        )}
+        {project && <ChapterLinksTable links={links} notify={notify} />}
+        {hasTracks && !forAudacity && (
+          <VoicesCard
+            tracks={project.tracks}
+            chapters={links.chapters}
+            mappings={links.mappings}
+            setup={voices.setup}
+            characters={voices.characters}
+            onLayout={voices.setLayout}
+            onTrackCharacters={voices.setTrackCharacters}
+            onNarratorCharacter={voices.setNarratorCharacter}
+            layoutInCard={!layoutInSync}
+          />
+        )}
+        {tool === 'link-chapters' && project && <LinkChaptersDialog links={links} onClose={closeTool} />}
+        {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} onCreateRegions={() => setTool('create-regions')} />}
+        {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}
+        {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}
+        {tool === 'cleanup-tools' && <CleanupToolsDialog onClose={closeTool} />}
+        {tool === 'retake-lanes' && <RetakeLanesDialog onClose={closeTool} />}
+      </div>
+    </VoiceLayoutContext.Provider>
   );
 }
 

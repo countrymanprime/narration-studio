@@ -20,6 +20,7 @@ function setup(initial: Finding = inspectorFinding(), props: Partial<React.Compo
   const api: InspectorHostApi = {
     findingsReview,
     findingsGet: vi.fn(async (id: string) => inspectorFinding({ id })),
+    transcriptAddEquivalence: vi.fn(async () => 'Added equivalence: Dinah = Dina'),
     findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 1 })),
     findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 0, loopEnd: 4 })),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),

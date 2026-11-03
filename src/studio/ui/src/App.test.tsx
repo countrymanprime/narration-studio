@@ -1322,6 +1322,25 @@ describe('App jump-menu rows', () => {
   }
 });
 
+// #2792: the menu is still in the document while its row runs, so "Settings: <category>" met the open-dialog guard and did nothing.
+describe('App jump-menu Settings categories', () => {
+  afterEach(async () => {
+    const { overlay } = await import('./overlay/overlayService');
+    for (const entry of overlay.getSnapshot().dialogs) {
+      if (entry.kind === 'confirm') entry.answer(false);
+      else entry.close();
+    }
+  });
+
+  it('opens Settings on the chosen category from another page', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await runFromJump('Settings: App & updates');
+    await screen.findByRole('heading', { name: 'Settings' });
+    expect(window.location.hash).toContain('category-');
+  });
+});
+
 // Page-level Back and Forward (jump-menu commands and Alt+Left / Alt+Right, no header buttons), their shortcuts, and the two guards they share with
 // the nav (unsaved Settings, leaving Proofing).
 describe('App Back and Forward', () => {

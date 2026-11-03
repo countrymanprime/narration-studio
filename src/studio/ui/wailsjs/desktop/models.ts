@@ -483,35 +483,6 @@ export class ProfileSelection {
     }
 }
 
-/**
- * TakeReviewScanScope is what the narrator chose to scan: a chapter track, and at most one pickup addition, a pickup
- * track or a time range in project seconds. The idle job carries the project's saved pickup addition (the
- * TakeReview settings) with no chapter track, for the dialog to offer.
- */
-export class TakeReviewScanScope {
-    "chapterTrackName": string;
-    "pickupTrackName"?: string;
-    "pickupRangeStart"?: number | null;
-    "pickupRangeEnd"?: number | null;
-
-    /** Creates a new TakeReviewScanScope instance. */
-    constructor($$source: Partial<TakeReviewScanScope> = {}) {
-        if (!("chapterTrackName" in $$source)) {
-            this["chapterTrackName"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new TakeReviewScanScope instance from a string or object.
-     */
-    static createFrom($$source: any = {}): TakeReviewScanScope {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TakeReviewScanScope($$parsedSource as Partial<TakeReviewScanScope>);
-    }
-}
-
 // Private type creation functions
 const $$createType0 = ExportItem.createFrom;
 const $$createType1 = $Create.Array($$createType0);

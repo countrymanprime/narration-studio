@@ -86,7 +86,6 @@ var eventSpecs = map[string]eventSpec{
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
 	"PICKUPS_COUNTED":       {required: []fieldSpec{text("run"), count("remaining"), count("total")}},
-	"PICKUP_NEXT":           {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_RESOLVED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_REOPENED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_MARKERS_LISTED": {required: []fieldSpec{text("run"), text("path"), count("open"), count("done")}},
@@ -122,8 +121,6 @@ var eventSpecs = map[string]eventSpec{
 	// itemGuid name the retake (a line id alone names several items on a lane track); lane is the 0-based lane REAPER
 	// read from the item when the pick ran.
 	"RETAKE_LANE_PICKED": {required: []fieldSpec{text("run"), text("lineId"), text("itemGuid"), count("lane")}},
-	"TAKE_CREATED":       {required: []fieldSpec{text("run"), text("targetItemGuid"), text("newTakeGuid")}},
-	"TAKE_STALE":         {required: []fieldSpec{text("run"), text("guid")}},
 	// Going to and looping a finding (narration_navigation.lua, bridge.Navigator). Times are
 	// project seconds; restored/kept count the time selection, loop points and repeat; looping and playing are 0 or 1;
 	// reason is item, take or range.
@@ -139,9 +136,10 @@ var eventSpecs = map[string]eventSpec{
 	// REAPER has no device open; recInputName is REAPER's name for the input channel(s), empty when it cannot say. One TRACK_ITEM per item on the track follows, then TRACK_STATE_END (listed, and the track's total).
 	"TRACK_STATE": {required: []fieldSpec{text("run"), text("guid"), count("playState"), number("editCursor"), number("playPosition"), text("rpp"), count("unsaved"),
 		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice"), text("outputDevice"), text("recInputName")}},
-	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off.
+	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off. trackGuid, the track the item is
+	// on, follows it only in the 'children' read of a folder (ChapterFolderState).
 	"TRACK_ITEM": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), number("position"), number("length"), number("sourceOffset"), number("playrate"), text("sourceFile")},
-		optional: []fieldSpec{count("muted")}},
+		optional: []fieldSpec{count("muted"), text("trackGuid")}},
 	"TRACK_STATE_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	"TRACK_STALE":     {required: []fieldSpec{text("run"), text("guid")}},
 	// select_track (narration_track_select.lua): "Select in REAPER" deselected every other track and selected guid. It
@@ -159,6 +157,9 @@ var eventSpecs = map[string]eventSpec{
 	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
+	// switch_voice (narration_transport.lua, docs/research/2026-10-30-booth-sub-track-recording.md section 6b): the voice track
+	// REAPER records on now and the play position of the switch.
+	"VOICE_SWITCHED": {required: []fieldSpec{text("run"), text("guid"), number("at")}},
 	// set_active_take, list_fx_chains, apply_fx_chain (narration_workspace.lua). changed is 0 or 1; reason
 	// is item, take or range; a chain's name is its path relative to FXChains with forward slashes; added is the
 	// number of FX a chain added.

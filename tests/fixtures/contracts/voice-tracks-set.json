@@ -1,0 +1,20 @@
+{
+  "layout": "folders",
+  "narratorCharacter": "alice",
+  "tracks": [
+    {
+      "characters": [
+        "two",
+        "five",
+        "seven"
+      ],
+      "track": "Gardeners"
+    },
+    {
+      "characters": [
+        "queen-of-hearts"
+      ],
+      "track": "Queen"
+    }
+  ]
+}

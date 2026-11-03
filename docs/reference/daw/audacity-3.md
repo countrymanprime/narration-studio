@@ -64,7 +64,7 @@ Audacity has no items, takes or extension data. Take creation, line identity and
 
 ## Not yet available
 
-Sixteen capabilities are not yet available ([matrix](matrix.md)): `line_identity`, `render_config`, `cleanup_tools`, `retake_lanes`, `project_state`, `take_create`, `heartbeat`, `record`, `fx_chains`, `item_gain`, `render_with_fx`, `master_chain_read`, `file_preview`, `file_reveal`, `undo_last` and `monitor_level`. Each refuses with the resolver's sentence naming it ("Record is not available with Audacity yet."); the comparison sentence in `audacity.ErrNotAvailable` is only the review workflow's answer on a launch with no pipe.
+Fifteen capabilities are not yet available ([matrix](matrix.md)): `line_identity`, `render_config`, `cleanup_tools`, `retake_lanes`, `project_state`, `heartbeat`, `record`, `fx_chains`, `item_gain`, `render_with_fx`, `master_chain_read`, `file_preview`, `file_reveal`, `undo_last` and `monitor_level`. Each refuses with the resolver's sentence naming it ("Record is not available with Audacity yet."); the comparison sentence in `audacity.ErrNotAvailable` is only the review workflow's answer on a launch with no pipe.
 
 ## What needs backups
 

@@ -70,13 +70,6 @@ func (g gatedPickups) ExportPickups(runID, outputPath string) error {
 	return g.PickupList.ExportPickups(runID, outputPath)
 }
 
-func (g gatedPickups) NextPickup(runID string) error {
-	if err := g.allowed(); err != nil {
-		return err
-	}
-	return g.PickupList.NextPickup(runID)
-}
-
 func (g gatedPickups) ResolvePickup(runID string, position float64) error {
 	if err := g.allowed(); err != nil {
 		return err

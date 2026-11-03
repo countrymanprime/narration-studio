@@ -150,18 +150,6 @@
     "replace": "if kind == 'PICKUP' or kind == 'PICKUP_DONE' then\n      remaining, total = remaining + 1, total + 1"
   },
   {
-    "name": "next_pickup ignores the edit cursor",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(pickups) do\n    if marker.pos > cursor then",
-    "replace": "for _, marker in ipairs(pickups) do\n    if true then"
-  },
-  {
-    "name": "next_pickup can land on a resolved pickup",
-    "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) == 'PICKUP' then\n      pickups[#pickups + 1] = marker",
-    "replace": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) ~= 'PICKUP_DONE' then\n      pickups[#pickups + 1] = marker"
-  },
-  {
     "name": "resolve_pickup ignores the position tolerance",
     "file": "narration_pickups.lua",
     "find": "if gap <= PICKUP_TOLERANCE and (not best_gap or gap < best_gap) then",
@@ -196,24 +184,6 @@
     "file": "narration_project_state.lua",
     "find": "local count = reaper.GetProjectStateChangeCount(0)",
     "replace": "local count = 0"
-  },
-  {
-    "name": "create_take's stale target item GUID resolves to another item",
-    "file": "narration_take_review.lua",
-    "find": "local target_item = items[normalized_target]",
-    "replace": "local target_item = items[normalized_target] or reaper.GetMediaItem(0, 0)"
-  },
-  {
-    "name": "create_take's stale candidate item GUID check is skipped",
-    "file": "narration_take_review.lua",
-    "find": "if normalized_candidate ~= '' and not items[normalized_candidate] then",
-    "replace": "if false then"
-  },
-  {
-    "name": "create_take does not check the candidate source file exists",
-    "file": "narration_take_review.lua",
-    "find": "if not core.file_exists(payload.source_file) then",
-    "replace": "if false then"
   },
   {
     "name": "a stale navigation GUID resolves to another item",
@@ -1034,8 +1004,8 @@
   {
     "name": "roll: the transport keeps the earlier start position",
     "file": "narration_roll.lua",
-    "find": "  record.position = at\n",
-    "replace": "\n"
+    "find": "  record.position, record.switched_at = at, nil\n",
+    "replace": "  record.switched_at = nil\n"
   },
   {
     "name": "roll: a second roll presses record while the first is pending",
@@ -2454,8 +2424,8 @@
   {
     "name": "set_cursor seeks playback",
     "file": "narration_transport.lua",
-    "find": "  reaper.SetEditCurPos(seconds, true, false)\n  event(session_dir, 'CURSOR_SET'",
-    "replace": "  reaper.SetEditCurPos(seconds, true, true)\n  event(session_dir, 'CURSOR_SET'"
+    "find": "  reaper.SetEditCurPos(seconds, true, false)\n  core.cursor_moved()\n  event(session_dir, 'CURSOR_SET'",
+    "replace": "  reaper.SetEditCurPos(seconds, true, true)\n  core.cursor_moved()\n  event(session_dir, 'CURSOR_SET'"
   },
   {
     "name": "play_from on a paused REAPER does not stop first",
@@ -2508,8 +2478,8 @@
   {
     "name": "track_create inserts the track first instead of last",
     "file": "narration_track_create.lua",
-    "find": "local index = reaper.CountTracks(0)",
-    "replace": "local index = 0"
+    "find": "    index = reaper.CountTracks(0)",
+    "replace": "    index = 0"
   },
   {
     "name": "track_create makes no undo point",
@@ -2784,8 +2754,8 @@
   {
     "name": "Stop puts the cursor at the end of the earlier item, not the new pass",
     "file": "narration_transport.lua",
-    "find": "      if math.abs(position - record.position) <= STOP_EPSILON then",
-    "replace": "      if true then"
+    "find": "      if math.abs(position - record.position) <= STOP_EPSILON then\n        local stop",
+    "replace": "      if true then\n        local stop"
   },
   {
     "name": "Stop forgets where REAPER recorded when no item starts at the recording start",
@@ -2958,8 +2928,8 @@
   {
     "name": "a plain play_range leaves an earlier isolation in place",
     "file": "narration_transport.lua",
-    "find": "  else\n    release_isolation(state)\n  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)",
-    "replace": "  end\n  local play_state = reaper.GetPlayState()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)"
+    "find": "  else\n    release_isolation(state)\n  end\n  local play_state = reaper.GetPlayState()\n  -- The app moves the cursor here: the stop guard must not put it back.\n  core.cursor_moved()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)",
+    "replace": "  end\n  local play_state = reaper.GetPlayState()\n  -- The app moves the cursor here: the stop guard must not put it back.\n  core.cursor_moved()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(start, true, true)"
   },
   {
     "name": "an isolation that cannot be written is applied anyway",
@@ -3014,5 +2984,185 @@
     "file": "narration_ui_bridge.lua",
     "find": "    if timing then\n      ctx.event('PROJECT_STATUS'",
     "replace": "    if false then\n      ctx.event('PROJECT_STATUS'"
+  },
+  {
+    "name": "an unknown track read option is read as the one-track read",
+    "file": "narration_track_state.lua",
+    "find": "if option ~= '' and option ~= 'children' then",
+    "replace": "if false then"
+  },
+  {
+    "name": "the children read stops at the folder and lists none of its tracks",
+    "file": "narration_bridge_core.lua",
+    "find": "  while depth > 0 and index < count do",
+    "replace": "  while false do"
+  },
+  {
+    "name": "the children read runs on past the folder's close",
+    "file": "narration_bridge_core.lua",
+    "find": "    depth = depth + reaper.GetMediaTrackInfo_Value(inner, 'I_FOLDERDEPTH')",
+    "replace": "    depth = depth + 0"
+  },
+  {
+    "name": "Editing play reads the linked track's own items only, so a folder of voices is refused",
+    "file": "narration_transport.lua",
+    "find": "  for _, member in ipairs(core.with_descendants(track)) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do",
+    "replace": "  for _, member in ipairs({ track }) do\n    for index = 0, reaper.CountTrackMediaItems(member) - 1 do"
+  },
+  {
+    "name": "the children read leaves each item's track off",
+    "file": "narration_track_state.lua",
+    "find": "        fields[#fields + 1] = member_guid\n",
+    "replace": ""
+  },
+  {
+    "name": "the children read counts only the folder's own items in its total",
+    "file": "narration_track_state.lua",
+    "find": "    total = total + count\n",
+    "replace": "    total = total + (member == track and count or 0)\n"
+  },
+  {
+    "name": "a track that is not a folder walks on into the tracks after it",
+    "file": "narration_bridge_core.lua",
+    "find": "  if depth <= 0 then\n    return out\n  end",
+    "replace": "  if depth < 0 then\n    return out\n  end\n  depth = math.max(depth, 1)"
+  },
+  {
+    "name": "a voice added to a folder leaves the old last child's depth change as it was",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', parent_depth + 1 - last_depth)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder closes nothing",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', last_delta + last_depth - parent_depth - 1)\n",
+    "replace": ""
+  },
+  {
+    "name": "a voice added to a folder records from its own default input",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(source, 'I_RECINPUT'))\n",
+    "replace": ""
+  },
+  {
+    "name": "a parent that is gone is answered with a track at the end",
+    "file": "narration_track_create.lua",
+    "find": "    if parent_index == nil then\n      event(session_dir, 'TRACK_STALE', run_id, parent_text)\n      return\n    end",
+    "replace": "    if false then\n    end"
+  },
+  {
+    "name": "switch_voice leaves the old voice armed, so both record",
+    "file": "narration_transport.lua",
+    "find": "    if old then\n      set_armed(old, false)\n    end",
+    "replace": "    if old then\n    end"
+  },
+  {
+    "name": "switch_voice does not arm the new voice",
+    "file": "narration_transport.lua",
+    "find": "    set_armed(target, true)\n    if old then",
+    "replace": "    if old then"
+  },
+  {
+    "name": "switch_voice runs with no recording of ours",
+    "file": "narration_transport.lua",
+    "find": "  local record = state.recording\n  if not record then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)\n    return\n  end\n  if not record.started then",
+    "replace": "  local record = state.recording or { started = true }\n  if not record.started then"
+  },
+  {
+    "name": "switch_voice runs before REAPER started recording",
+    "file": "narration_transport.lua",
+    "find": "  if not record.started then\n    event(session_dir, 'ERROR', run_id, 'REAPER has not started recording yet.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'REAPER has not started recording yet.')"
+  },
+  {
+    "name": "switch_voice forgets which voice records now",
+    "file": "narration_transport.lua",
+    "find": "    record.track, record.switched_at = guid, at",
+    "replace": "    record.switched_at = at"
+  },
+  {
+    "name": "the remembered arms do not follow the voice",
+    "file": "narration_transport.lua",
+    "find": "    state.saved_arms.target = guid\n    record.track",
+    "replace": "    record.track"
+  },
+  {
+    "name": "the stop after a switch looks for the take start on the last voice",
+    "file": "narration_transport.lua",
+    "find": "  if track and record.switched_at then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "set_cursor leaves the stop guard running",
+    "file": "narration_transport.lua",
+    "find": "  reaper.SetEditCurPos(seconds, true, false)\n  core.cursor_moved()",
+    "replace": "  reaper.SetEditCurPos(seconds, true, false)"
+  },
+  {
+    "name": "punch_to leaves the stop guard running",
+    "file": "narration_punch.lua",
+    "find": "  reaper.SetEditCurPos(target, true, false)\n  core.cursor_moved()",
+    "replace": "  reaper.SetEditCurPos(target, true, false)"
+  },
+  {
+    "name": "the cursor listener does not end the stop guard",
+    "file": "narration_transport.lua",
+    "find": "  core.on_cursor_moved(function()\n    state.stop_guard = nil\n  end)",
+    "replace": "  core.on_cursor_moved(function() end)"
+  },
+  {
+    "name": "switch_voice moves arms after REAPER stopped",
+    "file": "narration_transport.lua",
+    "find": "  if not recording() then\n    -- The narrator stopped REAPER in this same cycle",
+    "replace": "  if false then\n    -- The narrator stopped REAPER in this same cycle"
+  },
+  {
+    "name": "a roll after a switch keeps reading the item the switch began",
+    "file": "narration_roll.lua",
+    "find": "  record.position, record.switched_at = at, nil\n",
+    "replace": "  record.position = at\n"
+  },
+  {
+    "name": "after a switch the stop takes the latest item on the voice, not the one the switch began",
+    "file": "narration_transport.lua",
+    "find": "(not first or position < first)",
+    "replace": "(not first or position > first)"
+  },
+  {
+    "name": "after a switch the stop takes an item that began before the switch",
+    "file": "narration_transport.lua",
+    "find": "      if position >= record.switched_at - STOP_EPSILON and",
+    "replace": "      if position >= 0 and"
+  },
+  {
+    "name": "switch_voice without arm_only remembers no arms",
+    "file": "narration_transport.lua",
+    "find": "    if not state.saved_arms then\n      -- A recording started without arm_only",
+    "replace": "    if false then\n      -- A recording started without arm_only"
+  },
+  {
+    "name": "a voice added after arm_only is never put back",
+    "file": "narration_transport.lua",
+    "find": "    if state.saved_arms.arms[guid] == nil then\n      state.saved_arms.arms[guid] = armed(target)\n    end",
+    "replace": ""
+  },
+  {
+    "name": "a switch to the voice already recording rewrites the arms",
+    "file": "narration_transport.lua",
+    "find": "  if guid ~= record.track then\n    local old",
+    "replace": "  if true then\n    local old"
+  },
+  {
+    "name": "go_to leaves the stop guard running",
+    "file": "narration_track_select.lua",
+    "find": "  reaper.SetEditCurPos(target, true, false)\n  core.cursor_moved()",
+    "replace": "  reaper.SetEditCurPos(target, true, false)"
+  },
+  {
+    "name": "play_from leaves the stop guard running",
+    "file": "narration_transport.lua",
+    "find": "  core.cursor_moved()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(seconds, true, true)",
+    "replace": "  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(seconds, true, true)"
   }
 ]

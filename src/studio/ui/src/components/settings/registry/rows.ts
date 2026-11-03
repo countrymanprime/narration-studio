@@ -48,7 +48,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'project',
     def: 'reaper',
     desc: 'Where this project’s recordings live.',
-    more: 'Where this project’s recordings live. Changing it later does not move existing takes.',
+    more: 'Where this project’s recordings live. Changing it later does not move existing takes. With REAPER, the app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so there is nothing to set up in REAPER.',
     used: ['booth', 'editing', 'pickups', 'proof', 'master'],
     syn: 'daw reaper audacity built-in recorder',
   },
@@ -787,7 +787,8 @@ export const ROWS: readonly SettingMeta[] = [
     more: 'Writes the reasons behind the app’s decisions to the run log. Turn it on when asked to send a log.',
     used: [],
     advanced: true,
-    syn: 'log verbose run log diagnostics',
+    beside: 'logFolder',
+    syn: 'log logs verbose run log run.jsonl host.log diagnostics folder open file manager explorer',
   },
 ];
 

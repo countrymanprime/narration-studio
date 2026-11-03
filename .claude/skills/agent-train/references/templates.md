@@ -42,7 +42,11 @@ atlas:page <page>; never run `playwright install`, the runs find this container'
 page draws or how it is used, that page's guide updated in the same PR: docs/guides/using-the-app/<page>.md and its
 images (node scripts/dev/guide-screenshots.mjs <page>), linked from the body, or "No guide change: <reason>"; commit no
 other images (see "UI PRs update the how-to guide" in CONTRIBUTING.md), "Base: <branch>", "Closes #<slice>" for a slice,
-else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review". Set each phase's
+else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review".
+ISSUES: before you open the PR, list every open issue your change resolves (the slice, plus any bug or triage issue it fixes: search
+`gh issue list` for the symptom). Write one "Closes #<n>" line per issue the PR fully resolves; "Refs #<n>" only for an issue it
+resolves in part, never for a fix; "Issue: none — <reason>" when there is none. A fix or feat PR with none of these fails the
+advisory Issue link check. A PR based on another branch does not close its issues on merge; the coordinator closes them. Set each phase's
 Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
 METHOD: impact scan before touching shared code (list every consumer of what you change and its tests); tests first;
 SETTINGS: the Settings page always keeps every setting; a working page may add a compact modal/side-panel entry, never remove or replace the Settings control.
@@ -81,7 +85,7 @@ Mark the PR ready for review when its phase is done.
 
 ```text
 You are a fixer in this repository's agent train. PR #<n> (branch <b>) <has a merge conflict with main | fails <check> |
-turned main red>. Merge main into the branch (never rebase or force-push). Resolve keeping both sides' intent: for
+turned main red>. Merge main into the branch (never rebase or force-push). Keep the PR body's "Closes #<n>" lines; add one for any issue your fix resolves. Resolve keeping both sides' intent: for
 hostAPIVersion take the higher value + 1 and regenerate Host.*; for ADR or PRD index rows keep both rows; for an ADR number
 clash renumber the later one to the next free number and fix its links. Run targeted checks for the touched areas, push,
 confirm Build (Windows) and ui-dist go green, comment on #989 with what you did, then end. Don't merge. End every GitHub

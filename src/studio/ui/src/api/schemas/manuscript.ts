@@ -9,7 +9,6 @@ import type {
   ManuscriptImportSection,
   ManuscriptNote,
   ManuscriptParagraph,
-  ManuscriptReader,
   ReaderState,
   RecordedThrough,
   SearchHit,
@@ -104,12 +103,6 @@ const searchHitSchema = z.object({
   excerpt: z.string(),
   matchStart: optionalFromNull(z.number()),
 }) satisfies z.ZodType<SearchHit>;
-
-export const readerSchema = z.object({
-  chapters: listFromNull(chapterSchema),
-  paragraphs: listFromNull(paragraphSchema),
-  notes: listFromNull(noteSchema),
-}) satisfies z.ZodType<ManuscriptReader>;
 
 const importSectionSchema = z.object({
   id: z.string(),

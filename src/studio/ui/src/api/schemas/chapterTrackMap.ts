@@ -1,11 +1,7 @@
 import { z } from 'zod';
 import type {
-  ChapterCandidate,
   ChapterRegionPlan,
   ChapterRegionsCreated,
-  ChaptersForTracksEntry,
-  ChaptersForTracksResult,
-  ChapterSuggestion,
   ChapterTrackCandidate,
   ChapterTrackLink,
   ChapterTrackLinks,
@@ -59,45 +55,6 @@ export const recordedEndSchema = z.object({
 const matchWarningSchema = z.enum(['confirmed-track-missing', 'confirmed-track-renamed', 'confirmed-links-conflict']);
 
 const matchStatusSchema = z.enum(['confirmed', 'matched', 'uncertain', 'ambiguous', 'none']);
-
-const chapterCandidateSchema = z.object({
-  chapterId: z.string(),
-  chapterTitle: z.string(),
-  score: z.number().min(0).max(1),
-  source: z.enum(['confirmed', 'track-name', 'region-name']),
-  region: z.object({ name: z.string(), start: z.number(), end: z.number() }).nullable(),
-}) satisfies z.ZodType<ChapterCandidate>;
-
-// trackDirectionWarningSchema is the warning set the matcher's track-to-chapter direction can report (ForTrack): every ForChapter warning plus confirmed-chapter-missing, which only that direction can raise.
-const trackDirectionWarningSchema = z.enum(['confirmed-track-missing', 'confirmed-track-renamed', 'confirmed-links-conflict', 'confirmed-chapter-missing']);
-
-export const chapterSuggestionSchema = z.object({
-  projectFile: z.string(),
-  savedAt: z.string(),
-  basis: z.enum(['armed', 'selected', 'none']),
-  track: z.object({ guid: z.string(), name: z.string(), index: z.number().int() }).nullable(),
-  status: matchStatusSchema,
-  chapter: chapterCandidateSchema.nullable(),
-  candidates: z.array(chapterCandidateSchema),
-  warnings: z.array(trackDirectionWarningSchema),
-}) satisfies z.ZodType<ChapterSuggestion>;
-
-// ChaptersForTracksEntry.status is '' only alongside `error` (the requested GUID is not in the current project), so
-// it is not folded into matchStatusSchema itself: that enum stays the actual matcher statuses everywhere else.
-const chaptersForTracksEntrySchema = z.object({
-  status: z.union([matchStatusSchema, z.literal('')]),
-  chapter: chapterCandidateSchema.nullable(),
-  candidates: listFromNull(chapterCandidateSchema),
-  warnings: listFromNull(trackDirectionWarningSchema),
-  error: z.string().optional(),
-}) satisfies z.ZodType<ChaptersForTracksEntry>;
-
-/** ChaptersForTracks' answer. */
-export const chaptersForTracksSchema = z.object({
-  projectFile: z.string(),
-  savedAt: z.string(),
-  tracks: z.record(z.string(), chaptersForTracksEntrySchema),
-}) satisfies z.ZodType<ChaptersForTracksResult>;
 
 export const chapterTrackMatchSchema = z.object({
   chapterId: z.string(),
