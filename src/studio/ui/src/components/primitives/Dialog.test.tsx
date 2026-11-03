@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -138,6 +138,48 @@ describe('Dialog is a real modal', () => {
     await user.keyboard('{Escape}');
     // The opener was removed while the dialog was open, so focus goes to the landmark (or its first control), not <body>.
     await waitFor(() => expect(document.querySelector('main')?.contains(document.activeElement)).toBe(true));
+  });
+
+  it('focuses <main> itself, not its first control, when the opener is gone (#2902)', async () => {
+    const user = userEvent.setup();
+    render(<Harness keepOpener={false} />);
+    await user.click(screen.getByRole('button', { name: 'Open dialog' }));
+    await screen.findByRole('dialog', { name: 'Add note' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector('main')));
+  });
+
+  it('leaves focus where the closing action put it, outside the dialog, and does not return to the opener (#2902)', async () => {
+    const user = userEvent.setup();
+    function Moves() {
+      const [open, setOpen] = useState(false);
+      return (
+        <div>
+          <main tabIndex={-1}>
+            <button onClick={() => setOpen(true)}>Open dialog</button>
+            <button id="destination">Destination</button>
+          </main>
+          {open && (
+            <Dialog
+              title="Go"
+              onClose={() => {
+                setOpen(false);
+                document.getElementById('destination')?.focus();
+              }}
+            >
+              <p>Body</p>
+            </Dialog>
+          )}
+        </div>
+      );
+    }
+    render(<Moves />);
+    await user.click(screen.getByRole('button', { name: 'Open dialog' }));
+    await screen.findByRole('dialog', { name: 'Go' });
+    await user.keyboard('{Escape}');
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement?.id).toBe('destination');
   });
 
   it('ignores Escape when the dialog has no way to be dismissed', async () => {
