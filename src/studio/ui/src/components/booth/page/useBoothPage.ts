@@ -314,6 +314,15 @@ export function useBoothPage(options: BoothPageOptions) {
         // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
         // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
         if (!(await latest.current.session.ensureModel())) return;
+        // The app's own recorder records on the choice, else the project's last, else the only microphone: with none of them (several listed, none
+        // chosen) the Levels menu shows none chosen, so the take does not begin on a guess. The host refuses the same way; this says so first, before
+        // anything listens (#2810).
+        const caps = control.capabilities;
+        const appRecords = !!caps && (caps.daw === 'none' || recordsInApp(caps.daw));
+        if (appRecords && latest.current.session.device.trim() === '') {
+          overlay.toast('Choose the microphone in Levels, then press Record.', { tone: 'error' });
+          return;
+        }
         // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
         // starts from the real cursor, never from the ghost.
         const from = realWord();

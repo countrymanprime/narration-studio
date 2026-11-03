@@ -23,6 +23,8 @@ type Options = {
   /** True once the saved microphone has been read, so a saved choice is never raced. */
   settingsLoaded: boolean;
   devices: readonly TeleprompterDevice[];
+  /** The app's own recorder records the take: the microphone named is then the one it will record on (`resolveListeningMic`). */
+  appRecords?: boolean;
   /** Listens on the resolved microphone without saving it (`useTeleprompterSession`'s `listenOn`). */
   listenOn: (device: string | null) => void;
 };
@@ -31,8 +33,10 @@ type Options = {
  * The microphone the Booth listens to so the text follows the voice (`resolveListeningMic`). With a DAW, `TeleprompterReaperInput`
  * is asked when the chapter changes and when the window gets focus, and its input is listened on without being saved, so the DAW stays the source of truth.
  */
-export function useListeningMic({ dawRecords, chapterId, chosen, source, settingsLoaded, devices, listenOn }: Options): ListeningMic {
+export function useListeningMic({ dawRecords, chapterId, chosen, source, settingsLoaded, devices, listenOn, appRecords = false }: Options): ListeningMic {
   const teleprompter = usePort('teleprompter');
+  const recording = usePort('recording');
+  const [recordsOn, setRecordsOn] = useState('');
   const [input, setInput] = useState<TeleprompterReaperInput | null>(null);
 
   useEffect(() => {
@@ -55,8 +59,28 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
     };
   }, [teleprompter, dawRecords, chapterId]);
 
+  // The microphone this project last recorded with in the built-in recorder: Record uses it when none is chosen, so the menu names it too.
+  useEffect(() => {
+    if (!appRecords) {
+      setRecordsOn('');
+      return;
+    }
+    let live = true;
+    const read = () =>
+      void recording
+        .recorderState()
+        .then((state) => live && setRecordsOn(state.device.trim()))
+        .catch(() => {});
+    read();
+    window.addEventListener('focus', read);
+    return () => {
+      live = false;
+      window.removeEventListener('focus', read);
+    };
+  }, [recording, appRecords]);
+
   const answer = dawRecords ? input : null;
-  const resolved = resolveListeningMic({ dawRecords, answer, source, chosen, devices: devices.map((device) => device.name) });
+  const resolved = resolveListeningMic({ dawRecords, answer, source, chosen, devices: devices.map((device) => device.name), appRecords, recordsOn });
   const device = settingsLoaded ? resolved.device : null;
   useEffect(() => {
     listenOn(device);

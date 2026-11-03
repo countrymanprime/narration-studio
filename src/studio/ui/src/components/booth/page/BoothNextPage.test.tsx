@@ -1779,3 +1779,52 @@ describe('a-take-is-undone-in-the-daw', () => {
     expect(toastNamed(page, 'Take saved')).toBeUndefined();
   });
 });
+
+describe('the-built-in-recorder-names-the-microphone-it-records-on', () => {
+  // Issue 2810: the Levels select showed the first microphone listed while Record used the one the project last recorded with.
+  const noSavedDevice = async () => ({});
+  const two = async () => ({ devices: [{ name: 'USB Mic' }, { name: 'Line In' }], error: null });
+  const recorderState = (device: string) => async () => ({ phase: 'idle', device, hasProject: true, takes: [] }) as never;
+  const levelsSelect = async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    return within(menu).getByRole('combobox', { name: 'Microphone' }) as HTMLSelectElement;
+  };
+
+  it('names the microphone the project last recorded with, not the first listed, and listens on it', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({
+      setup: 'builtin',
+      api: {
+        settingsForScope: noSavedDevice,
+        teleprompterDevices: two,
+        recorderDevices: two,
+        recorderState: recorderState('Line In'),
+        teleprompterStart,
+      } as never,
+    });
+    await ready();
+    await waitFor(async () => expect((await levelsSelect()).value).toBe('Line In'));
+    await userEvent.keyboard('{Escape}');
+    await record(page);
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'Line In' })));
+    expect(teleprompterStart).not.toHaveBeenCalledWith(expect.objectContaining({ device: 'USB Mic' }));
+  });
+
+  it('shows no microphone as chosen when several are listed and none was chosen or recorded with, and never listens on the first', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({
+      setup: 'builtin',
+      api: { settingsForScope: noSavedDevice, teleprompterDevices: two, recorderDevices: two, recorderState: recorderState(''), teleprompterStart } as never,
+    });
+    await ready();
+    expect((await levelsSelect()).value).toBe('');
+    await userEvent.keyboard('{Escape}');
+    await space();
+    await settle();
+    expect(page.overlay.getSnapshot().toasts.find((toast) => toast.text === 'Choose the microphone in Levels, then press Record.')).toBeTruthy();
+    expect(teleprompterStart).not.toHaveBeenCalled();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull();
+  });
+});

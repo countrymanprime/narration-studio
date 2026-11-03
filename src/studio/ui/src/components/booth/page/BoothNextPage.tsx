@@ -634,6 +634,7 @@ function BoothSession({
   // linked DAW's own input unless the narrator chose a different one.
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
+    appRecords: !!capabilities && standalone,
     chapterId,
     chosen: session.chosenDevice,
     source: session.inputSource,

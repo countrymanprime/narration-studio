@@ -199,7 +199,8 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 ![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
 
 - **The microphone.** The take records on the microphone you chose in **Levels**. With none chosen it uses the one the project
-  last recorded with, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
+  last recorded with, then the only one the computer lists. **Levels** names that same microphone, so what it shows is what the
+  take records on. With several listed and none chosen, **Levels** shows **Choose a microphone…** and Record says **Choose the
   microphone in Levels, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
   will not let the app open (another program has it, or the privacy setting blocks it) is refused in the recorder's own words and
   nothing records.
