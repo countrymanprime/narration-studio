@@ -12,6 +12,7 @@ Storybook title: `Primitives/Swatch`. Source: `src/components/primitives/Swatch.
 
 ## Used by
 
+- `src/components/script/page/rail/InThisChapter.tsx`
 - `src/components/script/page/rail/bible/BiblePanel.tsx`
 - `src/components/script/page/rail/bible/kinds.ts`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
@@ -21,7 +22,7 @@ Storybook title: `Primitives/Swatch`. Source: `src/components/primitives/Swatch.
 - `src/components/script/page/tools/speaker/SpeakerPicker.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
-- `src/components/storybible/FilterChip.tsx`
-- `src/components/storybible/Guide.tsx`
+- `src/components/storybible/EntryTable.tsx`
+- `src/components/storybible/FilterMenu.tsx`
 - `src/components/storybible/SpeakerColourField.tsx`
 - `src/components/storybible/entryList.ts`

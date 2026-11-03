@@ -53,9 +53,11 @@ export function MilestoneTable({ milestones, chapters, today, wph, due, onToggle
     .sort((a, b) => (a.m.dueDate < b.m.dueDate ? -1 : a.m.dueDate > b.m.dueDate ? 1 : a.index - b.index));
   const final = due ? milestoneStatus({ dueDate: due, measure: 'all' }, chapters, today, wph) : null;
   return (
-    /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, instead of spilling out of the card on a narrow window. */
-    <div className={`scroll-x-edges overflow-x-auto ${MEASURES_WIDTH}`} tabIndex={0} role="group" aria-label="Milestones scroll area">
-      <Table label="Milestones" flush columns={COLUMNS} className="min-w-[36.5rem] lg:min-w-[46.5rem]">
+    /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, where the card is at least 34.5 rem wide.
+       In a narrower card (a phone) each row stacks instead (#1941): the name and status on one line, the due date and the buttons under them, so nothing
+       is reachable only by a sideways scroll that gives no cue. The box is the container the narrow rows ask about. */
+    <div className={`scroll-x-edges @container overflow-x-auto ${MEASURES_WIDTH}`} tabIndex={0} role="group" aria-label="Milestones scroll area">
+      <Table label="Milestones" flush columns={COLUMNS} className={`min-w-[36.5rem] lg:min-w-[46.5rem] ${NARROW_TABLE}`}>
         <TableHead>
           <TableRow>
             <TableHeader>Milestone</TableHeader>
@@ -131,6 +133,21 @@ export function MilestoneTable({ milestones, chapters, today, wph, due, onToggle
 }
 
 const WHOLE_BOOK = 'Whole book';
+
+// Below 34.5 rem of card a row is a two-column grid: the name and the status on the first line, the due date and the buttons on the second.
+// The headings go (a screen reader keeps them); each value keeps its cell. The Measures cell (second) stays for a screen reader and draws nothing.
+// Every rule sits on the table, not on each row and cell, so five hundred rows stay as cheap to draw as before.
+const NARROW_TABLE = [
+  '@max-[34.5rem]:block @max-[34.5rem]:min-w-0! @max-[34.5rem]:[&>colgroup]:hidden @max-[34.5rem]:[&>thead]:sr-only @max-[34.5rem]:[&>tbody]:block',
+  '@max-[34.5rem]:[&_tbody_tr]:grid! @max-[34.5rem]:[&_tbody_tr]:grid-cols-[minmax(0,1fr)_auto] @max-[34.5rem]:[&_tbody_tr]:items-center @max-[34.5rem]:[&_tbody_tr]:gap-x-3 @max-[34.5rem]:[&_tbody_tr]:gap-y-1',
+  '@max-[34.5rem]:[&_tbody_tr]:border-b @max-[34.5rem]:[&_tbody_tr]:border-[var(--border)] @max-[34.5rem]:[&_tbody_tr]:px-4 @max-[34.5rem]:[&_tbody_tr]:py-2 @max-[34.5rem]:[&_tbody_tr:last-child]:border-b-0',
+  '@max-[34.5rem]:[&_td]:h-auto! @max-[34.5rem]:[&_td]:border-b-0 @max-[34.5rem]:[&_td]:px-0! @max-[34.5rem]:[&_td]:py-0!',
+  '@max-[34.5rem]:[&_td:nth-child(1)]:col-start-1 @max-[34.5rem]:[&_td:nth-child(1)]:row-start-1',
+  '@max-[34.5rem]:[&_td:nth-child(2)]:sr-only',
+  '@max-[34.5rem]:[&_td:nth-child(3)]:col-start-1 @max-[34.5rem]:[&_td:nth-child(3)]:row-start-2',
+  '@max-[34.5rem]:[&_td:nth-child(4)]:col-start-2 @max-[34.5rem]:[&_td:nth-child(4)]:row-start-1 @max-[34.5rem]:[&_td:nth-child(4)]:justify-self-end',
+  '@max-[34.5rem]:[&_td:nth-child(5)]:col-start-2 @max-[34.5rem]:[&_td:nth-child(5)]:row-start-2 @max-[34.5rem]:[&_td:nth-child(5)]:justify-self-end',
+].join(' ');
 
 // Fixed columns (alignment audit XSH-3): only Milestone takes what is left, so Due and Status stand at the same x in every state
 // whatever the milestones are called. Due is the mock's 152 px; Actions holds four 36 px buttons 8 px apart.

@@ -188,12 +188,20 @@ def _fake_phonemize(known: str, ipa: str):
 
 def test_espeak_source_passes_its_conformance_suite():
     with patch("phonemizer.phonemize", side_effect=_fake_phonemize("Name", "n eɪ m")):
-        pronunciation_conformance.run(providers.EspeakSource(), known="Name", unknown="Zzyzxqq")
+        source = providers.EspeakSource()
+        source.espeak_library = "/path/to/espeak"
+        pronunciation_conformance.run(source, known="Name", unknown="Zzyzxqq")
 
 
 def test_espeak_source_raises_when_phonemizer_produces_nothing():
-    with patch("phonemizer.phonemize", return_value=""), pytest.raises(ValueError, match="eSpeak"):
-        providers.EspeakSource().pronounce("Name")
+    source = providers.EspeakSource()
+    source.espeak_library = "/path/to/espeak"
+    with (
+        patch("phonemizer.phonemize", return_value=""),
+        patch("phonemizer.backend.espeak.wrapper.EspeakWrapper.set_library"),
+        pytest.raises(ValueError, match="eSpeak"),
+    ):
+        source.pronounce("Name")
 
 
 def test_espeak_source_sets_the_library_pronounce_source_gave_it():
@@ -207,14 +215,30 @@ def test_espeak_source_sets_the_library_pronounce_source_gave_it():
     set_library.assert_called_once_with("/path/to/espeak")
 
 
-def test_espeak_source_does_not_set_a_library_when_none_was_given():
+def test_espeak_source_without_a_library_uses_pipers_bundled_espeak_not_the_system_one():
+    # #232: no build ships a system libespeak-ng, so the default path must not touch phonemizer at all.
     source = providers.EspeakSource()
     with (
-        patch("phonemizer.phonemize", return_value="n eɪ m"),
+        patch("phonemizer.phonemize", side_effect=AssertionError("phonemizer needs a system libespeak-ng")),
         patch("phonemizer.backend.espeak.wrapper.EspeakWrapper.set_library") as set_library,
     ):
-        source.pronounce("Name")
+        answer = source.pronounce("Kvothe")
     set_library.assert_not_called()
+    assert answer["ipa"].startswith("k") and "ˈ" in answer["ipa"]
+    assert answer["confidence"] == "low"
+    assert answer["source"] == providers.EspeakSource.guess_label
+
+
+def test_espeak_source_without_a_library_passes_its_conformance_suite():
+    pronunciation_conformance.run(providers.EspeakSource(), known="Name", unknown="")
+
+
+def test_espeak_source_raises_when_pipers_espeak_produces_nothing():
+    source = providers.EspeakSource()
+    source._piper = MagicMock()
+    source._piper.phonemize.return_value = [[]]
+    with pytest.raises(ValueError, match="eSpeak"):
+        source.pronounce("Name")
 
 
 # --- PiperEngine ------------------------------------------------------------------------------------------------------------------

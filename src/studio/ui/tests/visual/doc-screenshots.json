@@ -973,6 +973,13 @@
     "caption": "Master & QC - Master all to spec with five files picked and given a role, mastered by the built-in chain before encoding"
   },
   {
+    "page": "master",
+    "state": "to-spec-approve-daw",
+    "viewport": "desktop",
+    "docName": "master-to-spec-approve",
+    "caption": "Master & QC - Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders"
+  },
+  {
     "page": "delivery",
     "state": "measured",
     "viewport": "desktop",
@@ -1160,6 +1167,13 @@
     "viewport": "desktop",
     "docName": "script-search",
     "caption": "Script - Ctrl+F then \"Alice\": the menu lists the matches under In the script, the matched word marked"
+  },
+  {
+    "page": "script",
+    "state": "search-steps",
+    "viewport": "desktop",
+    "docName": "script-search-steps",
+    "caption": "Script - a search showing, then Ctrl+F and Search: Next match and Previous match with where you are (1 of 397 for “alice”), and Clear the search"
   },
   {
     "page": "script",

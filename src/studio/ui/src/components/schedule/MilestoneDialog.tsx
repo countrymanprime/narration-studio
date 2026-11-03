@@ -42,8 +42,9 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     setSaving(false);
   };
   return (
+    /* The dialog's 80dvh less its header and the body's padding: the fields scroll inside it and the footer stays on screen (as Check recordings does). */
     <form
-      className="flex flex-col gap-3.5"
+      className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3.5"
       onSubmit={(event) => {
         event.preventDefault();
         void save();
@@ -56,56 +57,58 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
         }
       }}
     >
-      <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} />
-      <div>
-        <label className={FIELD_LABEL_CLASSES} htmlFor="milestone-due">
-          Due
-        </label>
-        <DateField id="milestone-due" value={draft.date} onChange={(date) => set({ date })} className="mt-2" />
-      </div>
-      <div>
-        <span className={FIELD_LABEL_CLASSES} id="milestone-measure-label">
-          Measures
-        </span>
-        <div className="mt-2 flex items-center gap-2">
-          <Select
-            label="What the milestone measures"
-            aria-describedby="milestone-measure-label"
-            value={draft.measure}
-            onChange={(measure) => set({ measure })}
-            options={options}
-            className="min-w-0 flex-1"
-          />
-          {draft.measure === 'chN' && (
-            <TextField
-              label="How many chapters"
-              mono
-              inputMode="numeric"
-              value={String(draft.chapters)}
-              onChange={(text) => set({ chapters: digits(text) })}
-              onBlur={() => set({ chapters: Math.max(1, Math.min(Math.max(1, bounds.chapters), draft.chapters)) })}
-              className="w-20!"
-            />
-          )}
-          {draft.measure === 'minN' && (
-            <TextField
-              label="How many finished minutes"
-              mono
-              inputMode="numeric"
-              value={String(draft.minutes)}
-              onChange={(text) => set({ minutes: digits(text) })}
-              onBlur={() => set({ minutes: Math.max(1, Math.min(bounds.minutes, draft.minutes)) })}
-              className="w-20!"
-            />
-          )}
+      <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3.5 overflow-y-auto">
+        <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} />
+        <div>
+          <label className={FIELD_LABEL_CLASSES} htmlFor="milestone-due">
+            Due
+          </label>
+          <DateField id="milestone-due" value={draft.date} onChange={(date) => set({ date })} className="mt-2" />
         </div>
+        <div>
+          <span className={FIELD_LABEL_CLASSES} id="milestone-measure-label">
+            Measures
+          </span>
+          <div className="mt-2 flex items-center gap-2">
+            <Select
+              label="What the milestone measures"
+              aria-describedby="milestone-measure-label"
+              value={draft.measure}
+              onChange={(measure) => set({ measure })}
+              options={options}
+              className="min-w-0 flex-1"
+            />
+            {draft.measure === 'chN' && (
+              <TextField
+                label="How many chapters"
+                mono
+                inputMode="numeric"
+                value={String(draft.chapters)}
+                onChange={(text) => set({ chapters: digits(text) })}
+                onBlur={() => set({ chapters: Math.max(1, Math.min(Math.max(1, bounds.chapters), draft.chapters)) })}
+                className="w-20!"
+              />
+            )}
+            {draft.measure === 'minN' && (
+              <TextField
+                label="How many finished minutes"
+                mono
+                inputMode="numeric"
+                value={String(draft.minutes)}
+                onChange={(text) => set({ minutes: digits(text) })}
+                onBlur={() => set({ minutes: Math.max(1, Math.min(bounds.minutes, draft.minutes)) })}
+                className="w-20!"
+              />
+            )}
+          </div>
+        </div>
+        <Field label="Note" textarea value={draft.note} onChange={(note) => set({ note })} autoFocus={focusNote} />
+        {problem && (
+          <p role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
+            {problem}
+          </p>
+        )}
       </div>
-      <Field label="Note" textarea value={draft.note} onChange={(note) => set({ note })} autoFocus={focusNote} />
-      {problem && (
-        <p role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
-          {problem}
-        </p>
-      )}
       {/* Done shares the button row, at its left (R3SH-9), rather than a row of its own over a half-empty one. */}
       <div className="flex flex-wrap items-center justify-end gap-2">
         <span className="mr-auto">

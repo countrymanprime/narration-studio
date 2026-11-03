@@ -122,7 +122,15 @@ The **Master all to spec…** icon button, beside **Check files…**, picks the 
 each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
 of the panel beside **Add files…**: with **Master before encoding** on (the
 default; its **?** says the file is brought to the platform's RMS window and peak limit) each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then
-encoded; turn it off and the button reads **Encode**. The bar shows the files' progress, **Cancel** stops
+encoded; turn it off and the button reads **Encode**. When the project masters with your DAW's FX chain or an Audacity effect
+macro, **Master & encode** first asks your approval for this export. **Approve this render?** names the chain and lists the files
+it masters; for your DAW's FX chain, each file is listed with the region it renders from (a chapter's title, **Opening credits** or
+**Closing credits**). A retail sample has no region, so an export through your DAW's FX chain that includes one is refused before
+the dialog opens, naming the file: remove it, or encode it without mastering. A chapter with no title is refused the same way. For
+Audacity, type the macro's name as Audacity's Macro Manager lists it (letters, digits, spaces, hyphens and underscores); a name
+Audacity cannot run is refused in the dialog. **Approve and master** starts the export; **Cancel** sends nothing. The approval
+covers this one export, so the next one asks again. If the project's chain changed after the dialog opened, the export is refused
+with a message saying so, and pressing **Master & encode** again asks about the chain it now uses. The bar shows the files' progress, **Cancel** stops
 it, and each row's **Status** pill says whether it waits, is mastering, is encoding, is ready or failed, with the
 reason under a failure. Every stage writes a new file next to the app's own output: your renders are never changed.
 When it ends, the line under the bar says how many files were prepared. They are new copies, so the chapter table
@@ -131,6 +139,8 @@ and [Delivery](delivery.md) still go by the files you checked: the check icon be
 mastered once its file passes.
 
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
+
+![Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders](../../images/ui/master-to-spec-approve.webp)
 
 ## Building packages for several platforms at once
 
