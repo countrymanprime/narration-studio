@@ -77,6 +77,8 @@ const OWN_KEYS = 'button, a, input, textarea, select, [role="checkbox"]';
 /** The toast topic of a removal with no Undo; one within `REMOVED_RUN_MS` of the last counts with it (the toast lasts five seconds). */
 const REMOVED_TOPIC = 'pickups:removed';
 const REMOVED_RUN_MS = 5_000;
+/** A second Remove within this long of the last one is a double click, not a second decision. */
+const REMOVE_REPEAT_MS = 400;
 
 /** A line left out of the session (its box cleared) is drawn muted, so unticking it visibly changes it (R3PK-7, XPK-17). */
 const leftOut = (pickup: PickupItem): boolean => !pickup.included && !pickup.done;
@@ -192,10 +194,10 @@ export function PickupsTable({
   const removedRun = useRef<{ count: number; at: number } | null>(null);
   /* A press on a line whose last change has not been answered is ignored: a second Remove would be refused ("not in the list") and a second Mark recorded would flip the first back. */
   const inFlight = useRef(new Set<string>());
-  const once = (id: string, run: () => Promise<void>): void => {
-    if (inFlight.current.has(id)) return;
+  const once = (id: string, run: () => Promise<void>): Promise<void> => {
+    if (inFlight.current.has(id)) return Promise.resolve();
     inFlight.current.add(id);
-    void run().finally(() => inFlight.current.delete(id));
+    return run().finally(() => inFlight.current.delete(id));
   };
   const setIncluded = (id: string, included: boolean) => once(id, () => said(overlay, () => onSetIncluded(id, included)));
   /* Marking a line changes only its row (and clears its session tick), so the change is said as well. */
@@ -209,7 +211,20 @@ export function PickupsTable({
       });
       if (changed && pickup) overlay.announce(done ? `${clock(pickup.time)} marked recorded. It leaves the session.` : `${clock(pickup.time)} is open again.`);
     });
-  const remove = (pickup: PickupItem) =>
+  /* A double click on Remove is one removal: the second click lands on the line that moved up into the place of the first, so a removal
+     is ignored while another is being answered and for a moment after. */
+  const removing = useRef(false);
+  const lastRemoveAt = useRef(0);
+  const remove = (pickup: PickupItem) => {
+    if (removing.current || Date.now() - lastRemoveAt.current < REMOVE_REPEAT_MS) return;
+    removing.current = true;
+    lastRemoveAt.current = Date.now();
+    void removeOne(pickup).finally(() => {
+      removing.current = false;
+      lastRemoveAt.current = Date.now();
+    });
+  };
+  const removeOne = (pickup: PickupItem) =>
     once(pickup.id, async () => {
       let undo: { undo: RemoveUndo; entry: number } | undefined;
       let removed = false;

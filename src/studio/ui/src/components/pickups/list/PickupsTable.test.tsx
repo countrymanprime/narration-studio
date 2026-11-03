@@ -223,6 +223,13 @@ describe('PickupsTable', () => {
     expect(play.getAttribute('aria-disabled')).toBe('true');
   });
 
+  it('a double click on Remove removes one line, not the line that moves up under the pointer', async () => {
+    const { onRemove, user } = setup();
+    const first = within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' });
+    await user.dblClick(first);
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
   it('describes an off Play with its reason for a screen reader', () => {
     setup();
     const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
