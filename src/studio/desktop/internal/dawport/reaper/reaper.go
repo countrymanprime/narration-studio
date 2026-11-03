@@ -112,6 +112,7 @@ var commandCapability = map[string]dawport.Capability{
 	"chapter_track_state": dawport.CapTrackState,
 	"select_track":        dawport.CapTrackSelect,
 	"track_create":        dawport.CapTrackCreate,
+	"chapter_folders":     dawport.CapTrackCreate,
 	"read_place":          dawport.CapFollowPosition,
 	"go_to":               dawport.CapFollowPosition,
 	"set_cursor":          dawport.CapTransportSync,

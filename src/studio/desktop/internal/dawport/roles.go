@@ -37,6 +37,8 @@ type (
 	RecordStopped = bridge.RecordStopped
 	RecordEnded   = bridge.RecordEnded
 	VoiceSwitched = bridge.VoiceSwitched
+	FolderMove    = bridge.FolderMove
+	FolderPlan    = bridge.FolderPlan
 	PlayPosition  = bridge.PlayPosition
 	PunchPreroll  = bridge.PunchPreroll
 	DawMeters     = bridge.DawMeters
@@ -368,6 +370,13 @@ type Recorder interface {
 // old voice still recording.
 type VoiceSwitcher interface {
 	SwitchVoice(ctx context.Context, trackGUID string) (VoiceSwitched, error)
+}
+
+// FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),
+// with a preview that writes nothing and an apply that writes only the folder depths the confirmed moves need, in one undo point.
+// chapterGUIDs are the tracks the app links to chapters; expected are the chapters a preview listed and the narrator confirmed.
+type FolderRepairer interface {
+	ChapterFolders(ctx context.Context, apply bool, chapterGUIDs, expected []string) (FolderPlan, error)
 }
 
 // Puncher punches in at a word, reads the play position, and rolls again while recording.

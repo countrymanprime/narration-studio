@@ -148,6 +148,13 @@ var eventSpecs = map[string]eventSpec{
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
 	// was given, in one undo point.
 	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
+	// chapter_folders (narration_track_create.lua, #2838): each track whose folder a move of nested chapters out of another chapter's
+	// folder changes (the folders' GUIDs and names, '' for the top level), then the closing line with how many chapters move;
+	// FOLDERS_STALE when the moves are not the ones confirmed, so nothing was written.
+	"FOLDER_MOVE":      {required: []fieldSpec{text("run"), text("guid"), text("name"), text("fromGuid"), text("fromName"), text("toGuid"), text("toName")}},
+	"FOLDERS_PLANNED":  {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_REPAIRED": {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_STALE":    {required: []fieldSpec{text("run")}},
 	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during

@@ -186,6 +186,23 @@ export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
     });
 }
 
+/**
+ * ChapterFoldersCheck asks the DAW whether any linked chapter's track sits inside another linked chapter's folder, and which tracks a
+ * repair would move. It writes nothing.
+ */
+export function ChapterFoldersCheck(): $CancellablePromise<string> {
+    return $Call.ByID(2389393768);
+}
+
+/**
+ * ChapterFoldersRepair moves the chapters a check listed (expected, its Expected) out of the folders they sit in, in one undo point, and
+ * only when the DAW plans exactly those moves again; otherwise it answers stale and changes nothing. Sent only from the narrator's
+ * confirmation.
+ */
+export function ChapterFoldersRepair(expected: string[]): $CancellablePromise<string> {
+    return $Call.ByID(3256412133, expected);
+}
+
 export function ChapterRegionsCreate(openingTrackGUID: string, closingTrackGUID: string, update: boolean): $CancellablePromise<string> {
     return $Call.ByID(3672636080, openingTrackGUID, closingTrackGUID, update);
 }
