@@ -18,7 +18,7 @@ const VoiceSampleRegionPrefix = "Voice sample: "
 // MaxVoiceSampleRegions is the most regions one read answers with; the script stops at the same count.
 const MaxVoiceSampleRegions = 500
 
-// ErrBadVoiceSampleRegion: the range or the name is one REAPER would take wrongly, so nothing was sent.
+// ErrBadVoiceSampleRegion is returned when the range or the name is one REAPER would take wrongly, so nothing was sent.
 var ErrBadVoiceSampleRegion = errors.New("the voice sample range or name is not valid")
 
 // VoiceSampleRegionKept is what keep_voice_sample did: the region's number in the project and one of "created", "existing",
@@ -42,13 +42,15 @@ type VoiceSampleRegions struct {
 	ChangeCount int
 }
 
-// VoiceSampleRegionStaleError: the region number no longer names a voice sample region in the open project (it was deleted, or
-// is another kind of region). Nothing was changed.
+// VoiceSampleRegionStaleError is returned when the region number no longer names a voice sample region in the open project (it
+// was deleted, or is another kind of region). Nothing was changed.
 type VoiceSampleRegionStaleError struct{ Number int }
 
 func (e *VoiceSampleRegionStaleError) Error() string {
 	return "the voice sample's region is no longer in the REAPER project"
 }
+
+// Is reports a stale region as ErrStale, so callers can match it with errors.Is.
 func (e *VoiceSampleRegionStaleError) Is(target error) bool { return target == ErrStale }
 
 func voiceSampleRegionArgs(start, end float64, name string) ([]string, error) {
