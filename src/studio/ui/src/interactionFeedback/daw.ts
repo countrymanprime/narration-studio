@@ -241,4 +241,27 @@ export const dawFeedback = {
     'ok',
     "Create a new track has the DAW add a track named after the chapter and links it; the button is busy and ignores a second press (one press, one track), the DAW's refusal or a failed call is written in the dialog, and on success the page reads the chapter again, says the track was added and the dialog goes.",
   ),
+  // The Chapter links panel's nested-chapters repair (#2838; components/engine/useChapterFolders.ts, src/studio/desktop/chapterfolders.go).
+  'src/components/engine/useChapterFolders.ts::chapterFoldersCheck#1': row(
+    'effect',
+    'instant',
+    'na',
+    'na',
+    'ui',
+    'inline',
+    'na',
+    'ok',
+    "Asks the DAW, writing nothing, whether a linked chapter's track sits inside another linked chapter's folder: when the panel shows, when a link changes and on window focus. A nesting is the panel's notice with the repair; a failed check draws no notice, so nothing is shown that the DAW did not report.",
+  ),
+  'src/components/engine/useChapterFolders.ts::chapterFoldersRepair#1': row(
+    'click',
+    'file-io',
+    'pending',
+    'pending',
+    'ui',
+    'toast',
+    'no',
+    'ok',
+    'Move them out, confirmed in a dialog that lists every track the move changes: the button is busy until the DAW answers and a second press waits; a move says what it did and that one Undo in REAPER takes it back, a project that changed since the check moves nothing and says so, a refusal is an error toast, and the panel checks again after each.',
+  ),
 };

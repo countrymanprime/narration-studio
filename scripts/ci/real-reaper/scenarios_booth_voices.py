@@ -832,3 +832,58 @@ def track_create_appends_outside_folders(env: Env) -> str:
         moved = {name: (was[name], now[name]) for name in was if was[name] != now[name]}
         assert not moved, f"{label}: tracks changed parent {moved}"
     return "; ".join(seen)
+
+
+# The owner's project (#2838): Chapter 3's folder was left open at the end, and the chapters the app added afterwards landed inside it.
+OWNER_NESTED = [
+    ("Chapter 1", 0),
+    ("Chapter 2", 0),
+    ("Chapter 3", 1),
+    ("Narrator", 0),
+    ("Veyra", 0),
+    ("Chapter 4", 0),
+    ("Chapter 5", 0),
+    ("Chapter 6", 0),
+]
+
+
+@scenario(
+    "booth_voices",
+    "chapter_folders",
+    "voices fix: chapter_folders on the owner's nested project previews the moves without writing, then moves Chapters 4 to 6 out of "
+    "Chapter 3's folder by closing it on its last voice, in one undo point that one Undo takes back",
+)
+def chapter_folders_owner_project(env: Env) -> str:
+    sibling_rows(env, OWNER_NESTED)
+    guid = {name: env.lua("return reaper.GetTrackGUID(ci.track_by_name(args[1]))", name) for name, _ in OWNER_NESTED}
+    chapters = ",".join(guid[f"Chapter {n}"] for n in range(1, 7))
+    before = structure(env)
+    preview = env.send("chapter_folders", "preview", chapters, "", until={"FOLDERS_PLANNED"})
+    moves = [e for e in preview if e[0] == "FOLDER_MOVE"]
+    assert [m[3] for m in moves] == ["Chapter 4", "Chapter 5", "Chapter 6"], f"preview moves {moves}"
+    assert all(m[5] == "Chapter 3" and m[7] == "" for m in moves), f"preview moves {moves}"
+    assert structure(env) == before, "the preview wrote something"
+    expected = ",".join(guid[f"Chapter {n}"] for n in (4, 5, 6))
+    stale = env.send("chapter_folders", "apply", chapters, guid["Chapter 4"], until={"FOLDERS_REPAIRED", "FOLDERS_STALE"})
+    assert stale[-1][0] == "FOLDERS_STALE" and structure(env) == before, f"a stale apply answered {stale[-1]}"
+    undo_before = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    applied = env.send("chapter_folders", "apply", chapters, expected, until={"FOLDERS_REPAIRED", "FOLDERS_STALE"})
+    assert applied[-1][0] == "FOLDERS_REPAIRED" and applied[-1][2] == "3", f"apply answered {applied[-1]}"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    after = structure(env)
+    got = [(r["name"], r["delta"], r["parent"]) for r in after]
+    assert got == [
+        ("Chapter 1", 0, ""),
+        ("Chapter 2", 0, ""),
+        ("Chapter 3", 1, ""),
+        ("Narrator", 0, "Chapter 3"),
+        ("Veyra", -1, "Chapter 3"),
+        ("Chapter 4", 0, ""),
+        ("Chapter 5", 0, ""),
+        ("Chapter 6", 0, ""),
+    ], got
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    undone = [(r["name"], r["delta"]) for r in structure(env)]
+    assert undone == [(n, d) for n, d in OWNER_NESTED], f"one Undo left {undone}"
+    return f"preview {[m[3] for m in moves]} wrote nothing; a stale apply wrote nothing; undo before {undo_before!r}, after {undo!r}; after save and reload {got}; one Undo: {undone}"

@@ -3218,5 +3218,41 @@
     "file": "narration_replace.lua",
     "find": "  local track = core.append_track()\n  reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)",
     "replace": "  local index = reaper.CountTracks(0)\n  reaper.InsertTrackAtIndex(index, false)\n  local track = reaper.GetTrack(0, index)\n  reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)"
+  },
+  {
+    "name": "chapter_folders writes on a preview",
+    "file": "narration_track_create.lua",
+    "find": "  if mode == 'preview' then\n    event(session_dir, 'FOLDERS_PLANNED', run_id, #moved)\n    return\n  end",
+    "replace": "  if mode == 'preview' then\n    event(session_dir, 'FOLDERS_PLANNED', run_id, #moved)\n  end"
+  },
+  {
+    "name": "chapter_folders applies moves the narrator did not confirm",
+    "file": "narration_track_create.lua",
+    "find": "  if mode == 'apply' and table.concat(moved, ',') ~= table.concat(split_guids(expected_text), ',') then",
+    "replace": "  if false and table.concat(moved, ',') ~= table.concat(split_guids(expected_text), ',') then"
+  },
+  {
+    "name": "chapter_folders lifts a nested chapter one level whatever its depth",
+    "file": "narration_track_create.lua",
+    "find": "    planned[found.position - 1] = planned[found.position - 1] - found.levels",
+    "replace": "    planned[found.position - 1] = planned[found.position - 1] - 1"
+  },
+  {
+    "name": "chapter_folders lifts voice tracks as well as chapters",
+    "file": "narration_track_create.lua",
+    "find": "    for position = 2, #planned do\n      if chapters[guids[position]] then",
+    "replace": "    for position = 2, #planned do\n      if true then"
+  },
+  {
+    "name": "chapter_folders moves folders while REAPER records",
+    "file": "narration_track_create.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local chapters = {}",
+    "replace": "  local chapters = {}"
+  },
+  {
+    "name": "chapter_folders writes outside an undo block",
+    "file": "narration_track_create.lua",
+    "find": "    reaper.Undo_BeginBlock2(0)\n    for position, delta in ipairs(planned) do",
+    "replace": "    for position, delta in ipairs(planned) do"
   }
 ]

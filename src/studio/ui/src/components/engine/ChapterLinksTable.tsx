@@ -18,6 +18,8 @@ import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import { useVoiceLayout } from './voiceLayout';
 import { folderChildren, folderLinkLabel } from './voices';
+import { NestedChaptersNotice } from './NestedChaptersNotice';
+import { useChapterFolders } from './useChapterFolders';
 
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }> = {
   linked: { label: 'Linked', tone: 'success' },
@@ -46,11 +48,14 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
   const { tracks, chapters, mappings, rows, error, busyChapterId } = links;
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
+  // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).
+  const nesting = useChapterFolders({ revision: mappings, notify });
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
   return (
     <Panel title="Chapter links" flush>
+      <NestedChaptersNotice check={nesting.check} repairing={nesting.repairing} onRepair={nesting.repair} />
       {error && (
         <p role="alert" className="px-4 pt-3 text-sm" style={{ color: 'var(--danger-text)' }}>
           {error}

@@ -206,21 +206,20 @@ local function plan_lifts(deltas, guids, chapters)
   return planned, lifted
 end
 
--- True when every track whose folder changes leaves a chapter's folder for a folder that held that chapter folder (or the top level): a
--- lift never puts a track inside anything new, and never moves a track out of a folder that is not a chapter's.
+-- True when every track whose folder changes sat somewhere inside a chapter's folder and moves to a folder that held its old one (or the
+-- top level): a lift never puts a track inside anything new, and never moves a track that no chapter folder holds.
 local function lifts_only_out_of_chapters(before, after, guids, chapters)
   local was, now = core.folder_parents(before), core.folder_parents(after)
   for position = 1, #before do
     if was[position] ~= now[position] then
-      if not chapters[guids[was[position]] or ''] then
-        return false
-      end
-      local ancestor, ok = was[was[position]], now[position] == 0
-      while ancestor ~= 0 and not ok do
-        ok = ancestor == now[position]
+      local inside_chapter, reaches = false, now[position] == 0
+      local ancestor = was[position]
+      while ancestor ~= 0 do
+        inside_chapter = inside_chapter or chapters[guids[ancestor]] == true
+        reaches = reaches or (ancestor ~= was[position] and ancestor == now[position])
         ancestor = was[ancestor]
       end
-      if not ok then
+      if not (inside_chapter and reaches) then
         return false
       end
     end
