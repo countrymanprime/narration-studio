@@ -52,6 +52,8 @@ declare global {
     __NARRATION_MOCK_OVERRIDES__?: Parameters<typeof createMockApi>[0];
     __NARRATION_MOCK_DAW__?: DawMockControl;
     /** The mock microphone's side: unplug it mid-session (teleprompterMock.ts). */
+    /** The mock's side of the report dialog's open-folder button: how many times the host was asked (the real host opens the file manager and shows nothing). */
+    __NARRATION_MOCK_REPORTS__?: { folderOpens: number };
     __NARRATION_MOCK_TELEPROMPTER__?: { failListening: (message: string) => void };
   }
 }
@@ -232,6 +234,8 @@ const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible', 'productio
 const mockLiveDegraded = mockParams.has('mockLiveDegraded');
 // `?mockHoldEdits=1` makes every Story Bible edit hang, so the busy Save button can be seen without a host.
 const mockHoldEdits = mockParams.has('mockHoldEdits');
+// `?mockOpenFolder=fail` makes the Export status report dialog's open-folder button fail, so its error toast with Retry can be seen without a host.
+const mockOpenFolder = mockParams.get('mockOpenFolder') === 'fail' ? ('fail' as const) : undefined;
 // `?mockUpdate=available|found|downloading|download-fails|ready|install-blocked|install-refused|failed|current|development` boots the mock host in that update state ("Version 0.2.7 is available", "could not reach
 // GitHub", "up to date", a development build), so the About and updates page can be seen without GitHub. `found` also notifies at once.
 const mockUpdate = (
@@ -505,6 +509,7 @@ const mockInitial = {
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
+  ...(mockOpenFolder ? { openFolder: mockOpenFolder } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),
   ...(mockVoiceSamples ? { voiceSamples: mockVoiceSamples } : {}),
   ...(mockDictionary ? { dictionary: mockDictionary } : {}),
