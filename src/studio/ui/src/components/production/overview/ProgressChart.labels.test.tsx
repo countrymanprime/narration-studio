@@ -5,25 +5,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { addDays } from '../../schedule/dates';
 import { labelRect } from './chartLabels';
 import { ProgressChart } from './ProgressChart';
-import { MID_BOOK, STORY_TODAY, overviewFor } from './overviewFixtures';
+import { MID_BOOK, NO_TAKE_LOG, STORY_TODAY, overviewFor } from './overviewFixtures';
 
 afterEach(cleanup);
 
 const draw = (due: Date | null, recordedHours = 0.1) => {
   const o = overviewFor(MID_BOOK, due);
-  return render(
-    <ProgressChart
-      k={o.k}
-      wph={9300}
-      start={o.start}
-      today={STORY_TODAY}
-      due={due}
-      recordedHours={recordedHours}
-      series={o.series}
-      clearTodayLabel
-      noteBelow
-    />,
-  );
+  return render(<ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={due} recordedHours={recordedHours} series={o.series} noteBelow />);
 };
 
 const rectOf = (t: Element) =>
@@ -68,6 +56,47 @@ describe('ProgressChart labels clear the lines', () => {
   }
 });
 
+describe('ProgressChart labels and the plan and estimate lines', () => {
+  const segment = (el: Element) => ({
+    x1: Number(el.getAttribute('x1')),
+    y1: Number(el.getAttribute('y1')),
+    x2: Number(el.getAttribute('x2')),
+    y2: Number(el.getAttribute('y2')),
+  });
+  for (const [name, due] of DUES) {
+    it(`leaves the plan and estimate lines clear of today and done when the due date is ${name}`, () => {
+      const { container } = draw(due);
+      const lines = ['plan', 'projection']
+        .map((l) => container.querySelector(`[data-line="${l}"]`))
+        .filter((e): e is Element => e !== null)
+        .map(segment);
+      for (const re of [/^today$/, /^done /]) {
+        const r = rectOf(labelled(container, re));
+        for (const l of lines) {
+          // Sample the line: none of it may fall inside the label's box.
+          for (let t = 0; t <= 1; t += 0.002) {
+            const px = l.x1 + (l.x2 - l.x1) * t;
+            const py = l.y1 + (l.y2 - l.y1) * t;
+            expect(px >= r.x1 && px <= r.x2 && py >= r.y1 && py <= r.y2, `${re} at ${px},${py}`).toBe(false);
+          }
+        }
+      }
+    });
+  }
+});
+
+describe('ProgressChart unmeasured-days note', () => {
+  it('is a caption under the plot, outside the drawing, so no line can strike it', () => {
+    const o = overviewFor(MID_BOOK, addDays(STORY_TODAY, 60), NO_TAKE_LOG);
+    const { container } = render(
+      <ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={addDays(STORY_TODAY, 60)} recordedHours={0} series={o.series} noteBelow />,
+    );
+    const note = container.querySelector('[data-chart-note]')!;
+    expect(note.textContent).toBe('Recorded days not measured yet');
+    expect(container.querySelector('svg')!.contains(note)).toBe(false);
+  });
+});
+
 describe('ProgressChart today label', () => {
   it('never sits on the dot, even when both sides of it are crossed', () => {
     const { container } = draw(addDays(STORY_TODAY, 1));
@@ -89,7 +118,7 @@ describe('ProgressChart date axis', () => {
     expect(ticks.length).toBeGreaterThan(1);
     for (const t of ticks) {
       const x = Number(t.getAttribute('x'));
-      const w = (t.textContent ?? '').length * 6.7;
+      const w = (t.textContent ?? '').length * 6.6;
       const left = t.getAttribute('text-anchor') === 'end' ? x - w : x - w / 2;
       const right = t.getAttribute('text-anchor') === 'end' ? x : x + w / 2;
       expect(left, t.textContent!).toBeGreaterThanOrEqual(0);

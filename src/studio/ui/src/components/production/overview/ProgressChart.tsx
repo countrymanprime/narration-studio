@@ -37,8 +37,6 @@ type Props = {
   fill?: boolean;
   /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
   title?: string;
-  /** Put the "today" label on the side of the dot away from the plan and projection lines (the Schedule page); off, it is centred above the dot as Production draws it. */
-  clearTodayLabel?: boolean;
   /** Says "Recorded days not measured yet" as a caption under the plot instead of inside it, where a narrow card puts it on a gridline and under
    * the "today" label (Production's 360 px card; alignment audit R4TA-2). */
   noteBelow?: boolean;
@@ -58,7 +56,6 @@ export function ProgressChart({
   height: minHeight = 200,
   fill = false,
   title = 'Recorded vs plan',
-  clearTodayLabel = false,
   noteBelow = false,
   onOpenSchedule,
 }: Props) {
@@ -233,15 +230,9 @@ export function ProgressChart({
             />
             <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
             {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
-            {clearTodayLabel ? (
-              <text x={todayLabel.x} y={todayLabel.y} textAnchor={todayLabel.anchor} fontSize="11" fill="var(--text)">
-                today
-              </text>
-            ) : (
-              <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
-                today
-              </text>
-            )}
+            <text x={todayLabel.x} y={todayLabel.y} textAnchor={todayLabel.anchor} fontSize="11" fill="var(--text)">
+              today
+            </text>
             <text x={doneLabel.x} y={doneLabel.y} textAnchor={doneLabel.anchor} fontSize="11" fill="var(--text)">
               {doneText}
             </text>
