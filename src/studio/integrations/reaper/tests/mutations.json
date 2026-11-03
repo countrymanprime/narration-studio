@@ -2466,8 +2466,8 @@
   {
     "name": "track_create adds a track while REAPER is recording",
     "file": "narration_track_create.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)",
-    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)"
+    "find": "    event(session_dir, 'ERROR', run_id, NO_NAME)\n    return\n  end\n  if recording() then",
+    "replace": "    event(session_dir, 'ERROR', run_id, NO_NAME)\n    return\n  end\n  if false then"
   },
   {
     "name": "track_create adds an unnamed track for an empty name",
