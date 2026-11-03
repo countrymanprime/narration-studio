@@ -55,6 +55,29 @@ export const Grouped: Story = {
     await expect(groups.map((group) => group.getAttribute('label'))).toEqual(['In this chapter', 'All characters']);
   },
 };
+// A name far longer than its box (a microphone's driver name): the closed box ends it in an ellipsis inside its container and its tooltip holds the whole name (#2898).
+export const LongName: Story = {
+  args: {
+    label: 'Microphone',
+    fullWidth: true,
+    value: 'long',
+    options: [
+      { value: 'long', label: `Microphone Array (Realtek(R) Audio) ${'with a driver name that goes on and on '.repeat(6)}` },
+      { value: 'short', label: 'Line In' },
+    ],
+  },
+  render: (args) => (
+    <div style={{ width: '16rem' }}>
+      <ControlledSelect {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const select = within(canvasElement).getByRole('combobox', { name: 'Microphone' });
+    await expect(getComputedStyle(select).textOverflow).toBe('ellipsis');
+    await expect(select.getBoundingClientRect().right).toBeLessThanOrEqual(canvasElement.getBoundingClientRect().right);
+    await expect(select.getAttribute('title')).toMatch(/goes on and on/);
+  },
+};
 export const Disabled: Story = { args: { disabled: true, value: 'finalized' } };
 export const WithPlaceholderOption: Story = {
   args: {

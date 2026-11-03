@@ -42,6 +42,8 @@ function grouped(options: readonly SelectOption[]): { group: string | undefined;
 // working, and no option needs rich content. Controlled, and `onChange` reports the chosen value, not the event.
 export function Select({ label, value, onChange, options, fullWidth = false, placeholder, className = '', ...rest }: Props) {
   const showPlaceholder = placeholder !== undefined && !options.some((option) => option.value === value);
+  // The full name of what the closed box shows: a long one ends in an ellipsis there, and this is how to read the rest.
+  const shown = showPlaceholder ? placeholder : options.find((option) => option.value === value)?.label;
   return (
     <select
       {...rest}
@@ -50,7 +52,8 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
       onChange={(event) => event.target.value !== PLACEHOLDER_VALUE && onChange(event.target.value)}
       // A fixed height, not a minimum: a native <select> doesn't resolve `leading-[1.35]` the way an <input> or a styled
       // div does, so pinning the height is what makes it match TextField and Button (`--control-height`, 36px).
-      className={`${SELECT_CLASSES} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`${SELECT_CLASSES} max-w-full truncate ${fullWidth ? 'w-full' : ''} ${className}`}
+      title={shown}
     >
       {showPlaceholder && (
         <option value={PLACEHOLDER_VALUE} disabled hidden>
