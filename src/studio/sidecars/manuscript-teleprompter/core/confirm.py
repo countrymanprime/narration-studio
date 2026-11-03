@@ -10,6 +10,7 @@ Time is the engine's: the ring counts the samples fed to the engine (after pause
 word timings are in.
 """
 
+import math
 import queue
 import threading
 from collections import deque
@@ -19,6 +20,9 @@ from typing import Any
 import numpy as np
 from narration_common.logging_utils import log
 from narration_common.ports.capture import SAMPLE_RATE
+
+# Larger than any stream time (a day of audio is 86,400 s); a time past it is garbage, not a place in the ring.
+_MAX_SECONDS = 1e7
 
 Word = tuple[str, float, float]
 Decoder = Callable[[np.ndarray], list[Word]]
@@ -61,11 +65,19 @@ class Confirmer:
             yield chunk
 
     def observe(self, event: dict) -> None:
-        """Note the span of each segment's confirmed words and queue a check when the segment ends."""
+        """Note the span of each segment's confirmed words and queue a check when the segment ends. An event it cannot read
+        (not an object, a time that is not a finite number, a segment that is not a number or a string) is ignored."""
+        if not isinstance(event, dict):
+            return
         kind, segment = event.get("type"), event.get("segment")
-        if kind == "word" and isinstance(event.get("start"), (int, float)) and isinstance(event.get("end"), (int, float)):
-            span = self._spans.setdefault(segment, [event["start"], event["end"]])
-            span[0], span[1] = min(span[0], event["start"]), max(span[1], event["end"])
+        if isinstance(segment, bool) or not isinstance(segment, (int, float, str)):
+            return
+        if kind == "word":
+            start, end = event.get("start"), event.get("end")
+            if not all(isinstance(t, (int, float)) and not isinstance(t, bool) and math.isfinite(t) and abs(t) < _MAX_SECONDS for t in (start, end)):
+                return
+            span = self._spans.setdefault(segment, [start, end])
+            span[0], span[1] = min(span[0], start), max(span[1], end)
         elif kind == "segment_end":
             span = self._spans.pop(segment, None)
             audio = self._cut(span) if span else None

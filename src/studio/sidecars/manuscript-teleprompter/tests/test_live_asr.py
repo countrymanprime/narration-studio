@@ -1187,3 +1187,32 @@ def test_the_confirmation_pass_is_off_without_a_model_and_with_the_whisper_engin
     parse = live_asr.build_parser().parse_args
     assert live_asr._load_confirmer(parse(["--wav", "r.wav", "--engine", "moonshine"])) is None
     assert live_asr._load_confirmer(parse(["--wav", "r.wav", "--engine", "whisper", "--confirm-model", "tiny"])) is None
+
+
+def test_a_confirmer_that_fails_never_stops_the_live_session(capsys):
+    class Broken:
+        def tee(self, chunks):
+            return chunks
+
+        def observe(self, event):
+            raise RuntimeError("boom")
+
+        def poll(self):
+            raise RuntimeError("boom")
+
+        def finish(self):
+            raise RuntimeError("boom")
+
+        def close(self):
+            pass
+
+    args = live_asr.build_parser().parse_args(["--wav", "r.wav"])
+
+    def stream(chunks):
+        for _chunk in chunks:
+            pass
+        yield {"type": "segment_end", "segment": 0}
+
+    live_asr._run(args, stream, _chunks(1), Broken())
+
+    assert '"segment_end"' in capsys.readouterr().out
