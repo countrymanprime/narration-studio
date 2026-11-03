@@ -77,8 +77,6 @@ const OWN_KEYS = 'button, a, input, textarea, select, [role="checkbox"]';
 /** The toast topic of a removal with no Undo; one within `REMOVED_RUN_MS` of the last counts with it (the toast lasts five seconds). */
 const REMOVED_TOPIC = 'pickups:removed';
 const REMOVED_RUN_MS = 5_000;
-/** A second Remove within this long of the last one is a double click, not a second decision. */
-const REMOVE_REPEAT_MS = 400;
 
 /** A line left out of the session (its box cleared) is drawn muted, so unticking it visibly changes it (R3PK-7, XPK-17). */
 const leftOut = (pickup: PickupItem): boolean => !pickup.included && !pickup.done;
@@ -211,17 +209,14 @@ export function PickupsTable({
       });
       if (changed && pickup) overlay.announce(done ? `${clock(pickup.time)} marked recorded. It leaves the session.` : `${clock(pickup.time)} is open again.`);
     });
-  /* A double click on Remove is one removal: the second click lands on the line that moved up into the place of the first, so a removal
-     is ignored while another is being answered and for a moment after. */
+  /* A double click on Remove is one removal: its second click (`detail` 2) lands on the line that moved up into the first one's place, so
+     it is ignored, and so is any removal while another is being answered. */
   const removing = useRef(false);
-  const lastRemoveAt = useRef(0);
-  const remove = (pickup: PickupItem) => {
-    if (removing.current || Date.now() - lastRemoveAt.current < REMOVE_REPEAT_MS) return;
+  const remove = (pickup: PickupItem, event?: { detail: number }) => {
+    if (removing.current || (event?.detail ?? 0) > 1) return;
     removing.current = true;
-    lastRemoveAt.current = Date.now();
     void removeOne(pickup).finally(() => {
       removing.current = false;
-      lastRemoveAt.current = Date.now();
     });
   };
   const removeOne = (pickup: PickupItem) =>
@@ -498,7 +493,7 @@ export function PickupsTable({
                             />
                             {/* Remove, the one action that takes a line away, is set apart from the three beside it by a rule (XPK-16). */}
                             <span aria-hidden className="mx-1 h-6 w-px flex-none bg-[var(--border)]" />
-                            <IconButton action="remove" label="Remove from pickups" variant="danger" onClick={() => remove(pickup)} />
+                            <IconButton action="remove" label="Remove from pickups" variant="danger" onClick={(event) => remove(pickup, event)} />
                           </div>
                         </TableCell>
                       </tr>
