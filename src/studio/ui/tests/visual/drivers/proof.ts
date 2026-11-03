@@ -106,7 +106,7 @@ export const proofDrivers: Record<string, Driver> = {
       .evaluate((region) => region.scrollIntoView({ block: 'start' }));
   },
   'chapter-no-recording': async (page) => {
-    await openProof(page);
+    await openProof(page, 'mockChapterLink=confirmed');
     await openChapter(page, 'Chapter 2');
     await page.getByText('This chapter has no recording to check.').waitFor();
   },
