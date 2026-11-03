@@ -447,14 +447,14 @@ describe('Settings: App & updates', () => {
     expect(within(row('app.debug')).getByRole('switch', { name: /Debug logging/ })).toBeTruthy();
   });
 
-  describe('Open the log folder (#2730)', () => {
+  describe('Reveal the log folder in the file manager (#2730)', () => {
     afterEach(() => overlay.getSnapshot().toasts.forEach((t) => overlay.dismissToast(t.id)));
     const toasts = () => overlay.getSnapshot().toasts;
     const openCategory = async (name: string) => {
       fireEvent.click(within(nav()).getByRole('button', { name: new RegExp(`^${name}`) }));
       await screen.findByRole('heading', { level: 2, name });
     };
-    const folderButton = () => within(row('app.debug')).getByRole('button', { name: 'Open the log folder' });
+    const folderButton = () => within(row('app.debug')).getByRole('button', { name: 'Reveal the log folder in the file manager' });
 
     it('idle: an enabled icon button beside Debug logging, with its tooltip', async () => {
       await renderApp();
@@ -464,7 +464,7 @@ describe('Settings: App & updates', () => {
       expect(button.getAttribute('aria-busy')).toBeNull();
       expect(button.textContent).toBe('');
       await userEvent.hover(button);
-      expect((await screen.findByRole('tooltip')).textContent).toContain('Open the log folder');
+      expect((await screen.findByRole('tooltip')).textContent).toContain('Reveal the log folder in the file manager');
     });
 
     it('success: a press asks the host once and shows no toast', async () => {

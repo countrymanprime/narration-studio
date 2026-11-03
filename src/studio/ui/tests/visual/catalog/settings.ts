@@ -387,7 +387,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'app-log-folder-refused',
     description:
-      'Settings, App & updates with Advanced open, after the host refused Open the log folder (?mockLogFolder=refused): the error toast "The log folder could not be opened." and the folder button ready again (issue 2730)',
+      'Settings, App & updates with Advanced open, after the host refused Reveal the log folder in the file manager (?mockLogFolder=refused): the error toast "The log folder could not be opened." and the folder button ready again (issue 2730)',
     ...REFLOW,
     ...TOAST_FADES_OUT,
   },

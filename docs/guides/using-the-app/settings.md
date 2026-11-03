@@ -284,9 +284,9 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ## App & updates
 
-**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log: turn it on when asked to send a log. The folder button beside it (**Open the log folder**) opens the folder the run log is in, so you can attach the log to a bug report. **This version** follows them (see [About and updates](#about-and-updates)).
+**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log: turn it on when asked to send a log. The folder button beside it (**Reveal the log folder in the file manager**) opens the folder the run log is in, so you can attach the log to a bug report. **This version** follows them (see [About and updates](#about-and-updates)).
 
-![Settings - App & updates, Advanced: Debug logging with the Open the log folder button beside it](../../images/ui/settings-diagnostics.webp)
+![Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it](../../images/ui/settings-diagnostics.webp)
 
 ### About and updates
 

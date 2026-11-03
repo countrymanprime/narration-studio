@@ -30,5 +30,5 @@ export function OpenLogFolderButton() {
     );
   // 12 px from the switch's On/Off word, which the 6 px gap of the control line leaves touching. Drawn before Reset, so Reset coming
   // and going does not move it; it does shift about 1 px when the word changes between Off and On.
-  return <IconButton action="openFolder" label="Open the log folder" className="ml-1.5" pending={opening} onClick={open} />;
+  return <IconButton action="openFolder" label="Reveal the log folder in the file manager" className="ml-1.5" pending={opening} onClick={open} />;
 }

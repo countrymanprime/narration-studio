@@ -60,7 +60,6 @@ const NOT_A_TOGGLE: Record<string, string> = {
   'Open in': 'A one-shot navigation to another app or page.',
   'Open this chapter in': 'A one-shot navigation to another page.',
   'Open schedule': 'A one-shot navigation to the Schedule page.',
-  'Open the log folder': 'Opens the log folder in the system file manager; a one-shot action, not a disclosure.',
   'Open ${': 'A one-shot navigation to a named item ("Open <name> in the manuscript reader").',
 };
 
