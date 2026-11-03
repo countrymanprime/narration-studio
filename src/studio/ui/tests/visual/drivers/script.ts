@@ -137,6 +137,22 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
     await page.locator('mark[data-kind="search"]').first().waitFor();
   },
+  // The current match against the others, with no menu over the reader: the first match chosen, then F3 twice.
+  'search-current': async (page) => {
+    await goToPage(page, 'Script');
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Alice');
+    await page.getByRole('option', { name: /¶/ }).first().click();
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
+    const current = page.locator('.a-find-cur');
+    await current.waitFor();
+    const first = await current.evaluate((mark) => mark.closest('[data-pid]')?.getAttribute('data-pid'));
+    await page.keyboard.press('F3');
+    await page.keyboard.press('F3');
+    // The third match of "Alice" is in the paragraph after the first one's (Chapter 1, ¶ 3).
+    await expect.poll(() => current.evaluate((mark) => mark.closest('[data-pid]')?.getAttribute('data-pid'))).not.toBe(first);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
   // Find has no bar of its own on the Script page: its steps and count are the jump menu's Search group while a search shows.
   'search-steps': async (page) => {
     await showFindSteps(page, 'Alice');

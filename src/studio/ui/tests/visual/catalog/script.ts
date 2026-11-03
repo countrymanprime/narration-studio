@@ -77,6 +77,12 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'search-current',
+    description:
+      'Script, a search for "Alice" stepped with F3 to its third match, the menu closed: every match lit in the search hue and the current one in its own warn fill and ring, in view',
+  },
+  {
+    page: 'script',
     state: 'search-steps',
     description:
       'Script, Find\'s own controls while "Alice" shows: Ctrl+F, then the Search group: Next match and Previous match with "1 of N for “alice”" (the whole book\'s count from the host), and Clear the search',
