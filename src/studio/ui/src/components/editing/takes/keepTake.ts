@@ -7,6 +7,16 @@ import type { DawClient } from '../../../ports/daw';
 import type { Command, Journal, Result } from '../../../studio/journal/createJournal';
 import type { LinePassage, LineTake } from './types';
 
+/**
+ * The lines whose takes a call to the DAW is changing right now, by line id, and what the call is. Keeping and hiding share one, so neither starts
+ * on a line while the other is still on its way (a Hide would otherwise act on the take that was kept before the pending Keep) and the same call is not
+ * sent twice.
+ */
+export type LineBusy = Map<string, 'keep' | 'hide'>;
+export const createLineBusy = (): LineBusy => new Map();
+/** Said when a Keep or a Hide is pressed on a line the other is still changing. */
+export const LINE_BUSY = 'Still changing this line’s takes. Try again in a moment.';
+
 /** What keeping needs of the journal. */
 export type KeepJournal = Pick<Journal, 'act' | 'undo'>;
 
@@ -18,7 +28,8 @@ async function choose(daw: DawClient, passage: LinePassage, take: LineTake): Pro
     return { ok: false, refusal: { code: 'daw_failed', reason: `Could not keep ${take.label}: ${apiErrorMessage(error)}` } };
   }
   if (result.ok) return { ok: true, value: result };
-  return { ok: false, refusal: { code: 'daw_refused', reason: result.refused ?? result.message } };
+  const sentence = (result.refused ?? result.message ?? '').trim();
+  return { ok: false, refusal: { code: 'daw_refused', reason: sentence || `Could not keep ${take.label}.` } };
 }
 
 /**
@@ -59,7 +70,7 @@ const NO_LINES: ReadonlyMap<string, LinePassage> = new Map();
  * after a reload; a keep or an undo made here shows at once and gives way as soon as the lines read a different active take. A line with one
  * take has nothing to choose between and no kept take.
  */
-export function useKeepTakes(journal: KeepJournal, lines: ReadonlyMap<string, LinePassage> = NO_LINES): KeepTakes {
+export function useKeepTakes(journal: KeepJournal, lines: ReadonlyMap<string, LinePassage> = NO_LINES, shared?: LineBusy): KeepTakes {
   const daw = usePort('daw');
   const [pending, setPending] = useState<Record<string, Pending>>({});
   const entries = useRef<Record<string, number>>({});
@@ -131,19 +142,24 @@ export function useKeepTakes(journal: KeepJournal, lines: ReadonlyMap<string, Li
     },
     [daw, journal, kept, choose],
   );
-  /** The lines with a keep on its way: a second press for the same line sends nothing until the DAW has answered. */
-  const sending = useRef(new Set<string>());
+  /** The lines with a call on its way: a second press of the same Keep sends nothing, and a Keep during a Hide says so. */
+  const own = useRef<LineBusy>(new Map());
+  const busy = shared ?? own.current;
   const keep = useCallback(
     async (passage: LinePassage, take: LineTake) => {
-      if (sending.current.has(passage.id)) return;
-      sending.current.add(passage.id);
+      const doing = busy.get(passage.id);
+      if (doing) {
+        if (doing === 'hide') overlay.toast(LINE_BUSY);
+        return;
+      }
+      busy.set(passage.id, 'keep');
       try {
         await keepNow(passage, take);
       } finally {
-        sending.current.delete(passage.id);
+        busy.delete(passage.id);
       }
     },
-    [keepNow],
+    [keepNow, busy],
   );
   return { kept, undoable, keep, undoKeep };
 }
