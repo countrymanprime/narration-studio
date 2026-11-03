@@ -47,6 +47,7 @@ func (audacityChain) Capabilities() Capabilities {
 	return Capabilities{
 		Level:         port.Experimental,
 		NeedsApproval: true,
+		NeedsMacro:    true,
 		Needs:         []dawport.Capability{dawport.CapMacroRender},
 	}
 }
