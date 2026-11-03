@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { Dialog, DIALOG_WIDTHS } from './Dialog';
@@ -182,6 +182,51 @@ describe('Dialog is a real modal', () => {
     await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.activeElement?.id).toBe('destination');
+  });
+
+  it('focus moved during close is kept even when the opener is still in the document (#2902)', async () => {
+    const user = userEvent.setup();
+    // The way the Script reader does it: the close action only sets state, and an effect focuses the destination after the commit.
+    function Moves() {
+      const [open, setOpen] = useState(false);
+      const [go, setGo] = useState(0);
+      useEffect(() => {
+        if (go) document.getElementById('destination')?.focus();
+      }, [go]);
+      return (
+        <div>
+          <main tabIndex={-1}>
+            <button onClick={() => setOpen(true)}>Open dialog</button>
+            <button id="destination">Destination</button>
+          </main>
+          {open && (
+            <Dialog
+              title="Go"
+              dismissOnOutsidePress={false}
+              actions={null}
+              onClose={() => {
+                setOpen(false);
+                setGo((n) => n + 1);
+              }}
+            >
+              <p>Body</p>
+            </Dialog>
+          )}
+        </div>
+      );
+    }
+    render(<Moves />);
+    const opener = screen.getByRole('button', { name: 'Open dialog' });
+    for (let round = 0; round < 2; round += 1) {
+      opener.focus();
+      await user.keyboard(' ');
+      await screen.findByRole('dialog', { name: 'Go' });
+      await user.keyboard('{Escape}');
+      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(opener.isConnected).toBe(true);
+      expect(document.activeElement?.id, `round ${round}`).toBe('destination');
+    }
   });
 
   it('ignores Escape when the dialog has no way to be dismissed', async () => {
