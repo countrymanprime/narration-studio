@@ -1,5 +1,6 @@
 // The `schedule` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
+import { REFLOW } from './shared';
 import { wholePage } from './shared';
 
 export const scheduleStates: StateEntry[] = [
@@ -13,6 +14,7 @@ export const scheduleStates: StateEntry[] = [
     page: 'schedule',
     state: 'on-pace',
     reloadPerViewport: true,
+    ...REFLOW,
     description:
       'Schedule with a due date the pace meets (?mockProduction=on-pace) - the verdict, how the book pays, the work left worked out and the milestones',
   },

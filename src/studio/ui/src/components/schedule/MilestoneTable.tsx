@@ -53,9 +53,11 @@ export function MilestoneTable({ milestones, chapters, today, wph, due, onToggle
     .sort((a, b) => (a.m.dueDate < b.m.dueDate ? -1 : a.m.dueDate > b.m.dueDate ? 1 : a.index - b.index));
   const final = due ? milestoneStatus({ dueDate: due, measure: 'all' }, chapters, today, wph) : null;
   return (
-    /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, instead of spilling out of the card on a narrow window. */
-    <div className={`scroll-x-edges overflow-x-auto ${MEASURES_WIDTH}`} tabIndex={0} role="group" aria-label="Milestones scroll area">
-      <Table label="Milestones" flush columns={COLUMNS} className="min-w-[34.5rem] lg:min-w-[44.5rem]">
+    /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, where the card is at least 34.5 rem wide.
+       In a narrower card (a phone) each row stacks instead (#1941): the name and status on one line, the due date and the buttons under them, so nothing
+       is reachable only by a sideways scroll that gives no cue. The box is the container the narrow rows ask about. */
+    <div className={`scroll-x-edges @container overflow-x-auto ${MEASURES_WIDTH}`} tabIndex={0} role="group" aria-label="Milestones scroll area">
+      <Table label="Milestones" flush columns={COLUMNS} className={`min-w-[34.5rem] lg:min-w-[44.5rem] ${NARROW_TABLE}`}>
         <TableHead>
           <TableRow>
             <TableHeader>Milestone</TableHeader>
@@ -67,20 +69,20 @@ export function MilestoneTable({ milestones, chapters, today, wph, due, onToggle
         </TableHead>
         <TableBody>
           {rows.map(({ m, index }) => (
-            <TableRow key={index}>
-              <TableCell>
+            <TableRow key={index} className={NARROW_ROW}>
+              <TableCell className={STACK_NAME}>
                 <NameBlock name={m.name} measure={measureText(m.measure)} data={{ 'data-name': String(index) }} />
               </TableCell>
-              <TableCell className={NARROW_HIDDEN}>
+              <TableCell className={`${NARROW_HIDDEN} ${STACK_HIDDEN}`}>
                 <span data-measure={index}>{measureText(m.measure)}</span>
               </TableCell>
-              <TableCell numeric align="left">
+              <TableCell numeric align="left" className={STACK_DUE}>
                 {fmtIso(m.dueDate, today)}
               </TableCell>
-              <TableCell>
+              <TableCell className={STACK_STATUS}>
                 <StatusCell status={milestoneStatus(m, chapters, today, wph)} />
               </TableCell>
-              <TableCell align="right">
+              <TableCell align="right" className={STACK_ACTIONS}>
                 {/* The done toggle leads the row's buttons, 8 px apart, so the Milestone column starts at the card title for every row, the Final one too. */}
                 <span className="inline-flex gap-2">
                   <IconButton label={`Mark ${m.name} complete`} aria-pressed={Boolean(m.done)} data-done={index} onClick={() => onToggleDone(index)}>
@@ -109,20 +111,20 @@ export function MilestoneTable({ milestones, chapters, today, wph, due, onToggle
               </TableCell>
             </TableRow>
           )}
-          <TableRow>
-            <TableCell>
+          <TableRow className={NARROW_ROW}>
+            <TableCell className={STACK_NAME}>
               <NameBlock name="Final delivery" measure={WHOLE_BOOK} />
             </TableCell>
-            <TableCell className={NARROW_HIDDEN}>
+            <TableCell className={`${NARROW_HIDDEN} ${STACK_HIDDEN}`}>
               <span data-measure-final>{WHOLE_BOOK}</span>
             </TableCell>
-            <TableCell>
+            <TableCell className={STACK_DUE}>
               <DueField value={due ?? ''} onCommit={onDueChange} />
             </TableCell>
-            <TableCell>
+            <TableCell className={STACK_STATUS}>
               <StatusCell status={final ?? NO_DUE} finalRow />
             </TableCell>
-            <TableCell />
+            <TableCell className={STACK_ACTIONS} />
           </TableRow>
         </TableBody>
       </Table>
@@ -131,6 +133,18 @@ export function MilestoneTable({ milestones, chapters, today, wph, due, onToggle
 }
 
 const WHOLE_BOOK = 'Whole book';
+
+// Below 34.5 rem of card a row is a two-column grid: the name and the status on the first line, the due date and the buttons on the second.
+// The headings go (a screen reader keeps them); each value keeps its cell. The Measures cell stays for a screen reader and draws nothing.
+const NARROW_TABLE =
+  '@max-[34.5rem]:block @max-[34.5rem]:min-w-0! @max-[34.5rem]:[&>colgroup]:hidden @max-[34.5rem]:[&>thead]:sr-only @max-[34.5rem]:[&>tbody]:block @max-[34.5rem]:[&_td]:h-auto! @max-[34.5rem]:[&_td]:border-b-0';
+const NARROW_ROW =
+  '@max-[34.5rem]:grid! @max-[34.5rem]:grid-cols-[minmax(0,1fr)_auto] @max-[34.5rem]:items-center @max-[34.5rem]:gap-x-3 @max-[34.5rem]:gap-y-1 @max-[34.5rem]:border-b @max-[34.5rem]:border-[var(--border)] @max-[34.5rem]:px-4 @max-[34.5rem]:py-2 @max-[34.5rem]:last:border-b-0 @max-[34.5rem]:[&>td]:px-0! @max-[34.5rem]:[&>td]:py-0!';
+const STACK_NAME = '@max-[34.5rem]:col-start-1 @max-[34.5rem]:row-start-1';
+const STACK_STATUS = '@max-[34.5rem]:col-start-2 @max-[34.5rem]:row-start-1 @max-[34.5rem]:justify-self-end';
+const STACK_DUE = '@max-[34.5rem]:col-start-1 @max-[34.5rem]:row-start-2';
+const STACK_ACTIONS = '@max-[34.5rem]:col-start-2 @max-[34.5rem]:row-start-2 @max-[34.5rem]:justify-self-end';
+const STACK_HIDDEN = '@max-[34.5rem]:sr-only';
 
 // Fixed columns (alignment audit XSH-3): only Milestone takes what is left, so Due and Status stand at the same x in every state
 // whatever the milestones are called. Due is the mock's 152 px; Actions holds four 36 px buttons 8 px apart.

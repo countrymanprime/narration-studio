@@ -85,3 +85,23 @@ test('Schedule / at 390 px the milestone table keeps Due and Status on screen', 
   const narrow = await layout(page);
   expect(narrow.statusRight, 'the Final row status ends inside its card').toBeLessThanOrEqual(narrow.view);
 });
+
+test('Schedule / at 390 px a milestone row stacks, so no button or date is reachable only by a sideways scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await scheduleDrivers['on-pace']!(page);
+  const fit = await page.evaluate(() => {
+    const group = document.querySelector('[aria-label="Milestones scroll area"]')!;
+    const card = group.closest('section')!.getBoundingClientRect();
+    const buttons = [...group.querySelectorAll('tbody button')].map((b) => b.getBoundingClientRect());
+    const date = document.querySelector('input[aria-label="Delivery due"]') as HTMLInputElement;
+    return {
+      scrolls: group.scrollWidth > group.clientWidth,
+      buttonsRight: Math.max(0, ...buttons.map((b) => Math.round(b.right))),
+      cardRight: Math.round(card.right),
+      dateScrolls: date.scrollWidth > date.clientWidth,
+    };
+  });
+  expect(fit.scrolls, 'the table needs no sideways scroll').toBe(false);
+  expect(fit.buttonsRight, 'the row buttons end inside the card').toBeLessThanOrEqual(fit.cardRight);
+  expect(fit.dateScrolls, 'the Final delivery date is shown whole, not cut to its year').toBe(false);
+});
