@@ -72,7 +72,7 @@ function clearLegacyDevice() {
   }
 }
 
-export const errorText = (reason: unknown): string => (reason instanceof Error ? reason.message : String(reason));
+const errorText = (reason: unknown): string => (reason instanceof Error ? reason.message : String(reason));
 
 function statusText(host: TeleprompterState, session: Session): string {
   if (host.phase === 'starting') return 'Starting…';
