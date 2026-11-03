@@ -39,6 +39,7 @@ import { scriptPrepGoldens } from './scriptPrep';
 import { extractionGoldens } from './extraction';
 import { editCutsGoldens } from './editCuts';
 import { voiceSamplesGoldens } from './voiceSamples';
+import { voiceTracksGoldens } from './voiceTracks';
 import { wordFxGoldens } from './wordFx';
 import { editStacksGoldens } from './editStacks';
 import { replaceGoldens } from './replace';
@@ -92,6 +93,7 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   pronunciationSourcesGoldens,
   takeEvidenceGoldens,
   voiceSamplesGoldens,
+  voiceTracksGoldens,
 ];
 
 /** Which schema owns each golden file, over every feature area. */

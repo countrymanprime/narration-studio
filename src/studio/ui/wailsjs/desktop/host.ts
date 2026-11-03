@@ -815,7 +815,8 @@ export function DawLinkFound(): $CancellablePromise<string> {
 }
 
 /**
- * DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), for the Editing page's
+ * DawLiveItems answers the media items on chapterID's linked track as the DAW has them now (chapter_track_state), and on every track inside it
+ * when the link is a REAPER folder of voices (dawport.ChapterAudioState), for the Editing page's
  * follow-along: where each plays in the project, from where in which source file, at what rate. The saved project the alignment was read
  * against knows none of the narrator's edits since, and a split's right half has a GUID it never saw. Read-only; it adds no undo step.
  * The answer is {available, items}: available is false, with no items, when the DAW cannot be read now (not running, track_state off, no
@@ -3234,6 +3235,35 @@ export function VoiceSamplesList(): $CancellablePromise<string> {
  */
 export function VoiceSamplesRemoveAll(): $CancellablePromise<string> {
     return $Call.ByID(2655911602);
+}
+
+/**
+ * VoiceTracksGet answers the project's voice setup: flat with no assignments when nothing was saved.
+ */
+export function VoiceTracksGet(): $CancellablePromise<string> {
+    return $Call.ByID(866350912);
+}
+
+/**
+ * VoiceTracksSetCharacters replaces the characters assigned to the voice track named track (as REAPER shows it, trimmed); an empty
+ * list clears the assignment, so the track matches characters by name again. Character ids are the Story Bible's.
+ */
+export function VoiceTracksSetCharacters(track: string, characterIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(808111104, track, characterIDs);
+}
+
+/**
+ * VoiceTracksSetLayout sets the project's chapter layout, "flat" or "folders". It converts no chapter.
+ */
+export function VoiceTracksSetLayout(layout: string): $CancellablePromise<string> {
+    return $Call.ByID(1984145122, layout);
+}
+
+/**
+ * VoiceTracksSetNarrator sets the character the Narrator track also voices (a first-person book), or clears it with "".
+ */
+export function VoiceTracksSetNarrator(characterID: string): $CancellablePromise<string> {
+    return $Call.ByID(4074868469, characterID);
 }
 
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {
