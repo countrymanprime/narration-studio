@@ -11,14 +11,7 @@ import type {
   TrackMapping,
   ManuscriptChapter,
 } from '../../types';
-import {
-  WIRE_CHAPTERS,
-  WIRE_TRACKS_PROJECT,
-  WIRE_TRACKS_PROJECT_FOLDERS,
-  WIRE_TRACKS_PROJECT_VOICES,
-  WIRE_VOICE_FOLDER_GUID,
-  wireClone,
-} from '../mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, WIRE_VOICE_FOLDER_GUID, mockTracksProject, wireClone } from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
 import type { CoverageResult } from '../contracts/coverage';
 import { type MockApiSeed, mockDocumentId, type MockState } from './state';
@@ -44,7 +37,7 @@ export function createChapterTracksMock(
   },
 ) {
   // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
-  const project = initial.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : initial.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+  const project = mockTracksProject(initial);
   // A Voice folders project links Chapter 1 to its folder, in place of the default seed's link to its first track.
   if (initial.voiceFolders) {
     s.chapterTrackMappings = [

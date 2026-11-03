@@ -1107,6 +1107,11 @@ export const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
   return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
 })();
 
+/** The REAPER project a mock seed's host reads: the voice-folder or folder variant, or the flat Alice tracks. */
+export function mockTracksProject(seed: { voiceFolders?: boolean; trackFolders?: boolean }): TracksProject {
+  return seed.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : seed.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+}
+
 /** One row of every status the classifier produces, keyed to WIRE_TRACKS_PROJECT's own chapter track item GUIDs where it helps a screenshot read naturally (mirrors tests/fixtures/contracts/line-identity-read-success.json). */
 export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [
   {

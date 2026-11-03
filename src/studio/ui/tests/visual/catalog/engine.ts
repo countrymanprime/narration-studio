@@ -82,7 +82,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'voice-folders-picker',
     description:
-      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and March Hare checked",
+      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked",
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {

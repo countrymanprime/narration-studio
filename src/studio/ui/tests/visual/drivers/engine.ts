@@ -106,7 +106,7 @@ export const engineDrivers: Record<string, Driver> = {
     await table.getByRole('button', { name: 'Choose who the Extras track records' }).click();
     await page
       .getByRole('dialog', { name: 'Choose who the Extras track records' })
-      .getByRole('checkbox', { name: /March Hare/ })
+      .getByRole('checkbox', { name: /Cheshire Cat/ })
       .waitFor();
   },
   'folder-tracks': async (page) => {

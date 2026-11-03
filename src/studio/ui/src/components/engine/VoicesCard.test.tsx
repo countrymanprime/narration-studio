@@ -60,4 +60,13 @@ describe('the Voices card', () => {
     await userEvent.setup().click(await screen.findByRole('checkbox', { name: 'Alice' }));
     expect(again.onNarratorCharacter).toHaveBeenCalledWith('e-alice');
   });
+
+  it('a saved character that is no longer in the Story Bible stays listed, checked, so it can be cleared', async () => {
+    const handlers = draw({ layout: 'folders', narratorCharacter: '', tracks: [{ track: 'Queen', characters: ['e-gone', 'e-alice'] }] });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Choose who the Queen track records' }));
+    const gone = await screen.findByRole('checkbox', { name: 'e-gone' });
+    expect(gone.getAttribute('aria-checked')).toBe('true');
+    await userEvent.setup().click(gone);
+    expect(handlers.onTrackCharacters).toHaveBeenCalledWith('Queen', ['e-alice']);
+  });
 });

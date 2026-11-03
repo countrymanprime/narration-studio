@@ -150,12 +150,20 @@ function CharacterPicker({
   onNarratorCharacter: (id: string) => void;
 }) {
   const assigned = new Set(setup.tracks.find((entry) => entry.track === voice.name.trim())?.characters ?? []);
+  // A saved id that is no longer one of the Story Bible's characters (deleted, or moved to another kind) stays listed, checked, so it can
+  // be cleared here.
+  const known = new Set(characters.map((character) => character.id));
+  const saved = voice.narrator ? (setup.narratorCharacter ? [setup.narratorCharacter] : []) : [...assigned];
+  const rows = [
+    ...characters.map((character) => ({ id: character.id, name: character.canonical_name })),
+    ...saved.filter((id) => !known.has(id)).map((id) => ({ id, name: id })),
+  ];
   const label = voice.narrator ? 'Choose the character the Narrator track also voices' : `Choose who the ${voice.name} track records`;
   return (
     <Popover side="bottom" align="end" fitToWindow label={label} trigger={<IconButton label={label} action="edit" size="sm" aria-haspopup="dialog" />}>
       <ul className="max-h-[18rem] min-w-[14rem] space-y-1 overflow-auto p-2" aria-label="Characters">
-        {characters.length === 0 && <li className="text-sm">The Story Bible has no characters yet.</li>}
-        {characters.map((character) => {
+        {rows.length === 0 && <li className="text-sm">The Story Bible has no characters yet.</li>}
+        {rows.map((character) => {
           const checked = voice.narrator ? setup.narratorCharacter === character.id : assigned.has(character.id);
           return (
             <li key={character.id}>
@@ -171,7 +179,7 @@ function CharacterPicker({
                   }
                 }}
               >
-                <SpeakerTag label={character.canonical_name} speakerId={character.id} />
+                <SpeakerTag label={character.name} speakerId={character.id} />
               </Checkbox>
             </li>
           );
