@@ -36,8 +36,8 @@ describe('buildChapterRows: one row per chapter and the retail sample, measured 
     expect(rows.at(-1)).toMatchObject({ id: SAMPLE_ROW_ID });
   });
 
-  it('draws the Text figure of a file from its chapter’s current Recording Check, and "Not checked" for every file without one (#2105)', () => {
-    const texts = { [chapters[0]!.id]: { percent: 97, met: true }, [chapters[3]!.id]: { percent: 82, met: false } };
+  it('draws the Text figure of a file from the current Recording Check of its chapter, keyed by the file, and "Not checked" for every file without one (#2105)', () => {
+    const texts = { [passing('Chapter 01.wav').path]: { percent: 97, met: true }, [failingTwo('Chapter 04.wav').path]: { percent: 82, met: false } };
     const rows = buildChapterRows(
       [passing('Chapter 01.wav'), failingTwo('Chapter 04.wav'), passing('Chapter 02.wav'), passing('Interview bonus.wav')],
       profile,

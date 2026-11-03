@@ -20,7 +20,7 @@ const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) }
 describe('Master & QC files', () => {
   it('draws the Text column: a chapter’s current Recording Check, a miss marked, and "Not checked" for a file without one (#2105)', () => {
     const files = [passing('Chapter 01.wav'), passing('Chapter 03.wav'), passing('Chapter 04.wav')];
-    const texts = { [CHAPTERS[0]!.id]: { percent: 97, met: true }, [CHAPTERS[2]!.id]: { percent: 71, met: false } };
+    const texts = { [files[0]!.path]: { percent: 97, met: true }, [files[1]!.path]: { percent: 71, met: false } };
     mount({ files, chapters: CHAPTERS, chapterRows: true, texts });
     expect(screen.getByRole('columnheader', { name: 'Text' })).toBeTruthy();
     const textOf = (name: string) => within(row(name)).getAllByRole('cell')[6]!;

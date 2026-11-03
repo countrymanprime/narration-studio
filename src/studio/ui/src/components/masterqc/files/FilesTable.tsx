@@ -153,7 +153,7 @@ export function FilesTable({
   slots?: readonly ChapterSlot[];
   /** Open pickups by chapter id (the Pickups page's list); a row with no file says how many it waits on. */
   openPickups?: Readonly<Record<string, number>>;
-  /** Each chapter's current Recording Check by chapter id, for the Text column; a file without one says "Not checked". */
+  /** The current Recording Check of each measured file's chapter by file path, for the Text column; a file without one says "Not checked". */
   texts?: Readonly<Record<string, TextMatch>>;
   /** The page title, chapter bar and profile pill, drawn in the panel's header. */
   heading?: ReactNode;
