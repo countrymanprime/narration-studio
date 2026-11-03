@@ -2,7 +2,7 @@
 
 **Written 2026-10-30.** Issue: [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) (owner request, no checklist item). **Question:** can the narrator press a number-pad key in the Booth to choose which character's track a take records on, so an FX chain on that track (the owner's example: drone chirps) covers every item the character speaks, with no per-item FX?
 
-**Status.** A design note. The owner answered section 8 on 2026-11-02. Phase 0 ran in REAPER 7.82 on Linux on 2026-11-02 (section 6a); nothing in the app is built. A REAPER behaviour below is cited to a recorded run, to section 6a, or marked **not run**.
+**Status.** A design note. The owner answered section 8 on 2026-11-02 and the mock's decisions on 2026-11-03, approving the mock. Phase 0 ran in REAPER 7.82 on Linux on 2026-11-02 (section 6a); nothing in the app is built. A REAPER behaviour below is cited to a recorded run, to section 6a, or marked **not run**.
 
 ## Recommendation
 
@@ -166,5 +166,15 @@ Answered 2026-11-02.
 - **Stopped, a character chosen** (from the list, or the next or previous voice) with no child by name, alias or assignment: the Booth asks who records them, with three answers: make a track named for the character (the default), assign the character to an existing child (an "Extras" track among them), or record on the Narrator child. The first two store the match; the third arms the Narrator child and shows the notice on the record control while that voice is chosen.
 - **Recording, the same choice:** no question mid-take. The Narrator child is armed live and the notice shows; after the stop, the notice offers the first two answers. What was recorded stays on the Narrator child.
 - **A number key with no child behind it, while stopped:** "Who is in it?" lists the chapter's characters, those with lines in this chapter first. One character makes a track named for them; several make one track, named "Extras" unless the narrator types another name, holding them all. The new track is the next child, so it takes the next free number. While recording, the key is refused with a toast and the take goes on.
-- **Opening a chapter in the Booth** whose folder lacks children for characters with lines in it: one notice with an action that makes the missing tracks. Whether this should happen with no press is still the owner's call (decision 3 can be read either way).
+- **Opening a chapter in the Booth** whose folder lacks children for characters with lines in it: each such character's row in the side list shows an add-track button in place of its key. Nothing is made without a press (decision B below).
 - **A flat chapter:** the voice keys are off and say why in their tooltip.
+
+**The mock's decisions** (2026-11-03, [#2251 comment](https://github.com/countrymanprime/narration-studio/issues/2251#issuecomment-6594214485), relayed by the coordinator; the [mock](mockups/booth-voices/README.md) is approved):
+
+- **A.** One voice control on the record bar, beside Cold read, opening the voice list.
+- **B.** A character in the chapter with no track shows an add-track button in its side-list row; nothing is made without a press.
+- **C.** A number key with no track while recording changes nothing and shows a brief "No track on Num 7" message; while stopped it asks "Who is in it?".
+- **D.** Tracks are matched to characters on a Voices card on the Engine panel.
+- **E.** The live switch arms the new child and disarms the old one together, leaving about 64 ms unrecorded at a 1024-frame buffer (section 6a, row 7).
+- **F.** Voice keys follow the child order in the REAPER folder; the Narrator child is always 0.
+- **G.** A new project is flat until Voice folders is switched on for it.
