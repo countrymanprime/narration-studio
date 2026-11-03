@@ -1,3 +1,4 @@
+import { HelpButton } from '../primitives/HelpButton';
 import type { Scope, ScopedSettingField } from '../../types';
 
 // What the recording check's settings amount to (docs/utilities/recording-coverage.md). The values are
@@ -38,13 +39,13 @@ export function cascadeRule(fields: readonly ScopedSettingField[]): string {
 export function RecordingCheckSummary({ fields, scope }: { fields: readonly ScopedSettingField[]; scope: Scope }) {
   return (
     <div className="mb-4 space-y-1 rounded-md p-3 text-sm" style={{ background: 'var(--surface-2)' }}>
-      <div className="font-medium">Proposed values, not yet calibrated</div>
-      <div>{recordingRule(fields)} Misreads, extra words and a spoken title never count against it.</div>
-      <div style={{ color: 'var(--text-muted)' }}>
-        These values were chosen on synthetic test recordings and have not been checked against real recordings yet. Changing the first two only changes how a
-        stored check is judged; changing either of the last two makes earlier checks out of date, so check those chapters again.{' '}
-        {scope === 'project' ? 'A value left blank here uses the Global one.' : ''}
+      <div className="flex items-center gap-2 font-medium">
+        Proposed values, not yet calibrated
+        <HelpButton label="About these values">
+          {`These values were chosen on synthetic test recordings and have not been checked against real recordings yet. Changing the first two only changes how a stored check is judged; changing either of the last two makes earlier checks out of date, so check those chapters again. Misreads, extra words and a spoken title never count against it.${scope === 'project' ? ' A value left blank here uses the Global one.' : ''}`}
+        </HelpButton>
       </div>
+      <div>{recordingRule(fields)}</div>
       <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
         {cascadeRule(fields)}
       </div>

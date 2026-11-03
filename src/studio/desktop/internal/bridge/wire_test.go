@@ -35,7 +35,6 @@ var realEvents = map[string][]string{
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
 	"PICKUPS_EXPORTED":      {"PICKUPS_EXPORTED", "t1", "C:/s/pickups.txt", "2"},
 	"PICKUPS_COUNTED":       {"PICKUPS_COUNTED", "t1", "1", "2"},
-	"PICKUP_NEXT":           {"PICKUP_NEXT", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_RESOLVED":       {"PICKUP_RESOLVED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_REOPENED":       {"PICKUP_REOPENED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_MARKERS_LISTED": {"PICKUP_MARKERS_LISTED", "t1", "C:/s/markers.txt", "2", "1"},
@@ -47,8 +46,6 @@ var realEvents = map[string][]string{
 	"GAIN_ITEM":          {"GAIN_ITEM", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "1.000000", "1.412538"},
 	"GAIN_APPLIED":       {"GAIN_APPLIED", "g1", "1"},
 	"RETAKE_LANE_PICKED": {"RETAKE_LANE_PICKED", "t1", "line-000004", "{AAAAAAAA-0000-4000-8000-000000000001}", "2"},
-	"TAKE_CREATED":       {"TAKE_CREATED", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{BBBBBBBB-0000-4000-8000-000000000002}"},
-	"TAKE_STALE":         {"TAKE_STALE", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}"},
 	// src/studio/integrations/reaper/tests/navigation_test.lua.
 	"NAVIGATED":     {"NAVIGATED", "n1", "{AAAAAAAA-0000-4000-8000-000000000001}", "102.500000"},
 	"LOOP_STARTED":  {"LOOP_STARTED", "l1", "{AAAAAAAA-0000-4000-8000-000000000001}", "101.000000", "105.000000"},
@@ -76,6 +73,8 @@ var realEvents = map[string][]string{
 	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0", "1"},
 	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "1", "0", "1"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
+	// transport_test.lua's switch_voice rows.
+	"VOICE_SWITCHED": {"VOICE_SWITCHED", "v1", "{00000002-0000-4000-8000-000000000002}", "3.600000"},
 	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
 	"ACTIVE_TAKE_SET":  {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
 	"ITEM_STALE":       {"ITEM_STALE", "x3", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
@@ -178,6 +177,14 @@ func TestATruncatedMarkerIsAnErrorThatNamesTheEventAndCountsTheFields(t *testing
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("%q does not mention %q", err, want)
 		}
+	}
+}
+
+func TestAFolderReadsTrackItemWithMutedAndTrackPassesTheTable(t *testing.T) {
+	// track_state_test.lua: a 'children' read ends each TRACK_ITEM with muted and the item's track GUID.
+	row := append(append([]string{}, realEvents["TRACK_ITEM"]...), "0", "{00000002-0000-4000-8000-000000000002}")
+	if err := CheckEvent(row); err != nil {
+		t.Fatalf("an 11-field TRACK_ITEM: %v", err)
 	}
 }
 

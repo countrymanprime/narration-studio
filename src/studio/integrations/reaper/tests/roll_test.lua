@@ -494,3 +494,15 @@ H.test('a take stopped after a roll leaves the edit cursor at the end of the rol
   H.eq(s:events()[1][1], 'RECORD_STOPPED')
   H.eq(s.fake.cursor, 46)
 end)
+
+H.test('a roll after switch_voice restarts on the new voice, and the stop lands at the end of the rolled pass', function()
+  local s, chapter, other = recording_session()
+  s.fake.record_seconds = 50 -- the first pass would stop at 80 s
+  s:send('switch_voice', 'v1', other.guid)
+  H.eq(s:events(), { { 'VOICE_SWITCHED', 'v1', other.guid, '75.000000' } })
+  s:send('roll', 'o1', other.guid, '70')
+  H.eq(s:events(), { { 'ROLLED', 'o1', other.guid, '70.000000', '0' } })
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 120, 'the end of the pass rolled from 70 s, not the item that began at the switch')
+end)

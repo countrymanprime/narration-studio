@@ -20,12 +20,45 @@ import (
 // fake engine instead of the sidecar.
 func recorderHost(t *testing.T, fake *recordingtest.Fake) *Host {
 	t.Helper()
+	// The global settings (the Levels menu's microphone) live under APPDATA: a test never reads or writes the machine's.
+	t.Setenv("APPDATA", t.TempDir())
 	host := previewSuggestHost(t, previewManuscriptOK)
 	host.platform = "windows"
 	host.mu.Lock()
 	host.recorder = recording.New(recording.Config{Project: host.config.projectFolder, Grace: time.Second}, fake, nil, nil)
 	host.mu.Unlock()
 	return host
+}
+
+// chooseEngine chooses how host's project records the way Settings › Recording does (DawChoose): the built-in recorder for
+// engineBuiltin, REAPER for engineDAW. It answers the recorder state, whose Engine the record path now follows.
+func chooseEngine(t *testing.T, host *Host, engine string) RecorderState {
+	t.Helper()
+	name := "REAPER"
+	if engine == engineBuiltin {
+		name = "Built-in"
+	}
+	if _, err := host.DawChoose(name); err != nil {
+		t.Fatalf("DawChoose(%q) = %v", name, err)
+	}
+	return recorderOf(t)(host.RecorderState())
+}
+
+// recordTake starts a built-in take on device the way the Booth does: device chosen in the Levels menu, then Record
+// (ReadAloudRecordStart over the built-in adapter). stopTake ends it with the Booth's Stop.
+func recordTake(t *testing.T, host *Host, device string) {
+	t.Helper()
+	boothSetting(t, host, teleprompterSettingsTool, "global", inputDeviceKey, device)
+	if started := boothRecord(t)(host.ReadAloudRecordStart("c-0001")); started.Outcome != "started" {
+		t.Fatalf("Record on %q = %+v, want started", device, started)
+	}
+}
+
+func stopTake(t *testing.T, host *Host) {
+	t.Helper()
+	if stopped := boothRecord(t)(host.ReadAloudRecordStop()); stopped.Outcome != "stopped" {
+		t.Fatalf("Stop = %+v, want stopped", stopped)
+	}
 }
 
 func recorderOf(t *testing.T) func(string, error) RecorderState {
@@ -92,18 +125,18 @@ func TestRecorderStateGoldensAreCurrent(t *testing.T) {
 	fake := &recordingtest.Fake{}
 	host := recorderHost(t, fake)
 	folder := host.config.projectFolder
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	chooseEngine(t, host, engineBuiltin)
 	if err := os.MkdirAll(filepath.Join(folder, recording.FolderName), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := recordingtest.WriteWav(filepath.Join(folder, recording.FolderName, "Take 001.partial.wav"), 24000); err != nil {
 		t.Fatal(err)
 	}
-	recorderOf(t)(host.RecorderStart("Analogue 1 + 2 (Focusrite USB Audio)"))
+	recordTake(t, host, "Analogue 1 + 2 (Focusrite USB Audio)")
 	t.Run("recording", func(t *testing.T) {
 		contractfile.Check(t, "recorder-state-recording", stableRecorder(t, mustRaw(t)(host.RecorderState()), folder))
 	})
-	recorderOf(t)(host.RecorderStop())
+	stopTake(t, host)
 	waitRecorderIdle(t, host)
 	t.Run("takes", func(t *testing.T) {
 		contractfile.Check(t, "recorder-state-takes", stableRecorder(t, mustRaw(t)(host.RecorderState()), folder))
@@ -141,17 +174,11 @@ func TestAProjectRecordsWithREAPERUntilItChoosesTheBuiltInRecorder(t *testing.T)
 	if state.Engine != engineDAW || !state.HasProject || state.Support["level"] != "experimental" || state.Support["available"] != true {
 		t.Fatalf("state = %+v", state)
 	}
-	if _, err := host.RecorderStart("Mic"); err == nil || !strings.Contains(err.Error(), "choose the built-in recorder") {
-		t.Fatalf("a take started while the project records with REAPER: %v", err)
-	}
-	if state := recorderOf(t)(host.RecorderChooseEngine(engineBuiltin)); state.Engine != engineBuiltin {
+	if state := chooseEngine(t, host, engineBuiltin); state.Engine != engineBuiltin {
 		t.Fatalf("engine = %q", state.Engine)
 	}
-	if state := recorderOf(t)(host.RecorderChooseEngine(engineDAW)); state.Engine != engineDAW {
+	if state := chooseEngine(t, host, engineDAW); state.Engine != engineDAW {
 		t.Fatalf("engine = %q", state.Engine)
-	}
-	if _, err := host.RecorderChooseEngine("audacity"); err == nil {
-		t.Fatal("an unknown engine was saved")
 	}
 }
 
@@ -159,7 +186,7 @@ func TestTheBuiltInRecorderIsRefusedWhereItsRowDoesNotRun(t *testing.T) {
 	host := recorderHost(t, &recordingtest.Fake{})
 	rppFolder(t, host)
 	host.platform = "linux"
-	if _, err := host.RecorderChooseEngine(engineBuiltin); err == nil || !strings.Contains(err.Error(), "not available") {
+	if _, err := host.DawChoose("Built-in"); err == nil || !strings.Contains(err.Error(), "not available") {
 		t.Fatalf("err = %v", err)
 	}
 	if state := recorderOf(t)(host.RecorderState()); state.Engine != engineDAW || state.Support["available"] != false {
@@ -168,27 +195,27 @@ func TestTheBuiltInRecorderIsRefusedWhereItsRowDoesNotRun(t *testing.T) {
 }
 
 func TestChoosingAnEngineNeedsAProjectAndNoTakeRecording(t *testing.T) {
-	if _, err := NewHost().RecorderChooseEngine(engineBuiltin); err == nil {
+	if _, err := NewHost().DawChoose("Built-in"); err == nil {
 		t.Fatal("chose without a project")
 	}
 	host := recorderHost(t, &recordingtest.Fake{})
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
-	recorderOf(t)(host.RecorderStart("Mic"))
-	if _, err := host.RecorderChooseEngine(engineDAW); err == nil {
+	chooseEngine(t, host, engineBuiltin)
+	recordTake(t, host, "Mic")
+	if _, err := host.DawChoose("REAPER"); err == nil {
 		t.Fatal("changed engine mid-take")
 	}
 	if host.idle() {
 		t.Fatal("the host is idle while a take records")
 	}
-	recorderOf(t)(host.RecorderStop())
+	stopTake(t, host)
 	waitRecorderIdle(t, host)
 }
 
 func TestATakeRemembersItsDeviceAndPlaysThroughTheMediaRoute(t *testing.T) {
 	host := recorderHost(t, &recordingtest.Fake{})
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
-	recorderOf(t)(host.RecorderStart("Studio Mic"))
-	recorderOf(t)(host.RecorderStop())
+	chooseEngine(t, host, engineBuiltin)
+	recordTake(t, host, "Studio Mic")
+	stopTake(t, host)
 	state := waitRecorderIdle(t, host)
 	if len(state.Takes) != 1 || state.Device != "Studio Mic" {
 		t.Fatalf("state = %+v", state)
@@ -315,7 +342,7 @@ func TestTheMeterStartsAndStopsOnlyForTheBuiltInRecorder(t *testing.T) {
 	if _, err := host.RecorderMeterStart("Mic"); err == nil {
 		t.Fatal("metered while the project records with REAPER")
 	}
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	chooseEngine(t, host, engineBuiltin)
 	if state := recorderOf(t)(host.RecorderMeterStart("Mic")); state.Phase != recording.PhaseMetering {
 		t.Fatalf("phase = %q", state.Phase)
 	}
@@ -323,7 +350,7 @@ func TestTheMeterStartsAndStopsOnlyForTheBuiltInRecorder(t *testing.T) {
 	waitRecorderIdle(t, host)
 	// Choosing REAPER again stops a meter.
 	recorderOf(t)(host.RecorderMeterStart("Mic"))
-	recorderOf(t)(host.RecorderChooseEngine(engineDAW))
+	chooseEngine(t, host, engineDAW)
 	waitRecorderIdle(t, host)
 }
 

@@ -28,15 +28,13 @@ const (
 // starts listening and the bar says why, the same as any other refusal.
 const readAloudRecordStartTimeout = 3 * time.Second
 
-// ReadAloudRecording is what an arm, a record start or a record stop did, in the shape the control bar reads. Outcome
-// is "armed", "started", "stopped" or "refused" (Reason and Message say why; nothing in REAPER changed for a refusal).
+// ReadAloudRecording is what a record start or a record stop did, in the shape the control bar reads. Outcome
+// is "started", "stopped" or "refused" (Reason and Message say why; nothing in REAPER changed for a refusal).
 type ReadAloudRecording struct {
 	Outcome   string   `json:"outcome"`
 	Reason    string   `json:"reason,omitempty"`
 	Message   string   `json:"message,omitempty"`
 	TrackGUID string   `json:"trackGuid,omitempty"`
-	Disarmed  *int     `json:"disarmed,omitempty"`
-	Changed   *bool    `json:"changed,omitempty"`
 	Position  *float64 `json:"position,omitempty"`
 	Restored  *int     `json:"restored,omitempty"`
 	Kept      *int     `json:"kept,omitempty"`
@@ -140,37 +138,6 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 	return readAloudRefused(refusedFailed, fmt.Sprintf("%s could not do that: %s.", name, err.Error()))
 }
 
-// readAloudArmOnlyIn arms chapterID's linked track and disarms every other one (the "Arm Chapter N only" action),
-// refusing while the DAW records. It changes nothing in the reading session. recorder is nil exactly when
-// recorderFrom would answer nil (no resolver, a DAW that does not report record, or the DAW not reachable).
-func readAloudArmOnlyIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (ReadAloudRecording, error) {
-	name := readAloudAdapterName(svc)
-	if status := reaperStatus(svc); status.Connection != reaperConnected {
-		return readAloudConnectionRefusal(name, status.Connection), nil
-	}
-	if recorder == nil {
-		return readAloudUnsupportedRefusal(name), nil
-	}
-	guid, refused, err := readAloudTrackGUID(svc, chapterID)
-	if err != nil {
-		return ReadAloudRecording{}, err
-	}
-	if refused != nil {
-		return *refused, nil
-	}
-	armed, err := recorder.ArmOnly(ctx, guid)
-	if err != nil {
-		return readAloudRecordRefusal(name, err), nil
-	}
-	disarmed, changed := armed.Disarmed, armed.Changed
-	return ReadAloudRecording{Outcome: "armed", TrackGUID: armed.TrackGUID, Disarmed: &disarmed, Changed: &changed}, nil
-}
-
-func (h *Host) ReadAloudArmOnly(chapterID string) (string, error) {
-	svc := h.services()
-	return encodeBinding(readAloudArmOnlyIn(context.Background(), svc, recorderFrom(svc), chapterID))
-}
-
 // readAloudRecordStartIn is Record: it arms chapterID's linked track alone (the narrator's other arms are remembered
 // and come back on stop), then starts recording at the end of the track's last item, and waits for ctx's
 // deadline for the DAW to confirm. A precondition that fails first - playing, already recording - refuses before
@@ -220,7 +187,15 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 	if recorder == nil || (at != nil && puncher == nil) {
 		return readAloudUnsupportedRefusal(name), nil
 	}
-	guid, refused, err := readAloudTrackGUID(svc, chapterID)
+	link, refused, err := readAloudTrackGUID(svc, chapterID)
+	if err != nil {
+		return ReadAloudRecording{}, err
+	}
+	if refused != nil {
+		return *refused, nil
+	}
+	// In a Voice folders chapter the link is a folder: the take records on one of its voices (bindings_booth_voice.go).
+	guid, refused, err := recordTarget(svc, chapterID, link)
 	if err != nil {
 		return ReadAloudRecording{}, err
 	}
@@ -295,7 +270,7 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartIn(ctx, svc, recorder, trackStateReaderFrom(svc), chapterID)
+	result, err := readAloudRecordStartIn(ctx, h.services(), recorder, trackStateReaderFrom(svc), chapterID)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}
@@ -325,7 +300,7 @@ func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, err
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartAtIn(ctx, svc, recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
+	result, err := readAloudRecordStartAtIn(ctx, h.services(), recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}

@@ -142,9 +142,8 @@ export const workspacePeaksResultSchema = z.object({
 // The Takes panel: src/studio/desktop/internal/passagetakes.
 const passageTakeSchema = z.object({
   id: z.string(),
-  source: z.enum(['item_take', 'lane_retake', 'take_review']),
-  action: z.enum(['make_active', 'pick_lane', 'add_and_activate']),
-  confirm: z.boolean(),
+  source: z.enum(['item_take', 'lane_retake']),
+  action: z.enum(['make_active', 'pick_lane']),
   label: z.string(),
   detail: z.string(),
   active: z.boolean(),
@@ -155,9 +154,6 @@ const passageTakeSchema = z.object({
   sourceLength: z.number(),
   usable: z.boolean(),
   reason: z.string().optional(),
-  compared: z.boolean(),
-  fidelity: z.number().optional(),
-  notComparedReason: z.string().optional(),
 }) satisfies z.ZodType<PassageTake>;
 
 export const workspaceTakesResultSchema = z.object({
@@ -170,7 +166,6 @@ export const workspaceTakesResultSchema = z.object({
   passageId: z.string(),
   itemGuid: z.string(),
   message: z.string().optional(),
-  comparisonId: z.string().optional(),
   candidates: listFromNull(passageTakeSchema),
 }) satisfies z.ZodType<WorkspaceTakesResult>;
 

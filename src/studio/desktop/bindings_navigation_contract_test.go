@@ -9,7 +9,7 @@ import (
 	"desktop/internal/findings"
 )
 
-// What FindingsReaperStatus, FindingsGoTo, FindingsLoop and FindingsStopLoop send, over the
+// What FindingsGoTo, FindingsLoop and FindingsStopLoop send, over the
 // findings the real Transcript Compare adapter writes (contractReviewHost): every outcome, and every refusal the Review
 // page words differently. REAPER's side is a fake navigator; bridge.Navigator's own tests pin the file protocol.
 func TestContractFindingsNavigationBindings(t *testing.T) {
@@ -42,8 +42,6 @@ func TestContractFindingsNavigationBindings(t *testing.T) {
 	check("findings-go-to", payload, err)
 	payload, err = host.FindingsLoop(id)
 	check("findings-loop", payload, err)
-	payload, err = host.FindingsReaperStatus()
-	check("findings-reaper-status-looping", payload, err)
 	payload, err = host.FindingsStopLoop()
 	check("findings-stop-loop", payload, err)
 
@@ -64,12 +62,10 @@ func TestContractFindingsNavigationBindings(t *testing.T) {
 	check("findings-navigation-no-item", payload, err)
 
 	host.reachability = daw.NewReachability(nil)
-	payload, err = host.FindingsReaperStatus()
-	check("findings-reaper-status-not-running", payload, err)
 	payload, err = goTo()
 	check("findings-navigation-not-running", payload, err)
 
 	host.navigation.standalone = true
-	payload, err = host.FindingsReaperStatus()
-	check("findings-reaper-status-standalone", payload, err)
+	payload, err = goTo()
+	check("findings-navigation-standalone", payload, err)
 }

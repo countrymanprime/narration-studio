@@ -187,7 +187,7 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     ]);
     expect(rows.map((r) => [r.recorded.kind, r.recorded.text])).toEqual([
       ['none', 'None yet'],
-      ['none', 'Not linked'],
+      ['none', 'No track'],
       ['none', 'No project'],
       ['none', '2+ tracks'],
       ['none', 'Track gone'],
@@ -195,6 +195,18 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     ]);
     for (const row of rows) expect(row.recorded.text).not.toMatch(/^0:00$/);
     expect(rows[0]!.cells.record).toMatchObject({ kind: 'none', state: 'not started' });
+  });
+
+  it('says a ticked Record with no linked track is the chapter’s stage, not a measurement (#2634)', () => {
+    // A stage set by hand, or left behind when the link was removed, stands with no track to measure.
+    const [byHand, measured] = rowsOf([
+      chapter('a', { status: 'editing', recordedUnavailable: 'unlinked' }),
+      chapter('b', { status: 'editing', recordedSeconds: 600 }),
+    ]);
+    expect(byHand!.recorded.text).toBe('No track');
+    expect(byHand!.cells.record).toMatchObject({ kind: 'done', text: '✓' });
+    expect(byHand!.cells.record.tip).toBe('Recorded · the chapter’s stage; no track is linked, so no length is measured');
+    expect(measured!.cells.record.tip).toBe('Recorded · 0:10 recorded');
   });
 
   it('says in its tip and name how far the chapter is recorded (#2251): through which paragraph, to the end, or about for the track’s length', () => {
@@ -217,8 +229,8 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     // A host without the paragraph number says the share alone, never a made-up ¶.
     expect(unnumbered!.recorded.label).toMatch(/, recorded through 38%$/);
     // Proof and the Booth's takes say how far a chapter is recorded even when no track is linked to measure.
-    expect(unlinked!.recorded).toMatchObject({ kind: 'none', text: 'Not linked' });
-    expect(unlinked!.recorded.label).toBe('Chapter 5: recorded not linked, recorded through paragraph 12 (38%)');
+    expect(unlinked!.recorded).toMatchObject({ kind: 'none', text: 'No track' });
+    expect(unlinked!.recorded.label).toBe('Chapter 5: recorded no track, recorded through paragraph 12 (38%)');
   });
 
   it('draws the Record percent from how far the chapter is recorded, so the board and the Booth agree', () => {

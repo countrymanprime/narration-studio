@@ -2,7 +2,7 @@
 
 **Written 2026-10-30.** Issue: [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) (owner request, no checklist item). **Question:** can the narrator press a number-pad key in the Booth to choose which character's track a take records on, so an FX chain on that track (the owner's example: drone chirps) covers every item the character speaks, with no per-item FX?
 
-**Status.** A design note. The owner answered section 8 on 2026-11-02. Phase 0 ran in REAPER 7.82 on Linux on 2026-11-02 (section 6a); nothing in the app is built. A REAPER behaviour below is cited to a recorded run, to section 6a, or marked **not run**.
+**Status.** A design note. The owner answered section 8 on 2026-11-02 and the mock's decisions on 2026-11-03, approving the mock. Phase 0 ran in REAPER 7.82 on Linux on 2026-11-02 (section 6a); nothing in the app is built. A REAPER behaviour below is cited to a recorded run, to section 6a, or marked **not run**.
 
 ## Recommendation
 
@@ -121,7 +121,7 @@ Run 2026-11-02 with `run-linux-check.sh` (REAPER 7.82, Linux, Xvfb, `jackd -d du
 | 9 | `live_arm_add` | A second child armed during a take, the first left armed: both record; the new item starts about 85 ms after the heard position at the arm, the first runs to the stop. |
 | 10 | `undo_after_switch` | Two takes on two children with stop-and-restart: two "Recorded media" points. Undo 1 removes the second child's item only, Undo 2 the first. Arms and folder depths are not in the undo history. |
 | 11 | `fx_child_and_folder` | `apply_fx_chain` with a -12 dB chain on a child: that child -12.0 dB in the rendered mix, its sibling +0.0 dB. The same chain on the folder too: -12.0 dB and -24.1 dB. |
-| 12 | `folder_reads_today` | A folder with items only on its children: `play_range` naming the folder is refused ("The chapter's track has no audio at that time in the REAPER project."); `chapter_track_state` on the folder lists 0 of 0 items; on a child, its item. `play_range` on a child plays it alone and puts the tracks back. |
+| 12 | `folder_reads_today` (replaced by `folder_reads` in phase 2) | A folder with items only on its children: `play_range` naming the folder is refused ("The chapter's track has no audio at that time in the REAPER project."); `chapter_track_state` on the folder lists 0 of 0 items; on a child, its item. `play_range` on a child plays it alone and puts the tracks back. |
 | 13 | `folder_solo_plays_children` | The folder alone soloed in place (`I_SOLO` 2): both children are in the rendered mix (0.30 each), the flat chapter after the folder is silent (0.000). |
 
 **Input lost on a switch.** Every way loses some input. Stop and restart loses what is spoken between the stop and the new recording: 31 to 132 ms inside REAPER (row 5), more over the bridge (row 6, where the driver's polling sets the figure; the host's own latency was not measured). The live switch loses 64 ms at a 1024-frame buffer (row 7) and keeps the transport running. Arming before disarming loses nothing but records 21 to 64 ms on both children (row 8), which the bridge would trim after the stop. Pressing the key in a pause between lines makes any of these silence.
@@ -132,8 +132,8 @@ Run 2026-11-02 with `run-linux-check.sh` (REAPER 7.82, Linux, Xvfb, `jackd -d du
 
 ## 6b. What phase 0 changes in the bridge plan
 
-- **Live switch.** A new `switch_voice(track)` command, accepted only while a recording this bridge started runs: arm the new child, disarm the old one, remember the voice change. `record_start`'s single-armed-track check stays for the start. `stopped_at` reads the item on the last voice's track. `restore_arms` already puts back every arm it saved. The take stays one undo point, so `record_take` undo needs no new cap.
-- **Stop guard.** A voice re-take from the same place within half a second of a stop is moved back by `guard_stop` (row 4). `set_cursor` and `punch_to` should end the guard, as `record_start` does. This affects flat chapters too.
+- **Live switch.** A new `switch_voice(track)` command, accepted only while a recording this bridge started runs: arm the new child, disarm the old one, remember the voice change. `record_start`'s single-armed-track check stays for the start. `stopped_at` reads the item on the last voice's track. `restore_arms` already puts back every arm it saved. The take stays one undo point, so `record_take` undo needs no new cap. Built in phase 4a; the real-REAPER scenario `switch_voice_bridge` (2026-11-03, REAPER 7.82, Linux, JACK dummy) measured a switch at 2.707 s answered in 51 ms over the driver, 64 ms recorded on neither voice, one undo point that one Undo removed, the cursor at the end of the last voice's item and every arm put back.
+- **Stop guard.** A voice re-take from the same place within half a second of a stop is moved back by `guard_stop` (row 4). `set_cursor` and `punch_to` should end the guard, as `record_start` does. This affects flat chapters too. Done in phase 4a: both end it; row 4 now holds at once (2026-11-03).
 - **Nested `track_create`.** Insert after the folder's last child and move its closing delta (row 2), copying `I_RECINPUT` and `I_RECMODE`.
 - **Editing play.** `plays_at` counts the folder's descendants, and `isolate` solos the folder in place (rows 12 and 13).
 
@@ -166,5 +166,15 @@ Answered 2026-11-02.
 - **Stopped, a character chosen** (from the list, or the next or previous voice) with no child by name, alias or assignment: the Booth asks who records them, with three answers: make a track named for the character (the default), assign the character to an existing child (an "Extras" track among them), or record on the Narrator child. The first two store the match; the third arms the Narrator child and shows the notice on the record control while that voice is chosen.
 - **Recording, the same choice:** no question mid-take. The Narrator child is armed live and the notice shows; after the stop, the notice offers the first two answers. What was recorded stays on the Narrator child.
 - **A number key with no child behind it, while stopped:** "Who is in it?" lists the chapter's characters, those with lines in this chapter first. One character makes a track named for them; several make one track, named "Extras" unless the narrator types another name, holding them all. The new track is the next child, so it takes the next free number. While recording, the key is refused with a toast and the take goes on.
-- **Opening a chapter in the Booth** whose folder lacks children for characters with lines in it: one notice with an action that makes the missing tracks. Whether this should happen with no press is still the owner's call (decision 3 can be read either way).
+- **Opening a chapter in the Booth** whose folder lacks children for characters with lines in it: each such character's row in the side list shows an add-track button in place of its key. Nothing is made without a press (decision B below).
 - **A flat chapter:** the voice keys are off and say why in their tooltip.
+
+**The mock's decisions** (2026-11-03, [#2251 comment](https://github.com/countrymanprime/narration-studio/issues/2251#issuecomment-6594214485), relayed by the coordinator; the [mock](mockups/booth-voices/README.md) is approved):
+
+- **A.** One voice control on the record bar, beside Cold read, opening the voice list.
+- **B.** A character in the chapter with no track shows an add-track button in its side-list row; nothing is made without a press.
+- **C.** A number key with no track while recording changes nothing and shows a brief "No track on Num 7" message; while stopped it asks "Who is in it?".
+- **D.** Tracks are matched to characters on a Voices card on the Engine panel.
+- **E.** The live switch arms the new child and disarms the old one together, leaving about 64 ms unrecorded at a 1024-frame buffer (section 6a, row 7).
+- **F.** Voice keys follow the child order in the REAPER folder; the Narrator child is always 0.
+- **G.** A new project is flat until Voice folders is switched on for it.

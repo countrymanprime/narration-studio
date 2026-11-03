@@ -55,9 +55,21 @@ is an owner step: `gh label delete <name> --yes` (deleting removes it from old p
 ## Pull requests
 
 - The title is the squash commit and must be a Conventional Commit (see [CI and releases](ci-and-releases.md)).
-- Put `Closes #<issue>` in the description so merging closes the issue and moves its board card to Done.
+- Name the issue in the description, one line per issue. `Closes #<issue>` for every issue the pull request fully resolves, so merging closes it and moves its board card to Done. `Refs #<issue>` only for an issue it touches in part. `Issue: none — <reason>` when there is none. `Refs` never closes anything: a fix described with `Refs` leaves a fixed issue open.
+- GitHub closes an issue only when the pull request merges into the default branch. A pull request stacked on another branch does not close its issue on merge; the merger checks and closes it ([After a merge](#after-a-merge)).
+- The `Issue link (advisory)` step of `Docs / Docs checks` warns on a `fix` or `feat` pull request with none of those lines, and on `Closes` with a non-default base. It never fails ([the check](ci-and-releases.md#the-issue-link-check)).
 - The template lists the verification gates from `CLAUDE.md`; tick only what applies.
 - A PR that changes behaviour has an "Exercised" and a "Not exercised" section, and for a page or an integration the independent walkthrough's report ([definition of done](../../.claude/rules/definition-of-done.md)). Anything not exercised is "unverified", not "done".
+
+### After a merge
+
+Whoever merges a pull request (the agent train's coordinator, or a person) reads the description's `Closes` lines and checks that each issue is now closed. If one is still open (the base was not the default branch, the keyword was `Refs`, or the keyword was missing although the pull request resolved it), close it as completed with a comment that cites the pull request:
+
+```bash
+gh issue close <n> --reason completed --comment "Fixed by #<pr>."
+```
+
+A `Refs` issue stays open unless the pull request in fact resolved it. Closing by hand is the fallback, not the plan: the description should have said `Closes`.
 
 ## Project board
 

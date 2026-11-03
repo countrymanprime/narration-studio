@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -18,7 +19,7 @@ import type { AssetView } from './AssetsStore';
 // layout below 1020px uses them, and the page keeps to its count of off-vocabulary width variants (layoutQueries.test.ts).
 const CARD_ROW =
   'grid-cols-[minmax(0,1fr)_auto] rounded-lg @max-[1020px]:mb-2.5 @max-[1020px]:grid @max-[1020px]:border @max-[1020px]:border-[var(--border)] @max-[1020px]:bg-[var(--surface)] @max-[1020px]:py-1.5';
-const CARD_CELL = '@max-[1020px]:block @max-[1020px]:h-auto @max-[1020px]:border-b-0 @max-[1020px]:py-1 @max-[1020px]:break-words';
+const CARD_CELL = '@max-[1020px]:block @max-[1020px]:h-auto @max-[1020px]:border-b-0! @max-[1020px]:py-1 @max-[1020px]:break-words';
 const CARD_WIDE = 'col-span-2';
 const CARD_LABEL =
   "@max-[1020px]:before:mr-1.5 @max-[1020px]:before:font-['Barlow_Condensed',sans-serif] @max-[1020px]:before:text-[length:var(--font-size-label)] @max-[1020px]:before:font-semibold @max-[1020px]:before:tracking-[var(--tracking-label)] @max-[1020px]:before:text-[var(--text-muted)] @max-[1020px]:before:uppercase @max-[1020px]:before:content-[attr(data-label)]";
@@ -46,15 +47,45 @@ export type AssetRowProps = {
   cancel: () => void;
   remove: () => void;
   dismiss: () => void;
+  /** Check the files (issue 2731): offered on an installed row, busy while the check runs. */
+  verify: () => void;
 };
 
+/**
+ * The installed pill's words: "checked" only while the last check stands, with the time when it was today (a check that just passed shows
+ * at once), and plain "Installed" after a check that was refused or not answered.
+ */
+function installedLabel(verifiedAt: string, unchecked: boolean, now = new Date()): string {
+  if (unchecked) return 'Installed';
+  const at = verifiedAt ? new Date(verifiedAt) : undefined;
+  if (!at || Number.isNaN(at.getTime()) || at.toDateString() !== now.toDateString()) return 'Installed · checked';
+  return `Installed · checked ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
+
 /** One asset of the Models & downloads list: what it is, where it stands, who reads it, and the one action its status allows. Props only. */
-export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss }: AssetRowProps) {
-  const { item, status } = view;
+export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss, verify }: AssetRowProps) {
+  const { item, status, checking } = view;
   useErrorToast(status === 'failed' ? view.failure : undefined);
   const name = item.displayName;
-  const { tone, label } = installPill(status);
-  const busy = status === 'downloading' || status === 'verifying';
+  // A check of an installed asset draws the download's checking look, in its own words, with nothing to cancel.
+  const pill = installPill(checking ? 'verifying' : status);
+  const { tone, label } = checking
+    ? { ...pill, label: 'Checking the files' }
+    : status === 'installed'
+      ? { ...pill, label: installedLabel(item.verifiedAt, view.unchecked) }
+      : pill;
+  // A check that finds the files damaged or gone takes the pressed button away: focus goes to the action that replaced it (Repair,
+  // Download), not to the page body.
+  const actions = useRef<HTMLSpanElement>(null);
+  const pressedCheck = useRef(false);
+  useEffect(() => {
+    if (!pressedCheck.current || checking) return;
+    pressedCheck.current = false;
+    const lost = !document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected;
+    if (status !== 'installed' && lost) actions.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [status, checking]);
+  const downloading = status === 'downloading' || status === 'verifying';
+  const busy = downloading || checking;
   const size = formatSize(item.diskSize || item.downloadSize);
   return (
     <TableRow data={{ 'data-asset': `${item.kind}/${item.id}`, 'data-status': status }} className={CARD_ROW}>
@@ -69,18 +100,20 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
       </th>
       <Cell label="Status" className={CARD_WIDE}>
         <StatusBadge tone={tone} label={status === 'downloading' ? `Downloading ${view.percent}%` : label} />
-        {status === 'installed' && inUse.length > 0 && <span className="block text-[0.75rem] text-[var(--text-muted)]">In use: {inUse.join(', ')}</span>}
+        {status === 'installed' && !checking && inUse.length > 0 && (
+          <span className="block text-[0.75rem] text-[var(--text-muted)]">In use: {inUse.join(', ')}</span>
+        )}
         {busy && (
           <span className="mt-1 flex items-center gap-2">
             <ProgressBar
               className="w-30"
-              label={`Downloading ${name}`}
-              value={status === 'verifying' ? 100 : view.percent}
+              label={checking ? `Checking the files of ${name}` : `Downloading ${name}`}
+              value={status === 'downloading' ? view.percent : 100}
               running
               size="thin"
-              valueText={status === 'verifying' ? 'Checking' : undefined}
+              valueText={status === 'downloading' ? undefined : 'Checking'}
             />
-            {status === 'verifying' && <span className="text-[0.75rem] text-[var(--text-muted)]">Checking…</span>}
+            {status !== 'downloading' && <span className="text-[0.75rem] text-[var(--text-muted)]">Checking…</span>}
           </span>
         )}
         {status === 'repair' && <span className="block text-[0.75rem] text-[var(--text-muted)]">A file failed its check.</span>}
@@ -102,10 +135,24 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
         </span>
       </Cell>
       <Cell className="col-start-2 row-start-1 whitespace-nowrap">
-        <span className="flex justify-end gap-1">
+        <span ref={actions} className="flex justify-end gap-1">
           {status === 'missing' && <IconButton action="download" label={`Download ${name} (${size})`} onClick={install} />}
-          {status === 'installed' && <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />}
-          {busy && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={cancel} />}
+          {/* Drawn while it checks too, spinning, so focus stays on it and a second press is ignored. */}
+          {status === 'installed' && (
+            <IconButton
+              action="checkFiles"
+              label={`Check the files of ${name}`}
+              pending={checking}
+              onClick={() => {
+                pressedCheck.current = true;
+                verify();
+              }}
+            />
+          )}
+          {status === 'installed' && !checking && (
+            <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />
+          )}
+          {downloading && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={cancel} />}
           {status === 'repair' && (
             <>
               <IconButton action="retry" label={`Repair ${name}`} onClick={install} />

@@ -291,6 +291,9 @@ is what the script shows on the words their audio replaces. **Add a file of thei
 file is not copied into the project folder, so keep it where it was. A file that was moved or changed since is marked in the
 list, and Replace stays off until you put it back or add it again.
 
+To take a name off the list, a name typed wrong for instance, choose it under **Other narrator** and press the remove button
+beside it. A narrator whose audio is in the project stays on the list: the button is off for them, and its tooltip says why.
+
 Under **Their stretch**, drag across their waveform to choose the part of their file that replaces your words, or type **From**
 and **To** in seconds. A file that is not a WAV shows a ruler instead of a waveform. The stretch can be 50 ms to 5 minutes long.
 

@@ -12,7 +12,7 @@ While the chapters are being read, the Booth draws its top bar, text, side panel
 ## The page
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
-where you are (`¶ 1 of 24 · 0% · ~13:48 of audio left`; `At ¶ 1 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
+where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px, and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
@@ -203,6 +203,15 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
   microphone in Levels, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
   will not let the app open (another program has it, or the privacy setting blocks it) is refused in the recorder's own words and
   nothing records.
+- **The recorder's own level.** While **Levels** is open, its **Input** meter shows the level the built-in recorder hears on the
+  microphone chosen under it, before a take and during one, and the line under it gives the peak (**Peak −14.2 dB**). No file is
+  written. Choosing another microphone moves it to that one; a microphone the recorder does not list is not metered. The recorder
+  lets go of the microphone when you close **Levels**, leave the Booth or press Record. While the app is in the background the meter
+  is paused, and the line under it says so. If the recorder refuses the microphone, or does not answer within 15 seconds, the line
+  says **The meter did not start.** with **Check again** beside it, and a message gives the recorder's reason.
+
+  ![Booth - the Levels menu with the built-in recorder: its Input meter is the recorder's own level](../../images/ui/booth-levels-menu-builtin.webp)
+
 - **A take.** Record becomes **Stop** and the **REC** pill shows, as with a DAW.
 
   ![Booth - a take recording with the built-in recorder: Stop in place of Record and the REC pill beside the Built-in chip](../../images/ui/booth-builtin-listening.webp)
@@ -296,6 +305,27 @@ A cold read keeps listening until you stop it: press **Cold read** again, press 
 
 ![Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar](../../images/ui/booth-cold-read.webp)
 
+### Recording each voice on its own track
+
+In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), a chapter linked to a REAPER folder records on
+one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
+voice a take records on, beside **Cold read**: its number-pad key and the track's name, with a red ring when REAPER reports that track
+armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
+named **Narrator**.
+
+Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
+narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
+previous voice. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
+and one undo point, and about a twentieth of a second at the switch is recorded on neither track, so press the key in a pause between
+lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
+behind it changes nothing and says so. Each chapter keeps the voice you chose until you close the app or open another project, and the
+control shows the voice the app will record on, also after you leave the Booth and come back. In a
+chapter that records on one track the voice keys say why they do nothing, and **=** and **-** still change the text size.
+
+![Booth - the voice control on the record bar, with the voice keys among the key hints](../../images/ui/booth-voices.webp)
+
+![Booth - the voice list: the chapter folder's voices with their keys and characters](../../images/ui/booth-voices-list.webp)
+
 ## Where the Booth opens in your DAW
 
 When your DAW is connected and following is on, the Booth and the DAW stay together at the start:
@@ -333,12 +363,13 @@ The chapter menu lists the same figure after every chapter's name, as the chapte
 
 A resume prompt that finds the chapter's track missing or linked twice has a **Link a track** or **check the link** button that opens the audio engine panel over the Booth.
 
-When the chapter's track already has a recording, the top bar offers **Resume at ¶ n** and says where it read that from: the
-DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place to where the recording
-ends; nothing starts until you press Record. With none of those, once you move elsewhere in the chapter it offers the place the
-chapter opened at, *where your recording ends* or *where you left off*, so you can go back to it.
+A chapter that is partly recorded opens at the word after the recording ends, so **Recorded through …** and the reading position
+agree and no resume line is drawn. Once you move elsewhere in the chapter, the top bar offers **Resume at ¶ n** and says where it
+read that from: the DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place back to
+where the recording ends; nothing starts until you press Record. With none of those, it offers the place the chapter opened at,
+*where your recording ends* or *where you left off*, so you can go back to it.
 
-![Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends](../../images/ui/booth-waiting.webp)
+![Booth - looked elsewhere in the chapter: Resume at ¶ 14 offers the way back to where the recording ends](../../images/ui/booth-waiting.webp)
 
 ## Voice samples
 

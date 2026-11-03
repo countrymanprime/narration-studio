@@ -229,6 +229,35 @@ func TestSignalProviderAbsentFindings(t *testing.T) {
 	}
 }
 
+// TestSignalProviderRetiredTakeReview: the take review no longer runs, so a chapter without its findings is not told about
+// it, while the findings a project already holds stay open pickups, under their old label, until the narrator decides them.
+func TestSignalProviderRetiredTakeReview(t *testing.T) {
+	p := newTestProject(t)
+	provider := NewSignalProvider(Config{Findings: p.findings, Runs: map[string]RunJudge{AnalyzerTranscriptCompare: currentCompare(false)}})
+	for _, entry := range pickupsOf(t, provider, p.view()).Evidence {
+		if entry.Kind == EvidenceSource && entry.Label == "Take review" {
+			t.Fatalf("a chapter with no take-review findings lists the retired source: %+v", entry)
+		}
+	}
+
+	p.save(t, AnalyzerTakeReview, testChapter, testFinding("tr", AnalyzerTakeReview, testChapter, findings.CategoryPickup))
+	signal := pickupsOf(t, provider, p.view())
+	if signal.State != stages.SignalNotMet || !slices.Equal(openFindingIDs(signal), []string{"tr"}) {
+		t.Fatalf("a saved take-review pickup: %q open=%v, want not_met [tr]", signal.State, openFindingIDs(signal))
+	}
+	labelled := false
+	for _, entry := range signal.Evidence {
+		labelled = labelled || (entry.Kind == EvidenceSource && entry.Label == "Take review")
+	}
+	if !labelled {
+		t.Fatalf("the saved findings' source is not labelled Take review: %+v", signal.Evidence)
+	}
+	p.decide(t, "tr", findings.StatusDismissed)
+	if signal = pickupsOf(t, provider, p.view()); signal.State != stages.SignalMet {
+		t.Fatalf("after dismissing it: %q (%s), want met", signal.State, signal.Reason)
+	}
+}
+
 func TestSignalProviderJudgeErrorFails(t *testing.T) {
 	p := newTestProject(t)
 	failing := func(context.Context, stages.ChapterContext, stages.EvidenceView) (RunJudgement, error) {

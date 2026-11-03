@@ -21,6 +21,7 @@ const placed = (overrides: Partial<Finding> = {}) =>
 
 const api: InspectorHostApi = {
   findingsGet: async (id) => inspectorFinding({ id }),
+  transcriptAddEquivalence: async () => 'Added equivalence: Dinah = Dina',
   findingsReview: async (request) => inspectorFinding({ id: request.id, review: { status: request.status, note: request.note } }),
   findingsGoTo: async () => ({ outcome: 'navigated', projectTime: 134.6 }),
   findingsLoop: async () => ({ outcome: 'looping', loopStart: 131.6, loopEnd: 139 }),
@@ -88,6 +89,16 @@ export const EvidenceChanged: Story = {
   render: (args) => <Rechecked {...args} />,
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByRole('alert')).toBeTruthy();
+  },
+};
+
+// #2736: a one-word misread (Dinah heard as Dina) has "Treat these two words as the same in later checks" in its icon row, after Add marker;
+// a note of several words (every other story) has none.
+export const OneWordMisread: Story = {
+  args: { finding: placed({ evidence: { kind: 'MISREAD' }, manuscript: { expected: 'Dinah', recorded: 'Dina', chapter_id: 'chapter-1' } }) },
+  play: async ({ canvasElement }) => {
+    const row = within(within(canvasElement).getByRole('group', { name: 'Actions' }));
+    await expect(row.getByRole('button', { name: 'Treat these two words as the same in later checks' }).getAttribute('aria-disabled')).toBeNull();
   },
 };
 

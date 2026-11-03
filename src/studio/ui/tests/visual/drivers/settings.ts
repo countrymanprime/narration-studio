@@ -255,6 +255,21 @@ export const settingsDrivers: Record<string, Driver> = {
     await openModels(page, '?mockAssets=damaged');
     await page.getByRole('button', { name: 'Repair Small' }).waitFor();
   },
+  'models-checking': async (page) => {
+    await openModels(page, '?mockAssetsVerify=hangs');
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByRole('button', { name: 'Check the files of Small' }).click();
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByText('Checking the files').waitFor();
+    // At the narrower widths the table turns into cards and this row falls below the fold; bring it into the frame.
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  },
+  'models-long-name': async (page) => {
+    await openModels(page, '?mockAssetNames=long');
+    await page
+      .locator(`[data-asset="${WHISPER_SMALL}"]`)
+      .getByRole('button', { name: /^Check the files of Small, multilingual/ })
+      .waitFor();
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  },
   'models-remove-confirm': async (page) => {
     await openModels(page);
     await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByRole('button', { name: 'Remove Small' }).click();
@@ -402,6 +417,20 @@ export const settingsDrivers: Record<string, Driver> = {
   app: async (page) => {
     await openSettings(page, 'App & updates');
     await page.getByText('Not checked yet.').waitFor();
+  },
+  'app-diagnostics': async (page) => {
+    await openSettings(page, 'App & updates');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'app.debug');
+    await row.getByRole('button', { name: 'Reveal the log folder in the file manager' }).waitFor();
+  },
+  'app-log-folder-refused': async (page) => {
+    await openSettings(page, 'App & updates', '?mockLogFolder=refused');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'app.debug');
+    await row.getByRole('button', { name: 'Reveal the log folder in the file manager' }).click();
+    await page.getByText('The log folder could not be opened.').waitFor();
+    await row.getByRole('button', { name: 'Reveal the log folder in the file manager' }).and(page.locator(':not([aria-busy])')).waitFor();
   },
   'about-update-available': async (page) => {
     await openUpdates(page, 'available');

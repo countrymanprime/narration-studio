@@ -175,6 +175,13 @@
     "caption": "Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing"
   },
   {
+    "page": "proof",
+    "state": "treat-as-same",
+    "viewport": "desktop",
+    "docName": "proof-treat-as-same",
+    "caption": "Proof - the equals button, Treat these two words as the same in later checks, on a one-word misread"
+  },
+  {
     "page": "production",
     "state": "stage-suggestion-options",
     "viewport": "desktop",
@@ -281,6 +288,20 @@
   },
   {
     "page": "booth",
+    "state": "voices",
+    "viewport": "desktop",
+    "docName": "booth-voices",
+    "caption": "The Booth - the voice control on the record bar in a chapter linked to a folder of voices"
+  },
+  {
+    "page": "booth",
+    "state": "voices-list",
+    "viewport": "desktop",
+    "docName": "booth-voices-list",
+    "caption": "The Booth - the voice list: the chapter folder's voices with their keys and characters"
+  },
+  {
+    "page": "booth",
     "state": "setup",
     "viewport": "desktop",
     "docName": "booth-setup",
@@ -326,7 +347,7 @@
     "state": "resume",
     "viewport": "desktop",
     "docName": "booth-waiting",
-    "caption": "Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends"
+    "caption": "Booth - looked elsewhere in the chapter: Resume at ¶ 14 offers the way back to where the recording ends"
   },
   {
     "page": "booth",
@@ -435,6 +456,34 @@
   },
   {
     "page": "engine",
+    "state": "voice-folders-sync",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-layout",
+    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Tracks card with a chapter folder and its voice tracks"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-link-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-folder-picker",
+    "caption": "The audio engine panel - a chapter's folder picker in a Voice folders project, the voice tracks inside a chapter folder off"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices",
+    "caption": "The audio engine panel - the Voices card for a Voice folders project: a chapter's voice tracks with their number-pad keys and characters"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-picker",
+    "caption": "The audio engine panel - the character list of a voice track on the Voices card"
+  },
+  {
+    "page": "engine",
     "state": "folder-tracks-picker",
     "viewport": "desktop",
     "docName": "engine-panel-folder-picker",
@@ -533,6 +582,13 @@
   },
   {
     "page": "settings",
+    "state": "models-checking",
+    "viewport": "desktop",
+    "docName": "settings-models-checking",
+    "caption": "Settings - Models & downloads checking the files of the Whisper model: Checking the files in its row and the check icon spinning"
+  },
+  {
+    "page": "settings",
     "state": "delivery-profile-editor",
     "viewport": "desktop",
     "docName": "settings-delivery-profile",
@@ -600,6 +656,13 @@
     "viewport": "desktop",
     "docName": "settings-keyboard-recording",
     "caption": "Settings - Shortcuts recording a new key for Record or stop"
+  },
+  {
+    "page": "settings",
+    "state": "app-diagnostics",
+    "viewport": "desktop",
+    "docName": "settings-diagnostics",
+    "caption": "Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it"
   },
   {
     "page": "settings",
@@ -1230,6 +1293,13 @@
     "viewport": "desktop",
     "docName": "booth-levels-menu",
     "caption": "Booth - the Levels menu: the input level, the microphone the text listens to, and REAPER's own meters and pre-roll"
+  },
+  {
+    "page": "booth",
+    "state": "levels-menu-builtin",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu-builtin",
+    "caption": "Booth - the Levels menu with the built-in recorder: its Input meter is the recorder's own level"
   },
   {
     "page": "booth",

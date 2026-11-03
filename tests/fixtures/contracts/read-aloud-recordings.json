@@ -1,9 +1,4 @@
 {
-  "no_link.arm": {
-    "outcome": "refused",
-    "reason": "unlinked",
-    "message": "\"Chapter II: The Pool of Tears\" has no linked track. Link it to its REAPER track in the audio engine panel."
-  },
   "no_link.start": {
     "outcome": "refused",
     "reason": "unlinked",
@@ -14,12 +9,6 @@
     "restored": 0,
     "kept": 0,
     "undoPoints": 0
-  },
-  "not_armed.arm": {
-    "outcome": "armed",
-    "trackGuid": "{11111111-1111-4111-8111-111111111111}",
-    "disarmed": 0,
-    "changed": false
   },
   "not_armed.start": {
     "outcome": "refused",
@@ -32,12 +21,6 @@
     "kept": 0,
     "undoPoints": 0
   },
-  "other_armed.arm": {
-    "outcome": "armed",
-    "trackGuid": "{11111111-1111-4111-8111-111111111111}",
-    "disarmed": 1,
-    "changed": true
-  },
   "other_armed.start": {
     "outcome": "started",
     "trackGuid": "{11111111-1111-4111-8111-111111111111}",
@@ -48,12 +31,6 @@
     "restored": 0,
     "kept": 0,
     "undoPoints": 0
-  },
-  "ready.arm": {
-    "outcome": "armed",
-    "trackGuid": "{11111111-1111-4111-8111-111111111111}",
-    "disarmed": 0,
-    "changed": false
   },
   "ready.start": {
     "outcome": "started",
@@ -66,11 +43,6 @@
     "kept": 0,
     "undoPoints": 1
   },
-  "recording_elsewhere.arm": {
-    "outcome": "refused",
-    "reason": "already_recording",
-    "message": "REAPER is already recording."
-  },
   "recording_elsewhere.start": {
     "outcome": "refused",
     "reason": "already_recording",
@@ -81,12 +53,6 @@
     "restored": 0,
     "kept": 0,
     "undoPoints": 0
-  },
-  "several_armed.arm": {
-    "outcome": "armed",
-    "trackGuid": "{11111111-1111-4111-8111-111111111111}",
-    "disarmed": 3,
-    "changed": true
   },
   "several_armed.start": {
     "outcome": "started",
@@ -99,11 +65,6 @@
     "kept": 0,
     "undoPoints": 0
   },
-  "track_missing.arm": {
-    "outcome": "refused",
-    "reason": "track_missing",
-    "message": "The track linked to this chapter is no longer in the REAPER project. Link it again in the audio engine panel."
-  },
   "track_missing.start": {
     "outcome": "refused",
     "reason": "track_missing",
@@ -114,11 +75,6 @@
     "restored": 0,
     "kept": 0,
     "undoPoints": 0
-  },
-  "unsupported.arm": {
-    "outcome": "refused",
-    "reason": "unsupported",
-    "message": "REAPER cannot record from this app. Record in REAPER itself."
   },
   "unsupported.start": {
     "outcome": "refused",

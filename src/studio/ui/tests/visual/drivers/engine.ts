@@ -88,6 +88,57 @@ export const engineDrivers: Record<string, Driver> = {
     await card.getByText(/Last checked \d+ s ago/).waitFor();
     await card.getByRole('button', { name: 'Check again' }).waitFor();
   },
+  'voice-folders': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: /^Voices of / });
+    await table.getByRole('row', { name: /Extras/ }).waitFor();
+    await table.scrollIntoViewIfNeeded();
+  },
+  'voice-folders-picker': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: /^Voices of / });
+    await table.getByRole('row', { name: /Extras/ }).waitFor();
+    await table.scrollIntoViewIfNeeded();
+    await table.getByRole('button', { name: 'Choose who the Extras track records' }).click();
+    await page
+      .getByRole('dialog', { name: 'Choose who the Extras track records' })
+      .getByRole('checkbox', { name: /Cheshire Cat/ })
+      .waitFor();
+  },
+  'voice-folders-sync': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const layout = page.getByRole('group', { name: 'Chapter layout' });
+    await layout.waitFor();
+    await layout.evaluate((node) => node.closest('section, [data-panel], div')?.scrollIntoView({ block: 'start' }));
+    await page
+      .getByRole('treegrid', { name: 'Tracks' })
+      .getByRole('row', { name: /Extras/ })
+      .waitFor();
+  },
+  'voice-folders-links': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.getByText('Chapter 1 · 3 voices').waitFor();
+    await table.evaluate((node) => node.scrollIntoView({ block: 'start' }));
+  },
+  'voice-folders-link-picker': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=confirmed');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    const trigger = table.getByRole('button', { name: /^Folder for Chapter 2/ });
+    await trigger.scrollIntoViewIfNeeded();
+    await trigger.click();
+    await page.getByRole('treeitem', { name: /White Rabbit/ }).waitFor();
+  },
   'folder-tracks': async (page) => {
     await page.goto('/?mockTrackFolders=1');
     await settlePage(page);
@@ -115,13 +166,14 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     const table = page.getByRole('table', { name: 'Chapter links' });
     await table.scrollIntoViewIfNeeded();
+    // The fifth body row is Chapter 4, the first chapter with no link at boot (the ticked chapters 1-3 and 7-10 boot linked).
     await table
       .locator('tbody tr')
-      .nth(2)
+      .nth(4)
       .getByRole('button', { name: /^Track for / })
       .click();
     await page.getByRole('textbox', { name: 'Search tracks' }).last().fill('chap');
-    await page.getByRole('treeitem', { name: /linked to Chapter 1/ }).waitFor();
+    await page.getByRole('treeitem', { name: /linked to Chapter 1\b/ }).waitFor();
   },
   'chapter-link-confirmed': async (page) => {
     // Boots with no link, so the click through Confirm below is what makes it (an unset seed boots Chapter 1 already linked).

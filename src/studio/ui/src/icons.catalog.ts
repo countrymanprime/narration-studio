@@ -100,6 +100,7 @@ import {
   faXmark,
   faListCheck,
   faEllipsis,
+  faEquals,
   faStar,
   faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons';
@@ -174,6 +175,7 @@ export const TOOLTIP_VERBS = [
   'Show',
   'Stop',
   'Toggle',
+  'Treat',
   'Trim',
   'Undo',
   'Unpin',
@@ -282,6 +284,8 @@ export const CATALOG = {
   showInReaper: action(faArrowUpRightFromSquare, 'go to REAPER', 'Show in REAPER'),
   addMarker: action(faFlag, 'REAPER marker', 'Add a marker in REAPER'),
   trimGap: action(faArrowsLeftRightToLine, 'trim a gap', 'Trim the gap'),
+  // Proof's note inspector on a one-word misread (#2736): the script word and the heard word count as a match in later checks.
+  treatAsSame: action(faEquals, 'treat two words as the same', 'Treat these two words as the same in later checks'),
 
   // Script, Story Bible and the extraction tools (SN-B60): the actions those pages draw in the Studio Next mock. A catalogue key
   // is the action, so a row that wears an icon another action already wears shares that action's meaning (an alias).

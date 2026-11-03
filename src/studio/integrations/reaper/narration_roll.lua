@@ -187,7 +187,8 @@ local function roll(session_dir, ours, run_id, guid_text, at_text)
   -- Like punch_to: scroll the view, do not seek playback, open no undo block.
   reaper.SetEditCurPos(at, true, false)
   reaper.CSurf_OnRecord()
-  record.position = at
+  -- The pass starts here on the voice recording now; a switch earlier in the take no longer says where it begins.
+  record.position, record.switched_at = at, nil
   if recording() then
     event(session_dir, 'ROLLED', run_id, guid, seconds(at), 0)
     return

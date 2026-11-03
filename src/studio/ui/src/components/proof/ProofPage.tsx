@@ -111,6 +111,7 @@ export function ProofPage({
   const findingsApi = usePort('findings');
   const pickupsApi = usePort('pickups');
   const manuscriptApi = usePort('manuscript');
+  const transcriptApi = usePort('transcript');
   const overlay = useOverlay();
   const journal = useJournal();
   const keymap = useUserKeymap();
@@ -305,7 +306,10 @@ export function ProofPage({
     },
     [findingsApi, journal, replace, select, choose],
   );
-  const inspectorApi = useMemo(() => ({ ...findingsApi, findingsReview: journalledReview }), [findingsApi, journalledReview]);
+  const inspectorApi = useMemo(
+    () => ({ ...findingsApi, findingsReview: journalledReview, transcriptAddEquivalence: transcriptApi.transcriptAddEquivalence }),
+    [findingsApi, journalledReview, transcriptApi],
+  );
   // A saved decision moves to the next note and offers Undo: the journal entry's own undo.
   const changed = useCallback(
     (next: Finding, decided: boolean) => {

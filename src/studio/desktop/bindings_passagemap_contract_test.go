@@ -13,9 +13,9 @@ import (
 // recorder's take name, and a chapter's list after a re-import removed a paragraph, with the marks on it stale.
 func TestPassageMapContractGoldens(t *testing.T) {
 	host := recorderHost(t, &recordingtest.Fake{})
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
-	recorderOf(t)(host.RecorderStart("Mic"))
-	recorderOf(t)(host.RecorderStop())
+	chooseEngine(t, host, engineBuiltin)
+	recordTake(t, host, "Mic")
+	stopTake(t, host)
 	waitRecorderIdle(t, host)
 
 	payload, err := host.PassageMapRecordRun("c-0001", passageMapRun())

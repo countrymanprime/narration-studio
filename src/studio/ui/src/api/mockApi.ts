@@ -17,14 +17,11 @@ import { createProofingRenderMock } from './proofingRenderMock';
 import { createAudacityLinkMock } from './audacityLinkMock';
 import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
-import type { RecordingApi } from './contracts/recording';
 import { createProvidersMock } from './providersMock';
 import { createMasteringMock } from './masteringMock';
 import { createBuiltinBoothRecordMock } from './builtinBoothMock';
-import { createRecordingMock } from './recordingMock';
+import { createRecordingMock, type RecorderMockControl } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
-import { createTakeReviewScanMock } from './takeReviewMock';
-import { createTakeComparisonMock } from './takeComparisonMock';
 import { createWorkspaceTakesMock } from './workspaceTakesMock';
 import { createTakeEvidenceMock } from './takeEvidenceMock';
 import { createMeasureMock } from './measureMock';
@@ -35,6 +32,8 @@ import { createDiagnosticsMock } from './diagnosticsMock';
 import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createBookmarksMock } from './bookmarksMock';
+import { createVoiceTracksMock } from './voiceTracksMock';
+import { createBoothVoiceMock } from './boothVoiceMock';
 import { createVoiceSamplesMock } from './voiceSamplesMock';
 import { createPassageMapMock } from './passageMapMock';
 import { takesPerParagraph } from './passageMapSpans';
@@ -54,12 +53,12 @@ import { createManuscriptMock } from './mockHost/manuscript';
 import { createCreditsMock } from './mockHost/credits';
 import { createAssetsMock } from './mockHost/assets';
 import { createProofingMock } from './mockHost/proofing';
+import { createEquivalenceMock } from './mockHost/equivalences';
 import { createReaperActionsMock } from './mockHost/reaperActions';
 import { createChapterTracksMock } from './mockHost/chapterTracks';
 import { createMergeEvents } from './mockHost/mergeEvents';
 import { createStoryBibleMock } from './mockHost/storyBible';
 import { createCharacterMock } from './mockHost/character';
-import { createSeriesMock } from './mockHost/series';
 import { createSystemMock, invalidPayloadOverrides } from './mockHost/system';
 import { createPronunciationLookupMock } from './mockHost/pronunciationLookup';
 import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommonsAudio';
@@ -196,7 +195,6 @@ export function createMockApi(
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
   const { clearSuggestions, ...extraction } = createExtractionMock(endJob);
   const character = createCharacterMock(s);
-  const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
   const mockStartedAt = Date.now();
   const teleprompter = createTeleprompterMock({
     ready: manuscriptReady,
@@ -259,19 +257,21 @@ export function createMockApi(
   const providers = createProvidersMock(initial.providers);
   const mastering = createMasteringMock(initial.mastering);
   // The engine chip's `?mockEngine=builtin` flag seeds the recorder's engine, so the chip and the Booth agree.
-  const recorder = createRecordingMock({ engine: mockEngineFromLocation(), ...initial.recording });
-  // Choosing the built-in recorder or a DAW moves the DAW port too, as the host's Recording.engine does.
-  const recording: RecordingApi = {
-    ...recorder,
-    recorderChooseEngine: async (engine) => {
-      const state = await recorder.recorderChooseEngine(engine);
+  // The recorder's own operations (choose, start and stop a take) are not bindings: DawChoose and the Booth's Record drive them below.
+  const { chooseEngine, startTake, stopTake, ...recording } = createRecordingMock({ engine: mockEngineFromLocation(), ...initial.recording });
+  const recorderControl: RecorderMockControl = {
+    // Choosing the built-in recorder or a DAW moves the DAW port too, as the host's Recording.engine does.
+    chooseEngine: async (engine) => {
+      const state = await chooseEngine(engine);
       dawControl.engineChosen(engine);
       return state;
     },
+    startTake,
+    stopTake,
   };
   const dawChoice = createDawChoiceMock(initial.dawChoice ?? {}, {
     capabilities: () => daw.dawCapabilities(),
-    recording,
+    recording: { recorderState: recording.recorderState, chooseEngine: recorderControl.chooseEngine },
     link: { linked: () => project.dawFileLinked(), set: (linked) => project.setDawFileLinked(linked) },
     bridge: () => dawControl.facts().bridge,
   });
@@ -321,19 +321,14 @@ export function createMockApi(
     seed: initial.production,
   });
   // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
-  // `?mockHold=overview,entities,series`: those reads never answer, so Production, the Story Bible and its Series tab stay on their loading skeleton.
+  // `?mockHold=overview,entities`: those reads never answer, so Production and the Story Bible stay on their loading skeleton.
   const held = new Set(initial.held ?? []);
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
-  if (held.has('series')) series.bindings.seriesVoiceBible = never;
-  if (initial.seriesVoiceBible === 'fails')
-    series.bindings.seriesVoiceBible = async () => {
-      throw new Error('The series could not be read from this project.');
-    };
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
-  const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
+  const { saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
     rerunAfterFirstList: initial.findingsRerun,
     reaper: initial.reaper,
     // Only the default seed demonstrates the overlay; a caller supplying its own findings (most tests) opts out, as
@@ -341,21 +336,13 @@ export function createMockApi(
     ...(initial.findings ? {} : { lazySeed: workspaceOverlayFinding }),
   });
   proofNotes.read = acceptedFindings;
-  const takeReviewScan = createTakeReviewScanMock(saveAnalyzerFindings, endJob, initial.takeReviewScanHold);
-  const { beginPassageComparison, ...takeComparison } = createTakeComparisonMock(
-    { get: findings.findingsGet, save: saveFinding },
-    endJob,
-    initial.takeComparisonHold,
-  );
   const workspaceTakes = createWorkspaceTakesMock({
     alignment: workspace.workspaceAlignment,
     paragraphs: () => s.paragraphs,
-    chapterTitle: (chapterId) => s.chapters.find((chapter) => chapter.id === chapterId)?.title ?? 'Chapter',
-    comparison: async (findingId) => (await findings.findingsList({ analyzer: 'take-comparison' })).findings.find((finding) => finding.id === findingId),
-    beginPassageComparison,
     reaper: initial.reaper,
   });
   const measurePicked = new Set<string>();
+  const filePreview: FilePreviewState = { playing: false };
   const { recordMeasurement: recordRenderMeasurement, ...proofingRender } = createProofingRenderMock({
     ready: manuscriptReady,
     chapters: () => s.chapters,
@@ -388,7 +375,17 @@ export function createMockApi(
   });
   // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
   const undoHistory = new MockUndoHistory();
+  // Built over the finished api below (it reads the links, tracks and voice setup through it); base forwards to it.
+  const late: { boothVoices?: ReturnType<typeof createBoothVoiceMock> } = {};
   const base: NarrationApi = {
+    boothVoiceSet: (chapterId, trackGuid) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothVoiceSet(chapterId, trackGuid);
+    },
+    boothVoiceGet: (chapterId) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothVoiceGet(chapterId);
+    },
     ...system.bindings,
     ...manuscript.bindings,
     manuscriptChapters: chaptersWithCredits,
@@ -403,15 +400,13 @@ export function createMockApi(
     ...settings.bindings,
     ...storyBible.bindings,
     ...character.bindings,
-    ...series.bindings,
     ...assets.bindings,
     ...proofing.bindings,
+    ...createEquivalenceMock(findings.findingsGet),
     ...reaperActions.bindings,
     ...project.bindings,
     ...credits.bindings,
     ...chapterTracks.bindings,
-    ...takeReviewScan,
-    ...takeComparison,
     ...measurement,
     ...renderEncodeMaster,
     ...resavingAfterProfileChange(
@@ -433,6 +428,9 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
+    ...createVoiceTracksMock(
+      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+    ),
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,
@@ -496,10 +494,6 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    takeReviewCreateTake: async (request) => ({
-      targetItemGuid: request.targetItemGuid,
-      newTakeGuid: '{99999999-0000-4000-8000-000000000099}',
-    }),
     ...update.bindings,
     ...teleprompter,
     ...coverage,
@@ -535,9 +529,9 @@ export function createMockApi(
     ...createReduceRangeGainMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createRepairClickMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createUndoLastMock(daw, undoHistory),
-    ...createFilesMock(daw, measurePicked),
-    workspacePreviewTake: previewTakeMock(daw, workspaceTakes.workspaceTakes),
-    ...createMasterFilesMock(daw, lastRunFiles),
+    ...createFilesMock(daw, filePreview),
+    workspacePreviewTake: previewTakeMock(daw, workspaceTakes.workspaceTakes, filePreview),
+    ...createMasterFilesMock(daw, lastRunFiles, filePreview),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
     ...mastering,
@@ -547,7 +541,7 @@ export function createMockApi(
       delegate: teleprompter,
       capabilities: () => daw.dawCapabilities(),
       control: dawControl,
-      recorder: recording,
+      recorder: { ...recording, ...recorderControl },
       chosenMicrophone: async () => {
         const fields = (await settings.bindings.settingsForScope('global')).Teleprompter ?? [];
         const device = fields.find((field) => field.key === 'input_device');
@@ -570,7 +564,10 @@ export function createMockApi(
         : boot;
     },
   };
-  const recorded: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
+  const undone: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
+  // The Booth's voice choice over the mock's own voice setup, links and tracks; a record start in a voice folder answers its voice.
+  late.boothVoices = createBoothVoiceMock(undone);
+  const recorded: NarrationApi = { ...undone, ...late.boothVoices };
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.
@@ -580,7 +577,7 @@ export function createMockApi(
     stopInDaw: () => {
       const builtinTake = dawControl.state().daw === 'Built-in';
       dawControl.stopInDaw();
-      if (builtinTake) void recording.recorderStop();
+      if (builtinTake) void recorderControl.stopTake();
     },
   };
   if (typeof window !== 'undefined') window.__NARRATION_MOCK_DAW__ = control;
@@ -666,45 +663,26 @@ function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string)
 /** The mock's longest file preview, bridge.MaxPreviewSeconds. */
 const MAX_PREVIEW_SECONDS = 60;
 
-/** DawPreviewFileRange, DawStopFilePreview and DawRevealFile as bindings_daw_files.go answers them: the capability's sentence first,
- * then the stretch, then a path the narrator picked to measure in this session; the mock's files are always there and always audio. */
-function createFilesMock(daw: DawCapabilitiesApi, picked: ReadonlySet<string>): DawFilesApi {
-  let playing = false;
-  const support = async (key: 'file_preview' | 'file_reveal') => {
-    const setup = await daw.dawCapabilities();
-    return { setup, support: setup.capabilities[key] };
-  };
+/** Whether a file preview the mock started (Play the quietest 5 s, a take's audition) is still playing, for DawStopFilePreview's answer. */
+type FilePreviewState = { playing: boolean };
+
+/** DawStopFilePreview as bindings_daw_files.go answers it: the capability's sentence first, then whether a preview was playing. */
+function createFilesMock(daw: DawCapabilitiesApi, preview: FilePreviewState): DawFilesApi {
   const ok = (message: string): DawResult => ({ ok: true, changed: false, message, undoSteps: 0 });
   return {
-    dawPreviewFileRange: async (path, start, length) => {
-      const { support: preview } = await support('file_preview');
-      if (!preview?.available) return refusedResult(preview?.message ?? '');
-      if (!Number.isFinite(start) || !Number.isFinite(length) || start < 0 || length <= 0 || length > MAX_PREVIEW_SECONDS) {
-        return refusedResult(DAW_ANSWERS.fileBadStretch);
-      }
-      if (!picked.has(path)) return refusedResult(DAW_ANSWERS.fileNotPicked);
-      playing = true;
-      return ok(filePreviewAnswer(path, start, length));
-    },
     dawStopFilePreview: async () => {
-      const { support: preview } = await support('file_preview');
-      if (!preview?.available) return refusedResult(preview?.message ?? '');
-      const was = playing;
-      playing = false;
+      const support = (await daw.dawCapabilities()).capabilities.file_preview;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      const was = preview.playing;
+      preview.playing = false;
       return ok(was ? DAW_ANSWERS.fileStopped : DAW_ANSWERS.fileNothingPlaying);
-    },
-    dawRevealFile: async (path) => {
-      const { setup, support: reveal } = await support('file_reveal');
-      if (!reveal?.available) return refusedResult(reveal?.message ?? '');
-      if (!picked.has(path)) return refusedResult(DAW_ANSWERS.fileNotPicked);
-      return ok(fileRevealAnswer(path, setup.daw));
     },
   };
 }
 
 /** WorkspacePreviewTake as bindings_workspace_take_preview.go answers it: a take the passage no longer offers is refused stale, an
  * unusable or empty one with its sentence, then the file_preview capability's sentence; else the take's own first minute plays. */
-function previewTakeMock(daw: DawCapabilitiesApi, takes: WorkspaceApi['workspaceTakes']): WorkspaceApi['workspacePreviewTake'] {
+function previewTakeMock(daw: DawCapabilitiesApi, takes: WorkspaceApi['workspaceTakes'], playing: FilePreviewState): WorkspaceApi['workspacePreviewTake'] {
   return async (chapterId, firstToken, lastToken, candidateId) => {
     const take = (await takes(chapterId, firstToken, lastToken)).candidates.find((candidate) => candidate.id === candidateId);
     if (!take) return { ...refusedResult(DAW_ANSWERS.takePreviewNotOffered), code: 'stale' };
@@ -713,13 +691,14 @@ function previewTakeMock(daw: DawCapabilitiesApi, takes: WorkspaceApi['workspace
     const preview = (await daw.dawCapabilities()).capabilities.file_preview;
     if (!preview?.available) return refusedResult(preview?.message ?? '');
     const message = filePreviewAnswer(take.sourceFile, take.sourceStart, Math.min(take.sourceLength, MAX_PREVIEW_SECONDS));
+    playing.playing = true;
     return { ok: true, changed: false, message, undoSteps: 0 };
   };
 }
 
 /** MasterPlayQuietest and MasterOpenInDaw as bindings_master_files.go answers them: the capability's sentence first, then a file that
  * is not in the mock's last measurement (code stale), then a file with no quietest window; the mock's files are always there. */
-function createMasterFilesMock(daw: DawCapabilitiesApi, lastRun: () => readonly MeasureFileResult[]): MasterFilesApi {
+function createMasterFilesMock(daw: DawCapabilitiesApi, lastRun: () => readonly MeasureFileResult[], playing: FilePreviewState): MasterFilesApi {
   const ok = (message: string): DawResult => ({ ok: true, changed: false, message, undoSteps: 0 });
   const stale = (): DawResult => ({ ...refusedResult(DAW_ANSWERS.masterNotInRun), code: 'stale' });
   return {
@@ -729,7 +708,9 @@ function createMasterFilesMock(daw: DawCapabilitiesApi, lastRun: () => readonly 
       const file = lastRun().find((candidate) => candidate.path === fileId);
       if (!file) return stale();
       const stretch = quietestOf(file);
-      return 'refused' in stretch ? refusedResult(stretch.refused) : ok(stretch.message);
+      if ('refused' in stretch) return refusedResult(stretch.refused);
+      playing.playing = true;
+      return ok(stretch.message);
     },
     masterOpenInDaw: async (fileId) => {
       const setup = await daw.dawCapabilities();
