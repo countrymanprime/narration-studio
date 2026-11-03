@@ -13,7 +13,15 @@ import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
 import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
-import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
+import {
+  WIRE_CHAPTERS,
+  WIRE_FINDINGS,
+  WIRE_ONE_WORD_MISREAD,
+  WIRE_TICKED_CHAPTER_LINKS,
+  WIRE_TRACKS_PROJECT,
+  editingCandidateFor,
+  takeReviewPickupFor,
+} from './api/mockFixtures';
 import { COVERAGE_REFUSAL_REASONS } from './api/schemas/coverage';
 import { EDITING_REFUSAL_REASONS } from './api/schemas/editing';
 import type { StageUnknownCause } from './api/contracts/stages';
@@ -267,14 +275,15 @@ const mockDictionary = (['missing', 'damaged'] as const).find((seed) => seed ===
 // Word file whose headings the importer had to repair (so the repairs note can), or a plain-text file with an epigraph read as a subtitle (so a subtitle
 // that returns to the text when it is turned off can).
 const mockImportPreview = (['markdown', 'repaired', 'text'] as const).find((kind) => kind === mockParams.get('mockImportPreview'));
-// `?mockChapterLink=none|missing|ambiguous|confirmed` seeds the first chapter's mapping directly, so a track-link state
+// `?mockChapterLink=none|missing|ambiguous|confirmed|recorded` seeds the first chapter's mapping (all the ticked chapters' for `recorded`) directly, so a track-link state
 // that would otherwise need a real REAPER round trip (or several link/relink clicks) can be seen on load: `none` links no chapter to a track (the
 // state of a chapter whose stage says recorded but whose track was never linked: Editing says there is no audio to edit, Proof no recording to
 // check); `missing` confirms a track GUID that is not in the mock REAPER project (the audio engine panel's "Track missing" state);
 // `ambiguous` confirms it to two tracks at once; `confirmed` links it to its own suggested "Chapter 1" track outright, without a Change/Confirm
-// click. Unset is `confirmed` (see `chapterLink` below): the mock project has a track for Chapter 1 and its stages call that chapter recorded, so
-// the assembled mock agrees with itself (Production, Editing and Proof all say Chapter 1 is recorded) and Editing opens on a take.
-const mockChapterLinkSeed = (['none', 'missing', 'ambiguous', 'confirmed'] as const).find((seed) => seed === mockParams.get('mockChapterLink'));
+// click. `recorded` links every chapter whose Record stage is ticked (Chapters 1-3 and 7-10) to the track of its name. Unset is `recorded` (see
+// `chapterLink` below): the mock project has a track for each of those chapters, so the assembled mock agrees with itself (Production's Rec.
+// column measures every ticked chapter, and Editing and Proof say Chapter 1 is recorded) and Editing opens on a take.
+const mockChapterLinkSeed = (['none', 'missing', 'ambiguous', 'confirmed', 'recorded'] as const).find((seed) => seed === mockParams.get('mockChapterLink'));
 // `?mockLineIdentity=success|conflict|error` boots the audio engine panel's "Link chapters" dialog with LineIdentityState already at that
 // result, so its stale/conflict/drift and error states can be seen without a real REAPER round trip.
 const mockLineIdentity = (['success', 'conflict', 'error'] as const).find((seed) => seed === mockParams.get('mockLineIdentity'));
@@ -440,9 +449,9 @@ const mockRecorder = Object.hasOwn(MOCK_RECORDER_SEEDS, mockRecorderParam) ? MOC
 // `?mockChapters=12|40` and `?mockHeadings=titleAndSubtitle|titleOnly|legacyNewline` boot the scenario book (SN-S61,
 // fixtures/scenario.ts) in place of the Alice chapters; an unknown value is ignored.
 const mockScenario = scenarioFromParams(mockParams);
-// The chapter link the mock boots with: the seed, else Chapter 1 linked to its track. The consent seed shows the flow that makes the
+// The chapter link the mock boots with: the seed, else every ticked chapter linked to its track. The consent seed shows the flow that makes the
 // first link, so it starts from none.
-const chapterLink = mockChapterLinkSeed ?? (mockChapterSync ? 'none' : 'confirmed');
+const chapterLink = mockChapterLinkSeed ?? (mockChapterSync ? 'none' : 'recorded');
 /** The DAW seed every `mockDaw*` param adds to, merged: a later param adds to what an earlier one set (their depths together) instead of
  * replacing it. */
 function mergeDawSeeds(...parts: Array<DawMockSeed | undefined>): DawMockSeed | undefined {
@@ -580,18 +589,8 @@ const mockInitial = {
         ],
       }
     : {}),
-  ...(chapterLink === 'confirmed'
-    ? {
-        chapterTrackMappings: [
-          {
-            trackGuid: WIRE_TRACKS_PROJECT.tracks[0].guid,
-            chapterId: WIRE_CHAPTERS[0].id,
-            chapterTitle: WIRE_CHAPTERS[0].title,
-            confirmedAt: '2026-09-01T12:00:00Z',
-          },
-        ],
-      }
-    : {}),
+  ...(chapterLink === 'confirmed' ? { chapterTrackMappings: WIRE_TICKED_CHAPTER_LINKS.slice(0, 1) } : {}),
+  ...(chapterLink === 'recorded' ? { chapterTrackMappings: WIRE_TICKED_CHAPTER_LINKS } : {}),
   ...(mockLineIdentity ? { lineIdentity: mockLineIdentity } : {}),
   ...(mockPickups ? { pickups: mockPickups } : {}),
   ...(mockRenderConfig ? { renderConfig: mockRenderConfig } : {}),

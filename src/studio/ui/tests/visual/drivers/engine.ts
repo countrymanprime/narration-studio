@@ -130,7 +130,7 @@ export const engineDrivers: Record<string, Driver> = {
     await table.evaluate((node) => node.scrollIntoView({ block: 'start' }));
   },
   'voice-folders-link-picker': async (page) => {
-    await page.goto('/?mockVoiceFolders=1');
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=confirmed');
     await settlePage(page);
     await openEnginePanel(page);
     const table = page.getByRole('table', { name: 'Chapter links' });
@@ -166,13 +166,14 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     const table = page.getByRole('table', { name: 'Chapter links' });
     await table.scrollIntoViewIfNeeded();
+    // The fifth body row is Chapter 4, the first chapter with no link at boot (the ticked chapters 1-3 and 7-10 boot linked).
     await table
       .locator('tbody tr')
-      .nth(2)
+      .nth(4)
       .getByRole('button', { name: /^Track for / })
       .click();
     await page.getByRole('textbox', { name: 'Search tracks' }).last().fill('chap');
-    await page.getByRole('treeitem', { name: /linked to Chapter 1/ }).waitFor();
+    await page.getByRole('treeitem', { name: /linked to Chapter 1\b/ }).waitFor();
   },
   'chapter-link-confirmed': async (page) => {
     // Boots with no link, so the click through Confirm below is what makes it (an unset seed boots Chapter 1 already linked).
