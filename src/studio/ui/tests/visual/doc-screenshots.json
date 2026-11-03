@@ -427,6 +427,13 @@
     "caption": "Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders"
   },
   {
+    "page": "settings",
+    "state": "recording-chapter-voices",
+    "viewport": "desktop",
+    "docName": "settings-chapter-voices",
+    "caption": "Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder"
+  },
+  {
     "page": "engine",
     "state": "rpp-picker",
     "viewport": "desktop",
