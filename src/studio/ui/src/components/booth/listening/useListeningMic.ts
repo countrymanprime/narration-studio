@@ -37,6 +37,8 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
   const teleprompter = usePort('teleprompter');
   const recording = usePort('recording');
   const [recordsOn, setRecordsOn] = useState('');
+  // The microphones the built-in recorder lists, the list the Levels select shows and the recorder opens from; null until they are read.
+  const [recorderMics, setRecorderMics] = useState<readonly string[] | null>(null);
   const [input, setInput] = useState<TeleprompterReaperInput | null>(null);
 
   useEffect(() => {
@@ -63,14 +65,20 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
   useEffect(() => {
     if (!appRecords) {
       setRecordsOn('');
+      setRecorderMics(null);
       return;
     }
     let live = true;
-    const read = () =>
+    const read = () => {
       void recording
         .recorderState()
         .then((state) => live && setRecordsOn(state.device.trim()))
         .catch(() => {});
+      void recording
+        .recorderDevices()
+        .then((list) => live && setRecorderMics(list.devices.map((d) => d.name)))
+        .catch(() => {});
+    };
     read();
     window.addEventListener('focus', read);
     return () => {
@@ -80,7 +88,9 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
   }, [recording, appRecords]);
 
   const answer = dawRecords ? input : null;
-  const resolved = resolveListeningMic({ dawRecords, answer, source, chosen, devices: devices.map((device) => device.name), appRecords, recordsOn });
+  // With the built-in recorder the microphones are the recorder's own, once read (what the select lists and what Record opens), else the speech listener's.
+  const names = appRecords && recorderMics ? recorderMics : devices.map((device) => device.name);
+  const resolved = resolveListeningMic({ dawRecords, answer, source, chosen, devices: names, appRecords, recordsOn });
   const device = settingsLoaded ? resolved.device : null;
   useEffect(() => {
     listenOn(device);
