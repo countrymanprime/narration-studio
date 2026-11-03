@@ -25,6 +25,7 @@ import (
 	"desktop/internal/proofing"
 	"desktop/internal/scriptprep"
 	"desktop/internal/stages"
+	"desktop/internal/userdictionary"
 	"desktop/internal/voicesample"
 )
 
@@ -1221,6 +1222,32 @@ func TestAReplaceKeepsVoiceSamplesAndClearRemovesThem(t *testing.T) {
 	}
 	if _, err := os.Stat(voicesample.Dir(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the voice samples behind: %v", err)
+	}
+}
+
+// The user dictionary is how the narrator decided to say words, and names no chapter or line: a manuscript replace keeps it, and only
+// Clear project data removes it (#2595).
+func TestAReplaceKeepsTheUserDictionaryAndClearRemovesIt(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	file := userdictionary.File(project)
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(`{"schemaVersion":1,"words":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := resetDerived(project); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("a manuscript replace removed the user dictionary: %v", err)
+	}
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the user dictionary behind: %v", err)
 	}
 }
 

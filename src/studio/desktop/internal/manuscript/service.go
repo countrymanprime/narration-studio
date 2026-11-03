@@ -34,6 +34,7 @@ import (
 	"desktop/internal/recordedthrough"
 	"desktop/internal/scriptprep"
 	"desktop/internal/stages"
+	"desktop/internal/userdictionary"
 	"desktop/internal/voicesample"
 )
 
@@ -709,6 +710,10 @@ func (s *Service) Clear() error {
 	// Voice samples are the narrator's own audio and survive a manuscript replace, so resetDerived leaves them; Clear project data
 	// is the one action that removes them (docs/reference/data-files.md, Retention terms: Cleared on Clear).
 	if err := os.RemoveAll(voicesample.Dir(project)); err != nil {
+		return fmt.Errorf("could not clear project data: %w", err)
+	}
+	// The user dictionary is how the narrator decided to say words, which a new manuscript does not undo; Clear removes it.
+	if err := os.RemoveAll(userdictionary.File(project)); err != nil {
 		return fmt.Errorf("could not clear project data: %w", err)
 	}
 	// The old script markup file (prep/markup.json) is no longer read since marks replaced it; an explicit clear still
