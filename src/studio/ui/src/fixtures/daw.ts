@@ -43,7 +43,6 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   cleanup_tools: 'supported',
   retake_lanes: 'supported',
   project_state: 'supported',
-  take_create: 'supported',
   heartbeat: 'supported',
   project_read: 'supported',
   track_state: 'experimental',
@@ -280,11 +279,11 @@ export const DAW_PROJECT: DawProject = {
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
  * `noTrack` and `staleTake` are the host's stale answers, so the mock refuses them with code `stale`. */
-/** The answer DawPreviewFileRange gives when `length` seconds of the file at `path` play from `start` (bindings_daw_files.go). */
+/** The answer a file preview gives when `length` seconds of the file at `path` play from `start` (dawPreviewFileIn, bindings_daw_files.go). */
 export const filePreviewAnswer = (path: string, start: number, length: number): string =>
   `Playing ${length.toFixed(1)} s of ${fileName(path)} from ${start.toFixed(1)} s.`;
 
-/** The answer DawRevealFile gives when the file at `path` is shown in `daw`. */
+/** The answer showing the file at `path` in `daw` gives (dawRevealFileIn, bindings_daw_files.go). */
 export const fileRevealAnswer = (path: string, daw: string): string => `Showing ${fileName(path)} in ${daw}.`;
 
 /** fileRevealAnswer for the DAW `setup` reports, so a port names no DAW itself. */

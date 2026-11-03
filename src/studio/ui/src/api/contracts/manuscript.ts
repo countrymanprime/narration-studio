@@ -148,11 +148,10 @@ export type ManuscriptImportPreview = {
 export type ManuscriptFileSelection = { selected: boolean; jobId?: string };
 /** The `manuscript:dropped` event: what became of a file dropped on the import's drop zone. The host checks the file and starts the import itself, so it names the file and the job, never the path. */
 export type ManuscriptDropped = { jobId: string; name: string } | { message: string };
-export type ManuscriptReader = { chapters: ManuscriptChapter[]; paragraphs: ManuscriptParagraph[]; notes: ManuscriptNote[] };
 export type WorkJob = {
   id: string | null;
-  /** The wire kinds are the first two; the others are client-side jobs shown in the same work dialog (a download, the update, a recording check, the pickup and duplicate scan, the take comparison). */
-  kind: 'manuscript_import' | 'story_bible' | 'app_update' | 'asset_install' | 'recording_coverage' | 'take_review' | 'take_comparison';
+  /** The wire kinds are the first two; the others are client-side jobs shown in the same work dialog (a download, the update, a recording check). */
+  kind: 'manuscript_import' | 'story_bible' | 'app_update' | 'asset_install' | 'recording_coverage';
   phase: 'idle' | 'preparing' | 'ready' | 'committing' | 'running' | 'success' | 'cancelled' | 'error';
   message: string;
   percent: number;
@@ -187,6 +186,5 @@ export interface ManuscriptApi {
    */
   manuscriptSetChapterKind(chapterId: string, kind: ManuscriptContentKind): Promise<ManuscriptChapterKindResult>;
   noteList(chapter?: string): Promise<ManuscriptNote[]>;
-  manuscriptReader(): Promise<ManuscriptReader>;
   readerState(): Promise<ReaderState>;
 }

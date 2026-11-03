@@ -46,3 +46,28 @@ for (const size of [
     expect.soft(new Set(g.gaps).size, 'one gap between sections').toBe(1);
   });
 }
+
+// ux-reviewer on #2802: a refusal that wrapped made the Levels menu taller, so the popover jumped. With the built-in recorder, the menu is
+// one height whatever its meter is doing: reading, opening, paused, refused or with no microphone chosen.
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 390, height: 844 },
+]) {
+  test(`levels-menu-builtin at ${size.width}: the menu keeps one height across the meter's states`, async ({ page }) => {
+    // Five states, each from a fresh load.
+    test.setTimeout(150_000);
+    const heights: Record<string, number> = {};
+    for (const state of [
+      'levels-menu-builtin',
+      'levels-menu-builtin-opening',
+      'levels-menu-builtin-paused',
+      'levels-menu-builtin-refused',
+      'levels-menu-builtin-no-mic',
+    ]) {
+      await drive(page, state, size);
+      const box = await page.getByRole('dialog', { name: 'Levels' }).boundingBox();
+      heights[state] = Math.round(box!.height);
+    }
+    expect(new Set(Object.values(heights)).size, JSON.stringify(heights)).toBe(1);
+  });
+}

@@ -34,7 +34,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'recorded-linked',
     description:
-      'Production with every chapter linked to its track and no stage moved on (?mockProduction=linked): the Recorded audio tile sums the measured audio, and each pipeline row shows its Rec. length beside its Est. length - recorded in full, part-way, under a minute ("<0:01"), "None yet" for a linked track with nothing on it, and "Not linked", "2+ tracks", "Track gone" and "No project" for the four that measure nothing - with Record under way from the audio while the stage still says not started',
+      'Production with every chapter linked to its track and no stage moved on (?mockProduction=linked): the Recorded audio tile sums the measured audio, and each pipeline row shows its Rec. length beside its Est. length - recorded in full, part-way, under a minute ("<0:01"), "None yet" for a linked track with nothing on it, and "No track", "2+ tracks", "Track gone" and "No project" for the four that measure nothing - with Record under way from the audio while the stage still says not started',
   },
 
   // Home's surfaces, opened from the board
@@ -187,6 +187,14 @@ export const productionStates: StateEntry[] = [
     state: 'recording-check-pickups',
     description:
       'Production, Check recordings showing a result with interior gaps (?mockCoverage=pickups): a skip and a short read listed one per line under Pickups, each with Go to paragraph, alongside a small unread tail stated in the summary, not listed',
+  },
+  {
+    page: 'production',
+    state: 'recording-check-pickup-notes',
+    description:
+      "Production, Check recordings for Chapter 4 (?mockCoverage=pickups) scrolled to the Pickup notes (Proof) row: the count of the chapter's pickup notes not reviewed yet and Open Proof, which opens Proof on the chapter",
+    // Driven per viewport so the scrolled-to row is in frame at each width.
+    reloadPerViewport: true,
   },
   {
     page: 'production',

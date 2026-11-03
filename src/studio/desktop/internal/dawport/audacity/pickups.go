@@ -22,7 +22,7 @@ import (
 // label track (brand.AudacityLabelTrack), `[nu:pickup open] <body>` or `[nu:pickup done] <body>`, where <body> is the note or `[tag] note`. Resolving or
 // reopening one rewrites the prefix with SetLabel. Only a label with this prefix is ever changed: the narrator's own labels, and a
 // pickup the narrator edited by hand into another shape, are read as they stand. The answers are REAPER's events (PICKUPS_IMPORTED,
-// PICKUPS_EXPORTED, PICKUP_NEXT, PICKUP_RESOLVED, PICKUP_REOPENED, PICKUP_MARKERS_LISTED, PICKUPS_COUNTED), queued as each request
+// PICKUPS_EXPORTED, PICKUP_RESOLVED, PICKUP_REOPENED, PICKUP_MARKERS_LISTED, PICKUPS_COUNTED), queued as each request
 // finishes and delivered by Dispatch.
 type Pickups struct {
 	*eventHub
@@ -220,42 +220,6 @@ func (p *Pickups) ExportPickups(runID, outputPath string) error {
 			return errors.New("Could not write the pickup list.") //nolint:staticcheck // a sentence the narrator reads
 		}
 		p.emit("PICKUPS_EXPORTED", runID, outputPath, strconv.Itoa(count))
-		return nil
-	})
-}
-
-// NextPickup puts the cursor at the nearest open pickup after the cursor, wrapping to the earliest when the cursor is at or past
-// every one, and answers PICKUP_NEXT. The cursor is the start of Audacity's time selection.
-func (p *Pickups) NextPickup(runID string) error {
-	return p.async(runID, func(ctx context.Context) error {
-		found, _, err := p.read(ctx)
-		if err != nil {
-			return err
-		}
-		var open []pickup
-		for _, k := range found {
-			if k.open {
-				open = append(open, k)
-			}
-		}
-		if len(open) == 0 {
-			return errors.New("No pickups remain.") //nolint:staticcheck // a sentence the narrator reads
-		}
-		cursor, _, err := p.session.client.Selection(ctx)
-		if err != nil {
-			return err
-		}
-		chosen := open[0]
-		for _, k := range open {
-			if k.label.Start > cursor {
-				chosen = k
-				break
-			}
-		}
-		if err := p.session.client.SelectTime(ctx, chosen.label.Start, chosen.label.Start); err != nil {
-			return err
-		}
-		p.emit("PICKUP_NEXT", runID, f6(chosen.label.Start), chosen.tag, chosen.note)
 		return nil
 	})
 }

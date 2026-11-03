@@ -70,7 +70,6 @@ export const GAPS: readonly string[] = [
   'src/components/production/RecordingCheckReport.tsx',
   'src/components/production/useChapterSyncToast.ts',
   'src/components/production/useChapterTools.tsx',
-  'src/components/proof/AuditionDialog.tsx',
   'src/components/proof/CompareRun.tsx',
   'src/components/proof/NativeTakesPanel.tsx',
   'src/components/proof/PreviewPanel.tsx',

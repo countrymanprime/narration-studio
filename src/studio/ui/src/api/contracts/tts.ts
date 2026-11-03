@@ -18,19 +18,10 @@ export type TtsVoice = {
   installState: TtsInstallState;
 };
 
-export type TtsCatalog = {
-  catalogVersion: number;
-  provider: { id: string; effectiveSource: string };
-  voice: { id: string; effectiveSource: string };
-  voices: TtsVoice[];
-};
-
 export type TtsInstallJob = AssetInstallJob & { voiceId: string };
 
 export interface TtsApi {
-  ttsCatalog(): Promise<TtsCatalog>;
   ttsInstall(voiceId: string): Promise<TtsInstallJob>;
   ttsInstallState(jobId: string): Promise<TtsInstallJob>;
   ttsInstallCancel(jobId: string): Promise<TtsInstallJob>;
-  ttsRemove(voiceId: string): Promise<void>;
 }

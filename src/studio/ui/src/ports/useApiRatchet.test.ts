@@ -48,7 +48,6 @@ const CEILING: Record<string, number> = {
   'src/components/production/useChapterTools.tsx': 1,
   'src/components/project/NewProjectDialog.tsx': 1,
   'src/components/project/ProjectPicker.tsx': 1,
-  'src/components/proof/AuditionDialog.tsx': 1,
   'src/components/proof/CompareRun.tsx': 1,
   'src/components/proof/NativeTakesPanel.tsx': 2,
   'src/components/proof/PreviewPanel.tsx': 1,

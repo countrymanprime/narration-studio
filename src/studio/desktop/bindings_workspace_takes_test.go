@@ -8,19 +8,18 @@ import (
 	"desktop/internal/bridge"
 	"desktop/internal/daw"
 	"desktop/internal/dawport"
+	"desktop/internal/findings"
 )
 
 // The Takes panel's bindings. What they answer is internal/passagetakes' own (its tests pin the candidates,
 // the choices and the outcomes, and write the goldens the UI checks); these cover the host's wiring: no project, a
-// token range the alignment does not have, and a read of a chapter whose item has only one take.
+// token range the alignment does not have, a read of a chapter whose item has only one take, and the retired take
+// review's saved groups, which offer nothing.
 
 func TestWorkspaceTakesBindingsWithNoProjectAreAnError(t *testing.T) {
 	host := newTestHost(t)
 	if _, err := host.WorkspaceTakes("c-0001", 0, 0); err == nil {
 		t.Error("WorkspaceTakes: no error")
-	}
-	if _, err := host.WorkspaceTakesCompareStart("c-0001", 0, 0); err == nil {
-		t.Error("WorkspaceTakesCompareStart: no error")
 	}
 	if _, err := host.WorkspaceUseTake("c-0001", 0, 0, "take:x:y"); err == nil {
 		t.Error("WorkspaceUseTake: no error")
@@ -41,6 +40,37 @@ func TestWorkspaceTakesOfAOneTakeItemOffersNoAlternates(t *testing.T) {
 	}
 	if candidates, _ := answer["candidates"].([]any); len(candidates) != 0 {
 		t.Fatalf("candidates = %v", candidates)
+	}
+}
+
+// A take-review group the retired scan saved beside the passage's item is a plain finding now (#2765): the Takes panel
+// does not offer its reads.
+func TestWorkspaceTakesOffersNoReadsFromASavedTakeReviewGroup(t *testing.T) {
+	host := coverageHost(t, coverageProject(t), true, fakeAlignedCoverageSidecarWithSkip())
+	if _, err := host.CoverageStart("c-0001", nil); err != nil {
+		t.Fatal(err)
+	}
+	host.services().coverage.Wait()
+	members := []any{
+		map[string]any{"item_guid": "{ITEM-1}", "take_guid": "{TAKE-1}", "source_file": "a.wav", "source_start": 0.0, "source_length": 4.0},
+		map[string]any{"item_guid": "{ITEM-PICKUP}", "take_guid": "{TAKE-PICKUP}", "source_file": "pickup.wav", "source_start": 2.0, "source_length": 4.0},
+	}
+	group := findings.Finding{
+		SchemaVersion: findings.SchemaVersion, ID: "take-review-group", Analyzer: "take-review", Category: findings.CategoryPickup,
+		Severity: findings.SeverityInfo, ConfidenceReason: "saved by the retired take review",
+		Source:     findings.Source{File: "a.wav", ItemGUID: "{ITEM-1}", TakeGUID: "{TAKE-1}"},
+		Manuscript: &findings.Manuscript{ChapterID: "c-0001", ChapterTitle: "Chapter 1"},
+		Evidence:   map[string]any{"kind": "pickup", "matched_span_first": 0, "matched_span_last": 0, "members": members},
+		Review:     findings.ReviewState{Status: findings.StatusUnreviewed},
+	}
+	if _, err := host.services().findings.SaveAnalyzerFindings("take-review", "c-0001", []findings.Finding{group}); err != nil {
+		t.Fatal(err)
+	}
+
+	answer := decodeAnswer(t)(host.WorkspaceTakes("c-0001", 0, 0))
+
+	if candidates, _ := answer["candidates"].([]any); answer["itemGuid"] != "{ITEM-1}" || len(candidates) != 0 {
+		t.Fatalf("answer = %v, want the one-take item with no candidates", answer)
 	}
 }
 

@@ -154,6 +154,7 @@ local function navigate_item(session_dir, run_id, item_text, take_text, time_tex
   end
   select_only(item)
   reaper.SetEditCurPos(target, true, false)
+  core.cursor_moved()
   reaper.UpdateArrange()
   event(session_dir, 'NAVIGATED', run_id, item_guid(item), string.format('%.6f', target))
 end
@@ -251,6 +252,7 @@ local function loop_context(session_dir, state, run_id, item_text, take_text, st
   reaper.GetSet_LoopTimeRange2(0, true, true, window_start, window_end, false)
   reaper.GetSetRepeat(1)
   reaper.SetEditCurPos(window_start, true, false)
+  core.cursor_moved()
   reaper.OnPlayButton()
   reaper.UpdateArrange()
   event(session_dir, 'LOOP_STARTED', run_id, item_guid(item), string.format('%.6f', window_start), string.format('%.6f', window_end))

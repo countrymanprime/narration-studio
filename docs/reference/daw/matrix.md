@@ -15,7 +15,6 @@ What each engine declares for each capability today. The levels are the adapters
 | `cleanup_tools` | `CleanupLauncher` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
 | `retake_lanes` | `RetakeLanePicker` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
 | `project_state` | `ProjectStateReader` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
-| `take_create` | `TakeCreator` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
 | `heartbeat` | `Heartbeat` | A bridge, answering or not | Supported | Not yet available | Not reachable | Unsupported |
 | `project_read` | `ProjectReader` | Nothing (works offline) | Supported | Experimental | Not reachable | Unsupported |
 | `track_state` | `TrackStateReader` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |

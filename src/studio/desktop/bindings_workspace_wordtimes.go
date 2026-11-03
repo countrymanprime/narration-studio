@@ -40,7 +40,8 @@ func (h *Host) WorkspaceWordTimes(chapterID string) (string, error) {
 	return encodeBinding(wordtimes.Wire(view, saved, state), nil)
 }
 
-// liveTrackState reads chapterID's linked track now: false when it cannot be read or holds more items than one read lists.
+// liveTrackState reads chapterID's linked track now, and every track inside it when the link is a folder of voices (dawport.ChapterAudioState):
+// false when it cannot be read or holds more items than one read lists.
 func (h *Host) liveTrackState(ctx context.Context, svc hostServices, support dawport.Support, chapterID string) (bridge.TrackState, bool) {
 	guid, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil || refused != nil {
@@ -50,7 +51,7 @@ func (h *Host) liveTrackState(ctx context.Context, svc hostServices, support daw
 	if reader == nil || !support.Available {
 		return bridge.TrackState{}, false
 	}
-	state, err := reader.ChapterTrackState(ctx, guid)
+	state, err := dawport.ChapterAudioState(ctx, reader, guid)
 	if err != nil || state.ItemsTotal > len(state.Items) {
 		return bridge.TrackState{}, false
 	}

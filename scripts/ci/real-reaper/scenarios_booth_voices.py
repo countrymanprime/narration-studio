@@ -268,21 +268,17 @@ def two_children_same_cursor(env: Env) -> str:
         env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
         settled_items(env, count)
         if count == 1:
-            # Back to the take's start through the product's set_cursor at once: the bridge's stop guard (guard_stop, 15 defer cycles)
-            # reads a cursor at the recording's start as REAPER's own seek and puts it back at the stop.
+            # Back to the take's start through the product's set_cursor at once. The bridge's stop guard (guard_stop, 15 defer cycles)
+            # used to read that as REAPER's own seek and put it back at the stop; set_cursor now ends the guard (section 6b).
             env.ok("set_cursor", "2", until="CURSOR_SET")
             time.sleep(0.8)
             guarded = round(env.snapshot()["cursor"], 3)
-            env.ok("set_cursor", "2", until="CURSOR_SET")
-            near(env.snapshot()["cursor"], 2.0, 1e-6, "the cursor set again once the guard has run out")
+            near(guarded, 2.0, 1e-6, "set_cursor sent at once after the stop holds")
     tracks = per_track(settled_items(env, 2))
     assert set(tracks) == {"Narrator", "Veyra"}, tracks
     assert all(len(rows) == 1 and rows[0][2] == 1 for rows in tracks.values()), f"a take split or stacked: {tracks}"
     near(tracks["Narrator"][0][0], tracks["Veyra"][0][0], 0.01, "both takes start at the same cursor")
-    return (
-        f"items {tracks}: one item, one take on each child, nothing on the folder. set_cursor to the take's start right after the stop "
-        f"was moved back to {guarded} s by the stop guard; sent again 0.8 s later it held"
-    )
+    return f"items {tracks}: one item, one take on each child, nothing on the folder. set_cursor to the take's start right after the stop held at {guarded} s"
 
 
 # -- switching voice -----------------------------------------------------------------------------------------------------------
@@ -426,6 +422,54 @@ def live_arm_switch(env: Env) -> str:
 
 @scenario(
     "booth_voices",
+    "switch_voice",
+    "voices phase 4: switch_voice over the bridge moves a take from one child to another while REAPER records; one undo point, the arms put back",
+    needs_audio=True,
+)
+def switch_voice_bridge(env: Env) -> str:
+    g = folder_book(env)
+    env.lua("reaper.SetEditCurPos(1, false, false) return true")
+    env.ok("arm_only", g["Narrator"], until="ARMED")
+    env.ok("record_start", g["Narrator"], until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 2.5, timeout=8, what="the Narrator's part to run")
+    t0 = time.monotonic()
+    switched = env.ok("switch_voice", g["Veyra"], until="VOICE_SWITCHED")
+    call_ms = (time.monotonic() - t0) * 1000
+    at = float(switched[3])
+    assert switched[2] == g["Veyra"], f"switched to {switched}"
+    assert recording(env), "REAPER stopped recording on the switch"
+    armed = env.lua(
+        "return { reaper.GetMediaTrackInfo_Value(ci.track_by_name('Narrator'), 'I_RECARM'), reaper.GetMediaTrackInfo_Value(ci.track_by_name('Veyra'), 'I_RECARM') }"
+    )
+    assert armed == [0, 1], f"arms during the take {armed}"
+    env.wait_for(lambda: position(env) > at + 1.5, timeout=8, what="Veyra's part to run")
+    stopped = env.ok("record_stop", until="RECORD_STOPPED")
+    assert stopped[4] == "1", f"undo points {stopped[4]}: the arm writes of the switch must not count, or record_take undoes too much"
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    tracks = per_track(settled_items(env, 2))
+    assert set(tracks) == {"Narrator", "Veyra"} and all(len(rows) == 1 for rows in tracks.values()), tracks
+    narrator_end = tracks["Narrator"][0][0] + tracks["Narrator"][0][1]
+    veyra_start, veyra_end = tracks["Veyra"][0][0], tracks["Veyra"][0][0] + tracks["Veyra"][0][1]
+    near(narrator_end, at, 0.1, "the Narrator's item ends at the switch")
+    assert veyra_start >= narrator_end - 1e-3, f"the voices overlap: {tracks}"
+    cursor = env.snapshot()["cursor"]
+    near(cursor, veyra_end, 0.01, "the cursor at the end of the last voice's item")
+    arms_after = env.lua(
+        "local out = {} for i = 0, reaper.CountTracks(0) - 1 do out[#out + 1] = reaper.GetMediaTrackInfo_Value(reaper.GetTrack(0, i), 'I_RECARM') end return out"
+    )
+    assert not any(arms_after), f"arms after the stop {arms_after}: the narrator had none armed"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    after_undo = per_track(env.snapshot()["items"])
+    assert after_undo == {}, f"one Undo left {after_undo}"
+    return (
+        f"switched at {at:.3f} s in {call_ms:.0f} ms (driver round trip), REAPER kept recording; undo points {stopped[4]}; items {tracks}; "
+        f"gap {(veyra_start - narrator_end) * 1000:.0f} ms; cursor {cursor:.3f} s; arms put back {arms_after}; undo {undo!r}, one Undo took both"
+    )
+
+
+@scenario(
+    "booth_voices",
     "(snippet) I_RECARM during recording",
     "voices phase 0: a live switch that arms the new child first and disarms the old one 100 ms later; overlap instead of a hole",
     needs_audio=True,
@@ -560,29 +604,30 @@ def fx_child_and_folder(env: Env) -> str:
 @scenario(
     "booth_voices",
     "play_range, chapter_track_state",
-    "voices phase 0: a folder whose items are all on its children: play_range naming the folder is refused today, naming a child plays it; chapter_track_state lists the folder as empty",
+    "voices phase 2: a folder whose items are all on its children: chapter_track_state with children lists both children's items with their tracks, "
+    "the one-track read still lists none, and play_range naming the folder plays both children and not the next chapter",
     needs_audio=True,
 )
-def folder_reads_today(env: Env) -> str:
+def folder_reads(env: Env) -> str:
     g = folder_book(env, audio=True)
-    refusal = env.refused("play_range", "1", "3", g["Chapter 3"])
-    assert play_state(env) == 0, "a refused play started REAPER"
-    folder_state = env.send("chapter_track_state", g["Chapter 3"], until={"TRACK_STATE_END", "TRACK_STALE"})
-    folder_end = folder_state[-1]
-    folder_items = [e for e in folder_state if e[0] == "TRACK_ITEM"]
-    child_state = env.send("chapter_track_state", g["Veyra"], until={"TRACK_STATE_END", "TRACK_STALE"})
-    child_items = [e for e in child_state if e[0] == "TRACK_ITEM"]
-    assert folder_end[0] == "TRACK_STATE_END" and folder_end[2:4] == ["0", "0"] and not folder_items, f"folder state {folder_state}"
-    assert len(child_items) == 1, f"Veyra state {child_state}"
+    plain = env.send("chapter_track_state", g["Chapter 3"], until={"TRACK_STATE_END", "TRACK_STALE"})
+    assert plain[-1][0] == "TRACK_STATE_END" and plain[-1][2:4] == ["0", "0"], f"one-track read of the folder {plain}"
+    union = env.send("chapter_track_state", g["Chapter 3"], "children", until={"TRACK_STATE_END", "TRACK_STALE"})
+    rows = [(e[8].replace("\\", "/").rsplit("/", 1)[-1], e[10]) for e in union if e[0] == "TRACK_ITEM"]
+    assert rows == [("tone_a.wav", g["Narrator"]), ("tone_b.wav", g["Veyra"])], f"children read {rows}"
+    assert union[-1][2:4] == ["2", "2"], f"listed/total {union[-1][2:4]}"
     before = narrator_state(env)
-    play_range(env, 0.5, 4.0, g["Veyra"])
-    narrator, veyra = mix_tones(env, "voices_child_play")
+    play_range(env, 0.5, 4.0, g["Chapter 3"])
+    # One render: it takes the transport, so the bridge sees REAPER stop and puts the solos back before any second render.
+    mix = env.render_mix("voices_folder_play", 1.0, 2.0)
+    narrator, veyra, chapter4 = (mix.tone(0.0, 1.0, hz) for hz in (440.0, 660.0, 880.0))
     stop_by_hand(env)
     env.wait_for(lambda: narrator_state(env) == before, timeout=8, what="the tracks to be put back")
-    assert veyra > 0.1 and narrator < 0.02, f"playing Veyra: Veyra {veyra:.3f}, Narrator {narrator:.3f}"
+    assert narrator > 0.1 and veyra > 0.1, f"playing the folder: Narrator {narrator:.3f}, Veyra {veyra:.3f}"
+    assert chapter4 < 0.02, f"Chapter 4 is audible while the folder plays: {chapter4:.3f}"
     return (
-        f"play_range on the folder refused ({refusal[2]!r}); chapter_track_state on the folder listed/total {folder_end[2:4]}, on Veyra 1 item; "
-        f"play_range on Veyra: Veyra {veyra:.2f}, Narrator {narrator:.3f} in the mix, tracks put back"
+        f"one-track read of the folder 0 of 0; children read {len(rows)} items, each with its child's GUID; play_range on the folder: "
+        f"Narrator {narrator:.2f}, Veyra {veyra:.2f}, Chapter 4 {chapter4:.3f} in the mix, tracks put back"
     )
 
 
@@ -609,3 +654,46 @@ def folder_solo_plays_children(env: Env) -> str:
     assert a > 0.1 and b > 0.1, f"a child is silent with the folder soloed: Narrator {a:.3f}, Veyra {b:.3f}"
     assert c < 0.02, f"Chapter 4 is audible with only the folder soloed: {c:.3f}"
     return f"folder soloed in place: Narrator {a:.2f}, Veyra {b:.2f}, Chapter 4 {c:.3f} in the rendered mix"
+
+
+@scenario(
+    "booth_voices",
+    "track_create",
+    "voices phase 3: track_create with a parent adds a voice as the folder's new last child; both folders still close after save and reload, "
+    "and the voice records from the first child's input; a parent that is gone adds nothing",
+)
+def track_create_in_folder(env: Env) -> str:
+    env.lua(
+        """
+        local book = ci.add_track('Book')
+        local chapter = ci.add_track('Chapter 3')
+        local narrator = ci.add_track('Narrator')
+        ci.add_track('After')
+        reaper.SetMediaTrackInfo_Value(book, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(chapter, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(narrator, 'I_FOLDERDEPTH', -2)
+        reaper.SetMediaTrackInfo_Value(narrator, 'I_RECINPUT', 1024)
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    folder = env.lua("return reaper.GetTrackGUID(ci.track_by_name('Chapter 3'))")
+    count = len(structure(env))
+    created = env.ok("track_create", "Veyra", folder, until="TRACK_CREATED")
+    assert created[3:5] == ["3", "Veyra"], f"created {created}"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    rows = structure(env)
+    shape = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in rows]
+    assert shape == [
+        ("Book", 1, 0, ""),
+        ("Chapter 3", 1, 1, "Book"),
+        ("Narrator", 0, 2, "Chapter 3"),
+        ("Veyra", -2, 2, "Chapter 3"),
+        ("After", 0, 0, ""),
+    ], shape
+    veyra = next(r for r in rows if r["name"] == "Veyra")
+    assert veyra["input"] == 1024, f"Veyra records from input {veyra['input']}, not the narrator's 1024"
+    stale = env.send("track_create", "Ghost", "{00000000-0000-4000-8000-0000000000DE}", until={"TRACK_CREATED", "TRACK_STALE"})
+    assert stale[-1][0] == "TRACK_STALE" and len(structure(env)) == count + 1, f"stale parent answered {stale}"
+    return f"created at index {created[3]}, undo {undo!r}; after save and reload {[(r['name'], r['delta']) for r in rows]}; ISBUS {isbus_lines(env)}; Veyra input {veyra['input']}; a gone parent answered TRACK_STALE and added nothing"

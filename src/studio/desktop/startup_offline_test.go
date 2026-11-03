@@ -133,8 +133,6 @@ func whatTheFirstScreenReads(t *testing.T, host *Host) {
 	}{
 		{"SystemSettingsForScope global", func() (string, error) { return host.SystemSettingsForScope("global") }},
 		{"SystemSettingsForScope project", func() (string, error) { return host.SystemSettingsForScope("project") }},
-		{"TtsCatalog", host.TtsCatalog},
-		{"WhisperCatalog", host.WhisperCatalog},
 		{"AssetsList", host.AssetsList},
 		{"UpdateStatus", host.UpdateStatus},
 	} {

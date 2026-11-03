@@ -225,14 +225,17 @@ describe('Recording & DAW: Record with', () => {
     await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
 
-  it('shows no launcher steps: the app keeps the bridge in REAPER and says so', async () => {
+  it('shows no launcher steps and no bridge line while the bridge is fine; the "?" on Record with says nothing needs setting up', async () => {
     const launcher = `C:\\Apps\\${brand.name}\\launcher.lua`;
     const base = await createMockApi().bootstrap();
     const api = createMockApi({
       bootstrap: async () => ({ ...base, runtime: { ...base.runtime, Reaper: { ...base.runtime.Reaper!, launcherPath: launcher } } }),
     });
     await renderPage({ api, category: 'Recording & DAW' });
-    expect(await screen.findByText(/The app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens/)).toBeTruthy();
+    expect(await screen.findByRole('radio', { name: /^REAPER/ })).toBeTruthy();
+    expect(screen.queryByText(/keeps its bridge in REAPER/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /About Record with/i }));
+    expect(await screen.findByText(/nothing to set up in REAPER/)).toBeTruthy();
     expect(screen.queryByText('REAPER launcher script')).toBeNull();
     expect(screen.queryByText(launcher)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Copy path' })).toBeNull();

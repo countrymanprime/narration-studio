@@ -8,7 +8,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      'Booth, ready to record (REAPER linked and answering, the mock\'s default): the top bar with the chapter stepper, the progress line, "Resume at ¶ 14 from the saved project" and the REAPER setup chip; the text full-bleed, opening with the chapter\'s title and subtitle as its first lines (#2251 item 7: "CHAPTER ONE", then "Bad Ideas Look Great in Neon"), the reading position on the title\'s first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock\'s .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock\'s .btop does, the chapter picker at the mock\'s medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker',
+      "Booth, ready to record (REAPER linked and answering, the mock's default): the top bar with the chapter stepper, the progress line, the \"Recorded through …\" chip (Chapter 1 is recorded through ¶ 14, #2633) and the REAPER setup chip, with no resume line since the chapter opens at ¶ 14, where its recording ends; the text full-bleed, scrolled to that paragraph, the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
   },
   {
@@ -203,7 +203,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'resume',
     description:
-      'Booth, "Resume at ¶ 14" chosen: the reading position moves to where the recording ends, in ¶ 14, the text scrolls there, the progress line reads ¶ 14 of 24 and the chip is gone, since the reader is at its place',
+      'Booth, looked elsewhere in the chapter: Chapter 1 opens at ¶ 14, where its recording ends, and a click on a word in the next paragraph offers "Resume at ¶ 14" in the top bar; the progress line and the Recorded through chip stay, the chip is the way back',
     ...REFLOW,
   },
   {
@@ -218,6 +218,55 @@ export const boothStates: StateEntry[] = [
     state: 'levels-menu',
     description:
       "Booth, the footer's Levels menu open with the narrator's settings untouched: the input level and the microphone the DAW records from, named, with \"Same as REAPER\", what REAPER records from (device · channel) and plays on, and Choose a different one (TeleprompterReaperInput, #2251); REAPER's own meters and pre-roll show with no switch (they only read), and the monitor slider, which writes, is off with Turn on in Settings",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin',
+    description:
+      "Booth for a project that records with the built-in recorder (?mockEngine=builtin), a microphone chosen and the Levels menu open: its one Input meter is the built-in recorder's own level, started on that microphone when the menu opened and moving with its recording:level stream (#2732)",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-long-name',
+    description:
+      'The Levels menu of levels-menu-builtin with a microphone whose name is very long (?mockMics=long): the picker and the Input meter keep the menu its bounded width, the name wraps',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-rtl-name',
+    description:
+      'The Levels menu of levels-menu-builtin with an Arabic microphone name with an emoji (?mockMics=weird, "ميكروفون 🎤 (USB)") chosen: the name reads right to left in the picker and the Input meter runs on it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-refused',
+    description:
+      'The Levels menu of levels-menu-builtin when the built-in recorder cannot open the microphone (?mockRecorder=start-fails): the Input meter dimmed with no reading, "The meter did not start." under it in the error colour with Check again, and the recorder\'s own reason in an error toast',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-opening',
+    description:
+      'The Levels menu of levels-menu-builtin while the meter\'s start has not answered (?mockRecorder=meter-hangs): the Input meter dimmed with no reading and "Opening the microphone…" under it, the menu the same height as when it reads',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-paused',
+    description:
+      'The Levels menu of levels-menu-builtin after the window lost focus: the meter stopped, dimmed, and "Paused while the app is in the background." under it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-no-mic',
+    description:
+      'The Levels menu with the built-in recorder when it no longer lists the chosen microphone (?mockRecorder=mic-gone): no meter started, the Input meter dimmed and "No microphone chosen." under it, the picker showing the chosen one as not found',
     ...REFLOW,
   },
   {
