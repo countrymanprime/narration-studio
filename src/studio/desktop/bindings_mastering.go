@@ -12,7 +12,7 @@ import (
 // The mastering chain a project masters with (owner decision D86): a row of masteringport.Rows, chosen per project.
 // The choice is the project settings row Mastering.provider, written only by MasteringChooseProvider, which checks it against
 // the registry; it is not a generic Settings field, so the Settings page neither lists nor saves it, and no global or repo
-// default exists: a project with no choice masters with the registry's default row (builtin). Master & QC reads it to draw the chain. The wire schema, golden payloads, wireContracts row and mock live in src/studio/ui/src/api.
+// default exists: a project with no choice masters with the registry's default row (builtin). Master & QC reads it to draw the chain, and its export masters with that row (export_job.go). The wire schema, golden payloads, wireContracts row and mock live in src/studio/ui/src/api.
 const (
 	masteringSettingsTool = "Mastering"
 	masteringProviderKey  = "provider"
@@ -98,18 +98,30 @@ func masteringProvidersPayload(rows *port.Registry[masteringport.Mastering], pla
 		return state
 	}
 	state.Choice = &choice
+	if entry, notice, ok := effectiveMasteringRow(rows, platform, choice); ok {
+		state.Effective, state.Notice = entry.Name, notice
+	}
+	return state
+}
+
+// effectiveMasteringRow is the row a project whose stored choice is choice ("" for none) masters with on platform: its choice when
+// that row is registered and available here, otherwise the default (masteringport.Default), with the sentence saying why its
+// choice is not used. MasteringProviders reports it and the export masters with it, so the two never disagree. ok is false only
+// for an empty registry.
+func effectiveMasteringRow(rows *port.Registry[masteringport.Mastering], platform, choice string) (port.Entry[masteringport.Mastering], string, bool) {
+	fallback, ok := masteringport.Default(rows)
+	if !ok || choice == "" {
+		return fallback, "", ok
+	}
 	entry, err := rows.Lookup(choice)
 	if err != nil {
-		state.Notice = fmt.Sprintf("This project chose a mastering chain this version does not have (%q). It masters with the default, %s.",
-			choice, fallback.Descriptor.Label)
-		return state
+		return fallback, fmt.Sprintf("This project chose a mastering chain this version does not have (%q). It masters with the default, %s.",
+			choice, fallback.Descriptor.Label), true
 	}
 	if support := masteringport.Support(entry, platform); !support.Available {
-		state.Notice = fmt.Sprintf("%s This project masters with the default, %s, until then.", support.Message, fallback.Descriptor.Label)
-		return state
+		return fallback, fmt.Sprintf("%s This project masters with the default, %s, until then.", support.Message, fallback.Descriptor.Label), true
 	}
-	state.Effective = entry.Name
-	return state
+	return entry, "", true
 }
 
 func (h *Host) chooseMasteringProvider(name string) (MasteringProvidersState, error) {
@@ -132,4 +144,15 @@ func (h *Host) chooseMasteringProvider(name string) (MasteringProvidersState, er
 		return MasteringProvidersState{}, err
 	}
 	return h.masteringProvidersState(), nil
+}
+
+// masteringSession is how the rows that make the DAW render (daw, audacity) find the launch's DAW: the open project's DAW port
+// resolver and folder, read again on each master so a project switch is seen at once. ServiceStartup hands it to
+// masteringport.UseSession; the Master & QC export is the one caller that masters.
+func (h *Host) masteringSession() (masteringport.Session, error) {
+	svc := h.services()
+	if svc.dawPortResolver == nil || svc.config.projectFolder == "" {
+		return masteringport.Session{}, masteringport.ErrNoDAW
+	}
+	return masteringport.Session{Resolver: svc.dawPortResolver, ProjectFolder: svc.config.projectFolder}, nil
 }
