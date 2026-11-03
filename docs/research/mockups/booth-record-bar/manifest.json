@@ -19,7 +19,7 @@
       "option": "a",
       "width": 1024,
       "theme": "dark",
-      "bytes": 119646
+      "bytes": 119835
     },
     {
       "file": "shots/a-1024-light.png",
@@ -27,7 +27,7 @@
       "option": "a",
       "width": 1024,
       "theme": "light",
-      "bytes": 120903
+      "bytes": 121019
     },
     {
       "file": "shots/a-1440-dark.png",
@@ -35,7 +35,7 @@
       "option": "a",
       "width": 1440,
       "theme": "dark",
-      "bytes": 120884
+      "bytes": 121067
     },
     {
       "file": "shots/a-1440-light.png",
@@ -43,7 +43,7 @@
       "option": "a",
       "width": 1440,
       "theme": "light",
-      "bytes": 122067
+      "bytes": 122196
     },
     {
       "file": "shots/a-390-dark.png",
@@ -51,7 +51,7 @@
       "option": "a",
       "width": 390,
       "theme": "dark",
-      "bytes": 107089
+      "bytes": 110363
     },
     {
       "file": "shots/a-390-light.png",
@@ -59,7 +59,7 @@
       "option": "a",
       "width": 390,
       "theme": "light",
-      "bytes": 107554
+      "bytes": 110930
     },
     {
       "file": "shots/a-768-dark.png",
@@ -67,7 +67,7 @@
       "option": "a",
       "width": 768,
       "theme": "dark",
-      "bytes": 103101
+      "bytes": 108976
     },
     {
       "file": "shots/a-768-light.png",
@@ -75,7 +75,7 @@
       "option": "a",
       "width": 768,
       "theme": "light",
-      "bytes": 104316
+      "bytes": 110372
     },
     {
       "file": "shots/b-1024-dark.png",
@@ -131,7 +131,7 @@
       "option": "b",
       "width": 768,
       "theme": "dark",
-      "bytes": 100529
+      "bytes": 101481
     },
     {
       "file": "shots/b-768-light.png",
@@ -139,7 +139,7 @@
       "option": "b",
       "width": 768,
       "theme": "light",
-      "bytes": 101266
+      "bytes": 102337
     },
     {
       "file": "shots/menus-1440-dark.png",

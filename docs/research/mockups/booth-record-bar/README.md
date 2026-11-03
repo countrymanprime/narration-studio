@@ -14,7 +14,7 @@
 
 | | A: a switch on the button | B: a mode in the side menu |
 | - | - | - |
-| Shape | `[● Record │ Cold read │ ▾]`: Record, a Cold read switch (icon only below 860 px), the side button | `[● Record │ ▾]` |
+| Shape | `[● Record │ Cold read │ ▾]`: Record, a Cold read switch (its word at every width), the side button | `[● Record │ ▾]` |
 | Cold read | Press the switch: it takes the recording colour as an outline; **Record still records** | Pick **Cold read** under *Main button* in the side menu: the button reads **Cold read**, pressing it starts the cold read and then reads **Stop**; pick **Record** to switch back |
 | Space | Always records or stops | Records, or starts a cold read while the mode is Cold read |
 | Tab stops | 3 | 2 |
@@ -31,7 +31,7 @@ A keeps today's behaviour exactly: Cold read is the switch it is now, Record is 
 
 - The side button opens the Levels popover as today (microphone, input and monitor levels, pre-roll, the listening choices); it stays usable during a take and while Record is unavailable.
 - Record unavailable: the main part keeps `aria-disabled` and its reason; the side button still works, so the narrator can fix the microphone.
-- No microphone: a warning dot on the side button and the existing warning sentence; the Cold read switch is unavailable.
+- No microphone: a warning dot on the side button and the existing warning sentence; the Cold read switch stays as it is today (pressing it says why it cannot start).
 - During a take the Cold read switch (A) or mode (B) is unavailable, as Cold read is today.
 - Keyboard: nothing changes (the **Keyboard** table in the page lists every key).
 

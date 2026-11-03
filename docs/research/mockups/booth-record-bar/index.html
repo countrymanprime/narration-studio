@@ -107,7 +107,6 @@ table.t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:t
 /* container-width behaviour: the whole bar is built to these three widths */
 @container (max-width:860px){
   .voice{width:190px;flex-basis:190px}
-  .split .cold .lbl{display:none} .split .cold .ic{display:inline-block} .split .cold{padding:0 9px;width:36px}
   .keys .kopt{display:none}
 }
 @container (max-width:560px){
@@ -189,7 +188,7 @@ table.t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:t
     var main,mid='',side;
     if(opt==='a'){
       main='<button class="main" aria-label="'+(rec?'Stop':'Record')+'"'+(s==='off'?' aria-disabled="true"':'')+'>'+(rec?'<span class="sq"></span>Stop':'<span class="rd"></span>Record')+'</button>';
-      var dis=(rec||s==='nomic'||s==='off');
+      var dis=rec;
       mid='<button class="cold" aria-pressed="'+cold+'"'+(dis?' aria-disabled="true"':'')+' aria-label="Cold read" title="Cold read"><span class="ic">'+ico('ear')+'</span><span class="lbl">Cold read</span></button>';
     }else{
       // B: the side menu's mode picks what the one button does
