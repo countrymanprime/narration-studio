@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { recordedThroughSchema } from './manuscript';
 import type {
-  ProductionBurndownPoint,
   ProductionChapter,
   ProductionMilestone,
   ProductionNextUpItem,
@@ -142,5 +141,3 @@ export const productionReportPreviewSchema = z.strictObject({
   contractedAmountIncluded: z.boolean(),
   include: productionReportIncludeSchema,
 }) satisfies z.ZodType<ProductionReportPreview>;
-
-export const productionBurndownSchema = z.array(z.object({ date: calendarDate, hoursLogged: z.number() })) satisfies z.ZodType<ProductionBurndownPoint[]>;

@@ -256,6 +256,44 @@ function M.add_chain(add, name, path)
   return index
 end
 
+-- `track` followed by every track inside it when it is a folder: the tracks after it until its folder depth closes, read from
+-- I_FOLDERDEPTH (1 opens a folder, 0 changes nothing, -N closes N levels; REAPER 7.82, docs/research/2026-10-30-booth-sub-track-recording.md,
+-- section 6a, row 1). A track that is not a folder answers itself alone. Reads only.
+function M.with_descendants(track)
+  local out = { track }
+  local depth = reaper.GetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH')
+  if depth <= 0 then
+    return out
+  end
+  local count = reaper.CountTracks(0)
+  local index = 0
+  while index < count and reaper.GetTrack(0, index) ~= track do
+    index = index + 1
+  end
+  index = index + 1
+  while depth > 0 and index < count do
+    local inner = reaper.GetTrack(0, index)
+    out[#out + 1] = inner
+    depth = depth + reaper.GetMediaTrackInfo_Value(inner, 'I_FOLDERDEPTH')
+    index = index + 1
+  end
+  return out
+end
+
+-- The bridge's own cursor moves (set_cursor, punch_to) told to every module that listens: narration_transport.lua's stop
+-- guard puts back a seek REAPER makes to a take's start just after a stop, and must never undo a move the app asked for
+-- (docs/research/2026-10-30-booth-sub-track-recording.md, section 6b). Modules share this core, so one list serves them all;
+-- each bridge start loads a fresh core (narration_ui_bridge.lua's dofile), so listeners never stack across starts.
+local cursor_listeners = {}
+function M.on_cursor_moved(listener)
+  cursor_listeners[#cursor_listeners + 1] = listener
+end
+function M.cursor_moved()
+  for _, listener in ipairs(cursor_listeners) do
+    listener()
+  end
+end
+
 M.SEP = SEP
 M.join = join
 M.encode = encode

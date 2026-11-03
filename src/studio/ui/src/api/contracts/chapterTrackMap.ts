@@ -80,54 +80,6 @@ export type ChapterTrackMatch = {
   recordedEnd: RecordedEnd | null;
 };
 
-/** One chapter a track may hold (the matcher's track-to-chapter direction). */
-export type ChapterCandidate = {
-  chapterId: string;
-  chapterTitle: string;
-  score: number;
-  source: ChapterTrackMatchSource;
-  region: { name: string; start: number; end: number } | null;
-};
-
-/** Which saved tracks a suggestion was read from: the record-armed ones, else the selected ones, else none. */
-export type ChapterSuggestionBasis = 'armed' | 'selected' | 'none';
-
-/** ChapterSuggestion's answer: the chapter the narrator is most likely recording, read from the selected .rpp
- * as of its last save. `chapter` is set only when `status` is
- * confirmed or matched; otherwise `candidates` are choices to offer, never to preselect. `track` is the one track read,
- * or null when several were (or none). */
-export type ChapterSuggestion = {
-  projectFile: string;
-  savedAt: string;
-  basis: ChapterSuggestionBasis;
-  track: { guid: string; name: string; index: number } | null;
-  status: ChapterTrackMatchStatus;
-  chapter: ChapterCandidate | null;
-  candidates: ChapterCandidate[];
-  warnings: Array<ChapterTrackMatchWarning | 'confirmed-chapter-missing'>;
-};
-
-/** One requested GUID's answer within ChaptersForTracks: the matcher's track-to-chapter direction (as `chapter`,
- * `candidates` and `warnings`) when the GUID resolved to a track in the project, or `error` when it did not (a stale
- * finding after a project switch or a deleted item never fails the other GUIDs in the same call). `status` is `''`
- * only alongside `error`. */
-export type ChaptersForTracksEntry = {
-  status: ChapterTrackMatchStatus | '';
-  chapter: ChapterCandidate | null;
-  candidates: ChapterCandidate[];
-  warnings: Array<ChapterTrackMatchWarning | 'confirmed-chapter-missing'>;
-  error?: string;
-};
-
-/** ChaptersForTracks' answer: the Review page's chapter grouping for findings that carry only a track, item or take GUID
- * (src/studio/desktop/internal/findings.Source) rather than a manuscript-anchored chapter id. `tracks` is keyed by exactly the
- * GUID requested (a track, item or take GUID all resolve through the item's or take's own track). */
-export type ChaptersForTracksResult = {
-  projectFile: string;
-  savedAt: string;
-  tracks: Record<string, ChaptersForTracksEntry>;
-};
-
 /** ChapterTrackSet's answer: the chapter's one link as written, the link the track held for
  * another chapter before (null when the track was free), and every link that remains. */
 export type ChapterTrackSetResult = {
@@ -260,8 +212,6 @@ export interface ChapterTrackMapApi {
   chapterTrackMapList(): Promise<ChapterTrackMapping>;
   /** Confirms trackGuid as chapterId's link; refuses a chapterId outside the current manuscript. */
   chapterTrackMapConfirm(trackGuid: string, chapterId: string): Promise<TrackMapping>;
-  /** Clears trackGuid's confirmed link, if any, and returns the links that remain. */
-  chapterTrackMapClear(trackGuid: string): Promise<ChapterTrackMapping>;
   /** Makes trackGuid chapterId's one link, replacing its old one; `displaced` names the chapter the track was taken from. */
   chapterTrackSet(chapterId: string, trackGuid: string): Promise<ChapterTrackSetResult>;
   /** Adds a track named after chapterId in the DAW (at the end, unsaved) and links it as chapterTrackSet would; a DAW that cannot is a refusal. */
@@ -272,11 +222,6 @@ export interface ChapterTrackMapApi {
   chapterTrackLinks(): Promise<ChapterTrackLinks>;
   /** Finds the track holding chapterId in the selected .rpp and where its recorded audio ends; read-only. */
   chapterTrackMatch(chapterId: string): Promise<ChapterTrackMatch>;
-  /** Suggests the chapter being recorded from the selected .rpp's armed (else selected) track; read-only. */
-  chapterSuggestion(): Promise<ChapterSuggestion>;
-  /** The chapter each of guids' track, item or take belongs to, in the selected .rpp; read-only. One GUID the project
-   * no longer has answers with `error` rather than failing the others. */
-  chaptersForTracks(guids: string[]): Promise<ChaptersForTracksResult>;
   /** Plans one REAPER region per linked chapter, plus the credits on the given tracks ('' leaves one out); read-only. */
   chapterRegionsPreview(openingTrackGuid: string, closingTrackGuid: string): Promise<ChapterRegionPlan>;
   /** Recomputes the plan and sends it to REAPER in one undo step; `update` moves a region whose title already exists. */

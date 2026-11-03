@@ -10,10 +10,10 @@ import (
 )
 
 // Punch and roll's word-to-time anchors (src/studio/integrations/reaper/narration_punch.lua: live anchors first,
-// offline alignment as the fallback, alignword.go and docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from). While a live session reads a chapter, the host
+// offline alignment as the fallback, alignword.go and docs/architecture/manuscript-teleprompter.md#punch-anchors-and-word-alignment). While a live session reads a chapter, the host
 // polls REAPER's play position (bridge.Puncher.PlayPosition, from src/studio/desktop's own poll loop, never from this
-// DAW-agnostic package) and pairs it with the word the reader is on, appending an Anchor here. "Punch from here" on a
-// flag then asks ResolveWordTime for that word's project time before moving the cursor.
+// DAW-agnostic package) and pairs it with the word the reader is on, appending an Anchor here. ResolveWordTime places a
+// word from them; the anchor-based punch that asked it was removed (#2754), so no host code reads them now.
 //
 // This file only reads and writes the anchors file and resolves a word from what it holds; it has no REAPER
 // dependency, so a fake project directory is enough to test it.
@@ -69,8 +69,7 @@ func LoadAnchors(project, chapterID string) ([]Anchor, error) {
 }
 
 // writeAnchors replaces chapterID's anchors file with anchors, through a temp file and a rename (WriteReading's own
-// pattern). An empty list still writes a (near-empty) file, so DropAnchorsFrom can clear a punched word's anchors
-// rather than leaving stale ones behind.
+// pattern).
 func writeAnchors(project, chapterID string, anchors []Anchor) error {
 	if project == "" {
 		return errors.New("no project is open")
@@ -125,22 +124,6 @@ func AppendAnchor(project, chapterID string, anchor Anchor) error {
 // maxAnchors bounds an anchors file: about ten minutes of polling at the poll loop's own interval (punchPollInterval,
 // src/studio/desktop's own poller), comfortably more than ResolveWordTime ever needs to bracket or extrapolate from.
 const maxAnchors = 400
-
-// DropAnchorsFrom removes every anchor at or after word: a punch to word is the narrator about to re-record from
-// there, so an anchor recorded during the take being replaced would misplace the next punch.
-func DropAnchorsFrom(project, chapterID string, word int) error {
-	anchors, err := LoadAnchors(project, chapterID)
-	if err != nil {
-		return err
-	}
-	kept := anchors[:0]
-	for _, anchor := range anchors {
-		if anchor.Word < word {
-			kept = append(kept, anchor)
-		}
-	}
-	return writeAnchors(project, chapterID, kept)
-}
 
 // A punch time's three sources, as the UI shows them next to the resolved time and pre-roll
 // SourceAnchor is ResolveWordTime's exact or bracketed answer from the live anchors;

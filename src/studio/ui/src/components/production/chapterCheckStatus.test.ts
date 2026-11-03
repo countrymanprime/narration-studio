@@ -29,8 +29,6 @@ const syncRow: ChapterSyncChapter = {
   lastChanged: null,
   pickupTrackGuid: '',
   pickupTrackName: '',
-  pickupsScannedAt: null,
-  pickupsChanged: false,
 };
 
 describe('chapterCheckStatus', () => {

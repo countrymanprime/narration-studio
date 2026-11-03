@@ -170,12 +170,6 @@ export type ProductionReportPreview = {
   include: ProductionReportInclude;
 };
 
-/**
- * One calendar date of the book's logged-hours burndown (ProductionBurndown): every hour logged by the end of that day, added up from every earlier day. Data only - a chart
- * primitive would plot it; none does yet.
- */
-export type ProductionBurndownPoint = { date: string; hoursLogged: number };
-
 export interface ProductionApi {
   /** Reads this project's deadline, contracted amount and milestones; an empty plan when none are set. */
   productionPlan(): Promise<ProductionPlan>;
@@ -211,7 +205,4 @@ export interface ProductionApi {
    * a project.
    */
   productionStatusReportPreview(include: ProductionReportInclude): Promise<ProductionReportPreview>;
-  /** The book's logged hours by day, one point per day from the first stopped session to the last; empty until one
-   * is logged. Data only, for a chart primitive that does not exist yet. */
-  productionBurndown(): Promise<ProductionBurndownPoint[]>;
 }

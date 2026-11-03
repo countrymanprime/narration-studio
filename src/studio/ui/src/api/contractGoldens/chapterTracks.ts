@@ -4,8 +4,6 @@ import { chapterSyncPreviewSchema, chapterSyncStateSchema } from '../schemas/cha
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
-  chaptersForTracksSchema,
-  chapterSuggestionSchema,
   chapterTrackLinksSchema,
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
@@ -43,9 +41,5 @@ export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'chapter-track-create-created.json': chapterTrackCreateSchema,
   'chapter-track-create-refused.json': chapterTrackCreateSchema,
   'chapter-track-unlink.json': chapterTrackMappingSchema,
-  'chapter-suggestion-matched.json': chapterSuggestionSchema,
-  'chapter-suggestion-ambiguous.json': chapterSuggestionSchema,
-  'chapter-suggestion-none.json': chapterSuggestionSchema,
-  'chapters-for-tracks.json': chaptersForTracksSchema,
   'track-select-results.json': z.record(z.string(), trackSelectResultSchema),
 };

@@ -33,7 +33,7 @@ especially welcome:
 - Path traversal, command injection or unsafe file handling when the app opens a project, a manuscript, an archive, a REAPER
   project or the audio it names, or when a sidecar reads the audio and writes the files an analysis manifest names: a read or
   write outside the files the narrator chose or the project names, or a parsed file that runs code or exhausts memory (threat model
-  rows 4e, 4f, 6a to 6e, 6g, 6j and 1g).
+  rows 4e, 6a to 6e, 6g, 6j and 1g).
 - A file the app writes for the narrator to share (the Delivery report, the production status report) that lands outside the
   folder it is meant for, overwrites an existing file, carries a path, an amount or text the narrator did not choose to include,
   or holds a cell that runs as a formula in a spreadsheet (row 6h;
