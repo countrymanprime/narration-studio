@@ -73,7 +73,8 @@ export const LongName: Story = {
   ),
   play: async ({ canvasElement }) => {
     const select = within(canvasElement).getByRole('combobox', { name: 'Microphone' });
-    await expect(getComputedStyle(select).textOverflow).toBe('ellipsis');
+    // `truncate` is Tailwind's overflow-hidden, text-ellipsis and whitespace-nowrap (the unit run has no stylesheet, so the class is what it can see).
+    await expect(select.classList.contains('truncate')).toBe(true);
     await expect(select.getBoundingClientRect().right).toBeLessThanOrEqual(canvasElement.getBoundingClientRect().right);
     await expect(select.getAttribute('title')).toMatch(/goes on and on/);
   },
