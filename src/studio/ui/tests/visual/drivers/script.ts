@@ -92,7 +92,10 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByText('Bookmark added.').waitFor();
     // The new bookmark's editor opens by itself; the picture is the toast and the ribbon, so close the editor.
     await page.keyboard.press('Escape');
-    // Focus returns to the ribbon, whose tooltip would be portalled outside the landmarks.
+    // Focus returns to the ribbon after the popover has closed, not with the Escape press, and its tooltip would be portalled outside the
+    // landmarks. Blur only once focus has landed: a blur sent before it finds the body, does nothing, and the focus that follows opens the
+    // tooltip for good (#2849).
+    await page.waitForFunction(() => document.activeElement?.closest('[data-bm]') != null);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     // Bounded, and not swallowed: a tooltip that stays fails here and says so, instead of using up the test's time.
     await page.locator('[role="tooltip"]').waitFor({ state: 'detached', timeout: 5_000 });
