@@ -146,4 +146,20 @@ describe('one pronunciation, two pages (#2595)', () => {
     expect(fromScript![0]).toBe(fromBible![0]);
     expect(fromScript![1]).toBe(fromBible![1]);
   });
+
+  it("a dictionary candidate picked on Script's card is the Story Bible's value too, and Undo takes it back on both", async () => {
+    await mountBoth();
+    const inBible = await editAliceInTheStoryBible();
+    const before = value(inBible);
+    await openAliceOnScript();
+    await userEvent.click(within(script()).getByRole('button', { name: 'From the dictionaries' }));
+    const list = await within(script()).findByRole('list', { name: 'Dictionary candidates for Alice' });
+    await userEvent.click(within(list).getByRole('button', { name: /^Use eSpeak NG/ }));
+    await waitFor(() => expect(value(within(bible()).getByLabelText('How I say Alice'))).not.toBe(before));
+    const picked = value(within(bible()).getByLabelText('How I say Alice'));
+    expect(value(within(script()).getByLabelText('How I say Alice'))).toBe(picked);
+    await act(async () => void (await journal.undoLast()));
+    await waitFor(() => expect(value(within(bible()).getByLabelText('How I say Alice'))).toBe(before));
+    await waitFor(() => expect(value(within(script()).getByLabelText('How I say Alice'))).toBe(before));
+  });
 });
