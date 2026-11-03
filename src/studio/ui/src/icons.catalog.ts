@@ -51,6 +51,7 @@ import {
   faFlagCheckered,
   faFolder,
   faFolderOpen,
+  faFolderPlus,
   faFont,
   faForwardStep,
   faGauge,
@@ -144,6 +145,7 @@ export const TOOLTIP_VERBS = [
   'Close',
   'Compare',
   'Copy',
+  'Create',
   'Delete',
   'Dismiss',
   'Download',
@@ -274,6 +276,9 @@ export const CATALOG = {
   // REAPER's folder tracks in the Tracks card and the track picker.
   trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
   trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
+  // Chapter links: the DAW adds a chapter's track (Flat) or its folder with a Narrator track (Voice folders), named after it, and links it (#2840).
+  createChapterTrack: action(faPlus, 'add', 'Create a track for this chapter'),
+  createChapterFolder: action(faFolderPlus, 'add a folder of tracks', 'Create a folder for this chapter'),
   folderCaret: action(faChevronRight, 'expand or collapse a folder', 'Toggle the folder'),
   openAllFolders: action(faAnglesDown, 'open every folder', 'Open all folders'),
   closeAllFolders: action(faAnglesUp, 'close every folder', 'Close all folders'),

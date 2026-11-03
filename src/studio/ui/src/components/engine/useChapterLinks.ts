@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
+import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
 export type ChapterLinks = {
-  /** The tracks in the project the links are read against. */
+  /** The tracks in the project the links are read against, with any track `create` added that the track list does not have yet. */
   tracks: Track[];
   /** The chapter list as the host sends it: the opening and closing credits are the first and last of them. */
   chapters: ManuscriptChapter[];
@@ -16,11 +17,23 @@ export type ChapterLinks = {
   error: string;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
+  /** The chapter whose track `create` is adding, or empty. */
+  creatingChapterId: string;
   /** Replaces the chapter's link with this track, then re-reads. */
   set: (chapterId: string, trackGuid: string) => void;
   /** Clears every link the chapter holds, then re-reads. */
   unlink: (chapterId: string) => void;
+  /** Has the DAW add a track named after the chapter (a folder with a Narrator track in Voice folders) and link it (chapterTrackCreate), then
+   * re-reads. Answers the host's result, or undefined when another change is in flight (a double press adds one track). A failed call rejects. */
+  create: (chapterId: string) => Promise<ChapterTrackCreateResult | undefined>;
 };
+
+/** The tracks a created answer added, as the track list draws them, so the row is Linked before the next read of the DAW's tracks lists them. */
+function createdTracks(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>): Track[] {
+  const base = { color: '', muted: false, soloed: false, items: [] };
+  const folder: Track = { ...base, ...result.track, depth: 0, isFolder: Boolean(result.voice) };
+  return result.voice ? [folder, { ...base, ...result.voice, depth: 1, isFolder: false }] : [folder];
+}
 
 /**
  * The one reader of the chapter-to-track mapping in the audio engine panel. The Chapter links section, the Link chapters dialog and the
@@ -35,6 +48,9 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
+  const [creatingChapterId, setCreatingChapterId] = useState('');
+  // Tracks create added that the caller's track list may not have read yet; dropped from view once it lists them.
+  const [added, setAdded] = useState<Track[]>([]);
   // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
   const inFlight = useRef(false);
 
@@ -77,8 +93,44 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   };
   const unlink = (chapterId: string) => change(chapterId, () => chapterTrackMap.chapterTrackUnlink(chapterId));
 
-  // The chapter list holds the credits, so they are rows like any chapter.
-  const rows = useMemo(() => chapterTrackRows(chapters, tracks, mappings), [chapters, tracks, mappings]);
+  const create = async (chapterId: string): Promise<ChapterTrackCreateResult | undefined> => {
+    if (inFlight.current) return undefined;
+    inFlight.current = true;
+    setBusyChapterId(chapterId);
+    setCreatingChapterId(chapterId);
+    setError('');
+    try {
+      const result = await chapterTrackMap.chapterTrackCreate(chapterId);
+      if (result.outcome === 'created') {
+        setAdded((previous) => [...previous, ...createdTracks(result)]);
+        // The track was added and linked: a re-read that fails is the table's error, never a failed create.
+        await reload().then(onChanged, (reason: unknown) => setError(String(reason)));
+      }
+      return result;
+    } finally {
+      inFlight.current = false;
+      setBusyChapterId('');
+      setCreatingChapterId('');
+    }
+  };
 
-  return { tracks, chapters, mappings, rows, error, busyChapterId, set, unlink };
+  // Once the track list has read a created track, it is the list's: a track deleted in the DAW afterwards must show as missing.
+  useEffect(() => {
+    const known = new Set(tracks.map((track) => track.guid));
+    setAdded((previous) => {
+      const next = previous.filter((track) => !known.has(track.guid));
+      return next.length === previous.length ? previous : next;
+    });
+  }, [tracks]);
+
+  const shown = useMemo(() => {
+    const known = new Set(tracks.map((track) => track.guid));
+    const pending = added.filter((track) => !known.has(track.guid));
+    return pending.length === 0 ? tracks : [...tracks, ...pending];
+  }, [tracks, added]);
+
+  // The chapter list holds the credits, so they are rows like any chapter.
+  const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
+
+  return { tracks: shown, chapters, mappings, rows, error, busyChapterId, creatingChapterId, set, unlink, create };
 }
