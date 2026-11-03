@@ -100,7 +100,7 @@ the Narrator, the one character it also voices. With the **Flat** layout the row
 
 ![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
 
-**Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own, which is what the Effects tab's coverage strip sets. The **?** says more.
+**Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own. The Effects tab's cap box always sets the project's own value, so typing there creates that override; **Use computer setting** removes it. The **?** says more.
 
 ![Settings - Recording & DAW, Effects: the Effects coverage cap row, 10 %, with Override for this project](../../images/ui/settings-effects-cap.webp)
 

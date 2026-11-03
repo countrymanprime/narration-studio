@@ -1,7 +1,7 @@
 // What the narrator chose for the sound the Editing page plays: the volume, mute, speed and output device. Kept by this browser window, as the
 // take tone and the reader's preferences are (storage can be missing or blocked, and then the choices hold for the window only). The device is kept
 // by name, not by id, for the reason `voicesamples/audioOutputs.ts` gives.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { announceBrowserSettingChange } from '../../browserSettings';
 import { setOutput } from '../voicesamples/audioOutputs';
 
@@ -51,13 +51,20 @@ export function writeOutputPrefs(prefs: OutputPrefs): void {
 
 export function useOutputPrefs(): { prefs: OutputPrefs; change: (patch: Partial<OutputPrefs>) => void } {
   const [prefs, setPrefs] = useState(readOutputPrefs);
-  // Worked out and saved here, not inside the state updater, which React may run twice and which must not write storage.
-  const latest = useRef(prefs);
+  // A change is made on what is stored now, not on what this window read when it opened, so a field another window changed meanwhile is kept
+  // (qa-breaker B1). It is worked out and saved here, not inside the state updater, which React may run twice and which must not write storage.
   const change = useCallback((patch: Partial<OutputPrefs>) => {
-    const next = { ...latest.current, ...patch };
-    latest.current = next;
+    const next = { ...readOutputPrefs(), ...patch };
     writeOutputPrefs(next);
     setPrefs(next);
+  }, []);
+  // The browser says when another window wrote the choices.
+  useEffect(() => {
+    const heard = (event: StorageEvent) => {
+      if (event.key === null || event.key === OUTPUT_STORAGE_KEY) setPrefs(readOutputPrefs());
+    };
+    window.addEventListener('storage', heard);
+    return () => window.removeEventListener('storage', heard);
   }, []);
   return { prefs, change };
 }

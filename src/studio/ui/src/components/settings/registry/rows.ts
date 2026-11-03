@@ -160,7 +160,7 @@ export const ROWS: readonly SettingMeta[] = [
     unit: '%',
     field: { tool: 'Editing', key: 'fx_cap_pct' },
     desc: 'How much of a chapter effects may cover before a warning.',
-    more: 'The share of a chapter, a whole percent from 1 to 100, that effects may cover before the Effects tab warns and Add effect says so. Ten percent unless you change it. Set here it is the computer’s value; a project may use its own, and the Effects tab’s coverage strip sets that project value.',
+    more: 'The share of a chapter, a whole percent from 1 to 100, that effects may cover before the Effects tab warns and Add effect says so. Ten percent unless you change it. Set here it is the computer’s value; a project may use its own. Typing the cap on the Effects tab sets it for that project only, which is the “Override for this project” here.',
     used: ['editing'],
     also: 'Editing › Effects',
     syn: 'effects cap coverage warning fx percent limit chapter',
@@ -765,7 +765,7 @@ export const ROWS: readonly SettingMeta[] = [
     desc: 'Speed, volume and output for the sound Editing plays.',
     more: 'The speed (the pitch of the voice is kept), the volume, whether the sound is silenced and which output it plays on, for the chapter and the takes you listen to on the Editing page. Its Output controls beside the transport bar change the same choices. A saved output that is not connected stays chosen, and the sound plays on the system default until it is back. With a DAW linked, Editing plays through the DAW and its own level; these choices are for the sound the app plays itself.',
     used: ['editing'],
-    also: 'Editing › Output',
+    also: 'Editing › Output buttons',
     syn: 'playback speed volume mute silence output device speakers headphones listen rate',
   },
   {
