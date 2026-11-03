@@ -38,6 +38,8 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
   const [written, setWritten] = useState<ProductionReportExport>();
   const [exportProblem, setExportProblem] = useState<string>();
   const [writing, setWriting] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [openProblem, setOpenProblem] = useState<string>();
   const latest = useRef(0);
 
   useEffect(() => {
@@ -73,6 +75,15 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
     } finally {
       setWriting(false);
     }
+  };
+
+  const openFolder = () => {
+    setOpening(true);
+    setOpenProblem(undefined);
+    production
+      .productionOpenReportsFolder()
+      .catch((error: unknown) => setOpenProblem(`The folder could not be opened: ${apiErrorMessage(error)}`))
+      .finally(() => setOpening(false));
   };
 
   const changeSection = (section: ReportSection, next: boolean) => {
@@ -148,15 +159,24 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
           )}
           {written && (
             <div aria-live="polite" className="text-sm">
-              <p>
-                Wrote <span className="font-medium [overflow-wrap:anywhere]">{written.htmlFile}</span> and{' '}
-                <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
-              </p>
+              {/* The sentence and the folder button share a line, as the Delivery built list does. */}
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                <p>
+                  Wrote <span className="font-medium [overflow-wrap:anywhere]">{written.htmlFile}</span> and{' '}
+                  <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
+                </p>
+                <IconButton action="openFolder" onClick={openFolder} pending={opening} />
+              </div>
               <p className="mt-1" style={MUTED}>
                 {written.contractedAmountIncluded
                   ? 'The contracted amount and effective rate are included.'
                   : 'The contracted amount and effective rate are left out.'}
               </p>
+              {openProblem && (
+                <p role="alert" className="mt-1" style={DANGER}>
+                  {openProblem}
+                </p>
+              )}
             </div>
           )}
         </div>
