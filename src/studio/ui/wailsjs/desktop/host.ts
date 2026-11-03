@@ -50,6 +50,7 @@ export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
 /**
  * AssetsList is every approved asset of every kind with its state, size, publisher, licence and provenance links, where it is installed,
  * when, and the download that is running for it (so a page opened while one runs can follow it). It reads no file contents.
+ * The Booth's record press asks it first (the speech model check), so it begins a press on the record-press timeline.
  */
 export function AssetsList(): $CancellablePromise<string> {
     return $Call.ByID(2175855371);

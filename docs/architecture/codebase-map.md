@@ -77,7 +77,7 @@ The product's earlier name was retired before the first public release, with no 
 
 ## Stable boundaries
 
-- `src/studio/desktop/` is the Go/Wails desktop host, on Wails v3 beta ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)). It exposes generated, typed Wails
+- `src/studio/desktop/` is the Go/Wails desktop host, on Wails v3 ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)). It exposes generated, typed Wails
   bindings and native events only; it has no loopback HTTP surface, port, or
   browser fallback. `main.go` creates the application and its one window, and every other call into Wails
   (events, the window, file dialogs, the browser, quitting) goes through `wailsapp.go`. Its Go module path is
