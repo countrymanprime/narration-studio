@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '../primitives/Button';
 import { CapabilityGate } from '../primitives/CapabilityGate';
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
@@ -28,6 +28,20 @@ export function DawToolsMenu({
   whenUnsupported?: 'show' | 'hide';
 }) {
   const [open, setOpen] = useState<DawToolId>();
+  const toolbar = useRef<HTMLDivElement>(null);
+  // The button that began the chain of dialogs. A tool can open another in its place (render prep hands off to regions), and the dialog
+  // that did the opening is gone by the time the last one closes, so the dialogs' own return of focus has nowhere to go: this puts it back.
+  const origin = useRef<DawToolId>(undefined);
+  const openFromToolbar = (id: DawToolId) => {
+    origin.current = id;
+    setOpen(id);
+  };
+  const close = () => {
+    const from = origin.current;
+    origin.current = undefined;
+    setOpen(undefined);
+    if (from) setTimeout(() => toolbar.current?.querySelector<HTMLElement>(`[data-daw-tool="${from}"]`)?.focus(), 0);
+  };
   const facts = { forAudacity, trackCount: links.tracks.length, chapterCount: links.chapters.length };
   const tools = DAW_TOOLS.filter((tool) => groups.includes(tool.group));
   const shown = tools.filter((tool) => whenUnsupported === 'show' || dawToolGate(tool, facts).level !== 'unsupported');
@@ -35,15 +49,15 @@ export function DawToolsMenu({
   return (
     <>
       {shown.length > 0 && (
-        <div className="@container">
+        <div ref={toolbar} className="@container">
           <Toolbar label={label} className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
             {shown.map((tool) => (
-              <ToolButton key={tool.id} tool={tool} gate={dawToolGate(tool, facts)} onOpen={() => setOpen(tool.id)} />
+              <ToolButton key={tool.id} tool={tool} gate={dawToolGate(tool, facts)} onOpen={() => openFromToolbar(tool.id)} />
             ))}
           </Toolbar>
         </div>
       )}
-      {dialog && <dialog.dialog links={links} onClose={() => setOpen(undefined)} onOpenTool={setOpen} />}
+      {dialog && <dialog.dialog links={links} onClose={close} onOpenTool={setOpen} />}
     </>
   );
 }
@@ -54,7 +68,7 @@ function ToolButton({ tool, gate, onOpen }: { tool: DawTool; gate: Parameters<ty
   return (
     <ToolbarButton
       render={
-        <GatedButton gate={gate} onClick={onOpen}>
+        <GatedButton gate={gate} onClick={onOpen} data-daw-tool={tool.id}>
           {tool.label}
         </GatedButton>
       }
@@ -63,7 +77,16 @@ function ToolButton({ tool, gate, onOpen }: { tool: DawTool; gate: Parameters<ty
 }
 
 // Takes the props the toolbar item hands its control and gives them to the button, behind the gate.
-function GatedButton({ gate, children, ...props }: { gate: Parameters<typeof CapabilityGate>[0]['capability']; children: string; onClick: () => void }) {
+function GatedButton({
+  gate,
+  children,
+  ...props
+}: {
+  gate: Parameters<typeof CapabilityGate>[0]['capability'];
+  children: string;
+  onClick: () => void;
+  'data-daw-tool': DawToolId;
+}) {
   return (
     <CapabilityGate capability={gate}>
       <Button {...props} variant="secondary" className="w-full">

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -31,10 +31,10 @@ function links(overrides: Partial<ChapterLinks> = {}): ChapterLinks {
   };
 }
 
-function renderMenu(props: Partial<Parameters<typeof DawToolsMenu>[0]> = {}) {
+function renderMenu(props: Partial<Parameters<typeof DawToolsMenu>[0]> = {}, initial: Parameters<typeof createMockApi>[1] = {}) {
   render(
     <MemoryRouter>
-      <ApiProvider api={createMockApi()}>
+      <ApiProvider api={createMockApi({}, initial)}>
         <DawToolsMenu label="DAW tools" groups={DAW_TOOL_GROUPS} links={links()} forAudacity={false} {...props} />
       </ApiProvider>
     </MemoryRouter>,
@@ -73,9 +73,26 @@ describe('DawToolsMenu', () => {
 
   it('hands Prepare chapter render over to Create chapter regions', async () => {
     const user = userEvent.setup();
-    renderMenu();
+    renderMenu({}, { renderConfig: 'no-regions' });
     await user.click(screen.getByRole('button', { name: 'Prepare chapter render…' }));
-    expect(await screen.findByRole('dialog', { name: /render/i })).toBeTruthy();
+    const render = await screen.findByRole('dialog', { name: /render/i });
+    await user.click(await within(render).findByRole('button', { name: /create chapter regions/i }));
+    expect(await screen.findByRole('dialog', { name: /regions/i })).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: /render/i })).toBeNull();
+  });
+
+  it('returns focus to the toolbar button that started a chain of tools, however many dialogs it passed through', async () => {
+    const user = userEvent.setup();
+    renderMenu({}, { renderConfig: 'no-regions' });
+    const start = screen.getByRole('button', { name: 'Prepare chapter render…' });
+    await user.click(start);
+    const render = await screen.findByRole('dialog', { name: /render/i });
+    await user.click(await within(render).findByRole('button', { name: /create chapter regions/i }));
+    const regions = await screen.findByRole('dialog', { name: /regions/i });
+    expect(regions).toBeTruthy();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(start));
   });
 
   it('hides a tool the gate calls unsupported when asked to, and leaves the others', () => {
