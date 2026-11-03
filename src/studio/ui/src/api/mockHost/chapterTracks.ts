@@ -46,9 +46,10 @@ export function createChapterTracksMock(
 ) {
   // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
   const project = initial.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : initial.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
-  if (initial.voiceFolders && !s.chapterTrackMappings.some((link) => link.chapterId === WIRE_CHAPTERS[0].id)) {
+  // A Voice folders project links Chapter 1 to its folder, in place of the default seed's link to its first track.
+  if (initial.voiceFolders) {
     s.chapterTrackMappings = [
-      ...s.chapterTrackMappings,
+      ...s.chapterTrackMappings.filter((link) => link.chapterId !== WIRE_CHAPTERS[0].id),
       {
         trackGuid: WIRE_VOICE_FOLDER_GUID,
         chapterId: WIRE_CHAPTERS[0].id,
