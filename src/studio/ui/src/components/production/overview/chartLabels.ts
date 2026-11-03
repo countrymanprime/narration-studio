@@ -57,6 +57,12 @@ const crosses = (s: Seg, r: Rect, pad: number): boolean => {
   return true;
 };
 
+/** Whether segments `a` and `b` cross. */
+const meet = (a: Seg, b: Seg): boolean => {
+  const side = (s: Seg, x: number, y: number): number => Math.sign((s.x2 - s.x1) * (y - s.y1) - (s.y2 - s.y1) * (x - s.x1));
+  return side(a, b.x1, b.y1) * side(a, b.x2, b.y2) < 0 && side(b, a.x1, a.y1) * side(b, a.x2, a.y2) < 0;
+};
+
 const overlaps = (a: Rect, b: Rect): boolean => a.x1 < b.x2 + PAD && a.x2 > b.x1 - PAD && a.y1 < b.y2 + PAD && a.y2 > b.y1 - PAD;
 
 const inside = (r: Rect, b: Bounds): boolean => r.x1 >= b.left && r.x2 <= b.right && r.y1 >= b.top && r.y2 <= b.bottom;
@@ -72,7 +78,7 @@ export const keepInside = (p: Placement, text: string, b: Bounds): Placement => 
 
 /**
  * Puts `text` beside `at`, on the first of `prefer` whose box fits inside `bounds` and crosses no segment of `lines` and no rectangle of `taken`.
- * When every side is crossed it slides along the rows above or below the point (a short way) to the nearest clear spot, and failing that takes the side that crosses fewest (the earlier preferred side on a tie); when none fits inside the bounds it
+ * When every side is crossed it slides along the rows just above or below the point (a short way) to the nearest clear spot, and failing that takes the side that crosses fewest (the earlier preferred side on a tie); when none fits inside the bounds it
  * moves the first preferred side in.
  */
 export function placeLabel(text: string, at: { x: number; y: number }, bounds: Bounds, lines: Seg[], taken: Rect[], prefer: Side[]): Placement {
@@ -88,7 +94,7 @@ export function placeLabel(text: string, at: { x: number; y: number }, bounds: B
   // No preferred side is clear (a line close to the point on both): slide the label along the row above or below the point to the nearest clear spot.
   const w = textWidth(text);
   const slid: Placement[] = [];
-  for (let k = 0; k <= 7; k++) {
+  for (let k = 0; k <= 2; k++) {
     for (const dy of [-GAP - 8 * k, GAP + ASCENT - 2 + 8 * k]) {
       for (let x1 = bounds.left; x1 + w <= bounds.right; x1 += SLIDE) slid.push({ x: x1, y: at.y + dy, anchor: 'start' });
     }
@@ -99,7 +105,9 @@ export function placeLabel(text: string, at: { x: number; y: number }, bounds: B
     .sort((a, b) => away(a) - away(b))
     .find((p) => {
       const r = labelRect(p, text);
-      return !lines.some((s) => crosses(s, r, PAD)) && !taken.some((t) => overlaps(r, t));
+      // A line between the label and its point would make it read as the line's: the label must be reachable from the point without crossing one.
+      const link: Seg = { x1: at.x, y1: at.y, x2: Math.min(Math.max(at.x, r.x1), r.x2), y2: Math.min(Math.max(at.y, r.y1), r.y2) };
+      return !lines.some((s) => crosses(s, r, PAD) || meet(s, link)) && !taken.some((t) => overlaps(r, t));
     });
   if (clear) return clear;
   return best ? best.p : keepInside(place(prefer[0], at), text, bounds);

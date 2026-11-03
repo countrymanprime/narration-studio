@@ -48,6 +48,17 @@ describe('placeLabel', () => {
     expect(lines.some((l) => l.x1 >= r.x1 && l.x1 <= r.x2)).toBe(false);
   });
 
+  it('never puts a line between a slid label and its point', () => {
+    const lines: Seg[] = [
+      { x1: 208, y1: 0, x2: 208, y2: 300 }, // right beside the point
+      { x1: 150, y1: 0, x2: 150, y2: 300 }, // and one on the left
+    ];
+    const p = placeLabel('today', at, BOUNDS, lines, [], ['right-below', 'left-below']);
+    const r = labelRect(p, 'today');
+    const between = lines.some((l) => (l.x1 > at.x && l.x1 < r.x1) || (l.x1 < at.x && l.x1 > r.x2));
+    expect(between).toBe(false);
+  });
+
   it('crosses as few lines as it can when nowhere is clear', () => {
     const lines: Seg[] = Array.from({ length: 60 }, (_, i) => ({ x1: 28 + i * 8, y1: 0, x2: 28 + i * 8, y2: 300 }));
     lines.push({ x1: 215, y1: 0, x2: 215, y2: 300 }, { x1: 221, y1: 0, x2: 221, y2: 300 }, { x1: 227, y1: 0, x2: 227, y2: 300 });
