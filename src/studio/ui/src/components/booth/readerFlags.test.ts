@@ -154,3 +154,14 @@ describe('flags the confirmation pass settled', () => {
     expect(saves[1]).not.toHaveProperty('check');
   });
 });
+
+describe('flagSaves and the confirmation pass', () => {
+  it('leaves out a flag the second listen cleared, dismissed or not', () => {
+    const cleared: TeleprompterFlag = { ...flag(1, 'skipped', 7, 9), check: 'cleared' };
+    expect(flagSaves(rows, [cleared], new Set()).saves).toEqual([]);
+    expect(flagSaves(rows, [cleared], new Set([1])).saves).toEqual([]);
+    const { saves, flagIds } = flagSaves(rows, [cleared, flag(3, 'skipped', 7, 9)], new Set());
+    expect(saves).toHaveLength(1);
+    expect(flagIds).toEqual([3]);
+  });
+});

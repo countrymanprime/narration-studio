@@ -251,6 +251,7 @@ export function reduceEvent(session: Session, event: TeleprompterEvent): Session
       return session.flags.some((flag) => flag.id === event.id || sameFlag(flag, event)) ? session : { ...session, flags: [...session.flags, event] };
     // The confirmation pass settled a flag the live engine raised: remember the verdict on the flag (a second one for it changes nothing).
     case 'flag_check':
+      if (event.state !== 'confirmed' && event.state !== 'cleared') return session;
       return session.flags.some((flag) => flag.id === event.id && flag.check === undefined)
         ? { ...session, flags: session.flags.map((flag) => (flag.id === event.id ? { ...flag, check: event.state } : flag)) }
         : session;

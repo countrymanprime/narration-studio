@@ -118,7 +118,8 @@ export function withMarks(base: Map<string, ReaderMark[]>, extra: Map<string, Re
 export function flagSaves(rows: ReaderRow[], flags: TeleprompterFlag[], dismissed: ReadonlySet<number>): { saves: TeleprompterFlagSave[]; flagIds: number[] } {
   const saves: TeleprompterFlagSave[] = [];
   const flagIds: number[] = [];
-  for (const flag of flags)
+  // A flag the second listen cleared is not kept: the rule the marks and the list follow, and the host drops it again on save.
+  for (const flag of flags.filter((item) => item.check !== 'cleared'))
     for (const { row, from, to } of rowParts(markedWords(flag, rows), rows)) {
       if (row.kind !== 'paragraph') continue;
       saves.push({

@@ -505,3 +505,10 @@ describe('reduceEvent: the confirmation pass settling a flag', () => {
     expect(reduceEvent(settled, raised).flags).toEqual([{ ...raised, check: 'confirmed' }]);
   });
 });
+
+describe('reduceEvent: a verdict the page cannot read', () => {
+  it('ignores a flag_check whose state is neither confirmed nor cleared', () => {
+    const raised = reduceEvent(initialSession, { type: 'flag', id: 1, kind: 'skipped', start: 7, end: 9, heard: '' });
+    expect(reduceEvent(raised, { type: 'flag_check', id: 1, state: 'maybe' } as never)).toBe(raised);
+  });
+});
