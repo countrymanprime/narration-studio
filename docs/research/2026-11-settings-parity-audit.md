@@ -8,12 +8,7 @@
 
 ## Summary
 
-| Verdict | Count |
-| - | - |
-| Covered: a Settings row edits the same value | 41 controls |
-| Covered by a page-setting entry (`ps.*`, the same keys behind a Settings panel) | 8 |
-| **Gap: persisted preference with no Settings equivalent** | 10 (1 fixed in the first fix pull request) |
-| Not a setting: content, a one-off action, DAW state, or view state | the rest, grouped below |
+Ten persisted preferences have no Settings equivalent (gaps below); gap 1 is fixed in the second pull request. Every other persisted control is covered by a Settings row or a page-setting entry (`ps.*`, the same keys behind a Settings panel), or is not a setting (the last table).
 
 ## Gaps
 
@@ -84,5 +79,5 @@
 ## Fix plan
 
 1. This note.
-2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 10 are the guard's only entries marked `GAP`; each leaves the list in the pull request that adds its row, and the list's caps only go down.
+2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 8 and 10 are the guard's entries marked `GAP` (the guard's name scan does not see the Schedule basis binding, so gap 9 is held by this note and its pull request); each leaves the list in the pull request that adds its row, and the list's caps only go down.
 3. Engine panel (gaps 2 to 4), Booth (5), Editing (6, 7), Story Bible (8), Production (9), App (10); the last pull request closes #2815.
