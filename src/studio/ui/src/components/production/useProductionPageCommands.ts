@@ -1,4 +1,4 @@
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
 import type { ProductionChapter } from '../../api/contracts/production';
 import { PIPELINE_AREA } from './useChapterTools';
@@ -46,7 +46,7 @@ export function useProductionPageCommands(page: {
     }
     const items: PageItem[] = page.rows.map((row, index) => ({
       id: `chapter.${row.id}`,
-      label: chapterName(row, 'full'),
+      label: headingName(row),
       group: 'Chapters',
       icon: 'goToChapter',
       run: () => focusPipelineRow(index),
