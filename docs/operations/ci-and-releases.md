@@ -144,10 +144,11 @@ unpinned) were checked against GitHub: each comment's tag exists and resolves, t
 the pinned commit. The pins are uniform in form, not in version: two `setup-node` majors are in use (`v7.0.0` in
 `promote-release.yml`, `v4.4.0` in the `setup-toolchain` composite action), and the composite actions also hold `setup-go` and
 `setup-python` `v5.6.0`, `cache` and `download-artifact` `v4.3.0` and `pnpm/action-setup` `v4.3.0` while the workflows are on the
-latest `checkout`, `upload-artifact` and `setup-node`. The likely cause is Dependabot's `github-actions` entry, which has
-`directory: /` and, per GitHub's [options reference](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference),
-searches `/.github/workflows` and a root `action.yml` only, not `.github/actions/*/action.yml`; adding `directories: ["/", "/.github/actions/*"]`
-would include them. That is a configuration change with its own review, so it is not made in a documentation pull request.
+latest `checkout`, `upload-artifact` and `setup-node`. The cause was Dependabot's `github-actions` entry having `directory: /`,
+which, per GitHub's [options reference](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference),
+searches `/.github/workflows` and a root `action.yml` only, not `.github/actions/*/action.yml`. The entry now lists
+`directories: ["/", "/.github/actions/*"]` (#233), and `scripts/github/sync-labels.test.mjs` fails if the composite-action glob goes.
+The first run after the change proposes the overdue bumps for the composite actions, one grouped pull request.
 
 The permission model, so a change can be judged against it:
 
