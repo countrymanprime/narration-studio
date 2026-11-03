@@ -28,6 +28,8 @@ func fixture(t *testing.T) (Options, *trace.Tracer, string) {
 	t.Helper()
 	dir := t.TempDir()
 	tracer := trace.New(trace.Options{Path: filepath.Join(dir, "trace.jsonl"), Home: `C:\Users\` + canaryUser, ProjectRoot: `C:\Users\` + canaryUser + `\Documents\` + canaryProject})
+	// An enabled tracer holds its file open; on Windows the temp directory cannot be removed until it is closed.
+	t.Cleanup(tracer.Close)
 	tracer.SetEnabled(true)
 	tracer.Emit(testEvent, trace.PathValue("file", canaryPath), trace.LenValue("text", canaryWord), trace.ErrValue("err", os.ErrNotExist), trace.IDValue("chapter", "ch-1"))
 	tracer.Flush()
