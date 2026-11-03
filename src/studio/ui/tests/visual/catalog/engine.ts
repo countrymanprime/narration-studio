@@ -75,14 +75,14 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'voice-folders',
     description:
-      'The engine panel for a Voice folders project (?mockVoiceFolders=1): the Voices card with its layout toggle on Voice folders, Chapter 1 picked, and its voices - Narrator on key 0, White Rabbit on 1 matched by name, Extras on 2 with the two characters assigned to it - each with its edit button',
+      'The engine panel for a Voice folders project (?mockVoiceFolders=1): Chapter sync\'s Layout row on Voice folders, Chapter links\' Folder column naming "Chapter 1 · 3 voices", and below it the Voices card with Chapter 1 picked in its header and its voices - Narrator on key 0, White Rabbit on 1 matched by name, Extras on 2 with the two characters assigned to it - each with its edit button',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'engine',
     state: 'voice-folders-picker',
     description:
-      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked",
+      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked, each other character with the voice it is already on",
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {

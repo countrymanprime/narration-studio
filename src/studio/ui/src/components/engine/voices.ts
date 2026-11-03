@@ -20,6 +20,11 @@ const NARRATOR = 'narrator';
 const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
 
 /** The direct children of the folder `folderGuid` among `tracks` (file order, with depth), or [] when it is not a folder. */
+/** A chapter folder as the link pickers name it in a Voice folders project (the mock's "Ch 8 · 5 voices"). */
+export function folderLinkLabel(name: string, voices: number): string {
+  return `${name} · ${voices === 1 ? '1 voice' : `${voices} voices`}`;
+}
+
 export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {
   const at = tracks.findIndex((track) => track.guid === folderGuid);
   const folder = tracks[at];
@@ -50,11 +55,14 @@ function charactersOf(track: Track, entities: readonly GuideEntity[], setup: Voi
   return extra;
 }
 
-/** The voices of the chapter linked to `folderGuid`: the Narrator child is key 0 wherever it sits, the others 1 to 9 in order. */
+/** The voices of the chapter linked to `folderGuid`: the first Narrator child is key 0 wherever it sits, the others 1 to 9 in order. */
 export function folderVoices(tracks: readonly Track[], folderGuid: string, entities: readonly GuideEntity[], setup: VoiceTracksState): Voice[] {
   let next = 1;
+  let narratorSeen = false;
   return folderChildren(tracks, folderGuid).map((track) => {
-    const narrator = same(track.name, NARRATOR);
+    // Only the first Narrator child is key 0; a second one is an ordinary voice, so no two tracks share a key.
+    const narrator = !narratorSeen && same(track.name, NARRATOR);
+    if (narrator) narratorSeen = true;
     const key = narrator ? '0' : next <= 9 ? String(next) : '';
     if (!narrator) next += 1;
     return { guid: track.guid, name: track.name, key, narrator, characters: charactersOf(track, entities, setup, narrator) };

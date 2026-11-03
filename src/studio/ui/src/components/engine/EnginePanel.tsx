@@ -14,7 +14,7 @@ import { CheckLine } from '../layout/CheckLine';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
 import { TrackList } from './TrackList';
-import { VoicesCard } from './VoicesCard';
+import { LayoutToggle, VoicesCard } from './VoicesCard';
 import { VoiceLayoutContext } from './voiceLayout';
 import { useVoiceTracks } from './useVoiceTracks';
 import { ChapterTagsDialog } from './ChapterTagsDialog';
@@ -88,6 +88,8 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   const [refresh, setRefresh] = useState(0);
   const [tool, setTool] = useState<Tool>();
   const voices = useVoiceTracks(notify);
+  // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
+  const [layoutInSync, setLayoutInSync] = useState(false);
   // The one reader of the chapter links: the Link chapters button and dialog, the Tracks card and the Chapter links section all use it.
   const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1));
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
@@ -144,7 +146,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
 
   return (
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
-    <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : voices.setup.layout}>
+    <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
       <div className="space-y-[1.1rem]">
         {forAudacity ? (
           <Panel title="Audacity project">
@@ -182,6 +184,8 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
           notify={notify}
           onChanged={() => setRefresh((count) => count + 1)}
           daw={forAudacity ? { daw: 'Audacity', linkedFile: audacity.link?.linkedFile ?? null } : { daw: 'REAPER' }}
+          layout={hasTracks && !forAudacity ? <LayoutToggle layout={voices.setup.layout} onLayout={voices.setLayout} /> : undefined}
+          onLayoutShown={setLayoutInSync}
         />
         {project && project.tracks.length === 0 && (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -191,6 +195,14 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
           </p>
         )}
         {hasTracks && <TrackList tracks={project.tracks} mappings={links.mappings} />}
+        {project && unmappedCount > 0 && (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {unmappedCount === 1
+              ? 'One chapter can’t get a stage suggestion until its track link is confirmed below.'
+              : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
+          </p>
+        )}
+        {project && <ChapterLinksTable links={links} notify={notify} />}
         {hasTracks && !forAudacity && (
           <VoicesCard
             tracks={project.tracks}
@@ -201,16 +213,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             onLayout={voices.setLayout}
             onTrackCharacters={voices.setTrackCharacters}
             onNarratorCharacter={voices.setNarratorCharacter}
+            layoutInCard={!layoutInSync}
           />
         )}
-        {project && unmappedCount > 0 && (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {unmappedCount === 1
-              ? 'One chapter can’t get a stage suggestion until its track link is confirmed below.'
-              : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
-          </p>
-        )}
-        {project && <ChapterLinksTable links={links} notify={notify} />}
         {tool === 'link-chapters' && project && <LinkChaptersDialog links={links} onClose={closeTool} />}
         {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} onCreateRegions={() => setTool('create-regions')} />}
         {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}

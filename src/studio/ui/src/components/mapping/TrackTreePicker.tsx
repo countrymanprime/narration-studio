@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useVoiceLayout } from '../engine/voiceLayout';
+import { folderLinkLabel } from '../engine/voices';
 import { TreeSelect, type TreeSelectRow, type TreeSelectSection } from '../primitives/TreeSelect';
 import { TrackMark } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
@@ -10,6 +11,9 @@ type Entry = TreeTrack & { choice: TrackChoice };
 const NO_AUDIO = 'A folder with no audio of its own can’t be linked';
 
 /** The tracks above a node, outermost first: "Narration / Chapters". */
+// A voice track's tooltip in a Voice folders project.
+const VOICE = 'A voice track: link its chapter to the folder it sits in.';
+
 const pathOf = (nodes: readonly TreeNode<Entry>[], at: number): string => {
   const names: string[] = [];
   for (let up = nodes[at].parent; up >= 0; up = nodes[up].parent) names.unshift(trackLabel(nodes[up].track));
@@ -70,6 +74,10 @@ export function TrackTreePicker({
   }, [nodes, value, best?.guid, folderIds]);
   const shut = closed ?? defaultClosed;
   const layout = useVoiceLayout();
+  const folders = layout === 'folders';
+  // A chapter folder is named with how many voices it holds, as Chapter links shows a linked one.
+  const shownName = (node: TreeNode<Entry>) =>
+    folders && node.track.isFolder ? folderLinkLabel(trackLabel(node.track), node.childCount) : trackLabel(node.track);
 
   const searching = query.trim() !== '';
   const needle = query.trim().toLowerCase();
@@ -81,14 +89,17 @@ export function TrackTreePicker({
     const entry = node.track.choice;
     // With folders of voices a chapter links to its folder, whose audio is on its children (useVoiceLayout).
     const blocked = node.track.isFolder && entry.hasAudio === false && layout !== 'folders';
+    // ...and a track directly inside such a folder is one of its voices, recorded as part of that folder's chapter, not a chapter's link.
+    const parent = node.parent >= 0 ? nodes[node.parent].track : undefined;
+    const voice = folders && !node.track.isFolder && parent?.isFolder === true && parent.choice.hasAudio === false;
     const path = place.key.startsWith('t-') ? '' : pathOf(nodes, at);
     return {
       id: node.id,
       label: trackLabel(node.track),
       mark: <TrackMark color={entry.color ?? ''} folder={node.track.isFolder} open={!shut.has(node.id)} />,
       note: [path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ') || undefined,
-      disabledReason: blocked ? NO_AUDIO : undefined,
-      disabledNote: blocked ? 'No audio of its own' : undefined,
+      disabledReason: blocked ? NO_AUDIO : voice ? VOICE : undefined,
+      disabledNote: blocked ? 'No audio of its own' : voice ? 'A voice of its folder' : undefined,
       ...place,
     };
   };
@@ -139,8 +150,8 @@ export function TrackTreePicker({
     <TreeSelect
       label={label}
       value={value}
-      shown={chosen >= 0 ? { path: pathOf(nodes, chosen) || undefined, name: trackLabel(nodes[chosen].track) } : undefined}
-      placeholder="Choose a track"
+      shown={chosen >= 0 ? { path: pathOf(nodes, chosen) || undefined, name: shownName(nodes[chosen]) } : undefined}
+      placeholder={folders ? 'Choose a folder' : 'Choose a track'}
       searchLabel="Search tracks"
       query={query}
       onQueryChange={setQuery}

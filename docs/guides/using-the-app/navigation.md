@@ -332,17 +332,22 @@ read.
 
 ### Voice folders
 
-The **Voices** card, below the track list, sets how the project's chapters sit in REAPER. **Flat**, the default, is one track per chapter.
-**Voice folders** makes each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's
-track covers every line that character speaks. Switching changes no track in REAPER; it lets a chapter link to a folder that has no audio
-of its own.
+Chapter sync's **Layout** row sets how the project's chapters sit in REAPER. While Chapter sync shows nothing (before you have answered
+whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter. **Voice folders** makes
+each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
+that character speaks. Switching changes no track in REAPER.
 
-Once a chapter is linked to a folder, the card lists that folder's tracks for the chapter picked above them, in REAPER's order. A track
-named **Narrator** gets number-pad key 0 and the others 1 to 9. Each row shows the characters the track records: a track named for a
-character, or for one of its aliases in the [Story Bible](story-bible.md), records that character with no setup. The edit button at the
-end of a row picks the characters by hand, several on one track (an "Extras" track); a hand pick replaces the name match. On the Narrator
-row it picks the one character the narrator also voices, for a book told in the first person. A pick is saved at once and holds for every
-chapter folder with a track of that name.
+With Voice folders, Chapter links' last column is **Folder**: a chapter links to its folder, named with how many voices it holds
+("Chapter 1 · 3 voices"), and a track inside such a folder can't be chosen, since it is one of that chapter's voices.
+
+The **Voices** card, below Chapter links, lists the folder's tracks for the chapter picked in its header, in REAPER's order. The first
+track named **Narrator** gets number-pad key 0 and the others 1 to 9; a track past the ninth gets no key. Each row shows the characters
+the track records: a track named for a character, or for one of its aliases in the [Story Bible](story-bible.md), records that character
+with no setup. The edit button at the end of a row opens the Story Bible's characters with the ones the track records ticked; tick or
+untick to change them, several on one track for an "Extras" track. A character already on another voice of the folder says which. On the
+Narrator row the list picks the one character the narrator also voices, for a book told in the first person. A change is saved at once
+and holds for every chapter folder with a track of that name. A track with no name, or a name over 120 characters, can't be given
+characters until it is renamed in REAPER.
 
 ![The Voices card for a Voice folders project: Chapter 1's tracks with their keys and characters](../../images/ui/engine-panel-voices.webp)
 

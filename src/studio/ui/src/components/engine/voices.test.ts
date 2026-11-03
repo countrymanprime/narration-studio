@@ -80,4 +80,13 @@ describe('the voices of a chapter folder', () => {
       '',
     ]);
   });
+
+  it('give key 0 to the first Narrator only; a second one is an ordinary voice', () => {
+    const twice = [track('f', 'Ch', 0, true), track('n1', 'Narrator', 1), track('x', 'Extras', 1), track('n2', 'narrator', 1)];
+    expect(folderVoices(twice, 'f', cast, { layout: 'folders', narratorCharacter: '', tracks: [] }).map((v) => [v.name, v.key, v.narrator])).toEqual([
+      ['Narrator', '0', true],
+      ['Extras', '1', false],
+      ['narrator', '2', false],
+    ]);
+  });
 });

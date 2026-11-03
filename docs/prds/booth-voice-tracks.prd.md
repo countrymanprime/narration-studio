@@ -114,7 +114,7 @@ No new trust boundary: `voice-tracks.json` is written and read back by the host 
 
 Each phase follows the CLAUDE.md workflow: harness test first for each bridge change, a real-REAPER scenario for what the fake cannot prove, the narrator walkthrough and `qa-breaker` before merge.
 
-Phase 3 as built (#2799): the layout is kept in `voice-tracks.json` with the assignments it governs, not in `settings.json`. The layout toggle sits in the Voices card's header, since Chapter sync hides its rows while sync is off. The Voices card's "No track" row and `BoothVoices` move to phase 5, with the make-track press that needs them.
+Phase 3 as built (#2799): the layout is kept in `voice-tracks.json` with the assignments it governs, not in `settings.json`. The layout switch is Chapter sync's Layout row, as the mock draws it; while Chapter sync draws nothing (consent not yet given) the Voices card carries it. The Voices card's "No track" row and `BoothVoices` move to phase 5, with the make-track press that needs them.
 
 ## Decisions Log
 
