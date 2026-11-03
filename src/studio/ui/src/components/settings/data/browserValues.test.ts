@@ -25,6 +25,7 @@ describe('browser rows and the Changed filter', () => {
     localStorage.setItem('narration-ui-theme', 'dark');
     localStorage.setItem('narration-ui-motion', 'reduce');
     localStorage.setItem('narration-ui-ribbon-scroll-step', '25');
+    localStorage.setItem('narration.booth.textSize', '56');
     localStorage.setItem('narration.script.text', JSON.stringify({ font: 'Verdana', size: 24, spacing: 2, width: 80 }));
     for (const row of browserRows()) expect(isBrowserChanged(row), row.id).toBe(true);
   });
