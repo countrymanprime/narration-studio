@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
-import { useApi } from '../../../api/ApiContext';
 import { useChapterSync } from '../../../hooks/useChapterSync';
+import { usePort } from '../../../ports/usePort';
 import { IconButton } from '../../primitives/IconButton';
 import { RadioGroup } from '../../primitives/RadioGroup';
 import { useSettingsHost } from '../row/SettingsHost';
@@ -17,7 +17,7 @@ const OPTIONS = [
  * narrator has chosen, neither is picked.
  */
 export function SyncEnabledBody() {
-  const api = useApi();
+  const api = usePort('chapterSync');
   const { notify } = useSettingsHost();
   const state = useChapterSync(api);
   // Quick choices are not lost: the last one is sent once the one in flight has answered.
