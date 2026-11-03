@@ -48,6 +48,10 @@ type (
 	RegionsCreated = bridge.RegionsCreated
 	ActiveTakeSet  = bridge.ActiveTakeSet
 
+	VoiceSampleRegionKept = bridge.VoiceSampleRegionKept
+	VoiceSampleRegions    = bridge.VoiceSampleRegions
+	VoiceSampleRegion     = bridge.VoiceSampleRegion
+
 	FXChains       = bridge.FXChains
 	FXChainApplied = bridge.FXChainApplied
 
@@ -401,6 +405,22 @@ type Puncher interface {
 // RegionWriter creates (or updates) chapter regions.
 type RegionWriter interface {
 	CreateRegions(ctx context.Context, rows []Region, colour string, update bool) (RegionsCreated, error)
+}
+
+// VoiceSampleRegionPrefix starts every region name the app keeps a voice sample under.
+const VoiceSampleRegionPrefix = bridge.VoiceSampleRegionPrefix
+
+// VoiceSampleRegionKeeper keeps a character voice sample in the engine's project as a region named for the character and label
+// (docs/prds/character-voice-samples.prd.md, phase 6), and reads the regions back. Names start with VoiceSampleRegionPrefix. A
+// region is in project time and does not follow its item, so the host keeps the source range beside it.
+type VoiceSampleRegionKeeper interface {
+	// AddVoiceSampleRegion adds the region in one undo point, or answers "existing" for one with the same name and bounds.
+	AddVoiceSampleRegion(ctx context.Context, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// MoveVoiceSampleRegion moves and renames region number, keeping its number and colour. A number that is not a voice sample
+	// region any more is a stale error (errors.Is ErrStale) and nothing changes.
+	MoveVoiceSampleRegion(ctx context.Context, number int, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// ReadVoiceSampleRegions lists the voice sample regions in the open project and the engine's change count. It changes nothing.
+	ReadVoiceSampleRegions(ctx context.Context) (VoiceSampleRegions, error)
 }
 
 // TakeSelector makes one take of an item the active one, and hides (mutes, never deletes) the item's other takes.

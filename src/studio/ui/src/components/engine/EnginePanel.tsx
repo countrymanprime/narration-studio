@@ -6,7 +6,6 @@ import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { SlideOver } from '../primitives/SlideOver';
-import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import type { Notify } from '../primitives/Toast';
 import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { AudacityLinkCard } from './AudacityLinkCard';
@@ -17,13 +16,9 @@ import { TrackList } from './TrackList';
 import { LayoutToggle, VoicesCard } from './VoicesCard';
 import { VoiceLayoutContext } from './voiceLayout';
 import { useVoiceTracks } from './useVoiceTracks';
-import { ChapterTagsDialog } from './ChapterTagsDialog';
-import { CleanupToolsDialog } from './CleanupToolsDialog';
-import { CreateChapterRegionsDialog } from './CreateChapterRegionsDialog';
-import { LinkChaptersDialog } from './LinkChaptersDialog';
+import { DAW_TOOL_GROUPS } from './dawTools';
+import { DawToolsMenu } from './DawToolsMenu';
 import { useChapterLinks } from './useChapterLinks';
-import { RenderConfigDialog } from './RenderConfigDialog';
-import { RetakeLanesDialog } from './RetakeLanesDialog';
 import { useAudacityLink } from './useAudacityLink';
 import { useLiveTracks } from './useLiveTracks';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
@@ -40,8 +35,6 @@ function folderOf(path: string): string {
 }
 
 const NO_TRACKS: Track[] = [];
-
-type Tool = 'link-chapters' | 'render-config' | 'create-regions' | 'chapter-tags' | 'cleanup-tools' | 'retake-lanes';
 
 export type EngineLinkState = {
   dawFileLinked: boolean;
@@ -89,7 +82,6 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // Bumped by the chapter-sync panel's own actions (toggle, Link, Undo), so the track list and the Chapter links table re-read
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
-  const [tool, setTool] = useState<Tool>();
   // A REAPER project's tracks as REAPER has them now, saved or not (#2840): read when the panel opens, when the linked file or the link
   // facts change (Check again, a relink), on focus and on a timer, and by the Refresh in Chapter links and the Link chapters dialog.
   const live = useLiveTracks({
@@ -156,7 +148,6 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // A REAPER project whose tracks have not been read yet (the first read is running, or failed and was a toast with Retry): Chapter links'
   // header holds the status and the Refresh until they are, so the narrator always has a way to read them again (UX rule 7, breaker B1).
   const awaitingTracks = !forAudacity && !!discovery?.selected && !project;
-  const closeTool = () => setTool(undefined);
 
   return (
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
@@ -181,17 +172,8 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
         )}
         {hasTracks && !forAudacity && (
           <Panel title="REAPER tools">
-            {/* Equal cells on a grid, three across, two below 36rem and one below 26rem, so the buttons share their edges whatever their labels (ENX-9). */}
-            <div className="@container">
-              <Toolbar label="REAPER tools" className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
-                {links.chapters.length > 0 && <ToolButton onClick={() => setTool('link-chapters')}>Link chapters…</ToolButton>}
-                <ToolButton onClick={() => setTool('render-config')}>Prepare chapter render…</ToolButton>
-                <ToolButton onClick={() => setTool('create-regions')}>Create chapter regions…</ToolButton>
-                <ToolButton onClick={() => setTool('chapter-tags')}>Embed chapter tags…</ToolButton>
-                <ToolButton onClick={() => setTool('cleanup-tools')}>Cleanup tools…</ToolButton>
-                <ToolButton onClick={() => setTool('retake-lanes')}>Retakes on lanes…</ToolButton>
-              </Toolbar>
-            </div>
+            {/* The tools, their gates and their dialogs come from the DAW tools registry; Link chapters stays out while the book has no chapters (ENX-9: equal cells). */}
+            <DawToolsMenu label="REAPER tools" groups={DAW_TOOL_GROUPS} links={links} live={live} forAudacity={forAudacity} whenUnsupported="hide" />
           </Panel>
         )}
         <ChapterSyncPanel
@@ -235,12 +217,6 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
             layoutInCard={!layoutInSync}
           />
         )}
-        {tool === 'link-chapters' && project && <LinkChaptersDialog links={links} live={live} onClose={closeTool} />}
-        {tool === 'render-config' && <RenderConfigDialog onClose={closeTool} onCreateRegions={() => setTool('create-regions')} />}
-        {tool === 'create-regions' && project && <CreateChapterRegionsDialog tracks={project.tracks} onClose={closeTool} />}
-        {tool === 'chapter-tags' && <ChapterTagsDialog onClose={closeTool} />}
-        {tool === 'cleanup-tools' && <CleanupToolsDialog onClose={closeTool} />}
-        {tool === 'retake-lanes' && <RetakeLanesDialog onClose={closeTool} />}
       </div>
     </VoiceLayoutContext.Provider>
   );
@@ -336,9 +312,4 @@ function RppPicker({ discovery, onSelect }: { discovery: TracksDiscovery; onSele
       </ul>
     </div>
   );
-}
-
-// The tools' buttons: each fills its grid cell, so the two rows share their edges.
-function ToolButton({ onClick, children }: { onClick: () => void; children: string }) {
-  return <ToolbarButton render={<Button variant="secondary" className="w-full" onClick={onClick} />}>{children}</ToolbarButton>;
 }

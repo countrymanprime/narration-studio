@@ -9,6 +9,7 @@ Storybook title: `RecordingCheck/CheckRecordingsDialog`. Source: `src/components
 - Idle With States
 - Running Two Chapters
 - Refused Chapter
+- Credits Row Chapter
 - No Recorded Chapters
 - Second Look With Parallel Chunks
 

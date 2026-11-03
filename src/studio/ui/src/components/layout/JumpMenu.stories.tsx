@@ -6,7 +6,7 @@ import { defaultKeymap } from '../../input/keymap';
 import { registerPageCommands, type PageItem, type PageRef } from '../../input/pageCommands';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { createOverlayService } from '../../overlay/overlayService';
-import { registerSearchSource } from '../../registries/search';
+import { registerAsyncSearchSource, registerSearchSource } from '../../registries/search';
 import { openJumpMenu } from './JumpMenu';
 
 // The jump menu on the context of each page (docs/architecture/studio-shell-and-registries.md#page-commands): the page's items come first under
@@ -18,12 +18,14 @@ type Args = {
   term?: string;
   scope?: 'page';
   hits?: boolean;
+  /** A source that answers later (the Script's whole-book search) and has not answered yet. */
+  searching?: boolean;
 };
 
 const item = (id: string, label: string, group: string, over: Partial<PageItem> = {}): PageItem => ({ id, label, group, run: () => {}, ...over });
 const chapters = (...names: string[]) => names.map((name, i) => item(`chapter.${i}`, name, 'Chapters', { icon: 'goToChapter' }));
 
-function Menu({ page, items, term, scope, hits }: Args) {
+function Menu({ page, items, term, scope, hits, searching }: Args) {
   const service = useMemo(() => createOverlayService(), []);
   useEffect(() => {
     const offs = [registerPageCommands(page, () => items)];
@@ -40,12 +42,13 @@ function Menu({ page, items, term, scope, hits }: Args) {
         ]),
       );
     }
+    if (searching) offs.push(registerAsyncSearchSource(() => new Promise(() => {}), 'In the script'));
     const close = openJumpMenu({ service, keymap: defaultKeymap(COMMAND_CATALOG, false), runCommand: () => {}, initialTerm: term, scope });
     return () => {
       close();
       offs.forEach((off) => off());
     };
-  }, [service, page, items, term, scope, hits]);
+  }, [service, page, items, term, scope, hits, searching]);
   return <OverlayHost service={service} />;
 }
 
@@ -85,6 +88,17 @@ export const ScriptSearch: Story = {
     const field = await open(canvasElement);
     await expect(field).toHaveAccessibleDescription(/Script page. Searching this page only/);
     await expect(await body.findByRole('option', { name: /said nothing/ })).toBeVisible();
+  },
+};
+
+/** A source that answers later has a waiting row in its place, off, and the count a screen reader hears says more may come. */
+export const ScriptSearchWaiting: Story = {
+  args: { ...Script.args, term: 'alice', scope: 'page', searching: true },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await open(canvasElement);
+    const waiting = await body.findByRole('option', { name: /Searching…/ });
+    await expect(waiting).toHaveAttribute('aria-disabled', 'true');
   },
 };
 

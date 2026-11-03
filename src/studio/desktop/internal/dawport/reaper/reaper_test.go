@@ -120,6 +120,8 @@ var experimentalCapability = map[string]dawport.Capability{
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
 	"create_regions":      dawport.CapRegions,
+	"keep_voice_sample":   dawport.CapVoiceSampleRegion,
+	"read_voice_samples":  dawport.CapVoiceSampleRegion,
 	"play_position":       dawport.CapPunch,
 	"roll":                dawport.CapPunch,
 	"punch_to":            dawport.CapPunch,
@@ -259,17 +261,18 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
 	for c, want := range map[dawport.Capability]string{
-		dawport.CapReview:     "reaper.review",
-		dawport.CapNavigate:   "*bridge.Navigator",
-		dawport.CapMarkers:    "*bridge.Navigator",
-		dawport.CapHeartbeat:  "*daw.Reachability",
-		dawport.CapTrackState: "*bridge.Actions",
-		dawport.CapRecord:     "*bridge.Actions",
-		dawport.CapPunch:      "reaper.puncher",
-		dawport.CapRegions:    "*bridge.Actions",
-		dawport.CapTakes:      "reaper.takeSelector",
-		dawport.CapFXChains:   "*bridge.Actions",
-		dawport.CapItemGain:   "*bridge.LevelMatchClient",
+		dawport.CapReview:            "reaper.review",
+		dawport.CapNavigate:          "*bridge.Navigator",
+		dawport.CapMarkers:           "*bridge.Navigator",
+		dawport.CapHeartbeat:         "*daw.Reachability",
+		dawport.CapTrackState:        "*bridge.Actions",
+		dawport.CapRecord:            "*bridge.Actions",
+		dawport.CapPunch:             "reaper.puncher",
+		dawport.CapRegions:           "*bridge.Actions",
+		dawport.CapVoiceSampleRegion: "*bridge.Actions",
+		dawport.CapTakes:             "reaper.takeSelector",
+		dawport.CapFXChains:          "*bridge.Actions",
+		dawport.CapItemGain:          "*bridge.LevelMatchClient",
 	} {
 		if got := typeName(adapter.Role(c)); got != want {
 			t.Errorf("%s's role is %s, want %s", c, got, want)

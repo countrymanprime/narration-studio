@@ -3260,5 +3260,47 @@
     "file": "narration_tracks_read.lua",
     "find": "rpp, rpp == '' and 1 or 0,",
     "replace": "rpp, 0,"
+  },
+  {
+    "name": "a voice sample region is added again when it already exists",
+    "file": "narration_voice_sample_region.lua",
+    "find": "if region.name == name and same_bounds(region, first, last) then\n        event(session_dir, 'VOICE_SAMPLE_KEPT', run_id, region.number, 'existing')",
+    "replace": "if false then\n        event(session_dir, 'VOICE_SAMPLE_KEPT', run_id, region.number, 'existing')"
+  },
+  {
+    "name": "a stale number moves a region that is not a voice sample",
+    "file": "narration_voice_sample_region.lua",
+    "find": "if region.number == number and starts_with(region.name, SAMPLE_PREFIX) then",
+    "replace": "if region.number == number then"
+  },
+  {
+    "name": "an unchanged voice sample region still makes an undo point",
+    "file": "narration_voice_sample_region.lua",
+    "find": "if target.name == name and same_bounds(target, first, last) then",
+    "replace": "if false then"
+  },
+  {
+    "name": "a voice sample is kept while REAPER records",
+    "file": "narration_voice_sample_region.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)"
+  },
+  {
+    "name": "an empty prefix lists every region",
+    "file": "narration_voice_sample_region.lua",
+    "find": "  if prefix == '' then\n    event(session_dir, 'ERROR', run_id, 'The voice sample prefix is missing.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'The voice sample prefix is missing.')"
+  },
+  {
+    "name": "the voice sample read limit is lifted",
+    "file": "narration_voice_sample_region.lua",
+    "find": "local READ_LIMIT = 500",
+    "replace": "local READ_LIMIT = 50000"
+  },
+  {
+    "name": "a backwards voice sample range is accepted",
+    "file": "narration_voice_sample_region.lua",
+    "find": "first >= 0 and last > first and name:match('%S')",
+    "replace": "first >= 0 and name:match('%S')"
   }
 ]
