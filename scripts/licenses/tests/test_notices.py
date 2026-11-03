@@ -216,7 +216,9 @@ class TestReviewFindings:
             assert ecosystem in {"python", "npm"} and version
             assert f"(tag v{version}," in text.splitlines()[0], path.name
             assert "Permission is hereby granted" in text or "Apache License" in text, path.name
-            assert (REPO_ROOT / "scripts/licenses/reviewed.json").read_text(encoding="utf-8").count(f'"{name.replace("__", "/")}"') == 0, "its noText entry must go"
+            assert (REPO_ROOT / "scripts/licenses/reviewed.json").read_text(encoding="utf-8").count(f'"{name.replace("__", "/")}"') == 0, (
+                "its noText entry must go"
+            )
 
     def test_source_files_named_licence_are_not_licence_files(self):
         for name in ("LICENSE", "LICENSE.txt", "LICENSE.md", "LICENSE-MIT", "COPYING", "COPYING.LESSER", "NOTICE", "LICENCE"):
