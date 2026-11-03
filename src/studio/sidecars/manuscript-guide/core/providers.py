@@ -172,9 +172,21 @@ class EspeakSource:
         return "".join("".join(sentence) for sentence in sentences).strip()
 
     def pronounce(self, name: str) -> dict[str, str]:
-        # An explicit --espeak-library goes through the phonemizer package. Without one (every shipped build: the host never
-        # passes it) Piper's own espeak-ng answers, from the data every build carries (the guide:espeak self-check), so a
-        # name the dictionaries lack still gets an IPA guess without a system libespeak-ng (#232).
+        """Guesses the IPA of a name from its spelling.
+
+        An explicit ``--espeak-library`` goes through the ``phonemizer`` package. Without one (every shipped build: the host
+        never passes it) Piper's own espeak-ng answers, from the data every build carries (the ``guide:espeak`` self-check), so
+        a name the dictionaries lack still gets an IPA guess without a system ``libespeak-ng`` (#232).
+
+        Args:
+            name: The name to phonemize.
+
+        Returns:
+            The ``ipa``, the guess label as ``source`` and ``low`` ``confidence``.
+
+        Raises:
+            ValueError: eSpeak produced no phonemes for the name.
+        """
         ipa = self._through_phonemizer(name) if self.espeak_library else self._through_piper(name)
         if not ipa:
             raise ValueError(f'eSpeak produced no pronunciation for "{name}".')
