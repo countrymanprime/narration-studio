@@ -23,7 +23,7 @@ if (process.argv.includes('--md')) {
     }
   }
   const status = (r) => (r.converted ? 'converted' : r.class === 'convert' ? 'convert (queued)' : r.class === 'review' ? 'decide (queued)' : 'keep');
-  const esc = (t) => t.replace(/\|/g, '\\|').replace(/\s+/g, ' ').slice(0, 70);
+  const esc = (t) => t.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s+/g, ' ').slice(0, 70);
   const count = (f) => out.filter(f).length;
   console.log(
     `Totals: **${out.length}** buttons found; **${count((r) => status(r) === 'converted')}** converted in this change; **${count((r) => status(r) === 'convert (queued)')}** mapped to a catalogue action and queued; **${count((r) => status(r) === 'decide (queued)')}** need a catalogue decision; **${count((r) => r.class === 'keep')}** kept as text with a reason.\n`,
