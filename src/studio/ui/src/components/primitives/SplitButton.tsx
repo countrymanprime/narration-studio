@@ -75,9 +75,7 @@ export function SplitSide({
     <TooltipTarget text={label}>
       <button type={type} aria-label={label} className={`${PART} relative px-2! ${TONES.primary} ${DISABLED} ${className}`} {...rest}>
         <Icon name="openMenu" />
-        {badge ? (
-          <span aria-hidden className="absolute top-1 right-1 size-2 rounded-full bg-[var(--warn)] ring-2 ring-2 ring-[var(--surface)] ring-[var(--surface)]" />
-        ) : null}
+        {badge ? <span aria-hidden className="absolute top-1 right-1 size-2 rounded-full bg-[var(--warn)] ring-2 ring-[var(--surface)]" /> : null}
       </button>
     </TooltipTarget>
   );
