@@ -13,7 +13,7 @@ type Line = {
 };
 
 /** Whose tracks these are and when they were read: REAPER's now, the saved project's and why, or a read that has gone quiet. */
-export function liveTracksLine(live: LiveTracks, seconds: number | null): Line {
+function liveTracksLine(live: LiveTracks, seconds: number | null): Line {
   const ago = seconds === null ? '' : ` ${live.stale ? 'Last read' : 'Read'} ${seconds} s ago.`;
   const line = (announce: string, short: string): Line => ({ announce, short, full: `${announce}${ago}` });
   if (live.readAt === null) {
