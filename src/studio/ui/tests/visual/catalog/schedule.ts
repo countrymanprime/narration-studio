@@ -45,6 +45,13 @@ export const scheduleStates: StateEntry[] = [
   },
   {
     page: 'schedule',
+    state: 'milestone-statuses',
+    reloadPerViewport: true,
+    description:
+      'Schedule milestones after three adds (?mockProduction=on-pace, the table brought up): a custom milestone whose date has passed reads "Past due", a done one reads Done, a custom one ahead reads a dash, and Final delivery reads its estimate',
+  },
+  {
+    page: 'schedule',
     state: 'no-manuscript',
     description:
       'Schedule with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript, with no estimates left over from an earlier one',

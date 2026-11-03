@@ -48,6 +48,8 @@ The table lists your milestones by date, with the **Final delivery** row, the bo
 
 - a name, what it **measures** (a custom milestone measures nothing), and its date.
 - a status cell. A measured milestone reads **3 d late** (the estimate is 3 days after the milestone's date; the header's "days overdue" counts days since the date, so the two numbers can differ), **est.** and a date in amber when the estimate lands on the date or the day before it (at risk), or **est.** and a date in green when it lands earlier (on track). A custom milestone measures nothing, so it reads **—** (**Not estimated**) until its date has passed and it is not marked done; then it reads **Past due**. Hover or focus a cell for the full sentence. **Final delivery** reads **No date** until a due date is set. Two milestones may share a date.
+
+![Schedule - milestone statuses: a done milestone, a custom one past its date (Past due), a custom one ahead and Final delivery with its estimate](../../images/ui/schedule-milestone-statuses.webp)
 - at the right, a **done** toggle (a done milestone reads **Done** and is never estimated), a note button (hover it to read the note; with no note it offers to add one), **Edit** and **Remove**. Removing offers Undo; after a removal focus stays in the list (or goes to **Add milestone** when none is left), and after Undo it goes to the **Edit** button of the milestone that came back.
 
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
