@@ -60,19 +60,22 @@ describe('Keep Take pressed while a keep is pending', () => {
     });
     const { passage, result } = mount(useTake as DawClient['useTake']);
     const [a, b] = passage.takes.filter((t) => !t.active);
+    expect(a && b).toBeTruthy();
     await act(async () => {
       void result.current.keep(passage, a!);
       void result.current.keep(passage, a!);
-      void result.current.keep(passage, b ?? a!);
+      void result.current.keep(passage, b!);
     });
     expect(useTake).toHaveBeenCalledTimes(1);
+    expect(useTake).toHaveBeenLastCalledWith(passage.chapterId, passage.firstToken, passage.lastToken, a!.id);
     await act(async () => {
       release();
       await gate;
     });
     await act(async () => {
-      await result.current.keep(passage, b ?? a!);
+      await result.current.keep(passage, b!);
     });
-    expect(useTake.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(useTake).toHaveBeenCalledTimes(2);
+    expect(useTake).toHaveBeenLastCalledWith(passage.chapterId, passage.firstToken, passage.lastToken, b!.id);
   });
 });
