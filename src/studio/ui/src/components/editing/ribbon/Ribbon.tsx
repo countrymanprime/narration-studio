@@ -330,8 +330,8 @@ export function RibbonView({
   }
 
   const headRow = head ? (
-    <span data-ribbon-head className="flex max-w-[60%] min-w-0 flex-initial items-baseline gap-1.5">
-      <span className="min-w-0 truncate font-mono font-semibold text-[var(--text)]" title={head.take ?? undefined}>
+    <span data-ribbon-head className={`flex items-baseline gap-1.5 ${head.take ? 'max-w-[60%] min-w-0 flex-initial' : 'flex-none'}`}>
+      <span className={`font-mono font-semibold text-[var(--text)] ${head.take ? 'min-w-0 truncate' : ''}`} title={head.take ?? undefined}>
         {head.take ?? 'Recording'}
       </span>
       {head.take ? <span className="flex-none">active take</span> : null}
