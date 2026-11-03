@@ -166,6 +166,17 @@ describe('ToastRegion', () => {
   });
 });
 
+describe('ToastRegion sharing a small window between toasts (issue 2899)', () => {
+  it.each([1, 2, 5])('tells its CSS how many toasts share the window: %i', (n) => {
+    render(<ToastRegion messages={Array.from({ length: n }, (_, i) => failure(i + 1))} dismiss={vi.fn()} />);
+    expect((document.querySelector('[data-toast-region]') as HTMLElement).style.getPropertyValue('--toast-n')).toBe(String(n));
+  });
+  it('counts one toast when there are none, so the cap never divides by zero', () => {
+    render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    expect((document.querySelector('[data-toast-region]') as HTMLElement).style.getPropertyValue('--toast-n')).toBe('1');
+  });
+});
+
 describe('ToastRegion with a message far taller than the window (issue 2899)', () => {
   const HUGE = 'x'.repeat(10_000);
   const textOf = (id: string) => screen.getByText(id, { exact: false }).closest('[data-toast-text]') as HTMLElement;
@@ -178,7 +189,8 @@ describe('ToastRegion with a message far taller than the window (issue 2899)', (
     const el = document.querySelector('[data-toast-text]') as HTMLElement;
     expect(el.className).toContain('[overflow-wrap:anywhere]');
     expect(el.className).toContain('overflow-y-auto');
-    expect(el.className).toContain('max-h-[calc(100dvh-');
+    expect(el.className).toContain('--toast-n');
+    expect(el.className).toContain('max-h-[max(1.5rem,calc(');
     // The action and Dismiss are siblings of the scrolling text, so they never scroll away with it.
     expect(within(el.parentElement!).getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(within(el.parentElement!).getByRole('button', { name: 'Dismiss message' })).toBeTruthy();

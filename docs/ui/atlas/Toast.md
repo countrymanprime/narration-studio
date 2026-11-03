@@ -11,9 +11,14 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - Queue
 - With Action
 - Long Message
-- Huge Word
 - Live Regions
 - Dismiss Removes One
+- Huge Word
+- Huge Word In Small Window
+- Two Huge Words
+- Five Long Messages
+- Two Huge Words In Small Window
+- Five Long Messages In Small Window
 
 ## Used by
 

@@ -164,3 +164,64 @@ export const HugeWordInSmallWindow: Story = {
     }
   },
 };
+
+const action = { label: 'Retry', onAction: fn() };
+// Several toasts at once share the window: each one's text is capped to its share, so no toast's Retry or Dismiss ends up above the window (#2899).
+export const TwoHugeWords: Story = {
+  args: {
+    messages: [
+      { ...failure(1, 'x'.repeat(10_000)), action },
+      { ...failure(2, 'y'.repeat(10_000)), action },
+    ],
+  },
+};
+export const FiveLongMessages: Story = {
+  args: {
+    messages: [1, 2, 3, 4, 5].map((id) => ({
+      ...failure(id, `${id}: Could not save the setting because the host did not answer, and the reason is long enough to wrap.`),
+      action,
+    })),
+  },
+};
+
+/** A frame of 320 x 300 holding a story of this file; waits for its toasts and returns every button they carry, with the frame's size. */
+async function toastsInSmallWindow(canvasElement: HTMLElement, count: number) {
+  const frame = canvasElement.querySelector('iframe')!;
+  if (frame.clientHeight === 0) return null;
+  const doc = await waitFor(
+    () => {
+      const d = frame.contentDocument;
+      if (!d || d.querySelectorAll('[data-toast-region] [data-tone]').length < count) throw new Error('the toasts are not up in the frame yet');
+      return d;
+    },
+    { timeout: 10_000 },
+  );
+  const view = frame.contentWindow!;
+  const buttons = [...doc.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')].map((b) => ({
+    name: b.getAttribute('aria-label') ?? b.textContent ?? '',
+    ...b.getBoundingClientRect().toJSON(),
+  }));
+  return { width: view.innerWidth, height: view.innerHeight, buttons };
+}
+const framed = (id: string) => (
+  <iframe title="Toasts in a 320 x 300 window" src={`iframe.html?id=${id}&viewMode=story`} width={320} height={300} style={{ border: 0 }} />
+);
+async function expectEveryButtonOnScreen(canvasElement: HTMLElement, toasts: number) {
+  const seen = await toastsInSmallWindow(canvasElement, toasts);
+  if (!seen) return;
+  await expect([seen.width, seen.height]).toEqual([320, 300]);
+  await expect(seen.buttons.length).toBe(toasts * 2);
+  for (const b of seen.buttons) {
+    await expect(b.top, `${b.name} is above the window`).toBeGreaterThanOrEqual(0);
+    await expect(b.bottom, `${b.name} is below the window`).toBeLessThanOrEqual(300);
+    await expect(b.right).toBeLessThanOrEqual(320);
+  }
+}
+export const TwoHugeWordsInSmallWindow: Story = {
+  render: () => framed('primitives-toast--two-huge-words'),
+  play: async ({ canvasElement }) => expectEveryButtonOnScreen(canvasElement, 2),
+};
+export const FiveLongMessagesInSmallWindow: Story = {
+  render: () => framed('primitives-toast--five-long-messages'),
+  play: async ({ canvasElement }) => expectEveryButtonOnScreen(canvasElement, 5),
+};

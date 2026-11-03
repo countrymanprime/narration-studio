@@ -3500,7 +3500,13 @@
         "With Action",
         "Long Message",
         "Live Regions",
-        "Dismiss Removes One"
+        "Dismiss Removes One",
+        "Huge Word",
+        "Huge Word In Small Window",
+        "Two Huge Words",
+        "Five Long Messages",
+        "Two Huge Words In Small Window",
+        "Five Long Messages In Small Window"
       ],
       "consumers": [
         "src/App.tsx",
