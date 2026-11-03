@@ -90,11 +90,11 @@ describe('popupBottomReserve (issue 2809)', () => {
   it('keeps all of the bars in a window tall enough for both (the Booth at 500 and 900 px)', () => {
     expect(popupBottomReserve(210, 900)).toBe(210);
     expect(popupBottomReserve(210, 500)).toBe(210);
-    expect(popupBottomReserve(210, 386)).toBe(210);
+    expect(popupBottomReserve(210, 362)).toBe(210);
   });
-  it('cuts the reserve so the popup keeps 144 px to read in when the bars would take nearly all of a short window (320x300)', () => {
-    expect(popupBottomReserve(210, 300)).toBe(124);
-    expect(300 - 2 * 16 - popupBottomReserve(210, 300)).toBe(144);
+  it('cuts the reserve so the popup keeps 120 px to read in when the bars would take nearly all of a short window (320x300)', () => {
+    expect(popupBottomReserve(210, 300)).toBe(148);
+    expect(300 - 2 * 16 - popupBottomReserve(210, 300)).toBe(120);
   });
   it('is zero with no bars, and never negative in a window smaller than the gutters and the room', () => {
     expect(popupBottomReserve(0, 300)).toBe(0);

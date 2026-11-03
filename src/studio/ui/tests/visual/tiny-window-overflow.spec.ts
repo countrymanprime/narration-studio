@@ -62,7 +62,33 @@ for (const theme of ['light', 'dark'] as const) {
     });
     expect(m.wide, 'content wider than the popup').toEqual([]);
     expect(m.sideways).toBe(false);
-    expect(m.height, 'the popup is tall enough to read').toBeGreaterThanOrEqual(100);
+    expect(m.height, 'the popup is tall enough to read').toBeGreaterThanOrEqual(110);
+    // The popup may lie over the top of the Booth's bars, but not over Record or its own Levels button: both stay the topmost thing at their corners and centre.
+    const uncovered = await page.evaluate(() => {
+      const covered: string[] = [];
+      for (const label of ['Record', 'Levels']) {
+        const button = [...document.querySelectorAll('button')].find(
+          (b) => (b.getAttribute('aria-label') ?? b.textContent?.trim())?.toLowerCase() === label.toLowerCase() && b.getBoundingClientRect().width > 0,
+        );
+        if (!button) {
+          covered.push(`${label}: not found`);
+          continue;
+        }
+        const r = button.getBoundingClientRect();
+        for (const [x, y] of [
+          [r.left + 2, r.top + 2],
+          [r.right - 2, r.top + 2],
+          [r.left + r.width / 2, r.top + r.height / 2],
+          [r.left + 2, r.bottom - 2],
+          [r.right - 2, r.bottom - 2],
+        ] as const) {
+          const hit = document.elementFromPoint(x, y);
+          if (!hit || !(button === hit || button.contains(hit))) covered.push(`${label} at ${Math.round(x)},${Math.round(y)}`);
+        }
+      }
+      return covered;
+    });
+    expect(uncovered, 'the popup covers Record or the Levels button').toEqual([]);
     expect(m.top).toBeGreaterThanOrEqual(0);
     expect(m.bottom).toBeLessThanOrEqual(TINY.height);
     expect(m.left).toBeGreaterThanOrEqual(0);

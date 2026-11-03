@@ -12,7 +12,7 @@ export const POPOVER_POPUP_SELECTOR = `[${POPOVER_POPUP_ATTRIBUTE}]`;
 // Measured on read-aloud-control-bar/03 and 04: at least 336 px wide; never wider than the window less its gutters.
 const WIDTH = 'max-w-[min(32rem,calc(100vw-2rem))] min-w-[min(21rem,calc(100vw-2rem))]';
 const POPUP_GUTTER = 16;
-const MIN_POPUP_ROOM = 144;
+const MIN_POPUP_ROOM = 120;
 /** How much of the window's bottom the bars fixed along it keep from a popup: all of them, unless that would leave the popup under `MIN_POPUP_ROOM` to read in. */
 export function popupBottomReserve(bars: number, windowHeight: number): number {
   return Math.max(0, Math.min(bars, windowHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM));
