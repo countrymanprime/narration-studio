@@ -89,7 +89,9 @@ The Windows job (`windows-latest`) failed on every dispatch until 2026-11-03 (th
 
 **Fix.** `run-real-reaper-check.ps1` expands `$env:TEMP` with `GetLongPathName` before any scratch path is built; the assertion stays. A failed start now leaves the REAPER window list, a screenshot, `reaper.ini` and the launcher log (`run-reaper.ps1 -LogFile` writes each line as it happens). The new-version notice REAPER shows is closed by `run-reaper.ps1`.
 
-**Result.** After the fix the Windows base rows ran 11 of 11 with 0 FAIL on REAPER 7.82 (run 41581220230).
+**Second cause.** With the scenario suites on (`--suite`, as on Linux), two `perf` scenarios then timed out with no answer. `run-reaper.ps1` closes REAPER at its `-TimeoutSec`, which the check set to 240 s; the suites need about six minutes, and REAPER was closed at 05:12:49, 240 s after its 05:08:49 start (run 41582033971). The check now passes 1200 s, and the step's own 25-minute limit still bounds a hang.
+
+**Result.** The Windows job ran the 11 base rows with 0 FAIL on REAPER 7.82 (run 41581220230), then the base rows and the scenario suites: 62 PASS, 45 SKIP, 0 FAIL (run 41583111119). Of the SKIPs, 44 need an audio device (the JACK dummy device exists only on Linux, so Windows rows that play or record SKIP) and one is the ID3 CHAP row. The Linux job passed in the same runs.
 
 ## Recommended CI design
 
