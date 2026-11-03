@@ -50,12 +50,13 @@ export function useRovingCells(body: RefObject<HTMLTableSectionElement | null>) 
   const onFocus = useCallback(
     (event: FocusEvent<HTMLTableSectionElement>) => {
       const control = (event.target as HTMLElement).closest<HTMLElement>(CONTROLS);
-      if (control && control !== active.current) {
+      // Focus bubbles through React portals: a popover opened from a cell is not one of the cells, and must not take the stop.
+      if (control && control !== active.current && body.current?.contains(control)) {
         active.current = control;
         apply();
       }
     },
-    [apply],
+    [apply, body],
   );
 
   const onKeyDown = useCallback(
@@ -65,7 +66,7 @@ export function useRovingCells(body: RefObject<HTMLTableSectionElement | null>) 
       const control = (event.target as HTMLElement).closest<HTMLElement>(CONTROLS);
       const row = control?.closest<HTMLElement>('tr[data-chapter-id]');
       const root = body.current;
-      if (!control || !row || !root) return;
+      if (!control || !row || !root || !root.contains(control)) return;
       const along = controlsOf(row);
       const at = along.indexOf(control);
       let to: HTMLElement | undefined;

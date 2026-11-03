@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useRef } from 'react';
+import { createPortal } from 'react-dom';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { PipelineTable } from './PipelineTable';
 import { buildPipelineRows } from './pipelineRows';
-import { MID_BOOK, MID_BOOK_RECOMMENDATIONS, MID_BOOK_SOURCES } from './pipelineFixtures';
+import { useRovingCells } from './useRovingCells';
+import { chapter, MID_BOOK, MID_BOOK_RECOMMENDATIONS, MID_BOOK_SOURCES } from './pipelineFixtures';
 
 afterEach(cleanup);
 const noop = () => undefined;
@@ -103,5 +106,84 @@ describe('PipelineTable keyboard: one tab stop, arrows inside (#2883)', () => {
     first.focus();
     await user.keyboard('{Control>}{ArrowRight}{/Control}{Alt>}{ArrowDown}{/Alt}');
     expect(document.activeElement).toBe(first);
+  });
+});
+
+describe('a popover opened from a cell (#2883)', () => {
+  // The readiness panel is portalled out of the table, but React focus events still bubble to the body that holds the chip.
+  function WithPortal() {
+    const body = useRef<HTMLTableSectionElement>(null);
+    const roving = useRovingCells(body);
+    return (
+      <table>
+        <tbody ref={body} onFocus={roving.onFocus} onKeyDown={roving.onKeyDown}>
+          <tr data-chapter-id="a">
+            <td>
+              <button type="button">one</button>
+            </td>
+            <td>
+              <button type="button">two</button>
+              {createPortal(<button type="button">popover</button>, document.body)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  it('does not take the tab stop, and arrows in it do not move the cells', async () => {
+    render(<WithPortal />);
+    const user = userEvent.setup();
+    const [one, two] = [screen.getByText('one'), screen.getByText('two')];
+    expect([one.tabIndex, two.tabIndex]).toEqual([0, -1]);
+    await user.click(screen.getByText('popover'));
+    expect(document.activeElement).toBe(screen.getByText('popover'));
+    expect([one.tabIndex, two.tabIndex]).toEqual([0, -1]);
+    await user.keyboard('{ArrowRight}');
+    expect(document.activeElement).toBe(screen.getByText('popover'));
+    // Closing it (focus back on the cell last used) keeps one stop.
+    two.focus();
+    expect([one.tabIndex, two.tabIndex]).toEqual([-1, 0]);
+  });
+});
+
+describe('a long book (#2883)', () => {
+  const long = () => buildPipelineRows(Array.from({ length: 400 }, (_, i) => chapter(`c${i + 1}`)));
+  const mountLong = () =>
+    render(
+      <TooltipProvider>
+        <PipelineTable rows={long()} recommendations={new Map()} onGo={noop} notify={noop} onStatus={noop} />
+      </TooltipProvider>,
+    );
+
+  it('keeps one tab stop among the drawn rows and none in a spacer', () => {
+    mountLong();
+    expect(controls().filter((control) => control.tabIndex === 0)).toHaveLength(1);
+    expect(document.querySelectorAll('tbody tr[aria-hidden="true"] button')).toHaveLength(0);
+  });
+
+  it('Down from the last drawn row scrolls toward the next one and leaves focus where it is until that row is drawn', () => {
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    const scrolled = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    mountLong();
+    const drawn = [...document.querySelectorAll<HTMLElement>('tbody tr[data-chapter-id]')];
+    const cell = drawn[drawn.length - 1]!.querySelector<HTMLElement>('button')!;
+    cell.focus();
+    fireEvent.keyDown(cell, { key: 'ArrowDown' });
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(cell);
+    scrolled.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('with Ctrl, End and Home go to the last and first drawn row', async () => {
+    mountLong();
+    const user = userEvent.setup();
+    controls()[0]!.focus();
+    await user.keyboard('{Control>}{End}{/Control}');
+    const rows = [...document.querySelectorAll<HTMLElement>('tbody tr[data-chapter-id]')];
+    expect(document.activeElement!.closest('tr')).toBe(rows[rows.length - 1]);
+    await user.keyboard('{Control>}{Home}{/Control}');
+    expect(document.activeElement!.closest('tr')).toBe(rows[0]);
   });
 });

@@ -381,5 +381,21 @@ export const productionStates: StateEntry[] = [
     description:
       'The 5002-chapter pipeline scrolled to chapter 2400 with keyboard focus on a stage cell: the focus ring is drawn on the cell and its row stays drawn',
   },
+  {
+    page: 'production',
+    state: 'pipeline-cell-focus-first',
+    // The view is scrolled to the pipeline, and a resize would keep the first width's scroll position.
+    reloadPerViewport: true,
+    description:
+      'The chapter pipeline with keyboard focus on the first stage cell of a row: the focus ring is drawn whole beside the pinned chapter names, the one Tab stop of the cells',
+  },
+  {
+    page: 'production',
+    state: 'pipeline-cell-focus-last',
+    // The view is scrolled to the pipeline, and a resize would keep the first width's scroll position.
+    reloadPerViewport: true,
+    description:
+      'The chapter pipeline with keyboard focus moved to the last control of a row with End: the focus ring is drawn whole at the right end, not cut by the scroll area',
+  },
 ];
 productionStates.push(wholePage(productionStates, 'on-pace'));
