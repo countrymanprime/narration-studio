@@ -21,6 +21,12 @@ import {
 const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
 export const productionDrivers: Record<string, Driver> = {
+  // 5002 chapters: the pipeline windows its rows (#1764), so the page is ready in seconds and draws a few dozen of them.
+  'many-chapters': async (page) => {
+    await page.goto('/?mockBooth=many-chapters');
+    await settlePage(page);
+    await page.locator('table[aria-label="Chapter pipeline"] tbody tr[data-chapter-id]').first().waitFor();
+  },
   // The overview never answers, so `openProduction` (which waits for the pipeline table) is not used.
   loading: async (page) => {
     await page.goto('/?mockHold=overview');

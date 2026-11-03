@@ -353,5 +353,11 @@ export const productionStates: StateEntry[] = [
     description:
       'Production while the production log is still being read (?mockHold=overview): the page header with its title and buttons, and grey blocks where the chapter and word counts, the due date and the verdict will be (never "0 chapters" or "No due date set"), and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
   },
+  {
+    page: 'production',
+    state: 'many-chapters',
+    description:
+      'Production for a 5002-chapter book (?mockBooth=many-chapters) - the chapter pipeline draws only the rows in view and a margin (windowed, one 52 px row each, names clamped to two lines) with its place held by spacer rows, so the page opens in seconds',
+  },
 ];
 productionStates.push(wholePage(productionStates, 'on-pace'));
