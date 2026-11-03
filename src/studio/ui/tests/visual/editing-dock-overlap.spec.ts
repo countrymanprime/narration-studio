@@ -49,3 +49,27 @@ for (const theme of ['light', 'dark'] as const) {
     });
   }
 }
+
+// A narrator drags across the waveform to choose a range: the head then names the take ("Take 1 active take") beside the zoom row's range text. The name keeps its
+// natural width there (it was squeezed to a few pixels at 360x500 and 390x844); the range text and the rest give way instead.
+for (const theme of ['light', 'dark'] as const) {
+  for (const size of [...SIZES, { width: 390, height: 844 }] as const) {
+    test(`Editing: a chosen range leaves the take name whole in the dock head (${theme}, ${size.width}x${size.height})`, async ({ page }) => {
+      await page.setViewportSize(size);
+      await openEditing(page, theme);
+      const lane = page.locator('#wavedock [data-ribbon-surface]');
+      const box = (await lane.boundingBox())!;
+      await page.mouse.move(box.x + 20, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2, { steps: 8 });
+      await page.mouse.up();
+      const head = page.locator('#wavedock [data-ribbon-head]');
+      await expect(head).toContainText('active take');
+      const m = await head.evaluate((el) => {
+        const name = el.firstElementChild as HTMLElement;
+        return { clientWidth: name.clientWidth, scrollWidth: name.scrollWidth, text: name.textContent };
+      });
+      expect(m.clientWidth, `"${m.text}" is squeezed to ${m.clientWidth}px of ${m.scrollWidth}px`).toBeGreaterThanOrEqual(m.scrollWidth - 1);
+    });
+  }
+}

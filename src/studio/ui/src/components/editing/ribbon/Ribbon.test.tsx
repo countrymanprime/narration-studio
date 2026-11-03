@@ -281,7 +281,9 @@ describe('the waveform header', () => {
     const [taken, recording] = heads;
     expect(taken!.name.className).toMatch(/\btruncate\b/);
     expect(taken!.name.getAttribute('title')).toBe(long);
-    expect(taken!.head.className).toMatch(/\bmin-w-0\b/);
+    // The head keeps its natural width up to a cap, so a short name is never squeezed by its neighbours.
+    expect(taken!.head.className).toMatch(/\bflex-none\b/);
+    expect(taken!.head.className).toMatch(/max-w-\[60%\]/);
     expect(recording!.name.className).not.toMatch(/truncate/);
     expect(recording!.head.className).toMatch(/\bflex-none\b/);
   });

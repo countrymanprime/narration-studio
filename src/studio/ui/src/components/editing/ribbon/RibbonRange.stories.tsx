@@ -88,6 +88,28 @@ export const LongTakeName: Story = {
   },
 };
 
+// A short take name ("Take 1") in the same small window with the zoom row's range text beside it (#2804): the name keeps its natural width and is never squeezed
+// to a few pixels by its neighbours; they give way instead. A browser only: the unit run has no layout and skips the measuring.
+export const ShortTakeName: Story = {
+  args: { doc, take: 'Take 1' },
+  decorators: [
+    (Story) => (
+      <div style={{ width: '20rem' }}>
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const head = canvasElement.querySelector<HTMLElement>('[data-ribbon-head]');
+    await expect(head).not.toBeNull();
+    const name = head!.firstElementChild as HTMLElement;
+    await expect(name.textContent).toBe('Take 1');
+    if (name.clientWidth === 0) return;
+    await expect(name.scrollWidth).toBeLessThanOrEqual(name.clientWidth + 1);
+    await expect(head!.getBoundingClientRect().width).toBeGreaterThanOrEqual(name.scrollWidth);
+  },
+};
+
 // A range with a handle on each edge, ending inside two words: drawn on the waveform, with its time and words in a tooltip and no text under it.
 export const Range: Story = {
   args: { doc, range: { start: 5.54, end: 6.3 } },
