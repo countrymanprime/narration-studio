@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booth record bar mock</title>
+<style>
+/* The Booth's record bar, redrawn: voice control left of one split Record button, Cold read and the audio settings folded into it.
+   Tokens copied from docs/research/mockups/studio-next/src/styles/app.css, as the booth-voices mock does. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --ok:#2F6B3E; --ok-soft:#D9EAD9; --warn:#8A5A00; --warn-soft:#F5E6BF; --bad:#A3302A; --bad-soft:#F4D6D2; --info:#2A5C86; --info-soft:#D8E5F2; --violet:#6B4C9A; --violet-soft:#E6DDF3;
+  --page:#F3F1EB; --focus:#1F5FBF; --shadow:0 1px 2px rgba(36,33,28,.08),0 10px 28px rgba(36,33,28,.14);
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace; --f-read:Georgia,'Times New Roman',serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --page:#181611; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --page:#181611; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding-block:16px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;letter-spacing:.01em;text-wrap:balance}
+h1{font-size:30px} h2{font-size:22px;margin:36px 0 4px} h3{font-size:16px}
+p{margin:0}
+code{font:12px var(--f-mono)}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.sub{color:var(--muted);font-size:13px;max-width:84ch}
+.label{font:600 12px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.tag{display:inline-block;font:600 11px var(--f-display);letter-spacing:.12em;text-transform:uppercase;border-radius:4px;padding:1px 6px;vertical-align:middle;background:var(--copper-soft);color:var(--copper-text)}
+.tag.rec{background:var(--ok-soft);color:var(--ok)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.toc{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px}
+.toc a{color:var(--copper-text)}
+.seg{display:inline-flex;border:1px solid var(--btn-line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:0 12px;height:30px;font:600 12px var(--f-display);letter-spacing:.09em;text-transform:uppercase}
+.seg button+button{border-left:1px solid var(--btn-line)}
+.seg button[aria-pressed="true"]{background:var(--copper);color:var(--copper-ink)}
+table.t{border-collapse:collapse;font-size:13px;width:100%}
+table.t th{font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;padding:8px 10px;background:var(--raised);border-bottom:1px solid var(--line)}
+table.t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.kc{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 5px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;font:500 11px var(--f-mono);color:var(--muted);background:var(--surface);white-space:nowrap}
+
+/* a state frame: a caption over one footer */
+.states{display:flex;flex-direction:column;gap:14px}
+.st{display:flex;flex-direction:column;gap:5px;container-type:inline-size;min-width:0}
+.foot{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--page)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;background:var(--surface);position:relative}
+.ctl{display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 auto}
+.keys{display:flex;gap:6px 16px;flex-wrap:wrap;padding:6px 14px;border-top:1px solid var(--line);background:var(--raised);font-size:12px;color:var(--muted)}
+.keys span{display:inline-flex;gap:5px;align-items:center}
+
+/* voice control: the number only, no keycap */
+.voice{display:inline-flex;align-items:center;gap:8px;height:34px;border:1px solid var(--btn-line);border-radius:6px;background:var(--surface);padding:0 8px;width:236px;min-width:0;flex:0 1 236px}
+.voice .num{font:600 15px var(--f-mono);min-width:1ch;color:var(--ink)}
+.voice .name{min-width:0;overflow:hidden;white-space:nowrap}
+.voice .car{margin-left:auto;color:var(--muted)}
+.spk{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;line-height:1.35;border-radius:99px;padding:2px 9px;font:600 12px var(--f-display);letter-spacing:.04em;background:color-mix(in srgb,var(--c,#5C564B) 16%,var(--surface));color:color-mix(in srgb,var(--c,#5C564B) 70%,var(--ink));border:1px solid color-mix(in srgb,var(--c,#5C564B) 35%,var(--surface))}
+.armdot{width:9px;height:9px;border-radius:50%;border:2px solid var(--bad);flex:none}
+.recdot{width:9px;height:9px;border-radius:50%;background:var(--bad);flex:none}
+
+/* the split button: [main | (cold read, option A) | side] */
+.split{display:inline-flex;height:34px;border-radius:6px;flex:none}
+.split>button{height:34px;border:1px solid var(--copper);background:var(--copper);color:var(--copper-ink);display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.split>button+button{border-left-color:color-mix(in srgb,var(--copper-ink) 35%,var(--copper))}
+.split>button:first-child{border-radius:6px 0 0 6px;min-width:112px}
+.split>button:last-child{border-radius:0 6px 6px 0;padding:0 8px;width:34px}
+.split .main .sq{width:10px;height:10px;background:currentColor;border-radius:1px}
+.split .main .rd{width:9px;height:9px;border-radius:50%;background:currentColor}
+/* Cold read on: the recording colour as an outline, never Record's fill (as the app's Cold read button does today) */
+.split .cold{background:var(--surface);color:var(--ink);border-color:var(--btn-line);border-left-color:var(--btn-line)}
+.split .cold[aria-pressed="true"]{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.split .cold[aria-disabled="true"]{opacity:.5}
+.split .main.coldmode{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.split .main.coldmode+.side{background:var(--bad-soft);color:var(--bad);border-color:var(--bad);border-left-color:var(--bad)}
+.split .main[aria-disabled="true"]{background:var(--raised);color:var(--faint);border-color:var(--line-strong)}
+.split .main[aria-disabled="true"]+.side,.split .main[aria-disabled="true"]+.cold+.side{border-left-color:var(--line-strong)}
+.split .side{position:relative}
+.split .side .wdot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--warn);border:1.5px solid var(--copper)}
+.split .cold .lbl{display:inline}
+.split .cold .ic{display:none}
+.time{font:500 17px var(--f-mono);min-width:56px}
+.meter{width:100px;height:6px;border-radius:3px;background:var(--line);overflow:hidden;flex:none}.meter i{display:block;height:100%;background:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:1px 8px;font-size:12px;font-weight:500;white-space:nowrap;flex:none}
+.pill.n{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+.pill.cold{border:1px dashed var(--bad);color:var(--bad);background:var(--bad-soft)}
+.right{display:flex;align-items:center;gap:10px;margin-left:auto;flex:none}
+.why{flex:1 1 200px;min-width:0;font-size:13px;color:var(--muted)}
+.why.warn{color:var(--warn)}
+.tipshown{position:absolute;z-index:5;background:var(--ink);color:var(--bg);font:500 12px var(--f-body);padding:4px 8px;border-radius:5px;white-space:nowrap}
+
+/* container-width behaviour: the whole bar is built to these three widths */
+@container (max-width:860px){
+  .voice{width:190px;flex-basis:190px}
+  .split .cold .lbl{display:none} .split .cold .ic{display:inline-block} .split .cold{padding:0 9px;width:36px}
+  .keys .kopt{display:none}
+}
+@container (max-width:560px){
+  .bar{gap:8px 10px;padding:8px 12px}
+  .ctl{flex:1 1 100%;flex-wrap:wrap}
+  .voice{width:auto;flex:1 1 100%}
+  .split{flex:0 0 auto}
+  .split>button:first-child{min-width:96px}
+  .right{margin-left:0;flex:1 1 100%;justify-content:space-between}
+  .why{flex-basis:100%}
+  .keys{padding:6px 12px}
+}
+
+/* open menus */
+.menuwrap{position:relative;padding-bottom:var(--mh,0)}
+.menu{position:absolute;z-index:6;left:var(--mx,0);bottom:calc(100% - var(--mh,0px) + 0px);}
+.pop{background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);width:288px;max-width:100%;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+.pop .sec{font:600 11px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:8px 12px 4px;background:var(--raised)}
+.pop .it{display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 12px;border-bottom:1px solid var(--line)}
+.pop .it:last-child{border-bottom:0}
+.pop .rad{width:16px;height:16px;border:1.5px solid var(--btn-line);border-radius:50%;display:grid;place-items:center;flex:none}
+.pop .rad.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--copper)}
+.pop .it[aria-checked="true"]{background:var(--copper-soft)}
+.pop .it[aria-disabled="true"]{color:var(--faint)}
+.pop .fld{display:flex;flex-direction:column;gap:4px;padding:8px 12px}
+.pop .selbox{height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--bg);padding:0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pop .sl{display:grid;grid-template-columns:78px minmax(0,1fr) 40px;gap:8px;align-items:center;padding:6px 12px}
+.pop .sl .tr{height:4px;border-radius:2px;background:var(--line);position:relative}.pop .sl .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--copper)}
+.pop .sl .v{font:12px var(--f-mono);color:var(--muted);text-align:right}
+.pop .lb{font-size:12px;font-weight:500;color:var(--muted)}
+.pops{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.popframe{display:flex;flex-direction:column;gap:6px}
+.old .btn{height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--surface);padding:0 14px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.old .btn.rec{background:var(--copper);border-color:var(--copper);color:var(--copper-ink);height:34px;width:112px;justify-content:center}
+.old .ibtn{width:32px;height:32px;border-radius:6px;border:1px solid var(--btn-line);background:var(--surface);display:inline-grid;place-items:center;padding:0}
+.old .voice .kc{margin-right:0}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-ear" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M2 8v4M22 8v4"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+</svg>
+<div class="wrap" id="top">
+  <header class="stack" style="gap:8px">
+    <div class="row"><h1>Booth record bar</h1><span class="tag">Draft</span><span class="spacer"></span>
+      <span class="seg" role="group" aria-label="Theme"><button data-theme-set="system" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></span></div>
+    <p class="sub">The record bar of the Booth as built (<code>components/booth/frame/BoothFooter.tsx</code>) has four separate controls before the voice: Record, a Levels icon, Cold read and, since #2812, the voice control. The owner asks for one Record split button (Record, with the audio settings in a dropdown on its side), Cold read folded in, and the voice control moved to the left of it showing the number only. Two ways to fold Cold read in are drawn; the recommendation is in the README.</p>
+    <nav class="toc" aria-label="Sections"><a href="#now">Today</a><a href="#a">Option A</a><a href="#b">Option B</a><a href="#menus">Menus</a><a href="#keys">Keyboard</a></nav>
+  </header>
+  <section class="stack" id="now" aria-label="Today"><h2>Today</h2><div class="states" id="mount-now"></div></section>
+  <section class="stack" id="a" aria-label="Option A"><h2>Option A: Cold read is a switch on the button</h2><div class="states" id="mount-a"></div></section>
+  <section class="stack" id="b" aria-label="Option B"><h2>Option B: Cold read is a mode in the side menu</h2><div class="states" id="mount-b"></div></section>
+  <section class="stack" id="menus" aria-label="The menus"><h2>The side menu, open</h2><div class="pops" id="mount-menus"></div></section>
+  <section class="stack" id="keys-s" aria-label="Keyboard"><h2 id="keys">Keyboard: unchanged</h2><div id="mount-keys"></div></section>
+</div>
+<script>
+(function(){
+  'use strict';
+  var C={alice:'#2A5C86',queen:'#A3302A',cat:'#6B4C9A',narr:'#766F60'};
+  var ico=function(n){return '<svg class="i" aria-hidden="true"><use href="#i-'+n+'"/></svg>'};
+  var STATES=[
+    {id:'idle',t:'Idle'},
+    {id:'rec',t:'Recording'},
+    {id:'armed',t:'Cold read armed'},
+    {id:'listen',t:'Listening (the text follows the voice)'},
+    {id:'nomic',t:'No microphone'},
+    {id:'off',t:'Record unavailable'}
+  ];
+  function voice(s){
+    var dot=s==='rec'?'<span class="recdot" role="img" aria-label="Recording on this track"></span>':'<span class="armdot" role="img" aria-label="Armed in REAPER"></span>';
+    return '<button class="voice" aria-haspopup="listbox" aria-label="Voice: Queen of Hearts, number 2, armed in REAPER. Choose a voice"><span class="num">2</span><span class="name"><span class="spk" style="--c:'+C.queen+'">Queen of Hearts</span></span>'+dot+'<svg class="i car"><use href="#i-down"/></svg></button>';
+  }
+  function split(opt,s){
+    var rec=s==='rec', cold=(s==='armed'||s==='listen');
+    var main,mid='',side;
+    if(opt==='a'){
+      main='<button class="main" aria-label="'+(rec?'Stop':'Record')+'"'+(s==='off'?' aria-disabled="true"':'')+'>'+(rec?'<span class="sq"></span>Stop':'<span class="rd"></span>Record')+'</button>';
+      var dis=(rec||s==='nomic'||s==='off');
+      mid='<button class="cold" aria-pressed="'+cold+'"'+(dis?' aria-disabled="true"':'')+' aria-label="Cold read" title="Cold read"><span class="ic">'+ico('ear')+'</span><span class="lbl">Cold read</span></button>';
+    }else{
+      // B: the side menu's mode picks what the one button does
+      var coldMode=(s==='armed'||s==='listen');
+      var label=s==='listen'?'Stop':(coldMode?'Cold read':(rec?'Stop':'Record'));
+      var glyph=(s==='listen'||rec)?'<span class="sq"></span>':(coldMode?ico('ear'):'<span class="rd"></span>');
+      main='<button class="main'+(coldMode?' coldmode':'')+'"'+(s==='off'?' aria-disabled="true"':'')+'>'+glyph+label+'</button>';
+    }
+    side='<button class="side" aria-label="Recording options" aria-haspopup="dialog" title="Recording options">'+ico('down')+(s==='nomic'?'<span class="wdot" role="img" aria-label="No microphone"></span>':'')+'</button>';
+    return '<div class="split" role="group" aria-label="Record">'+main+mid+side+'</div>';
+  }
+  function bar(opt,s){
+    var time=s==='rec'?'01:42':(s==='listen'?'00:12':'00:00');
+    var lvl=(s==='rec')?'62%':(s==='listen'?'48%':(s==='nomic'?'0%':'8%'));
+    var right='<span class="meter" role="img" aria-label="Input level"><i style="width:'+lvl+'"></i></span>'+
+      (s==='armed'||s==='listen'?'<span class="pill cold">Mic on · cold read</span>':'<span class="pill n">Room −58.6 dB</span>');
+    var why='';
+    if(s==='nomic') why='<div class="why warn" role="status">No microphone found. The text cannot follow your voice.</div>';
+    if(s==='off') why='<div class="why">REAPER is not running.</div>';
+    return '<div class="foot"><div class="bar"><div class="ctl">'+voice(s)+split(opt,s)+'<span class="time">'+time+'</span></div><div class="right">'+right+'</div>'+why+'</div>'+
+      '<div class="keys"><span><span class="kc">Space</span>Record / stop</span><span class="kopt"><span class="kc">R</span>Punch and roll</span><span><span class="kc">↑</span><span class="kc">↓</span>Phrase</span><span><span class="kc">Num 0–9</span>Voice</span></div></div>';
+  }
+  function old(s){
+    var rec=s==='rec';
+    return '<div class="foot old"><div class="bar"><div class="ctl"><button class="btn rec">'+(rec?'<span style="width:10px;height:10px;background:currentColor"></span>Stop':'<span style="width:9px;height:9px;border-radius:50%;background:currentColor"></span>Record')+'</button><span class="time">'+(rec?'01:42':'00:00')+'</span><button class="ibtn" aria-label="Levels" title="Levels">'+ico('mic')+'</button><button class="btn" aria-pressed="false">Cold read</button>'+
+      '<button class="voice" style="width:auto;flex:0 0 auto"><span class="kc">Num 2</span><span class="name"><span class="spk" style="--c:'+C.queen+'">Queen of Hearts</span></span><span class="armdot"></span><svg class="i car"><use href="#i-down"/></svg></button></div>'+
+      '<div class="right"><span class="meter"><i style="width:8%"></i></span><span class="pill n">Room −58.6 dB</span></div></div></div>';
+  }
+  function frame(id,t,html,extra){return '<div class="st" id="'+id+'"'+(extra||'')+'><span class="label">'+t+'</span>'+html+'</div>'}
+  function mount(id,html){document.getElementById(id).innerHTML=html}
+  mount('mount-now',frame('now-idle','Today · idle (four controls, voice after Cold read, keycap in the voice)',old('idle'))+frame('now-rec','Today · recording',old('rec')));
+  ['a','b'].forEach(function(opt){
+    mount('mount-'+opt,STATES.map(function(x){return frame(opt+'-'+x.id,x.t,bar(opt,x.id))}).join(''));
+  });
+  var menuA='<div class="pop" role="dialog" aria-label="Recording options">'+audio()+'</div>';
+  function audio(){return '<div class="sec">Microphone</div><div class="fld"><span class="lb">Which microphone REAPER records from</span><div class="selbox"><span>Built-in microphone</span>'+ico('down')+'</div></div>'+
+    '<div class="sec">Levels</div><div class="sl"><span class="lb">Input</span><span class="tr"><i style="width:64%"></i></span><span class="v">−6 dB</span></div><div class="sl"><span class="lb">Monitor</span><span class="tr"><i style="width:40%"></i></span><span class="v">−12 dB</span></div><div class="sl"><span class="lb">Pre-roll</span><span class="tr"><i style="width:30%"></i></span><span class="v">3 s</span></div>'}
+  var menuB='<div class="pop" role="dialog" aria-label="Recording options"><div class="sec">Main button</div><div role="radiogroup" aria-label="Main button"><div class="it" role="radio" aria-checked="false"><span class="rad"></span><span>Record</span></div><div class="it" role="radio" aria-checked="true"><span class="rad on"></span><span>Cold read</span></div></div>'+audio()+'</div>';
+  function pf(t,h){return '<div class="popframe"><span class="label">'+t+'</span>'+h+'</div>'}
+  mount('mount-menus',pf('Option A · side menu: audio settings only',menuA)+pf('Option B · side menu: the button’s mode, then audio settings',menuB));
+  mount('mount-keys','<table class="t"><thead><tr><th>Key</th><th>Does</th><th>After this change</th></tr></thead><tbody>'+
+    '<tr><td><span class="kc">Space</span></td><td>Record or stop</td><td>Unchanged in both options. Always records; in B it also starts a cold read when the mode is Cold read.</td></tr>'+
+    '<tr><td><span class="kc">R</span></td><td>Punch and roll from here</td><td>Unchanged</td></tr>'+
+    '<tr><td><span class="kc">↑</span> <span class="kc">↓</span></td><td>Move the phrase</td><td>Unchanged</td></tr>'+
+    '<tr><td><span class="kc">Num 0–9</span> <span class="kc">Num .</span> <span class="kc">Num +</span> <span class="kc">Num −</span></td><td>Pick a voice, open the voice list, next or previous voice</td><td>Unchanged; the hint strip still shows them. Only the control’s face drops the keycap.</td></tr>'+
+    '<tr><td>Command palette</td><td>Start or stop cold read</td><td>Unchanged (no default key)</td></tr>'+
+    '<tr><td>Tab, Enter, Arrow Down</td><td>Reach the three parts; open the side menu</td><td>The main, the Cold read switch (A) and the side button are three tab stops</td></tr>'+
+    '</tbody></table>');
+  function press(attr,value){document.querySelectorAll('['+attr+']').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute(attr)===value))})}
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-theme-set]');
+    if(!b)return;
+    var v=b.getAttribute('data-theme-set');
+    if(v==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',v);
+    press('data-theme-set',v);
+  });
+  var t=new URLSearchParams(location.search).get('theme');
+  if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);press('data-theme-set',t)}
+})();
+</script>
+</body>
+</html>

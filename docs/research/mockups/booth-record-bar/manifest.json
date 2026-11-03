@@ -1,0 +1,177 @@
+{
+  "issue": 2841,
+  "title": "Booth record bar: one split Record button, voice control on the left",
+  "status": "draft, awaiting owner review",
+  "what": "The Booth's bottom bar gets one Record button with a small arrow on its side (a split button). The arrow opens the audio settings that the microphone icon opens today. The voice picker moves to the left of Record and shows just the number (for example 2), the character name and the REAPER armed dot, with no keyboard-key picture. Cold read is folded into the same button in one of two ways.",
+  "why": "Four separate controls (Record, microphone icon, Cold read, voice) crowd the bar, especially in narrow windows. One button with its settings attached is shorter and reads left to right: who, then record.",
+  "options": {
+    "a": "Cold read is a switch on the button. Record always records, Space is unchanged.",
+    "b": "Cold read is a mode chosen in the side menu; the main button then starts a cold read until switched back."
+  },
+  "recommendation": "a",
+  "recommendation_why": "It keeps today's behaviour: Space never changes meaning, and there is no persistent mode that can swallow a take.",
+  "page": "index.html",
+  "readme": "README.md",
+  "images": [
+    {
+      "file": "shots/a-1024-dark.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (1024 px, dark)",
+      "option": "a",
+      "width": 1024,
+      "theme": "dark",
+      "bytes": 119646
+    },
+    {
+      "file": "shots/a-1024-light.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (1024 px, light)",
+      "option": "a",
+      "width": 1024,
+      "theme": "light",
+      "bytes": 120903
+    },
+    {
+      "file": "shots/a-1440-dark.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (1440 px, dark)",
+      "option": "a",
+      "width": 1440,
+      "theme": "dark",
+      "bytes": 120884
+    },
+    {
+      "file": "shots/a-1440-light.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (1440 px, light)",
+      "option": "a",
+      "width": 1440,
+      "theme": "light",
+      "bytes": 122067
+    },
+    {
+      "file": "shots/a-390-dark.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (390 px, dark)",
+      "option": "a",
+      "width": 390,
+      "theme": "dark",
+      "bytes": 107089
+    },
+    {
+      "file": "shots/a-390-light.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (390 px, light)",
+      "option": "a",
+      "width": 390,
+      "theme": "light",
+      "bytes": 107554
+    },
+    {
+      "file": "shots/a-768-dark.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (768 px, dark)",
+      "option": "a",
+      "width": 768,
+      "theme": "dark",
+      "bytes": 103101
+    },
+    {
+      "file": "shots/a-768-light.png",
+      "caption": "Option A: Cold read is a switch on the split button; idle, recording, cold read armed, listening, no microphone, Record unavailable (768 px, light)",
+      "option": "a",
+      "width": 768,
+      "theme": "light",
+      "bytes": 104316
+    },
+    {
+      "file": "shots/b-1024-dark.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (1024 px, dark)",
+      "option": "b",
+      "width": 1024,
+      "theme": "dark",
+      "bytes": 110712
+    },
+    {
+      "file": "shots/b-1024-light.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (1024 px, light)",
+      "option": "b",
+      "width": 1024,
+      "theme": "light",
+      "bytes": 111742
+    },
+    {
+      "file": "shots/b-1440-dark.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (1440 px, dark)",
+      "option": "b",
+      "width": 1440,
+      "theme": "dark",
+      "bytes": 111657
+    },
+    {
+      "file": "shots/b-1440-light.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (1440 px, light)",
+      "option": "b",
+      "width": 1440,
+      "theme": "light",
+      "bytes": 112940
+    },
+    {
+      "file": "shots/b-390-dark.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (390 px, dark)",
+      "option": "b",
+      "width": 390,
+      "theme": "dark",
+      "bytes": 105144
+    },
+    {
+      "file": "shots/b-390-light.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (390 px, light)",
+      "option": "b",
+      "width": 390,
+      "theme": "light",
+      "bytes": 105688
+    },
+    {
+      "file": "shots/b-768-dark.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (768 px, dark)",
+      "option": "b",
+      "width": 768,
+      "theme": "dark",
+      "bytes": 100529
+    },
+    {
+      "file": "shots/b-768-light.png",
+      "caption": "Option B: Cold read is a mode in the side menu; the same six states (768 px, light)",
+      "option": "b",
+      "width": 768,
+      "theme": "light",
+      "bytes": 101266
+    },
+    {
+      "file": "shots/menus-1440-dark.png",
+      "caption": "The side menu open: audio settings only (A), and with the Main button mode (B) (1440 px, dark)",
+      "option": "menus",
+      "width": 1440,
+      "theme": "dark",
+      "bytes": 45936
+    },
+    {
+      "file": "shots/menus-1440-light.png",
+      "caption": "The side menu open: audio settings only (A), and with the Main button mode (B) (1440 px, light)",
+      "option": "menus",
+      "width": 1440,
+      "theme": "light",
+      "bytes": 45339
+    },
+    {
+      "file": "shots/now-1440-dark.png",
+      "caption": "Today: the record bar as built (1440 px, dark)",
+      "option": "now",
+      "width": 1440,
+      "theme": "dark",
+      "bytes": 31866
+    },
+    {
+      "file": "shots/now-1440-light.png",
+      "caption": "Today: the record bar as built (1440 px, light)",
+      "option": "now",
+      "width": 1440,
+      "theme": "light",
+      "bytes": 32041
+    }
+  ]
+}
