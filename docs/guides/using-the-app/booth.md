@@ -15,7 +15,7 @@ The top bar holds the chapter stepper (previous chapter, the chapter menu with t
 where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
-[Script](script.md), the Booth's text size, 24 to 72 px (the same choice as **Booth text size** in [Settings › Appearance & keys](settings.md#appearance-keys)), and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
+[Script](script.md), the Booth's text size, 24 to 72 px (the same choice as **Booth text size** in [Settings › Appearance & keys](settings.md)), and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
 the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or the whole text area, whichever is less, so each choice narrows the text equally on both sides and the column follows the window up to that width; **+** and **-** change the size too, and the Booth opens at the size
 and width you last chose. The width is the line length on both pages: **Medium** is 64 characters a line, **Narrow** 48, **Wide** 80 and
 **Full** 100, and a line never runs past the text area, so at a large size or in a narrow window two widths can look the same. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a

@@ -166,7 +166,10 @@ function VoiceCharacters({ voice }: { voice: Voice }) {
     <span className="flex flex-wrap items-center gap-1">
       {voice.narrator && <span style={{ color: 'var(--text-muted)' }}>Narration, and as</span>}
       {voice.characters.map((character) => (
-        <SpeakerTag key={character.id} label={character.name} speakerId={character.id} />
+        // A chip is one unit: at a narrow width the chips wrap onto lines of their own, never in the middle of a name.
+        <span key={character.id} className="whitespace-nowrap">
+          <SpeakerTag label={character.name} speakerId={character.id} />
+        </span>
       ))}
       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
         {SOURCE[voice.characters[0]?.source ?? 'assigned']}

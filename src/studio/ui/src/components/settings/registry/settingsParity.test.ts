@@ -94,8 +94,8 @@ const BINDINGS: Parity = {
 };
 
 // ---- Keys the window keeps in localStorage.
-const KEY = /['"`](narration[-.][A-Za-z.-]+)(?:['"`]|\$\{)/g;
-const storageKeys = [...new Set(ALL.flatMap((path) => [...text(path).matchAll(KEY)].map((m) => m[1]!)))].filter((key) => key !== 'narration-studio').sort();
+const KEY = /['"`](narration(?:\.[A-Za-z.]+|-ui-[A-Za-z-]+))(?:['"`]|\$\{)/g;
+const storageKeys = [...new Set(ALL.flatMap((path) => [...text(path).matchAll(KEY)].map((m) => m[1]!)))].sort();
 
 const STORAGE: Parity = {
   covered: {
