@@ -603,7 +603,9 @@ function GroupRows({ name, open, children }: { name: string; open: number; child
     <>
       <TableRow className={NARROW_SPAN_ROW}>
         <TableCell colSpan={7} className="bg-[var(--surface-2)]">
-          <b>{name}</b> <span className="whitespace-nowrap text-[var(--text-muted)]">· {open} open</span>
+          {/* In a narrow table the count takes its own line in every band, so a short name and a long one give bands of one height (alignment rule
+          A5). */}
+          <b>{name}</b> <span className="whitespace-nowrap text-[var(--text-muted)] @max-[46rem]:block">· {open} open</span>
         </TableCell>
       </TableRow>
       {children}

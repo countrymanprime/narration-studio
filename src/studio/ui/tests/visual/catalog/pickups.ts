@@ -54,6 +54,7 @@ export const pickupsStates: StateEntry[] = [
     state: 'markers-partial-toast',
     description:
       'Pickups after Add 3 as markers (the button counts only the lines with a place) with one line added by hand (it has no place in the recording): the toast says "Pickup markers for 3 of 4 lines are in REAPER. 1 line has no place in the recording yet and was left out."',
+    ...REFLOW,
     ...TOAST_FADES_OUT,
   },
   {
