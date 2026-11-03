@@ -29,6 +29,27 @@ export const LongUnbrokenMessage: Story = {
   args: { messages: [failure(1, `C:\\Users\\narrator\\Documents\\${'VeryLongProjectFolderName\\'.repeat(16)}schedule.json`)] },
 };
 
+// The same long word on an information toast and on one with an action: the button keeps its size and the words give way (#2793).
+export const LongUnbrokenWithAction: Story = {
+  args: {
+    messages: [
+      info(1, `Saved to C:\\Users\\narrator\\Documents\\${'VeryLongProjectFolderName\\'.repeat(16)}notes.json`),
+      {
+        id: 2,
+        text: `Removed C:\\Users\\narrator\\${'VeryLongProjectFolderName\\'.repeat(16)}take.wav`,
+        tone: 'info',
+        action: { label: 'Undo', onAction: fn() },
+      },
+      {
+        id: 3,
+        text: `Could not read C:\\Users\\narrator\\${'VeryLongProjectFolderName\\'.repeat(16)}take.wav`,
+        tone: 'error',
+        action: { label: 'Retry', onAction: fn() },
+      },
+    ],
+  },
+};
+
 // Messages queue up instead of replacing each other; errors sit above the information messages.
 export const Queue: Story = {
   args: {
