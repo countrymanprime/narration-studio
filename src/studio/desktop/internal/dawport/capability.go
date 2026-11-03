@@ -38,9 +38,12 @@ const (
 	CapRecord        Capability = "record"
 	CapPunch         Capability = "punch"
 	CapRegions       Capability = "regions"
-	CapTakes         Capability = "takes"
-	CapFXChains      Capability = "fx_chains"
-	CapItemGain      Capability = "item_gain"
+	// CapVoiceSampleRegion keeps a character voice sample in the project as a region named for the character and label, and reads it
+	// back (docs/prds/character-voice-samples.prd.md, phase 6). An engine that cannot label a range is not offered the setting.
+	CapVoiceSampleRegion Capability = "voice_sample_region"
+	CapTakes             Capability = "takes"
+	CapFXChains          Capability = "fx_chains"
+	CapItemGain          Capability = "item_gain"
 	// CapRenderWithFX is the mastering port's DAW row, declared but not yet built. It is the one
 	// capability that makes the engine render, so each use needs the narrator's approval in the UI (threat model row 5o).
 	CapRenderWithFX    Capability = "render_with_fx"
@@ -131,6 +134,7 @@ var specs = []Spec{
 	{CapRecord, "Record", NeedsRunning, reflect.TypeFor[Recorder](), nil},
 	{CapPunch, "Punch and roll", NeedsRunning, reflect.TypeFor[Puncher](), nil},
 	{CapRegions, "Chapter regions", NeedsRunning, reflect.TypeFor[RegionWriter](), nil},
+	{CapVoiceSampleRegion, "Keep a voice sample as a region", NeedsRunning, reflect.TypeFor[VoiceSampleRegionKeeper](), nil},
 	{CapTakes, "Choose the active take", NeedsRunning, reflect.TypeFor[TakeSelector](), nil},
 	{CapFXChains, "FX chains", NeedsRunning, reflect.TypeFor[FXManager](), nil},
 	{CapItemGain, "Level matching", NeedsRunning, reflect.TypeFor[GainAdjuster](), nil},

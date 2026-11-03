@@ -75,6 +75,7 @@ export type DawCapabilityKey =
   | 'record'
   | 'punch'
   | 'regions'
+  | 'voice_sample_region'
   | 'takes'
   | 'fx_chains'
   | 'item_gain'
@@ -128,6 +129,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'record', label: 'Record' },
   { key: 'punch', label: 'Punch and roll' },
   { key: 'regions', label: 'Chapter regions' },
+  { key: 'voice_sample_region', label: 'Keep a voice sample as a region' },
   { key: 'takes', label: 'Choose the active take' },
   { key: 'fx_chains', label: 'FX chains' },
   { key: 'item_gain', label: 'Level matching' },

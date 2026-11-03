@@ -49,46 +49,47 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 	}
 	r := func(c dawport.Capability) role { return role{f: f, c: c} }
 	f.roles = map[dawport.Capability]any{
-		dawport.CapReview:          reviewRole{r(dawport.CapReview)},
-		dawport.CapNavigate:        navigateRole{r(dawport.CapNavigate)},
-		dawport.CapMarkers:         markersRole{r(dawport.CapMarkers)},
-		dawport.CapPickups:         pickupsRole{r(dawport.CapPickups)},
-		dawport.CapLineIdentity:    lineIdentityRole{r(dawport.CapLineIdentity)},
-		dawport.CapRenderConfig:    renderConfigRole{r(dawport.CapRenderConfig)},
-		dawport.CapCleanupTools:    cleanupToolsRole{r(dawport.CapCleanupTools)},
-		dawport.CapRetakeLanes:     retakeLanesRole{r(dawport.CapRetakeLanes)},
-		dawport.CapProjectState:    projectStateRole{r(dawport.CapProjectState)},
-		dawport.CapHeartbeat:       heartbeatRole{r(dawport.CapHeartbeat)},
-		dawport.CapProjectRead:     projectReadRole{r(dawport.CapProjectRead)},
-		dawport.CapTrackState:      trackStateRole{r(dawport.CapTrackState)},
-		dawport.CapTrackSelect:     trackSelectRole{r(dawport.CapTrackSelect)},
-		dawport.CapTrackCreate:     trackCreateRole{r(dawport.CapTrackCreate)},
-		dawport.CapTracksRead:      tracksReadRole{r(dawport.CapTracksRead)},
-		dawport.CapRecord:          recordRole{r(dawport.CapRecord)},
-		dawport.CapPunch:           punchRole{r(dawport.CapPunch)},
-		dawport.CapRegions:         regionsRole{r(dawport.CapRegions)},
-		dawport.CapTakes:           takesRole{r(dawport.CapTakes)},
-		dawport.CapFXChains:        fxChainsRole{r(dawport.CapFXChains)},
-		dawport.CapItemGain:        itemGainRole{r(dawport.CapItemGain)},
-		dawport.CapRenderWithFX:    renderWithFXRole{r(dawport.CapRenderWithFX)},
-		dawport.CapMasterChainRead: masterChainReadRole{r(dawport.CapMasterChainRead)},
-		dawport.CapMacroRender:     macroRenderRole{r(dawport.CapMacroRender)},
-		dawport.CapCutRange:        cutRangeRole{r(dawport.CapCutRange)},
-		dawport.CapFXRange:         fxRangeRole{r(dawport.CapFXRange)},
-		dawport.CapStackTakes:      stackTakesRole{r(dawport.CapStackTakes)},
-		dawport.CapBackups:         backupsRole{r(dawport.CapBackups)},
-		dawport.CapFilePreview:     filePreviewRole{r(dawport.CapFilePreview)},
-		dawport.CapFileReveal:      fileRevealRole{r(dawport.CapFileReveal)},
-		dawport.CapRangeGain:       rangeGainRole{r(dawport.CapRangeGain)},
-		dawport.CapClickRepair:     clickRepairRole{r(dawport.CapClickRepair)},
-		dawport.CapUndoLast:        undoLastRole{r(dawport.CapUndoLast)},
-		dawport.CapMonitorLevel:    monitorLevelRole{r(dawport.CapMonitorLevel)},
-		dawport.CapFollowPosition:  placeRole{r(dawport.CapFollowPosition)},
-		dawport.CapTransportSync:   transportSyncRole{r(dawport.CapTransportSync)},
-		dawport.CapInputLevel:      inputLevelRole{r(dawport.CapInputLevel)},
-		dawport.CapPunchPreroll:    prerollRole{r(dawport.CapPunchPreroll)},
-		dawport.CapDawMeters:       meterRole{r(dawport.CapDawMeters)},
-		dawport.CapReplaceRange:    replaceRangeRole{r(dawport.CapReplaceRange)},
+		dawport.CapReview:            reviewRole{r(dawport.CapReview)},
+		dawport.CapNavigate:          navigateRole{r(dawport.CapNavigate)},
+		dawport.CapMarkers:           markersRole{r(dawport.CapMarkers)},
+		dawport.CapPickups:           pickupsRole{r(dawport.CapPickups)},
+		dawport.CapLineIdentity:      lineIdentityRole{r(dawport.CapLineIdentity)},
+		dawport.CapRenderConfig:      renderConfigRole{r(dawport.CapRenderConfig)},
+		dawport.CapCleanupTools:      cleanupToolsRole{r(dawport.CapCleanupTools)},
+		dawport.CapRetakeLanes:       retakeLanesRole{r(dawport.CapRetakeLanes)},
+		dawport.CapProjectState:      projectStateRole{r(dawport.CapProjectState)},
+		dawport.CapHeartbeat:         heartbeatRole{r(dawport.CapHeartbeat)},
+		dawport.CapProjectRead:       projectReadRole{r(dawport.CapProjectRead)},
+		dawport.CapTrackState:        trackStateRole{r(dawport.CapTrackState)},
+		dawport.CapTrackSelect:       trackSelectRole{r(dawport.CapTrackSelect)},
+		dawport.CapTrackCreate:       trackCreateRole{r(dawport.CapTrackCreate)},
+		dawport.CapTracksRead:        tracksReadRole{r(dawport.CapTracksRead)},
+		dawport.CapRecord:            recordRole{r(dawport.CapRecord)},
+		dawport.CapPunch:             punchRole{r(dawport.CapPunch)},
+		dawport.CapRegions:           regionsRole{r(dawport.CapRegions)},
+		dawport.CapTakes:             takesRole{r(dawport.CapTakes)},
+		dawport.CapFXChains:          fxChainsRole{r(dawport.CapFXChains)},
+		dawport.CapItemGain:          itemGainRole{r(dawport.CapItemGain)},
+		dawport.CapRenderWithFX:      renderWithFXRole{r(dawport.CapRenderWithFX)},
+		dawport.CapMasterChainRead:   masterChainReadRole{r(dawport.CapMasterChainRead)},
+		dawport.CapMacroRender:       macroRenderRole{r(dawport.CapMacroRender)},
+		dawport.CapCutRange:          cutRangeRole{r(dawport.CapCutRange)},
+		dawport.CapFXRange:           fxRangeRole{r(dawport.CapFXRange)},
+		dawport.CapStackTakes:        stackTakesRole{r(dawport.CapStackTakes)},
+		dawport.CapBackups:           backupsRole{r(dawport.CapBackups)},
+		dawport.CapFilePreview:       filePreviewRole{r(dawport.CapFilePreview)},
+		dawport.CapFileReveal:        fileRevealRole{r(dawport.CapFileReveal)},
+		dawport.CapRangeGain:         rangeGainRole{r(dawport.CapRangeGain)},
+		dawport.CapClickRepair:       clickRepairRole{r(dawport.CapClickRepair)},
+		dawport.CapUndoLast:          undoLastRole{r(dawport.CapUndoLast)},
+		dawport.CapMonitorLevel:      monitorLevelRole{r(dawport.CapMonitorLevel)},
+		dawport.CapFollowPosition:    placeRole{r(dawport.CapFollowPosition)},
+		dawport.CapTransportSync:     transportSyncRole{r(dawport.CapTransportSync)},
+		dawport.CapInputLevel:        inputLevelRole{r(dawport.CapInputLevel)},
+		dawport.CapPunchPreroll:      prerollRole{r(dawport.CapPunchPreroll)},
+		dawport.CapDawMeters:         meterRole{r(dawport.CapDawMeters)},
+		dawport.CapReplaceRange:      replaceRangeRole{r(dawport.CapReplaceRange)},
+		dawport.CapVoiceSampleRegion: voiceSampleRegionRole{r(dawport.CapVoiceSampleRegion)},
 	}
 	return f
 }
@@ -532,6 +533,32 @@ func (r cutRangeRole) DeleteRange(context.Context, dawport.DeleteRangeRequest) (
 		return got, err
 	}
 	return got.WithUndoSteps(1), nil
+}
+
+type voiceSampleRegionRole struct{ role }
+
+// AddVoiceSampleRegion answers as keep_voice_sample does for a region the project did not have.
+func (r voiceSampleRegionRole) AddVoiceSampleRegion(context.Context, float64, float64, string) (dawport.VoiceSampleRegionKept, error) {
+	if err := r.do("AddVoiceSampleRegion"); err != nil {
+		return dawport.VoiceSampleRegionKept{}, err
+	}
+	return dawport.VoiceSampleRegionKept{Number: 1, Outcome: "created"}, nil
+}
+
+// MoveVoiceSampleRegion answers as keep_voice_sample does for a region it moved.
+func (r voiceSampleRegionRole) MoveVoiceSampleRegion(_ context.Context, number int, _, _ float64, _ string) (dawport.VoiceSampleRegionKept, error) {
+	if err := r.do("MoveVoiceSampleRegion"); err != nil {
+		return dawport.VoiceSampleRegionKept{}, err
+	}
+	return dawport.VoiceSampleRegionKept{Number: number, Outcome: "moved"}, nil
+}
+
+// ReadVoiceSampleRegions answers a project with no voice sample region.
+func (r voiceSampleRegionRole) ReadVoiceSampleRegions(context.Context) (dawport.VoiceSampleRegions, error) {
+	if err := r.do("ReadVoiceSampleRegions"); err != nil {
+		return dawport.VoiceSampleRegions{}, err
+	}
+	return dawport.VoiceSampleRegions{}, nil
 }
 
 type replaceRangeRole struct{ role }

@@ -244,6 +244,12 @@
       "level": "experimental",
       "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
       "reason": "standalone"
+    },
+    "voice_sample_region": {
+      "available": false,
+      "level": "experimental",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     }
   },
   "daw": "REAPER",

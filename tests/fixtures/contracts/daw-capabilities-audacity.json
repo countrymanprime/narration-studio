@@ -243,6 +243,12 @@
       "level": "not_yet_available",
       "message": "Undo the app's last action is not available with Audacity yet.",
       "reason": "not_yet"
+    },
+    "voice_sample_region": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Keep a voice sample as a region is not available with Audacity yet.",
+      "reason": "not_yet"
     }
   },
   "daw": "Audacity",

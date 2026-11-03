@@ -218,6 +218,16 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Audacity 3.x:** Experimental. A region is a range label `[nu:region] <title>` on the `<label track>` label track; the counts are REAPER's. A label with the same title and bounds within 0.01 s is existing; with `update`, the one label a title has is moved (`SetLabel` Start and End); a title held by several is ambiguous. A label is not a render target in Audacity, so a region here marks a chapter's place for the narrator and the readiness signals, nothing more. It makes one undo step per label.
 - **Checked:** harness (`regions_test.lua`); expected result is row A9; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-studio/issues/510)).
 
+### `voice_sample_region`
+
+- **Intent:** keep a character voice sample in the DAW's project as a region named for the character and label, and read it back, so the sample can be seen, moved and deleted in the DAW (phase 6 of [the voice samples PRD](../../prds/character-voice-samples.prd.md), [#1963](https://github.com/countrymanprime/narration-studio/issues/1963)).
+- **Role:** `VoiceSampleRegionKeeper`, synchronous (`AddVoiceSampleRegion`, `MoveVoiceSampleRegion`, `ReadVoiceSampleRegions`). Names start with `VoiceSampleRegionPrefix` (`Voice sample: `).
+- **Result:** `VOICE_SAMPLE_KEPT` with the region's number and `created`, `existing` (the same name and bounds within 0.01 s are already there; nothing is added), `moved` or `unchanged`. A number that is not a voice sample region any more answers `VOICE_SAMPLE_STALE` (`errors.Is(err, ErrStale)`), and a region whose name lacks the prefix is never moved. `VOICE_SAMPLE_REGION` per region, then `VOICE_SAMPLES_READ` with the count (500 at most) and the project change count. Adding and moving are one undo point each; reading and an `existing` or `unchanged` answer make none. Refused while REAPER records and for a range that is not finite, negative or empty.
+- **A region does not follow its item.** It is in project time, so the host keeps the item, take, source file and source range beside the region; a read that finds the region elsewhere is a moved sample, not the same audio.
+- **REAPER:** `keep_voice_sample`, `read_voice_samples` (`narration_voice_sample_region.lua`). The region's GUID is in the saved `.rpp` only (`EnumProjectMarkers3` does not return it), so the bridge identifies a region by its number and the host reads the GUID from the saved project.
+- **Audacity 3.x:** Not yet available, and the Settings choice is not offered. A range label could hold the name, but the sample's source range would have no file the app can open (the [snapshot](audacity-3.md#the-snapshot) lists no source file), so the app does not claim it.
+- **Checked:** harness (`voice_sample_region_test.lua`). Not checked in REAPER: [the in-REAPER check note](../../research/reaper-voice-sample-region-check.md) lists what the fake cannot prove and what [spike S8](../../research/reaper-spike-s8-voice-sample-labels.md) still has to answer; both are pending with the owner.
+
 ### `takes`
 
 - **Intent:** make one take of an item the active one; hide (mute, never delete) the item's other takes; cut a take that reads its line twice into two takes of one item.

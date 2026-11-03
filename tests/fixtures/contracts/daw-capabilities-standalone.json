@@ -239,6 +239,12 @@
       "level": "unsupported",
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
+    },
+    "voice_sample_region": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
     }
   },
   "daw": "none",

@@ -26,6 +26,7 @@ What each engine declares for each capability today. The levels are the adapters
 | `record` | `Recorder` | Engine answering | Experimental | Not yet available | Not reachable | Experimental |
 | `punch` | `Puncher` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
 | `regions` | `RegionWriter` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
+| `voice_sample_region` | `VoiceSampleRegionKeeper` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `takes` | `TakeSelector` | Engine answering | Experimental | Experimental | Not reachable | Experimental |
 | `fx_chains` | `FXManager` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `item_gain` | `GainAdjuster` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
