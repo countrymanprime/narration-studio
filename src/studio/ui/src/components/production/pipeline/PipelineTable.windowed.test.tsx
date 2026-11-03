@@ -73,6 +73,19 @@ describe('PipelineTable with a long book (#1764)', () => {
     mount(WINDOW_AFTER);
     expect(document.querySelector('tbody .line-clamp-2')).toBeNull();
     expect((bodyRows()[0] as HTMLElement).style.height).toBe('');
+  }, 40_000);
+
+  it('keeps the whole name in the DOM and in the accessible names of the row, however it is clamped', () => {
+    const rows = buildPipelineRows([chapter('c1', { title: 'A very long chapter title that will wrap past two lines of the name column and be clamped' })]);
+    const long = Array.from({ length: WINDOW_AFTER + 10 }, () => rows[0]!).map((row, i) => ({ ...row, id: `c${i + 1}` }));
+    render(
+      <TooltipProvider>
+        <PipelineTable rows={long} recommendations={new Map()} onGo={noop} notify={noop} onStatus={noop} />
+      </TooltipProvider>,
+    );
+    const first = bodyRows()[0] as HTMLElement;
+    expect(first.querySelector('.line-clamp-2')!.textContent).toContain('be clamped');
+    expect(first.querySelector('[data-cell]')!.getAttribute('aria-label')).toContain('be clamped');
   });
 
   it('draws a book of the threshold size whole, with no spacers and no row count', () => {

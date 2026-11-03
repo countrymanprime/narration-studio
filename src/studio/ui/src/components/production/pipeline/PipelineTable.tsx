@@ -46,6 +46,10 @@ const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'pro
 const STAGE_CELL = 'px-1! last:pr-4!';
 /** The names stay in view while the stages scroll under them, on the card's own colour. */
 const STICKY_NAME = 'sticky left-0 z-[1] bg-[var(--surface)]';
+// A pinned cell is its own layer, and where a row sits on a fractional scroll offset its background covers the half of the collapsed row rule
+// that falls inside it, so the rule vanishes under the names for that one row. The cell draws its own rule inside its box (the last row has none:
+// the card's border is its edge).
+const STICKY_NAME_RULE = 'shadow-[inset_0_-1px_0_var(--border)] [tbody>tr:last-child>&]:shadow-none';
 
 /** A disc half filled, drawn with CSS so it reads the same in every font. */
 const underWayMark = (
@@ -195,11 +199,13 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                 className={row.id === justChanged ? CHANGE_HIGHLIGHT_CLASSES : ''}
               >
                 {/* Broken between words, never inside one ("Caterpill / ar", R4SM-3). */}
-                <TableCell className={`text-center font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
+                <TableCell className={`text-center font-medium [overflow-wrap:break-word] ${STICKY_NAME} ${STICKY_NAME_RULE}`}>
                   {windowed ? (
-                    // One row height: the name takes two lines at most and the full name is in the tip.
+                    // One row height: the name takes two 20 px lines at most (40 px, so the cell's 10 px of padding and its rule stay inside
+                    // ROW_PX and a name can never grow the row), and the full name is in the tip. The text is all in the DOM: a screen reader
+                    // reads the whole name, and each cell's accessible name carries it too.
                     <TooltipTarget text={row.name} className="block">
-                      <span className="line-clamp-2">
+                      <span className="line-clamp-2 block max-h-10 overflow-hidden leading-5">
                         <TitleSubtitle {...row.parts} />
                       </span>
                     </TooltipTarget>
