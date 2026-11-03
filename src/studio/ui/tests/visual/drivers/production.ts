@@ -100,6 +100,41 @@ export const productionDrivers: Record<string, Driver> = {
     await openManyChapters(page);
     await scrollPipelineTo(page, 0);
     await expectFixedRowHeight(page);
+    // A clamped name gives its whole name in a tip once the pointer has rested on it (the hover delay is about a second); the tip is closed again
+    // before the capture, because a portalled popup sits outside the landmarks.
+    const title = page.locator(`${PIPELINE_ROWS} [data-title]`).nth(10);
+    await title.hover();
+    await expect(page.getByRole('tooltip')).toHaveText(/The Rabbit Sends in a Little Bill|Chapter \d+ — /, { timeout: 4000 });
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+  },
+  // Titles of 10,000 characters, with no break opportunity and with spaces (?mockBooth=many-unbroken, 200 chapters so the rows are windowed): the name
+  // clamp holds them in their cell (the scroll area never grows past the table's own minimum width) and their tip fits the window.
+  'many-chapters-unbroken': async (page) => {
+    await page.goto('/?mockBooth=many-unbroken');
+    await settlePage(page);
+    await page.locator(PIPELINE_ROWS).first().waitFor();
+    await scrollPipelineTo(page, 0);
+    await expectFixedRowHeight(page);
+    const widths = await page.getByRole('group', { name: 'Chapter pipeline scroll area' }).evaluate((area) => ({
+      scroll: area.scrollWidth,
+      client: area.clientWidth,
+      min: 45.75 * parseFloat(getComputedStyle(document.documentElement).fontSize),
+    }));
+    expect(widths.scroll).toBeLessThanOrEqual(Math.max(widths.client, widths.min) + 1);
+    // The fifth chapter's name is the unbroken one, the seventh's the long one with spaces; each gives a tip that fits the window.
+    for (const nth of [4, 6]) {
+      await page
+        .locator(`${PIPELINE_ROWS} [data-title]`)
+        .nth(nth + 1)
+        .hover();
+      const tip = page.getByRole('tooltip');
+      await tip.waitFor({ timeout: 4000 });
+      const box = (await tip.boundingBox())!;
+      expect(box.height).toBeLessThanOrEqual((page.viewportSize()?.height ?? 900) - 16);
+      await page.mouse.move(0, 0);
+      await expect(page.getByRole('tooltip')).toHaveCount(0);
+    }
   },
   // The window moved: rows 2400 on, the spacer above holding the place of the 2400 before them.
   'many-chapters-scrolled': async (page) => {

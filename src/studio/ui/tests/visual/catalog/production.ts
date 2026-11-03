@@ -365,6 +365,16 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'many-chapters-unbroken',
+    // Each width loads the book afresh, as the other many-chapters rows do.
+    reloadPerViewport: true,
+    timeoutFactor: 2,
+    ...REFLOW,
+    description:
+      'The windowed pipeline of 200 chapters, some titled with 10,000 characters (?mockBooth=many-unbroken, one with no break opportunity, one with spaces): every name is held to its two-line clamp inside its column, the scroll area is no wider than the table, and the tip of such a name fits the window',
+  },
+  {
+    page: 'production',
     state: 'many-chapters-scrolled',
     // 5002 chapters: each width loads the book afresh (the scroll position must not carry over), and a load takes seconds, not tens.
     reloadPerViewport: true,

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { chapter } from './pipelineFixtures';
 import { PipelineTable } from './PipelineTable';
-import { buildPipelineRows } from './pipelineRows';
+import { buildPipelineRows, nameTip, NAME_TIP_LIMIT } from './pipelineRows';
 import { OVERSCAN, ROW_PX, rowWindow, WINDOW_AFTER } from './rowWindow';
 
 afterEach(() => {
@@ -86,6 +86,29 @@ describe('PipelineTable with a long book (#1764)', () => {
     const first = bodyRows()[0] as HTMLElement;
     expect(first.querySelector('.line-clamp-2')!.textContent).toContain('be clamped');
     expect(first.querySelector('[data-cell]')!.getAttribute('aria-label')).toContain('be clamped');
+  });
+
+  it('a name with no break opportunity stays inside its cell: the tip target holds to its column and the clamp breaks anywhere', () => {
+    const rows = buildPipelineRows([chapter('c1', { title: 'U'.repeat(10_000) })]);
+    const long = Array.from({ length: WINDOW_AFTER + 10 }, (_, i) => ({ ...rows[0]!, id: `c${i + 1}` }));
+    render(
+      <TooltipProvider>
+        <PipelineTable rows={long} recommendations={new Map()} onGo={noop} notify={noop} onStatus={noop} />
+      </TooltipProvider>,
+    );
+    const clamp = bodyRows()[0]!.querySelector('.line-clamp-2') as HTMLElement;
+    // The tip target is a box as wide as the cell (not one that takes the width of its text) and may shrink; the clamp breaks anywhere.
+    const trigger = clamp.parentElement as HTMLElement;
+    expect(trigger.className).toMatch(/(^|\s)w-full(\s|$)/);
+    expect(trigger.className).toMatch(/(^|\s)min-w-0(\s|$)/);
+    expect(clamp.className).toContain('[overflow-wrap:anywhere]');
+  });
+
+  it('caps the tip text of a very long name so the tip fits a window, and leaves a normal name whole', () => {
+    expect(nameTip('Chapter 1 — Down the Rabbit-Hole')).toBe('Chapter 1 — Down the Rabbit-Hole');
+    const tip = nameTip('word '.repeat(2_000));
+    expect(tip.length).toBeLessThanOrEqual(NAME_TIP_LIMIT);
+    expect(tip.endsWith('…')).toBe(true);
   });
 
   it('draws a book of the threshold size whole, with no spacers and no row count', () => {
