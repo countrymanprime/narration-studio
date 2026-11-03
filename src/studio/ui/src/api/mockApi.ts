@@ -436,7 +436,7 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
-    ...createVoiceTracksMock(),
+    ...createVoiceTracksMock(initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'march-hare'] }] } : undefined),
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,

@@ -1134,6 +1134,25 @@ export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
 })();
 
+/**
+ * WIRE_TRACKS_PROJECT in a Voice folders project (`?mockVoiceFolders=1`, docs/prds/booth-voice-tracks.prd.md): Chapter 1 is a folder whose
+ * children are its voices. Its take sits on the Narrator child; White Rabbit matches its character by name and Extras holds the two
+ * characters the seed's voice setup assigns it.
+ */
+export const WIRE_VOICE_FOLDER_GUID = '{F0LD-V01CE}';
+export const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
+  const [first, ...rest] = WIRE_TRACKS_PROJECT.tracks;
+  const child = (guid: string, name: string, items: FixtureTrack['items'] = []): FixtureTrack => ({ ...first, guid, name, depth: 1, isFolder: false, items });
+  const list = [
+    { ...first, guid: WIRE_VOICE_FOLDER_GUID, isFolder: true, depth: 0, items: [] },
+    child(first.guid, 'Narrator', first.items),
+    child('{V01CE-RABB1T}', 'White Rabbit'),
+    child('{V01CE-EXTRAS}', 'Extras'),
+    ...rest.map((track) => ({ ...track, depth: 0 })),
+  ];
+  return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
+})();
+
 /** One row of every status the classifier produces, keyed to WIRE_TRACKS_PROJECT's own chapter track item GUIDs where it helps a screenshot read naturally (mirrors tests/fixtures/contracts/line-identity-read-success.json). */
 export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [
   {

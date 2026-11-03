@@ -86,12 +86,12 @@ export function VoicesCard({
           <div className="max-h-[min(60vh,26rem)] overflow-auto">
             <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['Key', 'Track', 'Characters', 'Actions']}>
               <TableHead sticky>
-                <tr>
+                <TableRow>
                   <TableHeader>Key</TableHeader>
                   <TableHeader>Track</TableHeader>
                   <TableHeader>Characters</TableHeader>
                   <TableHeader hiddenLabel="Actions" />
-                </tr>
+                </TableRow>
               </TableHead>
               <TableBody>
                 {voices.map((voice) => (

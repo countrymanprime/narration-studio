@@ -88,6 +88,27 @@ export const engineDrivers: Record<string, Driver> = {
     await card.getByText(/Last checked \d+ s ago/).waitFor();
     await card.getByRole('button', { name: 'Check again' }).waitFor();
   },
+  'voice-folders': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: /^Voices of / });
+    await table.getByRole('row', { name: /Extras/ }).waitFor();
+    await table.scrollIntoViewIfNeeded();
+  },
+  'voice-folders-picker': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: /^Voices of / });
+    await table.getByRole('row', { name: /Extras/ }).waitFor();
+    await table.scrollIntoViewIfNeeded();
+    await table.getByRole('button', { name: 'Choose who the Extras track records' }).click();
+    await page
+      .getByRole('dialog', { name: 'Choose who the Extras track records' })
+      .getByRole('checkbox', { name: /March Hare/ })
+      .waitFor();
+  },
   'folder-tracks': async (page) => {
     await page.goto('/?mockTrackFolders=1');
     await settlePage(page);

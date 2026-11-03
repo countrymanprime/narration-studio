@@ -5,7 +5,7 @@
 // a chapter is heard in its Proof chapter view. `tracks/sync-consent` went too: the same dialog over the Production home is
 // `production/chapter-sync-consent`.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
 
 export const engineStates: StateEntry[] = [
   {
@@ -70,6 +70,20 @@ export const engineStates: StateEntry[] = [
     state: 'wrong-project',
     description:
       'The engine panel with REAPER answering on a different project than the linked one (?mockDawMismatch=1): the REAPER project card’s warning callout says so, then "Waiting for REAPER to open the linked project.", "Last checked N s ago.", Link the open project… and Check again',
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders',
+    description:
+      'The engine panel for a Voice folders project (?mockVoiceFolders=1): the Voices card with its layout toggle on Voice folders, Chapter 1 picked, and its voices - Narrator on key 0, White Rabbit on 1 matched by name, Extras on 2 with the two characters assigned to it - each with its edit button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-picker',
+    description:
+      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and March Hare checked",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'engine',

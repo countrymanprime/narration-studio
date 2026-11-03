@@ -11,7 +11,14 @@ import type {
   TrackMapping,
   ManuscriptChapter,
 } from '../../types';
-import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, WIRE_TRACKS_PROJECT_FOLDERS, wireClone } from '../mockFixtures';
+import {
+  WIRE_CHAPTERS,
+  WIRE_TRACKS_PROJECT,
+  WIRE_TRACKS_PROJECT_FOLDERS,
+  WIRE_TRACKS_PROJECT_VOICES,
+  WIRE_VOICE_FOLDER_GUID,
+  wireClone,
+} from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
 import { mockChaptersForTracks, mockChapterSuggestion } from '../chapterSuggestionMock';
 import type { CoverageResult } from '../contracts/coverage';
@@ -38,7 +45,20 @@ export function createChapterTracksMock(
   },
 ) {
   // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
-  const project = initial.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+  const project = initial.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : initial.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+  if (initial.voiceFolders && !s.chapterTrackMappings.some((link) => link.chapterId === WIRE_CHAPTERS[0].id)) {
+    s.chapterTrackMappings = [
+      ...s.chapterTrackMappings,
+      {
+        trackGuid: WIRE_VOICE_FOLDER_GUID,
+        chapterId: WIRE_CHAPTERS[0].id,
+        chapterTitle: WIRE_CHAPTERS[0].title,
+        confirmedAt: '2026-11-02T09:00:00Z',
+        origin: 'manual',
+        match: null,
+      },
+    ];
+  }
   let chapterSyncConsent: ChapterSyncConsent = initial.chapterSync === 'ask' ? 'undecided' : initial.chapterSync === 'off' ? 'off' : 'on';
   let chapterSyncDecidedAt: string | null = chapterSyncConsent === 'undecided' ? null : '2026-09-24T09:00:00Z';
   let chapterSyncLastSync: string | null =

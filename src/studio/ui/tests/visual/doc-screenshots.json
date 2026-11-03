@@ -428,6 +428,20 @@
   },
   {
     "page": "engine",
+    "state": "voice-folders",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices",
+    "caption": "The audio engine panel - the Voices card for a Voice folders project: a chapter's voice tracks with their number-pad keys and characters"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-picker",
+    "caption": "The audio engine panel - the character list of a voice track on the Voices card"
+  },
+  {
+    "page": "engine",
     "state": "folder-tracks-picker",
     "viewport": "desktop",
     "docName": "engine-panel-folder-picker",
