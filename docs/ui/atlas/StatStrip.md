@@ -8,6 +8,8 @@ Storybook title: `Primitives/StatStrip`. Source: `src/components/primitives/Stat
 
 - Default
 - Three Tiles
+- Odd Count Narrow
+- Odd Count Half Step
 
 ## Used by
 
