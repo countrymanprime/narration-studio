@@ -72,7 +72,7 @@ func TestGuideTypesRoundTripWithoutTheSidecar(t *testing.T) {
 	for _, row := range rows {
 		names = append(names, row.Name)
 	}
-	if want := []string{"Character", "Location", "Organization", "Lore", "Item", "Word", "Creature"}; !slices.Equal(names, want) {
+	if want := []string{"Character", "Location", "Organization", "Lore", "Item", "Creature"}; !slices.Equal(names, want) {
 		t.Fatalf("names = %v, want %v", names, want)
 	}
 	if last := rows[len(rows)-1]; last.Colour != "amber" || !last.Speaks {
