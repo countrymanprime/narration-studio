@@ -83,3 +83,15 @@ func TestACheckThatFailedOrCannotBeReadSettlesNothing(t *testing.T) {
 		}
 	}
 }
+
+func TestASegmentCheckWithoutASegmentSettlesNothing(t *testing.T) {
+	f := newFollower(scripttrack.ChapterScript{Tokens: strings.Fields("The old lighthouse keeper climbed the spiral stairs each evening.")}, nil)
+	f.event(json.RawMessage(`{"type":"partial","segment":0,"words":[]}`))
+	for k, w := range strings.Fields("the old lighthouse keeper climbed the spiral chairs each evening") {
+		f.event(json.RawMessage(fmt.Sprintf(`{"type":"word","segment":0,"word":%q,"start":%.1f,"end":%.1f}`, w, 0.3*float64(k), 0.3*float64(k)+0.2)))
+	}
+	f.event(json.RawMessage(`{"type":"segment_end","segment":0}`))
+	if got := f.check(json.RawMessage(`{"type":"segment_check","words":[{"word":"stairs","start":0,"end":1}]}`)); len(got) != 0 {
+		t.Fatalf("a check that names no segment settled %s", got)
+	}
+}

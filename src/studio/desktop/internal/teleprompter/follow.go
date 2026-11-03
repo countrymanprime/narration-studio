@@ -118,15 +118,15 @@ func (f *follower) event(raw json.RawMessage) []json.RawMessage {
 // A check that carries an error, or no words, settles nothing, and a line the host cannot read is not followed.
 func (f *follower) check(raw json.RawMessage) []json.RawMessage {
 	var line struct {
-		Segment float64 `json:"segment"`
-		Error   string  `json:"error"`
+		Segment *float64 `json:"segment"`
+		Error   string   `json:"error"`
 		Words   []struct {
 			Word  string  `json:"word"`
 			Start float64 `json:"start"`
 			End   float64 `json:"end"`
 		} `json:"words"`
 	}
-	if json.Unmarshal(raw, &line) != nil || line.Error != "" {
+	if json.Unmarshal(raw, &line) != nil || line.Error != "" || line.Segment == nil {
 		return nil
 	}
 	words := make([]scripttrack.CheckedWord, 0, len(line.Words))
@@ -136,7 +136,7 @@ func (f *follower) check(raw json.RawMessage) []json.RawMessage {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	var lines []json.RawMessage
-	for _, settled := range f.tracker.Check(line.Segment, words) {
+	for _, settled := range f.tracker.Check(*line.Segment, words) {
 		lines = append(lines, compactLine(compare.PyOrdered{{Key: "type", Value: flagCheckEventType}, {Key: "id", Value: settled.ID}, {Key: "state", Value: settled.State}}))
 	}
 	return lines

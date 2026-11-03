@@ -23,6 +23,10 @@ type FlagCheck struct {
 // segment ends, never minutes.
 const maxCheckedSegments = 32
 
+// maxCheckedWords is the most words one check may carry: a segment is a breath of speech, not a chapter, and a check is judged
+// under the lock the live cursor takes.
+const maxCheckedWords = 2000
+
 // pendingCheck is a closed segment's reading and the flags it raised, kept until its check arrives.
 type pendingCheck struct {
 	segment float64
@@ -54,6 +58,9 @@ func (f *FlaggingTracker) remember(reading *SegmentReading, raised []FlagEvent) 
 // confirmed when the check raises one of its kind over the same words, cleared when it does not. A check with no words says
 // nothing about the flag; an unknown segment, or one already checked, is ignored.
 func (f *FlaggingTracker) Check(segment float64, words []CheckedWord) []FlagCheck {
+	if len(words) > maxCheckedWords {
+		return nil
+	}
 	at := -1
 	for i, pending := range f.checks {
 		if pending.segment == segment {

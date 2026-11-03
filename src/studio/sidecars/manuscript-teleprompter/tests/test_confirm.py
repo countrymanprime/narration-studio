@@ -133,3 +133,21 @@ def test_poll_returns_only_what_finished_and_finish_times_out_on_a_stuck_decode(
     assert confirmer.finish(timeout=0.05) == []
     release.set()
     assert confirmer.finish()[0]["segment"] == 0
+
+
+def test_observe_ignores_events_it_cannot_read_instead_of_raising():
+    confirmer = confirm.Confirmer(lambda: lambda audio: [("x", 0.0, 0.1)])
+    _feed(confirmer, 4)
+    nan, inf = float("nan"), float("inf")
+    for event in (
+        {"type": "word", "segment": 1, "start": nan, "end": 1.0},
+        {"type": "word", "segment": 1, "start": 0.0, "end": inf},
+        {"type": "word", "segment": 1, "start": 0.0, "end": 1e308},
+        {"type": "word", "segment": [1], "start": 0.0, "end": 1.0},
+        {"type": "segment_end", "segment": [1]},
+        "not a dict",
+        None,
+    ):
+        confirmer.observe(event)
+    confirmer.observe({"type": "segment_end", "segment": 1})
+    assert confirmer.finish() == []
