@@ -24,15 +24,17 @@ export async function showChapterTop(page: Page): Promise<void> {
     await page.waitForTimeout(100);
   }
   // The wheel did not bring it in: step the reading back to the chapter's start, as the Booth opened any chapter that had nothing recorded.
-  for (let step = 0; step < 200; step++) await page.keyboard.press('ArrowUp');
-  await page.locator('[data-state="cur"][data-unit="0"]').waitFor();
+  await readFromStart(page);
   for (let tries = 0; tries < 30 && !(await inWindow()); tries++) await page.waitForTimeout(100);
 }
 
-/** Puts the reading on the chapter's first paragraph, as a narrator would who clicks its first word, and leaves the view following it. */
-export async function readFromTop(page: Page): Promise<void> {
-  await showChapterTop(page);
-  await page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
+/**
+ * Puts the reading back on the chapter's first phrase with the keyboard, the place any chapter with nothing recorded opens at. It does not
+ * click a word: the first word of Chapter 1 is a Story Bible name, whose reference panel would open over the text at narrow widths.
+ */
+export async function readFromStart(page: Page): Promise<void> {
+  for (let step = 0; step < 200; step++) await page.keyboard.press('ArrowUp');
+  await page.locator('[data-state="cur"][data-unit="0"]').waitFor();
 }
 
 /** The Booth has drawn the chapter's recorded-through chip; attached, not visible, since a setup notice or a narrow bar can hide it. */

@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { boothChapterReady, readFromTop, showChapterTop } from '../helpers/viewTop';
+import { boothChapterReady, readFromStart, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // Where the page clock stops once Record is pressed, so the timer reads 00:00 at every viewport.
@@ -447,8 +447,8 @@ export const boothDrivers: Record<string, Driver> = {
   // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
   'page-break-stop': async (page) => {
     await readyToRecord(page);
-    // Chapter 1 opens at ¶ 14, past the Page 2 break: the reading goes back to the first paragraph to step down to it.
-    await readFromTop(page);
+    // Chapter 1 opens at ¶ 14, past the Page 2 break: the reading goes back to the chapter's start to step down to it.
+    await readFromStart(page);
     const label = page.locator('[data-page-breaks] [data-page-break="2"]');
     const height = page.viewportSize()?.height ?? 800;
     for (let step = 0; step < 80; step++) {
