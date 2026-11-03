@@ -6,13 +6,18 @@ import type { Measured } from '../../../api/schemas/base';
 import { addDays, diffDays, fmtD, fmtDY } from '../../schedule/dates';
 import type { Calc } from '../../schedule/progress';
 import { NOT_MEASURED } from '../measured/measured.selectors';
-import { keepInside, labelRect, placeLabel, type Bounds, type Placement, type Seg, type Side } from './chartLabels';
+import { keepInside, labelRect, leaderEnd, placeLabel, type Bounds, type Placement, type Seg, type Side } from './chartLabels';
 
 const MIN_WIDTH = 280;
 const DAY = 86_400_000;
 // The axis labels ("3h", right-aligned 6 px before the plot) start about as far in from the card's content edge as the plot ends before its
 // right edge, and the plot starts 6 px under the card's body padding, so no empty band sits under the header (alignment audit XSH-16).
 const PAD = { left: 28, right: 12, top: 6, bottom: 28 };
+/** A thin line from a point to its label when the label could not sit beside it. */
+function Leader({ from, to }: { from: { x: number; y: number }; to: { x: number; y: number } }) {
+  return <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="var(--text-muted)" strokeWidth="1" data-leader />;
+}
+
 /** A band of the card's colour round a label, so a line that still passes behind it does not strike it through. */
 const HALO = { stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' } as const;
 const monthYear = (d: Date): string => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -121,6 +126,10 @@ export function ProgressChart({
       : ['left-above', 'right-above', 'left-below', 'right-below'];
   const todayLabel = placeLabel('today', todayDot, bounds, lines, taken, todaySides);
   taken.push(labelRect(todayLabel, 'today'));
+  if (todayLabel.leader) {
+    const end = leaderEnd(todayDot, todayLabel, 'today');
+    lines.push({ x1: todayDot.x, y1: todayDot.y, x2: end.x, y2: end.y });
+  }
   const doneText = `done ${fmtD(k.finish)} (est.)`;
   const doneAt = { x: x(k.finish), y: y(finishedHours) };
   const doneSides: Side[] =
@@ -228,9 +237,11 @@ export function ProgressChart({
             />
             <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
             {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
+            {todayLabel.leader && <Leader from={todayDot} to={leaderEnd(todayDot, todayLabel, 'today')} />}
             <text x={todayLabel.x} y={todayLabel.y} textAnchor={todayLabel.anchor} fontSize="11" fill="var(--text)" {...HALO}>
               today
             </text>
+            {doneLabel.leader && <Leader from={doneAt} to={leaderEnd(doneAt, doneLabel, doneText)} />}
             <text x={doneLabel.x} y={doneLabel.y} textAnchor={doneLabel.anchor} fontSize="11" fill="var(--text)" {...HALO}>
               {doneText}
             </text>

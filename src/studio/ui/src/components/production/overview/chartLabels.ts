@@ -4,7 +4,12 @@ export type Seg = { x1: number; y1: number; x2: number; y2: number };
 export type Rect = { x1: number; y1: number; x2: number; y2: number };
 export type Bounds = { left: number; right: number; top: number; bottom: number };
 export type Side = 'right-above' | 'right-below' | 'left-above' | 'left-below';
-export type Placement = { x: number; y: number; anchor: 'start' | 'end' };
+export type Placement = {
+  x: number;
+  y: number;
+  anchor: 'start' | 'end';
+  /** The label is not beside its point: draw a thin line from the point to it. */ leader?: boolean;
+};
 
 /** The label font is 11 px sans: about this wide per character, a little over so the estimate errs towards more room. */
 const CHAR_PX = 6.4;
@@ -91,24 +96,36 @@ export function placeLabel(text: string, at: { x: number; y: number }, bounds: B
     if (hits === 0) return p;
     if (!best || hits < best.hits) best = { p, hits };
   }
-  // No preferred side is clear (a line close to the point on both): slide the label along the row above or below the point to the nearest clear spot.
+  // No preferred side is clear (lines close to the point on both): slide the label along the rows above or below the point to the nearest clear spot.
   const w = textWidth(text);
-  const slid: Placement[] = [];
-  for (let k = 0; k <= 2; k++) {
-    for (const dy of [-GAP - 8 * k, GAP + ASCENT - 2 + 8 * k]) {
-      for (let x1 = bounds.left; x1 + w <= bounds.right; x1 += SLIDE) slid.push({ x: x1, y: at.y + dy, anchor: 'start' });
-    }
-  }
   const away = (p: Placement): number => Math.abs(p.x + w / 2 - at.x) + Math.abs(p.y - at.y);
-  const clear = slid
-    .filter((p) => inside(labelRect(p, text), bounds) && at.x >= p.x - MAX_SLIDE && at.x <= p.x + w + MAX_SLIDE)
-    .sort((a, b) => away(a) - away(b))
-    .find((p) => {
-      const r = labelRect(p, text);
-      // A line between the label and its point would make it read as the line's: the label must be reachable from the point without crossing one.
-      const link: Seg = { x1: at.x, y1: at.y, x2: Math.min(Math.max(at.x, r.x1), r.x2), y2: Math.min(Math.max(at.y, r.y1), r.y2) };
-      return !lines.some((s) => crosses(s, r, PAD) || meet(s, link)) && !taken.some((t) => overlaps(r, t));
-    });
-  if (clear) return clear;
+  const search = (rows: number, near: boolean): Placement | undefined => {
+    const slid: Placement[] = [];
+    for (let k = 0; k <= rows; k++) {
+      for (const dy of [-GAP - 8 * k, GAP + ASCENT - 2 + 8 * k]) {
+        for (let x1 = bounds.left; x1 + w <= bounds.right; x1 += SLIDE) slid.push({ x: x1, y: at.y + dy, anchor: 'start' });
+      }
+    }
+    return slid
+      .filter((p) => inside(labelRect(p, text), bounds) && (!near || (at.x >= p.x - MAX_SLIDE && at.x <= p.x + w + MAX_SLIDE)))
+      .sort((a, b) => away(a) - away(b))
+      .find((p) => {
+        const r = labelRect(p, text);
+        // Near the point, a line between label and point would make the label read as the line's: it must be reachable without crossing one.
+        const link: Seg = { x1: at.x, y1: at.y, x2: Math.min(Math.max(at.x, r.x1), r.x2), y2: Math.min(Math.max(at.y, r.y1), r.y2) };
+        return !lines.some((s) => crosses(s, r, PAD) || (near && meet(s, link))) && !taken.some((t) => overlaps(r, t));
+      });
+  };
+  const near = search(2, true);
+  if (near) return near;
+  // Nowhere near is clear: a label is never left on a line. It goes to the nearest clear spot in the plot and a thin leader joins it to its point.
+  const far = search(7, false);
+  if (far) return { ...far, leader: true };
   return best ? best.p : keepInside(place(prefer[0], at), text, bounds);
 }
+
+/** Where a leader from `at` meets the label's box: the box's nearest point. */
+export const leaderEnd = (at: { x: number; y: number }, p: Placement, text: string): { x: number; y: number } => {
+  const r = labelRect(p, text);
+  return { x: Math.min(Math.max(at.x, r.x1), r.x2), y: at.y < r.y1 ? r.y1 : at.y > r.y2 ? r.y2 : at.y };
+};
