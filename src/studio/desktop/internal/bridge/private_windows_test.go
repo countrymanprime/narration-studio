@@ -40,16 +40,23 @@ func TestNewLimitsTheSessionFolderToTheCurrentUser(t *testing.T) {
 		if err != nil || acl == nil {
 			t.Fatalf("%s has no access list: %v", path, err)
 		}
-		if acl.AceCount != 1 {
-			t.Fatalf("%s has %d access entries, want 1", path, acl.AceCount)
+		// Windows may split one inheritable entry into a container entry and an inherit-only one, so the count is not pinned: what matters
+		// is that there is at least one and every one of them names the current user.
+		if acl.AceCount == 0 {
+			t.Fatalf("%s has an empty access list", path)
 		}
-		var ace *windows.ACCESS_ALLOWED_ACE
-		if err := windows.GetAce(acl, 0, &ace); err != nil {
-			t.Fatal(err)
-		}
-		sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart)) //nolint:gosec // G103: the SID sits inline at SidStart
-		if !windows.EqualSid(sid, user) {
-			t.Fatalf("%s grants access to someone other than the current user", path)
+		for index := uint32(0); index < uint32(acl.AceCount); index++ {
+			var ace *windows.ACCESS_ALLOWED_ACE
+			if err := windows.GetAce(acl, index, &ace); err != nil {
+				t.Fatal(err)
+			}
+			if ace.Header.AceType != windows.ACCESS_ALLOWED_ACE_TYPE {
+				t.Fatalf("%s entry %d is not an allow entry", path, index)
+			}
+			sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart)) //nolint:gosec // G103: the SID sits inline at SidStart
+			if !windows.EqualSid(sid, user) {
+				t.Fatalf("%s entry %d grants access to someone other than the current user", path, index)
+			}
 		}
 	}
 	assertOnlyUser(session)
