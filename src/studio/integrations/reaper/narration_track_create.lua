@@ -157,6 +157,8 @@ end
 
 local UNDO_FOLDERS = core.brand.name .. ': move chapters out of folders'
 local BAD_MODE = 'Choose preview or apply.'
+local FOLDERS_UNSAFE =
+  'Moving these chapters would put other tracks in a different folder, so nothing was moved. Move the chapter tracks out of the folder in REAPER.'
 
 local function split_guids(text)
   local out = {}
@@ -187,7 +189,7 @@ local function plan_lifts(deltas, guids, chapters)
         while ancestor ~= 0 do
           levels = levels + 1
           if chapters[guids[ancestor]] then
-            found = { position = position, levels = levels }
+            found = { position = position, levels = levels, folder = ancestor }
             break
           end
           ancestor = parents[ancestor]
@@ -200,7 +202,25 @@ local function plan_lifts(deltas, guids, chapters)
     if not found then
       break
     end
+    -- The track that closed the chapter folder the nested chapter leaves gives the lifted levels back, so every track after that folder
+    -- keeps the folder it was in (a Book that holds the chapters, say). A folder left open at the end has no such track.
+    local before, depth = {}, 0
+    for position, delta in ipairs(planned) do
+      before[position] = depth
+      depth = math.max(depth + delta, 0)
+    end
+    local folder_depth, closing = before[found.folder], nil
+    for position = found.position, #planned do
+      local after = position < #planned and before[position + 1] or math.max(before[position] + planned[position], 0)
+      if before[position] > folder_depth and after <= folder_depth then
+        closing = position
+        break
+      end
+    end
     planned[found.position - 1] = planned[found.position - 1] - found.levels
+    if closing then
+      planned[closing] = planned[closing] + found.levels
+    end
     lifted[#lifted + 1] = found.position
   end
   return planned, lifted
@@ -247,7 +267,7 @@ local function chapter_folders(session_dir, run_id, mode, chapter_text, expected
   end
   local planned, lifted = plan_lifts(deltas, guids, chapters)
   if not lifts_only_out_of_chapters(deltas, planned, guids, chapters) then
-    event(session_dir, 'ERROR', run_id, STRUCTURE)
+    event(session_dir, 'ERROR', run_id, FOLDERS_UNSAFE)
     return
   end
   local was, now = core.folder_parents(deltas), core.folder_parents(planned)

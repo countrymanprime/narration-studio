@@ -251,7 +251,7 @@ export const dawFeedback = {
     'inline',
     'na',
     'ok',
-    "Asks the DAW, writing nothing, whether a linked chapter's track sits inside another linked chapter's folder: when the panel shows, when a link changes and on window focus. A nesting is the panel's notice with the repair; a failed check draws no notice, so nothing is shown that the DAW did not report.",
+    "Asks the DAW, writing nothing, whether a linked chapter's track sits inside another linked chapter's folder: when the panel shows, when a link changes and on window focus. A nesting is the panel header's badge with the repair; a refused or failed check is a Folders not checked badge with why and Check again, never a nesting the DAW did not report.",
   ),
   'src/components/engine/useChapterFolders.ts::chapterFoldersRepair#1': row(
     'click',
@@ -262,6 +262,6 @@ export const dawFeedback = {
     'toast',
     'no',
     'ok',
-    'Move them out, confirmed in a dialog that lists every track the move changes: the button is busy until the DAW answers and a second press waits; a move says what it did and that one Undo in REAPER takes it back, a project that changed since the check moves nothing and says so, a refusal is an error toast, and the panel checks again after each.',
+    'Move them out, confirmed in a dialog that keeps the list it opened with and sends exactly that list: the button is busy until the DAW answers; a move says what it did and that one Undo in REAPER takes it back, a move of nothing says so, a project that changed since the check moves nothing and says so, a refusal is an error toast, and the panel checks again after each.',
   ),
 };

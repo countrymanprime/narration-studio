@@ -3232,12 +3232,6 @@
     "replace": "  if false and table.concat(moved, ',') ~= table.concat(split_guids(expected_text), ',') then"
   },
   {
-    "name": "chapter_folders lifts a nested chapter one level whatever its depth",
-    "file": "narration_track_create.lua",
-    "find": "    planned[found.position - 1] = planned[found.position - 1] - found.levels",
-    "replace": "    planned[found.position - 1] = planned[found.position - 1] - 1"
-  },
-  {
     "name": "chapter_folders lifts voice tracks as well as chapters",
     "file": "narration_track_create.lua",
     "find": "    for position = 2, #planned do\n      if chapters[guids[position]] then",
@@ -3254,5 +3248,11 @@
     "file": "narration_track_create.lua",
     "find": "    reaper.Undo_BeginBlock2(0)\n    for position, delta in ipairs(planned) do",
     "replace": "    for position, delta in ipairs(planned) do"
+  },
+  {
+    "name": "chapter_folders does not give the lifted levels back where the chapter folder closed",
+    "file": "narration_track_create.lua",
+    "find": "    if closing then\n      planned[closing] = planned[closing] + found.levels\n    end",
+    "replace": ""
   }
 ]

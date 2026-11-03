@@ -194,3 +194,109 @@ H.test("a chapter two levels down, inside a voice folder of another chapter's fo
   H.eq(H.parents(s)['Chapter 4'], '')
   H.eq(H.parents(s)['Crowd'], 'Chapter 3')
 end)
+
+-- qa-breaker B1: Chapter 4 was Chapter 3's last child, closing it with -1, and Outro follows inside the Book. Lifting Chapter 4 must give
+-- the closed level back on the track that ended Chapter 3's folder, or Outro would fall out of the Book.
+H.test('a nested chapter that closed its folder inside a Book is lifted and every later track keeps its folder', function()
+  local s, by = project({
+    { 'Book', 1 },
+    { 'Chapter 3', 1 },
+    { 'Narrator', 0 },
+    { 'Chapter 4', -1 },
+    { 'Outro', 0 },
+  })
+  local before = H.parents(s)
+  s:send('chapter_folders', 'a1', 'apply', guids(by, { 'Chapter 3', 'Chapter 4' }), guids(by, { 'Chapter 4' }))
+  H.eq(last(s), { 'FOLDERS_REPAIRED', 'a1', '1' })
+  H.eq(depths(s), { { 'Book', 1 }, { 'Chapter 3', 1 }, { 'Narrator', -1 }, { 'Chapter 4', 0 }, { 'Outro', 0 } })
+  local after = H.parents(s)
+  H.eq({ after['Chapter 4'], after.Outro, after.Narrator }, { 'Book', before.Outro, 'Chapter 3' })
+end)
+
+H.test('a chapter whose own voices close the folder it sits in keeps them and the tracks after keep theirs', function()
+  -- Chapter 4 { V } sits in Chapter 3; V closes both Chapter 4 and Chapter 3; Chapter 5 follows at the top level.
+  local s, by = project({ { 'Chapter 3', 1 }, { 'Narrator', 0 }, { 'Chapter 4', 1 }, { 'V', -2 }, { 'Chapter 5', 0 } })
+  s:send('chapter_folders', 'a1', 'apply', guids(by, { 'Chapter 3', 'Chapter 4', 'Chapter 5' }), guids(by, { 'Chapter 4' }))
+  H.eq(last(s), { 'FOLDERS_REPAIRED', 'a1', '1' })
+  local after = H.parents(s)
+  H.eq({ after['Chapter 4'], after.V, after['Chapter 5'] }, { '', 'Chapter 4', '' })
+end)
+
+H.test('a refusal from chapter_folders says it is about moving chapters, not adding a track', function()
+  local s, by = project(OWNER)
+  s.fake.play_state = 5
+  s:send('chapter_folders', 'a1', 'preview', guids(by, CHAPTERS))
+  local answer = last(s)
+  H.eq(answer[1], 'ERROR')
+  H.eq(answer[3]:find('track there', 1, true), nil)
+end)
+
+-- qa-breaker B1 as a class: across many random shapes (a seeded generator, so a failure repeats), apply never refuses, leaves no chapter
+-- inside another chapter's folder, and never moves a track that no chapter folder held.
+H.test('across random folder shapes the repair always applies, unnests every chapter and moves nothing outside chapter folders', function()
+  local seed = 2838
+  local function rand(n)
+    seed = (seed * 1103515245 + 12345) % 2147483648
+    return seed % n
+  end
+  local deltas = { -3, -2, -1, -1, 0, 0, 1, 1, 1 }
+  for shape = 1, 1500 do
+    local rows, chapter_names = {}, {}
+    local count = 3 + rand(10)
+    for index = 1, count do
+      local chapter = rand(2) == 0
+      local name = (chapter and 'C' or 'V') .. index
+      rows[#rows + 1] = { name, deltas[rand(#deltas) + 1] }
+      if chapter then
+        chapter_names[#chapter_names + 1] = name
+      end
+    end
+    local s, by = project(rows)
+    local is_chapter = {}
+    for _, name in ipairs(chapter_names) do
+      is_chapter[name] = true
+    end
+    local before = H.parents(s)
+    s:send('chapter_folders', 'p', 'preview', guids(by, chapter_names))
+    local events = s:events()
+    local expected = {}
+    for _, event in ipairs(events) do
+      if event[1] == 'FOLDER_MOVE' and is_chapter[event[4]] then
+        expected[#expected + 1] = event[3]
+      end
+    end
+    H.eq(events[#events][1], 'FOLDERS_PLANNED', 'shape ' .. shape .. ' preview')
+    s:send('chapter_folders', 'a', 'apply', guids(by, chapter_names), table.concat(expected, ','))
+    H.eq(last(s)[1], 'FOLDERS_REPAIRED', 'shape ' .. shape .. ' apply')
+    local after = H.parents(s)
+    -- No chapter sits anywhere inside another chapter's folder.
+    local parent_of = after
+    for _, name in ipairs(chapter_names) do
+      local ancestor = parent_of[name]
+      while ancestor ~= '' do
+        H.eq(is_chapter[ancestor], nil, 'shape ' .. shape .. ': ' .. name .. ' still inside chapter ' .. ancestor)
+        ancestor = parent_of[ancestor]
+      end
+    end
+    -- A track no chapter folder held keeps its folder.
+    for name, parent in pairs(before) do
+      local held, ancestor = false, parent
+      while ancestor ~= '' do
+        held = held or is_chapter[ancestor] == true
+        ancestor = before[ancestor]
+      end
+      if not held then
+        H.eq(after[name], parent, 'shape ' .. shape .. ': ' .. name .. ' moved though no chapter folder held it')
+      end
+    end
+  end
+end)
+
+H.test("the breaker's smallest shape: a voice folder holding a chapter folder whose nested chapter closes it, then a voice", function()
+  local s, by = project({ { 'V1', 1 }, { 'C2', 1 }, { 'C3', -1 }, { 'V4', 0 } })
+  local before = H.parents(s)
+  s:send('chapter_folders', 'a1', 'apply', guids(by, { 'C2', 'C3' }), guids(by, { 'C3' }))
+  H.eq(last(s), { 'FOLDERS_REPAIRED', 'a1', '1' })
+  local after = H.parents(s)
+  H.eq({ after.C3, after.V4 }, { 'V1', before.V4 })
+end)

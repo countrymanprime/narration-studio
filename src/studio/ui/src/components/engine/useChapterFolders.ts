@@ -20,8 +20,9 @@ export function useChapterFolders({ revision, notify }: { revision: unknown; not
     const ask = ++asked.current;
     trackMap.chapterFoldersCheck().then(
       (answer) => ask === asked.current && setCheck(answer),
-      // A check that fails shows nothing: the notice is only ever drawn for a nesting the DAW reported, never for a guess.
-      () => ask === asked.current && setCheck(null),
+      // A check that fails says the folders were not checked, and why, with Check again: never a nesting the DAW did not report.
+      (reason: unknown) =>
+        ask === asked.current && setCheck({ outcome: 'refused', reason: 'failed', message: describeApiError(reason), moves: [], expected: [] }),
     );
   }, [trackMap]);
 
@@ -34,29 +35,36 @@ export function useChapterFolders({ revision, notify }: { revision: unknown; not
     return () => window.removeEventListener('focus', recheck);
   }, [recheck]);
 
-  const repair = useCallback(() => {
-    if (repairing || check?.outcome !== 'nested') return;
-    setRepairing(true);
-    const folders = [...new Set(check.moves.map((move) => move.fromName))].join(', ');
-    trackMap
-      .chapterFoldersRepair(check.expected)
-      .then((answer) => {
-        if (answer.outcome === 'repaired') {
-          const count = answer.expected.length;
-          notify(
-            `Moved ${count} ${count === 1 ? 'chapter' : 'chapters'} out of ${folders} in REAPER. One Undo in REAPER takes it back; save the project in REAPER to keep it.`,
-            'info',
-          );
-        } else {
-          notify(answer.message ?? 'Nothing was moved.', answer.outcome === 'stale' ? 'info' : 'error');
-        }
-      })
-      .catch((reason: unknown) => notify(describeApiError(reason), 'error'))
-      .finally(() => {
-        setRepairing(false);
-        recheck();
-      });
-  }, [repairing, check, trackMap, notify, recheck]);
+  // `opened` is the check the narrator confirmed: exactly its chapters are sent, and the DAW answers stale if it would move others now.
+  const repair = useCallback(
+    (opened: ChapterFolders) => {
+      if (repairing || opened.outcome !== 'nested') return;
+      setRepairing(true);
+      const folders = [...new Set(opened.moves.map((move) => move.fromName))].join(', ');
+      trackMap
+        .chapterFoldersRepair(opened.expected)
+        .then((answer) => {
+          if (answer.outcome === 'repaired' && answer.expected.length > 0) {
+            const count = answer.expected.length;
+            notify(
+              `Moved ${count} ${count === 1 ? 'chapter' : 'chapters'} out of ${folders} in REAPER. One Undo in REAPER takes it back; save the project in REAPER to keep it.`,
+              'info',
+            );
+          } else if (answer.outcome === 'repaired') {
+            // Nothing moved (no chapter was nested any more): no undo to speak of (qa-breaker).
+            notify('No chapter needed moving.', 'info');
+          } else {
+            notify(answer.message ?? 'Nothing was moved.', answer.outcome === 'stale' ? 'info' : 'error');
+          }
+        })
+        .catch((reason: unknown) => notify(describeApiError(reason), 'error'))
+        .finally(() => {
+          setRepairing(false);
+          recheck();
+        });
+    },
+    [repairing, trackMap, notify, recheck],
+  );
 
   return { check, repairing, repair, recheck };
 }

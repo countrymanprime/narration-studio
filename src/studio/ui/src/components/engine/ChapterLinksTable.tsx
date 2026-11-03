@@ -54,7 +54,11 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
   if (chapters.length === 0) return null;
 
   return (
-    <Panel title="Chapter links" flush actions={<NestedChaptersNotice check={nesting.check} repairing={nesting.repairing} onRepair={nesting.repair} />}>
+    <Panel
+      title="Chapter links"
+      flush
+      actions={<NestedChaptersNotice check={nesting.check} repairing={nesting.repairing} onRepair={nesting.repair} onCheckAgain={nesting.recheck} />}
+    >
       {error && (
         <p role="alert" className="px-4 pt-3 text-sm" style={{ color: 'var(--danger-text)' }}>
           {error}

@@ -111,4 +111,80 @@ describe("the Chapter links panel's nested-chapters repair (#2838)", () => {
     });
     expect(check.mock.calls.length).toBe(before + 1);
   });
+
+  it('a confirmation the check stops finding a nesting for closes, and never opens again by itself (qa-breaker B2)', async () => {
+    const api = createMockApi({}, { nestedChapters: true });
+    const nested = await api.chapterFoldersCheck();
+    let answer: typeof nested = nested;
+    api.chapterFoldersCheck = async () => answer;
+    renderTable(api);
+    await userEvent.click(await screen.findByRole('button', { name: 'Move them out…' }));
+    await screen.findByRole('alertdialog');
+    answer = { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then move the chapters.', moves: [], expected: [] };
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    answer = nested;
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await screen.findByRole('button', { name: 'Move them out…' });
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('the confirmation keeps the list it opened with and sends exactly that list, whatever a newer check finds (qa-breaker B3)', async () => {
+    const api = createMockApi({}, { nestedChapters: true });
+    const nested = await api.chapterFoldersCheck();
+    let answer: typeof nested = nested;
+    api.chapterFoldersCheck = async () => answer;
+    const repair = vi.spyOn(api, 'chapterFoldersRepair');
+    renderTable(api);
+    await userEvent.click(await screen.findByRole('button', { name: 'Move them out…' }));
+    const dialog = await screen.findByRole('alertdialog');
+    const before = within(dialog).getByRole('list', { name: 'Tracks that move' }).textContent;
+    answer = { ...nested, moves: nested.moves.slice(0, 1), expected: nested.expected.slice(0, 1) };
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(within(screen.getByRole('alertdialog')).getByRole('list', { name: 'Tracks that move' }).textContent).toBe(before);
+    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Move them out' }));
+    await waitFor(() => expect(repair).toHaveBeenCalledWith(nested.expected));
+  });
+
+  it('a refused or failed check says the folders were not checked, with why, and Check again asks again', async () => {
+    const api = createMockApi({}, { nestedChapters: true });
+    let calls = 0;
+    api.chapterFoldersCheck = async () => {
+      calls += 1;
+      throw new Error('The host did not answer.');
+    };
+    renderTable(api);
+    expect(await screen.findByText('Folders not checked')).toBeTruthy();
+    expect(screen.getByText(/The host did not answer/)).toBeTruthy();
+    const before = calls;
+    await userEvent.click(screen.getByRole('button', { name: 'Check the folders again' }));
+    expect(calls).toBe(before + 1);
+  });
+
+  it('a very long track name is shortened in the title and the summary, so the dialog stays usable (qa-breaker B4)', async () => {
+    const api = createMockApi({}, { nestedChapters: true });
+    const nested = await api.chapterFoldersCheck();
+    const long = 'L'.repeat(10_000);
+    api.chapterFoldersCheck = async () => ({ ...nested, moves: nested.moves.map((move) => ({ ...move, fromName: long, trackName: long })) });
+    renderTable(api);
+    await userEvent.click(await screen.findByRole('button', { name: 'Move them out…' }));
+    const dialog = await screen.findByRole('alertdialog');
+    const title = within(dialog).getByRole('heading');
+    expect(title.textContent!.length).toBeLessThan(200);
+  });
+
+  it('a repair that moved nothing does not claim a move or an undo', async () => {
+    const api = createMockApi({}, { nestedChapters: true });
+    api.chapterFoldersRepair = async () => ({ outcome: 'repaired', moves: [], expected: [] });
+    const notify = renderTable(api);
+    await userEvent.click(await screen.findByRole('button', { name: 'Move them out…' }));
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Move them out' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('No chapter needed moving.', 'info'));
+  });
 });

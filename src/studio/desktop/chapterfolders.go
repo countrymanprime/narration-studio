@@ -133,9 +133,10 @@ func chapterFoldersIn(ctx context.Context, svc hostServices, repairer dawport.Fo
 		return chapterFolders{}, err
 	}
 	if len(guids) < 2 {
-		// One linked chapter cannot sit inside another's folder: nothing to ask.
-		if apply {
-			return chapterFolders{Outcome: chapterFoldersRepaired, Moves: []chapterFolderMove{}, Expected: []string{}}, nil
+		// One linked chapter cannot sit inside another's folder: nothing to ask. A repair asked for now had its links removed since the
+		// check, so it is stale, never a move that did not happen.
+		if apply && len(expected) > 0 {
+			return chapterFolders{Outcome: chapterFoldersStale, Message: fmt.Sprintf("The chapter links changed since the folders in %s were checked, so nothing was moved. Check again.", name), Moves: []chapterFolderMove{}, Expected: []string{}}, nil
 		}
 		return chapterFolders{Outcome: chapterFoldersClean, Moves: []chapterFolderMove{}, Expected: []string{}}, nil
 	}

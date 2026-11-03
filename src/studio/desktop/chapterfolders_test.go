@@ -139,3 +139,13 @@ func TestContractChapterFolders(t *testing.T) {
 	answers["standalone"], _ = chapterFoldersIn(context.Background(), host.services(), nil, dawport.Support{Reason: dawport.ReasonStandalone}, false, nil)
 	contractfile.Check(t, "chapter-folders", answers)
 }
+
+func TestARepairAfterTheLinksWereRemovedIsStaleNeverAMoveThatDidNotHappen(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	linkChapter(t, host, ids[0], nestedChapter3)
+	repairer := &fakeFolderRepairer{}
+	got, _ := chapterFoldersIn(context.Background(), host.services(), repairer, dawport.Support{Available: true}, true, []string{nestedChapter4})
+	if got.Outcome != chapterFoldersStale || len(repairer.calls) != 0 {
+		t.Fatalf("got %+v after %v, want stale without asking the DAW", got, repairer.calls)
+	}
+}
