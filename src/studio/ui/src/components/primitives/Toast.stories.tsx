@@ -1,7 +1,7 @@
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { ToastRegion, type ToastMessage } from './Toast';
 
 const meta = {
@@ -117,5 +117,50 @@ export const HugeWord: Story = {
       await expect(['auto', 'scroll']).toContain(getComputedStyle(text!).overflowY);
     }
     void canvasElement;
+  },
+};
+
+// The same toast in a window of 320 x 300 (the size the issue names, which the atlas viewports are not): a frame of that size holds the story above, and the
+// measuring is done on its document. A browser only: the unit run loads no frames and has no layout, so it skips this.
+export const HugeWordInSmallWindow: Story = {
+  render: () => (
+    <iframe
+      title="Toast in a 320 x 300 window"
+      src="iframe.html?id=primitives-toast--huge-word&viewMode=story"
+      width={320}
+      height={300}
+      style={{ border: 0 }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const frame = canvasElement.querySelector('iframe')!;
+    if (frame.clientHeight === 0) return;
+    const inner = await waitFor(
+      () => {
+        const doc = frame.contentDocument;
+        const toast = doc?.querySelector<HTMLElement>('[data-toast-region] [data-tone]');
+        if (!doc || !toast || !doc.querySelector('[data-toast-text]')) throw new Error('the toast is not up in the frame yet');
+        return { doc, toast };
+      },
+      { timeout: 10_000 },
+    );
+    const view = frame.contentWindow!;
+    await expect([view.innerWidth, view.innerHeight]).toEqual([320, 300]);
+    const box = inner.toast.getBoundingClientRect();
+    await expect(box.top).toBeGreaterThanOrEqual(0);
+    await expect(box.bottom).toBeLessThanOrEqual(300);
+    await expect(box.right).toBeLessThanOrEqual(320);
+    const text = inner.toast.querySelector<HTMLElement>('[data-toast-text]')!;
+    await expect(text.scrollWidth).toBeLessThanOrEqual(text.clientWidth + 1);
+    await expect(['auto', 'scroll']).toContain(view.getComputedStyle(text).overflowY);
+    await expect(text.scrollHeight).toBeGreaterThan(text.clientHeight);
+    for (const name of ['Retry', 'Dismiss message']) {
+      const button = [...inner.doc.querySelectorAll('button')]
+        .find((b) => b.getAttribute('aria-label') === name || b.textContent === name)!
+        .getBoundingClientRect();
+      await expect(button.top).toBeGreaterThanOrEqual(0);
+      await expect(button.bottom).toBeLessThanOrEqual(300);
+      await expect(button.right).toBeLessThanOrEqual(320);
+    }
   },
 };
