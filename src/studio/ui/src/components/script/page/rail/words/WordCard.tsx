@@ -8,7 +8,8 @@ import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { StatusBadge } from '../../../../primitives/StatusBadge';
 import type { Notify } from '../../../../primitives/Toast';
 import { NamePronunciation, NAMES_GRID } from '../../../../storybible/source/NamePronunciation';
-import { PronunciationCandidateList, usePronunciationCandidates } from '../../../../storybible/source/PronunciationCandidates';
+import { CandidatesCheckAgain, PronunciationCandidateList, usePronunciationCandidates } from '../../../../storybible/source/PronunciationCandidates';
+import { USER_DICTIONARY_MAX_SAY as MAX_SAY } from '../../../../../api/contracts/pronunciationSources';
 import { TextField } from '../../../../primitives/TextField';
 import { RailFieldRow } from '../RailOptionRow';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
@@ -82,10 +83,16 @@ export function WordCard({ word, host }: { word: string; host: WordsHost }) {
       {!name && (
         <div className="space-y-1.5" aria-busy={lookup.status === 'loading' || undefined}>
           <SectionLabel as="div">From the dictionaries</SectionLabel>
-          {lookup.status === 'ready' && lookup.answer.candidates.length === 0 ? (
+          {lookup.status === 'error' ? (
+            <CandidatesCheckAgain view={lookup} />
+          ) : lookup.status === 'ready' && lookup.answer.candidates.length === 0 ? (
             <SaveToMyDictionary word={word} onSave={(say) => commands.saveToMyDictionary(word, say)} />
           ) : (
-            <PronunciationCandidateList word={word} candidates={lookup.answer.candidates} />
+            <PronunciationCandidateList
+              word={word}
+              candidates={lookup.answer.candidates}
+              onRemove={(candidate) => void commands.removeFromMyDictionary(word, candidate.say)}
+            />
           )}
         </div>
       )}
@@ -121,6 +128,7 @@ function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: stri
         <TextField
           label={`Pronunciation of ${word} for my dictionary`}
           mono
+          maxLength={MAX_SAY}
           placeholder="for example: kroh-KAY"
           value={say}
           onChange={setSay}

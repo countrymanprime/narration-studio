@@ -241,10 +241,7 @@ func (s *Service) change(word, say string, edit func(*Entry, Record) bool, sourc
 		return errNoProject
 	}
 	word, say = strings.TrimSpace(word), strings.TrimSpace(say)
-	if err := checkText(word, MaxWordUnits, "a word"); err != nil {
-		return err
-	}
-	if err := checkText(say, MaxSayUnits, "how a word is said"); err != nil {
+	if err := Check(word, say); err != nil {
 		return err
 	}
 	unlock := lockFile(File(s.config.Project))
@@ -277,6 +274,14 @@ func (s *Service) now() time.Time {
 		return s.config.Now().UTC()
 	}
 	return time.Now().UTC()
+}
+
+// Check reports why the dictionary would refuse word or say (each trimmed first), or nil when it would take them.
+func Check(word, say string) error {
+	if err := checkText(strings.TrimSpace(word), MaxWordUnits, "a word"); err != nil {
+		return err
+	}
+	return checkText(strings.TrimSpace(say), MaxSayUnits, "how a word is said")
 }
 
 // checkText checks a word or say-value, already trimmed: one line of at most limit units with no control character.

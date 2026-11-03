@@ -2,7 +2,7 @@
 // The Words tab over the browser mock host (`createMockApi`) and a fake `WordsHost`: the table, the word card, the source tag, the
 // definitions for each source, "Use", the fixed web links, the dictionaries' candidates and "Save to my dictionary" for a word no
 // dictionary has, and the wording the mock leaves out. Every row is a Story Bible
-// name and every value is that entry's (#2595): a word the narrator adds is an entry of the type Word.
+// name and every value is that entry's (#2595); a word that is no story element goes to the user dictionary, never the Story Bible.
 import { useEffect } from 'react';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -358,6 +358,15 @@ describe('a-word-that-is-no-story-element (#2595)', () => {
     expect(within(list).getByText('DY-nuh')).toBeTruthy();
     expect(create).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Save to my dictionary' })).toBeNull();
+  });
+
+  it('a saved value can be removed to correct it: the card offers Save again, and the field takes no more than the host keeps', async () => {
+    mountWithWord('Dinah');
+    await userEvent.type(await screen.findByLabelText('Pronunciation of Dinah for my dictionary'), 'DY-nuh{Enter}');
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove DY-nuh from my dictionary' }));
+    const field = await screen.findByLabelText('Pronunciation of Dinah for my dictionary');
+    expect((await api.pronunciationCandidates('Dinah')).candidates).toEqual([]);
+    expect((field as HTMLInputElement).maxLength).toBe(200);
   });
 });
 

@@ -16,7 +16,7 @@ import { usePort } from '../../../../ports/usePort';
 import { canSpeak } from '../../../../storyBibleTypes';
 import { useJournal } from '../../../../studio/StudioProvider';
 import { pronounceOwn, subscribePronunciationChanged } from '../../../../studio/commands/pronounce';
-import { saveToMyDictionary } from '../../../../studio/commands/userDictionary';
+import { removeFromMyDictionary, saveToMyDictionary } from '../../../../studio/commands/userDictionary';
 import type { Result } from '../../../../studio/journal/createJournal';
 import * as commands from './scriptCommands';
 import type { LineRange, ScriptCommandEnv } from './scriptCommands';
@@ -316,16 +316,26 @@ export function useScriptCommands() {
       setPrep: async (chapter: ChapterNameInput & { id: string }, state: PrepState) => said(await commands.setPrep(env, chapter, state)) !== null,
       stepPrep: async (chapter: ChapterNameInput & { id: string }, delta: number) => said(await commands.stepPrep(env, chapter, delta)) !== null,
       /**
-       * Saves how the narrator says a word no dictionary has, in their own dictionary (#2595): never the Story Bible. `prior` is their earlier
-       * record of it, which Undo puts back. Answers whether it was saved.
+       * Saves how the narrator says a word no dictionary has, in their own dictionary (#2595): never the Story Bible. Answers whether it was
+       * saved.
        */
-      async saveToMyDictionary(word: string, say: string, prior?: string) {
-        const done = await saveToMyDictionary(journal, pronunciationSources, word, say, prior);
+      async saveToMyDictionary(word: string, say: string) {
+        const done = await saveToMyDictionary(journal, pronunciationSources, word, say);
         if (!done.ok) {
           overlay.toast(done.refusal.reason, { tone: 'error' });
           return false;
         }
         undoOffer(`Saved “${word.trim()}” to your dictionary.`, done.value.id);
+        return true;
+      },
+      /** Removes the narrator's own record of a word from their dictionary, so they can save it again; Undo puts it back. */
+      async removeFromMyDictionary(word: string, say: string) {
+        const done = await removeFromMyDictionary(journal, pronunciationSources, word, say);
+        if (!done.ok) {
+          overlay.toast(done.refusal.reason, { tone: 'error' });
+          return false;
+        }
+        undoOffer(`Removed “${say}” from your dictionary.`, done.value.id);
         return true;
       },
       /** Says a Story Bible name the narrator's own way (the definition source's "Use"), through the one pronunciation command (#2595). */

@@ -270,3 +270,34 @@ func TestTheMigrationStartsNoStoryBible(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// One word the dictionary cannot take (a quote spanning a soft line break, a control character) never blocks the others: a spelling with
+// white space inside is kept with single spaces, a word that still breaks the dictionary's rules is counted as refused and left in the
+// backup, and the migration finishes on the first open (QA #2595: one odd quote kept every open failing).
+func TestABadWordDoesNotBlockTheOthers(t *testing.T) {
+	host, project := bookmarksHost(t)
+	writeNested(t, scriptprep.File(project), `{"schemaVersion":1,"chapters":{},"flags":[
+{"id":"f1","chapterId":"c-0001","paragraphId":"p-000001","start":31,"end":38,"quote":"Shouted","word":"shouted","createdAt":"2026-10-01T10:00:00Z"},
+{"id":"f2","chapterId":"c-0001","paragraphId":"p-000001","start":0,"end":9,"quote":"soft\tbreak","word":"soft\tbreak","createdAt":"2026-10-01T10:00:00Z"},
+{"id":"f3","chapterId":"c-0001","paragraphId":"p-000002","start":0,"end":4,"quote":"bad\u0007","word":"bad\u0007","createdAt":"2026-10-01T10:00:00Z"}
+],"says":{"shouted":{"say":"SHOUT-id","source":"manual"},"soft\tbreak":{"say":"SOFT brayk","source":"manual"},"bad\u0007":{"say":"BAD","source":"manual"}}}`)
+	reopenProject(t, host, project)
+
+	words := dictionaryWords(t, project)
+	if got := words["Shouted"]; len(got) != 1 || got[0] != "script_imported:SHOUT-id" {
+		t.Fatalf("Shouted = %v (dictionary %v)", got, words)
+	}
+	if got := words["soft break"]; len(got) != 1 || got[0] != "script_imported:SOFT brayk" {
+		t.Fatalf("soft break = %v (dictionary %v)", got, words)
+	}
+	if len(words) != 2 {
+		t.Fatalf("dictionary = %v, want the two words it can take", words)
+	}
+	left, err := scriptprep.New(scriptprep.Config{Project: project}).LegacyWords()
+	if err != nil || len(left) != 0 {
+		t.Fatalf("legacy words left = %v, %v: the migration did not finish", left, err)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(scriptprep.File(project)), "script-prep.v1.json")); err != nil {
+		t.Fatalf("no backup: %v", err)
+	}
+}

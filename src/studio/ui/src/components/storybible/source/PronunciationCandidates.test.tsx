@@ -15,23 +15,26 @@ import { usePronunciationSources } from './usePronunciationSources';
 
 afterEach(cleanup);
 
-function Row({ api }: { api: NarrationApi }) {
+type Said = { ipa: string; source: string; confidence: string };
+const UNSET: Said = { ipa: '', source: '', confidence: '' };
+
+function Row({ api, said = UNSET }: { api: NarrationApi; said?: Said }) {
   return (
     <ApiProvider api={api}>
       <StudioProvider>
         <TooltipProvider>
-          <Inner />
+          <Inner said={said} />
         </TooltipProvider>
       </StudioProvider>
     </ApiProvider>
   );
 }
-function Inner() {
+function Inner({ said }: { said: Said }) {
   const sources = usePronunciationSources();
   return (
     <NamePronunciation
       entityId="alice"
-      row={{ name: 'Alice', pronunciation: { ipa: '', source: '', confidence: '' } }}
+      row={{ name: 'Alice', pronunciation: said }}
       editing
       sources={sources}
       reload={async () => undefined}
@@ -68,5 +71,34 @@ describe("a name's dictionary candidates", () => {
     expect(within(mine).getByText('My dictionary')).toBeTruthy();
     await userEvent.click(within(mine).getByRole('button', { name: 'Use My dictionary: AL-us' }));
     await waitFor(() => expect(restore).toHaveBeenCalledWith('alice', { ipa: 'AL-us', source: 'user_dictionary', confidence: 'narrator', chosen: true }));
+  });
+
+  it('only the row of the source in use says In use, when two sources give the same value (QA)', async () => {
+    const api = createMockApi();
+    const answer = await api.pronunciationCandidates('Alice');
+    const twin = answer.candidates[0]!;
+    await api.userDictionarySave('Alice', twin.say);
+    render(<Row api={api} said={{ ipa: twin.say, source: twin.sourceId, confidence: 'medium' }} />);
+    await userEvent.click(screen.getByRole('button', { name: 'From the dictionaries' }));
+    const list = await screen.findByRole('list', { name: 'Dictionary candidates for Alice' });
+    await waitFor(() =>
+      expect(
+        within(list)
+          .getAllByRole('listitem')
+          .some((row) => row.getAttribute('data-source') === 'user_dictionary'),
+      ).toBe(true),
+    );
+    expect(within(list).getAllByText('In use')).toHaveLength(1);
+    expect(within(list).getByRole('button', { name: `Use My dictionary: ${twin.say}` })).toBeTruthy();
+  });
+
+  it('a failed read offers Check again, which asks every source again (QA)', async () => {
+    const api = createMockApi();
+    const ask = vi.spyOn(api, 'pronunciationCandidates').mockRejectedValueOnce(new Error('The dictionaries did not answer.'));
+    render(<Row api={api} />);
+    await userEvent.click(screen.getByRole('button', { name: 'From the dictionaries' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Check again' }));
+    expect(await screen.findByRole('list', { name: 'Dictionary candidates for Alice' })).toBeTruthy();
+    expect(ask).toHaveBeenCalledTimes(2);
   });
 });

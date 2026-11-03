@@ -36,6 +36,8 @@ export type PronunciationCandidate = { ok: true; say: string } | { ok: false; re
  * Script page's old flagged words moved in once when the project opened (`script_imported`, "Script (imported)"). Never the Story Bible. */
 export const USER_DICTIONARY_SOURCE = 'user_dictionary';
 export const SCRIPT_IMPORTED_SOURCE = 'script_imported';
+/** The longest value the user dictionary keeps, in UTF-16 units (the host's `userdictionary.MaxSayUnits`). */
+export const USER_DICTIONARY_MAX_SAY = 200;
 export type UserDictionaryRecord = { say: string; source: string; addedAt: string };
 export type UserDictionaryWord = { word: string; records: UserDictionaryRecord[] };
 

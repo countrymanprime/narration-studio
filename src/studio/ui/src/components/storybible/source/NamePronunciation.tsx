@@ -14,7 +14,7 @@ import type { PronunciationSources } from './usePronunciationSources';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { pronounceFromCandidate, pronounceFromSource, pronounceOwn, pronounceUseAlternate } from '../../../studio/commands/pronounce';
 import type { PronunciationCandidateRow } from '../../../api/contracts/pronunciationSources';
-import { PronunciationCandidateList, usePronunciationCandidates } from './PronunciationCandidates';
+import { CandidatesCheckAgain, PronunciationCandidateList, usePronunciationCandidates } from './PronunciationCandidates';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 
@@ -201,13 +201,15 @@ export function NamePronunciation({
       {editing && (
         <Disclosure title="From the dictionaries" open={candidatesOpen} onOpenChange={setCandidatesOpen} className={BELOW}>
           <div className="pt-1">
-            {candidates.status === 'ready' && candidates.answer.candidates.length === 0 ? (
+            {candidates.status === 'error' ? (
+              <CandidatesCheckAgain view={candidates} />
+            ) : candidates.status === 'ready' && candidates.answer.candidates.length === 0 ? (
               <p className="m-0 text-xs text-[var(--text-muted)]">No dictionary has “{name}”.</p>
             ) : (
               <PronunciationCandidateList
                 word={name}
                 candidates={candidates.answer.candidates}
-                inUse={pronunciation.ipa}
+                inUse={{ say: pronunciation.ipa, source: pronunciation.source }}
                 onUse={(candidate) => void pickCandidate(candidate)}
                 disabled={locked || busy}
               />

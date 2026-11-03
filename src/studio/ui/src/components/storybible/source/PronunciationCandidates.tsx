@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
-import type { PronunciationCandidateRow, PronunciationCandidates as Answer } from '../../../api/contracts/pronunciationSources';
+import { USER_DICTIONARY_SOURCE, type PronunciationCandidateRow, type PronunciationCandidates as Answer } from '../../../api/contracts/pronunciationSources';
 import { hearNameAction } from '../../../icons.catalog';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
@@ -13,17 +13,18 @@ import { previewKey, usePreviewAudio } from '../usePreviewAudio';
 /** Said when the preview voice is not installed: its install prompt lives on a Story Bible entry. */
 const NEEDS_VOICE = 'The preview voice is not installed yet. Open a name in the Story Bible and press play to install it.';
 
-export type CandidatesView = { status: 'idle' | 'loading' | 'ready' | 'error'; answer: Answer };
+/** The read's state and answer; `retry` asks every source again (the Check again of a failed read). */
+export type CandidatesView = { status: 'idle' | 'loading' | 'ready' | 'error'; answer: Answer; retry: () => void };
 
 const NONE: Answer = { candidates: [], misses: [] };
 
 /**
  * What every local dictionary and the narrator's own dictionary say for one word (#2595), read when `enabled` (each source is a sidecar
- * run, so a closed list asks nothing) and again after the narrator's dictionary changes. A failed read is a toast and an empty list.
+ * run, so a closed list asks nothing) and again after the narrator's dictionary changes. A failed read is a toast, and `retry` reads again.
  */
 export function usePronunciationCandidates(word: string, enabled = true): CandidatesView {
   const port = usePort('pronunciationSources');
-  const [view, setView] = useState<CandidatesView>({ status: 'idle', answer: NONE });
+  const [view, setView] = useState<Omit<CandidatesView, 'retry'>>({ status: 'idle', answer: NONE });
   const [nonce, setNonce] = useState(0);
   useEffect(() => subscribeUserDictionaryChanged(() => setNonce((n) => n + 1)), []);
   useEffect(() => {
@@ -42,7 +43,17 @@ export function usePronunciationCandidates(word: string, enabled = true): Candid
       live = false;
     };
   }, [port, word, enabled, nonce]);
-  return view;
+  const retry = useCallback(() => setNonce((n) => n + 1), []);
+  return { ...view, retry };
+}
+
+/** Said in place of the list when the read failed (the toast said why): Check again reads every source again. */
+export function CandidatesCheckAgain({ view }: { view: CandidatesView }) {
+  return (
+    <Button variant="secondary" size="sm" onClick={view.retry}>
+      Check again
+    </Button>
+  );
 }
 
 /**
@@ -54,14 +65,17 @@ export function PronunciationCandidateList({
   word,
   candidates,
   onUse,
+  onRemove,
   inUse,
   disabled = false,
 }: {
   word: string;
   candidates: readonly PronunciationCandidateRow[];
   onUse?: (candidate: PronunciationCandidateRow) => void;
-  /** The value the name has now, so its row says In use instead of offering Use. */
-  inUse?: string;
+  /** Removes one of the narrator's own records (My dictionary), so a value they saved can be corrected. */
+  onRemove?: (candidate: PronunciationCandidateRow) => void;
+  /** The value the name has now and its source, so that one row says In use instead of offering Use. */
+  inUse?: { say: string; source: string };
   disabled?: boolean;
 }) {
   const port = usePort('pronunciationSources');
@@ -71,12 +85,14 @@ export function PronunciationCandidateList({
     onAssetRequired: () => overlay.toast(NEEDS_VOICE),
     notify: (text, tone) => overlay.toast(text, tone ? { tone } : undefined),
   });
+  // A word has a few candidates, so the list scrolls only for a word with many of the narrator's records: it takes room for the bar only
+  // then (gutter auto, not the stable gutter of styles.css), and its Use buttons end where the names row's controls end (alignment A4).
   return (
-    <ul aria-label={`Dictionary candidates for ${word}`} className="m-0 max-h-64 list-none space-y-1.5 overflow-y-auto p-0">
+    <ul aria-label={`Dictionary candidates for ${word}`} className="m-0 max-h-64 [scrollbar-gutter:auto] list-none space-y-1.5 overflow-y-auto p-0">
       {candidates.map((candidate, index) => {
         const key = previewKey(index);
         const playing = preview.playingPreview === key;
-        const used = inUse !== undefined && candidate.say === inUse;
+        const used = inUse !== undefined && candidate.say === inUse.say && candidate.sourceId === inUse.source;
         return (
           <li key={`${candidate.sourceId}:${candidate.say}`} className="flex flex-wrap items-center gap-2" data-source={candidate.sourceId}>
             <span className="min-w-[7rem] text-xs text-[var(--text-muted)]">{candidate.label}</span>
@@ -88,6 +104,9 @@ export function PronunciationCandidateList({
               pending={preview.loadingPreview === key}
               onClick={() => void preview.playPreview(index)}
             />
+            {onRemove && candidate.sourceId === USER_DICTIONARY_SOURCE && (
+              <IconButton action="remove" label={`Remove ${candidate.say} from my dictionary`} disabled={disabled} onClick={() => onRemove(candidate)} />
+            )}
             {used ? (
               <StatusBadge tone="success" label="In use" />
             ) : (

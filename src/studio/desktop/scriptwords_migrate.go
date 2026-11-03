@@ -16,7 +16,8 @@ import (
 // pronunciation now comes from dictionary sources, the project's user dictionary among them, and a Story Bible name keeps the one the
 // narrator picked (#2595). When a project opens, migrateScriptWords moves the old values: each word with a value goes to the user
 // dictionary as a "Script (imported)" record (userdictionary.Import), and fills the Story Bible name that has it when that name has no
-// pronunciation and its entry is not locked (guide.Service.ImportScriptWords); a word with no value has nothing to keep and is dropped.
+// pronunciation and its entry is not locked (guide.Service.ImportScriptWords); a word with no value has nothing to keep and is dropped,
+// and a word the dictionary refuses (importable) is counted and left in the backup.
 // No Story Bible entry is ever made. Then it keeps the file as script-prep.v1.json (or script-prep.v1-<n>.json beside an earlier
 // cycle's copy, never overwriting one) and rewrites the file as schema 2 with its chapter states. The schema-1 file is untouched until
 // that rewrite, so backing it up after the import loses nothing, and a backup that holds the file byte for byte means its words were
@@ -31,6 +32,27 @@ type scriptWordsMigration struct {
 	Recorded int
 	// Dropped is words that had no value.
 	Dropped int
+	// Refused is words the dictionary cannot take even with their white space made single spaces (a control character, too long).
+	// They stay in the backup.
+	Refused int
+}
+
+// importable picks the spelling a Script word is imported under: its first flag's quote as the narrator saw it, else the word, each
+// with runs of white space (a tab, a soft line break inside a quote) made one space, and the first the dictionary takes. A word none
+// of whose spellings it takes is not imported, so one odd word never stops the others (QA #2595).
+func importable(word scriptprep.LegacyWord, say string) (string, string, bool) {
+	say = strings.Join(strings.Fields(say), " ")
+	spellings := []string{word.Word}
+	if len(word.Flags) > 0 {
+		spellings = []string{word.Flags[0].Quote, word.Word}
+	}
+	for _, spelling := range spellings {
+		spelling = strings.Join(strings.Fields(spelling), " ")
+		if userdictionary.Check(spelling, say) == nil {
+			return spelling, say, true
+		}
+	}
+	return "", "", false
 }
 
 // migrateScriptWords moves a schema-1 script-prep.json's words. It reports whether there was anything to move.
@@ -56,9 +78,10 @@ func migrateScriptWords(prep *scriptprep.Service, bible *guide.Service, dictiona
 			result.Dropped++
 			continue
 		}
-		spelling := word.Word
-		if len(word.Flags) > 0 {
-			spelling = word.Flags[0].Quote
+		spelling, say, ok := importable(word, say)
+		if !ok {
+			result.Refused++
+			continue
 		}
 		added, err := dictionary.Import(spelling, say)
 		if err != nil {
@@ -96,7 +119,7 @@ func logScriptWordsMigration(log *hostlog.Log, result scriptWordsMigration, move
 	case err != nil:
 		_ = log.Report("script_words_migration_failed", fmt.Sprintf("the Script page's words were not moved to the user dictionary and are kept for the next open: %v", err))
 	case moved:
-		_ = log.Report("script_words_migrated", fmt.Sprintf("recorded %d in the user dictionary, filled %d names, kept %d, locked %d, unmatched %d, dropped %d without a value",
-			result.Recorded, result.Filled, result.Kept, result.Locked, result.Unmatched, result.Dropped))
+		_ = log.Report("script_words_migrated", fmt.Sprintf("recorded %d in the user dictionary, filled %d names, kept %d, locked %d, unmatched %d, dropped %d without a value, refused %d",
+			result.Recorded, result.Filled, result.Kept, result.Locked, result.Unmatched, result.Dropped, result.Refused))
 	}
 }

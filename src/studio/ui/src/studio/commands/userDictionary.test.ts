@@ -2,7 +2,7 @@
 // #2595: a word no dictionary has is saved to the narrator's own dictionary, a dictionary layer of the project, never the Story Bible.
 import { describe, expect, it, vi } from 'vitest';
 import { createJournal } from '../journal/createJournal';
-import { saveToMyDictionary, subscribeUserDictionaryChanged, type UserDictionaryApi } from './userDictionary';
+import { removeFromMyDictionary, saveToMyDictionary, subscribeUserDictionaryChanged, type UserDictionaryApi } from './userDictionary';
 
 const journal = () => createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
 const fakeApi = (over: Partial<UserDictionaryApi> = {}): UserDictionaryApi => ({
@@ -22,12 +22,11 @@ describe('saveToMyDictionary', () => {
     expect(api.userDictionaryRemove).toHaveBeenCalledWith('quorlen', 'user_dictionary', 'KWOR-len');
   });
 
-  it('Undo of a replacement puts the earlier value back', async () => {
-    const api = fakeApi();
+  it('every change has the one journal key of the dictionary, so "Café" and "CAFÉ" order their undos as the host folds them (QA)', async () => {
     const j = journal();
-    await saveToMyDictionary(j, api, 'quorlen', 'KWOR-len', 'KWAR-len');
-    await j.undoLast();
-    expect(api.userDictionarySave).toHaveBeenLastCalledWith('quorlen', 'KWAR-len');
+    await saveToMyDictionary(j, fakeApi(), 'Café', 'ka-FAY');
+    await removeFromMyDictionary(j, fakeApi(), 'CAFE\u0301', 'ka-FAY');
+    expect((await j.entries()).map((row) => row.touches)).toEqual([['userDictionary'], ['userDictionary']]);
   });
 
   it('a refusal is the host sentence, journals nothing and tells nobody', async () => {
@@ -39,5 +38,15 @@ describe('saveToMyDictionary', () => {
     expect(await j.entries()).toEqual([]);
     expect(heard).not.toHaveBeenCalled();
     off();
+  });
+
+  it("removing the narrator's own record is one entry; Undo saves it back", async () => {
+    const api = fakeApi();
+    const j = journal();
+    expect((await removeFromMyDictionary(j, api, 'zarvex', 'ZAR-vex')).ok).toBe(true);
+    expect(api.userDictionaryRemove).toHaveBeenCalledWith('zarvex', 'user_dictionary', 'ZAR-vex');
+    expect((await j.entries()).map((row) => row.label)).toEqual(['Removed from my dictionary']);
+    await j.undoLast();
+    expect(api.userDictionarySave).toHaveBeenLastCalledWith('zarvex', 'ZAR-vex');
   });
 });
