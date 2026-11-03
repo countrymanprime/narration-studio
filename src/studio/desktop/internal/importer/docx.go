@@ -3,6 +3,7 @@ package importer
 import (
 	"archive/zip"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -148,19 +149,60 @@ func tocMatchedTitles(entries []tocEntry, titles []string, bookmarkChapter map[s
 	return matched, matchedCount
 }
 
-func docxEntry(archive *zip.ReadCloser, name string) ([]byte, bool) {
-	for _, file := range archive.File {
-		if file.Name == name {
-			reader, err := file.Open()
-			if err != nil {
-				return nil, false
-			}
-			defer func() { _ = reader.Close() }() // read-only
-			bytes, err := io.ReadAll(reader)
-			return bytes, err == nil
-		}
+// Size limits (issue #239, threat-model row 6a): a DOCX is a zip, so a few kilobytes on disk can inflate to gigabytes. Each entry is read through
+// a capped reader and every read draws down one budget for the whole file. The numbers are far above any real manuscript (a novel's
+// document.xml is a few megabytes) and far below what exhausts memory.
+const (
+	docxMaxEntrySize int64 = 256 * 1024 * 1024 // per decompressed entry
+	docxMaxTotalSize int64 = 256 * 1024 * 1024 // across the entries one import reads
+)
+
+var (
+	errDocxEntryMissing  = errors.New("entry not in archive")
+	errDocxEntryTooLarge = errors.New("entry exceeds the size limit")
+)
+
+// readCapped reads at most limit bytes from reader and fails with errDocxEntryTooLarge when more are there.
+func readCapped(reader io.Reader, limit int64) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(reader, limit+1))
+	if err != nil {
+		return nil, err
 	}
-	return nil, false
+	if int64(len(data)) > limit {
+		return nil, errDocxEntryTooLarge
+	}
+	return data, nil
+}
+
+// docxEntry reads one named entry. It refuses an entry whose declared or actual decompressed size is over docxMaxEntrySize, and one
+// that would take the shared budget below zero (budget may be nil for no total cap).
+func docxEntry(archive *zip.ReadCloser, name string, budget *int64) ([]byte, error) {
+	for _, file := range archive.File {
+		if file.Name != name {
+			continue
+		}
+		if file.UncompressedSize64 > uint64(docxMaxEntrySize) {
+			return nil, errDocxEntryTooLarge
+		}
+		reader, err := file.Open()
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = reader.Close() }() // read-only
+		limit := docxMaxEntrySize
+		if budget != nil && *budget < limit {
+			limit = max(*budget, 0)
+		}
+		data, err := readCapped(reader, limit)
+		if err != nil {
+			return nil, err
+		}
+		if budget != nil {
+			*budget -= int64(len(data))
+		}
+		return data, nil
+	}
+	return nil, errDocxEntryMissing
 }
 
 func attr(start xml.StartElement, local string) string {
@@ -354,6 +396,10 @@ func documentRecords(content []byte, styles wordStyles) []paragraphRecord {
 	return records
 }
 
+func docxTooLarge() error {
+	return &Error{"This Word document expands to more text than Narration Studio will read (over 256 MB). It may be damaged or not a real manuscript."}
+}
+
 func docxWithProgress(path string, progress Progress) (Draft, error) {
 	progress.report(5, "Opening Word document %s", filepath.Base(path))
 	archive, err := zip.OpenReader(path)
@@ -361,9 +407,16 @@ func docxWithProgress(path string, progress Progress) (Draft, error) {
 		return Draft{}, &Error{"Could not read this Word document: " + err.Error()}
 	}
 	defer func() { _ = archive.Close() }() // read-only
-	styles, _ := docxEntry(archive, "word/styles.xml")
-	document, ok := docxEntry(archive, "word/document.xml")
-	if !ok {
+	budget := docxMaxTotalSize
+	styles, err := docxEntry(archive, "word/styles.xml", &budget)
+	if errors.Is(err, errDocxEntryTooLarge) {
+		return Draft{}, docxTooLarge()
+	}
+	document, err := docxEntry(archive, "word/document.xml", &budget)
+	if errors.Is(err, errDocxEntryTooLarge) {
+		return Draft{}, docxTooLarge()
+	}
+	if err != nil {
 		return Draft{}, &Error{"This .docx file is missing its document contents."}
 	}
 	progress.report(20, "Reading document structure (%d KB of text)", len(document)/1024)
