@@ -21,7 +21,7 @@ import {
   faBroom,
   faEraser,
   faLinkSlash,
-  faObjectGroup,
+  faRulerHorizontal,
   faPenToSquare,
   faTags,
   faToggleOff,
@@ -391,7 +391,7 @@ export const CATALOG = {
   magnoliusDeclick: action(faScrewdriverWrench, 'declick with Magnolius', 'Open Magnolius DeClick'),
   // REAPER tools grid (Engine panel): one icon per tool, each opens its dialog.
   prepareRender: action(faFilm, 'prepare the chapter render', 'Prepare the chapter render'),
-  createRegions: action(faObjectGroup, 'create chapter regions', 'Create chapter regions'),
+  createRegions: action(faRulerHorizontal, 'create chapter regions', 'Create chapter regions'),
   embedTags: action(faTags, 'embed chapter tags', 'Embed chapter tags'),
   cleanupTools: action(faBroom, 'cleanup tools', 'Open the cleanup tools'),
   retakeLanes: action(faClone, 'retakes on lanes', 'Show the retakes on lanes'),
