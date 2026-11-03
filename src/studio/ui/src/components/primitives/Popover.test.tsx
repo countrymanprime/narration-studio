@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Button } from './Button';
-import { Popover, POPOVER_POPUP_ATTRIBUTE } from './Popover';
+import { Popover, POPOVER_POPUP_ATTRIBUTE, popupBottomReserve } from './Popover';
 
 afterEach(cleanup);
 
@@ -83,5 +83,22 @@ describe('Popover', () => {
   it('renders the trigger through the given element, keeping its own type', () => {
     renderPopover();
     expect(screen.getByRole('button', { name: 'Microphone' }).tagName).toBe('BUTTON');
+  });
+});
+
+describe('popupBottomReserve (issue 2809)', () => {
+  it('keeps all of the bars in a window tall enough for both (the Booth at 500 and 900 px)', () => {
+    expect(popupBottomReserve(210, 900)).toBe(210);
+    expect(popupBottomReserve(210, 500)).toBe(210);
+    expect(popupBottomReserve(210, 386)).toBe(210);
+  });
+  it('cuts the reserve so the popup keeps 144 px to read in when the bars would take nearly all of a short window (320x300)', () => {
+    expect(popupBottomReserve(210, 300)).toBe(124);
+    expect(300 - 2 * 16 - popupBottomReserve(210, 300)).toBe(144);
+  });
+  it('is zero with no bars, and never negative in a window smaller than the gutters and the room', () => {
+    expect(popupBottomReserve(0, 300)).toBe(0);
+    expect(popupBottomReserve(210, 100)).toBe(0);
+    expect(popupBottomReserve(210, 0)).toBe(0);
   });
 });

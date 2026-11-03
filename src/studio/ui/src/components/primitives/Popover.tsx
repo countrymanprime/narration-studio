@@ -13,6 +13,10 @@ export const POPOVER_POPUP_SELECTOR = `[${POPOVER_POPUP_ATTRIBUTE}]`;
 const WIDTH = 'max-w-[min(32rem,calc(100vw-2rem))] min-w-[min(21rem,calc(100vw-2rem))]';
 const POPUP_GUTTER = 16;
 const MIN_POPUP_ROOM = 144;
+/** How much of the window's bottom the bars fixed along it keep from a popup: all of them, unless that would leave the popup under `MIN_POPUP_ROOM` to read in. */
+export function popupBottomReserve(bars: number, windowHeight: number): number {
+  return Math.max(0, Math.min(bars, windowHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM));
+}
 const COMPACT_WIDTH = 'max-w-[min(20rem,calc(100vw-2rem))]';
 
 // An interactive popup over other content: a click opens it, focus moves into it, Escape closes it and returns focus to
@@ -66,7 +70,7 @@ export function Popover({
   // In a window so short that the bars would leave the popup a strip of a few lines (320x300: 210 px of bars, 58 px left), the reserve is cut so the
   // popup keeps `MIN_POPUP_ROOM` to read in, and it may then lie over the top of the bars while it is open.
   const bars = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--toast-clear')) || 0;
-  const bottomBars = Math.max(0, Math.min(bars, window.innerHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM));
+  const bottomBars = popupBottomReserve(bars, window.innerHeight);
   return (
     // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
     <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
