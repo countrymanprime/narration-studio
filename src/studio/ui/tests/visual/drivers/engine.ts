@@ -109,6 +109,36 @@ export const engineDrivers: Record<string, Driver> = {
       .getByRole('checkbox', { name: /Cheshire Cat/ })
       .waitFor();
   },
+  'voice-folders-sync': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const layout = page.getByRole('group', { name: 'Chapter layout' });
+    await layout.waitFor();
+    await layout.evaluate((node) => node.closest('section, [data-panel], div')?.scrollIntoView({ block: 'start' }));
+    await page
+      .getByRole('treegrid', { name: 'Tracks' })
+      .getByRole('row', { name: /Extras/ })
+      .waitFor();
+  },
+  'voice-folders-links': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.getByText('Chapter 1 · 3 voices').waitFor();
+    await table.evaluate((node) => node.scrollIntoView({ block: 'start' }));
+  },
+  'voice-folders-link-picker': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    const trigger = table.getByRole('button', { name: /^Folder for Chapter 2/ });
+    await trigger.scrollIntoViewIfNeeded();
+    await trigger.click();
+    await page.getByRole('treeitem', { name: /White Rabbit/ }).waitFor();
+  },
   'folder-tracks': async (page) => {
     await page.goto('/?mockTrackFolders=1');
     await settlePage(page);

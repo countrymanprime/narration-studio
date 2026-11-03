@@ -337,8 +337,12 @@ whether to use it), the Voices card carries the same switch. **Flat**, the defau
 each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
 that character speaks. Switching changes no track in REAPER.
 
+![Chapter sync's Layout row on Voice folders, above the Tracks card with a chapter folder and its voice tracks](../../images/ui/engine-panel-voices-layout.webp)
+
 With Voice folders, Chapter links' last column is **Folder**: a chapter links to its folder, named with how many voices it holds
 ("Chapter 1 · 3 voices"), and a track inside such a folder can't be chosen, since it is one of that chapter's voices.
+
+![A chapter's folder picker: the Chapter 1 folder can be chosen, its voice tracks can't](../../images/ui/engine-panel-voices-folder-picker.webp)
 
 The **Voices** card, below Chapter links, lists the folder's tracks for the chapter picked in its header, in REAPER's order. The first
 track named **Narrator** gets number-pad key 0 and the others 1 to 9; a track past the ninth gets no key. Each row shows the characters

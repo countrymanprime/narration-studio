@@ -87,6 +87,27 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'voice-folders-sync',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it the Tracks card, where the Chapter 1 folder names its chapter and its Narrator, White Rabbit and Extras tracks sit inside it',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-links',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter links: the Folder column header, Chapter 1 linked to "Chapter 1 · 3 voices", the other chapters on "Choose a folder"',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-link-picker',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) with Chapter 2\'s folder picker open: the Chapter 1 folder can be chosen (linked to Chapter 1), its Narrator, White Rabbit and Extras tracks are off with "A voice of its folder"',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
     state: 'folder-tracks',
     description:
       'The engine panel for a project whose tracks sit in REAPER folders (?mockTrackFolders=1): the Tracks card as an indented tree - guides, caret, folder icon, child count and an "N of M linked" roll-up on each folder, Co-narrator\'s empty folder, the search box and open/close all - scrolling inside its own card',

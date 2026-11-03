@@ -428,6 +428,20 @@
   },
   {
     "page": "engine",
+    "state": "voice-folders-sync",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-layout",
+    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Tracks card with a chapter folder and its voice tracks"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-link-picker",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-folder-picker",
+    "caption": "The audio engine panel - a chapter's folder picker in a Voice folders project, the voice tracks inside a chapter folder off"
+  },
+  {
+    "page": "engine",
     "state": "voice-folders",
     "viewport": "desktop",
     "docName": "engine-panel-voices",
