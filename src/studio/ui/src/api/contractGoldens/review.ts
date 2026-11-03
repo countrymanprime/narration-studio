@@ -1,35 +1,19 @@
-// The golden payloads for findings, take review and take comparison: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
+// The golden payloads for findings: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import { z } from 'zod';
 import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from '../schemas/findings';
-import { takeComparisonJobSchema, takeReviewCreateTakeResultSchema, takeReviewScanJobSchema } from '../schemas/takeReview';
 
 export const reviewGoldens: Record<string, z.ZodType> = {
+  // What the retired take review and take comparison saved, still listed as plain findings (#2765).
   'findings-list-take-review.json': findingsPageSchema,
-  'takereview-scan-idle.json': takeReviewScanJobSchema,
-  'takereview-scan-running.json': takeReviewScanJobSchema,
-  'takereview-scan-success.json': takeReviewScanJobSchema,
-  'takereview-scan-cancelled.json': takeReviewScanJobSchema,
-  'takereview-scan-error.json': takeReviewScanJobSchema,
-  'takereview-create-take.json': takeReviewCreateTakeResultSchema,
   'findings-list-take-comparison.json': findingsPageSchema,
   // Delivery findings as the Review page lists them; evidence checked below.
   'findings-list-delivery-qc.json': findingsPageSchema,
-  'takecomparison-idle.json': takeComparisonJobSchema,
-  'takecomparison-running.json': takeComparisonJobSchema,
-  'takecomparison-success.json': takeComparisonJobSchema,
-  'takecomparison-cancelled.json': takeComparisonJobSchema,
-  'takecomparison-error.json': takeComparisonJobSchema,
-  // compare.py --take-divergence's results file, pinned by its pytest suite and read by the Go host's parser
-  // (internal/takecompare), never by the UI: the host turns it into take_comparison evidence, checked above.
-  'take-divergence-results.json': z.object({ lines: z.array(z.string()) }),
   'findings-list.json': findingsPageSchema,
   'findings-review.json': findingSchema,
   'findings-retype.json': findingSchema,
   'findings-thread.json': findingSchema,
   'findings-summary.json': findingsSummarySchema,
   'findings-go-to.json': findingNavigationSchema,
-  'findings-go-to-read.json': findingNavigationSchema,
-  'findings-loop-read.json': findingNavigationSchema,
   'findings-loop.json': findingNavigationSchema,
   'findings-stop-loop.json': findingNavigationSchema,
   'findings-navigation-stale.json': findingNavigationSchema,

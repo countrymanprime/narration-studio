@@ -133,8 +133,7 @@ export type MockApiSeed = {
   /** Chapter sync's consent at boot: `ask` has not been asked yet (the consent
    * dialog shows), `off` answered Not now, and `linked` is on and, once something subscribes, runs a sync that links the
    * confident chapters and sends the batch for the toast. `unsaved` is on, with REAPER holding unsaved edits and a Sync
-   * activity row from a save in REAPER. `pickups` is on, with the first chapter's pickup track changed since its
-   * last take-review scan. `activity` is on, with Chapter 1 linked by sync and Chapter 2 by the narrator, and a Sync
+   * activity row from a save in REAPER. `pickups` is on, with a pickup track beside the first chapter's track. `activity` is on, with Chapter 1 linked by sync and Chapter 2 by the narrator, and a Sync
    * activity list of three batches (the engine panel's activity state). Unset, sync is on and has run before with nothing new, so no dialog or
    * toast covers the other states. */
   chapterSync?: 'ask' | 'off' | 'linked' | 'unsaved' | 'pickups' | 'activity' | 'background';
@@ -202,10 +201,6 @@ export type MockApiSeed = {
   findingsRerun?: boolean;
   /** What the Review page's REAPER does for Go to, Loop and Stop; connected when not given. */
   reaper?: MockReaper;
-  /** Holds a started pickup and duplicate scan part way through, so its real progress can be looked at. */
-  takeReviewScanHold?: boolean;
-  /** Holds a started take comparison part way through, so its real progress can be looked at. */
-  takeComparisonHold?: boolean;
   /** Holds a started measurement part way through, so its real progress can be looked at, or breaks it. */
   measure?: MockMeasureSeed;
   /** Holds a started export part way through, so its real progress can be looked at. */

@@ -88,7 +88,6 @@ import {
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
-import { takeComparisonJobSchema, takeReviewCreateTakeResultSchema, takeReviewScanJobSchema } from './schemas/takeReview';
 import { deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -560,8 +559,6 @@ export const wailsClient: NarrationApi = {
     decode(workspaceTakesResultSchema, 'WorkspaceTakes', host.WorkspaceTakes(chapterId, firstToken, lastToken)),
   workspaceTakeEvidence: (chapterId, firstToken, lastToken) =>
     decode(takeEvidenceResultSchema, 'WorkspaceTakeEvidence', host.WorkspaceTakeEvidence(chapterId, firstToken, lastToken)),
-  workspaceTakesCompareStart: (chapterId, firstToken, lastToken) =>
-    decode(takeComparisonJobSchema, 'WorkspaceTakesCompareStart', host.WorkspaceTakesCompareStart(chapterId, firstToken, lastToken)),
   workspaceUseTake: (chapterId, firstToken, lastToken, candidateId) =>
     decode(workspaceUseTakeResultSchema, 'WorkspaceUseTake', host.WorkspaceUseTake(chapterId, firstToken, lastToken, candidateId)),
   workspaceProjectFx: () => decode(workspaceProjectFxResultSchema, 'WorkspaceProjectFx', host.WorkspaceProjectFx()),
@@ -786,16 +783,8 @@ export const wailsClient: NarrationApi = {
   findingsSummary: () => decode(findingsSummarySchema, 'FindingsSummary', host.FindingsSummary()),
   findingsGoTo: (id) => decode(findingNavigationSchema, 'FindingsGoTo', host.FindingsGoTo(id)),
   findingsLoop: (id) => decode(findingNavigationSchema, 'FindingsLoop', host.FindingsLoop(id)),
-  findingsGoToRead: (id, read) => decode(findingNavigationSchema, 'FindingsGoToRead', host.FindingsGoToRead(id, read)),
-  findingsLoopRead: (id, read) => decode(findingNavigationSchema, 'FindingsLoopRead', host.FindingsLoopRead(id, read)),
   findingsStopLoop: () => decode(findingNavigationSchema, 'FindingsStopLoop', host.FindingsStopLoop()),
   findingsAddMarker: (id) => decode(findingMarkerSchema, 'FindingsAddMarker', host.FindingsAddMarker(id)),
-  takeReviewScanStart: (scope) => decode(takeReviewScanJobSchema, 'TakeReviewScanStart', host.TakeReviewScanStart(scope)),
-  takeReviewScanState: () => decode(takeReviewScanJobSchema, 'TakeReviewScanState', host.TakeReviewScanState()),
-  takeReviewScanCancel: () => decode(takeReviewScanJobSchema, 'TakeReviewScanCancel', host.TakeReviewScanCancel()),
-  takeComparisonStart: (findingId) => decode(takeComparisonJobSchema, 'TakeComparisonStart', host.TakeComparisonStart(findingId)),
-  takeComparisonState: () => decode(takeComparisonJobSchema, 'TakeComparisonState', host.TakeComparisonState()),
-  takeComparisonCancel: () => decode(takeComparisonJobSchema, 'TakeComparisonCancel', host.TakeComparisonCancel()),
   measurePickFiles: () => decode(measurePickResultSchema, 'MeasurePickFiles', host.MeasurePickFiles()),
   measureAnalyze: (paths) => decode(measureJobSchema, 'MeasureAnalyze', host.MeasureAnalyze(paths)),
   measureState: () => decode(measureJobSchema, 'MeasureState', host.MeasureState()),
@@ -809,19 +798,6 @@ export const wailsClient: NarrationApi = {
   diagnosticsAnalyze: (paths, sourceKind) => decode(diagnosticsJobSchema, 'DiagnosticsAnalyze', host.DiagnosticsAnalyze(paths, sourceKind)),
   diagnosticsState: () => decode(diagnosticsJobSchema, 'DiagnosticsState', host.DiagnosticsState()),
   diagnosticsCancel: () => decode(diagnosticsJobSchema, 'DiagnosticsCancel', host.DiagnosticsCancel()),
-  takeReviewCreateTake: (request) =>
-    decode(
-      takeReviewCreateTakeResultSchema,
-      'TakeReviewCreateTake',
-      host.TakeReviewCreateTake(
-        request.findingId,
-        request.targetItemGuid,
-        request.candidateItemGuid,
-        request.sourceFile,
-        request.sourceRangeStart,
-        request.sourceRangeEnd,
-      ),
-    ),
   teleprompterStart: (options) => decode(teleprompterStartResultSchema, 'TeleprompterStart', host.TeleprompterStart(toStartOptions(options))),
   teleprompterStop: () => decode(voidResult, 'TeleprompterStop', host.TeleprompterStop()),
   teleprompterSeek: (word) => decode(voidResult, 'TeleprompterSeek', host.TeleprompterSeek(word)),

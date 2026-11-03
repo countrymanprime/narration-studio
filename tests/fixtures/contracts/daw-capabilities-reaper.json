@@ -203,12 +203,6 @@
       "mode": "native",
       "reason": "standalone"
     },
-    "take_create": {
-      "available": false,
-      "level": "supported",
-      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
-      "reason": "standalone"
-    },
     "takes": {
       "available": false,
       "level": "experimental",

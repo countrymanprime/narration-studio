@@ -25,7 +25,6 @@ import type { CleanupToolsApi } from '../api/contracts/cleanuptools';
 import type { ProjectStateApi } from '../api/contracts/projectstate';
 import type { RetakeLanesApi } from '../api/contracts/retakelanes';
 import type { ChapterTagsApi } from '../api/contracts/chaptertags';
-import type { TakeReviewApi } from '../api/contracts/takeReview';
 import type { CoverageApi } from '../api/contracts/coverage';
 import type { StagesApi } from '../api/contracts/stages';
 import type { DictionaryApi } from '../api/contracts/dictionary';
@@ -111,7 +110,6 @@ export type {
   ProjectStateApi,
   RetakeLanesApi,
   ChapterTagsApi,
-  TakeReviewApi,
   CoverageApi,
   StagesApi,
   DictionaryApi,
@@ -191,7 +189,6 @@ export interface PortMap {
   projectState: ProjectStateApi;
   retakeLanes: RetakeLanesApi;
   chapterTags: ChapterTagsApi;
-  takeReview: TakeReviewApi;
   coverage: CoverageApi;
   stages: StagesApi;
   dictionary: DictionaryApi;

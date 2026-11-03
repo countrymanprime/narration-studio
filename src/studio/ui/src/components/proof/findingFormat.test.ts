@@ -94,22 +94,15 @@ describe('findingFormat', () => {
     ]);
   });
 
-  it('sums up a take-review group by its kind, its reads and the script span they cover', () => {
+  // The take review no longer runs (#2765): a group a project already holds is a plain note, worded by its category and
+  // its evidence's kind, never as a list of reads.
+  it('words a saved take-review group as a plain note, not as its reads', () => {
     const [pickup, duplicate] = WIRE_TAKE_REVIEW_FINDINGS;
-    expect(findingSummary(pickup)).toBe('Partial pickup: 2 reads of sentences 4–8');
-    expect(findingSummary(duplicate)).toBe('Near duplicate: 2 reads of sentences 13–16');
-    expect(evidenceRows(pickup)).toEqual([
-      { label: 'Kind', value: 'Partial pickup' },
-      { label: 'In the script', value: 'Sentences 4–8' },
-      { label: 'Reads', value: '2' },
-    ]);
-  });
-
-  it('words take-review evidence that does not match its schema generically, never as reads', () => {
-    const [pickup] = WIRE_TAKE_REVIEW_FINDINGS;
-    const broken = { ...pickup, evidence: { kind: 'restart', members: 'lost' } };
-    expect(findingSummary(broken)).toBe('Pickup');
-    expect(evidenceRows(broken)).toEqual([{ label: 'Kind', value: 'Restart' }]);
+    expect(findingSummary(pickup)).toBe('Pickup');
+    expect(findingSummary(duplicate)).toBe('Duplicate read');
+    expect(evidenceRows(pickup)).toEqual([{ label: 'Kind', value: 'Pickup' }]);
+    expect(evidenceRows(duplicate)).toEqual([{ label: 'Kind', value: 'Near duplicate' }]);
+    expect(analyzerLabel(pickup.analyzer)).toBe('Take review');
   });
 
   it('shows a decision time that is not a date as it came', () => {

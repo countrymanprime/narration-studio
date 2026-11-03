@@ -1,13 +1,8 @@
 // How the Review page words a finding. The wire values stay the source of truth (docs/architecture/findings-contract.md);
 // everything here is display only, and an unknown value (a newer host, a later analyzer) shows as itself rather than
 // failing.
-import type { Finding, FindingSeverity, TakeComparisonEvidence } from '../../types';
-import { readKindLabel, spanLabel, takeComparisonEvidence, takeReviewEvidence } from './takeReviewFormat';
+import type { Finding, FindingSeverity } from '../../types';
 import { deliveryEvidence, deliveryEvidenceRows, deliveryFileName, deliverySummary } from './deliveryFindingFormat';
-
-/** The script sentences a comparison covers, counted from 1 as the narrator does. */
-const comparedSpanLabel = (evidence: TakeComparisonEvidence): string =>
-  spanLabel({ kind: '', matched_span_first: evidence.span.first_unit, matched_span_last: evidence.span.last_unit, members: [] });
 
 const CATEGORY_LABELS: Record<string, string> = {
   transcript_discrepancy: 'Transcript difference',
@@ -81,10 +76,6 @@ export const repeatOf = (finding: Pick<Finding, 'category' | 'evidence'>): strin
 
 /** One line that says what the finding is about, for the list: what was expected and what was heard, or the entry it names. */
 export function findingSummary(finding: Finding): string {
-  const reads = takeReviewEvidence(finding);
-  if (reads) return `${readKindLabel(reads.kind)}: ${reads.members.length} reads of ${spanLabel(reads).toLowerCase()}`;
-  const comparison = takeComparisonEvidence(finding);
-  if (comparison) return `${comparison.members.length} reads of ${comparedSpanLabel(comparison).toLowerCase()}, side by side`;
   const delivery = deliveryEvidence(finding);
   if (delivery) return deliverySummary(delivery);
   const again = repeatOf(finding);
@@ -103,24 +94,6 @@ const text = (value: unknown): string | undefined => (typeof value === 'string' 
 
 /** The analyzer-specific evidence the page knows how to word, as label and value pairs in reading order; unknown keys are left out. */
 export function evidenceRows(finding: Finding): Array<{ label: string; value: string }> {
-  const reads = takeReviewEvidence(finding);
-  if (reads) {
-    // A take-review group: its reads are listed on their own, under the evidence.
-    return [
-      { label: 'Kind', value: readKindLabel(reads.kind) },
-      { label: 'In the script', value: spanLabel(reads) },
-      { label: 'Reads', value: String(reads.members.length) },
-    ];
-  }
-  const comparison = takeComparisonEvidence(finding);
-  if (comparison) {
-    // A take comparison: its reads are set side by side on their own, under the evidence.
-    return [
-      { label: 'In the script', value: comparedSpanLabel(comparison) },
-      { label: 'Reads compared', value: `${comparison.compared} of ${comparison.members.length}` },
-      { label: 'Transcribed with', value: `Whisper ${comparison.model}` },
-    ];
-  }
   const delivery = deliveryEvidence(finding);
   if (delivery) return deliveryEvidenceRows(delivery);
   const evidence = finding.evidence ?? {};

@@ -207,8 +207,7 @@ export](#comparing-the-recording-with-the-script) adds, so Export markers does n
 already has one nothing is added. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
 the DAW removes it.
 
-With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time, and a note
-from a take review's grouped reads cannot be played read by read (Audacity keeps no takes).
+With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
 under the row. A note found by an older check that did not record its item cannot be placed; run the check again. When

@@ -22,8 +22,6 @@ function sources(dir: string): string[] {
  */
 const UNWIRED = [
   'assetsVerify',
-  'findingsGoToRead',
-  'findingsLoopRead',
   'manuscriptSearch',
   'masteringChooseProvider',
   'recorderMeterStart',
@@ -32,15 +30,7 @@ const UNWIRED = [
   'subscribeRecorderLevel',
   'systemCopyDiagnostics',
   'systemOpenLogFolder',
-  'takeComparisonCancel',
-  'takeComparisonStart',
-  'takeComparisonState',
-  'takeReviewCreateTake',
-  'takeReviewScanCancel',
-  'takeReviewScanStart',
-  'takeReviewScanState',
   'transcriptAddEquivalence',
-  'workspaceTakesCompareStart',
 ];
 
 const text = sources(root)

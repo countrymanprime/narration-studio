@@ -379,11 +379,6 @@ const mockFindings = (['empty', 'changed'] as const).find((seed) => seed === moc
 // `?mockReaper=standalone|not-running|stale|recording|outdated` sets what the Review page's REAPER does for Go to, Loop and Stop:
 // not there at all, gone quiet, or connected and refusing for that reason. Connected when absent.
 const mockReaper = (['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const).find((seed) => seed === mockParams.get('mockReaper'));
-// `?mockTakeReviewScan=running` holds a started pickup and duplicate scan part way through, so its real
-// progress and Cancel can be seen; without it a mock scan runs to the end in a few polls.
-const mockTakeReviewScanHold = mockParams.get('mockTakeReviewScan') === 'running';
-// `?mockTakeComparison=running` does the same for a take comparison.
-const mockTakeComparisonHold = mockParams.get('mockTakeComparison') === 'running';
 // `?mockMeasure=running|fails` holds a started measurement part way through (so Master & QC's progress and Cancel can be seen),
 // or breaks it at its first poll. `?mockMeasure=spread` boots the
 // page with several already-measured chapters whose levels vary (a book-wide spread),
@@ -454,8 +449,6 @@ const mockInitial = {
   ...(mockPackageMultiHold ? { renderPackageMulti: 'hold' as const } : {}),
   ...(mockDeliveryProfile ? { deliveryProfile: mockDeliveryProfile } : {}),
   ...(mockProduction ? { production: scenarioFromToday(mockProduction) } : {}),
-  ...(mockTakeReviewScanHold ? { takeReviewScanHold: true } : {}),
-  ...(mockTakeComparisonHold ? { takeComparisonHold: true } : {}),
   ...(mockReaper ? { reaper: mockReaper } : {}),
   ...(mockFindings === 'empty' ? { findings: [] } : {}),
   ...(mockFindings === 'changed' ? { findingsRerun: true } : {}),

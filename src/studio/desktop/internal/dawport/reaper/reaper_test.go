@@ -165,7 +165,6 @@ var supportedCommands = map[string]dawport.Capability{
 	"launch_cleanup_tool":      dawport.CapCleanupTools,
 	"pick_retake_lane":         dawport.CapRetakeLanes,
 	"project_state":            dawport.CapProjectState,
-	"create_take":              dawport.CapTakeCreate,
 }
 
 // experimentalCommandsInSource reads the keys of bridge.experimentalCommands from actions.go itself, so a command added to (or
