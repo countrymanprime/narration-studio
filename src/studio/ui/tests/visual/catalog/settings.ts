@@ -376,6 +376,21 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'editing-playback',
+    description:
+      'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'effects-cap',
+    description: 'Settings, Recording & DAW scrolled to Effects coverage cap under Effects: 10 %, with Override for this project, the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'wave-scroll-step',
     description:
       'Settings, Appearance & keys scrolled to the Editing section: Waveform arrow step, a slider from 15 to 30 seconds reading 20 s, with the rows around it',

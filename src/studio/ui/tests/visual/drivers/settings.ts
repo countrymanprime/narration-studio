@@ -405,6 +405,16 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'look.boothSize');
     await row.getByRole('slider', { name: 'Booth text size' }).waitFor();
   },
+  'editing-playback': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.playback');
+    await row.getByRole('slider', { name: 'Playback volume' }).waitFor();
+  },
+  'effects-cap': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    const row = await showSettingsRow(page, 'daw.fxCap');
+    await row.getByRole('textbox').waitFor();
+  },
   'wave-scroll-step': async (page) => {
     await openSettings(page, 'Appearance & keys');
     await showSettingsRow(page, 'look.waveScrollStep');

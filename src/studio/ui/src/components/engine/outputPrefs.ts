@@ -1,7 +1,8 @@
 // What the narrator chose for the sound the Editing page plays: the volume, mute, speed and output device. Kept by this browser window, as the
 // take tone and the reader's preferences are (storage can be missing or blocked, and then the choices hold for the window only). The device is kept
 // by name, not by id, for the reason `voicesamples/audioOutputs.ts` gives.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { announceBrowserSettingChange } from '../../browserSettings';
 import { setOutput } from '../voicesamples/audioOutputs';
 
 export type OutputPrefs = {
@@ -38,9 +39,11 @@ export function readOutputPrefs(): OutputPrefs {
   }
 }
 
-function writeOutputPrefs(prefs: OutputPrefs): void {
+/** Saves the choices and says so to the windows that show them (Settings' Changed mark). */
+export function writeOutputPrefs(prefs: OutputPrefs): void {
   try {
     localStorage.setItem(OUTPUT_STORAGE_KEY, JSON.stringify(prefs));
+    announceBrowserSettingChange();
   } catch {
     // Storage unavailable: the choice holds for this window only.
   }
@@ -48,12 +51,13 @@ function writeOutputPrefs(prefs: OutputPrefs): void {
 
 export function useOutputPrefs(): { prefs: OutputPrefs; change: (patch: Partial<OutputPrefs>) => void } {
   const [prefs, setPrefs] = useState(readOutputPrefs);
+  // Worked out and saved here, not inside the state updater, which React may run twice and which must not write storage.
+  const latest = useRef(prefs);
   const change = useCallback((patch: Partial<OutputPrefs>) => {
-    setPrefs((now) => {
-      const next = { ...now, ...patch };
-      writeOutputPrefs(next);
-      return next;
-    });
+    const next = { ...latest.current, ...patch };
+    latest.current = next;
+    writeOutputPrefs(next);
+    setPrefs(next);
   }, []);
   return { prefs, change };
 }

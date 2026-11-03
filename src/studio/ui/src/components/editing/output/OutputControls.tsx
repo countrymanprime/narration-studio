@@ -40,13 +40,14 @@ function Note({ children, alert = false }: { children: ReactNode; alert?: boolea
 }
 
 /** The output device: the system default, this computer's named outputs, and a saved output that is not connected, kept chosen and said so. */
-function DeviceRow({
+export function DeviceRow({
   prefs,
   devices,
   deviceProblem,
   onChange,
   onCheckDevices,
-}: Pick<OutputControlsProps, 'prefs' | 'devices' | 'deviceProblem' | 'onChange' | 'onCheckDevices'>) {
+  heading = true,
+}: Pick<OutputControlsProps, 'prefs' | 'devices' | 'deviceProblem' | 'onChange' | 'onCheckDevices'> & { heading?: boolean }) {
   const listed = devices.phase === 'ready' && devices.status === 'ok' ? devices.outputs : [];
   const missing = prefs.device !== '' && devices.phase === 'ready' && !listed.some((o) => o.label === prefs.device);
   const options = [
@@ -57,7 +58,7 @@ function DeviceRow({
   const off = devices.phase === 'loading' || (devices.phase === 'ready' && devices.status === 'unavailable');
   return (
     <div className="flex flex-col gap-1.5">
-      <span className={HEADING}>Output</span>
+      {heading && <span className={HEADING}>Output</span>}
       <Select label="Output device" fullWidth value={prefs.device} options={options} disabled={off} onChange={(device) => onChange({ device })} />
       {devices.phase === 'loading' ? <Note>Listing outputs…</Note> : null}
       {devices.phase === 'ready' && devices.status === 'unavailable' ? (
