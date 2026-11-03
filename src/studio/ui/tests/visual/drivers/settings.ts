@@ -259,6 +259,8 @@ export const settingsDrivers: Record<string, Driver> = {
     await openModels(page, '?mockAssetsVerify=hangs');
     await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByRole('button', { name: 'Check the files of Small' }).click();
     await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByText('Checking the files').waitFor();
+    // At the narrower widths the table turns into cards and this row falls below the fold; bring it into the frame.
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).evaluate((el) => el.scrollIntoView({ block: 'center' }));
   },
   'models-long-name': async (page) => {
     await openModels(page, '?mockAssetNames=long');
@@ -266,6 +268,7 @@ export const settingsDrivers: Record<string, Driver> = {
       .locator(`[data-asset="${WHISPER_SMALL}"]`)
       .getByRole('button', { name: /^Check the files of Small, multilingual/ })
       .waitFor();
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).evaluate((el) => el.scrollIntoView({ block: 'center' }));
   },
   'models-remove-confirm': async (page) => {
     await openModels(page);
