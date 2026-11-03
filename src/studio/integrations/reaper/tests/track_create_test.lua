@@ -242,3 +242,96 @@ H.test('track_create with a parent refuses while REAPER records and adds nothing
   H.eq(s:events(), { { 'ERROR', 'c1', 'REAPER is recording. Stop recording first.' } })
   H.eq(#s.fake.tracks, before)
 end)
+
+-- The folder each track sits inside, by name ('' at the top level), from the running sum of the folder depths: what REAPER shows as its parent.
+local function parents(s)
+  local out, stack, depth = {}, {}, 0
+  for _, track in ipairs(s.fake.tracks) do
+    out[track.name] = stack[depth] or ''
+    local delta = track.folder_depth or 0
+    if delta > 0 then
+      stack[depth + 1] = track.name
+    end
+    depth = math.max(depth + delta, 0)
+  end
+  return out
+end
+
+-- A project can end inside an open folder: REAPER 7.82 accepts a last track whose I_FOLDERDEPTH is 0 under a folder, and closes the folder at
+-- the end (the real-REAPER scenario "track_create with no parent appends a chapter track at the top level after a folder"). A track appended
+-- there without closing it lands inside that folder, so every chapter the app adds afterwards nests under the last chapter's folder (#2251).
+H.test('track_create with no parent after a folder left open at the end adds the track at the top level, not inside the folder', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local chapter3 = s.fake:add_track('Chapter 3')
+  s.fake:add_track('Narrator')
+  chapter3.folder_depth = 1
+  local before = parents(s)
+  s:send('track_create', 'c1', 'Chapter 4')
+  H.eq(s:events()[1][1], 'TRACK_CREATED')
+  H.eq(depths(s), { { 'Chapter 3', 1 }, { 'Narrator', -1 }, { 'Chapter 4', 0 } })
+  local after = parents(s)
+  H.eq(after['Chapter 4'], '')
+  for name, parent in pairs(before) do
+    H.eq(after[name], parent)
+  end
+end)
+
+H.test('track_create with no parent closes every folder left open at the end, however deep, on the last track', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local book = s.fake:add_track('Book')
+  local chapter3 = s.fake:add_track('Chapter 3')
+  s.fake:add_track('Narrator')
+  book.folder_depth, chapter3.folder_depth = 1, 1
+  s:send('track_create', 'c1', 'Chapter 4')
+  H.eq(depths(s), { { 'Book', 1 }, { 'Chapter 3', 1 }, { 'Narrator', -2 }, { 'Chapter 4', 0 } })
+  H.eq(parents(s)['Chapter 4'], '')
+  H.eq(parents(s)['Narrator'], 'Chapter 3')
+end)
+
+H.test('track_create with no parent after closed folders changes no folder depth', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local chapter3 = s.fake:add_track('Chapter 3')
+  local narrator = s.fake:add_track('Narrator')
+  chapter3.folder_depth, narrator.folder_depth = 1, -1
+  s:send('track_create', 'c1', 'Chapter 4')
+  H.eq(depths(s), { { 'Chapter 3', 1 }, { 'Narrator', -1 }, { 'Chapter 4', 0 } })
+end)
+
+H.test('chapters added one after another after an open folder are all at the top level', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local chapter3 = s.fake:add_track('Chapter 3')
+  s.fake:add_track('Narrator')
+  chapter3.folder_depth = 1
+  s:send('track_create', 'c1', 'Chapter 4')
+  s:send('track_create', 'c2', 'Chapter 5')
+  s:send('track_create', 'c3', 'Chapter 6')
+  local after = parents(s)
+  H.eq({ after['Chapter 4'], after['Chapter 5'], after['Chapter 6'], after['Narrator'] }, { '', '', '', 'Chapter 3' })
+end)
+
+H.test('track_create with a parent among sibling chapter folders adds only to that folder: no sibling changes parent', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local c3 = s.fake:add_track('Chapter 3')
+  local n3 = s.fake:add_track('Narrator')
+  local c4 = s.fake:add_track('Chapter 4')
+  s.fake:add_track('C4 Narrator')
+  local a4 = s.fake:add_track('C4 Alice')
+  s.fake:add_track('Chapter 5')
+  c3.folder_depth, n3.folder_depth, c4.folder_depth, a4.folder_depth = 1, -1, 1, -1
+  local before = parents(s)
+  s:send('track_create', 'c1', 'Veyra', c3.guid)
+  local after = parents(s)
+  H.eq(after['Veyra'], 'Chapter 3')
+  for name, parent in pairs(before) do
+    H.eq(after[name], parent)
+  end
+  H.eq(depths(s), {
+    { 'Chapter 3', 1 },
+    { 'Narrator', 0 },
+    { 'Veyra', -1 },
+    { 'Chapter 4', 1 },
+    { 'C4 Narrator', 0 },
+    { 'C4 Alice', -1 },
+    { 'Chapter 5', 0 },
+  })
+end)

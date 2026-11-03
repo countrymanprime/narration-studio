@@ -385,6 +385,18 @@ H.test('import-their-audio: the file goes on a new muted track named for them, a
   H.eq(s.fake.open_undo_blocks, 0)
 end)
 
+H.test('their track goes at the top level even when the project ends inside an open folder, and no track changes folder', function()
+  local s, path = importable()
+  local chapter = s.fake.tracks[1]
+  s.fake:add_track('Narrator')
+  chapter.folder_depth = 1
+  local before = H.parents(s)
+  s:send('import_audio_track', 'i1', 'Eric Leach', path)
+  H.eq(s:events()[1][1], 'AUDIO_TRACK_ADDED')
+  local after = H.same_parents(before, s)
+  H.eq(after['Eric Leach'], '')
+end)
+
 H.test('the new track can be their source for a replacement straight away', function()
   local s, path = importable()
   local chapter = s.fake.tracks[1]

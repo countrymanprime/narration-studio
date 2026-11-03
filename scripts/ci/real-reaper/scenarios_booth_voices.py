@@ -697,3 +697,138 @@ def track_create_in_folder(env: Env) -> str:
     stale = env.send("track_create", "Ghost", "{00000000-0000-4000-8000-0000000000DE}", until={"TRACK_CREATED", "TRACK_STALE"})
     assert stale[-1][0] == "TRACK_STALE" and len(structure(env)) == count + 1, f"stale parent answered {stale}"
     return f"created at index {created[3]}, undo {undo!r}; after save and reload {[(r['name'], r['delta']) for r in rows]}; ISBUS {isbus_lines(env)}; Veyra input {veyra['input']}; a gone parent answered TRACK_STALE and added nothing"
+
+
+SIBLINGS_LAYOUTS = {
+    # name: (tracks as (name, I_FOLDERDEPTH) in order, the parent to add to)
+    "middle folder, 1 child": (
+        [("Chapter 3", 1), ("Narrator", -1), ("Chapter 4", 1), ("C4 Narrator", 0), ("C4 Alice", -1), ("Chapter 5", 0)],
+        "Chapter 3",
+    ),
+    "middle folder, 2 children": (
+        [("Chapter 3", 1), ("Narrator", 0), ("Veyra", -1), ("Chapter 4", 1), ("C4 Narrator", -1), ("Chapter 5", 0)],
+        "Chapter 3",
+    ),
+    "middle track, no children yet": (
+        [("Chapter 3", 0), ("Chapter 4", 1), ("C4 Narrator", -1), ("Chapter 5", 0)],
+        "Chapter 3",
+    ),
+    "last folder in the project": (
+        [("Chapter 2", 0), ("Chapter 3", 1), ("Narrator", -1)],
+        "Chapter 3",
+    ),
+    "inner folder closing two levels": (
+        [("Book", 1), ("Chapter 3", 1), ("Narrator", -2), ("Chapter 4", 1), ("C4 Narrator", -1)],
+        "Chapter 3",
+    ),
+}
+
+
+def sibling_rows(env: Env, layout: list[tuple[str, int]]) -> None:
+    env.lua(
+        """
+        for name, delta in args[1]:gmatch('([^;=]+)=([^;]+)') do
+          local t = ci.add_track(name)
+          reaper.SetMediaTrackInfo_Value(t, 'I_FOLDERDEPTH', tonumber(delta))
+        end
+        ci.save_and_reload(ci.rpp)
+        return true
+        """,
+        ";".join(f"{name}={delta}" for name, delta in layout),
+    )
+
+
+def expected_after(layout: list[tuple[str, int]], parent: str, added: str) -> list[tuple[str, int]]:
+    """The layout with `added` as `parent`'s new last direct child and every other track's parent unchanged."""
+    depths, depth = [], 0
+    for _, delta in layout:
+        depths.append(depth)
+        depth += delta
+    p = next(i for i, (name, _) in enumerate(layout) if name == parent)
+    last = p
+    while last + 1 < len(layout) and depths[last + 1] > depths[p]:
+        last += 1
+    out = list(layout)
+    closing = layout[last][1]
+    out[last] = (layout[last][0], depths[p] + 1 - depths[last])
+    out.insert(last + 1, (added, closing + depths[last] - depths[p] - 1))
+    return out
+
+
+def parents(rows: list[dict]) -> dict[str, str]:
+    return {r["name"]: r["parent"] for r in rows}
+
+
+@scenario(
+    "booth_voices",
+    "track_create",
+    "voices fix: track_create with a parent among sibling chapter folders adds only to that folder; every other track keeps its parent and "
+    "every I_FOLDERDEPTH is exact, for a middle folder with 0, 1 and 2 children, the last folder in the project and one closing two levels",
+)
+def track_create_among_sibling_folders(env: Env) -> str:
+    seen = []
+    for label, (layout, parent) in SIBLINGS_LAYOUTS.items():
+        env.reset()
+        sibling_rows(env, layout)
+        before = structure(env)
+        guid = env.lua("return reaper.GetTrackGUID(ci.track_by_name(args[1]))", parent)
+        env.ok("track_create", "Added", guid, until="TRACK_CREATED")
+        env.lua("ci.save_and_reload(ci.rpp) return true")
+        after = structure(env)
+        got = [(r["name"], r["delta"]) for r in after]
+        want = expected_after(layout, parent, "Added")
+        assert got == want, f"{label}: I_FOLDERDEPTH after {got}, want {want} (before {[(r['name'], r['delta']) for r in before]})"
+        was, now = parents(before), parents(after)
+        moved = {name: (was[name], now[name]) for name in was if was[name] != now[name]}
+        assert not moved, f"{label}: tracks changed parent {moved}"
+        assert now["Added"] == parent, f"{label}: the new track's parent is {now['Added']!r}, not {parent!r}"
+        seen.append(f"{label}: {got}")
+    return "; ".join(seen)
+
+
+APPEND_LAYOUTS = {
+    # name: (the layout, every track's I_FOLDERDEPTH after Chapter 9 is appended)
+    "after a folder that closes on its last child": (
+        [("Chapter 3", 1), ("Narrator", 0), ("Veyra", -1)],
+        [("Chapter 3", 1), ("Narrator", 0), ("Veyra", -1), ("Chapter 9", 0)],
+    ),
+    "after an inner folder closing two levels": (
+        [("Book", 1), ("Chapter 3", 1), ("Narrator", -2)],
+        [("Book", 1), ("Chapter 3", 1), ("Narrator", -2), ("Chapter 9", 0)],
+    ),
+    # The owner's project (#2251): the last chapter folder was left open at the end, so every chapter the app added landed inside it.
+    "after a folder left open at the end of the project": (
+        [("Chapter 3", 1), ("Narrator", 0)],
+        [("Chapter 3", 1), ("Narrator", -1), ("Chapter 9", 0)],
+    ),
+    "after two folders left open at the end": (
+        [("Book", 1), ("Chapter 3", 1), ("Narrator", 0)],
+        [("Book", 1), ("Chapter 3", 1), ("Narrator", -2), ("Chapter 9", 0)],
+    ),
+}
+
+
+@scenario(
+    "booth_voices",
+    "track_create",
+    "voices fix: track_create with no parent appends a chapter track at the top level after a folder; no folder swallows it and no track changes parent",
+)
+def track_create_appends_outside_folders(env: Env) -> str:
+    seen = []
+    for label, (layout, want) in APPEND_LAYOUTS.items():
+        env.reset()
+        sibling_rows(env, layout)
+        before = structure(env)
+        env.ok("track_create", "Chapter 9", until="TRACK_CREATED")
+        env.lua("ci.save_and_reload(ci.rpp) return true")
+        after = structure(env)
+        got = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in after]
+        seen.append(f"{label}: before {[(r['name'], r['delta']) for r in before]} after {got}")
+        deltas = [(r["name"], r["delta"]) for r in after]
+        assert deltas == want, f"{label}: I_FOLDERDEPTH after {deltas}, want {want}"
+        added = next(r for r in after if r["name"] == "Chapter 9")
+        assert added["parent"] == "" and added["depth"] == 0, f"{label}: the appended chapter sits inside {added['parent']!r}: {got}"
+        was, now = parents(before), parents(after)
+        moved = {name: (was[name], now[name]) for name in was if was[name] != now[name]}
+        assert not moved, f"{label}: tracks changed parent {moved}"
+    return "; ".join(seen)
