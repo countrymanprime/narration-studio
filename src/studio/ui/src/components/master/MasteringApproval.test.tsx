@@ -8,7 +8,7 @@ import type { ExportRequest, NarrationApi } from '../../types';
 import { clearToasts, findToast, toastTexts } from '../../fixtures/toasts';
 import { MasteringChain, useMasteringProviders } from './MasteringChain';
 import { MasterToSpecPanel } from './MasterToSpecPanel';
-import { EXPORT_START_WAIT_MS } from './exportStartRequest';
+import { MASTER_REQUEST_WAIT_MS } from './masterRequests';
 import { EXPORT_START_NO_ANSWER, useExportJobs } from './useExportJobs';
 
 beforeEach(clearToasts);
@@ -160,7 +160,7 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Approve and master' }));
     await act(async () => {
-      vi.advanceTimersByTime(EXPORT_START_WAIT_MS + 1);
+      vi.advanceTimersByTime(MASTER_REQUEST_WAIT_MS + 1);
     });
     await findToast(EXPORT_START_NO_ANSWER);
     expect(screen.queryByRole('alertdialog')).toBeNull();
