@@ -10,7 +10,7 @@ const drawn = (onMain = vi.fn(), onToggle = vi.fn(), onSide = vi.fn()) =>
   render(
     <SplitButton label="Recording">
       <SplitMain onClick={onMain}>Record</SplitMain>
-      <SplitToggle pressed={false} icon="microphone" onClick={onToggle}>
+      <SplitToggle pressed={false} icon="microphone" hint="Follow your voice" onClick={onToggle}>
         Cold read
       </SplitToggle>
       <SplitSide label="Levels" onClick={onSide} />

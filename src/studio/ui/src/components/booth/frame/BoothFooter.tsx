@@ -147,7 +147,7 @@ export function BoothFooter({
                 icon="microphone"
                 pressed={coldRead.on}
                 aria-disabled={coldRead.disabledReason ? true : undefined}
-                title={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
+                hint={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
                 onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
               >
                 Cold read

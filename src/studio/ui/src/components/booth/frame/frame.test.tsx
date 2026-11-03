@@ -426,4 +426,10 @@ describe('the record bar is voice, then one split button', () => {
     expect(cold.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByRole('button', { name: 'Levels' }).querySelector('span[aria-hidden]')).not.toBeNull();
   });
+
+  it('opens the Levels popover from the caret on the side of Record', async () => {
+    footer(api());
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    expect(await screen.findByRole('dialog', { name: 'Levels' })).toBeTruthy();
+  });
 });

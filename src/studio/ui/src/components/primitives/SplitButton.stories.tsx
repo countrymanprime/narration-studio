@@ -39,7 +39,7 @@ export const WithSwitch: Story = {
             <Icon name="record" />
             Record
           </SplitMain>
-          <SplitToggle pressed={pressed} icon="microphone">
+          <SplitToggle pressed={pressed} icon="microphone" hint="Follow your voice without recording">
             Cold read
           </SplitToggle>
           <SplitSide label="Levels" aria-haspopup="dialog" badge={pressed} />

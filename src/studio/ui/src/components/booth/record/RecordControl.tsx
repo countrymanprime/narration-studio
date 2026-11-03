@@ -16,7 +16,7 @@ export function RecordControl({
 }) {
   const { recording, disabled, reason, toggle } = control;
   return (
-    // As wide as "Record" in both states, so the timer and the controls beside it do not move when it becomes Stop (alignment audit XBO-25).
+    // `SplitMain` is as wide as "Record" in both states, so the timer beside it does not move when it becomes Stop (alignment audit XBO-25).
     <SplitMain id="brec" {...(disabled ? { 'aria-disabled': true } : {})} aria-describedby={reason ? describedBy : undefined} onClick={() => void toggle()}>
       <Icon name={recording ? 'stop' : 'record'} />
       {recording ? 'Stop' : 'Record'}
