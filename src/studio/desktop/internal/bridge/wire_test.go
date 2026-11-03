@@ -75,6 +75,8 @@ var realEvents = map[string][]string{
 	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0", "1"},
 	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "1", "0", "1"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
+	// transport_test.lua's switch_voice rows.
+	"VOICE_SWITCHED": {"VOICE_SWITCHED", "v1", "{00000002-0000-4000-8000-000000000002}", "3.600000"},
 	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
 	"ACTIVE_TAKE_SET":  {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
 	"ITEM_STALE":       {"ITEM_STALE", "x3", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},

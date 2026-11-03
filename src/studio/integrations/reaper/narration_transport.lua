@@ -108,6 +108,11 @@ end
 -- latest when several start there), else the last play position read while it recorded (auto-punch records only the
 -- time selection, so its item starts elsewhere), else nil.
 local STOP_EPSILON = 0.0005
+--
+-- After switch_voice the last voice's item starts just after the switch (64 ms in REAPER 7.82, section 6a row 7 of
+-- docs/research/2026-10-30-booth-sub-track-recording.md), so on that voice it is the item starting within SWITCH_WINDOW
+-- after the play position of the switch.
+local SWITCH_WINDOW = 0.5
 local function stopped_at(record)
   local track = find_track(record.track)
   local found
@@ -115,7 +120,10 @@ local function stopped_at(record)
     for index = 0, reaper.CountTrackMediaItems(track) - 1 do
       local item = reaper.GetTrackMediaItem(track, index)
       local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
-      if math.abs(position - record.position) <= STOP_EPSILON then
+      local switched_from = record.switched_at
+      local ours = switched_from and position >= switched_from - STOP_EPSILON and position <= switched_from + SWITCH_WINDOW
+        or not switched_from and math.abs(position - record.position) <= STOP_EPSILON
+      if ours then
         local stop = position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
         found = math.max(found or stop, stop)
       end
@@ -412,6 +420,7 @@ local function set_cursor(session_dir, run_id, text)
   end
   -- Scroll the view, do not seek playback: like go_to and punch_to, going somewhere is not an edit.
   reaper.SetEditCurPos(seconds, true, false)
+  core.cursor_moved()
   event(session_dir, 'CURSOR_SET', run_id, string.format('%.6f', seconds))
 end
 
@@ -767,6 +776,51 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule)
   watch(session_dir, state, record)
 end
 
+-- Moves a recording this bridge started to another voice while REAPER keeps recording (decision E1 of
+-- docs/research/2026-10-30-booth-sub-track-recording.md): the new track is armed and the old one disarmed in the same
+-- call, so REAPER ends the old voice's item and starts the new one's at the switch, with one undo point for the whole
+-- take (section 6a, row 7). The remembered arms follow the voice, so the arms the narrator had come back at the stop.
+-- Answers VOICE_SWITCHED|run|trackGuid|at, at being the play position of the switch.
+local function switch_voice(session_dir, state, run_id, guid_text)
+  local record = state.recording
+  if not record then
+    event(session_dir, 'RECORD_NOT_OURS', run_id)
+    return
+  end
+  if not record.started then
+    event(session_dir, 'ERROR', run_id, 'REAPER has not started recording yet.')
+    return
+  end
+  local target = find_track(guid_text)
+  if not target then
+    event(session_dir, 'TRACK_STALE', run_id, guid_text)
+    return
+  end
+  local at = reaper.GetPlayPosition()
+  local guid = track_guid(target)
+  if guid ~= record.track then
+    local old = find_track(record.track)
+    if not state.saved_arms then
+      -- A recording started without arm_only: remember the arms as they are, the old voice armed.
+      local arms = {}
+      for _, track in ipairs(tracks()) do
+        arms[track_guid(track)] = armed(track)
+      end
+      state.saved_arms = { arms = arms }
+    end
+    if state.saved_arms.arms[guid] == nil then
+      state.saved_arms.arms[guid] = armed(target)
+    end
+    set_armed(target, true)
+    if old then
+      set_armed(old, false)
+    end
+    state.saved_arms.target = guid
+    record.track, record.switched_at = guid, at
+  end
+  event(session_dir, 'VOICE_SWITCHED', run_id, guid, string.format('%.6f', at))
+end
+
 local function record_stop(session_dir, state, run_id)
   if not state.recording then
     event(session_dir, 'RECORD_NOT_OURS', run_id)
@@ -796,6 +850,13 @@ return function(registry)
   end)
   registry.register('record_stop', function(ctx, args)
     record_stop(ctx.session_dir, state, args[1] or '')
+  end)
+  registry.register('switch_voice', function(ctx, args)
+    switch_voice(ctx.session_dir, state, args[1] or '', args[2] or '')
+  end)
+  -- The app moved the cursor itself: the stop guard is for REAPER's seek after a stop, never for that.
+  core.on_cursor_moved(function()
+    state.stop_guard = nil
   end)
   registry.register('set_cursor', function(ctx, args)
     set_cursor(ctx.session_dir, args[1] or '', args[2] or '')

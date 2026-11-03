@@ -159,6 +159,9 @@ var eventSpecs = map[string]eventSpec{
 	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
+	// switch_voice (narration_transport.lua, docs/research/2026-10-30-booth-sub-track-recording.md section 6b): the voice track
+	// REAPER records on now and the play position of the switch.
+	"VOICE_SWITCHED": {required: []fieldSpec{text("run"), text("guid"), number("at")}},
 	// set_active_take, list_fx_chains, apply_fx_chain (narration_workspace.lua). changed is 0 or 1; reason
 	// is item, take or range; a chain's name is its path relative to FXChains with forward slashes; added is the
 	// number of FX a chain added.

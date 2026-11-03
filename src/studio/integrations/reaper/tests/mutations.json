@@ -2442,8 +2442,8 @@
   {
     "name": "set_cursor seeks playback",
     "file": "narration_transport.lua",
-    "find": "  reaper.SetEditCurPos(seconds, true, false)\n  event(session_dir, 'CURSOR_SET'",
-    "replace": "  reaper.SetEditCurPos(seconds, true, true)\n  event(session_dir, 'CURSOR_SET'"
+    "find": "  reaper.SetEditCurPos(seconds, true, false)\n  core.cursor_moved()\n  event(session_dir, 'CURSOR_SET'",
+    "replace": "  reaper.SetEditCurPos(seconds, true, true)\n  core.cursor_moved()\n  event(session_dir, 'CURSOR_SET'"
   },
   {
     "name": "play_from on a paused REAPER does not stop first",
@@ -2772,8 +2772,8 @@
   {
     "name": "Stop puts the cursor at the end of the earlier item, not the new pass",
     "file": "narration_transport.lua",
-    "find": "      if math.abs(position - record.position) <= STOP_EPSILON then",
-    "replace": "      if true then"
+    "find": "        or not switched_from and math.abs(position - record.position) <= STOP_EPSILON",
+    "replace": "        or not switched_from"
   },
   {
     "name": "Stop forgets where REAPER recorded when no item starts at the recording start",
@@ -3068,5 +3068,65 @@
     "file": "narration_track_create.lua",
     "find": "    if parent_index == nil then\n      event(session_dir, 'TRACK_STALE', run_id, parent_text)\n      return\n    end",
     "replace": "    if false then\n    end"
+  },
+  {
+    "name": "switch_voice leaves the old voice armed, so both record",
+    "file": "narration_transport.lua",
+    "find": "    if old then\n      set_armed(old, false)\n    end",
+    "replace": "    if old then\n    end"
+  },
+  {
+    "name": "switch_voice does not arm the new voice",
+    "file": "narration_transport.lua",
+    "find": "    set_armed(target, true)\n    if old then",
+    "replace": "    if old then"
+  },
+  {
+    "name": "switch_voice runs with no recording of ours",
+    "file": "narration_transport.lua",
+    "find": "  local record = state.recording\n  if not record then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)\n    return\n  end\n  if not record.started then",
+    "replace": "  local record = state.recording or { started = true }\n  if not record.started then"
+  },
+  {
+    "name": "switch_voice runs before REAPER started recording",
+    "file": "narration_transport.lua",
+    "find": "  if not record.started then\n    event(session_dir, 'ERROR', run_id, 'REAPER has not started recording yet.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'REAPER has not started recording yet.')"
+  },
+  {
+    "name": "switch_voice forgets which voice records now",
+    "file": "narration_transport.lua",
+    "find": "    record.track, record.switched_at = guid, at",
+    "replace": "    record.switched_at = at"
+  },
+  {
+    "name": "the remembered arms do not follow the voice",
+    "file": "narration_transport.lua",
+    "find": "    state.saved_arms.target = guid\n    record.track",
+    "replace": "    record.track"
+  },
+  {
+    "name": "the stop after a switch looks for the take start on the last voice",
+    "file": "narration_transport.lua",
+    "find": "      local switched_from = record.switched_at",
+    "replace": "      local switched_from = nil"
+  },
+  {
+    "name": "set_cursor leaves the stop guard running",
+    "file": "narration_transport.lua",
+    "find": "  reaper.SetEditCurPos(seconds, true, false)\n  core.cursor_moved()",
+    "replace": "  reaper.SetEditCurPos(seconds, true, false)"
+  },
+  {
+    "name": "punch_to leaves the stop guard running",
+    "file": "narration_punch.lua",
+    "find": "  reaper.SetEditCurPos(target, true, false)\n  core.cursor_moved()",
+    "replace": "  reaper.SetEditCurPos(target, true, false)"
+  },
+  {
+    "name": "the cursor listener does not end the stop guard",
+    "file": "narration_transport.lua",
+    "find": "  core.on_cursor_moved(function()\n    state.stop_guard = nil\n  end)",
+    "replace": "  core.on_cursor_moved(function() end)"
   }
 ]

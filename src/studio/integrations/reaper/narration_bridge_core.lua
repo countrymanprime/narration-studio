@@ -280,6 +280,19 @@ function M.with_descendants(track)
   return out
 end
 
+-- The bridge's own cursor moves (set_cursor, punch_to) told to every module that listens: narration_transport.lua's stop
+-- guard puts back a seek REAPER makes to a take's start just after a stop, and must never undo a move the app asked for
+-- (docs/research/2026-10-30-booth-sub-track-recording.md, section 6b). Modules share this core, so one list serves them all.
+local cursor_listeners = {}
+function M.on_cursor_moved(listener)
+  cursor_listeners[#cursor_listeners + 1] = listener
+end
+function M.cursor_moved()
+  for _, listener in ipairs(cursor_listeners) do
+    listener()
+  end
+end
+
 M.SEP = SEP
 M.join = join
 M.encode = encode

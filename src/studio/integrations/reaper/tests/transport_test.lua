@@ -599,3 +599,153 @@ H.test('the guard after a stop lasts about half a second and then leaves the cur
   s:tick()
   H.eq(s.fake.cursor, 2)
 end)
+
+-- The stop guard and the app's own cursor moves (docs/research/2026-10-30-booth-sub-track-recording.md, section 6b) -----
+
+H.test('set_cursor sent at once after a stop ends the guard, so a re-take from the same place holds', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 5
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:send('set_cursor', 'c1', '2')
+  s:events()
+  for _ = 1, 3 do
+    s:tick()
+  end
+  H.eq(s.fake.cursor, 2, 'the app asked for the take start; the guard is for REAPER seeking there, not the app')
+end)
+
+H.test('punch_to sent at once after a stop ends the guard too', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 5
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:send('punch_to', 'p1', '3', '1')
+  s:events()
+  for _ = 1, 3 do
+    s:tick()
+  end
+  H.eq(s.fake.cursor, 2)
+end)
+
+-- switch_voice --------------------------------------------------------------------------------------------------
+
+-- A chapter folder of voices: Narrator and Queen, with the narrator's own arms on Pickups before the app armed anything.
+local function voice_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator = s.fake:add_track('Narrator')
+  local queen = s.fake:add_track('Queen')
+  local pickups = s.fake:add_track('Pickups')
+  pickups.armed = true
+  s:send('arm_only', 'a1', narrator.guid)
+  s.fake.cursor, s.fake.record_seconds = 2, 3
+  s:send('record_start', 'r1', narrator.guid)
+  s:events()
+  return s, narrator, queen, pickups
+end
+
+H.test('switch_voice during a take arms the new voice and disarms the old one, and REAPER keeps recording', function()
+  local s, narrator, queen = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  H.eq(s:events(), { { 'VOICE_SWITCHED', 'v1', queen.guid, '3.600000' } })
+  H.eq({ narrator.armed, queen.armed }, { false, true })
+  H.eq(s.fake.play_state, 5)
+  H.eq(#s.fake.undo, 0, 'an arm is not in the undo history; the take stays one point')
+end)
+
+H.test('a take with a switch stops as one undo point, one item per voice, the cursor at the end of the last voice', function()
+  local s, narrator, queen, pickups = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s.fake.play_position = 4.9
+  s:tick()
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'VOICE_SWITCHED', 'v1', queen.guid, '3.600000' }, { 'RECORD_STOPPED', 's1', '2', '0', '1' } })
+  local spans = {}
+  for _, item in ipairs(s.fake.items) do
+    spans[#spans + 1] = { item.track.name, item.position, item.position + item.length }
+  end
+  H.eq(spans, { { 'Narrator', 2, 3.6 }, { 'Queen', 3.664, 5 } })
+  H.eq(s.fake.cursor, 5, 'where the last voice stopped')
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { false, false, true }, "the narrator's own arms are back")
+end)
+
+H.test('after a switch, the end rule goes on from where the last voice stopped, on that voice', function()
+  local s, _, queen, pickups = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  queen.armed, pickups.armed = true, false
+  s:send('record_start', 'r2', queen.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', queen.guid, '5.000000' } })
+end)
+
+H.test('a take with a switch the narrator stops in REAPER ends the same way', function()
+  local s, narrator, queen, pickups = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s:events()
+  s.fake:stop_recording()
+  s:tick()
+  H.eq(s:events(), { { 'RECORD_ENDED', 'r1', '2', '0', '1' } }, 'Queen back off, Pickups back on')
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { false, false, true })
+end)
+
+H.test('switch_voice back to the voice already armed changes nothing and says so', function()
+  local s, narrator = voice_session()
+  s.fake.play_position = 3
+  s:send('switch_voice', 'v1', narrator.guid)
+  local before = calls_named(s, 'SetMediaTrackInfo_Value')
+  s:send('switch_voice', 'v2', narrator.guid)
+  H.eq(s:events(), { { 'VOICE_SWITCHED', 'v1', narrator.guid, '3.000000' }, { 'VOICE_SWITCHED', 'v2', narrator.guid, '3.000000' } })
+  H.eq(calls_named(s, 'SetMediaTrackInfo_Value'), before, 'no arm written')
+  H.eq(narrator.armed, true)
+end)
+
+H.test('two switches in one take make three items, each voice where it was armed', function()
+  local s, narrator, queen = voice_session()
+  s.fake.play_position = 2.5
+  s:send('switch_voice', 'v1', queen.guid)
+  s.fake.play_position = 3.5
+  s:send('switch_voice', 'v2', narrator.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  local spans = {}
+  for _, item in ipairs(s.fake.items) do
+    spans[#spans + 1] = { item.track.name, item.position, item.position + item.length }
+  end
+  H.eq(spans, { { 'Narrator', 2, 2.5 }, { 'Queen', 2.564, 3.5 }, { 'Narrator', 3.564, 5 } })
+  H.eq(s.fake.cursor, 5)
+end)
+
+H.test('switch_voice is refused with no recording this bridge started, and nothing changes', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator, queen = s.fake:add_track('Narrator'), s.fake:add_track('Queen')
+  narrator.armed = true
+  s.fake.play_state = 5 -- the narrator recording in REAPER on their own
+  s:send('switch_voice', 'v1', queen.guid)
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 'v1' } })
+  H.eq({ narrator.armed, queen.armed }, { true, false })
+end)
+
+H.test('switch_voice is refused while REAPER has not started the recording yet', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator, queen = s.fake:add_track('Narrator'), s.fake:add_track('Queen')
+  narrator.armed = true
+  s.fake.record_delay_ticks = 3
+  s:send('record_start', 'r1', narrator.guid)
+  s:send('switch_voice', 'v1', queen.guid)
+  H.eq(s:events(), { { 'ERROR', 'v1', 'REAPER has not started recording yet.' } })
+  H.eq({ narrator.armed, queen.armed }, { true, false })
+end)
+
+H.test('switch_voice to a track that is gone answers TRACK_STALE and keeps recording the voice it was', function()
+  local s, narrator = voice_session()
+  s:send('switch_voice', 'v1', '{00000000-0000-0000-0000-000000000000}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'v1', '{00000000-0000-0000-0000-000000000000}' } })
+  H.eq(narrator.armed, true)
+end)

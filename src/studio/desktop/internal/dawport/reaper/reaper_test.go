@@ -112,6 +112,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,
+	"switch_voice":        dawport.CapRecord,
 	"set_active_take":     dawport.CapTakes,
 	"hide_takes":          dawport.CapTakes,
 	"split_take":          dawport.CapTakes,

@@ -268,21 +268,17 @@ def two_children_same_cursor(env: Env) -> str:
         env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
         settled_items(env, count)
         if count == 1:
-            # Back to the take's start through the product's set_cursor at once: the bridge's stop guard (guard_stop, 15 defer cycles)
-            # reads a cursor at the recording's start as REAPER's own seek and puts it back at the stop.
+            # Back to the take's start through the product's set_cursor at once. The bridge's stop guard (guard_stop, 15 defer cycles)
+            # used to read that as REAPER's own seek and put it back at the stop; set_cursor now ends the guard (section 6b).
             env.ok("set_cursor", "2", until="CURSOR_SET")
             time.sleep(0.8)
             guarded = round(env.snapshot()["cursor"], 3)
-            env.ok("set_cursor", "2", until="CURSOR_SET")
-            near(env.snapshot()["cursor"], 2.0, 1e-6, "the cursor set again once the guard has run out")
+            near(guarded, 2.0, 1e-6, "set_cursor sent at once after the stop holds")
     tracks = per_track(settled_items(env, 2))
     assert set(tracks) == {"Narrator", "Veyra"}, tracks
     assert all(len(rows) == 1 and rows[0][2] == 1 for rows in tracks.values()), f"a take split or stacked: {tracks}"
     near(tracks["Narrator"][0][0], tracks["Veyra"][0][0], 0.01, "both takes start at the same cursor")
-    return (
-        f"items {tracks}: one item, one take on each child, nothing on the folder. set_cursor to the take's start right after the stop "
-        f"was moved back to {guarded} s by the stop guard; sent again 0.8 s later it held"
-    )
+    return f"items {tracks}: one item, one take on each child, nothing on the folder. set_cursor to the take's start right after the stop held at {guarded} s"
 
 
 # -- switching voice -----------------------------------------------------------------------------------------------------------
@@ -421,6 +417,53 @@ def live_arm_switch(env: Env) -> str:
     return (
         f"switched at {at:.3f} s (heard position), stopped at {stop_at:.3f} s; still recording after the switch: {still}; items {tracks}; "
         f"undo {undo!r}, one Undo left {after_undo}"
+    )
+
+
+@scenario(
+    "booth_voices",
+    "switch_voice",
+    "voices phase 4: switch_voice over the bridge moves a take from one child to another while REAPER records; one undo point, the arms put back",
+    needs_audio=True,
+)
+def switch_voice_bridge(env: Env) -> str:
+    g = folder_book(env)
+    env.lua("reaper.SetEditCurPos(1, false, false) return true")
+    env.ok("arm_only", g["Narrator"], until="ARMED")
+    env.ok("record_start", g["Narrator"], until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 2.5, timeout=8, what="the Narrator's part to run")
+    t0 = time.monotonic()
+    switched = env.ok("switch_voice", g["Veyra"], until="VOICE_SWITCHED")
+    call_ms = (time.monotonic() - t0) * 1000
+    at = float(switched[3])
+    assert switched[2] == g["Veyra"], f"switched to {switched}"
+    assert recording(env), "REAPER stopped recording on the switch"
+    armed = env.lua(
+        "return { reaper.GetMediaTrackInfo_Value(ci.track_by_name('Narrator'), 'I_RECARM'), reaper.GetMediaTrackInfo_Value(ci.track_by_name('Veyra'), 'I_RECARM') }"
+    )
+    assert armed == [0, 1], f"arms during the take {armed}"
+    env.wait_for(lambda: position(env) > at + 1.5, timeout=8, what="Veyra's part to run")
+    stopped = env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    tracks = per_track(settled_items(env, 2))
+    assert set(tracks) == {"Narrator", "Veyra"} and all(len(rows) == 1 for rows in tracks.values()), tracks
+    narrator_end = tracks["Narrator"][0][0] + tracks["Narrator"][0][1]
+    veyra_start, veyra_end = tracks["Veyra"][0][0], tracks["Veyra"][0][0] + tracks["Veyra"][0][1]
+    near(narrator_end, at, 0.1, "the Narrator's item ends at the switch")
+    assert veyra_start >= narrator_end - 1e-3, f"the voices overlap: {tracks}"
+    cursor = env.snapshot()["cursor"]
+    near(cursor, veyra_end, 0.01, "the cursor at the end of the last voice's item")
+    arms_after = env.lua(
+        "local out = {} for i = 0, reaper.CountTracks(0) - 1 do out[#out + 1] = reaper.GetMediaTrackInfo_Value(reaper.GetTrack(0, i), 'I_RECARM') end return out"
+    )
+    assert not any(arms_after), f"arms after the stop {arms_after}: the narrator had none armed"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    after_undo = per_track(env.snapshot()["items"])
+    assert after_undo == {}, f"one Undo left {after_undo}"
+    return (
+        f"switched at {at:.3f} s in {call_ms:.0f} ms (driver round trip), REAPER kept recording; undo points {stopped[4]}; items {tracks}; "
+        f"gap {(veyra_start - narrator_end) * 1000:.0f} ms; cursor {cursor:.3f} s; arms put back {arms_after}; undo {undo!r}, one Undo took both"
     )
 
 

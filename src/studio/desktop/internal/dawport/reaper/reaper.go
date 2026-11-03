@@ -123,6 +123,7 @@ var commandCapability = map[string]dawport.Capability{
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,
+	"switch_voice":        dawport.CapRecord,
 	"punch_to":            dawport.CapPunch,
 	"play_position":       dawport.CapPunch,
 	"roll":                dawport.CapPunch,

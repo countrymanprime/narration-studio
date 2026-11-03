@@ -308,7 +308,33 @@ function Fake:begin_recording()
     end
   end
   self.play_state = 5
-  self.recording_from = { snapshot = self:snapshot(), position = self.cursor, tracks = armed }
+  local spans = {}
+  for _, track in ipairs(armed) do
+    -- A span armed at the start has no `from` of its own: it starts at the recording's position.
+    spans[#spans + 1] = { track = track }
+  end
+  self.recording_from = { snapshot = self:snapshot(), position = self.cursor, tracks = armed, spans = spans }
+end
+
+-- How long after an arm switched during a take the newly armed track starts recording: 64 ms, three 1024-frame blocks at
+-- 48 kHz (docs/research/2026-10-30-booth-sub-track-recording.md, section 6a, row 7).
+local ARM_SWITCH_GAP = 0.064
+
+-- A track armed or disarmed while REAPER records (row 7): a disarmed track's recording ends at the play position, and an
+-- armed one starts recording ARM_SWITCH_GAP after it. Both become items at the stop.
+function Fake:arm_during_recording(track, on)
+  local from = self.recording_from
+  for _, span in ipairs(from.spans) do
+    if span.track == track and not span['until'] then
+      if not on then
+        span['until'] = self.play_position
+      end
+      return
+    end
+  end
+  if on then
+    from.spans[#from.spans + 1] = { track = track, from = self.play_position + ARM_SWITCH_GAP }
+  end
 end
 
 -- A stop, from the Stop button, a second CSurf_OnRecord or (stop_recording called by a test) the narrator in REAPER.
@@ -319,11 +345,13 @@ function Fake:stop_recording()
   local from = self.recording_from
   self.recording_from = nil
   self.play_state = 0
-  if not from or #from.tracks == 0 then
+  if not from or #from.spans == 0 then
     return
   end
-  for _, track in ipairs(from.tracks) do
-    self:add_item(track, { position = from.position, length = self.record_seconds or 1, source = 'recorded.wav' })
+  local stop = from.position + (self.record_seconds or 1)
+  for _, span in ipairs(from.spans) do
+    local starts, ends = span.from or from.position, span['until'] or stop
+    self:add_item(span.track, { position = starts, length = math.max(0, ends - starts), source = 'recorded.wav' })
   end
   self.undo[#self.undo + 1] = { label = 'Recorded media', snapshot = from.snapshot }
   self.change_count = self.change_count + 1
@@ -1754,6 +1782,9 @@ function Fake:add_lane_api(api)
     elseif key == 'I_NUMFIXEDLANES' then
       track.lane_count = value
     elseif key == 'I_RECARM' then
+      if fake.recording_from and (value ~= 0) ~= (track.armed == true) then
+        fake:arm_during_recording(track, value ~= 0)
+      end
       track.armed = value ~= 0
     elseif key == 'B_MUTE' then
       track.muted = value ~= 0
