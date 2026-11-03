@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
 import { useApi } from '../../../api/ApiContext';
 import { useChapterSync } from '../../../hooks/useChapterSync';
+import { IconButton } from '../../primitives/IconButton';
 import { RadioGroup } from '../../primitives/RadioGroup';
 import { useSettingsHost } from '../row/SettingsHost';
 
@@ -19,25 +20,44 @@ export function SyncEnabledBody() {
   const api = useApi();
   const { notify } = useSettingsHost();
   const state = useChapterSync(api);
-  const [pending, setPending] = useState(false);
+  // Quick choices are not lost: the last one is sent once the one in flight has answered.
+  const wanted = useRef<'on' | 'off' | null>(null);
+  const sending = useRef(false);
+  // What the narrator picked while it is being sent, so the radios show it at once and a second pick is a change from it.
+  const [picked, setPicked] = useState<'on' | 'off' | null>(null);
   const choose = async (next: string) => {
-    if (pending) return;
-    setPending(true);
+    wanted.current = next === 'on' ? 'on' : 'off';
+    setPicked(wanted.current);
+    if (sending.current) return;
+    sending.current = true;
     try {
-      await api.chapterSyncSetEnabled(next === 'on');
-    } catch (error) {
-      notify(describeApiError(error), 'error');
+      while (wanted.current !== null) {
+        const now = wanted.current;
+        wanted.current = null;
+        try {
+          await api.chapterSyncSetEnabled(now === 'on');
+        } catch (error) {
+          notify(describeApiError(error), 'error');
+          wanted.current = null;
+        }
+      }
     } finally {
-      setPending(false);
+      sending.current = false;
+      setPicked(null);
     }
   };
-  const value = state?.consent === 'on' || state?.consent === 'off' ? state.consent : '';
+  const value = picked ?? (state?.consent === 'on' || state?.consent === 'off' ? state.consent : '');
   return (
-    <RadioGroup
-      label="Sync chapters to tracks"
-      value={value}
-      onChange={(next) => void choose(next)}
-      options={OPTIONS.map((option) => ({ ...option, disabled: !state || pending }))}
-    />
+    <div className="flex items-center gap-1.5">
+      <RadioGroup
+        label="Sync chapters to tracks"
+        value={value}
+        onChange={(next) => void choose(next)}
+        options={OPTIONS.map((option) => ({ ...option, disabled: !state }))}
+      />
+      {state?.consent === 'off' && (
+        <IconButton action="undo" label="Reset Sync chapters to tracks to On" className="border-transparent" onClick={() => void choose('on')} />
+      )}
+    </div>
   );
 }
