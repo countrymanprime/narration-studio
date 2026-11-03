@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { scheduleDrivers } from './drivers/schedule';
+import { settlePage } from './helpers/settle';
 
 // The Schedule's milestone table lines up with its card and keeps its columns (alignment audit XSH-3, XSH-4, XSH-11, XSH-12, XSH-17,
 // R3SH-5, R3SH-7, R4SM-13, R4SM-14): the Milestone column starts at the card title for every row, Due and Status stand at the same x
@@ -105,3 +106,33 @@ test('Schedule / at 390 px a milestone row stacks, so no button or date is reach
   expect(fit.buttonsRight, 'the row buttons end inside the card').toBeLessThanOrEqual(fit.cardRight);
   expect(fit.dateScrolls, 'the Final delivery date is shown whole, not cut to its year').toBe(false);
 });
+
+// The Add milestone dialog's fields scroll inside it and its footer, Cancel and Add milestone, stays on screen and topmost at short windows
+// (they sat below a 400 px window, reachable only by scrolling the dialog).
+for (const size of [
+  { width: 700, height: 400 },
+  { width: 360, height: 500 },
+  { width: 320, height: 300 },
+]) {
+  test(`Schedule / Add milestone keeps Cancel and Add milestone reachable / ${size.width}x${size.height}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await settlePage(page);
+    await scheduleDrivers['no-due-date']!(page);
+    await page.setViewportSize(size);
+    await page.getByRole('button', { name: 'Add milestone' }).first().click();
+    const dialog = page.getByRole('dialog').last();
+    await dialog.waitFor();
+    for (const name of [/^Cancel$/, /^Add milestone$/]) {
+      const button = dialog.getByRole('button', { name });
+      const box = (await button.boundingBox())!;
+      expect(box.y + box.height, `${name} is above the bottom edge`).toBeLessThanOrEqual(size.height);
+      const topmost = await button.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const top = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return top !== null && element.contains(top);
+      });
+      expect(topmost, `${name} is topmost`).toBe(true);
+    }
+  });
+}
